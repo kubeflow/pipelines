@@ -21,7 +21,7 @@ exports[`Tensorboard > base component snapshot 1`] = `
             class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls="mui-1"
+              aria-controls="_r_0_"
               aria-expanded="false"
               aria-haspopup="listbox"
               class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import TestUtils from 'src/TestUtils';
 import { Apis } from 'src/lib/Apis';

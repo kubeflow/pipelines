@@ -35,16 +35,17 @@ jobs:
       matrix:
         pipeline_store: [ "database", "kubernetes" ]
         k8s_version: [ "v1.34.0" ]
-        pod_to_pod_tls_enabled: [ true, false ]
+        pod_to_pod_tls_enabled: [ "true", "false" ]
         exclude:
           # Pod to Pod TLS manifests are not yet implemented for Kubernetes Native API mode
           - pipeline_store: "kubernetes"
-            pod_to_pod_tls_enabled: true
+            pod_to_pod_tls_enabled: "true"
+      fail-fast: false
 
     name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -76,7 +77,7 @@ jobs:
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
-        if: ${{ matrix.pod_to_pod_tls_enabled }}
+        if: ${{ matrix.pod_to_pod_tls_enabled == 'true' }}
         run: |
           kubectl get secret argo-workflows-agent-ca-certificates -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
           echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
@@ -105,7 +106,7 @@ jobs:
 
       - name: Collect test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kfp-api-integration-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}-${{ matrix.pipeline_store }}-tls-${{ matrix.pod_to_pod_tls_enabled }}
           path: /tmp/tmp*/*

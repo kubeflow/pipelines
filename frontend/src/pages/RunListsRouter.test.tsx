@@ -17,7 +17,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import produce from 'immer';
 import RunListsRouter, { RunListsRouterProps } from './RunListsRouter';
-import React from 'react';
 import { RouteParams } from 'src/components/Router';
 import { V2beta1Run, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { ApiExperiment } from 'src/apis/experiment';

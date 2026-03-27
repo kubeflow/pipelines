@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Elements, FlowElement, Node } from 'react-flow-renderer';
+import { Node } from '@xyflow/react';
 import {
   ArtifactFlowElementData,
   ExecutionFlowElementData,
@@ -27,6 +27,7 @@ import {
   getArtifactNodeKey,
   getIterationIdFromNodeKey,
   getTaskKeyFromNodeKey,
+  isNode,
   getTaskNodeKey,
   NodeTypeNames,
   PipelineFlowElement,
@@ -45,7 +46,7 @@ export function convertSubDagToRuntimeFlowElements(
   spec: PipelineSpec,
   layers: string[],
   executions: Execution[],
-): Elements {
+): PipelineFlowElement[] {
   let componentSpec = spec.root;
   if (!componentSpec) {
     throw new Error('root not found in pipeline spec.');
@@ -145,8 +146,8 @@ function getExecutionLayers(layers: string[], executions: Execution[]) {
   return exectuionLayers;
 }
 
-function buildParallelForDag(rootDagExecution: Execution): Elements {
-  let flowGraph: FlowElement[] = [];
+function buildParallelForDag(rootDagExecution: Execution): PipelineFlowElement[] {
+  let flowGraph: PipelineFlowElement[] = [];
   addIterationNodes(rootDagExecution, flowGraph);
   return buildGraphLayout(flowGraph);
 }
@@ -246,7 +247,7 @@ export function updateFlowElementsState(
     );
 
     for (let elem of elems) {
-      let updatedElem = Object.assign({}, elem);
+      const updatedElem = cloneFlowElement(elem);
       const iterationId = Number(getIterationIdFromNodeKey(updatedElem.id));
       const matchedExecs = executions?.filter((exec) => {
         const customProperties = exec.getCustomPropertiesMap();
@@ -262,7 +263,7 @@ export function updateFlowElementsState(
     return flowGraph;
   }
   for (let elem of elems) {
-    let updatedElem = Object.assign({}, elem);
+    const updatedElem = cloneFlowElement(elem);
     if (NodeTypeNames.EXECUTION === elem.type) {
       const executions = getExecutionsUnderDAG(
         taskNameToExecution,
@@ -310,6 +311,33 @@ export function updateFlowElementsState(
   return flowGraph;
 }
 
+function cloneFlowElement(elem: PipelineFlowElement): PipelineFlowElement {
+  if (isNode(elem)) {
+    const {
+      data,
+      dragging: _dragging,
+      hidden: _hidden,
+      position,
+      resizing: _resizing,
+      selected: _selected,
+      ...rest
+    } = elem;
+
+    return {
+      ...rest,
+      data: data ? { ...data } : data,
+      position: { ...position },
+    };
+  }
+
+  return {
+    id: elem.id,
+    markerEnd: elem.markerEnd,
+    source: elem.source,
+    target: elem.target,
+  };
+}
+
 function getTaskLabelByPipelineFlowElement(elem: PipelineFlowElement) {
   // Always use the original task name from the node ID for MLMD data lookups
   return getTaskKeyFromNodeKey(elem.id);
@@ -329,7 +357,7 @@ function getExecutionsUnderDAG(
 }
 
 export function getNodeMlmdInfo(
-  elem: FlowElement<FlowElementDataBase> | null,
+  elem: PipelineFlowElement | null,
   executions: Execution[],
   events: Event[],
   artifacts: Artifact[],

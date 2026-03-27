@@ -188,6 +188,7 @@ func GetTasksFromWorkflow(workflow *v1alpha1.Workflow) []TaskDetails {
 				if task.When == "" {
 					continue
 				}
+
 				container, containerExists := containers[task.Template]
 				taskToAppend := TaskDetails{
 					TaskName:  task.Name,

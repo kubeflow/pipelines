@@ -13,7 +13,7 @@ exports[`Input > accepts height and width as prop overrides 1`] = `
       <input
         aria-invalid="false"
         class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-        id="mui-2"
+        id="_r_1_"
         type="text"
         value="some input value"
       />
@@ -49,7 +49,7 @@ exports[`Input > renders with the right styles by default 1`] = `
       <input
         aria-invalid="false"
         class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-        id="mui-1"
+        id="_r_0_"
         type="text"
         value="some input value"
       />

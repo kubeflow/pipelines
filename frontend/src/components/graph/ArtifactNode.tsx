@@ -16,7 +16,7 @@
 
 import FolderIcon from '@mui/icons-material/Folder';
 import React from 'react';
-import { Handle, Position } from 'react-flow-renderer';
+import { Handle, Position } from '@xyflow/react';
 import { Artifact } from 'src/third_party/mlmd';
 import { ArtifactFlowElementData } from './Constants';
 

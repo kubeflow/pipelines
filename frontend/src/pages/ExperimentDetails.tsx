@@ -340,13 +340,17 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       }
 
       let runlistRefreshCount = this.state.runlistRefreshCount + 1;
-      this.setStateSafe({
-        activeRecurringRunsCount,
-        experiment,
-        runStorageState,
-        runlistRefreshCount,
-      });
-      this._selectionChanged([]);
+      this.setStateSafe(
+        {
+          activeRecurringRunsCount,
+          experiment,
+          runStorageState,
+          runlistRefreshCount,
+        },
+        () => {
+          this._selectionChanged([]);
+        },
+      );
     } catch (err) {
       const error = err instanceof Error ? err : new Error(await errorToMessage(err));
       await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, error);

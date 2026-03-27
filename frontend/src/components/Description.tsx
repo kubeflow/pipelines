@@ -36,9 +36,20 @@ const optionsForceInline = {
   forceInline: true,
 };
 
+/**
+ * In forceInline mode the v7 parser consumes `*`/`-`/`+` list markers as
+ * emphasis syntax, stripping the bullet characters from rendered output.
+ * Replace markdown list markers with a Unicode bullet before parsing so
+ * they survive as visible text.
+ */
+function preserveListMarkers(text: string): string {
+  return text.replace(/^(\s*)[*\-+] /gm, '$1\u2022 ');
+}
+
 export const Description: React.FC<{ description: string; forceInline?: boolean }> = ({
   description,
   forceInline,
 }) => {
-  return <Markdown options={forceInline ? optionsForceInline : options}>{description}</Markdown>;
+  const text = forceInline ? preserveListMarkers(description) : description;
+  return <Markdown options={forceInline ? optionsForceInline : options}>{text}</Markdown>;
 };

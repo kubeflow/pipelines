@@ -17,6 +17,7 @@ import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import * as React from 'react';
 import { getMetadataValue } from 'src/mlmd/library';
 import { Artifact, Execution } from 'src/third_party/mlmd';
+import { isReservedArtifactProperty } from 'src/lib/ReservedArtifactProperties';
 import { stylesheet } from 'typestyle';
 import { color, commonCss } from '../Css';
 import { ArtifactLink } from './ArtifactLink';
@@ -111,17 +112,20 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
         </dl>
         <h2 className={commonCss.header2}>Custom Properties</h2>
         <dl className={css.resourceInfo}>
-          {customPropertyMap.getEntryList().map((k) => (
-            <div className={css.field} key={k[0]} data-testid='resource-info-property'>
-              <dt className={css.term} data-testid='resource-info-property-key'>
-                {k[0]}
-              </dt>
-              <dd className={css.value} data-testid='resource-info-property-value'>
-                {customPropertyMap &&
-                  prettyPrintValue(getMetadataValue(customPropertyMap.get(k[0])))}
-              </dd>
-            </div>
-          ))}
+          {customPropertyMap
+            .getEntryList()
+            .filter((k) => !isReservedArtifactProperty(k[0]))
+            .map((k) => (
+              <div className={css.field} key={k[0]} data-testid='resource-info-property'>
+                <dt className={css.term} data-testid='resource-info-property-key'>
+                  {k[0]}
+                </dt>
+                <dd className={css.value} data-testid='resource-info-property-value'>
+                  {customPropertyMap &&
+                    prettyPrintValue(getMetadataValue(customPropertyMap.get(k[0])))}
+                </dd>
+              </div>
+            ))}
         </dl>
       </section>
     );

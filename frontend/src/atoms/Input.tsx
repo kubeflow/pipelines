@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import { OutlinedTextFieldProps } from '@mui/material/TextField';
 import { commonCss } from '../Css';
 

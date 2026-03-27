@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import PlotCard from './PlotCard';
 import { ViewerConfig, PlotType } from './viewers/Viewer';

@@ -18,6 +18,7 @@ import { CircularProgress } from '@mui/material';
 import React, { Component } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { Api, getArtifactTypes } from 'src/mlmd/library';
 import {
   ExecutionHelpers,
@@ -268,7 +269,7 @@ export class ExecutionDetailsContent extends Component<
   };
 }
 
-function parseEventsByType(
+export function parseEventsByType(
   response: GetEventsByExecutionIDsResponse | null,
 ): Record<Event.Type, Event[]> {
   const events: Record<Event.Type, Event[]> = {
@@ -438,12 +439,9 @@ interface ExecutionReferenceProps {
 }
 
 function ExecutionReference({ execution }: ExecutionReferenceProps) {
-  const { isSuccess, data: context } = useQuery<Context | undefined, Error>({
-    queryKey: [
-      'context_by_execution',
-      { id: execution.getId(), state: execution.getLastKnownState() },
-    ],
-    queryFn: () => getContextByExecution(execution, KFP_V2_RUN_CONTEXT_TYPE),
+  const { isSuccess, data: context } = useQuery<Context | null, Error>({
+    queryKey: queryKeys.contextByExecution(execution.getId(), execution.getLastKnownState()),
+    queryFn: async () => (await getContextByExecution(execution, KFP_V2_RUN_CONTEXT_TYPE)) ?? null,
     staleTime: Infinity,
   });
 

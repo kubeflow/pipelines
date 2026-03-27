@@ -36,14 +36,22 @@ def construct_executor_input(
     input_parameter_keys = list(
         component_spec.input_definitions.parameters.keys())
     # need to also add injected input parameters for f-string
+    # exclude declared input artifact keys because optional artifacts may be
+    # present in arguments with a None value
     input_parameter_keys += [
-        k for k, v in arguments.items() if not isinstance(v, dsl.Artifact)
+        k for k, v in arguments.items()
+        if (not isinstance(v, dsl.Artifact) and
+            k not in component_spec.input_definitions.artifacts)
     ]
-    input_artifact_keys = list(
-        component_spec.input_definitions.artifacts.keys())
-    if input_artifact_keys and block_input_artifact:
+    provided_input_artifact_keys = {
+        artifact_name
+        for artifact_name in component_spec.input_definitions.artifacts.keys()
+        if artifact_name in arguments and arguments[artifact_name] is not None
+    }
+    if provided_input_artifact_keys and block_input_artifact:
         raise ValueError(
-            'Input artifacts are not yet supported for local execution.')
+            'Input artifacts are not yet supported for local execution. '
+            f'Got: {sorted(provided_input_artifact_keys)}')
 
     inputs = pipeline_spec_pb2.ExecutorInput.Inputs(
         parameter_values={
@@ -60,6 +68,7 @@ def construct_executor_input(
                 dsl_artifact_to_artifact_list(arguments[artifact_name])
             for artifact_name, _ in
             component_spec.input_definitions.artifacts.items()
+            if artifact_name in provided_input_artifact_keys
         },
     )
 

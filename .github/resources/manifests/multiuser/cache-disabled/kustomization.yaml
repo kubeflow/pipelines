@@ -38,6 +38,10 @@ images:
     newTag: latest
 
 patches:
+  - path: ../pipeline-crd-rbac.yaml
+    target:
+      kind: ClusterRole
+      name: ml-pipeline
   - path: ../../base/apiserver-env.yaml
     target:
       kind: Deployment

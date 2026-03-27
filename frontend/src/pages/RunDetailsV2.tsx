@@ -12,15 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as React from 'react';
-import { MouseEvent as ReactMouseEvent, useEffect, useState } from 'react';
-import { Edge, FlowElement, Node } from 'react-flow-renderer';
+import { MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import DetailsTable from 'src/components/DetailsTable';
-import { FlowElementDataBase } from 'src/components/graph/Constants';
 import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import SidePanel from 'src/components/SidePanel';
@@ -37,7 +35,7 @@ import {
   getNodeMlmdInfo,
   updateFlowElementsState,
 } from 'src/lib/v2/DynamicFlow';
-import { convertFlowElements } from 'src/lib/v2/StaticFlow';
+import { convertFlowElements, getNodeName, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import {
   getArtifactsFromContext,
@@ -48,6 +46,7 @@ import {
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, Event, Execution } from 'src/third_party/mlmd';
 import { classes } from 'typestyle';
+import { RouteComponentProps } from 'react-router-dom';
 import { RunDetailsProps } from './RunDetails';
 import { statusToIcon } from './StatusV2';
 import DagCanvas from './v2/DagCanvas';
@@ -72,35 +71,36 @@ interface RunDetailsV2Info {
   run: V2beta1Run;
 }
 
-export type RunDetailsV2Props = RunDetailsV2Info & RunDetailsProps;
+export interface RunDetailsV2Params {
+  [RouteParams.runId]: string;
+}
+
+export type RunDetailsV2Props = RunDetailsV2Info &
+  RunDetailsProps &
+  RouteComponentProps<RunDetailsV2Params>;
 
 export function RunDetailsV2(props: RunDetailsV2Props) {
   const { updateBanner } = props;
   const runId = props.match.params[RouteParams.runId];
   const run = props.run;
   const pipelineJobStr = props.pipeline_job;
-  const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(pipelineJobStr);
-  const elements = convertFlowElements(pipelineSpec);
+  const pipelineSpec = useMemo(
+    () => WorkflowUtils.convertYamlToV2PipelineSpec(pipelineJobStr),
+    [pipelineJobStr],
+  );
+  const initialElements = useMemo(() => convertFlowElements(pipelineSpec), [pipelineSpec]);
 
-  const [flowElements, setFlowElements] = useState(elements);
+  const [flowElements, setFlowElements] = useState(initialElements);
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
-  const [selectedNode, setSelectedNode] = useState<FlowElement<FlowElementDataBase> | null>(null);
+  const [selectedNode, setSelectedNode] = useState<PipelineFlowElement | null>(null);
   const [selectedNodeMlmdInfo, setSelectedNodeMlmdInfo] = useState<NodeMlmdInfo | null>(null);
   const [, forceUpdate] = useState();
   const [runFinished, setRunFinished] = useState(false);
 
-  const getNodeName = function (element: FlowElement<FlowElementDataBase> | null): string {
-    if (element && element.data && element.data.label) {
-      return element.data.label;
-    }
-
-    return 'unknown';
-  };
-
   // Retrieves MLMD states from the MLMD store.
   const { isSuccess, isError, error, data } = useQuery<MlmdPackage, Error>({
-    queryKey: ['mlmd_package', { id: runId }],
+    queryKey: queryKeys.mlmdPackage(runId),
     queryFn: async () => {
       const context = await getKfpV2RunContext(runId);
       const executions = await getExecutionsFromContext(context);
@@ -127,26 +127,33 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     }
   }, [isError, isSuccess, error, updateBanner]);
 
-  const layerChange = (layers: string[]) => {
-    setSelectedNode(null);
-    setLayers(layers);
-    setFlowElements(
-      convertSubDagToRuntimeFlowElements(pipelineSpec, layers, data ? data.executions : []),
-    ); // render elements in the sub-layer.
-  };
+  const layerChange = useCallback(
+    (layers: string[]) => {
+      setSelectedNode(null);
+      setLayers(layers);
+      setFlowElements(
+        convertSubDagToRuntimeFlowElements(pipelineSpec, layers, data ? data.executions : []),
+      ); // render elements in the sub-layer.
+    },
+    [data, pipelineSpec],
+  );
 
-  let dynamicFlowElements = flowElements;
-  if (isSuccess && data) {
-    dynamicFlowElements = updateFlowElementsState(
+  const dynamicFlowElements = useMemo(() => {
+    if (!isSuccess || !data) {
+      return flowElements;
+    }
+
+    // Keep React Flow node references stable between unrelated rerenders after MLMD data arrives.
+    return updateFlowElementsState(
       layers,
       flowElements,
       data.executions,
       data.events,
       data.artifacts,
     );
-  }
+  }, [data, flowElements, isSuccess, layers]);
 
-  const onElementSelection = (event: ReactMouseEvent, element: Node | Edge) => {
+  const onElementSelection = (event: ReactMouseEvent, element: PipelineFlowElement) => {
     setSelectedNode(element);
     if (data) {
       setSelectedNodeMlmdInfo(
@@ -158,7 +165,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   // Retrieves experiment detail.
   const experimentId = run.experiment_id || null;
   const { data: experiment } = useQuery<V2beta1Experiment, Error>({
-    queryKey: ['RunDetailsV2_experiment', { runId: runId, experimentId: experimentId }],
+    queryKey: queryKeys.runDetailsV2Experiment(runId, experimentId),
     queryFn: () => getExperiment(experimentId),
   });
   const namespace = experiment?.namespace;

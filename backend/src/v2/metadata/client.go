@@ -1225,7 +1225,7 @@ func (c *Client) matchedArtifactOrNot(ctx context.Context, target *pb.Artifact, 
 	}
 	res, err := c.svc.GetContextsByArtifact(ctx, &pb.GetContextsByArtifactRequest{ArtifactId: candidate.Id})
 	if err != nil {
-		return false, fmt.Errorf("failed to get contextsByArtifact with artifactID=%q: %w", candidate.GetId(), err)
+		return false, fmt.Errorf("failed to get contextsByArtifact with artifactID=%d: %w", candidate.GetId(), err)
 	}
 	for _, c := range res.GetContexts() {
 		if c.GetId() == pipelineContextId {
@@ -1329,7 +1329,7 @@ func GenerateExecutionConfig(executorInput *pipelinespec.ExecutorInput) (*Execut
 		for _, artifact := range artifactList.Artifacts {
 			id, err := strconv.ParseInt(artifact.Name, 10, 64)
 			if err != nil {
-				return nil, fmt.Errorf("unable to parse input artifact id from %q: %w", id, err)
+				return nil, fmt.Errorf("unable to parse input artifact id from %q: %w", artifact.Name, err)
 			}
 			ecfg.InputArtifactIDs[name] = append(ecfg.InputArtifactIDs[name], id)
 		}

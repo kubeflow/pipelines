@@ -13,7 +13,6 @@
 // limitations under the License.
 
 import { vi, describe, it, expect, afterAll, afterEach, beforeEach, Mock } from 'vitest';
-import { Storage as GCSStorage } from '@google-cloud/storage';
 import * as fs from 'fs';
 import * as minio from 'minio';
 import * as path from 'path';
@@ -24,11 +23,12 @@ import { loadConfigs } from '../configs.js';
 import * as serverInfo from '../helpers/server-info.js';
 import { commonSetup, mkTempDir } from './test-helper.js';
 import { getK8sSecret } from '../k8s-helper.js';
+import { downloadGCSObjectStream, getGCSClient, listGCSObjectNames } from '../gcs-helper.js';
 
 const MinioClient = minio.Client;
 vi.mock('minio');
-vi.mock('@google-cloud/storage');
 vi.mock('../k8s-helper');
+vi.mock('../gcs-helper.js');
 
 const mockedFetch = vi.fn();
 vi.stubGlobal('fetch', mockedFetch);
@@ -372,20 +372,18 @@ describe('/artifacts', () => {
 
     it('responds with artifact if source is gcs, and creds are sourced from Provider Configs', async () => {
       const artifactContent = 'hello world';
-      const mockedGcsStorage: Mock = GCSStorage as any;
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
       const mockedGetK8sSecret: Mock = getK8sSecret as any;
+      const client = { request: vi.fn() };
       mockedGetK8sSecret.mockResolvedValue('{"private_key":"testkey","client_email":"testemail"}');
       const stream = new PassThrough();
       stream.write(artifactContent);
       stream.end();
-      mockedGcsStorage.mockImplementationOnce(function () {
-        return {
-          bucket: () => ({
-            getFiles: () =>
-              Promise.resolve([[{ name: 'hello/world.txt', createReadStream: () => stream }]]),
-          }),
-        };
-      });
+      mockedGetGCSClient.mockResolvedValueOnce(client);
+      mockedListGCSObjectNames.mockResolvedValueOnce(['hello/world.txt']);
+      mockedDownloadGCSObjectStream.mockResolvedValueOnce(stream);
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
       const request = requests(app.app);
@@ -406,13 +404,28 @@ describe('/artifacts', () => {
         )
         .expect(200, artifactContent + '\n');
       const expectedArg = {
+        bucket: 'ml-pipeline',
+        client,
         credentials: {
           client_email: 'testemail',
           private_key: 'testkey',
         },
-        scopes: 'https://www.googleapis.com/auth/devstorage.read_write',
+        prefix: 'hello/world.txt',
       };
-      expect(mockedGcsStorage).toBeCalledWith(expectedArg);
+      expect(mockedListGCSObjectNames).toBeCalledWith(expectedArg);
+      expect(mockedDownloadGCSObjectStream).toBeCalledWith({
+        bucket: 'ml-pipeline',
+        client,
+        credentials: {
+          client_email: 'testemail',
+          private_key: 'testkey',
+        },
+        objectName: 'hello/world.txt',
+      });
+      expect(mockedGetGCSClient).toBeCalledWith({
+        client_email: 'testemail',
+        private_key: 'testkey',
+      });
       expect(mockedGetK8sSecret).toBeCalledWith('someSecret', 'somekey', `${namespace}`);
       expect(mockedGetK8sSecret).toBeCalledTimes(1);
     });
@@ -569,18 +582,16 @@ describe('/artifacts', () => {
 
     it('responds with a gcs artifact if source=gcs', async () => {
       const artifactContent = 'hello world';
-      const mockedGcsStorage: Mock = GCSStorage as any;
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
+      const client = { request: vi.fn() };
       const stream = new PassThrough();
       stream.write(artifactContent);
       stream.end();
-      mockedGcsStorage.mockImplementationOnce(function () {
-        return {
-          bucket: () => ({
-            getFiles: () =>
-              Promise.resolve([[{ name: 'hello/world.txt', createReadStream: () => stream }]]),
-          }),
-        };
-      });
+      mockedGetGCSClient.mockResolvedValueOnce(client);
+      mockedListGCSObjectNames.mockResolvedValueOnce(['hello/world.txt']);
+      mockedDownloadGCSObjectStream.mockResolvedValueOnce(stream);
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
 
@@ -588,21 +599,32 @@ describe('/artifacts', () => {
       await request
         .get('/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt')
         .expect(200, artifactContent + '\n');
+      expect(mockedGetGCSClient).toBeCalledWith(undefined);
+      expect(mockedListGCSObjectNames).toBeCalledWith({
+        bucket: 'ml-pipeline',
+        client,
+        credentials: undefined,
+        prefix: 'hello/world.txt',
+      });
+      expect(mockedDownloadGCSObjectStream).toBeCalledWith({
+        bucket: 'ml-pipeline',
+        client,
+        credentials: undefined,
+        objectName: 'hello/world.txt',
+      });
     });
 
     it('responds with a partial gcs artifact if peek=5 is set', async () => {
       const artifactContent = 'hello world';
-      const mockedGcsStorage: Mock = GCSStorage as any;
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
+      const client = { request: vi.fn() };
       const stream = new PassThrough();
       stream.end(artifactContent);
-      mockedGcsStorage.mockImplementationOnce(function () {
-        return {
-          bucket: () => ({
-            getFiles: () =>
-              Promise.resolve([[{ name: 'hello/world.txt', createReadStream: () => stream }]]),
-          }),
-        };
-      });
+      mockedGetGCSClient.mockResolvedValueOnce(client);
+      mockedListGCSObjectNames.mockResolvedValueOnce(['hello/world.txt']);
+      mockedDownloadGCSObjectStream.mockResolvedValueOnce(stream);
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
 
@@ -610,6 +632,64 @@ describe('/artifacts', () => {
       await request
         .get('/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5')
         .expect(200, artifactContent.slice(0, 5));
+      expect(mockedGetGCSClient).toBeCalledWith(undefined);
+      expect(mockedListGCSObjectNames).toBeCalledWith({
+        bucket: 'ml-pipeline',
+        client,
+        credentials: undefined,
+        prefix: 'hello/world.txt',
+      });
+      expect(mockedDownloadGCSObjectStream).toBeCalledWith({
+        bucket: 'ml-pipeline',
+        client,
+        credentials: undefined,
+        objectName: 'hello/world.txt',
+      });
+    });
+
+    it('responds with concatenated gcs artifacts for wildcard keys and reuses one auth client', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
+      const client = { request: vi.fn() };
+      const streamA = new PassThrough();
+      const streamB = new PassThrough();
+      streamA.end('hello');
+      streamB.end('world');
+      mockedGetGCSClient.mockResolvedValueOnce(client);
+      mockedListGCSObjectNames.mockResolvedValueOnce([
+        'hello/world-1.txt',
+        'hello/world-2.txt',
+        'hello/not-a-match.log',
+      ]);
+      mockedDownloadGCSObjectStream.mockResolvedValueOnce(streamA);
+      mockedDownloadGCSObjectStream.mockResolvedValueOnce(streamB);
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      const request = requests(app.app);
+      await request
+        .get('/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld-*.txt')
+        .expect(200, 'hello\nworld\n');
+      expect(mockedGetGCSClient).toBeCalledTimes(1);
+      expect(mockedListGCSObjectNames).toBeCalledWith({
+        bucket: 'ml-pipeline',
+        client,
+        credentials: undefined,
+        prefix: 'hello/world-',
+      });
+      expect(mockedDownloadGCSObjectStream).toHaveBeenNthCalledWith(1, {
+        bucket: 'ml-pipeline',
+        client,
+        credentials: undefined,
+        objectName: 'hello/world-1.txt',
+      });
+      expect(mockedDownloadGCSObjectStream).toHaveBeenNthCalledWith(2, {
+        bucket: 'ml-pipeline',
+        client,
+        credentials: undefined,
+        objectName: 'hello/world-2.txt',
+      });
     });
 
     it('responds with a volume artifact if source=volume', async () => {

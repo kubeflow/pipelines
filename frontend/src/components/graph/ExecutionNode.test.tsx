@@ -18,7 +18,7 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import ExecutionNode, { getIcon, getExecutionIcon } from './ExecutionNode';
 import { Execution } from 'src/third_party/mlmd';
-import { ReactFlowProvider } from 'react-flow-renderer';
+import { ReactFlowProvider } from '@xyflow/react';
 
 describe('ExecutionNode', () => {
   const renderWithProvider = (component: React.ReactElement) => {
@@ -75,45 +75,20 @@ describe('getIcon', () => {
     expect(getIcon(undefined)).toBeNull();
   });
 
-  it('returns a green CheckCircle icon for COMPLETE state', () => {
-    const { container } = render(getIcon(Execution.State.COMPLETE)!);
-    expect(container.querySelector('.bg-mui-green-50')).toBeInTheDocument();
-    expect(container.querySelector('[data-testid="CheckCircleIcon"]')).toBeInTheDocument();
-  });
-
-  it('returns a green Refresh icon for RUNNING state', () => {
-    const { container } = render(getIcon(Execution.State.RUNNING)!);
-    expect(container.querySelector('.bg-mui-green-50')).toBeInTheDocument();
-    expect(container.querySelector('[data-testid="RefreshIcon"]')).toBeInTheDocument();
-  });
-
-  it('returns a red Error icon for FAILED state', () => {
-    const { container } = render(getIcon(Execution.State.FAILED)!);
-    expect(container.querySelector('.bg-mui-red-50')).toBeInTheDocument();
-    expect(container.querySelector('[data-testid="ErrorIcon"]')).toBeInTheDocument();
-  });
-
-  it('returns a blue PowerSettingsNew icon for NEW state', () => {
-    const { container } = render(getIcon(Execution.State.NEW)!);
-    expect(container.querySelector('.bg-mui-blue-50')).toBeInTheDocument();
-    expect(container.querySelector('[data-testid="PowerSettingsNewIcon"]')).toBeInTheDocument();
-  });
-
-  it('returns a grey icon for CANCELED state', () => {
-    const { container } = render(getIcon(Execution.State.CANCELED)!);
-    expect(container.querySelector('.bg-mui-grey-200')).toBeInTheDocument();
-  });
-
-  it('returns a green CloudDownload icon for CACHED state', () => {
-    const { container } = render(getIcon(Execution.State.CACHED)!);
-    expect(container.querySelector('.bg-mui-green-50')).toBeInTheDocument();
-    expect(container.querySelector('[data-testid="CloudDownloadIcon"]')).toBeInTheDocument();
-  });
-
-  it('returns a grey MoreHoriz icon for UNKNOWN state', () => {
-    const { container } = render(getIcon(Execution.State.UNKNOWN)!);
-    expect(container.querySelector('.bg-mui-grey-200')).toBeInTheDocument();
-    expect(container.querySelector('[data-testid="MoreHorizIcon"]')).toBeInTheDocument();
+  it.each([
+    ['COMPLETE', Execution.State.COMPLETE, '.bg-mui-green-50', 'CheckCircleIcon'],
+    ['RUNNING', Execution.State.RUNNING, '.bg-mui-green-50', 'RefreshIcon'],
+    ['FAILED', Execution.State.FAILED, '.bg-mui-red-50', 'ErrorIcon'],
+    ['NEW', Execution.State.NEW, '.bg-mui-blue-50', 'PowerSettingsNewIcon'],
+    ['CANCELED', Execution.State.CANCELED, '.bg-mui-grey-200', undefined],
+    ['CACHED', Execution.State.CACHED, '.bg-mui-green-50', 'CloudDownloadIcon'],
+    ['UNKNOWN', Execution.State.UNKNOWN, '.bg-mui-grey-200', 'MoreHorizIcon'],
+  ] as const)('returns the correct icon for %s state', (_label, state, bgClass, iconTestId) => {
+    const { container } = render(getIcon(state)!);
+    expect(container.querySelector(bgClass)).toBeInTheDocument();
+    if (iconTestId) {
+      expect(container.querySelector(`[data-testid="${iconTestId}"]`)).toBeInTheDocument();
+    }
   });
 });
 

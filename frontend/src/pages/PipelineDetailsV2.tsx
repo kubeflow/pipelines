@@ -13,16 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { MouseEvent as ReactMouseEvent, useState } from 'react';
-import { Edge, FlowElement, Node } from 'react-flow-renderer';
+import { useState } from 'react';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import MD2Tabs from 'src/atoms/MD2Tabs';
-import { FlowElementDataBase } from 'src/components/graph/Constants';
 import { PipelineVersionCard } from 'src/components/navigators/PipelineVersionCard';
 import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import SidePanel from 'src/components/SidePanel';
 import { StaticNodeDetailsV2 } from 'src/components/tabs/StaticNodeDetailsV2';
-import { PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+import { getNodeName, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+
 import { commonCss, padding } from 'src/Css';
 import DagCanvas from './v2/DagCanvas';
 
@@ -49,20 +48,12 @@ function PipelineDetailsV2({
 }: PipelineDetailsV2Props) {
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
-  const [selectedNode, setSelectedNode] = useState<FlowElement<FlowElementDataBase> | null>(null);
+  const [selectedNode, setSelectedNode] = useState<PipelineFlowElement | null>(null);
 
   const layerChange = (l: string[]) => {
     setSelectedNode(null);
     setLayers(l);
     setSubDagLayers(l);
-  };
-
-  const getNodeName = function (element: FlowElement<FlowElementDataBase> | null): string {
-    if (element && element.data && element.data.label) {
-      return element.data.label;
-    }
-
-    return 'unknown';
   };
 
   return (
@@ -74,10 +65,9 @@ function PipelineDetailsV2({
             layers={layers}
             onLayersUpdate={layerChange}
             elements={pipelineFlowElements}
-            onElementClick={(event: ReactMouseEvent, element: Node | Edge) =>
-              setSelectedNode(element)
-            }
+            onElementClick={(_event, element) => setSelectedNode(element)}
             setFlowElements={() => {}}
+            nodesDraggable={false}
           ></DagCanvas>
           <PipelineVersionCard
             pipeline={pipeline}

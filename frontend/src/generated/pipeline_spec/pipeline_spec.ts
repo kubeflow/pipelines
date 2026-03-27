@@ -108,6 +108,10 @@ export interface ComponentSpec {
   outputDefinitions: ComponentOutputsSpec | undefined;
   dag: DagSpec | undefined;
   executorLabel: string | undefined;
+  /** Supports platform-specific component features. */
+  singlePlatformSpecs: SinglePlatformSpec[];
+  /** Specifies the task configurations that can be passed through to an external workload. */
+  taskConfigPassthroughs: TaskConfigPassthrough[];
 }
 
 /** A DAG contains multiple tasks. */
@@ -273,6 +277,11 @@ export interface ComponentInputsSpec_ParameterSpec {
    * Should not exceed 1024 characters.
    */
   description: string;
+  /**
+   * The list of allowed values for this parameter.
+   * If this list is non-empty, the value must be one of the values in the list.
+   */
+  literals: any[];
 }
 
 export interface ComponentInputsSpec_ArtifactsEntry {
@@ -392,7 +401,7 @@ export interface TaskInputsSpec_InputArtifactSpec_TaskOutputArtifactSpec {
 /**
  * Represents an input parameter. The value can be taken from an upstream
  * task's output parameter (if specifying `producer_task` and
- * `output_parameter_key`, or it can be a runtime value, which can either be
+ * `output_parameter_key`), or it can be a runtime value, which can either be
  * determined at compile-time, or from a pipeline parameter.
  */
 export interface TaskInputsSpec_InputParameterSpec {
@@ -402,7 +411,7 @@ export interface TaskInputsSpec_InputParameterSpec {
   runtimeValue: ValueOrRuntimeParameter | undefined;
   /** Pass the input parameter from parent component input parameter. */
   componentInputParameter: string | undefined;
-  /** The final status of an uptream task. */
+  /** The final status of an upstream task. */
   taskFinalStatus: TaskInputsSpec_InputParameterSpec_TaskFinalStatus | undefined;
   /**
    * Selector expression of Common Expression Language (CEL)
@@ -448,10 +457,10 @@ export interface TaskInputsSpec_InputParameterSpec_TaskOutputParameterSpec {
 /**
  * Represents an upstream task's final status. The field can only be set if
  * the schema version is `2.0.0`. The resolved input parameter will be a
- * json payload in string type.
+ * JSON payload in string type.
  */
 export interface TaskInputsSpec_InputParameterSpec_TaskFinalStatus {
-  /** The name of the upsteram task where the final status is coming from. */
+  /** The name of the upstream task where the final status is coming from. */
   producerTask: string;
 }
 
@@ -632,6 +641,11 @@ export enum ParameterType_ParameterTypeEnum {
    * specified by InputParameterSpec.task_final_status
    */
   TASK_FINAL_STATUS = 7,
+  /**
+   * TASK_CONFIG - Indicates that a parameter is a TaskConfig type; these types are
+   * injected by the backend to provide the configuration set on the task.
+   */
+  TASK_CONFIG = 8,
   UNRECOGNIZED = -1,
 }
 
@@ -663,6 +677,9 @@ export function parameterType_ParameterTypeEnumFromJSON(
     case 7:
     case 'TASK_FINAL_STATUS':
       return ParameterType_ParameterTypeEnum.TASK_FINAL_STATUS;
+    case 8:
+    case 'TASK_CONFIG':
+      return ParameterType_ParameterTypeEnum.TASK_CONFIG;
     case -1:
     case 'UNRECOGNIZED':
     default:
@@ -690,9 +707,105 @@ export function parameterType_ParameterTypeEnumToJSON(
       return 'STRUCT';
     case ParameterType_ParameterTypeEnum.TASK_FINAL_STATUS:
       return 'TASK_FINAL_STATUS';
+    case ParameterType_ParameterTypeEnum.TASK_CONFIG:
+      return 'TASK_CONFIG';
     default:
       return 'UNKNOWN';
   }
+}
+
+/** Represents the task configurations that can be passed through to an external workload. */
+export interface TaskConfigPassthroughType {}
+
+export enum TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum {
+  /** NONE - Throwaway default value. */
+  NONE = 0,
+  /**
+   * RESOURCES - Indicates that the resource limits and requests should be passed through to the external workload.
+   * Be cautious about also setting apply_to_task=true since that will double the resources required for
+   * the task.
+   */
+  RESOURCES = 1,
+  /**
+   * ENV - Indicates that the environment variables should be passed through to the external workload.
+   * It is generally safe to always set apply_to_task=true on this field.
+   */
+  ENV = 2,
+  /** KUBERNETES_AFFINITY - Indicates that the Kubernetes node affinity should be passed through to the external workload. */
+  KUBERNETES_AFFINITY = 3,
+  /** KUBERNETES_TOLERATIONS - Indicates that the Kubernetes node tolerations should be passed through to the external workload. */
+  KUBERNETES_TOLERATIONS = 4,
+  /** KUBERNETES_NODE_SELECTOR - Indicates that the Kubernetes node selector should be passed through to the external workload. */
+  KUBERNETES_NODE_SELECTOR = 5,
+  /**
+   * KUBERNETES_VOLUMES - Indicates that the Kubernetes persistent volumes and ConfigMaps/Secrets mounted as volumes should be
+   * passed through to the external workload. Be sure that when setting apply_to_task=true, the volumes are
+   * ReadWriteMany or ReadOnlyMany or else the task's pod may not start.
+   * This is useful when the task prepares a shared volume for the external workload or defines output artifact
+   * (e.g. dsl.Model) that is created by the external workload.
+   */
+  KUBERNETES_VOLUMES = 6,
+  UNRECOGNIZED = -1,
+}
+
+export function taskConfigPassthroughType_TaskConfigPassthroughTypeEnumFromJSON(
+  object: any,
+): TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum {
+  switch (object) {
+    case 0:
+    case 'NONE':
+      return TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.NONE;
+    case 1:
+    case 'RESOURCES':
+      return TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.RESOURCES;
+    case 2:
+    case 'ENV':
+      return TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.ENV;
+    case 3:
+    case 'KUBERNETES_AFFINITY':
+      return TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.KUBERNETES_AFFINITY;
+    case 4:
+    case 'KUBERNETES_TOLERATIONS':
+      return TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.KUBERNETES_TOLERATIONS;
+    case 5:
+    case 'KUBERNETES_NODE_SELECTOR':
+      return TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.KUBERNETES_NODE_SELECTOR;
+    case 6:
+    case 'KUBERNETES_VOLUMES':
+      return TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.KUBERNETES_VOLUMES;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.UNRECOGNIZED;
+  }
+}
+
+export function taskConfigPassthroughType_TaskConfigPassthroughTypeEnumToJSON(
+  object: TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum,
+): string {
+  switch (object) {
+    case TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.NONE:
+      return 'NONE';
+    case TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.RESOURCES:
+      return 'RESOURCES';
+    case TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.ENV:
+      return 'ENV';
+    case TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.KUBERNETES_AFFINITY:
+      return 'KUBERNETES_AFFINITY';
+    case TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.KUBERNETES_TOLERATIONS:
+      return 'KUBERNETES_TOLERATIONS';
+    case TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.KUBERNETES_NODE_SELECTOR:
+      return 'KUBERNETES_NODE_SELECTOR';
+    case TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.KUBERNETES_VOLUMES:
+      return 'KUBERNETES_VOLUMES';
+    default:
+      return 'UNKNOWN';
+  }
+}
+
+export interface TaskConfigPassthrough {
+  field: TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum;
+  applyToTask: boolean;
 }
 
 /** The spec of a pipeline task. */
@@ -731,6 +844,11 @@ export interface PipelineTaskSpec {
 export interface PipelineTaskSpec_CachingOptions {
   /** Whether or not to enable cache for this task. Defaults to false. */
   enableCache: boolean;
+  /**
+   * Customized cache key for this task. If set, the cache_key will be used
+   * as the key for the task's cache.
+   */
+  cacheKey: string;
 }
 
 /**
@@ -884,7 +1002,7 @@ export interface ParameterIteratorSpec {
   itemInput: string;
 }
 
-/** Specifies the spec to decribe the parameter items to iterate. */
+/** Specifies the spec to describe the parameter items to iterate. */
 export interface ParameterIteratorSpec_ItemsSpec {
   /** The raw JSON array. */
   raw: string | undefined;
@@ -1048,23 +1166,59 @@ export interface PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec {
   /**
    * The limit of the number of vCPU cores. This container execution needs
    * at most cpu_limit vCPU to run.
+   * Deprecated. Use [ResourceSpec.resource_cpu_limit] instead.
+   *
+   * @deprecated
    */
   cpuLimit: number;
   /**
    * The memory limit in GB. This container execution needs at most
    * memory_limit RAM to run.
+   * Deprecated. Use [ResourceSpec.resource_memory_limit] instead.
+   *
+   * @deprecated
    */
   memoryLimit: number;
   /**
    * The request of the number of vCPU cores. This container execution
    * needs at least cpu_request vCPU to run.
+   * Deprecated. Use [ResourceSpec.resource_cpu_request] instead.
+   *
+   * @deprecated
    */
   cpuRequest: number;
   /**
    * The memory request in GB. This container execution needs at least
    * memory_request RAM to run.
+   * Deprecated. Use [ResourceSpec.resource_memory_request] instead.
+   *
+   * @deprecated
    */
   memoryRequest: number;
+  /**
+   * The limit of the number of vCPU cores. This container execution needs
+   * at most resource_cpu_limit vCPU to run. Handles static values and
+   * placeholders.
+   */
+  resourceCpuLimit: string;
+  /**
+   * The memory limit in GB. This container execution needs
+   * at most resource_memory_limit RAM to run. Handles static values and
+   * placeholders.
+   */
+  resourceMemoryLimit: string;
+  /**
+   * The request of the number of vCPU cores. This container
+   * execution needs at least resource_cpu_request vCPU to run. Handles
+   * static values and placeholders.
+   */
+  resourceCpuRequest: string;
+  /**
+   * The memory request in GB. This container execution
+   * needs at least resource_memory_request RAM to run. Handles static
+   * values and placeholders.
+   */
+  resourceMemoryRequest: string;
   accelerator:
     | PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig
     | undefined;
@@ -1072,10 +1226,32 @@ export interface PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec {
 
 /** The specification on the accelerators being attached to this container. */
 export interface PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig {
-  /** The type of accelerators. */
+  /**
+   * The type of accelerators.
+   * Deprecated. Use [ResourceSpec.AcceleratorConfig.resource_type]
+   * instead.
+   *
+   * @deprecated
+   */
   type: string;
-  /** The number of accelerators. */
+  /**
+   * The number of accelerators.
+   * Deprecated. Use [ResourceSpec.AcceleratorConfig.resource_count]
+   * instead.
+   *
+   * @deprecated
+   */
   count: number;
+  /**
+   * The type of accelerators. Handles static values and
+   * placeholders.
+   */
+  resourceType: string;
+  /**
+   * The number of accelerators. Handles static values and
+   * placeholders.
+   */
+  resourceCount: string;
 }
 
 /**
@@ -1122,10 +1298,12 @@ export interface PipelineDeploymentConfig_ImporterSpec {
    * @deprecated
    */
   customProperties: { [key: string]: ValueOrRuntimeParameter };
-  /** Properties of the Artifact. */
-  metadata: { [key: string]: any } | undefined;
   /** Whether or not import an artifact regardless it has been imported before. */
   reimport: boolean;
+  /** Properties of the Artifact. */
+  metadata: { [key: string]: any } | undefined;
+  /** If true, download artifact into the pipeline workspace. */
+  downloadToWorkspace: boolean;
 }
 
 export interface PipelineDeploymentConfig_ImporterSpec_PropertiesEntry {
@@ -1249,6 +1427,8 @@ export interface RuntimeArtifact {
   customProperties: { [key: string]: Value };
   /** Properties of the Artifact. */
   metadata: { [key: string]: any } | undefined;
+  /** Custom path for output artifact. */
+  customPath?: string | undefined;
 }
 
 export interface RuntimeArtifact_PropertiesEntry {
@@ -1577,6 +1757,14 @@ export interface PlatformSpec_PlatformsEntry {
 export interface SinglePlatformSpec {
   /** Mirrors PipelineSpec.deployment_spec structure */
   deploymentSpec: PlatformDeploymentConfig | undefined;
+  /** Name of the platform. For example, "google_cloud" */
+  platform: string;
+  /**
+   * Arbitrary configuration, which will be defined by the platform
+   * protos/libraries.
+   */
+  config: { [key: string]: any } | undefined;
+  pipelineConfig: PipelineConfig | undefined;
 }
 
 export interface PlatformDeploymentConfig {
@@ -1590,6 +1778,42 @@ export interface PlatformDeploymentConfig {
 export interface PlatformDeploymentConfig_ExecutorsEntry {
   key: string;
   value: { [key: string]: any } | undefined;
+}
+
+export interface WorkspaceConfig {
+  /**
+   * Size of the workspace
+   * Example: "250Gi"
+   * See https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/quantity/ for valid quantity formats
+   */
+  size: string;
+  /** Kubernetes specific configuration for the workspace */
+  kubernetes?: KubernetesWorkspaceConfig | undefined;
+}
+
+export interface KubernetesWorkspaceConfig {
+  /**
+   * Patch of a PersistentVolumeClaim (PVC) spec to override defaults set on the API server for the workspace PVC
+   * Example: {
+   *   "storageClassName": "super-fast-storage",
+   *   "accessModes": ["ReadWriteMany"]
+   * }
+   */
+  pvcSpecPatch?: { [key: string]: any } | undefined;
+}
+
+/** Spec for pipeline-level config options. See PipelineConfig DSL class. */
+export interface PipelineConfig {
+  /**
+   * Time to live configuration after the pipeline run is completed for
+   * ephemeral resources created by the pipeline run.
+   */
+  resourceTtl: number;
+  /**
+   * Configuration for a shared storage workspace that persists for the duration of the pipeline run.
+   * The workspace can be configured with size and Kubernetes-specific settings to override default PVC configurations.
+   */
+  workspace?: WorkspaceConfig | undefined;
 }
 
 const basePipelineJob: object = { name: '', displayName: '' };
@@ -2349,6 +2573,12 @@ export const ComponentSpec = {
     if (message.executorLabel !== undefined) {
       writer.uint32(34).string(message.executorLabel);
     }
+    for (const v of message.singlePlatformSpecs) {
+      SinglePlatformSpec.encode(v!, writer.uint32(42).fork()).ldelim();
+    }
+    for (const v of message.taskConfigPassthroughs) {
+      TaskConfigPassthrough.encode(v!, writer.uint32(50).fork()).ldelim();
+    }
     return writer;
   },
 
@@ -2356,6 +2586,8 @@ export const ComponentSpec = {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = { ...baseComponentSpec } as ComponentSpec;
+    message.singlePlatformSpecs = [];
+    message.taskConfigPassthroughs = [];
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -2370,6 +2602,14 @@ export const ComponentSpec = {
           break;
         case 4:
           message.executorLabel = reader.string();
+          break;
+        case 5:
+          message.singlePlatformSpecs.push(SinglePlatformSpec.decode(reader, reader.uint32()));
+          break;
+        case 6:
+          message.taskConfigPassthroughs.push(
+            TaskConfigPassthrough.decode(reader, reader.uint32()),
+          );
           break;
         default:
           reader.skipType(tag & 7);
@@ -2395,6 +2635,12 @@ export const ComponentSpec = {
       object.executorLabel !== undefined && object.executorLabel !== null
         ? String(object.executorLabel)
         : undefined;
+    message.singlePlatformSpecs = (object.singlePlatformSpecs ?? []).map((e: any) =>
+      SinglePlatformSpec.fromJSON(e),
+    );
+    message.taskConfigPassthroughs = (object.taskConfigPassthroughs ?? []).map((e: any) =>
+      TaskConfigPassthrough.fromJSON(e),
+    );
     return message;
   },
 
@@ -2410,6 +2656,20 @@ export const ComponentSpec = {
         : undefined);
     message.dag !== undefined && (obj.dag = message.dag ? DagSpec.toJSON(message.dag) : undefined);
     message.executorLabel !== undefined && (obj.executorLabel = message.executorLabel);
+    if (message.singlePlatformSpecs) {
+      obj.singlePlatformSpecs = message.singlePlatformSpecs.map((e) =>
+        e ? SinglePlatformSpec.toJSON(e) : undefined,
+      );
+    } else {
+      obj.singlePlatformSpecs = [];
+    }
+    if (message.taskConfigPassthroughs) {
+      obj.taskConfigPassthroughs = message.taskConfigPassthroughs.map((e) =>
+        e ? TaskConfigPassthrough.toJSON(e) : undefined,
+      );
+    } else {
+      obj.taskConfigPassthroughs = [];
+    }
     return obj;
   },
 
@@ -2426,6 +2686,10 @@ export const ComponentSpec = {
     message.dag =
       object.dag !== undefined && object.dag !== null ? DagSpec.fromPartial(object.dag) : undefined;
     message.executorLabel = object.executorLabel ?? undefined;
+    message.singlePlatformSpecs =
+      object.singlePlatformSpecs?.map((e) => SinglePlatformSpec.fromPartial(e)) || [];
+    message.taskConfigPassthroughs =
+      object.taskConfigPassthroughs?.map((e) => TaskConfigPassthrough.fromPartial(e)) || [];
     return message;
   },
 };
@@ -3619,6 +3883,9 @@ export const ComponentInputsSpec_ParameterSpec = {
     if (message.description !== '') {
       writer.uint32(42).string(message.description);
     }
+    for (const v of message.literals) {
+      Value1.encode(Value1.wrap(v!), writer.uint32(50).fork()).ldelim();
+    }
     return writer;
   },
 
@@ -3628,6 +3895,7 @@ export const ComponentInputsSpec_ParameterSpec = {
     const message = {
       ...baseComponentInputsSpec_ParameterSpec,
     } as ComponentInputsSpec_ParameterSpec;
+    message.literals = [];
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -3645,6 +3913,9 @@ export const ComponentInputsSpec_ParameterSpec = {
           break;
         case 5:
           message.description = reader.string();
+          break;
+        case 6:
+          message.literals.push(Value1.unwrap(Value1.decode(reader, reader.uint32())));
           break;
         default:
           reader.skipType(tag & 7);
@@ -3675,6 +3946,7 @@ export const ComponentInputsSpec_ParameterSpec = {
       object.description !== undefined && object.description !== null
         ? String(object.description)
         : '';
+    message.literals = Array.isArray(object?.literals) ? [...object.literals] : [];
     return message;
   },
 
@@ -3686,6 +3958,11 @@ export const ComponentInputsSpec_ParameterSpec = {
     message.defaultValue !== undefined && (obj.defaultValue = message.defaultValue);
     message.isOptional !== undefined && (obj.isOptional = message.isOptional);
     message.description !== undefined && (obj.description = message.description);
+    if (message.literals) {
+      obj.literals = message.literals.map((e) => e);
+    } else {
+      obj.literals = [];
+    }
     return obj;
   },
 
@@ -3700,6 +3977,7 @@ export const ComponentInputsSpec_ParameterSpec = {
     message.defaultValue = object.defaultValue ?? undefined;
     message.isOptional = object.isOptional ?? false;
     message.description = object.description ?? '';
+    message.literals = object.literals?.map((e) => e) || [];
     return message;
   },
 };
@@ -5902,6 +6180,111 @@ export const ParameterType = {
   },
 };
 
+const baseTaskConfigPassthroughType: object = {};
+
+export const TaskConfigPassthroughType = {
+  encode(_: TaskConfigPassthroughType, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): TaskConfigPassthroughType {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = { ...baseTaskConfigPassthroughType } as TaskConfigPassthroughType;
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(_: any): TaskConfigPassthroughType {
+    const message = { ...baseTaskConfigPassthroughType } as TaskConfigPassthroughType;
+    return message;
+  },
+
+  toJSON(_: TaskConfigPassthroughType): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<TaskConfigPassthroughType>, I>>(
+    _: I,
+  ): TaskConfigPassthroughType {
+    const message = { ...baseTaskConfigPassthroughType } as TaskConfigPassthroughType;
+    return message;
+  },
+};
+
+const baseTaskConfigPassthrough: object = { field: 0, applyToTask: false };
+
+export const TaskConfigPassthrough = {
+  encode(message: TaskConfigPassthrough, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.field !== 0) {
+      writer.uint32(8).int32(message.field);
+    }
+    if (message.applyToTask === true) {
+      writer.uint32(16).bool(message.applyToTask);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): TaskConfigPassthrough {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = { ...baseTaskConfigPassthrough } as TaskConfigPassthrough;
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.field = reader.int32() as any;
+          break;
+        case 2:
+          message.applyToTask = reader.bool();
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): TaskConfigPassthrough {
+    const message = { ...baseTaskConfigPassthrough } as TaskConfigPassthrough;
+    message.field =
+      object.field !== undefined && object.field !== null
+        ? taskConfigPassthroughType_TaskConfigPassthroughTypeEnumFromJSON(object.field)
+        : 0;
+    message.applyToTask =
+      object.applyToTask !== undefined && object.applyToTask !== null
+        ? Boolean(object.applyToTask)
+        : false;
+    return message;
+  },
+
+  toJSON(message: TaskConfigPassthrough): unknown {
+    const obj: any = {};
+    message.field !== undefined &&
+      (obj.field = taskConfigPassthroughType_TaskConfigPassthroughTypeEnumToJSON(message.field));
+    message.applyToTask !== undefined && (obj.applyToTask = message.applyToTask);
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<TaskConfigPassthrough>, I>>(
+    object: I,
+  ): TaskConfigPassthrough {
+    const message = { ...baseTaskConfigPassthrough } as TaskConfigPassthrough;
+    message.field = object.field ?? 0;
+    message.applyToTask = object.applyToTask ?? false;
+    return message;
+  },
+};
+
 const basePipelineTaskSpec: object = { dependentTasks: '' };
 
 export const PipelineTaskSpec = {
@@ -6121,7 +6504,7 @@ export const PipelineTaskSpec = {
   },
 };
 
-const basePipelineTaskSpec_CachingOptions: object = { enableCache: false };
+const basePipelineTaskSpec_CachingOptions: object = { enableCache: false, cacheKey: '' };
 
 export const PipelineTaskSpec_CachingOptions = {
   encode(
@@ -6130,6 +6513,9 @@ export const PipelineTaskSpec_CachingOptions = {
   ): _m0.Writer {
     if (message.enableCache === true) {
       writer.uint32(8).bool(message.enableCache);
+    }
+    if (message.cacheKey !== '') {
+      writer.uint32(18).string(message.cacheKey);
     }
     return writer;
   },
@@ -6143,6 +6529,9 @@ export const PipelineTaskSpec_CachingOptions = {
       switch (tag >>> 3) {
         case 1:
           message.enableCache = reader.bool();
+          break;
+        case 2:
+          message.cacheKey = reader.string();
           break;
         default:
           reader.skipType(tag & 7);
@@ -6158,12 +6547,15 @@ export const PipelineTaskSpec_CachingOptions = {
       object.enableCache !== undefined && object.enableCache !== null
         ? Boolean(object.enableCache)
         : false;
+    message.cacheKey =
+      object.cacheKey !== undefined && object.cacheKey !== null ? String(object.cacheKey) : '';
     return message;
   },
 
   toJSON(message: PipelineTaskSpec_CachingOptions): unknown {
     const obj: any = {};
     message.enableCache !== undefined && (obj.enableCache = message.enableCache);
+    message.cacheKey !== undefined && (obj.cacheKey = message.cacheKey);
     return obj;
   },
 
@@ -6172,6 +6564,7 @@ export const PipelineTaskSpec_CachingOptions = {
   ): PipelineTaskSpec_CachingOptions {
     const message = { ...basePipelineTaskSpec_CachingOptions } as PipelineTaskSpec_CachingOptions;
     message.enableCache = object.enableCache ?? false;
+    message.cacheKey = object.cacheKey ?? '';
     return message;
   },
 };
@@ -7395,6 +7788,10 @@ const basePipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec: object = 
   memoryLimit: 0,
   cpuRequest: 0,
   memoryRequest: 0,
+  resourceCpuLimit: '',
+  resourceMemoryLimit: '',
+  resourceCpuRequest: '',
+  resourceMemoryRequest: '',
 };
 
 export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec = {
@@ -7413,6 +7810,18 @@ export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec = {
     }
     if (message.memoryRequest !== 0) {
       writer.uint32(49).double(message.memoryRequest);
+    }
+    if (message.resourceCpuLimit !== '') {
+      writer.uint32(58).string(message.resourceCpuLimit);
+    }
+    if (message.resourceMemoryLimit !== '') {
+      writer.uint32(66).string(message.resourceMemoryLimit);
+    }
+    if (message.resourceCpuRequest !== '') {
+      writer.uint32(74).string(message.resourceCpuRequest);
+    }
+    if (message.resourceMemoryRequest !== '') {
+      writer.uint32(82).string(message.resourceMemoryRequest);
     }
     if (message.accelerator !== undefined) {
       PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig.encode(
@@ -7447,6 +7856,18 @@ export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec = {
         case 6:
           message.memoryRequest = reader.double();
           break;
+        case 7:
+          message.resourceCpuLimit = reader.string();
+          break;
+        case 8:
+          message.resourceMemoryLimit = reader.string();
+          break;
+        case 9:
+          message.resourceCpuRequest = reader.string();
+          break;
+        case 10:
+          message.resourceMemoryRequest = reader.string();
+          break;
         case 3:
           message.accelerator =
             PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig.decode(
@@ -7478,6 +7899,22 @@ export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec = {
       object.memoryRequest !== undefined && object.memoryRequest !== null
         ? Number(object.memoryRequest)
         : 0;
+    message.resourceCpuLimit =
+      object.resourceCpuLimit !== undefined && object.resourceCpuLimit !== null
+        ? String(object.resourceCpuLimit)
+        : '';
+    message.resourceMemoryLimit =
+      object.resourceMemoryLimit !== undefined && object.resourceMemoryLimit !== null
+        ? String(object.resourceMemoryLimit)
+        : '';
+    message.resourceCpuRequest =
+      object.resourceCpuRequest !== undefined && object.resourceCpuRequest !== null
+        ? String(object.resourceCpuRequest)
+        : '';
+    message.resourceMemoryRequest =
+      object.resourceMemoryRequest !== undefined && object.resourceMemoryRequest !== null
+        ? String(object.resourceMemoryRequest)
+        : '';
     message.accelerator =
       object.accelerator !== undefined && object.accelerator !== null
         ? PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig.fromJSON(
@@ -7493,6 +7930,13 @@ export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec = {
     message.memoryLimit !== undefined && (obj.memoryLimit = message.memoryLimit);
     message.cpuRequest !== undefined && (obj.cpuRequest = message.cpuRequest);
     message.memoryRequest !== undefined && (obj.memoryRequest = message.memoryRequest);
+    message.resourceCpuLimit !== undefined && (obj.resourceCpuLimit = message.resourceCpuLimit);
+    message.resourceMemoryLimit !== undefined &&
+      (obj.resourceMemoryLimit = message.resourceMemoryLimit);
+    message.resourceCpuRequest !== undefined &&
+      (obj.resourceCpuRequest = message.resourceCpuRequest);
+    message.resourceMemoryRequest !== undefined &&
+      (obj.resourceMemoryRequest = message.resourceMemoryRequest);
     message.accelerator !== undefined &&
       (obj.accelerator = message.accelerator
         ? PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig.toJSON(
@@ -7512,6 +7956,10 @@ export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec = {
     message.memoryLimit = object.memoryLimit ?? 0;
     message.cpuRequest = object.cpuRequest ?? 0;
     message.memoryRequest = object.memoryRequest ?? 0;
+    message.resourceCpuLimit = object.resourceCpuLimit ?? '';
+    message.resourceMemoryLimit = object.resourceMemoryLimit ?? '';
+    message.resourceCpuRequest = object.resourceCpuRequest ?? '';
+    message.resourceMemoryRequest = object.resourceMemoryRequest ?? '';
     message.accelerator =
       object.accelerator !== undefined && object.accelerator !== null
         ? PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig.fromPartial(
@@ -7525,6 +7973,8 @@ export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec = {
 const basePipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig: object = {
   type: '',
   count: 0,
+  resourceType: '',
+  resourceCount: '',
 };
 
 export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig = {
@@ -7537,6 +7987,12 @@ export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_Acceler
     }
     if (message.count !== 0) {
       writer.uint32(16).int64(message.count);
+    }
+    if (message.resourceType !== '') {
+      writer.uint32(26).string(message.resourceType);
+    }
+    if (message.resourceCount !== '') {
+      writer.uint32(34).string(message.resourceCount);
     }
     return writer;
   },
@@ -7559,6 +8015,12 @@ export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_Acceler
         case 2:
           message.count = longToNumber(reader.int64() as Long);
           break;
+        case 3:
+          message.resourceType = reader.string();
+          break;
+        case 4:
+          message.resourceCount = reader.string();
+          break;
         default:
           reader.skipType(tag & 7);
           break;
@@ -7575,6 +8037,14 @@ export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_Acceler
     } as PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig;
     message.type = object.type !== undefined && object.type !== null ? String(object.type) : '';
     message.count = object.count !== undefined && object.count !== null ? Number(object.count) : 0;
+    message.resourceType =
+      object.resourceType !== undefined && object.resourceType !== null
+        ? String(object.resourceType)
+        : '';
+    message.resourceCount =
+      object.resourceCount !== undefined && object.resourceCount !== null
+        ? String(object.resourceCount)
+        : '';
     return message;
   },
 
@@ -7584,6 +8054,8 @@ export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_Acceler
     const obj: any = {};
     message.type !== undefined && (obj.type = message.type);
     message.count !== undefined && (obj.count = Math.round(message.count));
+    message.resourceType !== undefined && (obj.resourceType = message.resourceType);
+    message.resourceCount !== undefined && (obj.resourceCount = message.resourceCount);
     return obj;
   },
 
@@ -7598,6 +8070,8 @@ export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_Acceler
     } as PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig;
     message.type = object.type ?? '';
     message.count = object.count ?? 0;
+    message.resourceType = object.resourceType ?? '';
+    message.resourceCount = object.resourceCount ?? '';
     return message;
   },
 };
@@ -7672,7 +8146,10 @@ export const PipelineDeploymentConfig_PipelineContainerSpec_EnvVar = {
   },
 };
 
-const basePipelineDeploymentConfig_ImporterSpec: object = { reimport: false };
+const basePipelineDeploymentConfig_ImporterSpec: object = {
+  reimport: false,
+  downloadToWorkspace: false,
+};
 
 export const PipelineDeploymentConfig_ImporterSpec = {
   encode(
@@ -7697,11 +8174,14 @@ export const PipelineDeploymentConfig_ImporterSpec = {
         writer.uint32(34).fork(),
       ).ldelim();
     });
+    if (message.reimport === true) {
+      writer.uint32(40).bool(message.reimport);
+    }
     if (message.metadata !== undefined) {
       Struct.encode(Struct.wrap(message.metadata), writer.uint32(50).fork()).ldelim();
     }
-    if (message.reimport === true) {
-      writer.uint32(40).bool(message.reimport);
+    if (message.downloadToWorkspace === true) {
+      writer.uint32(56).bool(message.downloadToWorkspace);
     }
     return writer;
   },
@@ -7741,11 +8221,14 @@ export const PipelineDeploymentConfig_ImporterSpec = {
             message.customProperties[entry4.key] = entry4.value;
           }
           break;
+        case 5:
+          message.reimport = reader.bool();
+          break;
         case 6:
           message.metadata = Struct.unwrap(Struct.decode(reader, reader.uint32()));
           break;
-        case 5:
-          message.reimport = reader.bool();
+        case 7:
+          message.downloadToWorkspace = reader.bool();
           break;
         default:
           reader.skipType(tag & 7);
@@ -7779,9 +8262,13 @@ export const PipelineDeploymentConfig_ImporterSpec = {
       acc[key] = ValueOrRuntimeParameter.fromJSON(value);
       return acc;
     }, {});
-    message.metadata = typeof object.metadata === 'object' ? object.metadata : undefined;
     message.reimport =
       object.reimport !== undefined && object.reimport !== null ? Boolean(object.reimport) : false;
+    message.metadata = typeof object.metadata === 'object' ? object.metadata : undefined;
+    message.downloadToWorkspace =
+      object.downloadToWorkspace !== undefined && object.downloadToWorkspace !== null
+        ? Boolean(object.downloadToWorkspace)
+        : false;
     return message;
   },
 
@@ -7807,8 +8294,10 @@ export const PipelineDeploymentConfig_ImporterSpec = {
         obj.customProperties[k] = ValueOrRuntimeParameter.toJSON(v);
       });
     }
-    message.metadata !== undefined && (obj.metadata = message.metadata);
     message.reimport !== undefined && (obj.reimport = message.reimport);
+    message.metadata !== undefined && (obj.metadata = message.metadata);
+    message.downloadToWorkspace !== undefined &&
+      (obj.downloadToWorkspace = message.downloadToWorkspace);
     return obj;
   },
 
@@ -7842,8 +8331,9 @@ export const PipelineDeploymentConfig_ImporterSpec = {
       }
       return acc;
     }, {});
-    message.metadata = object.metadata ?? undefined;
     message.reimport = object.reimport ?? false;
+    message.metadata = object.metadata ?? undefined;
+    message.downloadToWorkspace = object.downloadToWorkspace ?? false;
     return message;
   },
 };
@@ -8631,6 +9121,9 @@ export const RuntimeArtifact = {
     if (message.metadata !== undefined) {
       Struct.encode(Struct.wrap(message.metadata), writer.uint32(50).fork()).ldelim();
     }
+    if (message.customPath !== undefined) {
+      writer.uint32(58).string(message.customPath);
+    }
     return writer;
   },
 
@@ -8667,6 +9160,9 @@ export const RuntimeArtifact = {
         case 6:
           message.metadata = Struct.unwrap(Struct.decode(reader, reader.uint32()));
           break;
+        case 7:
+          message.customPath = reader.string();
+          break;
         default:
           reader.skipType(tag & 7);
           break;
@@ -8697,6 +9193,10 @@ export const RuntimeArtifact = {
       return acc;
     }, {});
     message.metadata = typeof object.metadata === 'object' ? object.metadata : undefined;
+    message.customPath =
+      object.customPath !== undefined && object.customPath !== null
+        ? String(object.customPath)
+        : undefined;
     return message;
   },
 
@@ -8719,6 +9219,7 @@ export const RuntimeArtifact = {
       });
     }
     message.metadata !== undefined && (obj.metadata = message.metadata);
+    message.customPath !== undefined && (obj.customPath = message.customPath);
     return obj;
   },
 
@@ -8748,6 +9249,7 @@ export const RuntimeArtifact = {
       return acc;
     }, {});
     message.metadata = object.metadata ?? undefined;
+    message.customPath = object.customPath ?? undefined;
     return message;
   },
 };
@@ -10340,12 +10842,21 @@ export const PlatformSpec_PlatformsEntry = {
   },
 };
 
-const baseSinglePlatformSpec: object = {};
+const baseSinglePlatformSpec: object = { platform: '' };
 
 export const SinglePlatformSpec = {
   encode(message: SinglePlatformSpec, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.deploymentSpec !== undefined) {
       PlatformDeploymentConfig.encode(message.deploymentSpec, writer.uint32(10).fork()).ldelim();
+    }
+    if (message.platform !== '') {
+      writer.uint32(18).string(message.platform);
+    }
+    if (message.config !== undefined) {
+      Struct.encode(Struct.wrap(message.config), writer.uint32(26).fork()).ldelim();
+    }
+    if (message.pipelineConfig !== undefined) {
+      PipelineConfig.encode(message.pipelineConfig, writer.uint32(34).fork()).ldelim();
     }
     return writer;
   },
@@ -10359,6 +10870,15 @@ export const SinglePlatformSpec = {
       switch (tag >>> 3) {
         case 1:
           message.deploymentSpec = PlatformDeploymentConfig.decode(reader, reader.uint32());
+          break;
+        case 2:
+          message.platform = reader.string();
+          break;
+        case 3:
+          message.config = Struct.unwrap(Struct.decode(reader, reader.uint32()));
+          break;
+        case 4:
+          message.pipelineConfig = PipelineConfig.decode(reader, reader.uint32());
           break;
         default:
           reader.skipType(tag & 7);
@@ -10374,6 +10894,13 @@ export const SinglePlatformSpec = {
       object.deploymentSpec !== undefined && object.deploymentSpec !== null
         ? PlatformDeploymentConfig.fromJSON(object.deploymentSpec)
         : undefined;
+    message.platform =
+      object.platform !== undefined && object.platform !== null ? String(object.platform) : '';
+    message.config = typeof object.config === 'object' ? object.config : undefined;
+    message.pipelineConfig =
+      object.pipelineConfig !== undefined && object.pipelineConfig !== null
+        ? PipelineConfig.fromJSON(object.pipelineConfig)
+        : undefined;
     return message;
   },
 
@@ -10383,6 +10910,12 @@ export const SinglePlatformSpec = {
       (obj.deploymentSpec = message.deploymentSpec
         ? PlatformDeploymentConfig.toJSON(message.deploymentSpec)
         : undefined);
+    message.platform !== undefined && (obj.platform = message.platform);
+    message.config !== undefined && (obj.config = message.config);
+    message.pipelineConfig !== undefined &&
+      (obj.pipelineConfig = message.pipelineConfig
+        ? PipelineConfig.toJSON(message.pipelineConfig)
+        : undefined);
     return obj;
   },
 
@@ -10391,6 +10924,12 @@ export const SinglePlatformSpec = {
     message.deploymentSpec =
       object.deploymentSpec !== undefined && object.deploymentSpec !== null
         ? PlatformDeploymentConfig.fromPartial(object.deploymentSpec)
+        : undefined;
+    message.platform = object.platform ?? '';
+    message.config = object.config ?? undefined;
+    message.pipelineConfig =
+      object.pipelineConfig !== undefined && object.pipelineConfig !== null
+        ? PipelineConfig.fromPartial(object.pipelineConfig)
         : undefined;
     return message;
   },
@@ -10534,6 +11073,187 @@ export const PlatformDeploymentConfig_ExecutorsEntry = {
     } as PlatformDeploymentConfig_ExecutorsEntry;
     message.key = object.key ?? '';
     message.value = object.value ?? undefined;
+    return message;
+  },
+};
+
+const baseWorkspaceConfig: object = { size: '' };
+
+export const WorkspaceConfig = {
+  encode(message: WorkspaceConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.size !== '') {
+      writer.uint32(10).string(message.size);
+    }
+    if (message.kubernetes !== undefined) {
+      KubernetesWorkspaceConfig.encode(message.kubernetes, writer.uint32(18).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): WorkspaceConfig {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = { ...baseWorkspaceConfig } as WorkspaceConfig;
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.size = reader.string();
+          break;
+        case 2:
+          message.kubernetes = KubernetesWorkspaceConfig.decode(reader, reader.uint32());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): WorkspaceConfig {
+    const message = { ...baseWorkspaceConfig } as WorkspaceConfig;
+    message.size = object.size !== undefined && object.size !== null ? String(object.size) : '';
+    message.kubernetes =
+      object.kubernetes !== undefined && object.kubernetes !== null
+        ? KubernetesWorkspaceConfig.fromJSON(object.kubernetes)
+        : undefined;
+    return message;
+  },
+
+  toJSON(message: WorkspaceConfig): unknown {
+    const obj: any = {};
+    message.size !== undefined && (obj.size = message.size);
+    message.kubernetes !== undefined &&
+      (obj.kubernetes = message.kubernetes
+        ? KubernetesWorkspaceConfig.toJSON(message.kubernetes)
+        : undefined);
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<WorkspaceConfig>, I>>(object: I): WorkspaceConfig {
+    const message = { ...baseWorkspaceConfig } as WorkspaceConfig;
+    message.size = object.size ?? '';
+    message.kubernetes =
+      object.kubernetes !== undefined && object.kubernetes !== null
+        ? KubernetesWorkspaceConfig.fromPartial(object.kubernetes)
+        : undefined;
+    return message;
+  },
+};
+
+const baseKubernetesWorkspaceConfig: object = {};
+
+export const KubernetesWorkspaceConfig = {
+  encode(message: KubernetesWorkspaceConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.pvcSpecPatch !== undefined) {
+      Struct.encode(Struct.wrap(message.pvcSpecPatch), writer.uint32(10).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): KubernetesWorkspaceConfig {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = { ...baseKubernetesWorkspaceConfig } as KubernetesWorkspaceConfig;
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.pvcSpecPatch = Struct.unwrap(Struct.decode(reader, reader.uint32()));
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): KubernetesWorkspaceConfig {
+    const message = { ...baseKubernetesWorkspaceConfig } as KubernetesWorkspaceConfig;
+    message.pvcSpecPatch =
+      typeof object.pvcSpecPatch === 'object' ? object.pvcSpecPatch : undefined;
+    return message;
+  },
+
+  toJSON(message: KubernetesWorkspaceConfig): unknown {
+    const obj: any = {};
+    message.pvcSpecPatch !== undefined && (obj.pvcSpecPatch = message.pvcSpecPatch);
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<KubernetesWorkspaceConfig>, I>>(
+    object: I,
+  ): KubernetesWorkspaceConfig {
+    const message = { ...baseKubernetesWorkspaceConfig } as KubernetesWorkspaceConfig;
+    message.pvcSpecPatch = object.pvcSpecPatch ?? undefined;
+    return message;
+  },
+};
+
+const basePipelineConfig: object = { resourceTtl: 0 };
+
+export const PipelineConfig = {
+  encode(message: PipelineConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.resourceTtl !== 0) {
+      writer.uint32(8).int32(message.resourceTtl);
+    }
+    if (message.workspace !== undefined) {
+      WorkspaceConfig.encode(message.workspace, writer.uint32(18).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): PipelineConfig {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = { ...basePipelineConfig } as PipelineConfig;
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.resourceTtl = reader.int32();
+          break;
+        case 2:
+          message.workspace = WorkspaceConfig.decode(reader, reader.uint32());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PipelineConfig {
+    const message = { ...basePipelineConfig } as PipelineConfig;
+    message.resourceTtl =
+      object.resourceTtl !== undefined && object.resourceTtl !== null
+        ? Number(object.resourceTtl)
+        : 0;
+    message.workspace =
+      object.workspace !== undefined && object.workspace !== null
+        ? WorkspaceConfig.fromJSON(object.workspace)
+        : undefined;
+    return message;
+  },
+
+  toJSON(message: PipelineConfig): unknown {
+    const obj: any = {};
+    message.resourceTtl !== undefined && (obj.resourceTtl = Math.round(message.resourceTtl));
+    message.workspace !== undefined &&
+      (obj.workspace = message.workspace ? WorkspaceConfig.toJSON(message.workspace) : undefined);
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<PipelineConfig>, I>>(object: I): PipelineConfig {
+    const message = { ...basePipelineConfig } as PipelineConfig;
+    message.resourceTtl = object.resourceTtl ?? 0;
+    message.workspace =
+      object.workspace !== undefined && object.workspace !== null
+        ? WorkspaceConfig.fromPartial(object.workspace)
+        : undefined;
     return message;
   },
 };

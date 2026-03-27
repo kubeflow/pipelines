@@ -48,8 +48,9 @@ var DebugMode = flag.Bool("debugMode", false, "Whether to enable debug mode. Deb
 var PodLogLimit = flag.Int64("podLogLimit", 50000000, "Limit the pod logs size to this limit")
 
 var (
-	KubeflowMode  = flag.Bool("kubeflowMode", false, "Runs tests in full Kubeflow mode")
-	UserNamespace = flag.String("userNamespace", "kubeflow-user-example-com", "The namespace that will store the test resources in Kubeflow mode")
+	KubeflowMode            = flag.Bool("kubeflowMode", false, "Runs tests in full Kubeflow mode")
+	UserNamespace           = flag.String("userNamespace", "kubeflow-user-example-com", "The namespace that will store the test resources in Kubeflow mode")
+	PipelineStoreKubernetes = flag.Bool("pipelineStoreKubernetes", false, "Set to true when the API server uses Kubernetes CRD-based pipeline store. Some filter operations (gt, lt) are not supported.")
 )
 
 var (

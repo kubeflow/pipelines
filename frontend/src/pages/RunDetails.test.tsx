@@ -1000,12 +1000,11 @@ describe('RunDetails', () => {
       await runDetailsRef?.current?.refresh();
     });
     await waitFor(() => {
-      expect(getRunDetailsState()?.selectedNodeDetails).toBeTruthy();
+      expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
+        'phaseMessage',
+        'This step is in Succeeded state with this message: some node message',
+      );
     });
-    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
-      'phaseMessage',
-      'This step is in Succeeded state with this message: some node message',
-    );
   });
 
   it('dismisses node message banner if node loses message after refresh', async () => {
@@ -1027,12 +1026,11 @@ describe('RunDetails', () => {
     clickGraphNode('node1');
     fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
     await waitFor(() => {
-      expect(getRunDetailsState()?.selectedNodeDetails).toBeTruthy();
+      expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
+        'phaseMessage',
+        'This step is in Succeeded state with this message: some node message',
+      );
     });
-    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
-      'phaseMessage',
-      'This step is in Succeeded state with this message: some node message',
-    );
 
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       metadata: { name: 'workflow1' },
@@ -1042,9 +1040,8 @@ describe('RunDetails', () => {
       await runDetailsRef?.current?.refresh();
     });
     await waitFor(() => {
-      expect(getRunDetailsState()?.selectedNodeDetails).toBeTruthy();
+      expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('phaseMessage', undefined);
     });
-    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('phaseMessage', undefined);
   });
 
   [NodePhase.RUNNING, NodePhase.PENDING, NodePhase.UNKNOWN].forEach((unfinishedStatus) => {
@@ -1171,7 +1168,6 @@ describe('RunDetails', () => {
           <div
             class="page_f1flacxk"
           >
-            
             <div
               class="f4k0h41"
             >
@@ -1381,7 +1377,6 @@ describe('RunDetails', () => {
                 </button>
               </div>
             </div>
-            
           </div>
         </div>
       `);
@@ -1832,7 +1827,7 @@ describe('RunDetails', () => {
       expect(history.location.pathname).toEqual('/experiments');
     });
 
-    it('does not redirect when namespace stays the same', () => {
+    it('does not redirect when namespace stays the same', async () => {
       const history = createMemoryHistory({
         initialEntries: ['/initial-path'],
       });
@@ -1843,18 +1838,24 @@ describe('RunDetails', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await act(async () => {
+        await TestUtils.flushPromises();
+      });
       expect(history.location.pathname).toEqual('/initial-path');
-      rerender(
-        <Router history={history}>
-          <NamespaceContext.Provider value='ns1'>
-            <EnhancedRunDetails {...generateProps()} />
-          </NamespaceContext.Provider>
-        </Router>,
-      );
+      await act(async () => {
+        rerender(
+          <Router history={history}>
+            <NamespaceContext.Provider value='ns1'>
+              <EnhancedRunDetails {...generateProps()} />
+            </NamespaceContext.Provider>
+          </Router>,
+        );
+        await TestUtils.flushPromises();
+      });
       expect(history.location.pathname).toEqual('/initial-path');
     });
 
-    it('does not redirect when namespace initializes', () => {
+    it('does not redirect when namespace initializes', async () => {
       const history = createMemoryHistory({
         initialEntries: ['/initial-path'],
       });
@@ -1865,14 +1866,20 @@ describe('RunDetails', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await act(async () => {
+        await TestUtils.flushPromises();
+      });
       expect(history.location.pathname).toEqual('/initial-path');
-      rerender(
-        <Router history={history}>
-          <NamespaceContext.Provider value='ns1'>
-            <EnhancedRunDetails {...generateProps()} />
-          </NamespaceContext.Provider>
-        </Router>,
-      );
+      await act(async () => {
+        rerender(
+          <Router history={history}>
+            <NamespaceContext.Provider value='ns1'>
+              <EnhancedRunDetails {...generateProps()} />
+            </NamespaceContext.Provider>
+          </Router>,
+        );
+        await TestUtils.flushPromises();
+      });
       expect(history.location.pathname).toEqual('/initial-path');
     });
   });

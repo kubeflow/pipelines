@@ -17,7 +17,6 @@
 import { Button } from '@mui/material';
 import * as React from 'react';
 import { useState } from 'react';
-import { FlowElement } from 'react-flow-renderer';
 // import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import {
   KubernetesExecutorConfig,
@@ -29,25 +28,25 @@ import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { errorToMessage } from 'src/lib/Utils';
-import { getTaskKeyFromNodeKey, NodeTypeNames } from 'src/lib/v2/StaticFlow';
+import { getTaskKeyFromNodeKey, NodeTypeNames, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import {
   EXECUTION_KEY_CACHED_EXECUTION_ID,
   getArtifactName,
   getArtifactTypeName,
-  getArtifactTypes,
   getLinkedArtifactsByExecution,
   getStoreSessionInfoFromArtifact,
   filterEventWithOutputArtifact,
   KfpExecutionProperties,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
+import { useArtifactTypes } from 'src/hooks/useArtifactTypes';
+import { queryKeys } from 'src/hooks/queryKeys';
 import WorkflowParser from 'src/lib/WorkflowParser';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { ArtifactType, Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from 'src/components/ArtifactPreview';
 import Banner from 'src/components/Banner';
 import DetailsTable from 'src/components/DetailsTable';
-import { FlowElementDataBase } from 'src/components/graph/Constants';
 import LogViewer from 'src/components/LogViewer';
 import { getResourceStateText, ResourceType } from 'src/components/ResourceInfo';
 import { MetricsVisualizations } from 'src/components/viewers/MetricsVisualizations';
@@ -89,7 +88,7 @@ interface RuntimeNodeDetailsV2Props {
   onLayerChange: (layers: string[]) => void;
   pipelineJobString?: string;
   runId?: string;
-  element?: FlowElement<FlowElementDataBase> | null;
+  element?: PipelineFlowElement | null;
   elementMlmdInfo?: NodeMlmdInfo | null;
   namespace: string | undefined;
 }
@@ -145,7 +144,7 @@ export function RuntimeNodeDetailsV2({
 interface TaskNodeDetailProps {
   pipelineJobString?: string;
   runId?: string;
-  element?: FlowElement<FlowElementDataBase> | null;
+  element?: PipelineFlowElement | null;
   execution?: Execution;
   layers: string[];
   namespace: string | undefined;
@@ -160,7 +159,7 @@ function TaskNodeDetail({
   namespace,
 }: TaskNodeDetailProps) {
   const { data: logsInfo } = useQuery<Map<string, string>, Error>({
-    queryKey: ['execution_logs', { executionId: execution?.getId(), namespace }],
+    queryKey: queryKeys.executionLogs(execution?.getId(), namespace),
     queryFn: async () => {
       if (!execution) {
         throw new Error('No execution is found.');
@@ -256,7 +255,7 @@ function TaskNodeDetail({
 }
 
 function getTaskDetailsFields(
-  element?: FlowElement<FlowElementDataBase> | null,
+  element?: PipelineFlowElement | null,
   execution?: Execution,
 ): Array<KeyValue<string>> {
   const details: Array<KeyValue<string>> = [];
@@ -301,7 +300,7 @@ function getTaskDetailsFields(
 function getNodeVolumeMounts(
   layers: string[],
   pipelineJobString?: string,
-  element?: FlowElement<FlowElementDataBase> | null,
+  element?: PipelineFlowElement | null,
 ): Array<KeyValue<string>> {
   if (!pipelineJobString || !element) {
     return [];
@@ -457,10 +456,7 @@ interface ArtifactNodeDetailProps {
   namespace: string | undefined;
 }
 function ArtifactNodeDetail({ execution, linkedArtifact, namespace }: ArtifactNodeDetailProps) {
-  const { data } = useQuery<ArtifactType[], Error>({
-    queryKey: ['artifact_types', { linkedArtifact }],
-    queryFn: () => getArtifactTypes(),
-  });
+  const { data } = useArtifactTypes();
 
   const [selectedTab, setSelectedTab] = useState(0);
   return (
@@ -564,7 +560,7 @@ function ArtifactInfo({
 }
 
 interface SubDAGNodeDetailProps {
-  element: FlowElement<FlowElementDataBase>;
+  element: PipelineFlowElement;
   execution?: Execution;
   layers: string[];
   onLayerChange: (layers: string[]) => void;
