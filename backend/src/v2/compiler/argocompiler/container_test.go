@@ -85,7 +85,8 @@ func TestContainerDriverTemplate_IncludesKFPPodNameEnv(t *testing.T) {
 		job: &pipelinespec.PipelineJob{},
 	}
 
-	name := c.addContainerDriverTemplate()
+	name, err := c.addContainerDriverTemplate()
+	require.NoError(t, err)
 	require.Equal(t, "system-container-driver", name)
 
 	tmpl, exists := c.templates[name]
