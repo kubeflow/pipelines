@@ -48,7 +48,10 @@ replacements:
     fieldPath: data.defaultPipelineRoot
   targets:
   - select:
-      name: kfp-default-pipeline-root
+      kind: ConfigMap
+      name: kfp-launcher
+    fieldPaths:
+    - data.defaultPipelineRoot
 
 configurations:
 - params.yaml
