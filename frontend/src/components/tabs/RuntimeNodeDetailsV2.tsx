@@ -169,16 +169,16 @@ function TaskNodeDetail({
     enabled: !!execution,
   });
 
-  const { data: driverLogsInfo } = useQuery<Map<string, string>, Error>(
-    ['driver-logs', { executionId: execution?.getId(), namespace }],
-    async () => {
+  const { data: driverLogsInfo } = useQuery({
+    queryKey: queryKeys.executionLogs(execution?.getId(), namespace),
+    queryFn: async (): Promise<Map<string, string>> => {
       if (!execution) {
         throw new Error('No execution is found.');
       }
-      return await getDriverLogsInfo(execution, namespace);
+      return getDriverLogsInfo(execution, namespace);
     },
-    { enabled: !!execution },
-  );
+    enabled: !!execution,
+  });
 
   const logsDetails = logsInfo?.get(LOGS_DETAILS);
   const logsBannerMessage = logsInfo?.get(LOGS_BANNER_MESSAGE);
