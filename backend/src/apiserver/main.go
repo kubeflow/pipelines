@@ -439,7 +439,7 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 		ReadArtifact:            runArtifactServer.ReadArtifact,
 	}
 
-	topMux := buildHTTPRouter(handlerDeps, runtimeMux, pipelineStore)
+	topMux := buildHTTPRouter(handlerDeps, runtimeMux, pipelineStore, *collectMetricsFlag)
 
 	if tlsCfg != nil {
 		glog.Info("Starting Https Proxy")
@@ -469,13 +469,13 @@ type healthzResponse struct {
 }
 
 func writeJSONResponse(w http.ResponseWriter, payload any) {
-	var responseBody bytes.Buffer
-	if err := json.NewEncoder(&responseBody).Encode(payload); err != nil {
+	responseBody, err := json.Marshal(payload)
+	if err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	if _, err := w.Write(responseBody.Bytes()); err != nil {
+	if _, err := w.Write(responseBody); err != nil {
 		glog.Errorf("Failed to write JSON response: %v", err)
 	}
 }
@@ -491,7 +491,8 @@ func newHealthzResponse(pipelineStore string) healthzResponse {
 
 // buildHTTPRouter constructs the top-level HTTP router with all API routes
 // registered. It does not start a listener, making it testable in isolation.
-func buildHTTPRouter(handlerDeps HTTPRouterDeps, grpcGatewayHandler http.Handler, pipelineStore string) *mux.Router {
+// When collectMetrics is true, a /metrics endpoint is registered for Prometheus scraping.
+func buildHTTPRouter(handlerDeps HTTPRouterDeps, grpcGatewayHandler http.Handler, pipelineStore string, collectMetrics bool) *mux.Router {
 	topMux := mux.NewRouter()
 
 	// multipart upload is only supported in HTTP. In long term, we should have gRPC endpoints that
@@ -520,7 +521,9 @@ func buildHTTPRouter(handlerDeps HTTPRouterDeps, grpcGatewayHandler http.Handler
 	topMux.PathPrefix("/apis/").Handler(clearTagsMiddleware(grpcGatewayHandler))
 
 	// Register a handler for Prometheus to poll.
-	topMux.Handle("/metrics", promhttp.Handler())
+	if collectMetrics {
+		topMux.Handle("/metrics", promhttp.Handler())
+	}
 
 	return topMux
 }

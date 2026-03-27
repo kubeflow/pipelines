@@ -691,7 +691,7 @@ func collectRegisteredRoutes(t *testing.T, router *mux.Router) map[string][]stri
 }
 
 func TestBuildHTTPRouter_AllRoutesRegistered(t *testing.T) {
-	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), "database")
+	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), "database", true)
 	registeredRoutes := collectRegisteredRoutes(t, router)
 
 	expectedRoutes := []struct {
@@ -721,12 +721,16 @@ func TestBuildHTTPRouter_AllRoutesRegistered(t *testing.T) {
 	}
 }
 
-func TestBuildHTTPRouter_MetricsRegistered(t *testing.T) {
-	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), "database")
-	registeredRoutes := collectRegisteredRoutes(t, router)
+func TestBuildHTTPRouter_MetricsConditional(t *testing.T) {
+	routerWithMetrics := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), "database", true)
+	routesWithMetrics := collectRegisteredRoutes(t, routerWithMetrics)
+	_, hasMetrics := routesWithMetrics["/metrics"]
+	assert.True(t, hasMetrics, "/metrics should be registered when collectMetrics is true")
 
-	_, hasMetrics := registeredRoutes["/metrics"]
-	assert.True(t, hasMetrics, "/metrics should always be registered for Prometheus scraping")
+	routerWithoutMetrics := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), "database", false)
+	routesWithoutMetrics := collectRegisteredRoutes(t, routerWithoutMetrics)
+	_, hasMetrics = routesWithoutMetrics["/metrics"]
+	assert.False(t, hasMetrics, "/metrics should not be registered when collectMetrics is false")
 }
 
 func TestBuildHTTPRouter_HealthzResponses(t *testing.T) {
@@ -777,7 +781,7 @@ func TestBuildHTTPRouter_HealthzResponses(t *testing.T) {
 			if pipelineStore == "" {
 				pipelineStore = "database"
 			}
-			router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), pipelineStore)
+			router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), pipelineStore, true)
 
 			request := httptest.NewRequest(http.MethodGet, tt.path, nil)
 			recorder := httptest.NewRecorder()
@@ -800,15 +804,19 @@ func TestBuildHTTPRouter_HealthzResponses(t *testing.T) {
 
 func TestBuildHTTPRouter_HandlersAreCalled(t *testing.T) {
 	tests := []struct {
-		name   string
-		method string
-		path   string
-		field  string
+		name       string
+		method     string
+		path       string
+		setHandler func(deps *HTTPRouterDeps, handler http.HandlerFunc)
 	}{
-		{"v1beta1 upload pipeline", http.MethodPost, "/apis/v1beta1/pipelines/upload", "UploadPipelineV1"},
-		{"v2beta1 upload pipeline version", http.MethodPost, "/apis/v2beta1/pipelines/upload_version", "UploadPipelineVersion"},
-		{"v1alpha1 run log", http.MethodGet, "/apis/v1alpha1/runs/run-123/nodes/node-456/log", "ReadRunLogV1"},
-		{"v2beta1 artifact read", http.MethodGet, "/apis/v2beta1/runs/run-123/nodes/node-456/artifacts/my-artifact:read", "ReadArtifact"},
+		{"v1beta1 upload pipeline", http.MethodPost, "/apis/v1beta1/pipelines/upload",
+			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.UploadPipelineV1 = handler }},
+		{"v2beta1 upload pipeline version", http.MethodPost, "/apis/v2beta1/pipelines/upload_version",
+			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.UploadPipelineVersion = handler }},
+		{"v1alpha1 run log", http.MethodGet, "/apis/v1alpha1/runs/run-123/nodes/node-456/log",
+			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.ReadRunLogV1 = handler }},
+		{"v2beta1 artifact read", http.MethodGet, "/apis/v2beta1/runs/run-123/nodes/node-456/artifacts/my-artifact:read",
+			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.ReadArtifact = handler }},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -819,18 +827,9 @@ func TestBuildHTTPRouter_HandlersAreCalled(t *testing.T) {
 			}
 
 			handlerDeps := newNoOpHTTPRouterDeps()
-			switch tt.field {
-			case "UploadPipelineV1":
-				handlerDeps.UploadPipelineV1 = instrumentedHandler
-			case "UploadPipelineVersion":
-				handlerDeps.UploadPipelineVersion = instrumentedHandler
-			case "ReadRunLogV1":
-				handlerDeps.ReadRunLogV1 = instrumentedHandler
-			case "ReadArtifact":
-				handlerDeps.ReadArtifact = instrumentedHandler
-			}
+			tt.setHandler(&handlerDeps, instrumentedHandler)
 
-			router := buildHTTPRouter(handlerDeps, http.HandlerFunc(noOpHandler), "database")
+			router := buildHTTPRouter(handlerDeps, http.HandlerFunc(noOpHandler), "database", true)
 
 			request := httptest.NewRequest(tt.method, tt.path, nil)
 			recorder := httptest.NewRecorder()
@@ -848,7 +847,7 @@ func TestBuildHTTPRouter_UnmatchedAPIsGoToGateway(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), gatewayHandler, "database")
+	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), gatewayHandler, "database", true)
 
 	request := httptest.NewRequest(http.MethodGet, "/apis/v2beta1/experiments", nil)
 	recorder := httptest.NewRecorder()
