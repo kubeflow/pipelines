@@ -122,6 +122,10 @@ func (f *FakeClientManager) ObjectStore() storage.ObjectStore {
 	return f.objectStore
 }
 
+func (f *FakeClientManager) UpdateObjectStore(store storage.ObjectStore) {
+	f.objectStore = store
+}
+
 func (f *FakeClientManager) LogArchive() archive.LogArchiveInterface {
 	return f.logArchive
 }

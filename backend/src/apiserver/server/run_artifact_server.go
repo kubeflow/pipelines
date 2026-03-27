@@ -44,9 +44,19 @@ type RunArtifactServer struct {
 	*BaseRunServer
 }
 
-// ReadArtifact is an artifact reading endpoint that streams artifacts from object storage,
-// encodes them to base64 on-the-fly, and returns them as JSON.
-// The streaming approach allows handling large artifacts without buffering everything in memory.
+// ReadArtifact retrieves a pipeline artifact by run, node, and artifact name.
+//
+// Response format depends on the ARTIFACT_PRESIGNED_URL_ENABLED flag:
+//
+//   - Default (flag off): proxies the artifact through the API server and returns
+//     HTTP 200 with body: {"data": "<base64-encoded content>"}
+//
+//   - Flag on + backend supports presigned URLs (S3, GCS): returns HTTP 307 with
+//     a Location header pointing directly to the object in storage. The response
+//     body is empty — there is no JSON wrapper. Clients must follow the redirect.
+//
+//   - Flag on + backend does not support presigned URLs (e.g. local FS):
+//     falls back to the proxied JSON response above.
 func (s *RunArtifactServer) ReadArtifact(response http.ResponseWriter, r *http.Request) {
 	glog.Infof("Read artifact v2 called")
 

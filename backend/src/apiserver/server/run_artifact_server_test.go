@@ -31,6 +31,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -409,4 +410,94 @@ func TestReadArtifactV1_Unauthorized(t *testing.T) {
 
 	require.Contains(t, errorResponse.ErrorMessage, "User 'user@google.com' is not authorized")
 	require.Contains(t, errorResponse.ErrorMessage, "this is not allowed")
+}
+
+type fakePresignableStore struct {
+	storage.ObjectStore
+	url string
+}
+
+func (f *fakePresignableStore) SignedURL(_ context.Context, _ string, _ time.Duration) (string, error) {
+	return f.url, nil
+}
+
+func TestReadArtifact_PresignedURLRedirect(t *testing.T) {
+	viper.Set(common.ArtifactPresignedURLEnabled, "true")
+	defer viper.Set(common.ArtifactPresignedURLEnabled, "false")
+
+	filePath := "test/artifact.txt"
+	presignedURL := "https://storage.example.com/bucket/test/artifact.txt?sig=abc123"
+
+	clientManager, manager, run := initWithOneTimeRun(t)
+	defer clientManager.Close()
+
+	err := clientManager.ObjectStore().AddFile(context.TODO(), []byte("content"), filePath)
+	require.NoError(t, err)
+
+	clientManager.UpdateObjectStore(&fakePresignableStore{
+		ObjectStore: clientManager.ObjectStore(),
+		url:         presignedURL,
+	})
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+
+	workflow := createWorkflowWithArtifact(run.UUID, "node-1", "artifact-1", filePath)
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("GET", "/", nil)
+	req = mux.SetURLVars(req, map[string]string{
+		"run_id":        run.UUID,
+		"node_id":       "node-1",
+		"artifact_name": "artifact-1",
+	})
+	rr := httptest.NewRecorder()
+
+	NewRunArtifactServer(resourceManager).ReadArtifact(rr, req)
+
+	assert.Equal(t, http.StatusTemporaryRedirect, rr.Code)
+	assert.Equal(t, presignedURL, rr.Header().Get("Location"))
+	// check empty data filed in the body
+	assert.NotContains(t, rr.Body.String(), `"data"`)
+}
+
+func TestReadArtifact_PresignedURLFallback_WhenUnsupported(t *testing.T) {
+	viper.Set(common.ArtifactPresignedURLEnabled, "true")
+	defer viper.Set(common.ArtifactPresignedURLEnabled, "false")
+
+	expectedContent := "test artifact content"
+	filePath := "test/artifact.txt"
+
+	// fakePresignableStore returning empty string simulates a backend that doesn't support presigned URLs
+	clientManager, manager, run := initWithOneTimeRun(t)
+	defer clientManager.Close()
+
+	err := clientManager.ObjectStore().AddFile(context.TODO(), []byte(expectedContent), filePath)
+	require.NoError(t, err)
+
+	clientManager.UpdateObjectStore(&fakePresignableStore{
+		ObjectStore: clientManager.ObjectStore(),
+		url:         "",
+	})
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+
+	workflow := createWorkflowWithArtifact(run.UUID, "node-1", "artifact-1", filePath)
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("GET", "/", nil)
+	req = mux.SetURLVars(req, map[string]string{
+		"run_id":        run.UUID,
+		"node_id":       "node-1",
+		"artifact_name": "artifact-1",
+	})
+	rr := httptest.NewRecorder()
+
+	NewRunArtifactServer(resourceManager).ReadArtifact(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	var jsonResponse map[string]string
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &jsonResponse))
+	decoded, err := base64.StdEncoding.DecodeString(jsonResponse["data"])
+	require.NoError(t, err)
+	assert.Equal(t, expectedContent, string(decoded))
 }
