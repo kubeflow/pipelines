@@ -324,6 +324,13 @@ func TestGetDurationConfigWithDefault(t *testing.T) {
 			expectedValue: 30 * time.Minute,
 		},
 		{
+			name:          "returns default when env var is a unitless numeric string",
+			setEnv:        true,
+			envValue:      "3600",
+			defaultValue:  time.Hour,
+			expectedValue: time.Hour,
+		},
+		{
 			name:          "returns default when env var is an invalid duration string",
 			setEnv:        true,
 			envValue:      "notaduration",
