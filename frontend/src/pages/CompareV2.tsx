@@ -295,6 +295,10 @@ const reconcileRocCurveSelectionState = (
   validRocCurveIdSet: Set<string>,
 ): RocCurveSelectionState => {
   if (!currentSelection.hasInitialized) {
+    if (linkedArtifacts.length === 0) {
+      return currentSelection;
+    }
+
     const nextLineColorsStack = [...currentSelection.lineColorsStack];
     const nextSelectedIdColorMap = { ...currentSelection.selectedIdColorMap };
     const nextSelectedIds = linkedArtifacts
@@ -854,4 +858,6 @@ export default EnhancedCompareV2;
 
 export const TEST_ONLY = {
   CompareV2,
+  createInitialRocCurveSelectionState,
+  reconcileRocCurveSelectionState,
 };
