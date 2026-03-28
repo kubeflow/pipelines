@@ -170,7 +170,7 @@ function TaskNodeDetail({
   });
 
   const { data: driverLogsInfo } = useQuery({
-    queryKey: queryKeys.executionLogs(execution?.getId(), namespace),
+    queryKey: queryKeys.driverLogs(execution?.getId(), namespace),
     queryFn: async (): Promise<Map<string, string>> => {
       if (!execution) {
         throw new Error('No execution is found.');
