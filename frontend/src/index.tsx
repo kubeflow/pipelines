@@ -84,9 +84,5 @@ const appWithNamespace =
   );
 
 root.render(
-  isDevOrTest ? (
-    <React.StrictMode>{appWithNamespace}</React.StrictMode>
-  ) : (
-    appWithNamespace
-  ),
+  isDevOrTest ? <React.StrictMode>{appWithNamespace}</React.StrictMode> : appWithNamespace,
 );
