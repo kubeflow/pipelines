@@ -1,33 +1,28 @@
-# This workflow checks if all CI checks have passed by polling every 5 minutes for a total of 8 attempts.
+# This workflow checks if all CI checks have passed by polling every 5 minutes.
 name: CI Check
 
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened, labeled]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 
 jobs:
   check_ci_status:
     runs-on: ubuntu-latest
+    # Only run for eligible PRs: must have 'ok-to-test' and not 'needs-ok-to-test'.
+    # For 'labeled' events, only react when 'ok-to-test' is added.
+    # For 'unlabeled' events, only react when 'needs-ok-to-test' is removed.
+    # These are the only label changes that can change eligibility, avoiding
+    # restarting the 50-min polling loop on unrelated labels like 'size/L' or 'lgtm'.
+    # Using a job-level condition so ineligible PRs are 'skipped' rather than 'success',
+    # which prevents a wasted downstream workflow_run trigger.
+    if: >
+      (github.event.action != 'labeled' || github.event.label.name == 'ok-to-test') &&
+      (github.event.action != 'unlabeled' || github.event.label.name == 'needs-ok-to-test') &&
+      contains(github.event.pull_request.labels.*.name, 'ok-to-test') &&
+      !contains(github.event.pull_request.labels.*.name, 'needs-ok-to-test')
     permissions:
       checks: read
     steps:
-      - name: Check out the repository
-        uses: actions/checkout@v6
-
-      - name: Check for 'needs-ok-to-test' and 'ok-to-test' labels
-        id: label_check
-        run: |
-          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'needs-ok-to-test') }}" == "true" ]]; then
-            echo "Label 'needs-ok-to-test' found. Skipping the workflow."
-            exit 0
-          fi
-          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'ok-to-test') }}" == "true" ]]; then
-            echo "Label 'ok-to-test' found. Continuing the workflow."
-          else
-            echo "Label 'ok-to-test' not found. Skipping the workflow."
-            exit 0
-          fi
-
       - name: Check if all CI checks passed
         uses: wechuli/allcheckspassed@0b68b3b7d92e595bcbdea0c860d05605720cf479
         with:
@@ -41,13 +36,3 @@ jobs:
           checks_exclude: '^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Save PR payload
-        shell: bash
-        run: |
-          mkdir -p ./pr
-          echo ${{ github.event.pull_request.number }} >> ./pr/pr_number          
-          echo ${{ github.event.action }} >> ./pr/event_action
-      - uses: actions/upload-artifact@v7
-        with:
-          name: pr
-          path: pr/
