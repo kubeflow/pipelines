@@ -184,17 +184,18 @@ jobs:
         continue-on-error: true
 
       - name: Collect v2 integration test logs
-        if: ${{ steps.v2-integration-tests.outcome == 'failure' }}
+        if: ${{ steps.v2-integration-tests.conclusion == 'failure' }}
         run: |
           ./.github/resources/scripts/collect-logs.sh --ns ${{ env.NAMESPACE }} --output /tmp/tmp_v2_integration_log.txt
           echo "::error::v2 integration tests failed"
 
       - name: Upload v2 integration test artifacts
-        if: ${{ steps.v2-integration-tests.outcome == 'failure' }}
+        if: ${{ steps.v2-integration-tests.conclusion == 'failure' }}
         uses: actions/upload-artifact@v7
         with:
           name: v2-integration-tests-${{ matrix.k8s_version }}-cache${{ matrix.cache_enabled }}-tls${{ matrix.pod_to_pod_tls_enabled }}
           path: /tmp/tmp*/*
+          if-no-files-found: ignore
 
 
   api-test-k8s-native:
