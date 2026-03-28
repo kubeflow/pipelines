@@ -446,5 +446,81 @@ export interface GooglerpcStatus {
         fs.rmSync(tempRepoRoot, { recursive: true, force: true });
       }
     });
+
+    it('fails when a later target normalizes to different shared support content', () => {
+      const tempRepoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'openapi-dedupe-mismatch-'));
+      const write = (relativePath, source) => {
+        const filePath = path.join(tempRepoRoot, relativePath);
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+        fs.writeFileSync(filePath, source);
+      };
+
+      try {
+        write(
+          'frontend/src/apis/run/runtime.ts',
+          `/* tslint:disable */
+/* eslint-disable */
+export const BASE_PATH = 'run';
+`,
+        );
+        write(
+          'frontend/src/apis/run/models/ProtobufAny.ts',
+          `/* tslint:disable */
+/* eslint-disable */
+export interface ProtobufAny {
+  type?: string;
+}
+`,
+        );
+        write(
+          'frontend/src/apis/run/models/GooglerpcStatus.ts',
+          `/* tslint:disable */
+/* eslint-disable */
+export interface GooglerpcStatus {
+  code?: number;
+}
+`,
+        );
+        write(
+          'frontend/src/apis/pipeline/runtime.ts',
+          `/* tslint:disable */
+/* eslint-disable */
+export const BASE_PATH = 'pipeline';
+`,
+        );
+        write(
+          'frontend/src/apis/pipeline/models/ProtobufAny.ts',
+          `/* tslint:disable */
+/* eslint-disable */
+export interface ProtobufAny {
+  type?: string;
+}
+`,
+        );
+        write(
+          'frontend/src/apis/pipeline/models/GooglerpcStatus.ts',
+          `/* tslint:disable */
+/* eslint-disable */
+export interface GooglerpcStatus {
+  code?: number;
+}
+`,
+        );
+
+        dedupeGeneratedOpenApiSupportFiles(tempRepoRoot, 'v1:run');
+
+        expect(() => dedupeGeneratedOpenApiSupportFiles(tempRepoRoot, 'v1:pipeline')).toThrow(
+          'Shared OpenAPI support mismatch for runtime.ts.',
+        );
+        expect(
+          fs.readFileSync(path.join(tempRepoRoot, 'frontend/src/generated/openapi/runtime.ts'), 'utf8'),
+        ).toContain("export const BASE_PATH = 'run';");
+        expect(
+          fs.readFileSync(path.join(tempRepoRoot, 'frontend/src/apis/pipeline/runtime.ts'), 'utf8'),
+        ).toContain("export const BASE_PATH = 'pipeline';");
+      } finally {
+        fs.rmSync(tempRepoRoot, { recursive: true, force: true });
+      }
+    });
   });
 });

@@ -333,6 +333,34 @@ function createOpenApiReExportShim(sharedFilePath, sourceFilePath, importExtensi
   ].join('\n');
 }
 
+function assertSharedOpenApiSupportMatches(sharedFilePath, sharedSource, sourceFilePath) {
+  if (!fs.existsSync(sharedFilePath)) {
+    return;
+  }
+
+  const expectedSharedSource = ensureTrailingNewline(sharedSource);
+  const existingSharedSource = fs.readFileSync(sharedFilePath, 'utf8');
+  if (existingSharedSource === expectedSharedSource) {
+    return;
+  }
+
+  throw new Error(
+    [
+      `Shared OpenAPI support mismatch for ${path.basename(sharedFilePath)}.`,
+      `Existing shared file: ${sharedFilePath}`,
+      `Current generated source: ${sourceFilePath}`,
+      'All targets in a shared dedupe group must normalize to identical support content.',
+    ].join('\n'),
+  );
+}
+
+function getTargetKeysForSharedOpenApiSupportGroup(sharedGroup) {
+  return Object.keys(SPEC_TARGETS).filter((targetKey) => {
+    const targetGroup = getSharedOpenApiSupportGroup(SPEC_TARGETS[targetKey]);
+    return targetGroup && targetGroup.sharedRoot === sharedGroup.sharedRoot;
+  });
+}
+
 function dedupeGeneratedOpenApiSupportFiles(repoRoot, targetKey) {
   const target = SPEC_TARGETS[targetKey];
   const sharedGroup = getSharedOpenApiSupportGroup(target);
@@ -353,6 +381,7 @@ function dedupeGeneratedOpenApiSupportFiles(repoRoot, targetKey) {
     const sharedFilePath = path.join(sharedRootPath, supportFile.relativePath);
     const sharedSource = createSharedOpenApiSupportSource(fs.readFileSync(sourceFilePath, 'utf8'));
 
+    assertSharedOpenApiSupportMatches(sharedFilePath, sharedSource, sourceFilePath);
     writeFileIfChanged(sharedFilePath, sharedSource);
     writeFileIfChanged(
       sourceFilePath,
@@ -362,6 +391,24 @@ function dedupeGeneratedOpenApiSupportFiles(repoRoot, targetKey) {
   }
 
   return [...sharedDirs];
+}
+
+function resetFullySelectedSharedOpenApiSupportDirs(repoRoot, targets) {
+  const selectedTargets = new Set(targets);
+  for (const sharedGroup of SHARED_OPENAPI_SUPPORT_GROUPS) {
+    const groupTargetKeys = getTargetKeysForSharedOpenApiSupportGroup(sharedGroup);
+    const selectedGroupTargetCount = groupTargetKeys.filter((targetKey) => selectedTargets.has(targetKey))
+      .length;
+
+    if (selectedGroupTargetCount === 0 || selectedGroupTargetCount !== groupTargetKeys.length) {
+      continue;
+    }
+
+    fs.rmSync(path.join(repoRoot, sharedGroup.sharedRoot), {
+      recursive: true,
+      force: true,
+    });
+  }
 }
 
 function getSharedOpenApiSupportDirs(repoRoot, targets) {
@@ -375,6 +422,16 @@ function getSharedOpenApiSupportDirs(repoRoot, targets) {
         .filter(Boolean),
     ),
   ];
+}
+
+function dedupeTargetsOpenApiSupportFiles(repoRoot, targets) {
+  const sharedDirs = new Set();
+  for (const targetKey of targets) {
+    for (const sharedDir of dedupeGeneratedOpenApiSupportFiles(repoRoot, targetKey)) {
+      sharedDirs.add(sharedDir);
+    }
+  }
+  return [...sharedDirs];
 }
 
 function listTypeScriptFiles(rootDir) {
@@ -499,7 +556,6 @@ function postProcessTarget(repoRoot, targetKey) {
     nodeCompatibleFetchTypes: isServerTarget(target),
     renameV1ApiSymbols: targetKey.startsWith('v1:'),
   });
-  dedupeGeneratedOpenApiSupportFiles(repoRoot, targetKey);
 }
 
 function generateTarget(repoRoot, targetKey) {
@@ -591,11 +647,14 @@ async function main() {
     await generateTargetsParallel(repoRoot, targets, concurrency);
   }
 
-  const outputDirs = [
-    ...new Set(targets.map((targetKey) => path.join(repoRoot, SPEC_TARGETS[targetKey].output))),
-    ...getSharedOpenApiSupportDirs(repoRoot, targets),
-  ];
+  const outputDirs = [...new Set(targets.map((targetKey) => path.join(repoRoot, SPEC_TARGETS[targetKey].output)))];
   await formatGeneratedTypeScript(repoRoot, outputDirs);
+
+  resetFullySelectedSharedOpenApiSupportDirs(repoRoot, targets);
+  const sharedDirs = dedupeTargetsOpenApiSupportFiles(repoRoot, targets);
+
+  const allFormattedDirs = [...new Set([...outputDirs, ...sharedDirs, ...getSharedOpenApiSupportDirs(repoRoot, targets)])];
+  await formatGeneratedTypeScript(repoRoot, allFormattedDirs);
 }
 
 if (require.main === module) {
@@ -604,17 +663,21 @@ if (require.main === module) {
 
 module.exports = {
   formatGeneratedTypeScript,
+  assertSharedOpenApiSupportMatches,
   createOpenApiReExportShim,
   createSharedOpenApiSupportSource,
   dedupeGeneratedOpenApiSupportFiles,
+  dedupeTargetsOpenApiSupportFiles,
   generateTargetsParallel,
   getSharedOpenApiSupportDirs,
+  getTargetKeysForSharedOpenApiSupportGroup,
   listTypeScriptFiles,
   main,
   normalizeGeneratedTypeScript,
   normalizeGeneratedTypeScriptSource,
   normalizeNodeCompatibleFetchTypes,
   normalizeV1ApiSymbols,
+  resetFullySelectedSharedOpenApiSupportDirs,
   resolvePrettierModule,
   resolveTargets,
   runPool,
