@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-03-21
+- Last updated: 2026-03-28
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 17)
 
 ### Maintenance (agents and contributors)
@@ -505,7 +505,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 ### Test matrices and variants (Kubernetes, stores, proxy, cache)
 
 - Kubernetes versions: CI runs a matrix across a low and high supported version, commonly `v1.29.2` and `v1.31.0`.
-  - Examples: `e2e-test.yml`, `sdk-execution.yml`, `upgrade-test.yml`, `kfp-kubernetes-execution-tests.yml`, `kfp-webhooks.yml`, `api-server-tests.yml`, `compiler-tests.yml`, `legacy-v2-api-integration-tests.yml`, `integration-tests-v1.yml`, and frontend integration in `e2e-test-frontend.yml`.
+  - Examples: `e2e-test.yml`, `sdk-execution.yml`, `upgrade-test.yml`, `kfp-kubernetes-execution-tests.yml`, `kfp-webhooks.yml`, `api-server-tests.yml`, `compiler-tests.yml`, `integration-tests-v1.yml`, and frontend integration in `e2e-test-frontend.yml`.
 - Pipeline store variants (v2 engine): tests run with `database` and `kubernetes` stores, and a dedicated job compiles pipelines to Kubernetes-native manifests.
   - Example: `e2e-test.yml` job "API integration tests v2 - K8s with ${pipeline_store}" and "compile pipelines with Kubernetes".
 - Argo Workflows version matrix for compatibility (where relevant): e.g., `e2e-test.yml` includes an Argo job (e.g., `v3.5.14`).
@@ -531,6 +531,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 
 Notes:
 
+- Obsolete `legacy-v2-api-integration-tests.yml` and `image-builds-master.yml` workflows were removed.
 - Legacy `kfp-samples.yml` and `periodic.yml` workflows were removed.
 
 ### Workflow path verification
