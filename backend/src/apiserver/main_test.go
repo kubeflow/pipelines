@@ -691,7 +691,7 @@ func collectRegisteredRoutes(t *testing.T, router *mux.Router) map[string][]stri
 }
 
 func TestBuildHTTPRouter_AllRoutesRegistered(t *testing.T) {
-	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), "database", true)
+	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), "database")
 	registeredRoutes := collectRegisteredRoutes(t, router)
 
 	expectedRoutes := []struct {
@@ -719,18 +719,6 @@ func TestBuildHTTPRouter_AllRoutesRegistered(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestBuildHTTPRouter_MetricsConditional(t *testing.T) {
-	routerWithMetrics := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), "database", true)
-	routesWithMetrics := collectRegisteredRoutes(t, routerWithMetrics)
-	_, hasMetrics := routesWithMetrics["/metrics"]
-	assert.True(t, hasMetrics, "/metrics should be registered when collectMetrics is true")
-
-	routerWithoutMetrics := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), "database", false)
-	routesWithoutMetrics := collectRegisteredRoutes(t, routerWithoutMetrics)
-	_, hasMetrics = routesWithoutMetrics["/metrics"]
-	assert.False(t, hasMetrics, "/metrics should not be registered when collectMetrics is false")
 }
 
 func TestBuildHTTPRouter_HealthzResponses(t *testing.T) {
@@ -781,7 +769,7 @@ func TestBuildHTTPRouter_HealthzResponses(t *testing.T) {
 			if pipelineStore == "" {
 				pipelineStore = "database"
 			}
-			router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), pipelineStore, true)
+			router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), pipelineStore)
 
 			request := httptest.NewRequest(http.MethodGet, tt.path, nil)
 			recorder := httptest.NewRecorder()
@@ -829,7 +817,7 @@ func TestBuildHTTPRouter_HandlersAreCalled(t *testing.T) {
 			handlerDeps := newNoOpHTTPRouterDeps()
 			tt.setHandler(&handlerDeps, instrumentedHandler)
 
-			router := buildHTTPRouter(handlerDeps, http.HandlerFunc(noOpHandler), "database", true)
+			router := buildHTTPRouter(handlerDeps, http.HandlerFunc(noOpHandler), "database")
 
 			request := httptest.NewRequest(tt.method, tt.path, nil)
 			recorder := httptest.NewRecorder()
@@ -847,7 +835,7 @@ func TestBuildHTTPRouter_UnmatchedAPIsGoToGateway(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), gatewayHandler, "database", true)
+	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), gatewayHandler, "database")
 
 	request := httptest.NewRequest(http.MethodGet, "/apis/v2beta1/experiments", nil)
 	recorder := httptest.NewRecorder()
