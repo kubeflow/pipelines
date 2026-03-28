@@ -28,11 +28,12 @@ const refreshSpy = vi.fn();
 let lastRunListProps: any = null;
 
 vi.mock('./RunList', () => ({
-  default: React.forwardRef((props: any, ref) => {
-    lastRunListProps = props;
+  default: (props: any) => {
+    const { ref, ...runListProps } = props;
+    lastRunListProps = runListProps;
     React.useImperativeHandle(ref, () => ({ refresh: refreshSpy }));
     return <div data-testid='run-list' />;
-  }),
+  },
 }));
 
 describe('AllRunsList', () => {
