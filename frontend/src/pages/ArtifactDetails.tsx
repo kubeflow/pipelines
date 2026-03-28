@@ -28,7 +28,6 @@ import {
   GetArtifactTypesByIDRequest,
 } from 'src/third_party/mlmd';
 import { CircularProgress } from '@mui/material';
-import * as React from 'react';
 import { Route, Switch } from 'react-router-dom';
 import { classes } from 'typestyle';
 import MD2Tabs from '../atoms/MD2Tabs';

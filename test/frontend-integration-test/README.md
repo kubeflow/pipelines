@@ -11,10 +11,13 @@ This test gets triggered by the end-to-end testing workflows.
     kubectl port-forward -n kubeflow ${POD} 3000:3000 &
     ```
 
-1. Build the container with the tests (supports both amd64 and arm64):
+1. Build the container with the tests (supports both amd64 and arm64).
+   The Node version is derived from `frontend/.nvmrc`:
 
     ```bash
-    docker build . -t kfp-frontend-integration-test:local
+    docker build \
+      --build-arg NODE_VERSION=$(tr -d 'v' < ../../frontend/.nvmrc) \
+      -t kfp-frontend-integration-test:local .
     ```
 
 1. Run the test with enabled networking (**this exposes your local networking stack to the testing container**):

@@ -529,6 +529,21 @@ class TestTaskInFinalState(unittest.TestCase):
         ):
             task.ignore_upstream_failure()
 
+    def test_after_rejects_invalid_dependency_type(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'PipelineTask\.after\(\) only supports PipelineTask and dsl\.ExitHandler dependencies\. Got str\.'
+        ):
+            task.after('not-a-task')
+
+        self.assertEqual(task.dependent_tasks, [])
+
 
 def assert_artifacts_equal(
     test_class: unittest.TestCase,

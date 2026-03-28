@@ -33,13 +33,14 @@ import {
   EXECUTION_KEY_CACHED_EXECUTION_ID,
   getArtifactName,
   getArtifactTypeName,
-  getArtifactTypes,
   getLinkedArtifactsByExecution,
   getStoreSessionInfoFromArtifact,
   filterEventWithOutputArtifact,
   KfpExecutionProperties,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
+import { useArtifactTypes } from 'src/hooks/useArtifactTypes';
+import { queryKeys } from 'src/hooks/queryKeys';
 import WorkflowParser from 'src/lib/WorkflowParser';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { ArtifactType, Execution } from 'src/third_party/mlmd';
@@ -155,7 +156,7 @@ function TaskNodeDetail({
   namespace,
 }: TaskNodeDetailProps) {
   const { data: logsInfo } = useQuery<Map<string, string>, Error>({
-    queryKey: ['execution_logs', { executionId: execution?.getId(), namespace }],
+    queryKey: queryKeys.executionLogs(execution?.getId(), namespace),
     queryFn: async () => {
       if (!execution) {
         throw new Error('No execution is found.');
@@ -375,10 +376,7 @@ interface ArtifactNodeDetailProps {
   namespace: string | undefined;
 }
 function ArtifactNodeDetail({ execution, linkedArtifact, namespace }: ArtifactNodeDetailProps) {
-  const { data } = useQuery<ArtifactType[], Error>({
-    queryKey: ['artifact_types', { linkedArtifact }],
-    queryFn: () => getArtifactTypes(),
-  });
+  const { data } = useArtifactTypes();
 
   const [selectedTab, setSelectedTab] = useState(0);
   return (

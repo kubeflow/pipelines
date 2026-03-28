@@ -19,7 +19,7 @@ import functools
 import inspect
 import itertools
 import re
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, TYPE_CHECKING, Union
 import warnings
 
 from kfp.dsl import constants
@@ -33,6 +33,11 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 
 _register_task_handler = lambda task: utils.maybe_rename_for_k8s(
     task.component_spec.name)
+
+if TYPE_CHECKING:
+    from kfp.dsl import tasks_group
+
+AfterDependencyType = Union['PipelineTask', 'tasks_group.ExitHandler']
 
 
 class TaskState(enum.Enum):
@@ -681,12 +686,14 @@ class PipelineTask:
         return self
 
     @block_if_final()
-    def after(self, *tasks) -> 'PipelineTask':
+    def after(self, *tasks: AfterDependencyType) -> 'PipelineTask':
         """Specifies an explicit dependency on other tasks by requiring this
         task be executed after other tasks finish completion.
 
         Args:
-            *tasks: Tasks after which this task should be executed.
+            *tasks: Upstream dependencies after which this task should be
+                executed. Each dependency must be either a ``PipelineTask`` or
+                a ``dsl.ExitHandler`` group.
 
         Returns:
             Self return to allow chained setting calls.
@@ -699,9 +706,24 @@ class PipelineTask:
                 task1 = my_component(text='1st task')
                 task2 = my_component(text='2nd task').after(task1)
         """
+        from kfp.dsl import tasks_group
+
         for task in tasks:
-            self._run_after.append(task.name)
-            self._task_spec.dependent_tasks.append(task.name)
+            if isinstance(task, (PipelineTask, tasks_group.ExitHandler)):
+                dependency_name = task.name
+            elif isinstance(task, tasks_group.TasksGroup):
+                raise ValueError(
+                    f'".after()" on task group "{task.name}" of type '
+                    f'dsl.{task.__class__.__name__} is not supported. Only '
+                    'dsl.ExitHandler groups can be used as .after() '
+                    'dependencies.')
+            else:
+                raise ValueError(
+                    'PipelineTask.after() only supports PipelineTask and '
+                    f'dsl.ExitHandler dependencies. Got '
+                    f'{task.__class__.__name__}.')
+            self._run_after.append(dependency_name)
+            self._task_spec.dependent_tasks.append(dependency_name)
         return self
 
     @block_if_final()

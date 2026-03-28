@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import Separator from 'src/atoms/Separator';
@@ -28,13 +28,14 @@ import { errorToMessage, logger } from 'src/lib/Utils';
 import { classes, stylesheet } from 'typestyle';
 import {
   filterLinkedArtifactsByType,
-  getArtifactTypes,
   getArtifactsFromContext,
   getEventsByExecutions,
   getExecutionsFromContext,
   getKfpV2RunContext,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
+import { useArtifactTypes } from 'src/hooks/useArtifactTypes';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { Artifact, ArtifactType, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
 import RunList from './RunList';
@@ -245,8 +246,8 @@ function CompareV2(props: CompareV2Props) {
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
   const [isLoadingArtifacts, setIsLoadingArtifacts] = useState<boolean>(true);
-  const [paramsTableProps, setParamsTableProps] = useState<CompareTableProps | undefined>();
   const [isInitialArtifactsLoad, setIsInitialArtifactsLoad] = useState<boolean>(true);
+  const selectionRunIdsKeyRef = useRef<string>('');
 
   // Scalar Metrics
   const [scalarMetricsTableData, setScalarMetricsTableData] = useState<
@@ -294,7 +295,7 @@ function CompareV2(props: CompareV2Props) {
     data: runs,
     refetch,
   } = useQuery<V2beta1Run[], Error>({
-    queryKey: ['v2_run_details', { ids: runIds }],
+    queryKey: queryKeys.v2RunDetails(runIds),
     queryFn: () => Promise.all(runIds.map(async (id) => await Apis.runServiceApiV2.getRun(id))),
     staleTime: Infinity,
   });
@@ -308,7 +309,7 @@ function CompareV2(props: CompareV2Props) {
     isError: isErrorMlmdPackages,
     error: errorMlmdPackages,
   } = useQuery<MlmdPackage[], Error>({
-    queryKey: ['run_artifacts', { runIds }],
+    queryKey: queryKeys.runArtifacts(runIds),
     queryFn: () =>
       Promise.all(
         runIds.map(async (runId) => {
@@ -335,11 +336,7 @@ function CompareV2(props: CompareV2Props) {
     isLoading: isLoadingArtifactTypes,
     isError: isErrorArtifactTypes,
     error: errorArtifactTypes,
-  } = useQuery<ArtifactType[], Error>({
-    queryKey: ['artifact_types', {}],
-    queryFn: () => getArtifactTypes(),
-    staleTime: Infinity,
-  });
+  } = useArtifactTypes();
 
   // Ensure that the two-panel selected artifacts are present in selected valid run list.
   const getVerifiedTwoPanelSelection = (
@@ -551,18 +548,28 @@ function CompareV2(props: CompareV2Props) {
 
   useEffect(() => {
     if (runs) {
-      setSelectedIds(runs.map((r) => r.run_id!));
+      const nextRunIds = runs.map((run) => run.run_id!).filter((id): id is string => !!id);
+      const nextRunIdsKey = nextRunIds.join(',');
+      const routeChanged = selectionRunIdsKeyRef.current !== nextRunIdsKey;
+      selectionRunIdsKeyRef.current = nextRunIdsKey;
+
+      setSelectedIds((currentSelectedIds) => {
+        if (routeChanged) {
+          return nextRunIds;
+        }
+        const nextRunIdsSet = new Set(nextRunIds);
+        return currentSelectedIds.filter((id) => nextRunIdsSet.has(id));
+      });
     }
   }, [runs]);
 
-  useEffect(() => {
-    if (runs) {
-      const selectedIdsSet = new Set(selectedIds);
-      const selectedRuns: V2beta1Run[] = runs.filter((run) => selectedIdsSet.has(run.run_id!));
-      setParamsTableProps(getParamsTableProps(selectedRuns));
-    } else {
-      setParamsTableProps(undefined);
+  const paramsTableProps = useMemo(() => {
+    if (!runs) {
+      return undefined;
     }
+    const selectedIdsSet = new Set(selectedIds);
+    const selectedRuns: V2beta1Run[] = runs.filter((run) => selectedIdsSet.has(run.run_id!));
+    return getParamsTableProps(selectedRuns);
   }, [runs, selectedIds]);
 
   const showPageError = async (message: string, error: Error | undefined) => {

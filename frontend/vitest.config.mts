@@ -14,6 +14,10 @@ export default defineConfig({
     },
   },
   test: {
+    // Fork pool + bounded workers avoid v8 coverage tmp merge races (ENOENT on
+    // coverage/vitest/.tmp/coverage-*.json) under high default parallelism on CI.
+    pool: 'forks',
+    maxWorkers: process.env.CI ? 4 : undefined,
     environment: 'jsdom',
     setupFiles: ['src/vitest.setup.ts'],
     globals: true,
@@ -27,7 +31,7 @@ export default defineConfig({
     },
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'lcov'],
+      reporter: ['text', 'lcov', 'json-summary'],
       reportsDirectory: 'coverage/vitest',
       include: ['src/**/*.{ts,tsx,js,jsx}'],
       exclude: [

@@ -11,15 +11,15 @@ are available at their corresponding GitHub repositories.
 ### fnm
 
 ```bash
-fnm install 22.19.0
-fnm use 22.19.0
+fnm install "$(cat .nvmrc)"
+fnm use "$(cat .nvmrc)"
 ```
 
 ### nvm
 
 ```bash
-nvm install 22.19.0
-nvm use 22.19.0
+nvm install "$(cat .nvmrc)"
+nvm use "$(cat .nvmrc)"
 ```
 
 ## Manage dev environment with npm
@@ -158,6 +158,7 @@ There are a few types of tests during pre-submit:
 
 * formatting, refer to [Code Style Section](#code-style)
 * linting, you can also run locally with `npm run lint`
+  (`npm run lint:ui` and `npm run lint:server` are available for narrower checks)
 * TypeScript typecheck (no emit), run locally with `npm run typecheck`
 * client UI unit tests (Vitest), you can run locally with `npm run test:ui`
   (uncapped workers) or `npm run test:ui:coverage:loop` for stability loops
@@ -315,7 +316,7 @@ Prerequisite: Add `protoc` ([download](https://github.com/protocolbuffers/protob
 Compile pipeline_spec.proto to Typed classes in TypeScript,
 so it can convert a payload stream to a PipelineSpec object during runtime.
 
-You can check out the result like `pipeline_spec_pb.js`, `pipeline_spec_pb.d.ts` in [frontend/src/generated/pipeline_spec](/frontend/src/generated/pipeline_spec).
+You can check out the generated TypeScript outputs like `pipeline_spec.ts` and `google/rpc/status.ts` in [frontend/src/generated/pipeline_spec](/frontend/src/generated/pipeline_spec).
 
 The plugin tool for conversion we currently use is [ts-proto](https://github.com/stephenh/ts-proto). We previously use
 [protobuf.js](https://github.com/protobufjs/protobuf.js) but it doesn't natively support Protobuf.Value processing.

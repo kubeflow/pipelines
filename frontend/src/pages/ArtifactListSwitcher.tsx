@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
 import { classes } from 'typestyle';

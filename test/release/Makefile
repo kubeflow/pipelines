@@ -13,6 +13,7 @@
 # limitations under the License.
 
 REMOTE=ghcr.io/kubeflow/kfp-release:master
+NODE_VERSION=$(shell tr -d 'v' < ../../frontend/.nvmrc)
 
 CONTAINER_ENGINE ?= docker
 
@@ -42,7 +43,7 @@ release-in-place:
 # Build a release image locally using docker.
 .PHONY: build
 build:
-	${CONTAINER_ENGINE} build -t $(REMOTE) - < Dockerfile.release
+	${CONTAINER_ENGINE} build --build-arg NODE_VERSION=$(NODE_VERSION) -t $(REMOTE) - < Dockerfile.release
 
 # Push locally built release image to remote container registry,
 # so that others can use the new image next time.

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { FC } from 'react';
+import { FC } from 'react';
 import { PodInfo, PodEvents } from './PodYaml';
 import { render, act, fireEvent } from '@testing-library/react';
 import { Apis } from 'src/lib/Apis';

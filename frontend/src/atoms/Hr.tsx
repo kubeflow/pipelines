@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import { color, spacing } from '../Css';
 
 const style = {

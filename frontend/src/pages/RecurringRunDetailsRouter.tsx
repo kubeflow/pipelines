@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useQuery } from '@tanstack/react-query';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
@@ -27,6 +27,8 @@ import RecurringRunDetails from './RecurringRunDetails';
 import RecurringRunDetailsV2 from './RecurringRunDetailsV2';
 import { RecurringRunDetailsV2FC } from 'src/pages/functional_components/RecurringRunDetailsV2FC';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
+import { usePipelineVersionTemplate } from 'src/hooks/usePipelineVersionTemplate';
+import { queryKeys } from 'src/hooks/queryKeys';
 
 // This is a router to determine whether to show V1 or V2 recurring run details page.
 export default function RecurringRunDetailsRouter(props: PageProps) {
@@ -41,7 +43,7 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
     error: recurringRunError,
     data: v2RecurringRun,
   } = useQuery<V2beta1RecurringRun, Error>({
-    queryKey: ['v2_recurring_run_detail', { id: recurringRunId }],
+    queryKey: queryKeys.v2RecurringRunDetail(recurringRunId),
     queryFn: () => {
       if (!recurringRunId) {
         throw new Error('Recurring run ID is missing');
@@ -59,26 +61,8 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
   const pipelineId = v2RecurringRun?.pipeline_version_reference?.pipeline_id;
   const pipelineVersionId = v2RecurringRun?.pipeline_version_reference?.pipeline_version_id;
 
-  const { isFetching: templateStrIsFetching, data: templateStrFromPipelineVersion } = useQuery<
-    string,
-    Error
-  >({
-    queryKey: ['PipelineVersionTemplate', { pipelineId, pipelineVersionId }],
-    queryFn: async () => {
-      if (!pipelineId || !pipelineVersionId) {
-        return '';
-      }
-      const pipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(
-        pipelineId,
-        pipelineVersionId,
-      );
-      const pipelineSpec = pipelineVersion.pipeline_spec;
-      return pipelineSpec ? JsYaml.safeDump(pipelineSpec) : '';
-    },
-    enabled: !!pipelineId && !!pipelineVersionId,
-    staleTime: Infinity,
-    cacheTime: Infinity, // v5: renamed to gcTime
-  });
+  const { isFetching: templateStrIsFetching, data: templateStrFromPipelineVersion } =
+    usePipelineVersionTemplate(pipelineId, pipelineVersionId);
 
   const templateString = pipelineManifest ?? templateStrFromPipelineVersion;
 

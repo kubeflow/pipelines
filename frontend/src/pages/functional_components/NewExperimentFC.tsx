@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { commonCss, fontsize, padding } from 'src/Css';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
-import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import BusyButton from 'src/atoms/BusyButton';
 import Input from 'src/atoms/Input';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
@@ -53,15 +52,7 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
   const [description, setDescription] = useState<string>('');
   const [experimentName, setExperimentName] = useState<string>('');
   const [isbeingCreated, setIsBeingCreated] = useState<boolean>(false);
-  const [experimentResponse, setExperimentResponse] = useState<V2beta1Experiment>();
-  const [errMsgFromApi, setErrMsgFromApi] = useState<string>();
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
-
-  const { data: latestVersion } = useQuery<V2beta1PipelineVersion | undefined, Error>({
-    queryKey: ['pipeline_versions', pipelineId],
-    queryFn: () => getLatestVersion(pipelineId!),
-    enabled: !!pipelineId,
-  });
 
   useEffect(() => {
     updateToolbar({
@@ -73,54 +64,13 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Handle the redirection work when createExperiment is succeed
-  useEffect(() => {
-    if (experimentResponse) {
-      const searchString = pipelineId
-        ? new URLParser(props).build({
-            [QUERY_PARAMS.experimentId]: experimentResponse.experiment_id || '',
-            [QUERY_PARAMS.pipelineId]: pipelineId,
-            [QUERY_PARAMS.pipelineVersionId]: latestVersion?.pipeline_version_id || '',
-            [QUERY_PARAMS.firstRunInExperiment]: '1',
-          })
-        : new URLParser(props).build({
-            [QUERY_PARAMS.experimentId]: experimentResponse.experiment_id || '',
-            [QUERY_PARAMS.firstRunInExperiment]: '1',
-          });
-      props.history.push(RoutePage.NEW_RUN + searchString);
-
-      updateSnackbar({
-        autoHideDuration: 10000,
-        message: `Successfully created new Experiment: ${experimentResponse.display_name}`,
-        open: true,
-      });
-    }
-    // Only trigger this effect when search string parameters change.
-    // Do not rerun this effect if updateSnackbar callback has changes to avoid re-rendering.
-    // Do not rerun this effect if pipelineId has changes to avoid re-rendering.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [experimentResponse, latestVersion]);
-
-  useEffect(() => {
-    if (errMsgFromApi) {
-      updateDialog({
-        buttons: [{ text: 'Dismiss' }],
-        onClose: () => setIsBeingCreated(false),
-        content: errMsgFromApi,
-        title: 'Experiment creation failed',
-      });
-    }
-    // Do not rerun this effect if updateDialog callback has changes to avoid re-rendering.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [errMsgFromApi, updateDialog]);
-
   const newExperimentMutation = useMutation({
     mutationFn: (experiment: V2beta1Experiment) => {
       return Apis.experimentServiceApiV2.createExperiment(experiment);
     },
   });
 
-  const createExperiment = () => {
+  const createExperiment = async () => {
     let newExperiment: V2beta1Experiment = {
       display_name: experimentName,
       description: description,
@@ -129,12 +79,36 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
     setIsBeingCreated(true);
 
     newExperimentMutation.mutate(newExperiment, {
-      onSuccess: (response) => {
-        setExperimentResponse(response);
-        setErrMsgFromApi(undefined);
+      onSuccess: async (response) => {
+        const latestVersion = pipelineId ? await getLatestVersion(pipelineId) : undefined;
+        const searchString = pipelineId
+          ? new URLParser(props).build({
+              [QUERY_PARAMS.experimentId]: response.experiment_id || '',
+              [QUERY_PARAMS.pipelineId]: pipelineId,
+              [QUERY_PARAMS.pipelineVersionId]: latestVersion?.pipeline_version_id || '',
+              [QUERY_PARAMS.firstRunInExperiment]: '1',
+            })
+          : new URLParser(props).build({
+              [QUERY_PARAMS.experimentId]: response.experiment_id || '',
+              [QUERY_PARAMS.firstRunInExperiment]: '1',
+            });
+
+        setIsBeingCreated(false);
+        props.history.push(RoutePage.NEW_RUN + searchString);
+
+        updateSnackbar({
+          autoHideDuration: 10000,
+          message: `Successfully created new Experiment: ${response.display_name}`,
+          open: true,
+        });
       },
       onError: async (err) => {
-        setErrMsgFromApi(await errorToMessage(err));
+        updateDialog({
+          buttons: [{ text: 'Dismiss' }],
+          onClose: () => setIsBeingCreated(false),
+          content: (await errorToMessage(err)) || 'Unknown error',
+          title: 'Experiment creation failed',
+        });
       },
     });
   };

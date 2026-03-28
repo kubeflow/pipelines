@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ApiRunDetail } from 'src/apis/run';
 import { QUERY_PARAMS } from 'src/components/Router';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
 import { Apis } from 'src/lib/Apis';
 import { errorToMessage } from 'src/lib/Utils';
@@ -41,34 +42,32 @@ export const METRICS_SECTION_NAME = 'Metrics';
 // This is a router to determine whether to show V1 or V2 compare page.
 export default function Compare(props: PageProps) {
   const { updateBanner } = props;
-  const [compareVersion, setCompareVersion] = useState<CompareVersion>(CompareVersion.Unknown);
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
   // Retrieves run details, set page version on success.
   const { isLoading, isError, error, data } = useQuery<ApiRunDetail[], Error>({
-    queryKey: ['run_details', { ids: runIds }],
+    queryKey: queryKeys.runDetails(runIds),
     queryFn: () => Promise.all(runIds.map(async (id) => await Apis.runServiceApi.getRun(id))),
     staleTime: Infinity,
   });
 
-  useEffect(() => {
-    // Set the version based on the runs included.
-    if (data) {
-      if (data.length < 2 || data.length > 10) {
-        setCompareVersion(CompareVersion.InvalidRunCount);
-      } else {
-        const v2runs = data.filter((run) => 'pipeline_manifest' in (run.run?.pipeline_spec ?? {}));
-        if (v2runs.length === 0) {
-          setCompareVersion(CompareVersion.V1);
-        } else if (v2runs.length === data.length) {
-          setCompareVersion(CompareVersion.V2);
-        } else {
-          setCompareVersion(CompareVersion.Mixed);
-        }
-      }
-    }
-  }, [data]);
+  const compareVersion = !data
+    ? CompareVersion.Unknown
+    : data.length < 2 || data.length > 10
+      ? CompareVersion.InvalidRunCount
+      : (() => {
+          const v2runs = data.filter(
+            (run) => 'pipeline_manifest' in (run.run?.pipeline_spec ?? {}),
+          );
+          if (v2runs.length === 0) {
+            return CompareVersion.V1;
+          }
+          if (v2runs.length === data.length) {
+            return CompareVersion.V2;
+          }
+          return CompareVersion.Mixed;
+        })();
 
   useEffect(() => {
     if (isLoading) {

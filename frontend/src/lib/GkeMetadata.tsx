@@ -23,7 +23,7 @@ export interface GkeMetadata {
   clusterName?: string;
 }
 export const GkeMetadataContext = React.createContext<GkeMetadata>({});
-export const GkeMetadataProvider: FC<{}> = (props) => {
+export const GkeMetadataProvider: FC<{ children?: React.ReactNode }> = (props) => {
   const [metadata, setMetadata] = useState({});
   useEffect(() => {
     Apis.getClusterName()

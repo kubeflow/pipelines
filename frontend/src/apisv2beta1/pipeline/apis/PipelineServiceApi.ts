@@ -15,6 +15,8 @@
 import * as runtime from '../runtime';
 import type {
   GooglerpcStatus,
+  RequiredInputPipelineObjectWithUpdatedFieldsPipelineIdIsRequiredToIdentifyThePipelineMutableFieldsDisplayNameTags,
+  RequiredInputPipelineVersionObjectWithUpdatedFieldsPipelineIdAndPipelineVersionIdAreRequiredToIdentifyTheVersionMutableFieldsDisplayNameTags,
   V2beta1CreatePipelineAndVersionRequest,
   V2beta1ListPipelineVersionsResponse,
   V2beta1ListPipelinesResponse,
@@ -24,6 +26,10 @@ import type {
 import {
   GooglerpcStatusFromJSON,
   GooglerpcStatusToJSON,
+  RequiredInputPipelineObjectWithUpdatedFieldsPipelineIdIsRequiredToIdentifyThePipelineMutableFieldsDisplayNameTagsFromJSON,
+  RequiredInputPipelineObjectWithUpdatedFieldsPipelineIdIsRequiredToIdentifyThePipelineMutableFieldsDisplayNameTagsToJSON,
+  RequiredInputPipelineVersionObjectWithUpdatedFieldsPipelineIdAndPipelineVersionIdAreRequiredToIdentifyTheVersionMutableFieldsDisplayNameTagsFromJSON,
+  RequiredInputPipelineVersionObjectWithUpdatedFieldsPipelineIdAndPipelineVersionIdAreRequiredToIdentifyTheVersionMutableFieldsDisplayNameTagsToJSON,
   V2beta1CreatePipelineAndVersionRequestFromJSON,
   V2beta1CreatePipelineAndVersionRequestToJSON,
   V2beta1ListPipelineVersionsResponseFromJSON,
@@ -87,6 +93,17 @@ export interface ListPipelinesRequest {
   page_size?: number;
   sort_by?: string;
   filter?: string;
+}
+
+export interface UpdatePipelineRequest {
+  pipeline_pipeline_id: string;
+  pipeline: RequiredInputPipelineObjectWithUpdatedFieldsPipelineIdIsRequiredToIdentifyThePipelineMutableFieldsDisplayNameTags;
+}
+
+export interface UpdatePipelineVersionRequest {
+  pipeline_version_pipeline_id: string;
+  pipeline_version_pipeline_version_id: string;
+  pipeline_version: RequiredInputPipelineVersionObjectWithUpdatedFieldsPipelineIdAndPipelineVersionIdAreRequiredToIdentifyTheVersionMutableFieldsDisplayNameTags;
 }
 
 /**
@@ -721,6 +738,160 @@ export class PipelineServiceApi extends runtime.BaseAPI {
         page_size: page_size,
         sort_by: sort_by,
         filter: filter,
+      },
+      initOverrides,
+    );
+    return await response.value();
+  }
+
+  /**
+   * Updates a pipeline\'s mutable fields (display_name, tags).
+   */
+  async updatePipelineRaw(
+    requestParameters: UpdatePipelineRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<V2beta1Pipeline>> {
+    if (requestParameters['pipeline_pipeline_id'] == null) {
+      throw new runtime.RequiredError(
+        'pipeline_pipeline_id',
+        'Required parameter "pipeline_pipeline_id" was null or undefined when calling updatePipeline().',
+      );
+    }
+
+    if (requestParameters['pipeline'] == null) {
+      throw new runtime.RequiredError(
+        'pipeline',
+        'Required parameter "pipeline" was null or undefined when calling updatePipeline().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    headerParameters['Content-Type'] = 'application/json';
+
+    if (this.configuration && this.configuration.apiKey) {
+      headerParameters['authorization'] = await this.configuration.apiKey('authorization'); // Bearer authentication
+    }
+
+    let urlPath = `/apis/v2beta1/pipelines/{pipeline.pipeline_id}`;
+    urlPath = urlPath.replace(
+      `{${'pipeline.pipeline_id'}}`,
+      encodeURIComponent(String(requestParameters['pipeline_pipeline_id'])),
+    );
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'PATCH',
+        headers: headerParameters,
+        query: queryParameters,
+        body: RequiredInputPipelineObjectWithUpdatedFieldsPipelineIdIsRequiredToIdentifyThePipelineMutableFieldsDisplayNameTagsToJSON(
+          requestParameters['pipeline'],
+        ),
+      },
+      initOverrides,
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) => V2beta1PipelineFromJSON(jsonValue));
+  }
+
+  /**
+   * Updates a pipeline\'s mutable fields (display_name, tags).
+   */
+  async updatePipeline(
+    pipeline_pipeline_id: string,
+    pipeline: RequiredInputPipelineObjectWithUpdatedFieldsPipelineIdIsRequiredToIdentifyThePipelineMutableFieldsDisplayNameTags,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<V2beta1Pipeline> {
+    const response = await this.updatePipelineRaw(
+      { pipeline_pipeline_id: pipeline_pipeline_id, pipeline: pipeline },
+      initOverrides,
+    );
+    return await response.value();
+  }
+
+  /**
+   * Updates a pipeline version\'s mutable fields (display_name, tags).
+   */
+  async updatePipelineVersionRaw(
+    requestParameters: UpdatePipelineVersionRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<V2beta1PipelineVersion>> {
+    if (requestParameters['pipeline_version_pipeline_id'] == null) {
+      throw new runtime.RequiredError(
+        'pipeline_version_pipeline_id',
+        'Required parameter "pipeline_version_pipeline_id" was null or undefined when calling updatePipelineVersion().',
+      );
+    }
+
+    if (requestParameters['pipeline_version_pipeline_version_id'] == null) {
+      throw new runtime.RequiredError(
+        'pipeline_version_pipeline_version_id',
+        'Required parameter "pipeline_version_pipeline_version_id" was null or undefined when calling updatePipelineVersion().',
+      );
+    }
+
+    if (requestParameters['pipeline_version'] == null) {
+      throw new runtime.RequiredError(
+        'pipeline_version',
+        'Required parameter "pipeline_version" was null or undefined when calling updatePipelineVersion().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    headerParameters['Content-Type'] = 'application/json';
+
+    if (this.configuration && this.configuration.apiKey) {
+      headerParameters['authorization'] = await this.configuration.apiKey('authorization'); // Bearer authentication
+    }
+
+    let urlPath = `/apis/v2beta1/pipelines/{pipeline_version.pipeline_id}/versions/{pipeline_version.pipeline_version_id}`;
+    urlPath = urlPath.replace(
+      `{${'pipeline_version.pipeline_id'}}`,
+      encodeURIComponent(String(requestParameters['pipeline_version_pipeline_id'])),
+    );
+    urlPath = urlPath.replace(
+      `{${'pipeline_version.pipeline_version_id'}}`,
+      encodeURIComponent(String(requestParameters['pipeline_version_pipeline_version_id'])),
+    );
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'PATCH',
+        headers: headerParameters,
+        query: queryParameters,
+        body: RequiredInputPipelineVersionObjectWithUpdatedFieldsPipelineIdAndPipelineVersionIdAreRequiredToIdentifyTheVersionMutableFieldsDisplayNameTagsToJSON(
+          requestParameters['pipeline_version'],
+        ),
+      },
+      initOverrides,
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
+      V2beta1PipelineVersionFromJSON(jsonValue),
+    );
+  }
+
+  /**
+   * Updates a pipeline version\'s mutable fields (display_name, tags).
+   */
+  async updatePipelineVersion(
+    pipeline_version_pipeline_id: string,
+    pipeline_version_pipeline_version_id: string,
+    pipeline_version: RequiredInputPipelineVersionObjectWithUpdatedFieldsPipelineIdAndPipelineVersionIdAreRequiredToIdentifyTheVersionMutableFieldsDisplayNameTags,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<V2beta1PipelineVersion> {
+    const response = await this.updatePipelineVersionRaw(
+      {
+        pipeline_version_pipeline_id: pipeline_version_pipeline_id,
+        pipeline_version_pipeline_version_id: pipeline_version_pipeline_version_id,
+        pipeline_version: pipeline_version,
       },
       initOverrides,
     );

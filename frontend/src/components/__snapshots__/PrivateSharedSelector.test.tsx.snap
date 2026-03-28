@@ -24,7 +24,6 @@ exports[`PrivateSharedSelector > it renders correctly 1`] = `
               checked=""
               class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
               type="radio"
-              value=""
             />
             <span
               class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -74,7 +73,6 @@ exports[`PrivateSharedSelector > it renders correctly 1`] = `
             <input
               class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
               type="radio"
-              value=""
             />
             <span
               class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -135,7 +133,6 @@ exports[`PrivateSharedSelector > it renders correctly 1`] = `
             checked=""
             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
             type="radio"
-            value=""
           />
           <span
             class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -185,7 +182,6 @@ exports[`PrivateSharedSelector > it renders correctly 1`] = `
           <input
             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
             type="radio"
-            value=""
           />
           <span
             class="css-19y5vkv-MuiRadioButtonIcon-root"

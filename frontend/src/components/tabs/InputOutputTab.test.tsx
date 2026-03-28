@@ -16,7 +16,6 @@
 
 import { render, screen, waitFor } from '@testing-library/react';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
-import React from 'react';
 import { Apis } from 'src/lib/Apis';
 import { Api } from 'src/mlmd/library';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';

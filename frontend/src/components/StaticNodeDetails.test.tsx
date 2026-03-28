@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import StaticNodeDetails from './StaticNodeDetails';
 import { SelectedNodeInfo } from '../lib/StaticGraphParser';

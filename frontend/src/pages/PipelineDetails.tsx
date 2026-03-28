@@ -20,7 +20,6 @@ import 'ace-builds/src-noconflict/mode-yaml';
 import 'ace-builds/src-noconflict/theme-github';
 import { graphlib } from 'dagre';
 import * as JsYaml from 'js-yaml';
-import * as React from 'react';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
 import { Apis } from 'src/lib/Apis';
 import {

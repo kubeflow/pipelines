@@ -16,6 +16,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { color, commonCss, fontsize, zIndex } from 'src/Css';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { classes, stylesheet } from 'typestyle';
 import { LinkedArtifact, getArtifactName, getExecutionDisplayName } from 'src/mlmd/MlmdUtils';
 import TwoLevelDropdown, {
@@ -192,13 +193,7 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     error,
     data: viewerConfigs,
   } = useQuery<ViewerConfig[], Error>({
-    queryKey: [
-      'viewerConfig',
-      {
-        artifact: linkedArtifact?.artifact.getId(),
-        namespace,
-      },
-    ],
+    queryKey: queryKeys.visualizationPanelViewerConfig(linkedArtifact?.artifact.getId(), namespace),
 
     queryFn: async () => {
       let viewerConfigs: ViewerConfig[] = [];

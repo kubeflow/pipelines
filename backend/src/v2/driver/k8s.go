@@ -835,16 +835,18 @@ func createPVC(
 	}
 
 	// Optional input: annotations
-	pvcAnnotationsInput := inputs.ParameterValues["annotations"]
 	pvcAnnotations := make(map[string]string)
-	for key, val := range pvcAnnotationsInput.GetStructValue().AsMap() {
-		typedVal := val.(structpb.Value)
-		pvcAnnotations[key] = typedVal.GetStringValue()
+	if pvcAnnotationsInput, ok := inputs.ParameterValues["annotations"]; ok && pvcAnnotationsInput != nil {
+		for key, val := range pvcAnnotationsInput.GetStructValue().GetFields() {
+			pvcAnnotations[key] = val.GetStringValue()
+		}
 	}
 
 	// Optional input: volume_name
-	volumeNameInput := inputs.ParameterValues["volume_name"]
-	volumeName := volumeNameInput.GetStringValue()
+	var volumeName string
+	if volumeNameInput, ok := inputs.ParameterValues["volume_name"]; ok && volumeNameInput != nil {
+		volumeName = volumeNameInput.GetStringValue()
+	}
 
 	// Get execution fingerprint and MLMD ID for caching
 	// If pvcName includes a randomly generated UUID, it is added in the execution input as a key-value pair for this purpose only

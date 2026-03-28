@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import { SwitchProps } from '@mui/material/Switch';
 import { stylesheet } from 'typestyle';
 import { ExternalLink } from '../atoms/ExternalLink';
