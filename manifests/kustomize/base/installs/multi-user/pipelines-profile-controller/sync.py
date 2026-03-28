@@ -240,6 +240,8 @@ def server_factory(frontend_image,
 
                 agent_sa_name = "ml-pipeline-driver-agent-executor-plugin"
                 self.create_role_and_binding(rbac_v1=rbac_v1, namespace=namespace, role_name='configmap-reader', resources=["configmaps"], sa_name=agent_sa_name, verbs=["get", "list", "watch"])
+                self.create_role_and_binding(rbac_v1=rbac_v1, namespace=namespace, role_name='ml-pipeline-driver-pods-reader', resources=["pods"], sa_name=agent_sa_name, verbs=["get", "list", "watch"])
+                self.create_role_and_binding(rbac_v1=rbac_v1, namespace=namespace, role_name='ml-pipeline-driver-pvc-editor', resources=["persistentvolumeclaims"], sa_name=agent_sa_name, verbs=["create", "get", "list"])
                 self.create_role_and_binding(rbac_v1=rbac_v1, namespace=namespace, role_name='artifact-secret-reader', resources=["secrets"], sa_name=agent_sa_name, verbs=["get", "list", "watch"], resource_names=["mlpipeline-minio-artifact"])
             except ApiException as e:
                 if e.status == 409:

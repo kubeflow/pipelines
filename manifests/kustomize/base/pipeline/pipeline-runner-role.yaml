@@ -99,7 +99,50 @@ metadata:
     application-crd-id: kubeflow-pipelines
 secrets:
   - name: ml-pipeline-driver-agent-executor-plugin.service-account-token
-
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ml-pipeline-driver-pods-viewer
+  namespace: kubeflow
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ml-pipeline-driver-pods-viewer-binding
+subjects:
+  - kind: ServiceAccount
+    name: ml-pipeline-driver-agent-executor-plugin
+roleRef:
+  kind: Role
+  name: ml-pipeline-driver-pods-viewer
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ml-pipeline-driver-pvc-editor
+  namespace: kubeflow
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["create", "get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ml-pipeline-driver-pvc-editor-binding
+subjects:
+  - kind: ServiceAccount
+    name: ml-pipeline-driver-agent-executor-plugin
+roleRef:
+  kind: Role
+  name: ml-pipeline-driver-pvc-editor
+  apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: v1
 kind: Secret
@@ -130,7 +173,6 @@ roleRef:
   kind: Role
   name: configmap-reader
   apiGroup: rbac.authorization.k8s.io
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
