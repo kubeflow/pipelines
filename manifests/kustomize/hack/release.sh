@@ -32,6 +32,7 @@ kustomization_yamls_with_images=(
   "base/metadata/base/kustomization.yaml"
   "base/pipeline/metadata-writer/kustomization.yaml"
   "base/pipeline/kustomization.yaml"
+  "env/dev/kustomization.yaml"
   "env/gcp/inverse-proxy/kustomization.yaml"
 )
 for path in "${kustomization_yamls_with_images[@]}"
@@ -49,5 +50,16 @@ yq w -i ${API_SERVER_MANIFEST} \
   "ghcr.io/kubeflow/kfp-launcher:${TAG_NAME}"
 
 yq w -i ${API_SERVER_MANIFEST} \
+  "spec.template.spec.containers.(name==ml-pipeline-api-server).env.(name==V2_DRIVER_IMAGE).value" \
+  "ghcr.io/kubeflow/kfp-driver:${TAG_NAME}"
+
+## Dev overlay also pins driver & launcher images
+DEV_API_SERVER_PATCH="${MANIFEST_DIR}/env/dev/api-server-patch.yaml"
+
+yq w -i ${DEV_API_SERVER_PATCH} \
+  "spec.template.spec.containers.(name==ml-pipeline-api-server).env.(name==V2_LAUNCHER_IMAGE).value" \
+  "ghcr.io/kubeflow/kfp-launcher:${TAG_NAME}"
+
+yq w -i ${DEV_API_SERVER_PATCH} \
   "spec.template.spec.containers.(name==ml-pipeline-api-server).env.(name==V2_DRIVER_IMAGE).value" \
   "ghcr.io/kubeflow/kfp-driver:${TAG_NAME}"
