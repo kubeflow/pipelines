@@ -97,6 +97,14 @@ export type SpecParameters = { [key: string]: ComponentInputsSpec_ParameterSpec 
 export type RuntimeParameters = { [key: string]: any };
 type KeyedState<T> = { key: string; value: T };
 
+const hashString = (value: string): string => {
+  let hash = 0;
+  for (let index = 0; index < value.length; index++) {
+    hash = (hash * 31 + value.charCodeAt(index)) | 0;
+  }
+  return (hash >>> 0).toString(36);
+};
+
 type CloneOrigin = {
   isClone: boolean;
   isRecurring: boolean;
@@ -272,10 +280,9 @@ function NewRunV2(props: NewRunV2Props) {
   }, [templateString]);
   const parameterStateKey = useMemo(
     () =>
-      JSON.stringify({
-        clonedRuntimeConfig: clonedRuntimeConfig ?? null,
-        templateString: templateString ?? '',
-      }),
+      `${hashString(templateString ?? '')}:${hashString(
+        JSON.stringify(clonedRuntimeConfig ?? null),
+      )}`,
     [clonedRuntimeConfig, templateString],
   );
   const initialPipelineRoot = clonedRuntimeConfig?.pipeline_root ?? defaultPipelineRoot;
