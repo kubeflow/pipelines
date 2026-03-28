@@ -24,7 +24,7 @@ import {
   Radio,
   Checkbox,
 } from '@mui/material';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -95,6 +95,7 @@ type NewRunV2Props = RunV2Props & PageProps;
 
 export type SpecParameters = { [key: string]: ComponentInputsSpec_ParameterSpec };
 export type RuntimeParameters = { [key: string]: any };
+type KeyedState<T> = { key: string; value: T };
 
 type CloneOrigin = {
   isClone: boolean;
@@ -214,11 +215,18 @@ function NewRunV2(props: NewRunV2Props) {
   const [experiment, setExperiment] = useState(chosenExperiment);
   const [experimentName, setExperimentName] = useState('');
   const [serviceAccount, setServiceAccount] = useState('');
-  const [specParameters, setSpecParameters] = useState<SpecParameters>({});
-  const [runtimeParameters, setRuntimeParameters] = useState<RuntimeParameters>({});
-  const [pipelineRoot, setPipelineRoot] = useState<string>();
+  const [runtimeParametersState, setRuntimeParametersState] = useState<
+    KeyedState<RuntimeParameters>
+  >({ key: '', value: {} });
+  const [pipelineRootState, setPipelineRootState] = useState<KeyedState<string | undefined>>({
+    key: '',
+    value: undefined,
+  });
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
-  const [isParameterValid, setIsParameterValid] = useState(false);
+  const [isParameterValidState, setIsParameterValidState] = useState<KeyedState<boolean>>({
+    key: '',
+    value: false,
+  });
   const [openNewExperiment, setOpenNewExperiment] = useState(false);
   const [isRecurringRun, setIsRecurringRun] = useState(
     urlParser.get(QUERY_PARAMS.isRecurring) === '1' || cloneOrigin.isRecurring,
@@ -248,6 +256,49 @@ function NewRunV2(props: NewRunV2Props) {
   const clonedRuntimeConfig = cloneOrigin.isRecurring
     ? cloneOrigin.recurringRun?.runtime_config
     : cloneOrigin.run?.runtime_config;
+  const { defaultPipelineRoot, specParameters } = useMemo(() => {
+    if (!templateString) {
+      return {
+        defaultPipelineRoot: undefined as string | undefined,
+        specParameters: {} as SpecParameters,
+      };
+    }
+
+    const spec = convertYamlToV2PipelineSpec(templateString);
+    return {
+      defaultPipelineRoot: spec.defaultPipelineRoot,
+      specParameters: spec.root?.inputDefinitions?.parameters ?? {},
+    };
+  }, [templateString]);
+  const parameterStateKey = useMemo(
+    () =>
+      JSON.stringify({
+        clonedRuntimeConfig: clonedRuntimeConfig ?? null,
+        templateString: templateString ?? '',
+      }),
+    [clonedRuntimeConfig, templateString],
+  );
+  const initialPipelineRoot = clonedRuntimeConfig?.pipeline_root ?? defaultPipelineRoot;
+  const pipelineRoot =
+    pipelineRootState.key === parameterStateKey ? pipelineRootState.value : initialPipelineRoot;
+  const runtimeParameters =
+    runtimeParametersState.key === parameterStateKey ? runtimeParametersState.value : {};
+  const isParameterValid =
+    isParameterValidState.key === parameterStateKey ? isParameterValidState.value : false;
+  const handlePipelineRootChange = useCallback(
+    (nextPipelineRoot?: string) =>
+      setPipelineRootState({ key: parameterStateKey, value: nextPipelineRoot }),
+    [parameterStateKey],
+  );
+  const handleParameterChange = useCallback(
+    (parameters: RuntimeParameters) =>
+      setRuntimeParametersState({ key: parameterStateKey, value: parameters }),
+    [parameterStateKey],
+  );
+  const handleParameterValidityChange = useCallback(
+    (isValid: boolean) => setIsParameterValidState({ key: parameterStateKey, value: isValid }),
+    [parameterStateKey],
+  );
   const labelTextAdjective = isRecurringRun ? 'recurring ' : '';
   const usePipelineFromRunLabel = `Using pipeline from existing ${labelTextAdjective} run.`;
 
@@ -320,30 +371,6 @@ function NewRunV2(props: NewRunV2Props) {
       setPipelineVersionName(existingPipelineVersion.display_name);
     }
   }, [existingPipelineVersion, useLatestVersion]);
-
-  // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
-  useEffect(() => {
-    if (!templateString) {
-      return;
-    }
-
-    const spec = convertYamlToV2PipelineSpec(templateString);
-
-    const params = spec.root?.inputDefinitions?.parameters;
-    if (params) {
-      setSpecParameters(params);
-    } else {
-      setSpecParameters({});
-    }
-
-    const defaultRoot = spec.defaultPipelineRoot;
-    const clonedRoot = clonedRuntimeConfig?.pipeline_root;
-    if (clonedRoot) {
-      setPipelineRoot(clonedRoot);
-    } else if (defaultRoot) {
-      setPipelineRoot(defaultRoot);
-    }
-  }, [templateString, clonedRuntimeConfig]);
 
   // Defines the behavior when user clicks `Start` button.
   const newRunMutation = useMutation({
@@ -678,8 +705,9 @@ function NewRunV2(props: NewRunV2Props) {
 
         {/* PipelineRoot and Run Parameters */}
         <NewRunParametersV2
+          key={parameterStateKey}
           pipelineRoot={pipelineRoot}
-          handlePipelineRootChange={setPipelineRoot}
+          handlePipelineRootChange={handlePipelineRootChange}
           titleMessage={
             existingPipeline || cloneOrigin.isClone
               ? Object.keys(specParameters).length
@@ -689,8 +717,8 @@ function NewRunV2(props: NewRunV2Props) {
           }
           specParameters={specParameters}
           clonedRuntimeConfig={clonedRuntimeConfig}
-          handleParameterChange={setRuntimeParameters}
-          setIsValidInput={setIsParameterValid}
+          handleParameterChange={handleParameterChange}
+          setIsValidInput={handleParameterValidityChange}
         />
 
         {/* Create/Cancel buttons */}
