@@ -97,13 +97,55 @@ export type SpecParameters = { [key: string]: ComponentInputsSpec_ParameterSpec 
 export type RuntimeParameters = { [key: string]: any };
 type KeyedState<T> = { key: string; value: T };
 
-const hashString = (value: string): string => {
-  let hash = 0;
+const hashString64 = (value: string): string => {
+  let first = 0x9e3779b1;
+  let second = 0x85ebca77;
+
   for (let index = 0; index < value.length; index++) {
-    hash = (hash * 31 + value.charCodeAt(index)) | 0;
+    const charCode = value.charCodeAt(index);
+    first = Math.imul(first ^ charCode, 2654435761);
+    second = Math.imul(second ^ charCode, 1597334677);
   }
-  return (hash >>> 0).toString(36);
+
+  first =
+    Math.imul(first ^ (first >>> 16), 2246822507) ^ Math.imul(second ^ (second >>> 13), 3266489909);
+  second =
+    Math.imul(second ^ (second >>> 16), 2246822507) ^ Math.imul(first ^ (first >>> 13), 3266489909);
+
+  return `${(first >>> 0).toString(16).padStart(8, '0')}${(second >>> 0)
+    .toString(16)
+    .padStart(8, '0')}`;
 };
+
+const getEmptyTemplateData = () => ({
+  defaultPipelineRoot: undefined as string | undefined,
+  specParameters: {} as SpecParameters,
+});
+
+const getTemplateData = (templateString?: string) => {
+  if (!templateString) {
+    return getEmptyTemplateData();
+  }
+
+  try {
+    const spec = convertYamlToV2PipelineSpec(templateString);
+    return {
+      defaultPipelineRoot: spec.defaultPipelineRoot,
+      specParameters: spec.root?.inputDefinitions?.parameters ?? {},
+    };
+  } catch (error) {
+    logger.error('Cannot parse pipeline template.', error);
+    return getEmptyTemplateData();
+  }
+};
+
+function useKeyedState<T>(key: string, initialValue: T) {
+  const [state, setState] = useState<KeyedState<T>>({ key: '', value: initialValue });
+  const value = state.key === key ? state.value : initialValue;
+  const setValue = useCallback((value: T) => setState({ key, value }), [key]);
+
+  return [value, setValue] as const;
+}
 
 type CloneOrigin = {
   isClone: boolean;
@@ -223,18 +265,7 @@ function NewRunV2(props: NewRunV2Props) {
   const [experiment, setExperiment] = useState(chosenExperiment);
   const [experimentName, setExperimentName] = useState('');
   const [serviceAccount, setServiceAccount] = useState('');
-  const [runtimeParametersState, setRuntimeParametersState] = useState<
-    KeyedState<RuntimeParameters>
-  >({ key: '', value: {} });
-  const [pipelineRootState, setPipelineRootState] = useState<KeyedState<string | undefined>>({
-    key: '',
-    value: undefined,
-  });
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
-  const [isParameterValidState, setIsParameterValidState] = useState<KeyedState<boolean>>({
-    key: '',
-    value: false,
-  });
   const [openNewExperiment, setOpenNewExperiment] = useState(false);
   const [isRecurringRun, setIsRecurringRun] = useState(
     urlParser.get(QUERY_PARAMS.isRecurring) === '1' || cloneOrigin.isRecurring,
@@ -264,47 +295,33 @@ function NewRunV2(props: NewRunV2Props) {
   const clonedRuntimeConfig = cloneOrigin.isRecurring
     ? cloneOrigin.recurringRun?.runtime_config
     : cloneOrigin.run?.runtime_config;
-  const { defaultPipelineRoot, specParameters } = useMemo(() => {
-    if (!templateString) {
-      return {
-        defaultPipelineRoot: undefined as string | undefined,
-        specParameters: {} as SpecParameters,
-      };
-    }
-
-    const spec = convertYamlToV2PipelineSpec(templateString);
-    return {
-      defaultPipelineRoot: spec.defaultPipelineRoot,
-      specParameters: spec.root?.inputDefinitions?.parameters ?? {},
-    };
-  }, [templateString]);
+  const { defaultPipelineRoot, specParameters } = useMemo(
+    () => getTemplateData(templateString),
+    [templateString],
+  );
+  const clonedRuntimeConfigKey = useMemo(
+    () => JSON.stringify(clonedRuntimeConfig ?? null),
+    [clonedRuntimeConfig],
+  );
   const parameterStateKey = useMemo(
     () =>
-      `${hashString(templateString ?? '')}:${hashString(
-        JSON.stringify(clonedRuntimeConfig ?? null),
-      )}`,
-    [clonedRuntimeConfig, templateString],
+      `${(templateString ?? '').length}:${hashString64(
+        templateString ?? '',
+      )}:${clonedRuntimeConfigKey.length}:${hashString64(clonedRuntimeConfigKey)}`,
+    [clonedRuntimeConfigKey, templateString],
   );
   const initialPipelineRoot = clonedRuntimeConfig?.pipeline_root ?? defaultPipelineRoot;
-  const pipelineRoot =
-    pipelineRootState.key === parameterStateKey ? pipelineRootState.value : initialPipelineRoot;
-  const runtimeParameters =
-    runtimeParametersState.key === parameterStateKey ? runtimeParametersState.value : {};
-  const isParameterValid =
-    isParameterValidState.key === parameterStateKey ? isParameterValidState.value : false;
-  const handlePipelineRootChange = useCallback(
-    (nextPipelineRoot?: string) =>
-      setPipelineRootState({ key: parameterStateKey, value: nextPipelineRoot }),
-    [parameterStateKey],
+  const [runtimeParameters, handleParameterChange] = useKeyedState<RuntimeParameters>(
+    parameterStateKey,
+    {},
   );
-  const handleParameterChange = useCallback(
-    (parameters: RuntimeParameters) =>
-      setRuntimeParametersState({ key: parameterStateKey, value: parameters }),
-    [parameterStateKey],
+  const [pipelineRoot, handlePipelineRootChange] = useKeyedState<string | undefined>(
+    parameterStateKey,
+    initialPipelineRoot,
   );
-  const handleParameterValidityChange = useCallback(
-    (isValid: boolean) => setIsParameterValidState({ key: parameterStateKey, value: isValid }),
-    [parameterStateKey],
+  const [isParameterValid, handleParameterValidityChange] = useKeyedState<boolean>(
+    parameterStateKey,
+    false,
   );
   const labelTextAdjective = isRecurringRun ? 'recurring ' : '';
   const usePipelineFromRunLabel = `Using pipeline from existing ${labelTextAdjective} run.`;

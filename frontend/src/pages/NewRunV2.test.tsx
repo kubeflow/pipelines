@@ -545,6 +545,28 @@ describe('NewRunV2', () => {
     expect(await screen.findByText('This pipeline has no parameters')).toBeInTheDocument();
   });
 
+  it('falls back to empty template-derived state when template parsing fails', async () => {
+    render(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={null}
+          existingRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={vi.fn()}
+          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={vi.fn()}
+          templateString='pipelineInfo: ['
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(await screen.findByText('This pipeline has no parameters')).toBeInTheDocument();
+  });
+
   it('shows the cloned pipeline root after rerendering into clone mode', async () => {
     const { rerender } = render(
       <CommonTestWrapper>
