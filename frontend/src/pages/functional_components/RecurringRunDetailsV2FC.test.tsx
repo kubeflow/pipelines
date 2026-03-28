@@ -17,7 +17,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import * as JsYaml from 'js-yaml';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import TestUtils, { expectErrors } from 'src/TestUtils';
+import TestUtils from 'src/TestUtils';
 import RecurringRunDetailsRouter from 'src/pages/RecurringRunDetailsRouter';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
@@ -258,7 +258,6 @@ describe('RecurringRunDetailsV2FC', () => {
   });
 
   it('shows error banner if run cannot be fetched', async () => {
-    const assertErrors = expectErrors();
     // Router calls getRecurringRun first; V2FC calls it second. First must succeed so Router
     // renders V2FC; second must fail so V2FC shows the error banner.
     getRecurringRunSpy
@@ -289,11 +288,9 @@ describe('RecurringRunDetailsV2FC', () => {
         }),
       );
     });
-    assertErrors();
   });
 
   it('shows warning banner if has experiment but experiment cannot be fetched. still loads run', async () => {
-    const assertErrors = expectErrors();
     fullTestV2RecurringRun.experiment_id = 'test-experiment-id';
     TestUtils.makeErrorResponseOnce(getExperimentSpy, 'woops!');
     render(
@@ -329,7 +326,38 @@ describe('RecurringRunDetailsV2FC', () => {
     screen.getByText('false');
     screen.getByText('param1');
     screen.getByText('value1');
-    assertErrors();
+  });
+
+  it('refresh retries the recurring run query', async () => {
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => {
+      expect(getRecurringRunSpy).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Enabled')).toBeInTheDocument();
+      expect(screen.getByText('Every 1 hours')).toBeInTheDocument();
+    });
+
+    const refreshAction = updateToolbarSpy.mock.lastCall?.[0].actions.refresh.action as
+      | (() => Promise<void>)
+      | undefined;
+    expect(refreshAction).toBeDefined();
+    const refreshCallCount = getRecurringRunSpy.mock.calls.length;
+
+    await refreshAction?.();
+
+    await waitFor(() => {
+      expect(getRecurringRunSpy.mock.calls.length).toBeGreaterThan(refreshCallCount);
+    });
+
+    screen.getByText('Enabled');
+    screen.getByText('Yes');
+    screen.getByText('Trigger');
+    screen.getByText('Every 1 hours');
   });
 
   it('shows top bar buttons', async () => {
@@ -340,7 +368,10 @@ describe('RecurringRunDetailsV2FC', () => {
     );
     await waitFor(() => {
       expect(getRecurringRunSpy).toHaveBeenCalled();
-      expect(updateToolbarSpy).toHaveBeenCalledWith(
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Enabled')).toBeInTheDocument();
+      expect(updateToolbarSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           actions: expect.objectContaining({
             cloneRecurringRun: expect.objectContaining({ title: 'Clone recurring run' }),
@@ -349,6 +380,7 @@ describe('RecurringRunDetailsV2FC', () => {
             disableRecurringRun: expect.objectContaining({ title: 'Disable', disabled: false }),
             deleteRun: expect.objectContaining({ title: 'Delete' }),
           }),
+          pageTitle: fullTestV2RecurringRun.display_name,
         }),
       );
     });

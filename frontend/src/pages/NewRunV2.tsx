@@ -24,7 +24,7 @@ import {
   Radio,
   Checkbox,
 } from '@mui/material';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -155,6 +155,41 @@ export async function getLatestVersion(pipelineId: string) {
   }
 }
 
+function getRunValidationErrorMessage(
+  runName: string,
+  existingPipeline?: V2beta1Pipeline,
+  existingPipelineVersion?: V2beta1PipelineVersion,
+  isTemplatePullSuccess?: boolean,
+) {
+  if (isTemplatePullSuccess) {
+    return runName ? '' : 'Run name cannot be empty.';
+  }
+  if (!existingPipeline) {
+    return 'A pipeline must be selected';
+  }
+  if (!existingPipelineVersion) {
+    return 'A pipeline version must be selected';
+  }
+  return '';
+}
+
+function getDefaultRunName(
+  existingRun?: V2beta1Run,
+  existingRecurringRun?: V2beta1RecurringRun,
+  existingPipelineVersion?: V2beta1PipelineVersion,
+) {
+  if (existingRun?.display_name) {
+    return 'Clone of ' + existingRun.display_name;
+  }
+  if (existingRecurringRun?.display_name) {
+    return 'Clone of ' + existingRecurringRun.display_name;
+  }
+  if (existingPipelineVersion?.display_name) {
+    return 'Run of ' + existingPipelineVersion.display_name + ' (' + generateRandomString(5) + ')';
+  }
+  return '';
+}
+
 function NewRunV2(props: NewRunV2Props) {
   // List of elements we need to create Pipeline Run.
   const {
@@ -171,7 +206,7 @@ function NewRunV2(props: NewRunV2Props) {
   } = props;
   const cloneOrigin = getCloneOrigin(existingRun, existingRecurringRun);
   const urlParser = new URLParser(props);
-  const [runName, setRunName] = useState('');
+  const [customRunName, setCustomRunName] = useState<string | null>(null);
   const [runDescription, setRunDescription] = useState('');
   const [pipelineName, setPipelineName] = useState('');
   const [pipelineVersionName, setPipelineVersionName] = useState('');
@@ -182,9 +217,7 @@ function NewRunV2(props: NewRunV2Props) {
   const [specParameters, setSpecParameters] = useState<SpecParameters>({});
   const [runtimeParameters, setRuntimeParameters] = useState<RuntimeParameters>({});
   const [pipelineRoot, setPipelineRoot] = useState<string>();
-  const [isStartButtonEnabled, setIsStartButtonEnabled] = useState(false);
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
   const [isParameterValid, setIsParameterValid] = useState(false);
   const [openNewExperiment, setOpenNewExperiment] = useState(false);
   const [isRecurringRun, setIsRecurringRun] = useState(
@@ -206,13 +239,11 @@ function NewRunV2(props: NewRunV2Props) {
       : true;
   const [needCatchup, setNeedCatchup] = useState(initialCatchup);
   const [useLatestVersion, setUseLatestVersion] = useState(false);
-
-  useEffect(() => {
-    if (useLatestVersion) {
-      // Clear pipeline version when using latest
-      setPipelineVersionName('');
-    }
-  }, [useLatestVersion]);
+  const defaultRunName = useMemo(
+    () => getDefaultRunName(existingRun, existingRecurringRun, existingPipelineVersion),
+    [existingRun, existingRecurringRun, existingPipelineVersion],
+  );
+  const runName = customRunName ?? defaultRunName;
 
   const clonedRuntimeConfig = cloneOrigin.isRecurring
     ? cloneOrigin.recurringRun?.runtime_config
@@ -221,6 +252,14 @@ function NewRunV2(props: NewRunV2Props) {
   const usePipelineFromRunLabel = `Using pipeline from existing ${labelTextAdjective} run.`;
 
   const isTemplatePullSuccess = templateString ? true : false;
+  const validationErrorMessage = getRunValidationErrorMessage(
+    runName,
+    existingPipeline,
+    existingPipelineVersion,
+    isTemplatePullSuccess,
+  );
+  const isStartButtonEnabled =
+    !!templateString && !validationErrorMessage && isParameterValid && isMaxConcurrentRunValid;
 
   const titleVerb = cloneOrigin.isClone ? 'Clone' : 'Start';
   const titleAdjective = cloneOrigin.isClone ? '' : 'new';
@@ -266,31 +305,21 @@ function NewRunV2(props: NewRunV2Props) {
     if (existingPipeline?.display_name) {
       setPipelineName(existingPipeline.display_name);
     }
-    if (existingPipelineVersion?.display_name) {
-      setPipelineVersionName(existingPipelineVersion.display_name);
-    }
     if (experiment?.display_name) {
       setExperimentName(experiment.display_name);
     }
     if (experiment?.experiment_id) {
       setExperimentId(experiment.experiment_id);
     }
-  }, [existingPipeline, existingPipelineVersion, experiment]);
+  }, [existingPipeline, experiment]);
 
-  // When loading a pipeline version, automatically set the default run name.
   useEffect(() => {
-    if (existingRun?.display_name) {
-      const cloneRunName = 'Clone of ' + existingRun.display_name;
-      setRunName(cloneRunName);
-    } else if (existingRecurringRun?.display_name) {
-      const cloneRecurringName = 'Clone of ' + existingRecurringRun.display_name;
-      setRunName(cloneRecurringName);
+    if (useLatestVersion) {
+      setPipelineVersionName('');
     } else if (existingPipelineVersion?.display_name) {
-      const initRunName =
-        'Run of ' + existingPipelineVersion.display_name + ' (' + generateRandomString(5) + ')';
-      setRunName(initRunName);
+      setPipelineVersionName(existingPipelineVersion.display_name);
     }
-  }, [existingRun, existingRecurringRun, existingPipelineVersion]);
+  }, [existingPipelineVersion, useLatestVersion]);
 
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
   useEffect(() => {
@@ -316,37 +345,6 @@ function NewRunV2(props: NewRunV2Props) {
     }
   }, [templateString, clonedRuntimeConfig]);
 
-  // Handle different change that can affect setIsStartButtonEnabled
-  useEffect(() => {
-    if (!templateString || errorMessage || !isParameterValid || !isMaxConcurrentRunValid) {
-      setIsStartButtonEnabled(false);
-    } else {
-      setIsStartButtonEnabled(true);
-    }
-  }, [templateString, errorMessage, isParameterValid, isMaxConcurrentRunValid]);
-
-  // Whenever any input value changes, validate and show error if needed.
-  useEffect(() => {
-    if (isTemplatePullSuccess) {
-      if (runName) {
-        setErrorMessage('');
-        return;
-      } else {
-        setErrorMessage('Run name can not be empty.');
-        return;
-      }
-    } else {
-      if (!existingPipeline) {
-        setErrorMessage('A pipeline must be selected');
-        return;
-      }
-      if (!existingPipelineVersion) {
-        setErrorMessage('A pipeline version must be selected');
-        return;
-      }
-    }
-  }, [runName, existingPipeline, existingPipelineVersion, isTemplatePullSuccess]);
-
   // Defines the behavior when user clicks `Start` button.
   const newRunMutation = useMutation({
     mutationFn: (run: V2beta1Run) => {
@@ -359,7 +357,9 @@ function NewRunV2(props: NewRunV2Props) {
     },
   });
 
-  const startRun = () => {
+  const startRun = async () => {
+    const submittedIsRecurringRun = isRecurringRun;
+
     let newRun: V2beta1Run = {
       description: runDescription,
       display_name: runName,
@@ -382,7 +382,7 @@ function NewRunV2(props: NewRunV2Props) {
 
     let newRecurringRun: V2beta1RecurringRun = Object.assign(
       newRun,
-      isRecurringRun
+      submittedIsRecurringRun
         ? {
             max_concurrency: maxConcurrentRuns || '1',
             no_catchup: !needCatchup,
@@ -398,64 +398,48 @@ function NewRunV2(props: NewRunV2Props) {
     );
     setIsStartingNewRun(true);
 
-    const runCreation = () =>
-      newRunMutation.mutate(newRun, {
-        onSuccess: (data) => {
-          setIsStartingNewRun(false);
-          if (data.run_id) {
-            props.history.push(RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, data.run_id));
-          } else {
-            props.history.push(RoutePage.RUNS);
-          }
+    try {
+      if (submittedIsRecurringRun) {
+        const data = await newRecurringRunMutation.mutateAsync(newRecurringRun);
+        setIsStartingNewRun(false);
+        if (data.recurring_run_id) {
+          props.history.push(
+            RoutePage.RECURRING_RUN_DETAILS.replace(
+              ':' + RouteParams.recurringRunId,
+              data.recurring_run_id,
+            ),
+          );
+        } else {
+          props.history.push(RoutePage.RECURRING_RUNS);
+        }
 
-          props.updateSnackbar({
-            message: `Successfully started new Run: ${data.display_name}`,
-            open: true,
-          });
-        },
-        onError: async (error) => {
-          const errorMessage = await errorToMessage(error);
-          props.updateDialog({
-            buttons: [{ text: 'Dismiss' }],
-            onClose: () => setIsStartingNewRun(false),
-            content: errorMessage,
-            title: 'Run creation failed',
-          });
-        },
+        props.updateSnackbar({
+          message: `Successfully started new recurring Run: ${data.display_name}`,
+          open: true,
+        });
+      } else {
+        const data = await newRunMutation.mutateAsync(newRun);
+        setIsStartingNewRun(false);
+        if (data.run_id) {
+          props.history.push(RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, data.run_id));
+        } else {
+          props.history.push(RoutePage.RUNS);
+        }
+
+        props.updateSnackbar({
+          message: `Successfully started new Run: ${data.display_name}`,
+          open: true,
+        });
+      }
+    } catch (error) {
+      const errorMessage = await errorToMessage(error);
+      props.updateDialog({
+        buttons: [{ text: 'Dismiss' }],
+        onClose: () => setIsStartingNewRun(false),
+        content: errorMessage,
+        title: submittedIsRecurringRun ? 'Recurring run creation failed' : 'Run creation failed',
       });
-
-    const recurringRunCreation = () =>
-      newRecurringRunMutation.mutate(newRecurringRun, {
-        onSuccess: (data) => {
-          setIsStartingNewRun(false);
-          if (data.recurring_run_id) {
-            props.history.push(
-              RoutePage.RECURRING_RUN_DETAILS.replace(
-                ':' + RouteParams.recurringRunId,
-                data.recurring_run_id,
-              ),
-            );
-          } else {
-            props.history.push(RoutePage.RECURRING_RUNS);
-          }
-
-          props.updateSnackbar({
-            message: `Successfully started new recurring Run: ${data.display_name}`,
-            open: true,
-          });
-        },
-        onError: async (error) => {
-          const errorMessage = await errorToMessage(error);
-          props.updateDialog({
-            buttons: [{ text: 'Dismiss' }],
-            onClose: () => setIsStartingNewRun(false),
-            content: errorMessage,
-            title: 'Recurring run creation failed',
-          });
-        },
-      });
-
-    isRecurringRun ? recurringRunCreation() : runCreation();
+    }
   };
 
   return (
@@ -521,6 +505,9 @@ function NewRunV2(props: NewRunV2Props) {
                     onChange={(e) => {
                       const isChecked = e.target.checked;
                       setUseLatestVersion(isChecked);
+                      if (isChecked) {
+                        setPipelineVersionName('');
+                      }
                     }}
                     color='primary'
                     disabled={!existingPipeline}
@@ -561,7 +548,7 @@ function NewRunV2(props: NewRunV2Props) {
         <Input
           label={isRecurringRun ? 'Recurring run config name' : 'Run name'}
           required={true}
-          onChange={(event) => setRunName(event.target.value)}
+          onChange={(event) => setCustomRunName(event.target.value)}
           autoFocus={true}
           value={runName}
           variant='outlined'
@@ -726,7 +713,7 @@ function NewRunV2(props: NewRunV2Props) {
             {'Cancel'}
           </Button>
           <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
-            {errorMessage}
+            {validationErrorMessage}
           </div>
           {/* TODO(zijianjoy): Show error when custom pipelineRoot or parameters are missing. */}
         </div>

@@ -25,6 +25,7 @@ import { Apis, ListRequest } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import WorkflowParser, { StoragePath } from 'src/lib/WorkflowParser';
 import { getMetadataValue } from 'src/mlmd/library';
+import { isReservedArtifactProperty } from 'src/lib/ReservedArtifactProperties';
 import {
   filterArtifactsByType,
   filterLinkedArtifactsByType,
@@ -810,7 +811,8 @@ function ScalarMetricsSection({ artifact }: ScalarMetricsSectionProps) {
       key,
       value: JSON.stringify(getMetadataValue(customProperties.get(key))),
     }))
-    .filter((metric) => metric.key !== 'display_name');
+    .filter((metric) => metric.key !== 'display_name')
+    .filter((metric) => !isReservedArtifactProperty(metric.key));
 
   if (data.length === 0) {
     return null;

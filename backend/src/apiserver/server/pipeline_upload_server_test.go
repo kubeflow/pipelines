@@ -135,14 +135,14 @@ func TestUploadPipeline(t *testing.T) {
 				},
 			}
 
-			pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
+			pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts, nil)
 			assert.Nil(t, err)
 			assert.Equal(t, str, "")
 			assert.Equal(t, 1, totalSize)
 			assert.Equal(t, pkgsExpect, pkg)
 
 			opts2, _ := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
-			pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2)
+			pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2, nil)
 			assert.Nil(t, err)
 			assert.Equal(t, str, "")
 			assert.Equal(t, 1, totalSize)
@@ -186,7 +186,7 @@ func TestUploadPipeline(t *testing.T) {
 				},
 			}
 			// Expect 2 versions, one is created by default when creating pipeline and the other is what we manually created
-			versions, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts)
+			versions, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts, nil)
 			assert.Nil(t, err)
 			assert.Equal(t, str, "")
 			assert.Equal(t, 2, totalSize)
@@ -377,7 +377,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 			Namespace:      "",
 		},
 	}
-	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
+	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
 	assert.Equal(t, 1, totalSize)
@@ -396,7 +396,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 		},
 	}
 	opts2, _ := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
-	pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2)
+	pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
 	assert.Equal(t, 1, totalSize)
@@ -439,7 +439,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 		},
 	}
 	// Expect 2 versions, one is created by default when creating pipeline and the other is what we manually created
-	versions, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts)
+	versions, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
 	assert.Equal(t, 2, totalSize)
@@ -478,7 +478,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 			Namespace:      "",
 		},
 	}
-	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
+	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, str, "")
@@ -498,7 +498,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 			PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		},
 	}
-	pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2)
+	pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, str, "")
@@ -529,7 +529,7 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 			Namespace:      "",
 		},
 	}
-	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
+	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, str, "")
@@ -550,7 +550,7 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 			PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		},
 	}
-	pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2)
+	pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, str, "")

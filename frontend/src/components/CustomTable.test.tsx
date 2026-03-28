@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import CustomTable, { Column, ExpandState, Row } from './CustomTable';
 import TestUtils from '../TestUtils';
@@ -668,7 +668,9 @@ describe('CustomTable', () => {
     const reload = vi.fn(async () => '');
     const wrapper = renderTable({ rows, columns, reload });
     await TestUtils.flushPromises();
-    await wrapper.instance()._requestFilter('test filter');
+    await act(async () => {
+      await wrapper.instance()._requestFilter('test filter');
+    });
     const expectedEncodedFilter = encodeURIComponent(
       JSON.stringify({
         predicates: [

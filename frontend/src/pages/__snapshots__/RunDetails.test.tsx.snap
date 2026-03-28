@@ -1008,7 +1008,7 @@ exports[`RunDetails > loads the run's outputs in the output tab 1`] = `
                           class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
                         >
                           <div
-                            aria-controls=":r2c:"
+                            aria-controls="_r_2c_"
                             aria-expanded="false"
                             aria-haspopup="listbox"
                             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"

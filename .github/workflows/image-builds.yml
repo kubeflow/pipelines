@@ -72,6 +72,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Read frontend Node version
+        id: frontend_node
+        run: echo "version=$(tr -d '\r\n' < frontend/.nvmrc | sed 's/^v//')" >> "$GITHUB_OUTPUT"
+
       - name: Create Artifacts Path Directory
         id: configure
         run: |
@@ -90,10 +94,15 @@ jobs:
         uses: docker/build-push-action@v6
         if: ${{ steps.setup-buildx.outcome == 'success' }}
         id: save-image
+        env:
+          # Disable the job summary report in the GitHub Actions UI
+          DOCKER_BUILD_SUMMARY: false
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: false
+          build-args: |
+            NODE_VERSION=${{ steps.frontend_node.outputs.version }}
           tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
           outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
 
@@ -101,10 +110,15 @@ jobs:
         uses: docker/build-push-action@v6
         if: ${{ steps.save-image.outcome != 'success' && steps.setup-buildx.outcome == 'success' }}
         id: rebuild
+        env:
+          # Disable the job summary report in the GitHub Actions UI
+          DOCKER_BUILD_SUMMARY: false
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: false
+          build-args: |
+            NODE_VERSION=${{ steps.frontend_node.outputs.version }}
           tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
           outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
 

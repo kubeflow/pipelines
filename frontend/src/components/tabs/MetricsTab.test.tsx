@@ -339,6 +339,30 @@ describe('MetricsTab with Scalar Metrics', () => {
     await waitFor(() => getByText('int'));
     await waitFor(() => getByText('struct'));
   });
+
+  it('filters out store_session_info from Scalar Metrics', async () => {
+    const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
+    const artifact = buildMetricsArtifact();
+    artifact.getCustomPropertiesMap().set('display_name', new Value().setStringValue('metrics'));
+    artifact.getCustomPropertiesMap().set('accuracy', new Value().setDoubleValue(0.95));
+    artifact
+      .getCustomPropertiesMap()
+      .set('store_session_info', new Value().setStringValue('internal-session-data'));
+    const linkedArtifact = { event: new Event(), artifact: artifact };
+    vi.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution').mockResolvedValueOnce([
+      linkedArtifact,
+    ]);
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValueOnce([buildMetricsArtifactType()]);
+    const { getByText, queryByText } = render(
+      <CommonTestWrapper>
+        <MetricsTab execution={execution} namespace={namespace}></MetricsTab>
+      </CommonTestWrapper>,
+    );
+    getByText('Metrics is loading.');
+    await waitFor(() => getByText('Scalar Metrics: metrics'));
+    await waitFor(() => getByText('accuracy'));
+    expect(queryByText('store_session_info')).toBeNull();
+  });
 });
 
 describe('MetricsTab with V1 metrics', () => {

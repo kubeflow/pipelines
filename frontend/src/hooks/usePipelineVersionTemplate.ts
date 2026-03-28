@@ -24,7 +24,7 @@ import { queryKeys } from './queryKeys';
  *
  * This was previously duplicated in RunDetailsRouter and RecurringRunDetailsRouter.
  * The query is only enabled when both pipelineId and pipelineVersionId are present.
- * Pipeline version specs are immutable once published, so staleTime and cacheTime
+ * Pipeline version specs are immutable once published, so staleTime and gcTime
  * are set to Infinity.
  */
 export function usePipelineVersionTemplate(
@@ -46,6 +46,6 @@ export function usePipelineVersionTemplate(
     },
     enabled: !!pipelineId && !!pipelineVersionId,
     staleTime: Infinity,
-    cacheTime: Infinity, // v5: renamed to gcTime
+    gcTime: Infinity,
   });
 }

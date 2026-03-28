@@ -3,7 +3,7 @@ FROM selenium/standalone-chromium:143.0
 
 # Derive from frontend/.nvmrc at build time:
 #   docker build --build-arg NODE_VERSION=$(tr -d 'v' < ../../frontend/.nvmrc) .
-ARG NODE_VERSION=24.14.0
+ARG NODE_VERSION
 
 USER root
 RUN apt-get update -qqy && \
