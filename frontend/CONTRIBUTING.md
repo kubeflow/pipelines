@@ -54,7 +54,17 @@ Install the NPM dependencies:
 
 ### Daily workflow
 
-You will see a lot of `npm run xxx` commands in the instructions below, the actual script being run is defined in the "scripts" field of [package.json](https://github.com/kubeflow/pipelines/blob/91db95a601fa7fffcb670cb744a5dcaeb08290ae/frontend/package.json#L32). Common development scripts are maintained in package.json, and we use npm to call them conveniently.
+You will see a lot of `npm run xxx` commands in the instructions below. The actual scripts are defined in the `scripts` field of [package.json](./package.json). Common development scripts are maintained there, and we use npm to call them conveniently.
+
+## Frontend stack
+
+- React 19 with TypeScript
+- MUI v5 with Emotion
+- TanStack Query v5
+- React Router v5
+- Vitest with Testing Library v16 for UI tests
+- Jest for frontend server tests
+- Storybook 10
 
 ### npm next step
 
@@ -69,6 +79,9 @@ http://localhost:3000/apis/v1beta1/pipelines, which is proxied by the
 webserver to http://localhost:3001/apis/v1beta1/pipelines,
 which should return the list of pipelines. To override the port, run
 `npm run start -- --port 3002` or update `frontend/vite.config.mts`.
+
+The development bootstrap renders the app under React Strict Mode. Production
+builds remain outside Strict Mode.
 
 Follow the next section to start an API server (mock or proxy) to let localhost:3001
 respond to API requests.
@@ -160,16 +173,22 @@ There are a few types of tests during pre-submit:
 * linting, you can also run locally with `npm run lint`
   (`npm run lint:ui` and `npm run lint:server` are available for narrower checks)
 * TypeScript typecheck (no emit), run locally with `npm run typecheck`
-* client UI unit tests (Vitest + Testing Library), you can run locally with `npm run test:ui`
-  (uncapped workers) or `npm run test:ui:coverage:loop` for stability loops
-  (coverage + `--maxWorkers 4`). `npm test` is an alias for `vitest run`.
-* UI node server unit tests (Jest), you can run locally with
+* React peer compatibility gate, run locally with `npm run check:react-peers`
+  (targets React 19 by default)
+* client UI unit tests (Vitest + Testing Library v16), you can run locally with
+  `npm run test:ui` (uncapped workers) or `npm run test:ui:coverage:loop` for
+  stability loops (coverage + `--maxWorkers 4`). `npm test` is an alias for
+  `vitest run`. The global test setup enables Testing Library
+  `reactStrictMode`, so direct `render()` calls exercise the same Strict Mode
+  behavior as `npm start`.
+* UI node server unit tests (Vitest), you can run locally with
   `npm run test:server:coverage` or `cd server && npm test -- --coverage`
 
-There is a special type of unit test called [snapshot tests](https://vitest.dev/guide/snapshot.html). When
-snapshot tests are failing, you can update them automatically with `npm test -u` or
-`npm run test:ui -- -u` (Vitest) and run all tests. For server test snapshots (if any),
-use `cd server && npm test -- -u`. Then commit the snapshot changes.
+There is a special type of unit test called
+[snapshot tests](https://vitest.dev/guide/snapshot.html). When snapshot tests
+are failing, you can update them automatically with `npm test -u` or
+`npm run test:ui -- -u` (Vitest) and run all tests. For server test snapshots
+(if any), use `cd server && npm test -- -u`. Then commit the snapshot changes.
 
 ## Frontend coding conventions
 

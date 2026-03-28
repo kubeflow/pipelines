@@ -2,6 +2,16 @@
 
 This section of the codebase contains the Kubeflow Pipelines (KFP) Frontend.
 
+## Current Stack
+
+- React 19 with TypeScript on Vite 7
+- MUI v5 with Emotion
+- TanStack Query v5
+- React Router v5
+- Vitest with Testing Library v16 for UI tests
+- Jest for frontend server tests
+- Storybook 10 for component development
+
 ## Quick Start Development
 
 This guide will get you started with development on KFP standalone mode. 
@@ -92,6 +102,8 @@ VITE v7.x ready in ...
 ```
 
 Follow this link, it should also take you to the same UI. The difference here is that whenever you change client side (React) code locally, you will automatically get the new changes in your browser without having to restart your server. 
+
+The local dev bootstrap runs under React Strict Mode. Vitest UI tests are configured to do the same through Testing Library's global `reactStrictMode` setting so direct `render()` calls match dev behavior. Production builds remain outside Strict Mode.
 
 ## Visual Regression Testing
 

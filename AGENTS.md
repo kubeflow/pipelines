@@ -408,13 +408,17 @@ For full integration testing against a real KFP deployment:
 - **React 19** with TypeScript
 - **MUI v5** (Material UI) for components
 - **React Router v5** for navigation
+- **TanStack Query v5** for data fetching and caching
 - **Dagre** for graph layout visualization
 - **D3** for data visualization
-- **Vitest + Testing Library** for UI testing
-- **Jest** for frontend server tests (UI tests migrated off Jest/Enzyme)
+- **Vitest + Testing Library v16** for UI testing
+- **Jest** for frontend server tests
 - **Prettier + ESLint** for code formatting/linting
-- **Storybook** for component development
+- **Storybook 10** for component development
 - **Tailwind CSS** for utility-first styling
+
+Development (`npm start`) and Vitest UI renders run under React Strict Mode.
+Production builds keep Strict Mode disabled.
 
 ### React effect discipline
 
