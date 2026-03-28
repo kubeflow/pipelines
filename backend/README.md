@@ -136,8 +136,8 @@ server locally:
         "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
         "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST": "localhost",
         "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT": "8888",
-        "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
-        "V2_DRIVER_IMAGE": "ghcr.io/kubeflow/kfp-driver:master"
+        "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:2.16.0",
+        "V2_DRIVER_IMAGE": "ghcr.io/kubeflow/kfp-driver:2.16.0"
       },
       "args": [
         "--config",
@@ -250,7 +250,7 @@ VSCode configuration:
                 "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
                 "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST": "localhost",
                 "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT": "8888",
-                "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
+                "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:2.16.0",
                 "V2_DRIVER_IMAGE": "kfp-driver:debug",
                 "V2_DRIVER_COMMAND": "dlv exec --listen=:2345 --headless=true --api-version=2 --log /bin/driver --"
             }

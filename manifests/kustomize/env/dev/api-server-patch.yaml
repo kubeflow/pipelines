@@ -9,8 +9,8 @@ spec:
       containers:
         - env:
             - name: V2_DRIVER_IMAGE
-              value: ghcr.io/kubeflow/kfp-driver:master
+              value: ghcr.io/kubeflow/kfp-driver:2.16.0
             - name: V2_LAUNCHER_IMAGE
-              value: ghcr.io/kubeflow/kfp-launcher:master
+              value: ghcr.io/kubeflow/kfp-launcher:2.16.0
           name: ml-pipeline-api-server
       serviceAccountName: ml-pipeline
