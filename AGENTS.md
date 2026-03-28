@@ -314,7 +314,7 @@ The following files are generated; edit their sources and regenerate:
 - `kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2.py`
   - Source: `kubernetes_platform/proto/kubernetes_executor_config.proto`
   - Generate: `make -C kubernetes_platform python` (or `make -C kubernetes_platform python-dev`)
-- Frontend OpenAPI clients and shared support under `frontend/src/apis`, `frontend/src/apisv2beta1`, `frontend/src/generated/openapi`, `frontend/server/src/generated/apis*`, and `frontend/server/src/generated/openapi`
+- Frontend OpenAPI clients and runtime support under `frontend/src/apis*`, `frontend/src/apisv2beta1*`, `frontend/server/src/generated/apis*`, and `frontend/server/src/generated/apisv2beta1*`
   - Sources: Swagger specs under `backend/api/**/swagger/*.json`
   - Generate: `cd frontend && npm run apis` / `npm run apis:v2beta1` / `npm run apis:all` (uses pinned Docker image `openapitools/openapi-generator-cli:v7.19.0`)
 - Frontend MLMD proto outputs under `frontend/src/third_party/mlmd/generated`
@@ -412,7 +412,7 @@ For full integration testing against a real KFP deployment:
 - **Dagre** for graph layout visualization
 - **D3** for data visualization
 - **Vitest + Testing Library v16** for UI testing
-- **Jest** for frontend server tests
+- **Vitest** for frontend server tests
 - **Prettier + ESLint** for code formatting/linting
 - **Storybook 10** for component development
 - **Tailwind CSS** for utility-first styling
@@ -477,7 +477,7 @@ The frontend includes several generated code components:
   ```
 
   Note: These commands use Docker image `openapitools/openapi-generator-cli:v7.19.0`.
-  Generated support files are deduplicated into `src/generated/openapi` and `server/src/generated/openapi`.
+  Generated runtime/support files are emitted per API surface under `src/apis*`, `src/apisv2beta1*`, `server/src/generated/apis*`, and `server/src/generated/apisv2beta1*`.
   Ensure Docker is running.
 
 - **Protocol Buffers**: Generated from proto definitions
@@ -491,10 +491,10 @@ The frontend includes several generated code components:
 ### Testing
 
 - **UI tests**: `npm run test:ui` or `npm test` (Vitest + Testing Library)
-- **Server tests**: `npm run test:server:coverage` (Jest)
-- **Coverage**: `npm run test:ui:coverage` (Vitest) + `npm run test:coverage` (Vitest UI + Jest server)
+- **Server tests**: `npm run test:server:coverage` (Vitest)
+- **Coverage**: `npm run test:ui:coverage` (Vitest) + `npm run test:coverage` (Vitest UI + Vitest server)
 - **Stability loop**: `npm run test:ui:coverage:loop` (Vitest coverage with capped workers)
-- **CI pipeline**: `npm run test:ci` (format check + lint + typecheck + lockfile React peer check + Vitest UI coverage + Jest coverage)
+- **CI pipeline**: `npm run test:ci` (format check + lint + typecheck + lockfile React peer check + Vitest UI coverage + Vitest server coverage)
 - **Snapshot tests**: Auto-update with `npm test -u` or `npm run test:ui -- -u` (Vitest)
 - **Frontend integration tests**: See `test/frontend-integration-test/README.md` for the containerized local flow. Supported debug env vars include `DEBUG=1`, `HEADLESS=false`, and `WDIO_SPECS=./tensorboard-example.spec.js`; headful runs expose Selenium's noVNC desktop on port `7900`.
 

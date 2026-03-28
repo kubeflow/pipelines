@@ -63,7 +63,7 @@ You will see a lot of `npm run xxx` commands in the instructions below. The actu
 - TanStack Query v5
 - React Router v5
 - Vitest with Testing Library v16 for UI tests
-- Jest for frontend server tests
+- Vitest for frontend server tests
 - Storybook 10
 
 ### npm next step

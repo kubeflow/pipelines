@@ -23,7 +23,7 @@
 - [x] ~~#12 Dependency sweep for React 19~~ (`issue`: [#12900](https://github.com/kubeflow/pipelines/issues/12900); `PR`: [#13082](https://github.com/kubeflow/pipelines/pull/13082))
 - [x] ~~#13 Upgrade React to v19~~ (`issue`: [#12901](https://github.com/kubeflow/pipelines/issues/12901); `PR`: [#13153](https://github.com/kubeflow/pipelines/pull/13153))
 - [x] ~~#14 Enable StrictMode in dev/test~~ (`issue`: [#12902](https://github.com/kubeflow/pipelines/issues/12902); `PR`: [#13159](https://github.com/kubeflow/pipelines/pull/13159))
-- [x] ~~#15 Update documentation for the post-upgrade stack~~ (`issue`: [#12903](https://github.com/kubeflow/pipelines/issues/12903))
+- [x] ~~#15 Update documentation for the post-upgrade stack~~ (`issue`: [#12903](https://github.com/kubeflow/pipelines/issues/12903); `PR`: [#13164](https://github.com/kubeflow/pipelines/pull/13164))
 
 **Current focus**:
 - The React 18/19 upgrade track is complete through `#15`.
