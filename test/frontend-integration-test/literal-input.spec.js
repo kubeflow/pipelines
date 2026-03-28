@@ -123,10 +123,34 @@ describe('literal input parameter integration', () => {
 
     const literalSelect = await $('//*[@role="combobox" and @id="environment"]');
     await literalSelect.waitForDisplayed({ timeout: uiTimeout });
+    const literalNativeInput = await literalSelect.$(
+      './following-sibling::input[contains(@class, "MuiSelect-nativeInput")]',
+    );
+    assert.equal(
+      await literalNativeInput.getValue(),
+      '',
+      'literal dropdown should start without a selected value',
+    );
 
     const startButton = await $('#startNewRunBtn');
     await startButton.waitForDisplayed({ timeout: uiTimeout });
     assert.equal(await startButton.isEnabled(), false, 'start should stay disabled before selection');
+
+    await literalSelect.click();
+    await $('[role="listbox"]').waitForDisplayed({ timeout: uiTimeout });
+    await browser.keys('qa');
+    await browser.keys('Escape');
+    await $('[role="listbox"]').waitForDisplayed({ timeout: uiTimeout, reverse: true });
+    assert.equal(
+      await literalNativeInput.getValue(),
+      '',
+      'literal dropdown should reject arbitrary typed values',
+    );
+    assert.equal(
+      await startButton.isEnabled(),
+      false,
+      'start should remain disabled after an invalid typed value attempt',
+    );
 
     await literalSelect.click();
     await $('[role="listbox"]').waitForDisplayed({ timeout: uiTimeout });
