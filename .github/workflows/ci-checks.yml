@@ -19,21 +19,21 @@ jobs:
       - name: Check eligibility
         id: eligible
         run: |
-          # For labeled events, only the 'ok-to-test' label can change eligibility.
-          # For unlabeled events, only 'needs-ok-to-test' removal matters.
+          # For labeled/unlabeled events, only the 'ok-to-test' and
+          # 'needs-ok-to-test' labels can change PR eligibility.
           # All other label changes are irrelevant — exit early with success
           # to avoid restarting the 50-min polling loop and to prevent a
           # 'skipped' conclusion from blocking tide.
           action="${{ github.event.action }}"
           label_name="${{ github.event.label.name }}"
 
-          if [[ "$action" == "labeled" && "$label_name" != "ok-to-test" ]]; then
+          if [[ "$action" == "labeled" && "$label_name" != "ok-to-test" && "$label_name" != "needs-ok-to-test" ]]; then
             echo "Ignoring unrelated label addition: $label_name"
             echo "should_poll=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          if [[ "$action" == "unlabeled" && "$label_name" != "needs-ok-to-test" ]]; then
+          if [[ "$action" == "unlabeled" && "$label_name" != "needs-ok-to-test" && "$label_name" != "ok-to-test" ]]; then
             echo "Ignoring unrelated label removal: $label_name"
             echo "should_poll=false" >> "$GITHUB_OUTPUT"
             exit 0
