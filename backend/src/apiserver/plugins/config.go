@@ -45,16 +45,25 @@ type PluginConfig struct {
 	Settings map[string]interface{}   `json:"settings,omitempty" mapstructure:"settings"`
 }
 
-// InjectPluginRuntimeEnv upserts plugin-provided environment variables into the
-// driver and launcher containers of the execution spec.
+// InjectPluginRuntimeEnv upserts plugin-provided runtime into the execution
+// spec. Value-only env vars are also passed to driver executor plugins through
+// runtime args because Argo executor plugins cannot receive per-run EnvVar or
+// SecretKeyRef entries from the API server. Secret-backed env vars are only
+// injected into launcher containers.
 func InjectPluginRuntimeEnv(executionSpec util.ExecutionSpec, envVars []corev1.EnvVar) error {
 	if len(envVars) == 0 || executionSpec == nil {
 		return nil
 	}
-	return executionSpec.UpsertRuntimeEnvVars(envVars,
-		util.ExecutionRuntimeRoleDriver,
-		util.ExecutionRuntimeRoleLauncher,
-	)
+	runtimeConfig := make(map[string]string)
+	for _, envVar := range envVars {
+		if envVar.ValueFrom == nil {
+			runtimeConfig[envVar.Name] = envVar.Value
+		}
+	}
+	if err := executionSpec.UpsertRuntimeConfig(runtimeConfig, util.ExecutionRuntimeRoleDriver); err != nil {
+		return err
+	}
+	return executionSpec.UpsertRuntimeEnvVars(envVars, util.ExecutionRuntimeRoleLauncher)
 }
 
 // GetLauncherNamespacePluginConfigsMap retrieves a map of plugin configurations from a Kubernetes ConfigMap in a given namespace.

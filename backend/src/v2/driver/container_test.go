@@ -20,9 +20,11 @@ import (
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -233,7 +235,10 @@ func TestContainer_CreateExecutionGeneralFailure(t *testing.T) {
 
 	mlmdClient := metadata.NewTestClient(mockSvc)
 
-	execution, err := Container(context.Background(), Options{
+	ctx := util.WithExistingLogger(context.Background(), logrus.New())
+	pipeline, err := mlmdClient.GetPipeline(ctx, "pipeline-1", "run-1", "", "", "", "")
+	require.NoError(t, err)
+	execution, err := Container(ctx, pipeline, Options{
 		IterationIndex: -1,
 		PipelineName:   "pipeline-1",
 		RunID:          "run-1",
@@ -255,7 +260,7 @@ func TestContainer_CreateExecutionGeneralFailure(t *testing.T) {
 			Command: []string{"python", "main.py"},
 		},
 		PluginDispatcher: plugins.NoOpDispatcher{},
-	}, mlmdClient, &mockCacheClient{})
+	}, mlmdClient, &mockCacheClient{}, "test-output-prefix")
 
 	require.NotNil(t, execution)
 	require.Error(t, err)
@@ -290,7 +295,10 @@ func TestContainer_CreateExecutionSuccess(t *testing.T) {
 
 	mlmdClient := metadata.NewTestClient(mockSvc)
 
-	execution, err := Container(context.Background(), Options{
+	ctx := util.WithExistingLogger(context.Background(), logrus.New())
+	pipeline, err := mlmdClient.GetPipeline(ctx, "pipeline-1", "run-1", "", "", "", "")
+	require.NoError(t, err)
+	execution, err := Container(ctx, pipeline, Options{
 		IterationIndex: -1,
 		PipelineName:   "pipeline-1",
 		RunID:          "run-1",
@@ -312,7 +320,7 @@ func TestContainer_CreateExecutionSuccess(t *testing.T) {
 			Command: []string{"python", "main.py"},
 		},
 		PluginDispatcher: plugins.NoOpDispatcher{},
-	}, mlmdClient, &mockCacheClient{})
+	}, mlmdClient, &mockCacheClient{}, "test-output-prefix")
 
 	require.NotNil(t, execution)
 	require.NoError(t, err)
@@ -350,7 +358,10 @@ func TestContainer_CreateExecutionAlreadyExistsLookupReturnsNil(t *testing.T) {
 
 	mlmdClient := metadata.NewTestClient(mockSvc)
 
-	execution, err := Container(context.Background(), Options{
+	ctx := util.WithExistingLogger(context.Background(), logrus.New())
+	pipeline, err := mlmdClient.GetPipeline(ctx, "pipeline-1", "run-1", "", "", "", "")
+	require.NoError(t, err)
+	execution, err := Container(ctx, pipeline, Options{
 		IterationIndex: -1,
 		PipelineName:   "pipeline-1",
 		RunID:          "run-1",
@@ -372,7 +383,7 @@ func TestContainer_CreateExecutionAlreadyExistsLookupReturnsNil(t *testing.T) {
 			Command: []string{"python", "main.py"},
 		},
 		PluginDispatcher: plugins.NoOpDispatcher{},
-	}, mlmdClient, &mockCacheClient{})
+	}, mlmdClient, &mockCacheClient{}, "test-output-prefix")
 
 	require.NotNil(t, execution)
 	require.Error(t, err)
@@ -409,7 +420,10 @@ func TestContainer_CreateExecutionDoesNotExistGenericError(t *testing.T) {
 
 	mlmdClient := metadata.NewTestClient(mockSvc)
 
-	execution, err := Container(context.Background(), Options{
+	ctx := util.WithExistingLogger(context.Background(), logrus.New())
+	pipeline, err := mlmdClient.GetPipeline(ctx, "pipeline-1", "run-1", "", "", "", "")
+	require.NoError(t, err)
+	execution, err := Container(ctx, pipeline, Options{
 		IterationIndex: -1,
 		PipelineName:   "pipeline-1",
 		RunID:          "run-1",
@@ -431,7 +445,7 @@ func TestContainer_CreateExecutionDoesNotExistGenericError(t *testing.T) {
 			Command: []string{"python", "main.py"},
 		},
 		PluginDispatcher: plugins.NoOpDispatcher{},
-	}, mlmdClient, &mockCacheClient{})
+	}, mlmdClient, &mockCacheClient{}, "test-output-prefix")
 
 	// In a successful recovery, we expect NO error to be returned from Container
 	require.Error(t, err)

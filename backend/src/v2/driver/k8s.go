@@ -143,6 +143,10 @@ func extendPodSpecPatch(
 	kubernetesExecutorConfig := opts.KubernetesExecutorConfig
 
 	setOnTaskConfig, setOnPod := getTaskConfigOptions(opts.Component)
+	log := util.GetLoggerFrom(ctx)
+	if log == nil {
+		return fmt.Errorf("cannot get log from context for extendPodSpecPatch")
+	}
 
 	// Always set setOnTaskConfig to an empty map if taskConfig is nil to avoid nil pointer dereference.
 	if taskConfig == nil {
@@ -226,7 +230,7 @@ func extendPodSpecPatch(
 	if tolerations := kubernetesExecutorConfig.GetTolerations(); tolerations != nil {
 		var k8sTolerations []k8score.Toleration
 
-		glog.Infof("Tolerations passed: %+v", tolerations)
+		log.Infof("Tolerations passed: %+v", tolerations)
 
 		for _, toleration := range tolerations {
 			if toleration != nil {
@@ -260,7 +264,7 @@ func extendPodSpecPatch(
 							}
 							k8sTolerations = append(k8sTolerations, singleToleration)
 						} else {
-							glog.V(4).Info("encountered empty tolerations struct, ignoring.")
+							log.Trace("encountered empty tolerations struct, ignoring.")
 						}
 					} else if isListToleration {
 						listVal := resolvedParam.GetListValue()
@@ -275,7 +279,7 @@ func extendPodSpecPatch(
 							}
 							k8sTolerations = append(k8sTolerations, k8sTolerationsList...)
 						} else {
-							glog.V(4).Info("encountered empty tolerations list, ignoring.")
+							log.Trace("encountered empty tolerations list, ignoring.")
 						}
 					} else {
 						return fmt.Errorf("encountered unexpected toleration proto value, must be either struct or list type")
@@ -631,7 +635,7 @@ func extendPodSpecPatch(
 			if nodeAffinityTerm.GetNodeAffinityJson() == nil &&
 				len(nodeAffinityTerm.GetMatchExpressions()) == 0 &&
 				len(nodeAffinityTerm.GetMatchFields()) == 0 {
-				glog.Warningf("NodeAffinityTerm %d is empty, skipping", i)
+				log.Warningf("NodeAffinityTerm %d is empty, skipping", i)
 				continue
 			}
 			if nodeAffinityTerm.GetNodeAffinityJson() != nil {
@@ -680,10 +684,10 @@ func extendPodSpecPatch(
 						Weight:     *nodeAffinityTerm.Weight,
 						Preference: nodeSelectorTerm,
 					})
-					glog.V(4).Infof("Added preferred node affinity: %+v", nodeSelectorTerm)
+					log.Tracef("Added preferred node affinity: %+v", nodeSelectorTerm)
 				} else {
 					requiredTerms = append(requiredTerms, nodeSelectorTerm)
-					glog.V(4).Infof("Added required node affinity: %+v", nodeSelectorTerm)
+					log.Tracef("Added required node affinity: %+v", nodeSelectorTerm)
 				}
 
 			}
@@ -763,7 +767,7 @@ func extendPodSpecPatch(
 		runAsNonRootEnforced := securitycontext.IsRunAsNonRootEffective(existingSecurityContext.RunAsNonRoot, userSecurityContext.RunAsNonRoot)
 		if userSecurityContext.RunAsUser != nil {
 			if existingSecurityContext.RunAsUser != nil {
-				glog.Warningf("Ignoring user-specified runAsUser (%d): security context already set by admin (runAsUser=%d)",
+				log.Warningf("Ignoring user-specified runAsUser (%d): security context already set by admin (runAsUser=%d)",
 					*userSecurityContext.RunAsUser, *existingSecurityContext.RunAsUser)
 			} else {
 				if *userSecurityContext.RunAsUser == 0 && runAsNonRootEnforced {
@@ -774,7 +778,7 @@ func extendPodSpecPatch(
 		}
 		if userSecurityContext.RunAsGroup != nil {
 			if existingSecurityContext.RunAsGroup != nil {
-				glog.Warningf("Ignoring user-specified runAsGroup (%d): security context already set by admin (runAsGroup=%d)",
+				log.Warningf("Ignoring user-specified runAsGroup (%d): security context already set by admin (runAsGroup=%d)",
 					*userSecurityContext.RunAsGroup, *existingSecurityContext.RunAsGroup)
 			} else {
 				podSpec.Containers[0].SecurityContext.RunAsGroup = userSecurityContext.RunAsGroup
@@ -782,7 +786,7 @@ func extendPodSpecPatch(
 		}
 		if userSecurityContext.RunAsNonRoot != nil {
 			if existingSecurityContext.RunAsNonRoot != nil {
-				glog.Warningf("Ignoring user-specified runAsNonRoot (%v): security context already set by admin (runAsNonRoot=%v)",
+				log.Warningf("Ignoring user-specified runAsNonRoot (%v): security context already set by admin (runAsNonRoot=%v)",
 					*userSecurityContext.RunAsNonRoot, *existingSecurityContext.RunAsNonRoot)
 			} else {
 				podSpec.Containers[0].SecurityContext.RunAsNonRoot = userSecurityContext.RunAsNonRoot
@@ -942,8 +946,13 @@ func createPVC(
 
 	taskStartedTime := time.Now().Unix()
 
+	log := util.GetLoggerFrom(ctx)
+	if log == nil {
+		return "", nil, 0, fmt.Errorf("failed to get log from context")
+	}
+
 	inputs := execution.ExecutorInput.Inputs
-	glog.Infof("Input parameter values: %+v", inputs.ParameterValues)
+	log.Infof("Input parameter values: %+v", inputs.ParameterValues)
 
 	// Required input: access_modes
 	accessModeInput, ok := inputs.ParameterValues["access_modes"]
@@ -1035,7 +1044,7 @@ func createPVC(
 	if err != nil {
 		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("error creating MLMD execution for createpvc: %w", err)
 	}
-	glog.Infof("Created execution: %s", createdExecution)
+	log.Infof("Created execution: %s", createdExecution)
 	execution.ID = createdExecution.GetID()
 	if !execution.WillTrigger() {
 		return "", createdExecution, pb.Execution_COMPLETE, nil
@@ -1090,7 +1099,7 @@ func createPVC(
 	if err != nil {
 		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: %w", err)
 	}
-	glog.Infof("Created PVC %s\n", createdPVC.ObjectMeta.Name)
+	log.Infof("Created PVC %s\n", createdPVC.Name)
 
 	// Create a cache entry
 	if !opts.CacheDisabled && opts.Task.GetCachingOptions().GetEnableCache() {
@@ -1146,9 +1155,13 @@ func deletePVC(
 	}()
 
 	taskStartedTime := time.Now().Unix()
+	log := util.GetLoggerFrom(ctx)
+	if log == nil {
+		return nil, pb.Execution_FAILED, fmt.Errorf("no logs available for execution")
+	}
 
 	inputs := execution.ExecutorInput.Inputs
-	glog.Infof("Input parameter values: %+v", inputs.ParameterValues)
+	log.Infof("Input parameter values: %+v", inputs.ParameterValues)
 
 	// Required input: pvc_name
 	pvcNameInput, ok := inputs.ParameterValues["pvc_name"]
@@ -1178,7 +1191,7 @@ func deletePVC(
 	if err != nil {
 		return createdExecution, pb.Execution_FAILED, fmt.Errorf("error creating MLMD execution for createpvc: %w", err)
 	}
-	glog.Infof("Created execution: %s", createdExecution)
+	log.Infof("Created execution: %s", createdExecution)
 	execution.ID = createdExecution.GetID()
 	if !execution.WillTrigger() {
 		return createdExecution, pb.Execution_COMPLETE, nil
@@ -1217,7 +1230,7 @@ func deletePVC(
 		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to delete pvc %s: %v", pvcName, err)
 	}
 
-	glog.Infof("Deleted PVC %s\n", pvcName)
+	log.Infof("Deleted PVC %s\n", pvcName)
 
 	// Create a cache entry
 	if !opts.CacheDisabled && opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
@@ -1333,7 +1346,11 @@ func publishDriverExecution(
 	if err = mlmd.PublishExecution(ctx, execution, outputParameters, outputArtifacts, status); err != nil {
 		return fmt.Errorf("failed to publish: %w", err)
 	}
-	glog.Infof("Published execution of Kubernetes platform task %s.", execution.TaskName())
+	log := util.GetLoggerFrom(ctx)
+	if log == nil {
+		return fmt.Errorf("can not get log from the context ")
+	}
+	log.Infof("Published execution of Kubernetes platform task %s.", execution.TaskName())
 	return nil
 }
 

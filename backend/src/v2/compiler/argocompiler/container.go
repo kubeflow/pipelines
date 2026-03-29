@@ -39,9 +39,7 @@ import (
 
 const (
 	volumeNameKFPLauncher = "kfp-launcher"
-	volumeNameCABundle    = "ca-bundle"
 	LauncherImageEnvVar   = "V2_LAUNCHER_IMAGE"
-	DriverImageEnvVar     = "V2_DRIVER_IMAGE"
 	// DefaultLauncherImage & DefaultDriverImage are set as latest here
 	// but are overridden by environment variables set via k8s manifests.
 	// For releases, the manifest will have the correct release version set.
@@ -49,9 +47,6 @@ const (
 	DefaultLauncherImage     = "ghcr.io/kubeflow/kfp-launcher:latest"
 	LauncherCommandEnvVar    = "V2_LAUNCHER_COMMAND"
 	DefaultLauncherCommand   = "launcher-v2"
-	DefaultDriverImage       = "ghcr.io/kubeflow/kfp-driver:latest"
-	DefaultDriverCommand     = "driver"
-	DriverCommandEnvVar      = "V2_DRIVER_COMMAND"
 	PipelineRunAsUserEnvVar  = "PIPELINE_RUN_AS_USER"
 	PipelineLogLevelEnvVar   = "PIPELINE_LOG_LEVEL"
 	PublishLogsEnvVar        = "PUBLISH_LOGS"
@@ -105,22 +100,6 @@ func GetLauncherImage() string {
 	return launcherImage
 }
 
-func GetDriverImage() string {
-	driverImage := os.Getenv(DriverImageEnvVar)
-	if driverImage == "" {
-		driverImage = DefaultDriverImage
-	}
-	return driverImage
-}
-
-func GetDriverCommand() []string {
-	driverCommand := os.Getenv(DriverCommandEnvVar)
-	if driverCommand == "" {
-		driverCommand = DefaultDriverCommand
-	}
-	return strings.Split(driverCommand, " ")
-}
-
 func GetLauncherCommand() []string {
 	launcherCommand := os.Getenv(LauncherCommandEnvVar)
 	if launcherCommand == "" {
@@ -167,10 +146,14 @@ func GetPipelineRunAsUser() *int64 {
 	return &runAsUser
 }
 
-func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
+func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs, error) {
+	template, err := c.addContainerDriverTemplate()
+	if err != nil {
+		return nil, nil, err
+	}
 	dagTask := &wfapi.DAGTask{
 		Name:     name,
-		Template: c.addContainerDriverTemplate(),
+		Template: template,
 		Arguments: wfapi.Arguments{
 			Parameters: []wfapi.Parameter{
 				{Name: paramComponent, Value: wfapi.AnyStringPtr(inputs.component)},
@@ -198,73 +181,68 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 		cached:       taskOutputParameter(name, paramCachedDecision),
 		condition:    taskOutputParameter(name, paramCondition),
 	}
-	return dagTask, outputs
+	return dagTask, outputs, nil
 }
 
-func (c *workflowCompiler) addContainerDriverTemplate() string {
+// Create the Argo Workflow executor plugin template for the container driver.
+// See https://argo-workflows.readthedocs.io/en/latest/executor_plugins/
+func (c *workflowCompiler) addContainerDriverTemplate() (string, error) {
 	name := "system-container-driver"
 	_, ok := c.templates[name]
 	if ok {
-		return name
+		return name, nil
 	}
 
-	args := []string{
-		"--type", "CONTAINER",
-		"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
-		"--run_id", runID(),
-		"--run_name", runResourceName(),
-		"--run_display_name", c.job.DisplayName,
-		"--pipeline_job_create_time_utc", runCreationTimeUTC(),
-		"--dag_execution_id", inputValue(paramParentDagID),
-		"--component", inputValue(paramComponent),
-		"--task", inputValue(paramTask),
-		"--task_name", inputValue(paramTaskName),
-		"--container", inputValue(paramContainer),
-		"--iteration_index", inputValue(paramIterationIndex),
-		"--cached_decision_path", outputPath(paramCachedDecision),
-		"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
-		"--condition_path", outputPath(paramCondition),
-		"--kubernetes_config", inputValue(paramKubernetesConfig),
-		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
-		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
-		"--no_proxy", proxy.GetConfig().GetNoProxy(),
-		"--ml_pipeline_server_address", config.GetMLPipelineServerConfig().Address,
-		"--ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
-		"--mlmd_server_address", metadata.GetMetadataConfig().Address,
-		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
+	args := map[string]interface{}{
+		"type":                         "CONTAINER",
+		"pipeline_name":                c.spec.GetPipelineInfo().GetName(),
+		"run_id":                       runID(),
+		"run_name":                     runResourceName(),
+		"run_display_name":             c.job.DisplayName,
+		"pipeline_job_create_time_utc": runCreationTimeUTC(),
+		"dag_execution_id":             inputValue(paramParentDagID),
+		"component":                    inputValue(paramComponent),
+		"task":                         inputValue(paramTask),
+		"task_name":                    inputValue(paramTaskName),
+		"container":                    inputValue(paramContainer),
+		"iteration_index":              inputValue(paramIterationIndex),
+		"cached_decision_path":         outputPath(paramCachedDecision),
+		"pod_spec_patch_path":          outputPath(paramPodSpecPatch),
+		"condition_path":               outputPath(paramCondition),
+		"kubernetes_config":            inputValue(paramKubernetesConfig),
+		"http_proxy":                   proxy.GetConfig().GetHttpProxy(),
+		"https_proxy":                  proxy.GetConfig().GetHttpsProxy(),
+		"no_proxy":                     proxy.GetConfig().GetNoProxy(),
+		"ml_pipeline_server_address":   config.GetMLPipelineServerConfig().Address,
+		"ml_pipeline_server_port":      config.GetMLPipelineServerConfig().Port,
+		"mlmd_server_address":          metadata.GetMetadataConfig().Address,
+		"mlmd_server_port":             metadata.GetMetadataConfig().Port,
+		"cache_disabled":               c.cacheDisabled,
+		"log_level":                    pipelineLogLevelArg(),
+		"publish_logs":                 publishLogsArg(),
+		"ml_pipeline_tls_enabled":      c.mlPipelineTLSEnabled,
+		"metadata_tls_enabled":         common.GetMetadataTLSEnabled(),
 	}
-	args = append(args,
-		"--cache_disabled="+strconv.FormatBool(c.cacheDisabled),
-		"--log_level", pipelineLogLevelArg(),
-		"--publish_logs", publishLogsArg(),
-		"--ml_pipeline_tls_enabled="+strconv.FormatBool(c.mlPipelineTLSEnabled),
-		"--metadata_tls_enabled="+strconv.FormatBool(common.GetMetadataTLSEnabled()),
-	)
-
-	// Always passed; empty unless a custom CA bundle is configured.
-	caCertPath := ""
-	setCABundle := false
-	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
-		caCertPath = common.CustomCaCertPath
-		setCABundle = true
-	}
-	args = append(args, "--ca_cert_path", caCertPath)
 
 	// Admin defaults are emitted only when configured; an unset default is
 	// indistinguishable from "not set", so these stay optional (not required).
 	if c.defaultRunAsUser != nil {
-		args = append(args, "--default_run_as_user", strconv.FormatInt(*c.defaultRunAsUser, 10))
+		args["default_run_as_user"] = strconv.FormatInt(*c.defaultRunAsUser, 10)
 	}
 	if c.defaultRunAsGroup != nil {
-		args = append(args, "--default_run_as_group", strconv.FormatInt(*c.defaultRunAsGroup, 10))
+		args["default_run_as_group"] = strconv.FormatInt(*c.defaultRunAsGroup, 10)
 	}
 	if c.defaultRunAsNonRoot != nil {
-		args = append(args, "--default_run_as_non_root", strconv.FormatBool(*c.defaultRunAsNonRoot))
+		args["default_run_as_non_root"] = strconv.FormatBool(*c.defaultRunAsNonRoot)
 	}
 	if c.defaultHostUsers != nil {
-		args = append(args, "--default_host_users", strconv.FormatBool(*c.defaultHostUsers))
+		args["default_host_users"] = strconv.FormatBool(*c.defaultHostUsers)
 	}
 
+	containerDriverPlugin, err := driverPlugin(args)
+	if err != nil {
+		return name, fmt.Errorf("failed to add container driver plugin: %v", err)
+	}
 	template := &wfapi.Template{
 		Name: name,
 		Inputs: wfapi.Inputs{
@@ -280,31 +258,18 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		},
 		Outputs: wfapi.Outputs{
 			Parameters: []wfapi.Parameter{
-				{Name: paramPodSpecPatch, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/pod-spec-patch", Default: wfapi.AnyStringPtr("")}},
-				{Name: paramCachedDecision, Default: wfapi.AnyStringPtr("false"), ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/cached-decision", Default: wfapi.AnyStringPtr("false")}},
-				{Name: paramCondition, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/condition", Default: wfapi.AnyStringPtr("true")}},
+				{Name: paramPodSpecPatch, ValueFrom: &wfapi.ValueFrom{JSONPath: "$.pod-spec-patch", Default: wfapi.AnyStringPtr("")}},
+				{Name: paramCachedDecision, Default: wfapi.AnyStringPtr("false"), ValueFrom: &wfapi.ValueFrom{JSONPath: "$.cached-decision", Default: wfapi.AnyStringPtr("false")}},
+				{Name: paramCondition, ValueFrom: &wfapi.ValueFrom{JSONPath: "$.condition", Default: wfapi.AnyStringPtr("true")}},
 			},
 		},
-		Container: &k8score.Container{
-			Image:     c.driverImage,
-			Command:   c.driverCommand,
-			Args:      args,
-			Resources: driverResources,
-			Env:       append(proxy.GetConfig().GetEnvVars(), commonEnvs...),
-		},
+		Plugin: containerDriverPlugin,
 	}
-	setRuntimeRole(template, util.ExecutionRuntimeRoleDriver)
 	applySecurityContextToTemplate(template)
 
-	applyDriverPodConfig(c.driverPodConfig, template)
-
-	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver template.
-	if setCABundle {
-		ConfigureCustomCABundle(template)
-	}
 	c.templates[name] = template
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *template)
-	return name
+	return name, err
 }
 
 type containerExecutorInputs struct {
