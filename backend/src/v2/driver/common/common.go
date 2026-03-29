@@ -22,6 +22,7 @@ import (
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
@@ -85,6 +86,10 @@ type Options struct {
 	DefaultHostUsers           *bool
 	CaCertPath                 string
 	PluginDispatcher           plugins.TaskPluginDispatcher
+	// ProxyConfig supplies this invocation's workload proxy env; nil adds none.
+	ProxyConfig proxy.Config
+	// OutputPathPrefix aligns this invocation's outputs and uploaded driver log.
+	OutputPathPrefix string
 }
 
 // Info provides information used for debugging

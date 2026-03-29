@@ -99,43 +99,17 @@ func TestAddContainerExecutorTemplate(t *testing.T) {
 
 }
 
-func TestContainerDriverTemplate_IncludesKFPPodNameEnv(t *testing.T) {
+func TestContainerDriverTemplate_UsesRequestContext(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
-	c := &workflowCompiler{
-		templates: make(map[string]*wfapi.Template),
-		wf: &wfapi.Workflow{
-			Spec: wfapi.WorkflowSpec{
-				Templates: []wfapi.Template{},
-			},
-		},
-		spec: &pipelinespec.PipelineSpec{
-			PipelineInfo: &pipelinespec.PipelineInfo{Name: "test-pipeline"},
-		},
-		job: &pipelinespec.PipelineJob{},
-	}
-
-	name := c.addContainerDriverTemplate()
+	c := newCompilerWithCustomTokenAudience("custom.pipelines.example.org")
+	name, err := c.addContainerDriverTemplate()
+	require.NoError(t, err)
 	require.Equal(t, "system-container-driver", name)
-
-	tmpl, exists := c.templates[name]
-	require.True(t, exists, "system-container-driver template should exist")
-	require.NotNil(t, tmpl.Container, "template should have a container")
-
-	var foundKFPPodName bool
-	for _, env := range tmpl.Container.Env {
-		if env.Name == "KFP_POD_NAME" {
-			foundKFPPodName = true
-			require.NotNil(t, env.ValueFrom, "KFP_POD_NAME should use ValueFrom")
-			require.NotNil(t, env.ValueFrom.FieldRef, "KFP_POD_NAME should use fieldRef")
-			assert.Equal(t, "metadata.name", env.ValueFrom.FieldRef.FieldPath,
-				"KFP_POD_NAME must reference metadata.name via the downward API")
-			break
-		}
-	}
-	assert.True(t, foundKFPPodName,
-		"system-container-driver template must include KFP_POD_NAME env var to avoid hostname truncation for long pod names")
-	assert.Equal(t, "container-driver", tmpl.Metadata.Labels[systemPodRoleLabelKey])
-	assert.Equal(t, "system-container-driver", tmpl.Metadata.Annotations[systemTemplateNameAnnotationKey])
+	args := requireDriverPluginArgs(t, c.templates[name])
+	assert.Equal(t, "CONTAINER", args["type"])
+	assert.Equal(t, "{{workflow.namespace}}", args["namespace"])
+	assert.Equal(t, inputValue(paramParentDagTaskID), args["parent_task_id"])
+	assert.Equal(t, inputValue(paramKubernetesConfig), args["kubernetes_config"])
 }
 
 func TestAddContainerExecutorTemplate_IncludesDebugMetadata(t *testing.T) {
@@ -216,16 +190,6 @@ func TestProjectedTokenAudience_UsesCustomAudienceAcrossTemplates(t *testing.T) 
 	t.Run("importer", func(t *testing.T) {
 		c := newCompilerWithCustomTokenAudience(customAudience)
 		name := c.addImporterTemplate(false)
-		assertProjectedTokenAudience(t, c.templates[name], expectedAudience)
-	})
-	t.Run("container-driver", func(t *testing.T) {
-		c := newCompilerWithCustomTokenAudience(customAudience)
-		name := c.addContainerDriverTemplate()
-		assertProjectedTokenAudience(t, c.templates[name], expectedAudience)
-	})
-	t.Run("dag-driver", func(t *testing.T) {
-		c := newCompilerWithCustomTokenAudience(customAudience)
-		name := c.addDAGDriverTemplate()
 		assertProjectedTokenAudience(t, c.templates[name], expectedAudience)
 	})
 	t.Run("container-executor", func(t *testing.T) {
@@ -338,7 +302,7 @@ func TestAddContainerExecutorTemplate_PropagatesGRPCBackoffEnv(t *testing.T) {
 	assert.True(t, found, "expected container executor to include configured gRPC backoff env")
 }
 
-func TestContainerDriverTemplate_OmitsUnsupportedPipelineJobCreateTimeArg(t *testing.T) {
+func TestContainerDriverTemplate_OmitsPipelineJobTimeArgs(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
 	c := &workflowCompiler{
 		templates: make(map[string]*wfapi.Template),
@@ -353,15 +317,13 @@ func TestContainerDriverTemplate_OmitsUnsupportedPipelineJobCreateTimeArg(t *tes
 		job: &pipelinespec.PipelineJob{},
 	}
 
-	name := c.addContainerDriverTemplate()
+	name, err := c.addContainerDriverTemplate()
+	require.NoError(t, err)
 	tmpl, exists := c.templates[name]
 	require.True(t, exists, "system-container-driver template should exist")
-	require.NotNil(t, tmpl.Container, "template should have a container")
-	// Driver resolves create time from Run.created_at; emitting an unknown flag
-	// would cause flag.Parse() to exit before driver execution.
-	assert.NotContains(t, tmpl.Container.Args, "--pipeline_job_create_time_utc")
-	assert.NotContains(t, tmpl.Container.Args, "--pipeline_job_schedule_time_epoch_seconds")
-	assertRegisteredDriverArgs(t, tmpl.Container.Args)
+	args := requireDriverPluginArgs(t, tmpl)
+	assert.NotContains(t, args, "pipeline_job_create_time_utc")
+	assert.NotContains(t, args, "pipeline_job_schedule_time_epoch_seconds")
 }
 
 func Test_extendPodMetadata(t *testing.T) {

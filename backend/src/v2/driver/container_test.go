@@ -15,13 +15,43 @@
 package driver
 
 import (
+	"bytes"
+	"context"
 	"testing"
 
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+func TestContainer_UsesRequestOutputPrefixAndLogger(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/cache_test.yaml")
+	require.NoError(t, tc.Push("create-dataset"))
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	options := tc.setupContainerOptions(tc.RootTask, taskSpec, nil)
+	options.OutputPathPrefix = "request-output-prefix"
+	var logOutput bytes.Buffer
+	logger := logrus.New()
+	logger.SetOutput(&logOutput)
+	ctx := util.WithExistingLogger(context.Background(), logger)
+
+	execution, err := Container(ctx, options, tc.ClientManager)
+	require.NoError(t, err)
+	require.NotEmpty(t, execution.TaskID)
+	artifacts := execution.ExecutorInput.GetOutputs().GetArtifacts()
+	require.NotEmpty(t, artifacts)
+	for _, artifactList := range artifacts {
+		for _, artifact := range artifactList.GetArtifacts() {
+			assert.Contains(t, artifact.GetUri(), "/create-dataset/request-output-prefix/")
+		}
+	}
+	assert.Contains(t, logOutput.String(), "Creating task create-dataset")
+}
 
 // TestConvertArtifactsToArtifactList_MultipleMetrics tests that multiple metric
 // artifacts are merged into a single RuntimeArtifact with combined metadata
