@@ -66,7 +66,7 @@ export const queryKeys = {
     ['execution_logs', { executionId, namespace }] as const,
 
   driverLogs: (executionId: number | undefined, namespace: string | undefined) =>
-    ['driver-logs', { executionId, namespace }] as const,
+    ['driver_logs', { executionId, namespace }] as const,
 
   contextByExecution: (executionId: number, executionState: number) =>
     ['context_by_execution', { id: executionId, state: executionState }] as const,

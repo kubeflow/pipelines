@@ -7,8 +7,11 @@ metadata:
   name: argo-workflowtaskset-status
 rules:
   - apiGroups: ["argoproj.io"]
-    resources: ["workflowtasksets/status", "workflowtasksets"]
+    resources: ["workflowtasksets"]
     verbs: ["get","list","watch","update","patch","delete","create"]
+  - apiGroups: [ "argoproj.io" ]
+    resources: [ "workflowtasksets/status" ]
+    verbs: ["get", "update", "patch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
