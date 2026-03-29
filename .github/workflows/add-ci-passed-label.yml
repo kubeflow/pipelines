@@ -16,6 +16,7 @@ on:
       - completed
 
 permissions:
+  actions: read
   pull-requests: write
   issues: write
 
@@ -68,11 +69,46 @@ jobs:
             }
 
             const labels = new Set(pullRequest.labels.map((label) => label.name));
-            const eligible = labels.has("ok-to-test") && !labels.has("needs-ok-to-test");
-
+            const labelEligible = labels.has("ok-to-test") && !labels.has("needs-ok-to-test");
             core.info(`PR #${pullRequest.number} labels: ${Array.from(labels).join(", ")}`);
+
+            if (!labelEligible) {
+              core.info("PR is not label-eligible.");
+              core.setOutput("pr_number", String(pullRequest.number));
+              core.setOutput("eligible", "false");
+              return;
+            }
+
+            // Verify the CI Check workflow actually ran the polling step.
+            // Early-exit runs (triggered by unrelated label events like lgtm/approved)
+            // succeed without polling, so we must not re-add ci-passed based on those.
+            const { data: jobs } = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id,
+            });
+
+            const checkJob = jobs.jobs.find((j) => j.name === "check_ci_status");
+            if (!checkJob) {
+              core.info("Could not find check_ci_status job in CI Check run.");
+              core.setOutput("eligible", "false");
+              return;
+            }
+
+            const pollingStep = checkJob.steps.find(
+              (s) => s.name === "Check if all CI checks passed"
+            );
+            if (!pollingStep || pollingStep.conclusion !== "success") {
+              core.info(
+                "CI Check run did not execute the polling step — skipping ci-passed label addition."
+              );
+              core.setOutput("pr_number", String(pullRequest.number));
+              core.setOutput("eligible", "false");
+              return;
+            }
+
             core.setOutput("pr_number", String(pullRequest.number));
-            core.setOutput("eligible", eligible ? "true" : "false");
+            core.setOutput("eligible", "true");
 
   reset_ci_passed_label:
     name: Reset stale 'ci-passed' label
@@ -110,9 +146,13 @@ jobs:
     name: Add 'ci-passed' label
     runs-on: ubuntu-latest
     needs: fetch_data
-    if: needs.fetch_data.outputs.eligible == 'true'
+    # Always run so the job produces 'success', not 'skipped'.
+    # A 'skipped' conclusion overwrites prior green status and blocks tide.
+    # The step-level condition gates the actual label addition.
+    if: ${{ !cancelled() }}
     steps:
       - name: Add 'ci-passed' label
+        if: needs.fetch_data.outputs.eligible == 'true'
         run: |
           echo "Adding 'ci-passed' label to PR #${{ needs.fetch_data.outputs.pr_number }}"
           gh pr edit ${{ needs.fetch_data.outputs.pr_number }} --add-label "ci-passed" --repo "$GITHUB_REPOSITORY"
