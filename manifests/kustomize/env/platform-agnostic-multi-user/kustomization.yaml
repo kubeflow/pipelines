@@ -23,3 +23,11 @@ labels:
 - includeSelectors: true
   pairs:
     application-crd-id: kubeflow-pipelines
+vars:
+- name: kfp-artifact-bucket-name
+  objref:
+    apiVersion: v1
+    kind: ConfigMap
+    name: pipeline-install-config
+  fieldref:
+    fieldPath: data.bucketName
