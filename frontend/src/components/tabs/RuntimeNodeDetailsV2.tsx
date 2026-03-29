@@ -375,7 +375,7 @@ async function getDriverLogsInfo(
     }
   } catch (artifactErr) {
     let errMsg = await errorToMessage(artifactErr);
-    logsBannerMessage = 'Failed to retrieve pod logs.';
+    logsBannerMessage = 'Failed to retrieve system logs.';
     logsInfo.set(SYS_LOGS_BANNER_MESSAGE, logsBannerMessage);
     logsBannerAdditionalInfo = 'Error response: ' + errMsg;
     logsInfo.set(SYS_LOGS_BANNER_ADDITIONAL_INFO, logsBannerAdditionalInfo);
