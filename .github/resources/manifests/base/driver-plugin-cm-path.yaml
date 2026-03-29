@@ -40,5 +40,3 @@ data:
     - name: var-run-argo
       mountPath: /kfp/log
       readOnly: false
-
-  

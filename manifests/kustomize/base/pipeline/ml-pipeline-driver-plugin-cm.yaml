@@ -11,14 +11,6 @@ data:
     image: ghcr.io/kubeflow/kfp-driver:dummy
     imagePullPolicy: IfNotPresent
     env:
-      - name: KFP_POD_NAME
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.name
-      - name: KFP_POD_UID
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.uid  
       - name: LOG_ACCESS_KEY
         valueFrom:
           secretKeyRef:

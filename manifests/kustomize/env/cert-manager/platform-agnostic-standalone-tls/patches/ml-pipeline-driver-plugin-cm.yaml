@@ -2,22 +2,12 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ml-pipeline-driver-agent
-  labels:
-    workflows.argoproj.io/configmap-type: ExecutorPlugin
 data:
   sidecar.automountServiceAccountToken: "true"
   sidecar.container: |
     name: driver-plugin
     image:  ghcr.io/kubeflow/kfp-driver:dummy
     env:
-      - name: KFP_POD_NAME
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.name
-      - name: KFP_POD_UID
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.uid  
       - name: LOG_ACCESS_KEY
         valueFrom:
           secretKeyRef:
