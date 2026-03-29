@@ -6,8 +6,10 @@ import (
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -241,7 +243,7 @@ func Test_makePodSpecPatch_nodeSelector(t *testing.T) {
 			taskConfig := &TaskConfig{}
 
 			err := extendPodSpecPatch(
-				context.Background(),
+				util.WithExistingLogger(context.Background(), logrus.New()),
 				got,
 				common.Options{KubernetesExecutorConfig: tt.k8sExecCfg},
 				mapToIOParameters(tt.inputParams),
@@ -717,7 +719,7 @@ func Test_extendPodSpecPatch_Secret(t *testing.T) {
 			taskConfig := &TaskConfig{}
 
 			err := extendPodSpecPatch(
-				context.Background(),
+				util.WithExistingLogger(context.Background(), logrus.New()),
 				tt.podSpec,
 				common.Options{KubernetesExecutorConfig: tt.k8sExecCfg},
 				mapToIOParameters(tt.inputParams),
@@ -1211,7 +1213,7 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 			taskConfig := &TaskConfig{}
 
 			err := extendPodSpecPatch(
-				context.Background(),
+				util.WithExistingLogger(context.Background(), logrus.New()),
 				tt.podSpec,
 				common.Options{KubernetesExecutorConfig: tt.k8sExecCfg},
 				mapToIOParameters(tt.inputParams),
@@ -1382,7 +1384,7 @@ func Test_extendPodSpecPatch_EmptyVolumeMount(t *testing.T) {
 			taskConfig := &TaskConfig{}
 
 			err := extendPodSpecPatch(
-				context.Background(),
+				util.WithExistingLogger(context.Background(), logrus.New()),
 				tt.podSpec,
 				common.Options{KubernetesExecutorConfig: tt.k8sExecCfg},
 				mapToIOParameters(map[string]*structpb.Value{}),
@@ -1505,7 +1507,7 @@ func Test_extendPodSpecPatch_ImagePullSecrets(t *testing.T) {
 				},
 			}}
 			err := extendPodSpecPatch(
-				context.Background(),
+				util.WithExistingLogger(context.Background(), logrus.New()),
 				got,
 				common.Options{KubernetesExecutorConfig: tt.k8sExecCfg},
 				mapToIOParameters(tt.inputParams),
@@ -1941,7 +1943,7 @@ func Test_extendPodSpecPatch_Tolerations(t *testing.T) {
 			taskConfig := &TaskConfig{}
 
 			err := extendPodSpecPatch(
-				context.Background(),
+				util.WithExistingLogger(context.Background(), logrus.New()),
 				got,
 				common.Options{KubernetesExecutorConfig: tt.k8sExecCfg},
 				mapToIOParameters(tt.inputParams),
@@ -2045,7 +2047,7 @@ func Test_extendPodSpecPatch_FieldPathAsEnv(t *testing.T) {
 			taskConfig := &TaskConfig{}
 
 			err := extendPodSpecPatch(
-				context.Background(),
+				util.WithExistingLogger(context.Background(), logrus.New()),
 				got,
 				common.Options{KubernetesExecutorConfig: tt.k8sExecCfg},
 				mapToIOParameters(map[string]*structpb.Value{}),
@@ -2115,7 +2117,7 @@ func Test_extendPodSpecPatch_ActiveDeadlineSeconds(t *testing.T) {
 				},
 			}}
 			err := extendPodSpecPatch(
-				context.Background(),
+				util.WithExistingLogger(context.Background(), logrus.New()),
 				got,
 				common.Options{KubernetesExecutorConfig: tt.k8sExecCfg},
 				mapToIOParameters(map[string]*structpb.Value{}),
@@ -2225,7 +2227,7 @@ func Test_extendPodSpecPatch_SecurityContext(t *testing.T) {
 				},
 			}}
 			err := extendPodSpecPatch(
-				context.Background(),
+				util.WithExistingLogger(context.Background(), logrus.New()),
 				got,
 				common.Options{KubernetesExecutorConfig: tt.k8sExecCfg},
 				nil,
@@ -2250,7 +2252,7 @@ func Test_extendPodSpecPatch_SecurityContext_CombinedWithOtherFeatures(t *testin
 		},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		got,
 		common.Options{KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
 			SecurityContext: &kubernetesplatform.SecurityContext{
@@ -2294,7 +2296,7 @@ func Test_extendPodSpecPatch_SecurityContext_AdminSetPreserved(t *testing.T) {
 		{Name: "main"},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		got,
 		common.Options{
 			DefaultRunAsUser:  &adminUID,
@@ -2325,7 +2327,7 @@ func Test_extendPodSpecPatch_SecurityContext_AdminDefaultsNoUserOverride(t *test
 		{Name: "main"},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		got,
 		common.Options{
 			DefaultRunAsUser: &adminUID,
@@ -2352,7 +2354,7 @@ func Test_extendPodSpecPatch_SecurityContext_RootOnHardenedContainer(t *testing.
 		},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		got,
 		common.Options{KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
 			SecurityContext: &kubernetesplatform.SecurityContext{
@@ -2378,7 +2380,7 @@ func Test_extendPodSpecPatch_SecurityContext_AdminRunAsNonRoot(t *testing.T) {
 		{Name: "main"},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		got,
 		common.Options{
 			DefaultRunAsNonRoot: &adminRunAsNonRoot,
@@ -2406,7 +2408,7 @@ func Test_extendPodSpecPatch_SecurityContext_AdminRunAsNonRootNoUserOverride(t *
 		{Name: "main"},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		got,
 		common.Options{
 			DefaultRunAsNonRoot: &adminRunAsNonRoot,
@@ -2427,7 +2429,7 @@ func Test_extendPodSpecPatch_SecurityContext_UserRunAsNonRootNoAdmin(t *testing.
 		{Name: "main"},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		got,
 		common.Options{
 			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
@@ -2452,7 +2454,7 @@ func Test_extendPodSpecPatch_SecurityContext_RootRejectedWhenRunAsNonRootEnforce
 		{Name: "main"},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		got,
 		common.Options{
 			DefaultRunAsNonRoot: &adminRunAsNonRoot,
@@ -2478,7 +2480,7 @@ func Test_extendPodSpecPatch_SecurityContext_NonRootAllowedWhenRunAsNonRootEnfor
 		{Name: "main"},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		got,
 		common.Options{
 			DefaultRunAsNonRoot: &adminRunAsNonRoot,
@@ -2508,7 +2510,7 @@ func Test_extendPodSpecPatch_SecurityContext_NonRootAllowedOnHardenedContainer(t
 		},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		got,
 		common.Options{KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
 			SecurityContext: &kubernetesplatform.SecurityContext{
@@ -2531,7 +2533,7 @@ func Test_extendPodSpecPatch_SecurityContext_RootRejectedWithUserRunAsNonRoot(t 
 		{Name: "main"},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		got,
 		common.Options{KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
 			SecurityContext: &kubernetesplatform.SecurityContext{
@@ -2556,7 +2558,7 @@ func Test_extendPodSpecPatch_SecurityContext_RootAllowedWhenAdminRunAsNonRootFal
 		{Name: "main"},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		got,
 		common.Options{
 			DefaultRunAsNonRoot: &adminRunAsNonRoot,
@@ -2585,7 +2587,7 @@ func Test_extendPodSpecPatch_SecurityContext_RootAllowedWithUserRunAsNonRootFals
 		{Name: "main"},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		got,
 		common.Options{KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
 			SecurityContext: &kubernetesplatform.SecurityContext{
@@ -2676,7 +2678,7 @@ func Test_extendPodSpecPatch_ImagePullPolicy(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := extendPodSpecPatch(
-				context.Background(),
+				util.WithExistingLogger(context.Background(), logrus.New()),
 				tt.podSpec,
 				common.Options{KubernetesExecutorConfig: tt.k8sExecCfg},
 				mapToIOParameters(map[string]*structpb.Value{}),
@@ -2871,7 +2873,7 @@ func Test_extendPodSpecPatch_GenericEphemeralVolume(t *testing.T) {
 			taskConfig := &TaskConfig{}
 
 			err := extendPodSpecPatch(
-				context.Background(),
+				util.WithExistingLogger(context.Background(), logrus.New()),
 				tt.podSpec,
 				common.Options{KubernetesExecutorConfig: tt.k8sExecCfg},
 				mapToIOParameters(map[string]*structpb.Value{}),
@@ -3172,7 +3174,7 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T) {
 			taskConfig := &TaskConfig{}
 
 			err := extendPodSpecPatch(
-				context.Background(),
+				util.WithExistingLogger(context.Background(), logrus.New()),
 				got,
 				common.Options{KubernetesExecutorConfig: tt.k8sExecCfg},
 				mapToIOParameters(tt.inputParams),
@@ -3254,7 +3256,7 @@ func Test_extendPodSpecPatch_TaskConfig_CapturesAndApplies(t *testing.T) {
 
 	taskCfg := &TaskConfig{}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		podSpec,
 		common.Options{KubernetesExecutorConfig: cfg, Component: comp},
 		mapToIOParameters(map[string]*structpb.Value{}),
@@ -3406,7 +3408,7 @@ func Test_extendPodSpecPatch_PvcMounts_Passthrough_NotAppliedToPod(t *testing.T)
 	}
 	taskCfg := &TaskConfig{}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		podSpec,
 		common.Options{KubernetesExecutorConfig: cfg, Component: comp},
 		mapToIOParameters(map[string]*structpb.Value{}),
@@ -3437,7 +3439,7 @@ func Test_extendPodSpecPatch_PvcMounts_Passthrough_AppliedToPod(t *testing.T) {
 	}
 	taskCfg := &TaskConfig{}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		podSpec,
 		common.Options{KubernetesExecutorConfig: cfg, Component: comp},
 		mapToIOParameters(map[string]*structpb.Value{}),
@@ -3528,7 +3530,7 @@ func Test_extendPodSpecPatch_DefaultHostUsersFalse(t *testing.T) {
 		{Name: "main"},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		podSpec,
 		common.Options{
 			DefaultHostUsers: &hostUsersInDedicatedNamespace,
@@ -3550,7 +3552,7 @@ func Test_extendPodSpecPatch_DefaultHostUsersTrue(t *testing.T) {
 		{Name: "main"},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		podSpec,
 		common.Options{
 			DefaultHostUsers: &hostUsersInHostNamespace,
@@ -3568,7 +3570,7 @@ func Test_extendPodSpecPatch_DefaultHostUsersNil(t *testing.T) {
 		{Name: "main"},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		podSpec,
 		common.Options{
 			DefaultHostUsers: nil,
@@ -3595,7 +3597,7 @@ func Test_extendPodSpecPatch_RootUserWithHostUsersNamespace(t *testing.T) {
 		{Name: "main"},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		podSpec,
 		common.Options{
 			DefaultHostUsers: &hostUsersInDedicatedNamespace,
@@ -3635,7 +3637,7 @@ func Test_extendPodSpecPatch_HostUsersAdminOverrideProtection(t *testing.T) {
 		HostUsers:  &userTrue,
 	}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		podSpec,
 		common.Options{
 			DefaultHostUsers: &adminFalse,
@@ -3987,7 +3989,7 @@ func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 				},
 			}
 			err := extendPodSpecPatch(
-				context.Background(),
+				util.WithExistingLogger(context.Background(), logrus.New()),
 				got,
 				common.Options{KubernetesExecutorConfig: tt.k8sExecCfg},
 				nil,
@@ -4015,7 +4017,7 @@ func Test_extendPodSpecPatch_InitContainers_AdminSecurityDefaults(t *testing.T) 
 		},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		got,
 		common.Options{
 			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{

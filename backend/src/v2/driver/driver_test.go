@@ -25,6 +25,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	clientmanager "github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -98,8 +99,6 @@ func Test_resolveContainerCommandAndArgs_OptionalParameterDefault(t *testing.T) 
 func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 	viper.Set("KFP_POD_NAME", "MyWorkflowPod")
 	viper.Set("KFP_POD_UID", "a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6")
-
-	proxy.InitializeConfigWithEmptyForTests()
 
 	type args struct {
 		container        *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
@@ -349,6 +348,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				"ml-pipeline.kubeflow",
 				"8887",
 				nil,
+				proxy.EmptyConfig(),
 			)
 			if tt.wantErr {
 				assert.Nil(t, podSpec)
@@ -474,6 +474,7 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		"ml-pipeline.kubeflow",
 		"8887",
 		nil,
+		proxy.EmptyConfig(),
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -530,6 +531,7 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 		"ml-pipeline.kubeflow",
 		"8887",
 		nil,
+		proxy.EmptyConfig(),
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -588,6 +590,7 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 		"ml-pipeline.kubeflow",
 		"8887",
 		nil,
+		proxy.EmptyConfig(),
 	)
 	assert.Nil(t, err)
 
@@ -677,6 +680,7 @@ func Test_initPodSpecPatch_modelcarDoesNotInheritMLflowCredentialEnvVars(t *test
 		"ml-pipeline.kubeflow",
 		"8887",
 		pluginEnvVars,
+		proxy.EmptyConfig(),
 	)
 	require.NoError(t, err)
 	require.Len(t, podSpec.InitContainers, 1)
@@ -733,6 +737,7 @@ func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 		"ml-pipeline.kubeflow",
 		"8887",
 		nil,
+		proxy.EmptyConfig(),
 	)
 	assert.Nil(t, err)
 	cmd := podSpec.Containers[0].Command
@@ -866,6 +871,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				"ml-pipeline.kubeflow",
 				"8887",
 				nil,
+				proxy.EmptyConfig(),
 			)
 			assert.Nil(t, err)
 			assert.NotEmpty(t, podSpec)
@@ -885,7 +891,6 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 }
 
 func Test_initPodSpecPatch_TaskConfig_ForwardsResourcesOnly(t *testing.T) {
-	proxy.InitializeConfigWithEmptyForTests()
 
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
 		Image:   "python:3.11",
@@ -909,7 +914,7 @@ func Test_initPodSpecPatch_TaskConfig_ForwardsResourcesOnly(t *testing.T) {
 	executorInput := &pipelinespec.ExecutorInput{}
 
 	taskCfg := &TaskConfig{}
-	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil, proxy.EmptyConfig())
 	assert.Nil(t, err)
 	assert.NotNil(t, podSpec)
 	assert.Len(t, podSpec.Containers, 1)
@@ -926,7 +931,6 @@ func Test_initPodSpecPatch_TaskConfig_ForwardsResourcesOnly(t *testing.T) {
 }
 
 func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
-	proxy.InitializeConfigWithEmptyForTests()
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
 		Image:   "python:3.11",
 		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
@@ -959,7 +963,7 @@ func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "my-run-name", "1", "false", "false", nil, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "my-run-name", "1", "false", "false", nil, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil, proxy.EmptyConfig())
 	require.Nil(t, err)
 
 	expectedExecutorInput := map[string]interface{}{
@@ -1133,7 +1137,7 @@ func Test_initPodSpecPatch_WorkspaceRequiresRunName(t *testing.T) {
 		},
 	}
 	taskCfg := &TaskConfig{}
-	_, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run-id", "", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil)
+	_, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run-id", "", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil, proxy.EmptyConfig())
 	require.NotNil(t, err)
 }
 
@@ -1244,7 +1248,7 @@ func TestWorkspaceMount_PassthroughVolumes_CaptureOnly(t *testing.T) {
 		},
 	}
 	taskCfg := &TaskConfig{}
-	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil, proxy.EmptyConfig())
 	assert.Nil(t, err)
 
 	// Should not mount workspace to pod (no volumes on pod), only capture to TaskConfig
@@ -1284,7 +1288,7 @@ func TestWorkspaceMount_PassthroughVolumes_ApplyAndCapture(t *testing.T) {
 		},
 	}
 	taskCfg := &TaskConfig{}
-	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil, proxy.EmptyConfig())
 	assert.Nil(t, err)
 	// Should mount workspace to pod and also capture to TaskConfig
 	assert.NotEmpty(t, podSpec.Volumes)
@@ -1320,7 +1324,6 @@ func TestWorkspaceMount_PassthroughVolumes_ApplyAndCapture(t *testing.T) {
 }
 
 func TestWorkspaceMount_TriggeredByArtifactMetadata(t *testing.T) {
-	proxy.InitializeConfigWithEmptyForTests()
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.9"}
 	componentSpec := &pipelinespec.ComponentSpec{
 		TaskConfigPassthroughs: []*pipelinespec.TaskConfigPassthrough{
@@ -1372,6 +1375,7 @@ func TestWorkspaceMount_TriggeredByArtifactMetadata(t *testing.T) {
 		"ml-pipeline.kubeflow",
 		"8887",
 		nil,
+		proxy.EmptyConfig(),
 	)
 	assert.Nil(t, err)
 
@@ -1400,7 +1404,6 @@ func TestWorkspaceMount_TriggeredByArtifactMetadata(t *testing.T) {
 }
 
 func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) {
-	proxy.InitializeConfigWithEmptyForTests()
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
 		Image: "python:3.11",
 		Env: []*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar{{
@@ -1415,7 +1418,7 @@ func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) 
 	}
 	executorInput := &pipelinespec.ExecutorInput{}
 	taskCfg := &TaskConfig{}
-	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil, proxy.EmptyConfig())
 	assert.Nil(t, err)
 
 	// User-defined env should be captured to TaskConfig only, not applied to pod
@@ -1442,7 +1445,6 @@ func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) 
 }
 
 func Test_initPodSpecPatch_RejectsReservedRuntimeEnvVar(t *testing.T) {
-	proxy.InitializeConfigWithEmptyForTests()
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
 		Image: "python:3.11",
 		Env: []*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar{{
@@ -1472,13 +1474,13 @@ func Test_initPodSpecPatch_RejectsReservedRuntimeEnvVar(t *testing.T) {
 		"ml-pipeline.kubeflow",
 		"8887",
 		nil,
+		proxy.EmptyConfig(),
 	)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "reserved for KFP runtime identity")
 }
 
 func Test_extendPodSpecPatch_RejectsReservedSecretEnvVar(t *testing.T) {
-	proxy.InitializeConfigWithEmptyForTests()
 	podSpec, err := initPodSpecPatch(
 		&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.11"},
 		&pipelinespec.ComponentSpec{},
@@ -1500,6 +1502,7 @@ func Test_extendPodSpecPatch_RejectsReservedSecretEnvVar(t *testing.T) {
 		"ml-pipeline.kubeflow",
 		"8887",
 		nil,
+		proxy.EmptyConfig(),
 	)
 	require.NoError(t, err)
 
@@ -1525,7 +1528,6 @@ func Test_extendPodSpecPatch_RejectsReservedSecretEnvVar(t *testing.T) {
 }
 
 func Test_extendPodSpecPatch_RejectsReservedConfigMapAndFieldPathEnvVar(t *testing.T) {
-	proxy.InitializeConfigWithEmptyForTests()
 	podSpec, err := initPodSpecPatch(
 		&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.11"},
 		&pipelinespec.ComponentSpec{},
@@ -1547,6 +1549,7 @@ func Test_extendPodSpecPatch_RejectsReservedConfigMapAndFieldPathEnvVar(t *testi
 		"ml-pipeline.kubeflow",
 		"8887",
 		nil,
+		proxy.EmptyConfig(),
 	)
 	require.NoError(t, err)
 
@@ -1589,7 +1592,6 @@ func Test_extendPodSpecPatch_RejectsReservedConfigMapAndFieldPathEnvVar(t *testi
 }
 
 func Test_initPodSpecPatch_TaskConfig_Resources_Passthrough_ApplyAndCapture(t *testing.T) {
-	proxy.InitializeConfigWithEmptyForTests()
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
 		Image:   "python:3.11",
 		Args:    []string{"--function_to_execute", "add"},
@@ -1608,7 +1610,7 @@ func Test_initPodSpecPatch_TaskConfig_Resources_Passthrough_ApplyAndCapture(t *t
 	}
 	executorInput := &pipelinespec.ExecutorInput{}
 	taskCfg := &TaskConfig{}
-	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil, proxy.EmptyConfig())
 	assert.Nil(t, err)
 	// Resources should be both on pod and in TaskConfig
 	assert.NotEmpty(t, podSpec.Containers[0].Resources.Requests)
@@ -1630,7 +1632,6 @@ func Test_initPodSpecPatch_TaskConfig_Resources_Passthrough_ApplyAndCapture(t *t
 }
 
 func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_Passthrough(t *testing.T) {
-	proxy.InitializeConfigWithEmptyForTests()
 
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.11"}
 	componentSpec := &pipelinespec.ComponentSpec{
@@ -1670,11 +1671,11 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_Passthro
 
 	taskCfg := &TaskConfig{}
 
-	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil, proxy.EmptyConfig())
 	assert.Nil(t, err)
 
 	err = extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		podSpec,
 		opts,
 		mapToIOParameters(map[string]*structpb.Value{}),
@@ -1709,7 +1710,6 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_Passthro
 }
 
 func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_ApplyAndCapture(t *testing.T) {
-	proxy.InitializeConfigWithEmptyForTests()
 
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.11"}
 	componentSpec := &pipelinespec.ComponentSpec{
@@ -1750,11 +1750,11 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_ApplyAnd
 	executorInput := &pipelinespec.ExecutorInput{Inputs: &pipelinespec.ExecutorInput_Inputs{ParameterValues: map[string]*structpb.Value{}}}
 	taskCfg := &TaskConfig{}
 
-	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil, proxy.EmptyConfig())
 	assert.Nil(t, err)
 
 	err = extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		podSpec,
 		opts,
 		mapToIOParameters(map[string]*structpb.Value{}),
@@ -1808,7 +1808,6 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_ApplyAnd
 }
 
 func Test_initPodSpecPatch_mlPipelineServerConfig(t *testing.T) {
-	proxy.InitializeConfigWithEmptyForTests()
 
 	customAddress := "custom-ml-pipeline.custom-namespace.svc.cluster.local"
 	customPort := "9999"
@@ -1834,6 +1833,7 @@ func Test_initPodSpecPatch_mlPipelineServerConfig(t *testing.T) {
 		customAddress,
 		customPort,
 		nil,
+		proxy.EmptyConfig(),
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, podSpec)
@@ -2427,7 +2427,6 @@ func TestUpdateTaskAttemptLocalFieldsAfterCreate_PreservesStatusMetadata(t *test
 // A $(VAR) reference in a value expands from the entries before it, so the pod
 // has to get user env in spec order. The cache key hashes that same order.
 func Test_initPodSpecPatch_keepsUserEnvOrder(t *testing.T) {
-	proxy.InitializeConfigWithEmptyForTests()
 
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
 		Image:   "python:3.11",
@@ -2459,6 +2458,7 @@ func Test_initPodSpecPatch_keepsUserEnvOrder(t *testing.T) {
 		"ml-pipeline.kubeflow",
 		"8887",
 		nil,
+		proxy.EmptyConfig(),
 	)
 	require.NoError(t, err)
 	require.Len(t, podSpec.Containers, 1)

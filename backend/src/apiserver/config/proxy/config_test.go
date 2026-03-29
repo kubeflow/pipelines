@@ -16,12 +16,54 @@ package proxy
 import (
 	"fmt"
 	"os"
+	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	k8score "k8s.io/api/core/v1"
 )
+
+func TestNewConfig_ConcurrentRequestsDoNotChangeGlobalConfig(t *testing.T) {
+	previousConfig := configInstance
+	t.Cleanup(func() { configInstance = previousConfig })
+	InitializeConfig("http://global.example", "https://global.example", "global.internal")
+	globalConfig := GetConfig()
+	globalEnv := globalConfig.GetEnvVars()
+
+	const requestCount = 16
+	configs := make([]Config, requestCount)
+	var ready sync.WaitGroup
+	ready.Add(requestCount)
+	for i := range requestCount {
+		go func() {
+			defer ready.Done()
+			configs[i] = NewConfig(
+				fmt.Sprintf("http://request-%d.example", i),
+				fmt.Sprintf("https://request-%d.example", i),
+				fmt.Sprintf("request-%d.internal", i),
+			)
+		}()
+	}
+	ready.Wait()
+
+	for i, cfg := range configs {
+		assert.Equal(t, fmt.Sprintf("http://request-%d.example", i), cfg.GetHttpProxy())
+		assert.Equal(t, fmt.Sprintf("https://request-%d.example", i), cfg.GetHttpsProxy())
+		assert.Equal(t, fmt.Sprintf("request-%d.internal,", i)+getDefaultNoProxyValue(), cfg.GetNoProxy())
+	}
+	assert.Same(t, globalConfig, GetConfig())
+	assert.Equal(t, globalEnv, GetConfig().GetEnvVars())
+}
+
+func TestNewConfig_MergesNoProxyWithInternalAddresses(t *testing.T) {
+	cfg := NewConfig("http://proxy.example", "", " example.internal,localhost,example.internal, ,127.0.0.1 ")
+	entries := strings.Split(cfg.GetNoProxy(), ",")
+	expectedEntries := append([]string{"example.internal"}, strings.Split(getDefaultNoProxyValue(), ",")...)
+	assert.ElementsMatch(t, expectedEntries, entries)
+	assert.Equal(t, "example.internal", entries[0])
+}
 
 func TestNewConfigFromEnvVars(t *testing.T) {
 	tests := []struct {
@@ -36,40 +78,40 @@ func TestNewConfigFromEnvVars(t *testing.T) {
 			envVars: map[string]string{
 				HTTPProxyEnv: "http_proxy",
 			},
-			expectedConfig: newConfig("http_proxy", "", getDefaultNoProxyValue()),
+			expectedConfig: NewConfig("http_proxy", "", getDefaultNoProxyValue()),
 		},
 		{
 			envVars: map[string]string{
 				HTTPProxyEnv:  "http_proxy",
 				HTTPSProxyEnv: "https_proxy",
 			},
-			expectedConfig: newConfig("http_proxy", "https_proxy", getDefaultNoProxyValue()),
+			expectedConfig: NewConfig("http_proxy", "https_proxy", getDefaultNoProxyValue()),
 		},
 		{
 			envVars: map[string]string{
 				HTTPProxyEnv: "http_proxy",
 				NoProxyEnv:   "no_proxy",
 			},
-			expectedConfig: newConfig("http_proxy", "", "no_proxy"),
+			expectedConfig: NewConfig("http_proxy", "", "no_proxy"),
 		},
 		{
 			envVars: map[string]string{
 				HTTPSProxyEnv: "https_proxy",
 			},
-			expectedConfig: newConfig("", "https_proxy", getDefaultNoProxyValue()),
+			expectedConfig: NewConfig("", "https_proxy", getDefaultNoProxyValue()),
 		},
 		{
 			envVars: map[string]string{
 				HTTPSProxyEnv: "https_proxy",
 				NoProxyEnv:    "no_proxy",
 			},
-			expectedConfig: newConfig("", "https_proxy", "no_proxy"),
+			expectedConfig: NewConfig("", "https_proxy", "no_proxy"),
 		},
 		{
 			envVars: map[string]string{
 				NoProxyEnv: "no_proxy",
 			},
-			expectedConfig: newConfig("", "", "no_proxy"),
+			expectedConfig: NewConfig("", "", "no_proxy"),
 		},
 		{
 			envVars: map[string]string{
@@ -77,7 +119,7 @@ func TestNewConfigFromEnvVars(t *testing.T) {
 				HTTPSProxyEnv: "https_proxy",
 				NoProxyEnv:    "no_proxy",
 			},
-			expectedConfig: newConfig("http_proxy", "https_proxy", mergeNoProxyEntries("no_proxy", getDefaultNoProxyValue())),
+			expectedConfig: NewConfig("http_proxy", "https_proxy", mergeNoProxyEntries("no_proxy", getDefaultNoProxyValue())),
 		},
 		{
 			envVars: map[string]string{
@@ -108,7 +150,7 @@ func TestGetEnvVars(t *testing.T) {
 		expectedEnvVars []k8score.EnvVar
 	}{
 		{
-			newConfig("http", "", ""),
+			NewConfig("http", "", ""),
 			[]k8score.EnvVar{
 				{Name: "http_proxy", Value: "http"},
 				{Name: "HTTP_PROXY", Value: "http"},
@@ -117,7 +159,7 @@ func TestGetEnvVars(t *testing.T) {
 			},
 		},
 		{
-			newConfig("", "https", ""),
+			NewConfig("", "https", ""),
 			[]k8score.EnvVar{
 				{Name: "https_proxy", Value: "https"},
 				{Name: "HTTPS_PROXY", Value: "https"},
@@ -126,14 +168,14 @@ func TestGetEnvVars(t *testing.T) {
 			},
 		},
 		{
-			newConfig("", "", "no"),
+			NewConfig("", "", "no"),
 			[]k8score.EnvVar{
 				{Name: "no_proxy", Value: "no"},
 				{Name: "NO_PROXY", Value: "no"},
 			},
 		},
 		{
-			newConfig("http", "https", "no"),
+			NewConfig("http", "https", "no"),
 			[]k8score.EnvVar{
 				{Name: "http_proxy", Value: "http"},
 				{Name: "HTTP_PROXY", Value: "http"},

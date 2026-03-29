@@ -1,13 +1,27 @@
+// Copyright 2025 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package main
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
@@ -35,20 +49,20 @@ func runtimeValueConstant(value string) *pipelinespec.TaskInputsSpec_InputParame
 }
 
 func TestResolveNamespace(t *testing.T) {
-	t.Run("requires explicit namespace flag", func(t *testing.T) {
+	t.Run("uses explicit request namespace", func(t *testing.T) {
 		t.Setenv("NAMESPACE", "kubeflow")
 		t.Setenv("POD_NAMESPACE", "ignored")
 
-		got, err := resolveNamespace("flag-namespace")
+		got, err := resolveNamespace("request-namespace")
 		if err != nil {
 			t.Fatalf("resolveNamespace() error = %v", err)
 		}
-		if got != "flag-namespace" {
-			t.Fatalf("resolveNamespace() = %q, want %q", got, "flag-namespace")
+		if got != "request-namespace" {
+			t.Fatalf("resolveNamespace() = %q, want %q", got, "request-namespace")
 		}
 	})
 
-	t.Run("fails when namespace flag is missing", func(t *testing.T) {
+	t.Run("does not infer missing request namespace from environment", func(t *testing.T) {
 		t.Setenv("NAMESPACE", "kubeflow")
 
 		got, err := resolveNamespace("")
@@ -138,14 +152,12 @@ func TestGetPipelineJobTimePlaceholderUsage(t *testing.T) {
 	}{
 		{
 			name:       "root dag skips placeholder lookup",
-			driverType: ROOT_DAG,
+			driverType: RootDag,
 			taskSpec: &pipelinespec.PipelineTaskSpec{
 				Inputs: &pipelinespec.TaskInputsSpec{
 					Parameters: map[string]*pipelinespec.TaskInputsSpec_InputParameterSpec{
-						"create_time": runtimeValueConstant(pipelineJobCreateTimeUTCPlaceholder),
-						"schedule_time": runtimeValueConstant(
-							pipelineJobScheduleTimeUTCPlaceholder,
-						),
+						"create_time":   runtimeValueConstant(pipelineJobCreateTimeUTCPlaceholder),
+						"schedule_time": runtimeValueConstant(pipelineJobScheduleTimeUTCPlaceholder),
 					},
 				},
 			},
@@ -207,7 +219,14 @@ func TestResolvePipelineJobTimes(t *testing.T) {
 			expectedScheduleTimeUTC: "2026-01-02T03:04:05Z",
 		},
 		{
-			name:                    "uses workflow creation time when create time arg is absent",
+			name:                     "uses Run schedule time epoch when provided",
+			createTimeUTC:            "2026-01-02T03:04:05Z",
+			scheduleTimeEpochSeconds: "1767225600",
+			expectedCreateTimeUTC:    "2026-01-02T03:04:05Z",
+			expectedScheduleTimeUTC:  "2026-01-01T00:00:00Z",
+		},
+		{
+			name:                    "uses workflow creation time when Run create time is absent",
 			workflowMeta:            &metav1.ObjectMeta{CreationTimestamp: workflowCreationTime},
 			expectedCreateTimeUTC:   "2026-01-02T03:04:05Z",
 			expectedScheduleTimeUTC: "2026-01-02T03:04:05Z",
@@ -288,13 +307,13 @@ func TestGetWorkflowMetadataForPipelineJobTimes(t *testing.T) {
 			wantGetterCalls: 0,
 		},
 		{
-			name:             "skips lookup when create placeholder already has compiled value",
+			name:             "skips lookup when Run already provides create time",
 			placeholderUsage: pipelineJobTimePlaceholderUsage{needsCreateTime: true},
 			createTimeUTC:    "2026-01-02T03:04:05Z",
 			wantGetterCalls:  0,
 		},
 		{
-			name:                     "skips lookup when schedule placeholder already has compiled value",
+			name:                     "skips lookup when Run already provides schedule time",
 			placeholderUsage:         pipelineJobTimePlaceholderUsage{needsScheduleTime: true},
 			scheduleTimeEpochSeconds: "1767225600",
 			wantGetterCalls:          0,
@@ -354,236 +373,62 @@ func TestGetWorkflowMetadataForPipelineJobTimes(t *testing.T) {
 	}
 }
 
-func allProvided(flags []string) map[string]bool {
-	provided := make(map[string]bool, len(flags))
-	for _, name := range flags {
-		provided[name] = true
-	}
-	return provided
-}
+func TestExtractOutputParametersDefaults(t *testing.T) {
+	for _, driverType := range []string{RootDag, DAG, CONTAINER} {
+		t.Run(driverType, func(t *testing.T) {
+			execution := &driver.Execution{TaskID: "5aa1b7bb-a143-43df-860c-52660b0260e0"}
 
-func TestRequiredDriverFlags(t *testing.T) {
-	common := []string{
-		"type", "pipeline_name", "run_id", "run_name", "run_display_name",
-		"namespace", "parent_task_id", "task_name", "ml_pipeline_server_address",
-		"ml_pipeline_server_port",
-		"log_level", "publish_logs", "cache_disabled", "ml_pipeline_tls_enabled",
-		"ca_cert_path", "condition_path", "iteration_index",
-		"http_proxy", "https_proxy", "no_proxy",
-	}
-	withCommon := func(extra ...string) []string {
-		return append(append([]string{}, common...), extra...)
-	}
-	tests := []struct {
-		driverType string
-		want       []string
-	}{
-		{driverType: ROOT_DAG, want: withCommon("parent_task_id_path", "iteration_count_path", "runtime_config")},
-		{driverType: DAG, want: withCommon("parent_task_id_path", "iteration_count_path", "runtime_config")},
-		{driverType: CONTAINER, want: withCommon("kubernetes_config", "cached_decision_path", "pod_spec_patch_path")},
-	}
-	for _, tc := range tests {
-		t.Run(tc.driverType, func(t *testing.T) {
-			got, err := requiredDriverFlags(tc.driverType)
-			assert.NoError(t, err)
-			assert.ElementsMatch(t, tc.want, got)
-		})
-	}
+			outputs := extractOutputParameters(execution, driverType)
 
-	_, err := requiredDriverFlags("UNKNOWN")
-	assert.Error(t, err)
-}
-
-func TestValidateRequiredFlags(t *testing.T) {
-	tests := []struct {
-		name       string
-		driverType string
-		omit       []string
-		wantErr    bool
-	}{
-		{
-			name:       "ROOT_DAG with all required flags",
-			driverType: ROOT_DAG,
-		},
-		{
-			name:       "DAG with all required flags",
-			driverType: DAG,
-		},
-		{
-			name:       "CONTAINER with all required flags",
-			driverType: CONTAINER,
-		},
-		{
-			name:       "ROOT_DAG missing runtime_config",
-			driverType: ROOT_DAG,
-			omit:       []string{"runtime_config"},
-			wantErr:    true,
-		},
-		{
-			name:       "DAG missing parent_task_id",
-			driverType: DAG,
-			omit:       []string{"parent_task_id"},
-			wantErr:    true,
-		},
-		{
-			name:       "CONTAINER missing kubernetes_config",
-			driverType: CONTAINER,
-			omit:       []string{"kubernetes_config"},
-			wantErr:    true,
-		},
-		{
-			name:       "CONTAINER missing common flag run_id",
-			driverType: CONTAINER,
-			omit:       []string{"run_id"},
-			wantErr:    true,
-		},
-		{
-			name:       "DAG missing log_level",
-			driverType: DAG,
-			omit:       []string{"log_level"},
-			wantErr:    true,
-		},
-		{
-			name:       "CONTAINER missing publish_logs",
-			driverType: CONTAINER,
-			omit:       []string{"publish_logs"},
-			wantErr:    true,
-		},
-		{
-			name:       "DAG missing cache_disabled",
-			driverType: DAG,
-			omit:       []string{"cache_disabled"},
-			wantErr:    true,
-		},
-		{
-			name:       "CONTAINER missing namespace",
-			driverType: CONTAINER,
-			omit:       []string{"namespace"},
-			wantErr:    true,
-		},
-		{
-			name:       "DAG missing ca_cert_path",
-			driverType: DAG,
-			omit:       []string{"ca_cert_path"},
-			wantErr:    true,
-		},
-		{
-			name:       "CONTAINER missing http_proxy",
-			driverType: CONTAINER,
-			omit:       []string{"http_proxy"},
-			wantErr:    true,
-		},
-		{
-			name:       "ROOT_DAG missing parent_task_id_path",
-			driverType: ROOT_DAG,
-			omit:       []string{"parent_task_id_path"},
-			wantErr:    true,
-		},
-		{
-			name:       "DAG missing iteration_count_path",
-			driverType: DAG,
-			omit:       []string{"iteration_count_path"},
-			wantErr:    true,
-		},
-		{
-			name:       "unknown driver type",
-			driverType: "UNKNOWN",
-			wantErr:    true,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			required, err := requiredDriverFlags(tc.driverType)
-			if err != nil {
-				assert.True(t, tc.wantErr)
-				assert.Error(t, validateRequiredFlags(map[string]bool{}, tc.driverType))
-				return
+			verifyOutputParameter(t, outputs, "task-id", execution.TaskID)
+			verifyOutputParameter(t, outputs, "condition", "nil")
+			verifyOutputParameter(t, outputs, "pod-spec-patch", "")
+			if driverType == RootDag || driverType == DAG {
+				verifyOutputParameter(t, outputs, "iteration-count", "0")
 			}
-			provided := allProvided(required)
-			for _, name := range tc.omit {
-				delete(provided, name)
+			for _, output := range outputs {
+				assert.NotEqual(t, "execution-id", output.Name)
+				if driverType == CONTAINER {
+					assert.NotEqual(t, "iteration-count", output.Name)
+				}
 			}
-			err = validateRequiredFlags(provided, tc.driverType)
-			assert.Equal(t, tc.wantErr, err != nil, "unexpected error state: %v", err)
 		})
 	}
 }
 
-func Test_handleExecutionContainer(t *testing.T) {
+func TestExtractOutputParametersPreservesExecutionValues(t *testing.T) {
+	iterationCount, cached, condition := 3, false, false
 	execution := &driver.Execution{
-		TaskID: "test-task-id",
+		TaskID:         "task-id",
+		IterationCount: &iterationCount,
+		Cached:         &cached,
+		Condition:      &condition,
+		PodSpecPatch:   `{"containers":[{"name":"main","image":"python:3.11"}]}`,
 	}
 
-	executionPaths := &TaskPaths{
-		Condition: "condition.txt",
-	}
+	outputs := extractOutputParameters(execution, CONTAINER)
 
-	err := handleExecution(execution, CONTAINER, executionPaths)
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	verifyFileContent(t, executionPaths.Condition, "nil")
-
-	cleanup(t, executionPaths)
+	verifyOutputParameter(t, outputs, "task-id", execution.TaskID)
+	verifyOutputParameter(t, outputs, "iteration-count", "3")
+	verifyOutputParameter(t, outputs, "cached-decision", "false")
+	verifyOutputParameter(t, outputs, "condition", "false")
+	verifyOutputParameter(t, outputs, "pod-spec-patch", execution.PodSpecPatch)
 }
 
-func Test_handleExecutionRootDAG(t *testing.T) {
-	execution := &driver.Execution{
-		TaskID: "test-task-id",
-	}
-
-	executionPaths := &TaskPaths{
-		IterationCount: "iteration_count.txt",
-		Condition:      "condition.txt",
-	}
-
-	err := handleExecution(execution, ROOT_DAG, executionPaths)
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	verifyFileContent(t, executionPaths.IterationCount, "0")
-	verifyFileContent(t, executionPaths.Condition, "nil")
-
-	cleanup(t, executionPaths)
+func TestExtractOutputParametersNilExecution(t *testing.T) {
+	assert.Empty(t, extractOutputParameters(nil, RootDag))
 }
 
-func cleanup(t *testing.T, executionPaths *TaskPaths) {
-	removeIfExists(t, executionPaths.IterationCount)
-	removeIfExists(t, executionPaths.TaskID)
-	removeIfExists(t, executionPaths.Condition)
-	removeIfExists(t, executionPaths.PodSpecPatch)
-	removeIfExists(t, executionPaths.CachedDecision)
-}
-
-func removeIfExists(t *testing.T, filePath string) {
-	_, err := os.Stat(filePath)
-	if err == nil {
-		err = os.Remove(filePath)
-		if err != nil {
-			t.Errorf("Unexpected error while removing the created file: %v", err)
+func verifyOutputParameter(t *testing.T, parameters []driverapi.Parameter, key, expectedValue string) {
+	t.Helper()
+	filtered := make([]driverapi.Parameter, 0, 1)
+	for _, p := range parameters {
+		if p.Name == key {
+			filtered = append(filtered, p)
 		}
 	}
-}
-
-func verifyFileContent(t *testing.T, filePath string, expectedContent string) {
-	_, err := os.Stat(filePath)
-	if os.IsNotExist(err) {
-		t.Errorf("Expected file %s to be created, but it doesn't exist", filePath)
-	}
-
-	fileContent, err := os.ReadFile(filePath)
-	if err != nil {
-		t.Errorf("Failed to read file contents: %v", err)
-	}
-
-	if string(fileContent) != expectedContent {
-		t.Errorf("Expected file fileContent to be %q, got %q", expectedContent, string(fileContent))
-	}
+	require.Len(t, filtered, 1)
+	require.Equal(t, expectedValue, filtered[0].Value)
 }
 
 func TestParseOptionalBoolFlag(t *testing.T) {
@@ -618,10 +463,11 @@ func TestParseOptionalBoolFlag(t *testing.T) {
 	}
 }
 
-func TestNewPluginDispatcher_ReturnsNonNil(t *testing.T) {
-	dispatcher := newPluginDispatcher()
+func TestPluginDispatcherWithoutRuntimeArgsReturnsNonNil(t *testing.T) {
+	dispatcher, err := plugins.GetPluginDispatcherWithRuntimeArgs(nil)
+	require.NoError(t, err)
 	require.NotNil(t, dispatcher)
 	// With no plugins enabled in unit tests, this should be a usable no-op dispatcher.
-	_, err := dispatcher.OnTaskStart(context.Background(), &plugins.TaskInfo{Name: "unit-test"})
+	_, err = dispatcher.OnTaskStart(context.Background(), &plugins.TaskInfo{Name: "unit-test"})
 	assert.NoError(t, err)
 }

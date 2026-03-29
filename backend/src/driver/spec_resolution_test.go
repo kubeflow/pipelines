@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -74,7 +77,7 @@ func TestResolveDriverSpecsForRootDag(t *testing.T) {
 	}
 
 	scopePath := mustBuildScopePath(t, spec, "root")
-	componentSpec, taskSpec, containerSpec, err := resolveDriverSpecs(scopePath, ROOT_DAG)
+	componentSpec, taskSpec, containerSpec, err := resolveDriverSpecs(scopePath, RootDag)
 	require.NoError(t, err)
 
 	require.NotNil(t, componentSpec)
@@ -123,7 +126,7 @@ func TestResolveDriverSpecs_RejectsRootDriverOnNonDagComponent(t *testing.T) {
 	}
 
 	scopePath := mustBuildScopePath(t, spec, "root")
-	_, _, _, err := resolveDriverSpecs(scopePath, ROOT_DAG)
+	_, _, _, err := resolveDriverSpecs(scopePath, RootDag)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "root driver requires a DAG root component")
 }
@@ -188,4 +191,63 @@ func mustStructFromProtoJSON(t *testing.T, message proto.Message) *structpb.Stru
 	rawStruct := &structpb.Struct{}
 	require.NoError(t, rawStruct.UnmarshalJSON(jsonBytes))
 	return rawStruct
+}
+
+type scopePathAPI struct {
+	kfpapi.API
+	t    *testing.T
+	run  *go_client.Run
+	spec *structpb.Struct
+	err  error
+}
+
+func (a scopePathAPI) FetchPipelineSpecFromRun(_ context.Context, run *go_client.Run) (*structpb.Struct, error) {
+	a.t.Helper()
+	assert.Same(a.t, a.run, run)
+	return a.spec, a.err
+}
+
+func TestBuildScopePathUsesRequestDriverType(t *testing.T) {
+	spec := &structpb.Struct{}
+	require.NoError(t, spec.UnmarshalJSON([]byte(`{
+		"root": {"dag": {"tasks": {"group": {"componentRef": {"name": "group"}}}}},
+		"components": {
+			"group": {"dag": {"tasks": {"leaf": {"componentRef": {"name": "leaf"}}}}},
+			"leaf": {"executorLabel": "exec-leaf"}
+		}
+	}`)))
+	run := &go_client.Run{RunId: "run-id"}
+
+	for _, tc := range []struct {
+		name       string
+		driverType string
+		parentTask *go_client.PipelineTask
+		taskName   string
+		wantPath   string
+	}{
+		{name: "root", driverType: RootDag, wantPath: "root"},
+		{name: "dag", driverType: DAG, parentTask: &go_client.PipelineTask{ScopePath: "root"}, taskName: "group", wantPath: "root.group"},
+		{name: "container", driverType: CONTAINER, parentTask: &go_client.PipelineTask{ScopePath: "root.group"}, taskName: "leaf", wantPath: "root.group.leaf"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			api := scopePathAPI{t: t, run: run, spec: spec}
+
+			path, err := buildScopePath(context.Background(), run, tc.parentTask, tc.taskName, tc.driverType, api)
+
+			require.NoError(t, err)
+			require.NotNil(t, path)
+			assert.Equal(t, tc.wantPath, path.DotNotation())
+		})
+	}
+}
+
+func TestBuildScopePathPropagatesRunSpecLookupFailure(t *testing.T) {
+	run := &go_client.Run{RunId: "run-id"}
+	api := scopePathAPI{t: t, run: run, err: assert.AnError}
+
+	path, err := buildScopePath(context.Background(), run, nil, "", RootDag, api)
+
+	assert.Nil(t, path)
+	assert.ErrorIs(t, err, assert.AnError)
 }

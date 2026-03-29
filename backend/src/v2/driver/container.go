@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -39,6 +38,7 @@ import (
 )
 
 func Container(ctx context.Context, opts common.Options, clientManager client_manager.ClientManagerInterface) (execution *Execution, driverErr error) {
+	log := driverLogger(ctx)
 	defer func() {
 		if driverErr != nil {
 			driverErr = fmt.Errorf("driver.Container(%s) failed: %w", opts.Info(), driverErr)
@@ -48,7 +48,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	if driverErr != nil {
 		return nil, driverErr
 	}
-	glog.V(4).Info("Container opts: ", string(b))
+	log.Trace("Container opts: ", string(b))
 
 	if clientManager == nil {
 		return nil, fmt.Errorf("kfpAPI client is nil")
@@ -118,7 +118,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 					RunId:  taskToCreate.GetRunId(),
 				})
 				if getTaskErr != nil {
-					glog.Warningf("Failed to reload existing task %s after driver error: %v", taskIDToUpdate, getTaskErr)
+					log.Warningf("Failed to reload existing task %s after driver error: %v", taskIDToUpdate, getTaskErr)
 				} else {
 					taskToCreate = existingTask
 				}
@@ -146,7 +146,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 					RunId: taskToCreate.GetRunId(),
 				})
 				if createErr != nil {
-					glog.Errorf("Failed to Create task %s: %v", taskToCreate.Name, createErr)
+					log.Errorf("Failed to Create task %s: %v", taskToCreate.Name, createErr)
 				} else {
 					taskToCreate = createdTask
 					taskIDToUpdate = createdTask.GetTaskId()
@@ -162,7 +162,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 					failedAttemptFields,
 				)
 				if updateErr != nil {
-					glog.Errorf("Failed to update task %s: %v", taskToCreate.Name, updateErr)
+					log.Errorf("Failed to update task %s: %v", taskToCreate.Name, updateErr)
 				} else {
 					taskToCreate = updatedTask
 				}
@@ -181,7 +181,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 		fullView := apiV2beta1.GetRunRequest_FULL
 		refreshedRun, getRunErr := clientManager.KFPAPIClient().GetRun(ctx, &apiV2beta1.GetRunRequest{RunId: opts.Run.GetRunId(), View: &fullView})
 		if getRunErr != nil {
-			glog.Errorf("failed to refresh run: %v", getRunErr)
+			log.Errorf("failed to refresh run: %v", getRunErr)
 			if driverErr == nil {
 				driverErr = fmt.Errorf("failed to refresh run: %w", getRunErr)
 			}
@@ -190,7 +190,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 		opts.Run = refreshedRun
 		updateStatusesErr := clientManager.KFPAPIClient().UpdateStatuses(ctx, opts.Run, opts.ScopePath.GetPipelineSpecStruct(), taskToCreate)
 		if updateStatusesErr != nil {
-			glog.Errorf("Failed to update statuses: %v", updateStatusesErr)
+			log.Errorf("Failed to update statuses: %v", updateStatusesErr)
 			if driverErr == nil {
 				driverErr = fmt.Errorf("failed to update statuses: %w", updateStatusesErr)
 			}
@@ -254,12 +254,16 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	if driverErr != nil {
 		return execution, fmt.Errorf("failed to get pipeline root: %w", driverErr)
 	}
+	outputPathPrefix := opts.OutputPathPrefix
+	if outputPathPrefix == "" {
+		outputPathPrefix = uuid.NewString()
+	}
 	if execution.WillTrigger() {
 		executorInput.Outputs = provisionOutputs(
 			pipelineRoot,
 			opts.TaskName,
 			opts.Component.GetOutputDefinitions(),
-			uuid.NewString(),
+			outputPathPrefix,
 			opts.PublishLogs,
 		)
 	}
@@ -313,7 +317,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	pluginStarted := false
 	pluginStartResult, dispatchErr := dispatcher.OnTaskStart(ctx, taskPluginInfo)
 	if dispatchErr != nil {
-		glog.Errorf("Failed to dispatch task start: %v", dispatchErr)
+		log.Errorf("Failed to dispatch task start: %v", dispatchErr)
 	} else {
 		pluginStarted = true
 		if pluginStartResult != nil {
@@ -332,7 +336,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 		pluginStarted = false
 		taskPluginInfo.UpdateTaskInfoWithMetadata(state, metrics, params)
 		if dispatchErr := dispatcher.OnTaskEnd(ctx, taskPluginInfo); dispatchErr != nil {
-			glog.Errorf("failed to dispatch task end: %v", dispatchErr)
+			log.Errorf("failed to dispatch task end: %v", dispatchErr)
 		}
 	}
 	pluginInputParams := parameterValuesToInterfaces(executorInput.GetInputs().GetParameterValues())
@@ -429,11 +433,11 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 				scalarMetricsFromTaskOutputs(cachedOutputs),
 				pluginInputParams,
 			)
-			glog.Infof("Cache hit for task %s", opts.TaskName)
+			log.Infof("Cache hit for task %s", opts.TaskName)
 			return execution, nil
 		}
 	} else {
-		glog.Info("Cache disabled globally at the server level.")
+		log.Info("Cache disabled globally at the server level.")
 	}
 
 	taskToCreate, driverErr = handleInputTaskParametersCreation(inputs.Parameters, taskToCreate)
@@ -445,7 +449,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 		taskToCreate.State = apiV2beta1.PipelineTask_SKIPPED
 	}
 
-	glog.Infof("Creating task %s in pod %s", opts.TaskName, opts.Namespace)
+	log.Infof("Creating task %s in pod %s", opts.TaskName, opts.Namespace)
 	attemptLocalFields := &apiV2beta1.PipelineTask{
 		Pods:             taskToCreate.GetPods(),
 		Inputs:           taskToCreate.GetInputs(),
@@ -511,6 +515,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 		opts.MLPipelineServerAddress,
 		opts.MLPipelineServerPort,
 		pluginEnvVars,
+		opts.ProxyConfig,
 	)
 	if driverErr != nil {
 		return execution, driverErr
