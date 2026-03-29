@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
 - https://github.com/argoproj/argo-workflows/manifests/base/workflow-controller?ref=v3.7.3
+- workflow-controller-argo-taskset-clusterrole-.yaml
 
 patches:
 - path: workflow-controller-deployment-patch.yaml

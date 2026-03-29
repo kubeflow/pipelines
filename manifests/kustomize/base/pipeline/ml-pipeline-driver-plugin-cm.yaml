@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ml-pipeline-driver-agent
+  labels:
+    workflows.argoproj.io/configmap-type: ExecutorPlugin
+data:
+  sidecar.automountServiceAccountToken: "true"
+  sidecar.container: |
+    name: driver-plugin
+    image: ghcr.io/kubeflow/kfp-driver:dummy
+    imagePullPolicy: IfNotPresent
+    env:
+      - name: LOG_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: mlpipeline-minio-artifact
+            key: accesskey
+      - name: LOG_SECRET_KEY
+        valueFrom:
+          secretKeyRef:
+            name: mlpipeline-minio-artifact
+            key: secretkey
+    ports:
+      - containerPort: 8080
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 65534
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      seccompProfile:
+        type: RuntimeDefault
+    volumeMounts:
+    - name: var-run-argo
+      mountPath: /kfp/log
+      readOnly: false

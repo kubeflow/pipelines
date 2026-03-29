@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ml-pipeline-driver-agent
+data:
+  sidecar.container: |
+    name: driver-plugin
+    image: kind-registry:5000/driver:latest
+    imagePullPolicy: IfNotPresent
+    ports:
+      - containerPort: 8080
+    env:
+      - name: LOG_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: mlpipeline-minio-artifact
+            key: accesskey
+      - name: LOG_SECRET_KEY
+        valueFrom:
+          secretKeyRef:
+            name: mlpipeline-minio-artifact
+            key: secretkey
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 65534
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      seccompProfile:
+        type: RuntimeDefault
+    volumeMounts:
+    - name: argo-workflows-agent-ca-certificates
+      mountPath: /kfp/certs
+      readOnly: true
+    - name: var-run-argo
+      mountPath: /kfp/log
+      readOnly: false

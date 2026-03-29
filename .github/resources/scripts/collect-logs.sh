@@ -29,6 +29,15 @@ function check_namespace {
     return 0
 }
 
+function describe_argo_workflows {
+    local NAMESPACE=$1
+    echo "===== Argo Workflows list ====="
+    kubectl describe wf  -n "${NAMESPACE}"
+    echo "===== Argo Workflows data ====="
+    kubectl get events -n "${NAMESPACE}" --field-selector involvedObject.kind=Workflow --sort-by='.metadata.creationTimestamp'
+    echo "==============================="
+}
+
 function display_pod_info {
     local NAMESPACE=$1
 
@@ -52,7 +61,13 @@ function display_pod_info {
             kubectl describe pod "${POD_NAME}" -n "${NAMESPACE}" | grep -A 100 Events || echo "No events found for pod ${POD_NAME}."
 
             echo "----- LOGS -----"
-            kubectl logs "${POD_NAME}" -n "${NAMESPACE}" || echo "No logs found for pod ${POD_NAME}."
+            if [[ "${POD_NAME}" == *-agent* ]]; then
+                kubectl logs "${POD_NAME}" -n "${NAMESPACE}" -c driver-plugin || \
+                    echo "No logs found for pod ${POD_NAME}."
+            else
+                kubectl logs "${POD_NAME}" -n "${NAMESPACE}" || \
+                    echo "No logs found for pod ${POD_NAME}."
+            fi
 
             echo "==========================="
             echo ""
@@ -64,6 +79,7 @@ function display_pod_info {
 
 if check_namespace "$NS"; then
     display_pod_info "$NS"
+    describe_argo_workflows "$NS"
 else
     exit 0
 fi
