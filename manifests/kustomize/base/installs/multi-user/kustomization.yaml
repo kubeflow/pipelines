@@ -5,6 +5,7 @@ resources:
 - ../../pipeline/cluster-scoped
 - ../generic
 - view-edit-cluster-roles.yaml
+- ml-pipeline-driver-agent-executor-plugin-cluster-role.yaml
 - api-service
 - pipelines-ui
 - pipelines-profile-controller
