@@ -54,7 +54,7 @@ spec:
         command: ["/bin/sh", "-ec"]
         args:
           - |
-            MAX_RETRIES=12; i=0
+            MAX_RETRIES=60; i=0
             while ! nc -z -w 2 "${WAIT_HOST}" "${WAIT_PORT}"; do
               i=$((i+1))
               if [ "$i" -ge "$MAX_RETRIES" ]; then
@@ -90,7 +90,7 @@ spec:
         command: ["/bin/sh", "-ec"]
         args:
           - |
-            MAX_RETRIES=12; i=0
+            MAX_RETRIES=60; i=0
             while ! nc -z -w 2 "${WAIT_HOST}" "${WAIT_PORT}"; do
               i=$((i+1))
               if [ "$i" -ge "$MAX_RETRIES" ]; then
