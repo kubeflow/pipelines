@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -64,6 +63,7 @@ func validateResourceClaimTemplateName(templateName *string) error {
 // delete PVC, etc. In these operations we skip the launcher due to there being no user container.
 // It also prepublishes and publishes the execution, which are usually done in the launcher.
 func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.ClientManagerInterface, execution *Execution, taskToCreate *apiV2beta1.PipelineTask, opts *common.Options) (err error) {
+	log := driverLogger(ctx)
 	dispatcher := opts.PluginDispatcher
 	if dispatcher == nil {
 		dispatcher = plugins.NoOpDispatcher{}
@@ -72,7 +72,7 @@ func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.Cli
 	taskPluginInfo := &plugins.TaskInfo{Name: opts.TaskName}
 	pluginStartResult, dispatchErr := dispatcher.OnTaskStart(ctx, taskPluginInfo)
 	if dispatchErr != nil {
-		glog.Errorf("Failed to dispatch task start: %v", dispatchErr)
+		log.Errorf("Failed to dispatch task start: %v", dispatchErr)
 	} else if pluginStartResult != nil {
 		statusMetadata := taskToCreate.GetStatusMetadata()
 		if statusMetadata == nil {
@@ -96,7 +96,7 @@ func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.Cli
 			parameterValuesToInterfaces(execution.ExecutorInput.GetInputs().GetParameterValues()),
 		)
 		if dispatchErr := dispatcher.OnTaskEnd(ctx, taskPluginInfo); dispatchErr != nil {
-			glog.Errorf("failed to dispatch task end: %v", dispatchErr)
+			log.Errorf("failed to dispatch task end: %v", dispatchErr)
 		}
 	}()
 	switch opts.Container.Image {
@@ -166,6 +166,7 @@ func extendPodSpecPatch(
 	inputParams []*apiV2beta1.PipelineTask_InputOutputs_IOParameter,
 	taskConfig *TaskConfig,
 ) error {
+	log := driverLogger(ctx)
 	kubernetesExecutorConfig := opts.KubernetesExecutorConfig
 
 	setOnTaskConfig, setOnPod := getTaskConfigOptions(opts.Component)
@@ -252,7 +253,7 @@ func extendPodSpecPatch(
 	if tolerations := kubernetesExecutorConfig.GetTolerations(); tolerations != nil {
 		var k8sTolerations []k8score.Toleration
 
-		glog.Infof("Tolerations passed: %+v", tolerations)
+		log.Infof("Tolerations passed: %+v", tolerations)
 
 		for _, toleration := range tolerations {
 			if toleration != nil {
@@ -285,7 +286,7 @@ func extendPodSpecPatch(
 							}
 							k8sTolerations = append(k8sTolerations, singleToleration)
 						} else {
-							glog.V(4).Info("encountered empty tolerations struct, ignoring.")
+							log.Trace("encountered empty tolerations struct, ignoring.")
 						}
 					} else if isListToleration {
 						listVal := resolvedParam.GetValue().GetListValue()
@@ -300,7 +301,7 @@ func extendPodSpecPatch(
 							}
 							k8sTolerations = append(k8sTolerations, k8sTolerationsList...)
 						} else {
-							glog.V(4).Info("encountered empty tolerations list, ignoring.")
+							log.Trace("encountered empty tolerations list, ignoring.")
 						}
 					} else {
 						return fmt.Errorf("encountered unexpected toleration proto value, must be either struct or list type")
@@ -768,7 +769,7 @@ func extendPodSpecPatch(
 			if nodeAffinityTerm.GetNodeAffinityJson() == nil &&
 				len(nodeAffinityTerm.GetMatchExpressions()) == 0 &&
 				len(nodeAffinityTerm.GetMatchFields()) == 0 {
-				glog.Warningf("NodeAffinityTerm %d is empty, skipping", i)
+				log.Warningf("NodeAffinityTerm %d is empty, skipping", i)
 				continue
 			}
 			if nodeAffinityTerm.GetNodeAffinityJson() != nil {
@@ -821,10 +822,10 @@ func extendPodSpecPatch(
 						Weight:     *nodeAffinityTerm.Weight,
 						Preference: nodeSelectorTerm,
 					})
-					glog.V(4).Infof("Added preferred node affinity: %+v", nodeSelectorTerm)
+					log.Tracef("Added preferred node affinity: %+v", nodeSelectorTerm)
 				} else {
 					requiredTerms = append(requiredTerms, nodeSelectorTerm)
-					glog.V(4).Infof("Added required node affinity: %+v", nodeSelectorTerm)
+					log.Tracef("Added required node affinity: %+v", nodeSelectorTerm)
 				}
 
 			}
@@ -904,7 +905,7 @@ func extendPodSpecPatch(
 		runAsNonRootEnforced := securitycontext.IsRunAsNonRootEffective(existingSecurityContext.RunAsNonRoot, userSecurityContext.RunAsNonRoot)
 		if userSecurityContext.RunAsUser != nil {
 			if existingSecurityContext.RunAsUser != nil {
-				glog.Warningf("Ignoring user-specified runAsUser (%d): security context already set by admin (runAsUser=%d)",
+				log.Warningf("Ignoring user-specified runAsUser (%d): security context already set by admin (runAsUser=%d)",
 					*userSecurityContext.RunAsUser, *existingSecurityContext.RunAsUser)
 			} else {
 				if *userSecurityContext.RunAsUser == 0 && runAsNonRootEnforced {
@@ -915,7 +916,7 @@ func extendPodSpecPatch(
 		}
 		if userSecurityContext.RunAsGroup != nil {
 			if existingSecurityContext.RunAsGroup != nil {
-				glog.Warningf("Ignoring user-specified runAsGroup (%d): security context already set by admin (runAsGroup=%d)",
+				log.Warningf("Ignoring user-specified runAsGroup (%d): security context already set by admin (runAsGroup=%d)",
 					*userSecurityContext.RunAsGroup, *existingSecurityContext.RunAsGroup)
 			} else {
 				podSpec.Containers[0].SecurityContext.RunAsGroup = userSecurityContext.RunAsGroup
@@ -923,7 +924,7 @@ func extendPodSpecPatch(
 		}
 		if userSecurityContext.RunAsNonRoot != nil {
 			if existingSecurityContext.RunAsNonRoot != nil {
-				glog.Warningf("Ignoring user-specified runAsNonRoot (%v): security context already set by admin (runAsNonRoot=%v)",
+				log.Warningf("Ignoring user-specified runAsNonRoot (%v): security context already set by admin (runAsNonRoot=%v)",
 					*userSecurityContext.RunAsNonRoot, *existingSecurityContext.RunAsNonRoot)
 			} else {
 				podSpec.Containers[0].SecurityContext.RunAsNonRoot = userSecurityContext.RunAsNonRoot
@@ -1050,7 +1051,7 @@ func extendPodSpecPatch(
 	// Enforce administrator hostUsers default regardless of user override.
 	if opts.DefaultHostUsers != nil {
 		if podSpec.HostUsers != nil && *podSpec.HostUsers != *opts.DefaultHostUsers {
-			glog.Warningf("Ignoring user-specified hostUsers=%t: administrator default hostUsers=%t takes precedence",
+			log.Warningf("Ignoring user-specified hostUsers=%t: administrator default hostUsers=%t takes precedence",
 				*podSpec.HostUsers, *opts.DefaultHostUsers)
 		}
 		v := *opts.DefaultHostUsers
@@ -1068,6 +1069,7 @@ func createPVCTask(
 	opts *common.Options,
 	taskToCreate *apiV2beta1.PipelineTask,
 ) (err error) {
+	log := driverLogger(ctx)
 	taskCreated := false
 
 	// Ensure that we update the final task state after creation, or if we fail the procedure
@@ -1103,7 +1105,7 @@ func createPVCTask(
 	}()
 
 	inputs := execution.ExecutorInput.Inputs
-	glog.Infof("Input parameter values: %+v", inputs.ParameterValues)
+	log.Infof("Input parameter values: %+v", inputs.ParameterValues)
 
 	// Required input: access_modes
 	accessModeInput, ok := inputs.ParameterValues["access_modes"]
@@ -1214,7 +1216,7 @@ func createPVCTask(
 		err = fmt.Errorf("failed to create task: %w", err)
 		return err
 	}
-	glog.Infof("Created Task: %s", task.TaskId)
+	log.Infof("Created Task: %s", task.TaskId)
 	taskCreated = true
 	execution.TaskID = task.TaskId
 	if isSuccessfulTerminalTask(task) {
@@ -1246,7 +1248,7 @@ func createPVCTask(
 	}
 	if !execution.WillTrigger() {
 		taskToCreate.State = apiV2beta1.PipelineTask_SKIPPED
-		glog.Infof("Condition not met, skipping task %s", task.TaskId)
+		log.Infof("Condition not met, skipping task %s", task.TaskId)
 		return nil
 	}
 
@@ -1311,7 +1313,7 @@ func createPVCTask(
 		}
 		createdPVC = pvc
 	}
-	glog.Infof("Created PVC %s\n", createdPVC.Name)
+	log.Infof("Created PVC %s\n", createdPVC.Name)
 	taskToCreate.State = apiV2beta1.PipelineTask_SUCCEEDED
 	return nil
 }
@@ -1345,6 +1347,7 @@ func deletePVCTask(
 	opts *common.Options,
 	taskToCreate *apiV2beta1.PipelineTask,
 ) (err error) {
+	log := driverLogger(ctx)
 	taskCreated := false
 
 	// Ensure that we update the final task state after creation, or if we fail the procedure
@@ -1380,7 +1383,7 @@ func deletePVCTask(
 	}()
 
 	inputs := execution.ExecutorInput.Inputs
-	glog.Infof("Input parameter values: %+v", inputs.ParameterValues)
+	log.Infof("Input parameter values: %+v", inputs.ParameterValues)
 
 	// Required input: pvc_name
 	pvcNameInput, ok := inputs.ParameterValues["pvc_name"]
@@ -1404,7 +1407,7 @@ func deletePVCTask(
 		err = fmt.Errorf("failed to create task: %w", err)
 		return err
 	}
-	glog.Infof("Created Task: %s", task.TaskId)
+	log.Infof("Created Task: %s", task.TaskId)
 	taskCreated = true
 	execution.TaskID = task.TaskId
 	if isSuccessfulTerminalTask(task) {
@@ -1430,7 +1433,7 @@ func deletePVCTask(
 	overwritePipelineTask(taskToCreate, updatedTask)
 	if !execution.WillTrigger() {
 		taskToCreate.State = apiV2beta1.PipelineTask_SKIPPED
-		glog.Infof("Condition not met, skipping task %s", task.TaskId)
+		log.Infof("Condition not met, skipping task %s", task.TaskId)
 		return nil
 	}
 

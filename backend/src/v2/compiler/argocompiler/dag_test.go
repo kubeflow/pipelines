@@ -19,10 +19,7 @@ import (
 
 	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	backendcommon "github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
-	"github.com/kubeflow/pipelines/backend/src/v2/apiclient"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -148,7 +145,7 @@ func TestDagDriverTask_TaskNameIncludedInArguments(t *testing.T) {
 	assert.NotContains(t, paramMap, paramTask)
 }
 
-func TestAddDAGDriverTemplate_IncludesDebugMetadata(t *testing.T) {
+func TestAddDAGDriverTemplate_UsesNativeTaskOutputs(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
 
 	c := &workflowCompiler{
@@ -168,50 +165,24 @@ func TestAddDAGDriverTemplate_IncludesDebugMetadata(t *testing.T) {
 		},
 	}
 
-	name := c.addDAGDriverTemplate()
+	name, err := c.addDAGDriverTemplate()
+	require.NoError(t, err)
 	require.Equal(t, "system-dag-driver", name)
 
 	tmpl, exists := c.templates[name]
 	require.True(t, exists, "system-dag-driver template should exist")
-	assert.Equal(t, "dag-driver", tmpl.Metadata.Labels[systemPodRoleLabelKey])
-	assert.Equal(t, "system-dag-driver", tmpl.Metadata.Annotations[systemTemplateNameAnnotationKey])
-	require.NotNil(t, tmpl.SecurityContext, "system-dag-driver template should preserve pod security context hardening")
-	require.NotNil(t, tmpl.Container)
-	require.NotNil(t, tmpl.Container.SecurityContext, "system-dag-driver container should preserve container security context hardening")
-}
-
-func TestAddDAGDriverTemplate_PropagatesGRPCBackoffEnv(t *testing.T) {
-	proxy.InitializeConfigWithEmptyForTests()
-	viper.Reset()
-	t.Cleanup(viper.Reset)
-	viper.Set(backendcommon.MLPipelineGRPCBackoffBaseDelay, "2s")
-
-	c := &workflowCompiler{
-		templates: make(map[string]*wfapi.Template),
-		wf: &wfapi.Workflow{
-			Spec: wfapi.WorkflowSpec{
-				Templates: []wfapi.Template{},
-			},
-		},
-		spec: &pipelinespec.PipelineSpec{
-			PipelineInfo: &pipelinespec.PipelineInfo{Name: "test-pipeline"},
-		},
-		job: &pipelinespec.PipelineJob{DisplayName: "test-pipeline-run"},
+	args := requireDriverPluginArgs(t, tmpl)
+	assert.Equal(t, inputValue(paramDriverType), args["type"])
+	assert.Equal(t, "{{workflow.namespace}}", args["namespace"])
+	assert.Equal(t, inputValue(paramParentDagTaskID), args["parent_task_id"])
+	assert.Equal(t, inputValue(paramRuntimeConfig), args["runtime_config"])
+	require.Len(t, tmpl.Outputs.Parameters, 3)
+	assert.Equal(t, "task-id", tmpl.Outputs.Parameters[0].Name)
+	assert.Equal(t, "$.task-id", tmpl.Outputs.Parameters[0].ValueFrom.JSONPath)
+	for _, output := range tmpl.Outputs.Parameters {
+		assert.Empty(t, output.ValueFrom.Path)
 	}
 
-	name := c.addDAGDriverTemplate()
-	tmpl := c.templates[name]
-	require.NotNil(t, tmpl)
-	require.NotNil(t, tmpl.Container)
-
-	found := false
-	for _, env := range tmpl.Container.Env {
-		if env.Name == apiclient.KFPAPIGRPCBackoffBaseDelayEnvVar && env.Value == "2s" {
-			found = true
-			break
-		}
-	}
-	assert.True(t, found, "expected DAG driver to include configured gRPC backoff env")
 }
 
 func TestPropagateIterationIndexToNestedDAGTemplates_DefaultsTemplateInput(t *testing.T) {
@@ -238,6 +209,7 @@ func TestPropagateIterationIndexToNestedDAGTemplates_DefaultsTemplateInput(t *te
 }
 
 func TestPropagateIterationIndexToNestedDAGTemplates(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
 	c := &workflowCompiler{
 		templates: make(map[string]*wfapi.Template),
 		wf: &wfapi.Workflow{
@@ -251,8 +223,10 @@ func TestPropagateIterationIndexToNestedDAGTemplates(t *testing.T) {
 		job: &pipelinespec.PipelineJob{DisplayName: "test-pipeline-run"},
 	}
 
-	driverTemplate := c.addDAGDriverTemplate()
-	containerDriverTemplate := c.addContainerDriverTemplate()
+	driverTemplate, err := c.addDAGDriverTemplate()
+	require.NoError(t, err)
+	containerDriverTemplate, err := c.addContainerDriverTemplate()
+	require.NoError(t, err)
 
 	inner := &wfapi.Template{
 		Name: "comp-inner",
@@ -316,7 +290,7 @@ func parameterNames(parameters []wfapi.Parameter) []string {
 	return names
 }
 
-func TestDAGDriverTemplate_OmitsUnsupportedPipelineJobCreateTimeArg(t *testing.T) {
+func TestDAGDriverTemplate_OmitsPipelineJobTimeArgs(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
 
 	c := &workflowCompiler{
@@ -336,7 +310,8 @@ func TestDAGDriverTemplate_OmitsUnsupportedPipelineJobCreateTimeArg(t *testing.T
 		},
 	}
 
-	name := c.addDAGDriverTemplate()
+	name, err := c.addDAGDriverTemplate()
+	require.NoError(t, err)
 	var tmpl *wfapi.Template
 	for index := range c.wf.Spec.Templates {
 		if c.wf.Spec.Templates[index].Name == name {
@@ -345,10 +320,7 @@ func TestDAGDriverTemplate_OmitsUnsupportedPipelineJobCreateTimeArg(t *testing.T
 		}
 	}
 	require.NotNil(t, tmpl, "system-dag-driver template should exist")
-	require.NotNil(t, tmpl.Container, "template should have a container")
-	// Driver resolves create time from Run.created_at; emitting an unknown flag
-	// would cause flag.Parse() to exit before driver execution.
-	assert.NotContains(t, tmpl.Container.Args, "--pipeline_job_create_time_utc")
-	assert.NotContains(t, tmpl.Container.Args, "--pipeline_job_schedule_time_epoch_seconds")
-	assertRegisteredDriverArgs(t, tmpl.Container.Args)
+	args := requireDriverPluginArgs(t, tmpl)
+	assert.NotContains(t, args, "pipeline_job_create_time_utc")
+	assert.NotContains(t, args, "pipeline_job_schedule_time_epoch_seconds")
 }

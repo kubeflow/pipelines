@@ -41,6 +41,10 @@ patches:
     target:
       kind: Deployment
       name: ml-pipeline
+  - path: driver-plugin-cm-path.yaml
+    target:
+      kind: ConfigMap
+      name: ml-pipeline-driver-agent
   - path: ../../base/cache-specs.yaml
     target:
       kind: Deployment

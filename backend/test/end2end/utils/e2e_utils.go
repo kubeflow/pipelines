@@ -79,7 +79,8 @@ func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kuberne
 	logger.Log("Updated pipeline run details")
 	expectedTaskDetails := GetTasksFromWorkflow(compiledWorkflow)
 	if *updatedRun.State == run_model.V2beta1RuntimeStateRUNNING {
-		logger.Log("Pipeline run did not finish, checking workflow controller logs")
+		logger.Log("Pipeline run did not finish")
+		logger.Log("Checking workflow controller logs")
 		podLog := testutil.ReadContainerLogs(k8Client, *config.Namespace, "workflow-controller", nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
 		logger.Log("Attaching Workflow Controller logs to the report")
 		ginkgo.AddReportEntry("Workflow Controller Logs", podLog)
@@ -101,6 +102,7 @@ func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kuberne
 // CapturePodLogsForUnsuccessfulTasks - Capture pod logs of a failed component
 func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testContext *apitests.TestContext, tasks []*run_model.V2beta1PipelineTask) {
 	failedTasks := make(map[string]string)
+	capturedPods := make(map[string]bool)
 	sort.Slice(tasks, func(i, j int) bool {
 		return time.Time(tasks[i].EndTime).After(time.Time(tasks[j].EndTime)) // Sort tasks by end time in descending order.
 	})
@@ -124,15 +126,17 @@ func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testCont
 				{
 					logger.Log("%s - Task %s for Run %s did not complete successfully", *task.State, task.DisplayName, task.RunID)
 					for _, pod := range task.Pods {
-						podName := pod.Name
-						if podName != "" {
-							logger.Log("Capturing pod logs for task %s, with pod name %s", task.DisplayName, podName)
-							podLog := testutil.ReadPodLogs(k8Client, *config.Namespace, podName, nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
-							logger.Log("Pod logs captured for task %s in pod %s", task.DisplayName, podName)
-							logger.Log("Attaching pod logs to the report")
-							ginkgo.AddReportEntry(fmt.Sprintf("Failing '%s' Component Log", task.DisplayName), podLog)
-							logger.Log("Attached pod logs to the report")
+						if pod == nil || pod.Name == "" || capturedPods[pod.Name] {
+							continue
 						}
+						podName := pod.Name
+						logger.Log("Capturing pod logs for task %s, with pod name %s", task.DisplayName, podName)
+						podLog := testutil.ReadPodLogs(k8Client, *config.Namespace, podName, nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
+						capturedPods[podName] = true
+						logger.Log("Pod logs captured for task %s in pod %s", task.DisplayName, podName)
+						logger.Log("Attaching pod logs to the report")
+						ginkgo.AddReportEntry(fmt.Sprintf("Failing '%s' Component Log (%s)", task.DisplayName, podName), podLog)
+						logger.Log("Attached pod logs to the report")
 					}
 					failedTasks[task.DisplayName] = string(*task.State)
 				}

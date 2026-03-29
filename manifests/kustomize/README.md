@@ -3,6 +3,32 @@
 Kubeflow Pipelines can be installed standalone and as part of the [community distribution](https://github.com/kubeflow/community-distribution).
 [Installation Options for Kubeflow Pipelines](https://www.kubeflow.org/docs/components/pipelines/operator-guides/installation/).
 
+## Driver plugin ServiceAccounts
+
+The driver executor plugin uses its own ServiceAccount for Kubernetes calls,
+including reading its agent Pod and Workflow. It requests a token for the
+Workflow's runtime ServiceAccount through `serviceaccounts/token` and uses that
+token only for KFP API calls. The runtime ServiceAccount keeps the KFP permissions
+for runs and artifacts.
+
+Token requests are restricted by `resourceNames` to `pipeline-runner` in the
+standalone plugin Role and `default-editor` in the multi-user plugin ClusterRole.
+When changing `DEFAULTPIPELINERUNNERSERVICEACCOUNT` or allowing custom runtime
+ServiceAccounts, add their exact names to this rule in
+[`pipeline-runner-role.yaml`](base/pipeline/pipeline-runner-role.yaml) or
+[`ml-pipeline-driver-agent-executor-plugin-cluster-role.yaml`](base/installs/multi-user/ml-pipeline-driver-agent-executor-plugin-cluster-role.yaml).
+Keep the grant restricted to named accounts. The multi-user ClusterRole is bound
+inside each profile namespace; the profile controller has permission to bind
+that role without directly receiving its token-issuing permissions.
+
+The compiler passes the run-specific KFP audience in `kfp_token_audience`; no
+token is included in workflow arguments. The driver validates the request against
+its agent Pod and keeps the issued token in memory, refreshing it before expiry.
+RBAC restricts which ServiceAccounts the plugin can request tokens for, but not
+the requested audience. Enforcing an audience restriction at the Kubernetes API
+requires a separate admission policy or webhook; these manifests do not install
+one.
+
 ## Artifact download responses
 
 Artifact download routes return S3 and MinIO objects without extracting archive

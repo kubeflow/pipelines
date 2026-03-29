@@ -21,7 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	gc "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -36,6 +35,7 @@ import (
 )
 
 func DAG(ctx context.Context, opts common.Options, clientManager client_manager.ClientManagerInterface) (execution *Execution, err error) {
+	log := driverLogger(ctx)
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("driver.DAG(%s) failed: %w", opts.Info(), err)
@@ -47,7 +47,7 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 		return nil, err
 	}
 
-	glog.V(4).Info("DAG opts: ", string(b))
+	log.Trace("DAG opts: ", string(b))
 	if err = validateDAG(opts); err != nil {
 		return nil, err
 	}
@@ -173,7 +173,7 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 
 	// ExecutorInput is not required for DAG/root execution, but keeping the
 	// resolved view on Execution remains useful for tests and debugging.
-	glog.Infof("executorInput value: %+v", executorInput)
+	log.Infof("executorInput value: %+v", executorInput)
 	execution = &Execution{ExecutorInput: executorInput}
 
 	condition := opts.Task.GetTriggerPolicy().GetCondition()
@@ -224,7 +224,7 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 		taskPluginInfo = &plugins.TaskInfo{Name: taskName}
 		pluginStartResult, dispatchErr := dispatcher.OnTaskStart(ctx, taskPluginInfo)
 		if dispatchErr != nil {
-			glog.Errorf("Failed to dispatch task start: %v", dispatchErr)
+			log.Errorf("Failed to dispatch task start: %v", dispatchErr)
 		} else if pluginStartResult != nil {
 			statusMetadata := taskToCreate.GetStatusMetadata()
 			if statusMetadata == nil {
@@ -258,7 +258,7 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 			)
 			dispatchErr := dispatcher.OnTaskEnd(ctx, taskPluginInfo)
 			if dispatchErr != nil {
-				glog.Errorf("failed to dispatch task end: %v", dispatchErr)
+				log.Errorf("failed to dispatch task end: %v", dispatchErr)
 			}
 		}
 	}()
@@ -311,7 +311,7 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 		execution.IterationCount = util.IntPointer(count)
 	}
 
-	glog.Infof("Creating task: %+v", taskToCreate)
+	log.Infof("Creating task: %+v", taskToCreate)
 	attemptLocalFields := &gc.PipelineTask{
 		Pods:             taskToCreate.GetPods(),
 		Inputs:           taskToCreate.GetInputs(),
@@ -335,7 +335,7 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 		return execution, err
 	}
 	taskToCreate = createdTask
-	glog.Infof("Created task: %+v", createdTask)
+	log.Infof("Created task: %+v", createdTask)
 
 	err = handleInputTaskArtifactsCreation(ctx, opts, inputs.Artifacts, createdTask, clientManager.KFPAPIClient())
 	if err != nil {
