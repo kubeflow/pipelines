@@ -1,16 +1,31 @@
+// Copyright 2025 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package main
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -63,7 +78,7 @@ func TestSpecParsing(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Logf("Running test case: %s", tc.name)
-		cfg, err := parseExecConfigJson(tc.input)
+		cfg, err := parseExecConfigJSON(tc.input)
 		assert.Equal(t, tc.wantErr, err != nil)
 		assert.True(t, proto.Equal(tc.expected, cfg))
 	}
@@ -78,14 +93,12 @@ func TestGetPipelineJobTimePlaceholderUsage(t *testing.T) {
 	}{
 		{
 			name:       "root dag skips placeholder lookup",
-			driverType: ROOT_DAG,
+			driverType: RootDag,
 			taskSpec: &pipelinespec.PipelineTaskSpec{
 				Inputs: &pipelinespec.TaskInputsSpec{
 					Parameters: map[string]*pipelinespec.TaskInputsSpec_InputParameterSpec{
-						"create_time": runtimeValueConstant(pipelineJobCreateTimeUTCPlaceholder),
-						"schedule_time": runtimeValueConstant(
-							pipelineJobScheduleTimeUTCPlaceholder,
-						),
+						"create_time":   runtimeValueConstant(pipelineJobCreateTimeUTCPlaceholder),
+						"schedule_time": runtimeValueConstant(pipelineJobScheduleTimeUTCPlaceholder),
 					},
 				},
 			},
@@ -294,94 +307,41 @@ func TestGetWorkflowMetadataForPipelineJobTimes(t *testing.T) {
 	}
 }
 
-func Test_handleExecutionContainer(t *testing.T) {
+func Test_extractOutputParametersContainer(t *testing.T) {
 	execution := &driver.Execution{}
 
-	executionPaths := &ExecutionPaths{
-		Condition: "condition.txt",
-	}
+	outputs := extractOutputParameters(execution, CONTAINER)
 
-	err := handleExecution(execution, CONTAINER, executionPaths)
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	verifyFileContent(t, executionPaths.Condition, "nil")
-
-	cleanup(t, executionPaths)
+	require.NotEmpty(t, outputs)
+	verifyOutputParameter(t, outputs, "condition", "nil")
 }
 
-func Test_handleExecutionRootDAG(t *testing.T) {
+func Test_extractOutputParametersRootDAG(t *testing.T) {
 	execution := &driver.Execution{}
 
-	executionPaths := &ExecutionPaths{
-		IterationCount: "iteration_count.txt",
-		Condition:      "condition.txt",
-	}
-
-	err := handleExecution(execution, ROOT_DAG, executionPaths)
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	verifyFileContent(t, executionPaths.IterationCount, "0")
-	verifyFileContent(t, executionPaths.Condition, "nil")
-
-	cleanup(t, executionPaths)
+	outputs := extractOutputParameters(execution, RootDag)
+	require.NotEmpty(t, outputs)
+	verifyOutputParameter(t, outputs, "iteration-count", "0")
+	verifyOutputParameter(t, outputs, "condition", "nil")
 }
 
-func Test_handleExecutionDAG(t *testing.T) {
+func Test_extractOutputParametersDAG(t *testing.T) {
 	execution := &driver.Execution{}
 
-	executionPaths := &ExecutionPaths{
-		IterationCount: "iteration_count.txt",
-		Condition:      "condition.txt",
-	}
+	outputs := extractOutputParameters(execution, DAG)
 
-	err := handleExecution(execution, DAG, executionPaths)
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	verifyFileContent(t, executionPaths.IterationCount, "0")
-	verifyFileContent(t, executionPaths.Condition, "nil")
-
-	cleanup(t, executionPaths)
+	require.NotEmpty(t, outputs)
+	verifyOutputParameter(t, outputs, "iteration-count", "0")
+	verifyOutputParameter(t, outputs, "condition", "nil")
 }
 
-func cleanup(t *testing.T, executionPaths *ExecutionPaths) {
-	removeIfExists(t, executionPaths.IterationCount)
-	removeIfExists(t, executionPaths.ExecutionID)
-	removeIfExists(t, executionPaths.Condition)
-	removeIfExists(t, executionPaths.PodSpecPatch)
-	removeIfExists(t, executionPaths.CachedDecision)
-}
-
-func removeIfExists(t *testing.T, filePath string) {
-	_, err := os.Stat(filePath)
-	if err == nil {
-		err = os.Remove(filePath)
-		if err != nil {
-			t.Errorf("Unexpected error while removing the created file: %v", err)
+func verifyOutputParameter(t *testing.T, parameters []driverapi.Parameter, key, expectedValue string) {
+	filtered := make([]driverapi.Parameter, 0, 1)
+	for _, p := range parameters {
+		if p.Name == key {
+			filtered = append(filtered, p)
 		}
 	}
-}
-
-func verifyFileContent(t *testing.T, filePath string, expectedContent string) {
-	_, err := os.Stat(filePath)
-	if os.IsNotExist(err) {
-		t.Errorf("Expected file %s to be created, but it doesn't exist", filePath)
-	}
-
-	fileContent, err := os.ReadFile(filePath)
-	if err != nil {
-		t.Errorf("Failed to read file contents: %v", err)
-	}
-
-	if string(fileContent) != expectedContent {
-		t.Errorf("Expected file fileContent to be %q, got %q", expectedContent, string(fileContent))
-	}
+	require.Len(t, filtered, 1)
+	require.Equal(t, expectedValue, filtered[0].Value)
 }

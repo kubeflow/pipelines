@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -31,7 +30,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -392,7 +390,7 @@ func resolveConfiguredCredentials(
 				commonmlflow.AuthTypeBearer,
 			)
 		}
-		return resolveBearerSecretCredentials(ctx, clientSet, namespace, settings.CredentialSecretRef)
+		return commonmlflow.ResolveSecretMLflowCredentials(ctx, clientSet, namespace, settings.CredentialSecretRef, settings.AuthType)
 	case commonmlflow.AuthTypeBasicAuth:
 		if settings.CredentialSecretRef == nil {
 			return commonmlflow.MLflowCredentials{}, util.NewInvalidInputError(
@@ -400,7 +398,7 @@ func resolveConfiguredCredentials(
 				commonmlflow.AuthTypeBasicAuth,
 			)
 		}
-		return resolveBasicAuthSecretCredentials(ctx, clientSet, namespace, settings.CredentialSecretRef)
+		return commonmlflow.ResolveSecretMLflowCredentials(ctx, clientSet, namespace, settings.CredentialSecretRef, settings.AuthType)
 	case commonmlflow.AuthTypeNone:
 		return commonmlflow.MLflowCredentials{AuthType: commonmlflow.AuthTypeNone}, nil
 	default:
@@ -411,130 +409,19 @@ func resolveConfiguredCredentials(
 	}
 }
 
-func resolveBearerSecretCredentials(
-	ctx context.Context,
-	clientSet kubernetes.Interface,
-	namespace string,
-	ref *commonplugins.CredentialSecretRef,
-) (commonmlflow.MLflowCredentials, error) {
-	if ref == nil {
-		return commonmlflow.MLflowCredentials{}, util.NewInvalidInputError("MLflow bearer auth requires credentialSecretRef")
-	}
-	if ref.TokenKey == "" {
-		return commonmlflow.MLflowCredentials{}, util.NewInvalidInputError(
-			"plugins.mlflow.settings.credentialSecretRef.tokenKey is required for authType %q",
-			commonmlflow.AuthTypeBearer,
-		)
-	}
-	secret, err := getMLflowCredentialSecret(ctx, clientSet, namespace)
-	if err != nil {
-		return commonmlflow.MLflowCredentials{}, err
-	}
-	token, err := readRequiredSecretKey(secret, namespace, ref.TokenKey)
-	if err != nil {
-		return commonmlflow.MLflowCredentials{}, err
-	}
-	return commonmlflow.MLflowCredentials{
-		AuthType:    commonmlflow.AuthTypeBearer,
-		BearerToken: token,
-	}, nil
-}
-
-func resolveBasicAuthSecretCredentials(
-	ctx context.Context,
-	clientSet kubernetes.Interface,
-	namespace string,
-	ref *commonplugins.CredentialSecretRef,
-) (commonmlflow.MLflowCredentials, error) {
-	if ref == nil {
-		return commonmlflow.MLflowCredentials{}, util.NewInvalidInputError("MLflow basic auth requires credentialSecretRef")
-	}
-	if ref.UsernameKey == "" {
-		return commonmlflow.MLflowCredentials{}, util.NewInvalidInputError(
-			"plugins.mlflow.settings.credentialSecretRef.usernameKey is required for authType %q",
-			commonmlflow.AuthTypeBasicAuth,
-		)
-	}
-	if ref.PasswordKey == "" {
-		return commonmlflow.MLflowCredentials{}, util.NewInvalidInputError(
-			"plugins.mlflow.settings.credentialSecretRef.passwordKey is required for authType %q",
-			commonmlflow.AuthTypeBasicAuth,
-		)
-	}
-	secret, err := getMLflowCredentialSecret(ctx, clientSet, namespace)
-	if err != nil {
-		return commonmlflow.MLflowCredentials{}, err
-	}
-	username, err := readRequiredSecretKey(secret, namespace, ref.UsernameKey)
-	if err != nil {
-		return commonmlflow.MLflowCredentials{}, err
-	}
-	password, err := readRequiredSecretKey(secret, namespace, ref.PasswordKey)
-	if err != nil {
-		return commonmlflow.MLflowCredentials{}, err
-	}
-	return commonmlflow.MLflowCredentials{
-		AuthType: commonmlflow.AuthTypeBasicAuth,
-		Username: username,
-		Password: password,
-	}, nil
-}
-
-// getMLflowCredentialSecret reads the fixed MLflow credentials Secret from the
-// given namespace.
-func getMLflowCredentialSecret(ctx context.Context, clientSet kubernetes.Interface, namespace string) (*corev1.Secret, error) {
-	if clientSet == nil {
-		return nil, util.NewInternalServerError(
-			fmt.Errorf("clientSet is nil"),
-			"Kubernetes clientset must be provided when reading MLflow credentials secret",
-		)
-	}
-	secret, err := clientSet.CoreV1().Secrets(namespace).Get(ctx, commonmlflow.CredentialSecretName, v1.GetOptions{})
-	if err != nil {
-		return nil, util.NewInternalServerError(
-			err,
-			"failed to read MLflow credentials secret %q in namespace %q",
-			commonmlflow.CredentialSecretName,
-			namespace,
-		)
-	}
-	return secret, nil
-}
-
-// readRequiredSecretKey returns the trimmed value for key from secret, returning
-// an error if the key is missing or resolves to an empty value.
-func readRequiredSecretKey(secret *corev1.Secret, namespace, key string) (string, error) {
-	valueBytes, ok := secret.Data[key]
-	if !ok {
-		return "", util.NewInvalidInputError(
-			"secret %q in namespace %q does not contain key %q",
-			commonmlflow.CredentialSecretName,
-			namespace,
-			key,
-		)
-	}
-	value := strings.TrimSpace(string(valueBytes))
-	if value == "" {
-		return "", util.NewInvalidInputError(
-			"secret %q in namespace %q has an empty value for key %q",
-			commonmlflow.CredentialSecretName,
-			namespace,
-			key,
-		)
-	}
-	return value, nil
-}
-
-// InjectMLflowRuntimeEnv sets KFP_MLFLOW_CONFIG on driver and launcher
-// containers.
-func InjectMLflowRuntimeEnv(executionSpec util.ExecutionSpec, envVars []corev1.EnvVar) error {
-	if len(envVars) == 0 || executionSpec == nil {
+// InjectMLflowRuntimeEnv passes KFP_MLFLOW_CONFIG to driver plugins through
+// runtime args and to launcher containers through env vars. Driver executor
+// plugins cannot be patched with per-run EnvVar/SecretKeyRef entries by the API
+// server, so runtime args carry only authType and credentialSecretRef key names;
+// the driver reads Secret/kfp-mlflow-credentials from its own namespace.
+func InjectMLflowRuntimeEnv(executionSpec util.ExecutionSpec, runtimeEnv map[string]string, launcherEnvVars []corev1.EnvVar) error {
+	if executionSpec == nil {
 		return nil
 	}
-	return executionSpec.UpsertRuntimeEnvVars(envVars,
-		util.ExecutionRuntimeRoleDriver,
-		util.ExecutionRuntimeRoleLauncher,
-	)
+	if err := executionSpec.UpsertRuntimeConfig(runtimeEnv, util.ExecutionRuntimeRoleDriver); err != nil {
+		return err
+	}
+	return executionSpec.UpsertRuntimeEnvVars(launcherEnvVars, util.ExecutionRuntimeRoleLauncher)
 }
 
 // ToMLflowTerminalStatus converts a KFP RuntimeState string to an MLflow

@@ -24,8 +24,12 @@ import (
 	"testing"
 	"time"
 
+	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
 )
 
 func TestNewClient_EmptyEndpoint_ReturnsError(t *testing.T) {
@@ -166,6 +170,54 @@ func TestResolveRuntimeMLflowCredentials_None(t *testing.T) {
 	assert.Empty(t, credentials.BearerToken)
 	assert.Empty(t, credentials.Username)
 	assert.Empty(t, credentials.Password)
+}
+
+func TestResolveSecretMLflowCredentials_Bearer(t *testing.T) {
+	clientSet := k8sfake.NewClientset(&corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      CredentialSecretName,
+			Namespace: "ns1",
+		},
+		Data: map[string][]byte{
+			"token": []byte("custom-token"),
+		},
+	})
+
+	credentials, err := ResolveSecretMLflowCredentials(
+		context.Background(),
+		clientSet,
+		"ns1",
+		&commonplugins.CredentialSecretRef{TokenKey: "token"},
+		AuthTypeBearer,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, AuthTypeBearer, credentials.AuthType)
+	assert.Equal(t, "custom-token", credentials.BearerToken)
+}
+
+func TestResolveSecretMLflowCredentials_BasicAuthMissingPasswordKey(t *testing.T) {
+	clientSet := k8sfake.NewClientset(&corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      CredentialSecretName,
+			Namespace: "ns1",
+		},
+		Data: map[string][]byte{
+			"username": []byte("user"),
+		},
+	})
+
+	_, err := ResolveSecretMLflowCredentials(
+		context.Background(),
+		clientSet,
+		"ns1",
+		&commonplugins.CredentialSecretRef{
+			UsernameKey: "username",
+			PasswordKey: "password",
+		},
+		AuthTypeBasicAuth,
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `does not contain key "password"`)
 }
 
 func TestGetExperimentByName_Success(t *testing.T) {

@@ -58,7 +58,7 @@ func (h *MLflowHandler) OnTaskStart(ctx context.Context, taskInfo *plugins.TaskI
 		return nil, fmt.Errorf("ParentRunID and ExperimentID are both required to create nested MLflow run")
 	}
 
-	requestCtx, err := BuildMLflowTaskRequestContext(*h.runtimeCfg)
+	requestCtx, err := BuildMLflowTaskRequestContext(ctx, *h.runtimeCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build MLflow request context: %v", err)
 	}
@@ -90,7 +90,7 @@ func (h *MLflowHandler) OnTaskEnd(ctx context.Context, info *plugins.TaskInfo) e
 	}
 	resolvedRunID := h.nestedRunID
 
-	requestCtx, err := BuildMLflowTaskRequestContext(*h.runtimeCfg)
+	requestCtx, err := BuildMLflowTaskRequestContext(ctx, *h.runtimeCfg)
 	if err != nil {
 		return fmt.Errorf("failed to build MLflow request context: %v", err)
 	}
