@@ -27,6 +27,18 @@ spec:
     resource: services
     updateStrategy:
       method: InPlace
+  - apiVersion: v1
+    resource: serviceaccounts
+    updateStrategy:
+      method: InPlace
+  - apiVersion: rbac.authorization.k8s.io/v1
+    resource: roles
+    updateStrategy:
+      method: InPlace
+  - apiVersion: rbac.authorization.k8s.io/v1
+    resource: rolebindings
+    updateStrategy:
+      method: InPlace
   - apiVersion: networking.istio.io/v1alpha3
     resource: destinationrules
     updateStrategy:

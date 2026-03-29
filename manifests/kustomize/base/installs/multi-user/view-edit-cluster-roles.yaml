@@ -109,6 +109,8 @@ rules:
   - workfloweventbindings
   - workflowtemplates
   - workflowtaskresults
+  - workflowtasksets/status
+  - workflowtasksets
 - apiGroups:
     - pipelines.kubeflow.org
   resources:

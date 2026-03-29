@@ -59,6 +59,9 @@ import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/
 export const LOGS_DETAILS = 'logs_details';
 export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
 export const LOGS_BANNER_ADDITIONAL_INFO = 'logs_banner_additional_info';
+export const SYS_LOGS_DETAILS = 'sys_log_details';
+export const SYS_LOGS_BANNER_MESSAGE = 'sys_logs_banner_message';
+export const SYS_LOGS_BANNER_ADDITIONAL_INFO = 'sys_logs_banner_additional_info';
 export const K8S_PLATFORM_KEY = 'kubernetes';
 
 const NODE_INFO_UNKNOWN = (
@@ -212,17 +215,37 @@ function TaskNodeDetail({
     refetchInterval: task && !sourceFinished && !isTaskFinished(task.state) ? 10000 : false,
   });
 
+  const driverLogUri = task?.status_metadata?.custom_properties?.driver_logs_uri;
+  const { data: driverLogsInfo } = useQuery({
+    queryKey: queryKeys.driverLogs(
+      task?.task_id,
+      task?.state,
+      namespace,
+      typeof driverLogUri === 'string' ? driverLogUri : undefined,
+    ),
+    queryFn: async (): Promise<Map<string, string>> => {
+      if (!task) {
+        throw new Error('No task is found.');
+      }
+      return getDriverLogsInfo(task, namespace);
+    },
+    enabled: !!task,
+  });
+
   const logsDetails = logsInfo?.get(LOGS_DETAILS);
   const logsBannerMessage =
     logsInfo?.get(LOGS_BANNER_MESSAGE) ||
     (logsQueryFailed ? 'Failed to retrieve pod logs.' : undefined);
   const logsBannerAdditionalInfo =
     logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO) || logsQueryError?.message;
+  const sysLogDetails = driverLogsInfo?.get(SYS_LOGS_DETAILS);
+  const sysLogsBannerMessage = driverLogsInfo?.get(SYS_LOGS_BANNER_MESSAGE);
+  const sysLogsBannerAdditionalInfo = driverLogsInfo?.get(SYS_LOGS_BANNER_ADDITIONAL_INFO);
 
   return (
     <div className={commonCss.page}>
       <MD2Tabs
-        tabs={['Input/Output', 'Task Details', 'Logs']}
+        tabs={['Input/Output', 'Task Details', 'Logs', 'System Logs']}
         selectedTab={selectedTab}
         onSwitch={setSelectedTab}
       />
@@ -256,6 +279,19 @@ function TaskNodeDetail({
             {logsDetails && (
               <div className={commonCss.pageOverflowHidden} data-testid='logs-view-window'>
                 <LogViewer logLines={logsDetails.split(/[\r\n]+/)} />
+              </div>
+            )}
+          </div>
+        )}
+        {/* System Logs tab */}
+        {selectedTab === 3 && (
+          <div className={commonCss.page}>
+            {sysLogsBannerMessage && (
+              <Banner message={sysLogsBannerMessage} additionalInfo={sysLogsBannerAdditionalInfo} />
+            )}
+            {!sysLogsBannerMessage && (
+              <div className={commonCss.pageOverflowHidden} data-testid={'logs-view-window'}>
+                <LogViewer logLines={(sysLogDetails || '').split(/[\r\n]+/)} />
               </div>
             )}
           </div>
@@ -435,6 +471,29 @@ function TaskVolumeMountsDetails({
     [element, layers, pipelineJobString],
   );
   return <DetailsTable title='Volume Mounts' fields={fields} />;
+}
+
+async function getDriverLogsInfo(
+  task: V2beta1PipelineTask,
+  namespace?: string,
+): Promise<Map<string, string>> {
+  const logsInfo = new Map<string, string>();
+  const driverLogUri = task.status_metadata?.custom_properties?.driver_logs_uri;
+
+  try {
+    if (typeof driverLogUri === 'string' && driverLogUri) {
+      const logsDetails = await readArtifactFile({ uri: driverLogUri }, namespace);
+      logsInfo.set(SYS_LOGS_DETAILS, logsDetails);
+    }
+  } catch (artifactErr) {
+    const errMsg = await errorToMessage(artifactErr);
+    logsInfo.set(SYS_LOGS_BANNER_MESSAGE, 'Failed to retrieve system logs.');
+    logsInfo.set(SYS_LOGS_BANNER_ADDITIONAL_INFO, 'Error response: ' + errMsg);
+
+    console.error('Failed to retrieve driver-logs artifact:', artifactErr);
+  }
+
+  return logsInfo;
 }
 
 export async function getLogsInfo(

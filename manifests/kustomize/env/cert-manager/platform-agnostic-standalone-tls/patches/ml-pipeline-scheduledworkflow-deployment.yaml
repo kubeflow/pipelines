@@ -22,4 +22,4 @@ spec:
       volumes:
         - name: tls-certs
           secret:
-            secretName: kfp-api-tls-cert
+            secretName: argo-workflows-agent-ca-certificates
