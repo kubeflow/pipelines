@@ -10,6 +10,14 @@ data:
     ports:
       - containerPort: 8080
     env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid  
       - name: LOG_ACCESS_KEY
         valueFrom:
           secretKeyRef:
