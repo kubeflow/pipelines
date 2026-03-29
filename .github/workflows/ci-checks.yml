@@ -1,4 +1,9 @@
 # This workflow checks if all CI checks have passed by polling every 5 minutes.
+#
+# It triggers on all pull_request_target events that could affect CI status or
+# label eligibility. For unrelated label changes (lgtm, approved, size/*, etc.)
+# the workflow still runs but exits immediately with a 'success' conclusion,
+# so it doesn't clobber the previous green status that tide depends on.
 name: CI Check
 
 on:
@@ -8,22 +13,45 @@ on:
 jobs:
   check_ci_status:
     runs-on: ubuntu-latest
-    # Only run for eligible PRs: must have 'ok-to-test' and not 'needs-ok-to-test'.
-    # For 'labeled' events, only react when 'ok-to-test' is added.
-    # For 'unlabeled' events, only react when 'needs-ok-to-test' is removed.
-    # These are the only label changes that can change eligibility, avoiding
-    # restarting the 50-min polling loop on unrelated labels like 'size/L' or 'lgtm'.
-    # Using a job-level condition so ineligible PRs are 'skipped' rather than 'success',
-    # which prevents a wasted downstream workflow_run trigger.
-    if: >
-      (github.event.action != 'labeled' || github.event.label.name == 'ok-to-test') &&
-      (github.event.action != 'unlabeled' || github.event.label.name == 'needs-ok-to-test') &&
-      contains(github.event.pull_request.labels.*.name, 'ok-to-test') &&
-      !contains(github.event.pull_request.labels.*.name, 'needs-ok-to-test')
     permissions:
       checks: read
     steps:
+      - name: Check eligibility
+        id: eligible
+        run: |
+          # For labeled events, only the 'ok-to-test' label can change eligibility.
+          # For unlabeled events, only 'needs-ok-to-test' removal matters.
+          # All other label changes are irrelevant — exit early with success
+          # to avoid restarting the 50-min polling loop and to prevent a
+          # 'skipped' conclusion from blocking tide.
+          action="${{ github.event.action }}"
+          label_name="${{ github.event.label.name }}"
+
+          if [[ "$action" == "labeled" && "$label_name" != "ok-to-test" ]]; then
+            echo "Ignoring unrelated label addition: $label_name"
+            echo "should_poll=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ "$action" == "unlabeled" && "$label_name" != "needs-ok-to-test" ]]; then
+            echo "Ignoring unrelated label removal: $label_name"
+            echo "should_poll=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          has_ok_to_test="${{ contains(github.event.pull_request.labels.*.name, 'ok-to-test') }}"
+          has_needs_ok="${{ contains(github.event.pull_request.labels.*.name, 'needs-ok-to-test') }}"
+
+          if [[ "$has_ok_to_test" != "true" || "$has_needs_ok" == "true" ]]; then
+            echo "PR is not label-eligible (ok-to-test=$has_ok_to_test, needs-ok-to-test=$has_needs_ok)"
+            echo "should_poll=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "should_poll=true" >> "$GITHUB_OUTPUT"
+
       - name: Check if all CI checks passed
+        if: steps.eligible.outputs.should_poll == 'true'
         uses: wechuli/allcheckspassed@0b68b3b7d92e595bcbdea0c860d05605720cf479
         with:
           delay: '5'
