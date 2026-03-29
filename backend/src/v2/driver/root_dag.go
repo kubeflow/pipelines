@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
@@ -81,50 +80,54 @@ func validateRootDAG(opts Options) (err error) {
 	return nil
 }
 
-func RootDAG(ctx context.Context, opts Options, mlmd metadata.ClientInterface) (execution *Execution, err error) {
+func RootDAG(ctx context.Context, opts Options, mlmd metadata.ClientInterface) (execution *Execution, pipeline *metadata.Pipeline, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("driver.RootDAG(%s) failed: %w", opts.info(), err)
 		}
 	}()
 	b, _ := json.Marshal(opts)
-	glog.V(4).Info("RootDAG opts: ", string(b))
+	log := util.GetLoggerFrom(ctx)
+	if log == nil {
+		return nil, nil, fmt.Errorf("driver.RootDAG(%s) failed: invalid log configuration", opts.info())
+	}
+	log.Trace("RootDAG opts: ", string(b))
 	err = validateRootDAG(opts)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// TODO(v2): in pipeline spec, rename GCS output directory to pipeline root.
 	pipelineRoot := opts.RuntimeConfig.GetGcsOutputDirectory()
 
 	k8sClient, err := buildK8sClient()
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
+		return nil, nil,  fmt.Errorf("failed to initialize kubernetes client set: %w", err)
 	}
 	cfg, err := config.FromConfigMap(ctx, k8sClient, opts.Namespace)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	storeSessionInfo := objectstore.SessionInfo{}
 	if pipelineRoot != "" {
-		glog.Infof("PipelineRoot=%q", pipelineRoot)
+		log.Infof("PipelineRoot=%q", pipelineRoot)
 	} else {
 		pipelineRoot = cfg.DefaultPipelineRoot()
-		glog.Infof("PipelineRoot=%q from default config", pipelineRoot)
+		log.Infof("PipelineRoot=%q from default config", pipelineRoot)
 	}
 	storeSessionInfo, err = cfg.GetStoreSessionInfo(pipelineRoot)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	storeSessionInfoJSON, err := json.Marshal(storeSessionInfo)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	storeSessionInfoStr := string(storeSessionInfoJSON)
 	// TODO(Bobgy): fill in run resource.
-	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, opts.Namespace, "run-resource", pipelineRoot, storeSessionInfoStr)
+	pipeline, err = mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, opts.Namespace, "run-resource", pipelineRoot, storeSessionInfoStr)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	executorInput := &pipelinespec.ExecutorInput{
@@ -135,36 +138,35 @@ func RootDAG(ctx context.Context, opts Options, mlmd metadata.ClientInterface) (
 	// TODO(Bobgy): validate executorInput matches component spec types
 	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
 	if err != nil {
-		return nil, err
+		return nil, pipeline, err
 	}
 	ecfg.ExecutionType = metadata.DagExecutionTypeName
 	ecfg.Name = fmt.Sprintf("run/%s", opts.RunID)
 	exec, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 
-	glog.Infof("Creating execution: %s", exec.String())
+	log.Infof("Creating execution: %s", exec.String())
 	if err != nil {
 		// When Argo retries the ROOT_DAG driver, the execution was already created on the first attempt.
 		// The deterministic name "run/<runId>" causes a duplicate key error.
 		// Handle it here by looking up the existing record instead of failing.
 		if isAlreadyExistsErr(err) {
-			glog.Infof("Execution %q already exists, looking up existing execution", ecfg.Name)
+			log.Infof("Execution %q already exists, looking up existing execution", ecfg.Name)
 			existing, lookupErr := mlmd.GetExecutionByTypeAndName(ctx, string(metadata.DagExecutionTypeName), ecfg.Name)
 			if lookupErr != nil {
-				return nil, fmt.Errorf("failed to lookup existing execution: %w", lookupErr)
+				return nil, pipeline, fmt.Errorf("failed to lookup existing execution: %w", lookupErr)
 			}
 
 			if existing == nil {
-				return nil, fmt.Errorf("execution already exists but lookup returned nil: %w", err)
+				return nil, pipeline, fmt.Errorf("execution already exists but lookup returned nil: %w", err)
 			}
 
-			glog.Infof("Found existing execution: %s", existing)
+			log.Infof("Found existing execution: %s", existing)
 			return &Execution{ID: existing.GetID()}, nil
 		}
 		return nil, err
 	}
-	glog.Infof("Created execution: %s", exec)
-
+	log.Infof("Created execution: %s", exec)
 	// No need to return ExecutorInput, because tasks in the DAG will resolve
 	// needed info from MLMD.
-	return &Execution{ID: exec.GetID()}, nil
+	return &Execution{ID: exec.GetID()}, pipeline, nil
 }

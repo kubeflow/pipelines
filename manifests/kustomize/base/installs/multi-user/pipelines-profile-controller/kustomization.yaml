@@ -5,6 +5,7 @@ resources:
 - service.yaml
 - deployment.yaml
 - decorator-controller.yaml
+- pipelines-profile-controller-admin.yaml
 configMapGenerator:
 - files:
   - sync.py

@@ -1,3 +1,17 @@
+// Copyright 2025 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package main
 
 import (
@@ -45,7 +59,7 @@ func TestSpecParsing(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Logf("Running test case: %s", tc.name)
-		cfg, err := parseExecConfigJson(tc.input)
+		cfg, err := parseExecConfigJSON(tc.input)
 		assert.Equal(t, tc.wantErr, err != nil)
 		assert.True(t, proto.Equal(tc.expected, cfg))
 	}
@@ -77,7 +91,7 @@ func Test_handleExecutionRootDAG(t *testing.T) {
 		Condition:      "condition.txt",
 	}
 
-	err := handleExecution(execution, ROOT_DAG, executionPaths)
+	err := handleExecution(execution, RootDag, executionPaths)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)

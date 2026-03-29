@@ -1,0 +1,11 @@
+[
+  {
+    "op": "add",
+    "path": "/rules/-",
+    "value": {
+      "apiGroups": ["argoproj.io"],
+      "resources": ["workflowtasksets/status"],
+      "verbs": ["get","list","watch","update","patch","delete","create"]
+    }
+  }
+]

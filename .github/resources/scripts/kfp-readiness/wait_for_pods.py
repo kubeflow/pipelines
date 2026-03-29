@@ -30,7 +30,8 @@ def get_pod_statuses():
     statuses = {}
     for pod in pods.items:
         pod_name = pod.metadata.name
-        if "system" not in pod_name:
+        # This filter is safe: 'ml-pipeline-persistenceagent-<guid>' will not be excluded and will be processed.
+        if not ("system" in pod_name or pod_name.endswith("-agent")):
             pod_status = pod.status.phase
             container_statuses = pod.status.container_statuses or []
             ready = 0
