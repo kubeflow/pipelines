@@ -15,6 +15,7 @@
 package list
 
 import (
+	"encoding/base64"
 	"fmt"
 	"math"
 	"reflect"
@@ -295,6 +296,31 @@ func TestNewOptionsFromToken_FromInValidSerializedToken(t *testing.T) {
 			t.Errorf("NewOptionsFromToken(%q, 123) =\nGot: %+v, <nil>\nWant: _, error",
 				test.in, got)
 		}
+	}
+}
+
+func TestNewOptionsFromToken_MaliciousFilterKey(t *testing.T) {
+	// Simulate a forged pageToken with a malicious filter key containing SQL injection.
+	// The filter key bypasses NewWithKeyMap's allowlist and reaches SQL construction directly.
+	tests := []struct {
+		name      string
+		filterKey string
+	}{
+		{"sql injection in EQ key", `pipelines.Name) OR 1=1 --`},
+		{"semicolon injection", `Name; DROP TABLE pipelines--`},
+		{"unqualified injection", `Name) OR 1=1`},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			raw := fmt.Sprintf(`{"KeyFieldName":"ID","SortByFieldName":"Name","Filter":{"EQ":{%q:[]}}}`, test.filterKey)
+			token := base64.StdEncoding.EncodeToString([]byte(raw))
+			got, err := NewOptionsFromToken(token, 10)
+			if err == nil {
+				t.Errorf("NewOptionsFromToken with malicious filter key %q =\nGot: %+v, <nil>\nWant: _, error",
+					test.filterKey, got)
+			}
+		})
 	}
 }
 

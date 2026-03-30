@@ -122,6 +122,14 @@ func (t *token) unmarshal(pageToken string) error {
 		}
 	}
 
+	if t.Filter != nil {
+		if err := t.Filter.ValidateKeys(func(segment string) error {
+			return validateIdentifierName(segment, "filter key")
+		}); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
