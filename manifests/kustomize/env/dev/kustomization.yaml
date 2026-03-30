@@ -10,27 +10,27 @@ resources:
 
 images:
 - name: ghcr.io/kubeflow/kfp-api-server
-  newTag: master
+  newTag: 2.16.0
 - name: ghcr.io/kubeflow/kfp-frontend
-  newTag: master
+  newTag: 2.16.0
 - name: ghcr.io/kubeflow/kfp-persistence-agent
-  newTag: master
+  newTag: 2.16.0
 - name: ghcr.io/kubeflow/kfp-scheduled-workflow-controller
-  newTag: master
+  newTag: 2.16.0
 - name: ghcr.io/kubeflow/kfp-cache-deployer
-  newTag: master
+  newTag: 2.16.0
 - name: ghcr.io/kubeflow/kfp-cache-server
-  newTag: master
+  newTag: 2.16.0
 - name: ghcr.io/kubeflow/kfp-metadata-envoy
-  newTag: master
+  newTag: 2.16.0
 - name: ghcr.io/kubeflow/kfp-metadata-writer
-  newTag: master
+  newTag: 2.16.0
 - name: ghcr.io/kubeflow/kfp-viewer-crd-controller
-  newTag: master
+  newTag: 2.16.0
 - name: ghcr.io/kubeflow/kfp-visualization-server
-  newTag: master
+  newTag: 2.16.0
 - name: ghcr.io/kubeflow/kfp-inverse-proxy-agent
-  newTag: master
+  newTag: 2.16.0
 
 patches:
   - path: api-server-patch.yaml

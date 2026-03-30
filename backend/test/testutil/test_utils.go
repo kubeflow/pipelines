@@ -220,7 +220,10 @@ func GetTLSConfig(caCertPath string) (*tls.Config, error) {
 func GetRepoBranchURLRAW(repoName, branch, path string) (string, error) {
 	url := fmt.Sprintf("https://github.com/%s/raw/refs/heads/%s/%s", repoName, branch, path)
 
-	pullNumber := os.Getenv("PULL_NUMBER")
+	pullNumber := *config.PULL_NUMBER
+	if pullNumber == "" {
+		pullNumber = os.Getenv("PULL_NUMBER")
+	}
 	if pullNumber != "" {
 		url = fmt.Sprintf("https://raw.githubusercontent.com/%s/pull/%s/head/%s", repoName, pullNumber, path)
 	}

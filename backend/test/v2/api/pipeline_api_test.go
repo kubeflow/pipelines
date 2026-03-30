@@ -1369,12 +1369,69 @@ var _ = Describe("Create Pipeline API Tests >", Label(constants.POSITIVE, consta
 			})
 		}
 
-		pipelineURLs := []string{"Your actual pipeline URLs go here"}
-		for _, pipelineURL := range pipelineURLs {
-			It(fmt.Sprintf("Pipeline with name and Pipelineversion with name and pipeline spec from url: %s", pipelineURL), func() {
-				Skip("Pipeline URL tests require valid external URLs - skipping placeholder")
-			})
-		}
+		It("Pipeline and version from remote YAML URL", func() {
+			pipelineURL, err := utils.GetRepoBranchURLRAW(*config.REPO_NAME, *config.BRANCH_NAME, "backend/test/v2/resources/sequential-v2.yaml")
+			Expect(err).NotTo(HaveOccurred(), "Failed to resolve remote pipeline URL")
+
+			pipelineName := testContext.Pipeline.PipelineGeneratedName
+			pipelineVersionName := pipelineName + "-url-v1"
+
+			createdPipeline, err := pipelineClient.CreatePipelineAndVersion(
+				&pipeline_params.PipelineServiceCreatePipelineAndVersionParams{
+					Body: &pipeline_model.V2beta1CreatePipelineAndVersionRequest{
+						Pipeline: &pipeline_model.V2beta1Pipeline{
+							Name:        pipelineName,
+							DisplayName: "sequential-url",
+							Description: "pipeline created from remote URL",
+						},
+						PipelineVersion: &pipeline_model.V2beta1PipelineVersion{
+							DisplayName: pipelineVersionName,
+							PackageURL: &pipeline_model.V2beta1URL{
+								PipelineURL: pipelineURL,
+							},
+						},
+					},
+				})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(createdPipeline.PipelineID).NotTo(BeEmpty())
+			testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, toUploadModel(createdPipeline))
+
+			versions := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			Expect(versions).Should(HaveLen(1))
+			Expect(versions[0].PackageURL.PipelineURL).To(Equal(pipelineURL))
+		})
+
+		It("Pipeline version from remote ZIP URL", func() {
+			pipelineURL, err := utils.GetRepoBranchURLRAW(*config.REPO_NAME, *config.BRANCH_NAME, "backend/test/v2/resources/arguments_parameters.zip")
+			Expect(err).NotTo(HaveOccurred(), "Failed to resolve remote pipeline URL")
+
+			pipelineName := testContext.Pipeline.PipelineGeneratedName
+			createdPipeline, err := pipelineClient.Create(
+				&pipeline_params.PipelineServiceCreatePipelineParams{
+					Pipeline: &pipeline_model.V2beta1Pipeline{
+						DisplayName: "arguments-params-zip",
+						Name:        pipelineName,
+					},
+				})
+			Expect(err).NotTo(HaveOccurred())
+			testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, toUploadModel(createdPipeline))
+
+			version, err := pipelineClient.CreatePipelineVersion(
+				&pipeline_params.PipelineServiceCreatePipelineVersionParams{
+					PipelineID: createdPipeline.PipelineID,
+					PipelineVersion: &pipeline_model.V2beta1PipelineVersion{
+						DisplayName: pipelineName + "-url-zip-v1",
+						Description: "version from remote zip URL",
+						PipelineID:  createdPipeline.PipelineID,
+						PackageURL: &pipeline_model.V2beta1URL{
+							PipelineURL: pipelineURL,
+						},
+					},
+				})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(version.DisplayName).To(Equal(pipelineName + "-url-zip-v1"))
+			Expect(version.PackageURL.PipelineURL).To(Equal(pipelineURL))
+		})
 	})
 })
 
