@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -2443,6 +2444,7 @@ func toApiRuntimeStateV1(s *model.RuntimeState) string {
 
 // Converts API runtime status to its internal representation.
 // Supports v2beta1 API.
+// Supports v2beta1 API.
 func toModelRuntimeStatus(s *apiv2beta1.RuntimeStatus) (*model.RuntimeStatus, error) {
 	if s == nil {
 		return &model.RuntimeStatus{}, nil
@@ -2451,13 +2453,21 @@ func toModelRuntimeStatus(s *apiv2beta1.RuntimeStatus) (*model.RuntimeStatus, er
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert runtime status to its internal representation")
 	}
+
+	var runtimeErr *model.RuntimeError
+	if s.GetError() != nil {
+		runtimeErr = &model.RuntimeError{
+			Message: s.GetError().GetMessage(),
+			Type:    "*util.UserError",
+		}
+	}
+
 	modelStatus := &model.RuntimeStatus{
 		UpdateTimeInSec: s.GetUpdateTime().GetSeconds(),
 		State:           state.ToV2(),
+		Error:           runtimeErr,
 	}
-	if s.GetError() != nil {
-		modelStatus.Error = util.ToError(s.GetError())
-	}
+
 	return modelStatus, nil
 }
 
@@ -2484,15 +2494,21 @@ func toApiRuntimeStatus(s *model.RuntimeStatus) *apiv2beta1.RuntimeStatus {
 	if s == nil {
 		return nil
 	}
+
 	apiStatus := &apiv2beta1.RuntimeStatus{
 		State: toApiRuntimeState(&s.State),
 	}
+
 	if s.UpdateTimeInSec > 0 {
 		apiStatus.UpdateTime = &timestamppb.Timestamp{Seconds: s.UpdateTimeInSec}
 	}
+
 	if s.Error != nil {
-		apiStatus.Error = util.ToRpcStatus(s.Error)
+		msg := strings.TrimPrefix(s.Error.Message, "Invalid input error: ")
+		userErr := util.NewInvalidInputError("%s", msg)
+		apiStatus.Error = util.ToRpcStatus(userErr)
 	}
+
 	return apiStatus
 }
 

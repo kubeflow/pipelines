@@ -477,10 +477,12 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	}
 
 	if len(r.RunDetails.StateHistory) == 0 || r.RunDetails.StateHistory[len(r.RunDetails.StateHistory)-1].State != r.RunDetails.State {
-		r.RunDetails.StateHistory = append(r.RunDetails.StateHistory, &model.RuntimeStatus{
-			UpdateTimeInSec: s.time.Now().Unix(),
-			State:           r.RunDetails.State,
-		})
+		r.RunDetails.StateHistory = append(r.RunDetails.StateHistory, model.NewRuntimeStatus(
+			r.RunDetails.State,
+			nil,
+			s.time.Now().Unix(),
+		),
+		)
 	}
 
 	stateHistoryString := ""
@@ -556,10 +558,12 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 		return util.NewInternalServerError(err, "transaction creation failed")
 	}
 	if len(run.RunDetails.StateHistory) == 0 || run.RunDetails.StateHistory[len(run.RunDetails.StateHistory)-1].State != run.RunDetails.State {
-		run.RunDetails.StateHistory = append(run.RunDetails.StateHistory, &model.RuntimeStatus{
-			UpdateTimeInSec: s.time.Now().Unix(),
-			State:           run.RunDetails.State,
-		})
+		run.RunDetails.StateHistory = append(run.RunDetails.StateHistory, model.NewRuntimeStatus(
+			run.RunDetails.State,
+			nil,
+			s.time.Now().Unix(),
+		),
+		)
 	}
 	stateHistoryString := ""
 	if historyString, err := json.Marshal(run.RunDetails.StateHistory); err == nil {

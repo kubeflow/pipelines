@@ -341,10 +341,33 @@ type RunMetric struct {
 	Payload     LargeText `gorm:"column:Payload; not null;"`
 }
 
+type RuntimeError struct {
+	Message string `json:"message,omitempty"`
+	Type    string `json:"type,omitempty"`
+}
+
 type RuntimeStatus struct {
-	UpdateTimeInSec int64        `json:"UpdateTimeInSec,omitempty"`
-	State           RuntimeState `json:"State,omitempty"`
-	Error           error        `json:"Error,omitempty"`
+	UpdateTimeInSec int64         `json:"UpdateTimeInSec,omitempty"`
+	State           RuntimeState  `json:"State,omitempty"`
+	Error           *RuntimeError `json:"Error,omitempty"`
+}
+
+func NewRuntimeError(err error) *RuntimeError {
+	if err == nil {
+		return nil
+	}
+	return &RuntimeError{
+		Message: err.Error(),
+		Type:    "*util.UserError",
+	}
+}
+
+func NewRuntimeStatus(state RuntimeState, err error, now int64) *RuntimeStatus {
+	return &RuntimeStatus{
+		UpdateTimeInSec: now,
+		State:           state,
+		Error:           NewRuntimeError(err),
+	}
 }
 
 func (r Run) GetValueOfPrimaryKey() string {
