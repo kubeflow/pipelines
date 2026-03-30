@@ -20,6 +20,7 @@ const {
   getValueFromDetailsTable,
   waitForCondition,
   waitForHashPrefix,
+  waitForRunDetailsPageReady,
   waitForRunPageReady,
 } = require('./test-helpers');
 
@@ -71,8 +72,12 @@ async function openCreatedRunDetails() {
     },
   );
 
-  await $(runLinkSelector).click();
-  await waitForHashPrefix('#/runs/details/', { timeout: uiTimeout });
+  const runLink = await $(runLinkSelector);
+  await runLink.waitForDisplayed({ timeout: uiTimeout });
+  await runLink.scrollIntoView();
+  await runLink.waitForClickable({ timeout: uiTimeout });
+  await runLink.click();
+  await waitForRunDetailsPageReady({ timeout: runStartTimeout });
 }
 
 describe('literal input parameter integration', () => {
@@ -187,12 +192,26 @@ describe('literal input parameter integration', () => {
 
     if (!new URL(await browser.getUrl()).hash.startsWith('#/runs/details/')) {
       await openCreatedRunDetails();
+    } else {
+      await waitForRunDetailsPageReady({ timeout: runStartTimeout });
     }
 
-    await $('button=Config').waitForDisplayed({ timeout: uiTimeout });
     await $('button=Config').click();
-
-    const literalValue = await getValueFromDetailsTable('environment');
+    let literalValue = '';
+    await waitForCondition(
+      async () => {
+        try {
+          literalValue = await getValueFromDetailsTable('environment');
+          return literalValue === selectedLiteral;
+        } catch (error) {
+          return false;
+        }
+      },
+      {
+        timeout: uiTimeout,
+        timeoutMsg: 'selected literal value did not appear in run details',
+      },
+    );
     assert.equal(
       literalValue,
       selectedLiteral,
