@@ -7,8 +7,8 @@
 
 ### Document metadata
 
-- Last updated: 2026-03-21
-- Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 17)
+- Last updated: 2026-03-30
+- Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
 
@@ -397,8 +397,8 @@ For full integration testing against a real KFP deployment:
 
 ### Key technologies and architecture
 
-- **React 17** with TypeScript
-- **Material-UI v3** for components
+- **React 19** with TypeScript
+- **MUI v5** (Material UI) for components
 - **React Router v5** for navigation
 - **Dagre** for graph layout visualization
 - **D3** for data visualization
