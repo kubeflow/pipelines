@@ -58,9 +58,10 @@ Completed via [#12881](https://github.com/kubeflow/pipelines/pull/12881).
 
 **Description**:
 Add `check-react-peers.mjs` and wire it into `npm run test:ci`. The repo now exposes:
-- `npm run check:react-peers`
+- `npm run check:react-peers` (targets React 19 by default)
 - `npm run check:react-peers:18`
-- `npm run check:react-peers:19`
+
+> **Note**: `check:react-peers:19` was originally a separate alias but was removed after the React 19 upgrade landed; `check:react-peers` now targets React 19 directly.
 
 This CI guardrail prevents new dependency additions from silently breaking the targeted React major.
 
@@ -289,10 +290,10 @@ Make the React 18.3 state explicit in package metadata, run the full verificatio
 **Depends on**: #11
 
 **Status**:
-Completed via [#13082](https://github.com/kubeflow/pipelines/pull/13082), merged on March 20, 2026 UTC. `npm run check:react-peers:19` now passes with a single allowlisted React core blocker that remains until `#13`. Issue [#12900](https://github.com/kubeflow/pipelines/issues/12900) was closed on March 20, 2026.
+Completed via [#13082](https://github.com/kubeflow/pipelines/pull/13082), merged on March 20, 2026 UTC. `npm run check:react-peers` (targeting React 19) now passes with a single allowlisted React core blocker that remains until `#13`. Issue [#12900](https://github.com/kubeflow/pipelines/issues/12900) was closed on March 20, 2026.
 
 **Description**:
-Run `npm run check:react-peers:19`, upgrade any remaining React 19-incompatible dependencies, and allowlist the expected React core blocker that is resolved in `#13`.
+Run `npm run check:react-peers` (targeting React 19), upgrade any remaining React 19-incompatible dependencies, and allowlist the expected React core blocker that is resolved in `#13`.
 
 **Result**:
 - Cleared `react-ace` by upgrading to `14.0.1`
@@ -302,7 +303,7 @@ Run `npm run check:react-peers:19`, upgrade any remaining React 19-incompatible 
 **Current state after `#13`**: That allowlist entry is gone; `frontend/docs/react-peer-allowlist.json` is `[]` for targets `17`, `18`, and `19`.
 
 **Acceptance Criteria**:
-- [x] `npm run check:react-peers:19` passed with only the expected allowlisted `react-dom` core blocker until `#13` landed
+- [x] `npm run check:react-peers` (targeting React 19) passed with only the expected allowlisted `react-dom` core blocker until `#13` landed
 - [x] No non-core React 19 blockers remain
 - [x] `npm run test:ci` passes
 
@@ -323,7 +324,7 @@ Bump `react`, `react-dom`, `@types/react`, and `@types/react-dom` to v19, addres
 - [x] `npm run test:ci && npm run build` pass
 - [x] `npm install` completes without peer-dependency warnings (and the `#12` core allowlist is removed)
 - [x] Manual smoke testing completed as part of the React 19 rollout
-- [x] `npm run check:react-peers:19` passes with an empty allowlist
+- [x] `npm run check:react-peers` (targeting React 19) passes with an empty allowlist
 
 ---
 
