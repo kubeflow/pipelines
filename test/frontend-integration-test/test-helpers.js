@@ -19,7 +19,6 @@ const URL = require('url').URL;
 const defaultTimeout = 10000;
 const screenshotDir = process.env.FRONTEND_INTEGRATION_SCREENSHOT_DIR || '/tmp';
 const runPageLoadingText = 'Currently loading pipeline information';
-const runDetailsLoadingText = 'Currently loading run information';
 
 const legacyRunFormSelectors = {
   description: '#descriptionInput',
@@ -68,10 +67,6 @@ async function pageContainsText(text) {
 
 async function isRunPageLoading() {
   return pageContainsText(runPageLoadingText);
-}
-
-async function isRunDetailsPageLoading() {
-  return pageContainsText(runDetailsLoadingText);
 }
 
 async function waitForRunPageReady({
@@ -123,38 +118,6 @@ async function waitForRunPageReady({
 
   return matchedVariant;
 }
-
-async function waitForRunDetailsPageReady({
-  timeout = defaultTimeout,
-  timeoutMsg = 'expected run details page to load',
-} = {}) {
-  try {
-    await waitForHashPrefix('#/runs/details/', { timeout });
-    await waitForCondition(
-      async () => {
-        if (await isRunDetailsPageLoading()) {
-          return false;
-        }
-
-        return (
-          (await isSelectorDisplayed('[data-testid="page-title"]')) &&
-          (await isSelectorDisplayed('button=Graph')) &&
-          (await isSelectorDisplayed('button=Config'))
-        );
-      },
-      {
-        timeout,
-        timeoutMsg,
-      },
-    );
-  } catch (error) {
-    console.log('RUN_DETAILS_LOADING', await isRunDetailsPageLoading());
-    console.log('RUN_DETAILS_URL', await browser.getUrl());
-    await saveDebugScreenshot('run-details-ready');
-    throw error;
-  }
-}
-
 async function getValueFromDetailsTable(key) {
   // Find the span that shows the key, get its parent div (the row), then
   // get that row's inner text, and remove the key.
@@ -254,7 +217,6 @@ module.exports = {
   waitForCondition,
   waitForGraphNodeCount,
   waitForHashPrefix,
-  waitForRunDetailsPageReady,
   waitForRunPageReady,
   waitForTableRows,
 };

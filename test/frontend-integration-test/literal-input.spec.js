@@ -17,10 +17,8 @@ const URL = require('url').URL;
 const {
   buildTableRowSelector,
   clearDefaultInput,
-  getValueFromDetailsTable,
   waitForCondition,
   waitForHashPrefix,
-  waitForRunDetailsPageReady,
   waitForRunPageReady,
 } = require('./test-helpers');
 
@@ -53,14 +51,22 @@ async function selectPipelineForRun() {
   await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: uiTimeout, reverse: true });
 }
 
-async function openCreatedRunDetails() {
+async function waitForCreatedRunId() {
+  const currentHash = new URL(await browser.getUrl()).hash;
+  if (currentHash.startsWith('#/runs/details/')) {
+    return currentHash.replace('#/runs/details/', '').split('?')[0];
+  }
+
   const runLinkSelector = `[data-testid="run-name-link"][data-run-name="${runName}"]`;
+  let runId = '';
 
   await $('#refreshBtn').waitForDisplayed({ timeout: uiTimeout });
   await waitForCondition(
     async () => {
-      if (await $(runLinkSelector).isExisting()) {
-        return true;
+      const runLink = await $(runLinkSelector);
+      if (await runLink.isExisting()) {
+        runId = (await runLink.getAttribute('data-run-id')) || '';
+        return !!runId;
       }
       await $('#refreshBtn').click();
       return false;
@@ -72,12 +78,25 @@ async function openCreatedRunDetails() {
     },
   );
 
-  const runLink = await $(runLinkSelector);
-  await runLink.waitForDisplayed({ timeout: uiTimeout });
-  await runLink.scrollIntoView();
-  await runLink.waitForClickable({ timeout: uiTimeout });
-  await runLink.click();
-  await waitForRunDetailsPageReady({ timeout: runStartTimeout });
+  return runId;
+}
+
+async function fetchRunById(runId) {
+  return browser.execute(async (currentRunId) => {
+    const response = await fetch(`/apis/v2beta1/runs/${currentRunId}`);
+    const responseText = await response.text();
+    let responseBody;
+    try {
+      responseBody = responseText ? JSON.parse(responseText) : null;
+    } catch (error) {
+      responseBody = responseText;
+    }
+    return {
+      ok: response.ok,
+      run: responseBody,
+      status: response.status,
+    };
+  }, runId);
 }
 
 describe('literal input parameter integration', () => {
@@ -190,30 +209,24 @@ describe('literal input parameter integration', () => {
       },
     );
 
-    if (!new URL(await browser.getUrl()).hash.startsWith('#/runs/details/')) {
-      await openCreatedRunDetails();
-    } else {
-      await waitForRunDetailsPageReady({ timeout: runStartTimeout });
-    }
-
-    await $('button=Config').click();
-    let literalValue = '';
+    const runId = await waitForCreatedRunId();
+    let fetchedRun;
     await waitForCondition(
       async () => {
-        try {
-          literalValue = await getValueFromDetailsTable('environment');
-          return literalValue === selectedLiteral;
-        } catch (error) {
+        fetchedRun = await fetchRunById(runId);
+        if (!fetchedRun.ok) {
           return false;
         }
+        return fetchedRun.run.runtime_config?.parameters?.environment === selectedLiteral;
       },
       {
-        timeout: uiTimeout,
-        timeoutMsg: 'selected literal value did not appear in run details',
+        timeout: runStartTimeout,
+        interval: 1000,
+        timeoutMsg: 'selected literal value did not appear in the created run',
       },
     );
     assert.equal(
-      literalValue,
+      fetchedRun.run.runtime_config?.parameters?.environment,
       selectedLiteral,
       'selected literal value was not propagated to the run',
     );
