@@ -18,6 +18,7 @@ import (
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	k8score "k8s.io/api/core/v1"
 )
 
@@ -51,6 +52,12 @@ var commonEnvs = []k8score.EnvVar{{
 			FieldPath: "metadata.uid",
 		},
 	},
+}, {
+	// Argo substitutes {{retries}} with the 0-based retry attempt index at pod
+	// creation time, giving each retry attempt a unique, sequentially-numbered
+	// executor-logs path (executor-logs-0, executor-logs-1, …).
+	Name:  component.EnvRetryIndex,
+	Value: "{{retries}}",
 }}
 
 // ConfigureCustomCABundle adds CABundle environment variables and volume mounts if CABUNDLE_SECRET_NAME is set.
