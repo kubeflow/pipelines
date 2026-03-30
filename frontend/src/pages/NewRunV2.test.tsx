@@ -497,6 +497,122 @@ describe('NewRunV2', () => {
     expect(await screen.findByDisplayValue('Run with custom name')).toBeInTheDocument();
   });
 
+  it('resets parameter inputs when the selected template changes', async () => {
+    const { rerender } = render(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={null}
+          existingRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={vi.fn()}
+          existingPipelineVersion={OTHER_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={vi.fn()}
+          templateString={v2LWYamlTemplateString}
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
+
+    const inputDictInput = await screen.findByLabelText('input_dict - dict');
+    fireEvent.change(inputDictInput, { target: { value: '{"A":3}' } });
+    expect(screen.getByDisplayValue('{"A":3}')).toBeInTheDocument();
+
+    rerender(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={null}
+          existingRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={vi.fn()}
+          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={vi.fn()}
+          templateString={v2XGYamlTemplateString}
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText('input_dict - dict')).toBeNull();
+    });
+
+    expect(await screen.findByText('This pipeline has no parameters')).toBeInTheDocument();
+  });
+
+  it('falls back to empty template-derived state when template parsing fails', async () => {
+    render(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={null}
+          existingRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={vi.fn()}
+          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={vi.fn()}
+          templateString='pipelineInfo: ['
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(await screen.findByText('This pipeline has no parameters')).toBeInTheDocument();
+  });
+
+  it('shows the cloned pipeline root after rerendering into clone mode', async () => {
+    const { rerender } = render(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={null}
+          existingRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={vi.fn()}
+          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={vi.fn()}
+          templateString={v2XGYamlTemplateString}
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
+
+    fireEvent.click(screen.getByLabelText('Set custom pipeline root.'));
+    fireEvent.change(screen.getByLabelText('pipeline-root'), {
+      target: { value: 'gs://custom_pipeline_root' },
+    });
+    expect(screen.getByDisplayValue('gs://custom_pipeline_root')).toBeInTheDocument();
+
+    rerender(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={TEST_RUN_ID}
+          existingRun={API_UI_CREATED_NEW_RUN_DETAILS}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={vi.fn()}
+          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={vi.fn()}
+          templateString={v2XGYamlTemplateString}
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(await screen.findByDisplayValue('gs://dummy_pipeline_root')).toBeInTheDocument();
+  });
+
   describe('redirect to different new run page', () => {
     it('directs to new run v2 if no pipeline is selected (enter from run list)', () => {
       render(
