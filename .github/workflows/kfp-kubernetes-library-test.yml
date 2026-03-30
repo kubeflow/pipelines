@@ -40,4 +40,4 @@ jobs:
         uses: ./.github/actions/kfp-k8s
 
       - name: Run tests
-        run: pytest ./kubernetes_platform/python/test
+        run: make test-kfp-kubernetes
