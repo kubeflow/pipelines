@@ -446,9 +446,8 @@ When writing or reviewing React code in `frontend/src`:
 - `npm run lint` - Run ESLint
 - `npm run typecheck` - Run TypeScript typecheck (`tsc --noEmit`)
 - `npm run typecheck:mock-backend` - Typecheck mock-backend against generated API types
-- `npm run check:react-peers` - Enforce lockfile React peer compatibility for current target (React 17 today)
+- `npm run check:react-peers` - Enforce lockfile React peer compatibility for current target (React 19)
 - `npm run check:react-peers:18` - Preview lockfile React peer compatibility against React 18
-- `npm run check:react-peers:19` - Preview lockfile React peer compatibility against React 19
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Fast pre-push check for frontend formatting; for a small TS/TSX diff, `npx prettier --check <changed files>` is the quickest equivalent
 - `npm run storybook` - Start Storybook on port 6006
@@ -633,7 +632,7 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - Frontend dev server: `cd frontend && npm start`
 - Frontend with cluster: `cd frontend && npm run start:proxy-and-server`
 - Frontend tests: `cd frontend && npm run test:ui` (Vitest) or `npm test` (same as `test:ui`)
-- Frontend React peer gate: `cd frontend && npm run check:react-peers` (or `check:react-peers:18` / `check:react-peers:19`)
+- Frontend React peer gate: `cd frontend && npm run check:react-peers` (or `check:react-peers:18`)
 - Frontend formatting: `cd frontend && npm run format`
 - Generate frontend APIs: `cd frontend && npm run apis:all`
 
