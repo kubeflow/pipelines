@@ -203,7 +203,7 @@ pyasn1==0.6.2
     #   rsa
 pyasn1-modules==0.4.2
     # via google-auth
-pygments==2.19.2
+pygments==2.20.0
     # via
     #   ipython
     #   nbconvert
