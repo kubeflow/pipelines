@@ -510,11 +510,5 @@ function getNamespaceFromUrl(path: string): string | undefined {
 const DUMMY_BASE_PATH = 'http://dummy-base-path';
 
 export function getArtifactServiceGetter({ serviceName, servicePort }: ArtifactsProxyConfig) {
-  return (namespace: string) => {
-    // Validate namespace to prevent SSRF attacks (CVE-2023-6570)
-    if (!isAllowedResourceName(namespace)) {
-      throw new Error('Invalid namespace format');
-    }
-    return `http://${serviceName}.${namespace}:${servicePort}`;
-  };
+  return (namespace: string) => `http://${serviceName}.${namespace}:${servicePort}`;
 }
