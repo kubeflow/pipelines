@@ -154,9 +154,11 @@ describe('literal input parameter integration', () => {
 
     await literalSelect.click();
     await $('[role="listbox"]').waitForDisplayed({ timeout: uiTimeout });
-    const optionTexts = await Promise.all(
-      (await $$('[role="option"]')).map(option => option.getText()),
-    );
+    const optionElements = await $$('[role="option"]');
+    const optionTexts = [];
+    for (const optionElement of optionElements) {
+      optionTexts.push(await optionElement.getText());
+    }
     assert.deepEqual(optionTexts, ['dev', 'staging', 'prod'], 'literal dropdown options mismatch');
 
     await $(`li=${selectedLiteral}`).click();
