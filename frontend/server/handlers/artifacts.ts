@@ -456,7 +456,7 @@ export function getArtifactsProxyHandler({
   if (!enabled) {
     return (_req, _res, next) => next();
   }
-  return createProxyMiddleware(
+  const proxy = createProxyMiddleware(
     (_pathname, req) => {
       // only proxy requests with namespace query parameter
       return !!getNamespaceFromUrl(req.url || '');
@@ -488,6 +488,14 @@ export function getArtifactsProxyHandler({
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
     },
   );
+  return (req, res, next) => {
+    const namespace = getNamespaceFromUrl(req.url || '');
+    if (namespace && !isAllowedResourceName(namespace)) {
+      res.status(400).send('Invalid namespace');
+      return;
+    }
+    proxy(req, res, next);
+  };
 }
 
 function getNamespaceFromUrl(path: string): string | undefined {
@@ -505,7 +513,7 @@ export function getArtifactServiceGetter({ serviceName, servicePort }: Artifacts
   return (namespace: string) => {
     // Validate namespace to prevent SSRF attacks (CVE-2023-6570)
     if (!isAllowedResourceName(namespace)) {
-      throw new Error(`Invalid namespace format: ${namespace}`);
+      throw new Error('Invalid namespace format');
     }
     return `http://${serviceName}.${namespace}:${servicePort}`;
   };
