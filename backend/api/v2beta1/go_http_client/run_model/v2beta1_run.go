@@ -36,6 +36,9 @@ type V2beta1Run struct {
 	// how to handle the error. This is especially useful during listing call.
 	Error *GooglerpcStatus `json:"error,omitempty"`
 
+	// Output. Display name of the experiment this run belongs to.
+	ExperimentDisplayName string `json:"experiment_display_name,omitempty"`
+
 	// Input. ID of the parent experiment.
 	// The default experiment ID will be used if this is not specified.
 	ExperimentID string `json:"experiment_id,omitempty"`
@@ -46,6 +49,9 @@ type V2beta1Run struct {
 
 	// Pipeline spec.
 	PipelineSpec interface{} `json:"pipeline_spec,omitempty"`
+
+	// Output. Display name of the pipeline version used by this run.
+	PipelineVersionDisplayName string `json:"pipeline_version_display_name,omitempty"`
 
 	// This field is Deprecated. The pipeline version id is under pipeline_version_reference for v2.
 	PipelineVersionID string `json:"pipeline_version_id,omitempty"`
