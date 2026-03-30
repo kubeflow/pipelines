@@ -88,8 +88,6 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
-      - name: KFP_RETRY_INDEX
-        value: '{{retries}}'
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -168,8 +166,6 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
-      - name: KFP_RETRY_INDEX
-        value: '{{retries}}'
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap

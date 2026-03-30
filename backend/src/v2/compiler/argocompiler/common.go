@@ -52,13 +52,18 @@ var commonEnvs = []k8score.EnvVar{{
 			FieldPath: "metadata.uid",
 		},
 	},
-}, {
-	// Argo substitutes {{retries}} with the 0-based retry attempt index at pod
-	// creation time, giving each retry attempt a unique, sequentially-numbered
-	// executor-logs path (executor-logs-0, executor-logs-1, …).
+}}
+
+// retryIndexEnv injects the Argo retry attempt index into the executor
+// container. Argo substitutes {{retries}} with the 0-based attempt index at
+// pod creation time, so each retry attempt writes executor-logs to a distinct,
+// sequentially-numbered path (executor-logs-0, executor-logs-1, …).
+// This variable is only valid inside a template that has a retryStrategy, so
+// it must NOT be added to commonEnvs (which is applied to all templates).
+var retryIndexEnv = k8score.EnvVar{
 	Name:  component.EnvRetryIndex,
 	Value: "{{retries}}",
-}}
+}
 
 // ConfigureCustomCABundle adds CABundle environment variables and volume mounts if CABUNDLE_SECRET_NAME is set.
 func ConfigureCustomCABundle(tmpl *wfapi.Template) {
