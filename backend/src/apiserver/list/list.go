@@ -86,7 +86,7 @@ func validateIdentifierName(name, fieldType string) error {
 
 func (t *token) unmarshal(pageToken string) error {
 	errorF := func(err error) error {
-		return util.NewInvalidInputErrorWithDetails(err, "Invalid package token")
+		return util.NewInvalidInputErrorWithDetails(err, "Invalid page token")
 	}
 	b, err := base64.StdEncoding.DecodeString(pageToken)
 	if err != nil {
