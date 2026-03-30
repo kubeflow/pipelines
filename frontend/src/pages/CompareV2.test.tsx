@@ -231,6 +231,14 @@ describe('CompareV2', () => {
     screen.getByText(OVERVIEW_SECTION_NAME);
   });
 
+  it('does not mark ROC selection initialized before ROC artifacts are available', () => {
+    const initialSelection = TEST_ONLY.createInitialRocCurveSelectionState();
+
+    expect(TEST_ONLY.reconcileRocCurveSelectionState(initialSelection, [], new Set())).toBe(
+      initialSelection,
+    );
+  });
+
   it('getRun is called with query param IDs', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
