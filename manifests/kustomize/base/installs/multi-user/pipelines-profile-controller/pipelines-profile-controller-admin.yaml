@@ -20,6 +20,7 @@ rules:
     verbs: [ "get", "list", "watch" ]
   - apiGroups: [ "" ]
     resources: [ "secrets" ]
+    resourceNames: [ "mlpipeline-minio-artifact" ]
     verbs: [ "get", "list", "watch" ]
   - apiGroups: [ "" ]
     resources: [ "pods" ]
