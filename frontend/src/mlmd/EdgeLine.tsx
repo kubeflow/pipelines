@@ -26,7 +26,7 @@ interface EdgeLineProps {
   y4: number;
 }
 
-export const EdgeLine: React.FC<EdgeLineProps> = props => {
+export const EdgeLine: React.FC<EdgeLineProps> = (props) => {
   const { height, width, y1, y4 } = props;
   // Legacy react-svg-line-chart rendered with an inverted Y axis.
   // Preserve that orientation so edge direction matches existing lineage visuals.

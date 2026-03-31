@@ -179,7 +179,7 @@ interface LineageCardRowProps {
 }
 
 export class LineageCardRow extends React.Component<LineageCardRowProps> {
-  private rowContainerRef: React.RefObject<HTMLDivElement> = React.createRef();
+  private rowContainerRef: React.RefObject<HTMLDivElement | null> = React.createRef();
 
   constructor(props: LineageCardRowProps) {
     super(props);
@@ -232,7 +232,7 @@ export class LineageCardRow extends React.Component<LineageCardRowProps> {
           className='form-radio'
           name=''
           value=''
-          onClick={this.handleClick}
+          onClick={this.handleRadioClick}
           checked={this.props.isTarget}
           readOnly={true}
         />
@@ -241,13 +241,18 @@ export class LineageCardRow extends React.Component<LineageCardRowProps> {
           className='form-radio hover-hint'
           name=''
           value=''
-          onClick={this.handleClick}
+          onClick={this.handleRadioClick}
           checked={true}
           readOnly={true}
         />
       </div>
     );
   }
+
+  private handleRadioClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    this.handleClick();
+  };
 
   private handleClick() {
     if (!this.props.setLineageViewTarget || !(this.props.typedResource.type === 'artifact')) return;

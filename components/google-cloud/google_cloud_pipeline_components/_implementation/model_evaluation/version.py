@@ -13,7 +13,7 @@
 # limitations under the License.
 """Version constants for model evaluation components."""
 
-_EVAL_VERSION = 'v0.9.4'
+_EVAL_VERSION = 'v0.9.6'
 _LLM_EVAL_VERSION = 'v0.7'
 
 _EVAL_IMAGE_NAME = 'gcr.io/ml-pipeline/model-evaluation'

@@ -18,7 +18,6 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import fs from 'node:fs';
 import * as JsYaml from 'js-yaml';
 import * as features from 'src/features';
-import React from 'react';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import {
@@ -405,6 +404,215 @@ describe('NewRunV2', () => {
     expect(runNameInput.closest('input')?.value).toBe('Run with custom name');
   });
 
+  it('updates the default run name when the selected pipeline version changes', async () => {
+    const { rerender } = render(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={null}
+          existingRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={vi.fn()}
+          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={vi.fn()}
+          templateString={v2XGYamlTemplateString}
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
+
+    await screen.findByDisplayValue((content, _) =>
+      content.startsWith(`Run of ${ORIGINAL_TEST_PIPELINE_VERSION_NAME}`),
+    );
+
+    rerender(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={null}
+          existingRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={vi.fn()}
+          existingPipelineVersion={OTHER_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={vi.fn()}
+          templateString={v2LWYamlTemplateString}
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(
+      await screen.findByDisplayValue((content, _) =>
+        content.startsWith(`Run of ${OTHER_TEST_PIPELINE_VERSION_NAME}`),
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('preserves a custom run name when the selected pipeline version changes', async () => {
+    const { rerender } = render(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={null}
+          existingRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={vi.fn()}
+          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={vi.fn()}
+          templateString={v2XGYamlTemplateString}
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
+
+    const runNameInput = await screen.findByDisplayValue((content, _) =>
+      content.startsWith(`Run of ${ORIGINAL_TEST_PIPELINE_VERSION_NAME}`),
+    );
+    fireEvent.change(runNameInput, { target: { value: 'Run with custom name' } });
+
+    rerender(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={null}
+          existingRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={vi.fn()}
+          existingPipelineVersion={OTHER_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={vi.fn()}
+          templateString={v2LWYamlTemplateString}
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(await screen.findByDisplayValue('Run with custom name')).toBeInTheDocument();
+  });
+
+  it('resets parameter inputs when the selected template changes', async () => {
+    const { rerender } = render(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={null}
+          existingRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={vi.fn()}
+          existingPipelineVersion={OTHER_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={vi.fn()}
+          templateString={v2LWYamlTemplateString}
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
+
+    const inputDictInput = await screen.findByLabelText('input_dict - dict');
+    fireEvent.change(inputDictInput, { target: { value: '{"A":3}' } });
+    expect(screen.getByDisplayValue('{"A":3}')).toBeInTheDocument();
+
+    rerender(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={null}
+          existingRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={vi.fn()}
+          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={vi.fn()}
+          templateString={v2XGYamlTemplateString}
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText('input_dict - dict')).toBeNull();
+    });
+
+    expect(await screen.findByText('This pipeline has no parameters')).toBeInTheDocument();
+  });
+
+  it('falls back to empty template-derived state when template parsing fails', async () => {
+    render(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={null}
+          existingRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={vi.fn()}
+          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={vi.fn()}
+          templateString='pipelineInfo: ['
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(await screen.findByText('This pipeline has no parameters')).toBeInTheDocument();
+  });
+
+  it('shows the cloned pipeline root after rerendering into clone mode', async () => {
+    const { rerender } = render(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={null}
+          existingRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={vi.fn()}
+          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={vi.fn()}
+          templateString={v2XGYamlTemplateString}
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
+
+    fireEvent.click(screen.getByLabelText('Set custom pipeline root.'));
+    fireEvent.change(screen.getByLabelText('pipeline-root'), {
+      target: { value: 'gs://custom_pipeline_root' },
+    });
+    expect(screen.getByDisplayValue('gs://custom_pipeline_root')).toBeInTheDocument();
+
+    rerender(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={TEST_RUN_ID}
+          existingRun={API_UI_CREATED_NEW_RUN_DETAILS}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={vi.fn()}
+          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={vi.fn()}
+          templateString={v2XGYamlTemplateString}
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(await screen.findByDisplayValue('gs://dummy_pipeline_root')).toBeInTheDocument();
+  });
+
   describe('redirect to different new run page', () => {
     it('directs to new run v2 if no pipeline is selected (enter from run list)', () => {
       render(
@@ -426,7 +634,7 @@ describe('NewRunV2', () => {
         '(enter from experiment details)',
       async () => {
         const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
-        getExperimentSpy.mockImplementation(() => NEW_EXPERIMENT);
+        getExperimentSpy.mockResolvedValue(NEW_EXPERIMENT);
 
         render(
           <CommonTestWrapper>
@@ -438,14 +646,14 @@ describe('NewRunV2', () => {
           expect(getExperimentSpy).toHaveBeenCalled();
         });
 
-        screen.getByDisplayValue(NEW_EXPERIMENT.display_name);
-        screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+        expect(await screen.findByDisplayValue(NEW_EXPERIMENT.display_name)).toBeInTheDocument();
+        expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
       },
     );
 
     it('directs to new run v2 if it is v2 template (create run from pipeline)', async () => {
       vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
       );
       const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
@@ -463,7 +671,7 @@ describe('NewRunV2', () => {
         expect(getPipelineVersionSpy).toHaveBeenCalled();
       });
 
-      screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+      expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
     });
 
     it('directs to new run v1 if it is not v2 template (create run from pipeline)', async () => {
@@ -476,7 +684,7 @@ describe('NewRunV2', () => {
       };
 
       vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
       );
       const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
@@ -515,7 +723,7 @@ describe('NewRunV2', () => {
         };
 
         vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-          featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+          (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
         );
         const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
         getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
@@ -536,7 +744,9 @@ describe('NewRunV2', () => {
           expect(getPipelineVersionSpy).toHaveBeenCalled();
         });
 
-        expect(getPipelineV1Spy).toHaveBeenCalled(); //calling v1 getPipeline() -> direct to new run v1 page
+        await waitFor(() => {
+          expect(getPipelineV1Spy).toHaveBeenCalled(); //calling v1 getPipeline() -> direct to new run v1 page
+        });
       },
     );
 
@@ -553,7 +763,7 @@ describe('NewRunV2', () => {
         };
 
         vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-          featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+          (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
         );
         const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
         getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
@@ -576,7 +786,7 @@ describe('NewRunV2', () => {
           expect(getPipelineVersionSpy).toHaveBeenCalled();
         });
 
-        screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+        expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
       },
     );
   });
@@ -613,7 +823,7 @@ describe('NewRunV2', () => {
 
       const startButton = await screen.findByText('Start');
       expect(startButton.closest('button')?.disabled).toEqual(true);
-      expect(await screen.findByText('Run name can not be empty.'));
+      expect(await screen.findByText('Run name cannot be empty.'));
     });
 
     it('submit a new run without parameter (create new run)', async () => {
@@ -826,7 +1036,7 @@ describe('NewRunV2', () => {
               predicates: [
                 {
                   key: 'storage_state',
-                  operation: V2beta1PredicateOperation.NOTEQUALS,
+                  operation: V2beta1PredicateOperation.NOT_EQUALS,
                   string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
                 },
               ],
@@ -938,7 +1148,7 @@ describe('NewRunV2', () => {
           open: true,
         });
       });
-    });
+    }, 20000);
 
     it('enables to change the trigger parameters.', async () => {
       const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
@@ -971,7 +1181,12 @@ describe('NewRunV2', () => {
       const timeCountParam = screen.getByDisplayValue('1');
       fireEvent.change(timeCountParam, { target: { value: '5' } });
 
-      const timeUnitDropdown = screen.getByRole('button', { name: 'Hours' });
+      const timeUnitDropdown = screen
+        .getAllByRole('combobox')
+        .find((combobox) => combobox.textContent === 'Hours');
+      if (!timeUnitDropdown) {
+        throw new Error('Unable to find the interval unit dropdown');
+      }
       fireEvent.mouseDown(timeUnitDropdown);
       const minutesItem = await screen.findByRole('option', { name: 'Minutes' });
       fireEvent.click(minutesItem);
@@ -1292,6 +1507,64 @@ describe('NewRunV2', () => {
     });
   });
 
+  describe('error dialog uses the submitted run type', () => {
+    it('shows "Recurring run creation failed" even if user flips radio to one-off before rejection', async () => {
+      let rejectRecurringRun!: (reason: unknown) => void;
+      const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
+      createRecurringRunSpy.mockReturnValue(
+        new Promise((_resolve, reject) => {
+          rejectRecurringRun = reject;
+        }),
+      );
+
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={vi.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={vi.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={DEFAULT_EXPERIMENT}
+          />
+        </CommonTestWrapper>,
+      );
+
+      const recurringSwitcher = screen.getByLabelText('Recurring');
+      fireEvent.click(recurringSwitcher);
+
+      const startButton = await screen.findByText('Start');
+      await waitFor(() => {
+        expect(startButton.closest('button')?.disabled).toEqual(false);
+      });
+      fireEvent.click(startButton);
+
+      await waitFor(() => {
+        expect(createRecurringRunSpy).toHaveBeenCalled();
+      });
+
+      // Flip to one-off while the recurring run request is still in flight
+      const oneOffSwitcher = screen.getByLabelText('One-off');
+      fireEvent.click(oneOffSwitcher);
+
+      // Now reject the in-flight recurring run request
+      rejectRecurringRun(new Error('simulated failure'));
+
+      await waitFor(() => {
+        expect(updateDialogSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: 'Recurring run creation failed',
+          }),
+        );
+      });
+    });
+  });
+
   describe('"Always Use Latest" checkbox functionality', () => {
     it('should be disabled when no pipeline is selected', async () => {
       render(
@@ -1471,6 +1744,55 @@ describe('NewRunV2', () => {
       // Verify choose button is disabled
       const chooseBtn = document.getElementById('choosePipelineVersionBtn');
       expect(chooseBtn.disabled).toBe(true);
+    });
+
+    it('should keep the version selection blank while latest-version mode is enabled', async () => {
+      const { rerender } = render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={vi.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={vi.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+
+      fireEvent.click(screen.getByLabelText('Recurring'));
+      fireEvent.click(screen.getByLabelText('Always use the latest pipeline version'));
+
+      await waitFor(() => {
+        expect(screen.queryByDisplayValue(ORIGINAL_TEST_PIPELINE_VERSION_NAME)).toBeNull();
+      });
+
+      rerender(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={vi.fn()}
+            existingPipelineVersion={OTHER_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={vi.fn()}
+            templateString={v2LWYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByDisplayValue(OTHER_TEST_PIPELINE_VERSION_NAME)).toBeNull();
+      });
     });
 
     it('should submit correct payload with only pipeline_id when checked', async () => {

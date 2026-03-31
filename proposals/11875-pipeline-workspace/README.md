@@ -196,7 +196,7 @@ An example of overriding the PVC configuration:
 As a stretch goal, it'd be nice to make garbage collection of the PVC configurable. It'd default to `OnRunSuccess`. Here
 are the suggested options:
 
-- `OnRunSuccess` - when the pipeline run completes successfuly, the PVC is deleted. This maps to the Argo Workflows
+- `OnRunSuccess` - when the pipeline run completes successfully, the PVC is deleted. This maps to the Argo Workflows
   `OnWorkflowSuccess` option.
 - `OnRunCompletion` - when the pipeline run completes (success or failure), the PVC is always deleted. This maps to the
   Argo Workflow `OnWorkflowCompletion` option.

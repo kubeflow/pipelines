@@ -22,7 +22,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 )
 
-const deletionPollTimeout = 3 * time.Second
+const pollTimeout = 3 * time.Second
 
 var (
 	ErrNoV1             = errors.New("the v1 API is not available for the Kubernetes pipeline store")
@@ -43,6 +43,10 @@ func (k *PipelineStoreKubernetes) GetPipelineByNameAndNamespaceV1(name string, n
 }
 
 func (k *PipelineStoreKubernetes) GetPipelineByNameAndNamespace(name string, namespace string) (*model.Pipeline, error) {
+	if namespace == "" {
+		namespace = common.GetPodNamespace()
+	}
+
 	k8sPipeline := v2beta1.Pipeline{}
 
 	err := k.client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &k8sPipeline)
@@ -61,7 +65,7 @@ func (k *PipelineStoreKubernetes) ListPipelinesV1(filterContext *model.FilterCon
 	return nil, nil, 0, "", ErrNoV1
 }
 
-func (k *PipelineStoreKubernetes) ListPipelines(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error) {
+func (k *PipelineStoreKubernetes) ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters map[string]string) ([]*model.Pipeline, int, string, error) {
 	k8sPipelines := v2beta1.PipelineList{}
 
 	listOptions := []ctrlclient.ListOption{ctrlclient.UnsafeDisableDeepCopy}
@@ -81,17 +85,29 @@ func (k *PipelineStoreKubernetes) ListPipelines(filterContext *model.FilterConte
 	pipelines := make([]*model.Pipeline, 0, len(k8sPipelines.Items))
 
 	for _, k8sPipeline := range k8sPipelines.Items {
-		if opts.Filter == nil {
-			pipelines = append(pipelines, k8sPipeline.ToModel())
-			continue
+		if opts.Filter != nil {
+			found, err1 := opts.Filter.FilterK8sPipelines(k8sPipeline)
+			if err1 != nil {
+				return nil, 0, "", err1
+			}
+			if !found {
+				continue
+			}
 		}
-		found, err1 := opts.Filter.FilterK8sPipelines(k8sPipeline)
-		if err1 != nil {
-			return nil, 0, "", err1
+		// Filter by tags if tag filters are provided
+		if len(tagFilters) > 0 {
+			match := true
+			for key, value := range tagFilters {
+				if k8sPipeline.Spec.Tags[key] != value {
+					match = false
+					break
+				}
+			}
+			if !match {
+				continue
+			}
 		}
-		if found {
-			pipelines = append(pipelines, k8sPipeline.ToModel())
-		}
+		pipelines = append(pipelines, k8sPipeline.ToModel())
 	}
 
 	// Because controller-client does not have sorting, use this function to sort by fields.
@@ -107,7 +123,7 @@ func (k *PipelineStoreKubernetes) ListPipelines(filterContext *model.FilterConte
 				case float64:
 					return elementA.(float64) > elementB.(float64)
 				case string:
-					return elementA.(string) > elementB.(string)
+					return strings.ToLower(elementA.(string)) > strings.ToLower(elementB.(string))
 				default:
 					glog.Warningf("Field type %T in %s not recognized. Sorting will not work.", elementA, opts.SortByFieldName)
 					return false
@@ -173,12 +189,15 @@ func (k *PipelineStoreKubernetes) DeletePipeline(pipelineId string) error {
 		return err
 	}
 
-	err = k.client.Delete(context.TODO(), k8sPipeline)
+	// Deep copy to avoid mutating the cache (getK8sPipeline uses UnsafeDisableDeepCopy).
+	pipelineCopy := k8sPipeline.DeepCopy()
+
+	err = k.client.Delete(context.TODO(), pipelineCopy)
 	if err != nil && !k8serrors.IsNotFound(err) {
 		return util.NewInternalServerError(err, "Failed to delete the pipeline")
 	}
 
-	return k.deleteWithTimeout(k8sPipeline.Namespace, k8sPipeline.Name, &v2beta1.Pipeline{})
+	return k.deleteWithTimeout(pipelineCopy.Namespace, pipelineCopy.Name, &v2beta1.Pipeline{})
 }
 
 func (k *PipelineStoreKubernetes) CreatePipelineAndPipelineVersion(pipeline *model.Pipeline, pipelineVersion *model.PipelineVersion) (*model.Pipeline, *model.PipelineVersion, error) {
@@ -244,10 +263,13 @@ func (k *PipelineStoreKubernetes) UpdatePipelineVersionStatus(pipelineVersionId 
 		return err
 	}
 
+	// Deep copy to avoid mutating the cache (getK8sPipelineVersion uses UnsafeDisableDeepCopy).
+	versionCopy := k8sPipelineVersion.DeepCopy()
+
 	conditionSet := false
 
-	for i := range k8sPipelineVersion.Status.Conditions {
-		condition := &k8sPipelineVersion.Status.Conditions[i]
+	for i := range versionCopy.Status.Conditions {
+		condition := &versionCopy.Status.Conditions[i]
 
 		if condition.Type == "PipelineVersionStatus" {
 			if condition.Reason == string(status) && condition.Message == condition.Reason {
@@ -265,7 +287,7 @@ func (k *PipelineStoreKubernetes) UpdatePipelineVersionStatus(pipelineVersionId 
 	}
 
 	if !conditionSet {
-		k8sPipelineVersion.Status.Conditions = append(k8sPipelineVersion.Status.Conditions, v2beta1.SimplifiedCondition{
+		versionCopy.Status.Conditions = append(versionCopy.Status.Conditions, v2beta1.SimplifiedCondition{
 			Type:    "PipelineVersionStatus",
 			Reason:  string(status),
 			Message: string(status),
@@ -273,13 +295,13 @@ func (k *PipelineStoreKubernetes) UpdatePipelineVersionStatus(pipelineVersionId 
 		})
 	}
 
-	err = k.client.Status().Update(context.TODO(), k8sPipelineVersion)
+	err = k.client.Status().Update(context.TODO(), versionCopy)
 	if err != nil && k8serrors.IsConflict(err) {
 		return k.UpdatePipelineVersionStatus(pipelineVersionId, status)
 	} else if err != nil {
 		return util.NewInternalServerError(err, "Failed to update the pipeline version status")
 	}
-	return nil
+	return k.updateWithTimeout(versionCopy)
 }
 
 func (k *PipelineStoreKubernetes) CreatePipelineVersion(pipelineVersion *model.PipelineVersion) (*model.PipelineVersion, error) {
@@ -361,8 +383,8 @@ func (k *PipelineStoreKubernetes) GetPipelineVersionWithStatus(pipelineVersionId
 	return pipelineVersion, nil
 }
 
-func (k *PipelineStoreKubernetes) ListPipelineVersions(pipelineId string, opts *list.Options) (versions []*model.PipelineVersion, totalSize int, nextPageToken string, err error) {
-	k8sPipelineVersions, err := k.getK8sPipelineVersions(context.TODO(), pipelineId, "")
+func (k *PipelineStoreKubernetes) ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters map[string]string) (versions []*model.PipelineVersion, totalSize int, nextPageToken string, err error) {
+	k8sPipelineVersions, err := k.getK8sPipelineVersions(context.TODO(), pipelineID, "")
 	if err != nil {
 		return nil, 0, "", err
 	}
@@ -370,21 +392,33 @@ func (k *PipelineStoreKubernetes) ListPipelineVersions(pipelineId string, opts *
 	pipelineVersions := make([]*model.PipelineVersion, 0, len(k8sPipelineVersions.Items))
 
 	for _, k8sPipelineVersion := range k8sPipelineVersions.Items {
+		if opts.Filter != nil {
+			found, err1 := opts.Filter.FilterK8sPipelineVersions(k8sPipelineVersion)
+			if err1 != nil {
+				return nil, 0, "", err1
+			}
+			if !found {
+				continue
+			}
+		}
+		// Filter by tags if tag filters are provided
+		if len(tagFilters) > 0 {
+			match := true
+			for key, value := range tagFilters {
+				if k8sPipelineVersion.Spec.Tags[key] != value {
+					match = false
+					break
+				}
+			}
+			if !match {
+				continue
+			}
+		}
 		pipelineVersion, err := k8sPipelineVersion.ToModel()
 		if err != nil {
 			return nil, 0, "", err
 		}
-
-		if opts.Filter == nil {
-			pipelineVersions = append(pipelineVersions, pipelineVersion)
-		} else {
-			found, err1 := opts.Filter.FilterK8sPipelineVersions(k8sPipelineVersion)
-			if err1 != nil {
-				return nil, 0, "", err1
-			} else if found {
-				pipelineVersions = append(pipelineVersions, pipelineVersion)
-			}
-		}
+		pipelineVersions = append(pipelineVersions, pipelineVersion)
 	}
 
 	// Because controller-client does not have sorting, use this function to sort by fields.
@@ -400,7 +434,7 @@ func (k *PipelineStoreKubernetes) ListPipelineVersions(pipelineId string, opts *
 				case float64:
 					return elementA.(float64) > elementB.(float64)
 				case string:
-					return elementA.(string) > elementB.(string)
+					return strings.ToLower(elementA.(string)) > strings.ToLower(elementB.(string))
 				default:
 					glog.Warningf("Field type %T in %s not recognized. Sorting will not work.", elementA, opts.SortByFieldName)
 					return false
@@ -445,17 +479,20 @@ func (k *PipelineStoreKubernetes) DeletePipelineVersion(pipelineVersionId string
 		return err
 	}
 
-	err = k.client.Delete(context.TODO(), k8sPipelineVersion)
+	// Deep copy to avoid mutating the cache (getK8sPipelineVersion uses UnsafeDisableDeepCopy).
+	versionCopy := k8sPipelineVersion.DeepCopy()
+
+	err = k.client.Delete(context.TODO(), versionCopy)
 	if err != nil && !k8serrors.IsNotFound(err) {
 		return util.NewInternalServerError(err, "Failed to delete the pipeline version")
 	}
 
-	return k.deleteWithTimeout(k8sPipelineVersion.Namespace, k8sPipelineVersion.Name, &v2beta1.PipelineVersion{})
+	return k.deleteWithTimeout(versionCopy.Namespace, versionCopy.Name, &v2beta1.PipelineVersion{})
 }
 
 // deleteWithTimeout polls until the given namespaced resource is NotFound or the timeout expires.
 func (k *PipelineStoreKubernetes) deleteWithTimeout(namespace string, name string, exampleObject ctrlclient.Object) error {
-	ctx, cancel := context.WithTimeout(context.Background(), deletionPollTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), pollTimeout)
 	defer cancel()
 
 	for {
@@ -476,10 +513,38 @@ func (k *PipelineStoreKubernetes) deleteWithTimeout(namespace string, name strin
 	}
 }
 
+// updateWithTimeout polls the cache until the resource version matches the updated object or the timeout expires.
+func (k *PipelineStoreKubernetes) updateWithTimeout(updated ctrlclient.Object) error {
+	ctx, cancel := context.WithTimeout(context.Background(), pollTimeout)
+	defer cancel()
+
+	key := types.NamespacedName{Namespace: updated.GetNamespace(), Name: updated.GetName()}
+	targetVersion := updated.GetResourceVersion()
+
+	for {
+		select {
+		case <-ctx.Done():
+			// Not fatal — the cache will eventually sync.
+			return nil
+		default:
+			current := updated.DeepCopyObject().(ctrlclient.Object)
+			err := k.client.Get(ctx, key, current)
+			if err != nil {
+				return nil
+			}
+			if current.GetResourceVersion() == targetVersion {
+				return nil
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+}
+
 func (k *PipelineStoreKubernetes) getK8sPipeline(pipelineId string) (*v2beta1.Pipeline, error) {
 	pipelines := v2beta1.PipelineList{}
 
-	// Be careful, the deep copy is disabled here to reduce memory allocations
+	// Be careful, the deep copy is disabled here to reduce memory allocations.
+	// Callers that mutate the returned object must deep copy it first.
 	listOptions := []ctrlclient.ListOption{ctrlclient.UnsafeDisableDeepCopy}
 
 	if !common.IsMultiUserMode() && common.GetPodNamespace() != "" {
@@ -517,7 +582,8 @@ func (k *PipelineStoreKubernetes) getK8sPipelineVersions(
 ) (*v2beta1.PipelineVersionList, error) {
 	pipelineVersions := v2beta1.PipelineVersionList{}
 
-	// Be careful, the deep copy is disabled here to reduce memory allocations
+	// Be careful, the deep copy is disabled here to reduce memory allocations.
+	// Callers that mutate the returned objects must deep copy them first.
 	listOptions := []ctrlclient.ListOption{ctrlclient.UnsafeDisableDeepCopy}
 
 	if !common.IsMultiUserMode() && common.GetPodNamespace() != "" {
@@ -552,10 +618,14 @@ func (k *PipelineStoreKubernetes) getK8sPipelineVersions(
 		}
 	}
 
-	// Fallback to not using the cache if the specific pipeline version is missing
+	// Fallback to not using the cache
 	err = k.clientNoCache.List(ctx, &pipelineVersions, listOptions...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "%s", errMsg)
+	}
+
+	if pipelineVersionId == "" {
+		return &pipelineVersions, nil
 	}
 
 	for _, pipelineVersion := range pipelineVersions.Items {
@@ -598,4 +668,130 @@ func (k *PipelineStoreKubernetes) createPipelineVersionWithPipeline(ctx context.
 	}
 
 	return k8sPipelineVersion.ToModel()
+}
+
+func (k *PipelineStoreKubernetes) UpdatePipelineFields(pipelineID string, displayName string, tags map[string]string) error {
+	k8sPipeline, err := k.getK8sPipeline(pipelineID)
+	if err != nil {
+		return err
+	}
+	// Deep copy to avoid mutating the cache (getK8sPipeline uses UnsafeDisableDeepCopy).
+	pipelineCopy := k8sPipeline.DeepCopy()
+	if displayName != "" {
+		pipelineCopy.Spec.DisplayName = displayName
+	}
+	if tags != nil {
+		pipelineCopy.Spec.Tags = tags
+	}
+	if err := k.client.Update(context.TODO(), pipelineCopy); err != nil {
+		return util.NewInternalServerError(err, "Failed to update pipeline %v", pipelineID)
+	}
+	return k.updateWithTimeout(pipelineCopy)
+}
+
+func (k *PipelineStoreKubernetes) UpdatePipelineVersionFields(pipelineVersionID string, displayName string, tags map[string]string) error {
+	k8sPipelineVersion, err := k.getK8sPipelineVersion(context.TODO(), pipelineVersionID)
+	if err != nil {
+		return err
+	}
+	// Deep copy to avoid mutating the cache (getK8sPipelineVersion uses UnsafeDisableDeepCopy).
+	versionCopy := k8sPipelineVersion.DeepCopy()
+	if displayName != "" {
+		versionCopy.Spec.DisplayName = displayName
+	}
+	if tags != nil {
+		versionCopy.Spec.Tags = tags
+	}
+	if err := k.client.Update(context.TODO(), versionCopy); err != nil {
+		return util.NewInternalServerError(err, "Failed to update pipeline version %v", pipelineVersionID)
+	}
+	return k.updateWithTimeout(versionCopy)
+}
+
+// Pipeline tag operations
+
+func (k *PipelineStoreKubernetes) CreateOrUpdatePipelineTags(pipelineID string, tags map[string]string) error {
+	k8sPipeline, err := k.getK8sPipeline(pipelineID)
+	if err != nil {
+		return err
+	}
+	// Deep copy to avoid mutating the cache (getK8sPipeline uses UnsafeDisableDeepCopy).
+	pipelineCopy := k8sPipeline.DeepCopy()
+	pipelineCopy.Spec.Tags = tags
+	if err := k.client.Update(context.TODO(), pipelineCopy); err != nil {
+		return util.NewInternalServerError(err, "Failed to update tags for pipeline %v", pipelineID)
+	}
+	return k.updateWithTimeout(pipelineCopy)
+}
+
+func (k *PipelineStoreKubernetes) GetPipelineTags(pipelineID string) (map[string]string, error) {
+	k8sPipeline, err := k.getK8sPipeline(pipelineID)
+	if err != nil {
+		return nil, err
+	}
+	return k8sPipeline.Spec.Tags, nil
+}
+
+// GetPipelineTagsForPipelines fetches tags for each pipeline individually because
+// the K8s controller-runtime client does not provide a batch Get API. In practice,
+// this method is not called from the K8s code path since ListPipelines already
+// populates tags via ToModel().
+func (k *PipelineStoreKubernetes) GetPipelineTagsForPipelines(pipelineIds []string) (map[string]map[string]string, error) {
+	result := make(map[string]map[string]string)
+	for _, id := range pipelineIds {
+		tags, err := k.GetPipelineTags(id)
+		if err != nil {
+			return nil, err
+		}
+		if len(tags) > 0 {
+			result[id] = tags
+		}
+	}
+	return result, nil
+}
+
+func (k *PipelineStoreKubernetes) DeletePipelineTags(pipelineID string) error {
+	return k.CreateOrUpdatePipelineTags(pipelineID, nil)
+}
+
+// Pipeline version tag operations
+
+func (k *PipelineStoreKubernetes) CreateOrUpdatePipelineVersionTags(pipelineVersionID string, tags map[string]string) error {
+	k8sPipelineVersion, err := k.getK8sPipelineVersion(context.TODO(), pipelineVersionID)
+	if err != nil {
+		return err
+	}
+	// Deep copy to avoid mutating the cache (getK8sPipelineVersion uses UnsafeDisableDeepCopy).
+	versionCopy := k8sPipelineVersion.DeepCopy()
+	versionCopy.Spec.Tags = tags
+	if err := k.client.Update(context.TODO(), versionCopy); err != nil {
+		return util.NewInternalServerError(err, "Failed to update tags for pipeline version %v", pipelineVersionID)
+	}
+	return k.updateWithTimeout(versionCopy)
+}
+
+func (k *PipelineStoreKubernetes) GetPipelineVersionTags(pipelineVersionID string) (map[string]string, error) {
+	k8sPipelineVersion, err := k.getK8sPipelineVersion(context.TODO(), pipelineVersionID)
+	if err != nil {
+		return nil, err
+	}
+	return k8sPipelineVersion.Spec.Tags, nil
+}
+
+func (k *PipelineStoreKubernetes) GetPipelineVersionTagsForVersions(pipelineVersionIds []string) (map[string]map[string]string, error) {
+	result := make(map[string]map[string]string)
+	for _, id := range pipelineVersionIds {
+		tags, err := k.GetPipelineVersionTags(id)
+		if err != nil {
+			return nil, err
+		}
+		if len(tags) > 0 {
+			result[id] = tags
+		}
+	}
+	return result, nil
+}
+
+func (k *PipelineStoreKubernetes) DeletePipelineVersionTags(pipelineVersionID string) error {
+	return k.CreateOrUpdatePipelineVersionTags(pipelineVersionID, nil)
 }

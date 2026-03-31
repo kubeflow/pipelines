@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { Handler } from 'express';
-import * as k8sHelper from '../k8s-helper.js';
 import {
   createPodLogsMinioRequestConfig,
   composePodLogsStreamHandler,
@@ -121,7 +120,7 @@ export function getPodLogsHandler(
 
     try {
       const stream = await getPodLogsStream(podName, createdAt, podNamespace);
-      stream.on('error', err => {
+      stream.on('error', (err) => {
         if (
           err?.message &&
           err.message?.indexOf('Unable to find pod log archive information') > -1

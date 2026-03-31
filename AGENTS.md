@@ -7,8 +7,8 @@
 
 ### Document metadata
 
-- Last updated: 2026-01-20
-- Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 16)
+- Last updated: 2026-03-30
+- Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
 
@@ -17,6 +17,26 @@
 - When you change CI matrices (Kubernetes versions, pipeline stores, proxy/cache toggles, Argo versions) or add/remove workflows, update the CI/CD section.
 - If you come across new common errors or fixes, extend "Common error patterns and quick fixes".
 - Always bump the "Last updated" date above when you make substantive changes.
+
+### Code reuse policy (agents and contributors)
+
+- Always reuse existing functions, helpers, and utilities before writing new code. Search the codebase for existing implementations that accomplish the same goal.
+- Do not duplicate logic that already exists elsewhere in the repo. If a function, method, or pattern is already implemented, import and call it rather than reimplementing it.
+- When adding new functionality, check related packages and modules for shared code that can be leveraged.
+- If existing code needs slight modifications to be reusable, prefer refactoring the existing code to be more general over duplicating it with changes.
+- Use descriptive variable and function names. Avoid abbreviations or single-letter names — prefer full, meaningful names that clearly convey purpose (e.g., `executionID` over `execID`, `fingerPrint` over `fp`).
+
+### Testing policy (agents and contributors)
+
+- Every new non-trivial function, method, or exported API must have accompanying unit tests before merging. Trivial helpers and glue code may be excluded when testing adds no meaningful value.
+- All existing tests must pass locally before pushing changes. Run the relevant test suites listed in the [Local testing](#local-testing) and [Quick reference](#quick-reference) sections (Go backend, Python SDK, `kfp-kubernetes`, and frontend).
+- When modifying existing functions, verify that existing tests still pass and add new test cases if the behavior changes.
+- Do not submit changes that break existing tests. If a test failure is pre-existing and unrelated to your changes, note it explicitly in the PR description.
+
+### Commit policy (agents and contributors)
+
+- Always sign off on commits with `git commit -s` (adds a `Signed-off-by:` trailer).
+- Never include AI agents (e.g. Claude Code, Copilot, or similar tools) as co-authors on commits. The human author is responsible for the work.
 
 ## Baseline architecture
 
@@ -288,7 +308,7 @@ The following files are generated; edit their sources and regenerate:
   - Generate: `make -C kubernetes_platform python` (or `make -C kubernetes_platform python-dev`)
 - Frontend API clients under `frontend/src/apis` and `frontend/src/apisv2beta1`
   - Sources: Swagger specs under `backend/api/**/swagger/*.json`
-  - Generate: `cd frontend && npm run apis` / `npm run apis:v2beta1` (includes postprocess for TS 4.9 delete fix)
+  - Generate: `cd frontend && npm run apis` / `npm run apis:v2beta1` / `npm run apis:all` (uses pinned Docker image `openapitools/openapi-generator-cli:v7.19.0`)
 - Frontend MLMD proto outputs under `frontend/src/third_party/mlmd/generated`
   - Sources: `third_party/ml-metadata/*.proto`
   - Generate: `cd frontend && npm run build:protos`
@@ -302,7 +322,7 @@ The following files are generated; edit their sources and regenerate:
 - Platform integration (Python): `kubernetes_platform/python/kfp/`
 - Platform spec proto: `kubernetes_platform/proto/`
 - API definitions (Protobufs): `api/`
-- Backend (API server, driver, launcher, etc.): `backend/`
+- Backend (API server, driver, launcher, etc.): `backend/` (see `backend/README.md` for build, test, and local development setup)
 - Backend test suites: `backend/test/compiler`, `backend/test/v2/api`, `backend/test/end2end`
 - Frontend: `frontend/` (React TypeScript, see `frontend/CONTRIBUTING.md`)
 - Manifests (Kustomize bases/overlays for deployments): `manifests/`
@@ -320,15 +340,15 @@ The KFP frontend is a React TypeScript application that provides the web UI for 
 
 ### Prerequisites
 
-- Node.js version specified in `frontend/.nvmrc` (currently v22.19.0)
-- Java 8+ (required for `java -jar swagger-codegen-cli.jar` when generating API clients)
+- Node.js version specified in `frontend/.nvmrc`
+- Docker (required for frontend API client generation via OpenAPI Generator container)
 - Use [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm) for Node version management:
 
   ```bash
   # With fnm (faster)
-  fnm install 22.19.0 && fnm use 22.19.0
+  fnm install "$(cat frontend/.nvmrc)" && fnm use "$(cat frontend/.nvmrc)"
   # With nvm
-  nvm install 22.19.0 && nvm use 22.19.0
+  nvm install "$(cat frontend/.nvmrc)" && nvm use "$(cat frontend/.nvmrc)"
   ```
 
 ### Setup and installation
@@ -377,8 +397,8 @@ For full integration testing against a real KFP deployment:
 
 ### Key technologies and architecture
 
-- **React 16** with TypeScript
-- **Material-UI v3** for components
+- **React 19** with TypeScript
+- **MUI v5** (Material UI) for components
 - **React Router v5** for navigation
 - **Dagre** for graph layout visualization
 - **D3** for data visualization
@@ -387,6 +407,30 @@ For full integration testing against a real KFP deployment:
 - **Prettier + ESLint** for code formatting/linting
 - **Storybook** for component development
 - **Tailwind CSS** for utility-first styling
+
+### React effect discipline
+
+When writing or reviewing React code in `frontend/src`:
+
+- Treat every `useEffect` as an escape hatch for external synchronization.
+  Valid cases include browser APIs, timers, subscriptions, storage, imperative DOM APIs,
+  or coordinating with async systems that exist outside React render.
+- Do not use `useEffect` for derived UI state.
+  If state can be computed from props, query results, or existing state, derive it during render
+  or with a memoized pure helper.
+- Do not put user-action behavior in an effect.
+  Navigation, snackbars, dialog open/close behavior, and mutation success/failure handling should
+  live in event handlers or mutation callbacks.
+- Avoid effect chains where one effect sets state that triggers another.
+  If a page needs several coupled state transitions, prefer a reducer or a single explicit update path.
+- Preserve user-controlled state across refreshes and refetches.
+  Query refreshes must not silently reset selected runs, selected artifacts, typed names, or toggles
+  unless that reset is an explicit product requirement.
+- Treat `eslint-disable react-hooks/exhaustive-deps` as a code smell.
+  Only keep it when the invariant is documented in code and covered by a targeted test.
+- During reviews, classify each new or changed effect as one of:
+  `external sync`, `derived state`, `event-driven`, `state reset`, or `effect chain`.
+  Anything except `external sync` requires explicit justification in the diff or review notes.
 
 ### Essential commands (frontend)
 
@@ -401,7 +445,11 @@ For full integration testing against a real KFP deployment:
 - `npm run test -u` - Update Vitest snapshots
 - `npm run lint` - Run ESLint
 - `npm run typecheck` - Run TypeScript typecheck (`tsc --noEmit`)
+- `npm run typecheck:mock-backend` - Typecheck mock-backend against generated API types
+- `npm run check:react-peers` - Enforce lockfile React peer compatibility for current target (React 19)
+- `npm run check:react-peers:18` - Preview lockfile React peer compatibility against React 18
 - `npm run format` - Format code with Prettier
+- `npm run format:check` - Fast pre-push check for frontend formatting; for a small TS/TSX diff, `npx prettier --check <changed files>` is the quickest equivalent
 - `npm run storybook` - Start Storybook on port 6006
 
 ### Code generation
@@ -411,12 +459,13 @@ The frontend includes several generated code components:
 - **API clients**: Generated from backend Swagger specs
 
   ```bash
+  npm run apis:all    # Generate all frontend + server API clients
   npm run apis        # Generate v1 API clients
   npm run apis:v2beta1 # Generate v2beta1 API clients
   ```
 
-  Note: Ensure `swagger-codegen-cli.jar` is available to `java -jar` when running from `frontend/`
-  (e.g., place the JAR in `frontend/` or reference a full path).
+  Note: These commands use Docker image `openapitools/openapi-generator-cli:v7.19.0`.
+  Ensure Docker is running.
 
 - **Protocol Buffers**: Generated from proto definitions
 
@@ -432,14 +481,25 @@ The frontend includes several generated code components:
 - **Server tests**: `npm run test:server:coverage` (Jest)
 - **Coverage**: `npm run test:ui:coverage` (Vitest) + `npm run test:coverage` (Vitest UI + Jest server)
 - **Stability loop**: `npm run test:ui:coverage:loop` (Vitest coverage with capped workers)
-- **CI pipeline**: `npm run test:ci` (format check + lint + typecheck + Vitest UI coverage + Jest coverage)
+- **CI pipeline**: `npm run test:ci` (format check + lint + typecheck + lockfile React peer check + Vitest UI coverage + Jest coverage)
 - **Snapshot tests**: Auto-update with `npm test -u` or `npm run test:ui -- -u` (Vitest)
+- **Frontend integration tests**: See `test/frontend-integration-test/README.md` for the containerized local flow. Supported debug env vars include `DEBUG=1`, `HEADLESS=false`, and `WDIO_SPECS=./tensorboard-example.spec.js`; headful runs expose Selenium's noVNC desktop on port `7900`.
+
+### Effect-focused frontend verification
+
+When changing an effect-heavy frontend component, add or run the smallest relevant regression test:
+
+- mutation success runs exactly once even if related async work resolves later
+- refresh/refetch does not overwrite user selection or form edits unless intended
+- error banners and dialogs clear after a successful retry or recovery path
+- mount-time logic does not emit parent callbacks unless the component contract explicitly requires it
 
 ## CI/CD (GitHub Actions)
 
 - Workflows: `.github/workflows/` (build, test, lint, release)
 - Composite actions: `.github/actions/` (e.g., `kfp-k8s`, `create-cluster`, `deploy`, `test-and-report`)
 - Typical checks: Go unit tests (backend), Python SDK tests, frontend tests/lint, image builds.
+- Frontend workflow (`frontend.yml`) verifies generated API clients are up to date by running `npm run apis:all` and failing on diff.
 
 ### Test matrices and variants (Kubernetes, stores, proxy, cache)
 
@@ -499,7 +559,7 @@ KFP frontend supports feature flags for development:
 
 ### Common development tasks
 
-- **Add new API**: Update swagger specs, run `npm run apis`
+- **Add new API**: Update swagger specs, run `npm run apis:all`
 - **Update proto definitions**: Modify protos, run respective build commands
 - **Add new component**: Create in `atoms/` or `components/`, add tests and stories
 - **Debug server**: Use `npm run start:proxy-and-server-inspect`
@@ -509,7 +569,7 @@ KFP frontend supports feature flags for development:
 
 - **Port conflicts**: Frontend uses 3000 (React), 3001 (Node server), 3002 (API proxy)
 - **Node version issues**: Ensure you're using the version in `.nvmrc`
-- **API generation failures**: Check that swagger-codegen-cli.jar is in PATH
+- **API generation failures**: Ensure Docker is running and `docker` CLI is available in PATH
 - **Proto generation**: Requires `protoc` and `protoc-gen-grpc-web` in PATH
 - **Mock backend**: Limited API support; use real cluster for full testing
 
@@ -572,8 +632,9 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - Frontend dev server: `cd frontend && npm start`
 - Frontend with cluster: `cd frontend && npm run start:proxy-and-server`
 - Frontend tests: `cd frontend && npm run test:ui` (Vitest) or `npm test` (same as `test:ui`)
+- Frontend React peer gate: `cd frontend && npm run check:react-peers` (or `check:react-peers:18`)
 - Frontend formatting: `cd frontend && npm run format`
-- Generate frontend APIs: `cd frontend && npm run apis`
+- Generate frontend APIs: `cd frontend && npm run apis:all`
 
 ### Key environment variables
 
@@ -587,7 +648,7 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - `kfp` is installed into task containers with `--no-deps`; ensure runtime dependencies are present in `base_image`.
 - SELinux enforcing can break proto generation; toggle with `setenforce` as noted above.
 - Do not assume `pipeline_spec_pb2.py` exists in the repo; it must be generated.
-- Frontend API generation requires `swagger-codegen-cli.jar` in PATH.
+- Frontend API generation requires Docker (`openapitools/openapi-generator-cli:v7.19.0`).
 - Frontend proto generation requires `protoc` and `protoc-gen-grpc-web` binaries.
 - Node version must match `.nvmrc`; use nvm/fnm to manage versions.
 - Frontend port conflicts: 3000 (Vite), 3001 (Node server), 3002 (API proxy), 6006 (Storybook).
@@ -596,6 +657,6 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 
 - Protobuf generation fails with "protoc: command not found": use the Make targets that run this in a container.
 - Protobuf generation fails under SELinux enforcing: temporarily disable with `sudo setenforce 0`; re-enable after.
-- API client generation fails with "Unable to access jarfile swagger-codegen-cli.jar": ensure the JAR is present and use `java -jar <path>/swagger-codegen-cli.jar` from `frontend/`.
+- API client generation fails with Docker errors (for example permission denied to Docker socket): ensure Docker is running and your user can access the Docker daemon.
 - Frontend fails to start due to Node version mismatch: `nvm use $(cat frontend/.nvmrc)` or `fnm use`.
 - Runtime component imports SDK-only modules: `_KFP_RUNTIME=true` disables many SDK imports; avoid importing SDK-only modules in task code.

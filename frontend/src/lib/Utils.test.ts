@@ -127,7 +127,7 @@ describe('Utils', () => {
     it('handles a trigger according to the enabled flag (v2)', () => {
       expect(enabledDisplayStringV2({}, V2beta1RecurringRunStatus.ENABLED)).toBe('Yes');
       expect(enabledDisplayStringV2({}, V2beta1RecurringRunStatus.DISABLED)).toBe('No');
-      expect(enabledDisplayStringV2({}, V2beta1RecurringRunStatus.STATUSUNSPECIFIED)).toBe(
+      expect(enabledDisplayStringV2({}, V2beta1RecurringRunStatus.STATUS_UNSPECIFIED)).toBe(
         'Unknown',
       );
     });

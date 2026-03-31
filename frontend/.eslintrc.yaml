@@ -12,6 +12,7 @@ parserOptions:
 settings:
     react:
         version: detect
+    # typescript resolver removed: causes "invalid interface" error with eslint-plugin-import
     import/resolver:
         node:
             paths:
@@ -36,11 +37,19 @@ ignorePatterns:
     - node_modules/
     - src/apis # these are generated api clients
     - src/apisv2beta1 # these are generated v2 api clients
+    - server/dist
+    - server/src/generated # generated auth api clients
     - '*.test.ts'
     - '*.test.tsx'
     - src/generated # proto generated definition
     - src/third_party/mlmd/generated # MLMD generated definition from source.
     - src/stories # Storybook is for development only.
+overrides:
+    # Server uses .js extension in import paths for ESM resolution (e.g. ./domain-checker.js).
+    # The import resolver does not resolve these correctly, so we disable the rule for server.
+    - files: ['server/**/*.ts']
+      rules:
+          import/no-unresolved: off
 rules:
     # TypeScript handles undefined symbol checks.
     no-undef: off

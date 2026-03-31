@@ -17,10 +17,15 @@ package objectstore
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gocloud.dev/blob"
+	"gocloud.dev/blob/memblob"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -197,6 +202,287 @@ func Test_bucketConfig_KeyFromURI(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("bucketConfig.keyFromURI() = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+func TestSanitizeDownloadPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		localDir string
+		blobDir  string
+		objKey   string
+		wantPath string
+		wantErr  bool
+		errMsg   string
+	}{
+		{
+			name:     "Simple child file",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/file.txt",
+			wantPath: filepath.Join("/tmp/outputs", "file.txt"),
+		},
+		{
+			name:     "Nested child file",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/sub/file.txt",
+			wantPath: filepath.Join("/tmp/outputs", "sub", "file.txt"),
+		},
+		{
+			name:     "Current-dir segment is benign",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/./file.txt",
+			wantPath: filepath.Join("/tmp/outputs", "file.txt"),
+		},
+		{
+			name:     "Single file artifact where key equals blobDir",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step",
+			wantPath: filepath.Clean("/tmp/outputs"),
+		},
+		{
+			name:     "Key equals blobDir with trailing slash",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/",
+			wantPath: filepath.Clean("/tmp/outputs"),
+		},
+		{
+			name:     "Key with trailing slash",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/subdir/",
+			wantPath: filepath.Join("/tmp/outputs", "subdir"),
+		},
+		{
+			name:     "Dotdot in bounds still rejected",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/sub/../file.txt",
+			wantErr:  true,
+			errMsg:   "contains '..' component",
+		},
+		{
+			name:     "Traversal via dotdot in key middle",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/../../etc/passwd",
+			wantErr:  true,
+			errMsg:   "contains '..' component",
+		},
+		{
+			name:     "Traversal via dotdot at start of key",
+			localDir: "/tmp/outputs",
+			blobDir:  "safe",
+			objKey:   "../../../etc/shadow",
+			wantErr:  true,
+			errMsg:   "contains '..' component",
+		},
+		{
+			name:     "Single dotdot just barely escapes",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/../secret",
+			wantErr:  true,
+			errMsg:   "contains '..' component",
+		},
+		{
+			name:     "Multiple dotdot through deep nesting",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/a/b/../../../etc/passwd",
+			wantErr:  true,
+			errMsg:   "contains '..' component",
+		},
+		{
+			name:     "Prefix match but not path boundary",
+			localDir: "/tmp/outputs",
+			blobDir:  "art",
+			objKey:   "artifacts/file.txt",
+			wantErr:  true,
+			errMsg:   "path traversal detected",
+		},
+		{
+			name:     "Completely unrelated key",
+			localDir: "/tmp/outputs",
+			blobDir:  "expected/path",
+			objKey:   "totally/different/path",
+			wantErr:  true,
+			errMsg:   "path traversal detected",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := sanitizeDownloadPath(tt.localDir, tt.blobDir, tt.objKey)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantPath, got)
+		})
+	}
+}
+
+func writeBlobToMemBucket(ctx context.Context, t *testing.T, bucket *blob.Bucket, key, content string) {
+	t.Helper()
+	w, err := bucket.NewWriter(ctx, key, nil)
+	require.NoError(t, err)
+	_, writeErr := w.Write([]byte(content))
+	closeErr := w.Close()
+	require.NoError(t, writeErr)
+	require.NoError(t, closeErr)
+}
+
+func TestDownloadBlobSingleFile(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer func() { require.NoError(t, bucket.Close()) }()
+
+	writeBlobToMemBucket(ctx, t, bucket, "path/to/file.txt", "single file content")
+
+	localDir := t.TempDir()
+	targetPath := filepath.Join(localDir, "file.txt")
+
+	err := DownloadBlob(ctx, bucket, targetPath, "path/to/file.txt")
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(targetPath)
+	require.NoError(t, err)
+	assert.Equal(t, "single file content", string(content))
+}
+
+func TestDownloadBlobDirectory(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer func() { require.NoError(t, bucket.Close()) }()
+
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/step/file1.txt", "content1")
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/step/sub/file2.txt", "content2")
+
+	localDir := t.TempDir()
+
+	err := DownloadBlob(ctx, bucket, localDir, "artifacts/step")
+	require.NoError(t, err)
+
+	content1, err := os.ReadFile(filepath.Join(localDir, "file1.txt"))
+	require.NoError(t, err)
+	assert.Equal(t, "content1", string(content1))
+
+	content2, err := os.ReadFile(filepath.Join(localDir, "sub", "file2.txt"))
+	require.NoError(t, err)
+	assert.Equal(t, "content2", string(content2))
+}
+
+func TestDownloadBlobSkipsSiblingKeys(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer func() { require.NoError(t, bucket.Close()) }()
+
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/step/file.txt", "wanted")
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/step2/file.txt", "sibling")
+
+	parentDir := t.TempDir()
+	localDir := filepath.Join(parentDir, "step")
+
+	err := DownloadBlob(ctx, bucket, localDir, "artifacts/step")
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(filepath.Join(localDir, "file.txt"))
+	require.NoError(t, err)
+	assert.Equal(t, "wanted", string(content))
+
+	_, err = os.Stat(filepath.Join(parentDir, "step2", "file.txt"))
+	assert.True(t, os.IsNotExist(err), "sibling key should not have been downloaded")
+}
+
+func TestDownloadBlobRejectsTraversalKey(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer func() { require.NoError(t, bucket.Close()) }()
+
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/step/../../etc/passwd", "malicious")
+
+	localDir := t.TempDir()
+
+	err := DownloadBlob(ctx, bucket, localDir, "artifacts/step")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "path traversal detected")
+}
+
+func TestIsBlobKeyUnderPrefix(t *testing.T) {
+	tests := []struct {
+		name    string
+		objKey  string
+		blobDir string
+		want    bool
+	}{
+		{
+			name:    "Exact match",
+			objKey:  "artifacts/step",
+			blobDir: "artifacts/step",
+			want:    true,
+		},
+		{
+			name:    "Child key",
+			objKey:  "artifacts/step/file.txt",
+			blobDir: "artifacts/step",
+			want:    true,
+		},
+		{
+			name:    "Nested child",
+			objKey:  "artifacts/step/sub/file.txt",
+			blobDir: "artifacts/step",
+			want:    true,
+		},
+		{
+			name:    "Sibling with shared string prefix",
+			objKey:  "artifacts/step2/file.txt",
+			blobDir: "artifacts/step",
+			want:    false,
+		},
+		{
+			name:    "Completely unrelated key",
+			objKey:  "other/path",
+			blobDir: "artifacts/step",
+			want:    false,
+		},
+		{
+			name:    "blobDir with trailing slash",
+			objKey:  "artifacts/step/file.txt",
+			blobDir: "artifacts/step/",
+			want:    true,
+		},
+		{
+			name:    "Sibling with trailing slash on blobDir",
+			objKey:  "artifacts/step2/file.txt",
+			blobDir: "artifacts/step/",
+			want:    false,
+		},
+		{
+			name:    "objKey equals blobDir plus slash",
+			objKey:  "artifacts/step/",
+			blobDir: "artifacts/step",
+			want:    true,
+		},
+		{
+			name:    "objKey is parent of blobDir",
+			objKey:  "artifacts",
+			blobDir: "artifacts/step",
+			want:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isBlobKeyUnderPrefix(tt.objKey, tt.blobDir)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

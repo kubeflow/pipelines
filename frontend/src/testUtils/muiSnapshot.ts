@@ -1,7 +1,7 @@
 export const normalizeMuiIds = (fragment: DocumentFragment) => {
   const idMap = new Map<string, string>();
   let nextId = 0;
-  fragment.querySelectorAll('[id^="mui-"]').forEach(el => {
+  fragment.querySelectorAll('[id^="mui-"]').forEach((el) => {
     const oldId = el.getAttribute('id');
     if (!oldId) {
       return;
@@ -19,7 +19,7 @@ export const normalizeMuiIds = (fragment: DocumentFragment) => {
     }
     const parts = value.split(' ');
     let changed = false;
-    const updated = parts.map(part => {
+    const updated = parts.map((part) => {
       const mapped = idMap.get(part);
       if (mapped) {
         changed = true;
@@ -32,15 +32,17 @@ export const normalizeMuiIds = (fragment: DocumentFragment) => {
     }
   };
 
-  fragment.querySelectorAll('[aria-labelledby]').forEach(el => updateAttr(el, 'aria-labelledby'));
-  fragment.querySelectorAll('[for]').forEach(el => updateAttr(el, 'for'));
-  fragment.querySelectorAll('[aria-describedby]').forEach(el => updateAttr(el, 'aria-describedby'));
+  fragment.querySelectorAll('[aria-labelledby]').forEach((el) => updateAttr(el, 'aria-labelledby'));
+  fragment.querySelectorAll('[for]').forEach((el) => updateAttr(el, 'for'));
+  fragment
+    .querySelectorAll('[aria-describedby]')
+    .forEach((el) => updateAttr(el, 'aria-describedby'));
 };
 
 export const normalizeRechartsIds = (fragment: DocumentFragment) => {
   const idMap = new Map<string, string>();
   let nextId = 0;
-  fragment.querySelectorAll('[id^="recharts"]').forEach(el => {
+  fragment.querySelectorAll('[id^="recharts"]').forEach((el) => {
     const oldId = el.getAttribute('id');
     if (!oldId) {
       return;
