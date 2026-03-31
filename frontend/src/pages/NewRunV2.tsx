@@ -24,7 +24,7 @@ import {
   Radio,
   Checkbox,
 } from '@mui/material';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -95,6 +95,57 @@ type NewRunV2Props = RunV2Props & PageProps;
 
 export type SpecParameters = { [key: string]: ComponentInputsSpec_ParameterSpec };
 export type RuntimeParameters = { [key: string]: any };
+type KeyedState<T> = { key: string; value: T };
+
+const hashString64 = (value: string): string => {
+  let first = 0x9e3779b1;
+  let second = 0x85ebca77;
+
+  for (let index = 0; index < value.length; index++) {
+    const charCode = value.charCodeAt(index);
+    first = Math.imul(first ^ charCode, 2654435761);
+    second = Math.imul(second ^ charCode, 1597334677);
+  }
+
+  first =
+    Math.imul(first ^ (first >>> 16), 2246822507) ^ Math.imul(second ^ (second >>> 13), 3266489909);
+  second =
+    Math.imul(second ^ (second >>> 16), 2246822507) ^ Math.imul(first ^ (first >>> 13), 3266489909);
+
+  return `${(first >>> 0).toString(16).padStart(8, '0')}${(second >>> 0)
+    .toString(16)
+    .padStart(8, '0')}`;
+};
+
+const getEmptyTemplateData = () => ({
+  defaultPipelineRoot: undefined as string | undefined,
+  specParameters: {} as SpecParameters,
+});
+
+const getTemplateData = (templateString?: string) => {
+  if (!templateString) {
+    return getEmptyTemplateData();
+  }
+
+  try {
+    const spec = convertYamlToV2PipelineSpec(templateString);
+    return {
+      defaultPipelineRoot: spec.defaultPipelineRoot,
+      specParameters: spec.root?.inputDefinitions?.parameters ?? {},
+    };
+  } catch (error) {
+    logger.error('Cannot parse pipeline template.', error);
+    return getEmptyTemplateData();
+  }
+};
+
+function useKeyedState<T>(key: string, initialValue: T) {
+  const [state, setState] = useState<KeyedState<T>>({ key: '', value: initialValue });
+  const value = state.key === key ? state.value : initialValue;
+  const setValue = useCallback((value: T) => setState({ key, value }), [key]);
+
+  return [value, setValue] as const;
+}
 
 type CloneOrigin = {
   isClone: boolean;
@@ -214,11 +265,7 @@ function NewRunV2(props: NewRunV2Props) {
   const [experiment, setExperiment] = useState(chosenExperiment);
   const [experimentName, setExperimentName] = useState('');
   const [serviceAccount, setServiceAccount] = useState('');
-  const [specParameters, setSpecParameters] = useState<SpecParameters>({});
-  const [runtimeParameters, setRuntimeParameters] = useState<RuntimeParameters>({});
-  const [pipelineRoot, setPipelineRoot] = useState<string>();
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
-  const [isParameterValid, setIsParameterValid] = useState(false);
   const [openNewExperiment, setOpenNewExperiment] = useState(false);
   const [isRecurringRun, setIsRecurringRun] = useState(
     urlParser.get(QUERY_PARAMS.isRecurring) === '1' || cloneOrigin.isRecurring,
@@ -248,6 +295,34 @@ function NewRunV2(props: NewRunV2Props) {
   const clonedRuntimeConfig = cloneOrigin.isRecurring
     ? cloneOrigin.recurringRun?.runtime_config
     : cloneOrigin.run?.runtime_config;
+  const { defaultPipelineRoot, specParameters } = useMemo(
+    () => getTemplateData(templateString),
+    [templateString],
+  );
+  const clonedRuntimeConfigKey = useMemo(
+    () => JSON.stringify(clonedRuntimeConfig ?? null),
+    [clonedRuntimeConfig],
+  );
+  const parameterStateKey = useMemo(
+    () =>
+      `${(templateString ?? '').length}:${hashString64(
+        templateString ?? '',
+      )}:${clonedRuntimeConfigKey.length}:${hashString64(clonedRuntimeConfigKey)}`,
+    [clonedRuntimeConfigKey, templateString],
+  );
+  const initialPipelineRoot = clonedRuntimeConfig?.pipeline_root ?? defaultPipelineRoot;
+  const [runtimeParameters, handleParameterChange] = useKeyedState<RuntimeParameters>(
+    parameterStateKey,
+    {},
+  );
+  const [pipelineRoot, handlePipelineRootChange] = useKeyedState<string | undefined>(
+    parameterStateKey,
+    initialPipelineRoot,
+  );
+  const [isParameterValid, handleParameterValidityChange] = useKeyedState<boolean>(
+    parameterStateKey,
+    false,
+  );
   const labelTextAdjective = isRecurringRun ? 'recurring ' : '';
   const usePipelineFromRunLabel = `Using pipeline from existing ${labelTextAdjective} run.`;
 
@@ -320,30 +395,6 @@ function NewRunV2(props: NewRunV2Props) {
       setPipelineVersionName(existingPipelineVersion.display_name);
     }
   }, [existingPipelineVersion, useLatestVersion]);
-
-  // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
-  useEffect(() => {
-    if (!templateString) {
-      return;
-    }
-
-    const spec = convertYamlToV2PipelineSpec(templateString);
-
-    const params = spec.root?.inputDefinitions?.parameters;
-    if (params) {
-      setSpecParameters(params);
-    } else {
-      setSpecParameters({});
-    }
-
-    const defaultRoot = spec.defaultPipelineRoot;
-    const clonedRoot = clonedRuntimeConfig?.pipeline_root;
-    if (clonedRoot) {
-      setPipelineRoot(clonedRoot);
-    } else if (defaultRoot) {
-      setPipelineRoot(defaultRoot);
-    }
-  }, [templateString, clonedRuntimeConfig]);
 
   // Defines the behavior when user clicks `Start` button.
   const newRunMutation = useMutation({
@@ -678,8 +729,9 @@ function NewRunV2(props: NewRunV2Props) {
 
         {/* PipelineRoot and Run Parameters */}
         <NewRunParametersV2
+          key={parameterStateKey}
           pipelineRoot={pipelineRoot}
-          handlePipelineRootChange={setPipelineRoot}
+          handlePipelineRootChange={handlePipelineRootChange}
           titleMessage={
             existingPipeline || cloneOrigin.isClone
               ? Object.keys(specParameters).length
@@ -689,8 +741,8 @@ function NewRunV2(props: NewRunV2Props) {
           }
           specParameters={specParameters}
           clonedRuntimeConfig={clonedRuntimeConfig}
-          handleParameterChange={setRuntimeParameters}
-          setIsValidInput={setIsParameterValid}
+          handleParameterChange={handleParameterChange}
+          setIsValidInput={handleParameterValidityChange}
         />
 
         {/* Create/Cancel buttons */}
