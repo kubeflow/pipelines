@@ -1,7 +1,8 @@
 name: KFP E2E Pipeline tests
 env:
   E2E_TESTS_DIR: "./backend/test/end2end"
-  NUMBER_OF_PARALLEL_NODES: 10
+  # Keep per-job load below the current Kind/GitHub runner saturation point.
+  NUMBER_OF_PARALLEL_NODES: 6
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
   PYTHON_VERSION: "3.9"
@@ -39,7 +40,7 @@ on:
         type: string
       number_of_parallel_tests:
         description: "Number of ginkgo nodes that you want run in parallel, it essentially is equivalent to number of parallel tests with some caveats"
-        default: 10
+        default: 6
         required: true
         type: number
       namespace:
