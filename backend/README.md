@@ -12,8 +12,7 @@ components that manage pipeline execution and lifecycle:
 
 - **API Server** – Exposes REST and gRPC endpoints for managing
   pipelines, runs, and experiments.
-- **Driver** – Translates pipeline specifications into executable
-  workflow definitions.
+- **Driver** – Orchestrates task execution and manages execution state with ML Metadata (MLMD).
 - **Launcher** – Executes pipeline tasks within Kubernetes pods.
 - **Persistence Agent** – Reconciles workflow state and updates
   run status in the database.
