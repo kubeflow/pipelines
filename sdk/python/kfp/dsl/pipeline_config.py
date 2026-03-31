@@ -94,7 +94,52 @@ class WorkspaceConfig:
 
 
 class PipelineConfig:
-    """PipelineConfig contains pipeline-level config options."""
+    """PipelineConfig contains pipeline-level config options.
 
-    def __init__(self, workspace: Optional[WorkspaceConfig] = None):
+    Attributes:
+        workspace: Optional configuration for a shared workspace PVC that
+            persists for the duration of the pipeline run.
+        ttl_seconds_after_finished: Optional number of seconds to retain the
+            Argo Workflow resource after the pipeline run completes, regardless
+            of success or failure.  Maps to Argo's
+            ``ttlStrategy.secondsAfterCompletion``.  When ``None`` (the
+            default) no completion TTL is set.
+        ttl_seconds_after_success: Optional number of seconds to retain the
+            Argo Workflow resource after a *successful* run.  Maps to Argo's
+            ``ttlStrategy.secondsAfterSuccess``.  Takes precedence over
+            ``ttl_seconds_after_finished`` for successful runs when both are
+            set.
+        ttl_seconds_after_failure: Optional number of seconds to retain the
+            Argo Workflow resource after a *failed* run.  Maps to Argo's
+            ``ttlStrategy.secondsAfterFailure``.  Takes precedence over
+            ``ttl_seconds_after_finished`` for failed runs when both are set.
+    """
+
+    def __init__(
+        self,
+        workspace: Optional[WorkspaceConfig] = None,
+        ttl_seconds_after_finished: Optional[int] = None,
+        ttl_seconds_after_success: Optional[int] = None,
+        ttl_seconds_after_failure: Optional[int] = None,
+    ):
         self.workspace = workspace
+        for name, value in [
+            ('ttl_seconds_after_finished', ttl_seconds_after_finished),
+            ('ttl_seconds_after_success', ttl_seconds_after_success),
+            ('ttl_seconds_after_failure', ttl_seconds_after_failure),
+        ]:
+            if value is None:
+                continue
+            if isinstance(value, bool) or not isinstance(value, int):
+                raise TypeError(
+                    f'{name} must be an int. Got: {type(value).__name__}')
+            if value < 0:
+                raise ValueError(
+                    f'{name} must be a non-negative integer. Got: {value}')
+            if value > 2147483647:
+                raise ValueError(
+                    f'{name} must not exceed the int32 maximum (2147483647).'
+                    f' Got: {value}')
+        self.ttl_seconds_after_finished = ttl_seconds_after_finished
+        self.ttl_seconds_after_success = ttl_seconds_after_success
+        self.ttl_seconds_after_failure = ttl_seconds_after_failure

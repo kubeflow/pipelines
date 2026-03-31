@@ -1174,11 +1174,23 @@ message KubernetesWorkspaceConfig {
 
 // Spec for pipeline-level config options. See PipelineConfig DSL class.
 message PipelineConfig {
-  // Time to live configuration after the pipeline run is completed for
-  // ephemeral resources created by the pipeline run.
-  int32 resource_ttl = 1;
+  // Seconds to retain the Argo Workflow object after the run completes,
+  // regardless of success or failure.  Maps to Argo's
+  // TTLStrategy.secondsAfterCompletion.  A value of 0 or unset means no TTL
+  // is applied by this field.
+  int32 resource_ttl_on_completion = 1;
 
   // Configuration for a shared storage workspace that persists for the duration of the pipeline run.
   // The workspace can be configured with size and Kubernetes-specific settings to override default PVC configurations.
   optional WorkspaceConfig workspace = 2;
+
+  // Seconds to retain the Argo Workflow object after a *successful* run.
+  // Maps to Argo's TTLStrategy.secondsAfterSuccess.  Takes precedence over
+  // resource_ttl_on_completion for successful runs when both are set.
+  int32 resource_ttl_on_success = 3;
+
+  // Seconds to retain the Argo Workflow object after a *failed* run.
+  // Maps to Argo's TTLStrategy.secondsAfterFailure.  Takes precedence over
+  // resource_ttl_on_completion for failed runs when both are set.
+  int32 resource_ttl_on_failure = 4;
 }
