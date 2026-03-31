@@ -444,6 +444,36 @@ func TestLoadSamples_MalformedTagsReturnsError(t *testing.T) {
 	assert.Contains(t, err.Error(), "badentry")
 }
 
+func TestLoadSamples_MalformedTagsIgnoredWhenLoadingSkipped(t *testing.T) {
+	viper.Set("POD_NAMESPACE", "")
+	rm := fakeResourceManager()
+
+	pc := config{
+		LoadSamplesOnRestart: false,
+		Pipelines: []configPipelines{
+			{
+				Name:        "Already Loaded Pipeline",
+				Description: "test",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "Already Loaded Pipeline - Ver 1",
+			},
+		},
+	}
+
+	// First load succeeds (no malformed tags, samples not yet loaded).
+	t.Setenv(managedPipelinesUploadTagsEnv, "")
+	path, err := writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	// Second load: samples already loaded + LoadSamplesOnRestart=false → skip.
+	// A malformed env var must NOT cause an error because loading is skipped.
+	t.Setenv(managedPipelinesUploadTagsEnv, "badentry")
+	path, err = writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+}
+
 func TestLoadSamples_ExistingPipelineNotRetagged(t *testing.T) {
 	viper.Set("POD_NAMESPACE", "")
 	rm := fakeResourceManager()

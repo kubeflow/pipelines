@@ -106,14 +106,6 @@ func LoadSamples(resourceManager *resource.ResourceManager, sampleConfigPath str
 		return nil
 	}
 
-	tags, err := parseManagedPipelinesTags()
-	if err != nil {
-		return err
-	}
-	if len(tags) > 0 {
-		glog.Infof("Parsed %d managed pipeline upload tag(s) from %s", len(tags), managedPipelinesUploadTagsEnv)
-	}
-
 	configBytes, err := os.ReadFile(sampleConfigPath)
 	if err != nil {
 		return fmt.Errorf("failed to read sample configurations file. Err: %v", err)
@@ -148,6 +140,14 @@ func LoadSamples(resourceManager *resource.ResourceManager, sampleConfigPath str
 	if !pipelineConfig.LoadSamplesOnRestart && haveSamplesLoaded {
 		glog.Infof("Samples already loaded in the past. Skip loading.")
 		return nil
+	}
+
+	tags, err := parseManagedPipelinesTags()
+	if err != nil {
+		return err
+	}
+	if len(tags) > 0 {
+		glog.Infof("Parsed %d managed pipeline upload tag(s) from %s", len(tags), managedPipelinesUploadTagsEnv)
 	}
 
 	processedPipelines := map[string]bool{}
