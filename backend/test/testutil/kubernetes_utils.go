@@ -78,6 +78,7 @@ func ReadPodLogs(client *kubernetes.Clientset, namespace string, podName string,
 			podLogs, err := podLogsRequest.Stream(context.Background()) // Pass a context for cancellation
 			if err != nil {
 				logger.Log("Failed to stream pod logs due to %v", err)
+				continue
 			}
 			defer func(podLogs io.ReadCloser) {
 				err = podLogs.Close()
