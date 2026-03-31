@@ -337,6 +337,20 @@ func TestGetDurationConfigWithDefault(t *testing.T) {
 			defaultValue:  time.Hour,
 			expectedValue: time.Hour,
 		},
+		{
+			name:          "returns default when env var is a negative duration",
+			setEnv:        true,
+			envValue:      "-30m",
+			defaultValue:  time.Hour,
+			expectedValue: time.Hour,
+		},
+		{
+			name:          "returns default when env var is a zero duration",
+			setEnv:        true,
+			envValue:      "0s",
+			defaultValue:  time.Hour,
+			expectedValue: time.Hour,
+		},
 	}
 
 	for _, testCase := range tests {
