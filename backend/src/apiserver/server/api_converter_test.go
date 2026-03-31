@@ -3036,7 +3036,21 @@ func Test_toApiRuntimeStatus(t *testing.T) {
 				Error:      util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
 			},
 		},
+		{
+			"internal error",
+			&model.RuntimeStatus{
+				Error: model.NewRuntimeError(
+					util.NewInternalServerError(errors.New("boom"), "internal failure"),
+				),
+			},
+			&apiv2beta1.RuntimeStatus{
+				Error: util.ToRpcStatus(
+					util.NewInternalServerError(errors.New("boom"), "internal failure"),
+				),
+			},
+		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := toApiRuntimeStatus(tt.modelStatus)

@@ -15,7 +15,10 @@
 package model
 
 import (
+	"fmt"
 	"strings"
+
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 type (
@@ -342,24 +345,28 @@ type RunMetric struct {
 }
 
 type RuntimeError struct {
+	Code    int32  `json:"code,omitempty"`
 	Message string `json:"message,omitempty"`
 	Type    string `json:"type,omitempty"`
-}
-
-type RuntimeStatus struct {
-	UpdateTimeInSec int64         `json:"UpdateTimeInSec,omitempty"`
-	State           RuntimeState  `json:"State,omitempty"`
-	Error           *RuntimeError `json:"Error,omitempty"`
 }
 
 func NewRuntimeError(err error) *RuntimeError {
 	if err == nil {
 		return nil
 	}
+
+	rpcStatus := util.ToRpcStatus(err)
 	return &RuntimeError{
-		Message: err.Error(),
-		Type:    "*util.UserError",
+		Code:    rpcStatus.GetCode(),
+		Message: rpcStatus.GetMessage(),
+		Type:    fmt.Sprintf("%T", err),
 	}
+}
+
+type RuntimeStatus struct {
+	UpdateTimeInSec int64         `json:"UpdateTimeInSec,omitempty"`
+	State           RuntimeState  `json:"State,omitempty"`
+	Error           *RuntimeError `json:"Error,omitempty"`
 }
 
 func NewRuntimeStatus(state RuntimeState, err error, now int64) *RuntimeStatus {
