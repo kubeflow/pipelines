@@ -6,7 +6,7 @@
 
 **Created:** 2026-03-27
 
-**Last Updated:** 2026-03-27
+**Last Updated:** 2026-03-31
 
 <!-- toc -->
 - [Summary](#summary)
@@ -160,7 +160,7 @@ data:
     allowedRegistries:
       - registry.redhat.io
       - quay.io/myorg
-    blockMutableTags: true           # Warn on :latest or missing tags
+    blockMutableTags: true           # Block :latest or missing tags (warning in enforce, denial if combined with registry rules)
     blockInlineCredentials: true     # Detect hardcoded secrets
     maxTasks: 100                    # 0 = unlimited
     deniedEnvVarPatterns:
@@ -197,7 +197,7 @@ spec:
 | Rule | Inspects | Finding Type | Default |
 |------|----------|-------------|---------|
 | **Registry Allowlist** | `container.image` hostname | Denial | Disabled (no allowlist = all allowed) |
-| **Mutable Tags** | `container.image` tag (`:latest` or missing) | Warning | Enabled |
+| **Mutable Tags** | `container.image` tag (`:latest` or missing) | Warning (logged, does not block) | Enabled |
 | **Credential Detection** | `container.env[].value`, `container.args[]`, `container.command[]` | Denial | Enabled |
 | **Denied Env Vars** | `container.env[].name` matching patterns | Denial | Enabled (common patterns) |
 | **Max Tasks** | DAG task count | Denial | 100 |
@@ -275,11 +275,14 @@ func (w *PipelineVersionWebhook) ValidateCreate(ctx context.Context, obj runtime
             log.Error(err, "PipeClear validation error")
             return nil
         }
+        if len(result.Warnings) > 0 {
+            log.Info("PipeClear warnings", "warnings", result.FormatWarnings())
+        }
         if config.Mode == "enforce" && len(result.Denials) > 0 {
-            return fmt.Errorf("pipeline validation failed:\n%s", result.FormatDenials())
+            return fmt.Errorf("pipeline validation failed:\n%s\n%s", result.FormatDenials(), result.FormatWarnings())
         }
         if config.Mode == "audit" && len(result.Denials) > 0 {
-            log.Info("PipeClear audit", "denials", result.FormatDenials())
+            log.Info("PipeClear audit", "denials", result.FormatDenials(), "warnings", result.FormatWarnings())
         }
     }
 
@@ -371,6 +374,7 @@ A reference implementation with 31 test functions is available at [ugiordan/data
 
 - 2026-03-27: KEP created (provisional)
 - 2026-03: Reference implementation completed with 31 test functions ([ugiordan/data-science-pipelines@feat/pipeclear-validation](https://github.com/ugiordan/data-science-pipelines/tree/feat/pipeclear-validation))
+- 2026-03-31: Go validation library extracted to standalone package ([ugiordan/pipeclear](https://github.com/ugiordan/pipeclear)) with 22 library tests. Clarified `blockMutableTags` semantics and pseudocode warning handling per review feedback.
 
 ## Drawbacks
 
