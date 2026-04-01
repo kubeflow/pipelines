@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-03-30
+- Last updated: 2026-03-31
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -306,7 +306,7 @@ The following files are generated; edit their sources and regenerate:
 - `kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2.py`
   - Source: `kubernetes_platform/proto/kubernetes_executor_config.proto`
   - Generate: `make -C kubernetes_platform python` (or `make -C kubernetes_platform python-dev`)
-- Frontend API clients under `frontend/src/apis` and `frontend/src/apisv2beta1`
+- Frontend OpenAPI clients and shared support under `frontend/src/apis`, `frontend/src/apisv2beta1`, `frontend/src/generated/openapi`, `frontend/server/src/generated/apis*`, and `frontend/server/src/generated/openapi`
   - Sources: Swagger specs under `backend/api/**/swagger/*.json`
   - Generate: `cd frontend && npm run apis` / `npm run apis:v2beta1` / `npm run apis:all` (uses pinned Docker image `openapitools/openapi-generator-cli:v7.19.0`)
 - Frontend MLMD proto outputs under `frontend/src/third_party/mlmd/generated`
@@ -465,6 +465,7 @@ The frontend includes several generated code components:
   ```
 
   Note: These commands use Docker image `openapitools/openapi-generator-cli:v7.19.0`.
+  Generated support files are deduplicated into `src/generated/openapi` and `server/src/generated/openapi`.
   Ensure Docker is running.
 
 - **Protocol Buffers**: Generated from proto definitions
