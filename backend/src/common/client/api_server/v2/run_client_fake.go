@@ -65,6 +65,10 @@ func (c *RunClientFake) Unarchive(params *params.RunServiceUnarchiveRunParams) e
 	return nil
 }
 
+func (c *RunClientFake) Retry(params *params.RunServiceRetryRunParams) error {
+	return fmt.Errorf(InvalidFakeRequest, params.RunID)
+}
+
 func (c *RunClientFake) Terminate(params *params.RunServiceTerminateRunParams) error {
 	return fmt.Errorf(InvalidFakeRequest, params.RunID)
 

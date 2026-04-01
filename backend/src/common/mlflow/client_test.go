@@ -372,6 +372,36 @@ func TestSearchRuns_WithPageToken(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetRun_Success(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, pathRunsGet, r.URL.Path)
+		assert.Equal(t, "run-1", r.URL.Query().Get("run_id"))
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"run":{"info":{"run_id":"run-1","status":"FINISHED"}}}`))
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server.URL)
+	run, err := c.GetRun(context.Background(), "run-1")
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"info":{"run_id":"run-1","status":"FINISHED"}}`, string(run))
+}
+
+func TestGetRun_NotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"error_code":"RESOURCE_DOES_NOT_EXIST","message":"run not found"}`))
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server.URL)
+	_, err := c.GetRun(context.Background(), "missing")
+	require.Error(t, err)
+	assert.True(t, IsNotFoundError(err))
+}
+
 func TestIsNotFoundError_True(t *testing.T) {
 	err := &APIError{StatusCode: 404, ErrorCode: "RESOURCE_DOES_NOT_EXIST", Message: "not found"}
 	assert.True(t, IsNotFoundError(err))

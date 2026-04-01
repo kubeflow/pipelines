@@ -36,6 +36,7 @@ type RunInterface interface {
 	Get(params *params.RunServiceGetRunParams) (*model.V2beta1Run, error)
 	List(params *params.RunServiceListRunsParams) ([]*model.V2beta1Run, int, string, error)
 	ListAll(params *params.RunServiceListRunsParams, maxResultSize int) ([]*model.V2beta1Run, error)
+	Retry(params *params.RunServiceRetryRunParams) error
 	Unarchive(params *params.RunServiceUnarchiveRunParams) error
 	Terminate(params *params.RunServiceTerminateRunParams) error
 }
@@ -263,6 +264,20 @@ func listAllForRun(client RunInterface, parameters *params.RunServiceListRunsPar
 	}
 
 	return allResults, nil
+}
+
+func (c *RunClient) Retry(parameters *params.RunServiceRetryRunParams) error {
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
+	defer cancel()
+
+	parameters.Context = ctx
+	_, err := c.apiClient.RunService.RunServiceRetryRun(parameters, c.authInfoWriter)
+	if err != nil {
+		return util.NewUserError(err,
+			fmt.Sprintf("Failed to retry run. Params: %+v", parameters),
+			fmt.Sprintf("Failed to retry run %v", parameters.RunID))
+	}
+	return nil
 }
 
 func (c *RunClient) Terminate(parameters *params.RunServiceTerminateRunParams) error {

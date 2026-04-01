@@ -59,3 +59,7 @@ var (
 	MinioEndpoint      = flag.String("minioEndpoint", "localhost:9000", "MinIO endpoint (host:port)")
 	MinioLogsPrefixFmt = flag.String("minioLogsPrefixFmt", "private-artifacts/%s", "Format string for logs prefix (use %s for workflow namespace)")
 )
+
+var (
+	MLflowEnabled = flag.Bool("mlflowEnabled", false, "Whether MLflow is deployed and available for integration tests")
+)
