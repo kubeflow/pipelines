@@ -133,6 +133,14 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		ttlStrategy = buildTTLStrategy(kubernetesSpec.GetPipelineConfig())
 	}
 
+	// Resolve the workflow-level active deadline from the pipeline config.
+	// This sets a hard timeout after which Argo forcibly terminates the
+	// workflow, preventing stuck/zombie runs that never complete.
+	var activeDeadlineSeconds *int64
+	if kubernetesSpec != nil {
+		activeDeadlineSeconds = buildActiveDeadlineSeconds(kubernetesSpec.GetPipelineConfig())
+	}
+
 	// initialization
 	wf := &wfapi.Workflow{
 		TypeMeta: k8smeta.TypeMeta{
@@ -162,10 +170,11 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			Arguments: wfapi.Arguments{
 				Parameters: []wfapi.Parameter{},
 			},
-			ServiceAccountName:   common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount),
-			Entrypoint:           tmplEntrypoint,
-			VolumeClaimTemplates: volumeClaimTemplates,
-			TTLStrategy:          ttlStrategy,
+			ServiceAccountName:    common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount),
+			Entrypoint:            tmplEntrypoint,
+			VolumeClaimTemplates:  volumeClaimTemplates,
+			TTLStrategy:           ttlStrategy,
+			ActiveDeadlineSeconds: activeDeadlineSeconds,
 		},
 	}
 
@@ -271,6 +280,24 @@ func buildTTLStrategy(pipelineConfig *pipelinespec.PipelineConfig) *wfapi.TTLStr
 		strategy.SecondsAfterFailure = &v
 	}
 	return strategy
+}
+
+// buildActiveDeadlineSeconds returns a pointer to the active-deadline value
+// that should be set on the Argo Workflow spec.
+//
+// Semantics (opt-in, backward compatible):
+//   - pipelineConfig == nil or field <= 0 → no deadline (nil)
+//   - field > 0                           → use the user-supplied value
+func buildActiveDeadlineSeconds(pipelineConfig *pipelinespec.PipelineConfig) *int64 {
+	if pipelineConfig == nil {
+		return nil
+	}
+	userValue := pipelineConfig.GetActiveDeadlineSeconds()
+	if userValue <= 0 {
+		return nil
+	}
+	v := int64(userValue)
+	return &v
 }
 
 type workflowCompiler struct {

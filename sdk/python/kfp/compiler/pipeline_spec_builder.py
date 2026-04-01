@@ -2325,6 +2325,11 @@ def _merge_pipeline_config(pipelineConfig: pipeline_config.PipelineConfig,
         config_dict[
             'resourceTtlOnFailure'] = pipelineConfig.ttl_seconds_after_failure
 
+    if (pipelineConfig.active_deadline_seconds is not None and
+            pipelineConfig.active_deadline_seconds > 0):
+        config_dict[
+            'activeDeadlineSeconds'] = pipelineConfig.active_deadline_seconds
+
     if config_dict:
         json_format.ParseDict({'pipelineConfig': config_dict},
                               platformSpec.platforms['kubernetes'])

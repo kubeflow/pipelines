@@ -2771,8 +2771,13 @@ type PipelineConfig struct {
 	// Maps to Argo's TTLStrategy.secondsAfterFailure.  Takes precedence over
 	// resource_ttl_on_completion for failed runs when both are set.
 	ResourceTtlOnFailure int32 `protobuf:"varint,4,opt,name=resource_ttl_on_failure,json=resourceTtlOnFailure,proto3" json:"resource_ttl_on_failure,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	// Maximum number of seconds a workflow is allowed to run before it is
+	// forcibly terminated.  Maps to Argo's activeDeadlineSeconds.  A value
+	// of 0 (proto default) means no deadline is applied.  Set a positive
+	// value to enforce a maximum execution time.
+	ActiveDeadlineSeconds int32 `protobuf:"varint,5,opt,name=active_deadline_seconds,json=activeDeadlineSeconds,proto3" json:"active_deadline_seconds,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *PipelineConfig) Reset() {
@@ -2829,6 +2834,13 @@ func (x *PipelineConfig) GetResourceTtlOnSuccess() int32 {
 func (x *PipelineConfig) GetResourceTtlOnFailure() int32 {
 	if x != nil {
 		return x.ResourceTtlOnFailure
+	}
+	return 0
+}
+
+func (x *PipelineConfig) GetActiveDeadlineSeconds() int32 {
+	if x != nil {
+		return x.ActiveDeadlineSeconds
 	}
 	return 0
 }
@@ -6145,12 +6157,13 @@ const file_pipeline_spec_proto_rawDesc = "" +
 	"\v_kubernetes\"r\n" +
 	"\x19KubernetesWorkspaceConfig\x12B\n" +
 	"\x0epvc_spec_patch\x18\x01 \x01(\v2\x17.google.protobuf.StructH\x00R\fpvcSpecPatch\x88\x01\x01B\x11\n" +
-	"\x0f_pvc_spec_patch\"\x8b\x02\n" +
+	"\x0f_pvc_spec_patch\"\xc3\x02\n" +
 	"\x0ePipelineConfig\x12;\n" +
 	"\x1aresource_ttl_on_completion\x18\x01 \x01(\x05R\x17resourceTtlOnCompletion\x12@\n" +
 	"\tworkspace\x18\x02 \x01(\v2\x1d.ml_pipelines.WorkspaceConfigH\x00R\tworkspace\x88\x01\x01\x125\n" +
 	"\x17resource_ttl_on_success\x18\x03 \x01(\x05R\x14resourceTtlOnSuccess\x125\n" +
-	"\x17resource_ttl_on_failure\x18\x04 \x01(\x05R\x14resourceTtlOnFailureB\f\n" +
+	"\x17resource_ttl_on_failure\x18\x04 \x01(\x05R\x14resourceTtlOnFailure\x126\n" +
+	"\x17active_deadline_seconds\x18\x05 \x01(\x05R\x15activeDeadlineSecondsB\f\n" +
 	"\n" +
 	"_workspaceB<Z:github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespecb\x06proto3"
 
