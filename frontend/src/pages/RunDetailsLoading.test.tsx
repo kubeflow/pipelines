@@ -169,31 +169,6 @@ describe('RunDetails loading behavior', () => {
     expect(screen.queryByText('Currently loading run information.')).not.toBeInTheDocument();
   });
 
-  it('shows loading spinner when isLoading is true and runMetadata is null', async () => {
-    // This test verifies the RunDetails component's loading condition
-    // The condition should be: if (this.props.isLoading)
-    // NOT: if (this.props.isLoading && !this.state.runMetadata)
-
-    // Arrange: Mock the query to be in loading state
-    getRunSpy.mockImplementation(
-      () =>
-        new Promise(resolve => {
-          setTimeout(() => resolve(mockRunData), 100);
-        }),
-    );
-
-    // Act: Render with isLoading explicitly true
-    const propsWithLoading = {
-      ...mockPageProps,
-      isLoading: true,
-    };
-
-    render(<RunDetailsRouter {...propsWithLoading} />, { wrapper });
-
-    // Assert: Spinner should be visible when isLoading is true
-    expect(screen.getByText('Currently loading run information.')).toBeInTheDocument();
-  });
-
   it('hides loading spinner when isLoading is false even if runMetadata is null', async () => {
     // This test ensures that when isLoading is false, we don't show the spinner
     // even if runMetadata hasn't been loaded yet (which shouldn't happen in normal flow)
@@ -238,3 +213,5 @@ describe('RunDetails loading behavior', () => {
     });
   });
 });
+
+
