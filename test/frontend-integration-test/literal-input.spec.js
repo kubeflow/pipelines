@@ -17,6 +17,8 @@ const URL = require('url').URL;
 const {
   buildTableRowSelector,
   clearDefaultInput,
+  saveDebugScreenshot,
+  selectPipelineForRun,
   waitForCondition,
   waitForHashPrefix,
   waitForRunPageReady,
@@ -28,28 +30,8 @@ const selectedLiteral = 'staging';
 const uiTimeout = 10000;
 const runStartTimeout = 30000;
 
-async function selectPipelineForRun() {
-  await $('#choosePipelineBtn').waitForDisplayed({ timeout: uiTimeout });
-  await $('#choosePipelineBtn').click();
-
-  await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: uiTimeout });
-  const pipelineRowSelector = buildTableRowSelector(pipelineName, {
-    containerXPath: '//*[@id="pipelineSelectorDialog"]',
-  });
-
-  await waitForCondition(
-    async () => (await $(pipelineRowSelector).isExisting()),
-    {
-      timeout: uiTimeout,
-      timeoutMsg: `expected pipeline row for ${pipelineName} to appear`,
-    },
-  );
-
-  await $(pipelineRowSelector).click();
-  await $('#usePipelineBtn').waitForEnabled({ timeout: uiTimeout });
-  await $('#usePipelineBtn').click();
-  await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: uiTimeout, reverse: true });
-}
+let createdRunId = '';
+let pipelineUploaded = false;
 
 async function waitForCreatedRunId() {
   const currentHash = new URL(await browser.getUrl()).hash;
@@ -99,9 +81,88 @@ async function fetchRunById(runId) {
   }, runId);
 }
 
+async function deleteCreatedRun() {
+  if (!createdRunId) {
+    return;
+  }
+
+  try {
+    const deleteResponse = await browser.execute(async (currentRunId) => {
+      const response = await fetch(`/apis/v2beta1/runs/${currentRunId}`, {
+        method: 'DELETE',
+      });
+      return {
+        ok: response.ok,
+        responseText: await response.text(),
+        status: response.status,
+      };
+    }, createdRunId);
+
+    if (!deleteResponse.ok && deleteResponse.status !== 404) {
+      throw new Error(
+        `run delete returned ${deleteResponse.status}: ${deleteResponse.responseText || '(empty body)'}`,
+      );
+    }
+  } catch (error) {
+    console.log('RUN_CLEANUP_FAILED', error.message);
+    try {
+      await saveDebugScreenshot('run-cleanup');
+    } catch (screenshotError) {
+      console.log('RUN_CLEANUP_SCREENSHOT_FAILED', screenshotError.message);
+    }
+  }
+}
+
+async function deleteUploadedPipeline() {
+  if (!pipelineUploaded) {
+    return;
+  }
+
+  try {
+    await $('#pipelinesBtn').waitForDisplayed({ timeout: uiTimeout });
+    await $('#pipelinesBtn').click();
+    await waitForHashPrefix('#/pipelines', { timeout: uiTimeout });
+
+    await $('#tableFilterBox').waitForDisplayed({ timeout: uiTimeout });
+    await $('#tableFilterBox').click();
+    await clearDefaultInput();
+    await browser.keys(pipelineName);
+
+    const pipelineRowSelector = buildTableRowSelector(pipelineName);
+    await waitForCondition(
+      async () => (await $(pipelineRowSelector).isExisting()),
+      {
+        timeout: uiTimeout,
+        timeoutMsg: `expected pipeline row for ${pipelineName} after filtering`,
+      },
+    );
+
+    await $(pipelineRowSelector).click();
+    await $('#deletePipelinesAndPipelineVersionsBtn').waitForDisplayed({ timeout: uiTimeout });
+    await $('#deletePipelinesAndPipelineVersionsBtn').click();
+
+    const dialog = await $('[role="dialog"]');
+    await dialog.waitForDisplayed({ timeout: uiTimeout });
+    await dialog.$('button=Delete All').click();
+    await dialog.waitForDisplayed({ timeout: uiTimeout, reverse: true });
+  } catch (error) {
+    console.log('PIPELINE_CLEANUP_FAILED', error.message);
+    try {
+      await saveDebugScreenshot('pipeline-cleanup');
+    } catch (screenshotError) {
+      console.log('PIPELINE_CLEANUP_SCREENSHOT_FAILED', screenshotError.message);
+    }
+  }
+}
+
 describe('literal input parameter integration', () => {
   before(async () => {
     await browser.url('/');
+  });
+
+  after(async () => {
+    await deleteCreatedRun();
+    await deleteUploadedPipeline();
   });
 
   it('uploads the literal-input pipeline', async () => {
@@ -118,6 +179,7 @@ describe('literal input parameter integration', () => {
     await $('#createNewPipelineOrVersionBtn').click();
 
     await waitForHashPrefix('#/pipelines/details', { timeout: uiTimeout });
+    pipelineUploaded = true;
   });
 
   it('opens the new run page for the uploaded pipeline', async () => {
@@ -128,8 +190,7 @@ describe('literal input parameter integration', () => {
     await $('#createNewRunBtn').click();
     await waitForHashPrefix('#/runs/new', { timeout: uiTimeout });
 
-    await selectPipelineForRun();
-    await waitForRunPageReady({ timeout: runStartTimeout });
+    await selectPipelineForRun(pipelineName, { timeout: uiTimeout });
   });
 
   it('renders the literal parameter as a dropdown and requires a selection before start', async () => {
@@ -147,12 +208,9 @@ describe('literal input parameter integration', () => {
 
     const literalSelect = await $('//*[@role="combobox" and @id="environment"]');
     await literalSelect.waitForDisplayed({ timeout: uiTimeout });
-    const literalNativeInput = await literalSelect.$(
-      './following-sibling::input[contains(@class, "MuiSelect-nativeInput")]',
-    );
     assert.equal(
-      await literalNativeInput.getValue(),
-      '',
+      (await literalSelect.getText()).trim(),
+      'Select a value',
       'literal dropdown should start without a selected value',
     );
 
@@ -166,8 +224,8 @@ describe('literal input parameter integration', () => {
     await browser.keys('Escape');
     await $('[role="listbox"]').waitForDisplayed({ timeout: uiTimeout, reverse: true });
     assert.equal(
-      await literalNativeInput.getValue(),
-      '',
+      (await literalSelect.getText()).trim(),
+      'Select a value',
       'literal dropdown should reject arbitrary typed values',
     );
     assert.equal(
@@ -187,10 +245,10 @@ describe('literal input parameter integration', () => {
 
     await $(`li=${selectedLiteral}`).click();
     await waitForCondition(
-      async () => await startButton.isEnabled(),
+      async () => (await literalSelect.getText()).trim() === selectedLiteral && (await startButton.isEnabled()),
       {
         timeout: uiTimeout,
-        timeoutMsg: 'start button did not enable after selecting a literal value',
+        timeoutMsg: 'literal dropdown did not preserve the selected value or enable start',
       },
     );
   });
@@ -209,20 +267,17 @@ describe('literal input parameter integration', () => {
       },
     );
 
-    const runId = await waitForCreatedRunId();
+    createdRunId = await waitForCreatedRunId();
     let fetchedRun;
     await waitForCondition(
       async () => {
-        fetchedRun = await fetchRunById(runId);
-        if (!fetchedRun.ok) {
-          return false;
-        }
-        return fetchedRun.run.runtime_config?.parameters?.environment === selectedLiteral;
+        fetchedRun = await fetchRunById(createdRunId);
+        return fetchedRun.ok && !!fetchedRun.run.runtime_config?.parameters;
       },
       {
         timeout: runStartTimeout,
         interval: 1000,
-        timeoutMsg: 'selected literal value did not appear in the created run',
+        timeoutMsg: 'created run did not expose runtime parameters in time',
       },
     );
     assert.equal(

@@ -145,6 +145,48 @@ async function saveDebugScreenshot(name) {
   return screenshotPath;
 }
 
+async function logPipelineSelectorDiagnostics() {
+  const rowCount = await browser.execute(() => document.querySelectorAll('[data-testid="table-row"]').length);
+  const emptyMessage = await browser.execute(() => {
+    const emptyEl = document.querySelector('.emptyMessage');
+    return emptyEl ? emptyEl.textContent : null;
+  });
+  console.log('PIPELINE_SELECTOR_ROW_COUNT', rowCount);
+  console.log('PIPELINE_SELECTOR_EMPTY_MESSAGE', emptyMessage);
+}
+
+async function selectPipelineForRun(
+  pipelineName,
+  { timeout = defaultTimeout, screenshotName = 'pipeline-selector' } = {},
+) {
+  await $('#choosePipelineBtn').waitForDisplayed({ timeout });
+  await $('#choosePipelineBtn').click();
+
+  await $('#pipelineSelectorDialog').waitForDisplayed({ timeout });
+  const pipelineRowSelector = buildTableRowSelector(pipelineName, {
+    containerXPath: '//*[@id="pipelineSelectorDialog"]',
+  });
+
+  try {
+    await waitForCondition(
+      async () => (await $(pipelineRowSelector).isExisting()),
+      {
+        timeout,
+        timeoutMsg: `expected pipeline row for ${pipelineName} to appear`,
+      },
+    );
+  } catch (error) {
+    await logPipelineSelectorDiagnostics();
+    await saveDebugScreenshot(screenshotName);
+    throw error;
+  }
+
+  await $(pipelineRowSelector).click();
+  await $('#usePipelineBtn').waitForEnabled({ timeout });
+  await $('#usePipelineBtn').click();
+  await $('#pipelineSelectorDialog').waitForDisplayed({ timeout, reverse: true });
+}
+
 async function isSelectorDisplayed(selector) {
   const element = await $(selector);
   return (await element.isExisting()) && (await element.isDisplayed());
@@ -214,6 +256,7 @@ module.exports = {
   isSelectorDisplayed,
   runPhase,
   saveDebugScreenshot,
+  selectPipelineForRun,
   waitForCondition,
   waitForGraphNodeCount,
   waitForHashPrefix,
