@@ -47,4 +47,7 @@ const (
 
 	UpgradePreparation  string = "UpgradePreparation"
 	UpgradeVerification string = "UpgradeVerification"
+
+	// MLflow - quality gate tag for MLflow integration testing
+	MLflow string = "MLflow"
 )
