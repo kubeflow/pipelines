@@ -31,7 +31,6 @@
     "lodash.isfunction": "^3.0.9",
     "markdown-to-jsx": "^7.0.0",
     "pako": "^2.0.4",
-
     "proto3-json-serializer": "^0.1.6",
     "protobufjs": "~6.11.4",
     "re-resizable": "^6.11.2",
@@ -39,6 +38,7 @@
     "react-ace": "^14.0.1",
     "react-dom": "^19",
     "react-dropzone": "^14.4.1",
+    "react-query": "^3.39.3",
     "react-router": "^5.3.4",
     "react-router-dom": "^5.3.4",
     "react-textarea-autosize": "^8.5.9",
