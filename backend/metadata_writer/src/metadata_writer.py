@@ -17,13 +17,14 @@ import hashlib
 import os
 import re
 import collections
+import traceback
 import kubernetes
 import yaml
 from time import sleep
 import lru
 
 from metadata_helpers import *
-
+from kubernetes.client.exceptions import ApiException
 
 namespace_to_watch = os.environ.get('NAMESPACE_TO_WATCH', 'default')
 pod_name_to_execution_id_size = os.environ.get('POD_NAME_TO_EXECUTION_ID_SIZE', 5000)
@@ -148,22 +149,23 @@ debug_paths = collections.deque()
 
 while True:
     print("Start watching Kubernetes Pods created by Argo")
-    if namespace_to_watch:
-        pod_stream = k8s_watch.stream(
-            k8s_api.list_namespaced_pod,
-            namespace=namespace_to_watch,
-            label_selector=ARGO_WORKFLOW_LABEL_KEY,
-            timeout_seconds=k8s_watch_server_side_timeout, 
-            _request_timeout=k8s_watch_client_side_timeout,
-        )
-    else:
-        pod_stream = k8s_watch.stream(
-            k8s_api.list_pod_for_all_namespaces,
-            label_selector=ARGO_WORKFLOW_LABEL_KEY,
-            timeout_seconds=k8s_watch_server_side_timeout, 
-            _request_timeout=k8s_watch_client_side_timeout,
-        )
     try:
+        if namespace_to_watch:
+            pod_stream = k8s_watch.stream(
+                k8s_api.list_namespaced_pod,
+                namespace=namespace_to_watch,
+                label_selector=ARGO_WORKFLOW_LABEL_KEY,
+                timeout_seconds=k8s_watch_server_side_timeout,
+                _request_timeout=k8s_watch_client_side_timeout,
+            )
+        else:
+            pod_stream = k8s_watch.stream(
+                k8s_api.list_pod_for_all_namespaces,
+                label_selector=ARGO_WORKFLOW_LABEL_KEY,
+                timeout_seconds=k8s_watch_server_side_timeout,
+                _request_timeout=k8s_watch_client_side_timeout,
+            )
+
         for event in pod_stream:
             obj = event['object']
             print('Kubernetes Pod event: ', event['type'], obj.metadata.name, obj.metadata.resource_version)
@@ -399,9 +401,19 @@ while True:
         # If the for loop ended, a server-side timeout occurred. Continue watching.
         pass
 
+    except ApiException as e:
+        error_text = '{}'.format(e)
+
+        if 'resource version' in error_text.lower():
+            print('Kubernetes watch hit stale resourceVersion. Restarting watch from latest state.')
+            k8s_watch.stop()
+            sleep(1)
+            continue
+        else:
+            print(traceback.format_exc())
+            continue
+
     except Exception as e:
         # Handle any errors, print stack trace, and continue watching.
-        import traceback
         print(traceback.format_exc())
         continue
- 
