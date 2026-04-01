@@ -1196,7 +1196,7 @@ message PipelineConfig {
 
   // Maximum number of seconds a workflow is allowed to run before it is
   // forcibly terminated.  Maps to Argo's activeDeadlineSeconds.  A value
-  // of 0 (proto default) means the backend applies a default of 14 days
-  // (1 209 600 s).  Set a positive value to override.
+  // of 0 (proto default) means no deadline is applied.  Set a positive
+  // value to enforce a maximum execution time.
   int32 active_deadline_seconds = 5;
 }

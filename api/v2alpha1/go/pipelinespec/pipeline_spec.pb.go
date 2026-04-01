@@ -2773,8 +2773,8 @@ type PipelineConfig struct {
 	ResourceTtlOnFailure int32 `protobuf:"varint,4,opt,name=resource_ttl_on_failure,json=resourceTtlOnFailure,proto3" json:"resource_ttl_on_failure,omitempty"`
 	// Maximum number of seconds a workflow is allowed to run before it is
 	// forcibly terminated.  Maps to Argo's activeDeadlineSeconds.  A value
-	// of 0 (proto default) means the backend applies a default of 14 days
-	// (1 209 600 s).  Set a positive value to override.
+	// of 0 (proto default) means no deadline is applied.  Set a positive
+	// value to enforce a maximum execution time.
 	ActiveDeadlineSeconds int32 `protobuf:"varint,5,opt,name=active_deadline_seconds,json=activeDeadlineSeconds,proto3" json:"active_deadline_seconds,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache

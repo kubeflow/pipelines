@@ -129,23 +129,23 @@ func TestBuildActiveDeadlineSeconds(t *testing.T) {
 		expected       *int64
 	}{
 		{
-			name:     "nil config returns 14-day default",
-			expected: int64Ptr(defaultActiveDeadlineSeconds),
+			name:     "nil config returns nil (no deadline)",
+			expected: nil,
 		},
 		{
-			name:           "zero value returns 14-day default",
+			name:           "zero value returns nil (no deadline)",
 			pipelineConfig: &pipelinespec.PipelineConfig{ActiveDeadlineSeconds: 0},
-			expected:       int64Ptr(defaultActiveDeadlineSeconds),
+			expected:       nil,
 		},
 		{
-			name:           "positive value overrides default",
-			pipelineConfig: &pipelinespec.PipelineConfig{ActiveDeadlineSeconds: 3600},
-			expected:       int64Ptr(3600),
-		},
-		{
-			name:           "negative value disables deadline",
+			name:           "negative value returns nil (no deadline)",
 			pipelineConfig: &pipelinespec.PipelineConfig{ActiveDeadlineSeconds: -1},
 			expected:       nil,
+		},
+		{
+			name:           "positive value sets deadline",
+			pipelineConfig: &pipelinespec.PipelineConfig{ActiveDeadlineSeconds: 3600},
+			expected:       int64Ptr(3600),
 		},
 		{
 			name:           "large positive value is honored",

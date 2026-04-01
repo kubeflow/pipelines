@@ -4737,6 +4737,82 @@ class TestPlatformConfig(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, '2147483647'):
             dsl.PipelineConfig(ttl_seconds_after_finished=2147483648)
 
+    def test_pipeline_with_active_deadline_seconds(self):
+        """active_deadline_seconds → activeDeadlineSeconds in platform spec."""
+
+        @dsl.pipeline(
+            pipeline_config=dsl.PipelineConfig(
+                active_deadline_seconds=3600))
+        def my_pipeline():
+            comp()
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {'pipelineConfig': {
+                'activeDeadlineSeconds': 3600
+            }}, expected.platforms['kubernetes'])
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+    def test_pipeline_with_active_deadline_none_omits_field(self):
+        """active_deadline_seconds=None (default) produces no platform spec entry."""
+
+        @dsl.pipeline(
+            pipeline_config=dsl.PipelineConfig(
+                active_deadline_seconds=None))
+        def my_pipeline():
+            comp()
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+    def test_pipeline_with_active_deadline_and_ttl(self):
+        """active_deadline_seconds and TTL fields coexist."""
+
+        @dsl.pipeline(
+            pipeline_config=dsl.PipelineConfig(
+                ttl_seconds_after_finished=300,
+                active_deadline_seconds=7200,
+            ))
+        def my_pipeline():
+            comp()
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'pipelineConfig': {
+                    'resourceTtlOnCompletion': 300,
+                    'activeDeadlineSeconds': 7200,
+                }
+            }, expected.platforms['kubernetes'])
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+    def test_pipeline_config_active_deadline_validation_rejects_negative(self):
+        """Negative active_deadline_seconds should raise ValueError."""
+        with self.assertRaisesRegex(ValueError, 'non-negative'):
+            dsl.PipelineConfig(active_deadline_seconds=-1)
+
+    def test_pipeline_config_active_deadline_validation_rejects_non_int(self):
+        """Float active_deadline_seconds should raise TypeError."""
+        with self.assertRaisesRegex(TypeError, 'must be an int'):
+            dsl.PipelineConfig(active_deadline_seconds=3.5)
+
+    def test_pipeline_config_default_has_no_active_deadline(self):
+        """Default PipelineConfig should not set active_deadline_seconds."""
+        config = dsl.PipelineConfig()
+        self.assertIsNone(config.active_deadline_seconds)
+
 
 class ExtractInputOutputDescription(unittest.TestCase):
 

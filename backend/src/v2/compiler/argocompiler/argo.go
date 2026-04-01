@@ -136,9 +136,10 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 	// Resolve the workflow-level active deadline from the pipeline config.
 	// This sets a hard timeout after which Argo forcibly terminates the
 	// workflow, preventing stuck/zombie runs that never complete.
-	activeDeadlineSeconds := buildActiveDeadlineSeconds(
-		kubernetesSpec.GetPipelineConfig(),
-	)
+	var activeDeadlineSeconds *int64
+	if kubernetesSpec != nil {
+		activeDeadlineSeconds = buildActiveDeadlineSeconds(kubernetesSpec.GetPipelineConfig())
+	}
 
 	// initialization
 	wf := &wfapi.Workflow{
@@ -281,31 +282,19 @@ func buildTTLStrategy(pipelineConfig *pipelinespec.PipelineConfig) *wfapi.TTLStr
 	return strategy
 }
 
-// defaultActiveDeadlineSeconds is the maximum workflow execution time when
-// the user does not specify one.  14 days prevents zombie workflows from
-// running indefinitely.
-const defaultActiveDeadlineSeconds int64 = 14 * 24 * 60 * 60 // 1 209 600 s
-
 // buildActiveDeadlineSeconds returns a pointer to the active-deadline value
 // that should be set on the Argo Workflow spec.
 //
-// Semantics:
-//   - pipelineConfig == nil or field == 0 → apply the 14-day default
-//   - field  > 0                          → use the user-supplied value
-//   - field  < 0                          → no deadline (nil)
+// Semantics (opt-in, backward compatible):
+//   - pipelineConfig == nil or field <= 0 → no deadline (nil)
+//   - field > 0                           → use the user-supplied value
 func buildActiveDeadlineSeconds(pipelineConfig *pipelinespec.PipelineConfig) *int64 {
 	if pipelineConfig == nil {
-		v := defaultActiveDeadlineSeconds
-		return &v
-	}
-
-	userValue := pipelineConfig.GetActiveDeadlineSeconds()
-	if userValue < 0 {
 		return nil
 	}
-	if userValue == 0 {
-		v := defaultActiveDeadlineSeconds
-		return &v
+	userValue := pipelineConfig.GetActiveDeadlineSeconds()
+	if userValue <= 0 {
+		return nil
 	}
 	v := int64(userValue)
 	return &v
