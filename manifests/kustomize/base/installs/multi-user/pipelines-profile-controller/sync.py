@@ -17,8 +17,6 @@ import json
 import os
 import base64
 import hashlib
-from kubernetes import client, config
-from kubernetes.client.rest import ApiException
 
 # From awscli installed in alpine/k8s image
 import botocore.session
@@ -175,81 +173,185 @@ def server_factory(frontend_image,
                 else:
                     print(f"ERROR: Failed to configure lifecycle policy: {exception}")
 
-        def create_role_and_binding(self, rbac_v1, namespace, role_name, sa_name, resources, verbs, resource_names=None):
-            # Configures necessary roles for the driver executor plugin
-            role = client.V1Role(
-                metadata=client.V1ObjectMeta(
-                    name=role_name,
-                    namespace=namespace
-                ),
-                rules=[
-                    client.V1PolicyRule(
-                        api_groups=[""],
-                        resources=resources,
-                        resource_names=resource_names,
-                        verbs=verbs
-                    )
-                ]
-            )
-            rbac_v1.create_namespaced_role(namespace=namespace, body=role)
-            print(f"Role {role_name} created in {namespace}")
-
-            role_binding_name = f"{role_name}-binding"
-            role_binding = client.V1RoleBinding(
-                metadata=client.V1ObjectMeta(
-                    name=role_binding_name,
-                    namespace=namespace
-                ),
-                subjects=[
-                    {
-                        "kind": "ServiceAccount",
-                        "name": sa_name,
-                        "namespace": namespace,
-                        "apiGroup": ""
+        def executor_plugin_resources(self, namespace):
+            # Argo Workflow Executor Plugin Necessary Resources
+            agent_sa_name = 'ml-pipeline-driver-agent-executor-plugin'
+            secret_name = f'{agent_sa_name}.service-account-token'
+            return [
+                {
+                    'apiVersion': 'v1',
+                    'kind': 'ServiceAccount',
+                    'metadata': {
+                        'name': agent_sa_name,
+                        'namespace': namespace,
+                        'labels': {
+                            'application-crd-id': 'kubeflow-pipelines'
+                        }
+                    },
+                    'secrets': [{
+                        'name': secret_name
+                    }]
+                },
+                {
+                    'apiVersion':
+                        'rbac.authorization.k8s.io/v1',
+                    'kind':
+                        'Role',
+                    'metadata': {
+                        'name': 'configmap-reader',
+                        'namespace': namespace,
+                    },
+                    'rules': [{
+                        'apiGroups': [''],
+                        'resources': ['configmaps'],
+                        'verbs': ['get', 'list', 'watch'],
+                    }]
+                },
+                {
+                    'apiVersion': 'rbac.authorization.k8s.io/v1',
+                    'kind': 'RoleBinding',
+                    'metadata': {
+                        'name': 'configmap-reader-binding',
+                        'namespace': namespace,
+                    },
+                    'subjects': [{
+                        'kind': 'ServiceAccount',
+                        'name': agent_sa_name,
+                        'namespace': namespace,
+                    }],
+                    'roleRef': {
+                        'kind': 'Role',
+                        'name': 'configmap-reader',
+                        'apiGroup': 'rbac.authorization.k8s.io',
                     }
-                ],
-                role_ref=client.V1RoleRef(
-                    kind="Role",
-                    name=role_name,
-                    api_group="rbac.authorization.k8s.io"
-                )
-            )
-            rbac_v1.create_namespaced_role_binding(namespace=namespace, body=role_binding)
-            print(f"RoleBinding {role_binding_name} created in {namespace}")
+                },
+                {
+                    'apiVersion':
+                        'rbac.authorization.k8s.io/v1',
+                    'kind':
+                        'Role',
+                    'metadata': {
+                        'name': 'ml-pipeline-driver-pods-reader',
+                        'namespace': namespace,
+                    },
+                    'rules': [{
+                        'apiGroups': [''],
+                        'resources': ['pods'],
+                        'verbs': ['get', 'list', 'watch'],
+                    }]
+                },
+                {
+                    'apiVersion': 'rbac.authorization.k8s.io/v1',
+                    'kind': 'RoleBinding',
+                    'metadata': {
+                        'name': 'ml-pipeline-driver-pods-reader-binding',
+                        'namespace': namespace,
+                    },
+                    'subjects': [{
+                        'kind': 'ServiceAccount',
+                        'name': agent_sa_name,
+                        'namespace': namespace,
+                    }],
+                    'roleRef': {
+                        'kind': 'Role',
+                        'name': 'ml-pipeline-driver-pods-reader',
+                        'apiGroup': 'rbac.authorization.k8s.io',
+                    }
+                },
+                {
+                    'apiVersion':
+                        'rbac.authorization.k8s.io/v1',
+                    'kind':
+                        'Role',
+                    'metadata': {
+                        'name': 'ml-pipeline-driver-pvc-editor',
+                        'namespace': namespace,
+                    },
+                    'rules': [{
+                        'apiGroups': [''],
+                        'resources': ['persistentvolumeclaims'],
+                        'verbs': ['create', 'get', 'list'],
+                    }]
+                },
+                {
+                    'apiVersion': 'rbac.authorization.k8s.io/v1',
+                    'kind': 'RoleBinding',
+                    'metadata': {
+                        'name': 'ml-pipeline-driver-pvc-editor-binding',
+                        'namespace': namespace,
+                    },
+                    'subjects': [{
+                        'kind': 'ServiceAccount',
+                        'name': agent_sa_name,
+                        'namespace': namespace,
+                    }],
+                    'roleRef': {
+                        'kind': 'Role',
+                        'name': 'ml-pipeline-driver-pvc-editor',
+                        'apiGroup': 'rbac.authorization.k8s.io',
+                    }
+                },
+                {
+                    'apiVersion':
+                        'rbac.authorization.k8s.io/v1',
+                    'kind':
+                        'Role',
+                    'metadata': {
+                        'name': 'artifact-secret-reader',
+                        'namespace': namespace,
+                    },
+                    'rules': [{
+                        'apiGroups': [''],
+                        'resources': ['secrets'],
+                        'resourceNames': ['mlpipeline-minio-artifact'],
+                        'verbs': ['get', 'list', 'watch'],
+                    }]
+                },
+                {
+                    'apiVersion': 'rbac.authorization.k8s.io/v1',
+                    'kind': 'RoleBinding',
+                    'metadata': {
+                        'name': 'artifact-secret-reader-binding',
+                        'namespace': namespace,
+                    },
+                    'subjects': [{
+                        'kind': 'ServiceAccount',
+                        'name': agent_sa_name,
+                        'namespace': namespace,
+                    }],
+                    'roleRef': {
+                        'kind': 'Role',
+                        'name': 'artifact-secret-reader',
+                        'apiGroup': 'rbac.authorization.k8s.io',
+                    }
+                },
+                {
+                    'apiVersion': 'v1',
+                    'kind': 'Secret',
+                    'metadata': {
+                        'name': 'default-editor.service-account-token',
+                        'namespace': namespace,
+                        'annotations': {
+                            'kubernetes.io/service-account.name':
+                                'default-editor'
+                        }
+                    },
+                    'type': 'kubernetes.io/service-account-token'
+                },
+                {
+                    'apiVersion': 'v1',
+                    'kind': 'Secret',
+                    'metadata': {
+                        'name': secret_name,
+                        'namespace': namespace,
+                        'annotations': {
+                            'kubernetes.io/service-account.name': agent_sa_name,
+                        },
+                    },
+                    'type': 'kubernetes.io/service-account-token',
+                },
+            ]
 
-        def upsert_executor_plugin_sa(self, namespace):
-            print('create executor plugin SAs for: ', namespace)
-            try:
-                config.load_incluster_config()
-            except:
-                config.load_kube_config()
-            core_v1 = client.CoreV1Api()
-            rbac_v1 = client.RbacAuthorizationV1Api()
-            agent_sa_name = "ml-pipeline-driver-agent-executor-plugin"
-            try:
-                core_v1.create_namespaced_service_account(
-                    namespace=namespace,
-                    body=client.V1ServiceAccount(
-                        metadata=client.V1ObjectMeta(
-                            name=agent_sa_name,
-                            labels={"application-crd-id": "kubeflow-pipelines"},
-                        )
-                    )
-                )
-                print(f"ServiceAccount {agent_sa_name} created in {namespace}")
-
-                agent_sa_name = "ml-pipeline-driver-agent-executor-plugin"
-                self.create_role_and_binding(rbac_v1=rbac_v1, namespace=namespace, role_name='configmap-reader', resources=["configmaps"], sa_name=agent_sa_name, verbs=["get", "list", "watch"])
-                self.create_role_and_binding(rbac_v1=rbac_v1, namespace=namespace, role_name='ml-pipeline-driver-pods-reader', resources=["pods"], sa_name=agent_sa_name, verbs=["get", "list", "watch"])
-                self.create_role_and_binding(rbac_v1=rbac_v1, namespace=namespace, role_name='ml-pipeline-driver-pvc-editor', resources=["persistentvolumeclaims"], sa_name=agent_sa_name, verbs=["create", "get", "list"])
-                self.create_role_and_binding(rbac_v1=rbac_v1, namespace=namespace, role_name='artifact-secret-reader', resources=["secrets"], sa_name=agent_sa_name, verbs=["get", "list", "watch"], resource_names=["mlpipeline-minio-artifact"])
-            except ApiException as e:
-                if e.status == 409:
-                    print(f"ServiceAccount {agent_sa_name} already exists in {namespace}")
-                else:
-                    print(f"Failed to create ServiceAccount {agent_sa_name}: {e}")
-            except Exception as e:
-                print(f"Unexpected error during the update sa in: {namespace} {e}")
 
         def sync(self, parent, attachments):
             # parent is a namespace
@@ -263,16 +365,19 @@ def server_factory(frontend_image,
 
             # Compute status based on observed state.
             desired_status = {
-                "kubeflow-pipelines-ready":
-                    len(attachments["Secret.v1"]) == 1 and
-                    len(attachments["ConfigMap.v1"]) == 3 and
-                    len(attachments["Deployment.apps/v1"]) == (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
-                    len(attachments["Service.v1"]) == (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
-                    "True" or "False"
+                'kubeflow-pipelines-ready':
+                    len(attachments['Secret.v1']) == 3 and
+                    len(attachments['ConfigMap.v1']) == 3 and
+                    len(attachments['Deployment.apps/v1']) ==
+                    (1 if artifacts_proxy_enabled.lower() == 'true' else 0) and
+                    len(attachments['Service.v1']) ==
+                    (1 if artifacts_proxy_enabled.lower() == 'true' else 0) and
+                    len(attachments['ServiceAccount.v1']) == 2 and
+                    len(attachments['Role.rbac.authorization.k8s.io/v1']) == 4
+                    and
+                    len(attachments['RoleBinding.rbac.authorization.k8s.io/v1'])
+                    == 4 and 'True' or 'False'
             }
-
-
-            self.upsert_executor_plugin_sa(namespace)
 
             # Generate the desired attachment object(s).
             desired_resources = [
@@ -332,6 +437,11 @@ def server_factory(frontend_image,
                     }
                 },
             ]
+
+            print('Creating executor-plugin service accounts')
+            # Argo Workflow Executor Plugin Necessary Resources
+            executor_plugin_resources = self.executor_plugin_resources(namespace)
+            desired_resources.extend(executor_plugin_resources)
 
             if artifacts_proxy_enabled.lower() == "true":
                 desired_resources.extend([
