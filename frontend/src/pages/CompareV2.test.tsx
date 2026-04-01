@@ -308,6 +308,80 @@ describe('CompareV2', () => {
       itemName: `test run ${MOCK_RUN_1_ID}`,
       subItemName: 'firstHtmlArtifact',
     });
+    expect(reconciledArtifactsMap[MetricsType.MARKDOWN][0].selectedItem).toEqual({
+      itemName: '',
+      subItemName: '',
+    });
+    expect(reconciledArtifactsMap[MetricsType.MARKDOWN][1].selectedItem).toEqual({
+      itemName: '',
+      subItemName: '',
+    });
+  });
+
+  it('keeps both two-panel selections when they reference the same run', () => {
+    const selectedArtifactsMap = {
+      [MetricsType.CONFUSION_MATRIX]: [
+        {
+          selectedItem: {
+            itemName: `test run ${MOCK_RUN_2_ID}`,
+            subItemName: 'firstArtifact',
+          },
+        },
+        {
+          selectedItem: {
+            itemName: `test run ${MOCK_RUN_2_ID}`,
+            subItemName: 'secondArtifact',
+          },
+        },
+      ],
+      [MetricsType.HTML]: [
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+      ],
+      [MetricsType.MARKDOWN]: [
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+      ],
+    };
+
+    const reconciledArtifactsMap = TEST_ONLY.reconcileSelectedArtifactsMap(selectedArtifactsMap, {
+      scalarMetricsTableData: undefined,
+      confusionMatrixRunArtifacts: [
+        { run: newMockRun(MOCK_RUN_2_ID), executionArtifacts: [] as any },
+      ],
+      htmlRunArtifacts: [],
+      markdownRunArtifacts: [],
+      rocCurveRunArtifacts: [],
+    });
+
+    expect(reconciledArtifactsMap[MetricsType.CONFUSION_MATRIX][0].selectedItem).toEqual({
+      itemName: `test run ${MOCK_RUN_2_ID}`,
+      subItemName: 'firstArtifact',
+    });
+    expect(reconciledArtifactsMap[MetricsType.CONFUSION_MATRIX][1].selectedItem).toEqual({
+      itemName: `test run ${MOCK_RUN_2_ID}`,
+      subItemName: 'secondArtifact',
+    });
   });
 
   it('getRun is called with query param IDs', async () => {

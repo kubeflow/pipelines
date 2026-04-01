@@ -299,7 +299,8 @@ const getVerifiedTwoPanelSelection = (
     const runName = runArtifact.run.display_name;
     if (runName === selectedArtifacts[0].selectedItem.itemName) {
       artifactsPresent[0] = true;
-    } else if (runName === selectedArtifacts[1].selectedItem.itemName) {
+    }
+    if (runName === selectedArtifacts[1].selectedItem.itemName) {
       artifactsPresent[1] = true;
     }
   }

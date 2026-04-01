@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { color, commonCss, fontsize, zIndex } from 'src/Css';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { classes, stylesheet } from 'typestyle';
@@ -104,6 +104,20 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
     setSecondSelectedItem(selectedArtifacts[1].selectedItem);
   }, [selectedArtifacts]);
 
+  const selectedArtifactsForDisplay = useMemo(
+    () => [
+      {
+        selectedItem: firstSelectedItem,
+        linkedArtifact: getLinkedArtifactFromSelectedItem(filteredRunArtifacts, firstSelectedItem),
+      },
+      {
+        selectedItem: secondSelectedItem,
+        linkedArtifact: getLinkedArtifactFromSelectedItem(filteredRunArtifacts, secondSelectedItem),
+      },
+    ],
+    [filteredRunArtifacts, firstSelectedItem, secondSelectedItem],
+  );
+
   const metricsTabText = metricsTypeToString(metricsTab);
   const updateSelectedItemAndArtifact = (
     setSelectedItem: (selectedItem: SelectedItem) => void,
@@ -112,7 +126,7 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
   ): void => {
     setSelectedItem(selectedItem);
     const linkedArtifact = getLinkedArtifactFromSelectedItem(filteredRunArtifacts, selectedItem);
-    const nextSelectedArtifacts = selectedArtifacts.map((selectedArtifact, index) =>
+    const nextSelectedArtifacts = selectedArtifactsForDisplay.map((selectedArtifact, index) =>
       index === panelIndex
         ? {
             selectedItem,
@@ -142,7 +156,7 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
             <VisualizationPanelItem
               metricsTab={metricsTab}
               metricsTabText={metricsTabText}
-              linkedArtifact={selectedArtifacts[0].linkedArtifact}
+              linkedArtifact={selectedArtifactsForDisplay[0].linkedArtifact}
               namespace={namespace}
             />
           </td>
@@ -156,7 +170,7 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
             <VisualizationPanelItem
               metricsTab={metricsTab}
               metricsTabText={metricsTabText}
-              linkedArtifact={selectedArtifacts[1].linkedArtifact}
+              linkedArtifact={selectedArtifactsForDisplay[1].linkedArtifact}
               namespace={namespace}
             />
           </td>
