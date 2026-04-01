@@ -113,7 +113,13 @@ class PipelineConfig:
             Argo Workflow resource after a *failed* run.  Maps to Argo's
             ``ttlStrategy.secondsAfterFailure``.  Takes precedence over
             ``ttl_seconds_after_finished`` for failed runs when both are set.
+        active_deadline_seconds: Maximum number of seconds a workflow is
+            allowed to run before it is forcibly terminated.  Maps to Argo's
+            ``activeDeadlineSeconds``.  Defaults to 14 days (1 209 600 s).
+            Set to ``None`` to let the backend apply its own default.
     """
+
+    _DEFAULT_ACTIVE_DEADLINE_SECONDS = 14 * 24 * 60 * 60  # 14 days
 
     def __init__(
         self,
@@ -121,12 +127,14 @@ class PipelineConfig:
         ttl_seconds_after_finished: Optional[int] = None,
         ttl_seconds_after_success: Optional[int] = None,
         ttl_seconds_after_failure: Optional[int] = None,
+        active_deadline_seconds: Optional[int] = _DEFAULT_ACTIVE_DEADLINE_SECONDS,
     ):
         self.workspace = workspace
         for name, value in [
             ('ttl_seconds_after_finished', ttl_seconds_after_finished),
             ('ttl_seconds_after_success', ttl_seconds_after_success),
             ('ttl_seconds_after_failure', ttl_seconds_after_failure),
+            ('active_deadline_seconds', active_deadline_seconds),
         ]:
             if value is None:
                 continue
@@ -143,3 +151,4 @@ class PipelineConfig:
         self.ttl_seconds_after_finished = ttl_seconds_after_finished
         self.ttl_seconds_after_success = ttl_seconds_after_success
         self.ttl_seconds_after_failure = ttl_seconds_after_failure
+        self.active_deadline_seconds = active_deadline_seconds

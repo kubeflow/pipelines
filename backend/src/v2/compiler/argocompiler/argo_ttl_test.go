@@ -122,4 +122,49 @@ func TestBuildTTLStrategy(t *testing.T) {
 	}
 }
 
+func TestBuildActiveDeadlineSeconds(t *testing.T) {
+	tests := []struct {
+		name           string
+		pipelineConfig *pipelinespec.PipelineConfig
+		expected       *int64
+	}{
+		{
+			name:     "nil config returns 14-day default",
+			expected: int64Ptr(defaultActiveDeadlineSeconds),
+		},
+		{
+			name:           "zero value returns 14-day default",
+			pipelineConfig: &pipelinespec.PipelineConfig{ActiveDeadlineSeconds: 0},
+			expected:       int64Ptr(defaultActiveDeadlineSeconds),
+		},
+		{
+			name:           "positive value overrides default",
+			pipelineConfig: &pipelinespec.PipelineConfig{ActiveDeadlineSeconds: 3600},
+			expected:       int64Ptr(3600),
+		},
+		{
+			name:           "negative value disables deadline",
+			pipelineConfig: &pipelinespec.PipelineConfig{ActiveDeadlineSeconds: -1},
+			expected:       nil,
+		},
+		{
+			name:           "large positive value is honored",
+			pipelineConfig: &pipelinespec.PipelineConfig{ActiveDeadlineSeconds: 2147483647},
+			expected:       int64Ptr(2147483647),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := buildActiveDeadlineSeconds(tt.pipelineConfig)
+			if tt.expected == nil {
+				assert.Nil(t, result)
+			} else {
+				require.NotNil(t, result)
+				assert.Equal(t, *tt.expected, *result)
+			}
+		})
+	}
+}
+
 func int32Ptr(v int32) *int32 { return &v }

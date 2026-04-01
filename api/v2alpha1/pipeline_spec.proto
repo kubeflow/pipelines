@@ -1193,4 +1193,10 @@ message PipelineConfig {
   // Maps to Argo's TTLStrategy.secondsAfterFailure.  Takes precedence over
   // resource_ttl_on_completion for failed runs when both are set.
   int32 resource_ttl_on_failure = 4;
+
+  // Maximum number of seconds a workflow is allowed to run before it is
+  // forcibly terminated.  Maps to Argo's activeDeadlineSeconds.  A value
+  // of 0 (proto default) means the backend applies a default of 14 days
+  // (1 209 600 s).  Set a positive value to override.
+  int32 active_deadline_seconds = 5;
 }
