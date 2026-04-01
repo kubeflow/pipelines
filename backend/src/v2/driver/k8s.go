@@ -1092,6 +1092,7 @@ func makeVolumeMountPatch(
 				PersistentVolumeClaim: &k8score.PersistentVolumeClaimVolumeSource{ClaimName: pvcName},
 			},
 		}
+
 		volumeMounts = append(volumeMounts, volumeMount)
 		volumes = append(volumes, volume)
 	}
@@ -1109,6 +1110,9 @@ func publishDriverExecution(
 	outputArtifacts []*metadata.OutputArtifact,
 	status pb.Execution_State,
 ) (err error) {
+	if status != pb.Execution_COMPLETE && status != pb.Execution_FAILED {
+		return nil
+	}
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to publish driver execution %s: %w", execution.TaskName(), err)
