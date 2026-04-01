@@ -124,6 +124,15 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		}
 	}
 
+	// Resolve the workflow-level TTL strategy from the pipeline config.
+	// resource_ttl_on_completion is interpreted as seconds-after-completion so that Argo's
+	// TTL controller removes the Workflow object after the run finishes,
+	// regardless of success or failure.
+	var ttlStrategy *wfapi.TTLStrategy
+	if hasPipelineConfig {
+		ttlStrategy = buildTTLStrategy(kubernetesSpec.GetPipelineConfig())
+	}
+
 	// initialization
 	wf := &wfapi.Workflow{
 		TypeMeta: k8smeta.TypeMeta{
@@ -156,6 +165,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			ServiceAccountName:   common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount),
 			Entrypoint:           tmplEntrypoint,
 			VolumeClaimTemplates: volumeClaimTemplates,
+			TTLStrategy:          ttlStrategy,
 		},
 	}
 
@@ -223,6 +233,44 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 func retrieveLastValidString(s string) string {
 	sections := strings.Split(s, "/")
 	return sections[len(sections)-1]
+}
+
+// buildTTLStrategy constructs an Argo TTLStrategy from a pipeline config.
+//
+// The three proto fields map to Argo's three TTL knobs:
+//   - resource_ttl_on_completion → SecondsAfterCompletion (regardless of outcome)
+//   - resource_ttl_on_success    → SecondsAfterSuccess   (successful runs only)
+//   - resource_ttl_on_failure    → SecondsAfterFailure   (failed runs only)
+//
+// Only positive values are applied; a value of 0 (proto default) is treated as
+// "not set".  Returns nil when none of the fields is positive.
+func buildTTLStrategy(pipelineConfig *pipelinespec.PipelineConfig) *wfapi.TTLStrategy {
+	if pipelineConfig == nil {
+		return nil
+	}
+
+	afterCompletion := pipelineConfig.GetResourceTtlOnCompletion()
+	afterSuccess := pipelineConfig.GetResourceTtlOnSuccess()
+	afterFailure := pipelineConfig.GetResourceTtlOnFailure()
+
+	if afterCompletion <= 0 && afterSuccess <= 0 && afterFailure <= 0 {
+		return nil
+	}
+
+	strategy := &wfapi.TTLStrategy{}
+	if afterCompletion > 0 {
+		v := int32(afterCompletion)
+		strategy.SecondsAfterCompletion = &v
+	}
+	if afterSuccess > 0 {
+		v := int32(afterSuccess)
+		strategy.SecondsAfterSuccess = &v
+	}
+	if afterFailure > 0 {
+		v := int32(afterFailure)
+		strategy.SecondsAfterFailure = &v
+	}
+	return strategy
 }
 
 type workflowCompiler struct {
