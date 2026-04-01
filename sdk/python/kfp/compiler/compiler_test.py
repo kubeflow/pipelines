@@ -4741,8 +4741,7 @@ class TestPlatformConfig(unittest.TestCase):
         """active_deadline_seconds → activeDeadlineSeconds in platform spec."""
 
         @dsl.pipeline(
-            pipeline_config=dsl.PipelineConfig(
-                active_deadline_seconds=3600))
+            pipeline_config=dsl.PipelineConfig(active_deadline_seconds=3600))
         def my_pipeline():
             comp()
 
@@ -4761,8 +4760,7 @@ class TestPlatformConfig(unittest.TestCase):
         """active_deadline_seconds=None (default) produces no platform spec entry."""
 
         @dsl.pipeline(
-            pipeline_config=dsl.PipelineConfig(
-                active_deadline_seconds=None))
+            pipeline_config=dsl.PipelineConfig(active_deadline_seconds=None))
         def my_pipeline():
             comp()
 
