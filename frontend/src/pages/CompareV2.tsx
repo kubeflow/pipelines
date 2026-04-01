@@ -289,6 +289,78 @@ const areSelectedArtifactsEqual = (
     );
   });
 
+// Ensure that the two-panel selected artifacts are present in the selected valid run list.
+const getVerifiedTwoPanelSelection = (
+  runArtifacts: RunArtifact[],
+  selectedArtifacts: SelectedArtifact[],
+) => {
+  const artifactsPresent: boolean[] = new Array(2).fill(false);
+  for (const runArtifact of runArtifacts) {
+    const runName = runArtifact.run.display_name;
+    if (runName === selectedArtifacts[0].selectedItem.itemName) {
+      artifactsPresent[0] = true;
+    } else if (runName === selectedArtifacts[1].selectedItem.itemName) {
+      artifactsPresent[1] = true;
+    }
+  }
+
+  return selectedArtifacts.map((selectedArtifact, index) => {
+    if (artifactsPresent[index]) {
+      return selectedArtifact;
+    }
+    return {
+      selectedItem: {
+        itemName: '',
+        subItemName: '',
+      },
+    };
+  });
+};
+
+const reconcileSelectedArtifactsMap = (
+  currentSelectedArtifactsMap: { [key: string]: SelectedArtifact[] },
+  metricsArtifactData?: DerivedMetricsArtifacts,
+) => {
+  if (!metricsArtifactData) {
+    return currentSelectedArtifactsMap;
+  }
+
+  const nextSelectedArtifactsMap = {
+    ...currentSelectedArtifactsMap,
+    [MetricsType.CONFUSION_MATRIX]: getVerifiedTwoPanelSelection(
+      metricsArtifactData.confusionMatrixRunArtifacts,
+      currentSelectedArtifactsMap[MetricsType.CONFUSION_MATRIX],
+    ),
+    [MetricsType.HTML]: getVerifiedTwoPanelSelection(
+      metricsArtifactData.htmlRunArtifacts,
+      currentSelectedArtifactsMap[MetricsType.HTML],
+    ),
+    [MetricsType.MARKDOWN]: getVerifiedTwoPanelSelection(
+      metricsArtifactData.markdownRunArtifacts,
+      currentSelectedArtifactsMap[MetricsType.MARKDOWN],
+    ),
+  };
+
+  if (
+    areSelectedArtifactsEqual(
+      currentSelectedArtifactsMap[MetricsType.CONFUSION_MATRIX],
+      nextSelectedArtifactsMap[MetricsType.CONFUSION_MATRIX],
+    ) &&
+    areSelectedArtifactsEqual(
+      currentSelectedArtifactsMap[MetricsType.HTML],
+      nextSelectedArtifactsMap[MetricsType.HTML],
+    ) &&
+    areSelectedArtifactsEqual(
+      currentSelectedArtifactsMap[MetricsType.MARKDOWN],
+      nextSelectedArtifactsMap[MetricsType.MARKDOWN],
+    )
+  ) {
+    return currentSelectedArtifactsMap;
+  }
+
+  return nextSelectedArtifactsMap;
+};
+
 const reconcileRocCurveSelectionState = (
   currentSelection: RocCurveSelectionState,
   linkedArtifacts: LinkedArtifact[],
@@ -430,34 +502,6 @@ function CompareV2(props: CompareV2Props) {
     error: errorArtifactTypes,
   } = useArtifactTypes();
 
-  // Ensure that the two-panel selected artifacts are present in selected valid run list.
-  const getVerifiedTwoPanelSelection = (
-    runArtifacts: RunArtifact[],
-    selectedArtifacts: SelectedArtifact[],
-  ) => {
-    const artifactsPresent: boolean[] = new Array(2).fill(false);
-    for (const runArtifact of runArtifacts) {
-      const runName = runArtifact.run.display_name;
-      if (runName === selectedArtifacts[0].selectedItem.itemName) {
-        artifactsPresent[0] = true;
-      } else if (runName === selectedArtifacts[1].selectedItem.itemName) {
-        artifactsPresent[1] = true;
-      }
-    }
-
-    return selectedArtifacts.map((selectedArtifact, index) => {
-      if (artifactsPresent[index]) {
-        return selectedArtifact;
-      }
-      return {
-        selectedItem: {
-          itemName: '',
-          subItemName: '',
-        },
-      };
-    });
-  };
-
   const metricsArtifactData = useMemo<DerivedMetricsArtifacts | undefined>(() => {
     if (!(runs && mlmdPackages && artifactTypes)) {
       return undefined;
@@ -523,48 +567,12 @@ function CompareV2(props: CompareV2Props) {
     };
   }, [metricsArtifactData]);
 
+  const visibleSelectedArtifactsMap = useMemo(
+    () => reconcileSelectedArtifactsMap(selectedArtifactsMap, metricsArtifactData),
+    [selectedArtifactsMap, metricsArtifactData],
+  );
+
   useEffect(() => {
-    if (!metricsArtifactData) {
-      return;
-    }
-
-    setSelectedArtifactsMap((currentSelectedArtifactsMap) => {
-      const nextSelectedArtifactsMap = {
-        ...currentSelectedArtifactsMap,
-        [MetricsType.CONFUSION_MATRIX]: getVerifiedTwoPanelSelection(
-          metricsArtifactData.confusionMatrixRunArtifacts,
-          currentSelectedArtifactsMap[MetricsType.CONFUSION_MATRIX],
-        ),
-        [MetricsType.HTML]: getVerifiedTwoPanelSelection(
-          metricsArtifactData.htmlRunArtifacts,
-          currentSelectedArtifactsMap[MetricsType.HTML],
-        ),
-        [MetricsType.MARKDOWN]: getVerifiedTwoPanelSelection(
-          metricsArtifactData.markdownRunArtifacts,
-          currentSelectedArtifactsMap[MetricsType.MARKDOWN],
-        ),
-      };
-
-      if (
-        areSelectedArtifactsEqual(
-          currentSelectedArtifactsMap[MetricsType.CONFUSION_MATRIX],
-          nextSelectedArtifactsMap[MetricsType.CONFUSION_MATRIX],
-        ) &&
-        areSelectedArtifactsEqual(
-          currentSelectedArtifactsMap[MetricsType.HTML],
-          nextSelectedArtifactsMap[MetricsType.HTML],
-        ) &&
-        areSelectedArtifactsEqual(
-          currentSelectedArtifactsMap[MetricsType.MARKDOWN],
-          nextSelectedArtifactsMap[MetricsType.MARKDOWN],
-        )
-      ) {
-        return currentSelectedArtifactsMap;
-      }
-
-      return nextSelectedArtifactsMap;
-    });
-
     setRocCurveSelection((currentSelection) =>
       reconcileRocCurveSelectionState(
         currentSelection,
@@ -572,7 +580,7 @@ function CompareV2(props: CompareV2Props) {
         rocCurveData.validRocCurveIdSet,
       ),
     );
-  }, [metricsArtifactData, rocCurveData]);
+  }, [rocCurveData]);
 
   const scalarMetricsTableData = metricsArtifactData?.scalarMetricsTableData;
   const confusionMatrixRunArtifacts = metricsArtifactData?.confusionMatrixRunArtifacts || [];
@@ -782,7 +790,7 @@ function CompareV2(props: CompareV2Props) {
                   <MetricsDropdown
                     filteredRunArtifacts={confusionMatrixRunArtifacts}
                     metricsTab={metricsTab}
-                    selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                    selectedArtifacts={visibleSelectedArtifactsMap[metricsTab]}
                     updateSelectedArtifacts={updateSelectedArtifacts}
                     namespace={namespace}
                   />
@@ -817,7 +825,7 @@ function CompareV2(props: CompareV2Props) {
                   <MetricsDropdown
                     filteredRunArtifacts={htmlRunArtifacts}
                     metricsTab={metricsTab}
-                    selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                    selectedArtifacts={visibleSelectedArtifactsMap[metricsTab]}
                     updateSelectedArtifacts={updateSelectedArtifacts}
                     namespace={namespace}
                   />
@@ -826,7 +834,7 @@ function CompareV2(props: CompareV2Props) {
                   <MetricsDropdown
                     filteredRunArtifacts={markdownRunArtifacts}
                     metricsTab={metricsTab}
-                    selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                    selectedArtifacts={visibleSelectedArtifactsMap[metricsTab]}
                     updateSelectedArtifacts={updateSelectedArtifacts}
                     namespace={namespace}
                   />
@@ -859,5 +867,6 @@ export default EnhancedCompareV2;
 export const TEST_ONLY = {
   CompareV2,
   createInitialRocCurveSelectionState,
+  reconcileSelectedArtifactsMap,
   reconcileRocCurveSelectionState,
 };

@@ -111,10 +111,16 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
     selectedItem: SelectedItem,
   ): void => {
     setSelectedItem(selectedItem);
-    selectedArtifacts[panelIndex].selectedItem = selectedItem;
     const linkedArtifact = getLinkedArtifactFromSelectedItem(filteredRunArtifacts, selectedItem);
-    selectedArtifacts[panelIndex].linkedArtifact = linkedArtifact;
-    updateSelectedArtifacts(selectedArtifacts);
+    const nextSelectedArtifacts = selectedArtifacts.map((selectedArtifact, index) =>
+      index === panelIndex
+        ? {
+            selectedItem,
+            linkedArtifact,
+          }
+        : selectedArtifact,
+    );
+    updateSelectedArtifacts(nextSelectedArtifacts);
   };
 
   const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
