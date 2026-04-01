@@ -2310,6 +2310,26 @@ def _merge_pipeline_config(pipelineConfig: pipeline_config.PipelineConfig,
     if workspace is not None:
         config_dict['workspace'] = workspace.get_workspace()
 
+    if (pipelineConfig.ttl_seconds_after_finished is not None and
+            pipelineConfig.ttl_seconds_after_finished > 0):
+        config_dict[
+            'resourceTtlOnCompletion'] = pipelineConfig.ttl_seconds_after_finished
+
+    if (pipelineConfig.ttl_seconds_after_success is not None and
+            pipelineConfig.ttl_seconds_after_success > 0):
+        config_dict[
+            'resourceTtlOnSuccess'] = pipelineConfig.ttl_seconds_after_success
+
+    if (pipelineConfig.ttl_seconds_after_failure is not None and
+            pipelineConfig.ttl_seconds_after_failure > 0):
+        config_dict[
+            'resourceTtlOnFailure'] = pipelineConfig.ttl_seconds_after_failure
+
+    if (pipelineConfig.active_deadline_seconds is not None and
+            pipelineConfig.active_deadline_seconds > 0):
+        config_dict[
+            'activeDeadlineSeconds'] = pipelineConfig.active_deadline_seconds
+
     if config_dict:
         json_format.ParseDict({'pipelineConfig': config_dict},
                               platformSpec.platforms['kubernetes'])
