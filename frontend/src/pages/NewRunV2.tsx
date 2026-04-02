@@ -226,18 +226,18 @@ function getRunValidationErrorMessage(
 }
 
 function getDefaultRunName(
-  existingRun?: V2beta1Run,
-  existingRecurringRun?: V2beta1RecurringRun,
-  existingPipelineVersion?: V2beta1PipelineVersion,
+  runDisplayName?: string,
+  recurringRunDisplayName?: string,
+  pipelineVersionDisplayName?: string,
 ) {
-  if (existingRun?.display_name) {
-    return 'Clone of ' + existingRun.display_name;
+  if (runDisplayName) {
+    return 'Clone of ' + runDisplayName;
   }
-  if (existingRecurringRun?.display_name) {
-    return 'Clone of ' + existingRecurringRun.display_name;
+  if (recurringRunDisplayName) {
+    return 'Clone of ' + recurringRunDisplayName;
   }
-  if (existingPipelineVersion?.display_name) {
-    return 'Run of ' + existingPipelineVersion.display_name + ' (' + generateRandomString(5) + ')';
+  if (pipelineVersionDisplayName) {
+    return 'Run of ' + pipelineVersionDisplayName + ' (' + generateRandomString(5) + ')';
   }
   return '';
 }
@@ -287,9 +287,17 @@ function NewRunV2(props: NewRunV2Props) {
       : true;
   const [needCatchup, setNeedCatchup] = useState(initialCatchup);
   const [useLatestVersion, setUseLatestVersion] = useState(false);
+  const existingRunDisplayName = existingRun?.display_name;
+  const existingRecurringRunDisplayName = existingRecurringRun?.display_name;
+  const existingPipelineVersionDisplayName = existingPipelineVersion?.display_name;
   const defaultRunName = useMemo(
-    () => getDefaultRunName(existingRun, existingRecurringRun, existingPipelineVersion),
-    [existingRun?.display_name, existingRecurringRun?.display_name, existingPipelineVersion?.display_name],
+    () =>
+      getDefaultRunName(
+        existingRunDisplayName,
+        existingRecurringRunDisplayName,
+        existingPipelineVersionDisplayName,
+      ),
+    [existingRunDisplayName, existingRecurringRunDisplayName, existingPipelineVersionDisplayName],
   );
   const runName = customRunName ?? defaultRunName;
 
@@ -328,8 +336,7 @@ function NewRunV2(props: NewRunV2Props) {
   const usePipelineFromRunLabel = `Using pipeline from existing ${labelTextAdjective} run.`;
 
   const isTemplatePullSuccess = templateString ? true : false;
-  const isTemplateLoading =
-    !templateString && !!existingPipelineVersion && !cloneOrigin.isClone;
+  const isTemplateLoading = !templateString && !!existingPipelineVersion && !cloneOrigin.isClone;
   const validationErrorMessage = getRunValidationErrorMessage(
     runName,
     existingPipeline,
@@ -389,7 +396,7 @@ function NewRunV2(props: NewRunV2Props) {
     if (experiment?.experiment_id) {
       setExperimentId(experiment.experiment_id);
     }
-  }, [existingPipeline?.display_name, experiment?.display_name, experiment?.experiment_id]);
+  }, [existingPipeline, experiment]);
 
   useEffect(() => {
     if (useLatestVersion) {
@@ -397,7 +404,7 @@ function NewRunV2(props: NewRunV2Props) {
     } else if (existingPipelineVersion?.display_name) {
       setPipelineVersionName(existingPipelineVersion.display_name);
     }
-  }, [existingPipelineVersion?.display_name, useLatestVersion]);
+  }, [existingPipelineVersion, useLatestVersion]);
 
   // Defines the behavior when user clicks `Start` button.
   const newRunMutation = useMutation({
