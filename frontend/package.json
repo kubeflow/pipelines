@@ -38,7 +38,6 @@
     "react-ace": "^14.0.1",
     "react-dom": "^19",
     "react-dropzone": "^14.4.1",
-    "react-query": "^3.39.3",
     "react-router": "^5.3.4",
     "react-router-dom": "^5.3.4",
     "react-textarea-autosize": "^8.5.9",

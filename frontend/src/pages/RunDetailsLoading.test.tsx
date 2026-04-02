@@ -16,7 +16,7 @@
 
 import { render, screen, waitFor, act } from '@testing-library/react';
 import * as React from 'react';
-import { QueryClientProvider } from 'react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { queryClientTest, testBestPractices } from 'src/TestUtils';
