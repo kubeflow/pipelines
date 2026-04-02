@@ -16,6 +16,7 @@
 
 import {
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -221,7 +222,7 @@ function getRunValidationErrorMessage(
   if (!existingPipelineVersion) {
     return 'A pipeline version must be selected';
   }
-  return '';
+  return 'Loading pipeline template...';
 }
 
 function getDefaultRunName(
@@ -288,7 +289,7 @@ function NewRunV2(props: NewRunV2Props) {
   const [useLatestVersion, setUseLatestVersion] = useState(false);
   const defaultRunName = useMemo(
     () => getDefaultRunName(existingRun, existingRecurringRun, existingPipelineVersion),
-    [existingRun, existingRecurringRun, existingPipelineVersion],
+    [existingRun?.display_name, existingRecurringRun?.display_name, existingPipelineVersion?.display_name],
   );
   const runName = customRunName ?? defaultRunName;
 
@@ -327,6 +328,8 @@ function NewRunV2(props: NewRunV2Props) {
   const usePipelineFromRunLabel = `Using pipeline from existing ${labelTextAdjective} run.`;
 
   const isTemplatePullSuccess = templateString ? true : false;
+  const isTemplateLoading =
+    !templateString && !!existingPipelineVersion && !cloneOrigin.isClone;
   const validationErrorMessage = getRunValidationErrorMessage(
     runName,
     existingPipeline,
@@ -386,7 +389,7 @@ function NewRunV2(props: NewRunV2Props) {
     if (experiment?.experiment_id) {
       setExperimentId(experiment.experiment_id);
     }
-  }, [existingPipeline, experiment]);
+  }, [existingPipeline?.display_name, experiment?.display_name, experiment?.experiment_id]);
 
   useEffect(() => {
     if (useLatestVersion) {
@@ -394,7 +397,7 @@ function NewRunV2(props: NewRunV2Props) {
     } else if (existingPipelineVersion?.display_name) {
       setPipelineVersionName(existingPipelineVersion.display_name);
     }
-  }, [existingPipelineVersion, useLatestVersion]);
+  }, [existingPipelineVersion?.display_name, useLatestVersion]);
 
   // Defines the behavior when user clicks `Start` button.
   const newRunMutation = useMutation({
@@ -764,6 +767,9 @@ function NewRunV2(props: NewRunV2Props) {
           >
             {'Cancel'}
           </Button>
+          {isTemplateLoading && (
+            <CircularProgress size={24} style={{ marginLeft: 12, alignSelf: 'center' }} />
+          )}
           <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
             {validationErrorMessage}
           </div>

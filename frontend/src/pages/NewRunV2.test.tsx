@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { type ComponentProps } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import fs from 'node:fs';
 import * as JsYaml from 'js-yaml';
@@ -221,6 +222,32 @@ describe('NewRunV2', () => {
   const updateSnackbarSpy = vi.fn();
   const updateToolbarSpy = vi.fn();
 
+  function buildNewRunV2Element(overrides: Partial<ComponentProps<typeof NewRunV2>> = {}) {
+    const props: ComponentProps<typeof NewRunV2> = {
+      ...generatePropsNewRun(),
+      existingRunId: null,
+      existingRun: undefined,
+      existingRecurringRunId: null,
+      existingRecurringRun: undefined,
+      existingPipeline: ORIGINAL_TEST_PIPELINE,
+      handlePipelineIdChange: vi.fn(),
+      existingPipelineVersion: ORIGINAL_TEST_PIPELINE_VERSION,
+      handlePipelineVersionIdChange: vi.fn(),
+      templateString: v2XGYamlTemplateString,
+      chosenExperiment: undefined,
+      ...overrides,
+    };
+    return (
+      <CommonTestWrapper>
+        <NewRunV2 {...props} />
+      </CommonTestWrapper>
+    );
+  }
+
+  function renderNewRunV2(overrides: Partial<ComponentProps<typeof NewRunV2>> = {}) {
+    return render(buildNewRunV2Element(overrides));
+  }
+
   // For creating new run with no pipeline is selected (enter from run list)
   function generatePropsNoPipelineDef(eid: string | null): PageProps {
     return {
@@ -294,23 +321,7 @@ describe('NewRunV2', () => {
     const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
     getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
 
-    render(
-      <CommonTestWrapper>
-        <NewRunV2
-          {...generatePropsNewRun()}
-          existingRunId={null}
-          existingRun={undefined}
-          existingRecurringRunId={null}
-          existingRecurringRun={undefined}
-          existingPipeline={ORIGINAL_TEST_PIPELINE}
-          handlePipelineIdChange={vi.fn()}
-          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-          handlePipelineVersionIdChange={vi.fn()}
-          templateString={v2XGYamlTemplateString}
-          chosenExperiment={undefined}
-        />
-      </CommonTestWrapper>,
-    );
+    renderNewRunV2();
 
     await screen.findByDisplayValue(ORIGINAL_TEST_PIPELINE_NAME);
     await screen.findByDisplayValue(ORIGINAL_TEST_PIPELINE_VERSION_NAME);
@@ -325,23 +336,7 @@ describe('NewRunV2', () => {
     const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
     getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
 
-    render(
-      <CommonTestWrapper>
-        <NewRunV2
-          {...generatePropsNewRun()}
-          existingRunId={null}
-          existingRun={undefined}
-          existingRecurringRunId={null}
-          existingRecurringRun={undefined}
-          existingPipeline={ORIGINAL_TEST_PIPELINE}
-          handlePipelineIdChange={vi.fn()}
-          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-          handlePipelineVersionIdChange={vi.fn()}
-          templateString={v2XGYamlTemplateString}
-          chosenExperiment={undefined}
-        />
-      </CommonTestWrapper>,
-    );
+    renderNewRunV2();
 
     const startButton = await screen.findByText('Start');
     expect(startButton.closest('button')?.disabled).toEqual(false);
@@ -353,23 +348,7 @@ describe('NewRunV2', () => {
     const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
     getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
 
-    render(
-      <CommonTestWrapper>
-        <NewRunV2
-          {...generatePropsNewRun()}
-          existingRunId={null}
-          existingRun={undefined}
-          existingRecurringRunId={null}
-          existingRecurringRun={undefined}
-          existingPipeline={ORIGINAL_TEST_PIPELINE}
-          handlePipelineIdChange={vi.fn()}
-          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-          handlePipelineVersionIdChange={vi.fn()}
-          templateString={v2XGYamlTemplateString}
-          chosenExperiment={undefined}
-        />
-      </CommonTestWrapper>,
-    );
+    renderNewRunV2();
 
     const runNameInput = await screen.findByDisplayValue((content, _) =>
       content.startsWith(`Run of ${ORIGINAL_TEST_PIPELINE_VERSION_NAME}`),
@@ -379,44 +358,17 @@ describe('NewRunV2', () => {
   });
 
   it('updates the default run name when the selected pipeline version changes', async () => {
-    const { rerender } = render(
-      <CommonTestWrapper>
-        <NewRunV2
-          {...generatePropsNewRun()}
-          existingRunId={null}
-          existingRun={undefined}
-          existingRecurringRunId={null}
-          existingRecurringRun={undefined}
-          existingPipeline={ORIGINAL_TEST_PIPELINE}
-          handlePipelineIdChange={vi.fn()}
-          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-          handlePipelineVersionIdChange={vi.fn()}
-          templateString={v2XGYamlTemplateString}
-          chosenExperiment={undefined}
-        />
-      </CommonTestWrapper>,
-    );
+    const { rerender } = renderNewRunV2();
 
     await screen.findByDisplayValue((content, _) =>
       content.startsWith(`Run of ${ORIGINAL_TEST_PIPELINE_VERSION_NAME}`),
     );
 
     rerender(
-      <CommonTestWrapper>
-        <NewRunV2
-          {...generatePropsNewRun()}
-          existingRunId={null}
-          existingRun={undefined}
-          existingRecurringRunId={null}
-          existingRecurringRun={undefined}
-          existingPipeline={ORIGINAL_TEST_PIPELINE}
-          handlePipelineIdChange={vi.fn()}
-          existingPipelineVersion={OTHER_TEST_PIPELINE_VERSION}
-          handlePipelineVersionIdChange={vi.fn()}
-          templateString={v2LWYamlTemplateString}
-          chosenExperiment={undefined}
-        />
-      </CommonTestWrapper>,
+      buildNewRunV2Element({
+        existingPipelineVersion: OTHER_TEST_PIPELINE_VERSION,
+        templateString: v2LWYamlTemplateString,
+      }),
     );
 
     expect(
@@ -427,23 +379,7 @@ describe('NewRunV2', () => {
   });
 
   it('preserves a custom run name when the selected pipeline version changes', async () => {
-    const { rerender } = render(
-      <CommonTestWrapper>
-        <NewRunV2
-          {...generatePropsNewRun()}
-          existingRunId={null}
-          existingRun={undefined}
-          existingRecurringRunId={null}
-          existingRecurringRun={undefined}
-          existingPipeline={ORIGINAL_TEST_PIPELINE}
-          handlePipelineIdChange={vi.fn()}
-          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-          handlePipelineVersionIdChange={vi.fn()}
-          templateString={v2XGYamlTemplateString}
-          chosenExperiment={undefined}
-        />
-      </CommonTestWrapper>,
-    );
+    const { rerender } = renderNewRunV2();
 
     const runNameInput = await screen.findByDisplayValue((content, _) =>
       content.startsWith(`Run of ${ORIGINAL_TEST_PIPELINE_VERSION_NAME}`),
@@ -451,66 +387,26 @@ describe('NewRunV2', () => {
     fireEvent.change(runNameInput, { target: { value: 'Run with custom name' } });
 
     rerender(
-      <CommonTestWrapper>
-        <NewRunV2
-          {...generatePropsNewRun()}
-          existingRunId={null}
-          existingRun={undefined}
-          existingRecurringRunId={null}
-          existingRecurringRun={undefined}
-          existingPipeline={ORIGINAL_TEST_PIPELINE}
-          handlePipelineIdChange={vi.fn()}
-          existingPipelineVersion={OTHER_TEST_PIPELINE_VERSION}
-          handlePipelineVersionIdChange={vi.fn()}
-          templateString={v2LWYamlTemplateString}
-          chosenExperiment={undefined}
-        />
-      </CommonTestWrapper>,
+      buildNewRunV2Element({
+        existingPipelineVersion: OTHER_TEST_PIPELINE_VERSION,
+        templateString: v2LWYamlTemplateString,
+      }),
     );
 
     expect(await screen.findByDisplayValue('Run with custom name')).toBeInTheDocument();
   });
 
   it('resets parameter inputs when the selected template changes', async () => {
-    const { rerender } = render(
-      <CommonTestWrapper>
-        <NewRunV2
-          {...generatePropsNewRun()}
-          existingRunId={null}
-          existingRun={undefined}
-          existingRecurringRunId={null}
-          existingRecurringRun={undefined}
-          existingPipeline={ORIGINAL_TEST_PIPELINE}
-          handlePipelineIdChange={vi.fn()}
-          existingPipelineVersion={OTHER_TEST_PIPELINE_VERSION}
-          handlePipelineVersionIdChange={vi.fn()}
-          templateString={v2LWYamlTemplateString}
-          chosenExperiment={undefined}
-        />
-      </CommonTestWrapper>,
-    );
+    const { rerender } = renderNewRunV2({
+      existingPipelineVersion: OTHER_TEST_PIPELINE_VERSION,
+      templateString: v2LWYamlTemplateString,
+    });
 
     const inputDictInput = await screen.findByLabelText('input_dict - dict');
     fireEvent.change(inputDictInput, { target: { value: '{"A":3}' } });
     expect(screen.getByDisplayValue('{"A":3}')).toBeInTheDocument();
 
-    rerender(
-      <CommonTestWrapper>
-        <NewRunV2
-          {...generatePropsNewRun()}
-          existingRunId={null}
-          existingRun={undefined}
-          existingRecurringRunId={null}
-          existingRecurringRun={undefined}
-          existingPipeline={ORIGINAL_TEST_PIPELINE}
-          handlePipelineIdChange={vi.fn()}
-          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-          handlePipelineVersionIdChange={vi.fn()}
-          templateString={v2XGYamlTemplateString}
-          chosenExperiment={undefined}
-        />
-      </CommonTestWrapper>,
-    );
+    rerender(buildNewRunV2Element());
 
     await waitFor(() => {
       expect(screen.queryByLabelText('input_dict - dict')).toBeNull();
@@ -520,45 +416,35 @@ describe('NewRunV2', () => {
   });
 
   it('falls back to empty template-derived state when template parsing fails', async () => {
-    render(
-      <CommonTestWrapper>
-        <NewRunV2
-          {...generatePropsNewRun()}
-          existingRunId={null}
-          existingRun={undefined}
-          existingRecurringRunId={null}
-          existingRecurringRun={undefined}
-          existingPipeline={ORIGINAL_TEST_PIPELINE}
-          handlePipelineIdChange={vi.fn()}
-          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-          handlePipelineVersionIdChange={vi.fn()}
-          templateString='pipelineInfo: ['
-          chosenExperiment={undefined}
-        />
-      </CommonTestWrapper>,
-    );
+    renderNewRunV2({ templateString: 'pipelineInfo: [' });
 
     expect(await screen.findByText('This pipeline has no parameters')).toBeInTheDocument();
   });
 
+  it('shows a loading message when pipeline version is selected but template has not arrived', async () => {
+    renderNewRunV2({ templateString: undefined });
+
+    expect(await screen.findByText('Loading pipeline template...')).toBeInTheDocument();
+
+    const startButton = screen.getByText('Start');
+    expect(startButton.closest('button')?.disabled).toEqual(true);
+  });
+
+  it('shows a loading spinner when template is loading for a new run', async () => {
+    renderNewRunV2({ templateString: undefined });
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('does not show the loading spinner once the template has arrived', async () => {
+    renderNewRunV2();
+
+    expect(screen.queryByRole('progressbar')).toBeNull();
+    expect(screen.queryByText('Loading pipeline template...')).toBeNull();
+  });
+
   it('shows the cloned pipeline root after rerendering into clone mode', async () => {
-    const { rerender } = render(
-      <CommonTestWrapper>
-        <NewRunV2
-          {...generatePropsNewRun()}
-          existingRunId={null}
-          existingRun={undefined}
-          existingRecurringRunId={null}
-          existingRecurringRun={undefined}
-          existingPipeline={ORIGINAL_TEST_PIPELINE}
-          handlePipelineIdChange={vi.fn()}
-          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-          handlePipelineVersionIdChange={vi.fn()}
-          templateString={v2XGYamlTemplateString}
-          chosenExperiment={undefined}
-        />
-      </CommonTestWrapper>,
-    );
+    const { rerender } = renderNewRunV2();
 
     fireEvent.click(screen.getByLabelText('Set custom pipeline root.'));
     fireEvent.change(screen.getByLabelText('pipeline-root'), {
@@ -567,21 +453,10 @@ describe('NewRunV2', () => {
     expect(screen.getByDisplayValue('gs://custom_pipeline_root')).toBeInTheDocument();
 
     rerender(
-      <CommonTestWrapper>
-        <NewRunV2
-          {...generatePropsNewRun()}
-          existingRunId={TEST_RUN_ID}
-          existingRun={API_UI_CREATED_NEW_RUN_DETAILS}
-          existingRecurringRunId={null}
-          existingRecurringRun={undefined}
-          existingPipeline={ORIGINAL_TEST_PIPELINE}
-          handlePipelineIdChange={vi.fn()}
-          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-          handlePipelineVersionIdChange={vi.fn()}
-          templateString={v2XGYamlTemplateString}
-          chosenExperiment={undefined}
-        />
-      </CommonTestWrapper>,
+      buildNewRunV2Element({
+        existingRunId: TEST_RUN_ID,
+        existingRun: API_UI_CREATED_NEW_RUN_DETAILS,
+      }),
     );
 
     expect(await screen.findByDisplayValue('gs://dummy_pipeline_root')).toBeInTheDocument();
@@ -594,23 +469,7 @@ describe('NewRunV2', () => {
       const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
       getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
 
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2();
 
       const runNameInput = await screen.findByDisplayValue((content, _) =>
         content.startsWith(`Run of ${ORIGINAL_TEST_PIPELINE_VERSION_NAME}`),
@@ -630,23 +489,7 @@ describe('NewRunV2', () => {
       const createRunSpy = vi.spyOn(Apis.runServiceApiV2, 'createRun');
       createRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RUN_DETAILS);
 
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2();
 
       const startButton = await screen.findByText('Start');
       fireEvent.click(startButton);
@@ -689,24 +532,7 @@ describe('NewRunV2', () => {
         return response;
       });
 
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            namespace='test-ns'
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={DEFAULT_EXPERIMENT}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2({ namespace: 'test-ns', chosenExperiment: DEFAULT_EXPERIMENT });
 
       const choosePipelineButton = screen.getAllByText('Choose')[0];
       fireEvent.click(choosePipelineButton);
@@ -753,24 +579,7 @@ describe('NewRunV2', () => {
       const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
       getPipelineVersionSpy.mockImplementation(() => OTHER_TEST_PIPELINE_VERSION);
 
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            namespace='test-ns'
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={DEFAULT_EXPERIMENT}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2({ namespace: 'test-ns', chosenExperiment: DEFAULT_EXPERIMENT });
 
       const choosePipelineVersionBtn = screen.getAllByText('Choose')[1];
       fireEvent.click(choosePipelineVersionBtn);
@@ -800,24 +609,7 @@ describe('NewRunV2', () => {
         return response;
       });
 
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            namespace='test-ns'
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={DEFAULT_EXPERIMENT}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2({ namespace: 'test-ns', chosenExperiment: DEFAULT_EXPERIMENT });
 
       const chooseExperimentButton = screen.getAllByText('Choose')[2];
       fireEvent.click(chooseExperimentButton);
@@ -855,23 +647,7 @@ describe('NewRunV2', () => {
       const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
       getExperimentSpy.mockImplementation(() => NEW_EXPERIMENT);
 
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={DEFAULT_EXPERIMENT}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2({ chosenExperiment: DEFAULT_EXPERIMENT });
 
       const chooseExperimentButton = screen.getAllByText('Choose')[2];
       fireEvent.click(chooseExperimentButton);
@@ -895,23 +671,7 @@ describe('NewRunV2', () => {
       const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
       createRecurringRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RECURRING_RUN_DETAILS);
 
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={DEFAULT_EXPERIMENT}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2({ chosenExperiment: DEFAULT_EXPERIMENT });
 
       const recurringSwitcher = screen.getByLabelText('Recurring');
       fireEvent.click(recurringSwitcher);
@@ -950,23 +710,7 @@ describe('NewRunV2', () => {
       const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
       createRecurringRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RECURRING_RUN_DETAILS);
 
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={DEFAULT_EXPERIMENT}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2({ chosenExperiment: DEFAULT_EXPERIMENT });
 
       const recurringSwitcher = screen.getByLabelText('Recurring');
       fireEvent.click(recurringSwitcher);
@@ -1010,23 +754,7 @@ describe('NewRunV2', () => {
     });
 
     it('disables the start button if max concurrent run is invalid input (non-integer)', async () => {
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={DEFAULT_EXPERIMENT}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2({ chosenExperiment: DEFAULT_EXPERIMENT });
 
       const recurringSwitcher = screen.getByLabelText('Recurring');
       fireEvent.click(recurringSwitcher);
@@ -1041,23 +769,7 @@ describe('NewRunV2', () => {
     });
 
     it('disables the start button if max concurrent run is invalid input (negative integer)', async () => {
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={DEFAULT_EXPERIMENT}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2({ chosenExperiment: DEFAULT_EXPERIMENT });
 
       const recurringSwitcher = screen.getByLabelText('Recurring');
       fireEvent.click(recurringSwitcher);
@@ -1074,23 +786,13 @@ describe('NewRunV2', () => {
 
   describe('cloning an existing run', () => {
     it('only shows clone run name from original run', () => {
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsClonedRun()}
-            existingRunId={TEST_RUN_ID}
-            existingRun={API_UI_CREATED_NEW_RUN_DETAILS}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={undefined}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={undefined}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2({
+        ...generatePropsClonedRun(),
+        existingRunId: TEST_RUN_ID,
+        existingRun: API_UI_CREATED_NEW_RUN_DETAILS,
+        existingPipeline: undefined,
+        existingPipelineVersion: undefined,
+      });
       screen.findByDisplayValue(`Clone of ${API_UI_CREATED_NEW_RUN_DETAILS.display_name}`);
     });
 
@@ -1098,23 +800,13 @@ describe('NewRunV2', () => {
       const createRunSpy = vi.spyOn(Apis.runServiceApiV2, 'createRun');
       createRunSpy.mockResolvedValue(API_UI_CREATED_CLONING_RUN_DETAILS);
 
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsClonedRun()}
-            existingRunId={TEST_RUN_ID}
-            existingRun={API_UI_CREATED_NEW_RUN_DETAILS}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={undefined}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={undefined}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2({
+        ...generatePropsClonedRun(),
+        existingRunId: TEST_RUN_ID,
+        existingRun: API_UI_CREATED_NEW_RUN_DETAILS,
+        existingPipeline: undefined,
+        existingPipelineVersion: undefined,
+      });
 
       const startButton = await screen.findByText('Start');
       // Because start button is set false by default
@@ -1146,23 +838,13 @@ describe('NewRunV2', () => {
       const createRunSpy = vi.spyOn(Apis.runServiceApiV2, 'createRun');
       createRunSpy.mockResolvedValue(API_SDK_CREATED_CLONING_RUN_DETAILS);
 
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsClonedRun()}
-            existingRunId={TEST_RUN_ID}
-            existingRun={API_SDK_CREATED_NEW_RUN_DETAILS}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={undefined}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={undefined}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2({
+        ...generatePropsClonedRun(),
+        existingRunId: TEST_RUN_ID,
+        existingRun: API_SDK_CREATED_NEW_RUN_DETAILS,
+        existingPipeline: undefined,
+        existingPipelineVersion: undefined,
+      });
 
       const startButton = await screen.findByText('Start');
       // Because start button is set false by default
@@ -1193,23 +875,13 @@ describe('NewRunV2', () => {
       const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
       createRecurringRunSpy.mockResolvedValue(API_UI_CREATED_CLONING_RECURRING_RUN_DETAILS);
 
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsClonedRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={TEST_RECURRING_RUN_ID}
-            existingRecurringRun={API_UI_CREATED_NEW_RECURRING_RUN_DETAILS}
-            existingPipeline={undefined}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={undefined}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2({
+        ...generatePropsClonedRun(),
+        existingRecurringRunId: TEST_RECURRING_RUN_ID,
+        existingRecurringRun: API_UI_CREATED_NEW_RECURRING_RUN_DETAILS,
+        existingPipeline: undefined,
+        existingPipelineVersion: undefined,
+      });
 
       const startButton = await screen.findByText('Start');
       // Because start button is set false by default
@@ -1251,23 +923,13 @@ describe('NewRunV2', () => {
       const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
       createRecurringRunSpy.mockResolvedValue(API_SDK_CREATED_CLONING_RECURRING_RUN_DETAILS);
 
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsClonedRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={TEST_RECURRING_RUN_ID}
-            existingRecurringRun={API_SDK_CREATED_NEW_RECURRING_RUN_DETAILS}
-            existingPipeline={undefined}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={undefined}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2({
+        ...generatePropsClonedRun(),
+        existingRecurringRunId: TEST_RECURRING_RUN_ID,
+        existingRecurringRun: API_SDK_CREATED_NEW_RECURRING_RUN_DETAILS,
+        existingPipeline: undefined,
+        existingPipelineVersion: undefined,
+      });
 
       const startButton = await screen.findByText('Start');
       // Because start button is set false by default
@@ -1313,23 +975,7 @@ describe('NewRunV2', () => {
         }),
       );
 
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={DEFAULT_EXPERIMENT}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2({ chosenExperiment: DEFAULT_EXPERIMENT });
 
       const recurringSwitcher = screen.getByLabelText('Recurring');
       fireEvent.click(recurringSwitcher);
@@ -1363,23 +1009,7 @@ describe('NewRunV2', () => {
 
   describe('"Always Use Latest" checkbox functionality', () => {
     it('should be disabled when no pipeline is selected', async () => {
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={undefined}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={undefined}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2({ existingPipeline: undefined, existingPipelineVersion: undefined });
       // switch to recurring mode
       const recurringSwitcher = screen.getByLabelText('Recurring');
       fireEvent.click(recurringSwitcher);
@@ -1389,23 +1019,7 @@ describe('NewRunV2', () => {
     });
 
     it('should be hidden and version selector should be required in one-off run mode', async () => {
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2();
       // make sure in one-off mode
       const oneOffSwitcher = screen.getByLabelText('One-off');
       fireEvent.click(oneOffSwitcher);
@@ -1420,23 +1034,7 @@ describe('NewRunV2', () => {
     });
 
     it('should make version selector required if checkbox is unchecked in recurring run', async () => {
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2();
       // switch to recurring mode
       const recurringSwitcher = screen.getByLabelText('Recurring');
       fireEvent.click(recurringSwitcher);
@@ -1453,23 +1051,7 @@ describe('NewRunV2', () => {
     });
 
     it('should be checkable in recurring run mode. The default state is unchecked.', async () => {
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2();
 
       // Switch to recurring mode
       const recurringSwitcher = screen.getByLabelText('Recurring');
@@ -1494,29 +1076,12 @@ describe('NewRunV2', () => {
     });
 
     it('should clear version selection and disable version selector when checked', async () => {
-      // Mock API calls
       const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
       const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
       getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
 
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2();
       // switch to recurring mode
       const recurringSwitcher = screen.getByLabelText('Recurring');
       fireEvent.click(recurringSwitcher);
@@ -1543,23 +1108,7 @@ describe('NewRunV2', () => {
     });
 
     it('should keep the version selection blank while latest-version mode is enabled', async () => {
-      const { rerender } = render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
+      const { rerender } = renderNewRunV2();
 
       fireEvent.click(screen.getByLabelText('Recurring'));
       fireEvent.click(screen.getByLabelText('Always use the latest pipeline version'));
@@ -1569,21 +1118,10 @@ describe('NewRunV2', () => {
       });
 
       rerender(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={OTHER_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2LWYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
+        buildNewRunV2Element({
+          existingPipelineVersion: OTHER_TEST_PIPELINE_VERSION,
+          templateString: v2LWYamlTemplateString,
+        }),
       );
 
       await waitFor(() => {
@@ -1592,7 +1130,6 @@ describe('NewRunV2', () => {
     });
 
     it('should submit correct payload with only pipeline_id when checked', async () => {
-      // Mock API calls
       const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
       const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
@@ -1600,23 +1137,7 @@ describe('NewRunV2', () => {
       const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
       createRecurringRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RECURRING_RUN_DETAILS);
 
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2();
       // switch to recurring mode
       const recurringSwitcher = screen.getByLabelText('Recurring');
       fireEvent.click(recurringSwitcher);
@@ -1654,7 +1175,6 @@ describe('NewRunV2', () => {
 
     it('should submit full version info when unchecked', async () => {
       vi.resetAllMocks();
-      // Mock API calls
       const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
       const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
@@ -1662,23 +1182,7 @@ describe('NewRunV2', () => {
       const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
       createRecurringRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RECURRING_RUN_DETAILS);
 
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={vi.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={vi.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
+      renderNewRunV2();
       // switch to recurring mode
       const recurringSwitcher = screen.getByLabelText('Recurring');
       fireEvent.click(recurringSwitcher);
