@@ -165,6 +165,10 @@ export const css = stylesheet({
   link: {
     color: '#77abda',
   },
+  loadingMessage: {
+    textAlign: 'center' as const,
+    paddingTop: 40,
+  },
   outputTitle: {
     color: color.strong,
     fontSize: fontsize.title,
@@ -240,7 +244,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   public render(): JSX.Element {
     if (isLoading) {
       return (
-        <div style={{ textAlign: 'center', paddingTop: '40px' }}>
+        <div className={css.loadingMessage}>
           <CircularProgress />
           <div>Currently loading run information.</div>
         </div>
