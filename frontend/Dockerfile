@@ -1,7 +1,7 @@
 # Pass NODE_VERSION from frontend/.nvmrc when building this image.
-ARG NODE_VERSION
+ARG NODE_VERSION=18
 ARG BASE_IMAGE=alpine
-FROM node:${NODE_VERSION}-slim AS build
+FROM node:18-slim AS build
 
 ARG COMMIT_HASH
 ENV COMMIT_HASH=${COMMIT_HASH}

@@ -20,6 +20,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { queryClientTest, testBestPractices } from 'src/TestUtils';
+import { queryKeys } from 'src/hooks/queryKeys';
 import RunDetailsRouter from './RunDetailsRouter';
 import { vi } from 'vitest';
 
@@ -143,18 +144,18 @@ describe('RunDetails loading behavior', () => {
     // Verify spinner is not visible after initial load
     expect(screen.queryByText('Currently loading run information.')).not.toBeInTheDocument();
 
-    // Act: Simulate a refetch by invalidating the query
-    await act(async () => {
-      queryClientTest.invalidateQueries(['v2_run_detail']);
-    });
-
-    // Set up a delay for the refetch
+    // Set up a delay for the refetch BEFORE invalidating
     getRunSpy.mockImplementation(
       () =>
         new Promise(resolve => {
           setTimeout(() => resolve(mockRunData), 100);
         }),
     );
+
+    // Act: Simulate a refetch by invalidating the query
+    act(() => {
+      queryClientTest.invalidateQueries({ queryKey: queryKeys.v2RunDetail(testRunId) });
+    });
 
     // Assert: During refetch, the loading spinner should NOT appear
     // This is the key behavior: isLoading is false during refetch, only isFetching is true
