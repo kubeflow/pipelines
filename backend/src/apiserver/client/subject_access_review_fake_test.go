@@ -58,9 +58,7 @@ func TestFakeSubjectAccessReviewClientError_Create(t *testing.T) {
 	client := NewFakeSubjectAccessReviewClientError()
 	review := &authzv1.SubjectAccessReview{}
 
-	// Note: FakeSubjectAccessReviewClientError has a legacy Create signature
-	// that does not match SubjectAccessReviewInterface (missing context and CreateOptions).
-	_, err := client.Create(review)
+	_, err := client.Create(context.Background(), review, v1.CreateOptions{})
 	if err == nil {
 		t.Error("Create() expected error, got nil")
 	}

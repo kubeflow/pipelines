@@ -114,6 +114,87 @@ func TestFakeSwfClientWithBadWorkflow_ScheduledWorkflow(t *testing.T) {
 	}
 }
 
+func TestFakeSwfClient_Update(t *testing.T) {
+	client := NewFakeSwfClient()
+	ctx := context.Background()
+	swfClient := client.ScheduledWorkflow("default")
+
+	swf := &v1beta1.ScheduledWorkflow{
+		ObjectMeta: v1.ObjectMeta{GenerateName: "update-me"},
+	}
+	created, err := swfClient.Create(ctx, swf)
+	if err != nil {
+		t.Fatalf("setup: Create() unexpected error: %v", err)
+	}
+
+	created.Spec.MaxConcurrency = intPtr(5)
+	updated, err := swfClient.Update(ctx, created)
+	if err != nil {
+		t.Fatalf("Update() unexpected error: %v", err)
+	}
+	if updated.Name != "update-me" {
+		t.Errorf("Update() Name = %q, want %q", updated.Name, "update-me")
+	}
+
+	fetched, err := swfClient.Get(ctx, "update-me", v1.GetOptions{})
+	if err != nil {
+		t.Fatalf("Get() after Update() unexpected error: %v", err)
+	}
+	if fetched.Spec.MaxConcurrency == nil || *fetched.Spec.MaxConcurrency != 5 {
+		t.Errorf("Get() after Update() MaxConcurrency not persisted")
+	}
+}
+
+func TestFakeSwfClient_Patch(t *testing.T) {
+	client := NewFakeSwfClient()
+	ctx := context.Background()
+	swfClient := client.ScheduledWorkflow("default")
+
+	swf := &v1beta1.ScheduledWorkflow{
+		ObjectMeta: v1.ObjectMeta{GenerateName: "patch-me"},
+	}
+	if _, err := swfClient.Create(ctx, swf); err != nil {
+		t.Fatalf("setup: Create() unexpected error: %v", err)
+	}
+
+	result, err := swfClient.Patch(ctx, "patch-me", "application/merge-patch+json", []byte(`{}`))
+	if err != nil {
+		t.Fatalf("Patch() unexpected error: %v", err)
+	}
+	if result != nil {
+		t.Error("Patch() expected nil result from stub implementation")
+	}
+}
+
+func TestFakeScheduledWorkflowClient_Stubs(t *testing.T) {
+	swfClient := NewFakeSwfClient().ScheduledWorkflow("default")
+	ctx := context.Background()
+
+	t.Run("DeleteCollection", func(t *testing.T) {
+		if err := swfClient.DeleteCollection(ctx, &v1.DeleteOptions{}, v1.ListOptions{}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+	t.Run("List", func(t *testing.T) {
+		list, err := swfClient.List(ctx, v1.ListOptions{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if list != nil {
+			t.Error("expected nil from unimplemented stub")
+		}
+	})
+	t.Run("Watch", func(t *testing.T) {
+		watcher, err := swfClient.Watch(ctx, v1.ListOptions{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if watcher != nil {
+			t.Error("expected nil from unimplemented stub")
+		}
+	})
+}
+
 func TestFakeSwfClientWithBadWorkflow_Create(t *testing.T) {
 	client := NewFakeSwfClientWithBadWorkflow()
 	ctx := context.Background()
@@ -128,3 +209,38 @@ func TestFakeSwfClientWithBadWorkflow_Create(t *testing.T) {
 		t.Error("Create() expected error for bad workflow client, got nil")
 	}
 }
+
+func TestFakeSwfClientWithBadWorkflow_Get(t *testing.T) {
+	client := NewFakeSwfClientWithBadWorkflow()
+	ctx := context.Background()
+	swfClient := client.ScheduledWorkflow("default")
+
+	_, err := swfClient.Get(ctx, "anything", v1.GetOptions{})
+	if err == nil {
+		t.Error("Get() expected error for bad workflow client, got nil")
+	}
+}
+
+func TestFakeSwfClientWithBadWorkflow_Patch(t *testing.T) {
+	client := NewFakeSwfClientWithBadWorkflow()
+	ctx := context.Background()
+	swfClient := client.ScheduledWorkflow("default")
+
+	_, err := swfClient.Patch(ctx, "anything", "application/merge-patch+json", []byte(`{}`))
+	if err == nil {
+		t.Error("Patch() expected error for bad workflow client, got nil")
+	}
+}
+
+func TestFakeSwfClientWithBadWorkflow_Delete(t *testing.T) {
+	client := NewFakeSwfClientWithBadWorkflow()
+	ctx := context.Background()
+	swfClient := client.ScheduledWorkflow("default")
+
+	err := swfClient.Delete(ctx, "anything", &v1.DeleteOptions{})
+	if err == nil {
+		t.Error("Delete() expected error for bad workflow client, got nil")
+	}
+}
+
+func intPtr(v int64) *int64 { return &v }
