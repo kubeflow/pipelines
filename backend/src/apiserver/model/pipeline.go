@@ -101,11 +101,11 @@ func (Pipeline) TableName() string {
 	return "pipelines"
 }
 
-func (p *Pipeline) GetField(name string) (string, bool) {
+func (p *Pipeline) GetField(name string) (string, string, bool) {
 	if field, ok := pipelineAPIToModelFieldMap[name]; ok {
-		return field, true
+		return field, field, true
 	}
-	return "", false
+	return "", "", false
 }
 
 func (p *Pipeline) GetFieldValue(name string) interface{} {
