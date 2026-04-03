@@ -41,8 +41,14 @@ import (
 // page of results), with the two values pointing to the first record in the
 // next set of results.
 type token struct {
-	// SortByFieldName is the field name to use when sorting.
+	// SortByFieldName is the user-facing field name used for pagination state
+	// and GetFieldValue lookups. For metric sorts this is the raw metric name
+	// (e.g. "accuracy"). Never use this field directly in SQL identifiers.
 	SortByFieldName string
+	// SortBySQLColumn is the safe SQL column name used in ORDER BY and WHERE
+	// clauses. For regular fields it equals SortByFieldName. For metric sorts
+	// it is always the fixed alias "sort_metric_value", never user input.
+	SortBySQLColumn string
 	// SortByFieldValue is the value of the sorted field of the next row to be
 	// returned.
 	SortByFieldValue  interface{}
@@ -104,6 +110,9 @@ func (t *token) unmarshal(pageToken string) error {
 		return err
 	}
 	if err := validateIdentifierName(t.SortByFieldName, "sort field name"); err != nil {
+		return err
+	}
+	if err := validateIdentifierName(t.SortBySQLColumn, "sort SQL column"); err != nil {
 		return err
 	}
 	if err := validateIdentifierName(t.ModelName, "model name"); err != nil {
@@ -208,10 +217,12 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 	}
 
 	token.SortByFieldName = listable.DefaultSortField()
+	token.SortBySQLColumn = token.SortByFieldName
 	if len(queryList) > 0 {
-		n, ok := listable.GetField(queryList[0])
+		n, sqlCol, ok := listable.GetField(queryList[0])
 		if ok {
 			token.SortByFieldName = n
+			token.SortBySQLColumn = sqlCol
 		} else {
 			return nil, util.NewInvalidInputError("Invalid sorting field: %q on listable type %s", queryList[0], reflect.ValueOf(listable).Elem().Type().Name())
 		}
@@ -252,18 +263,18 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 		if o.IsDesc {
 			sqlBuilder = sqlBuilder.
 				Where(sq.Or{
-					sq.Lt{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+					sq.Lt{o.SortByFieldPrefix + o.SortBySQLColumn: o.SortByFieldValue},
 					sq.And{
-						sq.Eq{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+						sq.Eq{o.SortByFieldPrefix + o.SortBySQLColumn: o.SortByFieldValue},
 						sq.LtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue},
 					},
 				})
 		} else {
 			sqlBuilder = sqlBuilder.
 				Where(sq.Or{
-					sq.Gt{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+					sq.Gt{o.SortByFieldPrefix + o.SortBySQLColumn: o.SortByFieldValue},
 					sq.And{
-						sq.Eq{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+						sq.Eq{o.SortByFieldPrefix + o.SortBySQLColumn: o.SortByFieldValue},
 						sq.GtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue},
 					},
 				})
@@ -275,8 +286,8 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 		order = "DESC"
 	}
 
-	if o.SortByFieldName != "" {
-		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", o.SortByFieldPrefix+o.SortByFieldName, order))
+	if o.SortBySQLColumn != "" {
+		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", o.SortByFieldPrefix+o.SortBySQLColumn, order))
 	}
 
 	if o.KeyFieldName != "" {
@@ -389,8 +400,11 @@ type Listable interface {
 	GetSortByFieldPrefix(string) string
 	// Get the prefix of key field.
 	GetKeyFieldPrefix() string
-	// Get a valid field for sorting/filtering in a listable model from the given string.
-	GetField(name string) (string, bool)
+	// GetField returns the model field name and safe SQL column name for the
+	// given API field name. For regular fields fieldName and sqlColumn are
+	// identical. For metric fields (e.g. "metric:accuracy") sqlColumn is the
+	// fixed alias "sort_metric_value" so user input never reaches SQL structure.
+	GetField(name string) (fieldName string, sqlColumn string, ok bool)
 	// Find the value of a given field in a listable object.
 	GetFieldValue(name string) interface{}
 }
@@ -422,6 +436,7 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 
 	return &token{
 		SortByFieldName:   o.SortByFieldName,
+		SortBySQLColumn:   o.SortBySQLColumn,
 		SortByFieldValue:  sortByField,
 		SortByFieldPrefix: listable.GetSortByFieldPrefix(o.SortByFieldName),
 		KeyFieldName:      listable.PrimaryKeyColumnName(),

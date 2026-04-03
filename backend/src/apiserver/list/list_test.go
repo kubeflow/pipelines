@@ -67,14 +67,14 @@ func (f *fakeListable) GetModelName() string {
 	return ""
 }
 
-func (f *fakeListable) GetField(name string) (string, bool) {
+func (f *fakeListable) GetField(name string) (string, string, bool) {
 	if field, ok := fakeAPIToModelMap[name]; ok {
-		return field, true
+		return field, field, true
 	}
 	if strings.HasPrefix(name, "metric:") {
-		return name[7:], true
+		return name[7:], model.MetricSortSQLAlias, true
 	}
-	return "", false
+	return "", "", false
 }
 
 func (f *fakeListable) GetFieldValue(name string) interface{} {
@@ -361,6 +361,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 					KeyFieldName:      "PrimaryKey",
 					KeyFieldPrefix:    "",
 					SortByFieldName:   "CreatedTimestamp",
+					SortBySQLColumn:   "CreatedTimestamp",
 					SortByFieldPrefix: "",
 					IsDesc:            false,
 				},
@@ -374,6 +375,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 					KeyFieldName:      "PrimaryKey",
 					KeyFieldPrefix:    "",
 					SortByFieldName:   "CreatedTimestamp",
+					SortBySQLColumn:   "CreatedTimestamp",
 					SortByFieldPrefix: "",
 					IsDesc:            false,
 				},
@@ -387,6 +389,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 					KeyFieldName:      "PrimaryKey",
 					KeyFieldPrefix:    "",
 					SortByFieldName:   "FakeName",
+					SortBySQLColumn:   "FakeName",
 					SortByFieldPrefix: "",
 					IsDesc:            false,
 				},
@@ -400,6 +403,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 					KeyFieldName:      "PrimaryKey",
 					KeyFieldPrefix:    "",
 					SortByFieldName:   "FakeName",
+					SortBySQLColumn:   "FakeName",
 					SortByFieldPrefix: "",
 					IsDesc:            false,
 				},
@@ -413,6 +417,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 					KeyFieldName:      "PrimaryKey",
 					KeyFieldPrefix:    "",
 					SortByFieldName:   "FakeName",
+					SortBySQLColumn:   "FakeName",
 					SortByFieldPrefix: "",
 					IsDesc:            true,
 				},
@@ -426,6 +431,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 					KeyFieldName:      "PrimaryKey",
 					KeyFieldPrefix:    "",
 					SortByFieldName:   "PrimaryKey",
+					SortBySQLColumn:   "PrimaryKey",
 					SortByFieldPrefix: "",
 					IsDesc:            true,
 				},
@@ -503,6 +509,7 @@ func TestNewOptions_ValidFilter(t *testing.T) {
 			KeyFieldName:      "PrimaryKey",
 			KeyFieldPrefix:    "",
 			SortByFieldName:   "CreatedTimestamp",
+			SortBySQLColumn:   "CreatedTimestamp",
 			SortByFieldPrefix: "",
 			IsDesc:            false,
 			Filter:            f,
@@ -572,6 +579,7 @@ func TestNewOptions_ModelFilter(t *testing.T) {
 		token: &token{
 			KeyFieldName:    "UUID",
 			SortByFieldName: "DisplayName",
+			SortBySQLColumn: "DisplayName",
 			IsDesc:          false,
 			Filter:          f,
 		},
@@ -614,6 +622,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 				PageSize: 123,
 				token: &token{
 					SortByFieldName:   "SortField",
+					SortBySQLColumn:   "SortField",
 					SortByFieldValue:  "value",
 					SortByFieldPrefix: "",
 					KeyFieldName:      "KeyField",
@@ -630,6 +639,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 				PageSize: 123,
 				token: &token{
 					SortByFieldName:   "SortField",
+					SortBySQLColumn:   "SortField",
 					SortByFieldValue:  "value",
 					SortByFieldPrefix: "",
 					KeyFieldName:      "KeyField",
@@ -646,6 +656,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 				PageSize: 123,
 				token: &token{
 					SortByFieldName:   "SortField",
+					SortBySQLColumn:   "SortField",
 					SortByFieldValue:  "value",
 					SortByFieldPrefix: "",
 					KeyFieldName:      "KeyField",
@@ -663,6 +674,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 				PageSize: 123,
 				token: &token{
 					SortByFieldName:   "SortField",
+					SortBySQLColumn:   "SortField",
 					SortByFieldPrefix: "",
 					KeyFieldName:      "KeyField",
 					KeyFieldPrefix:    "",
@@ -683,6 +695,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 				PageSize: 123,
 				token: &token{
 					SortByFieldName:   "SortField",
+					SortBySQLColumn:   "SortField",
 					SortByFieldValue:  "value",
 					SortByFieldPrefix: "",
 					KeyFieldName:      "KeyField",
@@ -698,6 +711,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 				PageSize: 123,
 				token: &token{
 					SortByFieldName:   "SortField",
+					SortBySQLColumn:   "SortField",
 					SortByFieldValue:  "value",
 					SortByFieldPrefix: "",
 					KeyFieldName:      "KeyField",

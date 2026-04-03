@@ -373,6 +373,37 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 	assert.Empty(t, nextPageToken)
 }
 
+func TestListRuns_MetricSortInjectionSafe(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	// A malicious sortBy value attempting SQL injection through the metric name.
+	// The payload has no spaces so it passes format validation and reaches SQL
+	// generation. Prior to the fix, opts.SortByFieldName was concatenated directly
+	// into SQL structure (alias and JOIN predicate). After the fix, the metric name
+	// is passed as a bind parameter and the SQL alias is the fixed string
+	// "sort_metric_value", so this must execute without error.
+	maliciousSort := "metric:';DROP/**/TABLE/**/run_metrics;--"
+	opts, err := list.NewOptions(&model.Run{}, 10, maliciousSort, nil)
+	assert.Nil(t, err)
+
+	runs, _, _, err := runStore.ListRuns(
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+	assert.Nil(t, err, "SQL injection payload must not cause a query error")
+	// Runs are returned but without a matching metric value (NULL join), so
+	// ordering is stable but no metric value is injected into SQL structure.
+	assert.NotNil(t, runs)
+
+	// Verify the run_metrics table was NOT dropped by confirming a normal
+	// metric-sort query still works.
+	opts2, err := list.NewOptions(&model.Run{}, 10, "metric:dummymetric", nil)
+	assert.Nil(t, err)
+	_, _, _, err = runStore.ListRuns(
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}},
+		opts2)
+	assert.Nil(t, err, "run_metrics table must still exist after injection attempt")
+}
+
 func TestListRuns_TotalSizeWithNoFilter(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
