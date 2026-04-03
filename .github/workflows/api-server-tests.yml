@@ -179,6 +179,12 @@ jobs:
         include:
           - k8s_version: "v1.34.0"
             cache_enabled: "true"
+            argo_version: "v4.0.4"
+            pipeline_store: "kubernetes"
+            pod_to_pod_tls_enabled: "false"
+            uploadPipelinesWithKubernetesClient: "true"
+          - k8s_version: "v1.34.0"
+            cache_enabled: "true"
             # Pod to Pod TLS manifests are not yet implemented for Kubernetes Native API mode
             pipeline_store: "database"
             pod_to_pod_tls_enabled: "true"
