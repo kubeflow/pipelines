@@ -413,6 +413,212 @@ class TestMergePlatformSpecs(unittest.TestCase):
         self.assertEqual(base_spec, expected)
 
 
+class TestRewritePlatformConfigComponentInputParams(unittest.TestCase):
+
+    def test_rewrites_unprefixed_param_to_prefixed(self):
+        platform_config = {
+            'kubernetes': {
+                'secretAsEnv': [{
+                    'secretNameParameter': {
+                        'componentInputParameter': 'secret_name'
+                    },
+                    'keyToEnv': [{
+                        'secretKey': 'pw',
+                        'envVar': 'PASSWORD'
+                    }],
+                }]
+            }
+        }
+        parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
+        parent_inputs.parameters[
+            'pipelinechannel--secret_name'].parameter_type = (
+                pipeline_spec_pb2.ParameterType.STRING)
+
+        result = pipeline_spec_builder._rewrite_platform_config_component_input_params(
+            platform_config, parent_inputs)
+
+        self.assertEqual(
+            result['kubernetes']['secretAsEnv'][0]['secretNameParameter']
+            ['componentInputParameter'],
+            'pipelinechannel--secret_name',
+        )
+
+    def test_no_rewrite_when_param_already_exists(self):
+        platform_config = {
+            'kubernetes': {
+                'secretAsEnv': [{
+                    'secretNameParameter': {
+                        'componentInputParameter': 'secret_name'
+                    },
+                }]
+            }
+        }
+        parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
+        parent_inputs.parameters['secret_name'].parameter_type = (
+            pipeline_spec_pb2.ParameterType.STRING)
+
+        result = pipeline_spec_builder._rewrite_platform_config_component_input_params(
+            platform_config, parent_inputs)
+
+        self.assertEqual(
+            result['kubernetes']['secretAsEnv'][0]['secretNameParameter']
+            ['componentInputParameter'],
+            'secret_name',
+        )
+
+    def test_no_rewrite_when_prefixed_not_in_parent(self):
+        platform_config = {
+            'kubernetes': {
+                'secretAsEnv': [{
+                    'secretNameParameter': {
+                        'componentInputParameter': 'unknown_param'
+                    },
+                }]
+            }
+        }
+        parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
+        parent_inputs.parameters[
+            'pipelinechannel--other_param'].parameter_type = (
+                pipeline_spec_pb2.ParameterType.STRING)
+
+        result = pipeline_spec_builder._rewrite_platform_config_component_input_params(
+            platform_config, parent_inputs)
+
+        self.assertEqual(
+            result['kubernetes']['secretAsEnv'][0]['secretNameParameter']
+            ['componentInputParameter'],
+            'unknown_param',
+        )
+
+    def test_rewrites_multiple_params_in_nested_structure(self):
+        platform_config = {
+            'kubernetes': {
+                'secretAsEnv': [{
+                    'secretNameParameter': {
+                        'componentInputParameter': 'secret1'
+                    },
+                }],
+                'pvcMount': [{
+                    'pvcNameParameter': {
+                        'componentInputParameter': 'pvc_name'
+                    },
+                }],
+            }
+        }
+        parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
+        parent_inputs.parameters[
+            'pipelinechannel--secret1'].parameter_type = (
+                pipeline_spec_pb2.ParameterType.STRING)
+        parent_inputs.parameters[
+            'pipelinechannel--pvc_name'].parameter_type = (
+                pipeline_spec_pb2.ParameterType.STRING)
+
+        result = pipeline_spec_builder._rewrite_platform_config_component_input_params(
+            platform_config, parent_inputs)
+
+        self.assertEqual(
+            result['kubernetes']['secretAsEnv'][0]['secretNameParameter']
+            ['componentInputParameter'],
+            'pipelinechannel--secret1',
+        )
+        self.assertEqual(
+            result['kubernetes']['pvcMount'][0]['pvcNameParameter']
+            ['componentInputParameter'],
+            'pipelinechannel--pvc_name',
+        )
+
+    def test_non_component_input_keys_unchanged(self):
+        platform_config = {
+            'kubernetes': {
+                'secretAsEnv': [{
+                    'secretKey': 'my-key',
+                    'envVar': 'MY_ENV',
+                }]
+            }
+        }
+        parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
+
+        result = pipeline_spec_builder._rewrite_platform_config_component_input_params(
+            platform_config, parent_inputs)
+
+        self.assertEqual(result, platform_config)
+
+
+class TestParallelForWithPlatformConfigInput(unittest.TestCase):
+
+    def test_compile_parallel_for_with_secret_pipeline_param(self):
+        """End-to-end: secret_name from a pipeline param inside ParallelFor."""
+
+        @dsl.component
+        def my_comp(item: str):
+            print(item)
+
+        @dsl.pipeline
+        def my_pipeline(secret_name: str):
+            with dsl.ParallelFor(items=['a', 'b']) as item:
+                t = my_comp(item=item)
+                kubernetes.use_secret_as_env(
+                    t,
+                    secret_name=secret_name,
+                    secret_key_to_env={'key': 'SECRET_VAL'},
+                )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            package_path = os.path.join(tmpdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+            with open(package_path, 'r') as f:
+                docs = list(yaml.safe_load_all(f))
+            pipeline_dict = docs[0]
+            platform_dict = docs[1] if len(docs) > 1 else {}
+
+            # Verify the platform spec references the prefixed param name
+            k8s_platform = platform_dict.get('platforms',
+                                             {}).get('kubernetes', {})
+            executors = k8s_platform.get('deploymentSpec',
+                                         {}).get('executors', {})
+
+            # Find the executor for my_comp
+            found_rewritten_param = False
+            for _exec_label, exec_config in executors.items():
+                for secret_env in exec_config.get('secretAsEnv', []):
+                    param_ref = secret_env.get('secretNameParameter',
+                                               {}).get(
+                                                   'componentInputParameter',
+                                                   '')
+                    if 'pipelinechannel--secret_name' == param_ref:
+                        found_rewritten_param = True
+
+            self.assertTrue(
+                found_rewritten_param,
+                f'Expected to find componentInputParameter with '
+                f'"pipelinechannel--secret_name" in platform spec executors, '
+                f'got: {executors}',
+            )
+
+            # Also verify the sub-DAG component has the propagated input
+            components = pipeline_dict.get('components', {})
+            found_for_loop_component = False
+            for comp_name, comp_def in components.items():
+                if 'for-loop' in comp_name.lower():
+                    found_for_loop_component = True
+                    input_params = comp_def.get('inputDefinitions',
+                                                {}).get('parameters', {})
+                    self.assertIn(
+                        'pipelinechannel--secret_name',
+                        input_params,
+                        f'Expected sub-DAG component {comp_name} to have '
+                        f'"pipelinechannel--secret_name" in its inputs, '
+                        f'got: {list(input_params.keys())}',
+                    )
+            self.assertTrue(
+                found_for_loop_component,
+                f'Expected to find a for-loop sub-DAG component, '
+                f'got components: {list(components.keys())}',
+            )
+
+
 class TestTaskConfigPassthroughValidation(unittest.TestCase):
 
     def test_resources_set_without_passthrough_raises(self):

@@ -971,6 +971,73 @@ class TestUseSecretAsEnv:
             }
         }
 
+class TestParseK8sParameterInputChannelPropagation:
+    def test_pipeline_param_added_to_channel_inputs(self):
+        """When a PipelineParameterChannel is passed as secret_name,
+        it should be appended to the task's _channel_inputs so the
+        compiler propagates it through sub-DAGs."""
+        tasks = {}
+
+        @dsl.pipeline
+        def my_pipeline(secret_name: str):
+            task = comp()
+            initial_count = len(task._channel_inputs)
+            kubernetes.use_secret_as_env(
+                task,
+                secret_name=secret_name,
+                secret_key_to_env={"key": "VAR"},
+            )
+            tasks['task'] = task
+            tasks['initial_count'] = initial_count
+            tasks['channel_pattern'] = secret_name.pattern
+
+        assert len(tasks['task']._channel_inputs) == tasks['initial_count'] + 1
+        channel_patterns = {ch.pattern for ch in tasks['task']._channel_inputs}
+        assert tasks['channel_pattern'] in channel_patterns
+
+    def test_duplicate_pipeline_param_not_added_twice(self):
+        """When the same PipelineParameterChannel is passed twice,
+        _channel_inputs should not contain duplicates."""
+        tasks = {}
+
+        @dsl.pipeline
+        def my_pipeline(secret_name: str):
+            task = comp()
+            kubernetes.use_secret_as_env(
+                task,
+                secret_name=secret_name,
+                secret_key_to_env={"key1": "VAR1"},
+            )
+            count_after_first = len(task._channel_inputs)
+            kubernetes.use_secret_as_volume(
+                task,
+                secret_name=secret_name,
+                mount_path="/mnt/secret",
+            )
+            tasks['task'] = task
+            tasks['count_after_first'] = count_after_first
+
+        assert len(tasks['task']._channel_inputs) == tasks['count_after_first']
+
+    def test_string_input_does_not_add_channel_inputs(self):
+        """When a literal string is passed, _channel_inputs should not
+        be modified (no PipelineParameterChannel to propagate)."""
+        tasks = {}
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            initial_count = len(task._channel_inputs)
+            kubernetes.use_secret_as_env(
+                task,
+                secret_name="literal-secret",
+                secret_key_to_env={"key": "VAR"},
+            )
+            tasks['task'] = task
+            tasks['initial_count'] = initial_count
+
+        assert len(tasks['task']._channel_inputs) == tasks['initial_count']
+        
 @dsl.component
 def comp():
     pass
