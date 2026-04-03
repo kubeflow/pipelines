@@ -925,7 +925,9 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     await this._loadSidePaneTab(this.state.sidepanelSelectedTab, workflow);
 
     // Load all run's outputs
-    await this._loadAllOutputs();
+    // Pass workflow explicitly for the same reason as _loadSidePaneTab above:
+    // React 19 batching may not have committed the setState yet.
+    await this._loadAllOutputs(workflow);
   }
 
   private handleError = async (error: Error) => {
@@ -956,8 +958,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     }
   }
 
-  private async _loadAllOutputs(): Promise<void> {
-    const workflow = this.state.workflow;
+  private async _loadAllOutputs(workflowOverride?: Workflow): Promise<void> {
+    const workflow = workflowOverride || this.state.workflow;
 
     if (!workflow) {
       return;

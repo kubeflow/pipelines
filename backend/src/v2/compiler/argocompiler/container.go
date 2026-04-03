@@ -567,12 +567,17 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 	}
 	applySecurityContextToExecutorTemplate(executor, c.defaultRunAsUser, c.defaultRunAsGroup, c.defaultRunAsNonRoot)
 
-	// If retry policy is set, add retryStrategy to executor
+	// If retry policy is set, add retryStrategy to executor and inject
+	// KFP_RETRY_INDEX so the launcher can resolve the per-attempt log path
+	// without a Kubernetes API call. {{retries}} is only valid inside a
+	// template that has a retryStrategy; adding it elsewhere resolves to an
+	// empty string, which forces an unnecessary pod-annotation lookup.
 	if taskRetrySpec != nil {
 		executor.RetryStrategy = c.getTaskRetryStrategyFromInput(inputParameter(paramRetryMaxCount),
 			inputParameter(paramRetryBackOffDuration),
 			inputParameter(paramRetryBackOffFactor),
 			inputParameter(paramRetryBackOffMaxDuration))
+		executor.Container.Env = append(executor.Container.Env, retryIndexEnv)
 	}
 	// Update pod metadata if it defined in the Kubernetes Spec
 	if k8sExecCfg.GetPodMetadata() != nil {

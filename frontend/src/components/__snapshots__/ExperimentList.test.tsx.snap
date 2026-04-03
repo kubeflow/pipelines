@@ -408,12 +408,12 @@ exports[`ExperimentList > loads multiple experiments 1`] = `
             class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls=":r1b:"
+              aria-controls="_r_1b_"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby=":r1a:"
+              aria-labelledby="_r_1a_"
               class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-              id=":r1a:"
+              id="_r_1a_"
               role="combobox"
               tabindex="0"
             >
@@ -669,12 +669,12 @@ exports[`ExperimentList > loads one experiment 1`] = `
             class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls=":r10:"
+              aria-controls="_r_10_"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby=":rv:"
+              aria-labelledby="_r_v_"
               class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-              id=":rv:"
+              id="_r_v_"
               role="combobox"
               tabindex="0"
             >
@@ -880,12 +880,12 @@ exports[`ExperimentList > reloads the experiment when refresh is called 1`] = `
             class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls=":r16:"
+              aria-controls="_r_16_"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby=":r15:"
+              aria-labelledby="_r_15_"
               class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-              id=":r15:"
+              id="_r_15_"
               role="combobox"
               tabindex="0"
             >
@@ -1091,12 +1091,12 @@ exports[`ExperimentList > renders the empty experience 1`] = `
             class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls=":r4:"
+              aria-controls="_r_4_"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby=":r3:"
+              aria-labelledby="_r_3_"
               class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-              id=":r3:"
+              id="_r_3_"
               role="combobox"
               tabindex="0"
             >
@@ -1302,12 +1302,12 @@ exports[`ExperimentList > renders the empty experience in ARCHIVED state 1`] = `
             class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls=":r9:"
+              aria-controls="_r_9_"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby=":r8:"
+              aria-labelledby="_r_8_"
               class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-              id=":r8:"
+              id="_r_8_"
               role="combobox"
               tabindex="0"
             >

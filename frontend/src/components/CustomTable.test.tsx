@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import CustomTable, { Column, ExpandState, Row } from './CustomTable';
 import TestUtils from '../TestUtils';
@@ -126,6 +126,7 @@ function getRowsPerPageCombobox(): HTMLElement {
 describe('CustomTable', () => {
   beforeEach(() => {
     vi.useRealTimers();
+    localStorage.clear();
   });
 
   it('renders with default filter label', async () => {
@@ -668,7 +669,9 @@ describe('CustomTable', () => {
     const reload = vi.fn(async () => '');
     const wrapper = renderTable({ rows, columns, reload });
     await TestUtils.flushPromises();
-    await wrapper.instance()._requestFilter('test filter');
+    await act(async () => {
+      await wrapper.instance()._requestFilter('test filter');
+    });
     const expectedEncodedFilter = encodeURIComponent(
       JSON.stringify({
         predicates: [
@@ -734,5 +737,43 @@ describe('CustomTable', () => {
     await TestUtils.flushPromises();
     fireEvent.change(screen.getByLabelText('Filter'), { target: { value: 'test filter' } });
     expect(setFilterString).toHaveBeenLastCalledWith('test filter');
+  });
+
+  it('reads page size from localStorage on mount', async () => {
+    localStorage.setItem('tablePageSize', '50');
+    const reload = vi.fn(async () => '');
+    const wrapper = renderTable({ rows, columns, reload });
+    await waitFor(() => expect(reload).toHaveBeenCalled());
+    expect(reload).toHaveBeenLastCalledWith({
+      filter: '',
+      orderAscending: false,
+      pageSize: 50,
+      pageToken: '',
+      sortBy: '',
+    });
+    wrapper.unmount();
+  });
+
+  it('persists page size across resources on the same details page', async () => {
+    window.location.hash = '#/runs/details/run-abc123';
+    const firstWrapper = renderTable({ rows: [], columns, reload: vi.fn(async () => '') });
+    fireEvent.mouseDown(getRowsPerPageCombobox());
+    fireEvent.click(await screen.findByText('20'));
+    await TestUtils.flushPromises();
+    firstWrapper.unmount();
+    const reload = vi.fn(async () => '');
+    window.location.hash = '#/runs/details/run-def456';
+    const secondWrapper = renderTable({ rows, columns, reload });
+    await waitFor(() =>
+      expect(reload).toHaveBeenLastCalledWith({
+        filter: '',
+        orderAscending: false,
+        pageSize: 20,
+        pageToken: '',
+        sortBy: '',
+      }),
+    );
+    secondWrapper.unmount();
+    window.location.hash = '';
   });
 });

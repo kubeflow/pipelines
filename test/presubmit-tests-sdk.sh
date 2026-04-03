@@ -15,6 +15,7 @@
 
 source_root=$(pwd)
 SETUP_ENV="${SETUP_ENV:-true}"
+PYTEST_PARALLEL_WORKERS="${PYTEST_PARALLEL_WORKERS:-2}"
 
 if [ "${SETUP_ENV}" = "true" ]; then
   # Create a virtual environment and activate it
@@ -27,6 +28,7 @@ if [ "${SETUP_ENV}" = "true" ]; then
   python3 -m pip install setuptools
   python3 -m pip install wheel==0.42.0
   python3 -m pip install pytest-cov
+  python3 -m pip install pytest-xdist
   python3 -m pip install pytest
   python3 -m pip install google_cloud_pipeline_components
   python3 -m pip install docker==7.1.0
@@ -49,7 +51,7 @@ else
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@refs/pull/${PULL_NUMBER}/merge#egg=kfp&subdirectory=sdk/python"
 fi
 
-python -m pytest sdk/python/test -v -s -m regression --cov=kfp
+python -m pytest sdk/python/test -v -m regression --cov=kfp -n "${PYTEST_PARALLEL_WORKERS}"
 
 if [ "${SETUP_ENV}" = "true" ]; then
   # Deactivate the virtual environment

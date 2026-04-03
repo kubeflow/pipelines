@@ -1,7 +1,7 @@
 name: KFP E2E Pipeline tests
 env:
   E2E_TESTS_DIR: "./backend/test/end2end"
-  NUMBER_OF_PARALLEL_NODES: 10
+  NUMBER_OF_PARALLEL_NODES: 2
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
   PYTHON_VERSION: "3.9"
@@ -70,19 +70,15 @@ jobs:
         deploy_external_argo: [ "false" ]
         storage: [ "seaweedfs" ]
         proxy: [ "false" ]
-        test_label: [ "E2ECritical" ]
-        pod_to_pod_tls_enabled: [ "true" ]
         deploy_pypi_server: [ "false" ]
+        test_label: [ "E2ECritical", "E2EEssential", "E2EParallelNested" ]
+        pod_to_pod_tls_enabled: [ "true" ]
         include:
           - k8s_version: "v1.31.0"
             cache_enabled: "false"
             proxy: "true"
             test_label: "E2EProxy"
             pod_to_pod_tls_enabled: "false"
-          - k8s_version: "v1.31.0"
-            cache_enabled: "false"
-            test_label: "E2EEssential"
-            pod_to_pod_tls_enabled: "true"
           - k8s_version: "v1.31.0"
             cache_enabled: "false"
             test_label: "E2EEssential"
@@ -170,6 +166,10 @@ jobs:
             NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
             TEST_LABEL=${{ inputs.test_label }}
             NAMESPACE=${{ inputs.namespace }}
+          fi
+
+          if [ "$TEST_LABEL" == "E2EParallelNested" ]; then
+            NUMBER_OF_NODES=1
           fi
 
           {
