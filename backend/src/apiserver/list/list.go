@@ -76,6 +76,27 @@ type token struct {
 // Used to validate pageToken fields before they are used in SQL queries.
 var identifierPattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]{0,127}$`)
 
+// metricNamePattern matches valid metric names. Metric names follow the same
+// rules as SQL identifiers but additionally allow hyphens ("-"), since ML
+// frameworks commonly use names like "log-loss" or "val-accuracy".
+// Metric names are never used as SQL identifiers — they are passed as bind
+// parameters — so allowing "-" here is safe.
+var metricNamePattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_\-]{0,127}$`)
+
+// validateMetricName validates that a metric name only contains safe characters.
+// Unlike validateIdentifierName, hyphens are permitted.
+func validateMetricName(name string) error {
+	if name == "" {
+		return nil
+	}
+	if !metricNamePattern.MatchString(name) {
+		return util.NewInvalidInputError(
+			"Invalid metric name: %q. Metric names must start with a letter and contain only letters, numbers, underscores, and hyphens (max 128 characters)",
+			name)
+	}
+	return nil
+}
+
 // validateIdentifierName validates that a field name or table name only contains
 // safe characters to prevent SQL injection through pageToken parameters.
 func validateIdentifierName(name, fieldType string) error {
@@ -109,8 +130,18 @@ func (t *token) unmarshal(pageToken string) error {
 	if err := validateIdentifierName(t.KeyFieldName, "key field name"); err != nil {
 		return err
 	}
-	if err := validateIdentifierName(t.SortByFieldName, "sort field name"); err != nil {
-		return err
+	// SortByFieldName is the user-facing metric name when sorting by a run
+	// metric (e.g. "log-loss"). Metric names allow hyphens, so they must not
+	// be validated with the SQL identifier regex. SortBySQLColumn carries the
+	// fixed safe alias ("sort_metric_value") and is always a valid identifier.
+	if t.SortBySQLColumn == model.MetricSortSQLAlias {
+		if err := validateMetricName(t.SortByFieldName); err != nil {
+			return err
+		}
+	} else {
+		if err := validateIdentifierName(t.SortByFieldName, "sort field name"); err != nil {
+			return err
+		}
 	}
 	if err := validateIdentifierName(t.SortBySQLColumn, "sort SQL column"); err != nil {
 		return err

@@ -404,6 +404,40 @@ func TestListRuns_MetricSortInjectionSafe(t *testing.T) {
 	assert.Nil(t, err, "run_metrics table must still exist after injection attempt")
 }
 
+// TestListRuns_HyphenatedMetricSort verifies that metric names containing
+// hyphens (e.g. "log-loss") can be used for pagination across multiple pages.
+// This is a regression test for a bug where token.unmarshal() validated
+// SortByFieldName with a SQL identifier regex that rejects "-", causing page-2
+// requests with hyphenated metric names to fail with "Invalid sort field name".
+func TestListRuns_HyphenatedMetricSort(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	// Seed runs 1 and 2 with the hyphenated metric so pagination produces a page token.
+	runStore.CreateMetric(&model.RunMetric{RunUUID: "1", NodeID: "node1", Name: "log-loss", NumberValue: 0.5, Format: "RAW"})
+	runStore.CreateMetric(&model.RunMetric{RunUUID: "2", NodeID: "node2", Name: "log-loss", NumberValue: 0.3, Format: "RAW"})
+
+	// Page 1: metric:log-loss — must not error even though "log-loss" contains "-".
+	opts, err := list.NewOptions(&model.Run{}, 1, "metric:log-loss", nil)
+	assert.Nil(t, err, "NewOptions must accept hyphenated metric name")
+
+	_, total, nextPageToken, err := runStore.ListRuns(
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}},
+		opts)
+	assert.Nil(t, err, "page-1 ListRuns must succeed with hyphenated metric name")
+	assert.Equal(t, 2, total)
+	assert.NotEmpty(t, nextPageToken, "must produce a page token when there are 2 runs")
+
+	// Page 2: the page token carries SortByFieldName="log-loss". Unmarshalling
+	// it must succeed (i.e. the identifier regex must NOT be applied to metric names).
+	opts2, err := list.NewOptionsFromToken(nextPageToken, 1)
+	assert.Nil(t, err, "NewOptionsFromToken must not reject hyphenated metric name in pageToken")
+	_, _, _, err = runStore.ListRuns(
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}},
+		opts2)
+	assert.Nil(t, err, "page-2 ListRuns must succeed with hyphenated metric name in pageToken")
+}
+
 func TestListRuns_TotalSizeWithNoFilter(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
