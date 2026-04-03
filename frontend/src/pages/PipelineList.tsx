@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import Tooltip from '@material-ui/core/Tooltip';
 import immerProduce from 'immer';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
@@ -35,6 +34,7 @@ import { Apis, ListRequest, PipelineSortKeys } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { Page } from './Page';
 import PipelineVersionList from './PipelineVersionList';
+import { Tooltip } from '@mui/material';
 
 interface DisplayPipeline extends V2beta1Pipeline {
   expandState?: ExpandState;
@@ -98,7 +98,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
       { label: 'Uploaded on', sortKey: PipelineSortKeys.CREATED_AT, flex: 1 },
     ];
 
-    const rows: Row[] = this.state.displayPipelines.map(p => {
+    const rows: Row[] = this.state.displayPipelines.map((p) => {
       return {
         expandState: p.expandState,
         id: p.pipeline_id!,
@@ -136,7 +136,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   }
 
   private _toggleRowExpand(rowIndex: number): void {
-    const displayPipelines = immerProduce(this.state.displayPipelines, draft => {
+    const displayPipelines = immerProduce(this.state.displayPipelines, (draft) => {
       draft[rowIndex].expandState =
         draft[rowIndex].expandState === ExpandState.COLLAPSED
           ? ExpandState.EXPANDED
@@ -174,7 +174,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
         request.filter,
       );
       displayPipelines = response.pipelines || [];
-      displayPipelines.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
+      displayPipelines.forEach((exp) => (exp.expandState = ExpandState.COLLAPSED));
       this.clearBanner();
     } catch (err) {
       const error = err instanceof Error ? err : new Error(await errorToMessage(err));
@@ -192,7 +192,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
     return (
       <Tooltip title={'Name: ' + (props.value?.name || '')} enterDelay={300} placement='top-start'>
         <Link
-          onClick={e => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
           className={commonCss.link}
           to={RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(':' + RouteParams.pipelineId, props.id)}
         >

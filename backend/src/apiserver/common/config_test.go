@@ -16,11 +16,535 @@ package common
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// NOTE: These tests use viper.Reset() which mutates the global viper singleton.
+// Do not add t.Parallel() to these subtests — the shared viper state would race.
+
+func TestGetStringConfigWithDefault(t *testing.T) {
+	tests := []struct {
+		name     string
+		setEnv   bool
+		envValue string
+		expected string
+	}{
+		{
+			name:     "returns default when config not set",
+			setEnv:   false,
+			expected: "my-default",
+		},
+		{
+			name:     "returns config value when set via env var",
+			setEnv:   true,
+			envValue: "custom-value",
+			expected: "custom-value",
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			viper.Reset()
+
+			if testCase.setEnv {
+				t.Setenv("TEST_STRING_CONFIG", testCase.envValue)
+				viper.AutomaticEnv()
+			}
+
+			result := GetStringConfigWithDefault("TEST_STRING_CONFIG", "my-default")
+			assert.Equal(t, testCase.expected, result)
+		})
+	}
+}
+
+func TestGetBoolConfigWithDefault(t *testing.T) {
+	tests := []struct {
+		name         string
+		setEnv       bool
+		envValue     string
+		defaultValue bool
+		expected     bool
+	}{
+		{
+			name:         "returns default true when config not set",
+			setEnv:       false,
+			defaultValue: true,
+			expected:     true,
+		},
+		{
+			name:         "returns default false when config not set",
+			setEnv:       false,
+			defaultValue: false,
+			expected:     false,
+		},
+		{
+			name:         "returns parsed true from env var",
+			setEnv:       true,
+			envValue:     "true",
+			defaultValue: false,
+			expected:     true,
+		},
+		{
+			name:         "returns parsed false from env var",
+			setEnv:       true,
+			envValue:     "false",
+			defaultValue: true,
+			expected:     false,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			viper.Reset()
+
+			if testCase.setEnv {
+				t.Setenv("TEST_BOOL_CONFIG", testCase.envValue)
+				viper.AutomaticEnv()
+			}
+
+			result := GetBoolConfigWithDefault("TEST_BOOL_CONFIG", testCase.defaultValue)
+			assert.Equal(t, testCase.expected, result)
+		})
+	}
+}
+
+func TestGetFloat64ConfigWithDefault(t *testing.T) {
+	tests := []struct {
+		name     string
+		setEnv   bool
+		envValue string
+		expected float64
+	}{
+		{
+			name:     "returns default when not set",
+			setEnv:   false,
+			expected: 3.14,
+		},
+		{
+			name:     "returns float value when set",
+			setEnv:   true,
+			envValue: "2.718",
+			expected: 2.718,
+		},
+		{
+			name:     "returns zero when env var is not a valid float",
+			setEnv:   true,
+			envValue: "not-a-number",
+			expected: 0,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			viper.Reset()
+
+			if testCase.setEnv {
+				t.Setenv("TEST_FLOAT_CONFIG", testCase.envValue)
+				viper.AutomaticEnv()
+			}
+
+			result := GetFloat64ConfigWithDefault("TEST_FLOAT_CONFIG", 3.14)
+			assert.InDelta(t, testCase.expected, result, 0.001)
+		})
+	}
+}
+
+func TestGetIntConfigWithDefault(t *testing.T) {
+	tests := []struct {
+		name     string
+		setEnv   bool
+		envValue string
+		expected int
+	}{
+		{
+			name:     "returns default when not set",
+			setEnv:   false,
+			expected: 42,
+		},
+		{
+			name:     "returns int value when set",
+			setEnv:   true,
+			envValue: "100",
+			expected: 100,
+		},
+		{
+			name:     "returns zero when env var is not a valid int",
+			setEnv:   true,
+			envValue: "not-a-number",
+			expected: 0,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			viper.Reset()
+
+			if testCase.setEnv {
+				t.Setenv("TEST_INT_CONFIG", testCase.envValue)
+				viper.AutomaticEnv()
+			}
+
+			result := GetIntConfigWithDefault("TEST_INT_CONFIG", 42)
+			assert.Equal(t, testCase.expected, result)
+		})
+	}
+}
+
+func TestGetMapConfig(t *testing.T) {
+	tests := []struct {
+		name     string
+		setValue bool
+		expected map[string]string
+	}{
+		{
+			name:     "returns nil when config not set",
+			setValue: false,
+			expected: nil,
+		},
+		{
+			name:     "returns map when config is set",
+			setValue: true,
+			expected: map[string]string{
+				"key1": "value1",
+				"key2": "value2",
+			},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			viper.Reset()
+
+			if testCase.setValue {
+				viper.Set("TEST_MAP_CONFIG", map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+				})
+			}
+
+			result := GetMapConfig("TEST_MAP_CONFIG")
+			assert.Equal(t, testCase.expected, result)
+		})
+	}
+}
+
+func TestGetBoolFromStringWithDefault(t *testing.T) {
+	tests := []struct {
+		name         string
+		value        string
+		defaultValue bool
+		expected     bool
+	}{
+		{
+			name:         "true string returns true",
+			value:        "true",
+			defaultValue: false,
+			expected:     true,
+		},
+		{
+			name:         "false string returns false",
+			value:        "false",
+			defaultValue: true,
+			expected:     false,
+		},
+		{
+			name:         "1 returns true",
+			value:        "1",
+			defaultValue: false,
+			expected:     true,
+		},
+		{
+			name:         "empty string returns default value",
+			value:        "",
+			defaultValue: true,
+			expected:     true,
+		},
+		{
+			name:         "invalid string returns default value",
+			value:        "invalid",
+			defaultValue: false,
+			expected:     false,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			result := GetBoolFromStringWithDefault(testCase.value, testCase.defaultValue)
+			assert.Equal(t, testCase.expected, result)
+		})
+	}
+}
+
+func TestGetStringConfig_WhenSet(t *testing.T) {
+	viper.Reset()
+	t.Setenv("TEST_REQUIRED_STRING", "hello")
+	viper.AutomaticEnv()
+
+	result := GetStringConfig("TEST_REQUIRED_STRING")
+	assert.Equal(t, "hello", result)
+}
+
+func TestGetDurationConfig_WhenSet(t *testing.T) {
+	viper.Reset()
+	t.Setenv("TEST_DURATION", "5s")
+	viper.AutomaticEnv()
+
+	result := GetDurationConfig("TEST_DURATION")
+	assert.Equal(t, 5*time.Second, result)
+}
+
+func TestConfigWrapperDefaults(t *testing.T) {
+	tests := []struct {
+		name     string
+		getter   func() interface{}
+		expected interface{}
+	}{
+		{
+			name:     "IsPipelineVersionUpdatedByDefault defaults to true",
+			getter:   func() interface{} { return IsPipelineVersionUpdatedByDefault() },
+			expected: true,
+		},
+		{
+			name:     "IsNamespaceRequiredForPipelines defaults to false",
+			getter:   func() interface{} { return IsNamespaceRequiredForPipelines() },
+			expected: false,
+		},
+		{
+			name:     "IsMultiUserMode defaults to false",
+			getter:   func() interface{} { return IsMultiUserMode() },
+			expected: false,
+		},
+		{
+			name:     "IsMultiUserSharedReadMode defaults to false",
+			getter:   func() interface{} { return IsMultiUserSharedReadMode() },
+			expected: false,
+		},
+		{
+			name:     "GetPodNamespace defaults to kubeflow",
+			getter:   func() interface{} { return GetPodNamespace() },
+			expected: DefaultPodNamespace,
+		},
+		{
+			name:     "IsCacheEnabled defaults to true string",
+			getter:   func() interface{} { return IsCacheEnabled() },
+			expected: "true",
+		},
+		{
+			name:     "GetKubeflowUserIDHeader defaults to GoogleIAPUserIdentityHeader",
+			getter:   func() interface{} { return GetKubeflowUserIDHeader() },
+			expected: GoogleIAPUserIdentityHeader,
+		},
+		{
+			name:     "GetKubeflowUserIDPrefix defaults to GoogleIAPUserIdentityPrefix",
+			getter:   func() interface{} { return GetKubeflowUserIDPrefix() },
+			expected: GoogleIAPUserIdentityPrefix,
+		},
+		{
+			name:     "GetTokenReviewAudience defaults to DefaultTokenReviewAudience",
+			getter:   func() interface{} { return GetTokenReviewAudience() },
+			expected: DefaultTokenReviewAudience,
+		},
+		{
+			name:     "GetMetadataTLSEnabled defaults to false",
+			getter:   func() interface{} { return GetMetadataTLSEnabled() },
+			expected: false,
+		},
+		{
+			name:     "GetCaBundleSecretName defaults to empty string",
+			getter:   func() interface{} { return GetCaBundleSecretName() },
+			expected: "",
+		},
+		{
+			name:     "GetCABundleKey defaults to empty string",
+			getter:   func() interface{} { return GetCABundleKey() },
+			expected: "",
+		},
+		{
+			name:     "GetCaBundleConfigMapName defaults to empty string",
+			getter:   func() interface{} { return GetCaBundleConfigMapName() },
+			expected: "",
+		},
+		{
+			name:     "GetCompiledPipelineSpecPatch defaults to empty JSON object",
+			getter:   func() interface{} { return GetCompiledPipelineSpecPatch() },
+			expected: "{}",
+		},
+		{
+			name:     "GetDefaultSecurityContextRunAsUser defaults to empty string",
+			getter:   func() interface{} { return GetDefaultSecurityContextRunAsUser() },
+			expected: "",
+		},
+		{
+			name:     "GetDefaultSecurityContextRunAsGroup defaults to empty string",
+			getter:   func() interface{} { return GetDefaultSecurityContextRunAsGroup() },
+			expected: "",
+		},
+		{
+			name:     "GetDefaultSecurityContextRunAsNonRoot defaults to empty string",
+			getter:   func() interface{} { return GetDefaultSecurityContextRunAsNonRoot() },
+			expected: "",
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			viper.Reset()
+			result := testCase.getter()
+			assert.Equal(t, testCase.expected, result)
+		})
+	}
+}
+
+func TestConfigWrapperCustomValues(t *testing.T) {
+	tests := []struct {
+		name        string
+		envKey      string
+		envValue    string
+		useViperSet bool
+		getter      func() interface{}
+		expected    interface{}
+	}{
+		{
+			name:     "IsPipelineVersionUpdatedByDefault with custom false",
+			envKey:   UpdatePipelineVersionByDefault,
+			envValue: "false",
+			getter:   func() interface{} { return IsPipelineVersionUpdatedByDefault() },
+			expected: false,
+		},
+		{
+			name:     "IsNamespaceRequiredForPipelines with custom true",
+			envKey:   RequireNamespaceForPipelines,
+			envValue: "true",
+			getter:   func() interface{} { return IsNamespaceRequiredForPipelines() },
+			expected: true,
+		},
+		{
+			name:     "IsMultiUserMode with custom true",
+			envKey:   MultiUserMode,
+			envValue: "true",
+			getter:   func() interface{} { return IsMultiUserMode() },
+			expected: true,
+		},
+		{
+			name:     "IsMultiUserSharedReadMode with custom true",
+			envKey:   MultiUserModeSharedReadAccess,
+			envValue: "true",
+			getter:   func() interface{} { return IsMultiUserSharedReadMode() },
+			expected: true,
+		},
+		{
+			name:     "GetPodNamespace with custom namespace",
+			envKey:   PodNamespace,
+			envValue: "custom-ns",
+			getter:   func() interface{} { return GetPodNamespace() },
+			expected: "custom-ns",
+		},
+		{
+			name:        "IsCacheEnabled with custom false",
+			envKey:      CacheEnabled,
+			envValue:    "false",
+			useViperSet: true, // CacheEnabled is mixed-case, env var lookup via AutomaticEnv uppercases the key
+			getter:      func() interface{} { return IsCacheEnabled() },
+			expected:    "false",
+		},
+		{
+			name:     "GetKubeflowUserIDHeader with custom header",
+			envKey:   KubeflowUserIDHeader,
+			envValue: "x-custom-user-header",
+			getter:   func() interface{} { return GetKubeflowUserIDHeader() },
+			expected: "x-custom-user-header",
+		},
+		{
+			name:     "GetKubeflowUserIDPrefix with custom prefix",
+			envKey:   KubeflowUserIDPrefix,
+			envValue: "custom-prefix:",
+			getter:   func() interface{} { return GetKubeflowUserIDPrefix() },
+			expected: "custom-prefix:",
+		},
+		{
+			name:     "GetTokenReviewAudience with custom audience",
+			envKey:   TokenReviewAudience,
+			envValue: "custom.audience.org",
+			getter:   func() interface{} { return GetTokenReviewAudience() },
+			expected: "custom.audience.org",
+		},
+		{
+			name:     "GetMetadataTLSEnabled with custom true",
+			envKey:   MetadataTLSEnabled,
+			envValue: "true",
+			getter:   func() interface{} { return GetMetadataTLSEnabled() },
+			expected: true,
+		},
+		{
+			name:     "GetCaBundleSecretName with custom value",
+			envKey:   CaBundleSecretName,
+			envValue: "my-ca-secret",
+			getter:   func() interface{} { return GetCaBundleSecretName() },
+			expected: "my-ca-secret",
+		},
+		{
+			name:     "GetCABundleKey with custom value",
+			envKey:   CaBundleKeyName,
+			envValue: "ca.crt",
+			getter:   func() interface{} { return GetCABundleKey() },
+			expected: "ca.crt",
+		},
+		{
+			name:     "GetCaBundleConfigMapName with custom value",
+			envKey:   CaBundleConfigMapName,
+			envValue: "my-ca-configmap",
+			getter:   func() interface{} { return GetCaBundleConfigMapName() },
+			expected: "my-ca-configmap",
+		},
+		{
+			name:     "GetCompiledPipelineSpecPatch with custom JSON",
+			envKey:   CompiledPipelineSpecPatch,
+			envValue: `{"nodeSelector":{"gpu":"true"}}`,
+			getter:   func() interface{} { return GetCompiledPipelineSpecPatch() },
+			expected: `{"nodeSelector":{"gpu":"true"}}`,
+		},
+		{
+			name:     "GetDefaultSecurityContextRunAsUser with custom value",
+			envKey:   DefaultSecurityContextRunAsUser,
+			envValue: "1000",
+			getter:   func() interface{} { return GetDefaultSecurityContextRunAsUser() },
+			expected: "1000",
+		},
+		{
+			name:     "GetDefaultSecurityContextRunAsGroup with custom value",
+			envKey:   DefaultSecurityContextRunAsGroup,
+			envValue: "2000",
+			getter:   func() interface{} { return GetDefaultSecurityContextRunAsGroup() },
+			expected: "2000",
+		},
+		{
+			name:     "GetDefaultSecurityContextRunAsNonRoot with custom value",
+			envKey:   DefaultSecurityContextRunAsNonRoot,
+			envValue: "true",
+			getter:   func() interface{} { return GetDefaultSecurityContextRunAsNonRoot() },
+			expected: "true",
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			viper.Reset()
+			if testCase.useViperSet {
+				viper.Set(testCase.envKey, testCase.envValue)
+			} else {
+				t.Setenv(testCase.envKey, testCase.envValue)
+				viper.AutomaticEnv()
+			}
+
+			result := testCase.getter()
+			assert.Equal(t, testCase.expected, result)
+		})
+	}
+}
 
 func TestGetClusterDomain(t *testing.T) {
 	tests := []struct {
@@ -55,21 +579,18 @@ func TestGetClusterDomain(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			// Reset viper for each test
 			viper.Reset()
 
-			if tt.setEnv {
-				os.Setenv(ClusterDomain, tt.envValue)
-				defer os.Unsetenv(ClusterDomain)
+			if testCase.setEnv {
+				t.Setenv(ClusterDomain, testCase.envValue)
 				viper.AutomaticEnv()
-			} else {
-				os.Unsetenv(ClusterDomain)
 			}
 
 			result := GetClusterDomain()
-			assert.Equal(t, tt.expectedDomain, result)
+			assert.Equal(t, testCase.expectedDomain, result)
 		})
 	}
 }
@@ -101,20 +622,17 @@ func TestGetMLPipelineServiceName(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			viper.Reset()
 
-			if tt.setEnv {
-				os.Setenv(MLPipelineServiceName, tt.envValue)
-				defer os.Unsetenv(MLPipelineServiceName)
+			if testCase.setEnv {
+				t.Setenv(MLPipelineServiceName, testCase.envValue)
 				viper.AutomaticEnv()
-			} else {
-				os.Unsetenv(MLPipelineServiceName)
 			}
 
 			result := GetMLPipelineServiceName()
-			assert.Equal(t, tt.expectedName, result)
+			assert.Equal(t, testCase.expectedName, result)
 		})
 	}
 }
@@ -146,20 +664,17 @@ func TestGetMetadataServiceName(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			viper.Reset()
 
-			if tt.setEnv {
-				os.Setenv(MetadataServiceName, tt.envValue)
-				defer os.Unsetenv(MetadataServiceName)
+			if testCase.setEnv {
+				t.Setenv(MetadataServiceName, testCase.envValue)
 				viper.AutomaticEnv()
-			} else {
-				os.Unsetenv(MetadataServiceName)
 			}
 
 			result := GetMetadataServiceName()
-			assert.Equal(t, tt.expectedName, result)
+			assert.Equal(t, testCase.expectedName, result)
 		})
 	}
 }

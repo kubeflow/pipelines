@@ -1,7 +1,6 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  creationTimestamp: null
   generateName: test-pipeline-
 spec:
   arguments:
@@ -186,6 +185,8 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: KFP_RETRY_INDEX
+        value: '{{retries}}'
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap

@@ -14,13 +14,7 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import FormControl from '@material-ui/core/FormControl';
-import InputLabel from '@material-ui/core/InputLabel';
-import MenuItem from '@material-ui/core/MenuItem';
-import Paper from '@material-ui/core/Paper';
-import Select from '@material-ui/core/Select';
-import InfoIcon from '@material-ui/icons/InfoOutlined';
+import InfoIcon from '@mui/icons-material/InfoOutlined';
 import * as React from 'react';
 import { useState } from 'react';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
@@ -36,6 +30,8 @@ import StaticNodeDetails from '../components/StaticNodeDetails';
 import { color, commonCss, fonts, fontsize, padding, zIndex } from '../Css';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
 import { formatDateString, logger } from '../lib/Utils';
+
+import { Button, FormControl, InputLabel, MenuItem, Paper, Select } from '@mui/material';
 
 const summaryCardWidth = 500;
 
@@ -154,14 +150,15 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
                     {versions.length && (
                       <React.Fragment>
                         <form autoComplete='off'>
-                          <FormControl>
+                          <FormControl variant='standard'>
                             <InputLabel>Version</InputLabel>
                             <Select
+                              variant='standard'
                               data-testid='version_selector'
                               value={
                                 selectedVersion ? selectedVersion.id : pipeline.default_version!.id!
                               }
-                              onChange={event =>
+                              onChange={(event) =>
                                 handleVersionSelected(event.target.value as string)
                               }
                               inputProps={{ id: 'version-selector', name: 'selectedVersion' }}
@@ -209,7 +206,7 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
                 <PipelineGraph
                   graph={graphToShow}
                   selectedNodeId={selectedNodeId}
-                  onClick={id => setSelectedNodeId(id)}
+                  onClick={(id) => setSelectedNodeId(id)}
                   onError={(message, additionalInfo) => {
                     updateBanner({ message, additionalInfo, mode: 'error' });
                   }}
@@ -218,7 +215,7 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
                 <ReduceGraphSwitch
                   disabled={!reducedGraph}
                   checked={showReducedGraph}
-                  onChange={_ => {
+                  onChange={(_) => {
                     setShowReducedGraph(!showReducedGraph);
                   }}
                 />

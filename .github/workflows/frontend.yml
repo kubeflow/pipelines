@@ -9,6 +9,8 @@ on:
       - master
     paths:
       - 'frontend/**'
+      - 'backend/api/v1beta1/swagger/**'
+      - 'backend/api/v2beta1/swagger/**'
       - '.github/workflows/frontend.yml'
       - '!**/*.md'
       - '!**/OWNERS'
@@ -20,12 +22,19 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Set up Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
-        node-version: '22'
+        node-version-file: frontend/.nvmrc
+
+    - name: Check for toolchain version drift
+      if: github.event_name == 'pull_request'
+      run: |
+        git fetch origin ${{ github.base_ref }} --depth=1
+        git fetch --deepen=100 2>/dev/null || true
+        cd frontend && node scripts/check-lockfile-drift.mjs --base-ref "origin/${{ github.base_ref }}"
 
     - name: Clean npm cache
       run: npm cache clean --force
@@ -33,6 +42,15 @@ jobs:
     - name: Install dependencies
       run: cd ./frontend && npm ci
 
+    - name: Verify generated API clients are up to date
+      run: |
+        cd ./frontend
+        npm run apis:all
+        git diff --exit-code -- \
+          src/apis \
+          src/apisv2beta1 \
+          server/src/generated/apis \
+          server/src/generated/apisv2beta1
+
     - name: Run Frontend Tests
       run: cd ./frontend && npm run test:ci
-

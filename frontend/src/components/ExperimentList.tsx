@@ -30,7 +30,7 @@ import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import RunList from 'src/pages/RunList';
 import immerProduce from 'immer';
-import Tooltip from '@material-ui/core/Tooltip';
+import { Tooltip } from '@mui/material';
 
 export interface ExperimentListProps extends RouteComponentProps {
   namespace?: string;
@@ -72,7 +72,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
       },
     ];
 
-    const rows: Row[] = this.state.displayExperiments.map(exp => {
+    const rows: Row[] = this.state.displayExperiments.map((exp) => {
       return {
         error: exp.error,
         expandState: exp.expandState,
@@ -112,7 +112,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
       <Tooltip title={props.value ?? ''} enterDelay={300} placement='top-start'>
         <Link
           className={commonCss.link}
-          onClick={e => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
           to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.id)}
         >
           {props.value}
@@ -139,7 +139,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
             operation:
               this.props.storageState === V2beta1ExperimentStorageState.ARCHIVED
                 ? V2beta1PredicateOperation.EQUALS
-                : V2beta1PredicateOperation.NOTEQUALS,
+                : V2beta1PredicateOperation.NOT_EQUALS,
             string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
           },
         ]);
@@ -162,7 +162,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
       );
       nextPageToken = response.next_page_token || '';
       displayExperiments = response.experiments || [];
-      displayExperiments.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
+      displayExperiments.forEach((exp) => (exp.expandState = ExpandState.COLLAPSED));
       this.setState({ displayExperiments });
     } catch (err) {
       const error = new Error(await errorToMessage(err));
@@ -174,7 +174,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
   }
 
   private _toggleRowExpand(rowIndex: number): void {
-    const displayExperiments = immerProduce(this.state.displayExperiments, draft => {
+    const displayExperiments = immerProduce(this.state.displayExperiments, (draft) => {
       draft[rowIndex].expandState =
         draft[rowIndex].expandState === ExpandState.COLLAPSED
           ? ExpandState.EXPANDED

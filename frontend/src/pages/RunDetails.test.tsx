@@ -62,14 +62,14 @@ vi.mock('src/components/Graph', () => ({
         <pre data-testid='graph'>
           {graph
             .nodes()
-            .map(v => 'Node ' + v)
+            .map((v) => 'Node ' + v)
             .join('\n  ')}
           {graph
             .edges()
-            .map(e => `Edge ${e.v} to ${e.w}`)
+            .map((e) => `Edge ${e.v} to ${e.w}`)
             .join('\n  ')}
         </pre>
-        {graph.nodes().map(node => (
+        {graph.nodes().map((node) => (
           <button
             type='button'
             key={node}
@@ -170,7 +170,7 @@ describe('RunDetails', () => {
       if (!nodes) {
         return;
       }
-      Object.values(nodes).forEach(node => {
+      Object.values(nodes).forEach((node) => {
         if (node && !node.phase) {
           node.phase = NodePhase.RUNNING;
         }
@@ -181,7 +181,7 @@ describe('RunDetails', () => {
     }
   }
 
-  function getRunDetailsState(): typeof RunDetails['prototype']['state'] | undefined {
+  function getRunDetailsState(): (typeof RunDetails)['prototype']['state'] | undefined {
     return runDetailsRef?.current?.state;
   }
 
@@ -271,7 +271,7 @@ describe('RunDetails', () => {
     );
     isCustomVisualizationsAllowedSpy.mockImplementation(() => Promise.resolve(false));
     getPodLogsSpy.mockImplementation(() => 'test logs');
-    getPodInfoSpy.mockImplementation(() => ({ data: 'some data' } as JSONObject));
+    getPodInfoSpy.mockImplementation(() => ({ data: 'some data' }) as JSONObject);
     pathsParser.mockImplementation(() => []);
     pathsWithStepsParser.mockImplementation(() => []);
     loaderSpy.mockImplementation(() => Promise.resolve([]));
@@ -490,14 +490,14 @@ describe('RunDetails', () => {
   });
 
   it('has a Restore button if the run is archived', async () => {
-    testRun.run!.storage_state = ApiRunStorageState.ARCHIVED;
+    testRun.run!.storage_state = ApiRunStorageState.STORAGESTATE_ARCHIVED;
     await renderRunDetails();
     expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE)).toBeDefined();
     expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.ARCHIVE)).toBeUndefined();
   });
 
   it('shows Archive in breadcrumbs if the run is archived', async () => {
-    testRun.run!.storage_state = ApiRunStorageState.ARCHIVED;
+    testRun.run!.storage_state = ApiRunStorageState.STORAGESTATE_ARCHIVED;
     await renderRunDetails();
     expect(updateToolbarSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -753,10 +753,7 @@ describe('RunDetails', () => {
     const execution = new Execution();
     const nodePodName = new Value();
     nodePodName.setStringValue('node1');
-    execution
-      .setId(1)
-      .getCustomPropertiesMap()
-      .set(KfpExecutionProperties.POD_NAME, nodePodName);
+    execution.setId(1).getCustomPropertiesMap().set(KfpExecutionProperties.POD_NAME, nodePodName);
     getRunContextSpy.mockResolvedValue(new Context());
     getExecutionsFromContextSpy.mockResolvedValue([execution]);
 
@@ -1003,12 +1000,11 @@ describe('RunDetails', () => {
       await runDetailsRef?.current?.refresh();
     });
     await waitFor(() => {
-      expect(getRunDetailsState()?.selectedNodeDetails).toBeTruthy();
+      expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
+        'phaseMessage',
+        'This step is in Succeeded state with this message: some node message',
+      );
     });
-    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
-      'phaseMessage',
-      'This step is in Succeeded state with this message: some node message',
-    );
   });
 
   it('dismisses node message banner if node loses message after refresh', async () => {
@@ -1030,12 +1026,11 @@ describe('RunDetails', () => {
     clickGraphNode('node1');
     fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
     await waitFor(() => {
-      expect(getRunDetailsState()?.selectedNodeDetails).toBeTruthy();
+      expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
+        'phaseMessage',
+        'This step is in Succeeded state with this message: some node message',
+      );
     });
-    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
-      'phaseMessage',
-      'This step is in Succeeded state with this message: some node message',
-    );
 
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       metadata: { name: 'workflow1' },
@@ -1045,12 +1040,11 @@ describe('RunDetails', () => {
       await runDetailsRef?.current?.refresh();
     });
     await waitFor(() => {
-      expect(getRunDetailsState()?.selectedNodeDetails).toBeTruthy();
+      expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('phaseMessage', undefined);
     });
-    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('phaseMessage', undefined);
   });
 
-  [NodePhase.RUNNING, NodePhase.PENDING, NodePhase.UNKNOWN].forEach(unfinishedStatus => {
+  [NodePhase.RUNNING, NodePhase.PENDING, NodePhase.UNKNOWN].forEach((unfinishedStatus) => {
     it(`displays a spinner if graph is not defined and run has status: ${unfinishedStatus}`, async () => {
       const unfinishedRun = {
         pipeline_runtime: {
@@ -1072,7 +1066,7 @@ describe('RunDetails', () => {
   });
 
   [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(
-    finishedStatus => {
+    (finishedStatus) => {
       it(`displays a message indicating there is no graph if graph is not defined and run has status: ${finishedStatus}`, async () => {
         const unfinishedRun = {
           pipeline_runtime: {
@@ -1174,7 +1168,6 @@ describe('RunDetails', () => {
           <div
             class="page_f1flacxk"
           >
-            
             <div
               class="f4k0h41"
             >
@@ -1281,12 +1274,13 @@ describe('RunDetails', () => {
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root icon_f1jqzauf"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1jqzauf css-i4bv87-MuiSvgIcon-root"
+                  data-testid="InfoIcon"
                   focusable="false"
                   viewBox="0 0 24 24"
                 >
                   <path
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 15h-2v-6h2zm0-8h-2V7h2z"
                   />
                 </svg>
                 Failed to retrieve pod logs. Use Stackdriver Kubernetes Monitoring to view them.
@@ -1295,17 +1289,13 @@ describe('RunDetails', () => {
                 class="flex_f16jawj4"
               >
                 <button
-                  class="MuiButtonBase-root MuiButton-root MuiButton-text button_fu86r2b detailsButton_fgq2mjo"
+                  class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_fu86r2b detailsButton_fgq2mjo css-1e6y48t-MuiButtonBase-root-MuiButton-root"
                   tabindex="0"
                   type="button"
                 >
+                  Details
                   <span
-                    class="MuiButton-label"
-                  >
-                    Details
-                  </span>
-                  <span
-                    class="MuiTouchRipple-root"
+                    class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                   />
                 </button>
               </div>
@@ -1361,12 +1351,13 @@ describe('RunDetails', () => {
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root icon_f1jqzauf"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1jqzauf css-i4bv87-MuiSvgIcon-root"
+                  data-testid="InfoIcon"
                   focusable="false"
                   viewBox="0 0 24 24"
                 >
                   <path
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 15h-2v-6h2zm0-8h-2V7h2z"
                   />
                 </svg>
                 Failed to retrieve pod logs.
@@ -1375,22 +1366,17 @@ describe('RunDetails', () => {
                 class="flex_f16jawj4"
               >
                 <button
-                  class="MuiButtonBase-root MuiButton-root MuiButton-text button_fu86r2b detailsButton_fgq2mjo"
+                  class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_fu86r2b detailsButton_fgq2mjo css-1e6y48t-MuiButtonBase-root-MuiButton-root"
                   tabindex="0"
                   type="button"
                 >
+                  Details
                   <span
-                    class="MuiButton-label"
-                  >
-                    Details
-                  </span>
-                  <span
-                    class="MuiTouchRipple-root"
+                    class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                   />
                 </button>
               </div>
             </div>
-            
           </div>
         </div>
       `);
@@ -1683,18 +1669,18 @@ describe('RunDetails', () => {
         return 0 as any;
       });
       clearIntervalSpy = vi.spyOn(global, 'clearInterval').mockImplementation(() => {});
-      loadSpy = vi
-        .spyOn(RunDetails.prototype, 'load')
-        .mockImplementation(async function(this: RunDetails) {
-          const status = testRun.run!.status as NodePhase;
-          const runFinished = [
-            NodePhase.ERROR,
-            NodePhase.FAILED,
-            NodePhase.SUCCEEDED,
-            NodePhase.SKIPPED,
-          ].includes(status);
-          this.setState({ runFinished });
-        });
+      loadSpy = vi.spyOn(RunDetails.prototype, 'load').mockImplementation(async function (
+        this: RunDetails,
+      ) {
+        const status = testRun.run!.status as NodePhase;
+        const runFinished = [
+          NodePhase.ERROR,
+          NodePhase.FAILED,
+          NodePhase.SUCCEEDED,
+          NodePhase.SKIPPED,
+        ].includes(status);
+        this.setState({ runFinished });
+      });
       testRun.run!.status = NodePhase.PENDING;
     });
     afterEach(() => {
@@ -1730,17 +1716,19 @@ describe('RunDetails', () => {
       await TestUtils.flushPromises();
     }, 10000);
 
-    [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(status => {
-      it(`sets 'runFinished' to true if run has status: ${status}`, async () => {
-        testRun.run!.status = status;
-        await renderRunDetails(undefined, { waitForLoad: false });
-        await TestUtils.flushPromises();
+    [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(
+      (status) => {
+        it(`sets 'runFinished' to true if run has status: ${status}`, async () => {
+          testRun.run!.status = status;
+          await renderRunDetails(undefined, { waitForLoad: false });
+          await TestUtils.flushPromises();
 
-        expect(getRunDetailsState()?.runFinished).toBe(true);
-      });
-    });
+          expect(getRunDetailsState()?.runFinished).toBe(true);
+        });
+      },
+    );
 
-    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN].forEach(status => {
+    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN].forEach((status) => {
       it(`leaves 'runFinished' false if run has status: ${status}`, async () => {
         testRun.run!.status = status;
         await renderRunDetails(undefined, { waitForLoad: false });
@@ -1839,7 +1827,7 @@ describe('RunDetails', () => {
       expect(history.location.pathname).toEqual('/experiments');
     });
 
-    it('does not redirect when namespace stays the same', () => {
+    it('does not redirect when namespace stays the same', async () => {
       const history = createMemoryHistory({
         initialEntries: ['/initial-path'],
       });
@@ -1850,18 +1838,24 @@ describe('RunDetails', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await act(async () => {
+        await TestUtils.flushPromises();
+      });
       expect(history.location.pathname).toEqual('/initial-path');
-      rerender(
-        <Router history={history}>
-          <NamespaceContext.Provider value='ns1'>
-            <EnhancedRunDetails {...generateProps()} />
-          </NamespaceContext.Provider>
-        </Router>,
-      );
+      await act(async () => {
+        rerender(
+          <Router history={history}>
+            <NamespaceContext.Provider value='ns1'>
+              <EnhancedRunDetails {...generateProps()} />
+            </NamespaceContext.Provider>
+          </Router>,
+        );
+        await TestUtils.flushPromises();
+      });
       expect(history.location.pathname).toEqual('/initial-path');
     });
 
-    it('does not redirect when namespace initializes', () => {
+    it('does not redirect when namespace initializes', async () => {
       const history = createMemoryHistory({
         initialEntries: ['/initial-path'],
       });
@@ -1872,14 +1866,20 @@ describe('RunDetails', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await act(async () => {
+        await TestUtils.flushPromises();
+      });
       expect(history.location.pathname).toEqual('/initial-path');
-      rerender(
-        <Router history={history}>
-          <NamespaceContext.Provider value='ns1'>
-            <EnhancedRunDetails {...generateProps()} />
-          </NamespaceContext.Provider>
-        </Router>,
-      );
+      await act(async () => {
+        rerender(
+          <Router history={history}>
+            <NamespaceContext.Provider value='ns1'>
+              <EnhancedRunDetails {...generateProps()} />
+            </NamespaceContext.Provider>
+          </Router>,
+        );
+        await TestUtils.flushPromises();
+      });
       expect(history.location.pathname).toEqual('/initial-path');
     });
   });

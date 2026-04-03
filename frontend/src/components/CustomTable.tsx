@@ -15,26 +15,29 @@
  */
 
 import * as React from 'react';
-import ArrowRight from '@material-ui/icons/ArrowRight';
-import Checkbox from '@material-ui/core/Checkbox';
-import ChevronLeft from '@material-ui/icons/ChevronLeft';
-import ChevronRight from '@material-ui/icons/ChevronRight';
-import CircularProgress from '@material-ui/core/CircularProgress';
-import FilterIcon from '@material-ui/icons/FilterList';
-import IconButton from '@material-ui/core/IconButton';
+import ArrowRight from '@mui/icons-material/ArrowRight';
+import ChevronLeft from '@mui/icons-material/ChevronLeft';
+import ChevronRight from '@mui/icons-material/ChevronRight';
+import FilterIcon from '@mui/icons-material/FilterList';
 import Input from '../atoms/Input';
-import MenuItem from '@material-ui/core/MenuItem';
-import Radio from '@material-ui/core/Radio';
 import Separator from '../atoms/Separator';
-import TableSortLabel from '@material-ui/core/TableSortLabel';
-import TextField from '@material-ui/core/TextField';
-import Tooltip from '@material-ui/core/Tooltip';
 import { ListRequest } from '../lib/Apis';
 import { classes, stylesheet } from 'typestyle';
 import { fonts, fontsize, dimension, commonCss, color, padding, zIndex } from '../Css';
+import { LocalStorage } from '../lib/LocalStorage';
 import { logger } from '../lib/Utils';
 import { debounce } from 'lodash';
-import { InputAdornment } from '@material-ui/core';
+import {
+  InputAdornment,
+  Checkbox,
+  CircularProgress,
+  IconButton,
+  MenuItem,
+  Radio,
+  TableSortLabel,
+  TextField,
+  Tooltip,
+} from '@mui/material';
 import { CustomTableRow } from './CustomTableRow';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
@@ -233,11 +236,11 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         this.props.initialFilterString && this.props.isCalledByV1
           ? this._createAndEncodeFilterV1(this.props.initialFilterString)
           : this.props.initialFilterString
-          ? this._createAndEncodeFilterV2(this.props.initialFilterString)
-          : '',
+            ? this._createAndEncodeFilterV2(this.props.initialFilterString)
+            : '',
       isBusy: false,
       maxPageIndex: Number.MAX_SAFE_INTEGER,
-      pageSize: 10,
+      pageSize: LocalStorage.getTablePageSize(this._getPageId()),
       sortBy:
         props.initialSortColumn || (props.columns.length ? props.columns[0].sortKey || '' : ''),
       sortOrder: props.initialSortOrder || 'desc',
@@ -250,7 +253,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       // This should be impossible to reach
       return;
     }
-    const selectedIds = event.target.checked ? this.props.rows.map(v => v.id) : [];
+    const selectedIds = event.target.checked ? this.props.rows.map((v) => v.id) : [];
     if (this.props.updateSelection) {
       this.props.updateSelection(selectedIds);
     }
@@ -297,7 +300,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     const { filterString, pageSize, sortBy, sortOrder } = this.state;
     const numSelected = (this.props.selectedIds || []).length;
     const totalFlex = this.props.columns.reduce((total, c) => (total += c.flex || 1), 0);
-    const widths = this.props.columns.map(c => ((c.flex || 1) / totalFlex) * 100);
+    const widths = this.props.columns.map((c) => ((c.flex || 1) / totalFlex) * 100);
 
     return (
       <div className={commonCss.pageOverflowHidden}>
@@ -328,19 +331,20 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             />
           </div>
         )}
-
         {/* Header */}
         <div className={classes(css.header, this.props.disableSelection && padding(20, 'l'))}>
-          {// Called as function to avoid breaking shallow rendering tests.
-          HeaderRowSelectionSection({
-            disableSelection: this.props.disableSelection,
-            indeterminate: !!numSelected && numSelected < this.props.rows.length,
-            isSelected: !!numSelected && numSelected === this.props.rows.length,
-            onSelectAll: this.handleSelectAllClick.bind(this),
-            showExpandButton: !!this.props.getExpandComponent,
-            useRadioButtons: this.props.useRadioButtons,
-            disableAdditionalSelection: this.props.disableAdditionalSelection,
-          })}
+          {
+            // Called as function to avoid breaking shallow rendering tests.
+            HeaderRowSelectionSection({
+              disableSelection: this.props.disableSelection,
+              indeterminate: !!numSelected && numSelected < this.props.rows.length,
+              isSelected: !!numSelected && numSelected === this.props.rows.length,
+              onSelectAll: this.handleSelectAllClick.bind(this),
+              showExpandButton: !!this.props.getExpandComponent,
+              useRadioButtons: this.props.useRadioButtons,
+              disableAdditionalSelection: this.props.disableAdditionalSelection,
+            })
+          }
           {this.props.columns.map((col, i) => {
             const isColumnSortable = !!this.props.columns[i].sortKey;
             const isCurrentSortColumn = sortBy === this.props.columns[i].sortKey;
@@ -376,7 +380,6 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             );
           })}
         </div>
-
         {/* Body */}
         <div className={commonCss.scrollContainer} style={{ minHeight: 60 }}>
           {/* Busy experience */}
@@ -422,18 +425,20 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                     selected && css.selected,
                     row.expandState === ExpandState.EXPANDED && css.expandedRow,
                   )}
-                  onClick={e => this.handleClick(e, row.id)}
+                  onClick={(e) => this.handleClick(e, row.id)}
                 >
-                  {// Called as function to avoid breaking shallow rendering tests.
-                  BodyRowSelectionSection({
-                    disableSelection: this.props.disableSelection,
-                    expandState: row.expandState,
-                    isSelected: selected,
-                    onExpand: e => this._expandButtonToggled(e, i),
-                    showExpandButton: !!this.props.getExpandComponent,
-                    useRadioButtons: this.props.useRadioButtons,
-                    disableAdditionalSelection: this.props.disableAdditionalSelection,
-                  })}
+                  {
+                    // Called as function to avoid breaking shallow rendering tests.
+                    BodyRowSelectionSection({
+                      disableSelection: this.props.disableSelection,
+                      expandState: row.expandState,
+                      isSelected: selected,
+                      onExpand: (e) => this._expandButtonToggled(e, i),
+                      showExpandButton: !!this.props.getExpandComponent,
+                      useRadioButtons: this.props.useRadioButtons,
+                      disableAdditionalSelection: this.props.disableAdditionalSelection,
+                    })
+                  }
                   <CustomTableRow row={row} columns={this.props.columns} />
                 </div>
                 {row.expandState === ExpandState.EXPANDED && this.props.getExpandComponent && (
@@ -443,7 +448,6 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             );
           })}
         </div>
-
         {/* Footer */}
         {!this.props.disablePaging && (
           <div className={css.footer}>
@@ -464,12 +468,17 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
               ))}
             </TextField>
 
-            <IconButton onClick={() => this._pageChanged(-1)} disabled={!this.state.currentPage}>
+            <IconButton
+              onClick={() => this._pageChanged(-1)}
+              disabled={!this.state.currentPage}
+              size='large'
+            >
               <ChevronLeft />
             </IconButton>
             <IconButton
               onClick={() => this._pageChanged(1)}
               disabled={this.state.currentPage >= this.state.maxPageIndex}
+              size='large'
             >
               <ChevronRight />
             </IconButton>
@@ -531,8 +540,8 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       filterString && this.props.isCalledByV1
         ? this._createAndEncodeFilterV1(filterString)
         : filterString
-        ? this._createAndEncodeFilterV2(filterString)
-        : '';
+          ? this._createAndEncodeFilterV2(filterString)
+          : '';
     this.setStateSafe({ filterStringEncoded });
     this._resetToFirstPage(await this.reload({ filter: filterStringEncoded }));
   }
@@ -543,7 +552,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         {
           // TODO: remove this hardcoding once more sophisticated filtering is supported
           key: 'name',
-          op: PredicateOp.ISSUBSTRING,
+          op: PredicateOp.IS_SUBSTRING,
           string_value: filterString,
         },
       ],
@@ -557,7 +566,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         {
           // TODO: remove this hardcoding once more sophisticated filtering is supported
           key: 'name',
-          operation: V2beta1PredicateOperation.ISSUBSTRING,
+          operation: V2beta1PredicateOperation.IS_SUBSTRING,
           string_value: filterString,
         },
       ],
@@ -611,8 +620,30 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ): Promise<void> {
     const pageSize = Number(event.target.value);
-
+    LocalStorage.saveTablePageSize(pageSize, this._getPageId());
     this._resetToFirstPage(await this.reload({ pageSize, pageToken: '' }));
+  }
+
+  private _getPageId(): string | undefined {
+    const pathSegments = window.location.hash
+      .split('?')[0]
+      .replace(/^#\//, '')
+      .split('/')
+      .filter(Boolean);
+    if (pathSegments.length === 0) {
+      return undefined;
+    }
+    const [root, second] = pathSegments;
+    if (root === 'shared' && second === 'pipelines') {
+      return 'shared/pipelines';
+    }
+    if (root === 'archive' && second) {
+      return `${root}/${second}`;
+    }
+    if (second && ['details', 'new', 'lineage'].includes(second)) {
+      return `${root}/${second}`;
+    }
+    return root;
   }
 
   private _resetToFirstPage(newPageToken?: string): void {
@@ -727,6 +758,7 @@ const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
             )}
             onClick={onExpand}
             aria-label='Expand'
+            size='large'
           >
             <ArrowRight />
           </IconButton>

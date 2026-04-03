@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import PagedTable from './PagedTable';
 import { PlotType } from './Viewer';
@@ -80,8 +79,8 @@ describe('PagedTable', () => {
     try {
       render(<PagedTable configs={[{ data, labels, type: PlotType.TABLE }]} />);
 
-      const hasDomNestingWarning = consoleErrorSpy.mock.calls.some(args =>
-        args.some(arg => typeof arg === 'string' && arg.includes('validateDOMNesting')),
+      const hasDomNestingWarning = consoleErrorSpy.mock.calls.some((args) =>
+        args.some((arg) => typeof arg === 'string' && arg.includes('validateDOMNesting')),
       );
       expect(hasDomNestingWarning).toBe(false);
     } finally {

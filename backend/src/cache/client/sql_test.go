@@ -70,6 +70,78 @@ func TestCreateMySQLConfig(t *testing.T) {
 				AllowNativePasswords: true,
 			},
 		},
+		{
+			name: "with password and database name",
+			args: args{
+				user:                   "pipeline_user",
+				password:               "secretpassword",
+				host:                   "mysql-service.kubeflow",
+				port:                   "3307",
+				dbName:                 "cachedb",
+				mysqlGroupConcatMaxLen: "4096",
+				mysqlExtraParams:       nil,
+			},
+			want: &mysql.Config{
+				User:                 "pipeline_user",
+				Passwd:               "secretpassword",
+				Net:                  "tcp",
+				Addr:                 "mysql-service.kubeflow:3307",
+				DBName:               "cachedb",
+				Params:               map[string]string{"charset": "utf8", "parseTime": "True", "loc": "Local", "group_concat_max_len": "4096"},
+				AllowNativePasswords: true,
+			},
+		},
+		{
+			name: "extra params override defaults",
+			args: args{
+				user:                   "root",
+				host:                   "mysql",
+				port:                   "3306",
+				mysqlGroupConcatMaxLen: "1024",
+				mysqlExtraParams:       map[string]string{"charset": "utf8mb4"},
+			},
+			want: &mysql.Config{
+				User:                 "root",
+				Net:                  "tcp",
+				Addr:                 "mysql:3306",
+				Params:               map[string]string{"charset": "utf8mb4", "parseTime": "True", "loc": "Local", "group_concat_max_len": "1024"},
+				AllowNativePasswords: true,
+			},
+		},
+		{
+			name: "multiple extra parameters",
+			args: args{
+				user:                   "root",
+				host:                   "mysql",
+				port:                   "3306",
+				mysqlGroupConcatMaxLen: "1024",
+				mysqlExtraParams:       map[string]string{"tls": "skip-verify", "timeout": "30s", "readTimeout": "30s"},
+			},
+			want: &mysql.Config{
+				User:                 "root",
+				Net:                  "tcp",
+				Addr:                 "mysql:3306",
+				Params:               map[string]string{"charset": "utf8", "parseTime": "True", "loc": "Local", "group_concat_max_len": "1024", "tls": "skip-verify", "timeout": "30s", "readTimeout": "30s"},
+				AllowNativePasswords: true,
+			},
+		},
+		{
+			name: "empty extra params map",
+			args: args{
+				user:                   "root",
+				host:                   "localhost",
+				port:                   "3306",
+				mysqlGroupConcatMaxLen: "1024",
+				mysqlExtraParams:       map[string]string{},
+			},
+			want: &mysql.Config{
+				User:                 "root",
+				Net:                  "tcp",
+				Addr:                 "localhost:3306",
+				Params:               map[string]string{"charset": "utf8", "parseTime": "True", "loc": "Local", "group_concat_max_len": "1024"},
+				AllowNativePasswords: true,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

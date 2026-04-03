@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import ExperimentsPage from './ExperimentList';
 import ArchivedExperimentsPage from './ArchivedExperiments';
 import MD2Tabs from '../atoms/MD2Tabs';

@@ -15,13 +15,12 @@
  */
 
 import * as React from 'react';
-import { fireEvent, render, waitFor } from '@testing-library/react';
-import { act } from 'react-dom/test-utils';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { createMemoryHistory } from 'history';
 import { vi } from 'vitest';
 import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
-import { RoutePage } from './Router';
+import { ExternalLinks, RoutePage } from './Router';
 import { css, SideNav } from './SideNav';
 import { GkeMetadata } from '../lib/GkeMetadata';
 
@@ -94,6 +93,23 @@ describe('SideNav', () => {
     const { renderResult } = renderSideNav(RoutePage.PIPELINES);
     await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
     expect(renderResult.asFragment()).toMatchSnapshot();
+  });
+
+  it('renders sidebar nav buttons without primary button styling', async () => {
+    const { renderResult } = renderSideNav(RoutePage.PIPELINES);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
+
+    const pipelinesButton = renderResult.getByRole('button', { name: 'Pipelines' });
+    const docsButton = renderResult.getByRole('button', { name: 'Documentation' });
+    const docsLink = docsButton.closest('a');
+
+    expect(pipelinesButton).toHaveClass('MuiButton-textInherit');
+    expect(pipelinesButton).not.toHaveClass('MuiButton-textPrimary');
+    expect(docsButton).toHaveClass('MuiButton-textInherit');
+    expect(docsButton).not.toHaveClass('MuiButton-textPrimary');
+    expect(docsLink).toHaveAttribute('href', ExternalLinks.DOCUMENTATION);
+    expect(docsLink).toHaveAttribute('target', '_blank');
+    expect(docsLink).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
   it('renders collapsed state', async () => {

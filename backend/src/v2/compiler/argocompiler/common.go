@@ -18,6 +18,7 @@ import (
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	k8score "k8s.io/api/core/v1"
 )
@@ -61,6 +62,17 @@ func setRuntimeRole(tmpl *wfapi.Template, role util.ExecutionRuntimeRole) {
 		tmpl.Metadata.Annotations = make(map[string]string)
 	}
 	tmpl.Metadata.Annotations[util.AnnotationKeyRuntimeRole] = string(role)
+}
+
+// retryIndexEnv injects the Argo retry attempt index into the executor
+// container. Argo substitutes {{retries}} with the 0-based attempt index at
+// pod creation time, so each retry attempt writes executor-logs to a distinct,
+// sequentially-numbered path (executor-logs-0, executor-logs-1, …).
+// This variable is only valid inside a template that has a retryStrategy, so
+// it must NOT be added to commonEnvs (which is applied to all templates).
+var retryIndexEnv = k8score.EnvVar{
+	Name:  component.EnvRetryIndex,
+	Value: "{{retries}}",
 }
 
 // ConfigureCustomCABundle adds CABundle environment variables and volume mounts if CABUNDLE_SECRET_NAME is set.

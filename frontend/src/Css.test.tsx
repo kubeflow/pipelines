@@ -53,10 +53,10 @@ describe('Css', () => {
       });
     });
 
-    it('calls internal padding with the same arguments', () => {
-      const spy = vi.spyOn(Css, 'padding');
-      Css.padding(123, 'abcdefg');
-      expect(spy).toHaveBeenCalledWith(123, 'abcdefg');
+    it('returns a non-empty CSS class name', () => {
+      const result = Css.padding(100, 'lr');
+      expect(typeof result).toBe('string');
+      expect(result.length).toBeGreaterThan(0);
     });
   });
 });

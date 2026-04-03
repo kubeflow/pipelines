@@ -80,6 +80,8 @@ func AllModels() []any {
 		&Experiment{},
 		&Pipeline{},
 		&PipelineVersion{},
+		&PipelineTag{},
+		&PipelineVersionTag{},
 		&Job{},
 		&Run{},
 		&RunMetric{},

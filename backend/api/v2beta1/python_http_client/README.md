@@ -115,6 +115,8 @@ Class | Method | HTTP request | Description
 *PipelineServiceApi* | [**pipeline_service_get_pipeline_version**](docs/PipelineServiceApi.md#pipeline_service_get_pipeline_version) | **GET** /apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id} | Gets a pipeline version by pipeline version ID and pipeline ID.
 *PipelineServiceApi* | [**pipeline_service_list_pipeline_versions**](docs/PipelineServiceApi.md#pipeline_service_list_pipeline_versions) | **GET** /apis/v2beta1/pipelines/{pipeline_id}/versions | Lists all pipeline versions of a given pipeline ID.
 *PipelineServiceApi* | [**pipeline_service_list_pipelines**](docs/PipelineServiceApi.md#pipeline_service_list_pipelines) | **GET** /apis/v2beta1/pipelines | Finds all pipelines within a namespace.
+*PipelineServiceApi* | [**pipeline_service_update_pipeline**](docs/PipelineServiceApi.md#pipeline_service_update_pipeline) | **PATCH** /apis/v2beta1/pipelines/{pipeline.pipeline_id} | Updates a pipeline&#39;s mutable fields (display_name, tags).
+*PipelineServiceApi* | [**pipeline_service_update_pipeline_version**](docs/PipelineServiceApi.md#pipeline_service_update_pipeline_version) | **PATCH** /apis/v2beta1/pipelines/{pipeline_version.pipeline_id}/versions/{pipeline_version.pipeline_version_id} | Updates a pipeline version&#39;s mutable fields (display_name, tags).
 *PipelineUploadServiceApi* | [**upload_pipeline**](docs/PipelineUploadServiceApi.md#upload_pipeline) | **POST** /apis/v2beta1/pipelines/upload | 
 *PipelineUploadServiceApi* | [**upload_pipeline_version**](docs/PipelineUploadServiceApi.md#upload_pipeline_version) | **POST** /apis/v2beta1/pipelines/upload_version | 
 *RecurringRunServiceApi* | [**recurring_run_service_create_recurring_run**](docs/RecurringRunServiceApi.md#recurring_run_service_create_recurring_run) | **POST** /apis/v2beta1/recurringruns | Creates a new recurring run in an experiment, given the experiment ID.
@@ -149,6 +151,8 @@ Class | Method | HTTP request | Description
  - [ProtobufAny](docs/ProtobufAny.md)
  - [ProtobufNullValue](docs/ProtobufNullValue.md)
  - [RecurringRunMode](docs/RecurringRunMode.md)
+ - [RequiredInputPipelineObjectWithUpdatedFieldsPipelineIdIsRequiredToIdentifyThePipelineMutableFieldsDisplayNameTags](docs/RequiredInputPipelineObjectWithUpdatedFieldsPipelineIdIsRequiredToIdentifyThePipelineMutableFieldsDisplayNameTags.md)
+ - [RequiredInputPipelineVersionObjectWithUpdatedFieldsPipelineIdAndPipelineVersionIdAreRequiredToIdentifyTheVersionMutableFieldsDisplayNameTags](docs/RequiredInputPipelineVersionObjectWithUpdatedFieldsPipelineIdAndPipelineVersionIdAreRequiredToIdentifyTheVersionMutableFieldsDisplayNameTags.md)
  - [V2beta1ArtifactList](docs/V2beta1ArtifactList.md)
  - [V2beta1CreatePipelineAndVersionRequest](docs/V2beta1CreatePipelineAndVersionRequest.md)
  - [V2beta1CronSchedule](docs/V2beta1CronSchedule.md)

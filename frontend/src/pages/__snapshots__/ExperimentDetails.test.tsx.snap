@@ -12,7 +12,7 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
         class="cardRow_ff0uehn"
       >
         <div
-          class="MuiPaper-root card_f5jobr4 recurringRunsCard_folh6x0 cardActive_fk7v9nw MuiPaper-elevation0 MuiPaper-rounded"
+          class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 card_f5jobr4 recurringRunsCard_folh6x0 cardActive_fk7v9nw css-ee20y-MuiPaper-root"
           id="recurringRunsCard"
         >
           <div>
@@ -23,16 +23,12 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
                 Recurring run configs
               </span>
               <button
-                class="MuiButtonBase-root MuiButton-root MuiButton-text cardBtn_fvbhv23"
+                class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary cardBtn_fvbhv23 css-1e6y48t-MuiButtonBase-root-MuiButton-root"
                 id="manageExperimentRecurringRunsBtn"
                 tabindex="0"
                 type="button"
               >
-                <span
-                  class="MuiButton-label"
-                >
-                  Manage
-                </span>
+                Manage
               </button>
             </div>
             <div
@@ -43,7 +39,7 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
           </div>
         </div>
         <div
-          class="MuiPaper-root card_f5jobr4 runStatsCard_folh6x0 MuiPaper-elevation0 MuiPaper-rounded"
+          class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 card_f5jobr4 runStatsCard_folh6x0 css-ee20y-MuiPaper-root"
           id="experimentDescriptionCard"
         >
           <div
@@ -53,29 +49,27 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
               Experiment description
             </span>
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text popOutIcon_fr5sfkk popOutButton"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutIcon_fr5sfkk popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
               id="expandExperimentDescriptionBtn"
               tabindex="0"
               type="button"
             >
-              <span
-                class="MuiButton-label"
+              <svg
+                aria-hidden="true"
+                aria-label="Read more"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                data-mui-internal-clone-element="true"
+                data-testid="LaunchIcon"
+                focusable="false"
+                style="font-size: 18px;"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root"
-                  focusable="false"
-                  style="font-size: 18px;"
-                  title="Read more"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"
-                  />
-                </svg>
-              </span>
+                <path
+                  d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3z"
+                />
+              </svg>
               <span
-                class="MuiTouchRipple-root"
+                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
               />
             </button>
           </div>
@@ -110,130 +104,117 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
           class="actions_ffoeey"
         >
           <div
+            aria-label="Create a new run"
             class=""
+            data-mui-internal-clone-element="true"
             style="min-width: 130px;"
-            title="Create a new run"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 buttonAction_f1olq6uy MuiButton-textSecondary"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 buttonAction_f1olq6uy css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
               id="createNewRunBtn"
               tabindex="0"
               type="button"
             >
-              <span
-                class="MuiButton-label"
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
+                data-testid="AddIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root icon_f1ojihnt"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
-                  />
-                </svg>
-                <span>
-                  Create run
-                </span>
+                <path
+                  d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"
+                />
+              </svg>
+              <span>
+                Create run
               </span>
               <span
-                class="MuiTouchRipple-root"
+                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
               />
             </button>
           </div>
           <div
+            aria-label="Create a new recurring run"
             class=""
+            data-mui-internal-clone-element="true"
             style="min-width: 195px;"
-            title="Create a new recurring run"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textPrimary"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary root_f1gmzqw4 css-1e6y48t-MuiButtonBase-root-MuiButton-root"
               id="createNewRecurringRunBtn"
               tabindex="0"
               type="button"
             >
-              <span
-                class="MuiButton-label"
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
+                data-testid="AddIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root icon_f1ojihnt"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
-                  />
-                </svg>
-                <span>
-                  Create recurring run
-                </span>
+                <path
+                  d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"
+                />
+              </svg>
+              <span>
+                Create recurring run
               </span>
               <span
-                class="MuiTouchRipple-root"
+                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
               />
             </button>
           </div>
           <div
+            aria-label="Select multiple runs to compare"
             class=""
+            data-mui-internal-clone-element="true"
             style="min-width: 125px;"
-            title="Select multiple runs to compare"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
               disabled=""
               id="compareBtn"
               tabindex="-1"
               type="button"
             >
-              <span
-                class="MuiButton-label"
-              >
-                <span>
-                  Compare runs
-                </span>
+              <span>
+                Compare runs
               </span>
             </button>
           </div>
           <div
+            aria-label="Select a run to clone"
             class=""
+            data-mui-internal-clone-element="true"
             style="min-width: 100px;"
-            title="Select a run to clone"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
               disabled=""
               id="cloneBtn"
               tabindex="-1"
               type="button"
             >
-              <span
-                class="MuiButton-label"
-              >
-                <span>
-                  Clone run
-                </span>
+              <span>
+                Clone run
               </span>
             </button>
           </div>
           <div
+            aria-label="Select at least one resource to archive"
             class=""
-            title="Select at least one resource to archive"
+            data-mui-internal-clone-element="true"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
               disabled=""
               id="archiveBtn"
               tabindex="-1"
               type="button"
             >
-              <span
-                class="MuiButton-label"
-              >
-                <span>
-                  Archive
-                </span>
+              <span>
+                Archive
               </span>
             </button>
           </div>
@@ -253,37 +234,31 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
             style="display: inline-block; min-width: 20px; width: 20px;"
           />
           <button
-            class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
+            aria-label=""
+            class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i active_fz0wpsl css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+            data-mui-internal-clone-element="true"
             tabindex="0"
-            title=""
             type="button"
           >
-            <span
-              class="MuiButton-label"
-            >
-              <span>
-                Active
-              </span>
+            <span>
+              Active
             </span>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </button>
           <button
-            class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
+            aria-label=""
+            class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+            data-mui-internal-clone-element="true"
             tabindex="0"
-            title=""
             type="button"
           >
-            <span
-              class="MuiButton-label"
-            >
-              <span>
-                Archived
-              </span>
+            <span>
+              Archived
             </span>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </button>
         </div>
@@ -293,12 +268,12 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
           >
             <div>
               <div
-                class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
+                class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
                 spellcheck="false"
                 style="height: 48px; max-width: 100%; width: 100%;"
               >
                 <label
-                  class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
+                  class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
                   data-shrink="true"
                   for="tableFilterBox"
                   id="tableFilterBox-label"
@@ -306,36 +281,37 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
                   Filter runs
                 </label>
                 <div
-                  class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
+                  class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
                 >
                   <div
-                    class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
+                    class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
                   >
                     <svg
                       aria-hidden="true"
-                      class="MuiSvgIcon-root"
+                      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                      data-testid="FilterListIcon"
                       focusable="false"
                       style="color: rgb(128, 134, 139); padding-right: 16px;"
                       viewBox="0 0 24 24"
                     >
                       <path
-                        d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                        d="M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z"
                       />
                     </svg>
                   </div>
                   <input
                     aria-invalid="false"
-                    class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
+                    class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
                     id="tableFilterBox"
                     type="text"
                     value=""
                   />
                   <fieldset
                     aria-hidden="true"
-                    class="PrivateNotchedOutline-root-73 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+                    class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
                   >
                     <legend
-                      class="PrivateNotchedOutline-legendLabelled-75 PrivateNotchedOutline-legendNotched-76"
+                      class="css-sl37lx-MuiNotchedOutlined-root"
                     >
                       <span>
                         Filter runs
@@ -352,31 +328,26 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
                 class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
               >
                 <span
-                  aria-disabled="false"
-                  class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-77 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+                  class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
                 >
-                  <span
-                    class="MuiIconButton-label"
+                  <input
+                    class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+                    data-indeterminate="false"
+                    type="checkbox"
+                  />
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                    data-testid="CheckBoxOutlineBlankIcon"
+                    focusable="false"
+                    viewBox="0 0 24 24"
                   >
-                    <input
-                      class="PrivateSwitchBase-input-80"
-                      data-indeterminate="false"
-                      type="checkbox"
-                      value=""
+                    <path
+                      d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
                     />
-                    <svg
-                      aria-hidden="true"
-                      class="MuiSvgIcon-root"
-                      focusable="false"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                      />
-                    </svg>
-                  </span>
+                  </svg>
                   <span
-                    class="MuiTouchRipple-root"
+                    class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                   />
                 </span>
               </div>
@@ -442,28 +413,34 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
                 Rows per page:
               </span>
               <div
-                class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+                class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
               >
                 <div
-                  class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
+                  class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
                 >
                   <div
+                    aria-controls="_r_3l_"
+                    aria-expanded="false"
                     aria-haspopup="listbox"
-                    class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-                    role="button"
+                    aria-labelledby="_r_3k_"
+                    class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+                    id="_r_3k_"
+                    role="combobox"
                     tabindex="0"
                   >
                     10
                   </div>
                   <input
                     aria-hidden="true"
-                    class="MuiSelect-nativeInput"
+                    aria-invalid="false"
+                    class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
                     tabindex="-1"
                     value="10"
                   />
                   <svg
                     aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSelect-icon"
+                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+                    data-testid="ArrowDropDownIcon"
                     focusable="false"
                     viewBox="0 0 24 24"
                   >
@@ -474,46 +451,40 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
                 </div>
               </div>
               <button
-                class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+                class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                 disabled=""
                 tabindex="-1"
                 type="button"
               >
-                <span
-                  class="MuiIconButton-label"
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="ChevronLeftIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-                    />
-                  </svg>
-                </span>
+                  <path
+                    d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+                  />
+                </svg>
               </button>
               <button
-                class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+                class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                 disabled=""
                 tabindex="-1"
                 type="button"
               >
-                <span
-                  class="MuiIconButton-label"
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="ChevronRightIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-                    />
-                  </svg>
-                </span>
+                  <path
+                    d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+                  />
+                </svg>
               </button>
             </div>
           </div>
@@ -536,7 +507,7 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
         class="cardRow_ff0uehn"
       >
         <div
-          class="MuiPaper-root card_f5jobr4 recurringRunsCard_folh6x0 MuiPaper-elevation0 MuiPaper-rounded"
+          class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 card_f5jobr4 recurringRunsCard_folh6x0 css-ee20y-MuiPaper-root"
           id="recurringRunsCard"
         >
           <div>
@@ -547,16 +518,12 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
                 Recurring run configs
               </span>
               <button
-                class="MuiButtonBase-root MuiButton-root MuiButton-text cardBtn_fvbhv23"
+                class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary cardBtn_fvbhv23 css-1e6y48t-MuiButtonBase-root-MuiButton-root"
                 id="manageExperimentRecurringRunsBtn"
                 tabindex="0"
                 type="button"
               >
-                <span
-                  class="MuiButton-label"
-                >
-                  Manage
-                </span>
+                Manage
               </button>
             </div>
             <div
@@ -567,7 +534,7 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
           </div>
         </div>
         <div
-          class="MuiPaper-root card_f5jobr4 runStatsCard_folh6x0 MuiPaper-elevation0 MuiPaper-rounded"
+          class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 card_f5jobr4 runStatsCard_folh6x0 css-ee20y-MuiPaper-root"
           id="experimentDescriptionCard"
         >
           <div
@@ -577,29 +544,27 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
               Experiment description
             </span>
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text popOutIcon_fr5sfkk popOutButton"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutIcon_fr5sfkk popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
               id="expandExperimentDescriptionBtn"
               tabindex="0"
               type="button"
             >
-              <span
-                class="MuiButton-label"
+              <svg
+                aria-hidden="true"
+                aria-label="Read more"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                data-mui-internal-clone-element="true"
+                data-testid="LaunchIcon"
+                focusable="false"
+                style="font-size: 18px;"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root"
-                  focusable="false"
-                  style="font-size: 18px;"
-                  title="Read more"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"
-                  />
-                </svg>
-              </span>
+                <path
+                  d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3z"
+                />
+              </svg>
               <span
-                class="MuiTouchRipple-root"
+                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
               />
             </button>
           </div>
@@ -634,130 +599,117 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
           class="actions_ffoeey"
         >
           <div
+            aria-label="Create a new run"
             class=""
+            data-mui-internal-clone-element="true"
             style="min-width: 130px;"
-            title="Create a new run"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 buttonAction_f1olq6uy MuiButton-textSecondary"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 buttonAction_f1olq6uy css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
               id="createNewRunBtn"
               tabindex="0"
               type="button"
             >
-              <span
-                class="MuiButton-label"
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
+                data-testid="AddIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root icon_f1ojihnt"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
-                  />
-                </svg>
-                <span>
-                  Create run
-                </span>
+                <path
+                  d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"
+                />
+              </svg>
+              <span>
+                Create run
               </span>
               <span
-                class="MuiTouchRipple-root"
+                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
               />
             </button>
           </div>
           <div
+            aria-label="Create a new recurring run"
             class=""
+            data-mui-internal-clone-element="true"
             style="min-width: 195px;"
-            title="Create a new recurring run"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textPrimary"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary root_f1gmzqw4 css-1e6y48t-MuiButtonBase-root-MuiButton-root"
               id="createNewRecurringRunBtn"
               tabindex="0"
               type="button"
             >
-              <span
-                class="MuiButton-label"
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
+                data-testid="AddIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root icon_f1ojihnt"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
-                  />
-                </svg>
-                <span>
-                  Create recurring run
-                </span>
+                <path
+                  d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"
+                />
+              </svg>
+              <span>
+                Create recurring run
               </span>
               <span
-                class="MuiTouchRipple-root"
+                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
               />
             </button>
           </div>
           <div
+            aria-label="Select multiple runs to compare"
             class=""
+            data-mui-internal-clone-element="true"
             style="min-width: 125px;"
-            title="Select multiple runs to compare"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
               disabled=""
               id="compareBtn"
               tabindex="-1"
               type="button"
             >
-              <span
-                class="MuiButton-label"
-              >
-                <span>
-                  Compare runs
-                </span>
+              <span>
+                Compare runs
               </span>
             </button>
           </div>
           <div
+            aria-label="Select a run to clone"
             class=""
+            data-mui-internal-clone-element="true"
             style="min-width: 100px;"
-            title="Select a run to clone"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
               disabled=""
               id="cloneBtn"
               tabindex="-1"
               type="button"
             >
-              <span
-                class="MuiButton-label"
-              >
-                <span>
-                  Clone run
-                </span>
+              <span>
+                Clone run
               </span>
             </button>
           </div>
           <div
+            aria-label="Select at least one resource to archive"
             class=""
-            title="Select at least one resource to archive"
+            data-mui-internal-clone-element="true"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
               disabled=""
               id="archiveBtn"
               tabindex="-1"
               type="button"
             >
-              <span
-                class="MuiButton-label"
-              >
-                <span>
-                  Archive
-                </span>
+              <span>
+                Archive
               </span>
             </button>
           </div>
@@ -777,37 +729,31 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
             style="display: inline-block; min-width: 20px; width: 20px;"
           />
           <button
-            class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
+            aria-label=""
+            class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i active_fz0wpsl css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+            data-mui-internal-clone-element="true"
             tabindex="0"
-            title=""
             type="button"
           >
-            <span
-              class="MuiButton-label"
-            >
-              <span>
-                Active
-              </span>
+            <span>
+              Active
             </span>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </button>
           <button
-            class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
+            aria-label=""
+            class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+            data-mui-internal-clone-element="true"
             tabindex="0"
-            title=""
             type="button"
           >
-            <span
-              class="MuiButton-label"
-            >
-              <span>
-                Archived
-              </span>
+            <span>
+              Archived
             </span>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </button>
         </div>
@@ -817,12 +763,12 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
           >
             <div>
               <div
-                class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
+                class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
                 spellcheck="false"
                 style="height: 48px; max-width: 100%; width: 100%;"
               >
                 <label
-                  class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
+                  class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
                   data-shrink="true"
                   for="tableFilterBox"
                   id="tableFilterBox-label"
@@ -830,36 +776,37 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
                   Filter runs
                 </label>
                 <div
-                  class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
+                  class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
                 >
                   <div
-                    class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
+                    class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
                   >
                     <svg
                       aria-hidden="true"
-                      class="MuiSvgIcon-root"
+                      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                      data-testid="FilterListIcon"
                       focusable="false"
                       style="color: rgb(128, 134, 139); padding-right: 16px;"
                       viewBox="0 0 24 24"
                     >
                       <path
-                        d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                        d="M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z"
                       />
                     </svg>
                   </div>
                   <input
                     aria-invalid="false"
-                    class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
+                    class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
                     id="tableFilterBox"
                     type="text"
                     value=""
                   />
                   <fieldset
                     aria-hidden="true"
-                    class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+                    class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
                   >
                     <legend
-                      class="PrivateNotchedOutline-legendLabelled-3 PrivateNotchedOutline-legendNotched-4"
+                      class="css-sl37lx-MuiNotchedOutlined-root"
                     >
                       <span>
                         Filter runs
@@ -876,31 +823,26 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
                 class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
               >
                 <span
-                  aria-disabled="false"
-                  class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-5 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+                  class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
                 >
-                  <span
-                    class="MuiIconButton-label"
+                  <input
+                    class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+                    data-indeterminate="false"
+                    type="checkbox"
+                  />
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                    data-testid="CheckBoxOutlineBlankIcon"
+                    focusable="false"
+                    viewBox="0 0 24 24"
                   >
-                    <input
-                      class="PrivateSwitchBase-input-8"
-                      data-indeterminate="false"
-                      type="checkbox"
-                      value=""
+                    <path
+                      d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
                     />
-                    <svg
-                      aria-hidden="true"
-                      class="MuiSvgIcon-root"
-                      focusable="false"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                      />
-                    </svg>
-                  </span>
+                  </svg>
                   <span
-                    class="MuiTouchRipple-root"
+                    class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                   />
                 </span>
               </div>
@@ -966,28 +908,34 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
                 Rows per page:
               </span>
               <div
-                class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+                class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
               >
                 <div
-                  class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
+                  class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
                 >
                   <div
+                    aria-controls="_r_9_"
+                    aria-expanded="false"
                     aria-haspopup="listbox"
-                    class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-                    role="button"
+                    aria-labelledby="_r_8_"
+                    class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+                    id="_r_8_"
+                    role="combobox"
                     tabindex="0"
                   >
                     10
                   </div>
                   <input
                     aria-hidden="true"
-                    class="MuiSelect-nativeInput"
+                    aria-invalid="false"
+                    class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
                     tabindex="-1"
                     value="10"
                   />
                   <svg
                     aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSelect-icon"
+                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+                    data-testid="ArrowDropDownIcon"
                     focusable="false"
                     viewBox="0 0 24 24"
                   >
@@ -998,46 +946,40 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
                 </div>
               </div>
               <button
-                class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+                class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                 disabled=""
                 tabindex="-1"
                 type="button"
               >
-                <span
-                  class="MuiIconButton-label"
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="ChevronLeftIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-                    />
-                  </svg>
-                </span>
+                  <path
+                    d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+                  />
+                </svg>
               </button>
               <button
-                class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+                class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                 disabled=""
                 tabindex="-1"
                 type="button"
               >
-                <span
-                  class="MuiIconButton-label"
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="ChevronRightIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-                    />
-                  </svg>
-                </span>
+                  <path
+                    d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+                  />
+                </svg>
               </button>
             </div>
           </div>
@@ -1060,7 +1002,7 @@ exports[`ExperimentDetails > uses an empty string if the experiment has no descr
         class="cardRow_ff0uehn"
       >
         <div
-          class="MuiPaper-root card_f5jobr4 recurringRunsCard_folh6x0 MuiPaper-elevation0 MuiPaper-rounded"
+          class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 card_f5jobr4 recurringRunsCard_folh6x0 css-ee20y-MuiPaper-root"
           id="recurringRunsCard"
         >
           <div>
@@ -1071,16 +1013,12 @@ exports[`ExperimentDetails > uses an empty string if the experiment has no descr
                 Recurring run configs
               </span>
               <button
-                class="MuiButtonBase-root MuiButton-root MuiButton-text cardBtn_fvbhv23"
+                class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary cardBtn_fvbhv23 css-1e6y48t-MuiButtonBase-root-MuiButton-root"
                 id="manageExperimentRecurringRunsBtn"
                 tabindex="0"
                 type="button"
               >
-                <span
-                  class="MuiButton-label"
-                >
-                  Manage
-                </span>
+                Manage
               </button>
             </div>
             <div
@@ -1091,7 +1029,7 @@ exports[`ExperimentDetails > uses an empty string if the experiment has no descr
           </div>
         </div>
         <div
-          class="MuiPaper-root card_f5jobr4 runStatsCard_folh6x0 MuiPaper-elevation0 MuiPaper-rounded"
+          class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 card_f5jobr4 runStatsCard_folh6x0 css-ee20y-MuiPaper-root"
           id="experimentDescriptionCard"
         >
           <div
@@ -1101,29 +1039,27 @@ exports[`ExperimentDetails > uses an empty string if the experiment has no descr
               Experiment description
             </span>
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text popOutIcon_fr5sfkk popOutButton"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutIcon_fr5sfkk popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
               id="expandExperimentDescriptionBtn"
               tabindex="0"
               type="button"
             >
-              <span
-                class="MuiButton-label"
+              <svg
+                aria-hidden="true"
+                aria-label="Read more"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                data-mui-internal-clone-element="true"
+                data-testid="LaunchIcon"
+                focusable="false"
+                style="font-size: 18px;"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root"
-                  focusable="false"
-                  style="font-size: 18px;"
-                  title="Read more"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"
-                  />
-                </svg>
-              </span>
+                <path
+                  d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3z"
+                />
+              </svg>
               <span
-                class="MuiTouchRipple-root"
+                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
               />
             </button>
           </div>
@@ -1156,130 +1092,117 @@ exports[`ExperimentDetails > uses an empty string if the experiment has no descr
           class="actions_ffoeey"
         >
           <div
+            aria-label="Create a new run"
             class=""
+            data-mui-internal-clone-element="true"
             style="min-width: 130px;"
-            title="Create a new run"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 buttonAction_f1olq6uy MuiButton-textSecondary"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 buttonAction_f1olq6uy css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
               id="createNewRunBtn"
               tabindex="0"
               type="button"
             >
-              <span
-                class="MuiButton-label"
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
+                data-testid="AddIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root icon_f1ojihnt"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
-                  />
-                </svg>
-                <span>
-                  Create run
-                </span>
+                <path
+                  d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"
+                />
+              </svg>
+              <span>
+                Create run
               </span>
               <span
-                class="MuiTouchRipple-root"
+                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
               />
             </button>
           </div>
           <div
+            aria-label="Create a new recurring run"
             class=""
+            data-mui-internal-clone-element="true"
             style="min-width: 195px;"
-            title="Create a new recurring run"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textPrimary"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary root_f1gmzqw4 css-1e6y48t-MuiButtonBase-root-MuiButton-root"
               id="createNewRecurringRunBtn"
               tabindex="0"
               type="button"
             >
-              <span
-                class="MuiButton-label"
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
+                data-testid="AddIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root icon_f1ojihnt"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
-                  />
-                </svg>
-                <span>
-                  Create recurring run
-                </span>
+                <path
+                  d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"
+                />
+              </svg>
+              <span>
+                Create recurring run
               </span>
               <span
-                class="MuiTouchRipple-root"
+                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
               />
             </button>
           </div>
           <div
+            aria-label="Select multiple runs to compare"
             class=""
+            data-mui-internal-clone-element="true"
             style="min-width: 125px;"
-            title="Select multiple runs to compare"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
               disabled=""
               id="compareBtn"
               tabindex="-1"
               type="button"
             >
-              <span
-                class="MuiButton-label"
-              >
-                <span>
-                  Compare runs
-                </span>
+              <span>
+                Compare runs
               </span>
             </button>
           </div>
           <div
+            aria-label="Select a run to clone"
             class=""
+            data-mui-internal-clone-element="true"
             style="min-width: 100px;"
-            title="Select a run to clone"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
               disabled=""
               id="cloneBtn"
               tabindex="-1"
               type="button"
             >
-              <span
-                class="MuiButton-label"
-              >
-                <span>
-                  Clone run
-                </span>
+              <span>
+                Clone run
               </span>
             </button>
           </div>
           <div
+            aria-label="Select at least one resource to archive"
             class=""
-            title="Select at least one resource to archive"
+            data-mui-internal-clone-element="true"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
               disabled=""
               id="archiveBtn"
               tabindex="-1"
               type="button"
             >
-              <span
-                class="MuiButton-label"
-              >
-                <span>
-                  Archive
-                </span>
+              <span>
+                Archive
               </span>
             </button>
           </div>
@@ -1299,37 +1222,31 @@ exports[`ExperimentDetails > uses an empty string if the experiment has no descr
             style="display: inline-block; min-width: 20px; width: 20px;"
           />
           <button
-            class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
+            aria-label=""
+            class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i active_fz0wpsl css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+            data-mui-internal-clone-element="true"
             tabindex="0"
-            title=""
             type="button"
           >
-            <span
-              class="MuiButton-label"
-            >
-              <span>
-                Active
-              </span>
+            <span>
+              Active
             </span>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </button>
           <button
-            class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
+            aria-label=""
+            class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+            data-mui-internal-clone-element="true"
             tabindex="0"
-            title=""
             type="button"
           >
-            <span
-              class="MuiButton-label"
-            >
-              <span>
-                Archived
-              </span>
+            <span>
+              Archived
             </span>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </button>
         </div>
@@ -1339,12 +1256,12 @@ exports[`ExperimentDetails > uses an empty string if the experiment has no descr
           >
             <div>
               <div
-                class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
+                class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
                 spellcheck="false"
                 style="height: 48px; max-width: 100%; width: 100%;"
               >
                 <label
-                  class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
+                  class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
                   data-shrink="true"
                   for="tableFilterBox"
                   id="tableFilterBox-label"
@@ -1352,36 +1269,37 @@ exports[`ExperimentDetails > uses an empty string if the experiment has no descr
                   Filter runs
                 </label>
                 <div
-                  class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
+                  class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
                 >
                   <div
-                    class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
+                    class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
                   >
                     <svg
                       aria-hidden="true"
-                      class="MuiSvgIcon-root"
+                      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                      data-testid="FilterListIcon"
                       focusable="false"
                       style="color: rgb(128, 134, 139); padding-right: 16px;"
                       viewBox="0 0 24 24"
                     >
                       <path
-                        d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                        d="M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z"
                       />
                     </svg>
                   </div>
                   <input
                     aria-invalid="false"
-                    class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
+                    class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
                     id="tableFilterBox"
                     type="text"
                     value=""
                   />
                   <fieldset
                     aria-hidden="true"
-                    class="PrivateNotchedOutline-root-25 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+                    class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
                   >
                     <legend
-                      class="PrivateNotchedOutline-legendLabelled-27 PrivateNotchedOutline-legendNotched-28"
+                      class="css-sl37lx-MuiNotchedOutlined-root"
                     >
                       <span>
                         Filter runs
@@ -1398,31 +1316,26 @@ exports[`ExperimentDetails > uses an empty string if the experiment has no descr
                 class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
               >
                 <span
-                  aria-disabled="false"
-                  class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-29 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+                  class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
                 >
-                  <span
-                    class="MuiIconButton-label"
+                  <input
+                    class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+                    data-indeterminate="false"
+                    type="checkbox"
+                  />
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                    data-testid="CheckBoxOutlineBlankIcon"
+                    focusable="false"
+                    viewBox="0 0 24 24"
                   >
-                    <input
-                      class="PrivateSwitchBase-input-32"
-                      data-indeterminate="false"
-                      type="checkbox"
-                      value=""
+                    <path
+                      d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
                     />
-                    <svg
-                      aria-hidden="true"
-                      class="MuiSvgIcon-root"
-                      focusable="false"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                      />
-                    </svg>
-                  </span>
+                  </svg>
                   <span
-                    class="MuiTouchRipple-root"
+                    class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                   />
                 </span>
               </div>
@@ -1488,28 +1401,34 @@ exports[`ExperimentDetails > uses an empty string if the experiment has no descr
                 Rows per page:
               </span>
               <div
-                class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+                class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
               >
                 <div
-                  class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
+                  class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
                 >
                   <div
+                    aria-controls="_r_1d_"
+                    aria-expanded="false"
                     aria-haspopup="listbox"
-                    class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-                    role="button"
+                    aria-labelledby="_r_1c_"
+                    class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+                    id="_r_1c_"
+                    role="combobox"
                     tabindex="0"
                   >
                     10
                   </div>
                   <input
                     aria-hidden="true"
-                    class="MuiSelect-nativeInput"
+                    aria-invalid="false"
+                    class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
                     tabindex="-1"
                     value="10"
                   />
                   <svg
                     aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSelect-icon"
+                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+                    data-testid="ArrowDropDownIcon"
                     focusable="false"
                     viewBox="0 0 24 24"
                   >
@@ -1520,46 +1439,40 @@ exports[`ExperimentDetails > uses an empty string if the experiment has no descr
                 </div>
               </div>
               <button
-                class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+                class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                 disabled=""
                 tabindex="-1"
                 type="button"
               >
-                <span
-                  class="MuiIconButton-label"
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="ChevronLeftIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-                    />
-                  </svg>
-                </span>
+                  <path
+                    d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+                  />
+                </svg>
               </button>
               <button
-                class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+                class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                 disabled=""
                 tabindex="-1"
                 type="button"
               >
-                <span
-                  class="MuiIconButton-label"
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="ChevronRightIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-                    />
-                  </svg>
-                </span>
+                  <path
+                    d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+                  />
+                </svg>
               </button>
             </div>
           </div>

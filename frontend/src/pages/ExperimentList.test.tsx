@@ -43,7 +43,7 @@ const LIST_EXPERIMENT_DEFAULTS = [
       predicates: [
         {
           key: 'storage_state',
-          operation: V2beta1PredicateOperation.NOTEQUALS,
+          operation: V2beta1PredicateOperation.NOT_EQUALS,
           string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
         },
       ],
@@ -92,7 +92,7 @@ describe('ExperimentList', () => {
   function mockListNExperiments(n: number = 1, includeDescription: boolean = false) {
     return () =>
       Promise.resolve({
-        experiments: range(n).map(i => ({
+        experiments: range(n).map((i) => ({
           experiment_id: 'test-experiment-id' + i,
           display_name: 'test experiment name' + i,
           description: includeDescription ? 'test experiment description' + i : undefined,
@@ -128,7 +128,7 @@ describe('ExperimentList', () => {
   ): Promise<void> {
     listExperimentsSpy.mockImplementation(mockListNExperiments(n));
     listRunsSpy.mockImplementation(() => ({
-      runs: range(nRuns).map(i => ({
+      runs: range(nRuns).map((i) => ({
         run_id: 'test-run-id' + i,
         display_name: 'test run name' + i,
       })),
@@ -213,7 +213,7 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              operation: V2beta1PredicateOperation.NOTEQUALS,
+              operation: V2beta1PredicateOperation.NOT_EQUALS,
               string_value: V2beta1RunStorageState.ARCHIVED.toString(),
             },
           ],
@@ -519,7 +519,7 @@ describe('ExperimentList', () => {
         { state: V2beta1RuntimeState.SUCCEEDED },
         { state: V2beta1RuntimeState.PENDING },
         { state: V2beta1RuntimeState.FAILED },
-        { state: V2beta1RuntimeState.RUNTIMESTATEUNSPECIFIED },
+        { state: V2beta1RuntimeState.RUNTIME_STATE_UNSPECIFIED },
         { state: V2beta1RuntimeState.SUCCEEDED },
       ],
     } as any);

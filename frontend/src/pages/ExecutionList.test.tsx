@@ -15,7 +15,6 @@
  */
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import * as React from 'react';
 import { Api } from 'src/mlmd/library';
 import {
   Execution,
@@ -158,7 +157,7 @@ describe('ExecutionList ("Default" view)', () => {
       return Promise.resolve(response);
     });
 
-    const rowsPerPageButton = screen.getByRole('button', { name: '10' });
+    const rowsPerPageButton = screen.getByRole('combobox');
     fireEvent.mouseDown(rowsPerPageButton);
     const newRowsPerPage = await screen.findByRole('option', { name: '20' });
     fireEvent.click(newRowsPerPage);

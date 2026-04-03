@@ -15,10 +15,14 @@
  */
 
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { act } from 'react-dom/test-utils';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
-import UploadPipelineDialog, { ImportMethod } from './UploadPipelineDialog';
+import UploadPipelineDialog, {
+  ImportMethod,
+  PIPELINE_PACKAGE_ACCEPT,
+  PIPELINE_PACKAGE_REJECT_MESSAGE,
+  pipelinePackageValidator,
+} from './UploadPipelineDialog';
 import TestUtils from '../TestUtils';
 
 type UploadPipelineDialogProps = React.ComponentProps<typeof UploadPipelineDialog>;
@@ -64,6 +68,62 @@ function renderUploadDialog(props: UploadPipelineDialogProps): UploadPipelineDia
   }
   return new UploadPipelineDialogWrapper(ref.current, renderResult);
 }
+
+describe('PIPELINE_PACKAGE_ACCEPT', () => {
+  it('accepts only backend-supported formats', () => {
+    const allExtensions = Object.values(PIPELINE_PACKAGE_ACCEPT).flat().sort();
+    expect(allExtensions).toEqual(['.tar.gz', '.yaml', '.yml', '.zip']);
+  });
+
+  it('does not include plain .gz (backend only supports .tar.gz)', () => {
+    const allExtensions = Object.values(PIPELINE_PACKAGE_ACCEPT).flat();
+    const plainGz = allExtensions.filter((ext) => ext.endsWith('.gz') && ext !== '.tar.gz');
+    expect(plainGz).toEqual([]);
+  });
+
+  it('uses application/gzip MIME key for .tar.gz so native file picker works', () => {
+    expect(PIPELINE_PACKAGE_ACCEPT).toHaveProperty('application/gzip');
+    expect(PIPELINE_PACKAGE_ACCEPT['application/gzip']).toEqual(['.tar.gz']);
+  });
+
+  it('reject message matches accepted extensions and does not advertise .gz', () => {
+    expect(PIPELINE_PACKAGE_REJECT_MESSAGE).not.toContain('.gz,');
+    expect(PIPELINE_PACKAGE_REJECT_MESSAGE).toContain('.tar.gz');
+    expect(PIPELINE_PACKAGE_REJECT_MESSAGE).toContain('.yaml');
+    expect(PIPELINE_PACKAGE_REJECT_MESSAGE).toContain('.yml');
+    expect(PIPELINE_PACKAGE_REJECT_MESSAGE).toContain('.zip');
+  });
+});
+
+describe('pipelinePackageValidator', () => {
+  it('accepts .tar.gz files', () => {
+    expect(pipelinePackageValidator(new File([], 'pipeline.tar.gz'))).toBeNull();
+  });
+
+  it('accepts .tar.gz files with uppercase names', () => {
+    expect(pipelinePackageValidator(new File([], 'PIPELINE.TAR.GZ'))).toBeNull();
+  });
+
+  it('accepts non-gzip files (validator only guards gzip MIME loophole)', () => {
+    expect(pipelinePackageValidator(new File([], 'pipeline.yaml'))).toBeNull();
+    expect(pipelinePackageValidator(new File([], 'pipeline.zip'))).toBeNull();
+  });
+
+  it('rejects plain .gz files', () => {
+    expect(pipelinePackageValidator(new File([], 'foo.gz'))).toEqual(
+      expect.objectContaining({ code: 'invalid-extension' }),
+    );
+    expect(pipelinePackageValidator(new File([], 'pipeline.yaml.gz'))).toEqual(
+      expect.objectContaining({ code: 'invalid-extension' }),
+    );
+  });
+
+  it('rejects .tgz files', () => {
+    expect(pipelinePackageValidator(new File([], 'pipeline.tgz'))).toEqual(
+      expect.objectContaining({ code: 'invalid-extension' }),
+    );
+  });
+});
 
 describe('UploadPipelineDialog', () => {
   it('renders closed', () => {
