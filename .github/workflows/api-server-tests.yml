@@ -78,6 +78,12 @@ jobs:
             argo_version: "v3.5.14"
           - k8s_version: "v1.34.0"
             cache_enabled: "true"
+            proxy: "false"
+            argo_version: "v4.0.4"
+            pipeline_store: "database"
+            pod_to_pod_tls_enabled: "false"
+          - k8s_version: "v1.34.0"
+            cache_enabled: "true"
             pod_to_pod_tls_enabled: "true"
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
     name: KFP API Server tests Standalone - K8sVersion=${{ matrix.k8s_version }} argo_version=${{ matrix.argo_version }} cacheEnabled=${{ matrix.cache_enabled }} proxyEnabled=${{ matrix.proxy }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
