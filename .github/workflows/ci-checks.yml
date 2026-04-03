@@ -1,4 +1,6 @@
 # This workflow checks if all CI checks have passed by polling every 5 minutes.
+# It also records whether the triggering run actually completed that poll,
+# so downstream label automation can distinguish real passes from no-op successes.
 name: CI Check
 
 on:
@@ -36,6 +38,7 @@ jobs:
           echo "${reason}"
 
       - name: Check if all CI checks passed
+        id: poll
         if: steps.eligibility.outputs.should_poll == 'true'
         uses: wechuli/allcheckspassed@0b68b3b7d92e595bcbdea0c860d05605720cf479
         with:
@@ -53,3 +56,39 @@ jobs:
       - name: Skip CI polling with success
         if: steps.eligibility.outputs.should_poll != 'true'
         run: echo "${{ steps.eligibility.outputs.reason }}"
+
+      - name: Record CI check result
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p ci-check-result
+
+          should_poll="${{ steps.eligibility.outputs.should_poll }}"
+          poll_outcome="${{ steps.poll.outcome }}"
+          should_add_label=false
+
+          if [[ -z "${poll_outcome}" ]]; then
+            poll_outcome=skipped
+          fi
+
+          if [[ "${should_poll}" == "true" && "${poll_outcome}" == "success" ]]; then
+            should_add_label=true
+          fi
+
+          cat > ci-check-result/result.json <<EOF
+          {
+            "pr_number": "${{ github.event.pull_request.number }}",
+            "head_sha": "${{ github.event.pull_request.head.sha }}",
+            "should_poll": ${should_poll},
+            "poll_outcome": "${poll_outcome}",
+            "should_add_label": ${should_add_label}
+          }
+          EOF
+
+      - name: Upload CI check result
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-check-result
+          path: ci-check-result/result.json
+          if-no-files-found: error
