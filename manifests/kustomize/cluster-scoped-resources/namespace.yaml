@@ -3,5 +3,5 @@ kind: Namespace
 metadata:
   name: '$(kfp-cluster-scoped-namespace)'
   labels:
-    pod-security.kubernetes.io/enforce: restricted
-    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: baseline

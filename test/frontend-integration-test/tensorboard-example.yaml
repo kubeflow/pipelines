@@ -19,19 +19,12 @@ metadata:
 spec:
   entrypoint: tensorboard-example
   serviceAccountName: pipeline-runner
-  podSpecPatch: '{"hostUsers": false, "securityContext": {"seccompProfile": {"type": "RuntimeDefault"}}}'
+  podSpecPatch: '{"hostUsers": false}'
   templates:
   - name: tensorboard-example
     script:
       image: python:alpine3.9
       command: [python]
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
-        seccompProfile:
-          type: RuntimeDefault
       source: |
         import json
         metadata = {
