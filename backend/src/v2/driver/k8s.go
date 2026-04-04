@@ -695,7 +695,7 @@ func extendPodSpecPatch(
 		}
 	}
 
-	// Pre-populate administrator-configured defaults into the patch so they:
+	// Pre-populate admin-configured defaults into the patch so they:
 	// (a) survive strategic merge onto the compiled template, and
 	// (b) cause the user-value checks below to see them as "already set".
 	if opts.DefaultRunAsUser != nil || opts.DefaultRunAsGroup != nil || opts.DefaultRunAsNonRoot != nil {
@@ -727,8 +727,8 @@ func extendPodSpecPatch(
 
 	// Apply container security context (PSS restricted compliant).
 	// User-specified identity fields (runAsUser, runAsGroup) are only applied
-	// when they are not already set by the platform/administrator. If the compiler or
-	// an administrator has already configured these fields, the user-specified
+	// when they are not already set by the platform/admin. If the compiler or
+	// an admin has already configured these fields, the user-specified
 	// values are ignored and a warning is logged.
 	if userSecurityContext := kubernetesExecutorConfig.GetSecurityContext(); userSecurityContext != nil {
 		if podSpec.Containers[0].SecurityContext == nil {
@@ -738,7 +738,7 @@ func extendPodSpecPatch(
 		isCompilerHardened := existingSecurityContext.AllowPrivilegeEscalation != nil && !*existingSecurityContext.AllowPrivilegeEscalation
 		if userSecurityContext.RunAsUser != nil {
 			if existingSecurityContext.RunAsUser != nil {
-				glog.Warningf("Ignoring user-specified runAsUser (%d): security context already set by administrator (runAsUser=%d)",
+				glog.Warningf("Ignoring user-specified runAsUser (%d): security context already set by admin (runAsUser=%d)",
 					*userSecurityContext.RunAsUser, *existingSecurityContext.RunAsUser)
 			} else {
 				if isCompilerHardened && *userSecurityContext.RunAsUser == 0 {
@@ -749,7 +749,7 @@ func extendPodSpecPatch(
 		}
 		if userSecurityContext.RunAsGroup != nil {
 			if existingSecurityContext.RunAsGroup != nil {
-				glog.Warningf("Ignoring user-specified runAsGroup (%d): security context already set by administrator (runAsGroup=%d)",
+				glog.Warningf("Ignoring user-specified runAsGroup (%d): security context already set by admin (runAsGroup=%d)",
 					*userSecurityContext.RunAsGroup, *existingSecurityContext.RunAsGroup)
 			} else {
 				podSpec.Containers[0].SecurityContext.RunAsGroup = userSecurityContext.RunAsGroup
@@ -757,7 +757,7 @@ func extendPodSpecPatch(
 		}
 		if userSecurityContext.RunAsNonRoot != nil {
 			if existingSecurityContext.RunAsNonRoot != nil {
-				glog.Warningf("Ignoring user-specified runAsNonRoot (%v): security context already set by administrator (runAsNonRoot=%v)",
+				glog.Warningf("Ignoring user-specified runAsNonRoot (%v): security context already set by admin (runAsNonRoot=%v)",
 					*userSecurityContext.RunAsNonRoot, *existingSecurityContext.RunAsNonRoot)
 			} else {
 				podSpec.Containers[0].SecurityContext.RunAsNonRoot = userSecurityContext.RunAsNonRoot

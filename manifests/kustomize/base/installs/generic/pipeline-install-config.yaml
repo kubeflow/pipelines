@@ -114,11 +114,4 @@ data:
   defaultSecurityContextRunAsUser: ""
   defaultSecurityContextRunAsGroup: ""
   defaultSecurityContextRunAsNonRoot: ""
-  ## defaultSecurityContextHostUsers: Controls whether customer workload pods
-  ## run in the host user namespace. Setting this to "false" places each pod
-  ## in a dedicated Linux user namespace, decoupling UIDs/GIDs inside the pod
-  ## from host UIDs/GIDs and satisfying the Pod Security Standards restricted
-  ## profile even when the container process runs as UID 0 (root) inside the
-  ## user namespace. Requires Kubernetes 1.33 or later.
-  ## Valid values are "true" and "false". Defaults to "false".
   defaultSecurityContextHostUsers: "false"

@@ -93,9 +93,9 @@ var (
 	mlPipelineTLSEnabled = flag.Bool("ml_pipeline_tls_enabled", false, "Set to true if mlpipeline API server serves over TLS.")
 	metadataTLSEnabled   = flag.Bool("metadata_tls_enabled", false, "Set to true if MLMD serves over TLS.")
 	caCertPath           = flag.String("ca_cert_path", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
-	defaultRunAsUser     = flag.Int64("default_run_as_user", -1, "Administrator-configured default runAsUser for user containers. -1 means not set.")
-	defaultRunAsGroup    = flag.Int64("default_run_as_group", -1, "Administrator-configured default runAsGroup for user containers. -1 means not set.")
-	defaultRunAsNonRoot  = flag.String("default_run_as_non_root", "", "Administrator-configured default runAsNonRoot for user containers. Empty means not set.")
+	defaultRunAsUser     = flag.Int64("default_run_as_user", -1, "Admin-configured default runAsUser for user containers. -1 means not set.")
+	defaultRunAsGroup    = flag.Int64("default_run_as_group", -1, "Admin-configured default runAsGroup for user containers. -1 means not set.")
+	defaultRunAsNonRoot  = flag.String("default_run_as_non_root", "", "Admin-configured default runAsNonRoot for user containers. Empty means not set.")
 	defaultHostUsers     = flag.String("default_host_users", "", "Administrator-configured default hostUsers for user workload pods. Empty means not set. Set to false to run pods in a dedicated Linux user namespace.")
 )
 
@@ -247,7 +247,7 @@ func drive() (err error) {
 	case CONTAINER:
 		options.Container = containerSpec
 		options.KubernetesExecutorConfig = k8sExecCfg
-		// Set administrator defaults only when explicitly configured (non-negative).
+		// Set admin defaults only when explicitly configured (non-negative).
 		if *defaultRunAsUser >= 0 {
 			options.DefaultRunAsUser = defaultRunAsUser
 		}

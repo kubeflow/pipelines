@@ -92,11 +92,11 @@ type Options struct {
 
 	PipelineJobScheduleTimeUTC string
 
-	// Administrator-configured default runAsUser for user containers. Nil means not set.
+	// Admin-configured default runAsUser for user containers. Nil means not set.
 	DefaultRunAsUser *int64
-	// Administrator-configured default runAsGroup for user containers. Nil means not set.
+	// Admin-configured default runAsGroup for user containers. Nil means not set.
 	DefaultRunAsGroup *int64
-	// Administrator-configured default runAsNonRoot for user containers. Nil means not set.
+	// Admin-configured default runAsNonRoot for user containers. Nil means not set.
 	DefaultRunAsNonRoot *bool
 	// Administrator-configured default hostUsers for user workload pods. Nil means not set.
 	// When set to false the pod runs in a dedicated Linux user namespace, which

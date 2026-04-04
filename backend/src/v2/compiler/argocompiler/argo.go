@@ -48,13 +48,13 @@ type Options struct {
 	DefaultWorkspace *k8score.PersistentVolumeClaimSpec
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
 	MLPipelineTLSEnabled bool
-	// Optional: administrator-configured default runAsUser for customer containers.
+	// Optional: admin-configured default runAsUser for customer containers.
 	// Nil means not set (feature disabled).
 	DefaultRunAsUser *int64
-	// Optional: administrator-configured default runAsGroup for customer containers.
+	// Optional: admin-configured default runAsGroup for customer containers.
 	// Nil means not set (feature disabled).
 	DefaultRunAsGroup *int64
-	// Optional: administrator-configured default runAsNonRoot for customer containers.
+	// Optional: admin-configured default runAsNonRoot for customer containers.
 	// Nil means not set (feature disabled).
 	DefaultRunAsNonRoot *bool
 	// Optional: administrator-configured default hostUsers for customer workload pods.

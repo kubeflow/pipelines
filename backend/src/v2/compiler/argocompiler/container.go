@@ -783,7 +783,7 @@ func extendPodMetadata(
 }
 
 // Extends metadata map values, highPriorityMap should overwrites lowPriorityMap values
-// The original Map inputs should have higher priority since its defined by administrator
+// The original Map inputs should have higher priority since its defined by admin
 // TODO: Use maps.Copy after moving to go 1.21+
 func extendMetadataMap(
 	highPriorityMap map[string]string,

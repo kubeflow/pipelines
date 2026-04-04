@@ -2150,7 +2150,7 @@ func Test_extendPodSpecPatch_ActiveDeadlineSeconds(t *testing.T) {
 }
 
 // Test_extendPodSpecPatch_SecurityContext tests that SDK-specified security context
-// values are passed through to the pod spec patch by the driver. Note that administrator-configured
+// values are passed through to the pod spec patch by the driver. Note that admin-configured
 // default runAsUser/runAsGroup values are applied at compile time via
 // applySecurityContextToExecutorTemplate (in argocompiler/security_context.go), which
 // sets them on the user container before the driver runs. The driver's pod spec patch
@@ -2489,7 +2489,7 @@ func Test_extendPodSpecPatch_SecurityContext_UserRunAsNonRootNoAdmin(t *testing.
 		nil,
 	)
 	assert.Nil(t, err)
-	// User-specified runAsNonRoot is applied when no administrator default is set.
+	// User-specified runAsNonRoot is applied when no admin default is set.
 	assert.True(t, *got.Containers[0].SecurityContext.RunAsNonRoot)
 }
 
