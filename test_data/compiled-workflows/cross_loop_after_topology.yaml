@@ -1,7 +1,6 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  creationTimestamp: null
   generateName: my-pipeline-
 spec:
   arguments:
@@ -48,6 +47,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -116,6 +119,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -144,6 +155,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -180,6 +195,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -209,6 +231,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -219,6 +249,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -353,6 +386,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -383,6 +424,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -396,6 +441,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-14"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-13","items":{"raw":"[1,
               2]"}},"taskInfo":{"name":"for-loop-14"}}'
+          - name: task-name
+            value: for-loop-14
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -425,6 +472,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-14"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-13","items":{"raw":"[1,
               2]"}},"taskInfo":{"name":"for-loop-14"}}'
+          - name: task-name
+            value: for-loop-14
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -592,6 +641,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-8"},"dependentTasks":["print-op-3"],"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-7","items":{"raw":"[1,
               2]"}},"taskInfo":{"name":"for-loop-8"}}'
+          - name: task-name
+            value: for-loop-8
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -621,6 +672,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-8"},"dependentTasks":["print-op-3"],"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-7","items":{"raw":"[1,
               2]"}},"taskInfo":{"name":"for-loop-8"}}'
+          - name: task-name
+            value: for-loop-8
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -692,6 +745,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-10"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-9","items":{"raw":"[1,
               2]"}},"taskInfo":{"name":"for-loop-10"}}'
+          - name: task-name
+            value: for-loop-10
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -721,6 +776,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-10"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-9","items":{"raw":"[1,
               2]"}},"taskInfo":{"name":"for-loop-10"}}'
+          - name: task-name
+            value: for-loop-10
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -753,6 +810,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-12"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-11","items":{"raw":"[1,
               2]"}},"taskInfo":{"name":"for-loop-12"}}'
+          - name: task-name
+            value: for-loop-12
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -782,6 +841,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-12"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-11","items":{"raw":"[1,
               2]"}},"taskInfo":{"name":"for-loop-12"}}'
+          - name: task-name
+            value: for-loop-12
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -814,6 +875,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-2"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[1,
               2]"}},"taskInfo":{"name":"for-loop-2"}}'
+          - name: task-name
+            value: for-loop-2
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -843,6 +906,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-2"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[1,
               2]"}},"taskInfo":{"name":"for-loop-2"}}'
+          - name: task-name
+            value: for-loop-2
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -875,6 +940,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-4"},"dependentTasks":["for-loop-2"],"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[1,
               2]"}},"taskInfo":{"name":"for-loop-4"}}'
+          - name: task-name
+            value: for-loop-4
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -904,6 +971,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-4"},"dependentTasks":["for-loop-2"],"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[1,
               2]"}},"taskInfo":{"name":"for-loop-4"}}'
+          - name: task-name
+            value: for-loop-4
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -936,6 +1005,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-6"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-5","items":{"raw":"[1,
               2]"}},"taskInfo":{"name":"for-loop-6"}}'
+          - name: task-name
+            value: for-loop-6
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -965,6 +1036,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-6"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-5","items":{"raw":"[1,
               2]"}},"taskInfo":{"name":"for-loop-6"}}'
+          - name: task-name
+            value: for-loop-6
         name: iteration-driver
         template: system-dag-driver
       - arguments:

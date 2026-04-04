@@ -2,6 +2,10 @@ name: "Set up KFP on KinD"
 description: "Step to start and configure KFP on Kind"
 
 inputs:
+  cluster_name:
+    description: "Kind cluster name"
+    default: 'kfp'
+    required: false
   pipeline_store:
     description: "Flag to deploy KFP with K8s Native API"
     default: 'database'
@@ -70,6 +74,12 @@ runs:
           docker image rm ${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}
           docker image rm localhost:5000/$app:${{ inputs.image_tag }}
         done
+        docker pull python:3.11
+        docker pull registry.access.redhat.com/ubi9/python-311:latest
+        kind load docker-image python:3.11 --name ${{ inputs.cluster_name }}
+        kind load docker-image registry.access.redhat.com/ubi9/python-311:latest --name ${{ inputs.cluster_name }}
+        docker image rm python:3.11
+        docker image rm registry.access.redhat.com/ubi9/python-311:latest
 
     - name: Configure Args
       shell: bash
