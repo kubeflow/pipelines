@@ -1252,7 +1252,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			DefaultRunAsUser:     r.options.DefaultRunAsUser,
 			DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
 			DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
-		DefaultHostUsers:     r.options.DefaultHostUsers,
+			DefaultHostUsers:     r.options.DefaultHostUsers,
 		}
 		tmpl, err := template.New(manifest, templateOptions)
 		if err != nil {
