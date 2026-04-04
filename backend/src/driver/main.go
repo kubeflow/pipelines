@@ -22,16 +22,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"google.golang.org/protobuf/encoding/protojson"
-
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 
-	"os"
-	"path/filepath"
-	"strconv"
-
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/src/v2/driver"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 )
@@ -83,63 +76,6 @@ func parseExecConfigJSON(k8sExecConfigJSON *string) (*kubernetesplatform.Kuberne
 	return k8sExecCfg, nil
 }
 
-func handleExecution(execution *driver.Execution, driverType string, executionPaths *ExecutionPaths) error {
-	if execution.ID != 0 {
-		glog.Infof("output execution.ID=%v", execution.ID)
-		if executionPaths.ExecutionID != "" {
-			if err := writeFile(executionPaths.ExecutionID, []byte(fmt.Sprint(execution.ID))); err != nil {
-				return fmt.Errorf("failed to write execution ID to file: %w", err)
-			}
-		}
-	}
-	if execution.IterationCount != nil {
-		if err := writeFile(executionPaths.IterationCount, []byte(fmt.Sprintf("%v", *execution.IterationCount))); err != nil {
-			return fmt.Errorf("failed to write iteration count to file: %w", err)
-		}
-	} else {
-		if driverType == RootDag {
-			if err := writeFile(executionPaths.IterationCount, []byte("0")); err != nil {
-				return fmt.Errorf("failed to write iteration count to file: %w", err)
-			}
-		}
-	}
-	if execution.Cached != nil {
-		if err := writeFile(executionPaths.CachedDecision, []byte(strconv.FormatBool(*execution.Cached))); err != nil {
-			return fmt.Errorf("failed to write cached decision to file: %w", err)
-		}
-	}
-	if execution.Condition != nil {
-		if err := writeFile(executionPaths.Condition, []byte(strconv.FormatBool(*execution.Condition))); err != nil {
-			return fmt.Errorf("failed to write condition to file: %w", err)
-		}
-	} else {
-		// nil is a valid value for Condition
-		if driverType == RootDag || driverType == CONTAINER {
-			if err := writeFile(executionPaths.Condition, []byte("nil")); err != nil {
-				return fmt.Errorf("failed to write condition to file: %w", err)
-			}
-		}
-	}
-	if execution.PodSpecPatch != "" {
-		glog.Infof("output podSpecPatch=\n%s\n", execution.PodSpecPatch)
-		if executionPaths.PodSpecPatch == "" {
-			return fmt.Errorf("--pod_spec_patch_path is required for container executor drivers")
-		}
-		if err := writeFile(executionPaths.PodSpecPatch, []byte(execution.PodSpecPatch)); err != nil {
-			return fmt.Errorf("failed to write pod spec patch to file: %w", err)
-		}
-	}
-	if execution.ExecutorInput != nil {
-		executorInputBytes, err := protojson.Marshal(execution.ExecutorInput)
-		if err != nil {
-			return fmt.Errorf("failed to marshal ExecutorInput to JSON: %w", err)
-		}
-		executorInputJSON := string(executorInputBytes)
-		glog.Infof("output ExecutorInput:%s\n", prettyPrint(executorInputJSON))
-	}
-	return nil
-}
-
 func prettyPrint(jsonStr string) string {
 	var prettyJSON bytes.Buffer
 	err := json.Indent(&prettyJSON, []byte(jsonStr), "", "  ")
@@ -147,21 +83,6 @@ func prettyPrint(jsonStr string) string {
 		return jsonStr
 	}
 	return prettyJSON.String()
-}
-
-func writeFile(path string, data []byte) (err error) {
-	if path == "" {
-		return fmt.Errorf("path is not specified")
-	}
-	defer func() {
-		if err != nil {
-			err = fmt.Errorf("failed to write to %s: %w", path, err)
-		}
-	}()
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
-	return os.WriteFile(path, data, 0o644)
 }
 
 func newMlmdClient(mlmdServerAddress string, mlmdServerPort string, tlsCfg *tls.Config) (*metadata.Client, error) {
