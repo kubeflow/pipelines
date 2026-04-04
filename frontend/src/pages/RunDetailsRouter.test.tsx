@@ -14,17 +14,21 @@
  * limitations under the License.
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
 import * as JsYaml from 'js-yaml';
 import * as features from 'src/features';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { RouteParams } from 'src/components/Router';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
+import { queryClientTest } from 'src/TestUtils';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import RunDetailsRouter from './RunDetailsRouter';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
-import { vi } from 'vitest';
+import { expect, vi } from 'vitest';
 
 vi.mock('src/pages/RunDetailsV2', () => ({
   RunDetailsV2: (props: any) => (
@@ -77,6 +81,7 @@ describe('RunDetailsRouter', () => {
   });
 
   afterEach(() => {
+    queryClientTest.clear();
     vi.restoreAllMocks();
   });
 
