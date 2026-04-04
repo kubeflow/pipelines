@@ -48,15 +48,20 @@ type Options struct {
 	DefaultWorkspace *k8score.PersistentVolumeClaimSpec
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
 	MLPipelineTLSEnabled bool
-	// Optional: admin-configured default runAsUser for customer containers.
+	// Optional: administrator-configured default runAsUser for customer containers.
 	// Nil means not set (feature disabled).
 	DefaultRunAsUser *int64
-	// Optional: admin-configured default runAsGroup for customer containers.
+	// Optional: administrator-configured default runAsGroup for customer containers.
 	// Nil means not set (feature disabled).
 	DefaultRunAsGroup *int64
-	// Optional: admin-configured default runAsNonRoot for customer containers.
+	// Optional: administrator-configured default runAsNonRoot for customer containers.
 	// Nil means not set (feature disabled).
 	DefaultRunAsNonRoot *bool
+	// Optional: administrator-configured default hostUsers for customer workload pods.
+	// Nil means not set (feature disabled). Setting this to false places the pod
+	// in a dedicated Linux user namespace, satisfying Pod Security Standards
+	// restricted even when the container process runs as root inside the namespace.
+	DefaultHostUsers *bool
 }
 
 const (
@@ -213,6 +218,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		c.defaultRunAsUser = opts.DefaultRunAsUser
 		c.defaultRunAsGroup = opts.DefaultRunAsGroup
 		c.defaultRunAsNonRoot = opts.DefaultRunAsNonRoot
+		c.defaultHostUsers = opts.DefaultHostUsers
 		if opts.DriverImage != "" {
 			c.driverImage = opts.DriverImage
 		}
@@ -318,6 +324,7 @@ type workflowCompiler struct {
 	defaultRunAsUser     *int64
 	defaultRunAsGroup    *int64
 	defaultRunAsNonRoot  *bool
+	defaultHostUsers     *bool
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {

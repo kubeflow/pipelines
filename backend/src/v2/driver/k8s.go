@@ -695,7 +695,7 @@ func extendPodSpecPatch(
 		}
 	}
 
-	// Pre-populate admin-configured defaults into the patch so they:
+	// Pre-populate administrator-configured defaults into the patch so they:
 	// (a) survive strategic merge onto the compiled template, and
 	// (b) cause the user-value checks below to see them as "already set".
 	if opts.DefaultRunAsUser != nil || opts.DefaultRunAsGroup != nil || opts.DefaultRunAsNonRoot != nil {
@@ -716,9 +716,18 @@ func extendPodSpecPatch(
 		}
 	}
 
-	// Apply container security context (PSS baseline compliant).
+	// Pre-populate the administrator-configured hostUsers default at the pod level.
+	// Setting hostUsers to false places the pod in a dedicated Linux user
+	// namespace, which satisfies Pod Security Standards restricted even when
+	// the container process runs as UID 0 (root) inside that namespace.
+	if opts.DefaultHostUsers != nil {
+		v := *opts.DefaultHostUsers
+		podSpec.HostUsers = &v
+	}
+
+	// Apply container security context (PSS restricted compliant).
 	// User-specified identity fields (runAsUser, runAsGroup) are only applied
-	// when they are not already set by the platform/admin. If the compiler or
+	// when they are not already set by the platform/administrator. If the compiler or
 	// an administrator has already configured these fields, the user-specified
 	// values are ignored and a warning is logged.
 	if userSecurityContext := kubernetesExecutorConfig.GetSecurityContext(); userSecurityContext != nil {
@@ -729,7 +738,7 @@ func extendPodSpecPatch(
 		isCompilerHardened := existingSecurityContext.AllowPrivilegeEscalation != nil && !*existingSecurityContext.AllowPrivilegeEscalation
 		if userSecurityContext.RunAsUser != nil {
 			if existingSecurityContext.RunAsUser != nil {
-				glog.Warningf("Ignoring user-specified runAsUser (%d): security context already set by admin (runAsUser=%d)",
+				glog.Warningf("Ignoring user-specified runAsUser (%d): security context already set by administrator (runAsUser=%d)",
 					*userSecurityContext.RunAsUser, *existingSecurityContext.RunAsUser)
 			} else {
 				if isCompilerHardened && *userSecurityContext.RunAsUser == 0 {
@@ -740,7 +749,7 @@ func extendPodSpecPatch(
 		}
 		if userSecurityContext.RunAsGroup != nil {
 			if existingSecurityContext.RunAsGroup != nil {
-				glog.Warningf("Ignoring user-specified runAsGroup (%d): security context already set by admin (runAsGroup=%d)",
+				glog.Warningf("Ignoring user-specified runAsGroup (%d): security context already set by administrator (runAsGroup=%d)",
 					*userSecurityContext.RunAsGroup, *existingSecurityContext.RunAsGroup)
 			} else {
 				podSpec.Containers[0].SecurityContext.RunAsGroup = userSecurityContext.RunAsGroup
@@ -748,13 +757,13 @@ func extendPodSpecPatch(
 		}
 		if userSecurityContext.RunAsNonRoot != nil {
 			if existingSecurityContext.RunAsNonRoot != nil {
-				glog.Warningf("Ignoring user-specified runAsNonRoot (%v): security context already set by admin (runAsNonRoot=%v)",
+				glog.Warningf("Ignoring user-specified runAsNonRoot (%v): security context already set by administrator (runAsNonRoot=%v)",
 					*userSecurityContext.RunAsNonRoot, *existingSecurityContext.RunAsNonRoot)
 			} else {
 				podSpec.Containers[0].SecurityContext.RunAsNonRoot = userSecurityContext.RunAsNonRoot
 			}
 		}
-		// Always drop all capabilities to comply with PSS baseline.
+		// Always drop all capabilities to comply with Pod Security Standards restricted.
 		podSpec.Containers[0].SecurityContext.Capabilities = &k8score.Capabilities{
 			Drop: []k8score.Capability{"ALL"},
 		}

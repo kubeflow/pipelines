@@ -245,6 +245,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	if c.defaultRunAsNonRoot != nil {
 		args = append(args, "--default_run_as_non_root", strconv.FormatBool(*c.defaultRunAsNonRoot))
 	}
+	if c.defaultHostUsers != nil {
+		args = append(args, "--default_host_users", strconv.FormatBool(*c.defaultHostUsers))
+	}
 
 	template := &wfapi.Template{
 		Name: name,
@@ -780,7 +783,7 @@ func extendPodMetadata(
 }
 
 // Extends metadata map values, highPriorityMap should overwrites lowPriorityMap values
-// The original Map inputs should have higher priority since its defined by admin
+// The original Map inputs should have higher priority since its defined by administrator
 // TODO: Use maps.Copy after moving to go 1.21+
 func extendMetadataMap(
 	highPriorityMap map[string]string,
