@@ -718,8 +718,11 @@ func extendPodSpecPatch(
 
 	// Pre-populate the administrator-configured hostUsers default at the pod level.
 	// Setting hostUsers to false places the pod in a dedicated Linux user
-	// namespace, which satisfies Pod Security Standards restricted even when
-	// the container process runs as UID 0 (root) inside that namespace.
+	// namespace: UID 0 inside the pod maps to an unprivileged host UID,
+	// so root processes in the container are not root on the host.
+	// Note: PSS restricted still enforces runAsNonRoot independently of
+	// hostUsers; use the defaultSecurityContextRunAsNonRoot setting together
+	// with this flag when the namespace enforces the restricted policy.
 	if opts.DefaultHostUsers != nil {
 		v := *opts.DefaultHostUsers
 		podSpec.HostUsers = &v
