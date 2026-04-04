@@ -31,7 +31,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/kubeflow/pipelines/backend/src/driver/api"
+	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
@@ -80,10 +80,10 @@ func ExecutePlugin(w http.ResponseWriter, r *http.Request) {
 	outputs := extractOutputParameters(execution, args.Type)
 	if err != nil {
 		glog.Errorf("unable to drive execution: %v", err)
-		resp := api.DriverResponse{
-			Node: api.Node{
+		resp := driverapi.DriverResponse{
+			Node: driverapi.Node{
 				Phase: "Failed",
-				Outputs: api.Outputs{
+				Outputs: driverapi.Outputs{
 					Parameters: outputs,
 				},
 				Message: fmt.Sprintf("unable to drive execution: %v", err),
@@ -95,10 +95,10 @@ func ExecutePlugin(w http.ResponseWriter, r *http.Request) {
 	if execution != nil && execution.ExecutorInput != nil {
 		executorInputBytes, err := protojson.Marshal(execution.ExecutorInput)
 		if err != nil {
-			WriteJSONResponse(w, api.DriverResponse{
-				Node: api.Node{
+			WriteJSONResponse(w, driverapi.DriverResponse{
+				Node: driverapi.Node{
 					Phase: "Failed",
-					Outputs: api.Outputs{
+					Outputs: driverapi.Outputs{
 						Parameters: outputs,
 					},
 					Message: fmt.Sprintf("unable to drive execution: failed to marshal ExecutorInput to JSON: %v", err),
@@ -109,10 +109,10 @@ func ExecutePlugin(w http.ResponseWriter, r *http.Request) {
 		executorInputJSON := string(executorInputBytes)
 		glog.Infof("output ExecutorInput:%s\n", prettyPrint(executorInputJSON))
 	}
-	resp := api.DriverResponse{
-		Node: api.Node{
+	resp := driverapi.DriverResponse{
+		Node: driverapi.Node{
 			Phase: "Succeeded",
-			Outputs: api.Outputs{
+			Outputs: driverapi.Outputs{
 				Parameters: outputs,
 			},
 		},
@@ -120,8 +120,8 @@ func ExecutePlugin(w http.ResponseWriter, r *http.Request) {
 	WriteJSONResponse(w, resp)
 }
 
-func parseDriverRequestArgs(r *http.Request) (*api.DriverPluginArgs, error) {
-	var body api.DriverRequest
+func parseDriverRequestArgs(r *http.Request) (*driverapi.DriverPluginArgs, error) {
+	var body driverapi.DriverRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		return nil, fmt.Errorf("failed to parse driver request body: %v", err)
 	}
@@ -142,7 +142,7 @@ func parseDriverRequestArgs(r *http.Request) (*api.DriverPluginArgs, error) {
 	return body.Template.Plugin.DriverPlugin.Args, nil
 }
 
-func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
+func drive(args driverapi.DriverPluginArgs) (execution *driver.Execution, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("KFP driver: %w", err)
@@ -398,7 +398,7 @@ func uploadDriverLogArtifact(ctx context.Context, logContext *driverLogArtifactC
 	return nil
 }
 
-func validate(args api.DriverPluginArgs) error {
+func validate(args driverapi.DriverPluginArgs) error {
 	switch {
 	case args.Type == "":
 		return fmt.Errorf("argument type must be specified")
@@ -412,49 +412,55 @@ func validate(args api.DriverPluginArgs) error {
 	return nil
 }
 
-func extractOutputParameters(execution *driver.Execution, driverType string) []api.Parameter {
+func extractOutputParameters(execution *driver.Execution, driverType string) []driverapi.Parameter {
 	if execution == nil {
-		return []api.Parameter{}
+		return []driverapi.Parameter{}
 	}
-	var outputs []api.Parameter
+	var outputs []driverapi.Parameter
 	if execution.ID != 0 {
-		outputs = append(outputs, api.Parameter{
+		outputs = append(outputs, driverapi.Parameter{
 			Name:  "execution-id",
 			Value: fmt.Sprint(execution.ID),
 		})
 	}
-	switch {
-	case execution.IterationCount != nil:
-		outputs = append(outputs, api.Parameter{
+	if execution.IterationCount != nil {
+		outputs = append(outputs, driverapi.Parameter{
 			Name:  "iteration-count",
 			Value: fmt.Sprint(*execution.IterationCount),
 		})
-	case driverType == RootDag:
-		outputs = append(outputs, api.Parameter{
+	} else if driverType == RootDag || driverType == DAG {
+		outputs = append(outputs, driverapi.Parameter{
 			Name:  "iteration-count",
 			Value: "0",
 		})
 	}
 	if execution.Cached != nil {
-		outputs = append(outputs, api.Parameter{
+		outputs = append(outputs, driverapi.Parameter{
 			Name:  "cached-decision",
 			Value: strconv.FormatBool(*execution.Cached),
 		})
 	}
 	if execution.Condition != nil {
-		outputs = append(outputs, api.Parameter{
+		outputs = append(outputs, driverapi.Parameter{
 			Name:  "condition",
 			Value: strconv.FormatBool(*execution.Condition),
 		})
+	} else if driverType == DAG || driverType == RootDag || driverType == CONTAINER {
+		outputs = append(outputs, driverapi.Parameter{
+			Name:  "condition",
+			Value: "nil",
+		})
 	}
-	outputs = append(outputs, api.Parameter{
-		Name:  "pod-spec-patch",
-		Value: execution.PodSpecPatch,
-	})
+	if execution.PodSpecPatch != "" {
+		outputs = append(outputs, driverapi.Parameter{
+			Name:  "pod-spec-patch",
+			Value: execution.PodSpecPatch,
+		})
+	}
 	return outputs
 }
 
-func WriteJSONResponse(w http.ResponseWriter, payload api.DriverResponse) {
+func WriteJSONResponse(w http.ResponseWriter, payload driverapi.DriverResponse) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	if err := json.NewEncoder(w).Encode(payload); err != nil {

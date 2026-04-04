@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package api provides HTTP DTOs used by the driver server.
-package api
+// Package driverapi provides HTTP DTOs used by the driver server.
+package driverapi
 
 type DriverPluginArgs struct {
 	CachedDecisionPath      string `json:"cached_decision_path"`
