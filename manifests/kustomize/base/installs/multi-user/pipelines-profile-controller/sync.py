@@ -175,14 +175,14 @@ def server_factory(frontend_image,
 
         def executor_plugin_resources(self, namespace):
             # Argo Workflow Executor Plugin Necessary Resources
-            agent_sa_name = 'ml-pipeline-driver-agent-executor-plugin'
-            secret_name = f'{agent_sa_name}.service-account-token'
+            agent_service_account_name = 'ml-pipeline-driver-agent-executor-plugin'
+            secret_name = f'{agent_service_account_name}.service-account-token'
             return [
                 {
                     'apiVersion': 'v1',
                     'kind': 'ServiceAccount',
                     'metadata': {
-                        'name': agent_sa_name,
+                        'name': agent_service_account_name,
                         'namespace': namespace,
                         'labels': {
                             'application-crd-id': 'kubeflow-pipelines'
@@ -193,135 +193,20 @@ def server_factory(frontend_image,
                     }]
                 },
                 {
-                    'apiVersion':
-                        'rbac.authorization.k8s.io/v1',
-                    'kind':
-                        'Role',
-                    'metadata': {
-                        'name': 'configmap-reader',
-                        'namespace': namespace,
-                    },
-                    'rules': [{
-                        'apiGroups': [''],
-                        'resources': ['configmaps'],
-                        'verbs': ['get', 'list', 'watch'],
-                    }]
-                },
-                {
                     'apiVersion': 'rbac.authorization.k8s.io/v1',
                     'kind': 'RoleBinding',
                     'metadata': {
-                        'name': 'configmap-reader-binding',
+                        'name': 'ml-pipeline-driver-agent-executor-plugin-binding',
                         'namespace': namespace,
                     },
                     'subjects': [{
                         'kind': 'ServiceAccount',
-                        'name': agent_sa_name,
+                        'name': agent_service_account_name,
                         'namespace': namespace,
                     }],
                     'roleRef': {
-                        'kind': 'Role',
-                        'name': 'configmap-reader',
-                        'apiGroup': 'rbac.authorization.k8s.io',
-                    }
-                },
-                {
-                    'apiVersion':
-                        'rbac.authorization.k8s.io/v1',
-                    'kind':
-                        'Role',
-                    'metadata': {
-                        'name': 'ml-pipeline-driver-pods-reader',
-                        'namespace': namespace,
-                    },
-                    'rules': [{
-                        'apiGroups': [''],
-                        'resources': ['pods'],
-                        'verbs': ['get', 'list', 'watch'],
-                    }]
-                },
-                {
-                    'apiVersion': 'rbac.authorization.k8s.io/v1',
-                    'kind': 'RoleBinding',
-                    'metadata': {
-                        'name': 'ml-pipeline-driver-pods-reader-binding',
-                        'namespace': namespace,
-                    },
-                    'subjects': [{
-                        'kind': 'ServiceAccount',
-                        'name': agent_sa_name,
-                        'namespace': namespace,
-                    }],
-                    'roleRef': {
-                        'kind': 'Role',
-                        'name': 'ml-pipeline-driver-pods-reader',
-                        'apiGroup': 'rbac.authorization.k8s.io',
-                    }
-                },
-                {
-                    'apiVersion':
-                        'rbac.authorization.k8s.io/v1',
-                    'kind':
-                        'Role',
-                    'metadata': {
-                        'name': 'ml-pipeline-driver-pvc-editor',
-                        'namespace': namespace,
-                    },
-                    'rules': [{
-                        'apiGroups': [''],
-                        'resources': ['persistentvolumeclaims'],
-                        'verbs': ['create', 'get', 'list'],
-                    }]
-                },
-                {
-                    'apiVersion': 'rbac.authorization.k8s.io/v1',
-                    'kind': 'RoleBinding',
-                    'metadata': {
-                        'name': 'ml-pipeline-driver-pvc-editor-binding',
-                        'namespace': namespace,
-                    },
-                    'subjects': [{
-                        'kind': 'ServiceAccount',
-                        'name': agent_sa_name,
-                        'namespace': namespace,
-                    }],
-                    'roleRef': {
-                        'kind': 'Role',
-                        'name': 'ml-pipeline-driver-pvc-editor',
-                        'apiGroup': 'rbac.authorization.k8s.io',
-                    }
-                },
-                {
-                    'apiVersion':
-                        'rbac.authorization.k8s.io/v1',
-                    'kind':
-                        'Role',
-                    'metadata': {
-                        'name': 'artifact-secret-reader',
-                        'namespace': namespace,
-                    },
-                    'rules': [{
-                        'apiGroups': [''],
-                        'resources': ['secrets'],
-                        'resourceNames': ['mlpipeline-minio-artifact'],
-                        'verbs': ['get', 'list', 'watch'],
-                    }]
-                },
-                {
-                    'apiVersion': 'rbac.authorization.k8s.io/v1',
-                    'kind': 'RoleBinding',
-                    'metadata': {
-                        'name': 'artifact-secret-reader-binding',
-                        'namespace': namespace,
-                    },
-                    'subjects': [{
-                        'kind': 'ServiceAccount',
-                        'name': agent_sa_name,
-                        'namespace': namespace,
-                    }],
-                    'roleRef': {
-                        'kind': 'Role',
-                        'name': 'artifact-secret-reader',
+                        'kind': 'ClusterRole',
+                        'name': 'ml-pipeline-driver-agent-executor-plugin-cluster-role',
                         'apiGroup': 'rbac.authorization.k8s.io',
                     }
                 },
@@ -345,7 +230,7 @@ def server_factory(frontend_image,
                         'name': secret_name,
                         'namespace': namespace,
                         'annotations': {
-                            'kubernetes.io/service-account.name': agent_sa_name,
+                            'kubernetes.io/service-account.name': agent_service_account_name,
                         },
                     },
                     'type': 'kubernetes.io/service-account-token',
