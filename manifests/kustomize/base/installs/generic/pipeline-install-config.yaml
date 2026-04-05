@@ -114,4 +114,4 @@ data:
   defaultSecurityContextRunAsUser: ""
   defaultSecurityContextRunAsGroup: ""
   defaultSecurityContextRunAsNonRoot: ""
-  defaultSecurityContextHostUsers: ""
+  defaultSecurityContextHostUsers: "false"
