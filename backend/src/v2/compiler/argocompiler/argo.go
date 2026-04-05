@@ -553,9 +553,11 @@ var driverResources = k8score.ResourceRequirements{
 }
 
 // Launcher only copies the binary into the volume, so it needs minimal resources.
+// Increased memory limit from 128Mi to 256Mi because kfp-launcher was
+// intermittently getting OOMKilled when running highly parallel pipelines.
 var launcherResources = k8score.ResourceRequirements{
 	Limits: map[k8score.ResourceName]k8sres.Quantity{
-		k8score.ResourceMemory: k8sres.MustParse("128Mi"),
+		k8score.ResourceMemory: k8sres.MustParse("256Mi"),
 		k8score.ResourceCPU:    k8sres.MustParse("0.5"),
 	},
 	Requests: map[k8score.ResourceName]k8sres.Quantity{
