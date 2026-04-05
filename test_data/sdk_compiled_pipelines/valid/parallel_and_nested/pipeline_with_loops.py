@@ -38,22 +38,26 @@ def print_struct(struct: Dict):
 def my_pipeline(loop_parameter: List[str] = ["a", "b"]):
 
     # Loop argument is from a pipeline input
-    with dsl.ParallelFor(loop_parameter) as item:
+    with dsl.ParallelFor(loop_parameter, parallelism=1) as item:
         print_text(msg=item)
 
     # Loop argument is from a component output
     args_generator = args_generator_op()
-    with dsl.ParallelFor(args_generator.output) as item:
-        print_struct(struct=item)
-        print_text(msg=item.A_a)
-        print_text(msg=item.B_b)
+    with dsl.ParallelFor(args_generator.output, parallelism=1) as item:
+        print_struct_task = print_struct(struct=item)
+        print_text_a_task = print_text(msg=item.A_a)
+        print_text_a_task.after(print_struct_task)
+        print_text_b_task = print_text(msg=item.B_b)
+        print_text_b_task.after(print_text_a_task)
 
     # Loop argument is a static value known at compile time
     loop_args = [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
-    with dsl.ParallelFor(loop_args) as item:
-        print_struct(struct=item)
-        print_text(msg=item.A_a)
-        print_text(msg=item.B_b)
+    with dsl.ParallelFor(loop_args, parallelism=1) as item:
+        print_struct_task = print_struct(struct=item)
+        print_text_a_task = print_text(msg=item.A_a)
+        print_text_a_task.after(print_struct_task)
+        print_text_b_task = print_text(msg=item.B_b)
+        print_text_b_task.after(print_text_a_task)
 
 
 if __name__ == '__main__':

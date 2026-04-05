@@ -48,11 +48,11 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         print_struct(struct: Dict):\n    print(struct)\n\n"],"image":"python:3.11"}'
     - name: components-comp-for-loop-2
-      value: '{"dag":{"tasks":{"print-struct":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-struct"},"inputs":{"parameters":{"struct":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item"}}},"taskInfo":{"name":"print-struct"}},"print-text-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-2"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-text-2"}},"print-text-3":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-3"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-3"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--args-generator-op-Output":{"parameterType":"LIST"},"pipelinechannel--args-generator-op-Output-loop-item":{"parameterType":"STRUCT"}}}}'
+      value: '{"dag":{"tasks":{"print-struct":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-struct"},"inputs":{"parameters":{"struct":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item"}}},"taskInfo":{"name":"print-struct"}},"print-text-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-2"},"dependentTasks":["print-struct"],"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-text-2"}},"print-text-3":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-3"},"dependentTasks":["print-text-2"],"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-3"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--args-generator-op-Output":{"parameterType":"LIST"},"pipelinechannel--args-generator-op-Output-loop-item":{"parameterType":"STRUCT"}}}}'
     - name: components-comp-for-loop-4
-      value: '{"dag":{"tasks":{"print-struct-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-struct-2"},"inputs":{"parameters":{"struct":{"componentInputParameter":"pipelinechannel--loop-item-param-3"}}},"taskInfo":{"name":"print-struct-2"}},"print-text-4":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-4"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-text-4"}},"print-text-5":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-5"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-5"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-3":{"parameterType":"STRUCT"}}}}'
+      value: '{"dag":{"tasks":{"print-struct-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-struct-2"},"inputs":{"parameters":{"struct":{"componentInputParameter":"pipelinechannel--loop-item-param-3"}}},"taskInfo":{"name":"print-struct-2"}},"print-text-4":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-4"},"dependentTasks":["print-struct-2"],"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-text-4"}},"print-text-5":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-5"},"dependentTasks":["print-text-4"],"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-5"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-3":{"parameterType":"STRUCT"}}}}'
     - name: components-root
-      value: '{"dag":{"tasks":{"args-generator-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-args-generator-op"},"taskInfo":{"name":"args-generator-op"}},"for-loop-1":{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--loop_parameter":{"componentInputParameter":"loop_parameter"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop_parameter-loop-item","items":{"inputParameter":"pipelinechannel--loop_parameter"}},"taskInfo":{"name":"for-loop-1"}},"for-loop-2":{"componentRef":{"name":"comp-for-loop-2"},"dependentTasks":["args-generator-op"],"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"args-generator-op"}}}},"parameterIterator":{"itemInput":"pipelinechannel--args-generator-op-Output-loop-item","items":{"inputParameter":"pipelinechannel--args-generator-op-Output"}},"taskInfo":{"name":"for-loop-2"}},"for-loop-4":{"componentRef":{"name":"comp-for-loop-4"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[{\"A_a\":
+      value: '{"dag":{"tasks":{"args-generator-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-args-generator-op"},"taskInfo":{"name":"args-generator-op"}},"for-loop-1":{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--loop_parameter":{"componentInputParameter":"loop_parameter"}}},"iteratorPolicy":{"parallelismLimit":1},"parameterIterator":{"itemInput":"pipelinechannel--loop_parameter-loop-item","items":{"inputParameter":"pipelinechannel--loop_parameter"}},"taskInfo":{"name":"for-loop-1"}},"for-loop-2":{"componentRef":{"name":"comp-for-loop-2"},"dependentTasks":["args-generator-op"],"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"args-generator-op"}}}},"iteratorPolicy":{"parallelismLimit":1},"parameterIterator":{"itemInput":"pipelinechannel--args-generator-op-Output-loop-item","items":{"inputParameter":"pipelinechannel--args-generator-op-Output"}},"taskInfo":{"name":"for-loop-2"}},"for-loop-4":{"componentRef":{"name":"comp-for-loop-4"},"iteratorPolicy":{"parallelismLimit":1},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[{\"A_a\":
         \"1\", \"B_b\": \"2\"}, {\"A_a\": \"10\", \"B_b\": \"20\"}]"}},"taskInfo":{"name":"for-loop-4"}}}},"inputDefinitions":{"parameters":{"loop_parameter":{"defaultValue":["a","b"],"isOptional":true,"parameterType":"LIST"}}}}'
   entrypoint: entrypoint
   podMetadata:
@@ -343,13 +343,14 @@ spec:
           - name: component
             value: '{{workflow.parameters.components-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-2"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-text-2"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-2"},"dependentTasks":["print-struct"],"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-text-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
           - name: task-name
             value: print-text-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+        depends: print-struct.Succeeded
         name: print-text-2-driver
         template: system-container-driver
       - arguments:
@@ -367,13 +368,14 @@ spec:
           - name: component
             value: '{{workflow.parameters.components-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-3"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-3"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-3"},"dependentTasks":["print-text-2"],"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-3"}}'
           - name: container
             value: '{{workflow.parameters.implementations-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
           - name: task-name
             value: print-text-3
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+        depends: print-text-2.Succeeded
         name: print-text-3-driver
         template: system-container-driver
       - arguments:
@@ -423,13 +425,14 @@ spec:
           - name: component
             value: '{{workflow.parameters.components-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-4"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-text-4"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-4"},"dependentTasks":["print-struct-2"],"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-text-4"}}'
           - name: container
             value: '{{workflow.parameters.implementations-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
           - name: task-name
             value: print-text-4
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+        depends: print-struct-2.Succeeded
         name: print-text-4-driver
         template: system-container-driver
       - arguments:
@@ -447,13 +450,14 @@ spec:
           - name: component
             value: '{{workflow.parameters.components-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-5"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-5"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-5"},"dependentTasks":["print-text-4"],"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-5"}}'
           - name: container
             value: '{{workflow.parameters.implementations-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
           - name: task-name
             value: print-text-5
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+        depends: print-text-4.Succeeded
         name: print-text-5-driver
         template: system-container-driver
       - arguments:
@@ -580,7 +584,7 @@ spec:
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--loop_parameter":{"componentInputParameter":"loop_parameter"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop_parameter-loop-item","items":{"inputParameter":"pipelinechannel--loop_parameter"}},"taskInfo":{"name":"for-loop-1"}}'
+            value: '{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--loop_parameter":{"componentInputParameter":"loop_parameter"}}},"iteratorPolicy":{"parallelismLimit":1},"parameterIterator":{"itemInput":"pipelinechannel--loop_parameter-loop-item","items":{"inputParameter":"pipelinechannel--loop_parameter"}},"taskInfo":{"name":"for-loop-1"}}'
           - name: task-name
             value: for-loop-1
         name: iteration-item-driver
@@ -610,7 +614,7 @@ spec:
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--loop_parameter":{"componentInputParameter":"loop_parameter"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop_parameter-loop-item","items":{"inputParameter":"pipelinechannel--loop_parameter"}},"taskInfo":{"name":"for-loop-1"}}'
+            value: '{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--loop_parameter":{"componentInputParameter":"loop_parameter"}}},"iteratorPolicy":{"parallelismLimit":1},"parameterIterator":{"itemInput":"pipelinechannel--loop_parameter-loop-item","items":{"inputParameter":"pipelinechannel--loop_parameter"}},"taskInfo":{"name":"for-loop-1"}}'
           - name: task-name
             value: for-loop-1
         name: iteration-driver
@@ -632,6 +636,7 @@ spec:
     metadata: {}
     name: comp-for-loop-1-for-loop-1-iterator
     outputs: {}
+    parallelism: 1
   - dag:
       tasks:
       - arguments:
@@ -643,7 +648,7 @@ spec:
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-2"},"dependentTasks":["args-generator-op"],"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"args-generator-op"}}}},"parameterIterator":{"itemInput":"pipelinechannel--args-generator-op-Output-loop-item","items":{"inputParameter":"pipelinechannel--args-generator-op-Output"}},"taskInfo":{"name":"for-loop-2"}}'
+            value: '{"componentRef":{"name":"comp-for-loop-2"},"dependentTasks":["args-generator-op"],"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"args-generator-op"}}}},"iteratorPolicy":{"parallelismLimit":1},"parameterIterator":{"itemInput":"pipelinechannel--args-generator-op-Output-loop-item","items":{"inputParameter":"pipelinechannel--args-generator-op-Output"}},"taskInfo":{"name":"for-loop-2"}}'
           - name: task-name
             value: for-loop-2
         name: iteration-item-driver
@@ -673,7 +678,7 @@ spec:
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-2"},"dependentTasks":["args-generator-op"],"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"args-generator-op"}}}},"parameterIterator":{"itemInput":"pipelinechannel--args-generator-op-Output-loop-item","items":{"inputParameter":"pipelinechannel--args-generator-op-Output"}},"taskInfo":{"name":"for-loop-2"}}'
+            value: '{"componentRef":{"name":"comp-for-loop-2"},"dependentTasks":["args-generator-op"],"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"args-generator-op"}}}},"iteratorPolicy":{"parallelismLimit":1},"parameterIterator":{"itemInput":"pipelinechannel--args-generator-op-Output-loop-item","items":{"inputParameter":"pipelinechannel--args-generator-op-Output"}},"taskInfo":{"name":"for-loop-2"}}'
           - name: task-name
             value: for-loop-2
         name: iteration-driver
@@ -695,6 +700,7 @@ spec:
     metadata: {}
     name: comp-for-loop-2-for-loop-2-iterator
     outputs: {}
+    parallelism: 1
   - dag:
       tasks:
       - arguments:
@@ -706,7 +712,7 @@ spec:
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-4"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[{\"A_a\":
+            value: '{"componentRef":{"name":"comp-for-loop-4"},"iteratorPolicy":{"parallelismLimit":1},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[{\"A_a\":
               \"1\", \"B_b\": \"2\"}, {\"A_a\": \"10\", \"B_b\": \"20\"}]"}},"taskInfo":{"name":"for-loop-4"}}'
           - name: task-name
             value: for-loop-4
@@ -737,7 +743,7 @@ spec:
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-4"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[{\"A_a\":
+            value: '{"componentRef":{"name":"comp-for-loop-4"},"iteratorPolicy":{"parallelismLimit":1},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[{\"A_a\":
               \"1\", \"B_b\": \"2\"}, {\"A_a\": \"10\", \"B_b\": \"20\"}]"}},"taskInfo":{"name":"for-loop-4"}}'
           - name: task-name
             value: for-loop-4
@@ -760,6 +766,7 @@ spec:
     metadata: {}
     name: comp-for-loop-4-for-loop-4-iterator
     outputs: {}
+    parallelism: 1
   - dag:
       tasks:
       - arguments:
