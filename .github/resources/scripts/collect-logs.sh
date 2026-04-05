@@ -29,6 +29,29 @@ function check_namespace {
     return 0
 }
 
+function describe_argo_workflows {
+    local NAMESPACE=$1
+    echo "===== Argo Workflows Inspection ====="
+    for wf in $(kubectl get wf -n "$NAMESPACE" -o json | jq -r '.items[] | select(.status.phase=="Failed") | .metadata.name'); do
+        echo "Failed workflow: $wf"
+        pods=$(kubectl get po -n "$NAMESPACE" -l "workflows.argoproj.io/workflow=$wf" -o jsonpath='{.items[*].metadata.name}')
+        for pod in $pods; do
+            phase=$(kubectl get po "$pod" -n "$NAMESPACE" -o jsonpath='{.status.phase}')
+            echo "Pod: $pod, Status: $phase"
+
+            if [[ "$phase" != "Pending" ]]; then
+                echo "  ---> Logs:"
+                kubectl logs "$pod" -n "$NAMESPACE" || true
+            fi
+            echo "  ---> Describe:"
+            kubectl describe po "$pod" -n "$NAMESPACE"
+        done
+    done
+    echo "===== Argo Workflows events ======="
+    kubectl get events -n "${NAMESPACE}" --field-selector involvedObject.kind=Workflow --sort-by='.metadata.creationTimestamp'
+    echo "==================================="
+}
+
 function display_pod_info {
     local NAMESPACE=$1
 
@@ -64,6 +87,7 @@ function display_pod_info {
 
 if check_namespace "$NS"; then
     display_pod_info "$NS"
+    describe_argo_workflows "$NS"
 else
     exit 0
 fi
