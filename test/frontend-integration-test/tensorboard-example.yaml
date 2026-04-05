@@ -19,7 +19,6 @@ metadata:
 spec:
   entrypoint: tensorboard-example
   serviceAccountName: pipeline-runner
-  podSpecPatch: '{"hostUsers": false}'
   templates:
   - name: tensorboard-example
     script:

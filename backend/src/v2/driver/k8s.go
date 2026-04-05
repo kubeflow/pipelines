@@ -720,18 +720,15 @@ func extendPodSpecPatch(
 	// Setting hostUsers to false places the pod in a dedicated Linux user
 	// namespace: UID 0 inside the pod maps to an unprivileged host UID,
 	// so root processes in the container are not root on the host.
-	// Per the Kubernetes PSA/user-namespace integration, a pod with
-	// hostUsers=false satisfies the PSS restricted runAsNonRoot requirement
-	// because the in-pod UID 0 is not a privileged UID on the host.
 	if opts.DefaultHostUsers != nil {
 		v := *opts.DefaultHostUsers
 		podSpec.HostUsers = &v
 	}
 
-	// Apply container security context (PSS restricted compliant).
+	// Apply container security context (PSS baseline compliant).
 	// User-specified identity fields (runAsUser, runAsGroup) are only applied
 	// when they are not already set by the platform/admin. If the compiler or
-	// an admin has already configured these fields, the user-specified
+	// an administrator has already configured these fields, the user-specified
 	// values are ignored and a warning is logged.
 	if userSecurityContext := kubernetesExecutorConfig.GetSecurityContext(); userSecurityContext != nil {
 		if podSpec.Containers[0].SecurityContext == nil {
@@ -766,7 +763,7 @@ func extendPodSpecPatch(
 				podSpec.Containers[0].SecurityContext.RunAsNonRoot = userSecurityContext.RunAsNonRoot
 			}
 		}
-		// Always drop all capabilities to comply with Pod Security Standards restricted.
+		// Always drop all capabilities to comply with PSS baseline.
 		podSpec.Containers[0].SecurityContext.Capabilities = &k8score.Capabilities{
 			Drop: []k8score.Capability{"ALL"},
 		}

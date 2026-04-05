@@ -99,9 +99,9 @@ type Options struct {
 	// Admin-configured default runAsNonRoot for user containers. Nil means not set.
 	DefaultRunAsNonRoot *bool
 	// Administrator-configured default hostUsers for user workload pods. Nil means not set.
-	// When set to false the pod runs in a dedicated Linux user namespace, which
-	// satisfies Pod Security Standards restricted even when the container process
-	// runs as root inside that namespace.
+	// When set to false the pod runs in a dedicated Linux user namespace:
+	// UID 0 inside the pod maps to an unprivileged host UID, so root processes
+	// in the container are not root on the host.
 	DefaultHostUsers *bool
 }
 
