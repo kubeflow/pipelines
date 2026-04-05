@@ -171,6 +171,10 @@ export const css = stylesheet({
     fontWeight: 'bold',
     paddingLeft: 20,
   },
+  loadingMessage: {
+    textAlign: 'center' as const,
+    paddingTop: 40,
+  },
 });
 
 class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
@@ -239,7 +243,12 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
   public render(): JSX.Element {
     if (this.props.isLoading) {
-      return <div>Currently loading run information</div>;
+      return (
+        <div className={css.loadingMessage}>
+          <CircularProgress />
+          <div>Currently loading run information.</div>
+        </div>
+      );
     }
 
     const {

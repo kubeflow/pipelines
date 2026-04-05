@@ -36,7 +36,7 @@ export default function RunDetailsRouter(
   // Retrieves v2 run detail.
   const {
     isSuccess: getV2RunSuccess,
-    isFetching: runIsFetching,
+    isLoading: runIsLoading,
     data: v2Run,
   } = useQuery<V2beta1Run, Error>({
     queryKey: queryKeys.v2RunDetail(runId),
@@ -50,7 +50,7 @@ export default function RunDetailsRouter(
   const pipelineId = v2Run?.pipeline_version_reference?.pipeline_id;
   const pipelineVersionId = v2Run?.pipeline_version_reference?.pipeline_version_id;
 
-  const { isFetching: templateStrIsFetching, data: templateStrFromPipelineVersion } =
+  const { isLoading: templateStrIsLoading, data: templateStrFromPipelineVersion } =
     usePipelineVersionTemplate(pipelineId, pipelineVersionId);
 
   const templateString = pipelineManifest ?? templateStrFromPipelineVersion;
@@ -62,5 +62,5 @@ export default function RunDetailsRouter(
     }
   }
 
-  return <EnhancedRunDetails {...props} isLoading={runIsFetching || templateStrIsFetching} />;
+  return <EnhancedRunDetails {...props} isLoading={runIsLoading || templateStrIsLoading} />;
 }
