@@ -44,6 +44,3 @@ rules:
   - update
   - patch
   - delete
-- apiGroups: ["argoproj.io"]
-  resources: ["workflowtasksets/status", "workflowtasksets"]
-  verbs: ["get","list","watch","update","patch","delete","create"]
