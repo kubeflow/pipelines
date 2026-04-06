@@ -553,6 +553,9 @@ var driverResources = k8score.ResourceRequirements{
 }
 
 // Launcher only copies the binary into the volume, so it needs minimal resources.
+// Note: Memory limit is set to 256Mi to prevent OOMKilled errors during binary copy.
+// The launcher binary is 123 MiB — nearly at the 128 MiB container memory limit.
+// The --copy operation alone uses ~59 MiB peak RSS.
 var launcherResources = k8score.ResourceRequirements{
 	Limits: map[k8score.ResourceName]k8sres.Quantity{
 		k8score.ResourceMemory: k8sres.MustParse("256Mi"),
