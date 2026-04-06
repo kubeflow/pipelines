@@ -239,7 +239,9 @@ spec:
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/runtime-role: driver
     name: system-container-driver
     outputs:
       parameters:
@@ -346,7 +348,9 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/runtime-role: launcher
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -481,6 +485,7 @@ spec:
     metadata:
       annotations:
         '{{inputs.parameters.pod-metadata-annotation-key}}': '{{inputs.parameters.pod-metadata-annotation-val}}'
+        pipelines.kubeflow.org/runtime-role: launcher
       labels:
         '{{inputs.parameters.pod-metadata-label-key-1}}': '{{inputs.parameters.pod-metadata-label-val-1}}'
         '{{inputs.parameters.pod-metadata-label-key-2}}': '{{inputs.parameters.pod-metadata-label-val-2}}'
@@ -653,6 +658,7 @@ spec:
         '{{inputs.parameters.pod-metadata-annotation-key-2}}': '{{inputs.parameters.pod-metadata-annotation-val-2}}'
         '{{inputs.parameters.pod-metadata-annotation-key-3}}': '{{inputs.parameters.pod-metadata-annotation-val-3}}'
         '{{inputs.parameters.pod-metadata-annotation-key-4}}': '{{inputs.parameters.pod-metadata-annotation-val-4}}'
+        pipelines.kubeflow.org/runtime-role: launcher
       labels:
         '{{inputs.parameters.pod-metadata-label-key-1}}': '{{inputs.parameters.pod-metadata-label-val-1}}'
         '{{inputs.parameters.pod-metadata-label-key-2}}': '{{inputs.parameters.pod-metadata-label-val-2}}'
@@ -784,6 +790,7 @@ spec:
       annotations:
         '{{inputs.parameters.pod-metadata-annotation-key-1}}': '{{inputs.parameters.pod-metadata-annotation-val-1}}'
         '{{inputs.parameters.pod-metadata-annotation-key-2}}': '{{inputs.parameters.pod-metadata-annotation-val-2}}'
+        pipelines.kubeflow.org/runtime-role: launcher
     name: metadata-2-0-system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -916,6 +923,8 @@ spec:
       - name: pod-metadata-label-key-3
       - name: pod-metadata-label-val-3
     metadata:
+      annotations:
+        pipelines.kubeflow.org/runtime-role: launcher
       labels:
         '{{inputs.parameters.pod-metadata-label-key-1}}': '{{inputs.parameters.pod-metadata-label-val-1}}'
         '{{inputs.parameters.pod-metadata-label-key-2}}': '{{inputs.parameters.pod-metadata-label-val-2}}'
@@ -1217,7 +1226,9 @@ spec:
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/runtime-role: driver
     name: system-dag-driver
     outputs:
       parameters:

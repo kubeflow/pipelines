@@ -54,6 +54,7 @@ var jobColumns = []string{
 	"PipelineRoot",
 	"ExperimentUUID",
 	"PipelineVersionId",
+	"PluginsInput",
 }
 
 type JobStoreInterface interface {
@@ -233,7 +234,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 		var cronScheduleStartTimeInSec, cronScheduleEndTimeInSec, createdAtInSec,
 			periodicScheduleStartTimeInSec, periodicScheduleEndTimeInSec, intervalSecond, updatedAtInSec sql.NullInt64
 		var cron, resourceReferencesInString, runtimeParameters, pipelineRoot sql.NullString
-		var experimentId, pipelineVersionId sql.NullString
+		var experimentID, pipelineVersionID, pluginsInput sql.NullString
 		var enabled, noCatchup bool
 		var maxConcurrency int64
 		err := r.Scan(
@@ -242,17 +243,17 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			&cronScheduleStartTimeInSec, &cronScheduleEndTimeInSec, &cron,
 			&periodicScheduleStartTimeInSec, &periodicScheduleEndTimeInSec, &intervalSecond,
 			&pipelineId, &pipelineName, &pipelineSpecManifest, &workflowSpecManifest, &parameters,
-			&conditions, &runtimeParameters, &pipelineRoot, &experimentId,
-			&pipelineVersionId, &resourceReferencesInString)
+			&conditions, &runtimeParameters, &pipelineRoot, &experimentID,
+			&pipelineVersionID, &pluginsInput, &resourceReferencesInString)
 		if err != nil {
 			return nil, err
 		}
 		resourceReferences, _ := parseResourceReferences(resourceReferencesInString)
-		expId := experimentId.String
-		pvId := pipelineVersionId.String
+		expID := experimentID.String
+		pvID := pipelineVersionID.String
 		if len(resourceReferences) > 0 {
-			if expId == "" {
-				expId = model.GetRefIdFromResourceReferences(resourceReferences, model.ExperimentResourceType)
+			if expID == "" {
+				expID = model.GetRefIdFromResourceReferences(resourceReferences, model.ExperimentResourceType)
 			}
 			if namespace == "" {
 				namespace = model.GetRefIdFromResourceReferences(resourceReferences, model.NamespaceResourceType)
@@ -260,8 +261,8 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			if pipelineId == "" {
 				pipelineId = model.GetRefIdFromResourceReferences(resourceReferences, model.PipelineResourceType)
 			}
-			if pvId == "" {
-				pvId = model.GetRefIdFromResourceReferences(resourceReferences, model.PipelineVersionResourceType)
+			if pvID == "" {
+				pvID = model.GetRefIdFromResourceReferences(resourceReferences, model.PipelineVersionResourceType)
 			}
 		}
 		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
@@ -271,10 +272,10 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			K8SName:        name,
 			Namespace:      namespace,
 			ServiceAccount: serviceAccount,
-			Description:    string(description),
+			Description:    description,
 			Enabled:        enabled,
 			Conditions:     conditions,
-			ExperimentId:   expId,
+			ExperimentId:   expID,
 			MaxConcurrency: maxConcurrency,
 			NoCatchup:      noCatchup,
 			// ResourceReferences: resourceReferences,
@@ -292,7 +293,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			},
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           pipelineId,
-				PipelineVersionId:    pvId,
+				PipelineVersionId:    pvID,
 				PipelineName:         pipelineName,
 				PipelineSpecManifest: model.LargeText(pipelineSpecManifest),
 				WorkflowSpecManifest: model.LargeText(workflowSpecManifest),
@@ -301,6 +302,10 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			},
 			CreatedAtInSec: createdAtInSec.Int64,
 			UpdatedAtInSec: updatedAtInSec.Int64,
+		}
+		if pluginsInput.Valid {
+			lt := model.LargeText(pluginsInput.String)
+			job.PluginsInputString = &lt
 		}
 		job = job.ToV2()
 		jobs = append(jobs, job)
@@ -374,6 +379,7 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 			"PipelineRoot":                   j.PipelineSpec.RuntimeConfig.PipelineRoot,
 			"ExperimentUUID":                 j.ExperimentId,
 			"PipelineVersionId":              j.PipelineSpec.PipelineVersionId,
+			"PluginsInput":                   largeTextToNullableSQL(j.PluginsInputString),
 		}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to add job to job table: %v",

@@ -72,3 +72,20 @@ func (lt *LargeText) UnmarshalJSON(b []byte) error {
 	*lt = LargeText(s)
 	return nil
 }
+
+func AllModels() []any {
+	return []any{
+		&DBStatus{},
+		&DefaultExperiment{},
+		&Experiment{},
+		&Pipeline{},
+		&PipelineTag{},
+		&PipelineVersion{},
+		&PipelineVersionTag{},
+		&Job{},
+		&Run{},
+		&RunMetric{},
+		&Task{},
+		&ResourceReference{},
+	}
+}

@@ -18,6 +18,7 @@ import (
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	k8score "k8s.io/api/core/v1"
 )
@@ -53,6 +54,15 @@ var commonEnvs = []k8score.EnvVar{{
 		},
 	},
 }}
+
+// setRuntimeRole stamps the template with an annotation declaring its logical
+// execution role (e.g. "driver", "launcher").
+func setRuntimeRole(tmpl *wfapi.Template, role util.ExecutionRuntimeRole) {
+	if tmpl.Metadata.Annotations == nil {
+		tmpl.Metadata.Annotations = make(map[string]string)
+	}
+	tmpl.Metadata.Annotations[util.AnnotationKeyRuntimeRole] = string(role)
+}
 
 // retryIndexEnv injects the Argo retry attempt index into the executor
 // container. Argo substitutes {{retries}} with the 0-based attempt index at

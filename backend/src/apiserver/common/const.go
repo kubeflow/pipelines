@@ -82,6 +82,13 @@ const (
 	DefaultClusterDomain         string = "cluster.local"
 )
 
+const (
+	DefaultPluginMaxKeys              = 16
+	DefaultPluginMaxPayloadBytes      = 64 * 1024
+	DefaultPluginMaxTotalPayloadBytes = 256 * 1024
+	DefaultPluginMaxNestingDepth      = 10
+)
+
 // ClearTagsMetadataKey is the gRPC metadata key set by the HTTP middleware
 // when the client sends an empty tags map ("tags":{}) to signal that all
 // tags should be removed. Protobuf binary encoding cannot distinguish an

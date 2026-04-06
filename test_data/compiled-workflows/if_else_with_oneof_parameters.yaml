@@ -141,7 +141,9 @@ spec:
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/runtime-role: driver
     name: system-container-driver
     outputs:
       parameters:
@@ -248,7 +250,9 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/runtime-role: launcher
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -414,7 +418,9 @@ spec:
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/runtime-role: driver
     name: system-dag-driver
     outputs:
       parameters:

@@ -74,7 +74,10 @@ class TestV2beta1RecurringRun(unittest.TestCase):
                         ], ), 
                 no_catchup = True, 
                 namespace = '0', 
-                experiment_id = '0'
+                experiment_id = '0', 
+                plugins_input = {
+                    'key' : None
+                    }
             )
         else :
             return V2beta1RecurringRun(
