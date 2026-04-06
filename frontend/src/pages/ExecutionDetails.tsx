@@ -439,7 +439,11 @@ interface ExecutionReferenceProps {
 }
 
 function ExecutionReference({ execution }: ExecutionReferenceProps) {
-  const { isSuccess, data: context } = useQuery<Context | null, Error>({
+  const {
+    isSuccess,
+    isError,
+    data: context,
+  } = useQuery<Context | null, Error>({
     queryKey: queryKeys.contextByExecution(execution.getId(), execution.getLastKnownState()),
     queryFn: async () => (await getContextByExecution(execution, KFP_V2_RUN_CONTEXT_TYPE)) ?? null,
     staleTime: Infinity,
@@ -461,6 +465,13 @@ function ExecutionReference({ execution }: ExecutionReferenceProps) {
           </tr>
         </thead>
         <tbody>
+          {isError && (
+            <tr className={css.row}>
+              <td className={css.tableCell} colSpan={2}>
+                Failed to load pipeline run reference.
+              </td>
+            </tr>
+          )}
           {isSuccess && context && (
             <tr className={css.row}>
               <td className={css.tableCell}>{'Pipeline Run'}</td>

@@ -511,6 +511,18 @@ describe('ExecutionDetailsContent', () => {
       );
     });
 
+    it('renders error row when context query fails', async () => {
+      getContextByExecutionSpy.mockRejectedValue(new Error('MLMD unavailable'));
+      mockSuccessfulLoad();
+      renderContent();
+
+      await waitFor(() => {
+        expect(screen.getByText('Failed to load pipeline run reference.')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText('Pipeline Run')).not.toBeInTheDocument();
+    });
+
     it('renders neither link when no context and no cached ID', async () => {
       getContextByExecutionSpy.mockResolvedValue(null);
       mockSuccessfulLoad();
