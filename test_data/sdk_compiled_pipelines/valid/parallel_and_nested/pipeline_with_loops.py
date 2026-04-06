@@ -35,7 +35,7 @@ def print_struct(struct: Dict):
 
 
 @dsl.pipeline(name='pipeline-with-loops')
-def my_pipeline(loop_parameter: List[str]):
+def my_pipeline(loop_parameter: List[str] = ["a", "b"]):
 
     # Loop argument is from a pipeline input
     with dsl.ParallelFor(loop_parameter) as item:

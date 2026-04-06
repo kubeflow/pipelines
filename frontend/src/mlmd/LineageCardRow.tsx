@@ -179,7 +179,7 @@ interface LineageCardRowProps {
 }
 
 export class LineageCardRow extends React.Component<LineageCardRowProps> {
-  private rowContainerRef: React.RefObject<HTMLDivElement> = React.createRef();
+  private rowContainerRef: React.RefObject<HTMLDivElement | null> = React.createRef();
 
   constructor(props: LineageCardRowProps) {
     super(props);

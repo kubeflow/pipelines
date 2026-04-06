@@ -55,9 +55,19 @@ const (
 	pipelineRunContextTypeName         = "system.PipelineRun"
 	ImporterExecutionTypeName          = "system.ImporterExecution"
 	ImporterWorkspaceExecutionTypeName = "system.ImporterWorkspaceExecution"
-	mlmdClientSideMaxRetries           = 3
-	defaultMaxGRPCMessageSize          = 100 * 1024 * 1024 // 100MB
-	maxGRPCMessageSizeEnv              = "METADATA_GRPC_MESSAGE_SIZE"
+	// mlmdClientSideMaxRetries is the number of times the MLMD client will retry
+	// a failed gRPC call before returning an error. This is intentionally higher
+	// than a typical RPC retry budget because MySQL deadlocks (codes.Aborted) on
+	// the MLMD server are transient and require time to resolve under sustained
+	// parallel execution.
+	mlmdClientSideMaxRetries    = 10
+	mlmdClientSideBackoffBase   = 1 * time.Second
+	mlmdClientSideBackoffJitter = 0.25
+	// mlmdClientSideBackoffCap limits the maximum per-attempt wait so a single
+	// deadlock retry never stalls a pod for more than 30 s.
+	mlmdClientSideBackoffCap  = 30 * time.Second
+	defaultMaxGRPCMessageSize = 100 * 1024 * 1024 // 100MB
+	maxGRPCMessageSizeEnv     = "METADATA_GRPC_MESSAGE_SIZE"
 )
 
 // MaxGRPCMessageSize is the max gRPC message size for the metadata client.
@@ -141,10 +151,17 @@ type Client struct {
 
 // NewClient creates a Client given the MLMD server address and port.
 func NewClient(serverAddress, serverPort string, tlsCfg *tls.Config) (*Client, error) {
+	// Retry on Aborted (MySQL deadlock) and Unavailable (transient connectivity).
+	// Use bounded exponential backoff so that high-concurrency deadlock storms
+	// are given enough time to resolve without stalling a pod indefinitely.
 	opts := []grpc_retry.CallOption{
 		grpc_retry.WithMax(mlmdClientSideMaxRetries),
-		grpc_retry.WithBackoff(grpc_retry.BackoffExponentialWithJitter(300*time.Millisecond, 0.20)),
-		grpc_retry.WithCodes(codes.Aborted),
+		grpc_retry.WithBackoff(grpc_retry.BackoffExponentialWithJitterBounded(
+			mlmdClientSideBackoffBase,
+			mlmdClientSideBackoffJitter,
+			mlmdClientSideBackoffCap,
+		)),
+		grpc_retry.WithCodes(codes.Aborted, codes.Unavailable),
 	}
 
 	creds := insecure.NewCredentials()
