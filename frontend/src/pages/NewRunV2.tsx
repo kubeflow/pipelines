@@ -16,7 +16,6 @@
 
 import {
   Button,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -222,7 +221,7 @@ function getRunValidationErrorMessage(
   if (!existingPipelineVersion) {
     return 'A pipeline version must be selected';
   }
-  return 'Loading pipeline template...';
+  return '';
 }
 
 function getDefaultRunName(
@@ -336,7 +335,6 @@ function NewRunV2(props: NewRunV2Props) {
   const usePipelineFromRunLabel = `Using pipeline from existing ${labelTextAdjective} run.`;
 
   const isTemplatePullSuccess = templateString ? true : false;
-  const isTemplateLoading = !templateString && !!existingPipelineVersion && !cloneOrigin.isClone;
   const validationErrorMessage = getRunValidationErrorMessage(
     runName,
     existingPipeline,
@@ -774,9 +772,6 @@ function NewRunV2(props: NewRunV2Props) {
           >
             {'Cancel'}
           </Button>
-          {isTemplateLoading && (
-            <CircularProgress size={24} style={{ marginLeft: 12, alignSelf: 'center' }} />
-          )}
           <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
             {validationErrorMessage}
           </div>

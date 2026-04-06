@@ -248,6 +248,35 @@ describe('NewRunV2', () => {
     return render(buildNewRunV2Element(overrides));
   }
 
+  // Clone-mode helpers: use generatePropsClonedRun() as the PageProps base and
+  // default existingPipeline/existingPipelineVersion to undefined, matching how
+  // clone runs work (pipeline info comes from the original run, not the URL).
+  function buildClonedRunV2Element(overrides: Partial<ComponentProps<typeof NewRunV2>> = {}) {
+    const props: ComponentProps<typeof NewRunV2> = {
+      ...generatePropsClonedRun(),
+      existingRunId: null,
+      existingRun: undefined,
+      existingRecurringRunId: null,
+      existingRecurringRun: undefined,
+      existingPipeline: undefined,
+      handlePipelineIdChange: vi.fn(),
+      existingPipelineVersion: undefined,
+      handlePipelineVersionIdChange: vi.fn(),
+      templateString: v2XGYamlTemplateString,
+      chosenExperiment: undefined,
+      ...overrides,
+    };
+    return (
+      <CommonTestWrapper>
+        <NewRunV2 {...props} />
+      </CommonTestWrapper>
+    );
+  }
+
+  function renderClonedRunV2(overrides: Partial<ComponentProps<typeof NewRunV2>> = {}) {
+    return render(buildClonedRunV2Element(overrides));
+  }
+
   // For creating new run with no pipeline is selected (enter from run list)
   function generatePropsNoPipelineDef(eid: string | null): PageProps {
     return {
@@ -421,26 +450,22 @@ describe('NewRunV2', () => {
     expect(await screen.findByText('This pipeline has no parameters')).toBeInTheDocument();
   });
 
-  it('shows a loading message when pipeline version is selected but template has not arrived', async () => {
+  it('disables start button when pipeline version is selected but template is unavailable', async () => {
     renderNewRunV2({ templateString: undefined });
-
-    expect(await screen.findByText('Loading pipeline template...')).toBeInTheDocument();
 
     const startButton = screen.getByText('Start');
     expect(startButton.closest('button')?.disabled).toEqual(true);
   });
 
-  it('shows a loading spinner when template is loading for a new run', async () => {
-    renderNewRunV2({ templateString: undefined });
-
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
-  });
-
-  it('does not show the loading spinner once the template has arrived', async () => {
-    renderNewRunV2();
+  it('does not show a loading spinner when cloning a run with an undefined template', async () => {
+    renderClonedRunV2({
+      existingRunId: TEST_RUN_ID,
+      existingRun: API_UI_CREATED_NEW_RUN_DETAILS,
+      existingPipelineVersion: ORIGINAL_TEST_PIPELINE_VERSION,
+      templateString: undefined,
+    });
 
     expect(screen.queryByRole('progressbar')).toBeNull();
-    expect(screen.queryByText('Loading pipeline template...')).toBeNull();
   });
 
   it('shows the cloned pipeline root after rerendering into clone mode', async () => {
@@ -786,12 +811,9 @@ describe('NewRunV2', () => {
 
   describe('cloning an existing run', () => {
     it('only shows clone run name from original run', () => {
-      renderNewRunV2({
-        ...generatePropsClonedRun(),
+      renderClonedRunV2({
         existingRunId: TEST_RUN_ID,
         existingRun: API_UI_CREATED_NEW_RUN_DETAILS,
-        existingPipeline: undefined,
-        existingPipelineVersion: undefined,
       });
       screen.findByDisplayValue(`Clone of ${API_UI_CREATED_NEW_RUN_DETAILS.display_name}`);
     });
@@ -800,12 +822,9 @@ describe('NewRunV2', () => {
       const createRunSpy = vi.spyOn(Apis.runServiceApiV2, 'createRun');
       createRunSpy.mockResolvedValue(API_UI_CREATED_CLONING_RUN_DETAILS);
 
-      renderNewRunV2({
-        ...generatePropsClonedRun(),
+      renderClonedRunV2({
         existingRunId: TEST_RUN_ID,
         existingRun: API_UI_CREATED_NEW_RUN_DETAILS,
-        existingPipeline: undefined,
-        existingPipelineVersion: undefined,
       });
 
       const startButton = await screen.findByText('Start');
@@ -838,12 +857,9 @@ describe('NewRunV2', () => {
       const createRunSpy = vi.spyOn(Apis.runServiceApiV2, 'createRun');
       createRunSpy.mockResolvedValue(API_SDK_CREATED_CLONING_RUN_DETAILS);
 
-      renderNewRunV2({
-        ...generatePropsClonedRun(),
+      renderClonedRunV2({
         existingRunId: TEST_RUN_ID,
         existingRun: API_SDK_CREATED_NEW_RUN_DETAILS,
-        existingPipeline: undefined,
-        existingPipelineVersion: undefined,
       });
 
       const startButton = await screen.findByText('Start');
@@ -875,12 +891,9 @@ describe('NewRunV2', () => {
       const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
       createRecurringRunSpy.mockResolvedValue(API_UI_CREATED_CLONING_RECURRING_RUN_DETAILS);
 
-      renderNewRunV2({
-        ...generatePropsClonedRun(),
+      renderClonedRunV2({
         existingRecurringRunId: TEST_RECURRING_RUN_ID,
         existingRecurringRun: API_UI_CREATED_NEW_RECURRING_RUN_DETAILS,
-        existingPipeline: undefined,
-        existingPipelineVersion: undefined,
       });
 
       const startButton = await screen.findByText('Start');
@@ -923,12 +936,9 @@ describe('NewRunV2', () => {
       const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
       createRecurringRunSpy.mockResolvedValue(API_SDK_CREATED_CLONING_RECURRING_RUN_DETAILS);
 
-      renderNewRunV2({
-        ...generatePropsClonedRun(),
+      renderClonedRunV2({
         existingRecurringRunId: TEST_RECURRING_RUN_ID,
         existingRecurringRun: API_SDK_CREATED_NEW_RECURRING_RUN_DETAILS,
-        existingPipeline: undefined,
-        existingPipelineVersion: undefined,
       });
 
       const startButton = await screen.findByText('Start');
