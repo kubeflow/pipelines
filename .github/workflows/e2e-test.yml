@@ -1,7 +1,7 @@
 name: KFP E2E Pipeline tests
 env:
   E2E_TESTS_DIR: "./backend/test/end2end"
-  NUMBER_OF_PARALLEL_NODES: 2
+  NUMBER_OF_PARALLEL_NODES: 10
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
   PYTHON_VERSION: "3.9"
@@ -129,7 +129,7 @@ jobs:
           fi
 
           if [ "$TEST_LABEL" == "E2EParallelNested" ]; then
-            NUMBER_OF_NODES=1
+            NUMBER_OF_NODES=3
           fi
 
           {
