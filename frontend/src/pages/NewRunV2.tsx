@@ -225,18 +225,18 @@ function getRunValidationErrorMessage(
 }
 
 function getDefaultRunName(
-  existingRun?: V2beta1Run,
-  existingRecurringRun?: V2beta1RecurringRun,
-  existingPipelineVersion?: V2beta1PipelineVersion,
+  runDisplayName?: string,
+  recurringRunDisplayName?: string,
+  pipelineVersionDisplayName?: string,
 ) {
-  if (existingRun?.display_name) {
-    return 'Clone of ' + existingRun.display_name;
+  if (runDisplayName) {
+    return 'Clone of ' + runDisplayName;
   }
-  if (existingRecurringRun?.display_name) {
-    return 'Clone of ' + existingRecurringRun.display_name;
+  if (recurringRunDisplayName) {
+    return 'Clone of ' + recurringRunDisplayName;
   }
-  if (existingPipelineVersion?.display_name) {
-    return 'Run of ' + existingPipelineVersion.display_name + ' (' + generateRandomString(5) + ')';
+  if (pipelineVersionDisplayName) {
+    return 'Run of ' + pipelineVersionDisplayName + ' (' + generateRandomString(5) + ')';
   }
   return '';
 }
@@ -286,9 +286,17 @@ function NewRunV2(props: NewRunV2Props) {
       : true;
   const [needCatchup, setNeedCatchup] = useState(initialCatchup);
   const [useLatestVersion, setUseLatestVersion] = useState(false);
+  const existingRunDisplayName = existingRun?.display_name;
+  const existingRecurringRunDisplayName = existingRecurringRun?.display_name;
+  const existingPipelineVersionDisplayName = existingPipelineVersion?.display_name;
   const defaultRunName = useMemo(
-    () => getDefaultRunName(existingRun, existingRecurringRun, existingPipelineVersion),
-    [existingRun, existingRecurringRun, existingPipelineVersion],
+    () =>
+      getDefaultRunName(
+        existingRunDisplayName,
+        existingRecurringRunDisplayName,
+        existingPipelineVersionDisplayName,
+      ),
+    [existingRunDisplayName, existingRecurringRunDisplayName, existingPipelineVersionDisplayName],
   );
   const runName = customRunName ?? defaultRunName;
 
