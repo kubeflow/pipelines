@@ -518,6 +518,11 @@ func TestAddToSelectV1(t *testing.T) {
 			[]interface{}{"Running", int64(100)},
 		},
 		{
+			`predicates { key: "status" op: NOT_EQUALS string_value: "RUNNING" }`,
+			"SELECT mycolumn WHERE (LOWER(status) <> LOWER(?))",
+			[]interface{}{"RUNNING"},
+		},
+		{
 			`predicates { key: "date" op: LESS_THAN timestamp_value { seconds: 10 } }
 		   predicates { key: "total" op: LESS_THAN_EQUALS  int_value: 100 }`,
 			"SELECT mycolumn WHERE (date < ? AND total <= ?)",
@@ -537,6 +542,11 @@ func TestAddToSelectV1(t *testing.T) {
 			`predicates { key: "label" op: IN  string_values {values: "l1" values: "l2"}}`,
 			"SELECT mycolumn WHERE (LOWER(label) IN (LOWER(?), LOWER(?)))",
 			[]interface{}{"l1", "l2"},
+		},
+		{
+			`predicates { key: "label" op: IN  string_values {values: "Label_1" values: "LABEL_2"}}`,
+			"SELECT mycolumn WHERE (LOWER(label) IN (LOWER(?), LOWER(?)))",
+			[]interface{}{"Label_1", "LABEL_2"},
 		},
 		{
 			`predicates { key: "label" op: IS_SUBSTRING  string_value: "label_substring" }`,
@@ -607,6 +617,11 @@ func TestAddToSelect(t *testing.T) {
 			[]interface{}{"Running", int64(100)},
 		},
 		{
+			`predicates { key: "status" operation: NOT_EQUALS string_value: "RUNNING" }`,
+			"SELECT mycolumn WHERE (LOWER(status) <> LOWER(?))",
+			[]interface{}{"RUNNING"},
+		},
+		{
 			`predicates { key: "date" operation: LESS_THAN timestamp_value { seconds: 10 } }
 		   predicates { key: "total" operation: LESS_THAN_EQUALS  int_value: 100 }`,
 			"SELECT mycolumn WHERE (date < ? AND total <= ?)",
@@ -626,6 +641,11 @@ func TestAddToSelect(t *testing.T) {
 			`predicates { key: "label" operation: IN  string_values {values: "l1" values: "l2"}}`,
 			"SELECT mycolumn WHERE (LOWER(label) IN (LOWER(?), LOWER(?)))",
 			[]interface{}{"l1", "l2"},
+		},
+		{
+			`predicates { key: "label" operation: IN  string_values {values: "Label_1" values: "LABEL_2"}}`,
+			"SELECT mycolumn WHERE (LOWER(label) IN (LOWER(?), LOWER(?)))",
+			[]interface{}{"Label_1", "LABEL_2"},
 		},
 		{
 			`predicates { key: "label" operation: IS_SUBSTRING  string_value: "label_substring" }`,
@@ -778,6 +798,26 @@ func TestFilterK8sPipelines_EQ_NEQ(t *testing.T) {
 	if found {
 		t.Fatalf("expected AND filter not to match when one predicate fails")
 	}
+
+	// EQ case-insensitive: "MY-PIPELINE" should match "my-pipeline"
+	eqCaseInsensitive := &Filter{eq: map[string][]interface{}{"pipelines.Name": {"MY-PIPELINE"}}}
+	found, err = eqCaseInsensitive.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for EQ case-insensitive: %v", err)
+	}
+	if !found {
+		t.Fatalf("expected EQ filter to match case-insensitively")
+	}
+
+	// NEQ case-insensitive: "MY-PIPELINE" should be considered equal, so NEQ should not match
+	neqCaseInsensitive := &Filter{neq: map[string][]interface{}{"pipelines.Name": {"MY-PIPELINE"}}}
+	found, err = neqCaseInsensitive.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for NEQ case-insensitive: %v", err)
+	}
+	if found {
+		t.Fatalf("expected NEQ filter not to match when value matches case-insensitively")
+	}
 }
 
 func TestFilterK8sPipelines_IN(t *testing.T) {
@@ -824,6 +864,16 @@ func TestFilterK8sPipelines_IN(t *testing.T) {
 	if !found {
 		t.Fatalf("expected IN multi to match when present in all lists")
 	}
+
+	// IN case-insensitive: "MY-PIPELINE" should match "my-pipeline"
+	inCaseInsensitive := &Filter{in: map[string][]interface{}{"pipelines.Name": {[]string{"a", "MY-PIPELINE"}}}}
+	found, err = inCaseInsensitive.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for IN case-insensitive: %v", err)
+	}
+	if !found {
+		t.Fatalf("expected IN filter to match case-insensitively")
+	}
 }
 
 func TestFilterK8sPipelines_SUBSTRING(t *testing.T) {
@@ -849,6 +899,16 @@ func TestFilterK8sPipelines_SUBSTRING(t *testing.T) {
 	}
 	if found {
 		t.Fatalf("expected substring filter not to match when a substring missing")
+	}
+
+	// IS_SUBSTRING case-insensitive: "Pipeline" should match "my-pipeline"
+	subCaseInsensitive := &Filter{substring: map[string][]interface{}{"pipelines.Name": {"Pipeline"}}}
+	found, err = subCaseInsensitive.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for substring case-insensitive: %v", err)
+	}
+	if !found {
+		t.Fatalf("expected IS_SUBSTRING filter to match case-insensitively")
 	}
 }
 
