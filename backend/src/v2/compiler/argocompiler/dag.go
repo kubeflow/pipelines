@@ -633,9 +633,9 @@ func (c *workflowCompiler) addDAGDriverTemplate() (string, error) {
 		},
 		Outputs: wfapi.Outputs{
 			Parameters: []wfapi.Parameter{
-				{Name: paramExecutionID, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/execution-id"}},
-				{Name: paramIterationCount, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/iteration-count", Default: wfapi.AnyStringPtr("0")}},
-				{Name: paramCondition, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/condition", Default: wfapi.AnyStringPtr("true")}},
+				{Name: paramExecutionID, ValueFrom: &wfapi.ValueFrom{JSONPath: "$.execution-id"}},
+				{Name: paramIterationCount, ValueFrom: &wfapi.ValueFrom{JSONPath: "$.iteration-count", Default: wfapi.AnyStringPtr("0")}},
+				{Name: paramCondition, ValueFrom: &wfapi.ValueFrom{JSONPath: "$.condition", Default: wfapi.AnyStringPtr("true")}},
 			},
 		},
 		Plugin: dagPlugin,
