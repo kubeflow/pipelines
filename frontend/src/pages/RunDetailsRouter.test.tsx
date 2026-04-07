@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import { QueryClientProvider } from '@tanstack/react-query';
 import * as JsYaml from 'js-yaml';
 import * as features from 'src/features';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { RouteParams } from 'src/components/Router';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
+import { queryClientTest } from 'src/TestUtils';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import RunDetailsRouter from './RunDetailsRouter';
@@ -163,6 +166,70 @@ describe('RunDetailsRouter', () => {
     const element = screen.getByTestId('enhanced-run-details');
     expect(element).toBeInTheDocument();
     expect(element.dataset.isLoading).toBe('true');
+  });
+
+  describe('template refetch regression', () => {
+    afterEach(() => {
+      queryClientTest.clear();
+    });
+
+    it('keeps EnhancedRunDetails out of loading state during template refetch after the template is cached', async () => {
+      const argoWorkflow = {
+        apiVersion: 'argoproj.io/v1alpha1',
+        kind: 'Workflow',
+        metadata: { name: 'from-version' },
+        spec: { arguments: { parameters: [{ name: 'output' }] } },
+      };
+      const runWithVersionRef: V2beta1Run = {
+        run_id: TEST_RUN_ID,
+        pipeline_version_reference: {
+          pipeline_id: TEST_PIPELINE_ID,
+          pipeline_version_id: TEST_PIPELINE_VERSION_ID,
+        },
+      };
+      const pipelineVersion: V2beta1PipelineVersion = {
+        pipeline_id: TEST_PIPELINE_ID,
+        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
+        pipeline_spec: argoWorkflow,
+      };
+      // Use a dedicated query client so the test can invalidate the cached template query directly.
+      const wrapper = (props: { children: React.ReactElement }) => (
+        <QueryClientProvider client={queryClientTest}>{props.children}</QueryClientProvider>
+      );
+
+      getRunSpy.mockResolvedValue(runWithVersionRef);
+      getPipelineVersionSpy.mockResolvedValue(pipelineVersion);
+
+      render(<RunDetailsRouter {...generateProps()} />, { wrapper });
+
+      await waitFor(() => {
+        expect(getPipelineVersionSpy).toHaveBeenCalledWith(
+          TEST_PIPELINE_ID,
+          TEST_PIPELINE_VERSION_ID,
+        );
+      });
+      expect(screen.getByTestId('enhanced-run-details').dataset.isLoading).toBe('false');
+
+      getPipelineVersionSpy.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(() => resolve(pipelineVersion), 100);
+          }),
+      );
+
+      act(() => {
+        queryClientTest.invalidateQueries({
+          queryKey: queryKeys.pipelineVersionTemplate(TEST_PIPELINE_ID, TEST_PIPELINE_VERSION_ID),
+        });
+      });
+
+      expect(screen.getByTestId('enhanced-run-details').dataset.isLoading).toBe('false');
+
+      await waitFor(() => {
+        expect(getPipelineVersionSpy).toHaveBeenCalledTimes(2);
+      });
+      expect(screen.getByTestId('enhanced-run-details').dataset.isLoading).toBe('false');
+    });
   });
 
   it('does not fetch pipeline version when run has an inline pipeline_spec', async () => {
