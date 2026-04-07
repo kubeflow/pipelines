@@ -407,6 +407,24 @@ describe('NewRunV2', () => {
     ).toBeInTheDocument();
   });
 
+  it('updates the displayed pipeline name when the selected pipeline prop changes', async () => {
+    const { rerender } = renderNewRunV2({ chosenExperiment: DEFAULT_EXPERIMENT });
+
+    expect(await screen.findByDisplayValue(ORIGINAL_TEST_PIPELINE_NAME)).toBeInTheDocument();
+
+    rerender(
+      buildNewRunV2Element({
+        ...generatePropsNewRun(NEW_TEST_PIPELINE_ID, NEW_TEST_PIPELINE_VERSION_ID),
+        existingPipeline: NEW_TEST_PIPELINE,
+        existingPipelineVersion: NEW_TEST_PIPELINE_VERSION,
+        templateString: v2LWYamlTemplateString,
+        chosenExperiment: DEFAULT_EXPERIMENT,
+      }),
+    );
+
+    expect(await screen.findByDisplayValue(NEW_TEST_PIPELINE_NAME)).toBeInTheDocument();
+  });
+
   it('preserves a custom run name when the selected pipeline version changes', async () => {
     const { rerender } = renderNewRunV2();
 
@@ -423,6 +441,20 @@ describe('NewRunV2', () => {
     );
 
     expect(await screen.findByDisplayValue('Run with custom name')).toBeInTheDocument();
+  });
+
+  it('updates the displayed experiment name when the chosen experiment prop changes', async () => {
+    const { rerender } = renderNewRunV2({ chosenExperiment: DEFAULT_EXPERIMENT });
+
+    expect(await screen.findByDisplayValue(DEFAULT_EXPERIMENT.display_name!)).toBeInTheDocument();
+
+    rerender(
+      buildNewRunV2Element({
+        chosenExperiment: NEW_EXPERIMENT,
+      }),
+    );
+
+    expect(await screen.findByDisplayValue(NEW_EXPERIMENT.display_name!)).toBeInTheDocument();
   });
 
   it('resets parameter inputs when the selected template changes', async () => {

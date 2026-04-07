@@ -259,11 +259,6 @@ function NewRunV2(props: NewRunV2Props) {
   const urlParser = new URLParser(props);
   const [customRunName, setCustomRunName] = useState<string | null>(null);
   const [runDescription, setRunDescription] = useState('');
-  const [pipelineName, setPipelineName] = useState('');
-  const [pipelineVersionName, setPipelineVersionName] = useState('');
-  const [experimentId, setExperimentId] = useState('');
-  const [experiment, setExperiment] = useState(chosenExperiment);
-  const [experimentName, setExperimentName] = useState('');
   const [serviceAccount, setServiceAccount] = useState('');
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
   const [openNewExperiment, setOpenNewExperiment] = useState(false);
@@ -289,6 +284,23 @@ function NewRunV2(props: NewRunV2Props) {
   const existingRunDisplayName = existingRun?.display_name;
   const existingRecurringRunDisplayName = existingRecurringRun?.display_name;
   const existingPipelineVersionDisplayName = existingPipelineVersion?.display_name;
+  const [pipelineName, setPipelineName] = useKeyedState<string>(
+    existingPipeline?.pipeline_id ?? '',
+    existingPipeline?.display_name ?? '',
+  );
+  const [selectedExperiment, setSelectedExperiment] = useKeyedState<V2beta1Experiment | undefined>(
+    chosenExperiment?.experiment_id ?? '',
+    chosenExperiment,
+  );
+  const experimentId = selectedExperiment?.experiment_id ?? '';
+  const experimentName = selectedExperiment?.display_name ?? '';
+  // Prefix the "latest version" mode key so toggling the checkbox cannot reuse a concrete version id.
+  const [pipelineVersionName, setPipelineVersionName] = useKeyedState<string>(
+    useLatestVersion
+      ? `latest:${existingPipeline?.pipeline_id ?? ''}`
+      : (existingPipelineVersion?.pipeline_version_id ?? ''),
+    useLatestVersion ? '' : (existingPipelineVersion?.display_name ?? ''),
+  );
   const defaultRunName = useMemo(
     () =>
       getDefaultRunName(
@@ -383,27 +395,6 @@ function NewRunV2(props: NewRunV2Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRecurringRun]);
 
-  // Pre-fill names for pipeline, pipeline version and experiment.
-  useEffect(() => {
-    if (existingPipeline?.display_name) {
-      setPipelineName(existingPipeline.display_name);
-    }
-    if (experiment?.display_name) {
-      setExperimentName(experiment.display_name);
-    }
-    if (experiment?.experiment_id) {
-      setExperimentId(experiment.experiment_id);
-    }
-  }, [existingPipeline, experiment]);
-
-  useEffect(() => {
-    if (useLatestVersion) {
-      setPipelineVersionName('');
-    } else if (existingPipelineVersion?.display_name) {
-      setPipelineVersionName(existingPipelineVersion.display_name);
-    }
-  }, [existingPipelineVersion, useLatestVersion]);
-
   // Defines the behavior when user clicks `Start` button.
   const newRunMutation = useMutation({
     mutationFn: (run: V2beta1Run) => {
@@ -422,7 +413,7 @@ function NewRunV2(props: NewRunV2Props) {
     let newRun: V2beta1Run = {
       description: runDescription,
       display_name: runName,
-      experiment_id: experiment?.experiment_id,
+      experiment_id: selectedExperiment?.experiment_id,
       // pipeline_spec and pipeline_version_reference is exclusive.
       pipeline_spec: !(pipelineVersionRefClone || pipelineVersionRefNew)
         ? JsYaml.safeLoad(templateString || '')
@@ -562,11 +553,7 @@ function NewRunV2(props: NewRunV2Props) {
                   <Checkbox
                     checked={useLatestVersion}
                     onChange={(e) => {
-                      const isChecked = e.target.checked;
-                      setUseLatestVersion(isChecked);
-                      if (isChecked) {
-                        setPipelineVersionName('');
-                      }
+                      setUseLatestVersion(e.target.checked);
                     }}
                     color='primary'
                     disabled={!existingPipeline}
@@ -630,12 +617,8 @@ function NewRunV2(props: NewRunV2Props) {
           toolbarActionMap={createNewExperiment}
           experimentName={experimentName}
           handleExperimentChange={(experiment) => {
-            setExperiment(experiment);
-            if (experiment.display_name) {
-              setExperimentName(experiment.display_name);
-            }
+            setSelectedExperiment(experiment);
             if (experiment.experiment_id) {
-              setExperimentId(experiment.experiment_id);
               let searchString;
               if (existingPipeline?.pipeline_id && existingPipelineVersion?.pipeline_version_id) {
                 searchString = urlParser.build({
