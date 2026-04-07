@@ -96,6 +96,7 @@ var (
 	defaultRunAsUser     = flag.Int64("default_run_as_user", -1, "Admin-configured default runAsUser for user containers. -1 means not set.")
 	defaultRunAsGroup    = flag.Int64("default_run_as_group", -1, "Admin-configured default runAsGroup for user containers. -1 means not set.")
 	defaultRunAsNonRoot  = flag.String("default_run_as_non_root", "", "Admin-configured default runAsNonRoot for user containers. Empty means not set.")
+	defaultHostUsers     = flag.String("default_host_users", "", "Administrator-configured default hostUsers for user workload pods. Empty means not set. Set to false to run pods in a dedicated Linux user namespace.")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
@@ -257,6 +258,12 @@ func drive() (err error) {
 			v, err := strconv.ParseBool(*defaultRunAsNonRoot)
 			if err == nil {
 				options.DefaultRunAsNonRoot = &v
+			}
+		}
+		if *defaultHostUsers != "" {
+			v, err := strconv.ParseBool(*defaultHostUsers)
+			if err == nil {
+				options.DefaultHostUsers = &v
 			}
 		}
 		execution, driverErr = driver.Container(ctx, options, client, cacheClient)

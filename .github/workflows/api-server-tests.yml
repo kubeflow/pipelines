@@ -70,10 +70,10 @@ jobs:
         pipeline_store: [ "database" ]
         pod_to_pod_tls_enabled: [ "false" ]
         include:
-          - k8s_version: "v1.29.2"
+          - k8s_version: "v1.33.0"
             cache_enabled: "true"
             argo_version: "v3.7.3"
-          - k8s_version: "v1.29.2"
+          - k8s_version: "v1.33.0"
             cache_enabled: "true"
             argo_version: "v3.5.14"
           - k8s_version: "v1.34.0"
@@ -164,7 +164,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.34.0", "v1.29.2" ]
+        k8s_version: [ "v1.34.0", "v1.33.0" ]
         cache_enabled: [ "true" ]
         uploadPipelinesWithKubernetesClient: [ "true", "false" ]
         argo_version: [ "v3.7.3", "v3.5.14" ]

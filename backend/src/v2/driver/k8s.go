@@ -716,6 +716,15 @@ func extendPodSpecPatch(
 		}
 	}
 
+	// Pre-populate the administrator-configured hostUsers default at the pod level.
+	// Setting hostUsers to false places the pod in a dedicated Linux user
+	// namespace: UID 0 inside the pod maps to an unprivileged host UID,
+	// so root processes in the container are not root on the host.
+	if opts.DefaultHostUsers != nil {
+		v := *opts.DefaultHostUsers
+		podSpec.HostUsers = &v
+	}
+
 	// Apply container security context (PSS baseline compliant).
 	// User-specified identity fields (runAsUser, runAsGroup) are only applied
 	// when they are not already set by the platform/admin. If the compiler or

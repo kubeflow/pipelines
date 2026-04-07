@@ -2341,7 +2341,7 @@ func Test_extendPodSpecPatch_SecurityContext_AdminSetPreserved(t *testing.T) {
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, got)
-	// Admin-set values are preserved; user-specified values are ignored.
+	// Administrator-set values are preserved; user-specified values are ignored.
 	assert.Equal(t, int64(1000), *got.Containers[0].SecurityContext.RunAsUser)
 	assert.Equal(t, int64(0), *got.Containers[0].SecurityContext.RunAsGroup)
 	// Capabilities always dropped.
@@ -2366,7 +2366,7 @@ func Test_extendPodSpecPatch_SecurityContext_AdminDefaultsNoUserOverride(t *test
 		nil,
 	)
 	assert.Nil(t, err)
-	// Admin defaults are applied even without user SecurityContext.
+	// Administrator defaults are applied even without user SecurityContext.
 	assert.Equal(t, int64(1000), *got.Containers[0].SecurityContext.RunAsUser)
 }
 
@@ -2440,7 +2440,7 @@ func Test_extendPodSpecPatch_SecurityContext_AdminRunAsNonRoot(t *testing.T) {
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, got)
-	// Admin-set runAsNonRoot is preserved; user-specified value is ignored.
+	// Administrator-set runAsNonRoot is preserved; user-specified value is ignored.
 	assert.True(t, *got.Containers[0].SecurityContext.RunAsNonRoot)
 	// Capabilities always dropped.
 	assert.Equal(t, &k8score.Capabilities{Drop: []k8score.Capability{"ALL"}}, got.Containers[0].SecurityContext.Capabilities)
@@ -2464,7 +2464,7 @@ func Test_extendPodSpecPatch_SecurityContext_AdminRunAsNonRootNoUserOverride(t *
 		nil,
 	)
 	assert.Nil(t, err)
-	// Admin defaults are applied even without user SecurityContext.
+	// Administrator defaults are applied even without user SecurityContext.
 	assert.True(t, *got.Containers[0].SecurityContext.RunAsNonRoot)
 }
 
@@ -3354,4 +3354,110 @@ func Test_extendPodSpecPatch_PvcMounts_Passthrough_AppliedToPod(t *testing.T) {
 	assert.NotEmpty(t, podSpec.Containers[0].VolumeMounts)
 	assert.NotEmpty(t, taskCfg.Volumes)
 	assert.NotEmpty(t, taskCfg.VolumeMounts)
+}
+
+func Test_extendPodSpecPatch_DefaultHostUsersFalse(t *testing.T) {
+	hostUsersInDedicatedNamespace := false
+
+	podSpec := &k8score.PodSpec{Containers: []k8score.Container{
+		{Name: "main"},
+	}}
+	err := extendPodSpecPatch(
+		context.Background(),
+		podSpec,
+		Options{
+			DefaultHostUsers: &hostUsersInDedicatedNamespace,
+		},
+		nil, nil, nil,
+		map[string]*structpb.Value{},
+		nil,
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, podSpec.HostUsers)
+	// hostUsers: false places the pod in a dedicated Linux user namespace,
+	// satisfying Pod Security Standards restricted even when the container
+	// process runs as UID 0 (root) inside that namespace.
+	assert.False(t, *podSpec.HostUsers)
+}
+
+func Test_extendPodSpecPatch_DefaultHostUsersTrue(t *testing.T) {
+	hostUsersInHostNamespace := true
+
+	podSpec := &k8score.PodSpec{Containers: []k8score.Container{
+		{Name: "main"},
+	}}
+	err := extendPodSpecPatch(
+		context.Background(),
+		podSpec,
+		Options{
+			DefaultHostUsers: &hostUsersInHostNamespace,
+		},
+		nil, nil, nil,
+		map[string]*structpb.Value{},
+		nil,
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, podSpec.HostUsers)
+	assert.True(t, *podSpec.HostUsers)
+}
+
+func Test_extendPodSpecPatch_DefaultHostUsersNil(t *testing.T) {
+	podSpec := &k8score.PodSpec{Containers: []k8score.Container{
+		{Name: "main"},
+	}}
+	err := extendPodSpecPatch(
+		context.Background(),
+		podSpec,
+		Options{
+			DefaultHostUsers: nil,
+		},
+		nil, nil, nil,
+		map[string]*structpb.Value{},
+		nil,
+	)
+	assert.Nil(t, err)
+	// When the administrator default is not set, hostUsers is left unspecified so the
+	// Kubernetes default (host user namespace) applies.
+	assert.Nil(t, podSpec.HostUsers)
+}
+
+// Test_extendPodSpecPatch_RootUserWithHostUsersNamespace verifies that a
+// customer workload container configured to run as UID 0 (root) in combination
+// with hostUsers:false is accepted. When the pod runs in a dedicated Linux user
+// namespace the root identity inside that namespace does not correspond to root
+// on the host, so Pod Security Standards restricted permits this combination.
+func Test_extendPodSpecPatch_RootUserWithHostUsersNamespace(t *testing.T) {
+	hostUsersInDedicatedNamespace := false
+	rootUserIdentifier := int64(0)
+
+	podSpec := &k8score.PodSpec{Containers: []k8score.Container{
+		{Name: "main"},
+	}}
+	err := extendPodSpecPatch(
+		context.Background(),
+		podSpec,
+		Options{
+			DefaultHostUsers: &hostUsersInDedicatedNamespace,
+			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsUser: &rootUserIdentifier,
+				},
+			},
+		},
+		nil, nil, nil,
+		map[string]*structpb.Value{},
+		nil,
+	)
+	assert.Nil(t, err)
+	// hostUsers: false must be present on the pod spec.
+	assert.NotNil(t, podSpec.HostUsers)
+	assert.False(t, *podSpec.HostUsers)
+	// The root UID requested by the pipeline author must be applied, since there
+	// is no administrator-level runAsUser override in effect.
+	assert.NotNil(t, podSpec.Containers[0].SecurityContext)
+	assert.NotNil(t, podSpec.Containers[0].SecurityContext.RunAsUser)
+	assert.Equal(t, int64(0), *podSpec.Containers[0].SecurityContext.RunAsUser)
+	// Capabilities are always dropped to satisfy Pod Security Standards restricted.
+	assert.Equal(t, &k8score.Capabilities{Drop: []k8score.Capability{"ALL"}},
+		podSpec.Containers[0].SecurityContext.Capabilities)
 }

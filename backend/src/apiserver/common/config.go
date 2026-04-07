@@ -44,6 +44,7 @@ const (
 	DefaultSecurityContextRunAsUser         string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_USER"
 	DefaultSecurityContextRunAsGroup        string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_GROUP"
 	DefaultSecurityContextRunAsNonRoot      string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT"
+	DefaultSecurityContextHostUsers         string = "DEFAULT_SECURITY_CONTEXT_HOST_USERS"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -186,4 +187,8 @@ func GetDefaultSecurityContextRunAsGroup() string {
 
 func GetDefaultSecurityContextRunAsNonRoot() string {
 	return GetStringConfigWithDefault(DefaultSecurityContextRunAsNonRoot, "")
+}
+
+func GetDefaultSecurityContextHostUsers() string {
+	return GetStringConfigWithDefault(DefaultSecurityContextHostUsers, "")
 }
