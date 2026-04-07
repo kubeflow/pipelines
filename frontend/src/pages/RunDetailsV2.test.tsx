@@ -266,6 +266,7 @@ describe('RunDetailsV2', () => {
   });
 
   it('Shows no banner when connected from MLMD', async () => {
+    vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockResolvedValue(TEST_EXPERIMENT);
     vi.spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName').mockImplementation(
       (request: GetContextByTypeAndNameRequest) => {
         const response = new GetContextByTypeAndNameResponse();
