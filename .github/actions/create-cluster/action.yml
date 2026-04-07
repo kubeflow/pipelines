@@ -43,7 +43,6 @@ runs:
         kubectl_version: ${{ inputs.k8s_version }}
         version: v0.31.0
         node_image: kindest/node:${{ inputs.k8s_version }}
-        registry: true
 
     - name: Retry Create k8s Kind Cluster
       uses: helm/kind-action@v1.13.0
@@ -53,4 +52,3 @@ runs:
         kubectl_version: ${{ inputs.k8s_version }}
         version: v0.31.0
         node_image: kindest/node:${{ inputs.k8s_version }}
-        registry: true
