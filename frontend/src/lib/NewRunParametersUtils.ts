@@ -85,7 +85,7 @@ export function convertInput(paramStr: string, paramType: ParameterType_Paramete
         return null;
       }
     default:
-      console.log('Unknown paramter type: ' + paramType);
+      console.log('Unknown parameter type: ' + paramType);
       return null;
   }
 }
