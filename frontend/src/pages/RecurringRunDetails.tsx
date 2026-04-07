@@ -186,6 +186,10 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
     toolbarActions[ButtonKeys.ENABLE_RECURRING_RUN].disabled = !!run.enabled;
     toolbarActions[ButtonKeys.DISABLE_RECURRING_RUN].disabled = !run.enabled;
 
+    if (!this._isMounted) {
+      return;
+    }
+
     this.props.updateToolbar({ actions: toolbarActions, breadcrumbs, pageTitle });
 
     this.setStateSafe({ run });
