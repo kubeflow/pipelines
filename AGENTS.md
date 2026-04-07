@@ -7,8 +7,8 @@
 
 ### Document metadata
 
-- Last updated: 2026-03-21
-- Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 17)
+- Last updated: 2026-03-31
+- Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
 
@@ -306,7 +306,7 @@ The following files are generated; edit their sources and regenerate:
 - `kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2.py`
   - Source: `kubernetes_platform/proto/kubernetes_executor_config.proto`
   - Generate: `make -C kubernetes_platform python` (or `make -C kubernetes_platform python-dev`)
-- Frontend API clients under `frontend/src/apis` and `frontend/src/apisv2beta1`
+- Frontend OpenAPI clients and shared support under `frontend/src/apis`, `frontend/src/apisv2beta1`, `frontend/src/generated/openapi`, `frontend/server/src/generated/apis*`, and `frontend/server/src/generated/openapi`
   - Sources: Swagger specs under `backend/api/**/swagger/*.json`
   - Generate: `cd frontend && npm run apis` / `npm run apis:v2beta1` / `npm run apis:all` (uses pinned Docker image `openapitools/openapi-generator-cli:v7.19.0`)
 - Frontend MLMD proto outputs under `frontend/src/third_party/mlmd/generated`
@@ -397,8 +397,8 @@ For full integration testing against a real KFP deployment:
 
 ### Key technologies and architecture
 
-- **React 17** with TypeScript
-- **Material-UI v3** for components
+- **React 19** with TypeScript
+- **MUI v5** (Material UI) for components
 - **React Router v5** for navigation
 - **Dagre** for graph layout visualization
 - **D3** for data visualization
@@ -446,9 +446,8 @@ When writing or reviewing React code in `frontend/src`:
 - `npm run lint` - Run ESLint
 - `npm run typecheck` - Run TypeScript typecheck (`tsc --noEmit`)
 - `npm run typecheck:mock-backend` - Typecheck mock-backend against generated API types
-- `npm run check:react-peers` - Enforce lockfile React peer compatibility for current target (React 17 today)
+- `npm run check:react-peers` - Enforce lockfile React peer compatibility for current target (React 19)
 - `npm run check:react-peers:18` - Preview lockfile React peer compatibility against React 18
-- `npm run check:react-peers:19` - Preview lockfile React peer compatibility against React 19
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Fast pre-push check for frontend formatting; for a small TS/TSX diff, `npx prettier --check <changed files>` is the quickest equivalent
 - `npm run storybook` - Start Storybook on port 6006
@@ -466,6 +465,7 @@ The frontend includes several generated code components:
   ```
 
   Note: These commands use Docker image `openapitools/openapi-generator-cli:v7.19.0`.
+  Generated support files are deduplicated into `src/generated/openapi` and `server/src/generated/openapi`.
   Ensure Docker is running.
 
 - **Protocol Buffers**: Generated from proto definitions
@@ -633,7 +633,7 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - Frontend dev server: `cd frontend && npm start`
 - Frontend with cluster: `cd frontend && npm run start:proxy-and-server`
 - Frontend tests: `cd frontend && npm run test:ui` (Vitest) or `npm test` (same as `test:ui`)
-- Frontend React peer gate: `cd frontend && npm run check:react-peers` (or `check:react-peers:18` / `check:react-peers:19`)
+- Frontend React peer gate: `cd frontend && npm run check:react-peers` (or `check:react-peers:18`)
 - Frontend formatting: `cd frontend && npm run format`
 - Generate frontend APIs: `cd frontend && npm run apis:all`
 

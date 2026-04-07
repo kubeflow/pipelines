@@ -34,6 +34,7 @@ function NewRunSwitcher(props: PageProps) {
     urlParser.get(QUERY_PARAMS.pipelineVersionId),
   );
   const existingRunId = originalRunId ? originalRunId : embeddedRunId;
+  const hasConflictingCloneSources = !!(originalRunId || embeddedRunId) && !!originalRecurringRunId;
   let pipelineIdFromRunOrRecurringRun;
   let pipelineVersionIdFromRunOrRecurringRun;
 
@@ -50,7 +51,7 @@ function NewRunSwitcher(props: PageProps) {
       }
       return Apis.runServiceApiV2.getRun(existingRunId);
     },
-    enabled: !!existingRunId,
+    enabled: !!existingRunId && !hasConflictingCloneSources,
     staleTime: Infinity,
   });
 
@@ -67,13 +68,9 @@ function NewRunSwitcher(props: PageProps) {
       }
       return Apis.recurringRunServiceApi.getRecurringRun(originalRecurringRunId);
     },
-    enabled: !!originalRecurringRunId,
+    enabled: !!originalRecurringRunId && !hasConflictingCloneSources,
     staleTime: Infinity,
   });
-
-  if (v2Run !== undefined && recurringRun !== undefined) {
-    throw new Error('The existence of run and recurring run should be exclusive.');
-  }
 
   pipelineIdFromRunOrRecurringRun =
     v2Run?.pipeline_version_reference?.pipeline_id ||
@@ -164,6 +161,10 @@ function NewRunSwitcher(props: PageProps) {
       staleTime: Infinity,
     },
   );
+
+  if (hasConflictingCloneSources) {
+    throw new Error('The existence of run and recurring run should be exclusive.');
+  }
 
   // Three possible sources for template string
   // 1. pipelineManifest: pipeline_spec stored in run or recurring run created by SDK

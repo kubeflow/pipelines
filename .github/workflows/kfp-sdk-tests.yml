@@ -20,7 +20,7 @@ concurrency:
 jobs:
   sdk-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 50
     strategy:
       matrix:
         python-version: ['3.9', '3.13']
@@ -49,6 +49,7 @@ jobs:
         pip install pytest
         pip install docker
         pip install pytest-cov
+        pip install pytest-xdist
         pip install google_cloud_pipeline_components
         pip install requests==2.28.1
 
@@ -58,5 +59,6 @@ jobs:
         SETUP_ENV: false
         REPO_NAME: ${{ github.repository }}
         PULL_NUMBER: ${{ github.event.pull_request.number }}
+        PYTEST_PARALLEL_WORKERS: 2
       run: |
         ./test/presubmit-tests-sdk.sh

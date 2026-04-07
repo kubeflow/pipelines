@@ -1,0 +1,338 @@
+# PIPELINE DEFINITION
+# Name: pipeline-parallelfor-pipeline-param
+# Description: Pipeline parameter used alongside loop item inside ParallelFor.
+# Inputs:
+#    loop_parameter: list
+#    prefix: str
+components:
+  comp-for-loop-1:
+    dag:
+      tasks:
+        print-with-prefix:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-with-prefix
+          inputs:
+            parameters:
+              item:
+                componentInputParameter: pipelinechannel--loop_parameter-loop-item
+              prefix:
+                componentInputParameter: pipelinechannel--prefix
+          taskInfo:
+            name: print-with-prefix
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop_parameter:
+          parameterType: LIST
+        pipelinechannel--loop_parameter-loop-item:
+          parameterType: STRING
+        pipelinechannel--prefix:
+          parameterType: STRING
+  comp-for-loop-2:
+    dag:
+      tasks:
+        print-with-prefix-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-with-prefix-2
+          inputs:
+            parameters:
+              item:
+                componentInputParameter: pipelinechannel--loop_parameter-loop-item
+              prefix:
+                componentInputParameter: pipelinechannel--make-prefix-Output
+          taskInfo:
+            name: print-with-prefix-2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop_parameter:
+          parameterType: LIST
+        pipelinechannel--loop_parameter-loop-item:
+          parameterType: STRING
+        pipelinechannel--make-prefix-Output:
+          parameterType: STRING
+  comp-for-loop-4:
+    dag:
+      tasks:
+        for-loop-5:
+          componentRef:
+            name: comp-for-loop-5
+          inputs:
+            parameters:
+              pipelinechannel--loop_parameter:
+                componentInputParameter: pipelinechannel--loop_parameter
+              pipelinechannel--prefix:
+                componentInputParameter: pipelinechannel--prefix
+          parameterIterator:
+            itemInput: pipelinechannel--loop_parameter-loop-item
+            items:
+              inputParameter: pipelinechannel--loop_parameter
+          taskInfo:
+            name: for-loop-5
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-3:
+          parameterType: STRING
+        pipelinechannel--loop_parameter:
+          parameterType: LIST
+        pipelinechannel--prefix:
+          parameterType: STRING
+  comp-for-loop-5:
+    dag:
+      tasks:
+        print-with-prefix-3:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-with-prefix-3
+          inputs:
+            parameters:
+              item:
+                componentInputParameter: pipelinechannel--loop_parameter-loop-item
+              prefix:
+                componentInputParameter: pipelinechannel--prefix
+          taskInfo:
+            name: print-with-prefix-3
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop_parameter:
+          parameterType: LIST
+        pipelinechannel--loop_parameter-loop-item:
+          parameterType: STRING
+        pipelinechannel--prefix:
+          parameterType: STRING
+  comp-make-prefix:
+    executorLabel: exec-make-prefix
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-with-prefix:
+    executorLabel: exec-print-with-prefix
+    inputDefinitions:
+      parameters:
+        item:
+          parameterType: STRING
+        prefix:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-with-prefix-2:
+    executorLabel: exec-print-with-prefix-2
+    inputDefinitions:
+      parameters:
+        item:
+          parameterType: STRING
+        prefix:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-with-prefix-3:
+    executorLabel: exec-print-with-prefix-3
+    inputDefinitions:
+      parameters:
+        item:
+          parameterType: STRING
+        prefix:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-make-prefix:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - make_prefix
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef make_prefix() -> str:\n    return 'dynamic-prefix'\n\n"
+        image: python:3.11
+    exec-print-with-prefix:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_with_prefix
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_with_prefix(prefix: str, item: str) -> str:\n    result\
+          \ = f'{prefix}: {item}'\n    print(result)\n    return result\n\n"
+        image: python:3.11
+    exec-print-with-prefix-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_with_prefix
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_with_prefix(prefix: str, item: str) -> str:\n    result\
+          \ = f'{prefix}: {item}'\n    print(result)\n    return result\n\n"
+        image: python:3.11
+    exec-print-with-prefix-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_with_prefix
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_with_prefix(prefix: str, item: str) -> str:\n    result\
+          \ = f'{prefix}: {item}'\n    print(result)\n    return result\n\n"
+        image: python:3.11
+pipelineInfo:
+  description: Pipeline parameter used alongside loop item inside ParallelFor.
+  name: pipeline-parallelfor-pipeline-param
+root:
+  dag:
+    tasks:
+      for-loop-1:
+        componentRef:
+          name: comp-for-loop-1
+        inputs:
+          parameters:
+            pipelinechannel--loop_parameter:
+              componentInputParameter: loop_parameter
+            pipelinechannel--prefix:
+              componentInputParameter: prefix
+        iteratorPolicy:
+          parallelismLimit: 1
+        parameterIterator:
+          itemInput: pipelinechannel--loop_parameter-loop-item
+          items:
+            inputParameter: pipelinechannel--loop_parameter
+        taskInfo:
+          name: for-loop-1
+      for-loop-2:
+        componentRef:
+          name: comp-for-loop-2
+        dependentTasks:
+        - make-prefix
+        inputs:
+          parameters:
+            pipelinechannel--loop_parameter:
+              componentInputParameter: loop_parameter
+            pipelinechannel--make-prefix-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: make-prefix
+        parameterIterator:
+          itemInput: pipelinechannel--loop_parameter-loop-item
+          items:
+            inputParameter: pipelinechannel--loop_parameter
+        taskInfo:
+          name: for-loop-2
+      for-loop-4:
+        componentRef:
+          name: comp-for-loop-4
+        inputs:
+          parameters:
+            pipelinechannel--loop_parameter:
+              componentInputParameter: loop_parameter
+            pipelinechannel--prefix:
+              componentInputParameter: prefix
+        iteratorPolicy:
+          parallelismLimit: 2
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-3
+          items:
+            raw: '["x", "y"]'
+        taskInfo:
+          name: for-loop-4
+      make-prefix:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-make-prefix
+        taskInfo:
+          name: make-prefix
+  inputDefinitions:
+    parameters:
+      loop_parameter:
+        parameterType: LIST
+      prefix:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2

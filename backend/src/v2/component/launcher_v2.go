@@ -42,6 +42,7 @@ import (
 	"gocloud.dev/blob"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -521,6 +522,56 @@ const OutputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
 // We overwrite this as a DI mechanism for testing getLogWriter.
 var osCreateFunc = os.Create
 
+// qualifyExecutorLogsURI appends the retry index to the executor-logs artifact
+// URI so that each Argo retry attempt writes to and registers a distinct,
+// human-readable path in the object store and MLMD (e.g. executor-logs-0,
+// executor-logs-1, …). Without this, all retry pods share the single URI that
+// the driver provisioned before any attempt ran, causing every retry to
+// overwrite the same S3 key and register duplicate MLMD artifacts pointing at
+// stale data.
+func qualifyExecutorLogsURI(artifacts map[string]*pipelinespec.ArtifactList, retryIndex string) {
+	if retryIndex == "" {
+		return
+	}
+	logsArtifactList, ok := artifacts["executor-logs"]
+	if !ok || logsArtifactList == nil || len(logsArtifactList.Artifacts) != 1 {
+		return
+	}
+	art := logsArtifactList.Artifacts[0]
+	if art == nil {
+		return
+	}
+	art.Uri = art.Uri + "-" + retryIndex
+}
+
+// retryIndexFromPodAnnotation reads the Argo node-name annotation on the current
+// pod and parses the 0-based retry index from it. Argo encodes the index as a
+// parenthesised suffix on the node name, e.g. "…executor(3)". This provides a
+// fallback when the KFP_RETRY_INDEX env var (set via {{retries}} in the Argo
+// template) is unavailable, which is the case when an older API server that
+// does not yet inject KFP_RETRY_INDEX is in use.
+func retryIndexFromPodAnnotation(ctx context.Context, k8sClient kubernetes.Interface, namespace, podName string) (string, error) {
+	pod, err := k8sClient.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get pod %s/%s: %w", namespace, podName, err)
+	}
+	nodeName, ok := pod.Annotations["workflows.argoproj.io/node-name"]
+	if !ok {
+		return "", fmt.Errorf("pod %s/%s has no argo node-name annotation", namespace, podName)
+	}
+	// Extract the trailing "(N)" from node names like "…executor(3)".
+	open := strings.LastIndex(nodeName, "(")
+	close := strings.LastIndex(nodeName, ")")
+	if open < 0 || close <= open {
+		return "", fmt.Errorf("argo node-name %q has no retry index suffix", nodeName)
+	}
+	index := nodeName[open+1 : close]
+	if _, err := strconv.Atoi(index); err != nil {
+		return "", fmt.Errorf("argo node-name %q retry index %q is not an integer: %w", nodeName, index, err)
+	}
+	return index, nil
+}
+
 // getLogWriter returns an io.Writer that can either be single-channel to stdout
 // or dual-channel to stdout AND a log file based on the URI of a log artifact
 // in the supplied ArtifactList. Downstream, the resulting log file gets
@@ -586,6 +637,30 @@ func execute(
 	}
 	if err := downloadArtifacts(ctx, executorInput, bucket, bucketConfig, namespace, k8sClient); err != nil {
 		return nil, err
+	}
+
+	// Qualify the executor-logs URI with the retry index before preparing output
+	// folders so the per-attempt directory is created at the correct path.
+	// Prefer KFP_RETRY_INDEX, which is injected by the Argo compiler as
+	// "{{retries}}" and resolved by Argo at pod creation time. Fall back to
+	// reading the Argo node-name pod annotation, which encodes the index as
+	// executor(N), for compatibility with older API server versions.
+	if publishLogs == "true" {
+		retryIndex := os.Getenv(EnvRetryIndex)
+		if retryIndex == "" {
+			podName := os.Getenv(EnvPodName)
+			if podName != "" && k8sClient != nil && namespace != "" {
+				if idx, err := retryIndexFromPodAnnotation(ctx, k8sClient, namespace, podName); err == nil {
+					retryIndex = idx
+				} else {
+					glog.Warningf("Could not determine retry index from pod annotation, defaulting to 0: %v", err)
+				}
+			}
+		}
+		if retryIndex == "" {
+			retryIndex = "0"
+		}
+		qualifyExecutorLogsURI(executorInput.Outputs.GetArtifacts(), retryIndex)
 	}
 
 	if err := prepareOutputFolders(executorInput); err != nil {
