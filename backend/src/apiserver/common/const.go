@@ -14,6 +14,8 @@
 
 package common
 
+import "time"
+
 const (
 	RbacKubeflowGroup    = "kubeflow.org"
 	RbacPipelinesGroup   = "pipelines.kubeflow.org"
@@ -88,3 +90,9 @@ const (
 // empty map from nil, so this header preserves the intent across the
 // HTTP→gRPC proxy roundtrip.
 const ClearTagsMetadataKey = "x-clear-tags"
+
+const (
+	DefaultPodProvisioningTimeoutValue time.Duration = 3600 * time.Second
+	DefaultPodRuntimeTimeoutValue      time.Duration = 3600 * time.Second
+	DefaultPodNodeFailureTimeoutValue  time.Duration = 3600 * time.Second
+)

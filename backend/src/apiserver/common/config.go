@@ -44,6 +44,9 @@ const (
 	DefaultSecurityContextRunAsUser         string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_USER"
 	DefaultSecurityContextRunAsGroup        string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_GROUP"
 	DefaultSecurityContextRunAsNonRoot      string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT"
+	DefaultPodProvisioningTimeout           string = "DEFAULT_POD_PROVISIONING_TIMEOUT"
+	DefaultPodRuntimeTimeout                string = "DEFAULT_POD_RUNTIME_TIMEOUT"
+	DefaultPodNodeFailureTimeout            string = "DEFAULT_POD_NODE_FAILURE_TIMEOUT"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -186,4 +189,32 @@ func GetDefaultSecurityContextRunAsGroup() string {
 
 func GetDefaultSecurityContextRunAsNonRoot() string {
 	return GetStringConfigWithDefault(DefaultSecurityContextRunAsNonRoot, "")
+}
+
+func GetDurationConfigWithDefault(configName string, value time.Duration) time.Duration {
+	if !viper.IsSet(configName) {
+		return value
+	}
+	raw := viper.GetString(configName)
+	if raw == "" {
+		return value
+	}
+	parsedDuration, err := time.ParseDuration(raw)
+	if err != nil || parsedDuration <= 0 {
+		glog.Warningf("Config %s has invalid duration value %q, using default %v", configName, raw, value)
+		return value
+	}
+	return parsedDuration
+}
+
+func GetDefaultPodProvisioningTimeout() time.Duration {
+	return GetDurationConfigWithDefault(DefaultPodProvisioningTimeout, DefaultPodProvisioningTimeoutValue)
+}
+
+func GetDefaultPodRuntimeTimeout() time.Duration {
+	return GetDurationConfigWithDefault(DefaultPodRuntimeTimeout, DefaultPodRuntimeTimeoutValue)
+}
+
+func GetDefaultPodNodeFailureTimeout() time.Duration {
+	return GetDurationConfigWithDefault(DefaultPodNodeFailureTimeout, DefaultPodNodeFailureTimeoutValue)
 }

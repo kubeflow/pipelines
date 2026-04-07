@@ -295,6 +295,80 @@ func TestGetDurationConfig_WhenSet(t *testing.T) {
 	assert.Equal(t, 5*time.Second, result)
 }
 
+func TestGetDurationConfigWithDefault(t *testing.T) {
+	tests := []struct {
+		name          string
+		setEnv        bool
+		envValue      string
+		defaultValue  time.Duration
+		expectedValue time.Duration
+	}{
+		{
+			name:          "returns default when config not set",
+			setEnv:        false,
+			defaultValue:  time.Hour,
+			expectedValue: time.Hour,
+		},
+		{
+			name:          "returns default when env var is empty string",
+			setEnv:        true,
+			envValue:      "",
+			defaultValue:  time.Hour,
+			expectedValue: time.Hour,
+		},
+		{
+			name:          "returns parsed duration when env var is valid",
+			setEnv:        true,
+			envValue:      "30m",
+			defaultValue:  time.Hour,
+			expectedValue: 30 * time.Minute,
+		},
+		{
+			name:          "returns default when env var is a unitless numeric string",
+			setEnv:        true,
+			envValue:      "3600",
+			defaultValue:  time.Hour,
+			expectedValue: time.Hour,
+		},
+		{
+			name:          "returns default when env var is an invalid duration string",
+			setEnv:        true,
+			envValue:      "notaduration",
+			defaultValue:  time.Hour,
+			expectedValue: time.Hour,
+		},
+		{
+			name:          "returns default when env var is a negative duration",
+			setEnv:        true,
+			envValue:      "-30m",
+			defaultValue:  time.Hour,
+			expectedValue: time.Hour,
+		},
+		{
+			name:          "returns default when env var is a zero duration",
+			setEnv:        true,
+			envValue:      "0s",
+			defaultValue:  time.Hour,
+			expectedValue: time.Hour,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			viper.Reset()
+
+			if testCase.setEnv {
+				t.Setenv("TEST_DURATION_CONFIG", testCase.envValue)
+				viper.AutomaticEnv()
+				viper.AllowEmptyEnv(true)
+			}
+
+			result := GetDurationConfigWithDefault("TEST_DURATION_CONFIG", testCase.defaultValue)
+			assert.Equal(t, testCase.expectedValue, result)
+		})
+	}
+}
+
 func TestConfigWrapperDefaults(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -385,6 +459,21 @@ func TestConfigWrapperDefaults(t *testing.T) {
 			name:     "GetDefaultSecurityContextRunAsNonRoot defaults to empty string",
 			getter:   func() interface{} { return GetDefaultSecurityContextRunAsNonRoot() },
 			expected: "",
+		},
+		{
+			name:     "GetDefaultPodProvisioningTimeout defaults to 3600s",
+			getter:   func() interface{} { return GetDefaultPodProvisioningTimeout() },
+			expected: DefaultPodProvisioningTimeoutValue,
+		},
+		{
+			name:     "GetDefaultPodRuntimeTimeout defaults to 3600s",
+			getter:   func() interface{} { return GetDefaultPodRuntimeTimeout() },
+			expected: DefaultPodRuntimeTimeoutValue,
+		},
+		{
+			name:     "GetDefaultPodNodeFailureTimeout defaults to 3600s",
+			getter:   func() interface{} { return GetDefaultPodNodeFailureTimeout() },
+			expected: DefaultPodNodeFailureTimeoutValue,
 		},
 	}
 
@@ -525,6 +614,27 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 			envValue: "true",
 			getter:   func() interface{} { return GetDefaultSecurityContextRunAsNonRoot() },
 			expected: "true",
+		},
+		{
+			name:     "GetDefaultPodProvisioningTimeout with custom value",
+			envKey:   DefaultPodProvisioningTimeout,
+			envValue: "1800s",
+			getter:   func() interface{} { return GetDefaultPodProvisioningTimeout() },
+			expected: 1800 * time.Second,
+		},
+		{
+			name:     "GetDefaultPodRuntimeTimeout with custom value",
+			envKey:   DefaultPodRuntimeTimeout,
+			envValue: "7200s",
+			getter:   func() interface{} { return GetDefaultPodRuntimeTimeout() },
+			expected: 7200 * time.Second,
+		},
+		{
+			name:     "GetDefaultPodNodeFailureTimeout with custom value",
+			envKey:   DefaultPodNodeFailureTimeout,
+			envValue: "900s",
+			getter:   func() interface{} { return GetDefaultPodNodeFailureTimeout() },
+			expected: 900 * time.Second,
 		},
 	}
 
