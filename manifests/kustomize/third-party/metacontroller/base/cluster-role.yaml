@@ -32,7 +32,7 @@ rules:
   verbs: ["get", "list", "watch"]
 - apiGroups: [""]
   resources: ["persistentvolumeclaims"]
-  verbs: ["create", "get", "list"]
+  verbs: ["create", "get", "list", "delete"]
 - apiGroups: ["security.istio.io"]
   resources: ["authorizationpolicies"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

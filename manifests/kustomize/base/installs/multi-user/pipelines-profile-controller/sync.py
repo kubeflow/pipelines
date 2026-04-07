@@ -174,9 +174,10 @@ def server_factory(frontend_image,
                     print(f"ERROR: Failed to configure lifecycle policy: {exception}")
 
         def executor_plugin_resources(self, namespace):
+            print('Creating executor-plugin resources for namespace:', namespace)
             # Argo Workflow Executor Plugin Necessary Resources
             agent_service_account_name = 'ml-pipeline-driver-agent-executor-plugin'
-            secret_name = f'{agent_service_account_name}.service-account-token'
+            agent_secret_name = f'{agent_service_account_name}.service-account-token'
             return [
                 {
                     'apiVersion': 'v1',
@@ -189,7 +190,7 @@ def server_factory(frontend_image,
                         }
                     },
                     'secrets': [{
-                        'name': secret_name
+                        'name': agent_secret_name
                     }]
                 },
                 {
@@ -214,20 +215,7 @@ def server_factory(frontend_image,
                     'apiVersion': 'v1',
                     'kind': 'Secret',
                     'metadata': {
-                        'name': 'default-editor.service-account-token',
-                        'namespace': namespace,
-                        'annotations': {
-                            'kubernetes.io/service-account.name':
-                                'default-editor'
-                        }
-                    },
-                    'type': 'kubernetes.io/service-account-token'
-                },
-                {
-                    'apiVersion': 'v1',
-                    'kind': 'Secret',
-                    'metadata': {
-                        'name': secret_name,
+                        'name': agent_secret_name,
                         'namespace': namespace,
                         'annotations': {
                             'kubernetes.io/service-account.name': agent_service_account_name,
@@ -323,8 +311,6 @@ def server_factory(frontend_image,
                 },
             ]
 
-            print('Creating executor-plugin service accounts')
-            # Argo Workflow Executor Plugin Necessary Resources
             executor_plugin_resources = self.executor_plugin_resources(namespace)
             desired_resources.extend(executor_plugin_resources)
 
@@ -443,11 +429,6 @@ def server_factory(frontend_image,
                         }
                     },
                 ])
-
-            print('Creating executor-plugin service accounts')
-            # Argo Workflow Executor Plugin Necessary Resources
-            agent_sa_name = "ml-pipeline-driver-agent-executor-plugin"
-            secret_name = f"{agent_sa_name}.service-account-token"
             desired_resources.extend([
                 {
                     "apiVersion": "v1",
@@ -460,18 +441,6 @@ def server_factory(frontend_image,
                         }
                     },
                     "type": "kubernetes.io/service-account-token"
-                },
-                {
-                    "apiVersion": "v1",
-                    "kind": "Secret",
-                    "metadata": {
-                        "name": secret_name,
-                        "namespace": namespace,
-                        "annotations": {
-                            "kubernetes.io/service-account.name": agent_sa_name,
-                        },
-                    },
-                    "type": "kubernetes.io/service-account-token",
                 },
             ])
 

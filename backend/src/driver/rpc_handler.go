@@ -446,6 +446,7 @@ func extractOutputParameters(execution *driver.Execution, driverType string) []d
 			Value: strconv.FormatBool(*execution.Condition),
 		})
 	} else if driverType == DAG || driverType == RootDag || driverType == CONTAINER {
+		// nil is a valid value for Condition
 		outputs = append(outputs, driverapi.Parameter{
 			Name:  "condition",
 			Value: "nil",
@@ -455,6 +456,11 @@ func extractOutputParameters(execution *driver.Execution, driverType string) []d
 		outputs = append(outputs, driverapi.Parameter{
 			Name:  "pod-spec-patch",
 			Value: execution.PodSpecPatch,
+		})
+	} else {
+		outputs = append(outputs, driverapi.Parameter{
+			Name:  "pod-spec-patch",
+			Value: "",
 		})
 	}
 	return outputs
