@@ -976,7 +976,7 @@ func TestNewGenericScheduledWorkflow(t *testing.T) {
 			},
 		},
 	}
-	swf, err := NewGenericScheduledWorkflow(modelJob)
+	swf, err := NewGenericScheduledWorkflow(modelJob, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "kubeflow.org/v2beta1", swf.APIVersion)
 	assert.Equal(t, "ScheduledWorkflow", swf.Kind)
