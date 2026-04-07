@@ -537,6 +537,19 @@ func (r *ResourceManager) GetPipelineLatestTemplate(pipelineId string) ([]byte, 
 	}
 }
 
+func isNamespaceAllowed(namespace string, allowedNamespaces string) bool {
+	if allowedNamespaces == "" {
+		return false
+	}
+	targetNamespace := strings.ToLower(strings.TrimSpace(namespace))
+	for _, n := range strings.Split(allowedNamespaces, ",") {
+		if strings.ToLower(strings.TrimSpace(n)) == targetNamespace {
+			return true
+		}
+	}
+	return false
+}
+
 // Creates a run and schedule a workflow CR.
 // Manifest's namespace gets overwritten with the run.Namespace.
 // Creating a run from recurring run prioritizes recurring run's pipeline spec over the run's one.
@@ -582,6 +595,14 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	if k8sNamespace == "" {
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Namespace cannot be empty when creating an Argo workflow. Check if you have specified POD_NAMESPACE or try adding the parent namespace to the request"), "Failed to create a run due to empty namespace")
 	}
+
+	if common.GetBoolConfigWithDefault(common.BlockV1Pipelines, false) && tmpl.GetTemplateType() == template.V1 {
+		allowedNamespaces := common.GetStringConfigWithDefault(common.V1NamespaceWhitelist, "")
+		if !isNamespaceAllowed(k8sNamespace, allowedNamespaces) {
+			return nil, util.NewInvalidInputError("Namespace %s is not allowed to run v1 pipelines. Please migrate to using KFP V2 pipelines.", k8sNamespace)
+		}
+	}
+
 	executionSpec.SetExecutionNamespace(k8sNamespace)
 
 	// assign OwnerReference to scheduledworkflow
@@ -1188,6 +1209,13 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 
 		scheduledWorkflow.Spec.Workflow = &scheduledworkflow.WorkflowResource{
 			Parameters: parameters, PipelineRoot: string(job.PipelineRoot),
+		}
+	}
+
+	if common.GetBoolConfigWithDefault(common.BlockV1Pipelines, false) && tmpl.GetTemplateType() == template.V1 {
+		allowedNamespaces := common.GetStringConfigWithDefault(common.V1NamespaceWhitelist, "")
+		if !isNamespaceAllowed(k8sNamespace, allowedNamespaces) {
+			return nil, util.NewInvalidInputError("Namespace %s is not allowed to run v1 pipelines. Please migrate to using KFP V2 pipelines.", k8sNamespace)
 		}
 	}
 
