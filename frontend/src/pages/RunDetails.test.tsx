@@ -605,6 +605,24 @@ describe('RunDetails', () => {
     expect(renderResult!.asFragment()).toMatchSnapshot();
   });
 
+  it('catches rejected output artifact loads without surfacing an unhandled rejection', async () => {
+    const loggerErrorSpy = vi.spyOn(Utils.logger, 'error').mockImplementation();
+    pathsWithStepsParser.mockImplementation(() => [
+      { stepName: 'step1', path: { source: 'gcs', bucket: 'somebucket', key: 'somekey' } },
+    ]);
+    loaderSpy.mockImplementation(() => Promise.reject(new Error('artifact load failed')));
+
+    await renderRunDetails();
+    await TestUtils.flushPromises();
+
+    expect(loggerErrorSpy).toHaveBeenCalledWith('Failed to load run outputs:', expect.any(Error));
+    expect(getRunDetailsState()?.allArtifactConfigs).toEqual([]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run output' }));
+    await TestUtils.flushPromises();
+    expect(screen.getByText('No output artifacts found for this run.')).toBeInTheDocument();
+  });
+
   it('switches to config tab', async () => {
     await renderRunDetails();
     fireEvent.click(screen.getByRole('button', { name: 'Config' }));
