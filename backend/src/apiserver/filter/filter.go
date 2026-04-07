@@ -241,7 +241,7 @@ func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) 
 	for k := range f.eq {
 		fieldVal := fmt.Sprint(getField(k))
 		for _, v := range f.eq[k] {
-			if fieldVal != fmt.Sprint(v) {
+			if !strings.EqualFold(fieldVal, fmt.Sprint(v)) {
 				return false, nil
 			}
 		}
@@ -251,7 +251,7 @@ func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) 
 	for k := range f.neq {
 		fieldVal := fmt.Sprint(getField(k))
 		for _, v := range f.neq[k] {
-			if fieldVal == fmt.Sprint(v) {
+			if strings.EqualFold(fieldVal, fmt.Sprint(v)) {
 				return false, nil
 			}
 		}
@@ -283,7 +283,7 @@ func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) 
 				return false, nil
 			}
 			for i := 0; i < rv.Len(); i++ {
-				if fieldVal == fmt.Sprint(rv.Index(i).Interface()) {
+				if strings.EqualFold(fieldVal, fmt.Sprint(rv.Index(i).Interface())) {
 					inOne = true
 					break
 				}
@@ -298,7 +298,7 @@ func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) 
 	for k := range f.substring {
 		fieldVal := fmt.Sprint(getField(k))
 		for _, v := range f.substring[k] {
-			if !strings.Contains(fieldVal, fmt.Sprint(v)) {
+			if !strings.Contains(strings.ToLower(fieldVal), strings.ToLower(fmt.Sprint(v))) {
 				return false, nil
 			}
 		}
