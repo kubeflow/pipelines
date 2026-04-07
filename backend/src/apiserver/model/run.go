@@ -399,14 +399,19 @@ func (r *Run) GetModelName() string {
 	return ""
 }
 
-func (r *Run) GetField(name string) (string, bool) {
+// MetricSortSQLAlias is the fixed SQL column alias used when sorting runs by a
+// metric value. Using a constant prevents user-supplied metric names from ever
+// appearing as SQL identifiers.
+const MetricSortSQLAlias = "sort_metric_value"
+
+func (r *Run) GetField(name string) (string, string, bool) {
 	if field, ok := runAPIToModelFieldMap[name]; ok {
-		return field, true
+		return field, field, true
 	}
 	if strings.HasPrefix(name, "metric:") {
-		return name[7:], true
+		return name[7:], MetricSortSQLAlias, true
 	}
-	return "", false
+	return "", "", false
 }
 
 func (r *Run) GetFieldValue(name string) interface{} {

@@ -97,11 +97,11 @@ func (p *PipelineVersion) GetModelName() string {
 func (PipelineVersion) TableName() string {
 	return "pipeline_versions"
 }
-func (p *PipelineVersion) GetField(name string) (string, bool) {
+func (p *PipelineVersion) GetField(name string) (string, string, bool) {
 	if field, ok := p.APIToModelFieldMap()[name]; ok {
-		return field, true
+		return field, field, true
 	}
-	return "", false
+	return "", "", false
 }
 
 func (p *PipelineVersion) GetFieldValue(name string) interface{} {
