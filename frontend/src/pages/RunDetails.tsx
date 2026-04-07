@@ -974,18 +974,22 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       return;
     }
 
-    const outputPathsList = WorkflowParser.loadAllOutputPathsWithStepNames(workflow);
+    try {
+      const outputPathsList = WorkflowParser.loadAllOutputPathsWithStepNames(workflow);
 
-    const configLists = await Promise.all(
-      outputPathsList.map(({ stepName, path }) =>
-        OutputArtifactLoader.load(path, workflow?.metadata?.namespace).then((configs) =>
-          configs.map((config) => ({ config, stepName })),
+      const configLists = await Promise.all(
+        outputPathsList.map(({ stepName, path }) =>
+          OutputArtifactLoader.load(path, workflow?.metadata?.namespace).then((configs) =>
+            configs.map((config) => ({ config, stepName })),
+          ),
         ),
-      ),
-    );
-    const allArtifactConfigs = flatten(configLists);
+      );
+      const allArtifactConfigs = flatten(configLists);
 
-    this.setStateSafe({ allArtifactConfigs });
+      this.setStateSafe({ allArtifactConfigs });
+    } catch (err) {
+      logger.error('Failed to load run outputs:', err);
+    }
   }
 
   private _getDetailsFields(workflow: Workflow, runMetadata?: ApiRun): Array<KeyValue<string>> {
