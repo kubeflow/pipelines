@@ -102,6 +102,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   private api = Api.getInstance();
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     return this.load();
   }
 

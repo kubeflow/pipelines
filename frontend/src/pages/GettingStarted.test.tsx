@@ -27,6 +27,20 @@ describe('GettingStarted page', () => {
   const historyPushSpy = vi.fn();
   const pipelineListSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelines');
 
+  function tutorialNameFromListPipelinesFilter(encodedFilter?: string): string {
+    if (!encodedFilter) {
+      return '';
+    }
+    try {
+      const parsed = JSON.parse(decodeURIComponent(encodedFilter)) as {
+        predicates?: Array<{ string_value?: string }>;
+      };
+      return parsed?.predicates?.[0]?.string_value ?? '';
+    } catch {
+      return '';
+    }
+  }
+
   function generateProps(): PageProps {
     return TestUtils.generatePageProps(
       GettingStarted,
@@ -55,38 +69,48 @@ describe('GettingStarted page', () => {
   });
 
   it('renders documentation with pipeline deep link after querying demo pipelines', async () => {
-    let count = 0;
-    pipelineListSpy.mockImplementation(() => {
-      ++count;
-      const response: V2beta1ListPipelinesResponse = {
-        pipelines: [{ pipeline_id: `pipeline-id-${count}` }],
-      };
-      return Promise.resolve(response);
+    pipelineListSpy.mockImplementation((_ns, _pt, _ps, _order, filter) => {
+      const name = tutorialNameFromListPipelinesFilter(filter);
+      if (name.includes('Data passing')) {
+        return Promise.resolve({
+          pipelines: [{ pipeline_id: 'pipeline-id-data' }],
+          total_size: 1,
+        } as V2beta1ListPipelinesResponse);
+      }
+      if (name.includes('Control structures')) {
+        return Promise.resolve({
+          pipelines: [{ pipeline_id: 'pipeline-id-control' }],
+          total_size: 1,
+        } as V2beta1ListPipelinesResponse);
+      }
+      return Promise.resolve({ pipelines: [], total_size: 0 });
     });
     render(<GettingStarted {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(pipelineListSpy.mock.calls).toMatchSnapshot();
     expect(screen.getByRole('link', { name: 'Data passing in Python components' })).toHaveAttribute(
       'href',
-      '#/pipelines/details/pipeline-id-1?',
+      '#/pipelines/details/pipeline-id-data?',
     );
     expect(screen.getByRole('link', { name: 'DSL - Control structures' })).toHaveAttribute(
       'href',
-      '#/pipelines/details/pipeline-id-2?',
+      '#/pipelines/details/pipeline-id-control?',
     );
   });
 
   it('fallbacks to show pipeline list page if request failed', async () => {
-    let count = 0;
-    pipelineListSpy.mockImplementation((): Promise<V2beta1ListPipelinesResponse> => {
-      ++count;
-      if (count === 1) {
+    pipelineListSpy.mockImplementation((_ns, _pt, _ps, _order, filter) => {
+      const name = tutorialNameFromListPipelinesFilter(filter);
+      if (name.includes('Data passing')) {
         return Promise.reject(new Error('Mocked error'));
       }
-      return Promise.resolve({
-        pipelines: [{ pipeline_id: `pipeline-id-${count}` }],
-        total_size: 1,
-      });
+      if (name.includes('Control structures')) {
+        return Promise.resolve({
+          pipelines: [{ pipeline_id: 'pipeline-id-control' }],
+          total_size: 1,
+        } as V2beta1ListPipelinesResponse);
+      }
+      return Promise.resolve({ pipelines: [], total_size: 0 });
     });
     render(<GettingStarted {...generateProps()} />);
     await TestUtils.flushPromises();
@@ -96,7 +120,7 @@ describe('GettingStarted page', () => {
     );
     expect(screen.getByRole('link', { name: 'DSL - Control structures' })).toHaveAttribute(
       'href',
-      '#/pipelines/details/pipeline-id-2?',
+      '#/pipelines/details/pipeline-id-control?',
     );
   });
 });

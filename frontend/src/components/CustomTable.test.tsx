@@ -33,29 +33,35 @@ class CustomTableTest extends CustomTable {
 }
 
 class CustomTableWrapper {
-  private _instance: CustomTableTest;
+  private readonly _instanceHolder: { current: CustomTableTest | null };
   private _renderResult: ReturnType<typeof render>;
 
-  public constructor(instance: CustomTableTest, renderResult: ReturnType<typeof render>) {
-    this._instance = instance;
+  public constructor(
+    instanceHolder: { current: CustomTableTest | null },
+    renderResult: ReturnType<typeof render>,
+  ) {
+    this._instanceHolder = instanceHolder;
     this._renderResult = renderResult;
   }
 
   public instance(): CustomTableTest {
-    return this._instance;
+    const instance = this._instanceHolder.current;
+    if (!instance) {
+      throw new Error('CustomTable instance not available');
+    }
+    return instance;
   }
 
   public state<K extends keyof CustomTableState>(key?: K): CustomTableState | CustomTableState[K] {
-    const state = this._instance.state;
+    const state = this.instance().state;
     return key ? state[key] : state;
   }
 
   public rerender(props: CustomTableProps): void {
-    const ref = React.createRef<CustomTableTest>();
-    this._renderResult.rerender(<CustomTableTest ref={ref} {...props} />);
-    if (ref.current) {
-      this._instance = ref.current;
-    }
+    const setTableRef = (instance: CustomTableTest | null): void => {
+      this._instanceHolder.current = instance;
+    };
+    this._renderResult.rerender(<CustomTableTest ref={setTableRef} {...props} />);
   }
 
   public unmount(): void {
@@ -97,12 +103,15 @@ const rows: Row[] = [
 
 function renderTable(overrides: Partial<CustomTableProps> = {}): CustomTableWrapper {
   const props = { ...baseProps, ...overrides } as CustomTableProps;
-  const tableRef = React.createRef<CustomTableTest>();
-  const renderResult = render(<CustomTableTest ref={tableRef} {...props} />);
-  if (!tableRef.current) {
+  const instanceHolder: { current: CustomTableTest | null } = { current: null };
+  const setTableRef = (instance: CustomTableTest | null): void => {
+    instanceHolder.current = instance;
+  };
+  const renderResult = render(<CustomTableTest ref={setTableRef} {...props} />);
+  if (!instanceHolder.current) {
     throw new Error('CustomTable instance not available');
   }
-  return new CustomTableWrapper(tableRef.current, renderResult);
+  return new CustomTableWrapper(instanceHolder, renderResult);
 }
 
 function getHeaderCheckbox(container: HTMLElement): HTMLInputElement {

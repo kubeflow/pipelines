@@ -419,12 +419,12 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
                   class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
                 >
                   <div
-                    aria-controls="_r_3l_"
+                    aria-controls="_r_41_"
                     aria-expanded="false"
                     aria-haspopup="listbox"
-                    aria-labelledby="_r_3k_"
+                    aria-labelledby="_r_40_"
                     class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-                    id="_r_3k_"
+                    id="_r_40_"
                     role="combobox"
                     tabindex="0"
                   >

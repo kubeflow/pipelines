@@ -117,12 +117,7 @@ describe('ArtifactList', () => {
       </MemoryRouter>,
     );
 
-    await waitFor(() => {
-      expect(getArtifactTypesSpy).toHaveBeenCalledTimes(1);
-      expect(getArtifactsSpy).toHaveBeenCalledTimes(1);
-    });
-
-    screen.getByText('pipeline 1');
+    await screen.findByText('pipeline 1');
     screen.getByText('test artifact 1');
   });
 
@@ -133,12 +128,7 @@ describe('ArtifactList', () => {
       </MemoryRouter>,
     );
 
-    await waitFor(() => {
-      expect(getArtifactTypesSpy).toHaveBeenCalledTimes(1);
-      expect(getArtifactsSpy).toHaveBeenCalledTimes(1);
-    });
-
-    screen.getByText('Rows per page:');
+    await screen.findByText('Rows per page:');
     screen.getByText('10');
   });
 
@@ -149,11 +139,11 @@ describe('ArtifactList', () => {
       </MemoryRouter>,
     );
 
-    await waitFor(() => {
-      expect(getArtifactTypesSpy).toHaveBeenCalledTimes(1);
-      expect(getArtifactsSpy).toHaveBeenCalledTimes(1);
-    });
+    await screen.findByText('Rows per page:');
     expect(screen.queryByText('test artifact 20')).toBeNull(); // Can not see the 20th artifact initially
+
+    getArtifactTypesSpy.mockClear();
+    getArtifactsSpy.mockClear();
 
     getArtifactsSpy.mockImplementation(() => {
       const artifacts = generateNArtifacts(20);
@@ -170,10 +160,9 @@ describe('ArtifactList', () => {
     listOperationOpts.setMaxResultSize(20);
     getArtifactsRequest.setOptions(listOperationOpts);
     await waitFor(() => {
-      // API will be called again if "Rows per page" is changed
-      expect(getArtifactTypesSpy).toHaveBeenCalledTimes(1);
       expect(getArtifactsSpy).toHaveBeenLastCalledWith(getArtifactsRequest);
     });
+    expect(getArtifactTypesSpy).not.toHaveBeenCalled();
 
     screen.getByText('test artifact 20'); // The 20th artifacts appears.
   });

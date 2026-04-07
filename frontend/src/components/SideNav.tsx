@@ -245,6 +245,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
   }
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     window.addEventListener('resize', this._boundMaybeResize);
     this._maybeResize();
   }

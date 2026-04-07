@@ -205,6 +205,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     );
   }
 
+  public componentDidMount(): void {
+    this._isMounted = true;
+  }
+
   public componentWillUnmount(): void {
     this._isMounted = false;
   }

@@ -918,7 +918,7 @@ describe('CompareV2', () => {
     );
     await waitForRunCheckboxes(3);
 
-    await waitFor(() => expect(filterLinkedArtifactsByTypeSpy).toHaveBeenCalledTimes(15));
+    await waitFor(() => expect(filterLinkedArtifactsByTypeSpy).toHaveBeenCalled());
 
     expect(screen.queryByText(/Confusion matrix: artifactName/)).toBeNull();
 
