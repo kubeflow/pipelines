@@ -1,6 +1,7 @@
 # This workflow removes a stale 'ci-passed' label whenever a PR is updated
 # or its eligibility labels change, then adds it back only after the
-# 'CI Check' workflow completes successfully for a label-eligible PR.
+# 'CI Check' workflow both completes successfully and records that it
+# actually ran the CI polling gate for the current eligible PR head.
 name: Add CI Passed Label
 
 on:
@@ -16,6 +17,7 @@ on:
       - completed
 
 permissions:
+  actions: read
   pull-requests: write
   issues: write
 
@@ -24,17 +26,16 @@ jobs:
     name: Fetch PR eligibility
     runs-on: ubuntu-latest
     outputs:
-      pr_number: ${{ steps.pr.outputs.pr_number }}
-      eligible: ${{ steps.pr.outputs.eligible }}
-      should_add_label: ${{ steps.pr.outputs.should_add_label }}
+      pr_number: ${{ steps.ci_result.outputs.pr_number }}
+      eligible: ${{ steps.ci_result.outputs.eligible }}
+      should_add_label: ${{ steps.ci_result.outputs.should_add_label }}
     steps:
-      - name: Check PR label eligibility
-        id: pr
+      - name: Download CI check result
+        id: download_result
         uses: actions/github-script@v8
         with:
           script: |
-            core.setOutput("eligible", "false");
-            core.setOutput("should_add_label", "false");
+            core.setOutput("artifact_found", "false");
 
             if (context.eventName !== "workflow_run") {
               core.info(`No ci-passed eligibility lookup needed for ${context.eventName}.`);
@@ -48,31 +49,87 @@ jobs:
               return;
             }
 
-            const workflowEvent = context.payload.workflow_run.event;
-            if (workflowEvent !== "pull_request" && workflowEvent !== "pull_request_target") {
-              core.info(`Skipping workflow_run event ${workflowEvent}`);
-              return;
-            }
-
-            const headRepositoryOwner = context.payload.workflow_run.head_repository?.owner?.login;
-            const headBranch = context.payload.workflow_run.head_branch;
-            const runHeadSha = context.payload.workflow_run.head_sha;
-            if (!headRepositoryOwner || !headBranch || !runHeadSha) {
-              core.info("workflow_run is missing head repository, branch, or SHA metadata.");
-              return;
-            }
-
-            const { data: pullRequests } = await github.rest.pulls.list({
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              state: "open",
-              head: `${headRepositoryOwner}:${headBranch}`,
+              run_id: context.payload.workflow_run.id,
+            });
+            const resultArtifact = artifacts.data.artifacts.find((artifact) => {
+              return artifact.name === "ci-check-result";
             });
 
-            const pullRequest = pullRequests.find((candidate) => candidate.head.sha === runHeadSha);
-            if (!pullRequest) {
+            if (!resultArtifact) {
+              core.warning(
+                `Required artifact "ci-check-result" was not found for workflow run ID ${context.payload.workflow_run.id}; skipping ci-passed update.`
+              );
+              return;
+            }
+
+            const download = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: resultArtifact.id,
+              archive_format: "zip",
+            });
+
+            const fs = require("fs");
+            fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/ci-check-result.zip`, Buffer.from(download.data));
+            core.setOutput("artifact_found", "true");
+
+      - name: Unzip CI check result
+        if: steps.download_result.outputs.artifact_found == 'true'
+        shell: bash
+        run: unzip -o ci-check-result.zip -d ci-check-result
+
+      - name: Parse CI check result and confirm current PR state
+        id: ci_result
+        if: steps.download_result.outputs.artifact_found == 'true'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            core.setOutput("pr_number", "");
+            core.setOutput("eligible", "false");
+            core.setOutput("should_add_label", "false");
+
+            const fs = require("fs");
+            const result = JSON.parse(
+              fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/ci-check-result/result.json`, "utf8")
+            );
+
+            core.info(`Loaded CI check result: ${JSON.stringify(result)}`);
+
+            if (result.should_add_label !== true) {
+              core.info("Triggering CI Check run did not actually complete polling successfully.");
+              return;
+            }
+
+            const recordedPRNumber = Number(result.pr_number);
+            const recordedHeadSha = result.head_sha;
+            if (!recordedPRNumber || !recordedHeadSha) {
+              throw new Error(`Invalid ci-check-result payload: ${JSON.stringify(result)}`);
+            }
+
+            if (context.payload.workflow_run.head_sha !== recordedHeadSha) {
               core.info(
-                `No open pull request matched ${headRepositoryOwner}:${headBranch} at ${runHeadSha}.`
+                `Ignoring mismatched artifact SHA ${recordedHeadSha}; workflow_run reported ${context.payload.workflow_run.head_sha}.`
+              );
+              return;
+            }
+
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: recordedPRNumber,
+            });
+
+            if (pullRequest.state !== "open") {
+              core.info(`PR #${pullRequest.number} is ${pullRequest.state}; not adding ci-passed.`);
+              return;
+            }
+
+            if (pullRequest.head.sha !== recordedHeadSha) {
+              core.info(
+                `PR #${pullRequest.number} head moved from ${recordedHeadSha} to ${pullRequest.head.sha}; not adding ci-passed.`
               );
               return;
             }
@@ -83,7 +140,10 @@ jobs:
             core.info(`PR #${pullRequest.number} labels: ${Array.from(labels).join(", ")}`);
             core.setOutput("pr_number", String(pullRequest.number));
             core.setOutput("eligible", eligible ? "true" : "false");
-            core.setOutput("should_add_label", eligible ? "true" : "false");
+            core.setOutput(
+              "should_add_label",
+              eligible && result.should_add_label === true ? "true" : "false"
+            );
 
   reset_ci_passed_label:
     name: Reset stale 'ci-passed' label
