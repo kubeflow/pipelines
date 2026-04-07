@@ -160,16 +160,22 @@ There are a few types of tests during pre-submit:
 * linting, you can also run locally with `npm run lint`
   (`npm run lint:ui` and `npm run lint:server` are available for narrower checks)
 * TypeScript typecheck (no emit), run locally with `npm run typecheck`
-* client UI unit tests (Vitest), you can run locally with `npm run test:ui`
+* client UI unit tests (Vitest + Testing Library), you can run locally with `npm run test:ui`
   (uncapped workers) or `npm run test:ui:coverage:loop` for stability loops
   (coverage + `--maxWorkers 4`). `npm test` is an alias for `vitest run`.
 * UI node server unit tests (Jest), you can run locally with
   `npm run test:server:coverage` or `cd server && npm test -- --coverage`
 
-There is a special type of unit test called [snapshot tests](https://jestjs.io/docs/en/snapshot-testing). When
+There is a special type of unit test called [snapshot tests](https://vitest.dev/guide/snapshot.html). When
 snapshot tests are failing, you can update them automatically with `npm test -u` or
 `npm run test:ui -- -u` (Vitest) and run all tests. For server test snapshots (if any),
 use `cd server && npm test -- -u`. Then commit the snapshot changes.
+
+## Frontend coding conventions
+
+- Prefer Testing Library and assertions against user-visible behavior in new UI tests. Avoid Enzyme and implementation-detail testing in new code. For examples, see [frontend/src/pages/ExecutionList.test.tsx](src/pages/ExecutionList.test.tsx) and [frontend/src/pages/RunDetailsV2.test.tsx](src/pages/RunDetailsV2.test.tsx).
+- Keep snapshot tests small and intentional. Use them as focused regression coverage, not as a substitute for behavioral assertions.
+- Prefer prop/state-driven data flow over imperative refs. Reach for `useEffect` when synchronizing with systems outside React, not for derived UI state. For more detailed guidance used in reviews, see [AGENTS.md](../AGENTS.md#react-effect-discipline).
 
 ## Production Build
 
