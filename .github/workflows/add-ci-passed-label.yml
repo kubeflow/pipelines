@@ -35,8 +35,7 @@ jobs:
         uses: actions/github-script@v8
         with:
           script: |
-            core.setOutput("eligible", "false");
-            core.setOutput("should_add_label", "false");
+            core.setOutput("artifact_found", "false");
 
             if (context.eventName !== "workflow_run") {
               core.info(`No ci-passed eligibility lookup needed for ${context.eventName}.`);
@@ -60,9 +59,10 @@ jobs:
             });
 
             if (!resultArtifact) {
-              throw new Error(
-                `Required artifact "ci-check-result" was not found for workflow run ID ${context.payload.workflow_run.id}.`
+              core.warning(
+                `Required artifact "ci-check-result" was not found for workflow run ID ${context.payload.workflow_run.id}; skipping ci-passed update.`
               );
+              return;
             }
 
             const download = await github.rest.actions.downloadArtifact({
@@ -74,18 +74,23 @@ jobs:
 
             const fs = require("fs");
             fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/ci-check-result.zip`, Buffer.from(download.data));
+            core.setOutput("artifact_found", "true");
 
       - name: Unzip CI check result
-        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+        if: steps.download_result.outputs.artifact_found == 'true'
         shell: bash
         run: unzip -o ci-check-result.zip -d ci-check-result
 
       - name: Parse CI check result and confirm current PR state
         id: ci_result
-        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+        if: steps.download_result.outputs.artifact_found == 'true'
         uses: actions/github-script@v8
         with:
           script: |
+            core.setOutput("pr_number", "");
+            core.setOutput("eligible", "false");
+            core.setOutput("should_add_label", "false");
+
             const fs = require("fs");
             const result = JSON.parse(
               fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/ci-check-result/result.json`, "utf8")
