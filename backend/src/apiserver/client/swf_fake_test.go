@@ -127,8 +127,17 @@ func TestFakeSwfClient_Update(t *testing.T) {
 		t.Fatalf("setup: Create() unexpected error: %v", err)
 	}
 
-	created.Spec.MaxConcurrency = intPtr(5)
-	updated, err := swfClient.Update(ctx, created)
+	fetchedBeforeUpdate, err := swfClient.Get(ctx, "update-me", v1.GetOptions{})
+	if err != nil {
+		t.Fatalf("Get() before Update() unexpected error: %v", err)
+	}
+	if fetchedBeforeUpdate.Spec.MaxConcurrency != nil {
+		t.Fatal("Create() unexpectedly persisted MaxConcurrency before Update")
+	}
+
+	updatedInput := created.DeepCopy()
+	updatedInput.Spec.MaxConcurrency = intPtr(5)
+	updated, err := swfClient.Update(ctx, updatedInput)
 	if err != nil {
 		t.Fatalf("Update() unexpected error: %v", err)
 	}
