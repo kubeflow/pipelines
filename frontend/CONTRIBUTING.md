@@ -60,12 +60,6 @@ You will see a lot of `npm run xxx` commands in the instructions below, the actu
 
 You can learn more about npm in https://docs.npmjs.com/about-npm/.
 
-## Frontend coding conventions
-
-- Prefer Testing Library and assertions against user-visible behavior in new UI tests. Avoid Enzyme and implementation-detail testing in new code.
-- Keep snapshot tests small and intentional. Use them as focused regression coverage, not as a substitute for behavioral assertions.
-- Prefer prop/state-driven data flow over imperative refs. Reach for `useEffect` when synchronizing with systems outside React, not for derived UI state.
-
 ## Start frontend development server
 
 You can then do `npm start` to run a Vite dev server at port 3000 that
@@ -176,6 +170,12 @@ There is a special type of unit test called [snapshot tests](https://vitest.dev/
 snapshot tests are failing, you can update them automatically with `npm test -u` or
 `npm run test:ui -- -u` (Vitest) and run all tests. For server test snapshots (if any),
 use `cd server && npm test -- -u`. Then commit the snapshot changes.
+
+## Frontend coding conventions
+
+- Prefer Testing Library and assertions against user-visible behavior in new UI tests. Avoid Enzyme and implementation-detail testing in new code. For examples, see [frontend/src/pages/ExecutionList.test.tsx](src/pages/ExecutionList.test.tsx) and [frontend/src/pages/RunDetailsV2.test.tsx](src/pages/RunDetailsV2.test.tsx).
+- Keep snapshot tests small and intentional. Use them as focused regression coverage, not as a substitute for behavioral assertions.
+- Prefer prop/state-driven data flow over imperative refs. Reach for `useEffect` when synchronizing with systems outside React, not for derived UI state. For more detailed guidance used in reviews, see [AGENTS.md](../AGENTS.md#react-effect-discipline).
 
 ## Production Build
 
