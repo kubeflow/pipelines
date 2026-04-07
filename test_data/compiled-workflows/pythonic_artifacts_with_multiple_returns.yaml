@@ -277,9 +277,7 @@ spec:
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata:
-      annotations:
-        pipelines.kubeflow.org/runtime-role: driver
+    metadata: {}
     name: system-dag-driver
     outputs:
       parameters:

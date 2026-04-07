@@ -32,22 +32,29 @@ function check_namespace {
 function describe_argo_workflows {
     local NAMESPACE=$1
     echo "===== Argo Workflows Inspection ====="
-    for wf in $(kubectl get wf -n "$NAMESPACE" -o json | jq -r '.items[] | select(.status.phase=="Failed") | .metadata.name'); do
-        echo "Failed workflow: $wf"
+    for wf in $(kubectl get wf -n "$NAMESPACE" -o json | jq -r '.items[] | select(.status.phase=="Failed" or .status.phase=="Running") | .metadata.name'); do
+        echo "Inspected workflow: $wf"
+        kubectl get wf "$wf" -n "$NAMESPACE" || true
         pods=$(kubectl get po -n "$NAMESPACE" -l "workflows.argoproj.io/workflow=$wf" -o jsonpath='{.items[*].metadata.name}')
         for pod in $pods; do
             phase=$(kubectl get po "$pod" -n "$NAMESPACE" -o jsonpath='{.status.phase}')
-            echo "Pod: $pod, Status: $phase"
-
-            if [[ "$phase" != "Pending" ]]; then
-                echo "  ---> Logs:"
-                kubectl logs "$pod" -n "$NAMESPACE" || true
+            echo "Inspect Pod: $pod, Status: $phase"
+            if [[ "$phase" != "Pending" && "$phase" != "Succeeded"  ]]; then
+                echo "  ---> $pod Logs:"
+                if [[ "$pod" == *-agent ]]; then
+                    kubectl logs "$pod" -n "$NAMESPACE" -c driver-plugin || true
+                else
+                    kubectl logs "$pod" -n "$NAMESPACE" || true
+                fi
             fi
-            echo "  ---> Describe:"
-            kubectl describe po "$pod" -n "$NAMESPACE"
+            echo "  ---> Describe $pod:"
+            if [[ "$phase" != "Succeeded" ]]; then
+                echo "  ---> Describe:"
+                kubectl describe po "$pod" -n "$NAMESPACE"
+            fi
         done
     done
-    echo "===== Argo Workflows events ====="
+    echo "===== Argo Workflows data ====="
     kubectl get events -n "${NAMESPACE}" --field-selector involvedObject.kind=Workflow --sort-by='.metadata.creationTimestamp'
     echo "==============================="
 }

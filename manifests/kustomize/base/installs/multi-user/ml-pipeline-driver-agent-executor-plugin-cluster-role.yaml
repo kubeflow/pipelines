@@ -1,17 +1,31 @@
+# Since the driver is now extracted into a separate agent pod and injected as a sidecar container,
+# it requires its own dedicated ServiceAccount with appropriate RBAC permissions.
+# This is necessary to allow the driver to interact with the Kubernetes API
+# (e.g., watching pods, creating PVCs, accessing ConfigMaps and specific Secrets)
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: ml-pipeline-driver-agent-executor-plugin-cluster-role
 rules:
+    # Execution is usually published by the launcher, but for Kubernetes-specific
+    # operations we bypass the default flow. In these cases, the driver uses the
+    # Kubernetes API to list pods during publishing. see publishDriverExecution method
   - apiGroups: [""]
     resources: ["pods"]
     verbs: ["get", "list", "watch"]
+    # the driver may need permissions to create and delete PVCs
+    # see test_data/sdk_compiled_pipelines/valid/pipeline_with_volume.py for example
   - apiGroups: [""]
     resources: ["persistentvolumeclaims"]
-    verbs: ["create", "get", "list"]
+    verbs: ["create", "get", "list", "delete"]
+    # The root DAG driver reads the runtime configuration from the kfp-launcher cm
   - apiGroups: [""]
     resources: ["configmaps"]
+    resourceNames: ["kfp-launcher"]
     verbs: ["get", "list", "watch"]
+    # The driver now uploads its logs to artifact storage so they are visible in the UI
+    # for improved troubleshooting. To do this, it needs access to the
+    # `mlpipeline-minio-artifact` Secret containing storage credentials.
   - apiGroups: [""]
     resources: ["secrets"]
     resourceNames: ["mlpipeline-minio-artifact"]

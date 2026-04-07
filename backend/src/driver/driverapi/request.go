@@ -50,6 +50,7 @@ type DriverPluginArgs struct {
 	DefaultRunAsUser        *int64 `json:"default_run_as_user,omitempty"`
 	DefaultRunAsGroup       *int64 `json:"default_run_as_group,omitempty"`
 	DefaultRunAsNonRoot     string `json:"default_run_as_non_root,omitempty"`
+	DefaultHostUsers        *bool  `json:"default_host_users,omitempty"`
 }
 
 type DriverPlugin struct {

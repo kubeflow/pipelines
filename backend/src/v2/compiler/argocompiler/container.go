@@ -223,15 +223,14 @@ func (c *workflowCompiler) addContainerDriverTemplate() (string, error) {
 	if c.defaultRunAsNonRoot != nil {
 		args["default_run_as_non_root"] = strconv.FormatBool(*c.defaultRunAsNonRoot)
 	}
+	if c.defaultHostUsers != nil {
+		args["default_host_users"] = strconv.FormatBool(*c.defaultHostUsers)
+	}
 
 	containerDriverPlugin, err := driverPlugin(args)
 	if err != nil {
 		return name, fmt.Errorf("failed to add container driver plugin: %v", err)
 	}
-	if c.defaultHostUsers != nil {
-		args = append(args, "--default_host_users", strconv.FormatBool(*c.defaultHostUsers))
-	}
-
 	template := &wfapi.Template{
 		Name: name,
 		Inputs: wfapi.Inputs{

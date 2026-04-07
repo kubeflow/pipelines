@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/common/util"

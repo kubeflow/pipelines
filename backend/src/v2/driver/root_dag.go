@@ -101,7 +101,7 @@ func RootDAG(ctx context.Context, opts Options, mlmd metadata.ClientInterface) (
 
 	k8sClient, err := buildK8sClient()
 	if err != nil {
-		return nil, nil,  fmt.Errorf("failed to initialize kubernetes client set: %w", err)
+		return nil, nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
 	}
 	cfg, err := config.FromConfigMap(ctx, k8sClient, opts.Namespace)
 	if err != nil {
@@ -161,9 +161,9 @@ func RootDAG(ctx context.Context, opts Options, mlmd metadata.ClientInterface) (
 			}
 
 			log.Infof("Found existing execution: %s", existing)
-			return &Execution{ID: existing.GetID()}, nil
+			return &Execution{ID: existing.GetID()}, pipeline, nil
 		}
-		return nil, err
+		return nil, pipeline, err
 	}
 	log.Infof("Created execution: %s", exec)
 	// No need to return ExecutorInput, because tasks in the DAG will resolve

@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
@@ -191,12 +192,12 @@ func Container(ctx context.Context, pipeline *metadata.Pipeline, opts Options, m
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
 		if isAlreadyExistsErr(err) {
-			glog.Infof("Execution %q already exists, looking up existing execution", ecfg.Name)
+			log.Infof("Execution %q already exists, looking up existing execution", ecfg.Name)
 			existing, lookupErr := mlmd.GetExecutionByTypeAndName(ctx, string(metadata.ContainerExecutionTypeName), ecfg.Name)
 			if lookupErr != nil {
 				return execution, fmt.Errorf("failed to lookup existing execution: %w", lookupErr)
 			}
-			glog.Infof("Found existing execution: %s", existing)
+			log.Infof("Found existing execution: %s", existing)
 			createdExecution = existing
 		} else {
 			return execution, err

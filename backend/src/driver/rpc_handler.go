@@ -26,6 +26,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
+	"github.com/spf13/viper"
+
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -267,6 +270,11 @@ func drive(args driverapi.DriverPluginArgs) (execution *driver.Execution, err er
 	if err != nil {
 		return nil, err
 	}
+	// pluginDispatcher executes task-level plugin lifecycle hooks
+	pluginDispatcher, err := plugins.GetPluginDispatcher()
+	if err != nil {
+		glog.Errorf("Failed to initialize plugin dispatcher: %v", err)
+	}
 
 	dagExecutionID, err := strconv.ParseInt(args.DagExecutionID, 10, 64)
 	if err != nil {
@@ -298,6 +306,7 @@ func drive(args driverapi.DriverPluginArgs) (execution *driver.Execution, err er
 		MLMDServerPort:          args.MLMDServerPort,
 		MLMDTLSEnabled:          args.MetadataTLSEnabled,
 		CaCertPath:              args.CACertPath,
+		PluginDispatcher:        pluginDispatcher,
 	}
 
 	var driverErr error
@@ -333,6 +342,7 @@ func drive(args driverapi.DriverPluginArgs) (execution *driver.Execution, err er
 				options.DefaultRunAsNonRoot = &v
 			}
 		}
+		options.DefaultHostUsers = args.DefaultHostUsers
 		pipeline, driverErr = client.GetPipeline(ctx, options.PipelineName, options.RunID, "", "", "", "")
 		if driverErr != nil {
 			return nil, driverErr
@@ -446,6 +456,7 @@ func extractOutputParameters(execution *driver.Execution, driverType string) []d
 			Value: strconv.FormatBool(*execution.Condition),
 		})
 	} else if driverType == DAG || driverType == RootDag || driverType == CONTAINER {
+		// nil is a valid value for Condition
 		outputs = append(outputs, driverapi.Parameter{
 			Name:  "condition",
 			Value: "nil",
@@ -455,6 +466,11 @@ func extractOutputParameters(execution *driver.Execution, driverType string) []d
 		outputs = append(outputs, driverapi.Parameter{
 			Name:  "pod-spec-patch",
 			Value: execution.PodSpecPatch,
+		})
+	} else {
+		outputs = append(outputs, driverapi.Parameter{
+			Name:  "pod-spec-patch",
+			Value: "",
 		})
 	}
 	return outputs
@@ -466,4 +482,8 @@ func WriteJSONResponse(w http.ResponseWriter, payload driverapi.DriverResponse) 
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
+}
+
+func initConfig() {
+	viper.AutomaticEnv()
 }
