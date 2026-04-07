@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-04-07
+- Last updated: 2026-04-15
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -520,7 +520,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
   - Examples: `e2e-test.yml`, `sdk-execution.yml`, `upgrade-test.yml`, `kfp-kubernetes-execution-tests.yml`, `kfp-webhooks.yml`, `api-server-tests.yml`, `compiler-tests.yml`, `legacy-v2-api-integration-tests.yml`, `integration-tests-v1.yml`, and frontend integration in `e2e-test-frontend.yml`.
 - Pipeline store variants (v2 engine): tests run with `database` and `kubernetes` stores, and a dedicated job compiles pipelines to Kubernetes-native manifests.
   - Example: `e2e-test.yml` job "API integration tests v2 - K8s with ${pipeline_store}" and "compile pipelines with Kubernetes".
-- Argo Workflows version matrix for compatibility (where relevant): `e2e-test.yml` exercises `v3.5.14`, `v3.7.3`, and `v4.0.4`, while `api-server-tests.yml` covers Argo compatibility in standalone mode and includes a Kubernetes-native Argo `v4.0.4` lane.
+- Argo Workflows version matrix for compatibility (where relevant): `e2e-test.yml` exercises `v3.5.14`, `v3.7.3`, and `v4.0.4` across the standard cache/test-label matrix, while `api-server-tests.yml` covers standalone and Kubernetes-native Argo compatibility across the standard matrices (with standalone low-Kubernetes spot lanes per supported Argo version).
 - Proxy / cache toggles: dedicated jobs run with HTTP proxy enabled and with execution cache disabled to validate those modes.
 - Artifacts: failing logs and test outputs are uploaded as workflow artifacts for debugging.
 
