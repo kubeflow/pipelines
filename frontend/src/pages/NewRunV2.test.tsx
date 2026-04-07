@@ -565,6 +565,43 @@ describe('NewRunV2', () => {
         );
       });
     }, 20000);
+
+    it('submits root default parameters without waiting for child effect initialization', async () => {
+      const createRunSpy = vi.spyOn(Apis.runServiceApiV2, 'createRun');
+      createRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RUN_DETAILS);
+
+      renderNewRunV2({
+        existingPipelineVersion: OTHER_TEST_PIPELINE_VERSION,
+        templateString: v2LWYamlTemplateString,
+      });
+
+      const messageInput = await screen.findByLabelText('message - string');
+      fireEvent.change(messageInput, { target: { value: 'hello world' } });
+
+      const startButton = await screen.findByText('Start');
+      await waitFor(() => {
+        expect(startButton.closest('button')?.disabled).toEqual(false);
+      });
+      fireEvent.click(startButton);
+
+      await waitFor(() => {
+        expect(createRunSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            pipeline_version_reference: {
+              pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+              pipeline_version_id: OTHER_TEST_PIPELINE_VERSION_ID,
+            },
+            runtime_config: {
+              parameters: {
+                input_dict: { A: 1, B: 2 },
+                message: 'hello world',
+              },
+              pipeline_root: 'minio://dummy_root',
+            },
+          }),
+        );
+      });
+    });
   });
 
   describe('choose a pipeline', () => {
