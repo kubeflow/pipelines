@@ -22,12 +22,14 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
@@ -35,15 +37,27 @@ import (
 const (
 	ArtifactNameKey          = "artifact_name"
 	missingParamErrorMessage = "missing path parameter: '%s'"
+	ArtifactURLDuration      = 15 * time.Minute
 )
 
 type RunArtifactServer struct {
 	*BaseRunServer
 }
 
-// ReadArtifact is an artifact reading endpoint that streams artifacts from object storage,
-// encodes them to base64 on-the-fly, and returns them as JSON.
-// The streaming approach allows handling large artifacts without buffering everything in memory.
+// ReadArtifact retrieves a pipeline artifact by run, node, and artifact name.
+//
+// Response format depends on the ARTIFACT_PRESIGNED_URL_ENABLED flag:
+//
+//   - Default (flag off): proxies the artifact through the API server and returns
+//     HTTP 200 with body: {"data": "<base64-encoded content>"}
+//
+//   - Flag on + backend supports presigned URLs (S3, GCS): returns HTTP 307 with
+//     a Location header pointing directly to the object in storage. No JSON wrapper
+//     is returned in this mode; clients must follow the redirect and should ignore
+//     the response body content.
+//
+//   - Flag on + backend does not support presigned URLs (e.g. local FS):
+//     falls back to the proxied JSON response above.
 func (s *RunArtifactServer) ReadArtifact(response http.ResponseWriter, r *http.Request) {
 	glog.Infof("Read artifact v2 called")
 
@@ -74,6 +88,29 @@ func (s *RunArtifactServer) ReadArtifact(response http.ResponseWriter, r *http.R
 		return
 	}
 
+	artifactPath, err := s.resourceManager.ResolveArtifactPath(runID, nodeID, artifactName)
+	if err != nil {
+		s.writeErrorToResponse(response, http.StatusInternalServerError, err)
+		return
+	}
+	objectStore := s.resourceManager.ObjectStore()
+	if common.IsArtifactPresignedURLEnabled() {
+		if ps, ok := objectStore.(storage.PresignableStore); ok {
+			url, err := ps.SignedURL(r.Context(), artifactPath, ArtifactURLDuration)
+			if err != nil {
+				s.writeErrorToResponse(response, http.StatusInternalServerError, err)
+				return
+			}
+			if url != "" {
+				// Prevent caching of redirect responses that contain time-limited bearer URLs
+				response.Header().Set("Cache-Control", "no-store, private")
+				response.Header().Set("Pragma", "no-cache")
+				response.Header().Set("Expires", "0")
+				http.Redirect(response, r, url, http.StatusTemporaryRedirect)
+				return
+			}
+		}
+	}
 	artifactFileExists, err := s.artifactFileExists(r.Context(), runID, nodeID, artifactName)
 	if err != nil {
 		s.writeErrorToResponse(response, http.StatusInternalServerError, err)
@@ -82,14 +119,7 @@ func (s *RunArtifactServer) ReadArtifact(response http.ResponseWriter, r *http.R
 		s.writeErrorToResponse(response, http.StatusNotFound, fmt.Errorf("artifact not found: %v", err))
 		return
 	}
-
-	artifactPath, err := s.resourceManager.ResolveArtifactPath(runID, nodeID, artifactName)
-	if err != nil {
-		s.writeErrorToResponse(response, http.StatusInternalServerError, err)
-		return
-	}
-
-	reader, err := s.resourceManager.ObjectStore().GetFileReader(r.Context(), artifactPath)
+	reader, err := objectStore.GetFileReader(r.Context(), artifactPath)
 	if err != nil {
 		s.writeErrorToResponse(response, http.StatusInternalServerError, fmt.Errorf("failed to get file reader: %v", err))
 		return
