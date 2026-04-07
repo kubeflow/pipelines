@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-03-31
+- Last updated: 2026-04-07
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -25,6 +25,14 @@
 - When adding new functionality, check related packages and modules for shared code that can be leveraged.
 - If existing code needs slight modifications to be reusable, prefer refactoring the existing code to be more general over duplicating it with changes.
 - Use descriptive variable and function names. Avoid abbreviations or single-letter names — prefer full, meaningful names that clearly convey purpose (e.g., `executionID` over `execID`, `fingerPrint` over `fp`).
+
+### Architectural boundary policy (agents and contributors)
+
+- Keep `ResourceManager` lean. It should coordinate core run/job persistence and lifecycle flow, not accumulate feature-specific orchestration or engine-specific mutation logic.
+- Respect compiler and `ExecutionSpec` boundaries. If a change affects how executions are generated or mutated, prefer adding explicit methods to the compiler / execution abstraction rather than reaching through and mutating Argo Workflow details directly.
+- Keep shared layers execution-engine neutral. Do not downcast to `*util.Workflow` or encode Argo-specific behavior into common utilities when the behavior belongs behind an engine-neutral interface.
+- Put reusable interfaces in neutral packages and keep boundaries natural. Avoid forcing code to translate between partial API types and model types just to satisfy an interface; prefer interfaces that accept the natural domain type for that layer.
+- Preserve documented behavior in the abstraction itself. Do not simplify away field-wise override semantics, ownership boundaries, or other architectural contracts just because a local implementation can get by without them.
 
 ### Testing policy (agents and contributors)
 
