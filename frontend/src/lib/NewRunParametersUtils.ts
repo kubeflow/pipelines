@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-import { ComponentInputsSpec_ParameterSpec } from 'src/generated/pipeline_spec/pipeline_spec';
-import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
+import {
+  ComponentInputsSpec_ParameterSpec,
+  ParameterType_ParameterTypeEnum,
+} from 'src/generated/pipeline_spec/pipeline_spec';
 
 export type SpecParameters = { [key: string]: ComponentInputsSpec_ParameterSpec };
 export type RuntimeParameters = { [key: string]: any };

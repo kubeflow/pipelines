@@ -32,7 +32,6 @@ import { ExternalLink } from 'src/atoms/ExternalLink';
 import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
 import {
   convertInput,
-  convertNonUserInputParamToString,
   generateInputValidationErrMsg,
   getInitialParameterState,
   type ParameterErrorMessages,
