@@ -314,7 +314,7 @@ The following files are generated; edit their sources and regenerate:
 - `kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2.py`
   - Source: `kubernetes_platform/proto/kubernetes_executor_config.proto`
   - Generate: `make -C kubernetes_platform python` (or `make -C kubernetes_platform python-dev`)
-- Frontend OpenAPI clients and runtime support under `frontend/src/apis*`, `frontend/src/apisv2beta1*`, `frontend/server/src/generated/apis*`, and `frontend/server/src/generated/apisv2beta1*`
+- Frontend OpenAPI clients under `frontend/src/apis`, `frontend/src/apisv2beta1`, `frontend/server/src/generated/apis`, and `frontend/server/src/generated/apisv2beta1`, with shared runtime/model support under `frontend/src/generated/openapi` and `frontend/server/src/generated/openapi`
   - Sources: Swagger specs under `backend/api/**/swagger/*.json`
   - Generate: `cd frontend && npm run apis` / `npm run apis:v2beta1` / `npm run apis:all` (uses pinned Docker image `openapitools/openapi-generator-cli:v7.19.0`)
 - Frontend MLMD proto outputs under `frontend/src/third_party/mlmd/generated`
@@ -406,7 +406,7 @@ For full integration testing against a real KFP deployment:
 ### Key technologies and architecture
 
 - **React 19** with TypeScript
-- **MUI v5** (Material UI) for components
+- **MUI v5** with Emotion for components and theming
 - **React Router v5** for navigation
 - **TanStack Query v5** for data fetching and caching
 - **Dagre** for graph layout visualization
@@ -477,7 +477,7 @@ The frontend includes several generated code components:
   ```
 
   Note: These commands use Docker image `openapitools/openapi-generator-cli:v7.19.0`.
-  Generated runtime/support files are emitted per API surface under `src/apis*`, `src/apisv2beta1*`, `server/src/generated/apis*`, and `server/src/generated/apisv2beta1*`.
+  Generated API-surface clients are emitted under `src/apis*` and `server/src/generated/apis*`, while shared OpenAPI runtime/model files are deduplicated into `src/generated/openapi` and `server/src/generated/openapi`.
   Ensure Docker is running.
 
 - **Protocol Buffers**: Generated from proto definitions

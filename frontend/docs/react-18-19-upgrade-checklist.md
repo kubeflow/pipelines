@@ -6,7 +6,7 @@
 **Strategy**: Deps-first where possible, bump-last where necessary. The React 18 rollout, React 19 core bump, Strict Mode enablement, and post-upgrade documentation refresh are now complete on `master`.
 **Canonical source**: This checklist is the canonical execution plan and supersedes earlier draft planning notes.
 
-## Status at a glance (updated March 28, 2026 UTC)
+## Status at a glance (updated April 7, 2026 UTC)
 
 - [x] ~~#1 Prereq warning/test cleanup~~ (`PRs`: [#12855](https://github.com/kubeflow/pipelines/pull/12855), [#12856](https://github.com/kubeflow/pipelines/pull/12856), [#12858](https://github.com/kubeflow/pipelines/pull/12858), [#12872](https://github.com/kubeflow/pipelines/pull/12872))
 - [x] ~~#2 Add React peer compatibility gate~~ (`PR`: [#12881](https://github.com/kubeflow/pipelines/pull/12881))
@@ -357,7 +357,7 @@ Enable `<StrictMode>` in development and test rendering paths, fix double-invoke
 **Depends on**: #13 (or inline updates in prior PRs)
 
 **Status**:
-Completed. The repo-level and frontend contributor docs now describe the React 19 stack, the React 19 default peer gate, Storybook 10, MUI v5, TanStack Query v5, and the post-`#13159` Strict Mode expectations for dev and Vitest.
+Completed by [#13164](https://github.com/kubeflow/pipelines/pull/13164). The repo-level and frontend contributor docs now describe the React 19 stack, the React 19 default peer gate, Storybook 10, MUI v5, TanStack Query v5, and the post-`#13159` Strict Mode expectations for dev and Vitest.
 
 **Description**:
 Update the top-level docs once the stack is settled:
