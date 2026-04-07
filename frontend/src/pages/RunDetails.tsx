@@ -708,6 +708,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   }
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     window.addEventListener('focus', this.onFocusHandler);
     window.addEventListener('blur', this.onBlurHandler);
     await this._startAutoRefresh();

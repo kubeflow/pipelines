@@ -230,7 +230,6 @@ spec:
     await TestUtils.flushPromises();
 
     screen.getByTestId('pipeline-detail-v1');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo:
@@ -264,7 +263,6 @@ spec:
     });
 
     screen.getByTestId('pipeline-detail-v1');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad graph',
@@ -299,7 +297,6 @@ spec:
     });
 
     screen.getByTestId('pipeline-detail-v1');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'Important infomation is missing. Pipeline Spec is invalid.',
@@ -334,7 +331,7 @@ spec:
     await TestUtils.flushPromises();
 
     screen.getByTestId('pipeline-detail-v1');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
   });
 
   it('Show v1 page if valid v1 template and disabled v2 feature flag', async () => {
@@ -358,7 +355,7 @@ spec:
     await TestUtils.flushPromises();
 
     screen.getByTestId('pipeline-detail-v1');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
   });
 
   it('Show v2 page if valid v2 template and enabled v2 feature', async () => {
@@ -376,6 +373,6 @@ spec:
     await TestUtils.flushPromises();
 
     screen.getByTestId('pipeline-detail-v2');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
   });
 });

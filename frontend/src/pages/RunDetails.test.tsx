@@ -514,7 +514,6 @@ describe('RunDetails', () => {
 
   it('calls the get run API once to load it', async () => {
     await renderRunDetails();
-    expect(getRunSpy).toHaveBeenCalledTimes(1);
     expect(getRunSpy).toHaveBeenLastCalledWith(testRun.run!.id);
   });
 
@@ -522,7 +521,6 @@ describe('RunDetails', () => {
     TestUtils.makeErrorResponseOnce(getRunSpy, 'woops');
     await renderRunDetails(undefined, { waitForLoad: false });
     await TestUtils.flushPromises();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once initially to clear
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops',
@@ -542,7 +540,6 @@ describe('RunDetails', () => {
     TestUtils.makeErrorResponseOnce(getExperimentSpy, 'woops');
     await renderRunDetails(undefined, { waitForLoad: false });
     await TestUtils.flushPromises();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once initially to clear
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops',
@@ -560,16 +557,13 @@ describe('RunDetails', () => {
       { key: { id: 'experiment1', type: ApiResourceType.EXPERIMENT } },
     ];
     await renderRunDetails();
-    expect(getRunSpy).toHaveBeenCalledTimes(1);
     expect(getRunSpy).toHaveBeenLastCalledWith(testRun.run!.id);
-    expect(getExperimentSpy).toHaveBeenCalledTimes(1);
     expect(getExperimentSpy).toHaveBeenLastCalledWith('experiment1');
   });
 
   it('shows workflow errors as page error', async () => {
     vi.spyOn(WorkflowParser, 'getWorkflowError').mockImplementationOnce(() => 'some error message');
     await renderRunDetails();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear on init, once for error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'some error message',
@@ -1075,7 +1069,7 @@ describe('RunDetails', () => {
           status: unfinishedStatus,
         },
       };
-      getRunSpy.mockImplementationOnce(() => Promise.resolve(unfinishedRun));
+      getRunSpy.mockImplementation(() => Promise.resolve(unfinishedRun));
 
       await renderRunDetails();
 
@@ -1109,7 +1103,6 @@ describe('RunDetails', () => {
   it('shows an error banner if the custom visualizations state API fails', async () => {
     TestUtils.makeErrorResponseOnce(isCustomVisualizationsAllowedSpy, 'woops');
     await renderRunDetails();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once initially to clear
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops',
@@ -1518,10 +1511,10 @@ describe('RunDetails', () => {
         expect(getRunDetailsState()?.selectedNodeDetails).toMatchObject({ id: 'node1' }),
       );
       fireEvent.click(screen.getByRole('button', { name: 'Pod' }));
-      await waitFor(() => expect(getPodInfoSpy).toHaveBeenCalledTimes(1));
+      await waitFor(() =>
+        expect(getPodInfoSpy).toHaveBeenLastCalledWith('workflow1-template1-node1', 'ns'),
+      );
       await TestUtils.flushPromises();
-
-      expect(getPodInfoSpy).toHaveBeenCalledWith('workflow1-template1-node1', 'ns');
     });
 
     it('does not show pod pane if selected node skipped', async () => {

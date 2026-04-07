@@ -221,6 +221,9 @@ interface CustomTableState {
 export default class CustomTable extends React.Component<CustomTableProps, CustomTableState> {
   private _isMounted = true;
 
+  /** Suppresses stale `isBusy` updates when reload() overlaps (e.g. React StrictMode remounts). */
+  private _activeReloadGeneration = 0;
+
   private _debouncedFilterRequest = debounce(
     (filterString: string) => this._requestFilter(filterString),
     300,
@@ -288,6 +291,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   }
 
   public componentDidMount(): void {
+    this._isMounted = true;
     this._pageChanged(0);
   }
 
@@ -501,6 +505,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       loadRequest,
     );
 
+    const reloadGeneration = ++this._activeReloadGeneration;
     let result = '';
     try {
       this.setStateSafe({
@@ -517,7 +522,9 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
       result = await this.props.reload(request);
     } finally {
-      this.setStateSafe({ isBusy: false });
+      if (this._isMounted && reloadGeneration === this._activeReloadGeneration) {
+        this.setStateSafe({ isBusy: false });
+      }
     }
     return result;
   }
@@ -684,7 +691,7 @@ interface HeaderRowSelectionSectionProps extends SelectionSectionCommonProps {
   onSelectAll: React.ChangeEventHandler;
   disableAdditionalSelection?: boolean;
 }
-const HeaderRowSelectionSection: React.FC<HeaderRowSelectionSectionProps> = ({
+function HeaderRowSelectionSection({
   disableSelection,
   indeterminate,
   isSelected,
@@ -692,7 +699,7 @@ const HeaderRowSelectionSection: React.FC<HeaderRowSelectionSectionProps> = ({
   showExpandButton,
   useRadioButtons,
   disableAdditionalSelection,
-}) => {
+}: HeaderRowSelectionSectionProps): JSX.Element | null {
   const nonEmpty = disableSelection !== true || showExpandButton;
   if (!nonEmpty) {
     return null;
@@ -718,14 +725,14 @@ const HeaderRowSelectionSection: React.FC<HeaderRowSelectionSectionProps> = ({
       {showExpandButton && <Separator orientation='horizontal' units={40} />}
     </div>
   );
-};
+}
 
 interface BodyRowSelectionSectionProps extends SelectionSectionCommonProps {
   expandState?: ExpandState;
   onExpand: React.MouseEventHandler;
   disableAdditionalSelection?: boolean;
 }
-const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
+function BodyRowSelectionSection({
   disableSelection,
   expandState,
   isSelected,
@@ -733,40 +740,42 @@ const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
   showExpandButton,
   useRadioButtons,
   disableAdditionalSelection,
-}) => (
-  <>
-    {/* Expansion toggle button */}
-    {(disableSelection !== true || showExpandButton) && expandState !== ExpandState.NONE && (
-      <div className={classes(css.cell, css.selectionToggle)}>
-        {/* If using checkboxes */}
-        {disableSelection !== true && useRadioButtons !== true && (
-          <Checkbox
-            color='primary'
-            checked={isSelected}
-            disabled={!isSelected && disableAdditionalSelection}
-          />
-        )}
-        {/* If using radio buttons */}
-        {disableSelection !== true && useRadioButtons && (
-          <Radio color='primary' checked={isSelected} />
-        )}
-        {showExpandButton && (
-          <IconButton
-            className={classes(
-              css.expandButton,
-              expandState === ExpandState.EXPANDED && css.expandButtonExpanded,
-            )}
-            onClick={onExpand}
-            aria-label='Expand'
-            size='large'
-          >
-            <ArrowRight />
-          </IconButton>
-        )}
-      </div>
-    )}
+}: BodyRowSelectionSectionProps): JSX.Element {
+  return (
+    <>
+      {/* Expansion toggle button */}
+      {(disableSelection !== true || showExpandButton) && expandState !== ExpandState.NONE && (
+        <div className={classes(css.cell, css.selectionToggle)}>
+          {/* If using checkboxes */}
+          {disableSelection !== true && useRadioButtons !== true && (
+            <Checkbox
+              color='primary'
+              checked={isSelected}
+              disabled={!isSelected && disableAdditionalSelection}
+            />
+          )}
+          {/* If using radio buttons */}
+          {disableSelection !== true && useRadioButtons && (
+            <Radio color='primary' checked={isSelected} />
+          )}
+          {showExpandButton && (
+            <IconButton
+              className={classes(
+                css.expandButton,
+                expandState === ExpandState.EXPANDED && css.expandButtonExpanded,
+              )}
+              onClick={onExpand}
+              aria-label='Expand'
+              size='large'
+            >
+              <ArrowRight />
+            </IconButton>
+          )}
+        </div>
+      )}
 
-    {/* Placeholder for non-expandable rows */}
-    {expandState === ExpandState.NONE && <div className={css.expandButtonPlaceholder} />}
-  </>
-);
+      {/* Placeholder for non-expandable rows */}
+      {expandState === ExpandState.NONE && <div className={css.expandButtonPlaceholder} />}
+    </>
+  );
+}

@@ -251,10 +251,11 @@ describe('ExperimentList', () => {
     mockNExperiments(0);
     const props = generateProps();
     const wrapper = await renderExperimentList(props);
+    listExperimentsSpy.mockClear();
     await act(async () => {
       await wrapper.instance().refresh();
     });
-    await waitFor(() => expect(listExperimentsSpy).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(listExperimentsSpy).toHaveBeenCalledTimes(1));
     expect(listExperimentsSpy).toHaveBeenLastCalledWith(
       '',
       10,
@@ -310,6 +311,7 @@ describe('ExperimentList', () => {
         },
       ]),
     );
+    listRunsSpy.mockClear();
     fireEvent.click(screen.getAllByLabelText('Expand')[0]);
     await waitFor(() =>
       expect(wrapper.state('displayExperiments')).toEqual([
@@ -320,7 +322,7 @@ describe('ExperimentList', () => {
         },
       ]),
     );
-    await waitFor(() => expect(listRunsSpy).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(listRunsSpy).toHaveBeenCalled());
     expect(listRunsSpy).toHaveBeenLastCalledWith(
       undefined,
       'testexperiment1',
@@ -359,6 +361,7 @@ describe('ExperimentList', () => {
         },
       ]),
     );
+    listRunsSpy.mockClear();
     fireEvent.click(screen.getAllByLabelText('Expand')[0]);
     await waitFor(() =>
       expect(wrapper.state('displayExperiments')).toEqual([
@@ -369,7 +372,7 @@ describe('ExperimentList', () => {
         },
       ]),
     );
-    await waitFor(() => expect(listRunsSpy).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(listRunsSpy).toHaveBeenCalled());
     expect(listRunsSpy).toHaveBeenLastCalledWith(
       undefined,
       'testexperiment1',

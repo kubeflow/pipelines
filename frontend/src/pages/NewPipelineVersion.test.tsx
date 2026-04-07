@@ -209,7 +209,7 @@ describe('NewPipelineVersion', () => {
         breadcrumbs: [{ displayName: 'Pipeline Versions', href: '/pipeline_versions/new' }],
         pageTitle: 'New Pipeline',
       });
-      expect(getPipelineSpy).toHaveBeenCalledTimes(1);
+      expect(getPipelineSpy).toHaveBeenCalledWith(MOCK_PIPELINE.pipeline_id);
     });
 
     it('allows updating pipeline version name', async () => {
@@ -220,7 +220,7 @@ describe('NewPipelineVersion', () => {
       await waitFor(() =>
         expect(getInstance().state).toHaveProperty('pipelineVersionName', 'version name'),
       );
-      expect(getPipelineSpy).toHaveBeenCalledTimes(1);
+      expect(getPipelineSpy).toHaveBeenCalledWith(MOCK_PIPELINE.pipeline_id);
     });
 
     it('allows updating pipeline version description', async () => {
@@ -234,7 +234,7 @@ describe('NewPipelineVersion', () => {
           'some description',
         ),
       );
-      expect(getPipelineSpy).toHaveBeenCalledTimes(1);
+      expect(getPipelineSpy).toHaveBeenCalledWith(MOCK_PIPELINE.pipeline_id);
     });
 
     it('allows updating package url', async () => {
@@ -245,7 +245,7 @@ describe('NewPipelineVersion', () => {
       await waitFor(() =>
         expect(getInstance().state).toHaveProperty('packageUrl', 'https://dummy'),
       );
-      expect(getPipelineSpy).toHaveBeenCalledTimes(1);
+      expect(getPipelineSpy).toHaveBeenCalledWith(MOCK_PIPELINE.pipeline_id);
     });
 
     it('allows updating code source', async () => {
@@ -256,7 +256,7 @@ describe('NewPipelineVersion', () => {
       await waitFor(() =>
         expect(getInstance().state).toHaveProperty('codeSourceUrl', 'https://dummy'),
       );
-      expect(getPipelineSpy).toHaveBeenCalledTimes(1);
+      expect(getPipelineSpy).toHaveBeenCalledWith(MOCK_PIPELINE.pipeline_id);
     });
 
     it('preserves pipeline version name when a file drop is rejected', async () => {

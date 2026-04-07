@@ -231,6 +231,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   }
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     return this.load();
   }
 
