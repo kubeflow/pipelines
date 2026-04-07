@@ -22,7 +22,7 @@
 - [x] ~~#11 React 18.3 deprecation checkpoint~~ (`issue`: [#12899](https://github.com/kubeflow/pipelines/issues/12899); `PR`: [#13080](https://github.com/kubeflow/pipelines/pull/13080))
 - [x] ~~#12 Dependency sweep for React 19~~ (`issue`: [#12900](https://github.com/kubeflow/pipelines/issues/12900); `PR`: [#13082](https://github.com/kubeflow/pipelines/pull/13082))
 - [x] ~~#13 Upgrade React to v19~~ (`issue`: [#12901](https://github.com/kubeflow/pipelines/issues/12901); `PR`: [#13153](https://github.com/kubeflow/pipelines/pull/13153))
-- [x] ~~#14 Enable StrictMode in dev/test~~ (`issue`: [#12902](https://github.com/kubeflow/pipelines/issues/12902); `PR`: [#13159](https://github.com/kubeflow/pipelines/pull/13159))
+- [x] ~~#14 Enable StrictMode in dev/test~~ (`issue`: [#12902](https://github.com/kubeflow/pipelines/issues/12902); `PR`: [#13229](https://github.com/kubeflow/pipelines/pull/13229))
 - [x] ~~#15 Update documentation for the post-upgrade stack~~ (`issue`: [#12903](https://github.com/kubeflow/pipelines/issues/12903); `PR`: [#13164](https://github.com/kubeflow/pipelines/pull/13164))
 
 **Current focus**:
@@ -339,7 +339,7 @@ Bump `react`, `react-dom`, `@types/react`, and `@types/react-dom` to v19, addres
 **Depends on**: #13
 
 **Status**:
-Completed by [#13159](https://github.com/kubeflow/pipelines/pull/13159). The non-production app bootstrap now renders inside `<React.StrictMode>`, and the Vitest global setup enables Testing Library `configure({ reactStrictMode: true })` so direct `render()` calls exercise the same Strict Mode behavior in tests.
+Completed by [#13229](https://github.com/kubeflow/pipelines/pull/13229). The non-production app bootstrap now renders inside `<React.StrictMode>`, and the Vitest global setup enables Testing Library `configure({ reactStrictMode: true })` so direct `render()` calls exercise the same Strict Mode behavior in tests.
 
 **Description**:
 Enable `<StrictMode>` in development and test rendering paths, fix double-invoke side effects, and keep production behavior unchanged.
@@ -357,7 +357,7 @@ Enable `<StrictMode>` in development and test rendering paths, fix double-invoke
 **Depends on**: #13 (or inline updates in prior PRs)
 
 **Status**:
-Completed by [#13164](https://github.com/kubeflow/pipelines/pull/13164). The repo-level and frontend contributor docs now describe the React 19 stack, the React 19 default peer gate, Storybook 10, MUI v5, TanStack Query v5, and the post-`#13159` Strict Mode expectations for dev and Vitest.
+Completed by [#13164](https://github.com/kubeflow/pipelines/pull/13164). The repo-level and frontend contributor docs now describe the React 19 stack, the React 19 default peer gate, Storybook 10, MUI v5, TanStack Query v5, and the post-[#13229](https://github.com/kubeflow/pipelines/pull/13229) Strict Mode expectations for dev and Vitest.
 
 **Description**:
 Update the top-level docs once the stack is settled:
