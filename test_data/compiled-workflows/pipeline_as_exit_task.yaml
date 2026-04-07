@@ -298,15 +298,15 @@ spec:
       parameters:
       - name: execution-id
         valueFrom:
-          path: /tmp/outputs/execution-id
+          jsonPath: $.execution-id
       - name: iteration-count
         valueFrom:
           default: "0"
-          path: /tmp/outputs/iteration-count
+          jsonPath: $.iteration-count
       - name: condition
         valueFrom:
           default: "true"
-          path: /tmp/outputs/condition
+          jsonPath: $.condition
     plugin:
       driver-plugin:
         args:
