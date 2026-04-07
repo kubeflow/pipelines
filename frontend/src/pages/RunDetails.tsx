@@ -172,7 +172,7 @@ export const css = stylesheet({
     paddingLeft: 20,
   },
   loadingMessage: {
-    textAlign: 'center' as const,
+    textAlign: 'center',
     paddingTop: 40,
   },
 });

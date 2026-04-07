@@ -15,7 +15,6 @@
  */
 
 import { act, render, screen, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import * as JsYaml from 'js-yaml';
 import * as features from 'src/features';
