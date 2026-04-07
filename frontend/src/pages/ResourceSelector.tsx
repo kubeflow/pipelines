@@ -94,6 +94,10 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
     );
   }
 
+  public componentDidMount(): void {
+    this._isMounted = true;
+  }
+
   public componentWillUnmount(): void {
     this._isMounted = false;
   }

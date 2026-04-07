@@ -17,6 +17,7 @@
 // import './CSSReset';
 import 'src/build/tailwind.output.css';
 import '@xyflow/react/dist/style.css';
+import { StrictMode } from 'react';
 import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -71,12 +72,12 @@ const app = (
 const container = document.getElementById('root');
 if (!container) throw new Error('Root element not found');
 const root = createRoot(container);
-root.render(
+const rootElement =
   KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (
     <NamespaceContextProvider>{app}</NamespaceContextProvider>
   ) : (
     <NamespaceContext.Provider value={import.meta.env.VITE_NAMESPACE || undefined}>
       {app}
     </NamespaceContext.Provider>
-  ),
-);
+  );
+root.render(import.meta.env.DEV ? <StrictMode>{rootElement}</StrictMode> : rootElement);

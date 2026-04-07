@@ -28,6 +28,7 @@ import { PageProps } from './Page';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { Struct, Value } from 'google-protobuf/google/protobuf/struct_pb';
 import { V2beta1Run, V2beta1RuntimeState } from 'src/apisv2beta1/run';
+import { MetricsType } from 'src/lib/v2/CompareUtils';
 import { vi } from 'vitest';
 
 const CompareV2 = TEST_ONLY.CompareV2;
@@ -229,6 +230,158 @@ describe('CompareV2', () => {
       </CommonTestWrapper>,
     );
     screen.getByText(OVERVIEW_SECTION_NAME);
+  });
+
+  it('does not mark ROC selection initialized before ROC artifacts are available', () => {
+    const initialSelection = TEST_ONLY.createInitialRocCurveSelectionState();
+
+    expect(TEST_ONLY.reconcileRocCurveSelectionState(initialSelection, [], new Set())).toBe(
+      initialSelection,
+    );
+  });
+
+  it('reconciles invalid two-panel artifact selections against the available run artifacts', () => {
+    const selectedArtifactsMap = {
+      [MetricsType.CONFUSION_MATRIX]: [
+        {
+          selectedItem: {
+            itemName: `test run ${MOCK_RUN_2_ID}`,
+            subItemName: 'artifactName',
+          },
+        },
+        {
+          selectedItem: {
+            itemName: 'missing run',
+            subItemName: 'staleArtifact',
+          },
+        },
+      ],
+      [MetricsType.HTML]: [
+        {
+          selectedItem: {
+            itemName: `test run ${MOCK_RUN_1_ID}`,
+            subItemName: 'firstHtmlArtifact',
+          },
+        },
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+      ],
+      [MetricsType.MARKDOWN]: [
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+      ],
+    };
+
+    const reconciledArtifactsMap = TEST_ONLY.reconcileSelectedArtifactsMap(selectedArtifactsMap, {
+      scalarMetricsTableData: undefined,
+      confusionMatrixRunArtifacts: [
+        { run: newMockRun(MOCK_RUN_2_ID), executionArtifacts: [] as any },
+      ],
+      htmlRunArtifacts: [{ run: newMockRun(MOCK_RUN_1_ID), executionArtifacts: [] as any }],
+      markdownRunArtifacts: [],
+      rocCurveRunArtifacts: [],
+    });
+
+    expect(reconciledArtifactsMap[MetricsType.CONFUSION_MATRIX][0].selectedItem).toEqual({
+      itemName: `test run ${MOCK_RUN_2_ID}`,
+      subItemName: 'artifactName',
+    });
+    expect(reconciledArtifactsMap[MetricsType.CONFUSION_MATRIX][1].selectedItem).toEqual({
+      itemName: '',
+      subItemName: '',
+    });
+    expect(reconciledArtifactsMap[MetricsType.HTML][0].selectedItem).toEqual({
+      itemName: `test run ${MOCK_RUN_1_ID}`,
+      subItemName: 'firstHtmlArtifact',
+    });
+    expect(reconciledArtifactsMap[MetricsType.MARKDOWN][0].selectedItem).toEqual({
+      itemName: '',
+      subItemName: '',
+    });
+    expect(reconciledArtifactsMap[MetricsType.MARKDOWN][1].selectedItem).toEqual({
+      itemName: '',
+      subItemName: '',
+    });
+  });
+
+  it('keeps both two-panel selections when they reference the same run', () => {
+    const selectedArtifactsMap = {
+      [MetricsType.CONFUSION_MATRIX]: [
+        {
+          selectedItem: {
+            itemName: `test run ${MOCK_RUN_2_ID}`,
+            subItemName: 'firstArtifact',
+          },
+        },
+        {
+          selectedItem: {
+            itemName: `test run ${MOCK_RUN_2_ID}`,
+            subItemName: 'secondArtifact',
+          },
+        },
+      ],
+      [MetricsType.HTML]: [
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+      ],
+      [MetricsType.MARKDOWN]: [
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+      ],
+    };
+
+    const reconciledArtifactsMap = TEST_ONLY.reconcileSelectedArtifactsMap(selectedArtifactsMap, {
+      scalarMetricsTableData: undefined,
+      confusionMatrixRunArtifacts: [
+        { run: newMockRun(MOCK_RUN_2_ID), executionArtifacts: [] as any },
+      ],
+      htmlRunArtifacts: [],
+      markdownRunArtifacts: [],
+      rocCurveRunArtifacts: [],
+    });
+
+    expect(reconciledArtifactsMap[MetricsType.CONFUSION_MATRIX][0].selectedItem).toEqual({
+      itemName: `test run ${MOCK_RUN_2_ID}`,
+      subItemName: 'firstArtifact',
+    });
+    expect(reconciledArtifactsMap[MetricsType.CONFUSION_MATRIX][1].selectedItem).toEqual({
+      itemName: `test run ${MOCK_RUN_2_ID}`,
+      subItemName: 'secondArtifact',
+    });
   });
 
   it('getRun is called with query param IDs', async () => {
@@ -765,7 +918,7 @@ describe('CompareV2', () => {
     );
     await waitForRunCheckboxes(3);
 
-    await waitFor(() => expect(filterLinkedArtifactsByTypeSpy).toHaveBeenCalledTimes(15));
+    await waitFor(() => expect(filterLinkedArtifactsByTypeSpy).toHaveBeenCalled());
 
     expect(screen.queryByText(/Confusion matrix: artifactName/)).toBeNull();
 

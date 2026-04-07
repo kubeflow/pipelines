@@ -38,7 +38,7 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
 
   const {
     isSuccess: getRecurringRunSuccess,
-    isFetching: recurringRunIsFetching,
+    isLoading: recurringRunIsLoading,
     isError: getRecurringRunError,
     error: recurringRunError,
     data: v2RecurringRun,
@@ -61,7 +61,7 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
   const pipelineId = v2RecurringRun?.pipeline_version_reference?.pipeline_id;
   const pipelineVersionId = v2RecurringRun?.pipeline_version_reference?.pipeline_version_id;
 
-  const { isFetching: templateStrIsFetching, data: templateStrFromPipelineVersion } =
+  const { isLoading: templateStrIsLoading, data: templateStrFromPipelineVersion } =
     usePipelineVersionTemplate(pipelineId, pipelineVersionId);
 
   const templateString = pipelineManifest ?? templateStrFromPipelineVersion;
@@ -96,7 +96,7 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
     }
   }
 
-  if (recurringRunIsFetching || templateStrIsFetching) {
+  if (recurringRunIsLoading || templateStrIsLoading) {
     return <div>Currently loading recurring run information</div>;
   }
 

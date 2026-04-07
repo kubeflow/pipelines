@@ -634,6 +634,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
   }
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     return this.load();
   }
 

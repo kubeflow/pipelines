@@ -1,18 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  creationTimestamp: null
   generateName: pipeline-with-loops-
 spec:
   arguments:
     parameters:
-    - name: components-687d86676223e8ed6d5a94779ca21c78d7c45d0c14796f2992c0b78dc949e530
+    - name: components-fa52219045a80d72f6f8f40492570e94942c3f25927d7cbc4e112c1ac54e4e04
       value: '{"executorLabel":"exec-args-generator-op","outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
-    - name: implementations-687d86676223e8ed6d5a94779ca21c78d7c45d0c14796f2992c0b78dc949e530
+    - name: implementations-fa52219045a80d72f6f8f40492570e94942c3f25927d7cbc4e112c1ac54e4e04
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","args_generator_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -20,13 +19,13 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         args_generator_op() -\u003e List[Dict[str, str]]:\n    return [{''A_a'': ''1'',
         ''B_b'': ''2''}, {''A_a'': ''10'', ''B_b'': ''20''}]\n\n"],"image":"python:3.11"}'
-    - name: components-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d
+    - name: components-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d
       value: '{"executorLabel":"exec-print-text","inputDefinitions":{"parameters":{"msg":{"parameterType":"STRING"}}}}'
-    - name: implementations-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d
+    - name: implementations-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_text"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -35,13 +34,13 @@ spec:
         print_text(msg: str):\n    print(msg)\n\n"],"image":"python:3.11"}'
     - name: components-comp-for-loop-1
       value: '{"dag":{"tasks":{"print-text":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item"}}},"taskInfo":{"name":"print-text"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop_parameter":{"parameterType":"LIST"},"pipelinechannel--loop_parameter-loop-item":{"parameterType":"STRING"}}}}'
-    - name: components-5d3bbc654be05c6e0386e82c98f120e616a0fc39246372d5e8cd1d973990c50f
+    - name: components-b550be7b0684fb8004fa1b01d3b9533640ab67f998151e93e27513fdd1aa41c0
       value: '{"executorLabel":"exec-print-struct","inputDefinitions":{"parameters":{"struct":{"parameterType":"STRUCT"}}}}'
-    - name: implementations-5d3bbc654be05c6e0386e82c98f120e616a0fc39246372d5e8cd1d973990c50f
+    - name: implementations-b550be7b0684fb8004fa1b01d3b9533640ab67f998151e93e27513fdd1aa41c0
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_struct"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -54,13 +53,17 @@ spec:
       value: '{"dag":{"tasks":{"print-struct-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-struct-2"},"inputs":{"parameters":{"struct":{"componentInputParameter":"pipelinechannel--loop-item-param-3"}}},"taskInfo":{"name":"print-struct-2"}},"print-text-4":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-4"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-text-4"}},"print-text-5":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-5"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-5"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-3":{"parameterType":"STRUCT"}}}}'
     - name: components-root
       value: '{"dag":{"tasks":{"args-generator-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-args-generator-op"},"taskInfo":{"name":"args-generator-op"}},"for-loop-1":{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--loop_parameter":{"componentInputParameter":"loop_parameter"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop_parameter-loop-item","items":{"inputParameter":"pipelinechannel--loop_parameter"}},"taskInfo":{"name":"for-loop-1"}},"for-loop-2":{"componentRef":{"name":"comp-for-loop-2"},"dependentTasks":["args-generator-op"],"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"args-generator-op"}}}},"parameterIterator":{"itemInput":"pipelinechannel--args-generator-op-Output-loop-item","items":{"inputParameter":"pipelinechannel--args-generator-op-Output"}},"taskInfo":{"name":"for-loop-2"}},"for-loop-4":{"componentRef":{"name":"comp-for-loop-4"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[{\"A_a\":
-        \"1\", \"B_b\": \"2\"}, {\"A_a\": \"10\", \"B_b\": \"20\"}]"}},"taskInfo":{"name":"for-loop-4"}}}},"inputDefinitions":{"parameters":{"loop_parameter":{"parameterType":"LIST"}}}}'
+        \"1\", \"B_b\": \"2\"}, {\"A_a\": \"10\", \"B_b\": \"20\"}]"}},"taskInfo":{"name":"for-loop-4"}}}},"inputDefinitions":{"parameters":{"loop_parameter":{"defaultValue":["a","b"],"isOptional":true,"parameterType":"LIST"}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -129,6 +132,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -157,6 +168,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -193,6 +208,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -219,9 +241,17 @@ spec:
       resources:
         limits:
           cpu: 500m
-          memory: 128Mi
+          memory: 256Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -232,6 +262,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -252,11 +285,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
+            value: '{{workflow.parameters.components-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item"}}},"taskInfo":{"name":"print-text"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
+            value: '{{workflow.parameters.implementations-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
           - name: task-name
             value: print-text
           - name: parent-dag-id
@@ -284,11 +317,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-5d3bbc654be05c6e0386e82c98f120e616a0fc39246372d5e8cd1d973990c50f}}'
+            value: '{{workflow.parameters.components-b550be7b0684fb8004fa1b01d3b9533640ab67f998151e93e27513fdd1aa41c0}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-struct"},"inputs":{"parameters":{"struct":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item"}}},"taskInfo":{"name":"print-struct"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-5d3bbc654be05c6e0386e82c98f120e616a0fc39246372d5e8cd1d973990c50f}}'
+            value: '{{workflow.parameters.implementations-b550be7b0684fb8004fa1b01d3b9533640ab67f998151e93e27513fdd1aa41c0}}'
           - name: task-name
             value: print-struct
           - name: parent-dag-id
@@ -308,11 +341,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
+            value: '{{workflow.parameters.components-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-2"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-text-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
+            value: '{{workflow.parameters.implementations-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
           - name: task-name
             value: print-text-2
           - name: parent-dag-id
@@ -332,11 +365,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
+            value: '{{workflow.parameters.components-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-3"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-3"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
+            value: '{{workflow.parameters.implementations-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
           - name: task-name
             value: print-text-3
           - name: parent-dag-id
@@ -364,11 +397,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-5d3bbc654be05c6e0386e82c98f120e616a0fc39246372d5e8cd1d973990c50f}}'
+            value: '{{workflow.parameters.components-b550be7b0684fb8004fa1b01d3b9533640ab67f998151e93e27513fdd1aa41c0}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-struct-2"},"inputs":{"parameters":{"struct":{"componentInputParameter":"pipelinechannel--loop-item-param-3"}}},"taskInfo":{"name":"print-struct-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-5d3bbc654be05c6e0386e82c98f120e616a0fc39246372d5e8cd1d973990c50f}}'
+            value: '{{workflow.parameters.implementations-b550be7b0684fb8004fa1b01d3b9533640ab67f998151e93e27513fdd1aa41c0}}'
           - name: task-name
             value: print-struct-2
           - name: parent-dag-id
@@ -388,11 +421,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
+            value: '{{workflow.parameters.components-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-4"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-text-4"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
+            value: '{{workflow.parameters.implementations-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
           - name: task-name
             value: print-text-4
           - name: parent-dag-id
@@ -412,11 +445,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
+            value: '{{workflow.parameters.components-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-5"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-5"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
+            value: '{{workflow.parameters.implementations-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
           - name: task-name
             value: print-text-5
           - name: parent-dag-id
@@ -494,6 +527,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -524,6 +565,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -536,6 +581,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--loop_parameter":{"componentInputParameter":"loop_parameter"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop_parameter-loop-item","items":{"inputParameter":"pipelinechannel--loop_parameter"}},"taskInfo":{"name":"for-loop-1"}}'
+          - name: task-name
+            value: for-loop-1
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -564,6 +611,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--loop_parameter":{"componentInputParameter":"loop_parameter"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop_parameter-loop-item","items":{"inputParameter":"pipelinechannel--loop_parameter"}},"taskInfo":{"name":"for-loop-1"}}'
+          - name: task-name
+            value: for-loop-1
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -595,6 +644,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-2"},"dependentTasks":["args-generator-op"],"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"args-generator-op"}}}},"parameterIterator":{"itemInput":"pipelinechannel--args-generator-op-Output-loop-item","items":{"inputParameter":"pipelinechannel--args-generator-op-Output"}},"taskInfo":{"name":"for-loop-2"}}'
+          - name: task-name
+            value: for-loop-2
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -623,6 +674,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-2"},"dependentTasks":["args-generator-op"],"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"args-generator-op"}}}},"parameterIterator":{"itemInput":"pipelinechannel--args-generator-op-Output-loop-item","items":{"inputParameter":"pipelinechannel--args-generator-op-Output"}},"taskInfo":{"name":"for-loop-2"}}'
+          - name: task-name
+            value: for-loop-2
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -655,6 +708,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-4"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[{\"A_a\":
               \"1\", \"B_b\": \"2\"}, {\"A_a\": \"10\", \"B_b\": \"20\"}]"}},"taskInfo":{"name":"for-loop-4"}}'
+          - name: task-name
+            value: for-loop-4
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -684,6 +739,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-4"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[{\"A_a\":
               \"1\", \"B_b\": \"2\"}, {\"A_a\": \"10\", \"B_b\": \"20\"}]"}},"taskInfo":{"name":"for-loop-4"}}'
+          - name: task-name
+            value: for-loop-4
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -708,11 +765,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-687d86676223e8ed6d5a94779ca21c78d7c45d0c14796f2992c0b78dc949e530}}'
+            value: '{{workflow.parameters.components-fa52219045a80d72f6f8f40492570e94942c3f25927d7cbc4e112c1ac54e4e04}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-args-generator-op"},"taskInfo":{"name":"args-generator-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-687d86676223e8ed6d5a94779ca21c78d7c45d0c14796f2992c0b78dc949e530}}'
+            value: '{{workflow.parameters.implementations-fa52219045a80d72f6f8f40492570e94942c3f25927d7cbc4e112c1ac54e4e04}}'
           - name: task-name
             value: args-generator-op
           - name: parent-dag-id
@@ -761,7 +818,7 @@ spec:
           - name: component
             value: '{{workflow.parameters.components-root}}'
           - name: runtime-config
-            value: '{}'
+            value: '{"parameterValues":{"loop_parameter":["a","b"]}}'
           - name: driver-type
             value: ROOT_DAG
         name: root-driver
