@@ -38,7 +38,7 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
 
   const {
     isSuccess: getRecurringRunSuccess,
-    isFetching: recurringRunIsFetching,
+    isLoading: recurringRunIsLoading,
     isError: getRecurringRunError,
     error: recurringRunError,
     data: v2RecurringRun,
@@ -96,7 +96,7 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
     }
   }
 
-  if (recurringRunIsFetching || templateStrIsFetching) {
+  if (recurringRunIsLoading || templateStrIsFetching) {
     return <div>Currently loading recurring run information</div>;
   }
 
