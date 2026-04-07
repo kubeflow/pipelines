@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { Description } from 'src/components/Description';
 import { commonCss } from 'src/Css';
@@ -64,7 +64,7 @@ export function PipelineVersionCard({
                       aria-label='version_selector'
                       data-testid='version_selector'
                       value={selectedVersion!.pipeline_version_id}
-                      onChange={event => handleVersionSelected(event.target.value as string)}
+                      onChange={(event) => handleVersionSelected(event.target.value as string)}
                       inputProps={{ id: 'version-selector', name: 'selectedVersion' }}
                     >
                       {versions.map((v, _) => (

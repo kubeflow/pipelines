@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import ErrorIcon from '@mui/icons-material/Error';
 import PendingIcon from '@mui/icons-material/Schedule';
 import RunningIcon from 'src/icons/statusRunning';
@@ -82,7 +81,7 @@ export function statusToIcon(
       iconColor = color.terminated;
       title = 'Run was manually canceled';
       break;
-    case V2beta1RuntimeState.RUNTIMESTATEUNSPECIFIED:
+    case V2beta1RuntimeState.RUNTIME_STATE_UNSPECIFIED:
       break;
     default:
       if (state != null) {

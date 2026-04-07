@@ -17,7 +17,6 @@
 import * as JsYaml from 'js-yaml';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { graphlib } from 'dagre';
-import * as React from 'react';
 import { testBestPractices } from 'src/TestUtils';
 import PipelineDetailsV1, { PipelineDetailsV1Props } from './PipelineDetailsV1';
 import { color } from 'src/Css';
@@ -115,8 +114,8 @@ spec:
       graph: graph,
       reducedGraph: reducedGraph,
       templateString: JSON.stringify({ template: JsYaml.safeDump(pipelineSpecTemplate) }),
-      updateBanner: bannerProps => {},
-      handleVersionSelected: async versionId => {},
+      updateBanner: (bannerProps) => {},
+      handleVersionSelected: async (versionId) => {},
     };
     return props;
   }

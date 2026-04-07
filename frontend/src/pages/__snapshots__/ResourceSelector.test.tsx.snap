@@ -186,7 +186,6 @@ exports[`ResourceSelector > displays resource selector 1`] = `
               <input
                 class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
                 type="radio"
-                value=""
               />
               <span
                 class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -265,7 +264,6 @@ exports[`ResourceSelector > displays resource selector 1`] = `
               <input
                 class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
                 type="radio"
-                value=""
               />
               <span
                 class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -340,12 +338,12 @@ exports[`ResourceSelector > displays resource selector 1`] = `
           class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
         >
           <div
-            aria-controls="mui-4"
+            aria-controls="_r_5_"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-5"
+            aria-labelledby="_r_4_"
             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-            id="mui-5"
+            id="_r_4_"
             role="combobox"
             tabindex="0"
           >

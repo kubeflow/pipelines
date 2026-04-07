@@ -18,7 +18,7 @@
 // Because this is test utils.
 
 import 'src/build/tailwind.output.css';
-import { QueryClient } from 'react-query';
+import { QueryClient } from '@tanstack/react-query';
 import { match } from 'react-router';
 import { beforeEach, expect, MockInstance } from 'vitest';
 import { ToolbarActionConfig } from './components/Toolbar';
@@ -46,8 +46,8 @@ export default class TestUtils {
       await Promise.resolve();
       return;
     }
-    await new Promise(resolve => setTimeout(resolve, 0));
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
   }
 
   /**
@@ -201,12 +201,12 @@ export function mockResizeObserver(width = 800, height = 600) {
               contentRect: { width, height } as DOMRectReadOnly,
             } as ResizeObserverEntry,
           ],
-          (this as unknown) as ResizeObserver,
+          this as unknown as ResizeObserver,
         );
       });
       this.unobserve = testApi.fn();
     }
   }
 
-  (window as any).ResizeObserver = (ResizeObserverMock as unknown) as typeof ResizeObserver;
+  (window as any).ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
 }

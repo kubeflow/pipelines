@@ -14,7 +14,17 @@
  * limitations under the License.
  */
 
-import { Button, Checkbox, FormControlLabel, InputAdornment, TextField } from '@mui/material';
+import {
+  Button,
+  Checkbox,
+  FormControl,
+  FormControlLabel,
+  InputAdornment,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+} from '@mui/material';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { PipelineSpecRuntimeConfig } from 'src/apis/run';
@@ -177,8 +187,11 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     handleParameterChange,
     setIsValidInput,
   } = props;
-  const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
-  const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
+  const clonedPipelineRoot = clonedRuntimeConfig?.pipeline_root;
+  const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(!!clonedPipelineRoot);
+  const [customPipelineRoot, setCustomPipelineRoot] = useState(
+    clonedPipelineRoot ?? props.pipelineRoot,
+  );
   const [errorMessages, setErrorMessages] = useState<string[]>([]);
 
   const [updatedParameters, setUpdatedParameters] = useState({});
@@ -186,7 +199,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     if (clonedRuntimeConfig && clonedRuntimeConfig.parameters) {
       const clonedRuntimeParametersStr: RuntimeParameters = {};
       // Convert cloned parameter to string type first to avoid error from convertInput
-      Object.entries(clonedRuntimeConfig.parameters).forEach(entry => {
+      Object.entries(clonedRuntimeConfig.parameters).forEach((entry) => {
         clonedRuntimeParametersStr[entry[0]] = convertNonUserInputParamToString(
           specParameters,
           entry[0],
@@ -210,7 +223,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     const runtimeParametersInRealType: RuntimeParameters = {};
     let allParamtersWithDefault = true;
     let errMsg: string[] = [];
-    Object.keys(specParameters).forEach(key => {
+    Object.keys(specParameters).forEach((key) => {
       if (specParameters[key].defaultValue !== undefined) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
         // Convert default value to string type first to avoid error from convertInput
@@ -240,13 +253,6 @@ function NewRunParametersV2(props: NewRunParametersProps) {
       handleParameterChange(runtimeParametersInRealType);
     }
   }, [clonedRuntimeConfig, specParameters, handleParameterChange, setIsValidInput]);
-
-  useEffect(() => {
-    if (clonedRuntimeConfig?.pipeline_root) {
-      setCustomPipelineRootChecked(true);
-      setCustomPipelineRoot(clonedRuntimeConfig.pipeline_root);
-    }
-  }, [clonedRuntimeConfig]);
 
   return (
     <div>
@@ -286,7 +292,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
           variant='outlined'
           label={'pipeline-root'}
           value={customPipelineRoot || ''}
-          onChange={ev => {
+          onChange={(ev) => {
             setCustomPipelineRoot(ev.target.value);
             if (handlePipelineRootChange) {
               handlePipelineRootChange(ev.target.value);
@@ -301,18 +307,19 @@ function NewRunParametersV2(props: NewRunParametersProps) {
       {!!Object.keys(specParameters).length && (
         <div>
           {Object.entries(specParameters).map(([k, v]) => {
-            const param = {
+            const param: Param = {
               key: `${k} - ${protoMap.get(ParameterType_ParameterTypeEnum[v.parameterType])}`,
               value: updatedParameters[k],
               type: v.parameterType,
               errorMsg: errorMessages[k],
+              literals: v.literals,
             };
 
             return (
               <div key={k}>
                 <ParamEditor
                   id={k}
-                  onChange={value => {
+                  onChange={(value) => {
                     let allInputsValid: boolean = true;
                     let parametersInRealType: RuntimeParameters = {};
                     const nextUpdatedParameters: RuntimeParameters = {};
@@ -337,7 +344,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                     );
                     setErrorMessages(errorMessages);
 
-                    Object.values(errorMessages).forEach(errorMessage => {
+                    Object.values(errorMessages).forEach((errorMessage) => {
                       allInputsValid = allInputsValid && errorMessage === null;
                     });
 
@@ -366,6 +373,7 @@ interface Param {
   value: any;
   type: ParameterType_ParameterTypeEnum;
   errorMsg: string;
+  literals?: (string | number | boolean)[];
 }
 
 interface ParamEditorProps {
@@ -418,6 +426,43 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
   public render(): JSX.Element | null {
     const { id, onChange, param } = this.props;
 
+    if (param.literals?.length) {
+      const getLiteralString = (l: string | number | boolean) => String(l);
+      const literalStrings = param.literals.map(getLiteralString);
+      const stringValue = getLiteralString(param.value);
+      const isValueInLiterals =
+        param.value != null && param.value !== '' && literalStrings.includes(stringValue);
+      const selectValue = isValueInLiterals ? stringValue : '';
+
+      return (
+        <FormControl variant='outlined' className={classes(commonCss.textField, css.textfield)}>
+          <InputLabel id={`${id}-label`}>{param.key}</InputLabel>
+          <Select
+            labelId={`${id}-label`}
+            id={id}
+            value={selectValue}
+            onChange={(ev) => onChange(String(ev.target.value))}
+            label={param.key}
+            aria-label={param.key}
+            displayEmpty
+            renderValue={(selected) =>
+              selected === '' ? (
+                <span style={{ color: '#aaa' }}>Select a value</span>
+              ) : (
+                String(selected)
+              )
+            }
+          >
+            {literalStrings.map((literal) => (
+              <MenuItem key={literal} value={literal}>
+                {literal}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      );
+    }
+
     const onClick = () => {
       if (this.state.isInJsonForm) {
         let paramType = param.type;
@@ -456,7 +501,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
             variant='outlined'
             label={param.key}
             value={param.value || ''}
-            onChange={ev => onChange(ev.target.value || '')}
+            onChange={(ev) => onChange(ev.target.value || '')}
             className={classes(commonCss.textField, css.textfield)}
             InputProps={{
               classes: { disabled: css.nonEditableInput },
@@ -477,7 +522,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
             label={param.key}
             //TODO(zijianjoy): Convert defaultValue to correct type.
             value={param.value || ''}
-            onChange={ev => onChange(ev.target.value || '')}
+            onChange={(ev) => onChange(ev.target.value || '')}
             className={classes(commonCss.textField, css.textfield)}
           />
         )}
@@ -493,7 +538,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
               highlightActiveLine={true}
               showGutter={true}
               readOnly={false}
-              onChange={text => onChange(text || '')}
+              onChange={(text) => onChange(text || '')}
               value={param.value || ''}
             />
           </div>

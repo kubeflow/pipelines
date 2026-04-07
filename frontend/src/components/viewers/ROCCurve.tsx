@@ -173,7 +173,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
     const height = width * 0.65;
     const isSmall = width < 600;
     const configs = this.props.configs;
-    const datasets = configs.map(d => d.data);
+    const datasets = configs.map((d) => d.data);
     const labels = configs.map((_, i) => `threshold (Series #${i + 1})`);
     const { lastDrawLocation, highlightIndex, refAreaLeft, refAreaRight } = this.state;
     const chartData = this.getChartData(configs, datasets);
@@ -192,7 +192,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
           margin={{ top: 5, right: 5, bottom: 20, left: 32 }}
           onMouseDown={
             !isSmall
-              ? e => {
+              ? (e) => {
                   if (e?.activeLabel == null) {
                     return;
                   }
@@ -202,7 +202,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
           }
           onMouseMove={
             !isSmall && refAreaLeft != null
-              ? e => {
+              ? (e) => {
                   if (e?.activeLabel == null) {
                     return;
                   }
@@ -290,7 +290,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
           {!isSmall && (
             <Tooltip
               cursor={{ stroke: color.weak }}
-              content={tooltipProps => this.renderTooltipContent(tooltipProps, datasets, labels)}
+              content={(tooltipProps) => this.renderTooltipContent(tooltipProps, datasets, labels)}
             />
           )}
         </LineChart>
@@ -335,15 +335,15 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
   }
 
   private buildChartData(datasets: DisplayPoint[][]): Array<Record<string, number | null>> {
-    const pointsBySeries = datasets.map(data => {
+    const pointsBySeries = datasets.map((data) => {
       const map = new Map<number, DisplayPoint>();
-      data.forEach(point => map.set(point.x, point));
+      data.forEach((point) => map.set(point.x, point));
       return map;
     });
     const xValues = new Set<number>();
-    pointsBySeries.forEach(map => map.forEach((_value, key) => xValues.add(key)));
+    pointsBySeries.forEach((map) => map.forEach((_value, key) => xValues.add(key)));
     const sortedX = Array.from(xValues).sort((a, b) => a - b);
-    return sortedX.map(xValue => {
+    return sortedX.map((xValue) => {
       const row: Record<string, number | null> = { x: xValue };
       pointsBySeries.forEach((map, index) => {
         const point = map.get(xValue);
@@ -389,7 +389,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
   private renderTooltipRows(rows: TooltipRow[], labels: string[]): JSX.Element {
     return (
       <div className={css.crosshair}>
-        {rows.map(row => (
+        {rows.map((row) => (
           <div key={row.index} className={css.crosshairLabel}>
             {`${labels[row.index]}: ${row.label}`}
           </div>

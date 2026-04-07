@@ -150,14 +150,14 @@ export class LineageCardColumn extends React.Component<LineageCardColumnProps> {
 
     const artifactIdToCardMap = new Map<number, number>();
     artifactCards.forEach((card, index) => {
-      card.elements.forEach(row => {
+      card.elements.forEach((row) => {
         artifactIdToCardMap.set(row.typedResource.resource.getId(), index);
       });
     });
 
     const executionIdToCardMap = new Map<number, number>();
     executionCards.forEach((card, index) => {
-      card.elements.forEach(row => {
+      card.elements.forEach((row) => {
         executionIdToCardMap.set(row.typedResource.resource.getId(), index);
       });
     });
@@ -198,19 +198,14 @@ export class LineageCardColumn extends React.Component<LineageCardColumnProps> {
       );
 
       // Advance starting artifact offset.
-      artifactIds.forEach(artifactId => {
-        if (artifactCardIndex === null) {
-          artifactCardIndex = artifactIdToCardMap.get(artifactId) as number;
-          return;
-        }
-
+      artifactIds.forEach((artifactId) => {
         const newArtifactIndex = artifactIdToCardMap.get(artifactId);
-        if (artifactCardIndex === newArtifactIndex) {
+        if (artifactCardIndex === undefined || newArtifactIndex !== artifactCardIndex) {
+          // First artifact or artifact on a new card
+          artifactOffset += NEXT_ITEM_NEXT_CARD_OFFSET;
+        } else {
           // Next artifact row is on the same card
           artifactOffset += NEXT_ITEM_SAME_CARD_OFFSET;
-        } else {
-          // Next artifact row is on the next card
-          artifactOffset += NEXT_ITEM_NEXT_CARD_OFFSET;
         }
         artifactCardIndex = newArtifactIndex;
       });

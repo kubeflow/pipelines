@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import BusyButton from '../../atoms/BusyButton';
 import Viewer, { ViewerConfig } from './Viewer';
 import { Apis } from '../../lib/Apis';
@@ -266,7 +265,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   }
 
   private _buildUrl(): string {
-    const urls = this.props.configs.map(c => c.url).sort();
+    const urls = this.props.configs.map((c) => c.url).sort();
     return urls.length === 1 ? urls[0] : urls.map((c, i) => `Series${i + 1}:` + c).join(',');
   }
 
@@ -284,7 +283,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     // If pod address is not null and tensorboard pod doesn't seem to be read, pull status again
     if (this.state.podAddress && !this.state.tensorboardReady) {
       // Remove protocol prefix bofore ":" from pod address if any.
-      Apis.isTensorboardPodReady(makeProxyUrl(this.state.podAddress)).then(ready => {
+      Apis.isTensorboardPodReady(makeProxyUrl(this.state.podAddress)).then((ready) => {
         this.setStateSafe(({ tensorboardReady }) => ({
           tensorboardReady: tensorboardReady || ready,
         }));
@@ -316,14 +315,18 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   private _startTensorboard = async () => {
     this.setStateSafe({ busy: true, errorMessage: undefined }, async () => {
       try {
-        await Apis.startTensorboardApp({
+        const podAddress = await Apis.startTensorboardApp({
           logdir: this._buildUrl(),
           namespace: this._getNamespace(),
           image: this.state.tfImage,
           podTemplateSpec: this._podTemplateSpec(),
         });
-        this.setStateSafe({ busy: false, tensorboardReady: false }, () => {
-          this._checkTensorboardApp();
+        this.setStateSafe({ busy: false, podAddress, tensorboardReady: false }, () => {
+          if (podAddress) {
+            this._checkTensorboardPodStatus();
+          } else {
+            this._checkTensorboardApp();
+          }
         });
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';

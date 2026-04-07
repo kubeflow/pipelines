@@ -77,7 +77,7 @@ describe('ResourceSelector', () => {
 
   function getRowById(id: string): HTMLElement {
     const rows = screen.getAllByTestId('table-row');
-    const row = rows.find(element => element.getAttribute('data-row-id') === id);
+    const row = rows.find((element) => element.getAttribute('data-row-id') === id);
     if (!row) {
       throw new Error(`Row not found: ${id}`);
     }

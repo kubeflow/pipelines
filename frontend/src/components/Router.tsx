@@ -214,7 +214,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
   ];
 
   if (!buildInfo?.apiServerMultiUser) {
-    routes = routes.filter(r => r.path !== RoutePage.PIPELINES_SHARED);
+    routes = routes.filter((r) => r.path !== RoutePage.PIPELINES_SHARED);
   }
 
   return (
@@ -238,7 +238,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
               key={i}
               exact={!route.notExact}
               path={path}
-              render={props => <RoutedPage key={props.location.key} route={route} />}
+              render={(props) => <RoutedPage key={props.location.key} route={route} />}
             />
           );
         })}
@@ -396,7 +396,7 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
 
 export default Router;
 
-const SideNavLayout: React.FC<{}> = ({ children }) => (
+const SideNavLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className={classes(commonCss.page)}>
     <div className={classes(commonCss.flexGrow)}>
       <Route

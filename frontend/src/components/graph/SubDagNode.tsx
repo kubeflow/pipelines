@@ -16,7 +16,7 @@
 
 import CropFreeIcon from '@mui/icons-material/CropFree';
 import React from 'react';
-import { Handle, Position } from 'react-flow-renderer';
+import { Handle, Position } from '@xyflow/react';
 import { SubDagFlowElementData } from './Constants';
 import { getExecutionIcon, getIcon } from './ExecutionNode';
 // import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -64,6 +64,7 @@ function SubDagNode({ id, data }: SubDagNodeProps) {
           </div>
 
           <div
+            data-testid='expand-button'
             onClick={handleClick}
             className='transition transform hover:shadow-inner hover:scale-110 flex flex-col absolute rounded-full h-9 w-9 z-30 group-focus:border-blue-500 hover:border-blue-500  border-2 bg-white -right-5 top-8 items-center justify-center justify-items-center'
           >
@@ -79,15 +80,15 @@ function SubDagNode({ id, data }: SubDagNodeProps) {
       <Handle
         type='target'
         position={Position.Top}
-        isValidConnection={connection => connection.source === 'some-id'}
-        onConnect={params => console.log('handle onConnect', params)}
+        isValidConnection={(connection) => connection.source === 'some-id'}
+        onConnect={(params) => console.log('handle onConnect', params)}
         style={{ background: '#000', height: '1px', width: '1px', border: 0 }}
       />
       <Handle
         type='source'
         position={Position.Bottom}
-        isValidConnection={connection => connection.source === 'some-id'}
-        onConnect={params => console.log('handle onConnect', params)}
+        isValidConnection={(connection) => connection.source === 'some-id'}
+        onConnect={(params) => console.log('handle onConnect', params)}
         style={{ background: '#000', height: '1px', width: '1px', border: 0 }}
       />
     </>

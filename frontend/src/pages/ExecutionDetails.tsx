@@ -16,8 +16,9 @@
 
 import { CircularProgress } from '@mui/material';
 import React, { Component } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { Api, getArtifactTypes } from 'src/mlmd/library';
 import {
   ExecutionHelpers,
@@ -67,7 +68,7 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
           key={this.id}
           id={this.id}
           onError={this.showPageError.bind(this)}
-          onTitleUpdate={title =>
+          onTitleUpdate={(title) =>
             this.props.updateToolbar({
               pageTitle: title,
             })
@@ -163,12 +164,12 @@ export class ExecutionDetailsContent extends Component<
 
     // this runs parallelly because it's not a critical resource
     getArtifactTypes(metadataStoreServiceClient)
-      .then(artifactTypeMap => {
+      .then((artifactTypeMap) => {
         this.setState({
           artifactTypeMap,
         });
       })
-      .catch(err => {
+      .catch((err) => {
         this.props.onError('Failed to fetch artifact types', err, 'warning', this.refresh);
       });
 
@@ -268,7 +269,7 @@ export class ExecutionDetailsContent extends Component<
   };
 }
 
-function parseEventsByType(
+export function parseEventsByType(
   response: GetEventsByExecutionIDsResponse | null,
 ): Record<Event.Type, Event[]> {
   const events: Record<Event.Type, Event[]> = {
@@ -286,7 +287,7 @@ function parseEventsByType(
     return events;
   }
 
-  response.getEventsList().forEach(event => {
+  response.getEventsList().forEach((event) => {
     const type = event.getType();
     const id = event.getArtifactId();
     if (type != null && id != null) {
@@ -326,7 +327,7 @@ class SectionIO extends Component<
       const linkedArtifacts = await getLinkedArtifactsByEvents(this.props.events);
 
       const artifactDataMap = {};
-      linkedArtifacts.forEach(linkedArtifact => {
+      linkedArtifacts.forEach((linkedArtifact) => {
         const id = linkedArtifact.event.getArtifactId();
         if (!id) {
           logger.error('Artifact has empty id', linkedArtifact.artifact.toObject());
@@ -366,7 +367,7 @@ class SectionIO extends Component<
             </tr>
           </thead>
           <tbody>
-            {events.map(event => {
+            {events.map((event) => {
               const id = event.getArtifactId();
               const data = this.state.artifactDataMap[id] || {};
               const type =
@@ -438,11 +439,11 @@ interface ExecutionReferenceProps {
 }
 
 function ExecutionReference({ execution }: ExecutionReferenceProps) {
-  const { isSuccess, data: context } = useQuery<Context | undefined, Error>(
-    ['context_by_execution', { id: execution.getId(), state: execution.getLastKnownState() }],
-    () => getContextByExecution(execution, KFP_V2_RUN_CONTEXT_TYPE),
-    { staleTime: Infinity },
-  );
+  const { isSuccess, data: context } = useQuery<Context | null, Error>({
+    queryKey: queryKeys.contextByExecution(execution.getId(), execution.getLastKnownState()),
+    queryFn: async () => (await getContextByExecution(execution, KFP_V2_RUN_CONTEXT_TYPE)) ?? null,
+    staleTime: Infinity,
+  });
 
   const customPropertyMap = execution.getCustomPropertiesMap();
   const originalExecutionId = customPropertyMap
@@ -467,7 +468,7 @@ function ExecutionReference({ execution }: ExecutionReferenceProps) {
                 <span>
                   <Link
                     className={commonCss.link}
-                    onClick={e => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
                     to={RoutePage.RUN_DETAILS_WITH_EXECUTION.replace(
                       ':' + RouteParams.runId,
                       context.getName(),
@@ -486,7 +487,7 @@ function ExecutionReference({ execution }: ExecutionReferenceProps) {
                 <span>
                   <Link
                     className={commonCss.link}
-                    onClick={e => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
                     to={RoutePage.EXECUTION_DETAILS.replace(
                       ':' + RouteParams.ID,
                       originalExecutionId,

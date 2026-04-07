@@ -174,7 +174,7 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
   ) => {
     return (
       <Link
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         className={commonCss.link}
         to={RoutePageFactory.artifactDetails(Number(props.id))}
       >
@@ -219,7 +219,7 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
   ): Promise<Row[]> {
     try {
       const artifactsWithCreationTimes = await Promise.all(
-        artifacts.map(async artifact => {
+        artifacts.map(async (artifact) => {
           const artifactId = artifact.getId();
           if (!artifactId) {
             return { artifact };

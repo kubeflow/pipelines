@@ -419,12 +419,12 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
                   class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
                 >
                   <div
-                    aria-controls="mui-107"
+                    aria-controls="_r_3l_"
                     aria-expanded="false"
                     aria-haspopup="listbox"
-                    aria-labelledby="mui-108"
+                    aria-labelledby="_r_3k_"
                     class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-                    id="mui-108"
+                    id="_r_3k_"
                     role="combobox"
                     tabindex="0"
                   >
@@ -914,12 +914,12 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
                   class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
                 >
                   <div
-                    aria-controls="mui-8"
+                    aria-controls="_r_9_"
                     aria-expanded="false"
                     aria-haspopup="listbox"
-                    aria-labelledby="mui-9"
+                    aria-labelledby="_r_8_"
                     class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-                    id="mui-9"
+                    id="_r_8_"
                     role="combobox"
                     tabindex="0"
                   >
@@ -1407,12 +1407,12 @@ exports[`ExperimentDetails > uses an empty string if the experiment has no descr
                   class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
                 >
                   <div
-                    aria-controls="mui-41"
+                    aria-controls="_r_1d_"
                     aria-expanded="false"
                     aria-haspopup="listbox"
-                    aria-labelledby="mui-42"
+                    aria-labelledby="_r_1c_"
                     class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-                    id="mui-42"
+                    id="_r_1c_"
                     role="combobox"
                     tabindex="0"
                   >

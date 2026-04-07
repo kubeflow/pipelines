@@ -13,21 +13,31 @@
 // limitations under the License.
 
 import dagre from 'dagre';
-import {
-  ArrowHeadType,
-  Edge,
-  Elements,
-  FlowElement,
-  isNode,
-  Node,
-  Position,
-} from 'react-flow-renderer';
+import { Edge, MarkerType, Node, Position } from '@xyflow/react';
 import ArtifactNode from 'src/components/graph/ArtifactNode';
 import { ArtifactFlowElementData, FlowElementDataBase } from 'src/components/graph/Constants';
 import ExecutionNode from 'src/components/graph/ExecutionNode';
 import SubDagNode from 'src/components/graph/SubDagNode';
 import { ComponentSpec, PipelineSpec, PipelineTaskSpec } from 'src/generated/pipeline_spec';
 import { ComponentInputsSpec_ArtifactSpec } from 'src/generated/pipeline_spec/pipeline_spec';
+
+export type PipelineFlowElement = Node<FlowElementDataBase> | Edge;
+
+export function isNode(el: PipelineFlowElement): el is Node<FlowElementDataBase> {
+  return !('source' in el) && !('target' in el);
+}
+
+export function getNodeName(element: PipelineFlowElement | null): string {
+  if (
+    element &&
+    element.data &&
+    'label' in element.data &&
+    typeof element.data.label === 'string'
+  ) {
+    return element.data.label;
+  }
+  return 'unknown';
+}
 
 const nodeWidth = 224;
 const nodeHeight = 48;
@@ -54,14 +64,12 @@ interface ComponentSpecPair {
   componentSpec: ComponentSpec;
 }
 
-export type PipelineFlowElement = FlowElement<FlowElementDataBase>;
-
 /**
  * Convert static IR to Reactflow compatible graph description.
  * @param spec KFP v2 Pipeline definition
  * @returns Graph visualization as Reactflow elements (nodes and edges)
  */
-export function convertFlowElements(spec: PipelineSpec): Elements {
+export function convertFlowElements(spec: PipelineSpec): PipelineFlowElement[] {
   // Find all tasks      --> nodes
   // Find all depdencies --> edges
   const root = spec.root;
@@ -72,7 +80,10 @@ export function convertFlowElements(spec: PipelineSpec): Elements {
   return buildDag(spec, root);
 }
 
-export function convertSubDagToFlowElements(spec: PipelineSpec, layers: string[]): Elements {
+export function convertSubDagToFlowElements(
+  spec: PipelineSpec,
+  layers: string[],
+): PipelineFlowElement[] {
   let componentSpec = spec.root;
   if (!componentSpec) {
     throw new Error('root not found in pipeline spec.');
@@ -112,14 +123,17 @@ export function convertSubDagToFlowElements(spec: PipelineSpec, layers: string[]
  * @param componentSpec Designated layer of a DAG/sub-DAG as part of pipelineSpec
  * @returns Graph visualization as Reactflow elements (nodes and edges)
  */
-export function buildDag(pipelineSpec: PipelineSpec, componentSpec: ComponentSpec): Elements {
+export function buildDag(
+  pipelineSpec: PipelineSpec,
+  componentSpec: ComponentSpec,
+): PipelineFlowElement[] {
   const dag = componentSpec.dag;
   if (!dag) {
     throw new Error('dag not found in component spec.');
   }
 
   const componentsMap = pipelineSpec.components || {};
-  let flowGraph: FlowElement[] = [];
+  let flowGraph: PipelineFlowElement[] = [];
 
   const tasksMap = dag.tasks || {};
 
@@ -280,7 +294,7 @@ function addTaskToArtifactEdges(
         id: getTaskToArtifactEdgeKey(taskKey, artifactKey),
         source: getTaskNodeKey(taskKey),
         target: getArtifactNodeKey(taskKey, artifactKey),
-        arrowHeadType: ArrowHeadType.ArrowClosed,
+        markerEnd: { type: MarkerType.ArrowClosed },
       };
       flowGraph.push(edge);
     }
@@ -313,7 +327,7 @@ function addArtifactToTaskEdges(
           id: getArtifactToTaskEdgeKey(outputArtifactKey, inputTaskKey),
           source: getArtifactNodeKey(producerTask, outputArtifactKey),
           target: getTaskNodeKey(inputTaskKey),
-          arrowHeadType: ArrowHeadType.ArrowClosed,
+          markerEnd: { type: MarkerType.ArrowClosed },
         };
         flowGraph.push(edge);
       } else if (componentInputArtifact) {
@@ -321,7 +335,7 @@ function addArtifactToTaskEdges(
           id: getArtifactToTaskEdgeKey(componentInputArtifact, inputTaskKey),
           source: getArtifactNodeKey('', componentInputArtifact),
           target: getTaskNodeKey(inputTaskKey),
-          arrowHeadType: ArrowHeadType.ArrowClosed,
+          markerEnd: { type: MarkerType.ArrowClosed },
         };
         flowGraph.push(edge);
       }
@@ -362,7 +376,7 @@ function addTaskToTaskEdges(
           source: getTaskNodeKey(producerTask),
           target: getTaskNodeKey(inputTaskKey),
           // TODO(zijianjoy): This node styling is temporarily.
-          arrowHeadType: ArrowHeadType.ArrowClosed,
+          markerEnd: { type: MarkerType.ArrowClosed },
         };
         flowGraph.push(edge);
         edgeKeys.set(edgeId, edge);
@@ -378,7 +392,7 @@ function addTaskToTaskEdges(
     if (!dependentTasks) {
       continue;
     }
-    dependentTasks.forEach(upStreamTaskName => {
+    dependentTasks.forEach((upStreamTaskName) => {
       const edgeId = getTaskToTaskEdgeKey(upStreamTaskName, inputTaskKey);
       if (edgeKeys.has(edgeId)) {
         return;
@@ -390,7 +404,7 @@ function addTaskToTaskEdges(
         source: getTaskNodeKey(upStreamTaskName),
         target: getTaskNodeKey(inputTaskKey),
         // TODO(zijianjoy): This node styling is temporarily.
-        arrowHeadType: ArrowHeadType.ArrowClosed,
+        markerEnd: { type: MarkerType.ArrowClosed },
       };
       flowGraph.push(edge);
       edgeKeys.set(edgeId, edge);
@@ -403,7 +417,7 @@ export function buildGraphLayout(flowGraph: PipelineFlowElement[]) {
   dagreGraph.setDefaultEdgeLabel(() => ({}));
   dagreGraph.setGraph({ rankdir: 'TB' });
 
-  flowGraph.forEach(el => {
+  flowGraph.forEach((el) => {
     if (isNode(el)) {
       dagreGraph.setNode(el.id, { width: nodeWidth, height: nodeHeight });
     } else {
@@ -413,7 +427,7 @@ export function buildGraphLayout(flowGraph: PipelineFlowElement[]) {
 
   dagre.layout(dagreGraph);
 
-  return flowGraph.map(el => {
+  return flowGraph.map((el) => {
     if (isNode(el)) {
       const nodeWithPosition = dagreGraph.node(el.id);
       el.sourcePosition = Position.Bottom;

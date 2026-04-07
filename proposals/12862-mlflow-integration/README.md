@@ -54,9 +54,10 @@ itself.
 1. Allow the user to optionally specify an MLflow experiment name when creating a run. Default to the `"Default"` MLflow
    experiment when omitted.
 1. Support the same MLflow configuration on recurring runs so that every triggered run is automatically tracked.
-1. Expose `MLFLOW_TRACKING_URI`, `MLFLOW_WORKSPACE`, and `MLFLOW_RUN_ID` as environment variables on user containers so
-   that component code can interact with MLflow directly if needed. `MLFLOW_RUN_ID` points to the task's nested run,
-   allowing `mlflow.log_metric()` and similar calls to work without explicit run management.
+1. Expose `MLFLOW_TRACKING_URI`, `MLFLOW_WORKSPACE`, `MLFLOW_EXPERIMENT_ID`, and `MLFLOW_RUN_ID` as environment
+   variables on user containers so that component code can interact with MLflow directly if needed. `MLFLOW_RUN_ID`
+   points to the task's nested run, allowing `mlflow.log_metric()` and similar calls to work without explicit run
+   management.
 1. Pre-configure MLflow authentication on user containers by setting the appropriate environment variables
    (`MLFLOW_TRACKING_AUTH`, `MLFLOW_TRACKING_TOKEN`, or `MLFLOW_TRACKING_USERNAME` / `MLFLOW_TRACKING_PASSWORD`) so that
    the MLflow Python SDK authenticates automatically without manual setup in component code.
@@ -159,7 +160,7 @@ sequenceDiagram
         Driver->>Driver: Read parent MLflow run ID from env var
         Driver->>MLflow: Create nested run
         Driver->>MLMD: Store nested run ID as execution property
-        Driver->>Driver: Set MLFLOW_TRACKING_URI + MLFLOW_WORKSPACE + MLFLOW_RUN_ID env vars
+        Driver->>Driver: Set MLFLOW_TRACKING_URI + MLFLOW_WORKSPACE + MLFLOW_EXPERIMENT_ID + MLFLOW_RUN_ID env vars
         Driver->>Launcher: Launch user container
 
         Launcher->>Launcher: Execute user code
@@ -193,11 +194,12 @@ the MLflow REST API's batch endpoints where available. The per-task granularity 
 manageable. For components with very large parameter sets (e.g., training hyperparameter sweeps), the launcher chunks
 parameters into multiple `log-batch` calls if they exceed 100 parameters per call.
 
-**Configuration divergence.** The API server resolves the MLflow configuration (tracking URI, workspace, parent run ID)
-at run creation time and injects these as environment variables on the Argo Workflow templates. The driver and launcher
-use these environment variables rather than re-reading the `kfp-launcher` ConfigMap. This ensures that all components in
-a run use the same MLflow endpoint and workspace, even if the ConfigMap is modified after the run starts. Credential env vars are also mounted via `valueFrom.secretKeyRef` on all templates at compile time, so no Secret reads
-occur at task execution time.
+**Configuration divergence.** The API server resolves the full MLflow configuration at run creation time and marshals it
+into a single `KFP_MLFLOW_CONFIG` environment variable on the Argo Workflow templates (see
+[Environment Variables](#environment-variables)). The driver and launcher unmarshal this variable rather than re-reading
+the `kfp-launcher` ConfigMap. This ensures that all components in a run use the same MLflow endpoint, workspace, and
+timeout, even if the ConfigMap is modified after the run starts. Credential env vars are also mounted via
+`valueFrom.secretKeyRef` on all templates at compile time, so no Secret reads occur at task execution time.
 
 User code may also override MLflow environment variables at runtime (e.g., calling `mlflow.set_tracking_uri()` or
 setting `MLFLOW_TRACKING_URI` programmatically). This does not affect KFP's built-in MLflow logging, which is performed
@@ -272,10 +274,10 @@ run-related messages.
 MLflow integration requires an explicit opt-in at the API server level via a `plugins.mlflow` (JSON notation here) entry
 in the API server config. Existing KFP deployments that upgrade will not have MLflow enabled; an administrator must
 explicitly add the `plugins.mlflow` configuration to enable it. In multi-user mode, the per-namespace `kfp-launcher`
-ConfigMap (`plugins.mlflow` key) provides namespace-specific overrides but is only effective when the API server has
-MLflow enabled. Alternatively, the administrator may choose not to configure a global default and instead require each
-namespace to opt in by defining its own `plugins.mlflow` entry in the `kfp-launcher` ConfigMap. If neither the API
-server nor the namespace ConfigMap provides MLflow configuration, MLflow integration is disabled for that namespace.
+ConfigMap (`plugins.mlflow` key) provides namespace-specific overrides. For secret-based auth (`"bearer"` and
+`"basic-auth"`), the namespace must also provide `credentialSecretRef` in this ConfigMap; otherwise MLflow integration
+is disabled for runs in that namespace. Global API server configuration may still provide shared non-secret defaults such
+as the endpoint and timeout.
 
 When MLflow is enabled for a namespace (via either configuration level), it applies to **all** pipeline runs in that
 namespace by default. A user may opt out of MLflow tracking for a specific run by setting
@@ -293,14 +295,15 @@ When a run is created and MLflow is enabled for the namespace:
 1. Read `plugins_input.mlflow.experiment_id` or `plugins_input.mlflow.experiment_name` from the request if provided.
    `experiment_id` takes precedence if both are set. If neither is provided or `plugins_input.mlflow` is not set at all,
    default to the `"Default"` experiment.
-1. Resolve MLflow credentials for outbound API calls. The API server uses its own SA token (`authType: "kubernetes"`) or
-   reads the credential Secret from `credentialSecretRef`. If a per-namespace ConfigMap overrides the `endpoint`, it
-   must also provide its own credentials; the API server's global credentials are never paired with a namespace-provided
-   endpoint. For `"bearer"` or `"basic-auth"` modes, the Argo compiler mounts the credential Secret on the driver,
-   launcher, and user container templates via `env` entries with `valueFrom.secretKeyRef`, mapping Secret keys to the
-   standard MLflow env vars (`MLFLOW_TRACKING_TOKEN`, or `MLFLOW_TRACKING_USERNAME` / `MLFLOW_TRACKING_PASSWORD`). This
-   ensures the driver and launcher can authenticate their own MLflow REST calls without reading the Secret at runtime,
-   and no secret values appear in the Argo Workflow spec (see [MLflow Configuration](#mlflow-configuration)).
+1. Resolve MLflow credentials for outbound API calls. The API server uses its own SA token when `authType: "kubernetes"`.
+   For `"bearer"` and `"basic-auth"`, the API server reads the credential Secret from `credentialSecretRef`. In
+   multi-user mode, this `credentialSecretRef` must come from the namespace's `kfp-launcher` ConfigMap (see
+   [MLflow Configuration](#mlflow-configuration)). When secret-based auth is enabled, the Argo compiler mounts the
+   credential Secret on the driver, launcher, and user container templates via `env` entries with
+   `valueFrom.secretKeyRef`, mapping Secret keys to the standard MLflow env vars (`MLFLOW_TRACKING_TOKEN`, or
+   `MLFLOW_TRACKING_USERNAME` / `MLFLOW_TRACKING_PASSWORD`). This ensures the driver and launcher can authenticate their
+   own MLflow REST calls without reading the Secret at runtime, and no secret values appear in the Argo Workflow spec
+   (see [MLflow Configuration](#mlflow-configuration)).
 1. Call the MLflow REST API to create the experiment if it does not already exist
    (`POST /api/2.0/mlflow/experiments/create`). The experiment description is set to the value of
    `experimentDescription` from the plugin settings. If `experimentDescription` is not set, it defaults to
@@ -309,11 +312,14 @@ When a run is created and MLflow is enabled for the namespace:
    with the KFP pipeline run ID, pipeline run URL, and (if present) the pipeline ID and pipeline version ID for
    cross-referencing.
 1. Populate `plugins_output.mlflow` with `experiment_name`, `experiment_id`, `root_run_id`, and `run_url`.
-1. Set the parent MLflow run ID, tracking URI, and workspace as environment variables on the driver and launcher Argo
-   Workflow container templates. This injection happens in the Argo compiler
-   (`backend/src/apiserver/resource/resource_manager.go`) when the pipeline spec is compiled to an Argo `Workflow`
-   object. These env vars serve as the resolved MLflow configuration for the entire run, ensuring that all components
-   use the same MLflow endpoint and workspace regardless of any ConfigMap changes that occur after run creation.
+1. Marshal the resolved MLflow configuration (tracking URI, workspace, parent run ID, experiment ID, auth type,
+   `insecureSkipVerify`, and timeout) into a single `KFP_MLFLOW_CONFIG` environment variable on the driver and launcher
+   Argo Workflow container templates. The Argo compiler also adds the `--mlflow_enabled` flag to the driver and launcher
+   template args so that these components have an explicit signal that MLflow integration is active. This injection
+   happens in the Argo compiler (`backend/src/apiserver/resource/resource_manager.go`) when the pipeline spec is
+   compiled to an Argo `Workflow` object. The marshalled config serves as the resolved MLflow configuration for the
+   entire run, ensuring that all components use the same MLflow endpoint and workspace regardless of any ConfigMap
+   changes that occur after run creation.
 1. Persist `plugins_input` and `plugins_output` in the database.
 
 If the MLflow API call fails, the KFP run is still created. The error is logged and `plugins_output.mlflow.state` will
@@ -396,27 +402,31 @@ consistent with existing JSON blob columns such as `StateHistoryString` and `Pip
 ### Driver
 
 The driver (`backend/src/v2/driver/`) is responsible for creating nested MLflow runs and passing MLflow context to the
-launcher.
+launcher. A new `--mlflow_enabled` flag will be added to the driver CLI. When the flag is not set, all MLflow logic is
+skipped.
 
 #### Container Tasks (`container.go`)
 
 Before launching a user container:
 
-1. Read the MLflow tracking URI, workspace, parent run ID, auth type, and credentials from the environment variables
-   injected by the Argo compiler at run creation time (credentials are resolved from the Secret by kubelet at pod
-   startup).
-1. Create a nested MLflow run under the parent run (`POST /api/2.0/mlflow/runs/create`).
+1. Unmarshal the `KFP_MLFLOW_CONFIG` environment variable into `MLflowRuntimeConfig`. Credential env vars
+   (`MLFLOW_TRACKING_TOKEN`, or `MLFLOW_TRACKING_USERNAME` / `MLFLOW_TRACKING_PASSWORD`) are resolved from the Secret by
+   kubelet at pod startup and read separately.
+1. Create a nested MLflow run under the parent run (`POST /api/2.0/mlflow/runs/create`), using `experimentId` from the
+   config. The HTTP client is configured with the timeout and `insecureSkipVerify` setting from the same config.
 1. Store the nested MLflow run ID as `mlflow_run_id` and the parent MLflow run ID as `mlflow_parent_run_id` custom
    properties on the MLMD execution, consistent with existing properties like `cached_execution_id` and `pod_name` in
    `backend/src/v2/metadata/client.go`. Storing the parent ID enables reconstructing the MLflow run tree during future
    migration to the plugin architecture.
-1. Add `MLFLOW_TRACKING_URI`, `MLFLOW_WORKSPACE`, `MLFLOW_RUN_ID` (set to the nested run ID), and `MLFLOW_TRACKING_AUTH`
-   (set to `kubernetes` when `authType` is `"kubernetes"`) to the user container's environment variables via the pod
-   spec patch. Credential env vars (`MLFLOW_TRACKING_TOKEN`, or `MLFLOW_TRACKING_USERNAME` / `MLFLOW_TRACKING_PASSWORD`)
-   are already set on the user container by the Argo compiler via `valueFrom.secretKeyRef`. The driver already sets
-   environment variables on the pod spec in `backend/src/v2/driver/driver.go`. Setting `MLFLOW_RUN_ID` allows user code
-   that calls the MLflow Python API (e.g., `mlflow.log_metric()`) to automatically log to the correct nested run without
-   needing to call `mlflow.start_run()` or pass a run ID explicitly.
+1. Add `MLFLOW_TRACKING_URI`, `MLFLOW_WORKSPACE`, `MLFLOW_EXPERIMENT_ID`, `MLFLOW_RUN_ID` (set to the nested run ID),
+   and `MLFLOW_TRACKING_AUTH` (set to `kubernetes` when `authType` is `"kubernetes"`) to the user container's
+   environment variables via the pod spec patch. Credential env vars (`MLFLOW_TRACKING_TOKEN`, or
+   `MLFLOW_TRACKING_USERNAME` / `MLFLOW_TRACKING_PASSWORD`) are already set on the user container by the Argo compiler
+   via `valueFrom.secretKeyRef`. The driver already sets environment variables on the pod spec in
+   `backend/src/v2/driver/driver.go`. Since the launcher runs as the entrypoint of the user container, it shares these
+   environment variables and reads `MLFLOW_RUN_ID` to identify the nested run for post-execution logging. Setting
+   `MLFLOW_RUN_ID` also allows user code that calls the MLflow Python API (e.g., `mlflow.log_metric()`) to automatically
+   log to the correct nested run without needing to call `mlflow.start_run()` or pass a run ID explicitly.
 
 #### Loop Iterations (`dag.go`)
 
@@ -448,7 +458,14 @@ driver invocation. This follows the same pattern as cache hits.
 
 ### Launcher
 
-The launcher (`backend/src/v2/component/launcher_v2.go`) handles post-execution MLflow logging.
+The launcher (`backend/src/v2/component/launcher_v2.go`) handles post-execution MLflow logging. Like the driver, a new
+`--mlflow_enabled` flag will be added to the launcher CLI; all MLflow logic is skipped when the flag is not set. The
+launcher unmarshals `KFP_MLFLOW_CONFIG` from its own environment (set by the Argo compiler) to construct its HTTP client
+for MLflow REST API calls. The nested MLflow run ID and experiment ID are available to the launcher via the
+`MLFLOW_RUN_ID` and `MLFLOW_EXPERIMENT_ID` environment variables, which the driver sets on the user container through
+the pod spec patch. Since the launcher runs as the entrypoint of the user container (see `initPodSpecPatch` in
+`backend/src/v2/driver/driver.go`), it shares the same environment as the user code and reads these values via
+`os.Getenv()`.
 
 After the user's code completes:
 
@@ -466,7 +483,8 @@ and launcher are logged only. After MLMD removal, the run and task state storage
 launcher, enabling them to update `plugins_output.mlflow.state` and `state_message` directly.
 
 Note: `MLFLOW_TRACKING_URI` and `MLFLOW_WORKSPACE` are set on the user container by the driver (not the launcher). The
-launcher reads these from its own environment (set via the driver's pod spec) when making MLflow REST API calls.
+launcher reads the tracking URI and workspace from `KFP_MLFLOW_CONFIG` in its own environment when making MLflow REST
+API calls.
 
 Note: KFP's built-in metric logging happens in the launcher _after_ user code completes. If user code calls
 `mlflow.log_metric()` directly, those metrics are logged immediately during execution. Both approaches write to the same
@@ -508,14 +526,14 @@ permissions on the corresponding `mlflow.kubeflow.org` resources (e.g., `dataset
 [Kubernetes workspace provider RBAC documentation](https://github.com/opendatahub-io/mlflow/tree/master/kubernetes-workspace-provider#kubernetes-rbac-requirements)
 for the full resource list.
 
-**Secret-based mode.** The `ml-pipeline` API server service account will need a new RBAC rule granting `get` on
-`secrets` in run namespaces to read the credential Secret at run creation time. As a best practice, administrators
-should use the same Secret name (e.g., `kfp-mlflow-credentials`) across all namespaces and scope the RBAC rule with
-`resourceNames` to limit the API server's access to that single Secret name. The `pipeline-runner` service account
-already has `get` on `secrets` in the run's namespace. The token or credentials stored in the Secret must have
-sufficient MLflow permissions to create and update experiments and runs (equivalent to `get`, `list`, `create`, `update`
-on experiments in Kubernetes-native mode). If MLflow's built-in authentication is used, this means a user account with
-at least editor-level access.
+**Secret-based mode.** When secret-based auth is enabled, the `ml-pipeline` API server service account will need a new
+RBAC rule granting `get` on `secrets` in run namespaces to read the credential Secret at run creation time. As a best
+practice, administrators should use the same Secret name (e.g., `kfp-mlflow-credentials`) across all namespaces and
+scope the RBAC rule with `resourceNames` to limit the API server's access to that single Secret name. The
+`pipeline-runner` service account already has `get` on `secrets` in the run's namespace. The token or credentials
+stored in the Secret must have sufficient MLflow permissions to create and update experiments and runs (equivalent to
+`get`, `list`, `create`, `update` on experiments in Kubernetes-native mode). If MLflow's built-in authentication is
+used, this means a user account with at least editor-level access.
 
 If a user specifies a custom service account for their pipeline run (via `kubernetes_platform`), that service account
 must also have the appropriate MLflow permissions, otherwise MLflow calls from the driver and launcher will fail.
@@ -539,43 +557,90 @@ This integration requires **MLflow v3.10 or later**, which introduced
 | `GET /api/2.0/mlflow/runs/search`              | Search for nested runs during cleanup       |
 
 When `workspacesEnabled` is `true`, all MLflow REST API calls include an `X-MLflow-Workspace` header set to the
-Kubernetes namespace. This header is how MLflow routes requests to the correct workspace. The API server, driver, and
-launcher all set this header on their outbound HTTP requests using the resolved workspace value from the run's
-environment variables.
+Kubernetes namespace. This header is how MLflow routes requests to the correct workspace. The Argo compiler includes the
+`workspace` field in `KFP_MLFLOW_CONFIG` only when `workspacesEnabled` is `true`. The driver and launcher include the
+`X-MLflow-Workspace` header when `workspace` is present in the unmarshalled config; when it is absent, the header is
+omitted. The API server sets the header directly using the resolved workspace from the configuration.
 
 ### Environment Variables
 
-The following environment variables are injected by the Argo compiler at run creation time and consumed by the driver,
-launcher, and user container:
+The Argo compiler injects a single `KFP_MLFLOW_CONFIG` environment variable on the driver and launcher templates
+containing the resolved MLflow configuration as marshalled JSON. The API server populates all fields, including defaults
+(e.g., `timeout` defaults to `"30s"`), so that the driver and launcher can use the values directly without maintaining
+their own default logic. Conditionally applicable fields such as `workspace` are omitted when not enabled. This avoids
+proliferating individual env vars for each setting and makes the configuration easy to extend. The driver and launcher
+unmarshal `KFP_MLFLOW_CONFIG` into the following Go type:
 
-| Env Var                    | Set By                                   | Set On                           | Purpose                                          |
-| -------------------------- | ---------------------------------------- | -------------------------------- | ------------------------------------------------ |
-| `KFP_MLFLOW_TRACKING_URI`  | Argo compiler                            | Driver, Launcher                 | MLflow endpoint for Go REST calls                |
-| `KFP_MLFLOW_WORKSPACE`     | Argo compiler                            | Driver, Launcher                 | MLflow workspace (namespace) for Go REST calls   |
-| `KFP_MLFLOW_PARENT_RUN_ID` | Argo compiler                            | Driver, Launcher                 | Parent MLflow run ID                             |
-| `KFP_MLFLOW_AUTH_TYPE`     | Argo compiler                            | Driver                           | Auth mode (`kubernetes`, `bearer`, `basic-auth`) |
-| `MLFLOW_TRACKING_TOKEN`    | Argo compiler (`valueFrom.secretKeyRef`) | Driver, Launcher, User container | Bearer token (secret-based bearer mode)          |
-| `MLFLOW_TRACKING_USERNAME` | Argo compiler (`valueFrom.secretKeyRef`) | Driver, Launcher, User container | Username (secret-based basic-auth mode)          |
-| `MLFLOW_TRACKING_PASSWORD` | Argo compiler (`valueFrom.secretKeyRef`) | Driver, Launcher, User container | Password (secret-based basic-auth mode)          |
-| `MLFLOW_TRACKING_URI`      | Driver                                   | User container                   | Standard MLflow SDK env var                      |
-| `MLFLOW_WORKSPACE`         | Driver                                   | User container                   | Standard MLflow SDK env var (3.10+)              |
-| `MLFLOW_RUN_ID`            | Driver                                   | User container                   | Active nested run for MLflow SDK (3.10+)         |
-| `MLFLOW_TRACKING_AUTH`     | Driver                                   | User container                   | Auth provider (`kubernetes`, when available)     |
+```go
+type MLflowRuntimeConfig struct {
+	Endpoint            string `json:"endpoint"`
+	Workspace           string `json:"workspace,omitempty"`           // Only set when workspacesEnabled is true
+	ParentRunID         string `json:"parentRunId"`
+	ExperimentID        string `json:"experimentId"`
+	AuthType            string `json:"authType"`                      // "kubernetes", "bearer", or "basic-auth"
+	Timeout             string `json:"timeout,omitempty"`             // e.g. "30s"; defaults to "30s"
+	InsecureSkipVerify  bool   `json:"insecureSkipVerify,omitempty"`  // Skip TLS certificate verification
+}
+```
 
-The `KFP_MLFLOW_*` prefix distinguishes KFP-internal variables from standard `MLFLOW_*` variables. Credential env vars
-(`MLFLOW_TRACKING_TOKEN`, `MLFLOW_TRACKING_USERNAME`, `MLFLOW_TRACKING_PASSWORD`) use `valueFrom.secretKeyRef` so that
-secret values are never stored in the Argo Workflow spec -- Kubernetes resolves them at pod startup. The driver,
-launcher, and user container all receive the same credential env vars, enabling each to authenticate its own MLflow REST
-calls.
+Unlike the API server's `TLSConfig` (see [MLflow Configuration](#mlflow-configuration)), the runtime config does not
+include a `caBundlePath` field. If the MLflow server uses a certificate signed by a private CA, the administrator
+configures the CA bundle globally for the driver and launcher via the KFP deployment (e.g., mounting a CA bundle
+ConfigMap on the driver and launcher container specs in the manifests). This is the same mechanism used for other global
+TLS configuration such as the existing `--ca_cert_path` flag for MLMD TLS.
+
+An example `KFP_MLFLOW_CONFIG` value:
+
+```json
+{
+  "endpoint": "https://mlflow.example.com",
+  "workspace": "kubeflow-user-example-com",
+  "parentRunId": "a1b2c3d4e5f6",
+  "experimentId": "42",
+  "authType": "kubernetes",
+  "timeout": "30s"
+}
+```
+
+Credential env vars and standard MLflow SDK env vars are set separately:
+
+| Env Var                    | Set By                                   | Set On                           | Purpose                                      |
+| -------------------------- | ---------------------------------------- | -------------------------------- | -------------------------------------------- |
+| `KFP_MLFLOW_CONFIG`        | Argo compiler                            | Driver, Launcher                 | Marshalled JSON with full MLflow config      |
+| `MLFLOW_TRACKING_TOKEN`    | Argo compiler (`valueFrom.secretKeyRef`) | Driver, Launcher, User container | Bearer token (secret-based bearer mode only) |
+| `MLFLOW_TRACKING_USERNAME` | Argo compiler (`valueFrom.secretKeyRef`) | Driver, Launcher, User container | Username (secret-based basic-auth mode only) |
+| `MLFLOW_TRACKING_PASSWORD` | Argo compiler (`valueFrom.secretKeyRef`) | Driver, Launcher, User container | Password (secret-based basic-auth mode only) |
+| `MLFLOW_TRACKING_URI`      | Driver                                   | User container                   | Standard MLflow SDK env var                  |
+| `MLFLOW_WORKSPACE`         | Driver                                   | User container                   | Standard MLflow SDK env var (3.10+)          |
+| `MLFLOW_EXPERIMENT_ID`     | Driver                                   | User container                   | Active experiment for MLflow SDK             |
+| `MLFLOW_RUN_ID`            | Driver                                   | User container                   | Active nested run for MLflow SDK (3.10+)     |
+| `MLFLOW_TRACKING_AUTH`     | Driver                                   | User container                   | Auth provider (`kubernetes`, when available) |
+
+Credential env vars (`MLFLOW_TRACKING_TOKEN`, `MLFLOW_TRACKING_USERNAME`, `MLFLOW_TRACKING_PASSWORD`) use
+`valueFrom.secretKeyRef` so that secret values are never stored in the Argo Workflow spec -- Kubernetes resolves them at
+pod startup. The driver, launcher, and user container all receive the same credential env vars, enabling each to
+authenticate its own MLflow REST calls. When `workspace` is present in `KFP_MLFLOW_CONFIG`, the driver and launcher
+include the `X-MLflow-Workspace` header on outbound requests; when it is absent, the header is omitted.
+
+`KFP_MLFLOW_CONFIG` is an internal implementation detail and should not be exposed to user code. The launcher currently
+executes the user command via `exec.Command` without setting `command.Env`, so the subprocess inherits the full process
+environment by default. As part of the MLflow integration, the launcher will be updated to explicitly filter
+`KFP_MLFLOW_CONFIG` from the subprocess environment before launching the user command. User code should rely on the
+standard `MLFLOW_*` env vars set by the driver instead.
+
+In addition to environment variables, the Argo compiler adds the `--mlflow_enabled` flag to the driver and launcher
+template args when MLflow is enabled for the run. This provides an explicit enablement signal rather than relying on
+environment variable presence, consistent with how KFP handles other feature toggles (e.g., `--cache_disabled` on the
+driver).
 
 ### MLflow Configuration
 
 Three `authType` values are supported:
 
 - **`"kubernetes"`** (default): The API server's service account token is used for MLflow API calls. Workspaces default
-  to enabled, mapping Kubernetes namespaces to MLflow workspaces. This assumes MLflow
-  is deployed with Kubernetes-native multi-tenancy. A Kubeflow-wide proposal to donate the MLflow plugins that make
-  MLflow Kubernetes-native to the Kubeflow community is coming soon.
+  to enabled, mapping Kubernetes namespaces to MLflow workspaces. This assumes MLflow is deployed with Kubernetes-native
+  multi-tenancy. A Kubeflow-wide proposal to donate the MLflow plugins that make MLflow Kubernetes-native to the
+  Kubeflow community is coming soon.
 - **`"bearer"`**: The user provides an API token in a Kubernetes Secret in the pipeline run's namespace. This supports
   MLflow deployments using token-based authentication (including Databricks managed MLflow via personal access tokens)
   or a reverse proxy that accepts bearer tokens.
@@ -583,24 +648,28 @@ Three `authType` values are supported:
   This is the default authentication mechanism for self-hosted MLflow using its
   [built-in authentication](https://mlflow.org/docs/latest/ml/auth/).
 
-For `"bearer"` and `"basic-auth"`, `credentialSecretRef` is required. Workspaces default to disabled but can be enabled.
-Administrators should understand that these modes delegate access control to whoever can create Secrets in the
-namespace.
+For `"bearer"` and `"basic-auth"`, `credentialSecretRef` is required. In multi-user mode, it must come from the
+namespace's `kfp-launcher` ConfigMap rather than only from the API server's global config; if it is absent there, MLflow
+integration is disabled for runs in that namespace. Workspaces default to disabled but can be enabled. Administrators
+should understand that these modes delegate access control to whoever can create Secrets in the namespace.
 
 Configuration is provided at two levels:
 
 - **API server config** (required for opt-in): A `plugins` object containing a `mlflow` key. This is required in both
   standalone and multi-user modes to enable MLflow integration. When set, this provides the global default MLflow
-  configuration used for all namespaces unless overridden. In standalone mode, this is the only configuration level.
+  configuration used for all namespaces unless overridden. In standalone mode, this is the only configuration level. In
+  multi-user mode, these defaults may include shared non-secret fields such as `endpoint`, `workspacesEnabled`, and
+  timeout settings.
 - **Per-namespace `kfp-launcher` ConfigMap** (multi-user mode): A `plugins.mlflow` key with a JSON value. Allows
   per-namespace MLflow configuration. Fields set in the per-namespace config override the corresponding global defaults;
-  unset fields are inherited from the global config. If the namespace overrides the `endpoint`, it must also provide its
-  own credentials -- the API server's global credentials are never used with a namespace-provided endpoint. A namespace
-  may override only credentials while inheriting the global endpoint, for example to use a namespace-scoped Secret
-  instead of the API server's service account token. The admin may choose not to configure a default MLflow server at the API server level
-  and instead require each namespace to define its own MLflow configuration via the `kfp-launcher` ConfigMap. If neither
-  the API server nor the namespace ConfigMap provides MLflow configuration, MLflow integration is disabled for that
-  namespace.
+  unset fields other than `credentialSecretRef` are inherited from the global config. In multi-user mode, namespaces
+  using `"bearer"` or `"basic-auth"` must provide `credentialSecretRef` in this ConfigMap;
+  `credentialSecretRef` is never inherited from the API server's global config. If they do not provide it, MLflow
+  integration is disabled for runs in that namespace. If the namespace overrides the `endpoint`, it must also provide
+  its own credentials -- the API server's global credentials are never used with a namespace-provided endpoint. A
+  namespace may override only credentials while inheriting the global endpoint, for example to use a namespace-scoped
+  Secret instead of the API server's service account token. If neither the API server nor the namespace ConfigMap
+  provides MLflow configuration, MLflow integration is disabled for that namespace.
 
 The Go types for the configuration use a generic `PluginConfig` wrapper with plugin-specific settings in a
 `json.RawMessage` field. This structure aligns with [KEP #12700](https://github.com/kubeflow/pipelines/pull/12700)'s

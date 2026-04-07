@@ -307,8 +307,8 @@ describe('WorkflowParser', () => {
       const g = WorkflowParser.createRuntimeGraph(workflow as any, undefined);
 
       g.edges()
-        .map(edgeInfo => g.edge(edgeInfo))
-        .forEach(edge => {
+        .map((edgeInfo) => g.edge(edgeInfo))
+        .forEach((edge) => {
           if (edge.isPlaceholder) {
             expect(edge.color).toEqual(color.weak);
           } else {
@@ -1458,13 +1458,13 @@ describe('WorkflowParser', () => {
       expect(WorkflowParser.getWorkflowError({ status: {} } as any)).toEqual('');
     });
 
-    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.SKIPPED, NodePhase.SUCCEEDED].map(phase => {
+    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.SKIPPED, NodePhase.SUCCEEDED].map((phase) => {
       it('returns empty string for workflow with no message and phase: ' + phase, () => {
         expect(WorkflowParser.getWorkflowError({ status: { phase } } as any)).toEqual('');
       });
     });
 
-    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.SKIPPED, NodePhase.SUCCEEDED].map(phase => {
+    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.SKIPPED, NodePhase.SUCCEEDED].map((phase) => {
       it('returns empty string for workflow with a message and phase: ' + phase, () => {
         expect(
           WorkflowParser.getWorkflowError({ status: { message: 'woops!', phase } } as any),
@@ -1472,7 +1472,7 @@ describe('WorkflowParser', () => {
       });
     });
 
-    [NodePhase.ERROR, NodePhase.FAILED].map(phase => {
+    [NodePhase.ERROR, NodePhase.FAILED].map((phase) => {
       it('returns no error for workflow with no message and phase: ' + phase, () => {
         expect(
           WorkflowParser.getWorkflowError({
@@ -1484,7 +1484,7 @@ describe('WorkflowParser', () => {
       });
     });
 
-    [NodePhase.ERROR, NodePhase.FAILED].map(phase => {
+    [NodePhase.ERROR, NodePhase.FAILED].map((phase) => {
       it('returns message string for workflow with a message and phase: ' + phase, () => {
         expect(
           WorkflowParser.getWorkflowError({
