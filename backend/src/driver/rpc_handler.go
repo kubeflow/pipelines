@@ -306,7 +306,7 @@ func drive(args driverapi.DriverPluginArgs) (execution *driver.Execution, err er
 		options.RuntimeConfig = runtimeConfig
 		execution, pipeline, driverErr = driver.RootDAG(ctx, options, client)
 		if driverErr != nil {
-			return nil, err
+			return nil, driverErr
 		}
 		pipelineRoot = pipeline.GetPipelineRoot()
 		storeSessionInfo = pipeline.GetStoreSessionInfo()
