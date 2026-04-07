@@ -116,10 +116,7 @@ function applyFailedOverlayFromTaskDetails(
     return;
   }
   const label = data?.label;
-  if (
-    !overlay.displayNames.has(taskKey) &&
-    !(label && overlay.displayNames.has(label))
-  ) {
+  if (!overlay.displayNames.has(taskKey) && !(label && overlay.displayNames.has(label))) {
     return;
   }
   if (elem.type === NodeTypeNames.EXECUTION) {

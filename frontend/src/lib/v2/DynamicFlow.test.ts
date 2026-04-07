@@ -156,9 +156,7 @@ describe('DynamicFlow', () => {
     it('overlays FAILED from run task_details when MLMD is still RUNNING', () => {
       const EXECUTION_ROOT = new Execution().setId(2).setLastKnownState(Execution.State.COMPLETE);
       EXECUTION_ROOT.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue(''));
-      const EXECUTION_TRAIN = new Execution()
-        .setId(4)
-        .setLastKnownState(Execution.State.RUNNING);
+      const EXECUTION_TRAIN = new Execution().setId(4).setLastKnownState(Execution.State.RUNNING);
       EXECUTION_TRAIN.getCustomPropertiesMap()
         .set(TASK_NAME_KEY, new Value().setStringValue('train'))
         .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2));
@@ -182,9 +180,7 @@ describe('DynamicFlow', () => {
     it('overlays FAILED for hyphenated executor task when MLMD is RUNNING (secretAsEnv / print-envvar shape)', () => {
       const EXECUTION_ROOT = new Execution().setId(2).setLastKnownState(Execution.State.COMPLETE);
       EXECUTION_ROOT.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue(''));
-      const EXECUTION_PRINT = new Execution()
-        .setId(11)
-        .setLastKnownState(Execution.State.RUNNING);
+      const EXECUTION_PRINT = new Execution().setId(11).setLastKnownState(Execution.State.RUNNING);
       EXECUTION_PRINT.getCustomPropertiesMap()
         .set(TASK_NAME_KEY, new Value().setStringValue('print-envvar'))
         .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2));
@@ -213,9 +209,7 @@ describe('DynamicFlow', () => {
     it('overlays FAILED from execution_id when display_name does not match task key', () => {
       const EXECUTION_ROOT = new Execution().setId(2).setLastKnownState(Execution.State.COMPLETE);
       EXECUTION_ROOT.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue(''));
-      const EXECUTION_TRAIN = new Execution()
-        .setId(4)
-        .setLastKnownState(Execution.State.RUNNING);
+      const EXECUTION_TRAIN = new Execution().setId(4).setLastKnownState(Execution.State.RUNNING);
       EXECUTION_TRAIN.getCustomPropertiesMap()
         .set(TASK_NAME_KEY, new Value().setStringValue('train'))
         .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2));
@@ -230,7 +224,13 @@ describe('DynamicFlow', () => {
         [EXECUTION_ROOT, EXECUTION_TRAIN],
         [],
         [],
-        [{ display_name: 'different-ui-label', execution_id: '4', state: V2beta1RuntimeState.FAILED }],
+        [
+          {
+            display_name: 'different-ui-label',
+            execution_id: '4',
+            state: V2beta1RuntimeState.FAILED,
+          },
+        ],
       );
       const trainNode = runtimeGraph.find((e) => e.id === 'task.train');
       expect(trainNode?.data?.state).toEqual(Execution.State.FAILED);
@@ -247,7 +247,9 @@ describe('DynamicFlow', () => {
         .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2))
         .set(ITERATION_COUNT_KEY, new Value().setIntValue(2));
 
-      const EXECUTION_PAR_ITER0 = new Execution().setId(99).setLastKnownState(Execution.State.RUNNING);
+      const EXECUTION_PAR_ITER0 = new Execution()
+        .setId(99)
+        .setLastKnownState(Execution.State.RUNNING);
       EXECUTION_PAR_ITER0.getCustomPropertiesMap()
         .set(TASK_NAME_KEY, new Value().setStringValue('par'))
         .set(PARENT_DAG_ID_KEY, new Value().setIntValue(10))
@@ -283,9 +285,7 @@ describe('DynamicFlow', () => {
     it('overlays FAILED from execution_id only (no display_name)', () => {
       const EXECUTION_ROOT = new Execution().setId(2).setLastKnownState(Execution.State.COMPLETE);
       EXECUTION_ROOT.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue(''));
-      const EXECUTION_TRAIN = new Execution()
-        .setId(4)
-        .setLastKnownState(Execution.State.RUNNING);
+      const EXECUTION_TRAIN = new Execution().setId(4).setLastKnownState(Execution.State.RUNNING);
       EXECUTION_TRAIN.getCustomPropertiesMap()
         .set(TASK_NAME_KEY, new Value().setStringValue('train'))
         .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2));
@@ -309,9 +309,7 @@ describe('DynamicFlow', () => {
     it('accepts numeric execution_id from JSON-shaped task details', () => {
       const EXECUTION_ROOT = new Execution().setId(2).setLastKnownState(Execution.State.COMPLETE);
       EXECUTION_ROOT.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue(''));
-      const EXECUTION_TRAIN = new Execution()
-        .setId(4)
-        .setLastKnownState(Execution.State.RUNNING);
+      const EXECUTION_TRAIN = new Execution().setId(4).setLastKnownState(Execution.State.RUNNING);
       EXECUTION_TRAIN.getCustomPropertiesMap()
         .set(TASK_NAME_KEY, new Value().setStringValue('train'))
         .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2));
