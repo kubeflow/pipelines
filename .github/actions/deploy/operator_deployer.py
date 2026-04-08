@@ -146,8 +146,12 @@ class OperatorDeployer:
         operator_image_tag = getattr(self.args, 'operator_image_tag', '') or ''
         if operator_image_tag:
             dspo_tag = operator_image_tag
+        elif self.target_branch == 'stable':
+            dspo_tag = 'odh-stable'
+        elif self.target_branch == 'master':
+            dspo_tag = 'main'
         else:
-            dspo_tag = 'main' if self.target_branch == 'master' else self.target_branch
+            dspo_tag = self.target_branch
         repo = 'opendatahub' if self.repo_owner == 'opendatahub-io' else 'rhoai'
         operator_image = f'quay.io/{repo}/data-science-pipelines-operator:{dspo_tag}'
 
