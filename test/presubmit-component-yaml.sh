@@ -14,17 +14,22 @@
 # limitations under the License.
 
 source_root=$(pwd)
+SETUP_ENV="${SETUP_ENV:-true}"
 
 if [ "${SETUP_ENV}" = "true" ]; then
-  python3 -m pip install pytest
-  python3 -m pip install pytest-asyncio-cooperative==0.37.0
-  python3 -m pip install --upgrade pip
-  python3 -m pip install sdk/python
+  # Sync all dependencies using uv
+  uv sync --extra ci
+
+  # Install protobuf-compiler for proto generation
   apt-get update && apt-get install -y protobuf-compiler
+
+  # Generate proto files
   pushd api
   make clean python
   popd
-  python3 -m pip install api/v2alpha1/python
+
+  # Install workspace packages in editable mode
+  uv pip install -e sdk/python -e api/v2alpha1/python -e kubernetes_platform/python -e backend/api/v2beta1/python_http_client
 fi
 
 # Test loading all component.yaml definitions

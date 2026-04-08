@@ -2,10 +2,13 @@
 version: 2
 sphinx:
   configuration: docs/sdk/conf.py
-python:
-  install:
-    - requirements: docs/sdk/requirements.txt
 build:
   os: ubuntu-22.04
   tools:
     python: "3.9"
+    uv: "latest"
+  commands:
+    - uv sync --extra docs
+    - make -C api python
+    - make -C kubernetes_platform python
+    - uv run sphinx-build -b html docs/sdk $READTHEDOCS_OUTPUT/html

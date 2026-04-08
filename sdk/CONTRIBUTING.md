@@ -14,67 +14,44 @@ Clone the repo:
 git clone https://github.com/kubeflow/pipelines.git && cd pipelines
 ```
 
-We suggest using a tool like [virtual env](https://docs.python.org/3/library/venv.html) or something similar for isolating 
-your environment and/or packages for you development environment. For this setup we'll stick with virtual env. 
-
-For supported python versions, see the sdk [setup.py](https://github.com/kubeflow/pipelines/blob/master/sdk/python/setup.py). 
+Install [uv](https://docs.astral.sh/uv/), a fast Python package manager:
 
 ```bash
-# optional, replace with your tool of choice
-python -m venv env && source ./env/bin/activate
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-As with any Python package development, first ensure [wheels and setuptools](https://realpython.com/python-wheels/) are installed:
+For supported python versions, see the [pyproject.toml](https://github.com/kubeflow/pipelines/blob/master/sdk/python/pyproject.toml).
+
+### Development Setup
+
+Install all workspace packages in editable mode with development dependencies:
 
 ```bash
-python -m pip install -U pip wheel setuptools
+uv sync --extra dev
 ```
 
-All sdk development requirement versions are pinned in [requirements-dev.txt](https://github.com/kubeflow/pipelines/blob/master/sdk/python/requirements-dev.txt).
+This command will:
+- Install all 4 KFP packages (`kfp`, `kfp-kubernetes`, `kfp-pipeline-spec`, `kfp-server-api`) in editable mode
+- Install development dependencies (pytest, linters, type checkers, etc.)
+- Create or update the `uv.lock` lockfile for reproducible builds
+
+Before running tests, generate the proto files:
 
 ```bash
-pip install -r sdk/python/requirements-dev.txt
-```
-
-Install the SDK in development mode using the `--editable` or `-e` flag. This will allow you to implement and test changes iteratively.
-Read more about it [here](https://setuptools.pypa.io/en/latest/userguide/development_mode.html).
-
-```bash
-pip install -e sdk/python
-```
-
-The SDK also relies on a couple other python packages also found within KFP.
-These consists of the [api proto package](https://github.com/kubeflow/pipelines/tree/master/api) and the kfp [kubernetes_platform](https://github.com/kubeflow/pipelines/tree/master/kubernetes_platform) package.
-
-For the proto code, we need protobuf-compiler to generate the python code. Read [here](../kubernetes_platform#dependencies) more about how to install this
-dependency. 
-
-You can install both packages either in development mode if you are planning to do active development on these, or simply do a regular install.
-
-To install the proto package:
-```bash
-pushd api
-make generate python-dev # omit -dev for regular install
-popd
-```
-
-To install the kubernetes_platform package:
-```bash
-pushd kubernetes_platform
-make python-dev # omit -dev for regular install
-popd
+make -C api python
+make -C kubernetes_platform python
 ```
 
 ### Testing
 We suggest running unit tests using [`pytest`](https://docs.pytest.org/en/7.1.x/). From the project root, the following runs all KFP SDK unit tests:
 ```sh
-pytest
+uv run pytest
 ```
 
 To run tests in parallel for faster execution, you can run the tests using the `pytest-xdist` plugin:
 
 ```sh
-pytest -n auto
+uv run pytest -n auto
 ```
 
 ### Code Style
@@ -100,12 +77,14 @@ From the project root, run the following code to lint your docstrings:
 docformatter --in-place --recursive ./sdk/python
 ```
 
+### Code Style
+
 #### Formatting Imports [Required]
 Please organize your imports using [isort](https://pycqa.github.io/isort/index.html) according to the [`.isort.cfg`](https://github.com/kubeflow/pipelines/blob/master/.isort.cfg) file.
 
 From the project root, run the following code to format your code:
 ```sh
-isort sdk/python
+uv run isort sdk/python
 ```
 
 #### Pylint [Encouraged]
@@ -113,7 +92,7 @@ We encourage you to lint your code using [pylint](https://pylint.org/) according
 
 From the project root, run the following code to lint your code:
 ```sh
-pylint ./sdk/python/kfp
+uv run pylint ./sdk/python/kfp
 ```
 
 Note: `kfp` is not currently fully pylint-compliant. Consider substituting the path argument with the files touched by your development.
@@ -123,7 +102,7 @@ Please use [mypy](https://mypy.readthedocs.io/en/stable/) to check your type ann
 
 From the project root, run the following code to lint your docstrings:
 ```sh
-mypy ./sdk/python/kfp/
+uv run mypy ./sdk/python/kfp/
 ```
 Note: `kfp` is not currently fully mypy-compliant. Consider substituting the path argument with the files touched by your development.
 
@@ -131,5 +110,5 @@ Note: `kfp` is not currently fully mypy-compliant. Consider substituting the pat
 #### Pre-commit [Recommended]
 Consider using [`pre-commit`](https://github.com/pre-commit/pre-commit) with the provided [`.pre-commit-config.yaml`](https://github.com/kubeflow/pipelines/blob/master/.pre-commit-config.yaml) to implement the above changes:
 ```sh
-pre-commit install
+uv run pre-commit install
 ```

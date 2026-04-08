@@ -52,15 +52,16 @@ python: proto/kubernetes_executor_config.proto fetch-protos
 		$(if $(USE_FIND_LINKS),-e PIP_FIND_LINKS="$(FIND_LINKS_PATH)") \
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(PREBUILT_REMOTE_IMAGE) \
-		sh -c 'cd /go/src/github.com/kubeflow/pipelines/kubernetes_platform/python && \
-		    python3 -m pip install --user --break-system-packages -r requirements.txt && \
+		sh -c 'cd /go/src/github.com/kubeflow/pipelines && \
+		    pip install --user --break-system-packages uv && \
+		    cd kubernetes_platform/python && \
 		    python3 generate_proto.py && \
-		    python3 setup.py sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
+		    ~/.local/bin/uv build --package kfp-kubernetes'
 
 # Build and install in editable mode using pre-built image
 .PHONY: python-dev
 python-dev: proto/kubernetes_executor_config.proto fetch-protos
-	python3 python/generate_proto.py && cd python && pip install -e .[dev]
+	python3 python/generate_proto.py && cd python && uv pip install -e .
 
 # Delete all generated Python packages
 .PHONY: clean-python
