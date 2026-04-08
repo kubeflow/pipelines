@@ -77,6 +77,7 @@ var (
 	webhookTLSKeyPath             = flag.String("webhookTLSKeyPath", "", "Path to the webhook TLS private key. Defaults to tlsCertKeyPath value")
 	configPath                    = flag.String("config", "", "Path to JSON file containing config")
 	sampleConfigPath              = flag.String("sampleconfig", "", "Path to samples")
+	managedPipelinesDir           = flag.String("managedPipelinesDir", "", "Directory containing managed-pipelines.json manifest")
 	tlsCertPath                   = flag.String("tlsCertPath", "", "Path to the public TLS cert.")
 	tlsCertKeyPath                = flag.String("tlsCertKeyPath", "", "Path to the private TLS key cert.")
 	collectMetricsFlag            = flag.Bool("collectMetricsFlag", true, "Whether to collect Prometheus metrics in API server.")
@@ -231,7 +232,7 @@ func main() {
 			DefaultRunAsNonRoot:  parseOptionalBool(common.GetDefaultSecurityContextRunAsNonRoot()),
 		},
 	)
-	err = config.LoadSamples(resourceManager, *sampleConfigPath)
+	err = config.LoadSamples(resourceManager, *sampleConfigPath, *managedPipelinesDir)
 	if err != nil {
 		glog.Fatalf("Failed to load samples. Err: %v", err)
 	}
