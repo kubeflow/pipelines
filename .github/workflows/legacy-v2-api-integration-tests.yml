@@ -6,19 +6,19 @@ on:
 
   pull_request:
     paths:
-      - ".github/workflows/legacy-v2-api-integration-tests.yml"
-      - ".github/workflows/image-builds.yml"
-      - ".github/actions/create-cluster/**"
-      - ".github/actions/deploy/**"
-      - ".github/resources/**"
-      - "api/**"
-      - "go.mod"
-      - "go.sum"
-      - "backend/**"
-      - "manifests/kustomize/**"
-      - "test/**"
-      - "!**/*.md"
-      - "!**/OWNERS"
+      - '.github/workflows/legacy-v2-api-integration-tests.yml'
+      - '.github/workflows/image-builds.yml'
+      - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
+      - '.github/resources/**'
+      - 'api/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'backend/**'
+      - 'manifests/kustomize/**'
+      - 'test/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 concurrency:
   group: legacy-integration-v2-tests-${{ github.event.pull_request.number || github.ref }}

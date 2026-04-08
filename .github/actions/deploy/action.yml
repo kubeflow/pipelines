@@ -8,16 +8,16 @@ inputs:
     required: false
   pipeline_store:
     description: "Flag to deploy KFP with K8s Native API"
-    default: "database"
+    default: 'database'
     required: false
   proxy:
     description: "If KFP should be deployed with proxy configuration"
     required: false
-    default: "false"
+    default: 'false'
   cache_enabled:
     description: "If KFP should be deployed with cache enabled globally"
     required: false
-    default: "true"
+    default: 'true'
   image_tag:
     required: true
     description: "Provide the image tag your image was tagged with"
@@ -30,11 +30,11 @@ inputs:
   multi_user:
     description: "If KFP should be deployed in multi-user mode"
     required: false
-    default: "false"
+    default: 'false'
   artifact_proxy:
     description: "Enables artifact proxy"
     required: false
-    default: "false"
+    default: 'false'
   argo_version:
     required: false
     description: "Argo version to use for the cluster"
@@ -44,12 +44,12 @@ inputs:
     default: ""
   forward_port:
     required: false
-    default: "true"
+    default: 'true'
     description: "If you want to forward API server port to localhost:8888"
   pod_to_pod_tls_enabled:
     description: "If KFP should be deployed with TLS pod-to-pod communication."
     required: false
-    default: "false"
+    default: 'false'
 
 runs:
   using: "composite"

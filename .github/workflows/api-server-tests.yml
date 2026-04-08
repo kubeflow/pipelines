@@ -17,7 +17,7 @@ on:
     inputs:
       test_label:
         description: "Test label that you want to filter on and run"
-        default: "ApiServerTests"
+        default: 'ApiServerTests'
         required: true
         type: string
       number_of_parallel_tests:
@@ -33,21 +33,21 @@ on:
 
   pull_request:
     paths:
-      - ".github/workflows/api-server-tests.yml"
-      - ".github/workflows/image-builds.yml"
-      - ".github/actions/create-cluster/**"
-      - ".github/actions/deploy/**"
-      - ".github/actions/test-and-report/**"
-      - ".github/actions/junit-summary/**"
-      - ".github/resources/**"
-      - "backend/api/v2beta1/**"
-      - "backend/src/**"
-      - "backend/metadata_writer/**"
-      - "backend/test/v2/api/**"
-      - "manifests/kustomize/**"
-      - "test_data/sdk_compiled_pipelines/**"
-      - "!**/*.md"
-      - "!**/OWNERS"
+      - '.github/workflows/api-server-tests.yml'
+      - '.github/workflows/image-builds.yml'
+      - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
+      - '.github/actions/test-and-report/**'
+      - '.github/actions/junit-summary/**'
+      - '.github/resources/**'
+      - 'backend/api/v2beta1/**'
+      - 'backend/src/**'
+      - 'backend/metadata_writer/**'
+      - 'backend/test/v2/api/**'
+      - 'manifests/kustomize/**'
+      - 'test_data/sdk_compiled_pipelines/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 concurrency:
   group: api-tests-${{ github.event.pull_request.number || github.ref }}

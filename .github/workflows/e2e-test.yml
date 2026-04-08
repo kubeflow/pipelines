@@ -33,7 +33,7 @@ on:
     inputs:
       test_label:
         description: "Test label that you want to filter on and run"
-        default: "ApiServerTests"
+        default: 'ApiServerTests'
         required: true
         type: string
       number_of_parallel_tests:
