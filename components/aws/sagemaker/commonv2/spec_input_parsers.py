@@ -25,11 +25,11 @@ class SpecInputParsers:
 
     @staticmethod
     def _yaml_or_json_str(value):
-        if value == "" or value == None:
+        if value == "" or value is None:
             return None
         try:
             return json.loads(value)
-        except:
+        except Exception:
             return yaml.safe_load(value)
 
     @staticmethod
