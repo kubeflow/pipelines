@@ -12,16 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {
-  vi,
-  describe,
-  it,
-  expect,
-  afterAll,
-  afterEach,
-  beforeEach,
-  MockInstance,
-} from 'vitest';
+import { vi, describe, it, expect, afterAll, afterEach, beforeEach, MockInstance } from 'vitest';
 import * as minio from 'minio';
 import { PassThrough } from 'stream';
 import requests from 'supertest';
@@ -356,9 +347,9 @@ describe('/artifacts authorization', () => {
 
       // Mock getK8sSecret to simulate RBAC denial
       const k8sHelper = await import('../k8s-helper.js');
-      (k8sHelper.getK8sSecret as any) = vi.fn().mockRejectedValue(
-        new Error('secrets "mlpipeline-minio-artifact" is forbidden'),
-      );
+      (k8sHelper.getK8sSecret as any) = vi
+        .fn()
+        .mockRejectedValue(new Error('secrets "mlpipeline-minio-artifact" is forbidden'));
 
       const configurations = loadConfigs(argv, {
         MINIO_HOST: 'minio-service',
