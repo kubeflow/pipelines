@@ -54,3 +54,31 @@ replacements:
       kind: Application
     fieldPaths:
     - spec.descriptor.version
+
+- source:
+    kind: ConfigMap
+    name: pipeline-install-config
+    fieldPath: metadata.namespace
+  targets:
+  - select:
+      kind: ConfigMap
+      name: workflow-controller-configmap
+    fieldPaths:
+    - data.artifactRepository
+    options:
+      delimiter: .
+      index: 1
+
+- source:
+    kind: ConfigMap
+    name: pipeline-install-config
+    fieldPath: data.bucketName
+  targets:
+  - select:
+      kind: ConfigMap
+      name: workflow-controller-configmap
+    fieldPaths:
+    - data.artifactRepository
+    options:
+      delimiter: '"'
+      index: 3
