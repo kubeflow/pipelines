@@ -128,12 +128,18 @@ spec:
       - name: task
       - name: container
       - name: task-name
+      - default: ""
+        name: task-path
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-driver
     outputs:
       parameters:
@@ -160,6 +166,10 @@ spec:
           parameters:
           - name: pod-spec-patch
             value: '{{inputs.parameters.pod-spec-patch}}'
+          - name: task-name
+            value: '{{inputs.parameters.task-name}}'
+          - name: task-path
+            value: '{{inputs.parameters.task-path}}'
         name: executor
         template: system-container-impl
         when: '{{inputs.parameters.cached-decision}} != true'
@@ -168,6 +178,10 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
     metadata: {}
     name: system-container-executor
     outputs: {}
@@ -240,7 +254,15 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -276,6 +298,8 @@ spec:
             value: python-artifact-printer
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-inner-pipeline.python-artifact-printer
         name: python-artifact-printer-driver
         template: system-container-driver
       - arguments:
@@ -285,6 +309,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.python-artifact-printer-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: python-artifact-printer
+          - name: task-path
+            value: root.comp-inner-pipeline.python-artifact-printer
         depends: python-artifact-printer-driver.Succeeded
         name: python-artifact-printer
         template: system-container-executor
@@ -308,6 +336,8 @@ spec:
             value: python-artifact-printer
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-inner-pipeline-2.python-artifact-printer
         name: python-artifact-printer-driver
         template: system-container-driver
       - arguments:
@@ -317,6 +347,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.python-artifact-printer-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: python-artifact-printer
+          - name: task-path
+            value: root.comp-inner-pipeline-2.python-artifact-printer
         depends: python-artifact-printer-driver.Succeeded
         name: python-artifact-printer
         template: system-container-executor
@@ -467,13 +501,19 @@ spec:
         name: task
       - default: ""
         name: task-name
+      - default: ""
+        name: task-path
       - default: "0"
         name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-dag-driver
     outputs:
       parameters:
@@ -506,6 +546,8 @@ spec:
             value: custom-artifact-printer
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: custom-artifact-printer
         name: custom-artifact-printer-driver
         template: system-container-driver
       - arguments:
@@ -515,6 +557,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.custom-artifact-printer-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: custom-artifact-printer
+          - name: task-path
+            value: custom-artifact-printer
         depends: custom-artifact-printer-driver.Succeeded
         name: custom-artifact-printer
         template: system-container-executor
@@ -530,6 +576,8 @@ spec:
             value: custom-artifact-printer-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: custom-artifact-printer-2
         name: custom-artifact-printer-2-driver
         template: system-container-driver
       - arguments:
@@ -539,6 +587,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.custom-artifact-printer-2-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: custom-artifact-printer-2
+          - name: task-path
+            value: custom-artifact-printer-2
         depends: custom-artifact-printer-2-driver.Succeeded
         name: custom-artifact-printer-2
         template: system-container-executor
@@ -564,6 +616,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-inner-pipeline"},"dependentTasks":["importer"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"inner-pipeline"}}'
           - name: task-name
             value: inner-pipeline
+          - name: task-path
+            value: inner-pipeline
         depends: importer.Succeeded
         name: inner-pipeline-driver
         template: system-dag-driver
@@ -585,6 +639,8 @@ spec:
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-inner-pipeline-2"},"taskInfo":{"name":"inner-pipeline-2"}}'
           - name: task-name
+            value: inner-pipeline-2
+          - name: task-path
             value: inner-pipeline-2
         name: inner-pipeline-2-driver
         template: system-dag-driver

@@ -18,6 +18,7 @@ import {
   getPod,
   getConfigMap,
   listPodEvents,
+  listPodsByRunId,
   getArgoWorkflow,
   getK8sSecret,
 } from './k8s-helper.js';
@@ -480,6 +481,214 @@ describe('k8s-helper', () => {
       await expect(getK8sSecret('test-secret', 'secret-key')).rejects.toThrow(
         'Cannot get namespace from /var/run/secrets/kubernetes.io/serviceaccount/namespace',
       );
+    });
+  });
+
+  describe('listPodsByRunId', () => {
+    let listPodSpy: SpyInstance;
+
+    beforeEach(() => {
+      listPodSpy = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedPod');
+    });
+
+    afterEach(() => {
+      listPodSpy.mockRestore();
+    });
+
+    it('follows continuation tokens across multiple pages', async () => {
+      const makePod = (name: string) => ({
+        metadata: { name, namespace: 'test-ns', labels: { 'pipeline/runid': 'run-1' } },
+        status: { phase: 'Running' },
+      });
+
+      // Page 1 returns continue token
+      listPodSpy.mockResolvedValueOnce({
+        items: Array.from({ length: 100 }, (_, i) => makePod(`pod-${i}`)),
+        metadata: { _continue: 'page2-token' },
+      });
+      // Page 2 has no continue token
+      listPodSpy.mockResolvedValueOnce({
+        items: Array.from({ length: 30 }, (_, i) => makePod(`pod-${100 + i}`)),
+        metadata: {},
+      });
+
+      const [pods, err] = await listPodsByRunId('run-1', 'test-ns');
+
+      expect(err).toBeUndefined();
+      expect(pods).toHaveLength(130);
+      expect(listPodSpy).toHaveBeenCalledTimes(2);
+      expect(listPodSpy).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ _continue: 'page2-token' }),
+      );
+    });
+
+    it('stops at MAX_PAGES safety cap', async () => {
+      listPodSpy.mockImplementation(() =>
+        Promise.resolve({
+          items: [
+            {
+              metadata: {
+                name: `pod-${Math.random()}`,
+                namespace: 'test-ns',
+                labels: { 'pipeline/runid': 'run-1' },
+              },
+              status: { phase: 'Running' },
+            },
+          ],
+          metadata: { _continue: 'always-more' },
+        }),
+      );
+
+      const [pods, err] = await listPodsByRunId('run-1', 'test-ns');
+
+      expect(err).toBeUndefined();
+      // MAX_PAGES is 20, each page has 1 pod
+      expect(pods).toHaveLength(20);
+      expect(listPodSpy).toHaveBeenCalledTimes(20);
+    });
+
+    it('filters by dotted task_path annotation (exact match)', async () => {
+      const pods = [
+        {
+          metadata: {
+            name: 'pod-nested-1',
+            namespace: 'test-ns',
+            labels: {
+              'pipeline/runid': 'run-1',
+              'pipelines.kubeflow.org/task_name': 'print-op1',
+            },
+            annotations: {
+              'pipelines.kubeflow.org/task_path': 'root.comp-inner-pipeline.print-op1',
+            },
+          },
+          status: { phase: 'Succeeded' },
+        },
+        {
+          metadata: {
+            name: 'pod-nested-2',
+            namespace: 'test-ns',
+            labels: {
+              'pipeline/runid': 'run-1',
+              'pipelines.kubeflow.org/task_name': 'print-op1',
+            },
+            annotations: {
+              'pipelines.kubeflow.org/task_path': 'root.comp-other-pipeline.print-op1',
+            },
+          },
+          status: { phase: 'Succeeded' },
+        },
+      ];
+
+      listPodSpy.mockResolvedValueOnce({ items: pods, metadata: {} });
+
+      const [result, err] = await listPodsByRunId(
+        'run-1',
+        'test-ns',
+        'root.comp-inner-pipeline.print-op1',
+      );
+
+      expect(err).toBeUndefined();
+      expect(result).toHaveLength(1);
+      expect(result![0].metadata?.name).toBe('pod-nested-1');
+    });
+
+    it('filters by dotted task_path suffix match', async () => {
+      const pods = [
+        {
+          metadata: {
+            name: 'driver-pod',
+            namespace: 'test-ns',
+            labels: { 'pipeline/runid': 'run-1' },
+            annotations: {
+              'pipelines.kubeflow.org/task_path': 'root.comp-dag.train-model',
+            },
+          },
+          status: { phase: 'Succeeded' },
+        },
+        {
+          metadata: {
+            name: 'other-pod',
+            namespace: 'test-ns',
+            labels: {
+              'pipeline/runid': 'run-1',
+              'pipelines.kubeflow.org/task_name': 'preprocess',
+            },
+            annotations: {},
+          },
+          status: { phase: 'Succeeded' },
+        },
+      ];
+
+      listPodSpy.mockResolvedValueOnce({ items: pods, metadata: {} });
+
+      const [result, err] = await listPodsByRunId('run-1', 'test-ns', 'train-model');
+
+      expect(err).toBeUndefined();
+      expect(result).toHaveLength(1);
+      expect(result![0].metadata?.name).toBe('driver-pod');
+    });
+
+    it('returns all pods when no task name filter is provided', async () => {
+      const pods = [
+        {
+          metadata: {
+            name: 'pod-a',
+            namespace: 'test-ns',
+            labels: { 'pipeline/runid': 'run-1' },
+            annotations: {},
+          },
+          status: { phase: 'Running' },
+        },
+        {
+          metadata: {
+            name: 'pod-b',
+            namespace: 'test-ns',
+            labels: { 'pipeline/runid': 'run-1' },
+            annotations: {},
+          },
+          status: { phase: 'Succeeded' },
+        },
+      ];
+
+      listPodSpy.mockResolvedValueOnce({ items: pods, metadata: {} });
+
+      const [result, err] = await listPodsByRunId('run-1', 'test-ns');
+
+      expect(err).toBeUndefined();
+      expect(result).toHaveLength(2);
+    });
+
+    it('returns error for invalid resource names', async () => {
+      const [pods, err] = await listPodsByRunId('../invalid', 'test-ns');
+
+      expect(pods).toBeUndefined();
+      expect(err).toEqual({ message: 'Invalid resource name' });
+      expect(listPodSpy).not.toHaveBeenCalled();
+    });
+
+    it('deduplicates pods by name across label selectors', async () => {
+      const pod = {
+        metadata: {
+          name: 'same-pod',
+          namespace: 'test-ns',
+          labels: {
+            'pipeline/runid': 'run-1',
+            'pipelines.kubeflow.org/run_id': 'run-1',
+          },
+          annotations: {},
+        },
+        status: { phase: 'Running' },
+      };
+
+      // First selector returns the pod
+      listPodSpy.mockResolvedValueOnce({ items: [pod], metadata: {} });
+
+      const [result, err] = await listPodsByRunId('run-1', 'test-ns');
+
+      expect(err).toBeUndefined();
+      // Should stop after first successful selector, so only 1 pod
+      expect(result).toHaveLength(1);
     });
   });
 });

@@ -156,12 +156,18 @@ spec:
       - name: task
       - name: container
       - name: task-name
+      - default: ""
+        name: task-path
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-driver
     outputs:
       parameters:
@@ -188,6 +194,10 @@ spec:
           parameters:
           - name: pod-spec-patch
             value: '{{inputs.parameters.pod-spec-patch}}'
+          - name: task-name
+            value: '{{inputs.parameters.task-name}}'
+          - name: task-path
+            value: '{{inputs.parameters.task-path}}'
         name: executor
         template: system-container-impl
         when: '{{inputs.parameters.cached-decision}} != true'
@@ -196,6 +206,10 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
     metadata: {}
     name: system-container-executor
     outputs: {}
@@ -268,7 +282,15 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -296,6 +318,10 @@ spec:
           parameters:
           - name: pod-spec-patch
             value: '{{inputs.parameters.pod-spec-patch}}'
+          - name: task-name
+            value: '{{inputs.parameters.task-name}}'
+          - name: task-path
+            value: '{{inputs.parameters.task-path}}'
           - name: pod-metadata-annotation-key
             value: '{{inputs.parameters.pod-metadata-annotation-key}}'
           - name: pod-metadata-annotation-val
@@ -316,6 +342,10 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
       - name: pod-metadata-annotation-key
       - name: pod-metadata-annotation-val
       - name: pod-metadata-label-key-1
@@ -394,6 +424,10 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
       - name: pod-metadata-annotation-key
       - name: pod-metadata-annotation-val
       - name: pod-metadata-label-key-1
@@ -403,9 +437,11 @@ spec:
     metadata:
       annotations:
         '{{inputs.parameters.pod-metadata-annotation-key}}': '{{inputs.parameters.pod-metadata-annotation-val}}'
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
       labels:
         '{{inputs.parameters.pod-metadata-label-key-1}}': '{{inputs.parameters.pod-metadata-label-val-1}}'
         '{{inputs.parameters.pod-metadata-label-key-2}}': '{{inputs.parameters.pod-metadata-label-val-2}}'
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: metadata-1-2-system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -433,6 +469,10 @@ spec:
           parameters:
           - name: pod-spec-patch
             value: '{{inputs.parameters.pod-spec-patch}}'
+          - name: task-name
+            value: '{{inputs.parameters.task-name}}'
+          - name: task-path
+            value: '{{inputs.parameters.task-path}}'
           - name: pod-metadata-annotation-key-1
             value: '{{inputs.parameters.pod-metadata-annotation-key-1}}'
           - name: pod-metadata-annotation-val-1
@@ -449,6 +489,10 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
       - name: pod-metadata-annotation-key-1
       - name: pod-metadata-annotation-val-1
       - name: pod-metadata-annotation-key-2
@@ -525,6 +569,10 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
       - name: pod-metadata-annotation-key-1
       - name: pod-metadata-annotation-val-1
       - name: pod-metadata-annotation-key-2
@@ -533,6 +581,9 @@ spec:
       annotations:
         '{{inputs.parameters.pod-metadata-annotation-key-1}}': '{{inputs.parameters.pod-metadata-annotation-val-1}}'
         '{{inputs.parameters.pod-metadata-annotation-key-2}}': '{{inputs.parameters.pod-metadata-annotation-val-2}}'
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: metadata-2-0-system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -568,6 +619,8 @@ spec:
             value: validate-no-pod-metadata
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: validate-no-pod-metadata
         name: validate-no-pod-metadata-driver
         template: system-container-driver
       - arguments:
@@ -577,6 +630,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.validate-no-pod-metadata-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: validate-no-pod-metadata
+          - name: task-path
+            value: validate-no-pod-metadata
         depends: validate-no-pod-metadata-driver.Succeeded
         name: validate-no-pod-metadata
         template: system-container-executor
@@ -594,6 +651,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: kubernetes-config
             value: '{{workflow.parameters.kubernetes-comp-validate-pod-metadata}}'
+          - name: task-path
+            value: validate-pod-metadata
         name: validate-pod-metadata-driver
         template: system-container-driver
       - arguments:
@@ -603,6 +662,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.validate-pod-metadata-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: validate-pod-metadata
+          - name: task-path
+            value: validate-pod-metadata
           - name: pod-metadata-annotation-key
             value: task-annotation
           - name: pod-metadata-annotation-val
@@ -632,6 +695,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: kubernetes-config
             value: '{{workflow.parameters.kubernetes-comp-validate-pod-metadata-2}}'
+          - name: task-path
+            value: validate-pod-metadata-2
         name: validate-pod-metadata-2-driver
         template: system-container-driver
       - arguments:
@@ -641,6 +706,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.validate-pod-metadata-2-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: validate-pod-metadata-2
+          - name: task-path
+            value: validate-pod-metadata-2
           - name: pod-metadata-annotation-key-1
             value: task-annotation-1
           - name: pod-metadata-annotation-val-1
@@ -730,13 +799,19 @@ spec:
         name: task
       - default: ""
         name: task-name
+      - default: ""
+        name: task-path
       - default: "0"
         name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-dag-driver
     outputs:
       parameters:

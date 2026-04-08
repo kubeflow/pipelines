@@ -162,12 +162,18 @@ spec:
       - name: task
       - name: container
       - name: task-name
+      - default: ""
+        name: task-path
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-driver
     outputs:
       parameters:
@@ -194,6 +200,10 @@ spec:
           parameters:
           - name: pod-spec-patch
             value: '{{inputs.parameters.pod-spec-patch}}'
+          - name: task-name
+            value: '{{inputs.parameters.task-name}}'
+          - name: task-path
+            value: '{{inputs.parameters.task-path}}'
         name: executor
         template: system-container-impl
         when: '{{inputs.parameters.cached-decision}} != true'
@@ -202,6 +212,10 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
     metadata: {}
     name: system-container-executor
     outputs: {}
@@ -274,7 +288,15 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -310,6 +332,8 @@ spec:
             value: double-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-for-loop-4.double-2
         name: double-2-driver
         template: system-container-driver
       - arguments:
@@ -319,6 +343,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.double-2-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: double-2
+          - name: task-path
+            value: root.comp-for-loop-4.double-2
         depends: double-2-driver.Succeeded
         name: double-2
         template: system-container-executor
@@ -400,13 +428,19 @@ spec:
         name: task
       - default: ""
         name: task-name
+      - default: ""
+        name: task-path
       - default: "0"
         name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-dag-driver
     outputs:
       parameters:
@@ -440,6 +474,8 @@ spec:
               5, 6]"}},"taskInfo":{"name":"for-loop-4"}}'
           - name: task-name
             value: for-loop-4
+          - name: task-path
+            value: root.comp-for-loop-2.for-loop-4.iteration-item
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -504,6 +540,8 @@ spec:
             value: double
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-for-loop-2.double
         name: double-driver
         template: system-container-driver
       - arguments:
@@ -513,6 +551,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.double-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: double
+          - name: task-path
+            value: root.comp-for-loop-2.double
         depends: double-driver.Succeeded
         name: double
         template: system-container-executor
@@ -534,6 +576,8 @@ spec:
             value: simple-add
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-for-loop-2.simple-add
         depends: for-loop-4.Succeeded
         name: simple-add-driver
         template: system-container-driver
@@ -544,6 +588,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.simple-add-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: simple-add
+          - name: task-path
+            value: root.comp-for-loop-2.simple-add
         depends: simple-add-driver.Succeeded
         name: simple-add
         template: system-container-executor
@@ -567,6 +615,8 @@ spec:
             value: nested-add-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-for-loop-6.nested-add-2
         name: nested-add-2-driver
         template: system-container-driver
       - arguments:
@@ -576,6 +626,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.nested-add-2-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: nested-add-2
+          - name: task-path
+            value: root.comp-for-loop-6.nested-add-2
         depends: nested-add-2-driver.Succeeded
         name: nested-add-2
         template: system-container-executor
@@ -591,6 +645,8 @@ spec:
             value: simple-add-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-for-loop-6.simple-add-2
         name: simple-add-2-driver
         template: system-container-driver
       - arguments:
@@ -600,6 +656,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.simple-add-2-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: simple-add-2
+          - name: task-path
+            value: root.comp-for-loop-6.simple-add-2
         depends: simple-add-2-driver.Succeeded
         name: simple-add-2
         template: system-container-executor
@@ -624,6 +684,8 @@ spec:
               2, 3]"}},"taskInfo":{"name":"for-loop-2"}}'
           - name: task-name
             value: for-loop-2
+          - name: task-path
+            value: root.for-loop-2.iteration-item
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -689,6 +751,8 @@ spec:
               0, 0]"}},"taskInfo":{"name":"for-loop-6"}}'
           - name: task-name
             value: for-loop-6
+          - name: task-path
+            value: root.for-loop-6.iteration-item
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -753,6 +817,8 @@ spec:
             value: add-two-numbers
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: add-two-numbers
         depends: for-loop-6.Succeeded
         name: add-two-numbers-driver
         template: system-container-driver
@@ -763,6 +829,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.add-two-numbers-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: add-two-numbers
+          - name: task-path
+            value: add-two-numbers
         depends: add-two-numbers-driver.Succeeded
         name: add-two-numbers
         template: system-container-executor
@@ -791,6 +861,8 @@ spec:
             value: nested-add
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: nested-add
         depends: for-loop-2.Succeeded
         name: nested-add-driver
         template: system-container-driver
@@ -801,6 +873,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.nested-add-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: nested-add
+          - name: task-path
+            value: nested-add
         depends: nested-add-driver.Succeeded
         name: nested-add
         template: system-container-executor

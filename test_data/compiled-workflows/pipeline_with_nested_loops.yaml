@@ -123,12 +123,18 @@ spec:
       - name: task
       - name: container
       - name: task-name
+      - default: ""
+        name: task-path
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-driver
     outputs:
       parameters:
@@ -155,6 +161,10 @@ spec:
           parameters:
           - name: pod-spec-patch
             value: '{{inputs.parameters.pod-spec-patch}}'
+          - name: task-name
+            value: '{{inputs.parameters.task-name}}'
+          - name: task-path
+            value: '{{inputs.parameters.task-path}}'
         name: executor
         template: system-container-impl
         when: '{{inputs.parameters.cached-decision}} != true'
@@ -163,6 +173,10 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
     metadata: {}
     name: system-container-executor
     outputs: {}
@@ -235,7 +249,15 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -271,6 +293,8 @@ spec:
             value: print-op
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-for-loop-2.print-op
         name: print-op-driver
         template: system-container-driver
       - arguments:
@@ -280,6 +304,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-op-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-op
+          - name: task-path
+            value: root.comp-for-loop-2.print-op
         depends: print-op-driver.Succeeded
         name: print-op
         template: system-container-executor
@@ -361,13 +389,19 @@ spec:
         name: task
       - default: ""
         name: task-name
+      - default: ""
+        name: task-path
       - default: "0"
         name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-dag-driver
     outputs:
       parameters:
@@ -400,6 +434,8 @@ spec:
             value: '{"componentRef":{"name":"comp-for-loop-2"},"inputs":{"parameters":{"pipelinechannel--loop_parameter-loop-item":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item"},"pipelinechannel--loop_parameter-loop-item-subvar-p_a":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"p_a\"]"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop_parameter-loop-item-subvar-p_a-loop-item","items":{"inputParameter":"pipelinechannel--loop_parameter-loop-item-subvar-p_a"}},"taskInfo":{"name":"for-loop-2"}}'
           - name: task-name
             value: for-loop-2
+          - name: task-path
+            value: root.comp-for-loop-1.for-loop-2.iteration-item
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -477,6 +513,8 @@ spec:
             value: print-op-3
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-for-loop-6.print-op-3
         name: print-op-3-driver
         template: system-container-driver
       - arguments:
@@ -486,6 +524,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-op-3-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-op-3
+          - name: task-path
+            value: root.comp-for-loop-6.print-op-3
         depends: print-op-3-driver.Succeeded
         name: print-op-3
         template: system-container-executor
@@ -510,6 +552,8 @@ spec:
               \"200\", \"300\"]"}},"taskInfo":{"name":"for-loop-6"}}'
           - name: task-name
             value: for-loop-6
+          - name: task-path
+            value: root.comp-for-loop-4.for-loop-6.iteration-item
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -580,6 +624,8 @@ spec:
             value: print-op-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-for-loop-4.print-op-2
         name: print-op-2-driver
         template: system-container-driver
       - arguments:
@@ -589,6 +635,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-op-2-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-op-2
+          - name: task-path
+            value: root.comp-for-loop-4.print-op-2
         depends: print-op-2-driver.Succeeded
         name: print-op-2
         template: system-container-executor
@@ -612,6 +662,8 @@ spec:
             value: '{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--loop_parameter":{"componentInputParameter":"loop_parameter"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop_parameter-loop-item","items":{"inputParameter":"pipelinechannel--loop_parameter"}},"taskInfo":{"name":"for-loop-1"}}'
           - name: task-name
             value: for-loop-1
+          - name: task-path
+            value: root.for-loop-1.iteration-item
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -676,6 +728,8 @@ spec:
               \"2\"]"}},"taskInfo":{"name":"for-loop-4"}}'
           - name: task-name
             value: for-loop-4
+          - name: task-path
+            value: root.for-loop-4.iteration-item
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:

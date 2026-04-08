@@ -489,6 +489,126 @@ describe('UIServer apis', () => {
     });
   });
 
+  describe('/k8s/pods/byRunId', () => {
+    let request: requests.SuperTest<requests.Test>;
+    beforeEach(() => {
+      app = new UIServer(loadConfigs(argv, {}));
+      request = requests(app.app);
+    });
+
+    it('asks for runid if not provided', async () => {
+      await request.get('/k8s/pods/byRunId').expect(422, 'runid argument is required');
+    });
+
+    it('asks for podnamespace if not provided', async () => {
+      await request
+        .get('/k8s/pods/byRunId?runid=test-run')
+        .expect(422, 'podnamespace argument is required');
+    });
+
+    it('responds with pod list in JSON', async () => {
+      const listPodSpy = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedPod');
+      listPodSpy.mockImplementation(() =>
+        Promise.resolve({
+          body: {
+            items: [{ metadata: { name: 'test-pod', namespace: 'test-ns' } }],
+          },
+        } as any),
+      );
+      await request.get('/k8s/pods/byRunId?runid=test-run&podnamespace=test-ns').expect(200);
+    });
+  });
+
+  describe('/k8s/pods/byRunId with authorization enabled', () => {
+    let authServer: Server;
+    const authPort = 3010;
+
+    beforeEach(async () => {
+      authServer = await new Promise<Server>((resolve) => {
+        const server = express()
+          .post('/apis/v1beta1/auth', (_, res) => {
+            res.status(401).send('Unauthorized');
+          })
+          .listen(authPort, () => resolve(server));
+      });
+
+      app = new UIServer(
+        loadConfigs(argv, {
+          ENABLE_AUTHZ: 'true',
+          ML_PIPELINE_SERVICE_PORT: `${authPort}`,
+          ML_PIPELINE_SERVICE_HOST: 'localhost',
+        }),
+      );
+    });
+
+    afterEach(async () => {
+      if (authServer) {
+        await new Promise<void>((resolve) => authServer.close(() => resolve()));
+      }
+    });
+
+    it('responds with 403 when authorization is rejected', async () => {
+      const authRequest = requests(app.app);
+      await authRequest
+        .get('/k8s/pods/byRunId?runid=test-run&podnamespace=test-ns')
+        .expect(403, 'Access denied to namespace');
+    });
+  });
+
+  describe('/k8s/pod/cached', () => {
+    let request: requests.SuperTest<requests.Test>;
+    beforeEach(() => {
+      app = new UIServer(loadConfigs(argv, {}));
+      request = requests(app.app);
+    });
+
+    it('asks for podnamespace if not provided', async () => {
+      await request.get('/k8s/pod/cached').expect(422, 'podnamespace argument is required');
+    });
+
+    it('asks for podname or runid if neither provided', async () => {
+      await request
+        .get('/k8s/pod/cached?podnamespace=test-ns')
+        .expect(422, 'Either podname or runid argument is required');
+    });
+  });
+
+  describe('/k8s/pod/cached with authorization enabled', () => {
+    let authServer: Server;
+    const authPort = 3011;
+
+    beforeEach(async () => {
+      authServer = await new Promise<Server>((resolve) => {
+        const server = express()
+          .post('/apis/v1beta1/auth', (_, res) => {
+            res.status(401).send('Unauthorized');
+          })
+          .listen(authPort, () => resolve(server));
+      });
+
+      app = new UIServer(
+        loadConfigs(argv, {
+          ENABLE_AUTHZ: 'true',
+          ML_PIPELINE_SERVICE_PORT: `${authPort}`,
+          ML_PIPELINE_SERVICE_HOST: 'localhost',
+        }),
+      );
+    });
+
+    afterEach(async () => {
+      if (authServer) {
+        await new Promise<void>((resolve) => authServer.close(() => resolve()));
+      }
+    });
+
+    it('responds with 403 when authorization is rejected', async () => {
+      const authRequest = requests(app.app);
+      await authRequest
+        .get('/k8s/pod/cached?podnamespace=test-ns&podname=test-pod')
+        .expect(403, 'Access denied to namespace');
+    });
+  });
+
   describe('/k8s/pod/logs', () => {
     let request: requests.SuperTest<requests.Test>;
     beforeEach(() => {

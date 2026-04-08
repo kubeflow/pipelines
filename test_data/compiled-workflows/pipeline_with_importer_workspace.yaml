@@ -271,12 +271,18 @@ spec:
       - name: task
       - name: container
       - name: task-name
+      - default: ""
+        name: task-path
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-driver
     outputs:
       parameters:
@@ -303,6 +309,10 @@ spec:
           parameters:
           - name: pod-spec-patch
             value: '{{inputs.parameters.pod-spec-patch}}'
+          - name: task-name
+            value: '{{inputs.parameters.task-name}}'
+          - name: task-path
+            value: '{{inputs.parameters.task-path}}'
         name: executor
         template: system-container-impl
         when: '{{inputs.parameters.cached-decision}} != true'
@@ -311,6 +321,10 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
     metadata: {}
     name: system-container-executor
     outputs: {}
@@ -383,7 +397,15 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -443,6 +465,8 @@ spec:
             value: read-dir
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-import-stage.read-dir
         depends: importer-2.Succeeded
         name: read-dir-driver
         template: system-container-driver
@@ -453,6 +477,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.read-dir-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: read-dir
+          - name: task-path
+            value: root.comp-import-stage.read-dir
         depends: read-dir-driver.Succeeded
         name: read-dir
         template: system-container-executor
@@ -468,6 +496,8 @@ spec:
             value: train
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-import-stage.train
         depends: importer.Succeeded
         name: train-driver
         template: system-container-driver
@@ -478,6 +508,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.train-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: train
+          - name: task-path
+            value: root.comp-import-stage.train
         depends: train-driver.Succeeded
         name: train
         template: system-container-executor
@@ -559,13 +593,19 @@ spec:
         name: task
       - default: ""
         name: task-name
+      - default: ""
+        name: task-path
       - default: "0"
         name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-dag-driver
     outputs:
       parameters:
@@ -598,6 +638,8 @@ spec:
             value: get-uri
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: get-uri
         depends: write-file-artifact.Succeeded
         name: get-uri-driver
         template: system-container-driver
@@ -608,6 +650,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.get-uri-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: get-uri
+          - name: task-path
+            value: get-uri
         depends: get-uri-driver.Succeeded
         name: get-uri
         template: system-container-executor
@@ -623,6 +669,8 @@ spec:
             value: get-uri-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: get-uri-2
         depends: write-dir-artifact.Succeeded
         name: get-uri-2-driver
         template: system-container-driver
@@ -633,6 +681,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.get-uri-2-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: get-uri-2
+          - name: task-path
+            value: get-uri-2
         depends: get-uri-2-driver.Succeeded
         name: get-uri-2
         template: system-container-executor
@@ -645,6 +697,8 @@ spec:
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-import-stage"},"dependentTasks":["get-uri","get-uri-2"],"inputs":{"parameters":{"dir_uri":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"get-uri-2"}},"file_uri":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"get-uri"}}}},"taskInfo":{"name":"import-stage"}}'
           - name: task-name
+            value: import-stage
+          - name: task-path
             value: import-stage
         depends: get-uri.Succeeded && get-uri-2.Succeeded
         name: import-stage-driver
@@ -670,6 +724,8 @@ spec:
             value: write-dir-artifact
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: write-dir-artifact
         name: write-dir-artifact-driver
         template: system-container-driver
       - arguments:
@@ -679,6 +735,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.write-dir-artifact-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: write-dir-artifact
+          - name: task-path
+            value: write-dir-artifact
         depends: write-dir-artifact-driver.Succeeded
         name: write-dir-artifact
         template: system-container-executor
@@ -694,6 +754,8 @@ spec:
             value: write-file-artifact
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: write-file-artifact
         name: write-file-artifact-driver
         template: system-container-driver
       - arguments:
@@ -703,6 +765,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.write-file-artifact-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: write-file-artifact
+          - name: task-path
+            value: write-file-artifact
         depends: write-file-artifact-driver.Succeeded
         name: write-file-artifact
         template: system-container-executor

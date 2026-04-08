@@ -74,7 +74,8 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 		}
 
 		tasks, err := c.task(taskName, kfpTask, taskInputs{
-			parentDagID: inputParameter(paramParentDagID),
+			parentDagID:   inputParameter(paramParentDagID),
+			parentDagName: name,
 		})
 		if err != nil {
 			return err
@@ -128,7 +129,7 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 		exitTemplate := taskToExitTemplate[taskName]
 
 		tasks, err := c.task(
-			taskName, kfpTask, taskInputs{parentDagID: inputParameter(paramParentDagID), exitTemplate: exitTemplate},
+			taskName, kfpTask, taskInputs{parentDagID: inputParameter(paramParentDagID), exitTemplate: exitTemplate, parentDagName: name},
 		)
 		if err != nil {
 			return err
@@ -216,6 +217,9 @@ type taskInputs struct {
 	// if provided, this will be the template the Argo Workflow exit lifecycle hook will execute.
 	exitTemplate string
 	taskName     string
+	// parentDagName is the name of the parent DAG, used to construct the full task path for pod labeling.
+	// For root-level tasks, this is "root". For sub-DAG tasks, this is the sub-DAG name.
+	parentDagName string
 }
 
 // parentDagID: placeholder for parent DAG execution ID
@@ -238,11 +242,17 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 	if err != nil {
 		return nil, err
 	}
+	// Construct full task path for pod labeling.
+	// Root-level tasks keep simple names; sub-DAG tasks get full path.
+	taskPath := name
+	if inputs.parentDagName != "" && inputs.parentDagName != "root" {
+		taskPath = "root." + inputs.parentDagName + "." + name
+	}
 	// For iterator task, we need to use argo withSequence to iterate.
 	isIteratorTask := inputs.iterationIndex == "" &&
 		(task.GetParameterIterator() != nil || task.GetArtifactIterator() != nil)
 	if isIteratorTask {
-		return c.iteratorTask(name, task, taskSpecJson, inputs.parentDagID)
+		return c.iteratorTask(name, task, taskSpecJson, inputs.parentDagID, inputs.parentDagName)
 	}
 	switch impl := componentSpec.GetImplementation().(type) {
 	case *pipelinespec.ComponentSpec_Dag:
@@ -258,6 +268,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 			task:           taskSpecJson,
 			iterationIndex: inputs.iterationIndex,
 			taskName:       effectiveTaskName,
+			taskPath:       taskPath,
 		})
 		if err != nil {
 			return nil, err
@@ -305,6 +316,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				iterationIndex:   inputs.iterationIndex,
 				kubernetesConfig: kubernetesConfigPlaceholder,
 				taskName:         effectiveTaskName,
+				taskPath:         taskPath,
 			})
 			if task.GetTriggerPolicy().GetCondition() == "" {
 				driverOutputs.condition = ""
@@ -327,6 +339,8 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				condition:       driverOutputs.condition,
 				exitTemplate:    inputs.exitTemplate,
 				hookParentDagID: inputs.parentDagID,
+				taskName:        name,
+				taskPath:        taskPath,
 			}, task)
 			if err != nil {
 				return nil, fmt.Errorf("error creating executor for %q: %v", name, err)
@@ -356,7 +370,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 	}
 }
 
-func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.PipelineTaskSpec, taskJSON string, parentDagID string) (tasks []wfapi.DAGTask, err error) {
+func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.PipelineTaskSpec, taskJSON string, parentDagID string, parentDagName string) (tasks []wfapi.DAGTask, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("iterator task: %w", err)
@@ -364,7 +378,8 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 	}()
 	componentName := task.GetComponentRef().GetName()
 	// Set up Loop Control Template
-	iteratorTasks, err := c.iterationItemTask("iteration", task, taskJSON, parentDagID, name)
+	// Pass the iterator task name as the parent DAG name for iteration items
+	iteratorTasks, err := c.iterationItemTask("iteration", task, taskJSON, parentDagID, name, parentDagName)
 	if err != nil {
 		return nil, err
 	}
@@ -406,7 +421,7 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 	return tasks, nil
 }
 
-func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.PipelineTaskSpec, taskJSON string, parentDagID string, parallelForTaskKey string) (tasks []wfapi.DAGTask, err error) {
+func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.PipelineTaskSpec, taskJSON string, parentDagID string, parallelForTaskKey string, grandParentDagName string) (tasks []wfapi.DAGTask, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("iterationItem task: %w", err)
@@ -431,6 +446,14 @@ func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.Pip
 		return nil, err
 	}
 
+	// Construct the parent DAG name for iteration items.
+	// For iteration tasks, the parent is the iterator (e.g., "for-loop-1").
+	// If the iterator itself is nested, include the grandparent path.
+	iterationParentDagName := parallelForTaskKey
+	if grandParentDagName != "" && grandParentDagName != "root" {
+		iterationParentDagName = grandParentDagName + "." + parallelForTaskKey
+	}
+
 	iterationCount := intstr.FromString(driverOutputs.iterationCount)
 	iterationTasks, err := c.task(
 		"iteration-item",
@@ -439,6 +462,7 @@ func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.Pip
 			parentDagID:    inputParameter(paramParentDagID),
 			iterationIndex: inputParameter(paramIterationIndex),
 			taskName:       parallelForTaskKey,
+			parentDagName:  iterationParentDagName,
 		},
 	)
 	if err != nil {
@@ -497,6 +521,7 @@ type dagDriverInputs struct {
 	component      string                                  // input placeholder for component spec
 	task           string                                  // optional, the root DAG does not have task spec.
 	taskName       string                                  // optional, the name of the task, used for input resolving
+	taskPath       string                                  // optional, full task path including parent DAG names (e.g., "root.for-loop-1.process-item")
 	runtimeConfig  *pipelinespec.PipelineJob_RuntimeConfig // optional, only root DAG needs this
 	iterationIndex string                                  // optional, iterator passes iteration index to iteration tasks
 }
@@ -545,6 +570,12 @@ func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*
 		params = append(params, wfapi.Parameter{
 			Name:  paramTaskName,
 			Value: wfapi.AnyStringPtr(inputs.taskName),
+		})
+	}
+	if inputs.taskPath != "" {
+		params = append(params, wfapi.Parameter{
+			Name:  paramTaskPath,
+			Value: wfapi.AnyStringPtr(inputs.taskPath),
 		})
 	}
 	t := &wfapi.DAGTask{
@@ -617,12 +648,23 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 
 	template := &wfapi.Template{
 		Name: name,
+		Metadata: wfapi.Metadata{
+			Labels: map[string]string{
+				// Simple task name for backward compatibility (max 63 chars for K8s labels)
+				"pipelines.kubeflow.org/task_name": inputParameter(paramTaskName),
+			},
+			Annotations: map[string]string{
+				// Full task path for sub-DAG differentiation (no length limit)
+				"pipelines.kubeflow.org/task_path": inputParameter(paramTaskPath),
+			},
+		},
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
 				{Name: paramComponent}, // Required.
 				{Name: paramRuntimeConfig, Default: wfapi.AnyStringPtr("")},
 				{Name: paramTask, Default: wfapi.AnyStringPtr("")},
 				{Name: paramTaskName, Default: wfapi.AnyStringPtr("")},
+				{Name: paramTaskPath, Default: wfapi.AnyStringPtr("")},
 				{Name: paramParentDagID, Default: wfapi.AnyStringPtr("0")},
 				{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
 				{Name: paramDriverType, Default: wfapi.AnyStringPtr("DAG")},

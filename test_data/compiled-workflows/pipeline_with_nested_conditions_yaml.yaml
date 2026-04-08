@@ -145,12 +145,18 @@ spec:
       - name: task
       - name: container
       - name: task-name
+      - default: ""
+        name: task-path
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-driver
     outputs:
       parameters:
@@ -177,6 +183,10 @@ spec:
           parameters:
           - name: pod-spec-patch
             value: '{{inputs.parameters.pod-spec-patch}}'
+          - name: task-name
+            value: '{{inputs.parameters.task-name}}'
+          - name: task-path
+            value: '{{inputs.parameters.task-path}}'
         name: executor
         template: system-container-impl
         when: '{{inputs.parameters.cached-decision}} != true'
@@ -185,6 +195,10 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
     metadata: {}
     name: system-container-executor
     outputs: {}
@@ -257,7 +271,15 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -295,6 +317,8 @@ spec:
             value: print
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-2.print
         name: print-driver
         template: system-container-driver
       - arguments:
@@ -304,6 +328,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print
+          - name: task-path
+            value: root.comp-condition-2.print
         depends: print-driver.Succeeded
         name: print
         template: system-container-executor
@@ -329,6 +357,8 @@ spec:
             value: print-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-3.print-2
         name: print-2-driver
         template: system-container-driver
       - arguments:
@@ -338,6 +368,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-2-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-2
+          - name: task-path
+            value: root.comp-condition-3.print-2
         depends: print-2-driver.Succeeded
         name: print-2
         template: system-container-executor
@@ -419,13 +453,19 @@ spec:
         name: task
       - default: ""
         name: task-name
+      - default: ""
+        name: task-path
       - default: "0"
         name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-dag-driver
     outputs:
       parameters:
@@ -457,6 +497,8 @@ spec:
               \u003e 5"}}'
           - name: task-name
             value: condition-2
+          - name: task-path
+            value: root.comp-condition-1.condition-2
         depends: generate-random-number.Succeeded
         name: condition-2-driver
         template: system-dag-driver
@@ -481,6 +523,8 @@ spec:
               \u003c= 5"}}'
           - name: task-name
             value: condition-3
+          - name: task-path
+            value: root.comp-condition-1.condition-3
         depends: generate-random-number.Succeeded
         name: condition-3-driver
         template: system-dag-driver
@@ -506,6 +550,8 @@ spec:
             value: generate-random-number
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-1.generate-random-number
         name: generate-random-number-driver
         template: system-container-driver
       - arguments:
@@ -515,6 +561,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.generate-random-number-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: generate-random-number
+          - name: task-path
+            value: root.comp-condition-1.generate-random-number
         depends: generate-random-number-driver.Succeeded
         name: generate-random-number
         template: system-container-executor
@@ -540,6 +590,8 @@ spec:
             value: print-3
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-5.print-3
         name: print-3-driver
         template: system-container-driver
       - arguments:
@@ -549,6 +601,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-3-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-3
+          - name: task-path
+            value: root.comp-condition-5.print-3
         depends: print-3-driver.Succeeded
         name: print-3
         template: system-container-executor
@@ -574,6 +630,8 @@ spec:
             value: print-4
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-6.print-4
         name: print-4-driver
         template: system-container-driver
       - arguments:
@@ -583,6 +641,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-4-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-4
+          - name: task-path
+            value: root.comp-condition-6.print-4
         depends: print-4-driver.Succeeded
         name: print-4
         template: system-container-executor
@@ -605,6 +667,8 @@ spec:
               \u003e 15"}}'
           - name: task-name
             value: condition-5
+          - name: task-path
+            value: root.comp-condition-4.condition-5
         depends: generate-random-number-2.Succeeded
         name: condition-5-driver
         template: system-dag-driver
@@ -629,6 +693,8 @@ spec:
               \u003c= 15"}}'
           - name: task-name
             value: condition-6
+          - name: task-path
+            value: root.comp-condition-4.condition-6
         depends: generate-random-number-2.Succeeded
         name: condition-6-driver
         template: system-dag-driver
@@ -654,6 +720,8 @@ spec:
             value: generate-random-number-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-4.generate-random-number-2
         name: generate-random-number-2-driver
         template: system-container-driver
       - arguments:
@@ -663,6 +731,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.generate-random-number-2-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: generate-random-number-2
+          - name: task-path
+            value: root.comp-condition-4.generate-random-number-2
         depends: generate-random-number-2-driver.Succeeded
         name: generate-random-number-2
         template: system-container-executor
@@ -684,6 +756,8 @@ spec:
             value: '{"componentRef":{"name":"comp-condition-1"},"dependentTasks":["flip-coin"],"inputs":{"parameters":{"pipelinechannel--flip-coin-output":{"taskOutputParameter":{"outputParameterKey":"output","producerTask":"flip-coin"}}}},"taskInfo":{"name":"condition-1"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-coin-output'']
               == ''heads''"}}'
           - name: task-name
+            value: condition-1
+          - name: task-path
             value: condition-1
         depends: flip-coin.Succeeded
         name: condition-1-driver
@@ -708,6 +782,8 @@ spec:
             value: '{"componentRef":{"name":"comp-condition-4"},"dependentTasks":["flip-coin"],"inputs":{"parameters":{"pipelinechannel--flip-coin-output":{"taskOutputParameter":{"outputParameterKey":"output","producerTask":"flip-coin"}}}},"taskInfo":{"name":"condition-4"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-coin-output'']
               == ''tails''"}}'
           - name: task-name
+            value: condition-4
+          - name: task-path
             value: condition-4
         depends: flip-coin.Succeeded
         name: condition-4-driver
@@ -734,6 +810,8 @@ spec:
             value: flip-coin
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: flip-coin
         name: flip-coin-driver
         template: system-container-driver
       - arguments:
@@ -743,6 +821,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.flip-coin-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: flip-coin
+          - name: task-path
+            value: flip-coin
         depends: flip-coin-driver.Succeeded
         name: flip-coin
         template: system-container-executor

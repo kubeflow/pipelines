@@ -203,12 +203,18 @@ spec:
       - name: task
       - name: container
       - name: task-name
+      - default: ""
+        name: task-path
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-driver
     outputs:
       parameters:
@@ -235,6 +241,10 @@ spec:
           parameters:
           - name: pod-spec-patch
             value: '{{inputs.parameters.pod-spec-patch}}'
+          - name: task-name
+            value: '{{inputs.parameters.task-name}}'
+          - name: task-path
+            value: '{{inputs.parameters.task-path}}'
         name: executor
         template: system-container-impl
         when: '{{inputs.parameters.cached-decision}} != true'
@@ -243,6 +253,10 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
     metadata: {}
     name: system-container-executor
     outputs: {}
@@ -315,7 +329,15 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -352,6 +374,8 @@ spec:
             value: print-and-return
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-3.print-and-return
         name: print-and-return-driver
         template: system-container-driver
       - arguments:
@@ -361,6 +385,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-and-return-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-and-return
+          - name: task-path
+            value: root.comp-condition-3.print-and-return
         depends: print-and-return-driver.Succeeded
         name: print-and-return
         template: system-container-executor
@@ -442,13 +470,19 @@ spec:
         name: task
       - default: ""
         name: task-name
+      - default: ""
+        name: task-path
       - default: "0"
         name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-dag-driver
     outputs:
       parameters:
@@ -480,6 +514,8 @@ spec:
               == 3"}}'
           - name: task-name
             value: condition-3
+          - name: task-path
+            value: root.comp-condition-2.condition-3
         name: condition-3-driver
         template: system-dag-driver
       - arguments:
@@ -513,6 +549,8 @@ spec:
             value: print-and-return-9
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-for-loop-16.print-and-return-9
         name: print-and-return-9-driver
         template: system-container-driver
       - arguments:
@@ -522,6 +560,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-and-return-9-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-and-return-9
+          - name: task-path
+            value: root.comp-for-loop-16.print-and-return-9
         depends: print-and-return-9-driver.Succeeded
         name: print-and-return-9
         template: system-container-executor
@@ -546,6 +588,8 @@ spec:
               2]"}},"taskInfo":{"name":"for-loop-16"}}'
           - name: task-name
             value: for-loop-16
+          - name: task-path
+            value: root.comp-condition-14.for-loop-16.iteration-item
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -623,6 +667,8 @@ spec:
               == true"}}'
           - name: task-name
             value: condition-14
+          - name: task-path
+            value: root.comp-condition-13.condition-14
         name: condition-14-driver
         template: system-dag-driver
       - arguments:
@@ -648,6 +694,8 @@ spec:
             value: print-and-return-8
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-13.print-and-return-8
         name: print-and-return-8-driver
         template: system-container-driver
       - arguments:
@@ -657,6 +705,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-and-return-8-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-and-return-8
+          - name: task-path
+            value: root.comp-condition-13.print-and-return-8
         depends: print-and-return-8-driver.Succeeded
         name: print-and-return-8
         template: system-container-executor
@@ -681,6 +733,8 @@ spec:
             value: print-and-return-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-6.print-and-return-2
         name: print-and-return-2-driver
         template: system-container-driver
       - arguments:
@@ -690,6 +744,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-and-return-2-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-and-return-2
+          - name: task-path
+            value: root.comp-condition-6.print-and-return-2
         depends: print-and-return-2-driver.Succeeded
         name: print-and-return-2
         template: system-container-executor
@@ -714,6 +772,8 @@ spec:
             value: print-and-return-3
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-7.print-and-return-3
         name: print-and-return-3-driver
         template: system-container-driver
       - arguments:
@@ -723,6 +783,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-and-return-3-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-and-return-3
+          - name: task-path
+            value: root.comp-condition-7.print-and-return-3
         depends: print-and-return-3-driver.Succeeded
         name: print-and-return-3
         template: system-container-executor
@@ -745,6 +809,8 @@ spec:
               == ''even''"}}'
           - name: task-name
             value: condition-6
+          - name: task-path
+            value: root.comp-condition-branches-5.condition-6
         name: condition-6-driver
         template: system-dag-driver
       - arguments:
@@ -768,6 +834,8 @@ spec:
               == ''even'')"}}'
           - name: task-name
             value: condition-7
+          - name: task-path
+            value: root.comp-condition-branches-5.condition-7
         name: condition-7-driver
         template: system-dag-driver
       - arguments:
@@ -798,6 +866,8 @@ spec:
             value: '{"componentRef":{"name":"comp-condition-branches-5"},"dependentTasks":["is-even-or-odd"],"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--is-even-or-odd-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"is-even-or-odd"}}}},"taskInfo":{"name":"condition-branches-5"}}'
           - name: task-name
             value: condition-branches-5
+          - name: task-path
+            value: root.comp-condition-8.condition-branches-5
         depends: is-even-or-odd.Succeeded
         name: condition-branches-5-driver
         template: system-dag-driver
@@ -822,6 +892,8 @@ spec:
             value: is-even-or-odd
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-8.is-even-or-odd
         name: is-even-or-odd-driver
         template: system-container-driver
       - arguments:
@@ -831,6 +903,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.is-even-or-odd-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: is-even-or-odd
+          - name: task-path
+            value: root.comp-condition-8.is-even-or-odd
         depends: is-even-or-odd-driver.Succeeded
         name: is-even-or-odd
         template: system-container-executor
@@ -846,6 +922,8 @@ spec:
             value: print-and-return-4
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-8.print-and-return-4
         depends: condition-branches-5.Succeeded
         name: print-and-return-4-driver
         template: system-container-driver
@@ -856,6 +934,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-and-return-4-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-and-return-4
+          - name: task-path
+            value: root.comp-condition-8.print-and-return-4
         depends: print-and-return-4-driver.Succeeded
         name: print-and-return-4
         template: system-container-executor
@@ -880,6 +962,8 @@ spec:
             value: print-and-return-5
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-11.print-and-return-5
         name: print-and-return-5-driver
         template: system-container-driver
       - arguments:
@@ -889,6 +973,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-and-return-5-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-and-return-5
+          - name: task-path
+            value: root.comp-condition-11.print-and-return-5
         depends: print-and-return-5-driver.Succeeded
         name: print-and-return-5
         template: system-container-executor
@@ -913,6 +1001,8 @@ spec:
             value: print-and-return-6
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-12.print-and-return-6
         name: print-and-return-6-driver
         template: system-container-driver
       - arguments:
@@ -922,6 +1012,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-and-return-6-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-and-return-6
+          - name: task-path
+            value: root.comp-condition-12.print-and-return-6
         depends: print-and-return-6-driver.Succeeded
         name: print-and-return-6
         template: system-container-executor
@@ -944,6 +1038,8 @@ spec:
               == ''even''"}}'
           - name: task-name
             value: condition-11
+          - name: task-path
+            value: root.comp-condition-branches-10.condition-11
         name: condition-11-driver
         template: system-dag-driver
       - arguments:
@@ -967,6 +1063,8 @@ spec:
               == ''even'')"}}'
           - name: task-name
             value: condition-12
+          - name: task-path
+            value: root.comp-condition-branches-10.condition-12
         name: condition-12-driver
         template: system-dag-driver
       - arguments:
@@ -997,6 +1095,8 @@ spec:
             value: '{"componentRef":{"name":"comp-condition-branches-10"},"dependentTasks":["is-even-or-odd-2"],"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--is-even-or-odd-2-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"is-even-or-odd-2"}}}},"taskInfo":{"name":"condition-branches-10"}}'
           - name: task-name
             value: condition-branches-10
+          - name: task-path
+            value: root.comp-condition-9.condition-branches-10
         depends: is-even-or-odd-2.Succeeded
         name: condition-branches-10-driver
         template: system-dag-driver
@@ -1021,6 +1121,8 @@ spec:
             value: is-even-or-odd-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-9.is-even-or-odd-2
         name: is-even-or-odd-2-driver
         template: system-container-driver
       - arguments:
@@ -1030,6 +1132,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.is-even-or-odd-2-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: is-even-or-odd-2
+          - name: task-path
+            value: root.comp-condition-9.is-even-or-odd-2
         depends: is-even-or-odd-2-driver.Succeeded
         name: is-even-or-odd-2
         template: system-container-executor
@@ -1045,6 +1151,8 @@ spec:
             value: print-and-return-7
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-9.print-and-return-7
         depends: condition-branches-10.Succeeded
         name: print-and-return-7-driver
         template: system-container-driver
@@ -1055,6 +1163,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-and-return-7-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-and-return-7
+          - name: task-path
+            value: root.comp-condition-9.print-and-return-7
         depends: print-and-return-7-driver.Succeeded
         name: print-and-return-7
         template: system-container-executor
@@ -1078,6 +1190,8 @@ spec:
               \u003e 5000)"}}'
           - name: task-name
             value: condition-13
+          - name: task-path
+            value: root.comp-condition-branches-4.condition-13
         name: condition-13-driver
         template: system-dag-driver
       - arguments:
@@ -1101,6 +1215,8 @@ spec:
               \u003c 5000"}}'
           - name: task-name
             value: condition-8
+          - name: task-path
+            value: root.comp-condition-branches-4.condition-8
         name: condition-8-driver
         template: system-dag-driver
       - arguments:
@@ -1125,6 +1241,8 @@ spec:
               \u003e 5000"}}'
           - name: task-name
             value: condition-9
+          - name: task-path
+            value: root.comp-condition-branches-4.condition-9
         name: condition-9-driver
         template: system-dag-driver
       - arguments:
@@ -1156,6 +1274,8 @@ spec:
               == true"}}'
           - name: task-name
             value: condition-2
+          - name: task-path
+            value: root.comp-for-loop-1.condition-2
         name: condition-2-driver
         template: system-dag-driver
       - arguments:
@@ -1178,6 +1298,8 @@ spec:
             value: '{"componentRef":{"name":"comp-condition-branches-4"},"dependentTasks":["int-0-to-9999"],"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"int-0-to-9999"}},"pipelinechannel--repeat_if_lucky_number":{"componentInputParameter":"pipelinechannel--repeat_if_lucky_number"}}},"taskInfo":{"name":"condition-branches-4"}}'
           - name: task-name
             value: condition-branches-4
+          - name: task-path
+            value: root.comp-for-loop-1.condition-branches-4
         depends: int-0-to-9999.Succeeded
         name: condition-branches-4-driver
         template: system-dag-driver
@@ -1202,6 +1324,8 @@ spec:
             value: int-0-to-9999
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-for-loop-1.int-0-to-9999
         name: int-0-to-9999-driver
         template: system-container-driver
       - arguments:
@@ -1211,6 +1335,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.int-0-to-9999-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: int-0-to-9999
+          - name: task-path
+            value: root.comp-for-loop-1.int-0-to-9999
         depends: int-0-to-9999-driver.Succeeded
         name: int-0-to-9999
         template: system-container-executor
@@ -1234,6 +1362,8 @@ spec:
             value: '{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--add_drumroll":{"componentInputParameter":"add_drumroll"},"pipelinechannel--repeat_if_lucky_number":{"componentInputParameter":"repeat_if_lucky_number"},"pipelinechannel--trials":{"componentInputParameter":"trials"}}},"parameterIterator":{"itemInput":"pipelinechannel--trials-loop-item","items":{"inputParameter":"pipelinechannel--trials"}},"taskInfo":{"name":"for-loop-1"}}'
           - name: task-name
             value: for-loop-1
+          - name: task-path
+            value: root.for-loop-1.iteration-item
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -1303,6 +1433,8 @@ spec:
             value: print-ints
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: print-ints
         depends: for-loop-1.Succeeded
         name: print-ints-driver
         template: system-container-driver
@@ -1313,6 +1445,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-ints-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-ints
+          - name: task-path
+            value: print-ints
         depends: print-ints-driver.Succeeded
         name: print-ints
         template: system-container-executor

@@ -136,12 +136,18 @@ spec:
       - name: task
       - name: container
       - name: task-name
+      - default: ""
+        name: task-path
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-driver
     outputs:
       parameters:
@@ -168,6 +174,10 @@ spec:
           parameters:
           - name: pod-spec-patch
             value: '{{inputs.parameters.pod-spec-patch}}'
+          - name: task-name
+            value: '{{inputs.parameters.task-name}}'
+          - name: task-path
+            value: '{{inputs.parameters.task-path}}'
         name: executor
         template: system-container-impl
         when: '{{inputs.parameters.cached-decision}} != true'
@@ -176,6 +186,10 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
     metadata: {}
     name: system-container-executor
     outputs: {}
@@ -248,7 +262,15 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -285,6 +307,8 @@ spec:
             value: print-and-return
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-2.print-and-return
         name: print-and-return-driver
         template: system-container-driver
       - arguments:
@@ -294,6 +318,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-and-return-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-and-return
+          - name: task-path
+            value: root.comp-condition-2.print-and-return
         depends: print-and-return-driver.Succeeded
         name: print-and-return
         template: system-container-executor
@@ -318,6 +346,8 @@ spec:
             value: print-and-return-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-3.print-and-return-2
         name: print-and-return-2-driver
         template: system-container-driver
       - arguments:
@@ -327,6 +357,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-and-return-2-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-and-return-2
+          - name: task-path
+            value: root.comp-condition-3.print-and-return-2
         depends: print-and-return-2-driver.Succeeded
         name: print-and-return-2
         template: system-container-executor
@@ -408,13 +442,19 @@ spec:
         name: task
       - default: ""
         name: task-name
+      - default: ""
+        name: task-path
       - default: "0"
         name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-dag-driver
     outputs:
       parameters:
@@ -446,6 +486,8 @@ spec:
               == ''heads''"}}'
           - name: task-name
             value: condition-2
+          - name: task-path
+            value: root.comp-condition-branches-1.condition-2
         name: condition-2-driver
         template: system-dag-driver
       - arguments:
@@ -469,6 +511,8 @@ spec:
               == ''heads'')"}}'
           - name: task-name
             value: condition-3
+          - name: task-path
+            value: root.comp-condition-branches-1.condition-3
         name: condition-3-driver
         template: system-dag-driver
       - arguments:
@@ -499,6 +543,8 @@ spec:
             value: '{"componentRef":{"name":"comp-condition-branches-1"},"dependentTasks":["flip-coin"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin"}}}},"taskInfo":{"name":"condition-branches-1"}}'
           - name: task-name
             value: condition-branches-1
+          - name: task-path
+            value: condition-branches-1
         depends: flip-coin.Succeeded
         name: condition-branches-1-driver
         template: system-dag-driver
@@ -523,6 +569,8 @@ spec:
             value: flip-coin
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: flip-coin
         name: flip-coin-driver
         template: system-container-driver
       - arguments:
@@ -532,6 +580,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.flip-coin-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: flip-coin
+          - name: task-path
+            value: flip-coin
         depends: flip-coin-driver.Succeeded
         name: flip-coin
         template: system-container-executor
@@ -547,6 +599,8 @@ spec:
             value: print-and-return-3
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: print-and-return-3
         depends: condition-branches-1.Succeeded
         name: print-and-return-3-driver
         template: system-container-driver
@@ -557,6 +611,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-and-return-3-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-and-return-3
+          - name: task-path
+            value: print-and-return-3
         depends: print-and-return-3-driver.Succeeded
         name: print-and-return-3
         template: system-container-executor

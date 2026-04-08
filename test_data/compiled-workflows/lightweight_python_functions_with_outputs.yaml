@@ -159,12 +159,18 @@ spec:
       - name: task
       - name: container
       - name: task-name
+      - default: ""
+        name: task-path
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-driver
     outputs:
       parameters:
@@ -191,6 +197,10 @@ spec:
           parameters:
           - name: pod-spec-patch
             value: '{{inputs.parameters.pod-spec-patch}}'
+          - name: task-name
+            value: '{{inputs.parameters.task-name}}'
+          - name: task-path
+            value: '{{inputs.parameters.task-path}}'
         name: executor
         template: system-container-impl
         when: '{{inputs.parameters.cached-decision}} != true'
@@ -199,6 +209,10 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
     metadata: {}
     name: system-container-executor
     outputs: {}
@@ -271,7 +285,15 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -307,6 +329,8 @@ spec:
             value: add-numbers
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: add-numbers
         name: add-numbers-driver
         template: system-container-driver
       - arguments:
@@ -316,6 +340,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.add-numbers-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: add-numbers
+          - name: task-path
+            value: add-numbers
         depends: add-numbers-driver.Succeeded
         name: add-numbers
         template: system-container-executor
@@ -331,6 +359,8 @@ spec:
             value: concat-message
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: concat-message
         name: concat-message-driver
         template: system-container-driver
       - arguments:
@@ -340,6 +370,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.concat-message-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: concat-message
+          - name: task-path
+            value: concat-message
         depends: concat-message-driver.Succeeded
         name: concat-message
         template: system-container-executor
@@ -355,6 +389,8 @@ spec:
             value: output-artifact
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: output-artifact
         depends: add-numbers.Succeeded && concat-message.Succeeded
         name: output-artifact-driver
         template: system-container-driver
@@ -365,6 +401,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.output-artifact-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: output-artifact
+          - name: task-path
+            value: output-artifact
         depends: output-artifact-driver.Succeeded
         name: output-artifact
         template: system-container-executor
@@ -380,6 +420,8 @@ spec:
             value: output-named-tuple
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: output-named-tuple
         depends: output-artifact.Succeeded
         name: output-named-tuple-driver
         template: system-container-driver
@@ -390,6 +432,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.output-named-tuple-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: output-named-tuple
+          - name: task-path
+            value: output-named-tuple
         depends: output-named-tuple-driver.Succeeded
         name: output-named-tuple
         template: system-container-executor
@@ -471,13 +517,19 @@ spec:
         name: task
       - default: ""
         name: task-name
+      - default: ""
+        name: task-path
       - default: "0"
         name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-dag-driver
     outputs:
       parameters:

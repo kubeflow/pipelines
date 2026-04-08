@@ -165,12 +165,18 @@ spec:
       - name: task
       - name: container
       - name: task-name
+      - default: ""
+        name: task-path
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-driver
     outputs:
       parameters:
@@ -197,6 +203,10 @@ spec:
           parameters:
           - name: pod-spec-patch
             value: '{{inputs.parameters.pod-spec-patch}}'
+          - name: task-name
+            value: '{{inputs.parameters.task-name}}'
+          - name: task-path
+            value: '{{inputs.parameters.task-path}}'
         name: executor
         template: system-container-impl
         when: '{{inputs.parameters.cached-decision}} != true'
@@ -205,6 +215,10 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
     metadata: {}
     name: system-container-executor
     outputs: {}
@@ -277,7 +291,15 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -313,6 +335,8 @@ spec:
             value: create-dataset
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: create-dataset
         name: create-dataset-driver
         template: system-container-driver
       - arguments:
@@ -322,6 +346,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.create-dataset-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: create-dataset
+          - name: task-path
+            value: create-dataset
         depends: create-dataset-driver.Succeeded
         name: create-dataset
         template: system-container-executor
@@ -337,6 +365,8 @@ spec:
             value: normalize-dataset
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: normalize-dataset
         depends: create-dataset.Succeeded
         name: normalize-dataset-driver
         template: system-container-driver
@@ -347,6 +377,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.normalize-dataset-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: normalize-dataset
+          - name: task-path
+            value: normalize-dataset
         depends: normalize-dataset-driver.Succeeded
         name: normalize-dataset
         template: system-container-executor
@@ -362,6 +396,8 @@ spec:
             value: train-model
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: train-model
         depends: normalize-dataset.Succeeded
         name: train-model-driver
         template: system-container-driver
@@ -372,6 +408,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.train-model-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: train-model
+          - name: task-path
+            value: train-model
         depends: train-model-driver.Succeeded
         name: train-model
         template: system-container-executor
@@ -453,13 +493,19 @@ spec:
         name: task
       - default: ""
         name: task-name
+      - default: ""
+        name: task-path
       - default: "0"
         name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-dag-driver
     outputs:
       parameters:

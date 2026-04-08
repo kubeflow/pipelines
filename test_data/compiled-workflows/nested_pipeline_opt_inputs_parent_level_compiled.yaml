@@ -195,12 +195,18 @@ spec:
       - name: task
       - name: container
       - name: task-name
+      - default: ""
+        name: task-path
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-driver
     outputs:
       parameters:
@@ -227,6 +233,10 @@ spec:
           parameters:
           - name: pod-spec-patch
             value: '{{inputs.parameters.pod-spec-patch}}'
+          - name: task-name
+            value: '{{inputs.parameters.task-name}}'
+          - name: task-path
+            value: '{{inputs.parameters.task-path}}'
         name: executor
         template: system-container-impl
         when: '{{inputs.parameters.cached-decision}} != true'
@@ -235,6 +245,10 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
     metadata: {}
     name: system-container-executor
     outputs: {}
@@ -307,7 +321,15 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -343,6 +365,8 @@ spec:
             value: component-nil-bool-default
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-nested-pipeline-nil-defaults.component-nil-bool-default
         name: component-nil-bool-default-driver
         template: system-container-driver
       - arguments:
@@ -352,6 +376,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.component-nil-bool-default-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: component-nil-bool-default
+          - name: task-path
+            value: root.comp-nested-pipeline-nil-defaults.component-nil-bool-default
         depends: component-nil-bool-default-driver.Succeeded
         name: component-nil-bool-default
         template: system-container-executor
@@ -367,6 +395,8 @@ spec:
             value: component-nil-int-default
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-nested-pipeline-nil-defaults.component-nil-int-default
         name: component-nil-int-default-driver
         template: system-container-driver
       - arguments:
@@ -376,6 +406,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.component-nil-int-default-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: component-nil-int-default
+          - name: task-path
+            value: root.comp-nested-pipeline-nil-defaults.component-nil-int-default
         depends: component-nil-int-default-driver.Succeeded
         name: component-nil-int-default
         template: system-container-executor
@@ -391,6 +425,8 @@ spec:
             value: component-nil-str-default
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-nested-pipeline-nil-defaults.component-nil-str-default
         name: component-nil-str-default-driver
         template: system-container-driver
       - arguments:
@@ -400,6 +436,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.component-nil-str-default-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: component-nil-str-default
+          - name: task-path
+            value: root.comp-nested-pipeline-nil-defaults.component-nil-str-default
         depends: component-nil-str-default-driver.Succeeded
         name: component-nil-str-default
         template: system-container-executor
@@ -423,6 +463,8 @@ spec:
             value: component-bool-default
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-nested-pipeline-non-nil-defaults.component-bool-default
         name: component-bool-default-driver
         template: system-container-driver
       - arguments:
@@ -432,6 +474,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.component-bool-default-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: component-bool-default
+          - name: task-path
+            value: root.comp-nested-pipeline-non-nil-defaults.component-bool-default
         depends: component-bool-default-driver.Succeeded
         name: component-bool-default
         template: system-container-executor
@@ -447,6 +493,8 @@ spec:
             value: component-int-default
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-nested-pipeline-non-nil-defaults.component-int-default
         name: component-int-default-driver
         template: system-container-driver
       - arguments:
@@ -456,6 +504,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.component-int-default-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: component-int-default
+          - name: task-path
+            value: root.comp-nested-pipeline-non-nil-defaults.component-int-default
         depends: component-int-default-driver.Succeeded
         name: component-int-default
         template: system-container-executor
@@ -471,6 +523,8 @@ spec:
             value: component-str-default
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-nested-pipeline-non-nil-defaults.component-str-default
         name: component-str-default-driver
         template: system-container-driver
       - arguments:
@@ -480,6 +534,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.component-str-default-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: component-str-default
+          - name: task-path
+            value: root.comp-nested-pipeline-non-nil-defaults.component-str-default
         depends: component-str-default-driver.Succeeded
         name: component-str-default
         template: system-container-executor
@@ -561,13 +619,19 @@ spec:
         name: task
       - default: ""
         name: task-name
+      - default: ""
+        name: task-path
       - default: "0"
         name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-dag-driver
     outputs:
       parameters:
@@ -598,6 +662,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-nested-pipeline-nil-defaults"},"inputs":{"parameters":{"nestedInputBool":{"componentInputParameter":"inputBool"},"nestedInputInt":{"componentInputParameter":"inputInt"},"nestedInputStr":{"componentInputParameter":"inputStr"}}},"taskInfo":{"name":"nested-pipeline-nil-defaults"}}'
           - name: task-name
             value: nested-pipeline-nil-defaults
+          - name: task-path
+            value: nested-pipeline-nil-defaults
         name: nested-pipeline-nil-defaults-driver
         template: system-dag-driver
       - arguments:
@@ -618,6 +684,8 @@ spec:
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-nested-pipeline-non-nil-defaults"},"inputs":{"parameters":{"nestedInputBool":{"componentInputParameter":"inputBool"},"nestedInputInt":{"componentInputParameter":"inputInt"},"nestedInputStr":{"componentInputParameter":"inputStr"}}},"taskInfo":{"name":"nested-pipeline-non-nil-defaults"}}'
           - name: task-name
+            value: nested-pipeline-non-nil-defaults
+          - name: task-path
             value: nested-pipeline-non-nil-defaults
         name: nested-pipeline-non-nil-defaults-driver
         template: system-dag-driver

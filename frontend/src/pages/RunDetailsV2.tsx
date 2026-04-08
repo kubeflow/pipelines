@@ -12,8 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  MouseEvent as ReactMouseEvent,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
@@ -51,8 +59,8 @@ import { RunDetailsProps } from './RunDetails';
 import { statusToIcon } from './StatusV2';
 import DagCanvas from './v2/DagCanvas';
 
-const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
-const QUERY_REFETCH_INTERVAL = 10000; // 10000 milliseconds == 10 seconds.
+const QUERY_STALE_TIME = 30000; // 30000 milliseconds == 30 seconds.
+const QUERY_REFETCH_INTERVAL = 60000; // 60000 milliseconds == 60 seconds (was 10s, increased for performance).
 const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
 
 interface MlmdPackage {
@@ -123,7 +131,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     queryKey: queryKeys.runDetailsV2Experiment(runId, experimentId),
     queryFn: () => getExperiment(experimentId),
   });
-  const namespace = experiment?.namespace;
 
   // Single banner effect with clear precedence: MLMD error > experiment error > clear on success.
   useEffect(() => {
@@ -178,6 +185,22 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       );
     }
   };
+
+  // Get namespace from multiple sources (in order of preference):
+  // 1. Experiment namespace
+  // 2. Kubeflow Central Dashboard context
+  // 3. URL query params (ns or namespace)
+  const contextNamespace = useContext(NamespaceContext);
+  const getNamespaceFromUrl = (): string | undefined => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('ns') || urlParams.get('namespace') || undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  const urlNamespace = getNamespaceFromUrl();
+  const namespace = experiment?.namespace || contextNamespace || urlNamespace;
 
   // Update page title and experiment information.
   useEffect(() => {

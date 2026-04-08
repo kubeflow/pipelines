@@ -58,6 +58,14 @@ import RuntimeInputOutputTab, {
 import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { PlatformDeploymentConfig } from 'src/generated/pipeline_spec/pipeline_spec';
 import { getComponentSpec } from 'src/lib/v2/NodeUtils';
+import {
+  usePodStatus,
+  ERROR_REASONS,
+  PodStatusInfo,
+  ContainerStatusInfo,
+  PodEventInfo,
+  PodStateSnapshot,
+} from 'src/hooks/usePodStatus';
 
 export const LOGS_DETAILS = 'logs_details';
 export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
@@ -170,6 +178,17 @@ function TaskNodeDetail({
     enabled: !!execution,
   });
 
+  // Fetch pod status and events
+  // Enabled even without execution to catch early failures like ImagePullBackOff
+  const { data: podStatusInfo, error: podStatusError } = usePodStatus(
+    execution,
+    namespace,
+    runId,
+    element,
+    layers,
+    pipelineJobString,
+  );
+
   const logsDetails = logsInfo?.get(LOGS_DETAILS);
   const logsBannerMessage =
     logsInfo?.get(LOGS_BANNER_MESSAGE) ||
@@ -182,7 +201,7 @@ function TaskNodeDetail({
   return (
     <div className={commonCss.page}>
       <MD2Tabs
-        tabs={['Input/Output', 'Task Details', 'Logs']}
+        tabs={['Input/Output', 'Task Details', 'Logs', 'Pod Status']}
         selectedTab={selectedTab}
         onSwitch={(tab) => setSelectedTab(tab)}
       />
@@ -217,6 +236,19 @@ function TaskNodeDetail({
                 <LogViewer logLines={(logsDetails || '').split(/[\r\n]+/)} />
               </div>
             )}
+          </div>
+        )}
+        {/* Pod Status tab */}
+        {selectedTab === 3 && (
+          <div className={padding(20)}>
+            <PodStatusTab
+              podStatus={podStatusInfo?.status || null}
+              podEvents={podStatusInfo?.events || []}
+              stateHistory={podStatusInfo?.stateHistory || []}
+              error={podStatusError}
+              cached={podStatusInfo?.cached}
+              cachedAt={podStatusInfo?.cachedAt}
+            />
           </div>
         )}
       </div>
@@ -304,6 +336,466 @@ function getNodeVolumeMounts(
   }
 
   return volumeMounts;
+}
+
+// Component to display pod status, lifecycle history, and events
+interface PodStatusTabProps {
+  podStatus: PodStatusInfo | null;
+  podEvents: PodEventInfo[];
+  stateHistory: PodStateSnapshot[];
+  error?: Error | null;
+  cached?: boolean;
+  cachedAt?: number;
+}
+
+// Color helpers
+const getPhaseColor = (phase?: string) => {
+  switch (phase) {
+    case 'Running':
+      return '#4caf50';
+    case 'Succeeded':
+      return '#2196f3';
+    case 'Failed':
+      return '#f44336';
+    case 'Pending':
+      return '#ff9800';
+    default:
+      return '#9e9e9e';
+  }
+};
+
+const getPhaseBackgroundColor = (phase?: string) => {
+  switch (phase) {
+    case 'Failed':
+      return '#ffebee';
+    case 'Running':
+      return '#e8f5e9';
+    case 'Succeeded':
+      return '#e3f2fd';
+    case 'Pending':
+      return '#fff3e0';
+    default:
+      return '#fafafa';
+  }
+};
+
+const getContainerStatusColor = (cs: ContainerStatusInfo) => {
+  if (cs.reason && ERROR_REASONS.includes(cs.reason)) return '#f44336';
+  if (cs.state === 'terminated' && cs.exitCode !== undefined && cs.exitCode !== 0) return '#f44336';
+  if (cs.state === 'terminated' && cs.exitCode === 0) return '#2196f3';
+  if (cs.state === 'terminated') return '#e57373';
+  if (cs.state === 'running' && cs.ready) return '#4caf50';
+  if (cs.state === 'waiting') return '#ff9800';
+  return '#9e9e9e';
+};
+
+const getContainerBackgroundColor = (cs: ContainerStatusInfo) => {
+  if (cs.reason && ERROR_REASONS.includes(cs.reason)) return '#ffebee';
+  if (cs.state === 'terminated' && cs.exitCode !== undefined && cs.exitCode !== 0) return '#ffebee';
+  return '#fff';
+};
+
+function PodStatusTab({
+  podStatus,
+  podEvents,
+  stateHistory,
+  error,
+  cached,
+  cachedAt,
+}: PodStatusTabProps) {
+  if (error) {
+    return (
+      <Banner message='Failed to retrieve pod status' additionalInfo={error.message} mode='error' />
+    );
+  }
+
+  const formatTime = (timestamp?: number) => {
+    if (!timestamp) return '';
+    return new Date(timestamp).toLocaleString();
+  };
+
+  // Summarize a state snapshot into a short label
+  const getStateLabel = (snapshot: PodStateSnapshot): string => {
+    const phase = snapshot.phase || 'Unknown';
+    if (snapshot.reason) {
+      return `${phase} (${snapshot.reason})`;
+    }
+    return phase;
+  };
+
+  // Get container summary for a snapshot (only main container, filter out Argo-internal init/wait)
+  const getContainerSummary = (snapshot: PodStateSnapshot): string[] => {
+    if (!snapshot.containerStatuses) return [];
+    return snapshot.containerStatuses
+      .filter((cs) => cs.name === 'main')
+      .map((cs) => {
+        const parts: string[] = [];
+        if (cs.state) parts.push(cs.state);
+        if (cs.reason) parts.push(`(${cs.reason})`);
+        if (cs.exitCode !== undefined) {
+          parts.push(cs.exitCode === 0 ? 'exit:0' : `exit:${cs.exitCode}`);
+        }
+        return parts.join(' ');
+      });
+  };
+
+  return (
+    <div>
+      {/* Cached Data Indicator */}
+      {cached && (
+        <div
+          style={{
+            backgroundColor: '#e3f2fd',
+            border: '1px solid #90caf9',
+            borderRadius: '4px',
+            padding: '12px 16px',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <div>
+            <strong style={{ color: '#1565c0' }}>Cached Data</strong>
+            <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+              Pod status and events cached from a previous query.
+              {cachedAt && ` Last updated: ${formatTime(cachedAt)}`}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Current Pod Status */}
+      <div style={{ marginBottom: '24px' }}>
+        <h3 style={{ marginBottom: '12px', fontSize: '16px', fontWeight: 500 }}>Current Status</h3>
+        {podStatus ? (
+          <div
+            style={{
+              border: `1px solid ${podStatus.phase === 'Failed' ? '#f44336' : '#e0e0e0'}`,
+              borderRadius: '4px',
+              padding: '16px',
+              backgroundColor: getPhaseBackgroundColor(podStatus.phase),
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+              <span
+                style={{
+                  display: 'inline-block',
+                  width: '12px',
+                  height: '12px',
+                  borderRadius: '50%',
+                  backgroundColor: getPhaseColor(podStatus.phase),
+                  marginRight: '8px',
+                }}
+              />
+              <strong
+                style={{
+                  fontSize: '14px',
+                  color: podStatus.phase === 'Failed' ? '#c62828' : 'inherit',
+                }}
+              >
+                Phase: {podStatus.phase || 'Unknown'}
+              </strong>
+            </div>
+
+            {podStatus.phase === 'Failed' && podStatus.reason && (
+              <div
+                style={{
+                  backgroundColor: '#f44336',
+                  color: '#fff',
+                  padding: '12px',
+                  borderRadius: '4px',
+                  marginBottom: '12px',
+                }}
+              >
+                <strong>Error: {podStatus.reason}</strong>
+                {podStatus.message && (
+                  <div style={{ marginTop: '4px', fontSize: '13px' }}>{podStatus.message}</div>
+                )}
+              </div>
+            )}
+
+            {podStatus.reason && podStatus.phase !== 'Failed' && (
+              <div style={{ marginBottom: '8px' }}>
+                <strong>Reason:</strong> {podStatus.reason}
+              </div>
+            )}
+            {podStatus.message && podStatus.phase !== 'Failed' && (
+              <div style={{ marginBottom: '8px' }}>
+                <strong>Message:</strong> {podStatus.message}
+              </div>
+            )}
+            {podStatus.nodeName && (
+              <div style={{ marginBottom: '8px' }}>
+                <strong>Node:</strong> {podStatus.nodeName}
+              </div>
+            )}
+            {podStatus.podIP && (
+              <div style={{ marginBottom: '8px' }}>
+                <strong>Pod IP:</strong> {podStatus.podIP}
+              </div>
+            )}
+
+            {/* Container Status - show only main container (filter out Argo-internal init/wait) */}
+            {podStatus.containerStatuses &&
+              podStatus.containerStatuses.filter((cs) => cs.name === 'main').length > 0 && (
+                <div style={{ marginTop: '16px' }}>
+                  <strong>Container:</strong>
+                  {podStatus.containerStatuses
+                    .filter((cs) => cs.name === 'main')
+                    .map((cs, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          marginTop: '8px',
+                          padding: '12px',
+                          backgroundColor: getContainerBackgroundColor(cs),
+                          border: `1px solid ${cs.reason && ERROR_REASONS.includes(cs.reason) ? '#f44336' : '#e0e0e0'}`,
+                          borderRadius: '4px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              width: '8px',
+                              height: '8px',
+                              borderRadius: '50%',
+                              backgroundColor: getContainerStatusColor(cs),
+                              marginRight: '8px',
+                            }}
+                          />
+                          <strong>{cs.name}</strong>
+                          <span style={{ marginLeft: '8px', color: '#666' }}>
+                            {cs.state || 'unknown'}
+                          </span>
+                          <span
+                            style={{
+                              marginLeft: '4px',
+                              color:
+                                cs.state === 'terminated'
+                                  ? cs.exitCode === 0
+                                    ? '#2196f3'
+                                    : '#c62828'
+                                  : '#666',
+                              fontWeight:
+                                cs.state === 'terminated' && cs.exitCode !== 0 ? 500 : 'normal',
+                            }}
+                          >
+                            {cs.state === 'terminated'
+                              ? cs.exitCode === 0
+                                ? '(Completed)'
+                                : '(Failed)'
+                              : cs.ready
+                                ? '(Ready)'
+                                : '(Not Ready)'}
+                          </span>
+                        </div>
+                        {cs.restartCount > 0 && (
+                          <div style={{ color: '#ff9800', marginTop: '4px' }}>
+                            Restarts: {cs.restartCount}
+                          </div>
+                        )}
+                        {cs.reason && (
+                          <div
+                            style={{
+                              marginTop: '4px',
+                              color: ERROR_REASONS.includes(cs.reason) ? '#c62828' : '#333',
+                              fontWeight: ERROR_REASONS.includes(cs.reason) ? 500 : 'normal',
+                            }}
+                          >
+                            Reason: {cs.reason}
+                          </div>
+                        )}
+                        {cs.message && (
+                          <div
+                            style={{
+                              color: '#666',
+                              fontSize: '12px',
+                              marginTop: '4px',
+                              wordBreak: 'break-word',
+                            }}
+                          >
+                            {cs.message}
+                          </div>
+                        )}
+                        {cs.exitCode !== undefined && (
+                          <div
+                            style={{
+                              color: cs.exitCode !== 0 ? '#f44336' : '#4caf50',
+                              marginTop: '4px',
+                              fontWeight: cs.exitCode !== 0 ? 500 : 'normal',
+                            }}
+                          >
+                            Exit Code: {cs.exitCode}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              )}
+          </div>
+        ) : (
+          <div style={{ color: '#666', fontStyle: 'italic' }}>
+            Pod status not available. The pod may have been deleted.
+          </div>
+        )}
+      </div>
+
+      {/* Pod Lifecycle Timeline */}
+      {stateHistory.length > 0 && (
+        <div style={{ marginBottom: '24px' }}>
+          <h3 style={{ marginBottom: '12px', fontSize: '16px', fontWeight: 500 }}>
+            Pod Lifecycle ({stateHistory.length} state changes)
+          </h3>
+          <div style={{ position: 'relative', paddingLeft: '24px' }}>
+            {/* Vertical timeline line */}
+            <div
+              style={{
+                position: 'absolute',
+                left: '7px',
+                top: '4px',
+                bottom: '4px',
+                width: '2px',
+                backgroundColor: '#e0e0e0',
+              }}
+            />
+            {stateHistory.map((snapshot, idx) => {
+              const isLast = idx === stateHistory.length - 1;
+              const containerSummary = getContainerSummary(snapshot);
+              return (
+                <div key={idx} style={{ position: 'relative', marginBottom: isLast ? 0 : '16px' }}>
+                  {/* Timeline dot */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: '-20px',
+                      top: '3px',
+                      width: '12px',
+                      height: '12px',
+                      borderRadius: '50%',
+                      backgroundColor: snapshot.isError ? '#f44336' : getPhaseColor(snapshot.phase),
+                      border: '2px solid #fff',
+                      boxShadow:
+                        '0 0 0 1px ' +
+                        (snapshot.isError ? '#f44336' : getPhaseColor(snapshot.phase)),
+                    }}
+                  />
+                  <div
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '4px',
+                      backgroundColor: snapshot.isError
+                        ? '#ffebee'
+                        : isLast
+                          ? getPhaseBackgroundColor(snapshot.phase)
+                          : '#fafafa',
+                      border: `1px solid ${snapshot.isError ? '#ef9a9a' : '#e0e0e0'}`,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontWeight: 500,
+                          color: snapshot.isError ? '#c62828' : '#333',
+                          fontSize: '13px',
+                        }}
+                      >
+                        {getStateLabel(snapshot)}
+                      </span>
+                      <span style={{ color: '#999', fontSize: '11px' }}>
+                        {formatTime(snapshot.timestamp)}
+                      </span>
+                    </div>
+                    {snapshot.message && (
+                      <div
+                        style={{
+                          color: '#666',
+                          fontSize: '12px',
+                          marginTop: '4px',
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        {snapshot.message}
+                      </div>
+                    )}
+                    {containerSummary.length > 0 && (
+                      <div style={{ marginTop: '4px' }}>
+                        {containerSummary.map((cs, csIdx) => (
+                          <div key={csIdx} style={{ color: '#666', fontSize: '11px' }}>
+                            {cs}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Pod Events */}
+      <div>
+        <h3 style={{ marginBottom: '12px', fontSize: '16px', fontWeight: 500 }}>
+          Pod Events {podEvents.length > 0 && `(${podEvents.length})`}
+        </h3>
+        {podEvents.length > 0 ? (
+          <div style={{ border: '1px solid #e0e0e0', borderRadius: '4px', overflow: 'hidden' }}>
+            {podEvents.map((event, idx) => (
+              <div
+                key={idx}
+                style={{
+                  padding: '12px 16px',
+                  borderBottom: idx < podEvents.length - 1 ? '1px solid #e0e0e0' : 'none',
+                  backgroundColor: event.type === 'Warning' ? '#fff3e0' : '#fff',
+                }}
+              >
+                <div
+                  style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}
+                >
+                  <span>
+                    <span
+                      style={{
+                        color: event.type === 'Warning' ? '#ff9800' : '#4caf50',
+                        fontWeight: 500,
+                        marginRight: '8px',
+                      }}
+                    >
+                      [{event.type}]
+                    </span>
+                    <strong>{event.reason}</strong>
+                    {event.count > 1 && (
+                      <span style={{ color: '#666', marginLeft: '8px' }}>(x{event.count})</span>
+                    )}
+                  </span>
+                  <span style={{ color: '#666', fontSize: '12px' }}>
+                    {event.lastTimestamp ? new Date(event.lastTimestamp).toLocaleString() : '-'}
+                  </span>
+                </div>
+                <div style={{ color: '#333', fontSize: '13px' }}>{event.message}</div>
+                {event.source && (
+                  <div style={{ color: '#999', fontSize: '11px', marginTop: '4px' }}>
+                    Source: {event.source}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ color: '#666', fontStyle: 'italic' }}>
+            No events available. Events may have expired or the pod may have been deleted.
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 async function getLogsInfo(

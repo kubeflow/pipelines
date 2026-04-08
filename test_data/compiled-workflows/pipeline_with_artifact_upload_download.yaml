@@ -133,12 +133,18 @@ spec:
       - name: task
       - name: container
       - name: task-name
+      - default: ""
+        name: task-path
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-driver
     outputs:
       parameters:
@@ -165,6 +171,10 @@ spec:
           parameters:
           - name: pod-spec-patch
             value: '{{inputs.parameters.pod-spec-patch}}'
+          - name: task-name
+            value: '{{inputs.parameters.task-name}}'
+          - name: task-path
+            value: '{{inputs.parameters.task-path}}'
         name: executor
         template: system-container-impl
         when: '{{inputs.parameters.cached-decision}} != true'
@@ -173,6 +183,10 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
     metadata: {}
     name: system-container-executor
     outputs: {}
@@ -245,7 +259,15 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -281,6 +303,8 @@ spec:
             value: download-dataset-and-upload-as-artifact
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: download-dataset-and-upload-as-artifact
         name: download-dataset-and-upload-as-artifact-driver
         template: system-container-driver
       - arguments:
@@ -290,6 +314,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.download-dataset-and-upload-as-artifact-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: download-dataset-and-upload-as-artifact
+          - name: task-path
+            value: download-dataset-and-upload-as-artifact
         depends: download-dataset-and-upload-as-artifact-driver.Succeeded
         name: download-dataset-and-upload-as-artifact
         template: system-container-executor
@@ -305,6 +333,8 @@ spec:
             value: print-dataset-info
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: print-dataset-info
         depends: download-dataset-and-upload-as-artifact.Succeeded
         name: print-dataset-info-driver
         template: system-container-driver
@@ -315,6 +345,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-dataset-info-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: print-dataset-info
+          - name: task-path
+            value: print-dataset-info
         depends: print-dataset-info-driver.Succeeded
         name: print-dataset-info
         template: system-container-executor
@@ -396,13 +430,19 @@ spec:
         name: task
       - default: ""
         name: task-name
+      - default: ""
+        name: task-path
       - default: "0"
         name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-dag-driver
     outputs:
       parameters:

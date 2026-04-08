@@ -312,9 +312,12 @@ function createUIServer(options: UIConfigs) {
   }
 
   /** Pod info */
-  const { podInfoHandler, podEventsHandler } = getPodInfoHandlers(authorizeFn);
+  const { podInfoHandler, podEventsHandler, podsByRunIdHandler, cachedPodInfoHandler } =
+    getPodInfoHandlers(authorizeFn);
   registerHandler(app.get, '/k8s/pod', podInfoHandler);
   registerHandler(app.get, '/k8s/pod/events', podEventsHandler);
+  registerHandler(app.get, '/k8s/pods/byRunId', podsByRunIdHandler);
+  registerHandler(app.get, '/k8s/pod/cached', cachedPodInfoHandler);
 
   /** Cluster metadata (GKE only) */
   registerHandler(app.get, '/system/cluster-name', getClusterNameHandler(options.gkeMetadata));

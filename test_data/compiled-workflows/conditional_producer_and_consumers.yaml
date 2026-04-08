@@ -134,12 +134,18 @@ spec:
       - name: task
       - name: container
       - name: task-name
+      - default: ""
+        name: task-path
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-driver
     outputs:
       parameters:
@@ -166,6 +172,10 @@ spec:
           parameters:
           - name: pod-spec-patch
             value: '{{inputs.parameters.pod-spec-patch}}'
+          - name: task-name
+            value: '{{inputs.parameters.task-name}}'
+          - name: task-path
+            value: '{{inputs.parameters.task-path}}'
         name: executor
         template: system-container-impl
         when: '{{inputs.parameters.cached-decision}} != true'
@@ -174,6 +184,10 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
     metadata: {}
     name: system-container-executor
     outputs: {}
@@ -246,7 +260,15 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+      - default: ""
+        name: task-name
+      - default: ""
+        name: task-path
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -282,6 +304,8 @@ spec:
             value: add
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-4.add
         name: add-driver
         template: system-container-driver
       - arguments:
@@ -291,6 +315,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.add-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: add
+          - name: task-path
+            value: root.comp-condition-4.add
         depends: add-driver.Succeeded
         name: add
         template: system-container-executor
@@ -314,6 +342,8 @@ spec:
             value: double
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task-path
+            value: root.comp-condition-3.double
         name: double-driver
         template: system-container-driver
       - arguments:
@@ -323,6 +353,10 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.double-driver.outputs.parameters.cached-decision}}'
+          - name: task-name
+            value: double
+          - name: task-path
+            value: root.comp-condition-3.double
         depends: double-driver.Succeeded
         name: double
         template: system-container-executor
@@ -404,13 +438,19 @@ spec:
         name: task
       - default: ""
         name: task-name
+      - default: ""
+        name: task-path
       - default: "0"
         name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/task_path: '{{inputs.parameters.task-path}}'
+      labels:
+        pipelines.kubeflow.org/task_name: '{{inputs.parameters.task-name}}'
     name: system-dag-driver
     outputs:
       parameters:
@@ -442,6 +482,8 @@ spec:
               \u003e= int(inputs.parameter_values[''pipelinechannel--threshold''])"}}'
           - name: task-name
             value: condition-3
+          - name: task-path
+            value: root.comp-for-loop-2.condition-3
         name: condition-3-driver
         template: system-dag-driver
       - arguments:
@@ -475,6 +517,8 @@ spec:
               2, 3]"}},"taskInfo":{"name":"for-loop-2"}}'
           - name: task-name
             value: for-loop-2
+          - name: task-path
+            value: root.for-loop-2.iteration-item
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -537,6 +581,8 @@ spec:
             value: '{"componentRef":{"name":"comp-condition-4"},"dependentTasks":["for-loop-2"],"inputs":{"parameters":{"pipelinechannel--for-loop-2-pipelinechannel--double-Output":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--double-Output","producerTask":"for-loop-2"}},"pipelinechannel--threshold":{"componentInputParameter":"threshold"}}},"taskInfo":{"name":"condition-4"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--threshold''])
               == 2"}}'
           - name: task-name
+            value: condition-4
+          - name: task-path
             value: condition-4
         depends: for-loop-2.Succeeded
         name: condition-4-driver
