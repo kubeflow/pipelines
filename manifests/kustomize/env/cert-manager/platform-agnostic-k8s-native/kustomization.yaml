@@ -37,7 +37,6 @@ patches:
       kind: Role
       name: ml-pipeline
 
-
 replacements:
 - source:
     kind: ConfigMap
