@@ -13,7 +13,7 @@
 # limitations under the License.
 
 PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
-UV_VERSION=0.6.6
+UV_VERSION=0.10.3
 
 # Set USE_FIND_LINKS=true to use local sdk and pipeline_spec for buildling python builds rather than pulling from pypi
 # applies to `make python` and make pythone-dev` commands.

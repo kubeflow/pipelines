@@ -14,7 +14,7 @@
 
 # Contact one of chensun, HumairAK if this remote image needs an update.
 PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
-UV_VERSION=0.6.6
+UV_VERSION=0.10.3
 
 .PHONY: all
 all: golang python
