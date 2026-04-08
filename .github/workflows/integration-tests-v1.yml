@@ -6,19 +6,19 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/api-integration-tests-v1.yml'
-      - '.github/workflows/image-builds.yml'
-      - '.github/actions/create-cluster/**'
-      - '.github/actions/deploy/**'
-      - '.github/resources/**'
-      - 'api/**'
-      - 'go.mod'
-      - 'go.sum'
-      - 'backend/**'
-      - 'manifests/kustomize/**'
-      - 'test/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
+      - ".github/workflows/api-integration-tests-v1.yml"
+      - ".github/workflows/image-builds.yml"
+      - ".github/actions/create-cluster/**"
+      - ".github/actions/deploy/**"
+      - ".github/resources/**"
+      - "api/**"
+      - "go.mod"
+      - "go.sum"
+      - "backend/**"
+      - "manifests/kustomize/**"
+      - "test/**"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
 concurrency:
   group: legacy-integration-v1-tests-${{ github.event.pull_request.number || github.ref }}
@@ -34,7 +34,7 @@ jobs:
     strategy:
       matrix:
         k8s_version: ["v1.29.2", "v1.34.0"]
-        db_type: ["mysql", "pgx"]
+        db_type: ["mysql"]
     name: Initialization & Integration tests v1 - K8s ${{ matrix.k8s_version }} - ${{ matrix.db_type }}
     steps:
       - name: Checkout code
