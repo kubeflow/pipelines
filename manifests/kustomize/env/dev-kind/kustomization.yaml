@@ -205,7 +205,7 @@ patches:
 replacements:
 - source:
     kind: ConfigMap
-    name: pipeline-install-config 
+    name: pipeline-install-config
     fieldPath: metadata.namespace
   targets:
   - select:
