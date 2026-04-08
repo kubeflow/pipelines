@@ -146,7 +146,14 @@ export async function createMinioClient(
   return mc;
 }
 
-// Parse provider info for any s3 compatible store that's not AWS S3
+/**
+ * Parse provider info for any S3-compatible store that's not AWS S3.
+ *
+ * WARNING: This function is unsupported in multi-user deployments.
+ * The ml-pipeline-ui ClusterRole no longer grants secrets:get/list
+ * permissions, so getK8sSecret() calls will be denied by RBAC.
+ * See: https://github.com/kubeflow/pipelines/pull/12860
+ */
 async function parseS3ProviderInfo(
   config: MinioClientOptionsWithOptionalSecrets,
   providerInfo: S3ProviderInfo,

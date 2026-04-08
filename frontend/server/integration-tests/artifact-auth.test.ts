@@ -20,7 +20,6 @@ import {
   afterAll,
   afterEach,
   beforeEach,
-  Mock,
   MockInstance,
 } from 'vitest';
 import * as minio from 'minio';
@@ -308,6 +307,94 @@ describe('/artifacts authorization', () => {
         )
         .set('kubeflow-userid', 'user@example.com')
         .expect(500, 'Object key too long');
+    });
+
+    it('enforces auth before proxy when ARTIFACTS_SERVICE_PROXY_ENABLED=true', async () => {
+      // When proxy is enabled, auth middleware on the catch-all /artifacts/*
+      // route must execute before the proxy handler forwards the request.
+      // Unauthenticated users must be rejected with 401, never proxied.
+      const configurations = loadConfigs(argv, {
+        MINIO_ACCESS_KEY: 'minio',
+        MINIO_HOST: 'minio-service',
+        MINIO_NAMESPACE: 'kubeflow',
+        MINIO_PORT: '9000',
+        MINIO_SECRET_KEY: 'minio123',
+        MINIO_SSL: 'false',
+        ML_PIPELINE_SERVICE_HOST: 'localhost',
+        ML_PIPELINE_SERVICE_PORT: '8888',
+        KUBEFLOW_USERID_HEADER: 'kubeflow-userid',
+        KUBEFLOW_USERID_PREFIX: '',
+        ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
+        ARTIFACTS_SERVICE_PROXY_NAME: 'ml-pipeline-ui-artifact',
+        ARTIFACTS_SERVICE_PROXY_PORT: '80',
+      });
+
+      configurations.auth.enabled = true;
+
+      app = new UIServer(configurations);
+
+      const request = requests(app.app);
+      const response = await request
+        .get(
+          '/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=my-namespace',
+        )
+        .expect(401);
+      expect(response.text).toContain('Authentication required');
+    });
+
+    it('fails for secret-backed provider when RBAC denies secret access', async () => {
+      // When providerInfo.Params.fromEnv === 'false', the handler calls
+      // getK8sSecret() to retrieve credentials from a Kubernetes secret.
+      // Since ml-pipeline-ui ClusterRole no longer has secrets:get/list,
+      // getK8sSecret() is rejected by RBAC and the request fails with 500.
+      mockedFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({}),
+        text: () => Promise.resolve(''),
+      });
+
+      // Mock getK8sSecret to simulate RBAC denial
+      const k8sHelper = await import('../k8s-helper.js');
+      (k8sHelper.getK8sSecret as any) = vi.fn().mockRejectedValue(
+        new Error('secrets "mlpipeline-minio-artifact" is forbidden'),
+      );
+
+      const configurations = loadConfigs(argv, {
+        MINIO_HOST: 'minio-service',
+        MINIO_NAMESPACE: 'kubeflow',
+        MINIO_PORT: '9000',
+        MINIO_SSL: 'false',
+        ML_PIPELINE_SERVICE_HOST: 'localhost',
+        ML_PIPELINE_SERVICE_PORT: '8888',
+        KUBEFLOW_USERID_HEADER: 'kubeflow-userid',
+        KUBEFLOW_USERID_PREFIX: '',
+      });
+
+      configurations.auth.enabled = true;
+
+      app = new UIServer(configurations);
+
+      const providerInfo = {
+        Params: {
+          accessKeyKey: 'accesskey',
+          secretKeyKey: 'secretkey',
+          secretName: 'mlpipeline-minio-artifact',
+          endpoint: 'minio-service.kubeflow',
+          disableSSL: 'true',
+          fromEnv: 'false',
+        },
+        Provider: 'minio',
+      };
+
+      const request = requests(app.app);
+      const response = await request
+        .get(
+          `/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=my-namespace&providerInfo=${encodeURIComponent(JSON.stringify(providerInfo))}`,
+        )
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(500);
+      expect(response.text).toContain('Failed to initialize Minio Client');
     });
   });
 

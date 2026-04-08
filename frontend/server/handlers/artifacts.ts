@@ -83,18 +83,28 @@ export interface GCSProviderInfo {
  * This middleware handles 3 modes:
  *
  * 1. Standalone KFP deployment without Kubeflow platform (single-tenant):
- *    No namespace parameter, no Subject Access Review, 100% insecure.
+ *    No Subject Access Review and 100% insecure. The namespace query
+ *    parameter is optional and not validated or authorized when
+ *    authorization is disabled.
  *
  * 2. Default multi-tenant deployment of KFP within Kubeflow platform:
- *    Namespace parameter provided, validate format and check RBAC (the user
- *    is authenticated to access the artifact from the specific namespace
- *    folder on the object storage via Subject Access Review) and access
- *    SeaweedFS/storage directly.
+ *    Namespace parameter is required, its format is validated, and RBAC is
+ *    checked (the user is authenticated to access the artifact from the
+ *    specific namespace folder on the object storage via Subject Access
+ *    Review) before accessing SeaweedFS/storage directly.
  *
  * 3. Artifact PROXY MODE (overhead, disabled by default):
- *    Namespace parameter provided, validate format and check RBAC, adds
- *    significant overhead to each namespace, decreases scalability and is
- *    prone to many CVEs in the artifact proxy deployment.
+ *    Namespace parameter is required, its format is validated, and RBAC is
+ *    checked. This adds significant overhead to each namespace, decreases
+ *    scalability, and is prone to many CVEs in the artifact proxy
+ *    deployment.
+ *
+ * Note: Secret-backed provider mode (fromEnv === 'false') is unsupported
+ * in multi-user deployments. The ml-pipeline-ui ClusterRole no longer
+ * grants secrets:get/list permissions, so getK8sSecret() calls will be
+ * denied by RBAC at the cluster level. This mode may still work in
+ * standalone (single-tenant) deployments where the service account has
+ * direct secret access. See: https://github.com/kubeflow/pipelines/pull/12860
  *
  * Security: This addresses the vulnerability where the namespace parameter
  * could be manipulated to access artifacts from other namespaces.
@@ -364,6 +374,14 @@ function getMinioArtifactHandler(
   };
 }
 
+/**
+ * Parses GCS provider info and retrieves credentials from a Kubernetes secret.
+ *
+ * WARNING: This function is unsupported in multi-user deployments.
+ * The ml-pipeline-ui ClusterRole no longer grants secrets:get/list
+ * permissions, so getK8sSecret() calls will be denied by RBAC.
+ * See: https://github.com/kubeflow/pipelines/pull/12860
+ */
 async function parseGCSProviderInfo(
   providerInfo: GCSProviderInfo,
   namespace: string,

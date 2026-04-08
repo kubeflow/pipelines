@@ -171,8 +171,9 @@ function createUIServer(options: UIConfigs) {
   );
 
   /** Artifact */
-  // Authorization middleware is inlined into each artifact route to prevent
-  // accidental auth bypass from handler reordering.
+  // Authorization middleware runs once on the catch-all /artifacts/* route,
+  // protecting all artifact endpoints. When proxy is disabled, the proxy
+  // handler calls next() and falls through to the specific handler below.
   // Security fix for https://github.com/kubeflow/pipelines/issues/9889
 
   // Proxy handler (checked first — if enabled, proxies to namespaced artifact service)
@@ -198,7 +199,6 @@ function createUIServer(options: UIConfigs) {
   // /artifacts/get endpoint tries to extract the artifact to return pure text content
   app.get(
     '/artifacts/get',
-    artifactsAuthMiddleware,
     getArtifactsHandler({
       artifactsConfigs: options.artifacts,
       useParameter: false,
@@ -208,7 +208,6 @@ function createUIServer(options: UIConfigs) {
   );
   app.get(
     `${basePath}/artifacts/get`,
-    artifactsAuthMiddleware,
     getArtifactsHandler({
       artifactsConfigs: options.artifacts,
       useParameter: false,
@@ -220,7 +219,6 @@ function createUIServer(options: UIConfigs) {
   // /artifacts/:source/:bucket/* endpoint downloads the artifact as is
   app.get(
     '/artifacts/:source/:bucket/*',
-    artifactsAuthMiddleware,
     getArtifactsHandler({
       artifactsConfigs: options.artifacts,
       useParameter: true,
@@ -230,7 +228,6 @@ function createUIServer(options: UIConfigs) {
   );
   app.get(
     `${basePath}/artifacts/:source/:bucket/*`,
-    artifactsAuthMiddleware,
     getArtifactsHandler({
       artifactsConfigs: options.artifacts,
       useParameter: true,
