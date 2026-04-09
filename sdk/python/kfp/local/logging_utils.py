@@ -115,8 +115,7 @@ def indented_print(num_spaces: int = 4) -> Generator[None, None, None]:
         yield
     finally:
         current_num_spaces = getattr(_THREAD_LOCAL_STATE, 'num_spaces', 0)
-        _THREAD_LOCAL_STATE.num_spaces = max(current_num_spaces - num_spaces,
-                                             0)
+        _THREAD_LOCAL_STATE.num_spaces = max(current_num_spaces - num_spaces, 0)
 
         with _INDENT_LOCK:
             _ACTIVE_INDENT_CONTEXTS = max(_ACTIVE_INDENT_CONTEXTS - 1, 0)
