@@ -138,7 +138,8 @@ func loadManagedPipelinesManifest(manifestPath string, existing map[string]bool)
 		}
 		fileName := entry.Name + ".yaml"
 		filePath := filepath.Join(resolvedDir, fileName)
-		if !strings.HasPrefix(filePath, resolvedDir+string(filepath.Separator)) {
+		rel, relErr := filepath.Rel(resolvedDir, filePath)
+		if relErr != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 			return nil, fmt.Errorf("managed pipeline %q: constructed path escapes directory %q", entry.Name, resolvedDir)
 		}
 		resolvedPath, evalErr := filepath.EvalSymlinks(filePath)
