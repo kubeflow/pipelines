@@ -23,6 +23,7 @@ import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HashRouter } from 'react-router-dom';
 import { cssRule } from 'typestyle';
+import { ErrorBoundary } from './atoms/ErrorBoundary';
 import Router from './components/Router';
 import { fonts, theme } from './Css';
 import { initFeatures } from './features';
@@ -60,7 +61,9 @@ const app = (
         <BuildInfoProvider>
           <GkeMetadataProvider>
             <HashRouter>
-              <Router />
+              <ErrorBoundary>
+                <Router />
+              </ErrorBoundary>
             </HashRouter>
           </GkeMetadataProvider>
         </BuildInfoProvider>

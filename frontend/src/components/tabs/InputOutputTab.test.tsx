@@ -45,6 +45,20 @@ describe('InoutOutputTab', () => {
     vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([]);
   });
 
+  it('shows a loading spinner while artifacts are being fetched', () => {
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs').mockReturnValue(
+      new Promise(() => {}),
+    );
+
+    render(
+      <CommonTestWrapper>
+        <InputOutputTab execution={buildBasicExecution()} namespace={namespace} />
+      </CommonTestWrapper>,
+    );
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
   it('shows execution title', () => {
     vi.spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs').mockResolvedValue(
       new GetEventsByExecutionIDsResponse(),

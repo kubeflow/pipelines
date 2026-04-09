@@ -112,6 +112,24 @@ describe('RecurringRunDetailsV2FC', () => {
     });
   });
 
+  it('shows a loading spinner while the recurring run is being fetched', async () => {
+    // First call from the Router succeeds so V2FC can mount;
+    // second call from V2FC hangs to show the loading spinner.
+    getRecurringRunSpy
+      .mockImplementationOnce(() => fullTestV2RecurringRun)
+      .mockReturnValueOnce(new Promise(() => {}));
+
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    });
+  });
+
   it('renders a recurring run with periodic schedule', async () => {
     render(
       <CommonTestWrapper>
