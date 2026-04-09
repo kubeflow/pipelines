@@ -91,7 +91,6 @@ type managedPipelineManifestEntry struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Path        string `json:"path"`
-	Stability   string `json:"stability"`
 }
 
 // loadManagedPipelinesManifest reads a managed-pipelines.json manifest and
