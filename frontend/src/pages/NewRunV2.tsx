@@ -729,6 +729,7 @@ function NewRunV2(props: NewRunV2Props) {
         <NewRunParametersV2
           key={parameterStateKey}
           pipelineRoot={pipelineRoot}
+          initialParameterState={initialParameterState}
           handlePipelineRootChange={handlePipelineRootChange}
           titleMessage={
             existingPipeline || cloneOrigin.isClone

@@ -23,7 +23,7 @@ export type SpecParameters = { [key: string]: ComponentInputsSpec_ParameterSpec 
 export type RuntimeParameters = { [key: string]: any };
 export type ParameterErrorMessages = { [key: string]: string | null };
 
-type InitialParameterState = {
+export type InitialParameterState = {
   errorMessages: ParameterErrorMessages;
   isValid: boolean;
   runtimeParameters: RuntimeParameters;
@@ -35,7 +35,7 @@ type ClonedRuntimeConfig = {
   pipeline_root?: string;
 };
 
-const protoMap = new Map<string, string>([
+export const protoMap = new Map<string, string>([
   ['NUMBER_DOUBLE', 'double'],
   ['NUMBER_INTEGER', 'integer'],
   ['STRING', 'string'],

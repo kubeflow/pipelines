@@ -34,6 +34,8 @@ import {
   convertInput,
   generateInputValidationErrMsg,
   getInitialParameterState,
+  protoMap,
+  type InitialParameterState,
   type ParameterErrorMessages,
   type RuntimeParameters,
   type SpecParameters,
@@ -72,24 +74,17 @@ interface NewRunParametersProps {
   // ComponentInputsSpec_ParameterSpec
   specParameters: SpecParameters;
   clonedRuntimeConfig?: PipelineSpecRuntimeConfig;
+  initialParameterState?: InitialParameterState;
   handlePipelineRootChange?: (pipelineRoot?: string) => void;
   handleParameterChange?: (parameters: RuntimeParameters) => void;
   setIsValidInput?: (isValid: boolean) => void;
 }
 
-const protoMap = new Map<string, string>([
-  ['NUMBER_DOUBLE', 'double'],
-  ['NUMBER_INTEGER', 'integer'],
-  ['STRING', 'string'],
-  ['BOOLEAN', 'boolean'],
-  ['LIST', 'list'],
-  ['STRUCT', 'dict'],
-]);
-
 function NewRunParametersV2(props: NewRunParametersProps) {
   const {
     specParameters,
     clonedRuntimeConfig,
+    initialParameterState: providedInitialParameterState,
     handlePipelineRootChange,
     handleParameterChange,
     setIsValidInput,
@@ -100,8 +95,10 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     clonedPipelineRoot ?? props.pipelineRoot,
   );
   const initialParameterState = React.useMemo(
-    () => getInitialParameterState(specParameters, clonedRuntimeConfig),
-    [clonedRuntimeConfig, specParameters],
+    () =>
+      providedInitialParameterState ??
+      getInitialParameterState(specParameters, clonedRuntimeConfig),
+    [clonedRuntimeConfig, providedInitialParameterState, specParameters],
   );
   const [errorMessages, setErrorMessages] = useState<ParameterErrorMessages>(
     initialParameterState.errorMessages,
@@ -111,6 +108,11 @@ function NewRunParametersV2(props: NewRunParametersProps) {
   );
 
   useEffect(() => {
+    // NewRunV2 already seeds parent state before render, so only preserve the
+    // standalone mount-time callback behavior for callers that do not provide it.
+    if (providedInitialParameterState) {
+      return;
+    }
     if (setIsValidInput) {
       setIsValidInput(initialParameterState.isValid);
     }
@@ -122,6 +124,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     handleParameterChange,
     initialParameterState.isValid,
     initialParameterState.runtimeParameters,
+    providedInitialParameterState,
     setIsValidInput,
   ]);
 

@@ -981,6 +981,37 @@ describe('NewRunParametersV2', () => {
     screen.getByDisplayValue('[1,2,3]');
     screen.getByDisplayValue('{"key":"value"}');
   });
+
+  it('renders provided initial state without firing mount callbacks', () => {
+    const handleParameterChangeSpy = vi.fn();
+    const setIsValidInputSpy = vi.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'default pipelineRoot',
+      specParameters: {
+        strParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRING,
+          defaultValue: 'default string',
+        },
+      },
+      clonedRuntimeConfig: {},
+      initialParameterState: {
+        errorMessages: {},
+        isValid: true,
+        runtimeParameters: { strParam: 'default string' },
+        updatedParameters: { strParam: 'default string' },
+      },
+      handlePipelineRootChange: vi.fn(),
+      handleParameterChange: handleParameterChangeSpy,
+      setIsValidInput: setIsValidInputSpy,
+    };
+
+    render(<NewRunParametersV2 {...props} />);
+
+    expect(handleParameterChangeSpy).not.toHaveBeenCalled();
+    expect(setIsValidInputSpy).not.toHaveBeenCalled();
+    screen.getByDisplayValue('default string');
+  });
 });
 
 describe('Bug Fix: Default Parameters in Compare Runs (#12536)', () => {
