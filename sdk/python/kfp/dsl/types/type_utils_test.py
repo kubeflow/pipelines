@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import os
 import sys
 import tempfile
@@ -34,6 +35,11 @@ from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_utils
 from kfp.dsl.types.type_utils import InconsistentTypeException
 from kfp.pipeline_spec import pipeline_spec_pb2 as pb
+
+try:
+    from typing import Literal
+except ImportError:  # pragma: no cover
+    from typing_extensions import Literal
 
 _PARAMETER_TYPES = [
     'String',
@@ -311,6 +317,28 @@ class TypeUtilsTest(parameterized.TestCase):
                 tmpdir, 'typed_pipeline_builtin_and_typing.json')
             compiler.Compiler().compile(typed_pipeline, package_path)
             self.assertTrue(os.path.exists(package_path))
+
+    def test_annotation_to_type_struct_literal(self):
+        self.assertEqual(('String', ['a', 'b']),
+                         type_utils._annotation_to_type_struct(Literal['a',
+                                                                       'b']))
+
+    def test_annotation_to_type_struct_list_of_literal(self):
+        if sys.version_info < (3, 9):
+            self.skipTest('Built-in generics require Python >= 3.9')
+        self.assertEqual(
+            'List[String]',
+            type_utils._annotation_to_type_struct(list[Literal['a', 'b']]))
+
+    def test_pipeline_compile_with_deprecated_dict_returns_non_literal(self):
+        from kfp.dsl import component_factory
+
+        def emit_dict() -> {'x': int}:
+            return {'x': 1}
+
+        _, output_specs = component_factory.get_name_to_specs(
+            inspect.signature(emit_dict))
+        self.assertEqual('Integer', output_specs['x'])
 
 
 class TestGetArtifactTypeSchema(parameterized.TestCase):
