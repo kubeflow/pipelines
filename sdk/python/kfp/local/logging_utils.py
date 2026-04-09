@@ -18,6 +18,7 @@ import datetime
 import logging
 import shutil
 import sys
+import threading
 from typing import Any, Dict, Generator, List
 
 from kfp import dsl
@@ -47,6 +48,19 @@ class MillisecondFormatter(logging.Formatter):
         s = created.strftime(datefmt)
         # truncate microseconds to milliseconds
         return s[:-3]
+
+
+_ORIGINAL_PRINT = builtins.print
+_ACTIVE_INDENT_CONTEXTS = 0
+_INDENT_LOCK = threading.Lock()
+_THREAD_LOCAL_STATE = threading.local()
+
+
+def _thread_aware_indented_print(*args, **kwargs):
+    num_spaces = getattr(_THREAD_LOCAL_STATE, 'num_spaces', 0)
+    if num_spaces > 0:
+        _ORIGINAL_PRINT(' ' * num_spaces, end='')
+    return _ORIGINAL_PRINT(*args, **kwargs)
 
 
 @contextlib.contextmanager
@@ -87,17 +101,27 @@ def indented_print(num_spaces: int = 4) -> Generator[None, None, None]:
     Useful for visually separating a subprocess logs from the outer
     process logs.
     """
-    original_print = builtins.print
+    global _ACTIVE_INDENT_CONTEXTS
 
-    def indented_print_function(*args, **kwargs):
-        original_print(' ' * num_spaces, end='')
-        return original_print(*args, **kwargs)
+    with _INDENT_LOCK:
+        if _ACTIVE_INDENT_CONTEXTS == 0:
+            builtins.print = _thread_aware_indented_print
+        _ACTIVE_INDENT_CONTEXTS += 1
 
-    builtins.print = indented_print_function
+    current_num_spaces = getattr(_THREAD_LOCAL_STATE, 'num_spaces', 0)
+    _THREAD_LOCAL_STATE.num_spaces = current_num_spaces + num_spaces
+
     try:
         yield
     finally:
-        builtins.print = original_print
+        current_num_spaces = getattr(_THREAD_LOCAL_STATE, 'num_spaces', 0)
+        _THREAD_LOCAL_STATE.num_spaces = max(current_num_spaces - num_spaces,
+                                             0)
+
+        with _INDENT_LOCK:
+            _ACTIVE_INDENT_CONTEXTS = max(_ACTIVE_INDENT_CONTEXTS - 1, 0)
+            if _ACTIVE_INDENT_CONTEXTS == 0:
+                builtins.print = _ORIGINAL_PRINT
 
 
 def color_text(text: str, color: Color) -> str:
