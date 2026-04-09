@@ -83,7 +83,7 @@ jobs:
           - image: ds-pipelines-tests
             dockerfile: backend/test/images/Dockerfile.test
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - name: Build Image
         uses: ./.github/actions/build
         with:

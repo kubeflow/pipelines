@@ -14,6 +14,10 @@ inputs:
     default: "false"
     description: "GH org/repo that contains the dockerfile to source."
     required: true
+  NODE_VERSION_FILE:
+    default: "frontend/.nvmrc"
+    description: "Path to .nvmrc file for reading NODE_VERSION build arg."
+    required: false
 runs:
   using: "composite"
   steps:
@@ -54,10 +58,23 @@ runs:
         else
             echo "Image does not exist...proceeding with build & push."
         fi
+    - name: Read frontend Node version
+      id: frontend_node
+      shell: bash
+      working-directory: build
+      run: |
+        if [ -f ${{ inputs.NODE_VERSION_FILE }} ] && [ -s ${{ inputs.NODE_VERSION_FILE }} ]; then
+          echo "version=$(tr -d '\r\n' < ${{ inputs.NODE_VERSION_FILE }} | sed 's/^v//')" >> "$GITHUB_OUTPUT"
+        fi
     - name: Build image
       shell: bash
       working-directory: build
       env:
         IMAGE: quay.io/${{ env.QUAY_ORG }}/${{ inputs.IMAGE_REPO }}:${{ env.TARGET_IMAGE_TAG }}
+        NODE_VERSION: ${{ steps.frontend_node.outputs.version }}
       run: |
-          podman build . -f ${{ inputs.DOCKERFILE }} -t ${{ env.IMAGE }} && podman push ${{ env.IMAGE }}
+          BUILD_ARGS=""
+          if [ -n "${NODE_VERSION}" ]; then
+            BUILD_ARGS="--build-arg NODE_VERSION=${NODE_VERSION}"
+          fi
+          podman build . -f ${{ inputs.DOCKERFILE }} ${BUILD_ARGS} -t ${{ env.IMAGE }} && podman push ${{ env.IMAGE }}
