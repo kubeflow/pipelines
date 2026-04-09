@@ -159,6 +159,9 @@ func loadManagedPipelinesManifest(manifestPath string, existing map[string]bool)
 			File:        filePath,
 		})
 	}
+	if len(pipelines) > 0 {
+		glog.Infof("Loaded %d managed pipeline(s) from %s", len(pipelines), manifestPath)
+	}
 	return pipelines, nil
 }
 
