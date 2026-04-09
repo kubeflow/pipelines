@@ -542,8 +542,8 @@ func TestLoadManagedPipelinesManifest_HappyPath(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "pipeline-b.yaml"), []byte("apiVersion: v2"), 0644))
 
 	entries := []managedPipelineManifestEntry{
-		{Name: "pipeline-a", Description: "Pipeline A", Path: "pipelines/a/pipeline.py"},
-		{Name: "pipeline-b", Description: "Pipeline B", Path: "pipelines/b/pipeline.py"},
+		{Name: "pipeline-a", Description: "Pipeline A"},
+		{Name: "pipeline-b", Description: "Pipeline B"},
 	}
 	writeManagedPipelinesManifest(t, dir, entries)
 
@@ -573,8 +573,8 @@ func TestLoadManagedPipelinesManifest_SkipDuplicates(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "new-pipeline.yaml"), []byte("apiVersion: v2"), 0644))
 
 	entries := []managedPipelineManifestEntry{
-		{Name: "existing-pipeline", Description: "Already exists", Path: "pipelines/existing/pipeline.py"},
-		{Name: "new-pipeline", Description: "New one", Path: "pipelines/new/pipeline.py"},
+		{Name: "existing-pipeline", Description: "Already exists"},
+		{Name: "new-pipeline", Description: "New one"},
 	}
 	writeManagedPipelinesManifest(t, dir, entries)
 
@@ -597,25 +597,13 @@ func TestLoadManagedPipelinesManifest_EmptyManifest(t *testing.T) {
 func TestLoadManagedPipelinesManifest_EmptyNameRejected(t *testing.T) {
 	dir := t.TempDir()
 	entries := []managedPipelineManifestEntry{
-		{Name: "", Description: "No name", Path: "no-name.yaml"},
+		{Name: "", Description: "No name"},
 	}
 	writeManagedPipelinesManifest(t, dir, entries)
 
 	_, err := loadManagedPipelinesManifest(filepath.Join(dir, "managed-pipelines.json"), nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "empty name")
-}
-
-func TestLoadManagedPipelinesManifest_EmptyPathRejected(t *testing.T) {
-	dir := t.TempDir()
-	entries := []managedPipelineManifestEntry{
-		{Name: "has-name", Description: "No path", Path: ""},
-	}
-	writeManagedPipelinesManifest(t, dir, entries)
-
-	_, err := loadManagedPipelinesManifest(filepath.Join(dir, "managed-pipelines.json"), nil)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "empty path")
 }
 
 func TestLoadManagedPipelinesManifest_MalformedJSON(t *testing.T) {
@@ -626,38 +614,11 @@ func TestLoadManagedPipelinesManifest_MalformedJSON(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestLoadManagedPipelinesManifest_DangerousPathFieldIgnored(t *testing.T) {
-	cases := []struct {
-		name      string
-		entryName string
-		pathField string
-	}{
-		{"traversal path", "safe-name", "../escape.yaml"},
-		{"absolute path", "absolute", "/etc/passwd"},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			dir := t.TempDir()
-			require.NoError(t, os.WriteFile(filepath.Join(dir, tc.entryName+".yaml"), []byte("apiVersion: v2"), 0644))
-
-			entries := []managedPipelineManifestEntry{
-				{Name: tc.entryName, Description: "Path field ignored", Path: tc.pathField},
-			}
-			writeManagedPipelinesManifest(t, dir, entries)
-
-			got, err := loadManagedPipelinesManifest(filepath.Join(dir, "managed-pipelines.json"), nil)
-			require.NoError(t, err, "Path field is metadata-only; dangerous values do not affect file resolution")
-			require.Len(t, got, 1)
-			assert.Equal(t, tc.entryName+".yaml", filepath.Base(got[0].File))
-		})
-	}
-}
-
 func TestLoadManagedPipelinesManifest_DuplicateNamesRejected(t *testing.T) {
 	dir := t.TempDir()
 	entries := []managedPipelineManifestEntry{
-		{Name: "dup", Description: "first", Path: "a.yaml"},
-		{Name: "dup", Description: "second", Path: "b.yaml"},
+		{Name: "dup", Description: "first"},
+		{Name: "dup", Description: "second"},
 	}
 	writeManagedPipelinesManifest(t, dir, entries)
 
@@ -673,7 +634,7 @@ func TestLoadManagedPipelinesManifest_SymlinkEscapeRejected(t *testing.T) {
 	require.NoError(t, os.Symlink(outside, filepath.Join(dir, "symlink-escape.yaml")))
 
 	entries := []managedPipelineManifestEntry{
-		{Name: "symlink-escape", Description: "escape", Path: "pipelines/x/pipeline.py"},
+		{Name: "symlink-escape", Description: "escape"},
 	}
 	writeManagedPipelinesManifest(t, dir, entries)
 
@@ -703,8 +664,8 @@ func TestLoadSamples_MergesManagedManifest(t *testing.T) {
 
 	managedDir := t.TempDir()
 	entries := []managedPipelineManifestEntry{
-		{Name: "managed-a", Description: "Managed A", Path: "managed-a.yaml"},
-		{Name: "managed-b", Description: "Managed B", Path: "managed-b.yaml"},
+		{Name: "managed-a", Description: "Managed A"},
+		{Name: "managed-b", Description: "Managed B"},
 	}
 	writeManagedPipelinesManifest(t, managedDir, entries)
 	sampleYAML, err := os.ReadFile("testdata/sample_pipeline.yaml")
@@ -743,7 +704,7 @@ func TestLoadSamples_TagsAppliedToManagedPipelines(t *testing.T) {
 
 	managedDir := t.TempDir()
 	entries := []managedPipelineManifestEntry{
-		{Name: "tagged-managed", Description: "Tagged", Path: "tagged-managed.yaml"},
+		{Name: "tagged-managed", Description: "Tagged"},
 	}
 	writeManagedPipelinesManifest(t, managedDir, entries)
 	sampleYAML, err := os.ReadFile("testdata/sample_pipeline.yaml")
@@ -778,8 +739,8 @@ func TestLoadSamples_ManagedDedupAgainstExplicit(t *testing.T) {
 
 	managedDir := t.TempDir()
 	entries := []managedPipelineManifestEntry{
-		{Name: "shared-name", Description: "managed version", Path: "shared-name.yaml"},
-		{Name: "unique-managed", Description: "only in manifest", Path: "unique-managed.yaml"},
+		{Name: "shared-name", Description: "managed version"},
+		{Name: "unique-managed", Description: "only in manifest"},
 	}
 	writeManagedPipelinesManifest(t, managedDir, entries)
 	sampleYAML, err := os.ReadFile("testdata/sample_pipeline.yaml")
@@ -804,8 +765,8 @@ func TestLoadSamples_ManagedDedupAgainstExplicit(t *testing.T) {
 func TestLoadManagedPipelinesManifest_AllDuplicates(t *testing.T) {
 	dir := t.TempDir()
 	entries := []managedPipelineManifestEntry{
-		{Name: "dup-a", Description: "Dup A", Path: "dup-a.yaml"},
-		{Name: "dup-b", Description: "Dup B", Path: "dup-b.yaml"},
+		{Name: "dup-a", Description: "Dup A"},
+		{Name: "dup-b", Description: "Dup B"},
 	}
 	writeManagedPipelinesManifest(t, dir, entries)
 
@@ -822,7 +783,7 @@ func TestLoadSamples_ManagedSkippedWhenLoadSamplesOnRestartFalse(t *testing.T) {
 
 	managedDir := t.TempDir()
 	entries := []managedPipelineManifestEntry{
-		{Name: "managed-restart", Description: "Managed", Path: "managed-restart.yaml"},
+		{Name: "managed-restart", Description: "Managed"},
 	}
 	writeManagedPipelinesManifest(t, managedDir, entries)
 	sampleYAML, err := os.ReadFile("testdata/sample_pipeline.yaml")
@@ -857,8 +818,8 @@ func TestLoadSamples_ManagedSkippedWhenLoadSamplesOnRestartFalse(t *testing.T) {
 		VersionName: "New Explicit - Ver 1",
 	})
 	newManagedEntries := []managedPipelineManifestEntry{
-		{Name: "managed-restart", Description: "Managed", Path: "managed-restart.yaml"},
-		{Name: "managed-new", Description: "New managed", Path: "managed-new.yaml"},
+		{Name: "managed-restart", Description: "Managed"},
+		{Name: "managed-new", Description: "New managed"},
 	}
 	writeManagedPipelinesManifest(t, managedDir, newManagedEntries)
 	require.NoError(t, os.WriteFile(filepath.Join(managedDir, "managed-new.yaml"), sampleYAML, 0644))
@@ -899,9 +860,8 @@ func TestLoadSamples_EmptyManagedDir(t *testing.T) {
 }
 
 // Contract 1: The pipelines-components init container copies compiled YAMLs as
-// <name>.yaml (flat) and copies managed-pipelines.json unchanged. The manifest
-// path field is a repo-relative source location, NOT a file path in the managed
-// dir. The API server must locate files by <name>.yaml.
+// <name>.yaml (flat) and copies managed-pipelines.json unchanged.
+// The API server locates files by <name>.yaml.
 func TestLoadManagedPipelinesManifest_InitContainerContract(t *testing.T) {
 	dir := t.TempDir()
 
@@ -909,12 +869,10 @@ func TestLoadManagedPipelinesManifest_InitContainerContract(t *testing.T) {
 		{
 			Name:        "my-training-pipeline",
 			Description: "A training pipeline",
-			Path:        "pipelines/training/pipeline.py",
 		},
 		{
 			Name:        "my-evaluation-pipeline",
 			Description: "An eval pipeline",
-			Path:        "pipelines/evaluation/pipeline.py",
 		},
 	}
 	writeManagedPipelinesManifest(t, dir, entries)
@@ -949,7 +907,7 @@ func TestLoadSamples_ManifestFilename(t *testing.T) {
 
 	managedDir := t.TempDir()
 	entries := []managedPipelineManifestEntry{
-		{Name: "contract-pipe", Description: "d", Path: "pipelines/x/pipeline.py"},
+		{Name: "contract-pipe", Description: "d"},
 	}
 	writeManagedPipelinesManifest(t, managedDir, entries)
 	sampleYAML, err := os.ReadFile("testdata/sample_pipeline.yaml")
@@ -969,15 +927,14 @@ func TestLoadSamples_ManifestFilename(t *testing.T) {
 }
 
 // Contract 3: The manifest schema matches the Python ManagedPipelineEntry
-// dataclass: name, description, path (all lowercase). Extra fields like
-// "stability" are ignored by the Go consumer.
+// dataclass fields consumed by Go: name, description (all lowercase).
+// Extra fields like "path" and "stability" are ignored by the Go consumer.
 func TestLoadManagedPipelinesManifest_SchemaContract(t *testing.T) {
 	dir := t.TempDir()
 
 	rawJSON := `[{
 		"name": "schema-test",
-		"description": "Validates schema contract",
-		"path": "pipelines/demo/pipeline.py"
+		"description": "Validates schema contract"
 	}]`
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "managed-pipelines.json"), []byte(rawJSON), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "schema-test.yaml"), []byte("apiVersion: v2"), 0644))
@@ -1009,7 +966,7 @@ func TestLoadManagedPipelinesManifest_InvalidNamesRejected(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := t.TempDir()
 			entries := []managedPipelineManifestEntry{
-				{Name: tc.badName, Description: "bad name", Path: "p.py"},
+				{Name: tc.badName, Description: "bad name"},
 			}
 			writeManagedPipelinesManifest(t, dir, entries)
 
@@ -1041,7 +998,7 @@ func TestLoadManagedPipelinesManifest_ValidNamesAccepted(t *testing.T) {
 			require.NoError(t, os.WriteFile(filepath.Join(dir, tc.validName+".yaml"), []byte("apiVersion: v2"), 0644))
 
 			entries := []managedPipelineManifestEntry{
-				{Name: tc.validName, Description: "valid", Path: "p.py"},
+				{Name: tc.validName, Description: "valid"},
 			}
 			writeManagedPipelinesManifest(t, dir, entries)
 

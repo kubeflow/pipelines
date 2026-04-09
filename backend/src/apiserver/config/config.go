@@ -93,7 +93,6 @@ type config struct {
 type managedPipelineManifestEntry struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	Path        string `json:"path"`
 }
 
 // loadManagedPipelinesManifest reads a managed-pipelines.json manifest and
@@ -125,9 +124,6 @@ func loadManagedPipelinesManifest(manifestPath string, existing map[string]bool)
 	for _, entry := range entries {
 		if entry.Name == "" {
 			return nil, fmt.Errorf("managed pipelines manifest %s contains entry with empty name", manifestPath)
-		}
-		if entry.Path == "" {
-			return nil, fmt.Errorf("managed pipelines manifest %s contains entry %q with empty path", manifestPath, entry.Name)
 		}
 		if seen[entry.Name] {
 			return nil, fmt.Errorf("managed pipelines manifest %s contains duplicate name %q", manifestPath, entry.Name)
