@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -33,6 +34,8 @@ import (
 )
 
 const managedPipelinesUploadTagsEnv = "MANAGED_PIPELINES_UPLOAD_TAGS"
+
+var validPipelineName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
 
 // parseManagedPipelinesTags reads MANAGED_PIPELINES_UPLOAD_TAGS from the
 // environment and returns the parsed key=value pairs. Returns nil when the
@@ -130,8 +133,8 @@ func loadManagedPipelinesManifest(manifestPath string, existing map[string]bool)
 			return nil, fmt.Errorf("managed pipelines manifest %s contains duplicate name %q", manifestPath, entry.Name)
 		}
 		seen[entry.Name] = true
-		if strings.ContainsAny(entry.Name, "/\\") || strings.Contains(entry.Name, "..") {
-			return nil, fmt.Errorf("managed pipeline name %q contains invalid character (/, \\, or ..)", entry.Name)
+		if !validPipelineName.MatchString(entry.Name) {
+			return nil, fmt.Errorf("managed pipeline name %q is invalid: must match %s", entry.Name, validPipelineName.String())
 		}
 		if existing[entry.Name] {
 			glog.Infof("Skipping managed pipeline %q: already in sample config", entry.Name)

@@ -997,7 +997,13 @@ func TestLoadManagedPipelinesManifest_InvalidNamesRejected(t *testing.T) {
 		{"traversal with slashes", "../../etc/passwd"},
 		{"forward slash", "sub/dir"},
 		{"backslash", "pipe\\line"},
-		{"dot-dot without separator", "pipe..line"},
+		{"null byte", "pipe\x00line"},
+		{"space", "my pipeline"},
+		{"control char tab", "pipe\tline"},
+		{"unicode", "pipeline-日本語"},
+		{"leading dot", ".hidden"},
+		{"leading hyphen", "-flag"},
+		{"leading underscore", "_pipeline"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1009,7 +1015,40 @@ func TestLoadManagedPipelinesManifest_InvalidNamesRejected(t *testing.T) {
 
 			_, err := loadManagedPipelinesManifest(filepath.Join(dir, "managed-pipelines.json"), nil)
 			require.Error(t, err)
-			assert.Contains(t, err.Error(), "invalid character")
+			assert.Contains(t, err.Error(), "invalid")
+		})
+	}
+}
+
+func TestLoadManagedPipelinesManifest_ValidNamesAccepted(t *testing.T) {
+	cases := []struct {
+		name      string
+		validName string
+	}{
+		{"lowercase with hyphens", "my-pipeline"},
+		{"lowercase with underscores", "my_pipeline"},
+		{"with dot", "pipeline.v2"},
+		{"short alphanumeric", "A1"},
+		{"single char", "x"},
+		{"leading digit", "9pipeline"},
+		{"mixed case", "MyPipeline"},
+		{"realistic name", "autorag-documents-indexing"},
+		{"realistic underscore name", "sft_pipeline"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			require.NoError(t, os.WriteFile(filepath.Join(dir, tc.validName+".yaml"), []byte("apiVersion: v2"), 0644))
+
+			entries := []managedPipelineManifestEntry{
+				{Name: tc.validName, Description: "valid", Path: "p.py"},
+			}
+			writeManagedPipelinesManifest(t, dir, entries)
+
+			got, err := loadManagedPipelinesManifest(filepath.Join(dir, "managed-pipelines.json"), nil)
+			require.NoError(t, err)
+			require.Len(t, got, 1)
+			assert.Equal(t, tc.validName, got[0].Name)
 		})
 	}
 }
