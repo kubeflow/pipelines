@@ -18,6 +18,7 @@ import 'ace-builds/src-noconflict/ace';
 import 'ace-builds/src-noconflict/ext-language_tools';
 import 'ace-builds/src-noconflict/mode-yaml';
 import 'ace-builds/src-noconflict/theme-github';
+import { CircularProgress } from '@mui/material';
 import { graphlib } from 'dagre';
 import * as JsYaml from 'js-yaml';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
@@ -198,7 +199,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2 && graphV2.length > 0 && !graph;
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
-        {this.state.graphIsLoading && <div>Currently loading pipeline information</div>}
+        {this.state.graphIsLoading && <CircularProgress />}
         {!this.state.graphIsLoading && showV2Pipeline && (
           <PipelineDetailsV2
             templateString={templateString}

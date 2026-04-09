@@ -283,7 +283,7 @@ describe('RecurringRunDetailsRouter', () => {
         );
       });
       expect(screen.getByTestId('recurring-run-details-v1')).toBeInTheDocument();
-      expect(screen.queryByText('Currently loading recurring run information')).toBeNull();
+      expect(screen.queryByRole('progressbar')).toBeNull();
 
       getPipelineVersionSpy.mockImplementationOnce(
         () =>
@@ -299,13 +299,13 @@ describe('RecurringRunDetailsRouter', () => {
       });
 
       expect(screen.getByTestId('recurring-run-details-v1')).toBeInTheDocument();
-      expect(screen.queryByText('Currently loading recurring run information')).toBeNull();
+      expect(screen.queryByRole('progressbar')).toBeNull();
 
       await waitFor(() => {
         expect(getPipelineVersionSpy).toHaveBeenCalledTimes(2);
       });
       expect(screen.getByTestId('recurring-run-details-v1')).toBeInTheDocument();
-      expect(screen.queryByText('Currently loading recurring run information')).toBeNull();
+      expect(screen.queryByRole('progressbar')).toBeNull();
     });
   });
 
@@ -324,7 +324,7 @@ describe('RecurringRunDetailsRouter', () => {
 
     await waitFor(() => {
       expect(container.querySelector('[data-testid]')).toBeNull();
-      expect(screen.queryByText('Currently loading recurring run information')).toBeNull();
+      expect(screen.queryByRole('progressbar')).toBeNull();
     });
   });
 
@@ -337,6 +337,6 @@ describe('RecurringRunDetailsRouter', () => {
       </CommonTestWrapper>,
     );
 
-    expect(screen.getByText('Currently loading recurring run information')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 });

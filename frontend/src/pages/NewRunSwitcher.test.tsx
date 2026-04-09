@@ -284,7 +284,7 @@ describe('NewRunSwitcher', () => {
         </CommonTestWrapper>,
       );
 
-      expect(screen.getByText('Currently loading pipeline information')).toBeInTheDocument();
+      expect(screen.getByRole('progressbar')).toBeInTheDocument();
     });
 
     it('resolves template from cloned run.pipeline_spec', async () => {

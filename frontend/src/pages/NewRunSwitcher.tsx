@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useQuery } from '@tanstack/react-query';
+import { CircularProgress } from '@mui/material';
 import { QUERY_PARAMS } from 'src/components/Router';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
@@ -215,7 +216,7 @@ function NewRunSwitcher(props: PageProps) {
     (!isTemplateV2(templateString) && v1TemplateStrIsFetching) ||
     experimentIsFetching
   ) {
-    return <div>Currently loading pipeline information</div>;
+    return <CircularProgress />;
   }
 
   if (templateString && !isTemplateV2(templateString)) {
