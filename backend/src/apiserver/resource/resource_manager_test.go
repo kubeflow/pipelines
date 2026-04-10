@@ -2297,6 +2297,15 @@ func TestRetryRun_PreservesRunFields(t *testing.T) {
 	assert.Equal(t, int64(0), retriedRun.FinishedAtInSec)
 	// State must be updated to Running
 	assert.Equal(t, model.RuntimeStateRunning, retriedRun.State)
+
+	// StateHistory must preserve pre-retry entries and append a new RUNNING entry.
+	// With the old sparse-struct UpdateRun call, StateHistory would be overwritten
+	// to a single entry; passing the full run object preserves history.
+	originalHistoryLen := len(originalRun.StateHistory)
+	assert.Greater(t, originalHistoryLen, 0)
+	assert.Greater(t, len(retriedRun.StateHistory), originalHistoryLen)
+	lastEntry := retriedRun.StateHistory[len(retriedRun.StateHistory)-1]
+	assert.Equal(t, model.RuntimeStateRunning, lastEntry.State)
 }
 
 func TestRetryRun_RunNotExist(t *testing.T) {

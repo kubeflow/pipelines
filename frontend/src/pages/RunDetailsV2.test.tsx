@@ -424,7 +424,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByText('Detail'));
 
       screen.getByText(retryTime.toLocaleString());
       screen.getByText('Scheduled at');
@@ -447,7 +447,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByText('Detail'));
 
       screen.getByText(scheduledTime.toLocaleString());
       expect(screen.queryByText('Scheduled at')).toBeNull();
@@ -470,7 +470,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByText('Detail'));
 
       expect(screen.queryByText('Scheduled at')).toBeNull();
     });
