@@ -69,3 +69,24 @@ test-artifact-proxy:
 create-kind-cluster:
 	kind create cluster --name $(CLUSTER_NAME) --image kindest/node:$(K8S_VERSION)
 	kubectl cluster-info --context kind-$(CLUSTER_NAME)
+# Backend visualization tests
+.PHONY: install-backend-visualization-deps
+install-backend-visualization-deps:
+	cd backend/src/apiserver/visualization && \
+	python3 -m pip install --upgrade pip && \
+	python3 -m pip install -r requirements.txt -r requirements-test.txt
+
+.PHONY: test-backend-visualization
+test-backend-visualization:
+	cd backend/src/apiserver/visualization && \
+	python3 test_exporter.py && \
+	python3 test_server.py
+# Component YAML Tests
+.PHONY: test-component-yaml-install-deps
+test-component-yaml-install-deps:
+	python3 -m pip install pytest
+	python3 -m pip install pytest-asyncio-cooperative==0.37.0
+
+.PHONY: test-component-yaml-run
+test-component-yaml-run:
+	./test/presubmit-component-yaml.sh

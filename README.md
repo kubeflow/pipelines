@@ -1,6 +1,5 @@
 # Kubeflow Pipelines
 
-[![Coverage Status](https://coveralls.io/repos/github/kubeflow/pipelines/badge.svg?branch=master)](https://coveralls.io/github/kubeflow/pipelines?branch=master)
 [![SDK Documentation Status](https://readthedocs.org/projects/kubeflow-pipelines/badge/?version=latest)](https://kubeflow-pipelines.readthedocs.io/en/stable/?badge=latest)
 [![SDK Package version](https://img.shields.io/pypi/v/kfp?color=%2334D058&label=pypi%20package)](https://pypi.org/project/kfp)
 [![SDK Supported Python versions](https://img.shields.io/pypi/pyversions/kfp.svg?color=%2334D058)](https://pypi.org/project/kfp)
@@ -27,10 +26,10 @@ The Kubeflow pipelines service has the following goals:
 
 ### Dependencies Compatibility Matrix
 
-| Dependency     | Versions         |
-| -------------- |------------------|
-| Argo Workflows | v3.5, v3.6, v3.7 |
-| MySQL          | v8               |
+| Dependency     | Versions     |
+| -------------- |--------------|
+| Argo Workflows | v3.5, v3.7   |
+| MySQL          | v8           |
 
 ## Documentation
 

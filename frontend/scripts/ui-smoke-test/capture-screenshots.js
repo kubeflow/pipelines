@@ -31,7 +31,7 @@ const SEED_MANIFEST_PATH = getArg(
 const BASE_URL = `http://localhost:${PORT}`;
 
 function parseViewports(value) {
-  return value.split(',').map(raw => {
+  return value.split(',').map((raw) => {
     const trimmed = raw.trim();
     const [width, height] = trimmed.split('x').map(Number);
     if (!width || !height) {
@@ -90,6 +90,13 @@ function resolvePathTemplate(routePath) {
   return { missing: [], resolvedPath: resolved };
 }
 
+class SkipCaptureError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'SkipCaptureError';
+  }
+}
+
 async function executeActions(page, actions) {
   if (!Array.isArray(actions) || actions.length === 0) {
     return;
@@ -104,8 +111,33 @@ async function executeActions(page, actions) {
         case 'click':
           await page.locator(action.selector).first().click({ timeout });
           break;
+        case 'dispatchClick':
+          await page
+            .locator(action.selector)
+            .first()
+            .evaluate((element) => element.click());
+          break;
         case 'waitForSelector':
           await page.waitForSelector(action.selector, { timeout });
+          break;
+        case 'waitForFunction':
+          await page.waitForFunction(action.expression, undefined, { timeout });
+          break;
+        case 'skipIf': {
+          const shouldSkip = await page.evaluate((expression) => {
+            const evaluator = new Function(`return (${expression})()`);
+            return Boolean(evaluator());
+          }, action.expression);
+          if (shouldSkip) {
+            throw new SkipCaptureError(action.reason || `Skip condition met: ${descriptor}`);
+          }
+          break;
+        }
+        case 'scrollIntoView':
+          await page.locator(action.selector).first().scrollIntoViewIfNeeded({ timeout });
+          break;
+        case 'moveMouse':
+          await page.mouse.move(action.x || 0, action.y || 0);
           break;
         case 'waitForTimeout':
           await page.waitForTimeout(action.ms || 500);
@@ -114,6 +146,9 @@ async function executeActions(page, actions) {
           throw new Error(`Unsupported action type "${action.type}"`);
       }
     } catch (error) {
+      if (error instanceof SkipCaptureError) {
+        throw error;
+      }
       if (action.optional) {
         console.log(`  Warning: optional action failed: ${descriptor}: ${error.message}`);
         continue;
@@ -140,6 +175,20 @@ const PAGES = [
     waitForData: '[role="tab"], .ace_editor',
   },
   {
+    name: 'pipeline-details-seeded-sidepanel',
+    path: '/#/pipelines/details/{seed.pipelineId}',
+    waitFor: '#root',
+    waitForData: '[role="tab"], .ace_editor',
+    actions: [
+      {
+        type: 'waitForFunction',
+        expression: `() => document.querySelectorAll('.react-flow__node, .graphNode').length > 0`,
+      },
+      { type: 'click', selector: '.react-flow__node:visible, .graphNode:visible' },
+      { type: 'waitForSelector', selector: '[aria-label="close"]' },
+    ],
+  },
+  {
     name: 'experiments',
     path: '/#/experiments',
     waitFor: '[class*="tableRow"]',
@@ -157,14 +206,79 @@ const PAGES = [
     waitFor: '#root',
     actions: [
       {
-        type: 'click',
-        selector: '[role="tab"]:has-text("Visualizations"), button:has-text("Visualizations")',
-        optional: true,
+        type: 'waitForFunction',
+        expression: `() => {
+          const legacyNodes = document.querySelectorAll('.graphNode');
+          if (legacyNodes.length > 0) {
+            return true;
+          }
+          const flowNodes = Array.from(document.querySelectorAll('.react-flow__node'));
+          return (
+            flowNodes.length >= 4 &&
+            flowNodes.every((node) => getComputedStyle(node).visibility !== 'hidden')
+          );
+        }`,
       },
       { type: 'waitForTimeout', ms: 1000, optional: true },
     ],
   },
+  {
+    name: 'run-details-seeded-sidepanel',
+    path: '/#/runs/details/{seed.runId}',
+    waitFor: '#root',
+    actions: [
+      {
+        type: 'waitForFunction',
+        expression: `() => {
+          const legacyNodes = document.querySelectorAll('.graphNode');
+          if (legacyNodes.length > 0) {
+            return true;
+          }
+          const flowNodes = Array.from(document.querySelectorAll('.react-flow__node'));
+          return (
+            flowNodes.length >= 4 &&
+            flowNodes.every((node) => getComputedStyle(node).visibility !== 'hidden')
+          );
+        }`,
+      },
+      {
+        type: 'click',
+        selector: '[role="tab"]:has-text("Graph"), button:has-text("Graph")',
+        optional: true,
+      },
+      { type: 'click', selector: '.react-flow__node:visible, .graphNode:visible' },
+      { type: 'waitForSelector', selector: '[aria-label="close"]' },
+      { type: 'waitForTimeout', ms: 750, optional: true },
+    ],
+  },
   { name: 'compare-seeded', path: '/#/compare?runlist={seed.compareRunlist}', waitFor: '#root' },
+  {
+    name: 'compare-seeded-roc',
+    path: '/#/compare?runlist={seed.compareRunlist}',
+    waitFor: '#root',
+    actions: [
+      {
+        type: 'waitForSelector',
+        selector: '[role="tab"]:has-text("ROC Curve"), button:has-text("ROC Curve")',
+      },
+      {
+        type: 'click',
+        selector: '[role="tab"]:has-text("ROC Curve"), button:has-text("ROC Curve")',
+      },
+      {
+        type: 'waitForFunction',
+        expression: `() =>
+          !!document.querySelector('.recharts-wrapper, .rv-xy-plot') ||
+          document.body.innerText.includes(
+            'There are no ROC Curve artifacts available on the selected runs.',
+          )`,
+      },
+      { type: 'scrollIntoView', selector: '.recharts-wrapper, .rv-xy-plot', optional: true },
+      { type: 'moveMouse', x: 8, y: 8, optional: true },
+      { type: 'waitForTimeout', ms: 250 },
+      { type: 'waitForTimeout', ms: 1000, optional: true },
+    ],
+  },
   { name: 'runs-new', path: '/#/runs/new', waitFor: '#choosePipelineBtn' },
   {
     name: 'runs-new-pipeline-dialog',
@@ -180,14 +294,47 @@ const PAGES = [
     path: '/#/runs/new',
     waitFor: '#choosePipelineBtn',
     actions: [
-      { type: 'click', selector: '#choosePipelineBtn' },
+      { type: 'dispatchClick', selector: '#choosePipelineBtn' },
       { type: 'waitForSelector', selector: '#pipelineSelectorDialog' },
-      { type: 'click', selector: 'button:has-text("Upload pipeline")' },
+      {
+        type: 'skipIf',
+        expression: `() => !document.body.innerText.includes('Upload pipeline')`,
+        reason: 'Current new-run selector does not expose an upload option from this dialog.',
+      },
+      { type: 'dispatchClick', selector: 'text=Upload pipeline' },
       { type: 'waitForSelector', selector: '#dropZone' },
     ],
   },
   { name: 'recurring-runs', path: '/#/recurringruns', waitFor: '[class*="tableRow"]' },
   { name: 'artifacts', path: '/#/artifacts', waitFor: '[class*="tableRow"]' },
+  {
+    name: 'artifact-lineage-from-list',
+    path: '/#/artifacts',
+    waitFor: '[class*="tableRow"]',
+    actions: [
+      {
+        type: 'waitForFunction',
+        expression: `() =>
+          !!document.querySelector('a[href*="#/artifacts/"], a[href*="/artifacts/"]') ||
+          document.body.innerText.includes('No artifacts found.')`,
+      },
+      {
+        type: 'skipIf',
+        expression: `() => document.body.innerText.includes('No artifacts found.')`,
+        reason: 'Artifact list is empty; cannot open a lineage view from the list page.',
+      },
+      { type: 'click', selector: 'a[href*="#/artifacts/"], a[href*="/artifacts/"]' },
+      {
+        type: 'waitForSelector',
+        selector: '[role="tab"]:has-text("Lineage Explorer"), button:has-text("Lineage Explorer")',
+      },
+      {
+        type: 'click',
+        selector: '[role="tab"]:has-text("Lineage Explorer"), button:has-text("Lineage Explorer")',
+      },
+      { type: 'waitForTimeout', ms: 1000, optional: true },
+    ],
+  },
   {
     name: 'executions',
     path: '/#/executions',
@@ -200,21 +347,19 @@ const PAGES = [
 
 // Filter pages if UI_SMOKE_PAGES env var is set
 const envPages = process.env.UI_SMOKE_PAGES;
-const filteredPages = envPages
-  ? PAGES.filter(p => envPages.split(',').includes(p.name))
-  : PAGES;
+const filteredPages = envPages ? PAGES.filter((p) => envPages.split(',').includes(p.name)) : PAGES;
 
 async function captureScreenshots() {
   console.log(`Starting screenshot capture for ${LABEL}`);
   console.log(`Base URL: ${BASE_URL}`);
   console.log(`Output directory: ${OUTPUT_DIR}`);
-  console.log(`Viewports: ${VIEWPORTS.map(v => `${v.width}x${v.height}`).join(', ')}`);
+  console.log(`Viewports: ${VIEWPORTS.map((v) => `${v.width}x${v.height}`).join(', ')}`);
   if (seedValues) {
     console.log(`Seed manifest: ${SEED_MANIFEST_PATH}`);
   } else {
     console.log('Seed manifest: not found (seeded routes will be skipped)');
   }
-  console.log(`Pages to capture: ${filteredPages.map(p => p.name).join(', ')}`);
+  console.log(`Pages to capture: ${filteredPages.map((p) => p.name).join(', ')}`);
 
   // Ensure output directory exists
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
@@ -271,7 +416,9 @@ async function captureScreenshots() {
           try {
             await page.waitForSelector(pageConfig.waitFor, { timeout: 10000 });
           } catch (e) {
-            console.log(`  Warning: waitFor selector '${pageConfig.waitFor}' not found, continuing...`);
+            console.log(
+              `  Warning: waitFor selector '${pageConfig.waitFor}' not found, continuing...`,
+            );
             selectorFailed = true;
           }
         }
@@ -284,7 +431,9 @@ async function captureScreenshots() {
             await page.waitForSelector(pageConfig.waitForData, { timeout: 10000 });
             console.log(`  Data loaded: found '${pageConfig.waitForData}'`);
           } catch (e) {
-            console.log(`  Warning: data selector '${pageConfig.waitForData}' not found, continuing...`);
+            console.log(
+              `  Warning: data selector '${pageConfig.waitForData}' not found, continuing...`,
+            );
             selectorFailed = true;
           }
         }
@@ -303,6 +452,16 @@ async function captureScreenshots() {
         console.log(`  ${statusIcon} Saved: ${filename}${selectorFailed ? ' (degraded)' : ''}`);
         results.push({ page: pageConfig.name, status, path: filepath, viewport });
       } catch (error) {
+        if (error instanceof SkipCaptureError) {
+          console.log(`  ↷ Skipped: ${error.message}`);
+          results.push({
+            page: pageConfig.name,
+            reason: error.message,
+            status: 'skipped',
+            viewport,
+          });
+          continue;
+        }
         console.log(`  ✗ Failed: ${error.message}`);
         results.push({
           page: pageConfig.name,
@@ -321,21 +480,30 @@ async function captureScreenshots() {
 
   // Write results manifest
   const manifestPath = path.join(OUTPUT_DIR, 'manifest.json');
-  fs.writeFileSync(manifestPath, JSON.stringify({
-    label: LABEL,
-    timestamp: new Date().toISOString(),
-    baseUrl: BASE_URL,
-    seedManifestPath: seedValues ? SEED_MANIFEST_PATH : null,
-    viewports: VIEWPORTS,
-    results,
-  }, null, 2));
+  fs.writeFileSync(
+    manifestPath,
+    JSON.stringify(
+      {
+        label: LABEL,
+        timestamp: new Date().toISOString(),
+        baseUrl: BASE_URL,
+        seedManifestPath: seedValues ? SEED_MANIFEST_PATH : null,
+        viewports: VIEWPORTS,
+        results,
+      },
+      null,
+      2,
+    ),
+  );
 
   console.log(`\nCapture complete. Results saved to ${manifestPath}`);
 
   // Return exit code based on success rate
-  const failedCount = results.filter(r => r.status === 'failed').length;
-  const degradedCount = results.filter(r => r.status === 'degraded').length;
-  const capturedCount = results.filter(r => r.status === 'success' || r.status === 'degraded').length;
+  const failedCount = results.filter((r) => r.status === 'failed').length;
+  const degradedCount = results.filter((r) => r.status === 'degraded').length;
+  const capturedCount = results.filter(
+    (r) => r.status === 'success' || r.status === 'degraded',
+  ).length;
   if (capturedCount === 0) {
     console.error('All screenshots failed!');
     process.exit(1);
@@ -348,7 +516,7 @@ async function captureScreenshots() {
   }
 }
 
-captureScreenshots().catch(err => {
+captureScreenshots().catch((err) => {
   console.error('Screenshot capture failed:', err);
   process.exit(1);
 });

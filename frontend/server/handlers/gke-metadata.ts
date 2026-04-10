@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { Handler } from 'express';
-import * as k8sHelper from '../k8s-helper.js';
 import { GkeMetadataConfigs } from '../configs.js';
 
 const disabledHandler: Handler = async (_, res) => {

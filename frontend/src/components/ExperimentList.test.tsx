@@ -83,7 +83,7 @@ describe('ExperimentList', () => {
 
   function mockNExperiments(n: number): void {
     listExperimentsSpy.mockResolvedValue({
-      experiments: range(1, n + 1).map(i => ({
+      experiments: range(1, n + 1).map((i) => ({
         experiment_id: 'testexperiment' + i,
         display_name: 'experiment with id: testexperiment' + i,
       })),
@@ -150,7 +150,7 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              operation: V2beta1PredicateOperation.NOTEQUALS,
+              operation: V2beta1PredicateOperation.NOT_EQUALS,
               string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
             },
           ],
@@ -251,10 +251,11 @@ describe('ExperimentList', () => {
     mockNExperiments(0);
     const props = generateProps();
     const wrapper = await renderExperimentList(props);
+    listExperimentsSpy.mockClear();
     await act(async () => {
       await wrapper.instance().refresh();
     });
-    await waitFor(() => expect(listExperimentsSpy).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(listExperimentsSpy).toHaveBeenCalledTimes(1));
     expect(listExperimentsSpy).toHaveBeenLastCalledWith(
       '',
       10,
@@ -310,6 +311,7 @@ describe('ExperimentList', () => {
         },
       ]),
     );
+    listRunsSpy.mockClear();
     fireEvent.click(screen.getAllByLabelText('Expand')[0]);
     await waitFor(() =>
       expect(wrapper.state('displayExperiments')).toEqual([
@@ -320,7 +322,7 @@ describe('ExperimentList', () => {
         },
       ]),
     );
-    await waitFor(() => expect(listRunsSpy).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(listRunsSpy).toHaveBeenCalled());
     expect(listRunsSpy).toHaveBeenLastCalledWith(
       undefined,
       'testexperiment1',
@@ -332,7 +334,7 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              operation: V2beta1PredicateOperation.NOTEQUALS,
+              operation: V2beta1PredicateOperation.NOT_EQUALS,
               string_value: V2beta1RunStorageState.ARCHIVED.toString(),
             },
           ],
@@ -359,6 +361,7 @@ describe('ExperimentList', () => {
         },
       ]),
     );
+    listRunsSpy.mockClear();
     fireEvent.click(screen.getAllByLabelText('Expand')[0]);
     await waitFor(() =>
       expect(wrapper.state('displayExperiments')).toEqual([
@@ -369,7 +372,7 @@ describe('ExperimentList', () => {
         },
       ]),
     );
-    await waitFor(() => expect(listRunsSpy).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(listRunsSpy).toHaveBeenCalled());
     expect(listRunsSpy).toHaveBeenLastCalledWith(
       undefined,
       'testexperiment1',

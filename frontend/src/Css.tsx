@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { createTheme } from '@material-ui/core/styles';
+import { createTheme } from '@mui/material/styles';
 import { style, stylesheet } from 'typestyle';
 import { NestedCSSProperties } from 'typestyle/lib/types';
 
@@ -51,6 +51,8 @@ export const color = {
   warningText: '#ee8100',
   infoBg: '#f3f4ff',
   infoText: '#1a73e8',
+  tooltipBg: '#1d2744',
+  tooltipShadow: '#aaa',
   weak: '#9aa0a6',
   link: '#0d47a1',
   linkLight: '#5472d3',
@@ -110,105 +112,127 @@ const palette = {
 };
 
 export const theme = createTheme({
-  overrides: {
+  components: {
     MuiButton: {
-      text: {
-        fontSize: fontsize.base,
-        fontWeight: 'bold',
-        minHeight: dimension.tiny,
-        textTransform: 'none',
-      },
-      textPrimary: {
-        border: '1px solid #ddd',
-        cursor: 'pointer',
-        fontSize: fontsize.base,
-        marginRight: 10,
-        textTransform: 'none',
-      },
-      textSecondary: {
-        color: color.theme,
-      },
-      root: {
-        '&$disabled': {
-          backgroundColor: 'initial',
+      styleOverrides: {
+        text: {
+          fontSize: fontsize.base,
+          fontWeight: 'bold',
+          minHeight: dimension.tiny,
+          textTransform: 'none',
         },
-        color: color.theme,
-        marginRight: 10,
-        padding: '0 8px',
+        textPrimary: {
+          border: '1px solid #ddd',
+          cursor: 'pointer',
+          fontSize: fontsize.base,
+          marginRight: 10,
+          textTransform: 'none',
+        },
+        textSecondary: {
+          color: color.theme,
+        },
+        root: {
+          '&.Mui-disabled': {
+            backgroundColor: 'initial',
+          },
+          color: color.theme,
+          marginRight: 10,
+          padding: '0 8px',
+        },
       },
     },
     MuiDialogActions: {
-      root: {
-        margin: 15,
+      styleOverrides: {
+        root: {
+          margin: 15,
+        },
       },
     },
     MuiDialogTitle: {
-      root: {
-        fontSize: fontsize.large,
+      styleOverrides: {
+        root: {
+          fontSize: fontsize.large,
+        },
       },
     },
     MuiFormControlLabel: {
-      root: {
-        marginLeft: 0,
+      styleOverrides: {
+        root: {
+          marginLeft: 0,
+        },
       },
     },
     MuiFormLabel: {
-      filled: {
-        marginLeft: 0,
-        marginTop: 0,
-      },
-      root: {
-        '&$focused': {
+      styleOverrides: {
+        filled: {
           marginLeft: 0,
           marginTop: 0,
         },
-        fontSize: fontsize.base,
-        marginLeft: 5,
-        marginTop: -8,
+        root: {
+          '&.Mui-focused': {
+            marginLeft: 0,
+            marginTop: 0,
+          },
+          fontSize: fontsize.base,
+          marginLeft: 5,
+          marginTop: -8,
+        },
       },
     },
     MuiIconButton: {
-      root: {
-        padding: 9,
+      styleOverrides: {
+        root: {
+          padding: 9,
+        },
       },
     },
     MuiInput: {
-      input: { padding: 0 },
-      root: { padding: 0 },
+      styleOverrides: {
+        input: { padding: 0 },
+        root: { padding: 0 },
+      },
     },
     MuiInputAdornment: {
-      positionEnd: {
-        paddingRight: 0,
+      styleOverrides: {
+        positionEnd: {
+          paddingRight: 0,
+        },
+        root: { padding: 0 },
       },
-      root: { padding: 0 },
     },
     MuiTableSortLabel: {
-      // Match v3 behavior more closely: keep header text color inherited
-      // from table column styles and avoid washed-out inactive labels.
-      root: {
-        '&$active': {
+      styleOverrides: {
+        // Match v3 behavior more closely: keep header text color inherited
+        // from table column styles and avoid washed-out inactive labels.
+        root: {
+          '&.Mui-active': {
+            color: 'inherit',
+          },
+          '&:hover': {
+            color: 'inherit',
+          },
           color: 'inherit',
         },
-        '&:hover': {
-          color: 'inherit',
+        icon: {
+          color: `${color.strong} !important`,
         },
-        color: 'inherit',
-      },
-      icon: {
-        color: `${color.strong} !important`,
       },
     },
     MuiSvgIcon: {
-      // Keep icon sizing consistent with MUI v3 where these were fixed pixel values.
-      root: { fontSize: 24 },
-      fontSizeSmall: { fontSize: 20 },
-      fontSizeLarge: { fontSize: 35 },
+      styleOverrides: {
+        // Keep icon sizing consistent with MUI v3 where these were fixed pixel values.
+        root: { fontSize: 24 },
+        fontSizeSmall: { fontSize: 20 },
+        fontSizeLarge: { fontSize: 35 },
+      },
     },
     MuiTooltip: {
-      tooltip: {
-        backgroundColor: '#666',
-        color: '#f1f1f1',
-        fontSize: 12,
+      styleOverrides: {
+        tooltip: {
+          backgroundColor: '#666',
+          color: '#f1f1f1',
+          fontSize: 12,
+        },
       },
     },
   },

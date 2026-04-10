@@ -35,12 +35,13 @@ vi.mock('src/components/CustomTable', () => {
     Column: {},
     Row: {},
     CustomRendererProps: {},
-    default: React.forwardRef((props: any, ref) => {
-      lastCustomTableProps = props;
+    default: (props: any) => {
+      const { ref, ...tableProps } = props;
+      lastCustomTableProps = tableProps;
       React.useImperativeHandle(ref, () => ({
         reload: async () => {
-          const sortBy = props.initialSortColumn ? `${props.initialSortColumn} desc` : '';
-          return props.reload({
+          const sortBy = tableProps.initialSortColumn ? `${tableProps.initialSortColumn} desc` : '';
+          return tableProps.reload({
             pageToken: '',
             pageSize: 10,
             sortBy,
@@ -49,7 +50,7 @@ vi.mock('src/components/CustomTable', () => {
         },
       }));
       return <div data-testid='custom-table' />;
-    }),
+    },
   };
 });
 
@@ -90,9 +91,9 @@ describe('RecurringRunList', () => {
   }
 
   function mockNRecurringRuns(n: number, recurringRunTemplate: Partial<V2beta1RecurringRun>): void {
-    getRecurringRunSpy.mockImplementation(id =>
+    getRecurringRunSpy.mockImplementation((id) =>
       Promise.resolve(
-        produce(recurringRunTemplate, draft => {
+        produce(recurringRunTemplate, (draft) => {
           draft.recurring_run_id = id;
           draft.display_name = 'recurring run with id: ' + id;
         }),
@@ -101,8 +102,8 @@ describe('RecurringRunList', () => {
 
     listRecurringRunsSpy.mockImplementation(() =>
       Promise.resolve({
-        recurringRuns: range(1, n + 1).map(i =>
-          produce(recurringRunTemplate as Partial<V2beta1RecurringRun>, draft => {
+        recurringRuns: range(1, n + 1).map((i) =>
+          produce(recurringRunTemplate as Partial<V2beta1RecurringRun>, (draft) => {
             draft.recurring_run_id = 'testrecurringrun' + i;
             draft.display_name = 'recurring run with id: testrecurringrun' + i;
           }),

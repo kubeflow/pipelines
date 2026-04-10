@@ -16,21 +16,24 @@
 
 import * as React from 'react';
 import BusyButton from '../atoms/BusyButton';
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import Dropzone from 'react-dropzone';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
+import DropzoneArea, { DropzoneAreaHandle } from '../atoms/DropzoneArea';
 import Input from '../atoms/Input';
-import InputAdornment from '@material-ui/core/InputAdornment';
-import Radio from '@material-ui/core/Radio';
-import { TextFieldProps } from '@material-ui/core/TextField';
+import { TextFieldProps } from '@mui/material/TextField';
 import { padding, commonCss, zIndex, color } from '../Css';
 import { stylesheet, classes } from 'typestyle';
 import { ExternalLink } from '../atoms/ExternalLink';
 import PrivateSharedSelector from './PrivateSharedSelector';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
+
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogTitle,
+  FormControlLabel,
+  InputAdornment,
+  Radio,
+} from '@mui/material';
 
 const css = stylesheet({
   dropOverlay: {
@@ -44,6 +47,11 @@ const css = stylesheet({
     textAlign: 'center',
     top: 0,
     zIndex: zIndex.DROP_ZONE_OVERLAY,
+  },
+  fileError: {
+    color: 'red',
+    fontSize: 12,
+    marginTop: 4,
   },
   root: {
     width: 500,
@@ -72,6 +80,7 @@ interface UploadPipelineDialogState {
   busy: boolean;
   dropzoneActive: boolean;
   file: File | null;
+  fileError: string;
   fileName: string;
   fileUrl: string;
   importMethod: ImportMethod;
@@ -80,12 +89,41 @@ interface UploadPipelineDialogState {
   isPrivatePipeline: boolean;
 }
 
+export const PIPELINE_PACKAGE_ACCEPT = {
+  'application/yaml': ['.yaml', '.yml'],
+  'application/zip': ['.zip'],
+  'application/gzip': ['.tar.gz'],
+};
+
+export const PIPELINE_PACKAGE_REJECT_MESSAGE =
+  'Invalid file type. Supported formats: .yaml, .yml, .zip, .tar.gz';
+
+/**
+ * Secondary validator for react-dropzone's {@link useDropzone} hook.
+ *
+ * The accept map must include `application/gzip` so the native file picker
+ * (File System Access API) correctly recognises `.tar.gz` files. However,
+ * plain `.gz` files share the same MIME type and pass the built-in MIME
+ * check. This validator rejects them before they reach `onDropAccepted`.
+ */
+export function pipelinePackageValidator(file: File): { code: string; message: string } | null {
+  const name = file.name.toLowerCase();
+  if (name.endsWith('.gz') && !name.endsWith('.tar.gz')) {
+    return { code: 'invalid-extension', message: PIPELINE_PACKAGE_REJECT_MESSAGE };
+  }
+  if (name.endsWith('.tgz')) {
+    return { code: 'invalid-extension', message: PIPELINE_PACKAGE_REJECT_MESSAGE };
+  }
+  return null;
+}
+
 class UploadPipelineDialog extends React.Component<
   UploadPipelineDialogProps,
   UploadPipelineDialogState
 > {
   static contextType = BuildInfoContext;
-  private _dropzoneRef = React.createRef<Dropzone & HTMLDivElement>();
+  declare context: React.ContextType<typeof BuildInfoContext>;
+  private _dropzoneRef = React.createRef<DropzoneAreaHandle>();
 
   constructor(props: any) {
     super(props);
@@ -94,6 +132,7 @@ class UploadPipelineDialog extends React.Component<
       busy: false,
       dropzoneActive: false,
       file: null,
+      fileError: '',
       fileName: '',
       fileUrl: '',
       importMethod: ImportMethod.LOCAL,
@@ -107,6 +146,7 @@ class UploadPipelineDialog extends React.Component<
     const {
       dropzoneActive,
       file,
+      fileError,
       fileName,
       fileUrl,
       importMethod,
@@ -125,7 +165,7 @@ class UploadPipelineDialog extends React.Component<
         <div className={padding(20, 'lr')}>
           {this.context?.apiServerMultiUser && (
             <PrivateSharedSelector
-              onChange={val => {
+              onChange={(val) => {
                 this.setState({
                   isPrivatePipeline: val,
                 });
@@ -141,27 +181,29 @@ class UploadPipelineDialog extends React.Component<
               label='Upload a file'
               checked={importMethod === ImportMethod.LOCAL}
               control={<Radio color='primary' />}
-              onChange={() => this.setState({ importMethod: ImportMethod.LOCAL })}
+              onChange={() => this.setState({ importMethod: ImportMethod.LOCAL, fileError: '' })}
             />
             <FormControlLabel
               id='uploadFromUrlBtn'
               label='Import by URL'
               checked={importMethod === ImportMethod.URL}
               control={<Radio color='primary' />}
-              onChange={() => this.setState({ importMethod: ImportMethod.URL })}
+              onChange={() => this.setState({ importMethod: ImportMethod.URL, fileError: '' })}
             />
           </div>
 
           {importMethod === ImportMethod.LOCAL && (
             <React.Fragment>
-              <Dropzone
+              <DropzoneArea
                 id='dropZone'
                 data-testid='upload-pipeline-dropzone'
                 aria-label='Pipeline package drop zone'
-                disableClick={true}
                 onDrop={this._onDrop.bind(this)}
+                onDropRejected={this._onDropRejected.bind(this)}
                 onDragEnter={this._onDropzoneDragEnter.bind(this)}
                 onDragLeave={this._onDropzoneDragLeave.bind(this)}
+                accept={PIPELINE_PACKAGE_ACCEPT}
+                validator={pipelinePackageValidator}
                 style={{ position: 'relative' }}
                 ref={this._dropzoneRef}
                 inputProps={{ tabIndex: -1 }}
@@ -191,7 +233,8 @@ class UploadPipelineDialog extends React.Component<
                     readOnly: true,
                   }}
                 />
-              </Dropzone>
+                {fileError && <div className={css.fileError}>{fileError}</div>}
+              </DropzoneArea>
             </React.Fragment>
           )}
 
@@ -214,6 +257,7 @@ class UploadPipelineDialog extends React.Component<
             label='Pipeline name'
             onChange={this.handleChange('uploadPipelineName')}
             required={true}
+            autoFocus={true}
             value={uploadPipelineName}
             variant='outlined'
           />
@@ -258,10 +302,20 @@ class UploadPipelineDialog extends React.Component<
   private _onDrop(files: File[]): void {
     this.setState({
       dropzoneActive: false,
+      fileError: '',
       file: files[0],
       fileName: files[0].name,
-      // Suggest all characters left of first . as pipeline name
       uploadPipelineName: files[0].name.split('.')[0],
+    });
+  }
+
+  private _onDropRejected(): void {
+    this.setState({
+      dropzoneActive: false,
+      file: null,
+      fileName: '',
+      uploadPipelineName: '',
+      fileError: PIPELINE_PACKAGE_REJECT_MESSAGE,
     });
   }
 
@@ -281,6 +335,7 @@ class UploadPipelineDialog extends React.Component<
           busy: false,
           dropzoneActive: false,
           file: null,
+          fileError: '',
           fileName: '',
           fileUrl: '',
           importMethod: ImportMethod.LOCAL,

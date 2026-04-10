@@ -15,8 +15,7 @@
  */
 
 import * as React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { act } from 'react-dom/test-utils';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import TensorboardViewer, { TensorboardViewerConfig } from './Tensorboard';
 import TestUtils from '../../TestUtils';
@@ -131,6 +130,34 @@ describe('Tensorboard', () => {
       image: expect.stringContaining('tensorflow/tensorflow:'),
       podTemplateSpec: undefined,
     });
+  });
+
+  it('shows the open link immediately when start returns a pod address', async () => {
+    const config = { ...DEFAULT_CONFIG };
+    vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue(GET_APP_NOT_FOUND);
+    const startAppSpy = vi.spyOn(Apis, 'startTensorboardApp').mockResolvedValue('test/address');
+    vi.spyOn(Apis, 'isTensorboardPodReady').mockResolvedValue(false);
+
+    render(<TensorboardViewer configs={[config]} />);
+    await TestUtils.flushPromises();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start Tensorboard' }));
+
+    await TestUtils.flushPromises();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Open Tensorboard' })));
+    expect(screen.getByRole('button', { name: 'Open Tensorboard' }).closest('a')).toHaveAttribute(
+      'href',
+      'apis/v1beta1/_proxy/test/address',
+    );
+    await flushPromisesAndInterval();
+
+    expect(startAppSpy).toHaveBeenCalledWith({
+      logdir: config.url,
+      namespace: config.namespace,
+      image: expect.stringContaining('tensorflow/tensorflow:'),
+      podTemplateSpec: undefined,
+    });
+    expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith('apis/v1beta1/_proxy/test/address');
   });
 
   it('starts tensorboard instance for two configs', async () => {

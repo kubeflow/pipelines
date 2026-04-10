@@ -15,12 +15,12 @@
  */
 
 import * as React from 'react';
-import Button from '@material-ui/core/Button';
-import Tooltip from '@material-ui/core/Tooltip';
 import Separator from './Separator';
 import { color, fontsize } from '../Css';
 import { classes, stylesheet } from 'typestyle';
 import { logger } from '../lib/Utils';
+
+import { Button, Tooltip } from '@mui/material';
 
 interface MD2TabsProps {
   onSwitch?: (tab: number) => void;
@@ -69,13 +69,13 @@ const css = stylesheet({
 class MD2Tabs extends React.Component<MD2TabsProps, any> {
   private _rootRef = React.createRef<any>();
   private _indicatorRef = React.createRef<any>();
-  private _tabRefs = this.props.tabs.map(t => React.createRef<HTMLSpanElement>());
+  private _tabRefs = this.props.tabs.map((_tab) => React.createRef<HTMLSpanElement>());
   private _timeoutHandle: ReturnType<typeof setTimeout> | undefined;
 
   public render(): JSX.Element {
     const selected = this._getSelectedIndex();
     const switchHandler = this.props.onSwitch || (() => null);
-    const tabs = this.props.tabs.map(tab => {
+    const tabs = this.props.tabs.map((tab) => {
       if (typeof tab === 'string') {
         return { header: tab, tooltip: '' };
       }

@@ -236,6 +236,15 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
 		args = append(args, "--publish_logs", value)
 	}
+	if c.defaultRunAsUser != nil {
+		args = append(args, "--default_run_as_user", strconv.FormatInt(*c.defaultRunAsUser, 10))
+	}
+	if c.defaultRunAsGroup != nil {
+		args = append(args, "--default_run_as_group", strconv.FormatInt(*c.defaultRunAsGroup, 10))
+	}
+	if c.defaultRunAsNonRoot != nil {
+		args = append(args, "--default_run_as_non_root", strconv.FormatBool(*c.defaultRunAsNonRoot))
+	}
 
 	template := &wfapi.Template{
 		Name: name,
@@ -556,14 +565,19 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
 		ConfigureCustomCABundle(executor)
 	}
-	applySecurityContextToExecutorTemplate(executor)
+	applySecurityContextToExecutorTemplate(executor, c.defaultRunAsUser, c.defaultRunAsGroup, c.defaultRunAsNonRoot)
 
-	// If retry policy is set, add retryStrategy to executor
+	// If retry policy is set, add retryStrategy to executor and inject
+	// KFP_RETRY_INDEX so the launcher can resolve the per-attempt log path
+	// without a Kubernetes API call. {{retries}} is only valid inside a
+	// template that has a retryStrategy; adding it elsewhere resolves to an
+	// empty string, which forces an unnecessary pod-annotation lookup.
 	if taskRetrySpec != nil {
 		executor.RetryStrategy = c.getTaskRetryStrategyFromInput(inputParameter(paramRetryMaxCount),
 			inputParameter(paramRetryBackOffDuration),
 			inputParameter(paramRetryBackOffFactor),
 			inputParameter(paramRetryBackOffMaxDuration))
+		executor.Container.Env = append(executor.Container.Env, retryIndexEnv)
 	}
 	// Update pod metadata if it defined in the Kubernetes Spec
 	if k8sExecCfg.GetPodMetadata() != nil {

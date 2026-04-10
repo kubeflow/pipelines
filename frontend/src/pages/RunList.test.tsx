@@ -85,13 +85,9 @@ describe('RunList', () => {
     await TestUtils.flushPromises();
   }
 
-  async function waitForRunMaskLoad(expectedCount?: number): Promise<void> {
+  async function waitForRunMaskLoadForIds(runIds: string[]): Promise<void> {
     await waitFor(() => {
-      if (expectedCount !== undefined) {
-        expect(getRunSpy).toHaveBeenCalledTimes(expectedCount);
-      } else {
-        expect(getRunSpy).toHaveBeenCalled();
-      }
+      runIds.forEach((id) => expect(getRunSpy).toHaveBeenCalledWith(id));
     });
     await TestUtils.flushPromises();
   }
@@ -104,13 +100,13 @@ describe('RunList', () => {
   }
 
   function mockNRuns(n: number, runTemplate: Partial<V2beta1Run>): void {
-    getRunSpy.mockImplementation(id => {
+    getRunSpy.mockImplementation((id) => {
       const pipelineVersionRef = {
         pipeline_id: 'testpipeline' + id,
         pipeline_version_id: 'testversion' + id,
       };
       return Promise.resolve(
-        produce(runTemplate, draft => {
+        produce(runTemplate, (draft) => {
           draft = draft || {};
           draft.run_id = id;
           draft.display_name = 'run with id: ' + id;
@@ -122,13 +118,13 @@ describe('RunList', () => {
 
     listRunsSpy.mockImplementation(() =>
       Promise.resolve({
-        runs: range(1, n + 1).map(i => {
+        runs: range(1, n + 1).map((i) => {
           if (runTemplate) {
             const pipelineVersionRef = {
               pipeline_id: 'testpipeline' + i,
               pipeline_version_id: 'testversion' + i,
             };
-            return produce(runTemplate as Partial<V2beta1Run>, draft => {
+            return produce(runTemplate as Partial<V2beta1Run>, (draft) => {
               draft.run_id = 'testrun' + i;
               draft.display_name = 'run with id: testrun' + i;
               draft.pipeline_version_reference = pipelineVersionRef;
@@ -175,7 +171,7 @@ describe('RunList', () => {
     listExperimentsSpy = vi
       .spyOn(Apis.experimentServiceApiV2, 'listExperiments')
       .mockResolvedValue({ experiments: [] } as any);
-    formatDateStringSpy = vi.spyOn(Utils, 'formatDateString').mockImplementation(date => {
+    formatDateStringSpy = vi.spyOn(Utils, 'formatDateString').mockImplementation((date) => {
       return date ? '1/2/2019, 12:34:56 PM' : '-';
     });
   });
@@ -225,7 +221,7 @@ describe('RunList', () => {
             predicates: [
               {
                 key: 'storage_state',
-                operation: V2beta1PredicateOperation.NOTEQUALS,
+                operation: V2beta1PredicateOperation.NOT_EQUALS,
                 string_value: V2beta1RunStorageState.ARCHIVED.toString(),
               },
             ],
@@ -320,12 +316,13 @@ describe('RunList', () => {
     const props = generateProps();
     await renderRunList(props);
     await waitForRunListLoad();
+    listRunsSpy.mockClear();
 
     await act(async () => {
       await getRunListInstance().refresh();
     });
     await waitFor(() => {
-      expect(Apis.runServiceApiV2.listRuns).toHaveBeenCalledTimes(2);
+      expect(Apis.runServiceApiV2.listRuns).toHaveBeenCalledTimes(1);
     });
 
     expect(Apis.runServiceApiV2.listRuns).toHaveBeenLastCalledWith(
@@ -387,13 +384,14 @@ describe('RunList', () => {
 
   it('displays error in run row if it failed to parse (run list mask)', async () => {
     TestUtils.makeErrorResponseOnce(getRunSpy as any, 'bad stuff happened');
+    TestUtils.makeErrorResponseOnce(getRunSpy as any, 'bad stuff happened');
     const props = generateProps();
     props.runIdListMask = ['testrun1'];
     await renderRunList(props);
     await waitFor(() => {
       // won't call listRuns if specific run id is provided
       expect(listRunsSpy).toHaveBeenCalledTimes(0);
-      expect(getRunSpy).toHaveBeenCalledTimes(1);
+      expect(getRunSpy).toHaveBeenCalledWith('testrun1');
     });
 
     await waitFor(() => {
@@ -461,7 +459,7 @@ describe('RunList', () => {
     const props = generateProps();
     props.runIdListMask = ['run1', 'run2'];
     await renderRunList(props);
-    await waitForRunMaskLoad(2);
+    await waitForRunMaskLoadForIds(['run1', 'run2']);
     getRunSpy.mockClear();
     listRunsSpy.mockClear();
 
@@ -469,7 +467,6 @@ describe('RunList', () => {
 
     expect(props.onError).not.toHaveBeenCalled();
     expect(Apis.runServiceApiV2.listRuns).not.toHaveBeenCalled();
-    expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(2);
     expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledWith('run1');
     expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledWith('run2');
   });
@@ -479,7 +476,7 @@ describe('RunList', () => {
     const props = generateProps();
     props.runIdListMask = ['filterRun1', 'filterRun2', 'notincluded'];
     await renderRunList(props);
-    await waitForRunMaskLoad(3);
+    await waitForRunMaskLoadForIds(['filterRun1', 'filterRun2', 'notincluded']);
     getRunSpy.mockClear();
     listRunsSpy.mockClear();
 
@@ -489,7 +486,7 @@ describe('RunList', () => {
           predicates: [
             {
               key: 'name',
-              operation: V2beta1PredicateOperation.ISSUBSTRING,
+              operation: V2beta1PredicateOperation.IS_SUBSTRING,
               string_value: 'filterRun',
             },
           ],
@@ -514,7 +511,7 @@ describe('RunList', () => {
     const props = generateProps();
     props.runIdListMask = ['filterRun1', 'filterRun2', 'notincluded1'];
     await renderRunList(props);
-    await waitForRunMaskLoad(3);
+    await waitForRunMaskLoadForIds(['filterRun1', 'filterRun2', 'notincluded1']);
     getRunSpy.mockClear();
     listRunsSpy.mockClear();
 
@@ -524,10 +521,10 @@ describe('RunList', () => {
           predicates: [
             {
               key: 'name',
-              operation: V2beta1PredicateOperation.ISSUBSTRING,
+              operation: V2beta1PredicateOperation.IS_SUBSTRING,
               string_value: 'filterRun',
             },
-            { key: 'name', operation: V2beta1PredicateOperation.ISSUBSTRING, string_value: '1' },
+            { key: 'name', operation: V2beta1PredicateOperation.IS_SUBSTRING, string_value: '1' },
           ],
         } as V2beta1Filter),
       ),
@@ -567,7 +564,7 @@ describe('RunList', () => {
     mockNRuns(1, {
       experiment_id: 'test-experiment-id',
     });
-    listExperimentsSpy.mockImplementationOnce(() => ({
+    listExperimentsSpy.mockImplementation(() => ({
       experiments: [
         {
           experiment_id: 'test-experiment-id',

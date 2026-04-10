@@ -17,7 +17,7 @@ from kfp import dsl
 
 
 @dsl.component(
-    base_image='python:3.9',
+    base_image='python:3.9-slim',
     packages_to_install=[
         'google-cloud-aiplatform[tensorboard]==1.87.0',
         'protobuf==3.20.*',

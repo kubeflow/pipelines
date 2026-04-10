@@ -14,24 +14,27 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import BusyButton from '../../atoms/BusyButton';
-import Button from '@material-ui/core/Button';
 import Viewer, { ViewerConfig } from './Viewer';
 import { Apis } from '../../lib/Apis';
 import { commonCss, padding, color } from '../../Css';
-import InputLabel from '@material-ui/core/InputLabel';
-import Input from '@material-ui/core/Input';
-import MenuItem from '@material-ui/core/MenuItem';
-import ListSubheader from '@material-ui/core/ListSubheader';
-import FormControl from '@material-ui/core/FormControl';
-import Select from '@material-ui/core/Select';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogTitle from '@material-ui/core/DialogTitle';
 import { classes, stylesheet } from 'typestyle';
+
+import {
+  Button,
+  InputLabel,
+  Input,
+  MenuItem,
+  ListSubheader,
+  FormControl,
+  Select,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+} from '@mui/material';
+import { SelectChangeEvent } from '@mui/material/Select';
 
 export const css = stylesheet({
   button: {
@@ -121,7 +124,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     clearInterval(this.timerID);
   }
 
-  public handleImageSelect = (e: React.ChangeEvent<{ name?: string; value: unknown }>): void => {
+  public handleImageSelect = (e: SelectChangeEvent<string>): void => {
     if (typeof e.target.value !== 'string') {
       throw new Error('Invalid event value type, expected string');
     }
@@ -166,7 +169,6 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 id={'delete'}
                 title={`stop tensorboard and delete its instance`}
                 onClick={this._handleDeleteOpen}
-                color={'default'}
               >
                 Stop Tensorboard
               </Button>
@@ -204,13 +206,13 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
             </div>
           </div>
         )}
-
         {!this.state.podAddress && (
           <div>
             <div className={padding(30, 'b')}>
-              <FormControl className={css.formControl}>
+              <FormControl variant='standard' className={css.formControl}>
                 <InputLabel htmlFor='viewer-tb-image-select'>TF Image</InputLabel>
                 <Select
+                  variant='standard'
                   className={css.select}
                   value={this.state.tfImage}
                   input={<Input id='viewer-tb-image-select' />}
@@ -263,7 +265,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   }
 
   private _buildUrl(): string {
-    const urls = this.props.configs.map(c => c.url).sort();
+    const urls = this.props.configs.map((c) => c.url).sort();
     return urls.length === 1 ? urls[0] : urls.map((c, i) => `Series${i + 1}:` + c).join(',');
   }
 
@@ -281,7 +283,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     // If pod address is not null and tensorboard pod doesn't seem to be read, pull status again
     if (this.state.podAddress && !this.state.tensorboardReady) {
       // Remove protocol prefix bofore ":" from pod address if any.
-      Apis.isTensorboardPodReady(makeProxyUrl(this.state.podAddress)).then(ready => {
+      Apis.isTensorboardPodReady(makeProxyUrl(this.state.podAddress)).then((ready) => {
         this.setStateSafe(({ tensorboardReady }) => ({
           tensorboardReady: tensorboardReady || ready,
         }));
@@ -313,14 +315,18 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   private _startTensorboard = async () => {
     this.setStateSafe({ busy: true, errorMessage: undefined }, async () => {
       try {
-        await Apis.startTensorboardApp({
+        const podAddress = await Apis.startTensorboardApp({
           logdir: this._buildUrl(),
           namespace: this._getNamespace(),
           image: this.state.tfImage,
           podTemplateSpec: this._podTemplateSpec(),
         });
-        this.setStateSafe({ busy: false, tensorboardReady: false }, () => {
-          this._checkTensorboardApp();
+        this.setStateSafe({ busy: false, podAddress, tensorboardReady: false }, () => {
+          if (podAddress) {
+            this._checkTensorboardPodStatus();
+          } else {
+            this._checkTensorboardApp();
+          }
         });
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';

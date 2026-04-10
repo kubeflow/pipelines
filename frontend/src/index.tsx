@@ -16,10 +16,11 @@
 
 // import './CSSReset';
 import 'src/build/tailwind.output.css';
-import { ThemeProvider } from '@material-ui/core/styles';
-import * as React from 'react';
-import * as ReactDOM from 'react-dom';
-import { QueryClient, QueryClientProvider } from 'react-query';
+import '@xyflow/react/dist/style.css';
+import { StrictMode } from 'react';
+import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
+import { createRoot } from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HashRouter } from 'react-router-dom';
 import { cssRule } from 'typestyle';
 import Router from './components/Router';
@@ -33,8 +34,6 @@ import {
   NamespaceContextProvider,
 } from './lib/KubeflowClient';
 import { BuildInfoProvider } from './lib/BuildInfo';
-// import { ReactQueryDevtools } from 'react-query/devtools';
-
 // TODO: license headers
 
 if (KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW) {
@@ -56,25 +55,29 @@ initFeatures();
 export const queryClient = new QueryClient();
 const app = (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider theme={theme}>
-      <BuildInfoProvider>
-        <GkeMetadataProvider>
-          <HashRouter>
-            <Router />
-          </HashRouter>
-        </GkeMetadataProvider>
-      </BuildInfoProvider>
-    </ThemeProvider>
+    <StyledEngineProvider injectFirst>
+      <ThemeProvider theme={theme}>
+        <BuildInfoProvider>
+          <GkeMetadataProvider>
+            <HashRouter>
+              <Router />
+            </HashRouter>
+          </GkeMetadataProvider>
+        </BuildInfoProvider>
+      </ThemeProvider>
+    </StyledEngineProvider>
     {/* <ReactQueryDevtools initialIsOpen={false} /> */}
   </QueryClientProvider>
 );
-ReactDOM.render(
+const container = document.getElementById('root');
+if (!container) throw new Error('Root element not found');
+const root = createRoot(container);
+const rootElement =
   KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (
     <NamespaceContextProvider>{app}</NamespaceContextProvider>
   ) : (
     <NamespaceContext.Provider value={import.meta.env.VITE_NAMESPACE || undefined}>
       {app}
     </NamespaceContext.Provider>
-  ),
-  document.getElementById('root'),
-);
+  );
+root.render(import.meta.env.DEV ? <StrictMode>{rootElement}</StrictMode> : rootElement);

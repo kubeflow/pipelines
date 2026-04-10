@@ -41,6 +41,7 @@ import (
 	"gocloud.dev/blob"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -142,7 +143,7 @@ func stopWaitingArtifacts(artifacts map[string]*pipelinespec.ArtifactList) {
 				continue
 			}
 
-			localPath, err := LocalPathForURI(inputArtifact.Uri)
+			localPath, err := retrieveArtifactPath(inputArtifact)
 			if err != nil {
 				continue
 			}
@@ -413,7 +414,19 @@ func executeV2(
 		customCAPath,
 	)
 	if err != nil {
-		return nil, nil, err
+		glog.Errorf("Component failed to execute successfully: %v", err)
+
+		outputArtifacts, uploadErr := uploadOutputArtifacts(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
+			bucketConfig:   bucketConfig,
+			bucket:         bucket,
+			metadataClient: metadataClient,
+		}, false)
+
+		if uploadErr != nil {
+			glog.Errorf("Failed to upload log artifact: %v", uploadErr)
+		}
+
+		return executorOutput, outputArtifacts, err
 	}
 	// These are not added in execute(), because execute() is shared between v2 compatible and v2 engine launcher.
 	// In v2 compatible mode, we get output parameter info from runtimeInfo. In v2 engine, we get it from component spec.
@@ -427,7 +440,7 @@ func executeV2(
 		bucketConfig:   bucketConfig,
 		bucket:         bucket,
 		metadataClient: metadataClient,
-	})
+	}, true)
 
 	if err != nil {
 		glog.Errorf("Failed to upload output artifacts: %v", err)
@@ -448,7 +461,7 @@ func executeV2(
 			bucketConfig:   bucketConfig,
 			bucket:         bucket,
 			metadataClient: metadataClient,
-		})
+		}, true)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -508,6 +521,56 @@ const OutputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
 // We overwrite this as a DI mechanism for testing getLogWriter.
 var osCreateFunc = os.Create
 
+// qualifyExecutorLogsURI appends the retry index to the executor-logs artifact
+// URI so that each Argo retry attempt writes to and registers a distinct,
+// human-readable path in the object store and MLMD (e.g. executor-logs-0,
+// executor-logs-1, …). Without this, all retry pods share the single URI that
+// the driver provisioned before any attempt ran, causing every retry to
+// overwrite the same S3 key and register duplicate MLMD artifacts pointing at
+// stale data.
+func qualifyExecutorLogsURI(artifacts map[string]*pipelinespec.ArtifactList, retryIndex string) {
+	if retryIndex == "" {
+		return
+	}
+	logsArtifactList, ok := artifacts["executor-logs"]
+	if !ok || logsArtifactList == nil || len(logsArtifactList.Artifacts) != 1 {
+		return
+	}
+	art := logsArtifactList.Artifacts[0]
+	if art == nil {
+		return
+	}
+	art.Uri = art.Uri + "-" + retryIndex
+}
+
+// retryIndexFromPodAnnotation reads the Argo node-name annotation on the current
+// pod and parses the 0-based retry index from it. Argo encodes the index as a
+// parenthesised suffix on the node name, e.g. "…executor(3)". This provides a
+// fallback when the KFP_RETRY_INDEX env var (set via {{retries}} in the Argo
+// template) is unavailable, which is the case when an older API server that
+// does not yet inject KFP_RETRY_INDEX is in use.
+func retryIndexFromPodAnnotation(ctx context.Context, k8sClient kubernetes.Interface, namespace, podName string) (string, error) {
+	pod, err := k8sClient.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get pod %s/%s: %w", namespace, podName, err)
+	}
+	nodeName, ok := pod.Annotations["workflows.argoproj.io/node-name"]
+	if !ok {
+		return "", fmt.Errorf("pod %s/%s has no argo node-name annotation", namespace, podName)
+	}
+	// Extract the trailing "(N)" from node names like "…executor(3)".
+	open := strings.LastIndex(nodeName, "(")
+	close := strings.LastIndex(nodeName, ")")
+	if open < 0 || close <= open {
+		return "", fmt.Errorf("argo node-name %q has no retry index suffix", nodeName)
+	}
+	index := nodeName[open+1 : close]
+	if _, err := strconv.Atoi(index); err != nil {
+		return "", fmt.Errorf("argo node-name %q retry index %q is not an integer: %w", nodeName, index, err)
+	}
+	return index, nil
+}
+
 // getLogWriter returns an io.Writer that can either be single-channel to stdout
 // or dual-channel to stdout AND a log file based on the URI of a log artifact
 // in the supplied ArtifactList. Downstream, the resulting log file gets
@@ -519,10 +582,10 @@ func getLogWriter(artifacts map[string]*pipelinespec.ArtifactList) (writer io.Wr
 		return os.Stdout
 	}
 
-	logURI := logsArtifactList.Artifacts[0].Uri
-	logFilePath, err := LocalPathForURI(logURI)
+	logArtifact := logsArtifactList.Artifacts[0]
+	logFilePath, err := retrieveArtifactPath(logArtifact)
 	if err != nil {
-		glog.Errorf("Error converting log artifact URI, %s, to file path.", logURI)
+		glog.Errorf("Error converting log artifact URI, %s, to file path.", logArtifact.Uri)
 		return os.Stdout
 	}
 
@@ -573,6 +636,30 @@ func execute(
 	}
 	if err := downloadArtifacts(ctx, executorInput, bucket, bucketConfig, namespace, k8sClient); err != nil {
 		return nil, err
+	}
+
+	// Qualify the executor-logs URI with the retry index before preparing output
+	// folders so the per-attempt directory is created at the correct path.
+	// Prefer KFP_RETRY_INDEX, which is injected by the Argo compiler as
+	// "{{retries}}" and resolved by Argo at pod creation time. Fall back to
+	// reading the Argo node-name pod annotation, which encodes the index as
+	// executor(N), for compatibility with older API server versions.
+	if publishLogs == "true" {
+		retryIndex := os.Getenv(EnvRetryIndex)
+		if retryIndex == "" {
+			podName := os.Getenv(EnvPodName)
+			if podName != "" && k8sClient != nil && namespace != "" {
+				if idx, err := retryIndexFromPodAnnotation(ctx, k8sClient, namespace, podName); err == nil {
+					retryIndex = idx
+				} else {
+					glog.Warningf("Could not determine retry index from pod annotation, defaulting to 0: %v", err)
+				}
+			}
+		}
+		if retryIndex == "" {
+			retryIndex = "0"
+		}
+		qualifyExecutorLogsURI(executorInput.Outputs.GetArtifacts(), retryIndex)
 	}
 
 	if err := prepareOutputFolders(executorInput); err != nil {
@@ -663,20 +750,30 @@ func uploadOutputArtifacts(
 	executorInput *pipelinespec.ExecutorInput,
 	executorOutput *pipelinespec.ExecutorOutput,
 	opts uploadOutputArtifactsOptions,
+	componentSucceeded bool,
 ) ([]*metadata.OutputArtifact, error) {
 	// Register artifacts with MLMD.
-	outputArtifacts := make([]*metadata.OutputArtifact, 0, len(executorInput.GetOutputs().GetArtifacts()))
-	for name, artifactList := range executorInput.GetOutputs().GetArtifacts() {
-		if len(artifactList.Artifacts) == 0 {
+	artifacts := executorInput.GetOutputs().GetArtifacts()
+	if !componentSucceeded {
+		// Only register executor log artifact if component execution failed
+		artifacts = map[string]*pipelinespec.ArtifactList{"executor-logs": artifacts["executor-logs"]}
+	}
+
+	outputArtifacts := make([]*metadata.OutputArtifact, 0, len(artifacts))
+
+	for name, artifactList := range artifacts {
+		if artifactList == nil || len(artifactList.Artifacts) == 0 {
 			continue
 		}
 
 		for _, outputArtifact := range artifactList.Artifacts {
-			glog.Infof("outputArtifact in uploadOutputArtifacts call: ", outputArtifact.Name)
+			glog.Infof("outputArtifact in uploadOutputArtifacts call: %s", outputArtifact.Name)
 
 			// Merge executor output artifact info with executor input
-			if list, ok := executorOutput.Artifacts[name]; ok && len(list.Artifacts) > 0 {
-				mergeRuntimeArtifacts(list.Artifacts[0], outputArtifact)
+			if executorOutput != nil {
+				if list, ok := executorOutput.Artifacts[name]; ok && len(list.Artifacts) > 0 {
+					mergeRuntimeArtifacts(list.Artifacts[0], outputArtifact)
+				}
 			}
 
 			// Upload artifacts from local path to remote storages.
@@ -771,7 +868,7 @@ func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.Executor
 					continue
 				}
 			}
-			localPath, err := LocalPathForURI(inputArtifact.Uri)
+			localPath, err := retrieveArtifactPath(inputArtifact)
 			if err != nil {
 				glog.Warningf("Input Artifact %q does not have a recognized storage URI %q. Skipping downloading to local path.", name, inputArtifact.Uri)
 
@@ -928,7 +1025,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 			}
 		}
 
-		localPath, err := LocalPathForURI(inputArtifact.Uri)
+		localPath, err := retrieveArtifactPath(inputArtifact)
 		if err != nil {
 			// Input Artifact does not have a recognized storage URI
 			continue
@@ -947,7 +1044,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 		outputArtifact := artifactList.Artifacts[0]
 		placeholders[fmt.Sprintf(`{{$.outputs.artifacts['%s'].uri}}`, name)] = outputArtifact.Uri
 
-		localPath, err := LocalPathForURI(outputArtifact.Uri)
+		localPath, err := retrieveArtifactPath(outputArtifact)
 		if err != nil {
 			return nil, fmt.Errorf("resolve output artifact %q's local path: %w", name, err)
 		}
@@ -1110,7 +1207,7 @@ func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
 
 		for _, outputArtifact := range artifactList.Artifacts {
 
-			localPath, err := LocalPathForURI(outputArtifact.Uri)
+			localPath, err := retrieveArtifactPath(outputArtifact)
 			if err != nil {
 				return fmt.Errorf("failed to generate local storage path for output artifact %q: %w", name, err)
 			}

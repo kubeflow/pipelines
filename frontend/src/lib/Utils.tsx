@@ -69,7 +69,7 @@ export function formatDateString(date: Date | string | undefined): string {
 export function titleCase(str: string): string {
   return str
     .split(/[\s_-]/)
-    .map(w => `${w.charAt(0).toUpperCase()}${w.slice(1)}`)
+    .map((w) => `${w.charAt(0).toUpperCase()}${w.slice(1)}`)
     .join(' ');
 }
 
@@ -102,7 +102,7 @@ export function enabledDisplayStringV2(
         return 'Yes';
       case V2beta1RecurringRunStatus.DISABLED:
         return 'No';
-      case V2beta1RecurringRunStatus.STATUSUNSPECIFIED:
+      case V2beta1RecurringRunStatus.STATUS_UNSPECIFIED:
         return 'Unknown';
       default:
         return '-';
@@ -261,7 +261,7 @@ export function serviceErrorToString(error: ServiceError): string {
 export function rowFilterFn(request: ListRequest): (r: Row) => boolean {
   // TODO: We are currently searching across all properties of all artifacts. We should figure
   // what the most useful fields are and limit filtering to those
-  return r => {
+  return (r) => {
     if (!request.filter) {
       return true;
     }
@@ -278,12 +278,7 @@ export function rowFilterFn(request: ListRequest): (r: Row) => boolean {
         (filter.predicates[0].int_value ||
           filter.predicates[0].long_value ||
           filter.predicates[0].string_value);
-      return (
-        r.otherFields
-          .join('')
-          .toLowerCase()
-          .indexOf(filterString.toLowerCase()) > -1
-      );
+      return r.otherFields.join('').toLowerCase().indexOf(filterString.toLowerCase()) > -1;
     } catch (err) {
       logger.error('Error parsing request filter!', err);
       return true;
@@ -305,7 +300,7 @@ export function rowCompareFn(
       ? request.sortBy.substring(0, request.sortBy.length - descSuffix.length)
       : request.sortBy;
 
-    const sortIndex = columns.findIndex(c => cleanedSortBy === c.sortKey);
+    const sortIndex = columns.findIndex((c) => cleanedSortBy === c.sortKey);
 
     // Convert null to string to avoid null comparison behavior
     const compare = (r1.otherFields[sortIndex] || '') < (r2.otherFields[sortIndex] || '');
@@ -364,7 +359,7 @@ export function groupRows(rows: Row[]): CollapsedAndExpandedRows {
       // Remove the grouping column text for all but the first row in the group because it will be
       // redundant within an expanded group.
       const hiddenRows = rowsInGroup.slice(1);
-      hiddenRows.forEach(row => (row.otherFields[0] = ''));
+      hiddenRows.forEach((row) => (row.otherFields[0] = ''));
 
       // Add this group of rows sharing a pipeline to the list of grouped rows
       collapsedAndExpandedRows.expandedRows.set(index, hiddenRows);
@@ -478,7 +473,7 @@ export async function decodeCompressedNodes(compressedNodes: string): Promise<ob
     const compressedBuffer = Uint8Array.from(
       atob(compressedNodes)
         .split('')
-        .map(char => char.charCodeAt(0)),
+        .map((char) => char.charCodeAt(0)),
     );
     try {
       const result = pako.ungzip(compressedBuffer, { to: 'string' });
@@ -498,7 +493,7 @@ export function isSafari(): boolean {
   // The code of detecting wether isSafari is from: https://stackoverflow.com/questions/9847580/how-to-detect-safari-chrome-ie-firefox-and-opera-browser/9851769#9851769
   const isSafari =
     /constructor/i.test(window.HTMLElement.toString()) ||
-    (function(p) {
+    (function (p) {
       return p.toString() === '[object SafariRemoteNotification]';
     })(!window['safari'] || (typeof 'safari' !== 'undefined' && window['safari'].pushNotification));
   return isSafari;
@@ -527,9 +522,9 @@ export function mergeApiParametersByNames(
   mainParams: ApiParameter[],
   extraParams: ApiParameter[],
 ): ApiParameter[] {
-  const extraParamsDict = Object.fromEntries(extraParams.map(param => [param.name, param.value]));
+  const extraParamsDict = Object.fromEntries(extraParams.map((param) => [param.name, param.value]));
 
-  return mainParams.map(param => {
+  return mainParams.map((param) => {
     if (param.name === undefined || !(param.name in extraParamsDict)) {
       return { ...param };
     }

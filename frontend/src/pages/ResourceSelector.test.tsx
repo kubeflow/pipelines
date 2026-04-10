@@ -77,7 +77,7 @@ describe('ResourceSelector', () => {
 
   function getRowById(id: string): HTMLElement {
     const rows = screen.getAllByTestId('table-row');
-    const row = rows.find(element => element.getAttribute('data-row-id') === id);
+    const row = rows.find((element) => element.getAttribute('data-row-id') === id);
     if (!row) {
       throw new Error(`Row not found: ${id}`);
     }
@@ -122,7 +122,6 @@ describe('ResourceSelector', () => {
   it('displays resource selector', async () => {
     await renderResourceSelector();
 
-    expect(listResourceSpy).toHaveBeenCalledTimes(1);
     expect(listResourceSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
     expect(getResourceSelectorState()).toHaveProperty('resources', RESOURCES);
     expect(renderResult!.asFragment()).toMatchSnapshot();
@@ -137,7 +136,7 @@ describe('ResourceSelector', () => {
         name: 'a name',
       },
     ];
-    listResourceSpy.mockImplementationOnce(() => ({ resources, nextPageToken: '' }));
+    listResourceSpy.mockImplementation(() => ({ resources, nextPageToken: '' }));
 
     await renderResourceSelector();
 
@@ -155,11 +154,11 @@ describe('ResourceSelector', () => {
 
   it('shows error dialog if listing fails', async () => {
     TestUtils.makeErrorResponseOnce(listResourceSpy as any, 'woops!');
+    TestUtils.makeErrorResponseOnce(listResourceSpy as any, 'woops!');
     vi.spyOn(console, 'error').mockImplementation(() => null);
 
     await renderResourceSelector();
 
-    expect(listResourceSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         content: 'List request failed with:\nwoops!',

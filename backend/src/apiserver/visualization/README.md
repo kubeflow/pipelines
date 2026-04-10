@@ -29,7 +29,7 @@ provided request.
 1. Determine if the visualization should become a predefined visualization.
 Consider the following:
     * How often will it be used?
-        * Frequently used visualizations are a good candidate for predefine
+        * Frequently used visualizations are a good candidate for predefined
         visualization.
     * How complex is it?
         * The complexity of a visualization can reduce its usability. Predefined

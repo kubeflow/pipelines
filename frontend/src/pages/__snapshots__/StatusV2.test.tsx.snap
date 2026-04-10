@@ -4,17 +4,18 @@ exports[`Status > statusToIcon > displays start and end dates if both are provid
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(52, 168, 83); height: 18px; width: 18px;"
       viewBox="0 0 24 24"
     >
       <path
-        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
       />
     </svg>
   </div>
@@ -25,17 +26,18 @@ exports[`Status > statusToIcon > does not display a end date if none was provide
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(52, 168, 83); height: 18px; width: 18px;"
       viewBox="0 0 24 24"
     >
       <path
-        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
       />
     </svg>
   </div>
@@ -46,17 +48,18 @@ exports[`Status > statusToIcon > does not display a start date if none was provi
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(52, 168, 83); height: 18px; width: 18px;"
       viewBox="0 0 24 24"
     >
       <path
-        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
       />
     </svg>
   </div>
@@ -67,17 +70,18 @@ exports[`Status > statusToIcon > does not display any dates if neither was provi
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(52, 168, 83); height: 18px; width: 18px;"
       viewBox="0 0 24 24"
     >
       <path
-        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
       />
     </svg>
   </div>
@@ -88,6 +92,7 @@ exports[`Status > statusToIcon > handles CANCELED state 1`] = `
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       height="18"
@@ -129,6 +134,7 @@ exports[`Status > statusToIcon > handles CANCELING state 1`] = `
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       height="18"
@@ -166,17 +172,18 @@ exports[`Status > statusToIcon > handles FAILED state 1`] = `
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(213, 0, 0); height: 18px; width: 18px;"
       viewBox="0 0 24 24"
     >
       <path
-        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 15h-2v-2h2zm0-4h-2V7h2z"
       />
     </svg>
   </div>
@@ -187,17 +194,18 @@ exports[`Status > statusToIcon > handles PENDING state 1`] = `
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(154, 160, 166); height: 18px; width: 18px;"
       viewBox="0 0 24 24"
     >
       <path
-        d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+        d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2M12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8"
       />
       <path
         d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"
@@ -211,6 +219,7 @@ exports[`Status > statusToIcon > handles RUNNING state 1`] = `
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       height="18"
@@ -248,17 +257,18 @@ exports[`Status > statusToIcon > handles SKIPPED state 1`] = `
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(95, 99, 104); height: 18px; width: 18px;"
       viewBox="0 0 24 24"
     >
       <path
-        d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"
+        d="m6 18 8.5-6L6 6zM16 6v12h2V6z"
       />
     </svg>
   </div>
@@ -269,17 +279,18 @@ exports[`Status > statusToIcon > handles SUCCEEDED state 1`] = `
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(52, 168, 83); height: 18px; width: 18px;"
       viewBox="0 0 24 24"
     >
       <path
-        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
       />
     </svg>
   </div>
@@ -290,17 +301,18 @@ exports[`Status > statusToIcon > handles an undefined state 1`] = `
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(95, 99, 104); height: 18px; width: 18px;"
       viewBox="0 0 24 24"
     >
       <path
-        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 17h-2v-2h2zm2.07-7.75-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25"
       />
     </svg>
   </div>
@@ -311,17 +323,18 @@ exports[`Status > statusToIcon > handles an unknown state 1`] = `
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(95, 99, 104); height: 18px; width: 18px;"
       viewBox="0 0 24 24"
     >
       <path
-        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 17h-2v-2h2zm2.07-7.75-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25"
       />
     </svg>
   </div>
@@ -332,6 +345,7 @@ exports[`Status > statusToIcon > renders an icon with tooltip for phase: CANCELE
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       height="18"
@@ -373,6 +387,7 @@ exports[`Status > statusToIcon > renders an icon with tooltip for phase: CANCELI
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       height="18"
@@ -410,17 +425,18 @@ exports[`Status > statusToIcon > renders an icon with tooltip for phase: FAILED 
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(213, 0, 0); height: 18px; width: 18px;"
       viewBox="0 0 24 24"
     >
       <path
-        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 15h-2v-2h2zm0-4h-2V7h2z"
       />
     </svg>
   </div>
@@ -431,17 +447,18 @@ exports[`Status > statusToIcon > renders an icon with tooltip for phase: PAUSED 
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(154, 160, 166); height: 18px; width: 18px;"
       viewBox="0 0 24 24"
     >
       <path
-        d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+        d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2M12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8"
       />
       <path
         d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"
@@ -455,17 +472,18 @@ exports[`Status > statusToIcon > renders an icon with tooltip for phase: PENDING
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(154, 160, 166); height: 18px; width: 18px;"
       viewBox="0 0 24 24"
     >
       <path
-        d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+        d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2M12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8"
       />
       <path
         d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"
@@ -479,6 +497,7 @@ exports[`Status > statusToIcon > renders an icon with tooltip for phase: RUNNING
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       height="18"
@@ -512,21 +531,22 @@ exports[`Status > statusToIcon > renders an icon with tooltip for phase: RUNNING
 </DocumentFragment>
 `;
 
-exports[`Status > statusToIcon > renders an icon with tooltip for phase: RUNTIMESTATEUNSPECIFIED 1`] = `
+exports[`Status > statusToIcon > renders an icon with tooltip for phase: RUNTIME_STATE_UNSPECIFIED 1`] = `
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(95, 99, 104); height: 18px; width: 18px;"
       viewBox="0 0 24 24"
     >
       <path
-        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 17h-2v-2h2zm2.07-7.75-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25"
       />
     </svg>
   </div>
@@ -537,17 +557,18 @@ exports[`Status > statusToIcon > renders an icon with tooltip for phase: SKIPPED
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(95, 99, 104); height: 18px; width: 18px;"
       viewBox="0 0 24 24"
     >
       <path
-        d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"
+        d="m6 18 8.5-6L6 6zM16 6v12h2V6z"
       />
     </svg>
   </div>
@@ -558,17 +579,18 @@ exports[`Status > statusToIcon > renders an icon with tooltip for phase: SUCCEED
 <DocumentFragment>
   <div
     class=""
+    data-mui-internal-clone-element="true"
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(52, 168, 83); height: 18px; width: 18px;"
       viewBox="0 0 24 24"
     >
       <path
-        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
       />
     </svg>
   </div>

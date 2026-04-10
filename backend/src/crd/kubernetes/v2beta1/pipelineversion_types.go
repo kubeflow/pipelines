@@ -45,7 +45,8 @@ type PipelineVersionSpec struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 	PlatformSpec *IRSpec `json:"platformSpec,omitempty"`
 
-	PipelineSpecURI string `json:"pipelineSpecURI,omitempty"`
+	PipelineSpecURI string            `json:"pipelineSpecURI,omitempty"`
+	Tags            map[string]string `json:"tags,omitempty"`
 }
 
 // SimplifiedCondition is a metav1.Condition without lastTransitionTime since the database model doesn't have such
@@ -159,6 +160,7 @@ func FromPipelineVersionModel(pipeline model.Pipeline, pipelineVersion model.Pip
 			PipelineName:    pipeline.Name,
 			CodeSourceURL:   pipelineVersion.CodeSourceUrl,
 			PipelineSpecURI: string(pipelineVersion.PipelineSpecURI),
+			Tags:            pipelineVersion.Tags,
 		},
 	}, nil
 }
@@ -225,6 +227,7 @@ func (p *PipelineVersion) ToModel() (*model.PipelineVersion, error) {
 		Description:     model.LargeText(p.Spec.Description),
 		PipelineSpec:    model.LargeText(v2Spec.Bytes()),
 		PipelineSpecURI: model.LargeText(p.Spec.PipelineSpecURI),
+		Tags:            p.Spec.Tags,
 	}, nil
 }
 

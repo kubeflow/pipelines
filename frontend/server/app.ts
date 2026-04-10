@@ -13,8 +13,7 @@
 // limitations under the License.
 import path from 'path';
 import { fileURLToPath } from 'url';
-import express from 'express';
-import { Application, static as StaticHandler } from 'express';
+import express, { Application, static as StaticHandler } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -26,6 +25,7 @@ import {
   getArtifactsHandler,
   getArtifactsProxyHandler,
   getArtifactServiceGetter,
+  getArtifactsAuthMiddleware,
 } from './handlers/artifacts.js';
 import { getTensorboardHandlers } from './handlers/tensorboard.js';
 import { getAuthorizeFn } from './helpers/auth.js';
@@ -99,7 +99,7 @@ export class UIServer {
     }
 
     this.closePromise = new Promise<void>((resolve, reject) => {
-      server.close(err => {
+      server.close((err) => {
         const errorCode = (err as NodeJS.ErrnoException | undefined)?.code;
         if (err && errorCode !== 'ERR_SERVER_NOT_RUNNING') {
           reject(err);
@@ -155,19 +155,49 @@ function createUIServer(options: UIConfigs) {
     }),
   );
 
+  /** Authorize function - created early so it can be used by artifact handlers */
+  const authorizeFn = getAuthorizeFn(options.auth, { apiServerAddress });
+
+  /**
+   * Artifact Authorization Middleware
+   * Security fix for https://github.com/kubeflow/pipelines/issues/9889
+   * This middleware validates namespace access before allowing artifact retrieval,
+   * preventing unauthorized cross-namespace artifact access.
+   */
+  const artifactsAuthMiddleware = getArtifactsAuthMiddleware(
+    authorizeFn,
+    options.auth.enabled,
+    options.auth.kubeflowUserIdHeader,
+  );
+
   /** Artifact */
-  registerHandler(
-    app.get,
+  // Authorization middleware runs once on the catch-all /artifacts/* route,
+  // protecting all artifact endpoints. When proxy is disabled, the proxy
+  // handler calls next() and falls through to the specific handler below.
+  // Security fix for https://github.com/kubeflow/pipelines/issues/9889
+
+  // Proxy handler (checked first — if enabled, proxies to namespaced artifact service)
+  app.get(
     '/artifacts/*',
+    artifactsAuthMiddleware,
     getArtifactsProxyHandler({
       enabled: options.artifacts.proxy.enabled,
       allowedDomain: options.artifacts.allowedDomain,
       namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
     }),
   );
+  app.get(
+    `${basePath}/artifacts/*`,
+    artifactsAuthMiddleware,
+    getArtifactsProxyHandler({
+      enabled: options.artifacts.proxy.enabled,
+      allowedDomain: options.artifacts.allowedDomain,
+      namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
+    }),
+  );
+
   // /artifacts/get endpoint tries to extract the artifact to return pure text content
-  registerHandler(
-    app.get,
+  app.get(
     '/artifacts/get',
     getArtifactsHandler({
       artifactsConfigs: options.artifacts,
@@ -176,14 +206,18 @@ function createUIServer(options: UIConfigs) {
       options: options,
     }),
   );
-  // /artifacts/ endpoint downloads the artifact as is, it does not try to unzip or untar.
-  registerHandler(
-    app.get,
-    // The last * represents object key. Key could contain special characters like '/',
-    // so we cannot use `:key` as the placeholder.
-    // It is important to include the original object's key at the end of the url, because
-    // browser automatically determines file extension by the url. A wrong extension may affect
-    // whether the file can be opened by the correct application by default.
+  app.get(
+    `${basePath}/artifacts/get`,
+    getArtifactsHandler({
+      artifactsConfigs: options.artifacts,
+      useParameter: false,
+      tryExtract: true,
+      options: options,
+    }),
+  );
+
+  // /artifacts/:source/:bucket/* endpoint downloads the artifact as is
+  app.get(
     '/artifacts/:source/:bucket/*',
     getArtifactsHandler({
       artifactsConfigs: options.artifacts,
@@ -192,9 +226,15 @@ function createUIServer(options: UIConfigs) {
       options: options,
     }),
   );
-
-  /** Authorize function */
-  const authorizeFn = getAuthorizeFn(options.auth, { apiServerAddress });
+  app.get(
+    `${basePath}/artifacts/:source/:bucket/*`,
+    getArtifactsHandler({
+      artifactsConfigs: options.artifacts,
+      useParameter: true,
+      tryExtract: false,
+      options: options,
+    }),
+  );
 
   /** Tensorboard viewer */
   const {
@@ -212,7 +252,7 @@ function createUIServer(options: UIConfigs) {
       '/k8s/pod/logs',
       createProxyMiddleware({
         changeOrigin: true,
-        onProxyReq: proxyReq => {
+        onProxyReq: (proxyReq) => {
           console.log('Proxied log request: ', proxyReq.path);
         },
         headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
@@ -244,7 +284,7 @@ function createUIServer(options: UIConfigs) {
       '/k8s/pod/logs',
       createProxyMiddleware({
         changeOrigin: true,
-        onProxyReq: proxyReq => {
+        onProxyReq: (proxyReq) => {
           console.log('Proxied log request: ', proxyReq.path);
         },
         headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
@@ -292,7 +332,7 @@ function createUIServer(options: UIConfigs) {
     '/ml_metadata.*',
     createProxyMiddleware({
       changeOrigin: true,
-      onProxyReq: proxyReq => {
+      onProxyReq: (proxyReq) => {
         console.log('Metadata proxied request: ', (proxyReq as any).path);
       },
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
@@ -327,7 +367,7 @@ function createUIServer(options: UIConfigs) {
     `/${apiVersion1Prefix}/*`,
     createProxyMiddleware({
       changeOrigin: true,
-      onProxyReq: proxyReq => {
+      onProxyReq: (proxyReq) => {
         console.log('Proxied request: ', proxyReq.path);
       },
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
@@ -338,7 +378,7 @@ function createUIServer(options: UIConfigs) {
     `/${apiVersion2Prefix}/*`,
     createProxyMiddleware({
       changeOrigin: true,
-      onProxyReq: proxyReq => {
+      onProxyReq: (proxyReq) => {
         console.log('Proxied request: ', proxyReq.path);
       },
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
@@ -350,11 +390,11 @@ function createUIServer(options: UIConfigs) {
     `${basePath}/${apiVersion1Prefix}/*`,
     createProxyMiddleware({
       changeOrigin: true,
-      onProxyReq: proxyReq => {
+      onProxyReq: (proxyReq) => {
         console.log('Proxied request: ', proxyReq.path);
       },
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
-      pathRewrite: pathStr =>
+      pathRewrite: (pathStr) =>
         pathStr.startsWith(basePath) ? pathStr.substr(basePath.length, pathStr.length) : pathStr,
       target: apiServerAddress,
     }),
@@ -363,11 +403,11 @@ function createUIServer(options: UIConfigs) {
     `${basePath}/${apiVersion2Prefix}/*`,
     createProxyMiddleware({
       changeOrigin: true,
-      onProxyReq: proxyReq => {
+      onProxyReq: (proxyReq) => {
         console.log('Proxied request: ', proxyReq.path);
       },
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
-      pathRewrite: pathStr =>
+      pathRewrite: (pathStr) =>
         pathStr.startsWith(basePath) ? pathStr.substr(basePath.length, pathStr.length) : pathStr,
       target: apiServerAddress,
     }),

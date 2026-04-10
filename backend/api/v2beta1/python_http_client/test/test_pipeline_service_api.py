@@ -98,6 +98,20 @@ class TestPipelineServiceApi(unittest.TestCase):
         """
         pass
 
+    def test_pipeline_service_update_pipeline(self):
+        """Test case for pipeline_service_update_pipeline
+
+        Updates a pipeline's mutable fields (display_name, tags).  # noqa: E501
+        """
+        pass
+
+    def test_pipeline_service_update_pipeline_version(self):
+        """Test case for pipeline_service_update_pipeline_version
+
+        Updates a pipeline version's mutable fields (display_name, tags).  # noqa: E501
+        """
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -13,6 +13,7 @@ on:
       - 'frontend/**'
       - 'manifests/kustomize/**'
       - 'test/server-integration-test/**'
+      - 'test/frontend-integration-test/**'
       - '!**/*.md'
       - '!**/OWNERS'
 
@@ -30,7 +31,7 @@ jobs:
     name: Frontend Integration Tests - K8s ${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -72,12 +73,23 @@ jobs:
 
       - name: Build frontend integration tests image
         working-directory: ./test/frontend-integration-test
-        run: docker build . -t kfp-frontend-integration-test:local
+        run: docker build --build-arg NODE_VERSION=$(tr -d 'v' < ../../frontend/.nvmrc) -t kfp-frontend-integration-test:local .
+
+      - name: Prepare frontend integration test artifacts
+        if: ${{ steps.forward-frontend-port.outcome == 'success' }}
+        run: |
+          mkdir -p /tmp/frontend-integration-artifacts/screenshots
+          chmod -R 777 /tmp/frontend-integration-artifacts
 
       - name: Frontend integration tests
         id: tests
         if: ${{ steps.forward-frontend-port.outcome == 'success' }}
-        run: docker run --net=host kfp-frontend-integration-test:local
+        run: |
+          docker run \
+            --net=host \
+            -v /tmp/frontend-integration-artifacts:/tmp/frontend-integration-artifacts \
+            -e FRONTEND_INTEGRATION_ARTIFACT_DIR=/tmp/frontend-integration-artifacts \
+            kfp-frontend-integration-test:local
         continue-on-error: true
 
       - name: Collect failed logs
@@ -88,7 +100,10 @@ jobs:
 
       - name: Collect test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kfp-frontend-integration-test-artifacts-k8s-${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
-          path: /tmp/tmp*/*
+          if-no-files-found: warn
+          path: |
+            /tmp/tmp*/*
+            /tmp/frontend-integration-artifacts/**/*

@@ -126,8 +126,8 @@ if [ "${MULTI_USER}" == "true" ]; then
   kubectl wait --for condition=established --timeout=30s crd/compositecontrollers.metacontroller.k8s.io
 
   echo "Installing Profile Controller Resources..."
-  kubectl apply -k https://github.com/kubeflow/manifests/applications/profiles/upstream/overlays/kubeflow?ref=master
-  kubectl -n kubeflow wait --for=condition=Ready pods -l kustomize.component=profiles --timeout 180s
+  kubectl apply -k https://github.com/kubeflow/manifests/applications/dashboard/upstream/profile-controller/overlays/kubeflow?ref=master
+  kubectl -n kubeflow wait --for=condition=Ready pods -l app.kubernetes.io/name=profile-controller --timeout 180s
 fi
 
 # Manifests will be deployed according to the flag provided
@@ -183,7 +183,6 @@ fi
 if [ "${MULTI_USER}" == "true" ]; then
   echo "Creating KF Profile..."
   kubectl apply -f test_data/kubernetes/seaweedfs/test-profiles.yaml
-  sleep 30 # Let the profile controler reconcile the namespace
 
   echo "Applying kubeflow-edit ClusterRole with proper aggregation..."
   kubectl apply -f test_data/kubernetes/seaweedfs/kubeflow-edit-clusterrole.yaml
@@ -192,16 +191,40 @@ if [ "${MULTI_USER}" == "true" ]; then
   kubectl apply -f test_data/kubernetes/seaweedfs/allow-user-namespace-access.yaml
 fi
 
-# Verify pipeline integration for multi-user mode
+# Wait for profile controller to reconcile and verify pipeline integration
 if [ "${MULTI_USER}" == "true" ]; then
-  echo "Verifying Pipeline Integration..."
   KF_PROFILE=kubeflow-user-example-com
-  if ! kubectl get secret mlpipeline-minio-artifact -n $KF_PROFILE > /dev/null 2>&1; then
-    echo "Error: Secret mlpipeline-minio-artifact not found in namespace $KF_PROFILE"
+  echo "Waiting for profile controller to reconcile namespace ${KF_PROFILE}..."
+
+  TIMEOUT=300
+  INTERVAL=5
+  ELAPSED=0
+  while [ $ELAPSED -lt $TIMEOUT ]; do
+    if kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" > /dev/null 2>&1; then
+      echo "Secret mlpipeline-minio-artifact found in namespace ${KF_PROFILE} after ${ELAPSED}s"
+      break
+    fi
+    echo "Waiting for secret mlpipeline-minio-artifact in namespace ${KF_PROFILE}... (${ELAPSED}s/${TIMEOUT}s)"
+    sleep $INTERVAL
+    ELAPSED=$((ELAPSED + INTERVAL))
+  done
+
+  if ! kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" > /dev/null 2>&1; then
+    echo "ERROR: Secret mlpipeline-minio-artifact not found in namespace ${KF_PROFILE} after ${TIMEOUT}s"
+    echo "Checking namespace labels:"
+    kubectl get namespace "$KF_PROFILE" --show-labels 2>&1 || true
+    echo "Checking profile controller logs:"
+    kubectl -n kubeflow logs deploy/kubeflow-pipelines-profile-controller --tail=50 2>&1 || true
+    echo "Checking metacontroller logs:"
+    kubectl -n kubeflow logs -l app.kubernetes.io/name=metacontroller --tail=50 2>&1 || true
+    exit 1
   fi
-  kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" -o json | jq -r '.data | keys[] as $k | "\($k): \(. | .[$k] | @base64d)"' | tr '\n' ' '
+
+  echo "Verifying Pipeline Integration..."
+  echo "Secret keys present: $(kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" -o json | jq -r '.data | keys | join(", ")')"
 fi
 
 collect_artifacts kubeflow
 
 echo "Finished KFP deployment."
+exit 0
