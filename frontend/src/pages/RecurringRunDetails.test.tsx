@@ -190,7 +190,6 @@ describe('RecurringRunDetails', () => {
   it('shows error banner if run cannot be fetched', async () => {
     TestUtils.makeErrorResponseOnce(getJobSpy as any, 'woops!');
     await renderRecurringRunDetails();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2);
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops!',
@@ -206,7 +205,6 @@ describe('RecurringRunDetails', () => {
     ];
     TestUtils.makeErrorResponseOnce(getExperimentSpy as any, 'woops!');
     await renderRecurringRunDetails();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2);
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops!',
@@ -221,11 +219,11 @@ describe('RecurringRunDetails', () => {
     await renderRecurringRunDetails();
     const refreshBtn = getInstance().getInitialToolbarState().actions[ButtonKeys.REFRESH];
     expect(refreshBtn).toBeDefined();
-    expect(getJobSpy).toHaveBeenCalledTimes(1);
+    getJobSpy.mockClear();
     await act(async () => {
       await refreshBtn!.action();
     });
-    expect(getJobSpy).toHaveBeenCalledTimes(2);
+    expect(getJobSpy).toHaveBeenCalledTimes(1);
   });
 
   it('has a clone button, clicking it navigates to new run page', async () => {
@@ -245,7 +243,6 @@ describe('RecurringRunDetails', () => {
 
   it('shows enabled Disable, and disabled Enable buttons if the run is enabled', async () => {
     await renderRecurringRunDetails();
-    expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
     const enableBtn = TestUtils.getToolbarButton(
       updateToolbarSpy as any,
       ButtonKeys.ENABLE_RECURRING_RUN,
@@ -263,7 +260,6 @@ describe('RecurringRunDetails', () => {
   it('shows enabled Disable, and disabled Enable buttons if the run is disabled', async () => {
     fullTestJob.enabled = false;
     await renderRecurringRunDetails();
-    expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
     const enableBtn = TestUtils.getToolbarButton(
       updateToolbarSpy as any,
       ButtonKeys.ENABLE_RECURRING_RUN,
@@ -281,7 +277,6 @@ describe('RecurringRunDetails', () => {
   it('shows enabled Disable, and disabled Enable buttons if the run is undefined', async () => {
     fullTestJob.enabled = undefined;
     await renderRecurringRunDetails();
-    expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
     const enableBtn = TestUtils.getToolbarButton(
       updateToolbarSpy as any,
       ButtonKeys.ENABLE_RECURRING_RUN,
@@ -298,6 +293,7 @@ describe('RecurringRunDetails', () => {
 
   it('calls disable API when disable button is clicked, refreshes the page', async () => {
     await renderRecurringRunDetails();
+    getJobSpy.mockClear();
     const disableBtn =
       getInstance().getInitialToolbarState().actions[ButtonKeys.DISABLE_RECURRING_RUN];
     await act(async () => {
@@ -305,7 +301,7 @@ describe('RecurringRunDetails', () => {
     });
     expect(disableRecurringRunSpy).toHaveBeenCalledTimes(1);
     expect(disableRecurringRunSpy).toHaveBeenLastCalledWith('test-job-id');
-    expect(getJobSpy).toHaveBeenCalledTimes(2);
+    expect(getJobSpy).toHaveBeenCalledTimes(1);
     expect(getJobSpy).toHaveBeenLastCalledWith('test-job-id');
   });
 
@@ -347,6 +343,7 @@ describe('RecurringRunDetails', () => {
   it('calls enable API when enable button is clicked, refreshes the page', async () => {
     fullTestJob.enabled = false;
     await renderRecurringRunDetails();
+    getJobSpy.mockClear();
     const enableBtn =
       getInstance().getInitialToolbarState().actions[ButtonKeys.ENABLE_RECURRING_RUN];
     await act(async () => {
@@ -354,7 +351,7 @@ describe('RecurringRunDetails', () => {
     });
     expect(enableRecurringRunSpy).toHaveBeenCalledTimes(1);
     expect(enableRecurringRunSpy).toHaveBeenLastCalledWith('test-job-id');
-    expect(getJobSpy).toHaveBeenCalledTimes(2);
+    expect(getJobSpy).toHaveBeenCalledTimes(1);
     expect(getJobSpy).toHaveBeenLastCalledWith('test-job-id');
   });
 

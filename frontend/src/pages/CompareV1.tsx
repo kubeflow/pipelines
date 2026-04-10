@@ -215,6 +215,7 @@ class CompareV1 extends Page<{}, CompareState> {
   }
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     return this.load();
   }
 

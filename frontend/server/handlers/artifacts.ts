@@ -21,7 +21,7 @@ import {
 } from '../utils.js';
 import { createMinioClient, getObjectStream } from '../minio-helper.js';
 import * as serverInfo from '../helpers/server-info.js';
-import { Handler, Request, Response } from 'express';
+import { Handler, Request, Response, NextFunction } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts.js';
 import { URL } from 'url';
@@ -32,6 +32,11 @@ import * as fs from 'fs';
 import { isAllowedDomain } from './domain-checker.js';
 import { getK8sSecret } from '../k8s-helper.js';
 import { CredentialBody } from 'google-auth-library';
+import { AuthorizeFn } from '../helpers/auth.js';
+import {
+  AuthorizeRequestResources,
+  AuthorizeRequestVerb,
+} from '../src/generated/apis/auth/index.js';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -74,6 +79,111 @@ export interface GCSProviderInfo {
 }
 
 /**
+ * Returns an authorization middleware for artifact endpoints.
+ * This middleware handles 3 modes:
+ *
+ * 1. Standalone KFP deployment without Kubeflow platform (single-tenant):
+ *    No Subject Access Review and 100% insecure. The namespace query
+ *    parameter is optional and not validated or authorized when
+ *    authorization is disabled.
+ *
+ * 2. Default multi-tenant deployment of KFP within Kubeflow platform:
+ *    Namespace parameter is required, its format is validated, and RBAC is
+ *    checked (the user is authenticated to access the artifact from the
+ *    specific namespace folder on the object storage via Subject Access
+ *    Review) before accessing SeaweedFS/storage directly.
+ *
+ * 3. Artifact PROXY MODE (overhead, disabled by default):
+ *    Namespace parameter is required, its format is validated, and RBAC is
+ *    checked. This adds significant overhead to each namespace, decreases
+ *    scalability, and is prone to many CVEs in the artifact proxy
+ *    deployment.
+ *
+ * Note: Secret-backed provider mode (fromEnv === 'false') is unsupported
+ * in multi-user deployments. The ml-pipeline-ui ClusterRole no longer
+ * grants secrets:get/list permissions, so getK8sSecret() calls will be
+ * denied by RBAC at the cluster level. This mode may still work in
+ * standalone (single-tenant) deployments where the service account has
+ * direct secret access. See: https://github.com/kubeflow/pipelines/pull/12860
+ *
+ * Security: This addresses the vulnerability where the namespace parameter
+ * could be manipulated to access artifacts from other namespaces.
+ * See https://github.com/kubeflow/pipelines/issues/9889
+ *
+ * @param authorizeFn The authorization function to validate permissions
+ * @param authEnabled Whether authorization is enabled
+ * @param kubeflowUserIdHeader The header name containing the user identity
+ */
+export function getArtifactsAuthMiddleware(
+  authorizeFn: AuthorizeFn,
+  authEnabled: boolean,
+  kubeflowUserIdHeader: string,
+): Handler {
+  return async (request: Request, response: Response, next: NextFunction) => {
+    if (!authEnabled) {
+      return next();
+    }
+
+    const userId = request.headers[kubeflowUserIdHeader.toLowerCase()];
+    if (!userId) {
+      console.warn(
+        `[SECURITY] Unauthenticated artifact access attempt. Path: ${request.originalUrl}`,
+      );
+      response.status(401).send('Authentication required for artifact access');
+      return;
+    }
+
+    const rawNamespace = request.query.namespace;
+    const namespace: string | undefined = Array.isArray(rawNamespace)
+      ? String(rawNamespace[0])
+      : typeof rawNamespace === 'string'
+        ? rawNamespace
+        : undefined;
+
+    if (!namespace) {
+      console.warn(
+        `[SECURITY] Missing namespace parameter. ` +
+          `User: ${userId}, Path: ${request.originalUrl}`,
+      );
+      response.status(400).send('Namespace parameter is required when authentication is enabled');
+      return;
+    }
+
+    if (!isAllowedResourceName(namespace)) {
+      console.warn(
+        `[SECURITY] Invalid namespace format. ` +
+          `User: ${userId}, ` +
+          `Namespace: ${namespace}, Path: ${request.originalUrl}`,
+      );
+      response.status(400).send('Invalid namespace format');
+      return;
+    }
+
+    const authError = await authorizeFn(
+      {
+        verb: AuthorizeRequestVerb.GET,
+        resources: AuthorizeRequestResources.VIEWERS,
+        namespace: namespace,
+      },
+      request,
+    );
+
+    if (authError) {
+      console.warn(
+        `[SECURITY] Unauthorized cross-namespace access attempt. ` +
+          `User: ${userId}, ` +
+          `Namespace: ${namespace}, Path: ${request.originalUrl}, ` +
+          `Reason: ${authError.message}`,
+      );
+      response.status(403).send(authError.message);
+      return;
+    }
+
+    next();
+  };
+}
+
+/**
  * Returns an artifact handler which retrieve an artifact from the corresponding
  * backend (i.e. gcs, minio, s3, http/https).
  * @param artifactsConfigs configs to retrieve the artifacts from the various backend.
@@ -105,6 +215,10 @@ export function getArtifactsHandler({
     const {
       peek = 0,
       providerInfo = '',
+      // When auth is enabled, the authorization middleware has already validated
+      // and required the namespace parameter before this handler runs.
+      // When auth is disabled (standalone mode), fallback to serverNamespace
+      // for provider-based credential lookups via getK8sSecret (Issue #9889).
       namespace = options.server.serverNamespace,
     } = req.query as Partial<ArtifactsQueryStrings>;
     if (!source) {
@@ -215,13 +329,14 @@ function getHttpArtifactsHandler(
   peek: number = 0,
 ) {
   return async (req: Request, res: Response) => {
-    const headers = {};
+    const headers: Record<string, string> = {};
 
     // add authorization header to fetch request if key is non-empty
     if (auth.key.length > 0) {
       // inject original request's value if exists, otherwise default to provided default value
-      headers[auth.key] =
+      const headerValue =
         req.headers[auth.key] || req.headers[auth.key.toLowerCase()] || auth.defaultValue;
+      headers[auth.key] = Array.isArray(headerValue) ? headerValue[0] : headerValue;
     }
     if (!isAllowedDomain(url, allowedDomain)) {
       res.status(500).send(`Domain not allowed.`);
@@ -259,6 +374,14 @@ function getMinioArtifactHandler(
   };
 }
 
+/**
+ * Parses GCS provider info and retrieves credentials from a Kubernetes secret.
+ *
+ * WARNING: This function is unsupported in multi-user deployments.
+ * The ml-pipeline-ui ClusterRole no longer grants secrets:get/list
+ * permissions, so getK8sSecret() calls will be denied by RBAC.
+ * See: https://github.com/kubeflow/pipelines/pull/12860
+ */
 async function parseGCSProviderInfo(
   providerInfo: GCSProviderInfo,
   namespace: string,
@@ -456,7 +579,7 @@ export function getArtifactsProxyHandler({
   if (!enabled) {
     return (_req, _res, next) => next();
   }
-  return createProxyMiddleware(
+  const proxy = createProxyMiddleware(
     (_pathname, req) => {
       // only proxy requests with namespace query parameter
       return !!getNamespaceFromUrl(req.url || '');
@@ -488,6 +611,14 @@ export function getArtifactsProxyHandler({
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
     },
   );
+  return (req, res, next) => {
+    const namespace = getNamespaceFromUrl(req.url || '');
+    if (namespace && !isAllowedResourceName(namespace)) {
+      res.status(400).send('Invalid namespace');
+      return;
+    }
+    proxy(req, res, next);
+  };
 }
 
 function getNamespaceFromUrl(path: string): string | undefined {

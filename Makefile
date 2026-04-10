@@ -33,3 +33,12 @@ test-backend-visualization:
 	cd backend/src/apiserver/visualization && \
 	python3 test_exporter.py && \
 	python3 test_server.py
+# Component YAML Tests
+.PHONY: test-component-yaml-install-deps
+test-component-yaml-install-deps:
+	python3 -m pip install pytest
+	python3 -m pip install pytest-asyncio-cooperative==0.37.0
+
+.PHONY: test-component-yaml-run
+test-component-yaml-run:
+	./test/presubmit-component-yaml.sh

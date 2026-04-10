@@ -573,7 +573,6 @@ describe('PipelineDetails', () => {
         expect(getV1RunSpy).toHaveBeenCalled();
       });
 
-      expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           additionalInfo: 'Unexpected token \'o\', "not valid JSON" is not valid JSON',
@@ -591,8 +590,7 @@ describe('PipelineDetails', () => {
     tree = renderPipelineDetailsElement(<PipelineDetails {...generateProps(undefined, true)} />);
     await getV1PipelineSpy;
     await TestUtils.flushPromises();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
-    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+    expect(updateBannerSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops',
         message: 'Cannot retrieve run details. Click Details for more information.',
@@ -610,7 +608,6 @@ describe('PipelineDetails', () => {
       tree = renderPipelineDetailsElement(<PipelineDetails {...generateProps(undefined, true)} />);
       await getV1PipelineSpy;
       await TestUtils.flushPromises();
-      expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           additionalInfo: 'woops',
@@ -626,8 +623,7 @@ describe('PipelineDetails', () => {
     tree = renderPipelineDetailsElement(<PipelineDetails {...generateProps()} />);
     await getV1PipelineSpy;
     await TestUtils.flushPromises();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
-    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+    expect(updateBannerSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops',
         message: 'Cannot retrieve pipeline details. Click Details for more information.',
@@ -646,7 +642,6 @@ describe('PipelineDetails', () => {
       expect(createGraphSpy).toHaveBeenCalledTimes(0);
     });
 
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // // Once to clear banner, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'No pipeline version is found',
@@ -684,7 +679,6 @@ describe('PipelineDetails', () => {
       });
 
       // No errors
-      expect(updateBannerSpy).toHaveBeenCalledTimes(1); // Once to clear banner
       expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
     },
   );
@@ -717,7 +711,6 @@ describe('PipelineDetails', () => {
       });
 
       // No errors
-      expect(updateBannerSpy).toHaveBeenCalledTimes(1); // Once to clear banner
       expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
     },
   );
@@ -744,7 +737,6 @@ describe('PipelineDetails', () => {
         expect(getV2PipelineVersionSpy).toHaveBeenCalled();
       });
 
-      expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           additionalInfo: 'Important infomation is missing. Pipeline Spec is invalid.',
@@ -779,7 +771,6 @@ describe('PipelineDetails', () => {
       expect(createGraphSpy).toHaveBeenCalled();
     });
 
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad graph',

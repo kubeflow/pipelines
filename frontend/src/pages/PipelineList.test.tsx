@@ -301,14 +301,14 @@ describe('PipelineList', () => {
 
   it('has a Refresh button, clicking it refreshes the pipeline list', async () => {
     await mountWithNPipelines(1, { namespace: 'test-ns' });
-    expect(listPipelinesSpy).toHaveBeenCalledTimes(1);
+    listPipelinesSpy.mockClear();
     const refreshBtn = getToolbarActionFromInstance(ButtonKeys.REFRESH);
     expect(refreshBtn).toBeDefined();
     await act(async () => {
       await refreshBtn.action();
     });
     await waitFor(() => {
-      expect(listPipelinesSpy).toHaveBeenCalledTimes(2);
+      expect(listPipelinesSpy).toHaveBeenCalledTimes(1);
     });
     expect(listPipelinesSpy).toHaveBeenLastCalledWith('test-ns', '', 10, 'created_at desc', '');
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
@@ -332,6 +332,7 @@ describe('PipelineList', () => {
   it('shows error banner when listing pipelines fails after refresh', async () => {
     await renderPipelineList();
     await waitForPipelinesLoad();
+    listPipelinesSpy.mockClear();
     const refreshBtn = getToolbarActionFromInstance(ButtonKeys.REFRESH);
     expect(refreshBtn).toBeDefined();
     TestUtils.makeErrorResponseOnce(listPipelinesSpy as any, 'bad stuff happened');
@@ -339,7 +340,7 @@ describe('PipelineList', () => {
       await refreshBtn.action();
     });
     await waitFor(() => {
-      expect(listPipelinesSpy).toHaveBeenCalledTimes(2);
+      expect(listPipelinesSpy).toHaveBeenCalledTimes(1);
     });
     expect(listPipelinesSpy).toHaveBeenLastCalledWith(undefined, '', 10, 'created_at desc', '');
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
@@ -365,6 +366,7 @@ describe('PipelineList', () => {
       );
     });
     updateBannerSpy.mockReset();
+    listPipelinesSpy.mockClear();
 
     const refreshBtn = getToolbarActionFromInstance(ButtonKeys.REFRESH);
     listPipelinesSpy.mockResolvedValueOnce({
@@ -374,7 +376,7 @@ describe('PipelineList', () => {
       await refreshBtn.action();
     });
     await waitFor(() => {
-      expect(listPipelinesSpy).toHaveBeenCalledTimes(2);
+      expect(listPipelinesSpy).toHaveBeenCalledTimes(1);
     });
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });

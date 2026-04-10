@@ -430,7 +430,6 @@ describe('Trigger', () => {
           }}
         />,
       );
-      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenLastCalledWith({
         catchup: false,
         maxConcurrentRuns: '3',
@@ -556,7 +555,6 @@ describe('Trigger', () => {
           }}
         />,
       );
-      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenLastCalledWith({
         catchup: true,
         maxConcurrentRuns: '4',

@@ -127,6 +127,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
   }
 
   public componentDidMount(): Promise<void> {
+    this._isMounted = true;
     return this.load();
   }
 
@@ -185,9 +186,13 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
     toolbarActions[ButtonKeys.ENABLE_RECURRING_RUN].disabled = !!run.enabled;
     toolbarActions[ButtonKeys.DISABLE_RECURRING_RUN].disabled = !run.enabled;
 
+    if (!this._isMounted) {
+      return;
+    }
+
     this.props.updateToolbar({ actions: toolbarActions, breadcrumbs, pageTitle });
 
-    this.setState({ run });
+    this.setStateSafe({ run });
   }
 
   private _deleteCallback(_: string[], success: boolean): void {

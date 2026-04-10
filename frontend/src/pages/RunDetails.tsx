@@ -171,6 +171,10 @@ export const css = stylesheet({
     fontWeight: 'bold',
     paddingLeft: 20,
   },
+  loadingMessage: {
+    textAlign: 'center',
+    paddingTop: 40,
+  },
 });
 
 class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
@@ -239,7 +243,12 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
   public render(): JSX.Element {
     if (this.props.isLoading) {
-      return <div>Currently loading run information</div>;
+      return (
+        <div className={css.loadingMessage}>
+          <CircularProgress />
+          <div>Currently loading run information.</div>
+        </div>
+      );
     }
 
     const {
@@ -708,6 +717,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   }
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     window.addEventListener('focus', this.onFocusHandler);
     window.addEventListener('blur', this.onBlurHandler);
     await this._startAutoRefresh();
@@ -965,18 +975,22 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       return;
     }
 
-    const outputPathsList = WorkflowParser.loadAllOutputPathsWithStepNames(workflow);
+    try {
+      const outputPathsList = WorkflowParser.loadAllOutputPathsWithStepNames(workflow);
 
-    const configLists = await Promise.all(
-      outputPathsList.map(({ stepName, path }) =>
-        OutputArtifactLoader.load(path, workflow?.metadata?.namespace).then((configs) =>
-          configs.map((config) => ({ config, stepName })),
+      const configLists = await Promise.all(
+        outputPathsList.map(({ stepName, path }) =>
+          OutputArtifactLoader.load(path, workflow?.metadata?.namespace).then((configs) =>
+            configs.map((config) => ({ config, stepName })),
+          ),
         ),
-      ),
-    );
-    const allArtifactConfigs = flatten(configLists);
+      );
+      const allArtifactConfigs = flatten(configLists);
 
-    this.setStateSafe({ allArtifactConfigs });
+      this.setStateSafe({ allArtifactConfigs });
+    } catch (err) {
+      logger.error('Failed to load run outputs:', err);
+    }
   }
 
   private _getDetailsFields(workflow: Workflow, runMetadata?: ApiRun): Array<KeyValue<string>> {

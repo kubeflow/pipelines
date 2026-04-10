@@ -22,6 +22,7 @@ import NewRunParametersV2 from 'src/components/NewRunParametersV2';
 
 testBestPractices();
 
+// Spies on mount-time callbacks may run twice under RTL StrictMode (double mount).
 describe('NewRunParametersV2', () => {
   it('shows parameters', () => {
     const props = {
@@ -529,7 +530,6 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    expect(setIsValidInputSpy).toHaveBeenCalledTimes(1);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(true);
     screen.getByDisplayValue('123');
   });
@@ -551,7 +551,6 @@ describe('NewRunParametersV2', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    expect(setIsValidInputSpy).toHaveBeenCalledTimes(1);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
   });
 
@@ -573,8 +572,9 @@ describe('NewRunParametersV2', () => {
     render(<NewRunParametersV2 {...props} />);
 
     const intParam = screen.getByLabelText('intParam - integer');
+    setIsValidInputSpy.mockClear();
     fireEvent.change(intParam, { target: { value: '123b' } });
-    expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(setIsValidInputSpy).toHaveBeenCalledTimes(1);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
     screen.getByDisplayValue('123b');
     screen.getByText('Invalid input. This parameter should be in integer type');
@@ -599,8 +599,9 @@ describe('NewRunParametersV2', () => {
     render(<NewRunParametersV2 {...props} />);
 
     const intParam = screen.getByDisplayValue('123');
+    setIsValidInputSpy.mockClear();
     fireEvent.change(intParam, { target: { value: '' } });
-    expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(setIsValidInputSpy).toHaveBeenCalledTimes(1);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
     screen.getByText('Missing parameter.');
   });
@@ -623,8 +624,9 @@ describe('NewRunParametersV2', () => {
     render(<NewRunParametersV2 {...props} />);
 
     const boolParam = screen.getByLabelText('boolParam - boolean');
+    setIsValidInputSpy.mockClear();
     fireEvent.change(boolParam, { target: { value: '123' } });
-    expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(setIsValidInputSpy).toHaveBeenCalledTimes(1);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
     screen.getByDisplayValue('123');
     screen.getByText('Invalid input. This parameter should be in boolean type');
@@ -648,8 +650,9 @@ describe('NewRunParametersV2', () => {
     render(<NewRunParametersV2 {...props} />);
 
     const boolParam = screen.getByLabelText('boolParam - boolean');
+    setIsValidInputSpy.mockClear();
     fireEvent.change(boolParam, { target: { value: 'true' } });
-    expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(setIsValidInputSpy).toHaveBeenCalledTimes(1);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(true);
     screen.getByDisplayValue('true');
   });
@@ -672,8 +675,9 @@ describe('NewRunParametersV2', () => {
     render(<NewRunParametersV2 {...props} />);
 
     const doubleParam = screen.getByLabelText('doubleParam - double');
+    setIsValidInputSpy.mockClear();
     fireEvent.change(doubleParam, { target: { value: '123b' } });
-    expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(setIsValidInputSpy).toHaveBeenCalledTimes(1);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
     screen.getByDisplayValue('123b');
     screen.getByText('Invalid input. This parameter should be in double type');
@@ -697,8 +701,9 @@ describe('NewRunParametersV2', () => {
     render(<NewRunParametersV2 {...props} />);
 
     const listParam = screen.getByLabelText('listParam - list');
+    setIsValidInputSpy.mockClear();
     fireEvent.change(listParam, { target: { value: '123' } });
-    expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(setIsValidInputSpy).toHaveBeenCalledTimes(1);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
     screen.getByDisplayValue('123');
     screen.getByText('Invalid input. This parameter should be in list type');
@@ -722,8 +727,9 @@ describe('NewRunParametersV2', () => {
     render(<NewRunParametersV2 {...props} />);
 
     const listParam = screen.getByLabelText('listParam - list');
+    setIsValidInputSpy.mockClear();
     fireEvent.change(listParam, { target: { value: '[1,2,3' } });
-    expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(setIsValidInputSpy).toHaveBeenCalledTimes(1);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
     screen.getByDisplayValue('[1,2,3');
     screen.getByText('Invalid input. This parameter should be in list type');
@@ -747,8 +753,9 @@ describe('NewRunParametersV2', () => {
     render(<NewRunParametersV2 {...props} />);
 
     const structParam = screen.getByLabelText('structParam - dict');
+    setIsValidInputSpy.mockClear();
     fireEvent.change(structParam, { target: { value: '123' } });
-    expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(setIsValidInputSpy).toHaveBeenCalledTimes(1);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
     screen.getByDisplayValue('123');
     screen.getByText('Invalid input. This parameter should be in dict type');
@@ -772,8 +779,9 @@ describe('NewRunParametersV2', () => {
     render(<NewRunParametersV2 {...props} />);
 
     const structParam = screen.getByLabelText('structParam - dict');
+    setIsValidInputSpy.mockClear();
     fireEvent.change(structParam, { target: { value: '[1,2,3]' } });
-    expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(setIsValidInputSpy).toHaveBeenCalledTimes(1);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
     screen.getByDisplayValue('[1,2,3]');
     screen.getByText('Invalid input. This parameter should be in dict type');
@@ -797,8 +805,9 @@ describe('NewRunParametersV2', () => {
     render(<NewRunParametersV2 {...props} />);
 
     const structParam = screen.getByLabelText('structParam - dict');
+    setIsValidInputSpy.mockClear();
     fireEvent.change(structParam, { target: { value: '{"A":1,"B":2}' } });
-    expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(setIsValidInputSpy).toHaveBeenCalledTimes(1);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(true);
     screen.getByDisplayValue('{"A":1,"B":2}');
   });
@@ -826,6 +835,35 @@ describe('NewRunParametersV2', () => {
     render(<NewRunParametersV2 {...props} />);
 
     screen.getByDisplayValue('gs://dummy_pipeline_root');
+  });
+
+  it('shows the cloned pipeline root after remounting with a different runtime config', async () => {
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'default pipelineRoot',
+      specParameters: {},
+      clonedRuntimeConfig: {},
+      handlePipelineRootChange: vi.fn(),
+      handleParameterChange: vi.fn(),
+      setIsValidInput: vi.fn(),
+    };
+    const { rerender } = render(<NewRunParametersV2 key='default' {...props} />);
+
+    fireEvent.click(screen.getByLabelText('Set custom pipeline root.'));
+    fireEvent.change(screen.getByLabelText('pipeline-root'), {
+      target: { value: 'gs://custom_pipeline_root' },
+    });
+    expect(screen.getByDisplayValue('gs://custom_pipeline_root')).toBeInTheDocument();
+
+    rerender(
+      <NewRunParametersV2
+        key='clone'
+        {...props}
+        clonedRuntimeConfig={{ pipeline_root: 'gs://dummy_pipeline_root' }}
+      />,
+    );
+
+    expect(await screen.findByDisplayValue('gs://dummy_pipeline_root')).toBeInTheDocument();
   });
 
   it('shows parameters from cloned RuntimeConfig', () => {
@@ -928,7 +966,6 @@ describe('NewRunParametersV2', () => {
     render(<NewRunParametersV2 {...props} />);
 
     // Verify that handleParameterChange was called on mount with all default values
-    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenCalledWith({
       strParam: 'default string',
       intParam: 42,
@@ -986,8 +1023,6 @@ describe('Bug Fix: Default Parameters in Compare Runs (#12536)', () => {
     render(<NewRunParametersV2 {...props} />);
 
     // KEY ASSERTION: handleParameterChange called on mount (not 0!)
-    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
-
     // ALL default parameters sent to API
     expect(handleParameterChangeSpy).toHaveBeenCalledWith({
       string_param: 'default_string_value',

@@ -2119,7 +2119,7 @@ exports[`ViewerContainer > renders a viewer of type TABLE 1`] = `
         />
         <p
           class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
-          id="_r_3_"
+          id="react-use-id-0"
         >
           Rows per page:
         </p>
@@ -2127,12 +2127,12 @@ exports[`ViewerContainer > renders a viewer of type TABLE 1`] = `
           class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
         >
           <div
-            aria-controls="_r_4_"
+            aria-controls="react-use-id-2"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="_r_3_ _r_2_"
+            aria-labelledby="react-use-id-0 react-use-id-1"
             class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
-            id="_r_2_"
+            id="react-use-id-1"
             role="combobox"
             tabindex="0"
           >
@@ -2233,7 +2233,7 @@ exports[`ViewerContainer > renders a viewer of type TENSORBOARD 1`] = `
             class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls="_r_5_"
+              aria-controls="react-use-id-0"
               aria-expanded="false"
               aria-haspopup="listbox"
               class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
@@ -2321,7 +2321,7 @@ exports[`ViewerContainer > renders a viewer of type VISUALIZATION_CREATOR 1`] = 
         style="min-height: 60px; width: 100%;"
       >
         <div
-          aria-controls="_r_6_"
+          aria-controls="react-use-id-1"
           aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
@@ -2366,7 +2366,7 @@ exports[`ViewerContainer > renders a viewer of type VISUALIZATION_CREATOR 1`] = 
       <label
         class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
-        for="_r_7_"
+        for="react-use-id-0"
         id="_r_7_-label"
       >
         Source
@@ -2377,7 +2377,7 @@ exports[`ViewerContainer > renders a viewer of type VISUALIZATION_CREATOR 1`] = 
         <input
           aria-invalid="false"
           class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-          id="_r_7_"
+          id="react-use-id-0"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""

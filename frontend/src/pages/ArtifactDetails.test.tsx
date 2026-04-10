@@ -246,9 +246,16 @@ describe('ArtifactDetails', () => {
   });
 
   it('renders a new ArtifactDetails instance when artifact ID in URL changes', async () => {
-    getArtifactsByIDSpy
-      .mockResolvedValueOnce(buildGetArtifactsByIDResponse([buildArtifact(1, 'artifact-one')]))
-      .mockResolvedValueOnce(buildGetArtifactsByIDResponse([buildArtifact(2, 'artifact-two')]));
+    getArtifactsByIDSpy.mockImplementation((req) => {
+      const id = req.getArtifactIdsList()[0];
+      if (id === 1) {
+        return Promise.resolve(buildGetArtifactsByIDResponse([buildArtifact(1, 'artifact-one')]));
+      }
+      if (id === 2) {
+        return Promise.resolve(buildGetArtifactsByIDResponse([buildArtifact(2, 'artifact-two')]));
+      }
+      return Promise.resolve(buildGetArtifactsByIDResponse([]));
+    });
     getArtifactTypesByIDSpy.mockResolvedValue(
       buildGetArtifactTypesByIDResponse([buildArtifactType()]),
     );

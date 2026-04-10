@@ -244,7 +244,7 @@ describe('ConfidenceMetricsSection', () => {
     );
     await TestUtils.flushPromises();
 
-    expect(validateConfidenceMetricsSpy).toHaveBeenCalledTimes(1);
+    expect(validateConfidenceMetricsSpy).toHaveBeenCalled();
     screen.getByText(
       "Error in artifact1 (artifact ID #1) artifact's confidenceMetrics data format.",
     );

@@ -102,6 +102,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   private api = Api.getInstance();
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     return this.load();
   }
 
@@ -195,10 +196,14 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
       if (version) {
         title += ` (version: ${version})`;
       }
+      if (!this._isMounted) {
+        return;
+      }
+
       this.props.updateToolbar({
         pageTitle: title,
       });
-      this.setState({ artifact, artifactType });
+      this.setStateSafe({ artifact, artifactType });
     } catch (err) {
       if (isServiceError(err)) {
         this.showPageError(serviceErrorToString(err));
