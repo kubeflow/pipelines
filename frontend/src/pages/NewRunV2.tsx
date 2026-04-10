@@ -43,8 +43,12 @@ import NewRunParametersV2 from 'src/components/NewRunParametersV2';
 import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
 import Trigger from 'src/components/Trigger';
 import { color, commonCss, padding } from 'src/Css';
-import { ComponentInputsSpec_ParameterSpec } from 'src/generated/pipeline_spec/pipeline_spec';
 import { Apis, ExperimentSortKeys, PipelineSortKeys, PipelineVersionSortKeys } from 'src/lib/Apis';
+import {
+  getInitialParameterState,
+  type RuntimeParameters,
+  type SpecParameters,
+} from 'src/lib/NewRunParametersUtils';
 import { URLParser } from 'src/lib/URLParser';
 import { errorToMessage, generateRandomString, logger } from 'src/lib/Utils';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
@@ -93,8 +97,7 @@ interface RunV2Props {
 
 type NewRunV2Props = RunV2Props & PageProps;
 
-export type SpecParameters = { [key: string]: ComponentInputsSpec_ParameterSpec };
-export type RuntimeParameters = { [key: string]: any };
+export type { RuntimeParameters, SpecParameters } from 'src/lib/NewRunParametersUtils';
 type KeyedState<T> = { key: string; value: T };
 
 const hashString64 = (value: string): string => {
@@ -330,10 +333,14 @@ function NewRunV2(props: NewRunV2Props) {
       )}:${clonedRuntimeConfigKey.length}:${hashString64(clonedRuntimeConfigKey)}`,
     [clonedRuntimeConfigKey, templateString],
   );
+  const initialParameterState = useMemo(
+    () => getInitialParameterState(specParameters, clonedRuntimeConfig),
+    [clonedRuntimeConfig, specParameters],
+  );
   const initialPipelineRoot = clonedRuntimeConfig?.pipeline_root ?? defaultPipelineRoot;
   const [runtimeParameters, handleParameterChange] = useKeyedState<RuntimeParameters>(
     parameterStateKey,
-    {},
+    initialParameterState.runtimeParameters,
   );
   const [pipelineRoot, handlePipelineRootChange] = useKeyedState<string | undefined>(
     parameterStateKey,
@@ -341,7 +348,7 @@ function NewRunV2(props: NewRunV2Props) {
   );
   const [isParameterValid, handleParameterValidityChange] = useKeyedState<boolean>(
     parameterStateKey,
-    false,
+    initialParameterState.isValid,
   );
   const labelTextAdjective = isRecurringRun ? 'recurring ' : '';
   const usePipelineFromRunLabel = `Using pipeline from existing ${labelTextAdjective} run.`;
@@ -722,6 +729,7 @@ function NewRunV2(props: NewRunV2Props) {
         <NewRunParametersV2
           key={parameterStateKey}
           pipelineRoot={pipelineRoot}
+          initialParameterState={initialParameterState}
           handlePipelineRootChange={handlePipelineRootChange}
           titleMessage={
             existingPipeline || cloneOrigin.isClone
