@@ -97,9 +97,10 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
     () =>
       selectedArtifacts.map((selectedArtifact) => ({
         selectedItem: selectedArtifact.selectedItem,
-        linkedArtifact:
-          selectedArtifact.linkedArtifact ??
-          getLinkedArtifactFromSelectedItem(filteredRunArtifacts, selectedArtifact.selectedItem),
+        linkedArtifact: getLinkedArtifactFromSelectedItem(
+          filteredRunArtifacts,
+          selectedArtifact.selectedItem,
+        ),
       })),
     [filteredRunArtifacts, selectedArtifacts],
   );

@@ -477,4 +477,79 @@ describe('MetricsDropdown', () => {
 
     expect(await screen.findByLabelText('run1 > execution1 > artifact1')).toBeInTheDocument();
   });
+
+  it('re-resolves the selected artifact from the current compare data when labels stay the same', async () => {
+    const getHtmlViewerConfigSpy = vi.spyOn(metricsVisualizations, 'getHtmlViewerConfig');
+    getHtmlViewerConfigSpy.mockResolvedValue([]);
+
+    const staleLinkedArtifact = newMockLinkedArtifact(10, 'artifact1');
+    const freshLinkedArtifact = newMockLinkedArtifact(11, 'artifact1');
+    const selectedArtifactsWithStaleArtifact: SelectedArtifact[] = [
+      {
+        linkedArtifact: staleLinkedArtifact,
+        selectedItem: {
+          itemName: 'run1',
+          subItemName: 'execution1',
+          subItemSecondaryName: 'artifact1',
+        },
+      },
+      emptySelectedArtifacts[1],
+    ];
+
+    const { rerender } = render(
+      <CommonTestWrapper>
+        <MetricsDropdown
+          filteredRunArtifacts={[
+            {
+              run: {
+                run_id: '1',
+                display_name: 'run1',
+              },
+              executionArtifacts: [
+                {
+                  execution: newMockExecution(1, 'execution1'),
+                  linkedArtifacts: [staleLinkedArtifact],
+                },
+              ],
+            },
+          ]}
+          metricsTab={MetricsType.HTML}
+          selectedArtifacts={selectedArtifactsWithStaleArtifact}
+          updateSelectedArtifacts={updateSelectedArtifactsSpy}
+        />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+    await waitFor(() => {
+      expect(getHtmlViewerConfigSpy).toHaveBeenLastCalledWith([staleLinkedArtifact], undefined);
+    });
+
+    rerender(
+      <CommonTestWrapper>
+        <MetricsDropdown
+          filteredRunArtifacts={[
+            {
+              run: {
+                run_id: '2',
+                display_name: 'run1',
+              },
+              executionArtifacts: [
+                {
+                  execution: newMockExecution(2, 'execution1'),
+                  linkedArtifacts: [freshLinkedArtifact],
+                },
+              ],
+            },
+          ]}
+          metricsTab={MetricsType.HTML}
+          selectedArtifacts={selectedArtifactsWithStaleArtifact}
+          updateSelectedArtifacts={updateSelectedArtifactsSpy}
+        />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(getHtmlViewerConfigSpy).toHaveBeenLastCalledWith([freshLinkedArtifact], undefined);
+    });
+  });
 });
