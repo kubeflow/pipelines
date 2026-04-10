@@ -92,39 +92,20 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
     updateSelectedArtifacts,
     namespace,
   } = props;
-  const [firstSelectedItem, setFirstSelectedItem] = useState<SelectedItem>(
-    selectedArtifacts[0].selectedItem,
-  );
-  const [secondSelectedItem, setSecondSelectedItem] = useState<SelectedItem>(
-    selectedArtifacts[1].selectedItem,
-  );
-
-  useEffect(() => {
-    setFirstSelectedItem(selectedArtifacts[0].selectedItem);
-    setSecondSelectedItem(selectedArtifacts[1].selectedItem);
-  }, [selectedArtifacts]);
 
   const selectedArtifactsForDisplay = useMemo(
-    () => [
-      {
-        selectedItem: firstSelectedItem,
-        linkedArtifact: getLinkedArtifactFromSelectedItem(filteredRunArtifacts, firstSelectedItem),
-      },
-      {
-        selectedItem: secondSelectedItem,
-        linkedArtifact: getLinkedArtifactFromSelectedItem(filteredRunArtifacts, secondSelectedItem),
-      },
-    ],
-    [filteredRunArtifacts, firstSelectedItem, secondSelectedItem],
+    () =>
+      selectedArtifacts.map((selectedArtifact) => ({
+        selectedItem: selectedArtifact.selectedItem,
+        linkedArtifact:
+          selectedArtifact.linkedArtifact ??
+          getLinkedArtifactFromSelectedItem(filteredRunArtifacts, selectedArtifact.selectedItem),
+      })),
+    [filteredRunArtifacts, selectedArtifacts],
   );
 
   const metricsTabText = metricsTypeToString(metricsTab);
-  const updateSelectedItemAndArtifact = (
-    setSelectedItem: (selectedItem: SelectedItem) => void,
-    panelIndex: number,
-    selectedItem: SelectedItem,
-  ): void => {
-    setSelectedItem(selectedItem);
+  const updateSelectedItemAndArtifact = (panelIndex: number, selectedItem: SelectedItem): void => {
     const linkedArtifact = getLinkedArtifactFromSelectedItem(filteredRunArtifacts, selectedItem);
     const nextSelectedArtifacts = selectedArtifactsForDisplay.map((selectedArtifact, index) =>
       index === panelIndex
@@ -150,8 +131,8 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
             <TwoLevelDropdown
               title={`Choose a first ${metricsTabText} artifact`}
               items={dropdownItems}
-              selectedItem={firstSelectedItem}
-              setSelectedItem={updateSelectedItemAndArtifact.bind(null, setFirstSelectedItem, 0)}
+              selectedItem={selectedArtifactsForDisplay[0].selectedItem}
+              setSelectedItem={updateSelectedItemAndArtifact.bind(null, 0)}
             />
             <VisualizationPanelItem
               metricsTab={metricsTab}
@@ -164,8 +145,8 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
             <TwoLevelDropdown
               title={`Choose a second ${metricsTabText} artifact`}
               items={dropdownItems}
-              selectedItem={secondSelectedItem}
-              setSelectedItem={updateSelectedItemAndArtifact.bind(null, setSecondSelectedItem, 1)}
+              selectedItem={selectedArtifactsForDisplay[1].selectedItem}
+              setSelectedItem={updateSelectedItemAndArtifact.bind(null, 1)}
             />
             <VisualizationPanelItem
               metricsTab={metricsTab}

@@ -251,6 +251,18 @@ interface RocCurveSelectionState {
   lineColorsStack: string[];
 }
 
+function useKeyedState<T>(key: string, initialValue: T): [T, (value: T) => void] {
+  const [stateKey, setStateKey] = useState(key);
+  const [value, setValue] = useState(initialValue);
+
+  if (stateKey !== key) {
+    setStateKey(key);
+    setValue(initialValue);
+  }
+
+  return [value, setValue];
+}
+
 const createSelectedArtifactArray = (count: number): SelectedArtifact[] => {
   const array: SelectedArtifact[] = [];
   for (let i = 0; i < count; i++) {
@@ -434,12 +446,14 @@ function CompareV2(props: CompareV2Props) {
   const { updateBanner, updateToolbar, namespace } = props;
 
   const runlistRef = useRef<RunList>(null);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
+  const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
+  const runIdsKey = runIds.join(',');
+  const [selectedIds, setSelectedIds] = useKeyedState<string[]>(runIdsKey, runIds);
   const [metricsTab, setMetricsTab] = useState(MetricsType.SCALAR_METRICS);
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
-  const selectionRunIdsKeyRef = useRef<string>('');
   const [rocCurveSelection, setRocCurveSelection] = useState<RocCurveSelectionState>(
     createInitialRocCurveSelectionState,
   );
@@ -448,9 +462,6 @@ function CompareV2(props: CompareV2Props) {
   const [selectedArtifactsMap, setSelectedArtifactsMap] = useState<{
     [key: string]: SelectedArtifact[];
   }>(createInitialSelectedArtifactsMap);
-
-  const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
-  const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
   // Retrieves run details.
   const {
@@ -663,23 +674,6 @@ function CompareV2(props: CompareV2Props) {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if (runs) {
-      const nextRunIds = runs.map((run) => run.run_id!).filter((id): id is string => !!id);
-      const nextRunIdsKey = nextRunIds.join(',');
-      const routeChanged = selectionRunIdsKeyRef.current !== nextRunIdsKey;
-      selectionRunIdsKeyRef.current = nextRunIdsKey;
-
-      setSelectedIds((currentSelectedIds) => {
-        if (routeChanged) {
-          return nextRunIds;
-        }
-        const nextRunIdsSet = new Set(nextRunIds);
-        return currentSelectedIds.filter((id) => nextRunIdsSet.has(id));
-      });
-    }
-  }, [runs]);
 
   const paramsTableProps = useMemo(() => {
     if (!runs) {

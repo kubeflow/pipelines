@@ -23,6 +23,7 @@ import * as Utils from 'src/lib/Utils';
 import { SelectedArtifact } from 'src/pages/CompareV2';
 import { LinkedArtifact } from 'src/mlmd/MlmdUtils';
 import * as jspb from 'google-protobuf';
+import { useState } from 'react';
 import MetricsDropdown from './MetricsDropdown';
 import { MetricsType, RunArtifact } from 'src/lib/v2/CompareUtils';
 
@@ -76,6 +77,38 @@ function newMockLinkedArtifact(id: number, displayName?: string): LinkedArtifact
   } as LinkedArtifact;
 }
 
+interface ControlledMetricsDropdownProps {
+  filteredRunArtifacts: RunArtifact[];
+  metricsTab: MetricsType;
+  selectedArtifacts: SelectedArtifact[];
+  namespace?: string;
+  onUpdateSelectedArtifacts?: (selectedArtifacts: SelectedArtifact[]) => void;
+}
+
+function ControlledMetricsDropdown(props: ControlledMetricsDropdownProps) {
+  const {
+    filteredRunArtifacts,
+    metricsTab,
+    selectedArtifacts: initialSelectedArtifacts,
+    namespace,
+    onUpdateSelectedArtifacts,
+  } = props;
+  const [selectedArtifacts, setSelectedArtifacts] = useState(initialSelectedArtifacts);
+
+  return (
+    <MetricsDropdown
+      filteredRunArtifacts={filteredRunArtifacts}
+      metricsTab={metricsTab}
+      selectedArtifacts={selectedArtifacts}
+      updateSelectedArtifacts={(nextSelectedArtifacts) => {
+        setSelectedArtifacts(nextSelectedArtifacts);
+        onUpdateSelectedArtifacts?.(nextSelectedArtifacts);
+      }}
+      namespace={namespace}
+    />
+  );
+}
+
 testBestPractices();
 describe('MetricsDropdown', () => {
   const updateSelectedArtifactsSpy = vi.fn();
@@ -85,6 +118,7 @@ describe('MetricsDropdown', () => {
   let scalarMetricsArtifacts: RunArtifact[];
 
   beforeEach(() => {
+    updateSelectedArtifactsSpy.mockReset();
     emptySelectedArtifacts = [
       {
         selectedItem: { itemName: '', subItemName: '' },
@@ -157,11 +191,11 @@ describe('MetricsDropdown', () => {
   it('Dropdown loaded when content is present', async () => {
     render(
       <CommonTestWrapper>
-        <MetricsDropdown
+        <ControlledMetricsDropdown
           filteredRunArtifacts={scalarMetricsArtifacts}
           metricsTab={MetricsType.CONFUSION_MATRIX}
           selectedArtifacts={emptySelectedArtifacts}
-          updateSelectedArtifacts={updateSelectedArtifactsSpy}
+          onUpdateSelectedArtifacts={updateSelectedArtifactsSpy}
         />
       </CommonTestWrapper>,
     );
@@ -251,11 +285,11 @@ describe('MetricsDropdown', () => {
 
     render(
       <CommonTestWrapper>
-        <MetricsDropdown
+        <ControlledMetricsDropdown
           filteredRunArtifacts={scalarMetricsArtifacts}
           metricsTab={MetricsType.HTML}
           selectedArtifacts={emptySelectedArtifacts}
-          updateSelectedArtifacts={updateSelectedArtifactsSpy}
+          onUpdateSelectedArtifacts={updateSelectedArtifactsSpy}
         />
       </CommonTestWrapper>,
     );
@@ -296,11 +330,11 @@ describe('MetricsDropdown', () => {
 
     render(
       <CommonTestWrapper>
-        <MetricsDropdown
+        <ControlledMetricsDropdown
           filteredRunArtifacts={scalarMetricsArtifacts}
           metricsTab={MetricsType.MARKDOWN}
           selectedArtifacts={emptySelectedArtifacts}
-          updateSelectedArtifacts={updateSelectedArtifactsSpy}
+          onUpdateSelectedArtifacts={updateSelectedArtifactsSpy}
         />
       </CommonTestWrapper>,
     );
@@ -345,11 +379,11 @@ describe('MetricsDropdown', () => {
 
     render(
       <CommonTestWrapper>
-        <MetricsDropdown
+        <ControlledMetricsDropdown
           filteredRunArtifacts={scalarMetricsArtifacts}
           metricsTab={MetricsType.HTML}
           selectedArtifacts={emptySelectedArtifacts}
-          updateSelectedArtifacts={updateSelectedArtifactsSpy}
+          onUpdateSelectedArtifacts={updateSelectedArtifactsSpy}
           namespace='namespaceInput'
         />
       </CommonTestWrapper>,
@@ -391,11 +425,11 @@ describe('MetricsDropdown', () => {
 
     render(
       <CommonTestWrapper>
-        <MetricsDropdown
+        <ControlledMetricsDropdown
           filteredRunArtifacts={scalarMetricsArtifacts}
           metricsTab={MetricsType.CONFUSION_MATRIX}
           selectedArtifacts={newSelectedArtifacts}
-          updateSelectedArtifacts={updateSelectedArtifactsSpy}
+          onUpdateSelectedArtifacts={updateSelectedArtifactsSpy}
         />
       </CommonTestWrapper>,
     );
@@ -403,5 +437,44 @@ describe('MetricsDropdown', () => {
 
     screen.getByText('Choose a first Confusion Matrix artifact');
     screen.getByLabelText('run1 > execution1 > artifact1');
+  });
+
+  it('updates the displayed selection when parent-selected artifacts change after mount', async () => {
+    const { rerender } = render(
+      <CommonTestWrapper>
+        <MetricsDropdown
+          filteredRunArtifacts={scalarMetricsArtifacts}
+          metricsTab={MetricsType.CONFUSION_MATRIX}
+          selectedArtifacts={emptySelectedArtifacts}
+          updateSelectedArtifacts={updateSelectedArtifactsSpy}
+        />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    const nextSelectedArtifacts: SelectedArtifact[] = [
+      {
+        linkedArtifact: firstLinkedArtifact,
+        selectedItem: {
+          itemName: 'run1',
+          subItemName: 'execution1',
+          subItemSecondaryName: 'artifact1',
+        },
+      },
+      emptySelectedArtifacts[1],
+    ];
+
+    rerender(
+      <CommonTestWrapper>
+        <MetricsDropdown
+          filteredRunArtifacts={scalarMetricsArtifacts}
+          metricsTab={MetricsType.CONFUSION_MATRIX}
+          selectedArtifacts={nextSelectedArtifacts}
+          updateSelectedArtifacts={updateSelectedArtifactsSpy}
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(await screen.findByLabelText('run1 > execution1 > artifact1')).toBeInTheDocument();
   });
 });
