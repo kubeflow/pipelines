@@ -568,11 +568,20 @@ var _ = Describe("List Pipelines Versions API Tests >", Label(constants.POSITIVE
 			_, err = uploadPipelineVersion(pipelineSpecFilePath, uploadParams3)
 			Expect(err).NotTo(HaveOccurred())
 
-			versions, totalSize, _, err := pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
-				PipelineID: createdPipeline.PipelineID,
-			})
+			// Use Eventually to allow the informer cache to sync (applies to K8s store;
+			// SQL store returns immediately on first attempt).
+			var versions []*pipeline_model.V2beta1PipelineVersion
+			var totalSize int
+			Eventually(func() int {
+				versions, totalSize, _, err = pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+					PipelineID: createdPipeline.PipelineID,
+				})
+				if err != nil {
+					return 0
+				}
+				return totalSize
+			}, 30*time.Second, 2*time.Second).Should(Equal(3), "Expected 3 pipeline versions after uploading two additional versions")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(totalSize).To(Equal(3))
 			Expect(versions).To(HaveLen(3))
 		})
 
@@ -617,14 +626,24 @@ var _ = Describe("List Pipelines Versions API Tests >", Label(constants.POSITIVE
 			_, err := uploadPipelineVersion(pipelineSpecFilePath, uploadParams)
 			Expect(err).NotTo(HaveOccurred())
 
+			// Use Eventually to allow the informer cache to sync (applies to K8s store;
+			// SQL store returns immediately on first attempt).
 			pageSize := int32(1)
-			versions, totalSize, nextPageToken, err := pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
-				PipelineID: createdPipeline.PipelineID,
-				PageSize:   &pageSize,
-			})
+			var versions []*pipeline_model.V2beta1PipelineVersion
+			var totalSize int
+			var nextPageToken string
+			Eventually(func() int {
+				versions, totalSize, nextPageToken, err = pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+					PipelineID: createdPipeline.PipelineID,
+					PageSize:   &pageSize,
+				})
+				if err != nil {
+					return 0
+				}
+				return totalSize
+			}, 30*time.Second, 2*time.Second).Should(BeNumerically(">=", 2), "Expected at least 2 pipeline versions after uploading a second version")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(versions).To(HaveLen(1))
-			Expect(totalSize).To(BeNumerically(">=", 2))
 			Expect(nextPageToken).NotTo(BeEmpty(), "Next page token should be set when more results exist")
 		})
 
@@ -643,29 +662,33 @@ var _ = Describe("List Pipelines Versions API Tests >", Label(constants.POSITIVE
 				Expect(err).NotTo(HaveOccurred())
 			}
 
+			// Use Eventually to allow the informer cache to sync (applies to K8s store;
+			// SQL store returns immediately on first attempt).
 			pageSize := int32(2)
-			params := &pipeline_params.PipelineServiceListPipelineVersionsParams{
-				PipelineID: createdPipeline.PipelineID,
-				PageSize:   &pageSize,
-			}
-
-			allVersions := make([]*pipeline_model.V2beta1PipelineVersion, 0)
-			pagesVisited := 0
-
-			for {
-				versions, _, nextPageToken, err := pipelineClient.ListPipelineVersions(params)
-				Expect(err).NotTo(HaveOccurred())
-				allVersions = append(allVersions, versions...)
-				pagesVisited++
-
-				if nextPageToken == "" {
-					break
+			var allVersions []*pipeline_model.V2beta1PipelineVersion
+			var pagesVisited int
+			Eventually(func() int {
+				allVersions = make([]*pipeline_model.V2beta1PipelineVersion, 0)
+				pagesVisited = 0
+				params := &pipeline_params.PipelineServiceListPipelineVersionsParams{
+					PipelineID: createdPipeline.PipelineID,
+					PageSize:   &pageSize,
 				}
-				params.PageToken = &nextPageToken
-			}
-
+				for {
+					versions, _, nextPageToken, err := pipelineClient.ListPipelineVersions(params)
+					if err != nil {
+						return 0
+					}
+					allVersions = append(allVersions, versions...)
+					pagesVisited++
+					if nextPageToken == "" {
+						break
+					}
+					params.PageToken = &nextPageToken
+				}
+				return len(allVersions)
+			}, 30*time.Second, 2*time.Second).Should(BeNumerically(">=", 3), "Expected at least 3 pipeline versions across all pages")
 			Expect(pagesVisited).To(BeNumerically(">=", 2), "Should visit at least 2 pages")
-			Expect(len(allVersions)).To(BeNumerically(">=", 3))
 		})
 	})
 
@@ -683,13 +706,21 @@ var _ = Describe("List Pipelines Versions API Tests >", Label(constants.POSITIVE
 			_, err := uploadPipelineVersion(pipelineSpecFilePath, uploadParams)
 			Expect(err).NotTo(HaveOccurred())
 
+			// Use Eventually to allow the informer cache to sync (applies to K8s store;
+			// SQL store returns immediately on first attempt).
 			sortBy := "name asc"
-			versions, _, _, err := pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
-				PipelineID: createdPipeline.PipelineID,
-				SortBy:     &sortBy,
-			})
+			var versions []*pipeline_model.V2beta1PipelineVersion
+			Eventually(func() int {
+				versions, _, _, err = pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+					PipelineID: createdPipeline.PipelineID,
+					SortBy:     &sortBy,
+				})
+				if err != nil {
+					return 0
+				}
+				return len(versions)
+			}, 30*time.Second, 2*time.Second).Should(BeNumerically(">=", 2), "Expected at least 2 pipeline versions after uploading a second version")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(len(versions)).To(BeNumerically(">=", 2))
 			for i := 1; i < len(versions); i++ {
 				cur := strings.ToLower(versions[i].Name)
 				prev := strings.ToLower(versions[i-1].Name)
@@ -711,11 +742,20 @@ var _ = Describe("List Pipelines Versions API Tests >", Label(constants.POSITIVE
 			_, err := uploadPipelineVersion(pipelineSpecFilePath, uploadParams)
 			Expect(err).NotTo(HaveOccurred())
 
+			// Use Eventually to allow the informer cache to sync (applies to K8s store;
+			// SQL store returns immediately on first attempt).
 			sortBy := "name desc"
-			versions, _, _, err := pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
-				PipelineID: createdPipeline.PipelineID,
-				SortBy:     &sortBy,
-			})
+			var versions []*pipeline_model.V2beta1PipelineVersion
+			Eventually(func() int {
+				versions, _, _, err = pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+					PipelineID: createdPipeline.PipelineID,
+					SortBy:     &sortBy,
+				})
+				if err != nil {
+					return 0
+				}
+				return len(versions)
+			}, 30*time.Second, 2*time.Second).Should(BeNumerically(">=", 2), "Expected at least 2 pipeline versions after uploading a second version")
 			Expect(err).NotTo(HaveOccurred())
 			for i := 1; i < len(versions); i++ {
 				cur := strings.ToLower(versions[i].Name)
@@ -825,13 +865,22 @@ var _ = Describe("List Pipelines Versions API Tests >", Label(constants.POSITIVE
 			_, err := uploadPipelineVersion(pipelineSpecFilePath, uploadParams)
 			Expect(err).NotTo(HaveOccurred())
 
+			// Use Eventually to allow the informer cache to sync (applies to K8s store;
+			// SQL store returns immediately on first attempt).
 			filter := fmt.Sprintf(`{"predicates":[{"key":"name","operation":"EQUALS","string_value":"%s"}]}`, v2Name)
-			filteredVersions, totalSize, _, err := pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
-				PipelineID: createdPipeline.PipelineID,
-				Filter:     &filter,
-			})
+			var filteredVersions []*pipeline_model.V2beta1PipelineVersion
+			var totalSize int
+			Eventually(func() int {
+				filteredVersions, totalSize, _, err = pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+					PipelineID: createdPipeline.PipelineID,
+					Filter:     &filter,
+				})
+				if err != nil {
+					return 0
+				}
+				return totalSize
+			}, 30*time.Second, 2*time.Second).Should(BeNumerically(">=", 1), "Expected the filtered version to appear in results")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(totalSize).To(BeNumerically(">=", 1))
 			for _, v := range filteredVersions {
 				Expect(v.Name).To(Equal(v2Name))
 			}
@@ -868,13 +917,22 @@ var _ = Describe("List Pipelines Versions API Tests >", Label(constants.POSITIVE
 			_, err := uploadPipelineVersion(pipelineSpecFilePath, uploadParams)
 			Expect(err).NotTo(HaveOccurred())
 
+			// Use Eventually to allow the informer cache to sync (applies to K8s store;
+			// SQL store returns immediately on first attempt).
 			filter := fmt.Sprintf(`{"predicates":[{"key":"description","operation":"EQUALS","string_value":"%s"}]}`, v2Desc)
-			filteredVersions, totalSize, _, err := pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
-				PipelineID: createdPipeline.PipelineID,
-				Filter:     &filter,
-			})
+			var filteredVersions []*pipeline_model.V2beta1PipelineVersion
+			var totalSize int
+			Eventually(func() int {
+				filteredVersions, totalSize, _, err = pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+					PipelineID: createdPipeline.PipelineID,
+					Filter:     &filter,
+				})
+				if err != nil {
+					return 0
+				}
+				return totalSize
+			}, 30*time.Second, 2*time.Second).Should(BeNumerically(">=", 1), "Expected the filtered version to appear in results")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(totalSize).To(BeNumerically(">=", 1))
 			for _, v := range filteredVersions {
 				Expect(v.Description).To(Equal(v2Desc))
 			}
@@ -1013,11 +1071,19 @@ var _ = Describe("List Pipelines Versions API Tests >", Label(constants.POSITIVE
 			_, err = uploadPipelineVersion(pipelineSpecFilePath, uploadParams)
 			Expect(err).NotTo(HaveOccurred())
 
-			versions, _, _, err := pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
-				PipelineID: createdPipeline.PipelineID,
-			})
+			// Use Eventually to allow the informer cache to sync (applies to K8s store;
+			// SQL store returns immediately on first attempt).
+			var versions []*pipeline_model.V2beta1PipelineVersion
+			Eventually(func() int {
+				versions, _, _, err = pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+					PipelineID: createdPipeline.PipelineID,
+				})
+				if err != nil {
+					return 0
+				}
+				return len(versions)
+			}, 30*time.Second, 2*time.Second).Should(BeNumerically(">=", 2), "Expected at least 2 pipeline versions after uploading a second version")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(len(versions)).To(BeNumerically(">=", 2))
 
 			var foundTaggedVersion bool
 			for _, v := range versions {
@@ -1061,13 +1127,22 @@ var _ = Describe("List Pipelines Versions API Tests >", Label(constants.POSITIVE
 			_, err = uploadPipelineVersion(pipelineSpecFilePath, uploadParams)
 			Expect(err).NotTo(HaveOccurred())
 
+			// Use Eventually to allow the informer cache to sync (applies to K8s store;
+			// SQL store returns immediately on first attempt).
 			filter := `{"predicates":[{"key":"tags.env","operation":"EQUALS","string_value":"prod"}]}`
-			versions, totalSize, _, err := pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
-				PipelineID: createdPipeline.PipelineID,
-				Filter:     &filter,
-			})
+			var versions []*pipeline_model.V2beta1PipelineVersion
+			var totalSize int
+			Eventually(func() int {
+				versions, totalSize, _, err = pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+					PipelineID: createdPipeline.PipelineID,
+					Filter:     &filter,
+				})
+				if err != nil {
+					return 0
+				}
+				return totalSize
+			}, 30*time.Second, 2*time.Second).Should(BeNumerically(">=", 1), "Expected the tagged version to appear in filtered results")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(totalSize).To(BeNumerically(">=", 1))
 
 			for _, v := range versions {
 				Expect(v.Tags).To(HaveKeyWithValue("env", "prod"))
@@ -1091,13 +1166,22 @@ var _ = Describe("List Pipelines Versions API Tests >", Label(constants.POSITIVE
 			_, err = uploadPipelineVersion(pipelineSpecFilePath, uploadParams)
 			Expect(err).NotTo(HaveOccurred())
 
+			// Use Eventually to allow the informer cache to sync (applies to K8s store;
+			// SQL store returns immediately on first attempt).
 			filter := `{"predicates":[{"key":"tags.env","operation":"EQUALS","string_value":"staging"},{"key":"tags.team","operation":"EQUALS","string_value":"data"}]}`
-			versions, totalSize, _, err := pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
-				PipelineID: createdPipeline.PipelineID,
-				Filter:     &filter,
-			})
+			var versions []*pipeline_model.V2beta1PipelineVersion
+			var totalSize int
+			Eventually(func() int {
+				versions, totalSize, _, err = pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+					PipelineID: createdPipeline.PipelineID,
+					Filter:     &filter,
+				})
+				if err != nil {
+					return 0
+				}
+				return totalSize
+			}, 30*time.Second, 2*time.Second).Should(BeNumerically(">=", 1), "Expected the tagged version to appear in filtered results")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(totalSize).To(BeNumerically(">=", 1))
 
 			found := false
 			for _, v := range versions {
@@ -1576,9 +1660,13 @@ var _ = Describe("Get Pipeline Version API Tests >", Label(constants.POSITIVE, c
 			_, err = uploadPipelineVersion(pipelineSpecFilePath, uploadParams)
 			Expect(err).NotTo(HaveOccurred())
 
-			// List versions
-			versions := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
-			Expect(len(versions)).To(BeNumerically(">=", 2))
+			// Use Eventually to allow the informer cache to sync (applies to K8s store;
+			// SQL store returns immediately on first attempt).
+			var versions []*pipeline_model.V2beta1PipelineVersion
+			Eventually(func() int {
+				versions = utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+				return len(versions)
+			}, 30*time.Second, 2*time.Second).Should(BeNumerically(">=", 2), "Expected at least 2 pipeline versions after uploading a second version")
 
 			// Find the tagged version and verify tags
 			var foundTaggedVersion bool
@@ -1690,9 +1778,13 @@ var _ = Describe("Create Pipeline Version API Tests >", Label(constants.POSITIVE
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			// Verify all 4 versions exist (1 from upload + 3 created)
-			versions := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
-			Expect(len(versions)).To(Equal(4), "Should have 4 versions total")
+			// Use Eventually to allow the informer cache to sync (applies to K8s store;
+			// SQL store returns immediately on first attempt).
+			var versions []*pipeline_model.V2beta1PipelineVersion
+			Eventually(func() int {
+				versions = utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+				return len(versions)
+			}, 30*time.Second, 2*time.Second).Should(Equal(4), "Should have 4 versions total")
 		})
 	})
 })
