@@ -74,19 +74,22 @@ type pipelineVersionListResult struct {
 // that lists pipeline versions and yields totalSize. The last successful response
 // is stored in the returned result pointer so callers can inspect Versions,
 // TotalSize, and NextPageToken after Eventually succeeds.
+//
+// The poll function returns (int, error) so that Eventually surfaces the real
+// API error on timeout instead of silently retrying with a zero value.
 func eventuallyListPipelineVersions(
 	params *pipeline_params.PipelineServiceListPipelineVersionsParams,
-) (*pipelineVersionListResult, func() int) {
+) (*pipelineVersionListResult, func() (int, error)) {
 	result := &pipelineVersionListResult{}
-	pollFn := func() int {
+	pollFn := func() (int, error) {
 		versions, totalSize, nextPageToken, err := pipelineClient.ListPipelineVersions(params)
 		if err != nil {
-			return 0
+			return 0, err
 		}
 		result.Versions = versions
 		result.TotalSize = totalSize
 		result.NextPageToken = nextPageToken
-		return totalSize
+		return totalSize, nil
 	}
 	return result, pollFn
 }
@@ -676,7 +679,7 @@ var _ = Describe("List Pipelines Versions API Tests >", Label(constants.POSITIVE
 			pageSize := int32(2)
 			var allVersions []*pipeline_model.V2beta1PipelineVersion
 			var pagesVisited int
-			Eventually(func() int {
+			Eventually(func() (int, error) {
 				allVersions = make([]*pipeline_model.V2beta1PipelineVersion, 0)
 				pagesVisited = 0
 				params := &pipeline_params.PipelineServiceListPipelineVersionsParams{
@@ -686,7 +689,7 @@ var _ = Describe("List Pipelines Versions API Tests >", Label(constants.POSITIVE
 				for {
 					versions, _, nextPageToken, err := pipelineClient.ListPipelineVersions(params)
 					if err != nil {
-						return 0
+						return 0, err
 					}
 					allVersions = append(allVersions, versions...)
 					pagesVisited++
@@ -695,7 +698,7 @@ var _ = Describe("List Pipelines Versions API Tests >", Label(constants.POSITIVE
 					}
 					params.PageToken = &nextPageToken
 				}
-				return len(allVersions)
+				return len(allVersions), nil
 			}, informerSyncTimeout, informerSyncInterval).Should(BeNumerically(">=", 3), "Expected at least 3 pipeline versions across all pages")
 			Expect(pagesVisited).To(BeNumerically(">=", 2), "Should visit at least 2 pages")
 		})
@@ -1603,9 +1606,15 @@ var _ = Describe("Get Pipeline Version API Tests >", Label(constants.POSITIVE, c
 			Expect(err).NotTo(HaveOccurred())
 
 			var versions []*pipeline_model.V2beta1PipelineVersion
-			Eventually(func() int {
-				versions = utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
-				return len(versions)
+			Eventually(func() (int, error) {
+				v, _, _, err := pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+					PipelineID: createdPipeline.PipelineID,
+				})
+				if err != nil {
+					return 0, err
+				}
+				versions = v
+				return len(versions), nil
 			}, informerSyncTimeout, informerSyncInterval).Should(BeNumerically(">=", 2), "Expected at least 2 pipeline versions after uploading a second version")
 
 			// Find the tagged version and verify tags
@@ -1719,9 +1728,15 @@ var _ = Describe("Create Pipeline Version API Tests >", Label(constants.POSITIVE
 			}
 
 			var versions []*pipeline_model.V2beta1PipelineVersion
-			Eventually(func() int {
-				versions = utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
-				return len(versions)
+			Eventually(func() (int, error) {
+				v, _, _, err := pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+					PipelineID: createdPipeline.PipelineID,
+				})
+				if err != nil {
+					return 0, err
+				}
+				versions = v
+				return len(versions), nil
 			}, informerSyncTimeout, informerSyncInterval).Should(Equal(4), "Should have 4 versions total")
 		})
 	})
