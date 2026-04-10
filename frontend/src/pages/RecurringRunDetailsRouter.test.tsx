@@ -338,5 +338,6 @@ describe('RecurringRunDetailsRouter', () => {
     );
 
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    expect(screen.getByText('Currently loading recurring run information')).toBeInTheDocument();
   });
 });

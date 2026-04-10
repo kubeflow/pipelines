@@ -98,7 +98,12 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
   }
 
   if (recurringRunIsLoading || templateStrIsLoading) {
-    return <CircularProgress />;
+    return (
+      <div style={{ textAlign: 'center', paddingTop: 40 }}>
+        <CircularProgress />
+        <div>Currently loading recurring run information</div>
+      </div>
+    );
   }
 
   if (getRecurringRunError) {

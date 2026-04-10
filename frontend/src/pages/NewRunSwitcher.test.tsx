@@ -285,6 +285,7 @@ describe('NewRunSwitcher', () => {
       );
 
       expect(screen.getByRole('progressbar')).toBeInTheDocument();
+      expect(screen.getByText('Currently loading pipeline information')).toBeInTheDocument();
     });
 
     it('resolves template from cloned run.pipeline_spec', async () => {

@@ -199,7 +199,12 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2 && graphV2.length > 0 && !graph;
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
-        {this.state.graphIsLoading && <CircularProgress />}
+        {this.state.graphIsLoading && (
+          <div style={{ textAlign: 'center', paddingTop: 40 }}>
+            <CircularProgress />
+            <div>Currently loading pipeline information</div>
+          </div>
+        )}
         {!this.state.graphIsLoading && showV2Pipeline && (
           <PipelineDetailsV2
             templateString={templateString}

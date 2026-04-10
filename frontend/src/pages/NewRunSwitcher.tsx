@@ -216,7 +216,12 @@ function NewRunSwitcher(props: PageProps) {
     (!isTemplateV2(templateString) && v1TemplateStrIsFetching) ||
     experimentIsFetching
   ) {
-    return <CircularProgress />;
+    return (
+      <div style={{ textAlign: 'center', paddingTop: 40 }}>
+        <CircularProgress />
+        <div>Currently loading pipeline information</div>
+      </div>
+    );
   }
 
   if (templateString && !isTemplateV2(templateString)) {
