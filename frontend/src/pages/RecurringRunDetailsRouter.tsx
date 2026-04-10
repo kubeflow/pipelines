@@ -17,6 +17,7 @@
 import { useEffect } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useQuery } from '@tanstack/react-query';
+import { CircularProgress } from '@mui/material';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
 import { errorToMessage } from 'src/lib/Utils';
 import { RouteParams } from 'src/components/Router';
@@ -97,7 +98,12 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
   }
 
   if (recurringRunIsLoading || templateStrIsLoading) {
-    return <div>Currently loading recurring run information</div>;
+    return (
+      <div style={{ textAlign: 'center', paddingTop: 40 }}>
+        <CircularProgress />
+        <div>Currently loading recurring run information</div>
+      </div>
+    );
   }
 
   if (getRecurringRunError) {
