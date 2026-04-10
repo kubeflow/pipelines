@@ -36,6 +36,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
+type driverPlugin map[string]map[string]map[string]interface{}
+
 // LoadPipelineSpecsFromIR - Unmarshall Pipeline Spec IR into a tuple of (pipelinespec.PipelineJob, pipelinespec.SinglePlatformSpec)
 func LoadPipelineSpecsFromIR(pipelineIRFilePath string, cacheDisabled bool, defaultWorkspace *v1.PersistentVolumeClaimSpec) (*pipelinespec.PipelineJob, *pipelinespec.SinglePlatformSpec) {
 	pipelineSpecsFromFile := testutil.ParseFileToSpecs(pipelineIRFilePath, cacheDisabled, defaultWorkspace)
@@ -89,6 +91,51 @@ func CreateCompiledWorkflowFile(compiledWorflow *v1alpha1.Workflow, compiledWork
 	return testutil.CreateFile(compiledWorkflowFilePath, [][]byte{fileContents})
 }
 
+// ConfigurePluginSettings - Add/Remove cache_disabled args in the driver-plugin or HTTP template body.
+// When remove=true, sets cache_disabled=false (normalizes to baseline for golden-file generation).
+// When remove=false, sets cache_disabled=true (restores for cacheDisabled=true validation).
+func ConfigurePluginSettings(workflow *v1alpha1.Workflow, remove bool) *v1alpha1.Workflow {
+	configuredWorkflow := workflow.DeepCopy()
+	for i, template := range configuredWorkflow.Spec.Templates {
+		if template.Plugin != nil {
+			var pluginMap driverPlugin
+			if err := json.Unmarshal(template.Plugin.Value, &pluginMap); err == nil {
+				if driverPlugin, ok := pluginMap["driver-plugin"]; ok {
+					if args, ok := driverPlugin["args"]; ok {
+						if remove {
+							args["cache_disabled"] = false
+						} else {
+							args["cache_disabled"] = true
+						}
+					}
+				}
+				jsonPlugin, err := json.Marshal(pluginMap)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to marshal plugin map")
+				configuredWorkflow.Spec.Templates[i].Plugin.Value = jsonPlugin
+			}
+		}
+		// Handle centralized HTTP driver templates: normalize cache_disabled in the JSON body
+		// so that the same golden file validates under both CacheDisabled=true and CacheDisabled=false.
+		if template.HTTP != nil && template.HTTP.Body != "" {
+			var bodyMap map[string]interface{}
+			if err := json.Unmarshal([]byte(template.HTTP.Body), &bodyMap); err == nil {
+				if _, ok := bodyMap["cache_disabled"]; ok {
+					if remove {
+						bodyMap["cache_disabled"] = false
+					} else {
+						bodyMap["cache_disabled"] = true
+					}
+					jsonBody, err := json.Marshal(bodyMap)
+					gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to marshal HTTP template body")
+					configuredWorkflow.Spec.Templates[i].HTTP.Body = string(jsonBody)
+				}
+			}
+		}
+	}
+
+	return configuredWorkflow
+}
+
 // ConfigureCacheSettings - Add/Remove cache_disabled args in the workflow
 func ConfigureCacheSettings(workflow *v1alpha1.Workflow, remove bool) *v1alpha1.Workflow {
 	cacheDisabledArg := "--cache_disabled"
@@ -138,5 +185,5 @@ func ConfigureCacheSettings(workflow *v1alpha1.Workflow, remove bool) *v1alpha1.
 			}
 		}
 	}
-	return configuredWorkflow
+	return ConfigurePluginSettings(configuredWorkflow, remove)
 }

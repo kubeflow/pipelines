@@ -39,9 +39,7 @@ import (
 
 const (
 	volumeNameKFPLauncher = "kfp-launcher"
-	volumeNameCABundle    = "ca-bundle"
 	LauncherImageEnvVar   = "V2_LAUNCHER_IMAGE"
-	DriverImageEnvVar     = "V2_DRIVER_IMAGE"
 	// DefaultLauncherImage & DefaultDriverImage are set as latest here
 	// but are overridden by environment variables set via k8s manifests.
 	// For releases, the manifest will have the correct release version set.
@@ -49,9 +47,6 @@ const (
 	DefaultLauncherImage     = "ghcr.io/kubeflow/kfp-launcher:latest"
 	LauncherCommandEnvVar    = "V2_LAUNCHER_COMMAND"
 	DefaultLauncherCommand   = "launcher-v2"
-	DefaultDriverImage       = "ghcr.io/kubeflow/kfp-driver:latest"
-	DefaultDriverCommand     = "driver"
-	DriverCommandEnvVar      = "V2_DRIVER_COMMAND"
 	PipelineRunAsUserEnvVar  = "PIPELINE_RUN_AS_USER"
 	PipelineLogLevelEnvVar   = "PIPELINE_LOG_LEVEL"
 	PublishLogsEnvVar        = "PUBLISH_LOGS"
@@ -105,22 +100,6 @@ func GetLauncherImage() string {
 	return launcherImage
 }
 
-func GetDriverImage() string {
-	driverImage := os.Getenv(DriverImageEnvVar)
-	if driverImage == "" {
-		driverImage = DefaultDriverImage
-	}
-	return driverImage
-}
-
-func GetDriverCommand() []string {
-	driverCommand := os.Getenv(DriverCommandEnvVar)
-	if driverCommand == "" {
-		driverCommand = DefaultDriverCommand
-	}
-	return strings.Split(driverCommand, " ")
-}
-
 func GetLauncherCommand() []string {
 	launcherCommand := os.Getenv(LauncherCommandEnvVar)
 	if launcherCommand == "" {
@@ -148,10 +127,14 @@ func GetPipelineRunAsUser() *int64 {
 	return &runAsUser
 }
 
-func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
+func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs, error) {
+	template, err := c.addContainerDriverTemplate()
+	if err != nil {
+		return nil, nil, err
+	}
 	dagTask := &wfapi.DAGTask{
 		Name:     name,
-		Template: c.addContainerDriverTemplate(),
+		Template: template,
 		Arguments: wfapi.Arguments{
 			Parameters: []wfapi.Parameter{
 				{Name: paramComponent, Value: wfapi.AnyStringPtr(inputs.component)},
@@ -175,75 +158,75 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 		)
 	}
 	outputs := &containerDriverOutputs{
-		podSpecPatch: taskOutputParameter(name, paramPodSpecPatch),
-		cached:       taskOutputParameter(name, paramCachedDecision),
-		condition:    taskOutputParameter(name, paramCondition),
+		podSpecPatch: taskResultExtract(name, "pod-spec-patch"),
+		cached:       taskResultExtract(name, "cached-decision"),
+		condition:    taskResultExtract(name, "condition"),
 	}
-	return dagTask, outputs
+	return dagTask, outputs, nil
 }
 
-func (c *workflowCompiler) addContainerDriverTemplate() string {
+// addContainerDriverTemplate adds (once) the Argo HTTP template that invokes
+// the centralized KFP container-driver endpoint. The workflow controller POSTs
+// the driver args to the KFP API server. The response body is the raw result
+// (outputs.result); downstream tasks extract individual values from it using
+// taskResultExtract expressions in their arguments.
+func (c *workflowCompiler) addContainerDriverTemplate() (string, error) {
 	name := "system-container-driver"
 	_, ok := c.templates[name]
 	if ok {
-		return name
+		return name, nil
 	}
 
-	args := []string{
-		"--type", "CONTAINER",
-		"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
-		"--run_id", runID(),
-		"--run_name", runResourceName(),
-		"--run_display_name", c.job.DisplayName,
-		"--dag_execution_id", inputValue(paramParentDagID),
-		"--component", inputValue(paramComponent),
-		"--task", inputValue(paramTask),
-		"--task_name", inputValue(paramTaskName),
-		"--container", inputValue(paramContainer),
-		"--iteration_index", inputValue(paramIterationIndex),
-		"--cached_decision_path", outputPath(paramCachedDecision),
-		"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
-		"--condition_path", outputPath(paramCondition),
-		"--kubernetes_config", inputValue(paramKubernetesConfig),
-		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
-		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
-		"--no_proxy", proxy.GetConfig().GetNoProxy(),
-		"--ml_pipeline_server_address", config.GetMLPipelineServerConfig().Address,
-		"--ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
-		"--mlmd_server_address", metadata.GetMetadataConfig().Address,
-		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
-	}
-	if c.cacheDisabled {
-		args = append(args, "--cache_disabled")
-	}
-	if c.mlPipelineTLSEnabled {
-		args = append(args, "--ml_pipeline_tls_enabled")
-	}
-	if common.GetMetadataTLSEnabled() {
-		args = append(args, "--metadata_tls_enabled")
+	args := map[string]interface{}{
+		"type":                       "CONTAINER",
+		"namespace":                  "{{workflow.namespace}}",
+		"pipeline_name":              c.spec.GetPipelineInfo().GetName(),
+		"run_id":                     runID(),
+		"run_name":                   runResourceName(),
+		"run_display_name":           c.job.DisplayName,
+		"dag_execution_id":           inputValue(paramParentDagID),
+		"component":                  b64InputValue(paramComponent),
+		"task":                       b64InputValue(paramTask),
+		"task_name":                  inputValue(paramTaskName),
+		"container":                  b64InputValue(paramContainer),
+		"iteration_index":            inputValue(paramIterationIndex),
+		"kubernetes_config":          b64InputValue(paramKubernetesConfig),
+		"http_proxy":                 proxy.GetConfig().GetHttpProxy(),
+		"https_proxy":                proxy.GetConfig().GetHttpsProxy(),
+		"no_proxy":                   proxy.GetConfig().GetNoProxy(),
+		"ml_pipeline_server_address": config.GetMLPipelineServerConfig().Address,
+		"ml_pipeline_server_port":    config.GetMLPipelineServerConfig().Port,
+		"mlmd_server_address":        metadata.GetMetadataConfig().Address,
+		"mlmd_server_port":           metadata.GetMetadataConfig().Port,
+		"cache_disabled":             c.cacheDisabled,
+		"ml_pipeline_tls_enabled":    c.mlPipelineTLSEnabled,
+		"metadata_tls_enabled":       common.GetMetadataTLSEnabled(),
 	}
 
-	setCABundle := false
 	// If CABUNDLE_SECRET_NAME or CABUNDLE_CONFIGMAP_NAME is set, add ca_cert_path arg to container driver.
 	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
-		args = append(args, "--ca_cert_path", common.CustomCaCertPath)
-		setCABundle = true
+		args["ca_cert_path"] = common.CustomCaCertPath
 	}
 
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
+		args["log_level"] = value
 	}
 	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
+		args["publish_logs"] = value
 	}
 	if c.defaultRunAsUser != nil {
-		args = append(args, "--default_run_as_user", strconv.FormatInt(*c.defaultRunAsUser, 10))
+		args["default_run_as_user"] = strconv.FormatInt(*c.defaultRunAsUser, 10)
 	}
 	if c.defaultRunAsGroup != nil {
-		args = append(args, "--default_run_as_group", strconv.FormatInt(*c.defaultRunAsGroup, 10))
+		args["default_run_as_group"] = strconv.FormatInt(*c.defaultRunAsGroup, 10)
 	}
 	if c.defaultRunAsNonRoot != nil {
-		args = append(args, "--default_run_as_non_root", strconv.FormatBool(*c.defaultRunAsNonRoot))
+		args["default_run_as_non_root"] = strconv.FormatBool(*c.defaultRunAsNonRoot)
+	}
+
+	httpTemplate, err := driverHTTPTemplate(args)
+	if err != nil {
+		return name, fmt.Errorf("failed to build container driver HTTP template: %v", err)
 	}
 
 	template := &wfapi.Template{
@@ -259,29 +242,12 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				{Name: paramKubernetesConfig, Default: wfapi.AnyStringPtr("")},
 			},
 		},
-		Outputs: wfapi.Outputs{
-			Parameters: []wfapi.Parameter{
-				{Name: paramPodSpecPatch, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/pod-spec-patch", Default: wfapi.AnyStringPtr("")}},
-				{Name: paramCachedDecision, Default: wfapi.AnyStringPtr("false"), ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/cached-decision", Default: wfapi.AnyStringPtr("false")}},
-				{Name: paramCondition, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/condition", Default: wfapi.AnyStringPtr("true")}},
-			},
-		},
-		Container: &k8score.Container{
-			Image:     c.driverImage,
-			Command:   c.driverCommand,
-			Args:      args,
-			Resources: driverResources,
-			Env:       append(proxy.GetConfig().GetEnvVars(), commonEnvs...),
-		},
-	}
-	applySecurityContextToTemplate(template)
-	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver template.
-	if setCABundle {
-		ConfigureCustomCABundle(template)
+		Outputs: wfapi.Outputs{},
+		HTTP:    httpTemplate,
 	}
 	c.templates[name] = template
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *template)
-	return name
+	return name, err
 }
 
 type containerExecutorInputs struct {
@@ -567,17 +533,12 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 	}
 	applySecurityContextToExecutorTemplate(executor, c.defaultRunAsUser, c.defaultRunAsGroup, c.defaultRunAsNonRoot)
 
-	// If retry policy is set, add retryStrategy to executor and inject
-	// KFP_RETRY_INDEX so the launcher can resolve the per-attempt log path
-	// without a Kubernetes API call. {{retries}} is only valid inside a
-	// template that has a retryStrategy; adding it elsewhere resolves to an
-	// empty string, which forces an unnecessary pod-annotation lookup.
+	// If retry policy is set, add retryStrategy to executor
 	if taskRetrySpec != nil {
 		executor.RetryStrategy = c.getTaskRetryStrategyFromInput(inputParameter(paramRetryMaxCount),
 			inputParameter(paramRetryBackOffDuration),
 			inputParameter(paramRetryBackOffFactor),
 			inputParameter(paramRetryBackOffMaxDuration))
-		executor.Container.Env = append(executor.Container.Env, retryIndexEnv)
 	}
 	// Update pod metadata if it defined in the Kubernetes Spec
 	if k8sExecCfg.GetPodMetadata() != nil {

@@ -135,7 +135,6 @@ function getRowsPerPageCombobox(): HTMLElement {
 describe('CustomTable', () => {
   beforeEach(() => {
     vi.useRealTimers();
-    localStorage.clear();
   });
 
   it('renders with default filter label', async () => {
@@ -746,43 +745,5 @@ describe('CustomTable', () => {
     await TestUtils.flushPromises();
     fireEvent.change(screen.getByLabelText('Filter'), { target: { value: 'test filter' } });
     expect(setFilterString).toHaveBeenLastCalledWith('test filter');
-  });
-
-  it('reads page size from localStorage on mount', async () => {
-    localStorage.setItem('tablePageSize', '50');
-    const reload = vi.fn(async () => '');
-    const wrapper = renderTable({ rows, columns, reload });
-    await waitFor(() => expect(reload).toHaveBeenCalled());
-    expect(reload).toHaveBeenLastCalledWith({
-      filter: '',
-      orderAscending: false,
-      pageSize: 50,
-      pageToken: '',
-      sortBy: '',
-    });
-    wrapper.unmount();
-  });
-
-  it('persists page size across resources on the same details page', async () => {
-    window.location.hash = '#/runs/details/run-abc123';
-    const firstWrapper = renderTable({ rows: [], columns, reload: vi.fn(async () => '') });
-    fireEvent.mouseDown(getRowsPerPageCombobox());
-    fireEvent.click(await screen.findByText('20'));
-    await TestUtils.flushPromises();
-    firstWrapper.unmount();
-    const reload = vi.fn(async () => '');
-    window.location.hash = '#/runs/details/run-def456';
-    const secondWrapper = renderTable({ rows, columns, reload });
-    await waitFor(() =>
-      expect(reload).toHaveBeenLastCalledWith({
-        filter: '',
-        orderAscending: false,
-        pageSize: 20,
-        pageToken: '',
-        sortBy: '',
-      }),
-    );
-    secondWrapper.unmount();
-    window.location.hash = '';
   });
 });

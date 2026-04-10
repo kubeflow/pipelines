@@ -20,7 +20,6 @@ const {
   isSelectorDisplayed,
   runPhase,
   saveDebugScreenshot,
-  selectPipelineForRun,
   waitForCondition,
   waitForGraphNodeCount,
   waitForHashPrefix,
@@ -57,6 +56,34 @@ async function waitForTensorboardControls() {
     await saveDebugScreenshot('tensorboard-controls');
     throw error;
   }
+}
+
+async function selectPipelineForRun() {
+  await $('#choosePipelineBtn').waitForDisplayed({ timeout: uiTimeout });
+  await $('#choosePipelineBtn').click();
+
+  await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: uiTimeout });
+  const pipelineRowSelector = buildTableRowSelector(pipelineName, {
+    containerXPath: '//*[@id="pipelineSelectorDialog"]',
+  });
+
+  try {
+    await waitForCondition(
+      async () => (await $(pipelineRowSelector).isExisting()),
+      {
+        timeout: uiTimeout,
+        timeoutMsg: `expected pipeline row for ${pipelineName} to appear`,
+      },
+    );
+  } catch (error) {
+    await saveDebugScreenshot('pipeline-selector');
+    throw error;
+  }
+
+  await $(pipelineRowSelector).click();
+  await $('#usePipelineBtn').waitForEnabled({ timeout: uiTimeout });
+  await $('#usePipelineBtn').click();
+  await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: uiTimeout, reverse: true });
 }
 
 async function openNewRunDetails() {
@@ -287,7 +314,7 @@ describe('deploy tensorboard example run', () => {
 
     await runPhase('create run', async () => {
       await $('#choosePipelineBtn').waitForDisplayed({ timeout: uiTimeout });
-      await selectPipelineForRun(pipelineName, { timeout: uiTimeout });
+      await selectPipelineForRun();
       const runFormVariant = await waitForRunPageReady({
         timeout: runStartTimeout,
         timeoutMsg: 'expected a run creation form to load',

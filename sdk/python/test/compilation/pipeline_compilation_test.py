@@ -72,6 +72,8 @@ from test_data.sdk_compiled_pipelines.valid.critical.container_component_with_no
     pipeline as container_no_inputs_pipeline
 from test_data.sdk_compiled_pipelines.valid.critical.flip_coin import \
     flipcoin_pipeline as flip_coin
+from test_data.sdk_compiled_pipelines.valid.critical.loop_consume_upstream import \
+    loop_consume_upstream
 from test_data.sdk_compiled_pipelines.valid.critical.missing_kubernetes_optional_inputs import \
     missing_kubernetes_optional_inputs_pipeline
 from test_data.sdk_compiled_pipelines.valid.critical.mixed_parameters import \
@@ -82,6 +84,12 @@ from test_data.sdk_compiled_pipelines.valid.critical.multiple_artifacts_namedtup
     crust as multiple_artifacts_namedtuple_pipeline
 from test_data.sdk_compiled_pipelines.valid.critical.multiple_parameters_namedtuple import \
     crust as multiple_params_namedtuple_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.nested_pipeline_opt_input_child_level import \
+    nested_pipeline_opt_input_child_level
+from test_data.sdk_compiled_pipelines.valid.critical.nested_pipeline_opt_inputs_nil import \
+    nested_pipeline_opt_inputs_nil
+from test_data.sdk_compiled_pipelines.valid.critical.nested_pipeline_opt_inputs_parent_level import \
+    nested_pipeline_opt_inputs_parent_level
 from test_data.sdk_compiled_pipelines.valid.critical.parallel_for_after_dependency import \
     loop_with_after_dependency_set
 from test_data.sdk_compiled_pipelines.valid.critical.parameter_cache import \
@@ -114,6 +122,7 @@ from test_data.sdk_compiled_pipelines.valid.critical.two_step_pipeline_container
     my_pipeline as two_step_containerized_pipeline
 from test_data.sdk_compiled_pipelines.valid.cross_loop_after_topology import \
     my_pipeline as cross_loop_after_topology_pipeline
+from test_data.sdk_compiled_pipelines.valid.dict_input import dict_input
 from test_data.sdk_compiled_pipelines.valid.env_var import test_env_exists
 from test_data.sdk_compiled_pipelines.valid.essential.component_with_pip_index_urls import \
     pipeline as pip_index_urls_pipeline
@@ -125,18 +134,24 @@ from test_data.sdk_compiled_pipelines.valid.essential.concat_message import \
     concat_message
 from test_data.sdk_compiled_pipelines.valid.essential.container_no_input import \
     container_no_input
-from test_data.sdk_compiled_pipelines.valid.essential.dict_input import \
-    dict_input
 from test_data.sdk_compiled_pipelines.valid.essential.lightweight_python_functions_pipeline import \
     pipeline as lightweight_python_pipeline
 from test_data.sdk_compiled_pipelines.valid.essential.lightweight_python_functions_with_outputs import \
     pipeline as lightweight_python_with_outputs_pipeline
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_in_pipeline import \
+    my_pipeline as pipeline_in_pipeline
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_in_pipeline_complex import \
+    my_pipeline as pipeline_in_pipeline_complex
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_in_pipeline_loaded_from_yaml import \
+    my_pipeline as pipeline_in_pipeline_loaded_from_yaml
 from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_after import \
     my_pipeline as after_pipeline
 from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_condition import \
     my_pipeline as condition_pipeline
 from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_if_placeholder import \
     pipeline_none
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_loops import \
+    my_pipeline as loops_pipeline
 from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_metrics_outputs import \
     my_pipeline as metrics_outputs_pipeline
 from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_nested_conditions import \
@@ -174,22 +189,6 @@ from test_data.sdk_compiled_pipelines.valid.nested_with_parameters import \
     math_pipeline as nested_with_parameters_pipeline
 from test_data.sdk_compiled_pipelines.valid.output_metrics import \
     output_metrics
-from test_data.sdk_compiled_pipelines.valid.parallel_and_nested.loop_consume_upstream import \
-    loop_consume_upstream
-from test_data.sdk_compiled_pipelines.valid.parallel_and_nested.nested_pipeline_opt_input_child_level import \
-    nested_pipeline_opt_input_child_level
-from test_data.sdk_compiled_pipelines.valid.parallel_and_nested.nested_pipeline_opt_inputs_nil import \
-    nested_pipeline_opt_inputs_nil
-from test_data.sdk_compiled_pipelines.valid.parallel_and_nested.nested_pipeline_opt_inputs_parent_level import \
-    nested_pipeline_opt_inputs_parent_level
-from test_data.sdk_compiled_pipelines.valid.parallel_and_nested.pipeline_in_pipeline import \
-    my_pipeline as pipeline_in_pipeline
-from test_data.sdk_compiled_pipelines.valid.parallel_and_nested.pipeline_in_pipeline_complex import \
-    my_pipeline as pipeline_in_pipeline_complex
-from test_data.sdk_compiled_pipelines.valid.parallel_and_nested.pipeline_in_pipeline_loaded_from_yaml import \
-    my_pipeline as pipeline_in_pipeline_loaded_from_yaml
-from test_data.sdk_compiled_pipelines.valid.parallel_and_nested.pipeline_with_loops import \
-    my_pipeline as loops_pipeline
 from test_data.sdk_compiled_pipelines.valid.parameters_complex import \
     math_pipeline as parameters_complex_pipeline
 from test_data.sdk_compiled_pipelines.valid.pipeline_as_exit_task import \
@@ -313,7 +312,7 @@ class TestPipelineCompilation:
                 pipeline_func=loops_pipeline,
                 pipeline_func_args={'loop_parameter': ['item1', 'item2']},
                 compiled_file_name='loops_pipeline.yaml',
-                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/parallel_and_nested/pipeline_with_loops.yaml'
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/essential/pipeline_with_loops.yaml'
             ),
             TestData(
                 pipeline_name='pipeline-with-outputs',
@@ -439,7 +438,7 @@ class TestPipelineCompilation:
                 pipeline_func=loop_consume_upstream,
                 pipeline_func_args=None,
                 compiled_file_name='loop_consume_upstream.yaml',
-                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/parallel_and_nested/loop_consume_upstream.yaml'
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/critical/loop_consume_upstream.yaml'
             ),
             TestData(
                 pipeline_name='math-pipeline',
@@ -509,7 +508,7 @@ class TestPipelineCompilation:
                 pipeline_func=nested_pipeline_opt_input_child_level,
                 pipeline_func_args=None,
                 compiled_file_name='nested_pipeline_opt_input_child_level.yaml',
-                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/parallel_and_nested/nested_pipeline_opt_input_child_level_compiled.yaml'
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/critical/nested_pipeline_opt_input_child_level_compiled.yaml'
             ),
             TestData(
                 pipeline_name='split-datasets-and-return-first',
@@ -701,7 +700,7 @@ class TestPipelineCompilation:
                 pipeline_func=pipeline_in_pipeline,
                 pipeline_func_args=None,
                 compiled_file_name='pipeline_in_pipeline.yaml',
-                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/parallel_and_nested/pipeline_in_pipeline.yaml'
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/essential/pipeline_in_pipeline.yaml'
             ),
             TestData(
                 pipeline_name='container-with-concat-placeholder',
@@ -774,7 +773,7 @@ class TestPipelineCompilation:
                 pipeline_func=pipeline_in_pipeline_complex,
                 pipeline_func_args=None,
                 compiled_file_name='pipeline_in_pipeline_complex.yaml',
-                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/parallel_and_nested/pipeline_in_pipeline_complex.yaml'
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/essential/pipeline_in_pipeline_complex.yaml'
             ),
             TestData(
                 pipeline_name='lucky-number-pipeline',
@@ -962,14 +961,14 @@ class TestPipelineCompilation:
                 pipeline_func=nested_pipeline_opt_inputs_nil,
                 pipeline_func_args=None,
                 compiled_file_name='nested_pipeline_opt_inputs_nil.yaml',
-                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/parallel_and_nested/nested_pipeline_opt_inputs_nil_compiled.yaml'
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/critical/nested_pipeline_opt_inputs_nil_compiled.yaml'
             ),
             TestData(
                 pipeline_name='nested-pipeline-opt-inputs-parent-level',
                 pipeline_func=nested_pipeline_opt_inputs_parent_level,
                 pipeline_func_args=None,
                 compiled_file_name='nested_pipeline_opt_inputs_parent_level.yaml',
-                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/parallel_and_nested/nested_pipeline_opt_inputs_parent_level_compiled.yaml'
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/critical/nested_pipeline_opt_inputs_parent_level_compiled.yaml'
             ),
             TestData(
                 pipeline_name='cross-loop-after-topology',
@@ -990,7 +989,7 @@ class TestPipelineCompilation:
                 pipeline_func=pipeline_in_pipeline_loaded_from_yaml,
                 pipeline_func_args=None,
                 compiled_file_name='pipeline_in_pipeline_loaded_from_yaml.yaml',
-                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/parallel_and_nested/pipeline_in_pipeline_loaded_from_yaml.yaml'
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/essential/pipeline_in_pipeline_loaded_from_yaml.yaml'
             ),
             TestData(
                 pipeline_name='dynamic-importer-metadata-pipeline',

@@ -261,7 +261,7 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 		apply(func(column string) string { return "rd." + column }, runColumns), // Add prefix "rd." to runColumns
 		resourceRefConcatQuery+" AS refs")
 	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
-		columnsAfterJoiningResourceReferences = append(columnsAfterJoiningResourceReferences, "rd."+model.MetricSortSQLAlias)
+		columnsAfterJoiningResourceReferences = append(columnsAfterJoiningResourceReferences, "rd."+opts.SortByFieldName)
 	}
 	subQ := sq.
 		Select(columnsAfterJoiningResourceReferences...).
@@ -275,7 +275,7 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 		"rdref.refs",
 		tasksConcatQuery+" AS taskDetails")
 	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
-		columnsAfterJoiningTasks = append(columnsAfterJoiningTasks, "rdref."+model.MetricSortSQLAlias)
+		columnsAfterJoiningTasks = append(columnsAfterJoiningTasks, "rdref."+opts.SortByFieldName)
 	}
 	subQ = sq.
 		Select(columnsAfterJoiningTasks...).
@@ -754,13 +754,11 @@ func (s *RunStore) addSortByRunMetricToSelect(sqlBuilder sq.SelectBuilder, opts 
 	if r.IsRegularField(opts.SortByFieldName) {
 		return sqlBuilder
 	}
-	// Use a fixed alias for the metric column so user input never reaches SQL
-	// structure. The metric name is passed as a bind parameter to the JOIN
-	// condition, preventing SQL injection.
+	// TODO(jingzhang36): address the case where runs doesn't have the specified metric.
 	return sq.
-		Select("selected_runs.*, run_metrics.numbervalue as "+model.MetricSortSQLAlias).
+		Select("selected_runs.*, run_metrics.numbervalue as "+opts.SortByFieldName).
 		FromSelect(sqlBuilder, "selected_runs").
-		LeftJoin("run_metrics ON selected_runs.uuid=run_metrics.runuuid AND run_metrics.name=?", opts.SortByFieldName)
+		LeftJoin("run_metrics ON selected_runs.uuid=run_metrics.runuuid AND run_metrics.name='" + opts.SortByFieldName + "'")
 }
 
 func (s *RunStore) scanRowsToRunMetrics(rows *sql.Rows) ([]*model.RunMetric, error) {

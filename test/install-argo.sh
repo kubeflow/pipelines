@@ -16,6 +16,8 @@
 
 set -ex
 
+ENABLE_WORKLOAD_IDENTITY=${ENABLE_WORKLOAD_IDENTITY:-false}
+
 # Tests work without these lines. TODO: Verify and remove these lines
 kubectl config set-context $(kubectl config current-context) --namespace=default
 echo "Add necessary cluster role bindings"
@@ -32,3 +34,20 @@ ARGO_KSA="test-runner"
 echo "add service account for running the test workflow"
 kubectl create serviceaccount ${ARGO_KSA} -n ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
 kubectl create clusterrolebinding test-admin-binding --clusterrole=cluster-admin --serviceaccount=${NAMESPACE}:${ARGO_KSA} --dry-run=client -o yaml | kubectl apply -f -
+
+if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
+  ARGO_GSA="test-argo"
+  # Util library including create_gsa_if_not_present and bind_gsa_and_ksa functions.
+  source "$DIR/../manifests/kustomize/wi-utils.sh"
+  create_gsa_if_not_present $ARGO_GSA
+
+  source "${DIR}/scripts/retry.sh"
+  retry gcloud projects add-iam-policy-binding $PROJECT \
+    --member="serviceAccount:$ARGO_GSA@$PROJECT.iam.gserviceaccount.com" \
+    --role="roles/editor" \
+    > /dev/null # hide verbose output
+  retry bind_gsa_and_ksa $ARGO_GSA $ARGO_KSA $PROJECT $NAMESPACE
+
+  # TODO(Bobgy): re-enable this after temporary flakiness is resolved.
+  # verify_workload_identity_binding $ARGO_KSA $NAMESPACE
+fi

@@ -140,16 +140,6 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		}
 	})
 
-	Context("Upload a nested or a parallel pipeline file, run it and verify that pipeline run succeeds >", FlakeAttempts(2), Label(E2eParallelNested), func() {
-		var pipelineDir = "valid/parallel_and_nested"
-		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
-		for _, pipelineFile := range pipelineFiles {
-			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), func() {
-				validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
-			})
-		}
-	})
-
 	// Few of the following pipelines randomly fail in Multi User Mode during CI run - which is why a FlakeAttempt is added, but we need to investigate, create ticket and fix it in the future
 	Context("Upload a pipeline file, run it and verify that pipeline run succeeds >", FlakeAttempts(2), Label("Sample", E2eCritical), func() {
 		var pipelineDir = "valid/critical"
@@ -182,7 +172,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		pipelineFiles := []string{
 			"essential/component_with_pip_index_urls.yaml",
 			"essential/lightweight_python_functions_pipeline.yaml",
-			"parallel_and_nested/pipeline_in_pipeline.yaml",
+			"essential/pipeline_in_pipeline.yaml",
 			"critical/pipeline_with_secret_as_env.yaml",
 			"critical/pipeline_with_input_status_state.yaml",
 			"critical/notebook_component_simple.yaml",

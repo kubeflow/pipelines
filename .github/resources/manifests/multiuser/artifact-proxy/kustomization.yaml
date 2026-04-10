@@ -36,6 +36,9 @@ images:
   - name: ghcr.io/kubeflow/kfp-metadata-envoy
     newName: kind-registry:5000/metadata-envoy
     newTag: latest
+  - name: ghcr.io/kubeflow/kfp-driver
+    newName: kind-registry:5000/driver
+    newTag: latest
 
 patches:
   - path: ../pipeline-crd-rbac.yaml
@@ -96,4 +99,3 @@ replacements:
           name: cache-server
         fieldPaths:
           - spec.template.spec.dnsConfig.searches.[=NAMESPACE.svc.cluster.local]
-

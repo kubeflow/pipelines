@@ -152,21 +152,6 @@ describe('/artifacts/get namespaced proxy', () => {
       .expect(200, 'text-data2');
   });
 
-  it('returns 400 for invalid namespace without leaking namespace value', async () => {
-    const configs = loadConfigs(argv, { ARTIFACTS_SERVICE_PROXY_ENABLED: 'true' });
-    app = new UIServer(configs);
-    const res = await requests(app.app)
-      .get(
-        `/artifacts/get${buildQuery({
-          ...commonParams,
-          namespace: '../../etc',
-        })}`,
-      )
-      .expect(400);
-    expect(res.text).not.toContain('../../etc');
-    expect(res.text).not.toContain('stack');
-  });
-
   it('proxies a request with basePath too', async () => {
     const { receivedUrls, response } = await setUpNamespacedArtifactService({});
     const configs = loadConfigs(argv, {

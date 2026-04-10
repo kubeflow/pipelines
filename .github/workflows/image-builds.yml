@@ -41,9 +41,6 @@ jobs:
           - image: launcher
             dockerfile: backend/Dockerfile.launcher
             context: .
-          - image: driver
-            dockerfile: backend/Dockerfile.driver
-            context: .
           - image: frontend
             dockerfile: frontend/Dockerfile
             context: .
@@ -61,6 +58,9 @@ jobs:
             context: .
           - image: cache-server
             dockerfile: backend/Dockerfile.cacheserver
+            context: .
+          - image: driver
+            dockerfile: backend/Dockerfile.driver
             context: .
           - image: metadata-envoy
             dockerfile: third_party/metadata_envoy/Dockerfile

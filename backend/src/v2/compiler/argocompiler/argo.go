@@ -124,23 +124,6 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		}
 	}
 
-	// Resolve the workflow-level TTL strategy from the pipeline config.
-	// resource_ttl_on_completion is interpreted as seconds-after-completion so that Argo's
-	// TTL controller removes the Workflow object after the run finishes,
-	// regardless of success or failure.
-	var ttlStrategy *wfapi.TTLStrategy
-	if hasPipelineConfig {
-		ttlStrategy = buildTTLStrategy(kubernetesSpec.GetPipelineConfig())
-	}
-
-	// Resolve the workflow-level active deadline from the pipeline config.
-	// This sets a hard timeout after which Argo forcibly terminates the
-	// workflow, preventing stuck/zombie runs that never complete.
-	var activeDeadlineSeconds *int64
-	if kubernetesSpec != nil {
-		activeDeadlineSeconds = buildActiveDeadlineSeconds(kubernetesSpec.GetPipelineConfig())
-	}
-
 	// initialization
 	wf := &wfapi.Workflow{
 		TypeMeta: k8smeta.TypeMeta{
@@ -162,6 +145,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			PodMetadata: &wfapi.Metadata{
 				Annotations: map[string]string{
 					"pipelines.kubeflow.org/v2_component": "true",
+					util.AnnotationKeyIstioSidecarInject:  util.AnnotationValueIstioSidecarInjectDisabled,
 				},
 				Labels: map[string]string{
 					"pipelines.kubeflow.org/v2_component": "true",
@@ -170,11 +154,9 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			Arguments: wfapi.Arguments{
 				Parameters: []wfapi.Parameter{},
 			},
-			ServiceAccountName:    common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount),
-			Entrypoint:            tmplEntrypoint,
-			VolumeClaimTemplates:  volumeClaimTemplates,
-			TTLStrategy:           ttlStrategy,
-			ActiveDeadlineSeconds: activeDeadlineSeconds,
+			ServiceAccountName:   common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount),
+			Entrypoint:           tmplEntrypoint,
+			VolumeClaimTemplates: volumeClaimTemplates,
 		},
 	}
 
@@ -200,8 +182,6 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		// TODO(chensun): release process and update the images.
 		launcherImage:   GetLauncherImage(),
 		launcherCommand: GetLauncherCommand(),
-		driverImage:     GetDriverImage(),
-		driverCommand:   GetDriverCommand(),
 		job:             job,
 		spec:            spec,
 		executors:       deploy.GetExecutors(),
@@ -242,62 +222,6 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 func retrieveLastValidString(s string) string {
 	sections := strings.Split(s, "/")
 	return sections[len(sections)-1]
-}
-
-// buildTTLStrategy constructs an Argo TTLStrategy from a pipeline config.
-//
-// The three proto fields map to Argo's three TTL knobs:
-//   - resource_ttl_on_completion → SecondsAfterCompletion (regardless of outcome)
-//   - resource_ttl_on_success    → SecondsAfterSuccess   (successful runs only)
-//   - resource_ttl_on_failure    → SecondsAfterFailure   (failed runs only)
-//
-// Only positive values are applied; a value of 0 (proto default) is treated as
-// "not set".  Returns nil when none of the fields is positive.
-func buildTTLStrategy(pipelineConfig *pipelinespec.PipelineConfig) *wfapi.TTLStrategy {
-	if pipelineConfig == nil {
-		return nil
-	}
-
-	afterCompletion := pipelineConfig.GetResourceTtlOnCompletion()
-	afterSuccess := pipelineConfig.GetResourceTtlOnSuccess()
-	afterFailure := pipelineConfig.GetResourceTtlOnFailure()
-
-	if afterCompletion <= 0 && afterSuccess <= 0 && afterFailure <= 0 {
-		return nil
-	}
-
-	strategy := &wfapi.TTLStrategy{}
-	if afterCompletion > 0 {
-		v := int32(afterCompletion)
-		strategy.SecondsAfterCompletion = &v
-	}
-	if afterSuccess > 0 {
-		v := int32(afterSuccess)
-		strategy.SecondsAfterSuccess = &v
-	}
-	if afterFailure > 0 {
-		v := int32(afterFailure)
-		strategy.SecondsAfterFailure = &v
-	}
-	return strategy
-}
-
-// buildActiveDeadlineSeconds returns a pointer to the active-deadline value
-// that should be set on the Argo Workflow spec.
-//
-// Semantics (opt-in, backward compatible):
-//   - pipelineConfig == nil or field <= 0 → no deadline (nil)
-//   - field > 0                           → use the user-supplied value
-func buildActiveDeadlineSeconds(pipelineConfig *pipelinespec.PipelineConfig) *int64 {
-	if pipelineConfig == nil {
-		return nil
-	}
-	userValue := pipelineConfig.GetActiveDeadlineSeconds()
-	if userValue <= 0 {
-		return nil
-	}
-	v := int64(userValue)
-	return &v
 }
 
 type workflowCompiler struct {
@@ -519,17 +443,39 @@ func inputValue(parameter string) string {
 	return fmt.Sprintf("{{inputs.parameters.%s}}", parameter)
 }
 
+// b64InputValue returns an Argo expression that base64-encodes an input
+// parameter value. This is required for parameters whose values are JSON
+// objects (e.g., component/task/container specs): Argo's HTTP template body
+// substitution does NOT JSON-escape substituted values, so raw JSON strings
+// would break the enclosing JSON body. Base64 encoding avoids this because the
+// encoded output contains no characters that require JSON escaping.
+//
+// Uses sprig.b64enc because Argo's expression environment exposes the full
+// Sprig function map; there is no built-in standalone base64encode function.
+func b64InputValue(parameter string) string {
+	return fmt.Sprintf("{{=sprig.b64enc(inputs.parameters['%s'])}}", parameter)
+}
+
 // In a DAG/steps template, refer to inputs to the parent template.
 func inputParameter(parameter string) string {
 	return fmt.Sprintf("{{inputs.parameters.%s}}", parameter)
 }
 
-func outputPath(parameter string) string {
-	return fmt.Sprintf("{{outputs.parameters.%s.path}}", parameter)
-}
-
 func taskOutputParameter(task string, param string) string {
 	return fmt.Sprintf("{{tasks.%s.outputs.parameters.%s}}", task, param)
+}
+
+// taskResultExtract returns an Argo expression that extracts a named JSON field
+// from the raw result produced by an HTTP-template task. Argo HTTP templates
+// only populate outputs.result (the response body); named output parameters
+// with ValueFrom.Expression are never evaluated for HTTP templates.
+// Use this wherever a downstream task argument or when-condition needs a
+// specific value from a driver's JSON response.
+func taskResultExtract(task, jsonKey string) string {
+	// Use bracket notation $['key'] instead of dot notation $.key so that
+	// hyphenated keys (e.g. "execution-id") are handled correctly. Dot
+	// notation parses hyphens as subtraction operators in JSONPath.
+	return fmt.Sprintf("{{=jsonpath(tasks['%s'].outputs.result, \"$['%s']\")}}", task, jsonKey)
 }
 
 func loopItem() string {

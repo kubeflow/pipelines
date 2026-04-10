@@ -39,10 +39,13 @@ jobs:
         uses: ./.github/actions/kfp-k8s
 
       - name: Install Test dependencies
-        run: make test-component-yaml-install-deps
+        run: |
+          python3 -m pip install pytest
+          python3 -m pip install pytest-asyncio-cooperative==0.37.0
+          python3 -m pip install --upgrade pip
 
       - name: Run component YAML tests
         env:
           # We setup the env in the CI
           SETUP_ENV: false
-        run: make test-component-yaml-run
+        run: ./test/presubmit-component-yaml.sh

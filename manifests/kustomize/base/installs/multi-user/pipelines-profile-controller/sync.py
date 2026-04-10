@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import json
-import os
 import base64
 import hashlib
+from http.server import BaseHTTPRequestHandler
+from http.server import HTTPServer
+import json
+import os
 
 # From awscli installed in alpine/k8s image
 import botocore.session
@@ -25,8 +26,10 @@ S3_BUCKET_NAME = 'mlpipeline'
 
 session = botocore.session.get_session()
 # S3 client for lifecycle policy management
-s3_endpoint_url = os.environ.get("S3_ENDPOINT_URL", "http://seaweedfs.kubeflow:8333")
-s3 = session.create_client('s3', region_name='foobar', endpoint_url=s3_endpoint_url)
+s3_endpoint_url = os.environ.get('S3_ENDPOINT_URL',
+                                 'http://seaweedfs.kubeflow:8333')
+s3 = session.create_client(
+    's3', region_name='foobar', endpoint_url=s3_endpoint_url)
 
 
 def _normalize_domain(domain):
@@ -35,9 +38,10 @@ def _normalize_domain(domain):
 
 def create_iam_client():
     # To interact with SeaweedFS user management. Region does not matter.
-    endpoint_url = os.environ.get("AWS_ENDPOINT_URL")
+    endpoint_url = os.environ.get('AWS_ENDPOINT_URL')
     if endpoint_url:
-        return session.create_client('iam', region_name='foobar', endpoint_url=endpoint_url)
+        return session.create_client(
+            'iam', region_name='foobar', endpoint_url=endpoint_url)
     return session.create_client('iam', region_name='foobar')
 
 
@@ -58,8 +62,8 @@ def get_settings_from_env(controller_port=None,
                           artifact_retention_days=None,
                           cluster_domain=None,
                           object_store_host=None):
-    """
-    Returns a dict of settings from environment variables relevant to the controller
+    """Returns a dict of settings from environment variables relevant to the
+    controller.
 
     Environment settings can be overridden by passing them here as arguments.
 
@@ -71,41 +75,41 @@ def get_settings_from_env(controller_port=None,
         disable_istio_sidecar: Required (no default)
     """
     settings = dict()
-    settings["controller_port"] = \
+    settings['controller_port'] = \
         controller_port or \
-        os.environ.get("CONTROLLER_PORT", "8080")
+        os.environ.get('CONTROLLER_PORT', '8080')
 
-    settings["frontend_image"] = \
+    settings['frontend_image'] = \
         frontend_image or \
-        os.environ.get("FRONTEND_IMAGE", "ghcr.io/kubeflow/kfp-frontend")
+        os.environ.get('FRONTEND_IMAGE', 'ghcr.io/kubeflow/kfp-frontend')
 
-    settings["artifacts_proxy_enabled"] = \
+    settings['artifacts_proxy_enabled'] = \
         artifacts_proxy_enabled or \
-        os.environ.get("ARTIFACTS_PROXY_ENABLED", "false")
+        os.environ.get('ARTIFACTS_PROXY_ENABLED', 'false')
 
-    settings["artifact_retention_days"] = \
+    settings['artifact_retention_days'] = \
         artifact_retention_days or \
-        os.environ.get("ARTIFACT_RETENTION_DAYS", -1)
+        os.environ.get('ARTIFACT_RETENTION_DAYS', -1)
 
-    settings["cluster_domain"] = \
+    settings['cluster_domain'] = \
         cluster_domain or \
-        os.environ.get("CLUSTER_DOMAIN", ".svc.cluster.local")
+        os.environ.get('CLUSTER_DOMAIN', '.svc.cluster.local')
 
-    settings["object_store_host"] = \
+    settings['object_store_host'] = \
         object_store_host or \
-        os.environ.get("OBJECT_STORE_HOST", "seaweedfs")
+        os.environ.get('OBJECT_STORE_HOST', 'seaweedfs')
 
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
     # compatibility
-    settings["frontend_tag"] = \
+    settings['frontend_tag'] = \
         frontend_tag or \
-        os.environ.get("FRONTEND_TAG") or \
-        os.environ["KFP_VERSION"]
+        os.environ.get('FRONTEND_TAG') or \
+        os.environ['KFP_VERSION']
 
-    settings["disable_istio_sidecar"] = \
+    settings['disable_istio_sidecar'] = \
         disable_istio_sidecar if disable_istio_sidecar is not None \
-            else os.environ.get("DISABLE_ISTIO_SIDECAR") == "true"
+            else os.environ.get('DISABLE_ISTIO_SIDECAR') == 'true'
 
     return settings
 
@@ -115,269 +119,459 @@ def server_factory(frontend_image,
                    disable_istio_sidecar,
                    artifacts_proxy_enabled,
                    artifact_retention_days,
-                   cluster_domain=".svc.cluster.local",
-                   object_store_host="seaweedfs",
-                   url="",
+                   cluster_domain='.svc.cluster.local',
+                   object_store_host='seaweedfs',
+                   url='',
                    controller_port=8080):
-    """
-    Returns an HTTPServer populated with Handler with customized settings
-    """
+    """Returns an HTTPServer populated with Handler with customized
+    settings."""
+
     class Controller(BaseHTTPRequestHandler):
+
         def upsert_lifecycle_policy(self, bucket_name, artifact_retention_days):
-            """Configures or deletes the lifecycle policy based on the artifact_retention_days string."""
+            """Configures or deletes the lifecycle policy based on the
+            artifact_retention_days string."""
             try:
                 retention_days = int(artifact_retention_days)
             except ValueError:
-                print(f"ERROR: ARTIFACT_RETENTION_DAYS value '{artifact_retention_days}' is not a valid integer. Aborting policy update.")
+                print(
+                    f"ERROR: ARTIFACT_RETENTION_DAYS value '{artifact_retention_days}' is not a valid integer. Aborting policy update."
+                )
                 return
 
             # To disable lifecycle policy we need to delete it
             if retention_days <= 0:
-                print(f"ARTIFACT_RETENTION_DAYS is non-positive ({retention_days} days). Attempting to delete lifecycle policy.")
+                print(
+                    f'ARTIFACT_RETENTION_DAYS is non-positive ({retention_days} days). Attempting to delete lifecycle policy.'
+                )
                 try:
-                    response = s3.get_bucket_lifecycle_configuration(Bucket=bucket_name)
+                    response = s3.get_bucket_lifecycle_configuration(
+                        Bucket=bucket_name)
                     # Check if there are any enabled rules
-                    has_enabled_rules = any(rule.get('Status') == 'Enabled' for rule in response.get('Rules', []))
+                    has_enabled_rules = any(
+                        rule.get('Status') == 'Enabled'
+                        for rule in response.get('Rules', []))
 
                     if has_enabled_rules:
                         s3.delete_bucket_lifecycle(Bucket=bucket_name)
-                        print("Successfully deleted lifecycle policy.")
+                        print('Successfully deleted lifecycle policy.')
                     else:
-                        print("No enabled lifecycle rules found to delete.")
+                        print('No enabled lifecycle rules found to delete.')
                 except Exception:
-                    print(f"Warning: No lifecycle policy exists")
+                    print(f'Warning: No lifecycle policy exists')
                 return
 
             # Create/update lifecycle policy
             life_cycle_policy = {
-                "Rules": [
-                    {
-                        "Status": "Enabled",
-                        "Filter": {"Prefix": "private-artifacts"},
-                        "Expiration": {"Days": retention_days},
-                        "ID": "private-artifacts",
+                'Rules': [{
+                    'Status': 'Enabled',
+                    'Filter': {
+                        'Prefix': 'private-artifacts'
                     },
-                ]
+                    'Expiration': {
+                        'Days': retention_days
+                    },
+                    'ID': 'private-artifacts',
+                },]
             }
             print('upsert_lifecycle_policy:', life_cycle_policy)
 
             try:
                 api_response = s3.put_bucket_lifecycle_configuration(
                     Bucket=bucket_name,
-                    LifecycleConfiguration = life_cycle_policy
-                )
+                    LifecycleConfiguration=life_cycle_policy)
                 print('Lifecycle policy configured successfully:', api_response)
             except Exception as exception:
-                if hasattr(exception, 'response') and 'Error' in exception.response:
-                    print(f"ERROR: Failed to configure lifecycle policy: {exception.response['Error']['Code']} - {exception}")
+                if hasattr(exception,
+                           'response') and 'Error' in exception.response:
+                    print(
+                        f"ERROR: Failed to configure lifecycle policy: {exception.response['Error']['Code']} - {exception}"
+                    )
                 else:
-                    print(f"ERROR: Failed to configure lifecycle policy: {exception}")
-
+                    print(
+                        f'ERROR: Failed to configure lifecycle policy: {exception}'
+                    )
 
         def sync(self, parent, attachments):
             # parent is a namespace
-            namespace = parent.get("metadata", {}).get("name")
+            namespace = parent.get('metadata', {}).get('name')
 
-            pipeline_enabled = parent.get("metadata", {}).get(
-                "labels", {}).get("pipelines.kubeflow.org/enabled")
+            pipeline_enabled = parent.get('metadata', {}).get(
+                'labels', {}).get('pipelines.kubeflow.org/enabled')
 
-            if pipeline_enabled != "true":
-                return {"status": {}, "attachments": []}
+            if pipeline_enabled != 'true':
+                return {'status': {}, 'attachments': []}
 
             # Compute status based on observed state.
             desired_status = {
-                "kubeflow-pipelines-ready":
-                    len(attachments["Secret.v1"]) == 1 and
-                    len(attachments["ConfigMap.v1"]) == 3 and
-                    len(attachments["Deployment.apps/v1"]) == (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
-                    len(attachments["Service.v1"]) == (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
-                    "True" or "False"
+                'kubeflow-pipelines-ready':
+                    len(attachments['Secret.v1']) == 3 and
+                    len(attachments['ConfigMap.v1']) == 3 and
+                    len(attachments['Deployment.apps/v1']) ==
+                    (1 if artifacts_proxy_enabled.lower() == 'true' else 0) and
+                    len(attachments['Service.v1']) ==
+                    (1 if artifacts_proxy_enabled.lower() == 'true' else 0) and
+                    len(attachments['ServiceAccount.v1']) == 1 and
+                    len(attachments['Role.rbac.authorization.k8s.io/v1']) == 4
+                    and
+                    len(attachments['RoleBinding.rbac.authorization.k8s.io/v1'])
+                    == 4 and 'True' or 'False'
             }
 
             # Generate the desired attachment object(s).
             desired_resources = [
                 {
-                    "apiVersion": "v1",
-                    "kind": "ConfigMap",
-                    "metadata": {
-                        "name": "kfp-launcher",
-                        "namespace": namespace,
+                    'apiVersion': 'v1',
+                    'kind': 'ConfigMap',
+                    'metadata': {
+                        'name': 'kfp-launcher',
+                        'namespace': namespace,
                     },
-                    "data": {
-                        "defaultPipelineRoot": f"minio://{S3_BUCKET_NAME}/private-artifacts/{namespace}/v2/artifacts",
-                        "clusterDomain": cluster_domain,
-                    },
-                },
-                {
-                    "apiVersion": "v1",
-                    "kind": "ConfigMap",
-                    "metadata": {
-                        "name": "metadata-grpc-configmap",
-                        "namespace": namespace,
-                    },
-                    "data": {
-                        "METADATA_GRPC_SERVICE_HOST":
-                            "metadata-grpc-service.kubeflow",
-                        "METADATA_GRPC_SERVICE_PORT": "8080",
+                    'data': {
+                        'defaultPipelineRoot':
+                            f'minio://{S3_BUCKET_NAME}/private-artifacts/{namespace}/v2/artifacts',
+                        'clusterDomain':
+                            cluster_domain,
                     },
                 },
                 {
-                    "apiVersion": "v1",
-                    "kind": "ConfigMap",
-                    "metadata": {
-                        "name": "artifact-repositories",
-                        "namespace": namespace,
-                        "annotations": {
-                            "workflows.argoproj.io/default-artifact-repository": "default-namespaced"
+                    'apiVersion': 'v1',
+                    'kind': 'ConfigMap',
+                    'metadata': {
+                        'name': 'metadata-grpc-configmap',
+                        'namespace': namespace,
+                    },
+                    'data': {
+                        'METADATA_GRPC_SERVICE_HOST':
+                            'metadata-grpc-service.kubeflow',
+                        'METADATA_GRPC_SERVICE_PORT':
+                            '8080',
+                    },
+                },
+                {
+                    'apiVersion': 'v1',
+                    'kind': 'ConfigMap',
+                    'metadata': {
+                        'name': 'artifact-repositories',
+                        'namespace': namespace,
+                        'annotations': {
+                            'workflows.argoproj.io/default-artifact-repository':
+                                'default-namespaced'
                         }
                     },
-                    "data": {
-                        "default-namespaced": json.dumps({
-                            "archiveLogs": True,
-                            "s3": {
-                                "endpoint": f"{object_store_host}.kubeflow{_normalize_domain(cluster_domain)}:9000",
-                                "bucket": S3_BUCKET_NAME,
-                                "keyFormat": f"private-artifacts/{namespace}/{{{{workflow.name}}}}/{{{{workflow.creationTimestamp.Y}}}}/{{{{workflow.creationTimestamp.m}}}}/{{{{workflow.creationTimestamp.d}}}}/{{{{pod.name}}}}",
-                                "insecure": True,
-                                "accessKeySecret": {
-                                    "name": "mlpipeline-minio-artifact",
-                                    "key": "accesskey",
-                                },
-                                "secretKeySecret": {
-                                    "name": "mlpipeline-minio-artifact",
-                                    "key": "secretkey",
+                    'data': {
+                        'default-namespaced':
+                            json.dumps({
+                                'archiveLogs': True,
+                                's3': {
+                                    'endpoint':
+                                        f'{object_store_host}.kubeflow{_normalize_domain(cluster_domain)}:9000',
+                                    'bucket':
+                                        S3_BUCKET_NAME,
+                                    'keyFormat':
+                                        f'private-artifacts/{namespace}/{{{{workflow.name}}}}/{{{{workflow.creationTimestamp.Y}}}}/{{{{workflow.creationTimestamp.m}}}}/{{{{workflow.creationTimestamp.d}}}}/{{{{pod.name}}}}',
+                                    'insecure':
+                                        True,
+                                    'accessKeySecret': {
+                                        'name': 'mlpipeline-minio-artifact',
+                                        'key': 'accesskey',
+                                    },
+                                    'secretKeySecret': {
+                                        'name': 'mlpipeline-minio-artifact',
+                                        'key': 'secretkey',
+                                    }
                                 }
-                            }
-                        })
+                            })
                     }
                 },
             ]
 
-            # Add artifact fetcher related resources if enabled
-            if artifacts_proxy_enabled.lower() == "true":
+            if artifacts_proxy_enabled.lower() == 'true':
                 desired_resources.extend([
                     {
-                        "apiVersion": "apps/v1",
-                        "kind": "Deployment",
-                        "metadata": {
-                            "labels": {
-                                "app": "ml-pipeline-ui-artifact"
+                        'apiVersion': 'apps/v1',
+                        'kind': 'Deployment',
+                        'metadata': {
+                            'labels': {
+                                'app': 'ml-pipeline-ui-artifact'
                             },
-                            "name": "ml-pipeline-ui-artifact",
-                            "namespace": namespace,
+                            'name': 'ml-pipeline-ui-artifact',
+                            'namespace': namespace,
                         },
-                        "spec": {
-                            "selector": {
-                                "matchLabels": {
-                                    "app": "ml-pipeline-ui-artifact"
+                        'spec': {
+                            'selector': {
+                                'matchLabels': {
+                                    'app': 'ml-pipeline-ui-artifact'
                                 }
                             },
-                            "template": {
-                                "metadata": {
-                                    "labels": {
-                                        "app": "ml-pipeline-ui-artifact"
+                            'template': {
+                                'metadata': {
+                                    'labels': {
+                                        'app': 'ml-pipeline-ui-artifact'
                                     },
-                                    "annotations": {
-                                        **({"sidecar.istio.io/inject": "false"} if disable_istio_sidecar else {}),
-                                        "kubeflow-pipelines/image-spec-hash": hashlib.sha256(f"{frontend_image}:{frontend_tag}".encode()).hexdigest()[:16],
+                                    'annotations': {
+                                        **({
+                                            'sidecar.istio.io/inject': 'false'
+                                        } if disable_istio_sidecar else {}),
+                                        'kubeflow-pipelines/image-spec-hash':
+                                            hashlib.sha256(
+                                                f'{frontend_image}:{frontend_tag}'
+                                                .encode()).hexdigest()[:16],
                                     },
                                 },
-                                "spec": {
-                                    "containers": [{
-                                        "name":
-                                            "ml-pipeline-ui-artifact",
-                                        "image": f"{frontend_image}:{frontend_tag}",
-                                        "imagePullPolicy":
-                                            "IfNotPresent",
-                                        "ports": [{
-                                            "containerPort": 3000
+                                'spec': {
+                                    'containers': [{
+                                        'name':
+                                            'ml-pipeline-ui-artifact',
+                                        'image':
+                                            f'{frontend_image}:{frontend_tag}',
+                                        'imagePullPolicy':
+                                            'IfNotPresent',
+                                        'ports': [{
+                                            'containerPort': 3000
                                         }],
-                                        "env": [
-                                            {
-                                                "name": "MINIO_ACCESS_KEY",
-                                                "valueFrom": {
-                                                    "secretKeyRef": {
-                                                        "key": "accesskey",
-                                                        "name": "mlpipeline-minio-artifact"
-                                                    }
+                                        'env': [{
+                                            'name': 'MINIO_ACCESS_KEY',
+                                            'valueFrom': {
+                                                'secretKeyRef': {
+                                                    'key':
+                                                        'accesskey',
+                                                    'name':
+                                                        'mlpipeline-minio-artifact'
                                                 }
-                                            },
-                                            {
-                                                "name": "MINIO_SECRET_KEY",
-                                                "valueFrom": {
-                                                    "secretKeyRef": {
-                                                        "key": "secretkey",
-                                                        "name": "mlpipeline-minio-artifact"
-                                                    }
-                                                }
-                                            },
-                                            {
-                                                "name": "ML_PIPELINE_SERVICE_HOST",
-                                                "value": f"ml-pipeline.kubeflow{_normalize_domain(cluster_domain)}"
-                                            },
-                                            {
-                                                "name": "ML_PIPELINE_SERVICE_PORT",
-                                                "value": "8888"
-                                            },
-                                            {
-                                                "name": "FRONTEND_SERVER_NAMESPACE",
-                                                "value": namespace,
-                                            },
-                                            {
-                                                "name": "CLUSTER_DOMAIN",
-                                                "value": cluster_domain,
                                             }
-                                        ],
-                                        "resources": {
-                                            "requests": {
-                                                "cpu": "10m",
-                                                "memory": "70Mi"
+                                        }, {
+                                            'name': 'MINIO_SECRET_KEY',
+                                            'valueFrom': {
+                                                'secretKeyRef': {
+                                                    'key':
+                                                        'secretkey',
+                                                    'name':
+                                                        'mlpipeline-minio-artifact'
+                                                }
+                                            }
+                                        }, {
+                                            'name':
+                                                'ML_PIPELINE_SERVICE_HOST',
+                                            'value':
+                                                f'ml-pipeline.kubeflow{_normalize_domain(cluster_domain)}'
+                                        }, {
+                                            'name': 'ML_PIPELINE_SERVICE_PORT',
+                                            'value': '8888'
+                                        }, {
+                                            'name': 'FRONTEND_SERVER_NAMESPACE',
+                                            'value': namespace,
+                                        }, {
+                                            'name': 'CLUSTER_DOMAIN',
+                                            'value': cluster_domain,
+                                        }],
+                                        'resources': {
+                                            'requests': {
+                                                'cpu': '10m',
+                                                'memory': '70Mi'
                                             },
-                                            "limits": {
-                                                "cpu": "100m",
-                                                "memory": "500Mi"
+                                            'limits': {
+                                                'cpu': '100m',
+                                                'memory': '500Mi'
                                             },
                                         }
                                     }],
-                                    "serviceAccountName":
-                                        "default-editor"
+                                    'serviceAccountName': 'default-editor'
                                 }
                             }
                         }
                     },
                     {
-                        "apiVersion": "v1",
-                        "kind": "Service",
-                        "metadata": {
-                            "name": "ml-pipeline-ui-artifact",
-                            "namespace": namespace,
-                            "labels": {
-                                "app": "ml-pipeline-ui-artifact"
+                        'apiVersion': 'v1',
+                        'kind': 'Service',
+                        'metadata': {
+                            'name': 'ml-pipeline-ui-artifact',
+                            'namespace': namespace,
+                            'labels': {
+                                'app': 'ml-pipeline-ui-artifact'
                             }
                         },
-                        "spec": {
-                            "ports": [{
-                                "name":
-                                    "http",  # name is required to let istio understand request protocol
-                                "port": 80,
-                                "protocol": "TCP",
-                                "targetPort": 3000
+                        'spec': {
+                            'ports': [{
+                                'name':
+                                    'http',  # name is required to let istio understand request protocol
+                                'port': 80,
+                                'protocol': 'TCP',
+                                'targetPort': 3000
                             }],
-                            "selector": {
-                                "app": "ml-pipeline-ui-artifact"
+                            'selector': {
+                                'app': 'ml-pipeline-ui-artifact'
                             }
                         }
                     },
                 ])
 
+            print('Creating executor-plugin RBAC for centralized driver')
+            # The KFP driver now runs as a centralized endpoint within the API server
+            # (ml-pipeline SA in the kubeflow namespace) rather than as a per-workflow
+            # sidecar. The API server needs permissions in each user namespace to
+            # create PVCs, read pods, and access secrets on behalf of workflows.
+            kfp_system_namespace = 'kubeflow'
+            api_server_sa = 'ml-pipeline'
+            desired_resources.extend([
+                {
+                    'apiVersion':
+                        'rbac.authorization.k8s.io/v1',
+                    'kind':
+                        'Role',
+                    'metadata': {
+                        'name': 'configmap-reader',
+                        'namespace': namespace,
+                    },
+                    'rules': [{
+                        'apiGroups': [''],
+                        'resources': ['configmaps'],
+                        'verbs': ['get', 'list', 'watch'],
+                    }]
+                },
+                {
+                    'apiVersion': 'rbac.authorization.k8s.io/v1',
+                    'kind': 'RoleBinding',
+                    'metadata': {
+                        'name': 'configmap-reader-binding',
+                        'namespace': namespace,
+                    },
+                    'subjects': [{
+                        'kind': 'ServiceAccount',
+                        'name': api_server_sa,
+                        'namespace': kfp_system_namespace,
+                    }],
+                    'roleRef': {
+                        'kind': 'Role',
+                        'name': 'configmap-reader',
+                        'apiGroup': 'rbac.authorization.k8s.io',
+                    }
+                },
+                {
+                    'apiVersion':
+                        'rbac.authorization.k8s.io/v1',
+                    'kind':
+                        'Role',
+                    'metadata': {
+                        'name': 'ml-pipeline-driver-pods-reader',
+                        'namespace': namespace,
+                    },
+                    'rules': [{
+                        'apiGroups': [''],
+                        'resources': ['pods'],
+                        'verbs': ['get', 'list', 'watch'],
+                    }]
+                },
+                {
+                    'apiVersion': 'rbac.authorization.k8s.io/v1',
+                    'kind': 'RoleBinding',
+                    'metadata': {
+                        'name': 'ml-pipeline-driver-pods-reader-binding',
+                        'namespace': namespace,
+                    },
+                    'subjects': [{
+                        'kind': 'ServiceAccount',
+                        'name': api_server_sa,
+                        'namespace': kfp_system_namespace,
+                    }],
+                    'roleRef': {
+                        'kind': 'Role',
+                        'name': 'ml-pipeline-driver-pods-reader',
+                        'apiGroup': 'rbac.authorization.k8s.io',
+                    }
+                },
+                {
+                    'apiVersion':
+                        'rbac.authorization.k8s.io/v1',
+                    'kind':
+                        'Role',
+                    'metadata': {
+                        'name': 'ml-pipeline-driver-pvc-editor',
+                        'namespace': namespace,
+                    },
+                    'rules': [{
+                        'apiGroups': [''],
+                        'resources': ['persistentvolumeclaims'],
+                        'verbs': ['create', 'get', 'list'],
+                    }]
+                },
+                {
+                    'apiVersion': 'rbac.authorization.k8s.io/v1',
+                    'kind': 'RoleBinding',
+                    'metadata': {
+                        'name': 'ml-pipeline-driver-pvc-editor-binding',
+                        'namespace': namespace,
+                    },
+                    'subjects': [{
+                        'kind': 'ServiceAccount',
+                        'name': api_server_sa,
+                        'namespace': kfp_system_namespace,
+                    }],
+                    'roleRef': {
+                        'kind': 'Role',
+                        'name': 'ml-pipeline-driver-pvc-editor',
+                        'apiGroup': 'rbac.authorization.k8s.io',
+                    }
+                },
+                {
+                    'apiVersion':
+                        'rbac.authorization.k8s.io/v1',
+                    'kind':
+                        'Role',
+                    'metadata': {
+                        'name': 'artifact-secret-reader',
+                        'namespace': namespace,
+                    },
+                    'rules': [{
+                        'apiGroups': [''],
+                        'resources': ['secrets'],
+                        'resourceNames': ['mlpipeline-minio-artifact'],
+                        'verbs': ['get', 'list', 'watch'],
+                    }]
+                },
+                {
+                    'apiVersion': 'rbac.authorization.k8s.io/v1',
+                    'kind': 'RoleBinding',
+                    'metadata': {
+                        'name': 'artifact-secret-reader-binding',
+                        'namespace': namespace,
+                    },
+                    'subjects': [{
+                        'kind': 'ServiceAccount',
+                        'name': api_server_sa,
+                        'namespace': kfp_system_namespace,
+                    }],
+                    'roleRef': {
+                        'kind': 'Role',
+                        'name': 'artifact-secret-reader',
+                        'apiGroup': 'rbac.authorization.k8s.io',
+                    }
+                },
+                {
+                    'apiVersion': 'v1',
+                    'kind': 'Secret',
+                    'metadata': {
+                        'name': 'default-editor.service-account-token',
+                        'namespace': namespace,
+                        'annotations': {
+                            'kubernetes.io/service-account.name':
+                                'default-editor'
+                        }
+                    },
+                    'type': 'kubernetes.io/service-account-token'
+                },
+            ])
+
             print('Received request:\n', json.dumps(parent, sort_keys=True))
-            print('Desired resources except secrets:\n', json.dumps(desired_resources, sort_keys=True))
+            print('Desired resources except secrets:\n',
+                  json.dumps(desired_resources, sort_keys=True))
 
             # Moved after the print argument because this is sensitive data.
 
             # Check if secret is already there when the controller made the request. If yes, then
             # use it. Else create a new credentials on seaweedfs for the namespace.
-            if s3_secret := attachments["Secret.v1"].get(f"{namespace}/mlpipeline-minio-artifact"):
+            if s3_secret := attachments['Secret.v1'].get(
+                    f'{namespace}/mlpipeline-minio-artifact'):
                 desired_resources.append(s3_secret)
                 print('Using existing secret')
             else:
@@ -387,59 +581,62 @@ def server_factory(frontend_image,
                 # This policy ensures that a user can only access artifacts from his own profile.
                 iam.put_user_policy(
                     UserName=namespace,
-                    PolicyName=f"KubeflowProject{namespace}",
-                    PolicyDocument=json.dumps(
-                        {
-                            "Version": "2012-10-17",
-                            "Statement": [{
-                                "Effect": "Allow",
-                                "Action": [
-                                    "s3:Put*",
-                                    "s3:Get*",
-                                    "s3:List*"
-                                ],
-                                "Resource": [
-                                    f"arn:aws:s3:::{S3_BUCKET_NAME}/artifacts/*",
-                                    f"arn:aws:s3:::{S3_BUCKET_NAME}/private-artifacts/{namespace}/*",
-                                    f"arn:aws:s3:::{S3_BUCKET_NAME}/private/{namespace}/*",
-                                    f"arn:aws:s3:::{S3_BUCKET_NAME}/shared/*",
-                                ]
-                            }]
-                        })
-                )
+                    PolicyName=f'KubeflowProject{namespace}',
+                    PolicyDocument=json.dumps({
+                        'Version':
+                            '2012-10-17',
+                        'Statement': [{
+                            'Effect':
+                                'Allow',
+                            'Action': ['s3:Put*', 's3:Get*', 's3:List*'],
+                            'Resource': [
+                                f'arn:aws:s3:::{S3_BUCKET_NAME}/artifacts/*',
+                                f'arn:aws:s3:::{S3_BUCKET_NAME}/private-artifacts/{namespace}/*',
+                                f'arn:aws:s3:::{S3_BUCKET_NAME}/private/{namespace}/*',
+                                f'arn:aws:s3:::{S3_BUCKET_NAME}/shared/*',
+                            ]
+                        }]
+                    }))
 
-                self.upsert_lifecycle_policy(S3_BUCKET_NAME, artifact_retention_days)
+                self.upsert_lifecycle_policy(S3_BUCKET_NAME,
+                                             artifact_retention_days)
 
                 desired_resources.insert(
-                    0,
-                    {
-                        "apiVersion": "v1",
-                        "kind": "Secret",
-                        "metadata": {
-                            "name": "mlpipeline-minio-artifact",
-                            "namespace": namespace,
+                    0, {
+                        'apiVersion': 'v1',
+                        'kind': 'Secret',
+                        'metadata': {
+                            'name': 'mlpipeline-minio-artifact',
+                            'namespace': namespace,
                         },
-                        "data": {
-                            "accesskey": base64.b64encode(s3_access_key["AccessKey"]["AccessKeyId"].encode('utf-8')).decode("utf-8"),
-                            "secretkey": base64.b64encode(s3_access_key["AccessKey"]["SecretAccessKey"].encode('utf-8')).decode("utf-8"),
-                    },
-                })
+                        'data': {
+                            'accesskey':
+                                base64.b64encode(s3_access_key['AccessKey']
+                                                 ['AccessKeyId'].encode('utf-8')
+                                                ).decode('utf-8'),
+                            'secretkey':
+                                base64.b64encode(
+                                    s3_access_key['AccessKey']
+                                    ['SecretAccessKey'].encode('utf-8')
+                                ).decode('utf-8'),
+                        },
+                    })
 
-            return {"status": desired_status, "attachments": desired_resources}
+            return {'status': desired_status, 'attachments': desired_resources}
 
         def do_POST(self):
             # Serve the sync() function as a JSON webhook.
             observed = json.loads(
-                self.rfile.read(int(self.headers.get("content-length"))))
-            desired = self.sync(observed["object"], observed["attachments"])
+                self.rfile.read(int(self.headers.get('content-length'))))
+            desired = self.sync(observed['object'], observed['attachments'])
 
             self.send_response(200)
-            self.send_header("Content-type", "application/json")
+            self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(bytes(json.dumps(desired), 'utf-8'))
 
     return HTTPServer((url, int(controller_port)), Controller)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

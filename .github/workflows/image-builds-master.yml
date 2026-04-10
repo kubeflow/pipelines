@@ -30,9 +30,6 @@ jobs:
           - name: kfp-launcher
             dockerfile: backend/Dockerfile.launcher
             context: .
-          - name: kfp-driver
-            dockerfile: backend/Dockerfile.driver
-            context: .
           - name: kfp-cache-deployer
             dockerfile: backend/src/cache/deployer/Dockerfile
             context: .
@@ -48,6 +45,9 @@ jobs:
           - name: kfp-inverse-proxy-agent
             dockerfile: proxy/Dockerfile
             context: ./proxy
+          - name: kfp-driver
+            dockerfile: backend/Dockerfile.driver
+            context: .
 
         arch:
           - arch_name: amd64
@@ -93,12 +93,12 @@ jobs:
           - image: kfp-viewer-crd-controller
           - image: kfp-visualization-server
           - image: kfp-launcher
-          - image: kfp-driver
           - image: kfp-cache-deployer
           - image: kfp-cache-server
           - image: kfp-metadata-writer
           - image: kfp-metadata-envoy
           - image: kfp-inverse-proxy-agent
+          - image: kfp-driver
     uses: ./.github/workflows/create-manifest.yml
     secrets: inherit
     with:

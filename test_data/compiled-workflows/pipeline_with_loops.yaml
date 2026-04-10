@@ -5,13 +5,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-fa52219045a80d72f6f8f40492570e94942c3f25927d7cbc4e112c1ac54e4e04
+    - name: components-687d86676223e8ed6d5a94779ca21c78d7c45d0c14796f2992c0b78dc949e530
       value: '{"executorLabel":"exec-args-generator-op","outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
-    - name: implementations-fa52219045a80d72f6f8f40492570e94942c3f25927d7cbc4e112c1ac54e4e04
+    - name: implementations-687d86676223e8ed6d5a94779ca21c78d7c45d0c14796f2992c0b78dc949e530
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","args_generator_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -19,13 +19,13 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         args_generator_op() -\u003e List[Dict[str, str]]:\n    return [{''A_a'': ''1'',
         ''B_b'': ''2''}, {''A_a'': ''10'', ''B_b'': ''20''}]\n\n"],"image":"python:3.11"}'
-    - name: components-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d
+    - name: components-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d
       value: '{"executorLabel":"exec-print-text","inputDefinitions":{"parameters":{"msg":{"parameterType":"STRING"}}}}'
-    - name: implementations-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d
+    - name: implementations-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_text"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -34,13 +34,13 @@ spec:
         print_text(msg: str):\n    print(msg)\n\n"],"image":"python:3.11"}'
     - name: components-comp-for-loop-1
       value: '{"dag":{"tasks":{"print-text":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item"}}},"taskInfo":{"name":"print-text"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop_parameter":{"parameterType":"LIST"},"pipelinechannel--loop_parameter-loop-item":{"parameterType":"STRING"}}}}'
-    - name: components-b550be7b0684fb8004fa1b01d3b9533640ab67f998151e93e27513fdd1aa41c0
+    - name: components-5d3bbc654be05c6e0386e82c98f120e616a0fc39246372d5e8cd1d973990c50f
       value: '{"executorLabel":"exec-print-struct","inputDefinitions":{"parameters":{"struct":{"parameterType":"STRUCT"}}}}'
-    - name: implementations-b550be7b0684fb8004fa1b01d3b9533640ab67f998151e93e27513fdd1aa41c0
+    - name: implementations-5d3bbc654be05c6e0386e82c98f120e616a0fc39246372d5e8cd1d973990c50f
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_struct"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -53,11 +53,12 @@ spec:
       value: '{"dag":{"tasks":{"print-struct-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-struct-2"},"inputs":{"parameters":{"struct":{"componentInputParameter":"pipelinechannel--loop-item-param-3"}}},"taskInfo":{"name":"print-struct-2"}},"print-text-4":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-4"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-text-4"}},"print-text-5":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-5"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-5"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-3":{"parameterType":"STRUCT"}}}}'
     - name: components-root
       value: '{"dag":{"tasks":{"args-generator-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-args-generator-op"},"taskInfo":{"name":"args-generator-op"}},"for-loop-1":{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--loop_parameter":{"componentInputParameter":"loop_parameter"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop_parameter-loop-item","items":{"inputParameter":"pipelinechannel--loop_parameter"}},"taskInfo":{"name":"for-loop-1"}},"for-loop-2":{"componentRef":{"name":"comp-for-loop-2"},"dependentTasks":["args-generator-op"],"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"args-generator-op"}}}},"parameterIterator":{"itemInput":"pipelinechannel--args-generator-op-Output-loop-item","items":{"inputParameter":"pipelinechannel--args-generator-op-Output"}},"taskInfo":{"name":"for-loop-2"}},"for-loop-4":{"componentRef":{"name":"comp-for-loop-4"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[{\"A_a\":
-        \"1\", \"B_b\": \"2\"}, {\"A_a\": \"10\", \"B_b\": \"20\"}]"}},"taskInfo":{"name":"for-loop-4"}}}},"inputDefinitions":{"parameters":{"loop_parameter":{"defaultValue":["a","b"],"isOptional":true,"parameterType":"LIST"}}}}'
+        \"1\", \"B_b\": \"2\"}, {\"A_a\": \"10\", \"B_b\": \"20\"}]"}},"taskInfo":{"name":"for-loop-4"}}}},"inputDefinitions":{"parameters":{"loop_parameter":{"parameterType":"LIST"}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
       pipelines.kubeflow.org/v2_component: "true"
+      sidecar.istio.io/inject: "false"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
   securityContext:
@@ -66,80 +67,15 @@ spec:
       type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
-  - container:
-      args:
-      - --type
-      - CONTAINER
-      - --pipeline_name
-      - pipeline-with-loops
-      - --run_id
-      - '{{workflow.uid}}'
-      - --run_name
-      - '{{workflow.name}}'
-      - --run_display_name
-      - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
-      - --component
-      - '{{inputs.parameters.component}}'
-      - --task
-      - '{{inputs.parameters.task}}'
-      - --task_name
-      - '{{inputs.parameters.task-name}}'
-      - --container
-      - '{{inputs.parameters.container}}'
-      - --iteration_index
-      - '{{inputs.parameters.iteration-index}}'
-      - --cached_decision_path
-      - '{{outputs.parameters.cached-decision.path}}'
-      - --pod_spec_patch_path
-      - '{{outputs.parameters.pod-spec-patch.path}}'
-      - --condition_path
-      - '{{outputs.parameters.condition.path}}'
-      - --kubernetes_config
-      - '{{inputs.parameters.kubernetes-config}}'
-      - --http_proxy
-      - ""
-      - --https_proxy
-      - ""
-      - --no_proxy
-      - ""
-      - --ml_pipeline_server_address
-      - ml-pipeline.kubeflow.svc.cluster.local
-      - --ml_pipeline_server_port
-      - "8887"
-      - --mlmd_server_address
-      - metadata-grpc-service.kubeflow.svc.cluster.local
-      - --mlmd_server_port
-      - "8080"
-      command:
-      - driver
-      env:
-      - name: KFP_POD_NAME
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.name
-      - name: KFP_POD_UID
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.uid
-      image: ghcr.io/kubeflow/kfp-driver:latest
-      name: ""
-      resources:
-        limits:
-          cpu: 500m
-          memory: 512Mi
-        requests:
-          cpu: 100m
-          memory: 64Mi
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
+  - http:
+      body: '{"cache_disabled":false,"component":"{{=sprig.b64enc(inputs.parameters[''component''])}}","container":"{{=sprig.b64enc(inputs.parameters[''container''])}}","dag_execution_id":"{{inputs.parameters.parent-dag-id}}","http_proxy":"","https_proxy":"","iteration_index":"{{inputs.parameters.iteration-index}}","kubernetes_config":"{{=sprig.b64enc(inputs.parameters[''kubernetes-config''])}}","metadata_tls_enabled":false,"ml_pipeline_server_address":"ml-pipeline.kubeflow.svc.cluster.local","ml_pipeline_server_port":"8887","ml_pipeline_tls_enabled":false,"mlmd_server_address":"metadata-grpc-service.kubeflow.svc.cluster.local","mlmd_server_port":"8080","namespace":"{{workflow.namespace}}","no_proxy":"","pipeline_name":"pipeline-with-loops","run_display_name":"","run_id":"{{workflow.uid}}","run_name":"{{workflow.name}}","task":"{{=sprig.b64enc(inputs.parameters[''task''])}}","task_name":"{{inputs.parameters.task-name}}","type":"CONTAINER"}'
+      headers:
+      - name: Content-Type
+        value: application/json
+      method: POST
+      successCondition: response.statusCode == 200
+      timeoutSeconds: 600
+      url: http://ml-pipeline-driver.kubeflow.svc.cluster.local:8080/api/v1/template.execute
     inputs:
       parameters:
       - name: component
@@ -153,25 +89,7 @@ spec:
         name: kubernetes-config
     metadata: {}
     name: system-container-driver
-    outputs:
-      parameters:
-      - name: pod-spec-patch
-        valueFrom:
-          default: ""
-          path: /tmp/outputs/pod-spec-patch
-      - default: "false"
-        name: cached-decision
-        valueFrom:
-          default: "false"
-          path: /tmp/outputs/cached-decision
-      - name: condition
-        valueFrom:
-          default: "true"
-          path: /tmp/outputs/condition
-    securityContext:
-      runAsNonRoot: true
-      seccompProfile:
-        type: RuntimeDefault
+    outputs: {}
   - dag:
       tasks:
       - arguments:
@@ -285,11 +203,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
+            value: '{{workflow.parameters.components-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item"}}},"taskInfo":{"name":"print-text"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
+            value: '{{workflow.parameters.implementations-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
           - name: task-name
             value: print-text
           - name: parent-dag-id
@@ -299,10 +217,10 @@ spec:
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.print-text-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{=jsonpath(tasks[''print-text-driver''].outputs.result, "$[''pod-spec-patch'']")}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.print-text-driver.outputs.parameters.cached-decision}}'
+            value: '{{=jsonpath(tasks[''print-text-driver''].outputs.result, "$[''cached-decision'']")}}'
         depends: print-text-driver.Succeeded
         name: print-text
         template: system-container-executor
@@ -317,11 +235,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-b550be7b0684fb8004fa1b01d3b9533640ab67f998151e93e27513fdd1aa41c0}}'
+            value: '{{workflow.parameters.components-5d3bbc654be05c6e0386e82c98f120e616a0fc39246372d5e8cd1d973990c50f}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-struct"},"inputs":{"parameters":{"struct":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item"}}},"taskInfo":{"name":"print-struct"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-b550be7b0684fb8004fa1b01d3b9533640ab67f998151e93e27513fdd1aa41c0}}'
+            value: '{{workflow.parameters.implementations-5d3bbc654be05c6e0386e82c98f120e616a0fc39246372d5e8cd1d973990c50f}}'
           - name: task-name
             value: print-struct
           - name: parent-dag-id
@@ -331,21 +249,21 @@ spec:
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.print-struct-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{=jsonpath(tasks[''print-struct-driver''].outputs.result, "$[''pod-spec-patch'']")}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.print-struct-driver.outputs.parameters.cached-decision}}'
+            value: '{{=jsonpath(tasks[''print-struct-driver''].outputs.result, "$[''cached-decision'']")}}'
         depends: print-struct-driver.Succeeded
         name: print-struct
         template: system-container-executor
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
+            value: '{{workflow.parameters.components-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-2"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-text-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
+            value: '{{workflow.parameters.implementations-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
           - name: task-name
             value: print-text-2
           - name: parent-dag-id
@@ -355,21 +273,21 @@ spec:
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.print-text-2-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{=jsonpath(tasks[''print-text-2-driver''].outputs.result, "$[''pod-spec-patch'']")}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.print-text-2-driver.outputs.parameters.cached-decision}}'
+            value: '{{=jsonpath(tasks[''print-text-2-driver''].outputs.result, "$[''cached-decision'']")}}'
         depends: print-text-2-driver.Succeeded
         name: print-text-2
         template: system-container-executor
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
+            value: '{{workflow.parameters.components-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-3"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-3"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
+            value: '{{workflow.parameters.implementations-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
           - name: task-name
             value: print-text-3
           - name: parent-dag-id
@@ -379,10 +297,10 @@ spec:
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.print-text-3-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{=jsonpath(tasks[''print-text-3-driver''].outputs.result, "$[''pod-spec-patch'']")}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.print-text-3-driver.outputs.parameters.cached-decision}}'
+            value: '{{=jsonpath(tasks[''print-text-3-driver''].outputs.result, "$[''cached-decision'']")}}'
         depends: print-text-3-driver.Succeeded
         name: print-text-3
         template: system-container-executor
@@ -397,11 +315,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-b550be7b0684fb8004fa1b01d3b9533640ab67f998151e93e27513fdd1aa41c0}}'
+            value: '{{workflow.parameters.components-5d3bbc654be05c6e0386e82c98f120e616a0fc39246372d5e8cd1d973990c50f}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-struct-2"},"inputs":{"parameters":{"struct":{"componentInputParameter":"pipelinechannel--loop-item-param-3"}}},"taskInfo":{"name":"print-struct-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-b550be7b0684fb8004fa1b01d3b9533640ab67f998151e93e27513fdd1aa41c0}}'
+            value: '{{workflow.parameters.implementations-5d3bbc654be05c6e0386e82c98f120e616a0fc39246372d5e8cd1d973990c50f}}'
           - name: task-name
             value: print-struct-2
           - name: parent-dag-id
@@ -411,21 +329,21 @@ spec:
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.print-struct-2-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{=jsonpath(tasks[''print-struct-2-driver''].outputs.result, "$[''pod-spec-patch'']")}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.print-struct-2-driver.outputs.parameters.cached-decision}}'
+            value: '{{=jsonpath(tasks[''print-struct-2-driver''].outputs.result, "$[''cached-decision'']")}}'
         depends: print-struct-2-driver.Succeeded
         name: print-struct-2
         template: system-container-executor
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
+            value: '{{workflow.parameters.components-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-4"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-text-4"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
+            value: '{{workflow.parameters.implementations-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
           - name: task-name
             value: print-text-4
           - name: parent-dag-id
@@ -435,21 +353,21 @@ spec:
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.print-text-4-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{=jsonpath(tasks[''print-text-4-driver''].outputs.result, "$[''pod-spec-patch'']")}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.print-text-4-driver.outputs.parameters.cached-decision}}'
+            value: '{{=jsonpath(tasks[''print-text-4-driver''].outputs.result, "$[''cached-decision'']")}}'
         depends: print-text-4-driver.Succeeded
         name: print-text-4
         template: system-container-executor
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
+            value: '{{workflow.parameters.components-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-5"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-5"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-317c58411818b2658547854882ddd2335912f90f03549c22a3ed7031bb45a11d}}'
+            value: '{{workflow.parameters.implementations-a37ae37968ac30a4c2376035e115521a351c56fae22ef37e91f7df600a415f7d}}'
           - name: task-name
             value: print-text-5
           - name: parent-dag-id
@@ -459,10 +377,10 @@ spec:
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.print-text-5-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{=jsonpath(tasks[''print-text-5-driver''].outputs.result, "$[''pod-spec-patch'']")}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.print-text-5-driver.outputs.parameters.cached-decision}}'
+            value: '{{=jsonpath(tasks[''print-text-5-driver''].outputs.result, "$[''cached-decision'']")}}'
         depends: print-text-5-driver.Succeeded
         name: print-text-5
         template: system-container-executor
@@ -472,69 +390,15 @@ spec:
     metadata: {}
     name: comp-for-loop-4
     outputs: {}
-  - container:
-      args:
-      - --type
-      - '{{inputs.parameters.driver-type}}'
-      - --pipeline_name
-      - pipeline-with-loops
-      - --run_id
-      - '{{workflow.uid}}'
-      - --run_name
-      - '{{workflow.name}}'
-      - --run_display_name
-      - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
-      - --component
-      - '{{inputs.parameters.component}}'
-      - --task
-      - '{{inputs.parameters.task}}'
-      - --task_name
-      - '{{inputs.parameters.task-name}}'
-      - --runtime_config
-      - '{{inputs.parameters.runtime-config}}'
-      - --iteration_index
-      - '{{inputs.parameters.iteration-index}}'
-      - --execution_id_path
-      - '{{outputs.parameters.execution-id.path}}'
-      - --iteration_count_path
-      - '{{outputs.parameters.iteration-count.path}}'
-      - --condition_path
-      - '{{outputs.parameters.condition.path}}'
-      - --http_proxy
-      - ""
-      - --https_proxy
-      - ""
-      - --no_proxy
-      - ""
-      - --ml_pipeline_server_address
-      - ml-pipeline.kubeflow.svc.cluster.local
-      - --ml_pipeline_server_port
-      - "8887"
-      - --mlmd_server_address
-      - metadata-grpc-service.kubeflow.svc.cluster.local
-      - --mlmd_server_port
-      - "8080"
-      command:
-      - driver
-      image: ghcr.io/kubeflow/kfp-driver:latest
-      name: ""
-      resources:
-        limits:
-          cpu: 500m
-          memory: 512Mi
-        requests:
-          cpu: 100m
-          memory: 64Mi
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
+  - http:
+      body: '{"cache_disabled":false,"component":"{{=sprig.b64enc(inputs.parameters[''component''])}}","dag_execution_id":"{{inputs.parameters.parent-dag-id}}","http_proxy":"","https_proxy":"","iteration_index":"{{inputs.parameters.iteration-index}}","metadata_tls_enabled":false,"ml_pipeline_server_address":"ml-pipeline.kubeflow.svc.cluster.local","ml_pipeline_server_port":"8887","ml_pipeline_tls_enabled":false,"mlmd_server_address":"metadata-grpc-service.kubeflow.svc.cluster.local","mlmd_server_port":"8080","namespace":"{{workflow.namespace}}","no_proxy":"","pipeline_name":"pipeline-with-loops","run_display_name":"","run_id":"{{workflow.uid}}","run_name":"{{workflow.name}}","runtime_config":"{{=sprig.b64enc(inputs.parameters[''runtime-config''])}}","task":"{{=sprig.b64enc(inputs.parameters[''task''])}}","task_name":"{{inputs.parameters.task-name}}","type":"{{inputs.parameters.driver-type}}"}'
+      headers:
+      - name: Content-Type
+        value: application/json
+      method: POST
+      successCondition: response.statusCode == 200
+      timeoutSeconds: 600
+      url: http://ml-pipeline-driver.kubeflow.svc.cluster.local:8080/api/v1/template.execute
     inputs:
       parameters:
       - name: component
@@ -552,23 +416,7 @@ spec:
         name: driver-type
     metadata: {}
     name: system-dag-driver
-    outputs:
-      parameters:
-      - name: execution-id
-        valueFrom:
-          path: /tmp/outputs/execution-id
-      - name: iteration-count
-        valueFrom:
-          default: "0"
-          path: /tmp/outputs/iteration-count
-      - name: condition
-        valueFrom:
-          default: "true"
-          path: /tmp/outputs/condition
-    securityContext:
-      runAsNonRoot: true
-      seccompProfile:
-        type: RuntimeDefault
+    outputs: {}
   - dag:
       tasks:
       - arguments:
@@ -588,9 +436,9 @@ spec:
       - arguments:
           parameters:
           - name: parent-dag-id
-            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
+            value: '{{=jsonpath(tasks[''iteration-item-driver''].outputs.result, "$[''execution-id'']")}}'
           - name: condition
-            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
+            value: '{{=jsonpath(tasks[''iteration-item-driver''].outputs.result, "$[''condition'']")}}'
         depends: iteration-item-driver.Succeeded
         name: iteration-item
         template: comp-for-loop-1
@@ -618,14 +466,14 @@ spec:
       - arguments:
           parameters:
           - name: parent-dag-id
-            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+            value: '{{=jsonpath(tasks[''iteration-driver''].outputs.result, "$[''execution-id'']")}}'
           - name: iteration-index
             value: '{{item}}'
         depends: iteration-driver.Succeeded
         name: iteration-iterations
         template: comp-for-loop-1-iteration
         withSequence:
-          count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
+          count: '{{=jsonpath(tasks[''iteration-driver''].outputs.result, "$[''iteration-count'']")}}'
     inputs:
       parameters:
       - name: parent-dag-id
@@ -651,9 +499,9 @@ spec:
       - arguments:
           parameters:
           - name: parent-dag-id
-            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
+            value: '{{=jsonpath(tasks[''iteration-item-driver''].outputs.result, "$[''execution-id'']")}}'
           - name: condition
-            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
+            value: '{{=jsonpath(tasks[''iteration-item-driver''].outputs.result, "$[''condition'']")}}'
         depends: iteration-item-driver.Succeeded
         name: iteration-item
         template: comp-for-loop-2
@@ -681,14 +529,14 @@ spec:
       - arguments:
           parameters:
           - name: parent-dag-id
-            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+            value: '{{=jsonpath(tasks[''iteration-driver''].outputs.result, "$[''execution-id'']")}}'
           - name: iteration-index
             value: '{{item}}'
         depends: iteration-driver.Succeeded
         name: iteration-iterations
         template: comp-for-loop-2-iteration
         withSequence:
-          count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
+          count: '{{=jsonpath(tasks[''iteration-driver''].outputs.result, "$[''iteration-count'']")}}'
     inputs:
       parameters:
       - name: parent-dag-id
@@ -715,9 +563,9 @@ spec:
       - arguments:
           parameters:
           - name: parent-dag-id
-            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
+            value: '{{=jsonpath(tasks[''iteration-item-driver''].outputs.result, "$[''execution-id'']")}}'
           - name: condition
-            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
+            value: '{{=jsonpath(tasks[''iteration-item-driver''].outputs.result, "$[''condition'']")}}'
         depends: iteration-item-driver.Succeeded
         name: iteration-item
         template: comp-for-loop-4
@@ -746,14 +594,14 @@ spec:
       - arguments:
           parameters:
           - name: parent-dag-id
-            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+            value: '{{=jsonpath(tasks[''iteration-driver''].outputs.result, "$[''execution-id'']")}}'
           - name: iteration-index
             value: '{{item}}'
         depends: iteration-driver.Succeeded
         name: iteration-iterations
         template: comp-for-loop-4-iteration
         withSequence:
-          count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
+          count: '{{=jsonpath(tasks[''iteration-driver''].outputs.result, "$[''iteration-count'']")}}'
     inputs:
       parameters:
       - name: parent-dag-id
@@ -765,11 +613,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-fa52219045a80d72f6f8f40492570e94942c3f25927d7cbc4e112c1ac54e4e04}}'
+            value: '{{workflow.parameters.components-687d86676223e8ed6d5a94779ca21c78d7c45d0c14796f2992c0b78dc949e530}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-args-generator-op"},"taskInfo":{"name":"args-generator-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-fa52219045a80d72f6f8f40492570e94942c3f25927d7cbc4e112c1ac54e4e04}}'
+            value: '{{workflow.parameters.implementations-687d86676223e8ed6d5a94779ca21c78d7c45d0c14796f2992c0b78dc949e530}}'
           - name: task-name
             value: args-generator-op
           - name: parent-dag-id
@@ -779,10 +627,12 @@ spec:
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.args-generator-op-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{=jsonpath(tasks[''args-generator-op-driver''].outputs.result,
+              "$[''pod-spec-patch'']")}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.args-generator-op-driver.outputs.parameters.cached-decision}}'
+            value: '{{=jsonpath(tasks[''args-generator-op-driver''].outputs.result,
+              "$[''cached-decision'']")}}'
         depends: args-generator-op-driver.Succeeded
         name: args-generator-op
         template: system-container-executor
@@ -818,7 +668,7 @@ spec:
           - name: component
             value: '{{workflow.parameters.components-root}}'
           - name: runtime-config
-            value: '{"parameterValues":{"loop_parameter":["a","b"]}}'
+            value: '{}'
           - name: driver-type
             value: ROOT_DAG
         name: root-driver
@@ -826,7 +676,7 @@ spec:
       - arguments:
           parameters:
           - name: parent-dag-id
-            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+            value: '{{=jsonpath(tasks[''root-driver''].outputs.result, "$[''execution-id'']")}}'
           - name: condition
             value: ""
         depends: root-driver.Succeeded

@@ -24,7 +24,6 @@ import Separator from '../atoms/Separator';
 import { ListRequest } from '../lib/Apis';
 import { classes, stylesheet } from 'typestyle';
 import { fonts, fontsize, dimension, commonCss, color, padding, zIndex } from '../Css';
-import { LocalStorage } from '../lib/LocalStorage';
 import { logger } from '../lib/Utils';
 import { debounce } from 'lodash';
 import {
@@ -243,7 +242,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             : '',
       isBusy: false,
       maxPageIndex: Number.MAX_SAFE_INTEGER,
-      pageSize: LocalStorage.getTablePageSize(this._getPageId()),
+      pageSize: 10,
       sortBy:
         props.initialSortColumn || (props.columns.length ? props.columns[0].sortKey || '' : ''),
       sortOrder: props.initialSortOrder || 'desc',
@@ -627,30 +626,8 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ): Promise<void> {
     const pageSize = Number(event.target.value);
-    LocalStorage.saveTablePageSize(pageSize, this._getPageId());
-    this._resetToFirstPage(await this.reload({ pageSize, pageToken: '' }));
-  }
 
-  private _getPageId(): string | undefined {
-    const pathSegments = window.location.hash
-      .split('?')[0]
-      .replace(/^#\//, '')
-      .split('/')
-      .filter(Boolean);
-    if (pathSegments.length === 0) {
-      return undefined;
-    }
-    const [root, second] = pathSegments;
-    if (root === 'shared' && second === 'pipelines') {
-      return 'shared/pipelines';
-    }
-    if (root === 'archive' && second) {
-      return `${root}/${second}`;
-    }
-    if (second && ['details', 'new', 'lineage'].includes(second)) {
-      return `${root}/${second}`;
-    }
-    return root;
+    this._resetToFirstPage(await this.reload({ pageSize, pageToken: '' }));
   }
 
   private _resetToFirstPage(newPageToken?: string): void {

@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ml-pipeline-driver
+  name: ml-pipeline-driver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ml-pipeline-driver
+  template:
+    metadata:
+      labels:
+        app: ml-pipeline-driver
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      serviceAccountName: ml-pipeline-driver
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: ml-pipeline-driver
+        image: ghcr.io/kubeflow/kfp-driver:dummy
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: KFP_DRIVER_PORT
+          value: "8080"
+        envFrom:
+        - configMapRef:
+            name: metadata-grpc-configmap
+            optional: true
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+          seccompProfile:
+            type: RuntimeDefault

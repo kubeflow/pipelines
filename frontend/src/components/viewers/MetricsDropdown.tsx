@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { color, commonCss, fontsize, zIndex } from 'src/Css';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { classes, stylesheet } from 'typestyle';
@@ -98,41 +98,32 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
   const [secondSelectedItem, setSecondSelectedItem] = useState<SelectedItem>(
     selectedArtifacts[1].selectedItem,
   );
+  const [firstLinkedArtifact, setFirstLinkedArtifact] = useState<LinkedArtifact | undefined>(
+    selectedArtifacts[0].linkedArtifact,
+  );
+  const [secondLinkedArtifact, setSecondLinkedArtifact] = useState<LinkedArtifact | undefined>(
+    selectedArtifacts[1].linkedArtifact,
+  );
 
   useEffect(() => {
     setFirstSelectedItem(selectedArtifacts[0].selectedItem);
     setSecondSelectedItem(selectedArtifacts[1].selectedItem);
+    setFirstLinkedArtifact(selectedArtifacts[0].linkedArtifact);
+    setSecondLinkedArtifact(selectedArtifacts[1].linkedArtifact);
   }, [selectedArtifacts]);
-
-  const selectedArtifactsForDisplay = useMemo(
-    () => [
-      {
-        selectedItem: firstSelectedItem,
-        linkedArtifact: getLinkedArtifactFromSelectedItem(filteredRunArtifacts, firstSelectedItem),
-      },
-      {
-        selectedItem: secondSelectedItem,
-        linkedArtifact: getLinkedArtifactFromSelectedItem(filteredRunArtifacts, secondSelectedItem),
-      },
-    ],
-    [filteredRunArtifacts, firstSelectedItem, secondSelectedItem],
-  );
 
   const metricsTabText = metricsTypeToString(metricsTab);
   const updateSelectedItemAndArtifact = (
     setSelectedItem: (selectedItem: SelectedItem) => void,
+    setLinkedArtifact: (linkedArtifact: LinkedArtifact | undefined) => void,
     panelIndex: number,
     selectedItem: SelectedItem,
   ): void => {
     setSelectedItem(selectedItem);
     const linkedArtifact = getLinkedArtifactFromSelectedItem(filteredRunArtifacts, selectedItem);
-    const nextSelectedArtifacts = selectedArtifactsForDisplay.map((selectedArtifact, index) =>
-      index === panelIndex
-        ? {
-            selectedItem,
-            linkedArtifact,
-          }
-        : selectedArtifact,
+    setLinkedArtifact(linkedArtifact);
+    const nextSelectedArtifacts = selectedArtifacts.map((selectedArtifact, index) =>
+      index === panelIndex ? { selectedItem, linkedArtifact } : selectedArtifact,
     );
     updateSelectedArtifacts(nextSelectedArtifacts);
   };
@@ -151,12 +142,17 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
               title={`Choose a first ${metricsTabText} artifact`}
               items={dropdownItems}
               selectedItem={firstSelectedItem}
-              setSelectedItem={updateSelectedItemAndArtifact.bind(null, setFirstSelectedItem, 0)}
+              setSelectedItem={updateSelectedItemAndArtifact.bind(
+                null,
+                setFirstSelectedItem,
+                setFirstLinkedArtifact,
+                0,
+              )}
             />
             <VisualizationPanelItem
               metricsTab={metricsTab}
               metricsTabText={metricsTabText}
-              linkedArtifact={selectedArtifactsForDisplay[0].linkedArtifact}
+              linkedArtifact={firstLinkedArtifact}
               namespace={namespace}
             />
           </td>
@@ -165,12 +161,17 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
               title={`Choose a second ${metricsTabText} artifact`}
               items={dropdownItems}
               selectedItem={secondSelectedItem}
-              setSelectedItem={updateSelectedItemAndArtifact.bind(null, setSecondSelectedItem, 1)}
+              setSelectedItem={updateSelectedItemAndArtifact.bind(
+                null,
+                setSecondSelectedItem,
+                setSecondLinkedArtifact,
+                1,
+              )}
             />
             <VisualizationPanelItem
               metricsTab={metricsTab}
               metricsTabText={metricsTabText}
-              linkedArtifact={selectedArtifactsForDisplay[1].linkedArtifact}
+              linkedArtifact={secondLinkedArtifact}
               namespace={namespace}
             />
           </td>

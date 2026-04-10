@@ -36,12 +36,16 @@ rules:
   - argoproj.io
   resources:
   - workflows
+  - workflowtaskresults
+  - workflowtasksets
+  - "workflowtasksets/status"
   verbs:
   - get
-  - list
-  - watch
-  - update
+  - create
   - patch
+  - watch
+  - list
+  - update
 - apiGroups:
   - ""
   resources:
@@ -85,3 +89,98 @@ rules:
   verbs:
   - create
   - patch
+
+---
+# The following roles and bindings grant the KFP API server (ml-pipeline SA) the
+# permissions it needs to run the driver logic centrally. The driver is now served
+# as a built-in endpoint of the API server rather than injected as a per-workflow
+# sidecar container.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ml-pipeline-driver-pods-viewer
+  namespace: kubeflow
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ml-pipeline-driver-pods-viewer-binding
+subjects:
+  - kind: ServiceAccount
+    name: ml-pipeline
+roleRef:
+  kind: Role
+  name: ml-pipeline-driver-pods-viewer
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ml-pipeline-driver-pvc-editor
+  namespace: kubeflow
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["create", "get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ml-pipeline-driver-pvc-editor-binding
+subjects:
+  - kind: ServiceAccount
+    name: ml-pipeline
+roleRef:
+  kind: Role
+  name: ml-pipeline-driver-pvc-editor
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: configmap-reader
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: configmap-reader-binding
+subjects:
+  - kind: ServiceAccount
+    name: ml-pipeline
+roleRef:
+  kind: Role
+  name: configmap-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: artifact-secret-reader
+  namespace: kubeflow
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["mlpipeline-minio-artifact"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: artifact-secret-reader-binding
+  namespace: kubeflow
+subjects:
+  - kind: ServiceAccount
+    name: ml-pipeline
+    namespace: kubeflow
+roleRef:
+  kind: Role
+  name: artifact-secret-reader
+  apiGroup: rbac.authorization.k8s.io
