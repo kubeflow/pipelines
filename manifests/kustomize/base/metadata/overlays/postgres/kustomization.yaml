@@ -27,11 +27,4 @@ images:
   newName: postgres
   newTag: 14.7-alpine3.17
 
-vars:
-- fieldref:
-    fieldPath: metadata.name
-  name: MLMD_DB_HOST
-  objref:
-    apiVersion: v1
-    kind: Service
-    name: metadata-postgres-db
+

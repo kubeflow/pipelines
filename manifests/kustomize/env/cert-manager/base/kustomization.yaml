@@ -13,3 +13,32 @@ labels:
 - includeSelectors: true
   pairs:
     app: cache-server-cert-manager
+
+replacements:
+- source:
+    kind: Certificate
+    name: kfp-cache-cert
+    fieldPath: metadata.namespace
+  targets:
+  - select:
+      kind: MutatingWebhookConfiguration
+      name: cache-webhook-kubeflow
+    fieldPaths:
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: /
+      index: 0
+
+- source:
+    kind: Certificate
+    name: kfp-cache-cert
+    fieldPath: metadata.name
+  targets:
+  - select:
+      kind: MutatingWebhookConfiguration
+      name: cache-webhook-kubeflow
+    fieldPaths:
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: /
+      index: 1

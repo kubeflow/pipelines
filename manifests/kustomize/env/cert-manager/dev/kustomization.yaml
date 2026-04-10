@@ -13,14 +13,16 @@ resources:
 # others.
     # ml-pipeline sa's metadata.namespace will be first transformed by namespace field in kustomization.yaml
     # so that we only need to change kustomization.yaml's namespace field for namespace customization.
-vars:
-- fieldref:
-    fieldPath: metadata.namespace
-  name: kfp-dev-namespace
-  objref:
-    apiVersion: v1
+replacements:
+- source:
     kind: ServiceAccount
     name: ml-pipeline
+    fieldPath: metadata.namespace
+  targets:
+  - select:
+      kind: Namespace
+    fieldPaths:
+    - metadata.name
 configurations:
 - params.yaml
 

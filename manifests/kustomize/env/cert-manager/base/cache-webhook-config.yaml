@@ -3,13 +3,13 @@ kind: MutatingWebhookConfiguration
 metadata:
   name: cache-webhook-kubeflow
   annotations:
-    cert-manager.io/inject-ca-from: $(kfp-namespace)/kfp-cache-cert
+    cert-manager.io/inject-ca-from: NAMESPACE_PLACEHOLDER/CERT_NAME_PLACEHOLDER
 webhooks:
-  - name: cache-server.$(kfp-namespace).svc
+  - name: cache-server
     clientConfig:
       service:
         name: cache-server
-        namespace: $(kfp-namespace)
+        namespace: NAMESPACE_PLACEHOLDER
         path: "/mutate"
     failurePolicy: Ignore
     rules:
