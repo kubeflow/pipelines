@@ -18,6 +18,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -32,6 +34,8 @@ import (
 )
 
 const managedPipelinesUploadTagsEnv = "MANAGED_PIPELINES_UPLOAD_TAGS"
+
+var validPipelineName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
 
 // parseManagedPipelinesTags reads MANAGED_PIPELINES_UPLOAD_TAGS from the
 // environment and returns the parsed key=value pairs. Returns nil when the
@@ -86,6 +90,81 @@ type config struct {
 	Pipelines            []configPipelines
 }
 
+type managedPipelineManifestEntry struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+// loadManagedPipelinesManifest reads a managed-pipelines.json manifest and
+// returns configPipelines entries for any pipeline whose name is not already
+// in the existing set. Returns nil without error when the manifest file does
+// not exist (volume not mounted / flag not set).
+func loadManagedPipelinesManifest(manifestPath string, existing map[string]bool) ([]configPipelines, error) {
+	data, err := os.ReadFile(manifestPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to read managed pipelines manifest %s: %w", manifestPath, err)
+	}
+
+	var entries []managedPipelineManifestEntry
+	if err := json.Unmarshal(data, &entries); err != nil {
+		return nil, fmt.Errorf("failed to parse managed pipelines manifest %s: %w", manifestPath, err)
+	}
+
+	dir := filepath.Dir(manifestPath)
+	resolvedDir, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve managed pipelines directory %s: %w", dir, err)
+	}
+
+	seen := make(map[string]bool, len(entries))
+	var pipelines []configPipelines
+	for _, entry := range entries {
+		if entry.Name == "" {
+			return nil, fmt.Errorf("managed pipelines manifest %s contains entry with empty name", manifestPath)
+		}
+		if seen[entry.Name] {
+			return nil, fmt.Errorf("managed pipelines manifest %s contains duplicate name %q", manifestPath, entry.Name)
+		}
+		seen[entry.Name] = true
+		if !validPipelineName.MatchString(entry.Name) {
+			return nil, fmt.Errorf("managed pipeline name %q is invalid: must match %s", entry.Name, validPipelineName.String())
+		}
+		if existing[entry.Name] {
+			glog.Infof("Skipping managed pipeline %q: already in sample config", entry.Name)
+			continue
+		}
+		fileName := entry.Name + ".yaml"
+		filePath := filepath.Join(resolvedDir, fileName)
+		rel, relErr := filepath.Rel(resolvedDir, filePath)
+		if relErr != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			return nil, fmt.Errorf("managed pipeline %q: constructed path escapes directory %q", entry.Name, resolvedDir)
+		}
+		resolvedPath, evalErr := filepath.EvalSymlinks(filePath)
+		if evalErr != nil && !os.IsNotExist(evalErr) {
+			return nil, fmt.Errorf("failed to resolve path for managed pipeline %q: %w", entry.Name, evalErr)
+		}
+		if evalErr == nil {
+			rel, relErr := filepath.Rel(resolvedDir, resolvedPath)
+			if relErr != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+				return nil, fmt.Errorf("managed pipeline %q: resolved path %q escapes directory %q", entry.Name, resolvedPath, resolvedDir)
+			}
+			filePath = resolvedPath
+		}
+		pipelines = append(pipelines, configPipelines{
+			Name:        entry.Name,
+			Description: entry.Description,
+			File:        filePath,
+		})
+	}
+	if len(pipelines) > 0 {
+		glog.Infof("Loaded %d managed pipeline(s) from %s", len(pipelines), manifestPath)
+	}
+	return pipelines, nil
+}
+
 // LoadSamples preloads a collection of pipeline samples
 //
 // If LoadSamplesOnRestart is false then Samples are only
@@ -95,7 +174,7 @@ type config struct {
 // samples. If LoadSamplesOnRestart is true then PipelineVersions
 // are uploaded if they do not already exist upon upgrade or pod
 // restart.
-func LoadSamples(resourceManager *resource.ResourceManager, sampleConfigPath string) error {
+func LoadSamples(resourceManager *resource.ResourceManager, sampleConfigPath string, managedPipelinesDir string) error {
 	pathExists, err := client.PathExists(sampleConfigPath)
 	if err != nil {
 		return err
@@ -140,6 +219,19 @@ func LoadSamples(resourceManager *resource.ResourceManager, sampleConfigPath str
 	if !pipelineConfig.LoadSamplesOnRestart && haveSamplesLoaded {
 		glog.Infof("Samples already loaded in the past. Skip loading.")
 		return nil
+	}
+
+	if managedPipelinesDir != "" {
+		existing := make(map[string]bool, len(pipelineConfig.Pipelines))
+		for _, p := range pipelineConfig.Pipelines {
+			existing[p.Name] = true
+		}
+		manifestPath := filepath.Join(managedPipelinesDir, "managed-pipelines.json")
+		managedPipelines, mergeErr := loadManagedPipelinesManifest(manifestPath, existing)
+		if mergeErr != nil {
+			return mergeErr
+		}
+		pipelineConfig.Pipelines = append(pipelineConfig.Pipelines, managedPipelines...)
 	}
 
 	tags, err := parseManagedPipelinesTags()
