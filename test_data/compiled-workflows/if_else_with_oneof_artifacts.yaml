@@ -62,6 +62,7 @@ spec:
   podMetadata:
     annotations:
       pipelines.kubeflow.org/v2_component: "true"
+      sidecar.istio.io/inject: "false"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
   securityContext:
@@ -70,80 +71,15 @@ spec:
       type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
-  - container:
-      args:
-      - --type
-      - CONTAINER
-      - --pipeline_name
-      - outer-pipeline
-      - --run_id
-      - '{{workflow.uid}}'
-      - --run_name
-      - '{{workflow.name}}'
-      - --run_display_name
-      - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
-      - --component
-      - '{{inputs.parameters.component}}'
-      - --task
-      - '{{inputs.parameters.task}}'
-      - --task_name
-      - '{{inputs.parameters.task-name}}'
-      - --container
-      - '{{inputs.parameters.container}}'
-      - --iteration_index
-      - '{{inputs.parameters.iteration-index}}'
-      - --cached_decision_path
-      - '{{outputs.parameters.cached-decision.path}}'
-      - --pod_spec_patch_path
-      - '{{outputs.parameters.pod-spec-patch.path}}'
-      - --condition_path
-      - '{{outputs.parameters.condition.path}}'
-      - --kubernetes_config
-      - '{{inputs.parameters.kubernetes-config}}'
-      - --http_proxy
-      - ""
-      - --https_proxy
-      - ""
-      - --no_proxy
-      - ""
-      - --ml_pipeline_server_address
-      - ml-pipeline.kubeflow.svc.cluster.local
-      - --ml_pipeline_server_port
-      - "8887"
-      - --mlmd_server_address
-      - metadata-grpc-service.kubeflow.svc.cluster.local
-      - --mlmd_server_port
-      - "8080"
-      command:
-      - driver
-      env:
-      - name: KFP_POD_NAME
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.name
-      - name: KFP_POD_UID
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.uid
-      image: ghcr.io/kubeflow/kfp-driver:latest
-      name: ""
-      resources:
-        limits:
-          cpu: 500m
-          memory: 512Mi
-        requests:
-          cpu: 100m
-          memory: 64Mi
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
+  - http:
+      body: '{"cache_disabled":true,"component":"{{=sprig.b64enc(inputs.parameters[''component''])}}","container":"{{=sprig.b64enc(inputs.parameters[''container''])}}","dag_execution_id":"{{inputs.parameters.parent-dag-id}}","http_proxy":"","https_proxy":"","iteration_index":"{{inputs.parameters.iteration-index}}","kubernetes_config":"{{=sprig.b64enc(inputs.parameters[''kubernetes-config''])}}","metadata_tls_enabled":false,"ml_pipeline_server_address":"ml-pipeline.kubeflow.svc.cluster.local","ml_pipeline_server_port":"8887","ml_pipeline_tls_enabled":false,"mlmd_server_address":"metadata-grpc-service.kubeflow.svc.cluster.local","mlmd_server_port":"8080","namespace":"{{workflow.namespace}}","no_proxy":"","pipeline_name":"outer-pipeline","run_display_name":"","run_id":"{{workflow.uid}}","run_name":"{{workflow.name}}","task":"{{=sprig.b64enc(inputs.parameters[''task''])}}","task_name":"{{inputs.parameters.task-name}}","type":"CONTAINER"}'
+      headers:
+      - name: Content-Type
+        value: application/json
+      method: POST
+      successCondition: response.statusCode == 200
+      timeoutSeconds: 600
+      url: http://ml-pipeline-driver.kubeflow.svc.cluster.local:8080/api/v1/template.execute
     inputs:
       parameters:
       - name: component
@@ -157,25 +93,7 @@ spec:
         name: kubernetes-config
     metadata: {}
     name: system-container-driver
-    outputs:
-      parameters:
-      - name: pod-spec-patch
-        valueFrom:
-          default: ""
-          path: /tmp/outputs/pod-spec-patch
-      - default: "false"
-        name: cached-decision
-        valueFrom:
-          default: "false"
-          path: /tmp/outputs/cached-decision
-      - name: condition
-        valueFrom:
-          default: "true"
-          path: /tmp/outputs/condition
-    securityContext:
-      runAsNonRoot: true
-      seccompProfile:
-        type: RuntimeDefault
+    outputs: {}
   - dag:
       tasks:
       - arguments:
@@ -245,7 +163,7 @@ spec:
       resources:
         limits:
           cpu: 500m
-          memory: 256Mi
+          memory: 128Mi
         requests:
           cpu: 100m
       securityContext:
@@ -303,10 +221,12 @@ spec:
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.param-to-artifact-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{=jsonpath(tasks[''param-to-artifact-driver''].outputs.result,
+              "$.pod-spec-patch")}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.param-to-artifact-driver.outputs.parameters.cached-decision}}'
+            value: '{{=jsonpath(tasks[''param-to-artifact-driver''].outputs.result,
+              "$.cached-decision")}}'
         depends: param-to-artifact-driver.Succeeded
         name: param-to-artifact
         template: system-container-executor
@@ -335,10 +255,12 @@ spec:
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.param-to-artifact-2-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{=jsonpath(tasks[''param-to-artifact-2-driver''].outputs.result,
+              "$.pod-spec-patch")}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.param-to-artifact-2-driver.outputs.parameters.cached-decision}}'
+            value: '{{=jsonpath(tasks[''param-to-artifact-2-driver''].outputs.result,
+              "$.cached-decision")}}'
         depends: param-to-artifact-2-driver.Succeeded
         name: param-to-artifact-2
         template: system-container-executor
@@ -348,69 +270,15 @@ spec:
     metadata: {}
     name: comp-condition-3
     outputs: {}
-  - container:
-      args:
-      - --type
-      - '{{inputs.parameters.driver-type}}'
-      - --pipeline_name
-      - outer-pipeline
-      - --run_id
-      - '{{workflow.uid}}'
-      - --run_name
-      - '{{workflow.name}}'
-      - --run_display_name
-      - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
-      - --component
-      - '{{inputs.parameters.component}}'
-      - --task
-      - '{{inputs.parameters.task}}'
-      - --task_name
-      - '{{inputs.parameters.task-name}}'
-      - --runtime_config
-      - '{{inputs.parameters.runtime-config}}'
-      - --iteration_index
-      - '{{inputs.parameters.iteration-index}}'
-      - --execution_id_path
-      - '{{outputs.parameters.execution-id.path}}'
-      - --iteration_count_path
-      - '{{outputs.parameters.iteration-count.path}}'
-      - --condition_path
-      - '{{outputs.parameters.condition.path}}'
-      - --http_proxy
-      - ""
-      - --https_proxy
-      - ""
-      - --no_proxy
-      - ""
-      - --ml_pipeline_server_address
-      - ml-pipeline.kubeflow.svc.cluster.local
-      - --ml_pipeline_server_port
-      - "8887"
-      - --mlmd_server_address
-      - metadata-grpc-service.kubeflow.svc.cluster.local
-      - --mlmd_server_port
-      - "8080"
-      command:
-      - driver
-      image: ghcr.io/kubeflow/kfp-driver:latest
-      name: ""
-      resources:
-        limits:
-          cpu: 500m
-          memory: 512Mi
-        requests:
-          cpu: 100m
-          memory: 64Mi
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
+  - http:
+      body: '{"cache_disabled":true,"component":"{{=sprig.b64enc(inputs.parameters[''component''])}}","dag_execution_id":"{{inputs.parameters.parent-dag-id}}","http_proxy":"","https_proxy":"","iteration_index":"{{inputs.parameters.iteration-index}}","metadata_tls_enabled":false,"ml_pipeline_server_address":"ml-pipeline.kubeflow.svc.cluster.local","ml_pipeline_server_port":"8887","ml_pipeline_tls_enabled":false,"mlmd_server_address":"metadata-grpc-service.kubeflow.svc.cluster.local","mlmd_server_port":"8080","namespace":"{{workflow.namespace}}","no_proxy":"","pipeline_name":"outer-pipeline","run_display_name":"","run_id":"{{workflow.uid}}","run_name":"{{workflow.name}}","runtime_config":"{{=sprig.b64enc(inputs.parameters[''runtime-config''])}}","task":"{{=sprig.b64enc(inputs.parameters[''task''])}}","task_name":"{{inputs.parameters.task-name}}","type":"{{inputs.parameters.driver-type}}"}'
+      headers:
+      - name: Content-Type
+        value: application/json
+      method: POST
+      successCondition: response.statusCode == 200
+      timeoutSeconds: 600
+      url: http://ml-pipeline-driver.kubeflow.svc.cluster.local:8080/api/v1/template.execute
     inputs:
       parameters:
       - name: component
@@ -428,23 +296,7 @@ spec:
         name: driver-type
     metadata: {}
     name: system-dag-driver
-    outputs:
-      parameters:
-      - name: execution-id
-        valueFrom:
-          path: /tmp/outputs/execution-id
-      - name: iteration-count
-        valueFrom:
-          default: "0"
-          path: /tmp/outputs/iteration-count
-      - name: condition
-        valueFrom:
-          default: "true"
-          path: /tmp/outputs/condition
-    securityContext:
-      runAsNonRoot: true
-      seccompProfile:
-        type: RuntimeDefault
+    outputs: {}
   - dag:
       tasks:
       - arguments:
@@ -463,13 +315,14 @@ spec:
       - arguments:
           parameters:
           - name: parent-dag-id
-            value: '{{tasks.condition-2-driver.outputs.parameters.execution-id}}'
+            value: '{{=jsonpath(tasks[''condition-2-driver''].outputs.result, "$.execution-id")}}'
           - name: condition
-            value: '{{tasks.condition-2-driver.outputs.parameters.condition}}'
+            value: '{{=jsonpath(tasks[''condition-2-driver''].outputs.result, "$.condition")}}'
         depends: condition-2-driver.Succeeded
         name: condition-2
         template: comp-condition-2
-        when: '{{tasks.condition-2-driver.outputs.parameters.condition}} != false'
+        when: '{{=jsonpath(tasks[''condition-2-driver''].outputs.result, "$.condition")}}
+          != false'
       - arguments:
           parameters:
           - name: component
@@ -486,13 +339,14 @@ spec:
       - arguments:
           parameters:
           - name: parent-dag-id
-            value: '{{tasks.condition-3-driver.outputs.parameters.execution-id}}'
+            value: '{{=jsonpath(tasks[''condition-3-driver''].outputs.result, "$.execution-id")}}'
           - name: condition
-            value: '{{tasks.condition-3-driver.outputs.parameters.condition}}'
+            value: '{{=jsonpath(tasks[''condition-3-driver''].outputs.result, "$.condition")}}'
         depends: condition-3-driver.Succeeded
         name: condition-3
         template: comp-condition-3
-        when: '{{tasks.condition-3-driver.outputs.parameters.condition}} != false'
+        when: '{{=jsonpath(tasks[''condition-3-driver''].outputs.result, "$.condition")}}
+          != false'
     inputs:
       parameters:
       - name: parent-dag-id
@@ -517,9 +371,11 @@ spec:
       - arguments:
           parameters:
           - name: parent-dag-id
-            value: '{{tasks.condition-branches-1-driver.outputs.parameters.execution-id}}'
+            value: '{{=jsonpath(tasks[''condition-branches-1-driver''].outputs.result,
+              "$.execution-id")}}'
           - name: condition
-            value: '{{tasks.condition-branches-1-driver.outputs.parameters.condition}}'
+            value: '{{=jsonpath(tasks[''condition-branches-1-driver''].outputs.result,
+              "$.condition")}}'
         depends: condition-branches-1-driver.Succeeded
         name: condition-branches-1
         template: comp-condition-branches-1
@@ -540,10 +396,10 @@ spec:
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.flip-coin-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{=jsonpath(tasks[''flip-coin-driver''].outputs.result, "$.pod-spec-patch")}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.flip-coin-driver.outputs.parameters.cached-decision}}'
+            value: '{{=jsonpath(tasks[''flip-coin-driver''].outputs.result, "$.cached-decision")}}'
         depends: flip-coin-driver.Succeeded
         name: flip-coin
         template: system-container-executor
@@ -565,10 +421,10 @@ spec:
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.print-artifact-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{=jsonpath(tasks[''print-artifact-driver''].outputs.result, "$.pod-spec-patch")}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.print-artifact-driver.outputs.parameters.cached-decision}}'
+            value: '{{=jsonpath(tasks[''print-artifact-driver''].outputs.result, "$.cached-decision")}}'
         depends: print-artifact-driver.Succeeded
         name: print-artifact
         template: system-container-executor
@@ -595,9 +451,11 @@ spec:
       - arguments:
           parameters:
           - name: parent-dag-id
-            value: '{{tasks.flip-coin-pipeline-driver.outputs.parameters.execution-id}}'
+            value: '{{=jsonpath(tasks[''flip-coin-pipeline-driver''].outputs.result,
+              "$.execution-id")}}'
           - name: condition
-            value: '{{tasks.flip-coin-pipeline-driver.outputs.parameters.condition}}'
+            value: '{{=jsonpath(tasks[''flip-coin-pipeline-driver''].outputs.result,
+              "$.condition")}}'
         depends: flip-coin-pipeline-driver.Succeeded
         name: flip-coin-pipeline
         template: comp-flip-coin-pipeline
@@ -619,10 +477,10 @@ spec:
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.print-artifact-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{=jsonpath(tasks[''print-artifact-driver''].outputs.result, "$.pod-spec-patch")}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.print-artifact-driver.outputs.parameters.cached-decision}}'
+            value: '{{=jsonpath(tasks[''print-artifact-driver''].outputs.result, "$.cached-decision")}}'
         depends: print-artifact-driver.Succeeded
         name: print-artifact
         template: system-container-executor
@@ -647,7 +505,7 @@ spec:
       - arguments:
           parameters:
           - name: parent-dag-id
-            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+            value: '{{=jsonpath(tasks[''root-driver''].outputs.result, "$.execution-id")}}'
           - name: condition
             value: ""
         depends: root-driver.Succeeded

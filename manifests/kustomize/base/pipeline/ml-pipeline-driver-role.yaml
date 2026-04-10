@@ -1,0 +1,19 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: ml-pipeline-driver
+  name: ml-pipeline-driver
+rules:
+# Needed to read pipeline-runner SA token for pod spec patch generation
+- apiGroups: [""]
+  resources: [pods, pods/log]
+  verbs: [get, list]
+# Needed to look up ConfigMaps for object store session info
+- apiGroups: [""]
+  resources: [configmaps, secrets]
+  verbs: [get, list]
+# Needed for cache lookups
+- apiGroups: [argoproj.io]
+  resources: [workflows]
+  verbs: [get, list]

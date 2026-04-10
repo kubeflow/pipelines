@@ -40,7 +40,7 @@ spec:
         - name: AWS_ENDPOINT_URL
           value: http://seaweedfs.kubeflow:8111
         - name: S3_ENDPOINT_URL
-          value: http://seaweedfs.kubeflow:8333 
+          value: http://seaweedfs.kubeflow:8333
         - name: AWS_REGION
           value: us-east-1
         - name: AWS_ACCESS_KEY_ID

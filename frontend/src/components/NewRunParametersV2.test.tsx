@@ -828,35 +828,6 @@ describe('NewRunParametersV2', () => {
     screen.getByDisplayValue('gs://dummy_pipeline_root');
   });
 
-  it('shows the cloned pipeline root after remounting with a different runtime config', async () => {
-    const props = {
-      titleMessage: 'default Title',
-      pipelineRoot: 'default pipelineRoot',
-      specParameters: {},
-      clonedRuntimeConfig: {},
-      handlePipelineRootChange: vi.fn(),
-      handleParameterChange: vi.fn(),
-      setIsValidInput: vi.fn(),
-    };
-    const { rerender } = render(<NewRunParametersV2 key='default' {...props} />);
-
-    fireEvent.click(screen.getByLabelText('Set custom pipeline root.'));
-    fireEvent.change(screen.getByLabelText('pipeline-root'), {
-      target: { value: 'gs://custom_pipeline_root' },
-    });
-    expect(screen.getByDisplayValue('gs://custom_pipeline_root')).toBeInTheDocument();
-
-    rerender(
-      <NewRunParametersV2
-        key='clone'
-        {...props}
-        clonedRuntimeConfig={{ pipeline_root: 'gs://dummy_pipeline_root' }}
-      />,
-    );
-
-    expect(await screen.findByDisplayValue('gs://dummy_pipeline_root')).toBeInTheDocument();
-  });
-
   it('shows parameters from cloned RuntimeConfig', () => {
     const props = {
       titleMessage: 'default Title',

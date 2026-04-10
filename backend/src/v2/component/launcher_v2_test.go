@@ -34,8 +34,6 @@ import (
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/memblob"
 	"google.golang.org/protobuf/types/known/structpb"
-	k8score "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -123,7 +121,6 @@ func Test_executeV2_publishLogs(t *testing.T) {
 		name          string
 		executorInput *pipelinespec.ExecutorInput
 		executorArgs  []string
-		retryIndex    string
 		wantErr       bool
 	}{
 		{
@@ -134,7 +131,6 @@ func Test_executeV2_publishLogs(t *testing.T) {
 				},
 			},
 			[]string{"-c", "echo testoutput && test {{$.inputs.parameters['a']}} -eq 1 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
-			"",
 			false,
 		},
 		{
@@ -145,7 +141,6 @@ func Test_executeV2_publishLogs(t *testing.T) {
 				},
 			},
 			[]string{"-c", "echo testoutput && test {{$.inputs.parameters['a']}} -eq 5 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
-			"",
 			false,
 		},
 		{
@@ -156,23 +151,7 @@ func Test_executeV2_publishLogs(t *testing.T) {
 				},
 			},
 			[]string{"-c", "echo testoutput && exit 1"},
-			"",
 			true,
-		},
-		{
-			// KFP_RETRY_INDEX is injected by the Argo compiler via "{{retries}}".
-			// The executor-logs URI must be qualified with the retry index so each
-			// attempt writes to a distinct, human-readable path (executor-logs-0,
-			// executor-logs-1, …).
-			"retry index qualifies executor-logs URI",
-			&pipelinespec.ExecutorInput{
-				Inputs: &pipelinespec.ExecutorInput_Inputs{
-					ParameterValues: map[string]*structpb.Value{"a": structpb.NewNumberValue(1), "b": structpb.NewNumberValue(2)},
-				},
-			},
-			[]string{"-c", "echo testoutput && test {{$.inputs.parameters['a']}} -eq 1 || exit 1"},
-			"3",
-			false,
 		},
 	}
 
@@ -204,11 +183,6 @@ func Test_executeV2_publishLogs(t *testing.T) {
 				},
 			}
 
-			// Simulate Argo injecting KFP_RETRY_INDEX into the pod env.
-			if test.retryIndex != "" {
-				t.Setenv(EnvRetryIndex, test.retryIndex)
-			}
-
 			_, outputArtifacts, err := executeV2(
 				context.Background(),
 				test.executorInput,
@@ -231,20 +205,8 @@ func Test_executeV2_publishLogs(t *testing.T) {
 				assert.Nil(t, err)
 			}
 
-			// When a retry index is set, the executor-logs URI (and therefore the
-			// object-store key) must be suffixed with the index so retries don't
-			// overwrite each other (e.g. executor-logs-3).
-			effectiveIndex := test.retryIndex
-			if effectiveIndex == "" {
-				effectiveIndex = "0"
-			}
-			logKey := "executor-logs-" + effectiveIndex
-			logArt := test.executorInput.Outputs.Artifacts["executor-logs"].Artifacts[0]
-			assert.Contains(t, logArt.Uri, effectiveIndex,
-				"executor-logs URI should contain the retry index for attempt isolation")
-
-			outputLog, err := bucket.ReadAll(context.TODO(), logKey)
-			assert.Nil(t, err, "Expected executor-logs to be readable at key %q", logKey)
+			outputLog, err := bucket.ReadAll(context.TODO(), "executor-logs")
+			assert.Nil(t, err, "Expected executor-logs to be readable")
 			assert.Equal(t, "testoutput\n", string(outputLog))
 
 			assert.Len(t, outputArtifacts, 1, "Expected 1 output artifact (executor-logs)")
@@ -415,154 +377,13 @@ func Test_get_log_Writer(t *testing.T) {
 	}
 }
 
-func Test_qualifyExecutorLogsURI(t *testing.T) {
-	baseURI := "minio://mlpipeline/v2/artifacts/my-pipeline/run-id/always-fail/salt123/executor-logs"
-
-	tests := []struct {
-		name       string
-		artifacts  map[string]*pipelinespec.ArtifactList
-		retryIndex string
-		wantURI    string
-	}{
-		{
-			name: "appends retry index to executor-logs URI",
-			artifacts: map[string]*pipelinespec.ArtifactList{
-				"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{{Uri: baseURI}}},
-			},
-			retryIndex: "2",
-			wantURI:    baseURI + "-2",
-		},
-		{
-			name: "no-op when retry index is empty",
-			artifacts: map[string]*pipelinespec.ArtifactList{
-				"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{{Uri: baseURI}}},
-			},
-			retryIndex: "",
-			wantURI:    baseURI,
-		},
-		{
-			name:       "no-op when executor-logs key is absent",
-			artifacts:  map[string]*pipelinespec.ArtifactList{},
-			retryIndex: "1",
-			wantURI:    "", // no artifact to check
-		},
-		{
-			name: "no-op when executor-logs list is empty",
-			artifacts: map[string]*pipelinespec.ArtifactList{
-				"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{}},
-			},
-			retryIndex: "1",
-			wantURI:    "", // no artifact to check
-		},
-		{
-			name: "no-op when executor-logs list has multiple artifacts",
-			artifacts: map[string]*pipelinespec.ArtifactList{
-				"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{
-					{Uri: baseURI},
-					{Uri: baseURI + "-2"},
-				}},
-			},
-			retryIndex: "1",
-			// list len != 1: guard should skip, original URIs unchanged
-			wantURI: baseURI,
-		},
-		{
-			name:       "no-op when ArtifactList value is nil",
-			artifacts:  map[string]*pipelinespec.ArtifactList{"executor-logs": nil},
-			retryIndex: "1",
-			wantURI:    "", // nil list: no artifact to check
-		},
-		{
-			name: "no-op when first artifact is nil",
-			artifacts: map[string]*pipelinespec.ArtifactList{
-				"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{nil}},
-			},
-			retryIndex: "1",
-			wantURI:    "", // nil artifact: no URI to check
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			assert.NotPanics(t, func() {
-				qualifyExecutorLogsURI(tc.artifacts, tc.retryIndex)
-			})
-			list, ok := tc.artifacts["executor-logs"]
-			if !ok || list == nil || len(list.Artifacts) == 0 || list.Artifacts[0] == nil {
-				// Cases where there is nothing to assert on
-				return
-			}
-			assert.Equal(t, tc.wantURI, list.Artifacts[0].Uri)
-		})
-	}
-}
-
-func Test_retryIndexFromPodAnnotation(t *testing.T) {
-	tests := []struct {
-		name       string
-		annotation string
-		wantIndex  string
-		wantErr    bool
-	}{
-		{
-			name:       "parses first attempt (0)",
-			annotation: "my-pipeline-abc.root.always-fail.executor(0)",
-			wantIndex:  "0",
-		},
-		{
-			name:       "parses fourth retry (4)",
-			annotation: "retry-e2e-pzhkb.root.always-fail.executor(4)",
-			wantIndex:  "4",
-		},
-		{
-			name:       "no annotation",
-			annotation: "",
-			wantErr:    true,
-		},
-		{
-			name:       "annotation without parenthesised suffix",
-			annotation: "my-pipeline-abc.root.always-fail.executor",
-			wantErr:    true,
-		},
-		{
-			name:       "annotation with non-integer index",
-			annotation: "my-pipeline-abc.root.always-fail.executor(abc)",
-			wantErr:    true,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			clientset := fake.NewClientset()
-			if tc.annotation != "" {
-				pod := &k8score.Pod{}
-				pod.Name = "test-pod"
-				pod.Namespace = "test-ns"
-				pod.Annotations = map[string]string{
-					"workflows.argoproj.io/node-name": tc.annotation,
-				}
-				_, err := clientset.CoreV1().Pods("test-ns").Create(context.Background(), pod, metav1.CreateOptions{})
-				assert.NoError(t, err)
-			}
-
-			idx, err := retryIndexFromPodAnnotation(context.Background(), clientset, "test-ns", "test-pod")
-			if tc.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tc.wantIndex, idx)
-			}
-		})
-	}
-}
-
 // Tests happy and unhappy paths for constructing a new LauncherV2
 func Test_NewLauncherV2(t *testing.T) {
 	var testCmdArgs = []string{"sh", "-c", "echo \"hello world\""}
 
 	disabledCacheClient, _ := cacheutils.NewClient("ml-pipeline.kubeflow", "8887", true, &tls.Config{})
 	var testLauncherV2Deps = client_manager.NewFakeClientManager(
-		fake.NewClientset(),
+		fake.NewSimpleClientset(),
 		metadata.NewFakeClient(),
 		disabledCacheClient,
 	)

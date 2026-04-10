@@ -71,11 +71,12 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         sum_numbers(a: int, b: int) -\u003e int:\n    return a + b\n\n"],"image":"python:3.11","resources":{"accelerator":{"resourceCount":"{{$.inputs.parameters[''pipelinechannel--accelerator-limit-Output'']}}","resourceType":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}"},"resourceCpuLimit":"{{$.inputs.parameters[''pipelinechannel--cpu-limit-Output'']}}","resourceMemoryLimit":"{{$.inputs.parameters[''pipelinechannel--memory-limit-Output'']}}"}}'
     - name: components-root
-      value: '{"dag":{"tasks":{"accelerator-limit":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-limit"},"taskInfo":{"name":"accelerator-limit"}},"accelerator-type":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-type"},"taskInfo":{"name":"accelerator-type"}},"cpu-limit":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-cpu-limit"},"taskInfo":{"name":"cpu-limit"}},"memory-limit":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-memory-limit"},"taskInfo":{"name":"memory-limit"}},"sum-numbers":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-sum-numbers"},"dependentTasks":["cpu-limit","memory-limit","accelerator-limit","accelerator-type"],"inputs":{"parameters":{"a":{"runtimeValue":{"constant":1}},"accelerator_count":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--accelerator-limit-Output'']}}"}},"accelerator_type":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}"}},"b":{"runtimeValue":{"constant":2}},"cpu_limit":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--cpu-limit-Output'']}}"}},"memory_limit":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--memory-limit-Output'']}}"}},"pipelinechannel--accelerator-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-limit"}},"pipelinechannel--accelerator-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-type"}},"pipelinechannel--cpu-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"cpu-limit"}},"pipelinechannel--memory-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"memory-limit"}}}},"taskInfo":{"name":"sum-numbers"}}}}}'
+      value: '{"dag":{"tasks":{"accelerator-limit":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-limit"},"taskInfo":{"name":"accelerator-limit"}},"accelerator-type":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-type"},"taskInfo":{"name":"accelerator-type"}},"cpu-limit":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-cpu-limit"},"taskInfo":{"name":"cpu-limit"}},"memory-limit":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-memory-limit"},"taskInfo":{"name":"memory-limit"}},"sum-numbers":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-sum-numbers"},"dependentTasks":["accelerator-limit","accelerator-type","cpu-limit","memory-limit"],"inputs":{"parameters":{"a":{"runtimeValue":{"constant":1}},"accelerator_count":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--accelerator-limit-Output'']}}"}},"accelerator_type":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}"}},"b":{"runtimeValue":{"constant":2}},"cpu_limit":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--cpu-limit-Output'']}}"}},"memory_limit":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--memory-limit-Output'']}}"}},"pipelinechannel--accelerator-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-limit"}},"pipelinechannel--accelerator-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-type"}},"pipelinechannel--cpu-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"cpu-limit"}},"pipelinechannel--memory-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"memory-limit"}}}},"taskInfo":{"name":"sum-numbers"}}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
       pipelines.kubeflow.org/v2_component: "true"
+      sidecar.istio.io/inject: "false"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
   securityContext:
@@ -84,80 +85,15 @@ spec:
       type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
-  - container:
-      args:
-      - --type
-      - CONTAINER
-      - --pipeline_name
-      - pipeline
-      - --run_id
-      - '{{workflow.uid}}'
-      - --run_name
-      - '{{workflow.name}}'
-      - --run_display_name
-      - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
-      - --component
-      - '{{inputs.parameters.component}}'
-      - --task
-      - '{{inputs.parameters.task}}'
-      - --task_name
-      - '{{inputs.parameters.task-name}}'
-      - --container
-      - '{{inputs.parameters.container}}'
-      - --iteration_index
-      - '{{inputs.parameters.iteration-index}}'
-      - --cached_decision_path
-      - '{{outputs.parameters.cached-decision.path}}'
-      - --pod_spec_patch_path
-      - '{{outputs.parameters.pod-spec-patch.path}}'
-      - --condition_path
-      - '{{outputs.parameters.condition.path}}'
-      - --kubernetes_config
-      - '{{inputs.parameters.kubernetes-config}}'
-      - --http_proxy
-      - ""
-      - --https_proxy
-      - ""
-      - --no_proxy
-      - ""
-      - --ml_pipeline_server_address
-      - ml-pipeline.kubeflow.svc.cluster.local
-      - --ml_pipeline_server_port
-      - "8887"
-      - --mlmd_server_address
-      - metadata-grpc-service.kubeflow.svc.cluster.local
-      - --mlmd_server_port
-      - "8080"
-      command:
-      - driver
-      env:
-      - name: KFP_POD_NAME
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.name
-      - name: KFP_POD_UID
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.uid
-      image: ghcr.io/kubeflow/kfp-driver:latest
-      name: ""
-      resources:
-        limits:
-          cpu: 500m
-          memory: 512Mi
-        requests:
-          cpu: 100m
-          memory: 64Mi
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
+  - http:
+      body: '{"cache_disabled":true,"component":"{{=sprig.b64enc(inputs.parameters[''component''])}}","container":"{{=sprig.b64enc(inputs.parameters[''container''])}}","dag_execution_id":"{{inputs.parameters.parent-dag-id}}","http_proxy":"","https_proxy":"","iteration_index":"{{inputs.parameters.iteration-index}}","kubernetes_config":"{{=sprig.b64enc(inputs.parameters[''kubernetes-config''])}}","metadata_tls_enabled":false,"ml_pipeline_server_address":"ml-pipeline.kubeflow.svc.cluster.local","ml_pipeline_server_port":"8887","ml_pipeline_tls_enabled":false,"mlmd_server_address":"metadata-grpc-service.kubeflow.svc.cluster.local","mlmd_server_port":"8080","namespace":"{{workflow.namespace}}","no_proxy":"","pipeline_name":"pipeline","run_display_name":"","run_id":"{{workflow.uid}}","run_name":"{{workflow.name}}","task":"{{=sprig.b64enc(inputs.parameters[''task''])}}","task_name":"{{inputs.parameters.task-name}}","type":"CONTAINER"}'
+      headers:
+      - name: Content-Type
+        value: application/json
+      method: POST
+      successCondition: response.statusCode == 200
+      timeoutSeconds: 600
+      url: http://ml-pipeline-driver.kubeflow.svc.cluster.local:8080/api/v1/template.execute
     inputs:
       parameters:
       - name: component
@@ -171,25 +107,7 @@ spec:
         name: kubernetes-config
     metadata: {}
     name: system-container-driver
-    outputs:
-      parameters:
-      - name: pod-spec-patch
-        valueFrom:
-          default: ""
-          path: /tmp/outputs/pod-spec-patch
-      - default: "false"
-        name: cached-decision
-        valueFrom:
-          default: "false"
-          path: /tmp/outputs/cached-decision
-      - name: condition
-        valueFrom:
-          default: "true"
-          path: /tmp/outputs/condition
-    securityContext:
-      runAsNonRoot: true
-      seccompProfile:
-        type: RuntimeDefault
+    outputs: {}
   - dag:
       tasks:
       - arguments:
@@ -259,7 +177,7 @@ spec:
       resources:
         limits:
           cpu: 500m
-          memory: 256Mi
+          memory: 128Mi
         requests:
           cpu: 100m
       securityContext:
@@ -317,10 +235,12 @@ spec:
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.accelerator-limit-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{=jsonpath(tasks[''accelerator-limit-driver''].outputs.result,
+              "$.pod-spec-patch")}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.accelerator-limit-driver.outputs.parameters.cached-decision}}'
+            value: '{{=jsonpath(tasks[''accelerator-limit-driver''].outputs.result,
+              "$.cached-decision")}}'
         depends: accelerator-limit-driver.Succeeded
         name: accelerator-limit
         template: system-container-executor
@@ -341,10 +261,12 @@ spec:
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.accelerator-type-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{=jsonpath(tasks[''accelerator-type-driver''].outputs.result,
+              "$.pod-spec-patch")}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.accelerator-type-driver.outputs.parameters.cached-decision}}'
+            value: '{{=jsonpath(tasks[''accelerator-type-driver''].outputs.result,
+              "$.cached-decision")}}'
         depends: accelerator-type-driver.Succeeded
         name: accelerator-type
         template: system-container-executor
@@ -365,10 +287,10 @@ spec:
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.cpu-limit-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{=jsonpath(tasks[''cpu-limit-driver''].outputs.result, "$.pod-spec-patch")}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.cpu-limit-driver.outputs.parameters.cached-decision}}'
+            value: '{{=jsonpath(tasks[''cpu-limit-driver''].outputs.result, "$.cached-decision")}}'
         depends: cpu-limit-driver.Succeeded
         name: cpu-limit
         template: system-container-executor
@@ -389,10 +311,10 @@ spec:
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.memory-limit-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{=jsonpath(tasks[''memory-limit-driver''].outputs.result, "$.pod-spec-patch")}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.memory-limit-driver.outputs.parameters.cached-decision}}'
+            value: '{{=jsonpath(tasks[''memory-limit-driver''].outputs.result, "$.cached-decision")}}'
         depends: memory-limit-driver.Succeeded
         name: memory-limit
         template: system-container-executor
@@ -401,24 +323,24 @@ spec:
           - name: component
             value: '{{workflow.parameters.components-49f9a898b718a077f30b7fd8c02d39767cff91ff0bbda4379daf866a91dbdb1b}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-sum-numbers"},"dependentTasks":["cpu-limit","memory-limit","accelerator-limit","accelerator-type"],"inputs":{"parameters":{"a":{"runtimeValue":{"constant":1}},"accelerator_count":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--accelerator-limit-Output'']}}"}},"accelerator_type":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}"}},"b":{"runtimeValue":{"constant":2}},"cpu_limit":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--cpu-limit-Output'']}}"}},"memory_limit":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--memory-limit-Output'']}}"}},"pipelinechannel--accelerator-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-limit"}},"pipelinechannel--accelerator-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-type"}},"pipelinechannel--cpu-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"cpu-limit"}},"pipelinechannel--memory-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"memory-limit"}}}},"taskInfo":{"name":"sum-numbers"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-sum-numbers"},"dependentTasks":["accelerator-limit","accelerator-type","cpu-limit","memory-limit"],"inputs":{"parameters":{"a":{"runtimeValue":{"constant":1}},"accelerator_count":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--accelerator-limit-Output'']}}"}},"accelerator_type":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}"}},"b":{"runtimeValue":{"constant":2}},"cpu_limit":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--cpu-limit-Output'']}}"}},"memory_limit":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--memory-limit-Output'']}}"}},"pipelinechannel--accelerator-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-limit"}},"pipelinechannel--accelerator-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-type"}},"pipelinechannel--cpu-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"cpu-limit"}},"pipelinechannel--memory-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"memory-limit"}}}},"taskInfo":{"name":"sum-numbers"}}'
           - name: container
             value: '{{workflow.parameters.implementations-49f9a898b718a077f30b7fd8c02d39767cff91ff0bbda4379daf866a91dbdb1b}}'
           - name: task-name
             value: sum-numbers
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        depends: cpu-limit.Succeeded && memory-limit.Succeeded && accelerator-limit.Succeeded
-          && accelerator-type.Succeeded
+        depends: accelerator-limit.Succeeded && accelerator-type.Succeeded && cpu-limit.Succeeded
+          && memory-limit.Succeeded
         name: sum-numbers-driver
         template: system-container-driver
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.sum-numbers-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{=jsonpath(tasks[''sum-numbers-driver''].outputs.result, "$.pod-spec-patch")}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.sum-numbers-driver.outputs.parameters.cached-decision}}'
+            value: '{{=jsonpath(tasks[''sum-numbers-driver''].outputs.result, "$.cached-decision")}}'
         depends: sum-numbers-driver.Succeeded
         name: sum-numbers
         template: system-container-executor
@@ -428,69 +350,15 @@ spec:
     metadata: {}
     name: root
     outputs: {}
-  - container:
-      args:
-      - --type
-      - '{{inputs.parameters.driver-type}}'
-      - --pipeline_name
-      - pipeline
-      - --run_id
-      - '{{workflow.uid}}'
-      - --run_name
-      - '{{workflow.name}}'
-      - --run_display_name
-      - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
-      - --component
-      - '{{inputs.parameters.component}}'
-      - --task
-      - '{{inputs.parameters.task}}'
-      - --task_name
-      - '{{inputs.parameters.task-name}}'
-      - --runtime_config
-      - '{{inputs.parameters.runtime-config}}'
-      - --iteration_index
-      - '{{inputs.parameters.iteration-index}}'
-      - --execution_id_path
-      - '{{outputs.parameters.execution-id.path}}'
-      - --iteration_count_path
-      - '{{outputs.parameters.iteration-count.path}}'
-      - --condition_path
-      - '{{outputs.parameters.condition.path}}'
-      - --http_proxy
-      - ""
-      - --https_proxy
-      - ""
-      - --no_proxy
-      - ""
-      - --ml_pipeline_server_address
-      - ml-pipeline.kubeflow.svc.cluster.local
-      - --ml_pipeline_server_port
-      - "8887"
-      - --mlmd_server_address
-      - metadata-grpc-service.kubeflow.svc.cluster.local
-      - --mlmd_server_port
-      - "8080"
-      command:
-      - driver
-      image: ghcr.io/kubeflow/kfp-driver:latest
-      name: ""
-      resources:
-        limits:
-          cpu: 500m
-          memory: 512Mi
-        requests:
-          cpu: 100m
-          memory: 64Mi
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
+  - http:
+      body: '{"cache_disabled":true,"component":"{{=sprig.b64enc(inputs.parameters[''component''])}}","dag_execution_id":"{{inputs.parameters.parent-dag-id}}","http_proxy":"","https_proxy":"","iteration_index":"{{inputs.parameters.iteration-index}}","metadata_tls_enabled":false,"ml_pipeline_server_address":"ml-pipeline.kubeflow.svc.cluster.local","ml_pipeline_server_port":"8887","ml_pipeline_tls_enabled":false,"mlmd_server_address":"metadata-grpc-service.kubeflow.svc.cluster.local","mlmd_server_port":"8080","namespace":"{{workflow.namespace}}","no_proxy":"","pipeline_name":"pipeline","run_display_name":"","run_id":"{{workflow.uid}}","run_name":"{{workflow.name}}","runtime_config":"{{=sprig.b64enc(inputs.parameters[''runtime-config''])}}","task":"{{=sprig.b64enc(inputs.parameters[''task''])}}","task_name":"{{inputs.parameters.task-name}}","type":"{{inputs.parameters.driver-type}}"}'
+      headers:
+      - name: Content-Type
+        value: application/json
+      method: POST
+      successCondition: response.statusCode == 200
+      timeoutSeconds: 600
+      url: http://ml-pipeline-driver.kubeflow.svc.cluster.local:8080/api/v1/template.execute
     inputs:
       parameters:
       - name: component
@@ -508,23 +376,7 @@ spec:
         name: driver-type
     metadata: {}
     name: system-dag-driver
-    outputs:
-      parameters:
-      - name: execution-id
-        valueFrom:
-          path: /tmp/outputs/execution-id
-      - name: iteration-count
-        valueFrom:
-          default: "0"
-          path: /tmp/outputs/iteration-count
-      - name: condition
-        valueFrom:
-          default: "true"
-          path: /tmp/outputs/condition
-    securityContext:
-      runAsNonRoot: true
-      seccompProfile:
-        type: RuntimeDefault
+    outputs: {}
   - dag:
       tasks:
       - arguments:
@@ -540,7 +392,7 @@ spec:
       - arguments:
           parameters:
           - name: parent-dag-id
-            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+            value: '{{=jsonpath(tasks[''root-driver''].outputs.result, "$.execution-id")}}'
           - name: condition
             value: ""
         depends: root-driver.Succeeded

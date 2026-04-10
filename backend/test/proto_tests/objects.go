@@ -306,7 +306,7 @@ var platformSpec = &specPB.PlatformSpec{
 				},
 			},
 			PipelineConfig: &specPB.PipelineConfig{
-				ResourceTtlOnCompletion: 24,
+				ResourceTtl: 24,
 			},
 		},
 	},

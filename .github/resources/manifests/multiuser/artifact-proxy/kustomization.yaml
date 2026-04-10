@@ -96,4 +96,3 @@ replacements:
           name: cache-server
         fieldPaths:
           - spec.template.spec.dnsConfig.searches.[=NAMESPACE.svc.cluster.local]
-

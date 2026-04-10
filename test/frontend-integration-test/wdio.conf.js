@@ -26,7 +26,7 @@ const specsFromEnv = process.env.WDIO_SPECS
   : [];
 const specs = specsFromEnv.length
   ? specsFromEnv
-  : ['./helloworld.spec.js', './literal-input.spec.js', './tensorboard-example.spec.js'];
+  : ['./helloworld.spec.js', './tensorboard-example.spec.js'];
 const chromeArgs = ['--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage'];
 if (headless) {
   chromeArgs.unshift('--headless');

@@ -20,8 +20,9 @@ set -ex
 # * $GCR_IMAGE_BASE_DIR
 # * $GCR_IMAGE_TAG
 # * $KFP_DEPLOY_RELEASE
-
+# * $ENABLE_WORKLOAD_IDENTITY
 GCR_IMAGE_TAG=${GCR_IMAGE_TAG:-latest}
+ENABLE_WORKLOAD_IDENTITY=${ENABLE_WORKLOAD_IDENTITY:-false}
 
 KFP_MANIFEST_DIR="${DIR}/manifests"
 pushd ${KFP_MANIFEST_DIR}
@@ -102,5 +103,37 @@ done
 
 echo "Status of pods after rollouts are successful"
 kubectl get pods -n ${NAMESPACE}
+
+if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
+  # Use static GSAs for testing, so we don't need to GC them.
+  export SYSTEM_GSA="test-kfp-system"
+  export USER_GSA="test-kfp-user"
+  source "${DIR}/scripts/retry.sh"
+
+  function setup_workload_identity {
+    # Workaround for flakiness from gcp-workload-identity-setup.sh:
+    # When two tests add iam policy bindings at the same time, one will fail because
+    # there could be two concurrent changes.
+    # Wait here randomly to reduce chance both scripts are run at the same time
+    # between tests. Unless for testing scenario like this, it won't
+    # meet the concurrent change issue.
+    sleep $((RANDOM%30))
+    yes | PROJECT_ID=$PROJECT RESOURCE_PREFIX=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
+      ${DIR}/../manifests/kustomize/gcp-workload-identity-setup.sh
+  }
+  retry setup_workload_identity
+
+  retry gcloud projects add-iam-policy-binding $PROJECT \
+    --member="serviceAccount:$SYSTEM_GSA@$PROJECT.iam.gserviceaccount.com" \
+    --role="roles/editor"
+  retry gcloud projects add-iam-policy-binding $PROJECT \
+    --member="serviceAccount:$USER_GSA@$PROJECT.iam.gserviceaccount.com" \
+    --role="roles/editor"
+
+  source "$DIR/../manifests/kustomize/wi-utils.sh"
+  # TODO(Bobgy): re-enable this after temporary flakiness is resolved.
+  # verify_workload_identity_binding "pipeline-runner" $NAMESPACE
+  sleep 30
+fi
 
 popd

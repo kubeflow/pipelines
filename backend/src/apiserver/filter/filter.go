@@ -161,21 +161,6 @@ func NewFromPredicate(predicates []*Predicate) (*Filter, error) {
 	return f, nil
 }
 
-// ValidateKeys checks all filter keys using the provided validator function.
-// Keys may be qualified identifiers like "table.Column"; each segment is validated separately.
-func (f *Filter) ValidateKeys(validator func(segment string) error) error {
-	for _, m := range []map[string][]interface{}{f.eq, f.neq, f.gt, f.gte, f.lt, f.lte, f.in, f.substring} {
-		for k := range m {
-			for _, segment := range strings.Split(k, ".") {
-				if err := validator(segment); err != nil {
-					return fmt.Errorf("invalid filter key %q: %w", k, err)
-				}
-			}
-		}
-	}
-	return nil
-}
-
 // Replaces and adds a prefix to the keys for an existing filter.
 // This is useful when someone wants to extend the filter with a table name.
 func (f *Filter) ReplaceKeys(keyMap map[string]string, prefix string) error {

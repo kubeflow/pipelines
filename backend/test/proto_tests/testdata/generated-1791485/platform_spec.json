@@ -15,10 +15,7 @@
         "project": "test-project"
       },
       "pipelineConfig": {
-        "resource_ttl_on_completion": 24,
-        "resource_ttl_on_success": 0,
-        "resource_ttl_on_failure": 0,
-        "active_deadline_seconds": 0
+        "resource_ttl": 24
       }
     }
   }

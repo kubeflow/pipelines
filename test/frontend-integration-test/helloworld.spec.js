@@ -19,7 +19,6 @@ const {
   clearDefaultInput,
   getValueFromDetailsTable,
   saveDebugScreenshot,
-  selectPipelineForRun,
   waitForCondition,
   waitForGraphNodeCount,
   waitForHashPrefix,
@@ -38,6 +37,41 @@ const uiTimeout = 5000;
 const runStartTimeout = 30000;
 const runCompletionTimeout = 60000;
 const outputParameterValue = 'Hello world in test';
+
+async function selectPipelineForRun() {
+  await $('#choosePipelineBtn').waitForDisplayed({ timeout: uiTimeout });
+  await $('#choosePipelineBtn').click();
+
+  await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: uiTimeout });
+  const pipelineRowSelector = buildTableRowSelector(pipelineName, {
+    containerXPath: '//*[@id="pipelineSelectorDialog"]',
+  });
+
+  try {
+    await waitForCondition(
+      async () => (await $(pipelineRowSelector).isExisting()),
+      {
+        timeout: uiTimeout,
+        timeoutMsg: `expected pipeline row for ${pipelineName} to appear`,
+      },
+    );
+  } catch (error) {
+    const rowCount = await browser.execute(() => document.querySelectorAll('[data-testid="table-row"]').length);
+    const emptyMessage = await browser.execute(() => {
+      const emptyEl = document.querySelector('.emptyMessage');
+      return emptyEl ? emptyEl.textContent : null;
+    });
+    console.log('PIPELINE_SELECTOR_ROW_COUNT', rowCount);
+    console.log('PIPELINE_SELECTOR_EMPTY_MESSAGE', emptyMessage);
+    await saveDebugScreenshot('pipeline-selector');
+    throw error;
+  }
+
+  await $(pipelineRowSelector).click();
+  await $('#usePipelineBtn').waitForEnabled({ timeout: uiTimeout });
+  await $('#usePipelineBtn').click();
+  await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: uiTimeout, reverse: true });
+}
 
 async function waitForRunParameterField(selector) {
   try {
@@ -125,7 +159,7 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('creates a new run in the experiment', async () => {
-    await selectPipelineForRun(pipelineName, { timeout: uiTimeout });
+    await selectPipelineForRun();
 
     await fillRunForm({
       description: runDescription,
@@ -225,7 +259,7 @@ describe('deploy helloworld sample run', () => {
     await $('#createNewRunBtn').waitForDisplayed({ timeout: uiTimeout });
     await $('#createNewRunBtn').click();
 
-    await selectPipelineForRun(pipelineName, { timeout: uiTimeout });
+    await selectPipelineForRun();
 
     await fillRunForm({
       description: runWithoutExperimentDescription,

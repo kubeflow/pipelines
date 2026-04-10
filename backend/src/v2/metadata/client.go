@@ -55,19 +55,9 @@ const (
 	pipelineRunContextTypeName         = "system.PipelineRun"
 	ImporterExecutionTypeName          = "system.ImporterExecution"
 	ImporterWorkspaceExecutionTypeName = "system.ImporterWorkspaceExecution"
-	// mlmdClientSideMaxRetries is the number of times the MLMD client will retry
-	// a failed gRPC call before returning an error. This is intentionally higher
-	// than a typical RPC retry budget because MySQL deadlocks (codes.Aborted) on
-	// the MLMD server are transient and require time to resolve under sustained
-	// parallel execution.
-	mlmdClientSideMaxRetries    = 10
-	mlmdClientSideBackoffBase   = 1 * time.Second
-	mlmdClientSideBackoffJitter = 0.25
-	// mlmdClientSideBackoffCap limits the maximum per-attempt wait so a single
-	// deadlock retry never stalls a pod for more than 30 s.
-	mlmdClientSideBackoffCap  = 30 * time.Second
-	defaultMaxGRPCMessageSize = 100 * 1024 * 1024 // 100MB
-	maxGRPCMessageSizeEnv     = "METADATA_GRPC_MESSAGE_SIZE"
+	mlmdClientSideMaxRetries           = 3
+	defaultMaxGRPCMessageSize          = 100 * 1024 * 1024 // 100MB
+	maxGRPCMessageSizeEnv              = "METADATA_GRPC_MESSAGE_SIZE"
 )
 
 // MaxGRPCMessageSize is the max gRPC message size for the metadata client.
@@ -148,17 +138,10 @@ type Client struct {
 
 // NewClient creates a Client given the MLMD server address and port.
 func NewClient(serverAddress, serverPort string, tlsCfg *tls.Config) (*Client, error) {
-	// Retry on Aborted (MySQL deadlock) and Unavailable (transient connectivity).
-	// Use bounded exponential backoff so that high-concurrency deadlock storms
-	// are given enough time to resolve without stalling a pod indefinitely.
 	opts := []grpc_retry.CallOption{
 		grpc_retry.WithMax(mlmdClientSideMaxRetries),
-		grpc_retry.WithBackoff(grpc_retry.BackoffExponentialWithJitterBounded(
-			mlmdClientSideBackoffBase,
-			mlmdClientSideBackoffJitter,
-			mlmdClientSideBackoffCap,
-		)),
-		grpc_retry.WithCodes(codes.Aborted, codes.Unavailable),
+		grpc_retry.WithBackoff(grpc_retry.BackoffExponentialWithJitter(300*time.Millisecond, 0.20)),
+		grpc_retry.WithCodes(codes.Aborted),
 	}
 
 	creds := insecure.NewCredentials()
@@ -198,6 +181,7 @@ type ExecutionConfig struct {
 	OutputArtifacts  map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec
 	InputArtifactIDs map[string][]int64
 	IterationIndex   *int // Index of the iteration.
+	DriverLogURI     string
 
 	// ContainerExecution custom properties
 	Image, CachedMLMDExecutionID, FingerPrint string
@@ -594,6 +578,7 @@ const (
 	keyOutputs               = "outputs"
 	keyParameterProducerTask = "parameter_producer_task"
 	keyOutputArtifacts       = "output_artifacts"
+	keyDriverLogURI          = "driver_logs_uri"
 	keyArtifactProducerTask  = "artifact_producer_task"
 	keyParentDagID           = "parent_dag_id" // Parent DAG Execution ID.
 	keyIterationIndex        = "iteration_index"
@@ -650,6 +635,10 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 		if config.FingerPrint != "" {
 			e.CustomProperties[keyCacheFingerPrint] = StringValue(config.FingerPrint)
 		}
+	}
+	if config.DriverLogURI != "" {
+		e.CustomProperties[keyDriverLogURI] = StringValue(config.DriverLogURI)
+		e.CustomProperties[keyStoreSessionInfo] = StringValue(pipeline.GetStoreSessionInfo())
 	}
 	if config.InputParameters != nil {
 		e.CustomProperties[keyInputs] = &pb.Value{Value: &pb.Value_StructValue{

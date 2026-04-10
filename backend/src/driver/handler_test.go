@@ -1,0 +1,64 @@
+// Copyright 2025 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package driver
+
+import (
+	"testing"
+
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/proto"
+)
+
+func strPtr(s string) *string {
+	return &s
+}
+
+func TestSpecParsing(t *testing.T) {
+	tt := []struct {
+		name     string
+		input    *string
+		expected *kubernetesplatform.KubernetesExecutorConfig
+		wantErr  bool
+	}{
+		{
+			"Valid - test kubecfg value parse.",
+			strPtr("{\"imagePullSecret\":[{\"secret_name\":\"value1\"}]}"),
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ImagePullSecret: []*kubernetesplatform.ImagePullSecret{
+					{SecretName: "value1"},
+				},
+			},
+			false,
+		},
+		{
+			"Valid - test kubecfg value ignores unknown field.",
+			strPtr("{\"imagePullSecret\":[{\"secret_name\":\"value1\"}], \"unknown_field\": \"something\"}"),
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ImagePullSecret: []*kubernetesplatform.ImagePullSecret{
+					{SecretName: "value1"},
+				},
+			},
+			false,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Logf("Running test case: %s", tc.name)
+		cfg, err := parseExecConfigJSON(tc.input)
+		assert.Equal(t, tc.wantErr, err != nil)
+		assert.True(t, proto.Equal(tc.expected, cfg))
+	}
+}

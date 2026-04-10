@@ -187,11 +187,8 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     handleParameterChange,
     setIsValidInput,
   } = props;
-  const clonedPipelineRoot = clonedRuntimeConfig?.pipeline_root;
-  const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(!!clonedPipelineRoot);
-  const [customPipelineRoot, setCustomPipelineRoot] = useState(
-    clonedPipelineRoot ?? props.pipelineRoot,
-  );
+  const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
+  const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
   const [errorMessages, setErrorMessages] = useState<string[]>([]);
 
   const [updatedParameters, setUpdatedParameters] = useState({});
@@ -253,6 +250,13 @@ function NewRunParametersV2(props: NewRunParametersProps) {
       handleParameterChange(runtimeParametersInRealType);
     }
   }, [clonedRuntimeConfig, specParameters, handleParameterChange, setIsValidInput]);
+
+  useEffect(() => {
+    if (clonedRuntimeConfig?.pipeline_root) {
+      setCustomPipelineRootChecked(true);
+      setCustomPipelineRoot(clonedRuntimeConfig.pipeline_root);
+    }
+  }, [clonedRuntimeConfig]);
 
   return (
     <div>

@@ -41,9 +41,6 @@ jobs:
           - image: launcher
             dockerfile: backend/Dockerfile.launcher
             context: .
-          - image: driver
-            dockerfile: backend/Dockerfile.driver
-            context: .
           - image: frontend
             dockerfile: frontend/Dockerfile
             context: .

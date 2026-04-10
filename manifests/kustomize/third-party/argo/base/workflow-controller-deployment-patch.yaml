@@ -17,6 +17,10 @@ spec:
             - workflow-controller-configmap
             - --executor-image
             - quay.io/argoproj/argoexec:v3.7.3
+          env:
+            # https://argo-workflows.readthedocs.io/en/latest/environment-variables/
+            - name: DEFAULT_REQUEUE_TIME
+              value: "6s"
           securityContext:
             readOnlyRootFilesystem: true
             runAsNonRoot: true

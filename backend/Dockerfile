@@ -83,6 +83,10 @@ RUN chmod +x /bin/apiserver
 RUN sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i /config/sample_config.json && \
     sed -E "s/%252Fmaster/%252F${COMMIT_SHA}/#g" -i /config/sample_config.json
 
+# Run as non-root user (UID 1000) to satisfy runAsNonRoot pod security policy.
+RUN groupadd -g 1000 kfp && useradd -u 1000 -g kfp -s /sbin/nologin kfp
+USER 1000
+
 # Expose apiserver port
 EXPOSE 8888
 
