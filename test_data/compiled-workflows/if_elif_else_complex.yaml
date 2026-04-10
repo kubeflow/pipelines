@@ -124,7 +124,71 @@ spec:
   serviceAccountName: pipeline-runner
   templates:
   - container:
-      args:
+      command:
+      - /kfp-launcher/launch
+      - --pipeline_name
+      - lucky-number-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
+      - --component_spec
+      - '{{inputs.parameters.component}}'
+      - --pod_name
+      - $(KFP_POD_NAME)
+      - --pod_uid
+      - $(KFP_POD_UID)
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      - --cache_disabled
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: '{{inputs.parameters.image}}'
+      name: ""
+      resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
       - --type
       - CONTAINER
       - --pipeline_name
@@ -147,14 +211,10 @@ spec:
       - '{{inputs.parameters.container}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
-      - --cached_decision_path
-      - '{{outputs.parameters.cached-decision.path}}'
-      - --pod_spec_patch_path
-      - '{{outputs.parameters.pod-spec-patch.path}}'
-      - --condition_path
-      - '{{outputs.parameters.condition.path}}'
       - --kubernetes_config
       - '{{inputs.parameters.kubernetes-config}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
       - --http_proxy
       - ""
       - --https_proxy
@@ -181,7 +241,7 @@ spec:
           fieldRef:
             fieldPath: metadata.uid
       image: ghcr.io/kubeflow/kfp-driver:latest
-      name: ""
+      name: kfp-driver
       resources:
         limits:
           cpu: 500m
@@ -197,97 +257,9 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-    inputs:
-      parameters:
-      - name: component
-      - name: task
-      - name: container
-      - name: task-name
-      - name: parent-dag-id
-      - default: "-1"
-        name: iteration-index
-      - default: ""
-        name: kubernetes-config
-    metadata: {}
-    name: system-container-driver
-    outputs:
-      parameters:
-      - name: pod-spec-patch
-        valueFrom:
-          default: ""
-          path: /tmp/outputs/pod-spec-patch
-      - default: "false"
-        name: cached-decision
-        valueFrom:
-          default: "false"
-          path: /tmp/outputs/cached-decision
-      - name: condition
-        valueFrom:
-          default: "true"
-          path: /tmp/outputs/condition
-    securityContext:
-      runAsNonRoot: true
-      seccompProfile:
-        type: RuntimeDefault
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{inputs.parameters.pod-spec-patch}}'
-        name: executor
-        template: system-container-impl
-        when: '{{inputs.parameters.cached-decision}} != true'
-    inputs:
-      parameters:
-      - name: pod-spec-patch
-      - default: "false"
-        name: cached-decision
-    metadata: {}
-    name: system-container-executor
-    outputs: {}
-  - container:
-      command:
-      - should-be-overridden-during-runtime
-      env:
-      - name: KFP_POD_NAME
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.name
-      - name: KFP_POD_UID
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.uid
-      envFrom:
-      - configMapRef:
-          name: metadata-grpc-configmap
-          optional: true
-      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
-      name: ""
-      resources: {}
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
-        seccompProfile:
-          type: RuntimeDefault
       volumeMounts:
-      - mountPath: /kfp-launcher
-        name: kfp-launcher
-      - mountPath: /gcs
-        name: gcs-scratch
-      - mountPath: /s3
-        name: s3-scratch
-      - mountPath: /minio
-        name: minio-scratch
-      - mountPath: /.local
-        name: dot-local-scratch
-      - mountPath: /.cache
-        name: dot-cache-scratch
-      - mountPath: /.config
-        name: dot-config-scratch
-    initContainers:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
     - args:
       - --copy
       - /kfp-launcher/launch
@@ -314,15 +286,25 @@ spec:
         name: kfp-launcher
     inputs:
       parameters:
-      - name: pod-spec-patch
+      - name: component
+      - name: task
+      - name: container
+      - name: task-name
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+      - name: image
     metadata: {}
     name: system-container-impl
     outputs: {}
-    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     securityContext:
       seccompProfile:
         type: RuntimeDefault
     volumes:
+    - emptyDir: {}
+      name: kfp-driver-outputs
     - emptyDir: {}
       name: kfp-launcher
     - emptyDir: {}
@@ -352,18 +334,10 @@ spec:
             value: print-and-return
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: print-and-return-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.print-and-return-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.print-and-return-driver.outputs.parameters.cached-decision}}'
-        depends: print-and-return-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: print-and-return
-        template: system-container-executor
+        template: system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id
@@ -513,18 +487,10 @@ spec:
             value: print-and-return-9
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: print-and-return-9-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.print-and-return-9-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.print-and-return-9-driver.outputs.parameters.cached-decision}}'
-        depends: print-and-return-9-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: print-and-return-9
-        template: system-container-executor
+        template: system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id
@@ -648,18 +614,10 @@ spec:
             value: print-and-return-8
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: print-and-return-8-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.print-and-return-8-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.print-and-return-8-driver.outputs.parameters.cached-decision}}'
-        depends: print-and-return-8-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: print-and-return-8
-        template: system-container-executor
+        template: system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id
@@ -681,18 +639,10 @@ spec:
             value: print-and-return-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: print-and-return-2-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.print-and-return-2-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.print-and-return-2-driver.outputs.parameters.cached-decision}}'
-        depends: print-and-return-2-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: print-and-return-2
-        template: system-container-executor
+        template: system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id
@@ -714,18 +664,10 @@ spec:
             value: print-and-return-3
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: print-and-return-3-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.print-and-return-3-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.print-and-return-3-driver.outputs.parameters.cached-decision}}'
-        depends: print-and-return-3-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: print-and-return-3
-        template: system-container-executor
+        template: system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id
@@ -822,18 +764,10 @@ spec:
             value: is-even-or-odd
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: is-even-or-odd-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.is-even-or-odd-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.is-even-or-odd-driver.outputs.parameters.cached-decision}}'
-        depends: is-even-or-odd-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: is-even-or-odd
-        template: system-container-executor
+        template: system-container-impl
       - arguments:
           parameters:
           - name: component
@@ -846,19 +780,11 @@ spec:
             value: print-and-return-4
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.11
         depends: condition-branches-5.Succeeded
-        name: print-and-return-4-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.print-and-return-4-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.print-and-return-4-driver.outputs.parameters.cached-decision}}'
-        depends: print-and-return-4-driver.Succeeded
         name: print-and-return-4
-        template: system-container-executor
+        template: system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id
@@ -880,18 +806,10 @@ spec:
             value: print-and-return-5
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: print-and-return-5-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.print-and-return-5-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.print-and-return-5-driver.outputs.parameters.cached-decision}}'
-        depends: print-and-return-5-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: print-and-return-5
-        template: system-container-executor
+        template: system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id
@@ -913,18 +831,10 @@ spec:
             value: print-and-return-6
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: print-and-return-6-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.print-and-return-6-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.print-and-return-6-driver.outputs.parameters.cached-decision}}'
-        depends: print-and-return-6-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: print-and-return-6
-        template: system-container-executor
+        template: system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id
@@ -1021,18 +931,10 @@ spec:
             value: is-even-or-odd-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: is-even-or-odd-2-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.is-even-or-odd-2-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.is-even-or-odd-2-driver.outputs.parameters.cached-decision}}'
-        depends: is-even-or-odd-2-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: is-even-or-odd-2
-        template: system-container-executor
+        template: system-container-impl
       - arguments:
           parameters:
           - name: component
@@ -1045,19 +947,11 @@ spec:
             value: print-and-return-7
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.11
         depends: condition-branches-10.Succeeded
-        name: print-and-return-7-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.print-and-return-7-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.print-and-return-7-driver.outputs.parameters.cached-decision}}'
-        depends: print-and-return-7-driver.Succeeded
         name: print-and-return-7
-        template: system-container-executor
+        template: system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id
@@ -1202,18 +1096,10 @@ spec:
             value: int-0-to-9999
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: int-0-to-9999-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.int-0-to-9999-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.int-0-to-9999-driver.outputs.parameters.cached-decision}}'
-        depends: int-0-to-9999-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: int-0-to-9999
-        template: system-container-executor
+        template: system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id
@@ -1303,19 +1189,11 @@ spec:
             value: print-ints
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.11
         depends: for-loop-1.Succeeded
-        name: print-ints-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.print-ints-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.print-ints-driver.outputs.parameters.cached-decision}}'
-        depends: print-ints-driver.Succeeded
         name: print-ints
-        template: system-container-executor
+        template: system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id

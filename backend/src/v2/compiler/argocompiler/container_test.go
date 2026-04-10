@@ -26,6 +26,7 @@ import (
 )
 
 func TestAddContainerExecutorTemplate(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
 	tests := []struct {
 		name                  string
 		configMapName         string
@@ -56,15 +57,38 @@ func TestAddContainerExecutorTemplate(t *testing.T) {
 						Templates: []wfapi.Template{},
 					},
 				},
+				spec: &pipelinespec.PipelineSpec{
+					PipelineInfo: &pipelinespec.PipelineInfo{Name: "test-pipeline"},
+				},
+				job: &pipelinespec.PipelineJob{},
 			}
 
 			c.addContainerExecutorTemplate(&pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test-ref"}}, &kubernetesplatform.KubernetesExecutorConfig{})
 			assert.NotEmpty(t, "system-container-impl", "Template name should not be empty")
 
+			// The new design has a single executor template (no outer DAG wrapper).
 			executorTemplate, exists := c.templates["system-container-impl"]
 			assert.True(t, exists, "Template should exist with the returned name")
 			assert.NotNil(t, executorTemplate, "Executor template should not be nil")
 
+			// Driver init container must be first so it runs before the launcher copy.
+			require.GreaterOrEqual(t, len(executorTemplate.InitContainers), 2, "must have kfp-driver and kfp-launcher init containers")
+			assert.Equal(t, "kfp-driver", executorTemplate.InitContainers[0].Name)
+			assert.Equal(t, "kfp-launcher", executorTemplate.InitContainers[1].Name)
+
+			// Main container image must be parameterized.
+			require.NotNil(t, executorTemplate.Container)
+			assert.Equal(t, inputValue(paramImage), executorTemplate.Container.Image)
+
+			// Driver outputs volume must be present.
+			var foundDriverOutputsVol bool
+			for _, vol := range executorTemplate.Volumes {
+				if vol.Name == volumeNameDriverOutputs {
+					foundDriverOutputsVol = true
+					break
+				}
+			}
+			assert.True(t, foundDriverOutputsVol, "kfp-driver-outputs volume must be present")
 		})
 	}
 

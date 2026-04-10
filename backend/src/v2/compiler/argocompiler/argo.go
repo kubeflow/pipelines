@@ -486,6 +486,7 @@ const (
 	paramIterationIndex          = "iteration-index"
 	paramExecutorInput           = "executor-input"
 	paramDriverType              = "driver-type"
+	paramImage                   = "image"                       // container image for the executor pod
 	paramCachedDecision          = "cached-decision"             // indicate hit cache or not
 	paramPodSpecPatch            = "pod-spec-patch"              // a strategic patch merged with the pod spec
 	paramCondition               = "condition"                   // condition = false -> skip the task

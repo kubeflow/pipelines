@@ -1,0 +1,15 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline
+spec:
+  template:
+    spec:
+      containers:
+      - name: ml-pipeline-api-server
+        imagePullPolicy: Never
+        env:
+        - name: V2_DRIVER_IMAGE
+          value: kfp-driver:dev
+        - name: V2_LAUNCHER_IMAGE
+          value: kfp-launcher:dev

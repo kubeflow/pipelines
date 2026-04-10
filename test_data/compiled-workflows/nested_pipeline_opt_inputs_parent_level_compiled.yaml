@@ -116,7 +116,71 @@ spec:
   serviceAccountName: pipeline-runner
   templates:
   - container:
-      args:
+      command:
+      - /kfp-launcher/launch
+      - --pipeline_name
+      - nested-pipeline-opt-inputs-parent-level
+      - --run_id
+      - '{{workflow.uid}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
+      - --component_spec
+      - '{{inputs.parameters.component}}'
+      - --pod_name
+      - $(KFP_POD_NAME)
+      - --pod_uid
+      - $(KFP_POD_UID)
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      - --cache_disabled
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: '{{inputs.parameters.image}}'
+      name: ""
+      resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
       - --type
       - CONTAINER
       - --pipeline_name
@@ -139,14 +203,10 @@ spec:
       - '{{inputs.parameters.container}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
-      - --cached_decision_path
-      - '{{outputs.parameters.cached-decision.path}}'
-      - --pod_spec_patch_path
-      - '{{outputs.parameters.pod-spec-patch.path}}'
-      - --condition_path
-      - '{{outputs.parameters.condition.path}}'
       - --kubernetes_config
       - '{{inputs.parameters.kubernetes-config}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
       - --http_proxy
       - ""
       - --https_proxy
@@ -173,7 +233,7 @@ spec:
           fieldRef:
             fieldPath: metadata.uid
       image: ghcr.io/kubeflow/kfp-driver:latest
-      name: ""
+      name: kfp-driver
       resources:
         limits:
           cpu: 500m
@@ -189,97 +249,9 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-    inputs:
-      parameters:
-      - name: component
-      - name: task
-      - name: container
-      - name: task-name
-      - name: parent-dag-id
-      - default: "-1"
-        name: iteration-index
-      - default: ""
-        name: kubernetes-config
-    metadata: {}
-    name: system-container-driver
-    outputs:
-      parameters:
-      - name: pod-spec-patch
-        valueFrom:
-          default: ""
-          path: /tmp/outputs/pod-spec-patch
-      - default: "false"
-        name: cached-decision
-        valueFrom:
-          default: "false"
-          path: /tmp/outputs/cached-decision
-      - name: condition
-        valueFrom:
-          default: "true"
-          path: /tmp/outputs/condition
-    securityContext:
-      runAsNonRoot: true
-      seccompProfile:
-        type: RuntimeDefault
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{inputs.parameters.pod-spec-patch}}'
-        name: executor
-        template: system-container-impl
-        when: '{{inputs.parameters.cached-decision}} != true'
-    inputs:
-      parameters:
-      - name: pod-spec-patch
-      - default: "false"
-        name: cached-decision
-    metadata: {}
-    name: system-container-executor
-    outputs: {}
-  - container:
-      command:
-      - should-be-overridden-during-runtime
-      env:
-      - name: KFP_POD_NAME
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.name
-      - name: KFP_POD_UID
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.uid
-      envFrom:
-      - configMapRef:
-          name: metadata-grpc-configmap
-          optional: true
-      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
-      name: ""
-      resources: {}
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
-        seccompProfile:
-          type: RuntimeDefault
       volumeMounts:
-      - mountPath: /kfp-launcher
-        name: kfp-launcher
-      - mountPath: /gcs
-        name: gcs-scratch
-      - mountPath: /s3
-        name: s3-scratch
-      - mountPath: /minio
-        name: minio-scratch
-      - mountPath: /.local
-        name: dot-local-scratch
-      - mountPath: /.cache
-        name: dot-cache-scratch
-      - mountPath: /.config
-        name: dot-config-scratch
-    initContainers:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
     - args:
       - --copy
       - /kfp-launcher/launch
@@ -306,15 +278,25 @@ spec:
         name: kfp-launcher
     inputs:
       parameters:
-      - name: pod-spec-patch
+      - name: component
+      - name: task
+      - name: container
+      - name: task-name
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+      - name: image
     metadata: {}
     name: system-container-impl
     outputs: {}
-    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     securityContext:
       seccompProfile:
         type: RuntimeDefault
     volumes:
+    - emptyDir: {}
+      name: kfp-driver-outputs
     - emptyDir: {}
       name: kfp-launcher
     - emptyDir: {}
@@ -343,18 +325,10 @@ spec:
             value: component-nil-bool-default
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: component-nil-bool-default-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.component-nil-bool-default-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.component-nil-bool-default-driver.outputs.parameters.cached-decision}}'
-        depends: component-nil-bool-default-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: component-nil-bool-default
-        template: system-container-executor
+        template: system-container-impl
       - arguments:
           parameters:
           - name: component
@@ -367,18 +341,10 @@ spec:
             value: component-nil-int-default
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: component-nil-int-default-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.component-nil-int-default-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.component-nil-int-default-driver.outputs.parameters.cached-decision}}'
-        depends: component-nil-int-default-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: component-nil-int-default
-        template: system-container-executor
+        template: system-container-impl
       - arguments:
           parameters:
           - name: component
@@ -391,18 +357,10 @@ spec:
             value: component-nil-str-default
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: component-nil-str-default-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.component-nil-str-default-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.component-nil-str-default-driver.outputs.parameters.cached-decision}}'
-        depends: component-nil-str-default-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: component-nil-str-default
-        template: system-container-executor
+        template: system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id
@@ -423,18 +381,10 @@ spec:
             value: component-bool-default
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: component-bool-default-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.component-bool-default-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.component-bool-default-driver.outputs.parameters.cached-decision}}'
-        depends: component-bool-default-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: component-bool-default
-        template: system-container-executor
+        template: system-container-impl
       - arguments:
           parameters:
           - name: component
@@ -447,18 +397,10 @@ spec:
             value: component-int-default
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: component-int-default-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.component-int-default-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.component-int-default-driver.outputs.parameters.cached-decision}}'
-        depends: component-int-default-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: component-int-default
-        template: system-container-executor
+        template: system-container-impl
       - arguments:
           parameters:
           - name: component
@@ -471,18 +413,10 @@ spec:
             value: component-str-default
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: component-str-default-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.component-str-default-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.component-str-default-driver.outputs.parameters.cached-decision}}'
-        depends: component-str-default-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: component-str-default
-        template: system-container-executor
+        template: system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id

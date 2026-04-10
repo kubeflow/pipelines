@@ -289,50 +289,53 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 			if err != nil {
 				return nil, err
 			}
-			driverTaskName := name + "-driver"
 			effectiveTaskName := name
 			if inputs.taskName != "" {
 				effectiveTaskName = inputs.taskName
 			}
 
-			// The following call will return an empty string for tasks without kubernetes-specific annotation.
 			kubernetesConfigPlaceholder, _ := c.useKubernetesImpl(componentName)
-			driver, driverOutputs := c.containerDriverTask(driverTaskName, containerDriverInputs{
+
+			// Dummy images (e.g. argostub/createpvc, argostub/deletepvc) are handled
+			// by a standalone driver pod — no executor pod is needed for them.
+			if dummyImages[e.Container.GetImage()] {
+				driverTaskName := name + "-driver"
+				driver, _ := c.containerDriverTask(driverTaskName, containerDriverInputs{
+					component:        componentSpecPlaceholder,
+					task:             taskSpecJson,
+					container:        containerPlaceholder,
+					parentDagID:      inputs.parentDagID,
+					iterationIndex:   inputs.iterationIndex,
+					kubernetesConfig: kubernetesConfigPlaceholder,
+					taskName:         effectiveTaskName,
+				})
+				driver.Name = name
+				if inputs.iterationIndex == "" && task.GetTriggerPolicy().GetStrategy().String() != "ALL_UPSTREAM_TASKS_COMPLETED" {
+					driver.Depends = depends(task.GetDependentTasks())
+				}
+				return []wfapi.DAGTask{*driver}, nil
+			}
+
+			// Regular container task: driver runs as init container inside executor pod.
+			executorTask, err := c.containerExecutorTask(name, containerExecutorInputs{
 				component:        componentSpecPlaceholder,
 				task:             taskSpecJson,
 				container:        containerPlaceholder,
+				taskName:         effectiveTaskName,
 				parentDagID:      inputs.parentDagID,
 				iterationIndex:   inputs.iterationIndex,
 				kubernetesConfig: kubernetesConfigPlaceholder,
-				taskName:         effectiveTaskName,
-			})
-			if task.GetTriggerPolicy().GetCondition() == "" {
-				driverOutputs.condition = ""
-			}
-			// iterations belong to a sub-DAG, no need to add dependent tasks
-			// Also skip adding dependencies when it's an exit hook
-			if inputs.iterationIndex == "" && task.GetTriggerPolicy().GetStrategy().String() != "ALL_UPSTREAM_TASKS_COMPLETED" {
-				driver.Depends = depends(task.GetDependentTasks())
-			}
-
-			// When using a dummy image, this means this task is for Kubernetes configs.
-			// In this case skip executor(launcher).
-			if dummyImages[e.Container.GetImage()] {
-				driver.Name = name
-				return []wfapi.DAGTask{*driver}, nil
-			}
-			executor, err := c.containerExecutorTask(name, containerExecutorInputs{
-				podSpecPatch:    driverOutputs.podSpecPatch,
-				cachedDecision:  driverOutputs.cached,
-				condition:       driverOutputs.condition,
-				exitTemplate:    inputs.exitTemplate,
-				hookParentDagID: inputs.parentDagID,
+				image:            e.Container.GetImage(),
+				exitTemplate:     inputs.exitTemplate,
+				hookParentDagID:  inputs.parentDagID,
 			}, task)
 			if err != nil {
 				return nil, fmt.Errorf("error creating executor for %q: %v", name, err)
 			}
-			executor.Depends = depends([]string{driverTaskName})
-			return []wfapi.DAGTask{*driver, *executor}, nil
+			if inputs.iterationIndex == "" && task.GetTriggerPolicy().GetStrategy().String() != "ALL_UPSTREAM_TASKS_COMPLETED" {
+				executorTask.Depends = depends(task.GetDependentTasks())
+			}
+			return []wfapi.DAGTask{*executorTask}, nil
 		case *pipelinespec.PipelineDeploymentConfig_ExecutorSpec_Importer:
 			if task.GetTriggerPolicy().GetCondition() != "" {
 				// Note, because importer task has only one container which runs both the driver and importer,

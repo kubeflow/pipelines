@@ -83,7 +83,71 @@ spec:
   serviceAccountName: pipeline-runner
   templates:
   - container:
-      args:
+      command:
+      - /kfp-launcher/launch
+      - --pipeline_name
+      - math-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
+      - --component_spec
+      - '{{inputs.parameters.component}}'
+      - --pod_name
+      - $(KFP_POD_NAME)
+      - --pod_uid
+      - $(KFP_POD_UID)
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      - --cache_disabled
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: '{{inputs.parameters.image}}'
+      name: ""
+      resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
       - --type
       - CONTAINER
       - --pipeline_name
@@ -106,14 +170,10 @@ spec:
       - '{{inputs.parameters.container}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
-      - --cached_decision_path
-      - '{{outputs.parameters.cached-decision.path}}'
-      - --pod_spec_patch_path
-      - '{{outputs.parameters.pod-spec-patch.path}}'
-      - --condition_path
-      - '{{outputs.parameters.condition.path}}'
       - --kubernetes_config
       - '{{inputs.parameters.kubernetes-config}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
       - --http_proxy
       - ""
       - --https_proxy
@@ -140,7 +200,7 @@ spec:
           fieldRef:
             fieldPath: metadata.uid
       image: ghcr.io/kubeflow/kfp-driver:latest
-      name: ""
+      name: kfp-driver
       resources:
         limits:
           cpu: 500m
@@ -156,97 +216,9 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-    inputs:
-      parameters:
-      - name: component
-      - name: task
-      - name: container
-      - name: task-name
-      - name: parent-dag-id
-      - default: "-1"
-        name: iteration-index
-      - default: ""
-        name: kubernetes-config
-    metadata: {}
-    name: system-container-driver
-    outputs:
-      parameters:
-      - name: pod-spec-patch
-        valueFrom:
-          default: ""
-          path: /tmp/outputs/pod-spec-patch
-      - default: "false"
-        name: cached-decision
-        valueFrom:
-          default: "false"
-          path: /tmp/outputs/cached-decision
-      - name: condition
-        valueFrom:
-          default: "true"
-          path: /tmp/outputs/condition
-    securityContext:
-      runAsNonRoot: true
-      seccompProfile:
-        type: RuntimeDefault
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{inputs.parameters.pod-spec-patch}}'
-        name: executor
-        template: system-container-impl
-        when: '{{inputs.parameters.cached-decision}} != true'
-    inputs:
-      parameters:
-      - name: pod-spec-patch
-      - default: "false"
-        name: cached-decision
-    metadata: {}
-    name: system-container-executor
-    outputs: {}
-  - container:
-      command:
-      - should-be-overridden-during-runtime
-      env:
-      - name: KFP_POD_NAME
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.name
-      - name: KFP_POD_UID
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.uid
-      envFrom:
-      - configMapRef:
-          name: metadata-grpc-configmap
-          optional: true
-      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
-      name: ""
-      resources: {}
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
-        seccompProfile:
-          type: RuntimeDefault
       volumeMounts:
-      - mountPath: /kfp-launcher
-        name: kfp-launcher
-      - mountPath: /gcs
-        name: gcs-scratch
-      - mountPath: /s3
-        name: s3-scratch
-      - mountPath: /minio
-        name: minio-scratch
-      - mountPath: /.local
-        name: dot-local-scratch
-      - mountPath: /.cache
-        name: dot-cache-scratch
-      - mountPath: /.config
-        name: dot-config-scratch
-    initContainers:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
     - args:
       - --copy
       - /kfp-launcher/launch
@@ -273,15 +245,25 @@ spec:
         name: kfp-launcher
     inputs:
       parameters:
-      - name: pod-spec-patch
+      - name: component
+      - name: task
+      - name: container
+      - name: task-name
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+      - name: image
     metadata: {}
     name: system-container-impl
     outputs: {}
-    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     securityContext:
       seccompProfile:
         type: RuntimeDefault
     volumes:
+    - emptyDir: {}
+      name: kfp-driver-outputs
     - emptyDir: {}
       name: kfp-launcher
     - emptyDir: {}
@@ -310,18 +292,10 @@ spec:
             value: double-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: double-2-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.double-2-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.double-2-driver.outputs.parameters.cached-decision}}'
-        depends: double-2-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: double-2
-        template: system-container-executor
+        template: system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id
@@ -504,18 +478,10 @@ spec:
             value: double
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: double-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.double-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.double-driver.outputs.parameters.cached-decision}}'
-        depends: double-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: double
-        template: system-container-executor
+        template: system-container-impl
       - arguments:
           parameters:
           - name: parent-dag-id
@@ -534,19 +500,11 @@ spec:
             value: simple-add
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.11
         depends: for-loop-4.Succeeded
-        name: simple-add-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.simple-add-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.simple-add-driver.outputs.parameters.cached-decision}}'
-        depends: simple-add-driver.Succeeded
         name: simple-add
-        template: system-container-executor
+        template: system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id
@@ -567,18 +525,10 @@ spec:
             value: nested-add-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: nested-add-2-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.nested-add-2-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.nested-add-2-driver.outputs.parameters.cached-decision}}'
-        depends: nested-add-2-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: nested-add-2
-        template: system-container-executor
+        template: system-container-impl
       - arguments:
           parameters:
           - name: component
@@ -591,18 +541,10 @@ spec:
             value: simple-add-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: simple-add-2-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.simple-add-2-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.simple-add-2-driver.outputs.parameters.cached-decision}}'
-        depends: simple-add-2-driver.Succeeded
+          - name: image
+            value: python:3.11
         name: simple-add-2
-        template: system-container-executor
+        template: system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id
@@ -753,19 +695,11 @@ spec:
             value: add-two-numbers
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.11
         depends: for-loop-6.Succeeded
-        name: add-two-numbers-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.add-two-numbers-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.add-two-numbers-driver.outputs.parameters.cached-decision}}'
-        depends: add-two-numbers-driver.Succeeded
         name: add-two-numbers
-        template: system-container-executor
+        template: system-container-impl
       - arguments:
           parameters:
           - name: parent-dag-id
@@ -791,19 +725,11 @@ spec:
             value: nested-add
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.11
         depends: for-loop-2.Succeeded
-        name: nested-add-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.nested-add-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.nested-add-driver.outputs.parameters.cached-decision}}'
-        depends: nested-add-driver.Succeeded
         name: nested-add
-        template: system-container-executor
+        template: system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id
