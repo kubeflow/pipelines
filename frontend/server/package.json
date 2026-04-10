@@ -5,7 +5,7 @@
   "dependencies": {
     "@aws-sdk/credential-providers": "^3.621.0",
     "@kubernetes/client-node": "^1.4.0",
-    "axios": ">=1.13.5",
+    "axios": ">=1.15.0",
     "crypto-js": "^4.2.0",
     "express": "^5.1.0",
     "form-data": "^2.5.4",
