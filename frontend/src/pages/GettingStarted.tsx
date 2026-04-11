@@ -97,6 +97,7 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
 
   // token size sort filter
   public async componentDidMount() {
+    this._isMounted = true;
     const ids = await Promise.all(
       DEMO_PIPELINES.map((name) =>
         Apis.pipelineServiceApiV2

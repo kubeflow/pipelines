@@ -19,14 +19,6 @@ import AceEditor from 'react-ace';
 // Modified AceEditor that supports HTML within provided placeholder. This is
 // important because it allows for the usage of multi-line placeholders.
 class Editor extends AceEditor {
-  public static defaultProps = {
-    ...AceEditor.defaultProps,
-    editorProps: {
-      ...(AceEditor.defaultProps?.editorProps || {}),
-      $blockScrolling: Infinity,
-    },
-  };
-
   public componentDidMount(): void {
     super.componentDidMount();
     if (this.editor) {

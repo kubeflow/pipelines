@@ -134,7 +134,7 @@ var _ = BeforeSuite(func() {
 		*config.UploadPipelinesWithKubernetes,
 		*config.KubeflowMode,
 		*config.DebugMode,
-		*config.AuthToken,
+		userToken,
 		*config.Namespace,
 		clientConfig,
 		tlsCfg,

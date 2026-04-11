@@ -15,6 +15,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -22,14 +23,20 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"math/big"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/spf13/viper"
@@ -409,5 +416,430 @@ func TestRegisterHTTPHandlerFromEndpoint(t *testing.T) {
 	})
 }
 
+func TestResolveWebhookTLSPaths(t *testing.T) {
+	allFilesExist := func(string) bool { return true }
+	noFilesExist := func(string) bool { return false }
+
+	t.Run("webhook-specific paths used when both are set and files exist", func(t *testing.T) {
+		certPath, keyPath, useTLS, err := resolveWebhookTLSPaths(
+			"/webhook/cert.pem", "/webhook/key.pem",
+			"/server/cert.pem", "/server/key.pem",
+			allFilesExist,
+		)
+		assert.NoError(t, err)
+		assert.True(t, useTLS)
+		assert.Equal(t, "/webhook/cert.pem", certPath)
+		assert.Equal(t, "/webhook/key.pem", keyPath)
+	})
+
+	t.Run("webhook paths set but files missing returns error", func(t *testing.T) {
+		_, _, useTLS, err := resolveWebhookTLSPaths(
+			"/webhook/cert.pem", "/webhook/key.pem",
+			"/server/cert.pem", "/server/key.pem",
+			noFilesExist,
+		)
+		assert.Error(t, err)
+		assert.False(t, useTLS)
+		assert.Contains(t, err.Error(), "webhook TLS certificate/key paths are set but files do not exist")
+	})
+
+	t.Run("falls back to server paths when webhook paths are empty", func(t *testing.T) {
+		certPath, keyPath, useTLS, err := resolveWebhookTLSPaths(
+			"", "",
+			"/server/cert.pem", "/server/key.pem",
+			allFilesExist,
+		)
+		assert.NoError(t, err)
+		assert.True(t, useTLS)
+		assert.Equal(t, "/server/cert.pem", certPath)
+		assert.Equal(t, "/server/key.pem", keyPath)
+	})
+
+	t.Run("server paths set but files missing returns error", func(t *testing.T) {
+		_, _, useTLS, err := resolveWebhookTLSPaths(
+			"", "",
+			"/server/cert.pem", "/server/key.pem",
+			noFilesExist,
+		)
+		assert.Error(t, err)
+		assert.False(t, useTLS)
+		assert.Contains(t, err.Error(), "API server TLS certificate/key paths are set but files do not exist")
+	})
+
+	t.Run("no TLS paths configured returns useTLS false", func(t *testing.T) {
+		certPath, keyPath, useTLS, err := resolveWebhookTLSPaths(
+			"", "",
+			"", "",
+			allFilesExist,
+		)
+		assert.NoError(t, err)
+		assert.False(t, useTLS)
+		assert.Empty(t, certPath)
+		assert.Empty(t, keyPath)
+	})
+
+	t.Run("webhook cert missing but key exists checks both", func(t *testing.T) {
+		fileExistsOnlyKey := func(path string) bool {
+			return path == "/webhook/key.pem"
+		}
+		_, _, useTLS, err := resolveWebhookTLSPaths(
+			"/webhook/cert.pem", "/webhook/key.pem",
+			"", "",
+			fileExistsOnlyKey,
+		)
+		assert.Error(t, err)
+		assert.False(t, useTLS)
+	})
+
+	t.Run("server cert exists but key missing returns error", func(t *testing.T) {
+		fileExistsOnlyCert := func(path string) bool {
+			return path == "/server/cert.pem"
+		}
+		_, _, useTLS, err := resolveWebhookTLSPaths(
+			"", "",
+			"/server/cert.pem", "/server/key.pem",
+			fileExistsOnlyCert,
+		)
+		assert.Error(t, err)
+		assert.False(t, useTLS)
+	})
+
+	t.Run("only webhook cert path set (no key) falls through to server paths", func(t *testing.T) {
+		// When only one of the webhook paths is set, it doesn't match the
+		// "both set" condition, so it falls through to server path logic.
+		certPath, keyPath, useTLS, err := resolveWebhookTLSPaths(
+			"/webhook/cert.pem", "",
+			"/server/cert.pem", "/server/key.pem",
+			allFilesExist,
+		)
+		assert.NoError(t, err)
+		assert.True(t, useTLS)
+		assert.Equal(t, "/server/cert.pem", certPath)
+		assert.Equal(t, "/server/key.pem", keyPath)
+	})
+
+	t.Run("only server cert path set (no key) returns no TLS", func(t *testing.T) {
+		certPath, keyPath, useTLS, err := resolveWebhookTLSPaths(
+			"", "",
+			"/server/cert.pem", "",
+			allFilesExist,
+		)
+		assert.NoError(t, err)
+		assert.False(t, useTLS)
+		assert.Empty(t, certPath)
+		assert.Empty(t, keyPath)
+	})
+
+	t.Run("uses real temp files to verify file existence check", func(t *testing.T) {
+		tempDir := t.TempDir()
+		certFile := filepath.Join(tempDir, "cert.pem")
+		keyFile := filepath.Join(tempDir, "key.pem")
+		require.NoError(t, os.WriteFile(certFile, []byte("cert"), 0600))
+		require.NoError(t, os.WriteFile(keyFile, []byte("key"), 0600))
+
+		certPath, keyPath, useTLS, err := resolveWebhookTLSPaths(
+			certFile, keyFile,
+			"", "",
+			common.FileExists,
+		)
+		assert.NoError(t, err)
+		assert.True(t, useTLS)
+		assert.Equal(t, certFile, certPath)
+		assert.Equal(t, keyFile, keyPath)
+	})
+
+	t.Run("real temp files only cert exists returns error", func(t *testing.T) {
+		tempDir := t.TempDir()
+		certFile := filepath.Join(tempDir, "cert.pem")
+		keyFile := filepath.Join(tempDir, "key.pem")
+		require.NoError(t, os.WriteFile(certFile, []byte("cert"), 0600))
+		// keyFile intentionally not created
+
+		_, _, useTLS, err := resolveWebhookTLSPaths(
+			certFile, keyFile,
+			"", "",
+			common.FileExists,
+		)
+		assert.Error(t, err)
+		assert.False(t, useTLS)
+	})
+}
+
 func int64Ptr(v int64) *int64 { return &v }
 func boolPtr(v bool) *bool    { return &v }
+
+func TestClearTagsMiddleware(t *testing.T) {
+	downstream := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Got-Clear-Tags", r.Header.Get(common.ClearTagsMetadataKey))
+		body, _ := io.ReadAll(r.Body)
+		w.Header().Set("X-Body", string(body))
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := clearTagsMiddleware(downstream)
+
+	tests := []struct {
+		name       string
+		method     string
+		body       string
+		wantHeader string
+	}{
+		{
+			name:       "PUT with empty tags sets header",
+			method:     http.MethodPut,
+			body:       `{"tags":{}}`,
+			wantHeader: "true",
+		},
+		{
+			name:       "PUT with non-empty tags does not set header",
+			method:     http.MethodPut,
+			body:       `{"tags":{"k":"v"}}`,
+			wantHeader: "",
+		},
+		{
+			name:       "PUT without tags does not set header",
+			method:     http.MethodPut,
+			body:       `{"display_name":"foo"}`,
+			wantHeader: "",
+		},
+		{
+			name:       "GET request is ignored",
+			method:     http.MethodGet,
+			body:       "",
+			wantHeader: "",
+		},
+		{
+			name:       "POST request is ignored",
+			method:     http.MethodPost,
+			body:       `{"tags":{}}`,
+			wantHeader: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var bodyReader io.Reader
+			if tt.body != "" {
+				bodyReader = strings.NewReader(tt.body)
+			}
+			req := httptest.NewRequest(tt.method, "/apis/v2beta1/pipelines/some-id", bodyReader)
+			rr := httptest.NewRecorder()
+
+			handler.ServeHTTP(rr, req)
+
+			assert.Equal(t, tt.wantHeader, rr.Header().Get("X-Got-Clear-Tags"))
+			if tt.body != "" {
+				assert.Equal(t, tt.body, rr.Header().Get("X-Body"))
+			}
+		})
+	}
+}
+
+func TestGrpcCustomMatcher_ClearTags(t *testing.T) {
+	key, ok := grpcCustomMatcher(common.ClearTagsMetadataKey)
+	assert.True(t, ok)
+	assert.Equal(t, common.ClearTagsMetadataKey, key)
+
+	key, ok = grpcCustomMatcher("X-CLEAR-TAGS")
+	assert.True(t, ok)
+	assert.Equal(t, common.ClearTagsMetadataKey, key)
+}
+
+func TestClearTagsMiddleware_BodyPreserved(t *testing.T) {
+	original := `{"tags":{},"display_name":"test"}`
+	var capturedBody []byte
+	downstream := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := clearTagsMiddleware(downstream)
+
+	req := httptest.NewRequest(http.MethodPut, "/test", bytes.NewBufferString(original))
+	handler.ServeHTTP(httptest.NewRecorder(), req)
+
+	assert.Equal(t, original, string(capturedBody))
+}
+
+func noOpHandler(w http.ResponseWriter, r *http.Request) {}
+
+func newNoOpHTTPRouterDeps() HTTPRouterDeps {
+	return HTTPRouterDeps{
+		UploadPipelineV1:        noOpHandler,
+		UploadPipelineVersionV1: noOpHandler,
+		UploadPipeline:          noOpHandler,
+		UploadPipelineVersion:   noOpHandler,
+		ReadRunLogV1:            noOpHandler,
+		ReadArtifactV1:          noOpHandler,
+		ReadArtifact:            noOpHandler,
+	}
+}
+
+// collectRegisteredRoutes walks a mux.Router and returns a map of
+// path template to HTTP methods (nil means all methods accepted).
+func collectRegisteredRoutes(t *testing.T, router *mux.Router) map[string][]string {
+	t.Helper()
+	registeredRoutes := make(map[string][]string)
+	err := router.Walk(func(route *mux.Route, _ *mux.Router, _ []*mux.Route) error {
+		pathTemplate, err := route.GetPathTemplate()
+		if err != nil {
+			return nil // skip routes without path templates
+		}
+		methods, _ := route.GetMethods()
+		registeredRoutes[pathTemplate] = methods
+		return nil
+	})
+	require.NoError(t, err)
+	return registeredRoutes
+}
+
+func TestBuildHTTPRouter_AllRoutesRegistered(t *testing.T) {
+	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), "database")
+	registeredRoutes := collectRegisteredRoutes(t, router)
+
+	expectedRoutes := []struct {
+		path            string
+		expectedMethods []string
+	}{
+		{"/apis/v1beta1/pipelines/upload", nil},
+		{"/apis/v1beta1/pipelines/upload_version", nil},
+		{"/apis/v1beta1/healthz", nil},
+		{"/apis/v2beta1/pipelines/upload", nil},
+		{"/apis/v2beta1/pipelines/upload_version", nil},
+		{"/apis/v2beta1/healthz", nil},
+		{"/apis/v1alpha1/runs/{run_id}/nodes/{node_id}/log", nil},
+		{"/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", []string{"GET"}},
+		{"/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", []string{"GET"}},
+		{"/metrics", nil},
+	}
+
+	for _, expectedRoute := range expectedRoutes {
+		t.Run(expectedRoute.path, func(t *testing.T) {
+			methods, exists := registeredRoutes[expectedRoute.path]
+			assert.True(t, exists, "route %s should be registered", expectedRoute.path)
+			if expectedRoute.expectedMethods != nil {
+				assert.Equal(t, expectedRoute.expectedMethods, methods)
+			}
+		})
+	}
+}
+
+func TestBuildHTTPRouter_HealthzResponses(t *testing.T) {
+	tests := []struct {
+		name          string
+		path          string
+		pipelineStore string
+		commitSHA     string
+		tagName       string
+		multiUser     bool
+		wantV2Store   bool
+	}{
+		{
+			name:      "v1beta1 healthz",
+			path:      "/apis/v1beta1/healthz",
+			commitSHA: `sha-"v1"`,
+			tagName:   "tag-v1\nline",
+			multiUser: true,
+		},
+		{
+			name:          "v2beta1 healthz with database store",
+			path:          "/apis/v2beta1/healthz",
+			pipelineStore: "database",
+			commitSHA:     `sha-"db"`,
+			tagName:       `tag-"db"`,
+			multiUser:     false,
+			wantV2Store:   true,
+		},
+		{
+			name:          "v2beta1 healthz with kubernetes store",
+			path:          "/apis/v2beta1/healthz",
+			pipelineStore: "kubernetes",
+			commitSHA:     `sha-"k8s"`,
+			tagName:       `tag-"k8s"`,
+			multiUser:     true,
+			wantV2Store:   true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			viper.Reset()
+			t.Cleanup(viper.Reset)
+			viper.Set("COMMIT_SHA", tt.commitSHA)
+			viper.Set("TAG_NAME", tt.tagName)
+			viper.Set(common.MultiUserMode, fmt.Sprintf("%t", tt.multiUser))
+
+			pipelineStore := tt.pipelineStore
+			if pipelineStore == "" {
+				pipelineStore = "database"
+			}
+			router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), pipelineStore)
+
+			request := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, request)
+
+			assert.Equal(t, http.StatusOK, recorder.Code)
+			var responseBody map[string]any
+			require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &responseBody))
+			assert.Equal(t, tt.commitSHA, responseBody["commit_sha"])
+			assert.Equal(t, tt.tagName, responseBody["tag_name"])
+			assert.Equal(t, tt.multiUser, responseBody["multi_user"])
+			pipelineStoreValue, hasPipelineStore := responseBody["pipeline_store"]
+			assert.Equal(t, tt.wantV2Store, hasPipelineStore)
+			if tt.wantV2Store {
+				assert.Equal(t, tt.pipelineStore, pipelineStoreValue)
+			}
+		})
+	}
+}
+
+func TestBuildHTTPRouter_HandlersAreCalled(t *testing.T) {
+	tests := []struct {
+		name       string
+		method     string
+		path       string
+		setHandler func(deps *HTTPRouterDeps, handler http.HandlerFunc)
+	}{
+		{"v1beta1 upload pipeline", http.MethodPost, "/apis/v1beta1/pipelines/upload",
+			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.UploadPipelineV1 = handler }},
+		{"v2beta1 upload pipeline version", http.MethodPost, "/apis/v2beta1/pipelines/upload_version",
+			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.UploadPipelineVersion = handler }},
+		{"v1alpha1 run log", http.MethodGet, "/apis/v1alpha1/runs/run-123/nodes/node-456/log",
+			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.ReadRunLogV1 = handler }},
+		{"v2beta1 artifact read", http.MethodGet, "/apis/v2beta1/runs/run-123/nodes/node-456/artifacts/my-artifact:read",
+			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.ReadArtifact = handler }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			handlerCalled := false
+			instrumentedHandler := func(w http.ResponseWriter, r *http.Request) {
+				handlerCalled = true
+				w.WriteHeader(http.StatusOK)
+			}
+
+			handlerDeps := newNoOpHTTPRouterDeps()
+			tt.setHandler(&handlerDeps, instrumentedHandler)
+
+			router := buildHTTPRouter(handlerDeps, http.HandlerFunc(noOpHandler), "database")
+
+			request := httptest.NewRequest(tt.method, tt.path, nil)
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, request)
+
+			assert.True(t, handlerCalled, "handler for %s should have been called", tt.path)
+		})
+	}
+}
+
+func TestBuildHTTPRouter_UnmatchedAPIsGoToGateway(t *testing.T) {
+	gatewayHandlerCalled := false
+	gatewayHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gatewayHandlerCalled = true
+		w.WriteHeader(http.StatusOK)
+	})
+
+	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), gatewayHandler, "database")
+
+	request := httptest.NewRequest(http.MethodGet, "/apis/v2beta1/experiments", nil)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	assert.True(t, gatewayHandlerCalled, "requests to /apis/ paths not matching explicit routes should reach the gRPC gateway handler")
+}

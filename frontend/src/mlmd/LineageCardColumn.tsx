@@ -199,18 +199,13 @@ export class LineageCardColumn extends React.Component<LineageCardColumnProps> {
 
       // Advance starting artifact offset.
       artifactIds.forEach((artifactId) => {
-        if (artifactCardIndex === null) {
-          artifactCardIndex = artifactIdToCardMap.get(artifactId) as number;
-          return;
-        }
-
         const newArtifactIndex = artifactIdToCardMap.get(artifactId);
-        if (artifactCardIndex === newArtifactIndex) {
+        if (artifactCardIndex === undefined || newArtifactIndex !== artifactCardIndex) {
+          // First artifact or artifact on a new card
+          artifactOffset += NEXT_ITEM_NEXT_CARD_OFFSET;
+        } else {
           // Next artifact row is on the same card
           artifactOffset += NEXT_ITEM_SAME_CARD_OFFSET;
-        } else {
-          // Next artifact row is on the next card
-          artifactOffset += NEXT_ITEM_NEXT_CARD_OFFSET;
         }
         artifactCardIndex = newArtifactIndex;
       });

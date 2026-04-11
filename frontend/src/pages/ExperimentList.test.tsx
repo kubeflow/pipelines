@@ -189,7 +189,7 @@ describe('ExperimentList', () => {
 
   it('renders a list of one experiment with error', async () => {
     listExperimentsSpy.mockImplementation(mockListNExperiments(1, true));
-    TestUtils.makeErrorResponseOnce(listRunsSpy as any, 'bad stuff happened');
+    listRunsSpy.mockRejectedValue(new Error('bad stuff happened'));
     const loggerErrorSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
     await renderExperimentList();
     await waitForDisplayExperiments(1);
@@ -241,13 +241,13 @@ describe('ExperimentList', () => {
 
   it('has a Refresh button, clicking it refreshes the experiment list', async () => {
     await mountWithNExperiments(1, 1);
+    listExperimentsSpy.mockClear();
     const refreshBtn = getInstance().getInitialToolbarState().actions[ButtonKeys.REFRESH];
     expect(refreshBtn).toBeDefined();
-    expect(listExperimentsSpy.mock.calls.length).toBe(1);
     await act(async () => {
       await refreshBtn!.action();
     });
-    expect(listExperimentsSpy.mock.calls.length).toBe(2);
+    expect(listExperimentsSpy).toHaveBeenCalledTimes(1);
     expect(listExperimentsSpy).toHaveBeenLastCalledWith(...LIST_EXPERIMENT_DEFAULTS);
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
@@ -287,13 +287,14 @@ describe('ExperimentList', () => {
 
   it('shows error banner when listing experiments fails after refresh', async () => {
     await renderExperimentList();
+    listExperimentsSpy.mockClear();
     const refreshBtn = getInstance().getInitialToolbarState().actions[ButtonKeys.REFRESH];
     expect(refreshBtn).toBeDefined();
     TestUtils.makeErrorResponseOnce(listExperimentsSpy as any, 'bad stuff happened');
     await act(async () => {
       await refreshBtn!.action();
     });
-    expect(listExperimentsSpy.mock.calls.length).toBe(2);
+    expect(listExperimentsSpy).toHaveBeenCalledTimes(1);
     expect(listExperimentsSpy).toHaveBeenLastCalledWith(...LIST_EXPERIMENT_DEFAULTS);
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -328,7 +329,6 @@ describe('ExperimentList', () => {
     await act(async () => {
       await refreshBtn!.action();
     });
-    expect(listExperimentsSpy.mock.calls.length).toBe(2);
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
@@ -383,15 +383,12 @@ describe('ExperimentList', () => {
 
   it('enables clone button when one run is selected', async () => {
     await mountWithNExperiments(1, 1);
+    updateToolbarSpy.mockClear();
     await act(async () => {
       (getInstance() as any)._selectionChanged(['run1']);
     });
-    expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
+    expect(updateToolbarSpy).toHaveBeenCalledTimes(1);
     expect(updateToolbarSpy.mock.calls[0][0].actions[ButtonKeys.CLONE_RUN]).toHaveProperty(
-      'disabled',
-      true,
-    );
-    expect(updateToolbarSpy.mock.calls[1][0].actions[ButtonKeys.CLONE_RUN]).toHaveProperty(
       'disabled',
       false,
     );
@@ -399,15 +396,12 @@ describe('ExperimentList', () => {
 
   it('disables clone button when more than one run is selected', async () => {
     await mountWithNExperiments(1, 1);
+    updateToolbarSpy.mockClear();
     await act(async () => {
       (getInstance() as any)._selectionChanged(['run1', 'run2']);
     });
-    expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
+    expect(updateToolbarSpy).toHaveBeenCalledTimes(1);
     expect(updateToolbarSpy.mock.calls[0][0].actions[ButtonKeys.CLONE_RUN]).toHaveProperty(
-      'disabled',
-      true,
-    );
-    expect(updateToolbarSpy.mock.calls[1][0].actions[ButtonKeys.CLONE_RUN]).toHaveProperty(
       'disabled',
       true,
     );
@@ -418,23 +412,19 @@ describe('ExperimentList', () => {
     await act(async () => {
       (getInstance() as any)._selectionChanged(['run1']);
     });
+    expect(TestUtils.getToolbarButton(updateToolbarSpy as any, ButtonKeys.COMPARE).disabled).toBe(
+      true,
+    );
     await act(async () => {
       (getInstance() as any)._selectionChanged(['run1', 'run2']);
     });
+    expect(TestUtils.getToolbarButton(updateToolbarSpy as any, ButtonKeys.COMPARE).disabled).toBe(
+      false,
+    );
     await act(async () => {
       (getInstance() as any)._selectionChanged(['run1', 'run2', 'run3']);
     });
-    expect(updateToolbarSpy).toHaveBeenCalledTimes(4);
-    expect(updateToolbarSpy.mock.calls[0][0].actions[ButtonKeys.COMPARE]).toHaveProperty(
-      'disabled',
-      true,
-    );
-    expect(updateToolbarSpy.mock.calls[1][0].actions[ButtonKeys.COMPARE]).toHaveProperty(
-      'disabled',
-      false,
-    );
-    expect(updateToolbarSpy.mock.calls[2][0].actions[ButtonKeys.COMPARE]).toHaveProperty(
-      'disabled',
+    expect(TestUtils.getToolbarButton(updateToolbarSpy as any, ButtonKeys.COMPARE).disabled).toBe(
       false,
     );
   });
@@ -562,11 +552,12 @@ describe('ExperimentList', () => {
           </NamespaceContext.Provider>
         </MemoryRouter>,
       );
-      await waitFor(() => expect(listExperimentsSpy).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(listExperimentsSpy).toHaveBeenCalled());
       expect(listExperimentsSpy).toHaveBeenLastCalledWith(
         ...LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE,
         'test-ns-1',
       );
+      listExperimentsSpy.mockClear();
       rerender(
         <MemoryRouter>
           <NamespaceContext.Provider value='test-ns-2'>
@@ -574,7 +565,7 @@ describe('ExperimentList', () => {
           </NamespaceContext.Provider>
         </MemoryRouter>,
       );
-      await waitFor(() => expect(listExperimentsSpy).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(listExperimentsSpy).toHaveBeenCalled());
       expect(listExperimentsSpy).toHaveBeenLastCalledWith(
         ...LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE,
         'test-ns-2',

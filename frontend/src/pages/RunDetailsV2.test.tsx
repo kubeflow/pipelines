@@ -23,8 +23,9 @@ import { RoutePage, RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { Api } from 'src/mlmd/Api';
 import { KFP_V2_RUN_CONTEXT_TYPE } from 'src/mlmd/MlmdUtils';
-import { expectErrors, mockResizeObserver, testBestPractices } from 'src/TestUtils';
+import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
+import * as DynamicFlow from 'src/lib/v2/DynamicFlow';
 import {
   Context,
   GetContextByTypeAndNameRequest,
@@ -133,8 +134,30 @@ describe('RunDetailsV2', () => {
     expect(screen.getByTestId('DagCanvas')).not.toBeNull();
   });
 
+  it('keeps runtime flow elements stable across same-props rerenders', async () => {
+    const updateFlowElementsStateSpy = vi.spyOn(DynamicFlow, 'updateFlowElementsState');
+    const props = generateProps();
+
+    const view = render(
+      <CommonTestWrapper>
+        <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...props}></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => expect(updateFlowElementsStateSpy).toHaveBeenCalled());
+    const callCountAfterLoad = updateFlowElementsStateSpy.mock.calls.length;
+
+    view.rerender(
+      <CommonTestWrapper>
+        <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...props}></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+
+    await act(async () => {});
+    expect(updateFlowElementsStateSpy).toHaveBeenCalledTimes(callCountAfterLoad);
+  });
+
   it('Shows error banner when disconnected from MLMD', async () => {
-    const assertErrors = expectErrors();
     vi.spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName').mockRejectedValue(
       new Error('Not connected to MLMD'),
     );
@@ -159,10 +182,91 @@ describe('RunDetailsV2', () => {
         }),
       ),
     );
-    assertErrors();
+  });
+
+  it('Shows experiment warning banner when experiment fetch fails and MLMD succeeds', async () => {
+    vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockRejectedValue(
+      new Error('Experiment not found'),
+    );
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={TEST_RUN}
+          {...generateProps()}
+        ></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          additionalInfo: 'Experiment not found',
+          message: 'Error: failed to retrieve experiment details.',
+          mode: 'warning',
+        }),
+      ),
+    );
+  });
+
+  it('Shows MLMD error banner even when experiment also fails (MLMD takes precedence)', async () => {
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName').mockRejectedValue(
+      new Error('Not connected to MLMD'),
+    );
+    vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockRejectedValue(
+      new Error('Experiment not found'),
+    );
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={TEST_RUN}
+          {...generateProps()}
+        ></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          message: 'Cannot get MLMD objects from Metadata store.',
+          mode: 'error',
+        }),
+      ),
+    );
+  });
+
+  it('Does not clear experiment warning when MLMD succeeds after experiment fails', async () => {
+    vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockRejectedValue(
+      new Error('Experiment not found'),
+    );
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={TEST_RUN}
+          {...generateProps()}
+        ></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+
+    // Wait for both queries to settle — the last banner call should be the experiment warning,
+    // NOT a clear ({}) from the MLMD success path.
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          message: 'Error: failed to retrieve experiment details.',
+          mode: 'warning',
+        }),
+      ),
+    );
   });
 
   it('Shows no banner when connected from MLMD', async () => {
+    vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockResolvedValue(TEST_EXPERIMENT);
     vi.spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName').mockImplementation(
       (request: GetContextByTypeAndNameRequest) => {
         const response = new GetContextByTypeAndNameResponse();

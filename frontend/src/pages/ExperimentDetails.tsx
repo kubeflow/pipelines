@@ -270,6 +270,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   }
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     return this.load(true);
   }
 

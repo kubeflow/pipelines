@@ -76,7 +76,7 @@ To build the frontend image and upload it to GCR:
 
 ```bash
 # Run in the repository root directory
-$ docker build -t gcr.io/<your-gcp-project>/frontend:latest -f frontend/Dockerfile .
+$ docker build --build-arg NODE_VERSION=$(tr -d 'v' < frontend/.nvmrc) -t gcr.io/<your-gcp-project>/frontend:latest -f frontend/Dockerfile .
 # Push to GCR
 $ gcloud auth configure-docker
 $ docker push gcr.io/<your-gcp-project>/frontend:latest

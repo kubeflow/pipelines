@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
 import { PlotType } from './Viewer';
-import ROCCurve, { findNearestDisplayPoint } from './ROCCurve';
+import ROCCurve, { findNearestDisplayPoint, lineColors } from './ROCCurve';
 
 describe('ROCCurve', () => {
   const data = [
@@ -29,17 +30,17 @@ describe('ROCCurve', () => {
 
   it('does not break on no config', () => {
     const { asFragment } = render(<ROCCurve configs={[]} />);
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('does not break on empty data', () => {
     const { asFragment } = render(<ROCCurve configs={[{ data: [], type: PlotType.ROC }]} />);
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('renders a simple ROC curve given one config', () => {
     const { asFragment } = render(<ROCCurve configs={[{ data, type: PlotType.ROC }]} />);
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('renders a reference base line series', () => {
@@ -51,7 +52,7 @@ describe('ROCCurve', () => {
   it('renders an ROC curve using three configs', () => {
     const config = { data, type: PlotType.ROC };
     const { asFragment } = render(<ROCCurve configs={[config, config, config]} />);
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('renders three lines with three different colors', () => {
@@ -77,6 +78,26 @@ describe('ROCCurve', () => {
     expect(screen.getByText('Series #1')).toBeInTheDocument();
     expect(screen.getByText('Series #2')).toBeInTheDocument();
     expect(screen.getByText('Series #3')).toBeInTheDocument();
+  });
+
+  it('highlights the hovered legend series', () => {
+    const config = { data, type: PlotType.ROC };
+    const { container } = render(
+      <ROCCurve configs={[config, config]} disableAnimation={true} forceLegend={true} />,
+    );
+    const getSecondSeriesLine = () =>
+      container.querySelector(
+        `.recharts-line-curve[stroke="${lineColors[1]}"]`,
+      ) as SVGPathElement | null;
+    expect(getSecondSeriesLine()).not.toBeNull();
+    expect(getSecondSeriesLine()?.getAttribute('stroke-width')).toBe('2');
+
+    const secondSeriesLegendItem = screen.getByText('Series #2').parentElement as HTMLElement;
+    fireEvent.mouseEnter(secondSeriesLegendItem);
+    expect(getSecondSeriesLine()?.getAttribute('stroke-width')).toBe('4');
+
+    fireEvent.mouseLeave(secondSeriesLegendItem);
+    expect(getSecondSeriesLine()?.getAttribute('stroke-width')).toBe('2');
   });
 
   it('returns friendly display name', () => {

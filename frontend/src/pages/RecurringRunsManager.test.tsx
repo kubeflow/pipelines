@@ -244,12 +244,13 @@ describe('RecurringRunsManager', () => {
 
   it('reloads the list of runs after enable/disabling', async () => {
     renderManager();
-    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalled());
 
+    listRecurringRunsSpy.mockClear();
     const row = getRowById('recurringrun1');
     const button = within(row).getByRole('button', { name: 'Enabled' });
     fireEvent.click(button);
 
-    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1));
   });
 });

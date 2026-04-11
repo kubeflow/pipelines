@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { MouseEvent as ReactMouseEvent, useEffect, useState } from 'react';
+import { MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { queryKeys } from 'src/hooks/queryKeys';
@@ -52,7 +52,7 @@ import { statusToIcon } from './StatusV2';
 import DagCanvas from './v2/DagCanvas';
 
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
-const QUERY_REFETCH_INTERNAL = 10000; // 10000 milliseconds == 10 seconds.
+const QUERY_REFETCH_INTERVAL = 10000; // 10000 milliseconds == 10 seconds.
 const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
 
 interface MlmdPackage {
@@ -84,10 +84,13 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const runId = props.match.params[RouteParams.runId];
   const run = props.run;
   const pipelineJobStr = props.pipeline_job;
-  const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(pipelineJobStr);
-  const elements = convertFlowElements(pipelineSpec);
+  const pipelineSpec = useMemo(
+    () => WorkflowUtils.convertYamlToV2PipelineSpec(pipelineJobStr),
+    [pipelineJobStr],
+  );
+  const initialElements = useMemo(() => convertFlowElements(pipelineSpec), [pipelineSpec]);
 
-  const [flowElements, setFlowElements] = useState(elements);
+  const [flowElements, setFlowElements] = useState(initialElements);
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedNode, setSelectedNode] = useState<PipelineFlowElement | null>(null);
@@ -107,10 +110,22 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       return { executions, artifacts, events };
     },
     staleTime: QUERY_STALE_TIME,
-    refetchInterval: QUERY_REFETCH_INTERNAL,
+    refetchInterval: QUERY_REFETCH_INTERVAL,
   });
 
-  // Use useEffect instead of deprecated onError/onSuccess (v5 removes them; v4+ recommended pattern).
+  // Retrieves experiment detail.
+  const experimentId = run.experiment_id || null;
+  const {
+    data: experiment,
+    isError: experimentIsError,
+    error: experimentError,
+  } = useQuery<V2beta1Experiment, Error>({
+    queryKey: queryKeys.runDetailsV2Experiment(runId, experimentId),
+    queryFn: () => getExperiment(experimentId),
+  });
+  const namespace = experiment?.namespace;
+
+  // Single banner effect with clear precedence: MLMD error > experiment error > clear on success.
   useEffect(() => {
     if (isError && error) {
       updateBanner({
@@ -118,30 +133,42 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         additionalInfo: error.message,
         mode: 'error',
       });
-    }
-    if (isSuccess) {
+    } else if (experimentIsError && experimentError) {
+      updateBanner({
+        message: 'Error: failed to retrieve experiment details.',
+        additionalInfo: experimentError.message,
+        mode: 'warning',
+      });
+    } else if (isSuccess) {
       updateBanner({});
     }
-  }, [isError, isSuccess, error, updateBanner]);
+  }, [isError, isSuccess, error, experimentIsError, experimentError, updateBanner]);
 
-  const layerChange = (layers: string[]) => {
-    setSelectedNode(null);
-    setLayers(layers);
-    setFlowElements(
-      convertSubDagToRuntimeFlowElements(pipelineSpec, layers, data ? data.executions : []),
-    ); // render elements in the sub-layer.
-  };
+  const layerChange = useCallback(
+    (layers: string[]) => {
+      setSelectedNode(null);
+      setLayers(layers);
+      setFlowElements(
+        convertSubDagToRuntimeFlowElements(pipelineSpec, layers, data ? data.executions : []),
+      ); // render elements in the sub-layer.
+    },
+    [data, pipelineSpec],
+  );
 
-  let dynamicFlowElements = flowElements;
-  if (isSuccess && data) {
-    dynamicFlowElements = updateFlowElementsState(
+  const dynamicFlowElements = useMemo(() => {
+    if (!isSuccess || !data) {
+      return flowElements;
+    }
+
+    // Keep React Flow node references stable between unrelated rerenders after MLMD data arrives.
+    return updateFlowElementsState(
       layers,
       flowElements,
       data.executions,
       data.events,
       data.artifacts,
     );
-  }
+  }, [data, flowElements, isSuccess, layers]);
 
   const onElementSelection = (event: ReactMouseEvent, element: PipelineFlowElement) => {
     setSelectedNode(element);
@@ -151,14 +178,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       );
     }
   };
-
-  // Retrieves experiment detail.
-  const experimentId = run.experiment_id || null;
-  const { data: experiment } = useQuery<V2beta1Experiment, Error>({
-    queryKey: queryKeys.runDetailsV2Experiment(runId, experimentId),
-    queryFn: () => getExperiment(experimentId),
-  });
-  const namespace = experiment?.namespace;
 
   // Update page title and experiment information.
   useEffect(() => {

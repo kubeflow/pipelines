@@ -50,7 +50,10 @@ class TestV2beta1CreatePipelineAndVersionRequest(unittest.TestCase):
                             {
                                 'key' : None
                                 }
-                            ], ), ), 
+                            ], ), 
+                    tags = {
+                        'key' : '0'
+                        }, ), 
                 pipeline_version = kfp_server_api.models.v2beta1_pipeline_version.v2beta1PipelineVersion(
                     pipeline_id = '0', 
                     pipeline_version_id = '0', 
@@ -69,7 +72,10 @@ class TestV2beta1CreatePipelineAndVersionRequest(unittest.TestCase):
                             {
                                 'key' : None
                                 }
-                            ], ), )
+                            ], ), 
+                    tags = {
+                        'key' : '0'
+                        }, )
             )
         else :
             return V2beta1CreatePipelineAndVersionRequest(

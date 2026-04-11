@@ -127,6 +127,7 @@ class RecurringRunDetailsV2 extends Page<{}, RecurringRunConfigState> {
   }
 
   public componentDidMount(): Promise<void> {
+    this._isMounted = true;
     return this.load();
   }
 

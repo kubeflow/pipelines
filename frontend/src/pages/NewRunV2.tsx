@@ -24,7 +24,7 @@ import {
   Radio,
   Checkbox,
 } from '@mui/material';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -43,8 +43,12 @@ import NewRunParametersV2 from 'src/components/NewRunParametersV2';
 import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
 import Trigger from 'src/components/Trigger';
 import { color, commonCss, padding } from 'src/Css';
-import { ComponentInputsSpec_ParameterSpec } from 'src/generated/pipeline_spec/pipeline_spec';
 import { Apis, ExperimentSortKeys, PipelineSortKeys, PipelineVersionSortKeys } from 'src/lib/Apis';
+import {
+  getInitialParameterState,
+  type RuntimeParameters,
+  type SpecParameters,
+} from 'src/lib/NewRunParametersUtils';
 import { URLParser } from 'src/lib/URLParser';
 import { errorToMessage, generateRandomString, logger } from 'src/lib/Utils';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
@@ -93,8 +97,58 @@ interface RunV2Props {
 
 type NewRunV2Props = RunV2Props & PageProps;
 
-export type SpecParameters = { [key: string]: ComponentInputsSpec_ParameterSpec };
-export type RuntimeParameters = { [key: string]: any };
+export type { RuntimeParameters, SpecParameters } from 'src/lib/NewRunParametersUtils';
+type KeyedState<T> = { key: string; value: T };
+
+const hashString64 = (value: string): string => {
+  let first = 0x9e3779b1;
+  let second = 0x85ebca77;
+
+  for (let index = 0; index < value.length; index++) {
+    const charCode = value.charCodeAt(index);
+    first = Math.imul(first ^ charCode, 2654435761);
+    second = Math.imul(second ^ charCode, 1597334677);
+  }
+
+  first =
+    Math.imul(first ^ (first >>> 16), 2246822507) ^ Math.imul(second ^ (second >>> 13), 3266489909);
+  second =
+    Math.imul(second ^ (second >>> 16), 2246822507) ^ Math.imul(first ^ (first >>> 13), 3266489909);
+
+  return `${(first >>> 0).toString(16).padStart(8, '0')}${(second >>> 0)
+    .toString(16)
+    .padStart(8, '0')}`;
+};
+
+const getEmptyTemplateData = () => ({
+  defaultPipelineRoot: undefined as string | undefined,
+  specParameters: {} as SpecParameters,
+});
+
+const getTemplateData = (templateString?: string) => {
+  if (!templateString) {
+    return getEmptyTemplateData();
+  }
+
+  try {
+    const spec = convertYamlToV2PipelineSpec(templateString);
+    return {
+      defaultPipelineRoot: spec.defaultPipelineRoot,
+      specParameters: spec.root?.inputDefinitions?.parameters ?? {},
+    };
+  } catch (error) {
+    logger.error('Cannot parse pipeline template.', error);
+    return getEmptyTemplateData();
+  }
+};
+
+function useKeyedState<T>(key: string, initialValue: T) {
+  const [state, setState] = useState<KeyedState<T>>({ key: '', value: initialValue });
+  const value = state.key === key ? state.value : initialValue;
+  const setValue = useCallback((value: T) => setState({ key, value }), [key]);
+
+  return [value, setValue] as const;
+}
 
 type CloneOrigin = {
   isClone: boolean;
@@ -155,6 +209,41 @@ export async function getLatestVersion(pipelineId: string) {
   }
 }
 
+function getRunValidationErrorMessage(
+  runName: string,
+  existingPipeline?: V2beta1Pipeline,
+  existingPipelineVersion?: V2beta1PipelineVersion,
+  isTemplatePullSuccess?: boolean,
+) {
+  if (isTemplatePullSuccess) {
+    return runName ? '' : 'Run name cannot be empty.';
+  }
+  if (!existingPipeline) {
+    return 'A pipeline must be selected';
+  }
+  if (!existingPipelineVersion) {
+    return 'A pipeline version must be selected';
+  }
+  return '';
+}
+
+function getDefaultRunName(
+  runDisplayName?: string,
+  recurringRunDisplayName?: string,
+  pipelineVersionDisplayName?: string,
+) {
+  if (runDisplayName) {
+    return 'Clone of ' + runDisplayName;
+  }
+  if (recurringRunDisplayName) {
+    return 'Clone of ' + recurringRunDisplayName;
+  }
+  if (pipelineVersionDisplayName) {
+    return 'Run of ' + pipelineVersionDisplayName + ' (' + generateRandomString(5) + ')';
+  }
+  return '';
+}
+
 function NewRunV2(props: NewRunV2Props) {
   // List of elements we need to create Pipeline Run.
   const {
@@ -171,21 +260,10 @@ function NewRunV2(props: NewRunV2Props) {
   } = props;
   const cloneOrigin = getCloneOrigin(existingRun, existingRecurringRun);
   const urlParser = new URLParser(props);
-  const [runName, setRunName] = useState('');
+  const [customRunName, setCustomRunName] = useState<string | null>(null);
   const [runDescription, setRunDescription] = useState('');
-  const [pipelineName, setPipelineName] = useState('');
-  const [pipelineVersionName, setPipelineVersionName] = useState('');
-  const [experimentId, setExperimentId] = useState('');
-  const [experiment, setExperiment] = useState(chosenExperiment);
-  const [experimentName, setExperimentName] = useState('');
   const [serviceAccount, setServiceAccount] = useState('');
-  const [specParameters, setSpecParameters] = useState<SpecParameters>({});
-  const [runtimeParameters, setRuntimeParameters] = useState<RuntimeParameters>({});
-  const [pipelineRoot, setPipelineRoot] = useState<string>();
-  const [isStartButtonEnabled, setIsStartButtonEnabled] = useState(false);
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [isParameterValid, setIsParameterValid] = useState(false);
   const [openNewExperiment, setOpenNewExperiment] = useState(false);
   const [isRecurringRun, setIsRecurringRun] = useState(
     urlParser.get(QUERY_PARAMS.isRecurring) === '1' || cloneOrigin.isRecurring,
@@ -206,21 +284,84 @@ function NewRunV2(props: NewRunV2Props) {
       : true;
   const [needCatchup, setNeedCatchup] = useState(initialCatchup);
   const [useLatestVersion, setUseLatestVersion] = useState(false);
-
-  useEffect(() => {
-    if (useLatestVersion) {
-      // Clear pipeline version when using latest
-      setPipelineVersionName('');
-    }
-  }, [useLatestVersion]);
+  const existingRunDisplayName = existingRun?.display_name;
+  const existingRecurringRunDisplayName = existingRecurringRun?.display_name;
+  const existingPipelineVersionDisplayName = existingPipelineVersion?.display_name;
+  const [pipelineName, setPipelineName] = useKeyedState<string>(
+    existingPipeline?.pipeline_id ?? '',
+    existingPipeline?.display_name ?? '',
+  );
+  const [selectedExperiment, setSelectedExperiment] = useKeyedState<V2beta1Experiment | undefined>(
+    chosenExperiment?.experiment_id ?? '',
+    chosenExperiment,
+  );
+  const experimentId = selectedExperiment?.experiment_id ?? '';
+  const experimentName = selectedExperiment?.display_name ?? '';
+  // Prefix the "latest version" mode key so toggling the checkbox cannot reuse a concrete version id.
+  const [pipelineVersionName, setPipelineVersionName] = useKeyedState<string>(
+    useLatestVersion
+      ? `latest:${existingPipeline?.pipeline_id ?? ''}`
+      : (existingPipelineVersion?.pipeline_version_id ?? ''),
+    useLatestVersion ? '' : (existingPipelineVersion?.display_name ?? ''),
+  );
+  const defaultRunName = useMemo(
+    () =>
+      getDefaultRunName(
+        existingRunDisplayName,
+        existingRecurringRunDisplayName,
+        existingPipelineVersionDisplayName,
+      ),
+    [existingRunDisplayName, existingRecurringRunDisplayName, existingPipelineVersionDisplayName],
+  );
+  const runName = customRunName ?? defaultRunName;
 
   const clonedRuntimeConfig = cloneOrigin.isRecurring
     ? cloneOrigin.recurringRun?.runtime_config
     : cloneOrigin.run?.runtime_config;
+  const { defaultPipelineRoot, specParameters } = useMemo(
+    () => getTemplateData(templateString),
+    [templateString],
+  );
+  const clonedRuntimeConfigKey = useMemo(
+    () => JSON.stringify(clonedRuntimeConfig ?? null),
+    [clonedRuntimeConfig],
+  );
+  const parameterStateKey = useMemo(
+    () =>
+      `${(templateString ?? '').length}:${hashString64(
+        templateString ?? '',
+      )}:${clonedRuntimeConfigKey.length}:${hashString64(clonedRuntimeConfigKey)}`,
+    [clonedRuntimeConfigKey, templateString],
+  );
+  const initialParameterState = useMemo(
+    () => getInitialParameterState(specParameters, clonedRuntimeConfig),
+    [clonedRuntimeConfig, specParameters],
+  );
+  const initialPipelineRoot = clonedRuntimeConfig?.pipeline_root ?? defaultPipelineRoot;
+  const [runtimeParameters, handleParameterChange] = useKeyedState<RuntimeParameters>(
+    parameterStateKey,
+    initialParameterState.runtimeParameters,
+  );
+  const [pipelineRoot, handlePipelineRootChange] = useKeyedState<string | undefined>(
+    parameterStateKey,
+    initialPipelineRoot,
+  );
+  const [isParameterValid, handleParameterValidityChange] = useKeyedState<boolean>(
+    parameterStateKey,
+    initialParameterState.isValid,
+  );
   const labelTextAdjective = isRecurringRun ? 'recurring ' : '';
   const usePipelineFromRunLabel = `Using pipeline from existing ${labelTextAdjective} run.`;
 
   const isTemplatePullSuccess = templateString ? true : false;
+  const validationErrorMessage = getRunValidationErrorMessage(
+    runName,
+    existingPipeline,
+    existingPipelineVersion,
+    isTemplatePullSuccess,
+  );
+  const isStartButtonEnabled =
+    !!templateString && !validationErrorMessage && isParameterValid && isMaxConcurrentRunValid;
 
   const titleVerb = cloneOrigin.isClone ? 'Clone' : 'Start';
   const titleAdjective = cloneOrigin.isClone ? '' : 'new';
@@ -261,92 +402,6 @@ function NewRunV2(props: NewRunV2Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRecurringRun]);
 
-  // Pre-fill names for pipeline, pipeline version and experiment.
-  useEffect(() => {
-    if (existingPipeline?.display_name) {
-      setPipelineName(existingPipeline.display_name);
-    }
-    if (existingPipelineVersion?.display_name) {
-      setPipelineVersionName(existingPipelineVersion.display_name);
-    }
-    if (experiment?.display_name) {
-      setExperimentName(experiment.display_name);
-    }
-    if (experiment?.experiment_id) {
-      setExperimentId(experiment.experiment_id);
-    }
-  }, [existingPipeline, existingPipelineVersion, experiment]);
-
-  // When loading a pipeline version, automatically set the default run name.
-  useEffect(() => {
-    if (existingRun?.display_name) {
-      const cloneRunName = 'Clone of ' + existingRun.display_name;
-      setRunName(cloneRunName);
-    } else if (existingRecurringRun?.display_name) {
-      const cloneRecurringName = 'Clone of ' + existingRecurringRun.display_name;
-      setRunName(cloneRecurringName);
-    } else if (existingPipelineVersion?.display_name) {
-      const initRunName =
-        'Run of ' + existingPipelineVersion.display_name + ' (' + generateRandomString(5) + ')';
-      setRunName(initRunName);
-    }
-  }, [existingRun, existingRecurringRun, existingPipelineVersion]);
-
-  // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
-  useEffect(() => {
-    if (!templateString) {
-      return;
-    }
-
-    const spec = convertYamlToV2PipelineSpec(templateString);
-
-    const params = spec.root?.inputDefinitions?.parameters;
-    if (params) {
-      setSpecParameters(params);
-    } else {
-      setSpecParameters({});
-    }
-
-    const defaultRoot = spec.defaultPipelineRoot;
-    const clonedRoot = clonedRuntimeConfig?.pipeline_root;
-    if (clonedRoot) {
-      setPipelineRoot(clonedRoot);
-    } else if (defaultRoot) {
-      setPipelineRoot(defaultRoot);
-    }
-  }, [templateString, clonedRuntimeConfig]);
-
-  // Handle different change that can affect setIsStartButtonEnabled
-  useEffect(() => {
-    if (!templateString || errorMessage || !isParameterValid || !isMaxConcurrentRunValid) {
-      setIsStartButtonEnabled(false);
-    } else {
-      setIsStartButtonEnabled(true);
-    }
-  }, [templateString, errorMessage, isParameterValid, isMaxConcurrentRunValid]);
-
-  // Whenever any input value changes, validate and show error if needed.
-  useEffect(() => {
-    if (isTemplatePullSuccess) {
-      if (runName) {
-        setErrorMessage('');
-        return;
-      } else {
-        setErrorMessage('Run name can not be empty.');
-        return;
-      }
-    } else {
-      if (!existingPipeline) {
-        setErrorMessage('A pipeline must be selected');
-        return;
-      }
-      if (!existingPipelineVersion) {
-        setErrorMessage('A pipeline version must be selected');
-        return;
-      }
-    }
-  }, [runName, existingPipeline, existingPipelineVersion, isTemplatePullSuccess]);
-
   // Defines the behavior when user clicks `Start` button.
   const newRunMutation = useMutation({
     mutationFn: (run: V2beta1Run) => {
@@ -359,11 +414,13 @@ function NewRunV2(props: NewRunV2Props) {
     },
   });
 
-  const startRun = () => {
+  const startRun = async () => {
+    const submittedIsRecurringRun = isRecurringRun;
+
     let newRun: V2beta1Run = {
       description: runDescription,
       display_name: runName,
-      experiment_id: experiment?.experiment_id,
+      experiment_id: selectedExperiment?.experiment_id,
       // pipeline_spec and pipeline_version_reference is exclusive.
       pipeline_spec: !(pipelineVersionRefClone || pipelineVersionRefNew)
         ? JsYaml.safeLoad(templateString || '')
@@ -382,7 +439,7 @@ function NewRunV2(props: NewRunV2Props) {
 
     let newRecurringRun: V2beta1RecurringRun = Object.assign(
       newRun,
-      isRecurringRun
+      submittedIsRecurringRun
         ? {
             max_concurrency: maxConcurrentRuns || '1',
             no_catchup: !needCatchup,
@@ -398,64 +455,48 @@ function NewRunV2(props: NewRunV2Props) {
     );
     setIsStartingNewRun(true);
 
-    const runCreation = () =>
-      newRunMutation.mutate(newRun, {
-        onSuccess: (data) => {
-          setIsStartingNewRun(false);
-          if (data.run_id) {
-            props.history.push(RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, data.run_id));
-          } else {
-            props.history.push(RoutePage.RUNS);
-          }
+    try {
+      if (submittedIsRecurringRun) {
+        const data = await newRecurringRunMutation.mutateAsync(newRecurringRun);
+        setIsStartingNewRun(false);
+        if (data.recurring_run_id) {
+          props.history.push(
+            RoutePage.RECURRING_RUN_DETAILS.replace(
+              ':' + RouteParams.recurringRunId,
+              data.recurring_run_id,
+            ),
+          );
+        } else {
+          props.history.push(RoutePage.RECURRING_RUNS);
+        }
 
-          props.updateSnackbar({
-            message: `Successfully started new Run: ${data.display_name}`,
-            open: true,
-          });
-        },
-        onError: async (error) => {
-          const errorMessage = await errorToMessage(error);
-          props.updateDialog({
-            buttons: [{ text: 'Dismiss' }],
-            onClose: () => setIsStartingNewRun(false),
-            content: errorMessage,
-            title: 'Run creation failed',
-          });
-        },
+        props.updateSnackbar({
+          message: `Successfully started new recurring Run: ${data.display_name}`,
+          open: true,
+        });
+      } else {
+        const data = await newRunMutation.mutateAsync(newRun);
+        setIsStartingNewRun(false);
+        if (data.run_id) {
+          props.history.push(RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, data.run_id));
+        } else {
+          props.history.push(RoutePage.RUNS);
+        }
+
+        props.updateSnackbar({
+          message: `Successfully started new Run: ${data.display_name}`,
+          open: true,
+        });
+      }
+    } catch (error) {
+      const errorMessage = await errorToMessage(error);
+      props.updateDialog({
+        buttons: [{ text: 'Dismiss' }],
+        onClose: () => setIsStartingNewRun(false),
+        content: errorMessage,
+        title: submittedIsRecurringRun ? 'Recurring run creation failed' : 'Run creation failed',
       });
-
-    const recurringRunCreation = () =>
-      newRecurringRunMutation.mutate(newRecurringRun, {
-        onSuccess: (data) => {
-          setIsStartingNewRun(false);
-          if (data.recurring_run_id) {
-            props.history.push(
-              RoutePage.RECURRING_RUN_DETAILS.replace(
-                ':' + RouteParams.recurringRunId,
-                data.recurring_run_id,
-              ),
-            );
-          } else {
-            props.history.push(RoutePage.RECURRING_RUNS);
-          }
-
-          props.updateSnackbar({
-            message: `Successfully started new recurring Run: ${data.display_name}`,
-            open: true,
-          });
-        },
-        onError: async (error) => {
-          const errorMessage = await errorToMessage(error);
-          props.updateDialog({
-            buttons: [{ text: 'Dismiss' }],
-            onClose: () => setIsStartingNewRun(false),
-            content: errorMessage,
-            title: 'Recurring run creation failed',
-          });
-        },
-      });
-
-    isRecurringRun ? recurringRunCreation() : runCreation();
+    }
   };
 
   return (
@@ -519,8 +560,7 @@ function NewRunV2(props: NewRunV2Props) {
                   <Checkbox
                     checked={useLatestVersion}
                     onChange={(e) => {
-                      const isChecked = e.target.checked;
-                      setUseLatestVersion(isChecked);
+                      setUseLatestVersion(e.target.checked);
                     }}
                     color='primary'
                     disabled={!existingPipeline}
@@ -561,7 +601,7 @@ function NewRunV2(props: NewRunV2Props) {
         <Input
           label={isRecurringRun ? 'Recurring run config name' : 'Run name'}
           required={true}
-          onChange={(event) => setRunName(event.target.value)}
+          onChange={(event) => setCustomRunName(event.target.value)}
           autoFocus={true}
           value={runName}
           variant='outlined'
@@ -584,12 +624,8 @@ function NewRunV2(props: NewRunV2Props) {
           toolbarActionMap={createNewExperiment}
           experimentName={experimentName}
           handleExperimentChange={(experiment) => {
-            setExperiment(experiment);
-            if (experiment.display_name) {
-              setExperimentName(experiment.display_name);
-            }
+            setSelectedExperiment(experiment);
             if (experiment.experiment_id) {
-              setExperimentId(experiment.experiment_id);
               let searchString;
               if (existingPipeline?.pipeline_id && existingPipelineVersion?.pipeline_version_id) {
                 searchString = urlParser.build({
@@ -691,8 +727,10 @@ function NewRunV2(props: NewRunV2Props) {
 
         {/* PipelineRoot and Run Parameters */}
         <NewRunParametersV2
+          key={parameterStateKey}
           pipelineRoot={pipelineRoot}
-          handlePipelineRootChange={setPipelineRoot}
+          initialParameterState={initialParameterState}
+          handlePipelineRootChange={handlePipelineRootChange}
           titleMessage={
             existingPipeline || cloneOrigin.isClone
               ? Object.keys(specParameters).length
@@ -702,8 +740,8 @@ function NewRunV2(props: NewRunV2Props) {
           }
           specParameters={specParameters}
           clonedRuntimeConfig={clonedRuntimeConfig}
-          handleParameterChange={setRuntimeParameters}
-          setIsValidInput={setIsParameterValid}
+          handleParameterChange={handleParameterChange}
+          setIsValidInput={handleParameterValidityChange}
         />
 
         {/* Create/Cancel buttons */}
@@ -726,7 +764,7 @@ function NewRunV2(props: NewRunV2Props) {
             {'Cancel'}
           </Button>
           <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
-            {errorMessage}
+            {validationErrorMessage}
           </div>
           {/* TODO(zijianjoy): Show error when custom pipelineRoot or parameters are missing. */}
         </div>
