@@ -90,6 +90,8 @@ spec:
         name: dot-cache-scratch
       - mountPath: /.config
         name: dot-config-scratch
+      - mountPath: /oci-artifact-0/
+        name: oci-artifact-0
     initContainers:
     - args:
       - --type
@@ -187,6 +189,14 @@ spec:
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
+    - command:
+      - sh
+      - -c
+      - echo 'Pre-fetching...' && [ -d /models ] && [ "$(ls -A /models)" ] && echo
+        'OK' || (echo 'NOK' && exit 1)
+      image: '{{inputs.parameters.oci-model-image-0}}'
+      name: oci-prepull-0
+      resources: {}
     inputs:
       parameters:
       - name: component
@@ -199,12 +209,27 @@ spec:
       - default: ""
         name: kubernetes-config
       - name: image
+      - name: oci-model-image-0
     metadata: {}
-    name: system-container-impl
+    name: oci-comp-consumer-op-system-container-impl
     outputs: {}
+    podSpecPatch: '{"spec":{"shareProcessNamespace":true}}'
     securityContext:
       seccompProfile:
         type: RuntimeDefault
+    sidecars:
+    - command:
+      - sh
+      - -c
+      - ln -s /proc/$$/root/models /oci-artifact-0/models && echo 'Modelcar ready'
+        && until [ -f /oci-artifact-0/launcher-complete ]; do sleep 1; done
+      image: '{{inputs.parameters.oci-model-image-0}}'
+      imagePullPolicy: IfNotPresent
+      name: oci-0
+      resources: {}
+      volumeMounts:
+      - mountPath: /oci-artifact-0/
+        name: oci-artifact-0
     volumes:
     - emptyDir: {}
       name: kfp-driver-outputs
@@ -222,6 +247,8 @@ spec:
       name: dot-cache-scratch
     - emptyDir: {}
       name: dot-config-scratch
+    - emptyDir: {}
+      name: oci-artifact-0
   - container:
       args:
       - --executor_type
@@ -286,7 +313,12 @@ spec:
       - name: parent-dag-id
     metadata: {}
     name: system-importer
-    outputs: {}
+    outputs:
+      parameters:
+      - name: oci-model-image
+        valueFrom:
+          default: ""
+          path: /tmp/kfp-oci-model-image
     securityContext:
       runAsNonRoot: true
       seccompProfile:
@@ -307,9 +339,11 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: image
             value: dummy
+          - name: oci-model-image-0
+            value: '{{tasks.importer.outputs.parameters.oci-model-image}}'
         depends: importer.Succeeded
         name: consumer-op
-        template: system-container-impl
+        template: oci-comp-consumer-op-system-container-impl
       - arguments:
           parameters:
           - name: task

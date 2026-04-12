@@ -214,7 +214,6 @@ spec:
     metadata: {}
     name: k8s-comp-log-message-system-container-impl
     outputs: {}
-    podSpecPatch: '{"spec":{"imagePullSecrets":[{"name":""}]}}'
     securityContext:
       seccompProfile:
         type: RuntimeDefault

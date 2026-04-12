@@ -334,6 +334,26 @@ func (c *workflowCompiler) containerExecutorTask(name string, inputs containerEx
 			c.getPodMetadataParameters(k8sExecCfg.GetPodMetadata(), true),
 			c.getTaskRetryParametersWithValues(task)...)...)
 
+	// Add OCI model image parameters for Modelcar sidecars.
+	ociImporterArtifacts := c.getOCIImporterArtifacts(task)
+	if len(ociImporterArtifacts) > 0 {
+		ociArtNames := make([]string, 0, len(ociImporterArtifacts))
+		for artName := range ociImporterArtifacts {
+			ociArtNames = append(ociArtNames, artName)
+		}
+		sort.Strings(ociArtNames)
+		for i, artName := range ociArtNames {
+			producerTaskName := ociImporterArtifacts[artName]
+			// Convert pipeline task name to Argo task name (underscores/spaces become dashes).
+			argoTaskName := strings.ReplaceAll(producerTaskName, " ", "-")
+			argoTaskName = strings.ReplaceAll(argoTaskName, "_", "-")
+			params = append(params, wfapi.Parameter{
+				Name:  fmt.Sprintf("oci-model-image-%d", i),
+				Value: wfapi.AnyStringPtr(fmt.Sprintf("{{tasks.%s.outputs.parameters.oci-model-image}}", argoTaskName)),
+			})
+		}
+	}
+
 	dagTask := &wfapi.DAGTask{
 		Name:     name,
 		Template: c.addContainerExecutorTemplate(task, k8sExecCfg),
@@ -377,6 +397,19 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 	// distinct template names.
 	if hasStaticK8sSettings(k8sExecCfg) {
 		nameContainerImpl = "k8s-" + refName + "-" + nameContainerImpl
+	}
+
+	// Compute OCI importer artifact inputs. Tasks that consume OCI artifacts need
+	// dedicated per-task templates (with Modelcar sidecar containers), so they get
+	// an additional unique prefix.
+	ociImporterArtifacts := c.getOCIImporterArtifacts(task)
+	ociArtNames := make([]string, 0, len(ociImporterArtifacts))
+	for artName := range ociImporterArtifacts {
+		ociArtNames = append(ociArtNames, artName)
+	}
+	sort.Strings(ociArtNames)
+	if len(ociArtNames) > 0 {
+		nameContainerImpl = "oci-" + refName + "-" + nameContainerImpl
 	}
 
 	if _, ok := c.templates[nameContainerImpl]; ok {
@@ -506,22 +539,66 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 		{Name: dotConfigScratchName, MountPath: dotConfigScratchLocation},
 	}
 
+	// If the workflow has a workspace PVC, mount it on the main container so
+	// tasks downstream of workspace importers can access workspace artifacts.
+	for _, vct := range c.wf.Spec.VolumeClaimTemplates {
+		if vct.Name == workspaceVolumeName {
+			volumes = append(volumes, k8score.Volume{
+				Name: workspaceVolumeName,
+				VolumeSource: k8score.VolumeSource{
+					PersistentVolumeClaim: &k8score.PersistentVolumeClaimVolumeSource{
+						ClaimName: fmt.Sprintf("{{workflow.name}}-%s", workspaceVolumeName),
+					},
+				},
+			})
+			mainVolumeMounts = append(mainVolumeMounts, k8score.VolumeMount{
+				Name:      workspaceVolumeName,
+				MountPath: component.WorkspaceMountPath,
+			})
+			break
+		}
+	}
+
+	// Add emptyDir volumes and mounts for OCI (Modelcar) artifact sidecars.
+	for i := range ociArtNames {
+		ociVolumeName := fmt.Sprintf("oci-artifact-%d", i)
+		volumes = append(volumes, k8score.Volume{
+			Name:         ociVolumeName,
+			VolumeSource: k8score.VolumeSource{EmptyDir: &k8score.EmptyDirVolumeSource{}},
+		})
+		mainVolumeMounts = append(mainVolumeMounts, k8score.VolumeMount{
+			Name:      ociVolumeName,
+			MountPath: fmt.Sprintf("/oci-artifact-%d/", i),
+		})
+	}
+
+	// Build OCI input parameters for the executor template.
+	ociInputParams := make([]wfapi.Parameter, 0, len(ociArtNames))
+	for i := range ociArtNames {
+		ociInputParams = append(ociInputParams, wfapi.Parameter{
+			Name: fmt.Sprintf("oci-model-image-%d", i),
+		})
+	}
+
 	executor := &wfapi.Template{
 		Name: nameContainerImpl,
 		Inputs: wfapi.Inputs{
 			Parameters: append(
-				[]wfapi.Parameter{
-					{Name: paramComponent},
-					{Name: paramTask},
-					{Name: paramContainer},
-					{Name: paramTaskName},
-					{Name: paramParentDagID},
-					{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
-					{Name: paramKubernetesConfig, Default: wfapi.AnyStringPtr("")},
-					// image is passed at call time so templates can be shared across tasks
-					// with the same K8s config but different container images.
-					{Name: paramImage},
-				},
+				append(
+					[]wfapi.Parameter{
+						{Name: paramComponent},
+						{Name: paramTask},
+						{Name: paramContainer},
+						{Name: paramTaskName},
+						{Name: paramParentDagID},
+						{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
+						{Name: paramKubernetesConfig, Default: wfapi.AnyStringPtr("")},
+						// image is passed at call time so templates can be shared across tasks
+						// with the same K8s config but different container images.
+						{Name: paramImage},
+					},
+					ociInputParams...,
+				),
 				append(
 					c.getPodMetadataParameters(k8sExecCfg.GetPodMetadata(), false),
 					c.getTaskRetryParameters(task)...)...),
@@ -620,6 +697,56 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 		extendPodMetadata(&executor.Metadata, k8sExecCfg)
 	}
 
+	// Add Modelcar sidecar containers for OCI artifact inputs.
+	if len(ociArtNames) > 0 {
+		for i := range ociArtNames {
+			ociVolumeName := fmt.Sprintf("oci-artifact-%d", i)
+			ociImageParam := fmt.Sprintf("{{inputs.parameters.oci-model-image-%d}}", i)
+			// Init container pre-pulls the OCI image and validates it contains models.
+			executor.InitContainers = append(executor.InitContainers, wfapi.UserContainer{
+				Container: k8score.Container{
+					Name:    fmt.Sprintf("oci-prepull-%d", i),
+					Image:   ociImageParam,
+					Command: []string{"sh", "-c", "echo 'Pre-fetching...' && [ -d /models ] && [ \"$(ls -A /models)\" ] && echo 'OK' || (echo 'NOK' && exit 1)"},
+				},
+			})
+			// Sidecar container shares the OCI image's /models directory via a /proc symlink
+			// into the shared emptyDir volume; the main container then reads from it.
+			executor.Sidecars = append(executor.Sidecars, wfapi.UserContainer{
+				Container: k8score.Container{
+					Name:            fmt.Sprintf("oci-%d", i),
+					Image:           ociImageParam,
+					ImagePullPolicy: k8score.PullIfNotPresent,
+					Command: []string{
+						"sh", "-c",
+						fmt.Sprintf(
+							"ln -s /proc/$$/root/models /oci-artifact-%d/models && echo 'Modelcar ready' && until [ -f /oci-artifact-%d/launcher-complete ]; do sleep 1; done",
+							i, i,
+						),
+					},
+					VolumeMounts: []k8score.VolumeMount{
+						{Name: ociVolumeName, MountPath: fmt.Sprintf("/oci-artifact-%d/", i)},
+					},
+				},
+			})
+		}
+
+		// shareProcessNamespace is required for the /proc symlink trick used by Modelcar sidecars.
+		existing := map[string]interface{}{}
+		if executor.PodSpecPatch != "" {
+			_ = json.Unmarshal([]byte(executor.PodSpecPatch), &existing)
+		}
+		spec, ok := existing["spec"].(map[string]interface{})
+		if !ok {
+			spec = map[string]interface{}{}
+		}
+		spec["shareProcessNamespace"] = true
+		existing["spec"] = spec
+		if patchBytes, err := json.Marshal(existing); err == nil {
+			executor.PodSpecPatch = string(patchBytes)
+		}
+	}
+
 	c.templates[nameContainerImpl] = executor
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *executor)
 	return nameContainerImpl
@@ -649,6 +776,39 @@ func hasStaticK8sSettings(cfg *kubernetesplatform.KubernetesExecutorConfig) bool
 		cfg.GetImagePullPolicy() != "" ||
 		len(cfg.GetImagePullSecret()) > 0 ||
 		cfg.GetSecurityContext() != nil
+}
+
+// getOCIImporterArtifacts returns a map of input artifact name -> producer task name
+// for all input artifacts whose producer is an importer task. These require Modelcar
+// sidecar containers so the OCI image contents are accessible at runtime.
+func (c *workflowCompiler) getOCIImporterArtifacts(task *pipelinespec.PipelineTaskSpec) map[string]string {
+	result := map[string]string{}
+	if task == nil {
+		return result
+	}
+	for artName, artSpec := range task.GetInputs().GetArtifacts() {
+		toa := artSpec.GetTaskOutputArtifact()
+		if toa == nil {
+			continue
+		}
+		producerTaskName := toa.GetProducerTask()
+		producerTaskSpec := c.spec.GetRoot().GetDag().GetTasks()[producerTaskName]
+		if producerTaskSpec == nil {
+			continue
+		}
+		producerCompName := producerTaskSpec.GetComponentRef().GetName()
+		producerComp := c.spec.GetComponents()[producerCompName]
+		if producerComp == nil {
+			continue
+		}
+		execName := producerComp.GetExecutorLabel()
+		exec := c.executors[execName]
+		if exec.GetImporter() == nil {
+			continue
+		}
+		result[artName] = producerTaskName
+	}
+	return result
 }
 
 // applyStaticK8sConfig embeds static Kubernetes platform settings from cfg into
@@ -682,9 +842,16 @@ func applyStaticK8sConfig(tmpl *wfapi.Template, cfg *kubernetesplatform.Kubernet
 			if name == "" {
 				name = s.GetSecretName() //nolint:staticcheck
 			}
+			// Skip entries whose name cannot be resolved at compile time;
+			// they cannot be injected into the static podSpecPatch.
+			if name == "" {
+				continue
+			}
 			refs = append(refs, map[string]interface{}{"name": name})
 		}
-		podSpec["imagePullSecrets"] = refs
+		if len(refs) > 0 {
+			podSpec["imagePullSecrets"] = refs
+		}
 	}
 
 	// Node selector — static labels map only; NodeSelectorJson is skipped.

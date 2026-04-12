@@ -149,6 +149,9 @@ type Execution struct {
 	// They are written to the shared emptyDir volume for the launcher to read.
 	UserCommand []string
 	UserArgs    []string
+	// DynamicEnvVars holds env var key->value pairs resolved at runtime from
+	// secretAsEnv entries with taskOutputParameter secret names.
+	DynamicEnvVars map[string]string
 }
 
 func (e *Execution) WillTrigger() bool {

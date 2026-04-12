@@ -144,7 +144,7 @@ func run() error {
 
 		if *driverOutputsDir != "" {
 			// Init-container mode: read outputs written by the driver init container.
-			execID, execInput, userCmd, userArgs, cached, conditionMet, readErr := readDriverOutputs(*driverOutputsDir)
+			execID, execInput, userCmd, userArgs, cached, conditionMet, dynEnvVars, readErr := readDriverOutputs(*driverOutputsDir)
 			if readErr != nil {
 				return readErr
 			}
@@ -160,6 +160,10 @@ func run() error {
 			resolvedExecutorInput = execInput
 			resolvedCmdArgs = append(resolvedCmdArgs, userCmd...)
 			resolvedCmdArgs = append(resolvedCmdArgs, userArgs...)
+			// Apply dynamic env vars (from runtime-resolved secrets) so the user process inherits them.
+			for k, v := range dynEnvVars {
+				os.Setenv(k, v)
+			}
 		} else {
 			// Legacy mode: execution-id and executor-input come from flags, user
 			// command+args come from arguments after --.
@@ -192,6 +196,7 @@ func readDriverOutputs(dir string) (
 	userCommand, userArgs []string,
 	cached bool,
 	conditionMet bool,
+	dynamicEnvVars map[string]string,
 	err error,
 ) {
 	readFile := func(name string) (string, error) {
@@ -259,6 +264,16 @@ func readDriverOutputs(dir string) (
 			return
 		}
 	}
+
+	// dynamic-env-vars is optional; written only when dynamic secrets are present.
+	dynamicEnvVarsJSON, readErr := os.ReadFile(filepath.Join(dir, "dynamic-env-vars"))
+	if readErr == nil && len(dynamicEnvVarsJSON) > 0 {
+		if err = json.Unmarshal(dynamicEnvVarsJSON, &dynamicEnvVars); err != nil {
+			err = fmt.Errorf("failed to parse dynamic-env-vars: %w", err)
+			return
+		}
+	}
+
 	return
 }
 

@@ -27,6 +27,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"google.golang.org/protobuf/types/known/structpb"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func validateContainer(opts Options) (err error) {
@@ -225,5 +226,69 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	}
 	execution.UserCommand = userCommand
 	execution.UserArgs = userArgs
+
+	// Resolve dynamic secret env vars (secretAsEnv entries with taskOutputParameter names).
+	if opts.KubernetesExecutorConfig != nil {
+		dynamicEnvVars, dynErr := resolveDynamicSecretEnvVars(ctx, dag, pipeline, opts, mlmd, inputParams)
+		if dynErr != nil {
+			glog.Warningf("failed to resolve dynamic secret env vars: %v", dynErr)
+		} else if len(dynamicEnvVars) > 0 {
+			execution.DynamicEnvVars = dynamicEnvVars
+		}
+	}
+
 	return execution, nil
+}
+
+// resolveDynamicSecretEnvVars resolves secretAsEnv entries whose secret names come
+// from taskOutputParameter (i.e. runtime-resolved). It reads the actual secret
+// value from Kubernetes and returns a map of env var name -> value.
+func resolveDynamicSecretEnvVars(
+	ctx context.Context,
+	dag *metadata.DAG,
+	pipeline *metadata.Pipeline,
+	opts Options,
+	mlmd *metadata.Client,
+	inputParams map[string]*structpb.Value,
+) (map[string]string, error) {
+	if opts.KubernetesExecutorConfig == nil {
+		return nil, nil
+	}
+	result := map[string]string{}
+	k8sClient, err := createK8sClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create k8s client: %w", err)
+	}
+	for _, se := range opts.KubernetesExecutorConfig.GetSecretAsEnv() {
+		param := se.GetSecretNameParameter()
+		if param == nil {
+			continue
+		}
+		// Only handle taskOutputParameter (runtime-resolved) here; static names are
+		// already handled at compile time.
+		if _, isTask := param.GetKind().(*pipelinespec.TaskInputsSpec_InputParameterSpec_TaskOutputParameter); !isTask {
+			continue
+		}
+		resolvedVal, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd, param, inputParams)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve dynamic secret name: %w", err)
+		}
+		secretName := resolvedVal.GetStringValue()
+		if secretName == "" {
+			continue
+		}
+		secret, err := k8sClient.CoreV1().Secrets(opts.Namespace).Get(ctx, secretName, metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get secret %q: %w", secretName, err)
+		}
+		for _, kToEnv := range se.GetKeyToEnv() {
+			if val, ok := secret.Data[kToEnv.GetSecretKey()]; ok {
+				result[kToEnv.GetEnvVar()] = string(val)
+			}
+		}
+	}
+	if len(result) == 0 {
+		return nil, nil
+	}
+	return result, nil
 }

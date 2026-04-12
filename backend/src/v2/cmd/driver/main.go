@@ -430,6 +430,18 @@ func writeDriverOutputsDir(execution *driver.Execution, dir string) error {
 		return err
 	}
 
+	// dynamic-env-vars (JSON, optional): env vars resolved at runtime from
+	// secretAsEnv entries with taskOutputParameter names.
+	if len(execution.DynamicEnvVars) > 0 {
+		dynamicEnvBytes, err := json.Marshal(execution.DynamicEnvVars)
+		if err != nil {
+			return fmt.Errorf("failed to marshal dynamic env vars: %w", err)
+		}
+		if err := writeDirFile("dynamic-env-vars", dynamicEnvBytes); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

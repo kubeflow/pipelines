@@ -119,6 +119,8 @@ spec:
         name: dot-cache-scratch
       - mountPath: /.config
         name: dot-config-scratch
+      - mountPath: /kfp-workspace
+        name: kfp-workspace
     initContainers:
     - args:
       - --type
@@ -251,6 +253,9 @@ spec:
       name: dot-cache-scratch
     - emptyDir: {}
       name: dot-config-scratch
+    - name: kfp-workspace
+      persistentVolumeClaim:
+        claimName: '{{workflow.name}}-kfp-workspace'
   - dag:
       tasks:
       - arguments:

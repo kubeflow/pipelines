@@ -104,7 +104,12 @@ spec:
       - name: parent-dag-id
     metadata: {}
     name: system-importer
-    outputs: {}
+    outputs:
+      parameters:
+      - name: oci-model-image
+        valueFrom:
+          default: ""
+          path: /tmp/kfp-oci-model-image
     securityContext:
       runAsNonRoot: true
       seccompProfile:

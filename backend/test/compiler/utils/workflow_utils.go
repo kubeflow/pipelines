@@ -150,12 +150,11 @@ func ConfigureCacheSettings(workflow *v1alpha1.Workflow, remove bool) *v1alpha1.
 						}
 					}
 				} else {
-					if !slices.Contains(userContainer.Args, cacheDisabledArg) {
-						if len(userContainer.Args) > 0 {
-							userContainer.Args = append(userContainer.Args, cacheDisabledArg)
-						} else {
-							userContainer.Args = []string{cacheDisabledArg}
-						}
+					// Only add --cache_disabled to init containers that already have args;
+					// containers that rely solely on Command (e.g. OCI pre-pull containers)
+					// never receive --cache_disabled from the compiler.
+					if len(userContainer.Args) > 0 && !slices.Contains(userContainer.Args, cacheDisabledArg) {
+						userContainer.Args = append(userContainer.Args, cacheDisabledArg)
 					}
 				}
 				template.InitContainers[index].Args = userContainer.Args

@@ -122,11 +122,238 @@ spec:
       - name: parent-dag-id
     metadata: {}
     name: system-importer
-    outputs: {}
+    outputs:
+      parameters:
+      - name: oci-model-image
+        valueFrom:
+          default: ""
+          path: /tmp/kfp-oci-model-image
     securityContext:
       runAsNonRoot: true
       seccompProfile:
         type: RuntimeDefault
+  - container:
+      command:
+      - /kfp-launcher/launch
+      - --pipeline_name
+      - pipeline-with-google-types
+      - --run_id
+      - '{{workflow.uid}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
+      - --component_spec
+      - '{{inputs.parameters.component}}'
+      - --pod_name
+      - $(KFP_POD_NAME)
+      - --pod_uid
+      - $(KFP_POD_UID)
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: '{{inputs.parameters.image}}'
+      name: ""
+      resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+      - mountPath: /oci-artifact-0/
+        name: oci-artifact-0
+    initContainers:
+    - args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - pipeline-with-google-types
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      command:
+      - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: kfp-driver
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 256Mi
+        requests:
+          cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    - command:
+      - sh
+      - -c
+      - echo 'Pre-fetching...' && [ -d /models ] && [ "$(ls -A /models)" ] && echo
+        'OK' || (echo 'NOK' && exit 1)
+      image: '{{inputs.parameters.oci-model-image-0}}'
+      name: oci-prepull-0
+      resources: {}
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: task-name
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+      - name: image
+      - name: oci-model-image-0
+    metadata: {}
+    name: oci-comp-model-consumer-system-container-impl
+    outputs: {}
+    podSpecPatch: '{"spec":{"shareProcessNamespace":true}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
+    sidecars:
+    - command:
+      - sh
+      - -c
+      - ln -s /proc/$$/root/models /oci-artifact-0/models && echo 'Modelcar ready'
+        && until [ -f /oci-artifact-0/launcher-complete ]; do sleep 1; done
+      image: '{{inputs.parameters.oci-model-image-0}}'
+      imagePullPolicy: IfNotPresent
+      name: oci-0
+      resources: {}
+      volumeMounts:
+      - mountPath: /oci-artifact-0/
+        name: oci-artifact-0
+    volumes:
+    - emptyDir: {}
+      name: kfp-driver-outputs
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+    - emptyDir: {}
+      name: oci-artifact-0
   - container:
       command:
       - /kfp-launcher/launch
@@ -350,9 +577,11 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: image
             value: python:3.11
+          - name: oci-model-image-0
+            value: '{{tasks.importer.outputs.parameters.oci-model-image}}'
         depends: importer.Succeeded && model-producer.Succeeded
         name: model-consumer
-        template: system-container-impl
+        template: oci-comp-model-consumer-system-container-impl
       - arguments:
           parameters:
           - name: component

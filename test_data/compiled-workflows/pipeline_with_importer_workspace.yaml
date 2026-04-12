@@ -182,7 +182,12 @@ spec:
       - name: parent-dag-id
     metadata: {}
     name: system-importer-workspace
-    outputs: {}
+    outputs:
+      parameters:
+      - name: oci-model-image
+        valueFrom:
+          default: ""
+          path: /tmp/kfp-oci-model-image
     securityContext:
       runAsNonRoot: true
       seccompProfile:
@@ -254,6 +259,8 @@ spec:
         name: dot-cache-scratch
       - mountPath: /.config
         name: dot-config-scratch
+      - mountPath: /kfp-workspace
+        name: kfp-workspace
     initContainers:
     - args:
       - --type
@@ -386,6 +393,9 @@ spec:
       name: dot-cache-scratch
     - emptyDir: {}
       name: dot-config-scratch
+    - name: kfp-workspace
+      persistentVolumeClaim:
+        claimName: '{{workflow.name}}-kfp-workspace'
   - dag:
       tasks:
       - arguments:

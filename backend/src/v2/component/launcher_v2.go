@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -125,38 +126,56 @@ func NewLauncherV2(
 	}, nil
 }
 
+// localPathForOCIArtifactByIndex returns the local path where a Modelcar sidecar
+// makes the OCI artifact's models directory available. The index corresponds to
+// the alphabetical sort order of OCI artifact names within the task's inputs —
+// matching the volume mount index assigned by the compiler.
+func localPathForOCIArtifactByIndex(i int) string {
+	return fmt.Sprintf("/oci-artifact-%d/models", i)
+}
+
 // stopWaitingArtifacts will create empty files to tell Modelcar sidecar containers to stop. Any errors encountered are
 // logged since this is meant as a deferred function at the end of the launcher's execution.
 func stopWaitingArtifacts(artifacts map[string]*pipelinespec.ArtifactList) {
-	for _, artifactList := range artifacts {
+	// Pre-compute sorted OCI artifact names for index-based path lookup.
+	ociArtNames := []string{}
+	for name, artifactList := range artifacts {
+		if len(artifactList.Artifacts) > 0 && strings.HasPrefix(artifactList.Artifacts[0].Uri, "oci://") {
+			ociArtNames = append(ociArtNames, name)
+		}
+	}
+	sort.Strings(ociArtNames)
+	ociArtIndex := make(map[string]int, len(ociArtNames))
+	for i, name := range ociArtNames {
+		ociArtIndex[name] = i
+	}
+
+	for name, artifactList := range artifacts {
 		if len(artifactList.Artifacts) == 0 {
 			continue
 		}
 
-		// Following the convention of downloadArtifacts in the launcher to only look at the first in the list.
 		for _, artifact := range artifactList.Artifacts {
 			inputArtifact := artifact
 
-			// This should ideally verify that this is also a model input artifact, but this metadata doesn't seem to
-			// be set on inputArtifact.
 			if !strings.HasPrefix(inputArtifact.Uri, "oci://") {
 				continue
 			}
 
-			localPath, err := retrieveArtifactPath(inputArtifact)
-			if err != nil {
-				continue
+			idx, ok := ociArtIndex[name]
+			if !ok {
+				idx = 0
 			}
+			localPath := localPathForOCIArtifactByIndex(idx)
 
 			glog.Infof("Stopping Modelcar container for artifact %s", inputArtifact.Uri)
 
 			launcherCompleteFile := strings.TrimSuffix(localPath, "/models") + "/launcher-complete"
-			_, err = os.Create(launcherCompleteFile)
+			_, err := os.Create(launcherCompleteFile)
 			if err != nil {
 				glog.Errorf(
 					"Failed to stop the artifact %s by creating %s: %v", inputArtifact.Uri, launcherCompleteFile, err,
 				)
-
 				continue
 			}
 		}
@@ -854,6 +873,20 @@ func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.Executor
 		return fmt.Errorf("failed to fetch non default buckets: %w", err)
 	}
 
+	// Pre-compute sorted OCI artifact names for index-based path lookup (matching
+	// the volume mount indices assigned by the compiler for Modelcar sidecars).
+	ociArtNames := []string{}
+	for name, artifactList := range executorInput.GetInputs().GetArtifacts() {
+		if len(artifactList.Artifacts) > 0 && strings.HasPrefix(artifactList.Artifacts[0].Uri, "oci://") {
+			ociArtNames = append(ociArtNames, name)
+		}
+	}
+	sort.Strings(ociArtNames)
+	ociArtIndex := make(map[string]int, len(ociArtNames))
+	for i, name := range ociArtNames {
+		ociArtIndex[name] = i
+	}
+
 	for name, artifactList := range executorInput.GetInputs().GetArtifacts() {
 		// TODO(neuromage): Support concat-based placholders for arguments.
 		if len(artifactList.Artifacts) == 0 {
@@ -868,19 +901,24 @@ func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.Executor
 					continue
 				}
 			}
-			localPath, err := retrieveArtifactPath(inputArtifact)
-			if err != nil {
-				glog.Warningf("Input Artifact %q does not have a recognized storage URI %q. Skipping downloading to local path.", name, inputArtifact.Uri)
 
+			// OCI artifacts are accessed via shared storage of a Modelcar sidecar container.
+			// Use the index-based path that matches the compiler-assigned volume mount.
+			if strings.HasPrefix(inputArtifact.Uri, "oci://") {
+				idx, ok := ociArtIndex[name]
+				if !ok {
+					idx = 0
+				}
+				localPath := localPathForOCIArtifactByIndex(idx)
+				if err := waitForModelcar(inputArtifact.Uri, localPath); err != nil {
+					return err
+				}
 				continue
 			}
 
-			// OCI artifacts are accessed via shared storage of a Modelcar
-			if strings.HasPrefix(inputArtifact.Uri, "oci://") {
-				err := waitForModelcar(inputArtifact.Uri, localPath)
-				if err != nil {
-					return err
-				}
+			localPath, err := retrieveArtifactPath(inputArtifact)
+			if err != nil {
+				glog.Warningf("Input Artifact %q does not have a recognized storage URI %q. Skipping downloading to local path.", name, inputArtifact.Uri)
 
 				continue
 			}
@@ -1001,6 +1039,19 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 	}
 
 	// Read input artifact metadata.
+	// Pre-compute sorted OCI artifact names for index-based path lookup.
+	ociInputArtNames := []string{}
+	for name, artifactList := range executorInput.GetInputs().GetArtifacts() {
+		if len(artifactList.Artifacts) > 0 && strings.HasPrefix(artifactList.Artifacts[0].Uri, "oci://") {
+			ociInputArtNames = append(ociInputArtNames, name)
+		}
+	}
+	sort.Strings(ociInputArtNames)
+	ociInputArtIndex := make(map[string]int, len(ociInputArtNames))
+	for i, name := range ociInputArtNames {
+		ociInputArtIndex[name] = i
+	}
+
 	for name, artifactList := range executorInput.GetInputs().GetArtifacts() {
 		if len(artifactList.Artifacts) == 0 {
 			continue
@@ -1023,6 +1074,17 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 				placeholders[key] = localPath
 				continue
 			}
+		}
+
+		// OCI artifacts use the index-based Modelcar path.
+		if strings.HasPrefix(inputArtifact.Uri, "oci://") {
+			idx, ok := ociInputArtIndex[name]
+			if !ok {
+				idx = 0
+			}
+			key = fmt.Sprintf(`{{$.inputs.artifacts['%s'].path}}`, name)
+			placeholders[key] = localPathForOCIArtifactByIndex(idx)
+			continue
 		}
 
 		localPath, err := retrieveArtifactPath(inputArtifact)
