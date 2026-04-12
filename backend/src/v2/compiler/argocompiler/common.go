@@ -25,6 +25,9 @@ import (
 const (
 	MLPipelineTLSEnabledEnvVar  = "ML_PIPELINE_TLS_ENABLED"
 	DefaultMLPipelineTLSEnabled = false
+	// volumeNameCustomCA is the name of the volume that holds the custom CA
+	// bundle. It must match the name used by ConfigureCustomCABundle.
+	volumeNameCustomCA = "custom-ca"
 )
 
 // env vars in metadata-grpc-configmap is defined in component package
@@ -102,12 +105,12 @@ func ConfigureCustomCABundle(tmpl *wfapi.Template) {
 		return
 	}
 	volume := k8score.Volume{
-		Name:         "custom-ca",
+		Name:         volumeNameCustomCA,
 		VolumeSource: volumeSource,
 	}
 	tmpl.Volumes = append(tmpl.Volumes, volume)
 
-	volumeMount := k8score.VolumeMount{Name: "custom-ca", MountPath: common.CABundleDir}
+	volumeMount := k8score.VolumeMount{Name: volumeNameCustomCA, MountPath: common.CABundleDir}
 	tmpl.Container.VolumeMounts = append(tmpl.Container.VolumeMounts, volumeMount)
 
 }

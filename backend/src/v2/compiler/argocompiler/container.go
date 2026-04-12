@@ -41,7 +41,6 @@ import (
 
 const (
 	volumeNameKFPLauncher   = "kfp-launcher"
-	volumeNameCABundle      = "ca-bundle"
 	volumeNameDriverOutputs = "kfp-driver-outputs"
 	driverOutputsMountPath  = "/tmp/kfp-driver-outputs"
 	LauncherImageEnvVar     = "V2_LAUNCHER_IMAGE"
@@ -596,10 +595,10 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 		ConfigureCustomCABundle(executor)
 		// The driver init container also needs the CA bundle for TLS calls to MLMD/API server.
 		for _, vol := range executor.Volumes {
-			if vol.Name == volumeNameCABundle {
+			if vol.Name == volumeNameCustomCA {
 				executor.InitContainers[0].VolumeMounts = append(
 					executor.InitContainers[0].VolumeMounts,
-					k8score.VolumeMount{Name: volumeNameCABundle, MountPath: common.CABundleDir},
+					k8score.VolumeMount{Name: volumeNameCustomCA, MountPath: common.CABundleDir},
 				)
 				break
 			}
