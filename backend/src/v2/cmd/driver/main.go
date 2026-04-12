@@ -287,7 +287,7 @@ func drive() (err error) {
 		DriverOutputsDir: *driverOutputsDirFlag,
 	}
 
-	return handleExecution(ctx, execution, *driverType, executionPaths)
+	return handleExecution(execution, *driverType, executionPaths)
 }
 
 func parseExecConfigJson(k8sExecConfigJson *string) (*kubernetesplatform.KubernetesExecutorConfig, error) {
@@ -302,26 +302,15 @@ func parseExecConfigJson(k8sExecConfigJson *string) (*kubernetesplatform.Kuberne
 	return k8sExecCfg, nil
 }
 
-func handleExecution(ctx context.Context, execution *driver.Execution, driverType string, executionPaths *ExecutionPaths) error {
+func handleExecution(execution *driver.Execution, driverType string, executionPaths *ExecutionPaths) error {
 	// Init-container mode: write all container driver outputs to a single directory
 	// for the launcher to read. This replaces the per-file approach used by the
 	// standalone driver pod (which wrote PodSpecPatch etc.).
+	// On cache hit, the driver writes cached-decision=true; the launcher
+	// (running as the main container's entrypoint) reads it and exits 0
+	// without executing the user's command.
 	if executionPaths.DriverOutputsDir != "" {
-		if err := writeDriverOutputsDir(execution, executionPaths.DriverOutputsDir); err != nil {
-			return err
-		}
-		// On cache hit, write a WorkflowTaskResult so Argo marks this node as
-		// Succeeded, then self-delete the pod. This prevents the main container
-		// image (potentially very large) from being pulled unnecessarily.
-		if execution.Cached != nil && *execution.Cached {
-			if err := terminateOnCacheHit(ctx); err != nil {
-				// Non-fatal: log the error and let the pod continue. The launcher
-				// init container will still handle the cache hit gracefully (it
-				// exits 0), but the main container image may still be pulled.
-				glog.Warningf("Failed to terminate pod early on cache hit: %v; the main container image will still be pulled", err)
-			}
-		}
-		return nil
+		return writeDriverOutputsDir(execution, executionPaths.DriverOutputsDir)
 	}
 
 	// Legacy path-based output (standalone driver pod, used by dummy-image tasks).
