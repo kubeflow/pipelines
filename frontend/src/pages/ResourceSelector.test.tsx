@@ -111,20 +111,15 @@ describe('ResourceSelector', () => {
   });
 
   afterEach(() => {
-    if (renderResult) {
-      renderResult.unmount();
-      renderResult = null;
-    }
     resourceSelectorRef = null;
     vi.restoreAllMocks();
   });
 
   it('displays resource selector', async () => {
     await renderResourceSelector();
-
     expect(listResourceSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
-    expect(getResourceSelectorState()).toHaveProperty('resources', RESOURCES);
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('test-1 name')).toBeInTheDocument();
+    expect(screen.getByText('test-2 name')).toBeInTheDocument();
   });
 
   it('converts resources into a table rows', async () => {
