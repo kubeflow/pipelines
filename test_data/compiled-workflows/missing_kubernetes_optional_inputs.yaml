@@ -67,10 +67,6 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
-      - name: SETTING
-        valueFrom:
-          configMapKeyRef:
-            key: setting
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap

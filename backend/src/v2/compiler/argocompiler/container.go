@@ -698,53 +698,29 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 	}
 
 	// Add Modelcar sidecar containers for OCI artifact inputs.
-	if len(ociArtNames) > 0 {
-		for i := range ociArtNames {
-			ociVolumeName := fmt.Sprintf("oci-artifact-%d", i)
-			ociImageParam := fmt.Sprintf("{{inputs.parameters.oci-model-image-%d}}", i)
-			// Init container pre-pulls the OCI image and validates it contains models.
-			executor.InitContainers = append(executor.InitContainers, wfapi.UserContainer{
-				Container: k8score.Container{
-					Name:    fmt.Sprintf("oci-prepull-%d", i),
-					Image:   ociImageParam,
-					Command: []string{"sh", "-c", "echo 'Pre-fetching...' && [ -d /models ] && [ \"$(ls -A /models)\" ] && echo 'OK' || (echo 'NOK' && exit 1)"},
+	// The sidecar copies the OCI image's /models directory into a shared emptyDir
+	// volume so the main container can read the model files without requiring
+	// shareProcessNamespace or /proc symlink tricks.
+	for i := range ociArtNames {
+		ociVolumeName := fmt.Sprintf("oci-artifact-%d", i)
+		ociImageParam := fmt.Sprintf("{{inputs.parameters.oci-model-image-%d}}", i)
+		executor.Sidecars = append(executor.Sidecars, wfapi.UserContainer{
+			Container: k8score.Container{
+				Name:            fmt.Sprintf("oci-%d", i),
+				Image:           ociImageParam,
+				ImagePullPolicy: k8score.PullIfNotPresent,
+				Command: []string{
+					"sh", "-c",
+					fmt.Sprintf(
+						"cp -r /models /oci-artifact-%d/models && echo 'Modelcar ready' && until [ -f /oci-artifact-%d/launcher-complete ]; do sleep 1; done",
+						i, i,
+					),
 				},
-			})
-			// Sidecar container shares the OCI image's /models directory via a /proc symlink
-			// into the shared emptyDir volume; the main container then reads from it.
-			executor.Sidecars = append(executor.Sidecars, wfapi.UserContainer{
-				Container: k8score.Container{
-					Name:            fmt.Sprintf("oci-%d", i),
-					Image:           ociImageParam,
-					ImagePullPolicy: k8score.PullIfNotPresent,
-					Command: []string{
-						"sh", "-c",
-						fmt.Sprintf(
-							"ln -s /proc/$$/root/models /oci-artifact-%d/models && echo 'Modelcar ready' && until [ -f /oci-artifact-%d/launcher-complete ]; do sleep 1; done",
-							i, i,
-						),
-					},
-					VolumeMounts: []k8score.VolumeMount{
-						{Name: ociVolumeName, MountPath: fmt.Sprintf("/oci-artifact-%d/", i)},
-					},
+				VolumeMounts: []k8score.VolumeMount{
+					{Name: ociVolumeName, MountPath: fmt.Sprintf("/oci-artifact-%d/", i)},
 				},
-			})
-		}
-
-		// shareProcessNamespace is required for the /proc symlink trick used by Modelcar sidecars.
-		existing := map[string]interface{}{}
-		if executor.PodSpecPatch != "" {
-			_ = json.Unmarshal([]byte(executor.PodSpecPatch), &existing)
-		}
-		spec, ok := existing["spec"].(map[string]interface{})
-		if !ok {
-			spec = map[string]interface{}{}
-		}
-		spec["shareProcessNamespace"] = true
-		existing["spec"] = spec
-		if patchBytes, err := json.Marshal(existing); err == nil {
-			executor.PodSpecPatch = string(patchBytes)
-		}
+			},
+		})
 	}
 
 	c.templates[nameContainerImpl] = executor
@@ -987,6 +963,10 @@ func applyStaticK8sConfig(tmpl *wfapi.Template, cfg *kubernetesplatform.Kubernet
 		configMapName := resolveStringParam(ce.GetConfigMapNameParameter(), resolveParam)
 		if configMapName == "" {
 			configMapName = ce.GetConfigMapName() //nolint:staticcheck
+		}
+		if configMapName == "" {
+			glog.Warningf("ConfigMapAsEnv with empty/dynamic configMapName is not supported with init-container driver; skipping")
+			continue
 		}
 		for _, kToEnv := range ce.GetKeyToEnv() {
 			tmpl.Container.Env = append(tmpl.Container.Env, k8score.EnvVar{

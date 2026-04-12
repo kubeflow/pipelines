@@ -294,14 +294,6 @@ spec:
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
-    - command:
-      - sh
-      - -c
-      - echo 'Pre-fetching...' && [ -d /models ] && [ "$(ls -A /models)" ] && echo
-        'OK' || (echo 'NOK' && exit 1)
-      image: '{{inputs.parameters.oci-model-image-0}}'
-      name: oci-prepull-0
-      resources: {}
     inputs:
       parameters:
       - name: component
@@ -318,7 +310,6 @@ spec:
     metadata: {}
     name: oci-comp-model-consumer-system-container-impl
     outputs: {}
-    podSpecPatch: '{"spec":{"shareProcessNamespace":true}}'
     securityContext:
       seccompProfile:
         type: RuntimeDefault
@@ -326,8 +317,8 @@ spec:
     - command:
       - sh
       - -c
-      - ln -s /proc/$$/root/models /oci-artifact-0/models && echo 'Modelcar ready'
-        && until [ -f /oci-artifact-0/launcher-complete ]; do sleep 1; done
+      - cp -r /models /oci-artifact-0/models && echo 'Modelcar ready' && until [ -f
+        /oci-artifact-0/launcher-complete ]; do sleep 1; done
       image: '{{inputs.parameters.oci-model-image-0}}'
       imagePullPolicy: IfNotPresent
       name: oci-0
