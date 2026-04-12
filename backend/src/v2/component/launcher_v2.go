@@ -134,6 +134,37 @@ func localPathForOCIArtifactByIndex(i int) string {
 	return fmt.Sprintf("/oci-artifact-%d/models", i)
 }
 
+// ociMountDirByIndex returns the emptyDir volume mount base directory (without
+// the trailing /models segment) for the OCI artifact at the given index.
+func ociMountDirByIndex(i int) string {
+	return fmt.Sprintf("/oci-artifact-%d", i)
+}
+
+// injectOCIArtifactMountPaths sets the CustomPath field on every OCI input
+// artifact in executorInput to the compile-time emptyDir mount base directory
+// (e.g. /oci-artifact-0). This allows the Python executor to resolve
+// input_model.path to the correct location without having to derive it from
+// the artifact URI, which is only known at runtime.
+//
+// The Python Model.path property appends /models to the custom path for OCI
+// artifacts, so the base directory without /models must be provided here.
+func injectOCIArtifactMountPaths(executorInput *pipelinespec.ExecutorInput) {
+	ociNames := make([]string, 0)
+	for name, artifactList := range executorInput.GetInputs().GetArtifacts() {
+		if len(artifactList.Artifacts) > 0 && strings.HasPrefix(artifactList.Artifacts[0].Uri, "oci://") {
+			ociNames = append(ociNames, name)
+		}
+	}
+	sort.Strings(ociNames)
+
+	for i, name := range ociNames {
+		mountDir := ociMountDirByIndex(i)
+		for _, artifact := range executorInput.GetInputs().GetArtifacts()[name].Artifacts {
+			artifact.CustomPath = &mountDir
+		}
+	}
+}
+
 // stopWaitingArtifacts will create empty files to tell Modelcar sidecar containers to stop. Any errors encountered are
 // logged since this is meant as a deferred function at the end of the launcher's execution.
 func stopWaitingArtifacts(artifacts map[string]*pipelinespec.ArtifactList) {
@@ -413,6 +444,11 @@ func executeV2(
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Patch OCI input artifacts with the index-based emptyDir mount path so
+	// that the Python executor can locate Modelcar files without needing to
+	// derive the path from the artifact URI (which is only known at runtime).
+	injectOCIArtifactMountPaths(executorInputWithDefault)
 
 	// Fill in placeholders with runtime values.
 	compiledCmd, compiledArgs, err := compileCmdAndArgs(executorInputWithDefault, cmd, args)

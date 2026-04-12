@@ -463,15 +463,30 @@ def create_artifact_instance(
     schema_title = runtime_artifact.get('type', {}).get('schemaTitle', '')
     artifact_cls = artifact_types._SCHEMA_TITLE_TO_TYPE.get(
         schema_title, fallback_artifact_cls)
-    return artifact_cls._from_executor_fields(
-        uri=runtime_artifact.get('uri', ''),
-        name=runtime_artifact.get('name', ''),
-        metadata=runtime_artifact.get('metadata', {}),
-    ) if hasattr(artifact_cls, '_from_executor_fields') else artifact_cls(
-        uri=runtime_artifact.get('uri', ''),
-        name=runtime_artifact.get('name', ''),
-        metadata=runtime_artifact.get('metadata', {}),
-    )
+
+    if hasattr(artifact_cls, '_from_executor_fields'):
+        artifact = artifact_cls._from_executor_fields(
+            uri=runtime_artifact.get('uri', ''),
+            name=runtime_artifact.get('name', ''),
+            metadata=runtime_artifact.get('metadata', {}),
+        )
+    else:
+        artifact = artifact_cls(
+            uri=runtime_artifact.get('uri', ''),
+            name=runtime_artifact.get('name', ''),
+            metadata=runtime_artifact.get('metadata', {}),
+        )
+
+    # Set custom_path when provided by the backend. The backend serializes this
+    # field as camelCase ("customPath") via protojson; the Python SDK uses
+    # snake_case ("custom_path") when writing. Both spellings are accepted here
+    # for forward and backward compatibility.
+    custom_path = runtime_artifact.get('customPath') or runtime_artifact.get(
+        'custom_path')
+    if custom_path:
+        artifact.custom_path = custom_path
+
+    return artifact
 
 
 # TODO: merge with type_utils.is_parameter_type
