@@ -1,0 +1,33 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../platform-agnostic
+
+namespace: kubeflow
+
+images:
+- name: ghcr.io/kubeflow/kfp-api-server
+  newName: kfp-api-server
+  newTag: dev
+- name: ghcr.io/kubeflow/kfp-persistence-agent
+  newName: ghcr.io/kubeflow/kfp-persistence-agent
+  newTag: 2.16.0
+- name: ghcr.io/kubeflow/kfp-scheduled-workflow-controller
+  newName: ghcr.io/kubeflow/kfp-scheduled-workflow-controller
+  newTag: 2.16.0
+- name: ghcr.io/kubeflow/kfp-frontend
+  newName: ghcr.io/kubeflow/kfp-frontend
+  newTag: 2.16.0
+- name: ghcr.io/kubeflow/kfp-viewer-crd-controller
+  newName: ghcr.io/kubeflow/kfp-viewer-crd-controller
+  newTag: 2.16.0
+- name: ghcr.io/kubeflow/kfp-visualization-server
+  newName: ghcr.io/kubeflow/kfp-visualization-server
+  newTag: 2.16.0
+
+patches:
+- path: api-server-patch.yaml
+  target:
+    kind: Deployment
+    name: ml-pipeline

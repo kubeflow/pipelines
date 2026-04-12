@@ -155,7 +155,86 @@ spec:
   serviceAccountName: pipeline-runner
   templates:
   - container:
-      args:
+      command:
+      - /kfp-launcher/launch
+      - --pipeline_name
+      - pipeline-with-pod-metadata
+      - --run_id
+      - '{{workflow.uid}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
+      - --component_spec
+      - '{{inputs.parameters.component}}'
+      - --pod_name
+      - $(KFP_POD_NAME)
+      - --pod_uid
+      - $(KFP_POD_UID)
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      - name: POD_TASK_ANNOTATION
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.annotations['task-annotation']
+      - name: POD_TASK_ANNOTATION_1
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.annotations['task-annotation-1']
+      - name: POD_TASK_LABEL
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.labels['task-label']
+      - name: POD_TASK_LABEL_1
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.labels['task-label-1']
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: '{{inputs.parameters.image}}'
+      name: ""
+      resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
       - --type
       - CONTAINER
       - --pipeline_name
@@ -178,14 +257,10 @@ spec:
       - '{{inputs.parameters.container}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
-      - --cached_decision_path
-      - '{{outputs.parameters.cached-decision.path}}'
-      - --pod_spec_patch_path
-      - '{{outputs.parameters.pod-spec-patch.path}}'
-      - --condition_path
-      - '{{outputs.parameters.condition.path}}'
       - --kubernetes_config
       - '{{inputs.parameters.kubernetes-config}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
       - --http_proxy
       - ""
       - --https_proxy
@@ -212,14 +287,14 @@ spec:
           fieldRef:
             fieldPath: metadata.uid
       image: ghcr.io/kubeflow/kfp-driver:latest
-      name: ""
+      name: kfp-driver
       resources:
         limits:
           cpu: 500m
           memory: 512Mi
         requests:
           cpu: 100m
-          memory: 64Mi
+          memory: 128Mi
       securityContext:
         allowPrivilegeEscalation: false
         capabilities:
@@ -228,97 +303,9 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-    inputs:
-      parameters:
-      - name: component
-      - name: task
-      - name: container
-      - name: task-name
-      - name: parent-dag-id
-      - default: "-1"
-        name: iteration-index
-      - default: ""
-        name: kubernetes-config
-    metadata: {}
-    name: system-container-driver
-    outputs:
-      parameters:
-      - name: pod-spec-patch
-        valueFrom:
-          default: ""
-          path: /tmp/outputs/pod-spec-patch
-      - default: "false"
-        name: cached-decision
-        valueFrom:
-          default: "false"
-          path: /tmp/outputs/cached-decision
-      - name: condition
-        valueFrom:
-          default: "true"
-          path: /tmp/outputs/condition
-    securityContext:
-      runAsNonRoot: true
-      seccompProfile:
-        type: RuntimeDefault
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{inputs.parameters.pod-spec-patch}}'
-        name: executor
-        template: system-container-impl
-        when: '{{inputs.parameters.cached-decision}} != true'
-    inputs:
-      parameters:
-      - name: pod-spec-patch
-      - default: "false"
-        name: cached-decision
-    metadata: {}
-    name: system-container-executor
-    outputs: {}
-  - container:
-      command:
-      - should-be-overridden-during-runtime
-      env:
-      - name: KFP_POD_NAME
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.name
-      - name: KFP_POD_UID
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.uid
-      envFrom:
-      - configMapRef:
-          name: metadata-grpc-configmap
-          optional: true
-      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
-      name: ""
-      resources: {}
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
-        seccompProfile:
-          type: RuntimeDefault
       volumeMounts:
-      - mountPath: /kfp-launcher
-        name: kfp-launcher
-      - mountPath: /gcs
-        name: gcs-scratch
-      - mountPath: /s3
-        name: s3-scratch
-      - mountPath: /minio
-        name: minio-scratch
-      - mountPath: /.local
-        name: dot-local-scratch
-      - mountPath: /.cache
-        name: dot-cache-scratch
-      - mountPath: /.config
-        name: dot-config-scratch
-    initContainers:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
     - args:
       - --copy
       - /kfp-launcher/launch
@@ -345,15 +332,25 @@ spec:
         name: kfp-launcher
     inputs:
       parameters:
-      - name: pod-spec-patch
+      - name: component
+      - name: task
+      - name: container
+      - name: task-name
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+      - name: image
     metadata: {}
-    name: system-container-impl
+    name: k8s-comp-validate-no-pod-metadata-system-container-impl
     outputs: {}
-    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     securityContext:
       seccompProfile:
         type: RuntimeDefault
     volumes:
+    - emptyDir: {}
+      name: kfp-driver-outputs
     - emptyDir: {}
       name: kfp-launcher
     - emptyDir: {}
@@ -368,44 +365,29 @@ spec:
       name: dot-cache-scratch
     - emptyDir: {}
       name: dot-config-scratch
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{inputs.parameters.pod-spec-patch}}'
-          - name: pod-metadata-annotation-key
-            value: '{{inputs.parameters.pod-metadata-annotation-key}}'
-          - name: pod-metadata-annotation-val
-            value: '{{inputs.parameters.pod-metadata-annotation-val}}'
-          - name: pod-metadata-label-key-1
-            value: '{{inputs.parameters.pod-metadata-label-key-1}}'
-          - name: pod-metadata-label-val-1
-            value: '{{inputs.parameters.pod-metadata-label-val-1}}'
-          - name: pod-metadata-label-key-2
-            value: '{{inputs.parameters.pod-metadata-label-key-2}}'
-          - name: pod-metadata-label-val-2
-            value: '{{inputs.parameters.pod-metadata-label-val-2}}'
-        name: executor
-        template: metadata-1-2-system-container-impl
-        when: '{{inputs.parameters.cached-decision}} != true'
-    inputs:
-      parameters:
-      - name: pod-spec-patch
-      - default: "false"
-        name: cached-decision
-      - name: pod-metadata-annotation-key
-      - name: pod-metadata-annotation-val
-      - name: pod-metadata-label-key-1
-      - name: pod-metadata-label-val-1
-      - name: pod-metadata-label-key-2
-      - name: pod-metadata-label-val-2
-    metadata: {}
-    name: metadata-1-2-system-container-executor
-    outputs: {}
   - container:
       command:
-      - should-be-overridden-during-runtime
+      - /kfp-launcher/launch
+      - --pipeline_name
+      - pipeline-with-pod-metadata
+      - --run_id
+      - '{{workflow.uid}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
+      - --component_spec
+      - '{{inputs.parameters.component}}'
+      - --pod_name
+      - $(KFP_POD_NAME)
+      - --pod_uid
+      - $(KFP_POD_UID)
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
       env:
       - name: KFP_POD_NAME
         valueFrom:
@@ -415,11 +397,23 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: POD_TASK_ANNOTATION
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.annotations['task-annotation']
+      - name: POD_TASK_LABEL_1
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.labels['task-label-1']
+      - name: POD_TASK_LABEL_2
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.labels['task-label-2']
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap
           optional: true
-      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      image: '{{inputs.parameters.image}}'
       name: ""
       resources: {}
       securityContext:
@@ -430,6 +424,8 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       volumeMounts:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
       - mountPath: /kfp-launcher
         name: kfp-launcher
       - mountPath: /gcs
@@ -445,6 +441,78 @@ spec:
       - mountPath: /.config
         name: dot-config-scratch
     initContainers:
+    - args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - pipeline-with-pod-metadata
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      command:
+      - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: kfp-driver
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
     - args:
       - --copy
       - /kfp-launcher/launch
@@ -471,7 +539,16 @@ spec:
         name: kfp-launcher
     inputs:
       parameters:
-      - name: pod-spec-patch
+      - name: component
+      - name: task
+      - name: container
+      - name: task-name
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+      - name: image
       - name: pod-metadata-annotation-key
       - name: pod-metadata-annotation-val
       - name: pod-metadata-label-key-1
@@ -484,13 +561,14 @@ spec:
       labels:
         '{{inputs.parameters.pod-metadata-label-key-1}}': '{{inputs.parameters.pod-metadata-label-val-1}}'
         '{{inputs.parameters.pod-metadata-label-key-2}}': '{{inputs.parameters.pod-metadata-label-val-2}}'
-    name: metadata-1-2-system-container-impl
+    name: k8s-comp-validate-pod-metadata-task-a-metadata-1-2-system-container-impl
     outputs: {}
-    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     securityContext:
       seccompProfile:
         type: RuntimeDefault
     volumes:
+    - emptyDir: {}
+      name: kfp-driver-outputs
     - emptyDir: {}
       name: kfp-launcher
     - emptyDir: {}
@@ -505,68 +583,29 @@ spec:
       name: dot-cache-scratch
     - emptyDir: {}
       name: dot-config-scratch
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{inputs.parameters.pod-spec-patch}}'
-          - name: pod-metadata-annotation-key-1
-            value: '{{inputs.parameters.pod-metadata-annotation-key-1}}'
-          - name: pod-metadata-annotation-val-1
-            value: '{{inputs.parameters.pod-metadata-annotation-val-1}}'
-          - name: pod-metadata-annotation-key-2
-            value: '{{inputs.parameters.pod-metadata-annotation-key-2}}'
-          - name: pod-metadata-annotation-val-2
-            value: '{{inputs.parameters.pod-metadata-annotation-val-2}}'
-          - name: pod-metadata-annotation-key-3
-            value: '{{inputs.parameters.pod-metadata-annotation-key-3}}'
-          - name: pod-metadata-annotation-val-3
-            value: '{{inputs.parameters.pod-metadata-annotation-val-3}}'
-          - name: pod-metadata-annotation-key-4
-            value: '{{inputs.parameters.pod-metadata-annotation-key-4}}'
-          - name: pod-metadata-annotation-val-4
-            value: '{{inputs.parameters.pod-metadata-annotation-val-4}}'
-          - name: pod-metadata-label-key-1
-            value: '{{inputs.parameters.pod-metadata-label-key-1}}'
-          - name: pod-metadata-label-val-1
-            value: '{{inputs.parameters.pod-metadata-label-val-1}}'
-          - name: pod-metadata-label-key-2
-            value: '{{inputs.parameters.pod-metadata-label-key-2}}'
-          - name: pod-metadata-label-val-2
-            value: '{{inputs.parameters.pod-metadata-label-val-2}}'
-          - name: pod-metadata-label-key-3
-            value: '{{inputs.parameters.pod-metadata-label-key-3}}'
-          - name: pod-metadata-label-val-3
-            value: '{{inputs.parameters.pod-metadata-label-val-3}}'
-        name: executor
-        template: metadata-4-3-system-container-impl
-        when: '{{inputs.parameters.cached-decision}} != true'
-    inputs:
-      parameters:
-      - name: pod-spec-patch
-      - default: "false"
-        name: cached-decision
-      - name: pod-metadata-annotation-key-1
-      - name: pod-metadata-annotation-val-1
-      - name: pod-metadata-annotation-key-2
-      - name: pod-metadata-annotation-val-2
-      - name: pod-metadata-annotation-key-3
-      - name: pod-metadata-annotation-val-3
-      - name: pod-metadata-annotation-key-4
-      - name: pod-metadata-annotation-val-4
-      - name: pod-metadata-label-key-1
-      - name: pod-metadata-label-val-1
-      - name: pod-metadata-label-key-2
-      - name: pod-metadata-label-val-2
-      - name: pod-metadata-label-key-3
-      - name: pod-metadata-label-val-3
-    metadata: {}
-    name: metadata-4-3-system-container-executor
-    outputs: {}
   - container:
       command:
-      - should-be-overridden-during-runtime
+      - /kfp-launcher/launch
+      - --pipeline_name
+      - pipeline-with-pod-metadata
+      - --run_id
+      - '{{workflow.uid}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
+      - --component_spec
+      - '{{inputs.parameters.component}}'
+      - --pod_name
+      - $(KFP_POD_NAME)
+      - --pod_uid
+      - $(KFP_POD_UID)
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
       env:
       - name: KFP_POD_NAME
         valueFrom:
@@ -576,11 +615,39 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: POD_TASK_ANNOTATION_1
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.annotations['task-annotation-1']
+      - name: POD_TASK_ANNOTATION_2
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.annotations['task-annotation-2']
+      - name: POD_TASK_ANNOTATION_3
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.annotations['task-annotation-3']
+      - name: POD_TASK_ANNOTATION_4
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.annotations['task-annotation-4']
+      - name: POD_TASK_LABEL_1
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.labels['task-label-1']
+      - name: POD_TASK_LABEL_2
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.labels['task-label-2']
+      - name: POD_TASK_LABEL_3
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.labels['task-label-3']
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap
           optional: true
-      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      image: '{{inputs.parameters.image}}'
       name: ""
       resources: {}
       securityContext:
@@ -591,6 +658,8 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       volumeMounts:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
       - mountPath: /kfp-launcher
         name: kfp-launcher
       - mountPath: /gcs
@@ -606,6 +675,78 @@ spec:
       - mountPath: /.config
         name: dot-config-scratch
     initContainers:
+    - args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - pipeline-with-pod-metadata
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      command:
+      - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: kfp-driver
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
     - args:
       - --copy
       - /kfp-launcher/launch
@@ -632,7 +773,16 @@ spec:
         name: kfp-launcher
     inputs:
       parameters:
-      - name: pod-spec-patch
+      - name: component
+      - name: task
+      - name: container
+      - name: task-name
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+      - name: image
       - name: pod-metadata-annotation-key-1
       - name: pod-metadata-annotation-val-1
       - name: pod-metadata-annotation-key-2
@@ -657,13 +807,14 @@ spec:
         '{{inputs.parameters.pod-metadata-label-key-1}}': '{{inputs.parameters.pod-metadata-label-val-1}}'
         '{{inputs.parameters.pod-metadata-label-key-2}}': '{{inputs.parameters.pod-metadata-label-val-2}}'
         '{{inputs.parameters.pod-metadata-label-key-3}}': '{{inputs.parameters.pod-metadata-label-val-3}}'
-    name: metadata-4-3-system-container-impl
+    name: k8s-comp-validate-pod-metadata-task-b-metadata-4-3-system-container-impl
     outputs: {}
-    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     securityContext:
       seccompProfile:
         type: RuntimeDefault
     volumes:
+    - emptyDir: {}
+      name: kfp-driver-outputs
     - emptyDir: {}
       name: kfp-launcher
     - emptyDir: {}
@@ -678,38 +829,29 @@ spec:
       name: dot-cache-scratch
     - emptyDir: {}
       name: dot-config-scratch
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{inputs.parameters.pod-spec-patch}}'
-          - name: pod-metadata-annotation-key-1
-            value: '{{inputs.parameters.pod-metadata-annotation-key-1}}'
-          - name: pod-metadata-annotation-val-1
-            value: '{{inputs.parameters.pod-metadata-annotation-val-1}}'
-          - name: pod-metadata-annotation-key-2
-            value: '{{inputs.parameters.pod-metadata-annotation-key-2}}'
-          - name: pod-metadata-annotation-val-2
-            value: '{{inputs.parameters.pod-metadata-annotation-val-2}}'
-        name: executor
-        template: metadata-2-0-system-container-impl
-        when: '{{inputs.parameters.cached-decision}} != true'
-    inputs:
-      parameters:
-      - name: pod-spec-patch
-      - default: "false"
-        name: cached-decision
-      - name: pod-metadata-annotation-key-1
-      - name: pod-metadata-annotation-val-1
-      - name: pod-metadata-annotation-key-2
-      - name: pod-metadata-annotation-val-2
-    metadata: {}
-    name: metadata-2-0-system-container-executor
-    outputs: {}
   - container:
       command:
-      - should-be-overridden-during-runtime
+      - /kfp-launcher/launch
+      - --pipeline_name
+      - pipeline-with-pod-metadata
+      - --run_id
+      - '{{workflow.uid}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
+      - --component_spec
+      - '{{inputs.parameters.component}}'
+      - --pod_name
+      - $(KFP_POD_NAME)
+      - --pod_uid
+      - $(KFP_POD_UID)
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
       env:
       - name: KFP_POD_NAME
         valueFrom:
@@ -719,11 +861,19 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: POD_TASK_ANNOTATION_1
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.annotations['task-annotation-1']
+      - name: POD_TASK_ANNOTATION_2
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.annotations['task-annotation-2']
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap
           optional: true
-      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      image: '{{inputs.parameters.image}}'
       name: ""
       resources: {}
       securityContext:
@@ -734,6 +884,8 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       volumeMounts:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
       - mountPath: /kfp-launcher
         name: kfp-launcher
       - mountPath: /gcs
@@ -749,6 +901,78 @@ spec:
       - mountPath: /.config
         name: dot-config-scratch
     initContainers:
+    - args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - pipeline-with-pod-metadata
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      command:
+      - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: kfp-driver
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
     - args:
       - --copy
       - /kfp-launcher/launch
@@ -775,7 +999,16 @@ spec:
         name: kfp-launcher
     inputs:
       parameters:
-      - name: pod-spec-patch
+      - name: component
+      - name: task
+      - name: container
+      - name: task-name
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+      - name: image
       - name: pod-metadata-annotation-key-1
       - name: pod-metadata-annotation-val-1
       - name: pod-metadata-annotation-key-2
@@ -784,13 +1017,14 @@ spec:
       annotations:
         '{{inputs.parameters.pod-metadata-annotation-key-1}}': '{{inputs.parameters.pod-metadata-annotation-val-1}}'
         '{{inputs.parameters.pod-metadata-annotation-key-2}}': '{{inputs.parameters.pod-metadata-annotation-val-2}}'
-    name: metadata-2-0-system-container-impl
+    name: k8s-comp-validate-pod-metadata-task-c-metadata-2-0-system-container-impl
     outputs: {}
-    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     securityContext:
       seccompProfile:
         type: RuntimeDefault
     volumes:
+    - emptyDir: {}
+      name: kfp-driver-outputs
     - emptyDir: {}
       name: kfp-launcher
     - emptyDir: {}
@@ -805,44 +1039,29 @@ spec:
       name: dot-cache-scratch
     - emptyDir: {}
       name: dot-config-scratch
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{inputs.parameters.pod-spec-patch}}'
-          - name: pod-metadata-label-key-1
-            value: '{{inputs.parameters.pod-metadata-label-key-1}}'
-          - name: pod-metadata-label-val-1
-            value: '{{inputs.parameters.pod-metadata-label-val-1}}'
-          - name: pod-metadata-label-key-2
-            value: '{{inputs.parameters.pod-metadata-label-key-2}}'
-          - name: pod-metadata-label-val-2
-            value: '{{inputs.parameters.pod-metadata-label-val-2}}'
-          - name: pod-metadata-label-key-3
-            value: '{{inputs.parameters.pod-metadata-label-key-3}}'
-          - name: pod-metadata-label-val-3
-            value: '{{inputs.parameters.pod-metadata-label-val-3}}'
-        name: executor
-        template: metadata-0-3-system-container-impl
-        when: '{{inputs.parameters.cached-decision}} != true'
-    inputs:
-      parameters:
-      - name: pod-spec-patch
-      - default: "false"
-        name: cached-decision
-      - name: pod-metadata-label-key-1
-      - name: pod-metadata-label-val-1
-      - name: pod-metadata-label-key-2
-      - name: pod-metadata-label-val-2
-      - name: pod-metadata-label-key-3
-      - name: pod-metadata-label-val-3
-    metadata: {}
-    name: metadata-0-3-system-container-executor
-    outputs: {}
   - container:
       command:
-      - should-be-overridden-during-runtime
+      - /kfp-launcher/launch
+      - --pipeline_name
+      - pipeline-with-pod-metadata
+      - --run_id
+      - '{{workflow.uid}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
+      - --component_spec
+      - '{{inputs.parameters.component}}'
+      - --pod_name
+      - $(KFP_POD_NAME)
+      - --pod_uid
+      - $(KFP_POD_UID)
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
       env:
       - name: KFP_POD_NAME
         valueFrom:
@@ -852,11 +1071,23 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: POD_TASK_LABEL_1
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.labels['task-label-1']
+      - name: POD_TASK_LABEL_2
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.labels['task-label-2']
+      - name: POD_TASK_LABEL_3
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.labels['task-label-3']
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap
           optional: true
-      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      image: '{{inputs.parameters.image}}'
       name: ""
       resources: {}
       securityContext:
@@ -867,6 +1098,8 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       volumeMounts:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
       - mountPath: /kfp-launcher
         name: kfp-launcher
       - mountPath: /gcs
@@ -882,6 +1115,78 @@ spec:
       - mountPath: /.config
         name: dot-config-scratch
     initContainers:
+    - args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - pipeline-with-pod-metadata
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      command:
+      - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: kfp-driver
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
     - args:
       - --copy
       - /kfp-launcher/launch
@@ -908,7 +1213,16 @@ spec:
         name: kfp-launcher
     inputs:
       parameters:
-      - name: pod-spec-patch
+      - name: component
+      - name: task
+      - name: container
+      - name: task-name
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+      - name: image
       - name: pod-metadata-label-key-1
       - name: pod-metadata-label-val-1
       - name: pod-metadata-label-key-2
@@ -920,13 +1234,14 @@ spec:
         '{{inputs.parameters.pod-metadata-label-key-1}}': '{{inputs.parameters.pod-metadata-label-val-1}}'
         '{{inputs.parameters.pod-metadata-label-key-2}}': '{{inputs.parameters.pod-metadata-label-val-2}}'
         '{{inputs.parameters.pod-metadata-label-key-3}}': '{{inputs.parameters.pod-metadata-label-val-3}}'
-    name: metadata-0-3-system-container-impl
+    name: k8s-comp-validate-pod-metadata-task-d-metadata-0-3-system-container-impl
     outputs: {}
-    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     securityContext:
       seccompProfile:
         type: RuntimeDefault
     volumes:
+    - emptyDir: {}
+      name: kfp-driver-outputs
     - emptyDir: {}
       name: kfp-launcher
     - emptyDir: {}
@@ -955,20 +1270,12 @@ spec:
             value: validate-no-pod-metadata
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.11
           - name: kubernetes-config
             value: '{{workflow.parameters.kubernetes-comp-validate-no-pod-metadata}}'
-        name: validate-no-pod-metadata-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.validate-no-pod-metadata-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.validate-no-pod-metadata-driver.outputs.parameters.cached-decision}}'
-        depends: validate-no-pod-metadata-driver.Succeeded
         name: validate-no-pod-metadata
-        template: system-container-executor
+        template: k8s-comp-validate-no-pod-metadata-system-container-impl
       - arguments:
           parameters:
           - name: component
@@ -981,17 +1288,10 @@ spec:
             value: validate-pod-metadata-task-a
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.11
           - name: kubernetes-config
             value: '{{workflow.parameters.kubernetes-comp-validate-pod-metadata-task-a}}'
-        name: validate-pod-metadata-task-a-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.validate-pod-metadata-task-a-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.validate-pod-metadata-task-a-driver.outputs.parameters.cached-decision}}'
           - name: pod-metadata-annotation-key
             value: task-annotation
           - name: pod-metadata-annotation-val
@@ -1004,9 +1304,8 @@ spec:
             value: task-label-2
           - name: pod-metadata-label-val-2
             value: label-2
-        depends: validate-pod-metadata-task-a-driver.Succeeded
         name: validate-pod-metadata-task-a
-        template: metadata-1-2-system-container-executor
+        template: k8s-comp-validate-pod-metadata-task-a-metadata-1-2-system-container-impl
       - arguments:
           parameters:
           - name: component
@@ -1019,17 +1318,10 @@ spec:
             value: validate-pod-metadata-task-b
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.11
           - name: kubernetes-config
             value: '{{workflow.parameters.kubernetes-comp-validate-pod-metadata-task-b}}'
-        name: validate-pod-metadata-task-b-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.validate-pod-metadata-task-b-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.validate-pod-metadata-task-b-driver.outputs.parameters.cached-decision}}'
           - name: pod-metadata-annotation-key-1
             value: task-annotation-1
           - name: pod-metadata-annotation-val-1
@@ -1058,9 +1350,8 @@ spec:
             value: task-label-3
           - name: pod-metadata-label-val-3
             value: label-3
-        depends: validate-pod-metadata-task-b-driver.Succeeded
         name: validate-pod-metadata-task-b
-        template: metadata-4-3-system-container-executor
+        template: k8s-comp-validate-pod-metadata-task-b-metadata-4-3-system-container-impl
       - arguments:
           parameters:
           - name: component
@@ -1073,17 +1364,10 @@ spec:
             value: validate-pod-metadata-task-c
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.11
           - name: kubernetes-config
             value: '{{workflow.parameters.kubernetes-comp-validate-pod-metadata-task-c}}'
-        name: validate-pod-metadata-task-c-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.validate-pod-metadata-task-c-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.validate-pod-metadata-task-c-driver.outputs.parameters.cached-decision}}'
           - name: pod-metadata-annotation-key-1
             value: task-annotation-1
           - name: pod-metadata-annotation-val-1
@@ -1092,9 +1376,8 @@ spec:
             value: task-annotation-2
           - name: pod-metadata-annotation-val-2
             value: annotation-2
-        depends: validate-pod-metadata-task-c-driver.Succeeded
         name: validate-pod-metadata-task-c
-        template: metadata-2-0-system-container-executor
+        template: k8s-comp-validate-pod-metadata-task-c-metadata-2-0-system-container-impl
       - arguments:
           parameters:
           - name: component
@@ -1107,17 +1390,10 @@ spec:
             value: validate-pod-metadata-task-d
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.11
           - name: kubernetes-config
             value: '{{workflow.parameters.kubernetes-comp-validate-pod-metadata-task-d}}'
-        name: validate-pod-metadata-task-d-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.validate-pod-metadata-task-d-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.validate-pod-metadata-task-d-driver.outputs.parameters.cached-decision}}'
           - name: pod-metadata-label-key-1
             value: task-label-1
           - name: pod-metadata-label-val-1
@@ -1130,9 +1406,8 @@ spec:
             value: task-label-3
           - name: pod-metadata-label-val-3
             value: label-3
-        depends: validate-pod-metadata-task-d-driver.Succeeded
         name: validate-pod-metadata-task-d
-        template: metadata-0-3-system-container-executor
+        template: k8s-comp-validate-pod-metadata-task-d-metadata-0-3-system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id
@@ -1193,7 +1468,7 @@ spec:
           memory: 512Mi
         requests:
           cpu: 100m
-          memory: 64Mi
+          memory: 128Mi
       securityContext:
         allowPrivilegeEscalation: false
         capabilities:

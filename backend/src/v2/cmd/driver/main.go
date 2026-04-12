@@ -76,13 +76,16 @@ var (
 	mlmdServerPort          = flag.String("mlmd_server_port", "", "MLMD server port")
 
 	// output paths
-	executionIDPath    = flag.String("execution_id_path", "", "Exeucution ID output path")
+	executionIDPath    = flag.String("execution_id_path", "", "Execution ID output path")
 	iterationCountPath = flag.String("iteration_count_path", "", "Iteration Count output path")
-	podSpecPatchPath   = flag.String("pod_spec_patch_path", "", "Pod Spec Patch output path")
+	podSpecPatchPath   = flag.String("pod_spec_patch_path", "", "Pod Spec Patch output path (legacy, used by dummy-image tasks)")
 	// the value stored in the paths will be either 'true' or 'false'
-	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
-	conditionPath      = flag.String("condition_path", "", "Condition output path")
-	logLevel           = flag.String("log_level", "1", "The verbosity level to log.")
+	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path (legacy, used by dummy-image tasks)")
+	conditionPath      = flag.String("condition_path", "", "Condition output path (legacy, used by dummy-image tasks)")
+	// driverOutputsDir replaces the per-file output flags for container tasks running
+	// the driver as an init container. All output files are written under this directory.
+	driverOutputsDirFlag = flag.String("driver_outputs_dir", "", "Directory where the driver writes output files for the launcher init container")
+	logLevel             = flag.String("log_level", "1", "The verbosity level to log.")
 
 	// proxy
 	httpProxy            = flag.String(httpProxyArg, unsetProxyArgValue, "The proxy for HTTP connections.")
@@ -276,11 +279,12 @@ func drive() (err error) {
 	}
 
 	executionPaths := &ExecutionPaths{
-		ExecutionID:    *executionIDPath,
-		IterationCount: *iterationCountPath,
-		CachedDecision: *cachedDecisionPath,
-		Condition:      *conditionPath,
-		PodSpecPatch:   *podSpecPatchPath,
+		ExecutionID:      *executionIDPath,
+		IterationCount:   *iterationCountPath,
+		CachedDecision:   *cachedDecisionPath,
+		Condition:        *conditionPath,
+		PodSpecPatch:     *podSpecPatchPath,
+		DriverOutputsDir: *driverOutputsDirFlag,
 	}
 
 	return handleExecution(execution, *driverType, executionPaths)
@@ -299,6 +303,17 @@ func parseExecConfigJson(k8sExecConfigJson *string) (*kubernetesplatform.Kuberne
 }
 
 func handleExecution(execution *driver.Execution, driverType string, executionPaths *ExecutionPaths) error {
+	// Init-container mode: write all container driver outputs to a single directory
+	// for the launcher to read. This replaces the per-file approach used by the
+	// standalone driver pod (which wrote PodSpecPatch etc.).
+	// On cache hit, the driver writes cached-decision=true; the launcher
+	// (running as the main container's entrypoint) reads it and exits 0
+	// without executing the user's command.
+	if executionPaths.DriverOutputsDir != "" {
+		return writeDriverOutputsDir(execution, executionPaths.DriverOutputsDir)
+	}
+
+	// Legacy path-based output (standalone driver pod, used by dummy-image tasks).
 	if execution.ID != 0 {
 		glog.Infof("output execution.ID=%v", execution.ID)
 		if executionPaths.ExecutionID != "" {
@@ -328,20 +343,10 @@ func handleExecution(execution *driver.Execution, driverType string, executionPa
 			return fmt.Errorf("failed to write condition to file: %w", err)
 		}
 	} else {
-		// nil is a valid value for Condition
 		if driverType == ROOT_DAG || driverType == DAG || driverType == CONTAINER {
 			if err := writeFile(executionPaths.Condition, []byte("nil")); err != nil {
 				return fmt.Errorf("failed to write condition to file: %w", err)
 			}
-		}
-	}
-	if execution.PodSpecPatch != "" {
-		glog.Infof("output podSpecPatch=\n%s\n", execution.PodSpecPatch)
-		if executionPaths.PodSpecPatch == "" {
-			return fmt.Errorf("--pod_spec_patch_path is required for container executor drivers")
-		}
-		if err := writeFile(executionPaths.PodSpecPatch, []byte(execution.PodSpecPatch)); err != nil {
-			return fmt.Errorf("failed to write pod spec patch to file: %w", err)
 		}
 	}
 	if execution.ExecutorInput != nil {
@@ -352,6 +357,91 @@ func handleExecution(execution *driver.Execution, driverType string, executionPa
 		executorInputJSON := string(executorInputBytes)
 		glog.Infof("output ExecutorInput:%s\n", prettyPrint(executorInputJSON))
 	}
+	return nil
+}
+
+// writeDriverOutputsDir writes all container driver outputs to dir so the
+// launcher init container can read them from the shared emptyDir volume.
+func writeDriverOutputsDir(execution *driver.Execution, dir string) error {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("failed to create driver outputs dir %s: %w", dir, err)
+	}
+	writeDirFile := func(name string, data []byte) error {
+		path := filepath.Join(dir, name)
+		if err := os.WriteFile(path, data, 0o644); err != nil {
+			return fmt.Errorf("failed to write %s: %w", path, err)
+		}
+		return nil
+	}
+
+	// execution-id
+	glog.Infof("output execution.ID=%v", execution.ID)
+	if err := writeDirFile("execution-id", []byte(fmt.Sprint(execution.ID))); err != nil {
+		return err
+	}
+
+	// executor-input (JSON)
+	if execution.ExecutorInput != nil {
+		executorInputBytes, err := protojson.Marshal(execution.ExecutorInput)
+		if err != nil {
+			return fmt.Errorf("failed to marshal ExecutorInput: %w", err)
+		}
+		glog.Infof("output ExecutorInput:%s\n", prettyPrint(string(executorInputBytes)))
+		if err := writeDirFile("executor-input", executorInputBytes); err != nil {
+			return err
+		}
+	} else {
+		if err := writeDirFile("executor-input", []byte("{}")); err != nil {
+			return err
+		}
+	}
+
+	// user-command and user-args (JSON arrays of resolved strings)
+	userCmdBytes, err := json.Marshal(execution.UserCommand)
+	if err != nil {
+		return fmt.Errorf("failed to marshal user command: %w", err)
+	}
+	if err := writeDirFile("user-command", userCmdBytes); err != nil {
+		return err
+	}
+	userArgsBytes, err := json.Marshal(execution.UserArgs)
+	if err != nil {
+		return fmt.Errorf("failed to marshal user args: %w", err)
+	}
+	if err := writeDirFile("user-args", userArgsBytes); err != nil {
+		return err
+	}
+
+	// cached-decision
+	cached := "false"
+	if execution.Cached != nil && *execution.Cached {
+		cached = "true"
+	}
+	if err := writeDirFile("cached-decision", []byte(cached)); err != nil {
+		return err
+	}
+
+	// condition (nil means unconditional / always execute)
+	condition := "nil"
+	if execution.Condition != nil {
+		condition = strconv.FormatBool(*execution.Condition)
+	}
+	if err := writeDirFile("condition", []byte(condition)); err != nil {
+		return err
+	}
+
+	// dynamic-env-vars (JSON, optional): env vars resolved at runtime from
+	// secretAsEnv entries with taskOutputParameter names.
+	if len(execution.DynamicEnvVars) > 0 {
+		dynamicEnvBytes, err := json.Marshal(execution.DynamicEnvVars)
+		if err != nil {
+			return fmt.Errorf("failed to marshal dynamic env vars: %w", err)
+		}
+		if err := writeDirFile("dynamic-env-vars", dynamicEnvBytes); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

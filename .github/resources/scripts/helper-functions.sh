@@ -66,13 +66,13 @@ deploy_with_retries () {
     then
         echo "Usage: deploy_with_retries (-f FILENAME | -k DIRECTORY) manifest max_retries sleep_time"
         return 1
-    fi 
+    fi
 
     local flag="$1"
     local manifest="$2"
     local max_retries="$3"
     local sleep_time="$4"
-    
+
     local i=0
 
     while [[ $i -lt $max_retries ]]
@@ -85,7 +85,7 @@ deploy_with_retries () {
         then
             return 0
         fi
-        
+
         echo "Deploy unsuccessful with error code $exit_code. Trying again in ${sleep_time}s."
         sleep "$sleep_time"
         i=$((i+1))
@@ -209,6 +209,11 @@ collect_artifacts() {
     pods_kubeflow=$(kubectl get pods -n $kubeflow_ns --no-headers -o custom-columns=NAME:.metadata.name)
 
     for pod in $pods_kubeflow; do
-        kubectl logs -n $kubeflow_ns $pod > $log_dir/$pod.log
+        # Use --all-containers so that logs from every container (including init
+        # containers added by the init-container driver design) are collected.
+        # Suppress errors for pods that have not yet started or are in a
+        # terminal error state (e.g. Init:OOMKilled, PodInitializing) to avoid
+        # breaking callers that run under `set -e`.
+        kubectl logs -n $kubeflow_ns $pod --all-containers 2>/dev/null > $log_dir/$pod.log || true
     done
 }

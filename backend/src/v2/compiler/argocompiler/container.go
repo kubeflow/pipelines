@@ -15,6 +15,7 @@
 package argocompiler
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -26,6 +27,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -38,10 +40,11 @@ import (
 )
 
 const (
-	volumeNameKFPLauncher = "kfp-launcher"
-	volumeNameCABundle    = "ca-bundle"
-	LauncherImageEnvVar   = "V2_LAUNCHER_IMAGE"
-	DriverImageEnvVar     = "V2_DRIVER_IMAGE"
+	volumeNameKFPLauncher   = "kfp-launcher"
+	volumeNameDriverOutputs = "kfp-driver-outputs"
+	driverOutputsMountPath  = "/tmp/kfp-driver-outputs"
+	LauncherImageEnvVar     = "V2_LAUNCHER_IMAGE"
+	DriverImageEnvVar       = "V2_DRIVER_IMAGE"
 	// DefaultLauncherImage & DefaultDriverImage are set as latest here
 	// but are overridden by environment variables set via k8s manifests.
 	// For releases, the manifest will have the correct release version set.
@@ -81,20 +84,159 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 	return nil
 }
 
-type containerDriverOutputs struct {
-	podSpecPatch string
-	cached       string
-	condition    string
+// containerExecutorInputs holds the arguments passed to the executor pod template.
+// Unlike the old design, there is no separate driver pod; the driver runs as an
+// init container so all context is forwarded directly to a single DAG task.
+type containerExecutorInputs struct {
+	component        string
+	task             string
+	taskName         string
+	container        string
+	parentDagID      string
+	iterationIndex   string
+	kubernetesConfig string
+	// image is the user container image (static value known at compile time).
+	image string
+	// exitTemplate and hookParentDagID support Argo lifecycle exit hooks.
+	exitTemplate    string
+	hookParentDagID string
 }
 
+// containerDriverInputs is used only for dummy-image tasks (e.g. createPVC/deletePVC)
+// which still run as a standalone driver pod with no executor.
 type containerDriverInputs struct {
 	component        string
 	task             string
-	taskName         string // preserve the original task name for input resolving
+	taskName         string
 	container        string
 	parentDagID      string
-	iterationIndex   string // optional, when this is an iteration task
-	kubernetesConfig string // optional, used when Kubernetes config is not empty
+	iterationIndex   string
+	kubernetesConfig string
+}
+
+// containerDriverTask creates the legacy standalone driver DAG task used only
+// for dummy-image tasks (argostub/createpvc, argostub/deletepvc).
+func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *struct{}) {
+	dagTask := &wfapi.DAGTask{
+		Name:     name,
+		Template: c.addContainerDriverTemplate(),
+		Arguments: wfapi.Arguments{
+			Parameters: []wfapi.Parameter{
+				{Name: paramComponent, Value: wfapi.AnyStringPtr(inputs.component)},
+				{Name: paramTask, Value: wfapi.AnyStringPtr(inputs.task)},
+				{Name: paramContainer, Value: wfapi.AnyStringPtr(inputs.container)},
+				{Name: paramTaskName, Value: wfapi.AnyStringPtr(inputs.taskName)},
+				{Name: paramParentDagID, Value: wfapi.AnyStringPtr(inputs.parentDagID)},
+			},
+		},
+	}
+	if inputs.iterationIndex != "" {
+		dagTask.Arguments.Parameters = append(dagTask.Arguments.Parameters,
+			wfapi.Parameter{Name: paramIterationIndex, Value: wfapi.AnyStringPtr(inputs.iterationIndex)})
+	}
+	if inputs.kubernetesConfig != "" {
+		dagTask.Arguments.Parameters = append(dagTask.Arguments.Parameters,
+			wfapi.Parameter{Name: paramKubernetesConfig, Value: wfapi.AnyStringPtr(inputs.kubernetesConfig)})
+	}
+	return dagTask, nil
+}
+
+// addContainerDriverTemplate creates the standalone driver pod template used
+// only for dummy-image tasks (e.g. createPVC, deletePVC).
+func (c *workflowCompiler) addContainerDriverTemplate() string {
+	name := "system-container-driver"
+	if _, ok := c.templates[name]; ok {
+		return name
+	}
+
+	args := []string{
+		"--type", "CONTAINER",
+		"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
+		"--run_id", runID(),
+		"--run_name", runResourceName(),
+		"--run_display_name", c.job.DisplayName,
+		"--dag_execution_id", inputValue(paramParentDagID),
+		"--component", inputValue(paramComponent),
+		"--task", inputValue(paramTask),
+		"--task_name", inputValue(paramTaskName),
+		"--container", inputValue(paramContainer),
+		"--iteration_index", inputValue(paramIterationIndex),
+		"--cached_decision_path", outputPath(paramCachedDecision),
+		"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
+		"--condition_path", outputPath(paramCondition),
+		"--kubernetes_config", inputValue(paramKubernetesConfig),
+		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
+		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
+		"--no_proxy", proxy.GetConfig().GetNoProxy(),
+		"--ml_pipeline_server_address", config.GetMLPipelineServerConfig().Address,
+		"--ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
+		"--mlmd_server_address", metadata.GetMetadataConfig().Address,
+		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
+	}
+	if c.cacheDisabled {
+		args = append(args, "--cache_disabled")
+	}
+	if c.mlPipelineTLSEnabled {
+		args = append(args, "--ml_pipeline_tls_enabled")
+	}
+	if common.GetMetadataTLSEnabled() {
+		args = append(args, "--metadata_tls_enabled")
+	}
+	setCABundle := common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != ""
+	if setCABundle {
+		args = append(args, "--ca_cert_path", common.CustomCaCertPath)
+	}
+	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
+		args = append(args, "--log_level", value)
+	}
+	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
+		args = append(args, "--publish_logs", value)
+	}
+	if c.defaultRunAsUser != nil {
+		args = append(args, "--default_run_as_user", strconv.FormatInt(*c.defaultRunAsUser, 10))
+	}
+	if c.defaultRunAsGroup != nil {
+		args = append(args, "--default_run_as_group", strconv.FormatInt(*c.defaultRunAsGroup, 10))
+	}
+	if c.defaultRunAsNonRoot != nil {
+		args = append(args, "--default_run_as_non_root", strconv.FormatBool(*c.defaultRunAsNonRoot))
+	}
+
+	template := &wfapi.Template{
+		Name: name,
+		Inputs: wfapi.Inputs{
+			Parameters: []wfapi.Parameter{
+				{Name: paramComponent},
+				{Name: paramTask},
+				{Name: paramContainer},
+				{Name: paramTaskName},
+				{Name: paramParentDagID},
+				{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
+				{Name: paramKubernetesConfig, Default: wfapi.AnyStringPtr("")},
+			},
+		},
+		Outputs: wfapi.Outputs{
+			Parameters: []wfapi.Parameter{
+				{Name: paramPodSpecPatch, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/pod-spec-patch", Default: wfapi.AnyStringPtr("")}},
+				{Name: paramCachedDecision, Default: wfapi.AnyStringPtr("false"), ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/cached-decision", Default: wfapi.AnyStringPtr("false")}},
+				{Name: paramCondition, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/condition", Default: wfapi.AnyStringPtr("true")}},
+			},
+		},
+		Container: &k8score.Container{
+			Image:     c.driverImage,
+			Command:   c.driverCommand,
+			Args:      args,
+			Resources: driverResources,
+			Env:       append(proxy.GetConfig().GetEnvVars(), commonEnvs...),
+		},
+	}
+	applySecurityContextToTemplate(template)
+	if setCABundle {
+		ConfigureCustomCABundle(template)
+	}
+	c.templates[name] = template
+	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *template)
+	return name
 }
 
 func GetLauncherImage() string {
@@ -148,48 +290,135 @@ func GetPipelineRunAsUser() *int64 {
 	return &runAsUser
 }
 
-func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
-	dagTask := &wfapi.DAGTask{
-		Name:     name,
-		Template: c.addContainerDriverTemplate(),
-		Arguments: wfapi.Arguments{
-			Parameters: []wfapi.Parameter{
-				{Name: paramComponent, Value: wfapi.AnyStringPtr(inputs.component)},
-				{Name: paramTask, Value: wfapi.AnyStringPtr(inputs.task)},
-				{Name: paramContainer, Value: wfapi.AnyStringPtr(inputs.container)},
-				{Name: paramTaskName, Value: wfapi.AnyStringPtr(inputs.taskName)},
-				{Name: paramParentDagID, Value: wfapi.AnyStringPtr(inputs.parentDagID)},
-			},
-		},
+// containerExecutorTask returns an Argo DAGTask that runs a single executor pod
+// with the driver as an init container. No separate driver DAG task is created.
+func (c *workflowCompiler) containerExecutorTask(name string, inputs containerExecutorInputs, task *pipelinespec.PipelineTaskSpec) (*wfapi.DAGTask, error) {
+	var refName string
+	if componentRef := task.GetComponentRef(); componentRef != nil {
+		refName = componentRef.Name
+	} else {
+		return nil, fmt.Errorf("component reference is nil")
+	}
+
+	// Retrieve static Kubernetes settings for compile-time embedding.
+	k8sExecCfg := &kubernetesplatform.KubernetesExecutorConfig{}
+	kubernetesConfigParam := c.wf.Spec.Arguments.GetParameterByName(argumentsKubernetesSpec + refName)
+	if kubernetesConfigParam != nil && kubernetesConfigParam.Value != nil {
+		if err := protojson.Unmarshal([]byte(*kubernetesConfigParam.Value), k8sExecCfg); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal kubernetes config: %v", err)
+		}
+	}
+
+	params := []wfapi.Parameter{
+		{Name: paramComponent, Value: wfapi.AnyStringPtr(inputs.component)},
+		{Name: paramTask, Value: wfapi.AnyStringPtr(inputs.task)},
+		{Name: paramContainer, Value: wfapi.AnyStringPtr(inputs.container)},
+		{Name: paramTaskName, Value: wfapi.AnyStringPtr(inputs.taskName)},
+		{Name: paramParentDagID, Value: wfapi.AnyStringPtr(inputs.parentDagID)},
+		{Name: paramImage, Value: wfapi.AnyStringPtr(inputs.image)},
 	}
 	if inputs.iterationIndex != "" {
-		dagTask.Arguments.Parameters = append(
-			dagTask.Arguments.Parameters,
-			wfapi.Parameter{Name: paramIterationIndex, Value: wfapi.AnyStringPtr(inputs.iterationIndex)},
-		)
+		params = append(params, wfapi.Parameter{
+			Name:  paramIterationIndex,
+			Value: wfapi.AnyStringPtr(inputs.iterationIndex),
+		})
 	}
 	if inputs.kubernetesConfig != "" {
-		dagTask.Arguments.Parameters = append(
-			dagTask.Arguments.Parameters,
-			wfapi.Parameter{Name: paramKubernetesConfig, Value: wfapi.AnyStringPtr(inputs.kubernetesConfig)},
-		)
+		params = append(params, wfapi.Parameter{
+			Name:  paramKubernetesConfig,
+			Value: wfapi.AnyStringPtr(inputs.kubernetesConfig),
+		})
 	}
-	outputs := &containerDriverOutputs{
-		podSpecPatch: taskOutputParameter(name, paramPodSpecPatch),
-		cached:       taskOutputParameter(name, paramCachedDecision),
-		condition:    taskOutputParameter(name, paramCondition),
+	params = append(params,
+		append(
+			c.getPodMetadataParameters(k8sExecCfg.GetPodMetadata(), true),
+			c.getTaskRetryParametersWithValues(task)...)...)
+
+	// Add OCI model image parameters for Modelcar sidecars.
+	ociImporterArtifacts := c.getOCIImporterArtifacts(task)
+	if len(ociImporterArtifacts) > 0 {
+		ociArtNames := make([]string, 0, len(ociImporterArtifacts))
+		for artName := range ociImporterArtifacts {
+			ociArtNames = append(ociArtNames, artName)
+		}
+		sort.Strings(ociArtNames)
+		for i, artName := range ociArtNames {
+			producerTaskName := ociImporterArtifacts[artName]
+			// Convert pipeline task name to Argo task name (underscores/spaces become dashes).
+			argoTaskName := strings.ReplaceAll(producerTaskName, " ", "-")
+			argoTaskName = strings.ReplaceAll(argoTaskName, "_", "-")
+			params = append(params, wfapi.Parameter{
+				Name:  fmt.Sprintf("oci-model-image-%d", i),
+				Value: wfapi.AnyStringPtr(fmt.Sprintf("{{tasks.%s.outputs.parameters.oci-model-image}}", argoTaskName)),
+			})
+		}
 	}
-	return dagTask, outputs
+
+	dagTask := &wfapi.DAGTask{
+		Name:     name,
+		Template: c.addContainerExecutorTemplate(task, k8sExecCfg),
+		Arguments: wfapi.Arguments{
+			Parameters: params,
+		},
+	}
+
+	addExitTask(dagTask, inputs.exitTemplate, inputs.hookParentDagID)
+	return dagTask, nil
 }
 
-func (c *workflowCompiler) addContainerDriverTemplate() string {
-	name := "system-container-driver"
-	_, ok := c.templates[name]
-	if ok {
-		return name
+// addContainerExecutorTemplate creates the executor template for a container task.
+// The driver runs as the first init container and communicates with the launcher
+// (main container) via a shared emptyDir volume at driverOutputsMountPath.
+// All static Kubernetes platform settings are applied at compile time.
+func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.PipelineTaskSpec, k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig) string {
+	nameContainerImpl := "system-container-impl"
+	taskRetrySpec := task.GetRetryPolicy()
+	refName := task.GetComponentRef().GetName()
+	if taskRetrySpec != nil {
+		compSpec := c.spec.Components[refName]
+		if compSpec != nil && compSpec.GetDag() == nil {
+			nameContainerImpl = "retry-" + nameContainerImpl
+		}
+	}
+	podMetadata := k8sExecCfg.GetPodMetadata()
+	if podMetadata != nil {
+		numAnnotations := "0"
+		numLabels := "0"
+		if podMetadata.GetAnnotations() != nil {
+			numAnnotations = strconv.Itoa(len(podMetadata.GetAnnotations()))
+		}
+		if podMetadata.GetLabels() != nil {
+			numLabels = strconv.Itoa(len(podMetadata.GetLabels()))
+		}
+		nameContainerImpl = "metadata-" + numAnnotations + "-" + numLabels + "-" + nameContainerImpl
+	}
+	// Static K8s settings (volumes, mounts, node selector, tolerations, etc.) are
+	// embedded directly in the template, so tasks with different configs need
+	// distinct template names.
+	if hasStaticK8sSettings(k8sExecCfg) {
+		nameContainerImpl = "k8s-" + refName + "-" + nameContainerImpl
 	}
 
-	args := []string{
+	// Compute OCI importer artifact inputs. Tasks that consume OCI artifacts need
+	// dedicated per-task templates (with Modelcar sidecar containers), so they get
+	// an additional unique prefix.
+	ociImporterArtifacts := c.getOCIImporterArtifacts(task)
+	ociArtNames := make([]string, 0, len(ociImporterArtifacts))
+	for artName := range ociImporterArtifacts {
+		ociArtNames = append(ociArtNames, artName)
+	}
+	sort.Strings(ociArtNames)
+	if len(ociArtNames) > 0 {
+		nameContainerImpl = "oci-" + refName + "-" + nameContainerImpl
+	}
+
+	if _, ok := c.templates[nameContainerImpl]; ok {
+		return nameContainerImpl
+	}
+
+	// Build driver init container args. These mirror the old standalone driver
+	// template args, replacing the three output path flags with --driver_outputs_dir.
+	driverArgs := []string{
 		"--type", "CONTAINER",
 		"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
 		"--run_id", runID(),
@@ -201,10 +430,8 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--task_name", inputValue(paramTaskName),
 		"--container", inputValue(paramContainer),
 		"--iteration_index", inputValue(paramIterationIndex),
-		"--cached_decision_path", outputPath(paramCachedDecision),
-		"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
-		"--condition_path", outputPath(paramCondition),
 		"--kubernetes_config", inputValue(paramKubernetesConfig),
+		"--driver_outputs_dir", driverOutputsMountPath,
 		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
 		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
 		"--no_proxy", proxy.GetConfig().GetNoProxy(),
@@ -214,379 +441,704 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
 	}
 	if c.cacheDisabled {
-		args = append(args, "--cache_disabled")
+		driverArgs = append(driverArgs, "--cache_disabled")
 	}
 	if c.mlPipelineTLSEnabled {
-		args = append(args, "--ml_pipeline_tls_enabled")
+		driverArgs = append(driverArgs, "--ml_pipeline_tls_enabled")
 	}
 	if common.GetMetadataTLSEnabled() {
-		args = append(args, "--metadata_tls_enabled")
+		driverArgs = append(driverArgs, "--metadata_tls_enabled")
 	}
-
-	setCABundle := false
-	// If CABUNDLE_SECRET_NAME or CABUNDLE_CONFIGMAP_NAME is set, add ca_cert_path arg to container driver.
-	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
-		args = append(args, "--ca_cert_path", common.CustomCaCertPath)
-		setCABundle = true
+	setCABundle := common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != ""
+	if setCABundle {
+		driverArgs = append(driverArgs, "--ca_cert_path", common.CustomCaCertPath)
 	}
-
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
+		driverArgs = append(driverArgs, "--log_level", value)
 	}
 	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
+		driverArgs = append(driverArgs, "--publish_logs", value)
 	}
 	if c.defaultRunAsUser != nil {
-		args = append(args, "--default_run_as_user", strconv.FormatInt(*c.defaultRunAsUser, 10))
+		driverArgs = append(driverArgs, "--default_run_as_user", strconv.FormatInt(*c.defaultRunAsUser, 10))
 	}
 	if c.defaultRunAsGroup != nil {
-		args = append(args, "--default_run_as_group", strconv.FormatInt(*c.defaultRunAsGroup, 10))
+		driverArgs = append(driverArgs, "--default_run_as_group", strconv.FormatInt(*c.defaultRunAsGroup, 10))
 	}
 	if c.defaultRunAsNonRoot != nil {
-		args = append(args, "--default_run_as_non_root", strconv.FormatBool(*c.defaultRunAsNonRoot))
+		driverArgs = append(driverArgs, "--default_run_as_non_root", strconv.FormatBool(*c.defaultRunAsNonRoot))
 	}
 
-	template := &wfapi.Template{
-		Name: name,
-		Inputs: wfapi.Inputs{
-			Parameters: []wfapi.Parameter{
-				{Name: paramComponent},
-				{Name: paramTask},
-				{Name: paramContainer},
-				{Name: paramTaskName},
-				{Name: paramParentDagID},
-				{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
-				{Name: paramKubernetesConfig, Default: wfapi.AnyStringPtr("")},
-			},
-		},
-		Outputs: wfapi.Outputs{
-			Parameters: []wfapi.Parameter{
-				{Name: paramPodSpecPatch, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/pod-spec-patch", Default: wfapi.AnyStringPtr("")}},
-				{Name: paramCachedDecision, Default: wfapi.AnyStringPtr("false"), ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/cached-decision", Default: wfapi.AnyStringPtr("false")}},
-				{Name: paramCondition, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/condition", Default: wfapi.AnyStringPtr("true")}},
-			},
-		},
-		Container: &k8score.Container{
-			Image:     c.driverImage,
-			Command:   c.driverCommand,
-			Args:      args,
-			Resources: driverResources,
-			Env:       append(proxy.GetConfig().GetEnvVars(), commonEnvs...),
-		},
-	}
-	applySecurityContextToTemplate(template)
-	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver template.
-	if setCABundle {
-		ConfigureCustomCABundle(template)
-	}
-	c.templates[name] = template
-	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *template)
-	return name
-}
-
-type containerExecutorInputs struct {
-	// a strategic patch of pod spec merged with runtime Pod spec.
-	podSpecPatch string
-	// if true, the container will be cached.
-	cachedDecision string
-	// if false, the container will be skipped.
-	condition string
-	// if provided, this will be the template the Argo Workflow exit lifecycle hook will execute.
-	exitTemplate string
-	// this will be provided as the parent-dag-id input to the Argo Workflow exit lifecycle hook.
-	hookParentDagID string
-}
-
-// containerExecutorTask returns an argo workflows DAGTask.
-// name: argo workflows DAG task name
-// The other arguments are argo workflows task parameters, they can be either a
-// string or a placeholder.
-func (c *workflowCompiler) containerExecutorTask(name string, inputs containerExecutorInputs, task *pipelinespec.PipelineTaskSpec) (*wfapi.DAGTask, error) {
-	when := ""
-	if inputs.condition != "" {
-		when = inputs.condition + " != false"
-	}
-	var refName string
-	if componentRef := task.GetComponentRef(); componentRef != nil {
-		refName = componentRef.Name
-	} else {
-		return nil, fmt.Errorf("component reference is nil")
-	}
-
-	// Retrieve pod metadata defined in the Kubernetes Spec, if any
-	kubernetesConfigParam := c.wf.Spec.Arguments.GetParameterByName(argumentsKubernetesSpec + refName)
-	k8sExecCfg := &kubernetesplatform.KubernetesExecutorConfig{}
-	if kubernetesConfigParam != nil && kubernetesConfigParam.Value != nil {
-		if err := protojson.Unmarshal([]byte((*kubernetesConfigParam.Value)), k8sExecCfg); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal kubernetes config: %v", err)
-		}
-	}
-	dagTask := &wfapi.DAGTask{
-		Name:     name,
-		Template: c.addContainerExecutorTemplate(task, k8sExecCfg),
-		When:     when,
-		Arguments: wfapi.Arguments{
-			Parameters: append(
-				[]wfapi.Parameter{
-					{
-						Name:  paramPodSpecPatch,
-						Value: wfapi.AnyStringPtr(inputs.podSpecPatch),
-					},
-					{
-						Name:    paramCachedDecision,
-						Value:   wfapi.AnyStringPtr(inputs.cachedDecision),
-						Default: wfapi.AnyStringPtr("false"),
-					},
-				},
-				append(
-					c.getPodMetadataParameters(k8sExecCfg.GetPodMetadata(), true),
-					c.getTaskRetryParametersWithValues(task)...)...),
-		},
-	}
-
-	addExitTask(dagTask, inputs.exitTemplate, inputs.hookParentDagID)
-
-	return dagTask, nil
-}
-
-// addContainerExecutorTemplate adds a generic container executor template for
-// any container component task.
-// During runtime, it's expected that pod-spec-patch will specify command, args
-// and resources etc, that are different for different tasks.
-func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.PipelineTaskSpec, k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig) string {
-	// container template is parent of container implementation template
-	nameContainerExecutor := "system-container-executor"
-	nameContainerImpl := "system-container-impl"
-	taskRetrySpec := task.GetRetryPolicy()
-	refName := task.GetComponentRef().GetName()
-	if taskRetrySpec != nil {
-		task := c.spec.Components[refName]
-		// retry-system-container-executor/impl is used if retry is set at the component level (if task is not a DAG)
-		if task != nil && task.GetDag() == nil {
-			nameContainerExecutor = "retry-" + nameContainerExecutor
-			nameContainerImpl = "retry-" + nameContainerImpl
-		}
-	}
-	podMetadata := k8sExecCfg.GetPodMetadata()
-	// TODO (agoins): This approach was used because Argo Workflows does not currently supporting patching Metadata: https://github.com/argoproj/argo-workflows/issues/14661
-	// if pod metadata is set, create a template name including the numbers of annotations and labels.
-	if podMetadata != nil {
-		numAnnotations := "0"
-		numLabels := "0"
-		if podMetadata.GetAnnotations() != nil {
-			numAnnotations = strconv.Itoa(len(k8sExecCfg.GetPodMetadata().GetAnnotations()))
-		}
-		if podMetadata.GetLabels() != nil {
-			numLabels = strconv.Itoa(len(k8sExecCfg.GetPodMetadata().GetLabels()))
-		}
-		nameContainerExecutor = "metadata-" + numAnnotations + "-" + numLabels + "-" + nameContainerExecutor
-		nameContainerImpl = "metadata-" + numAnnotations + "-" + numLabels + "-" + nameContainerImpl
-	}
-	_, ok := c.templates[nameContainerExecutor]
-	if ok {
-		return nameContainerExecutor
-	}
-	container := &wfapi.Template{
-		Name: nameContainerExecutor,
-		Inputs: wfapi.Inputs{
-			Parameters: append(
-				[]wfapi.Parameter{
-					{
-						Name: paramPodSpecPatch,
-					},
-					{
-						Name:    paramCachedDecision,
-						Default: wfapi.AnyStringPtr("false"),
-					},
-				},
-				append(
-					c.getPodMetadataParameters(k8sExecCfg.GetPodMetadata(), false),
-					c.addParameterDefault(c.getTaskRetryParameters(task), "0")...)...),
-		},
-		DAG: &wfapi.DAGTemplate{
-			Tasks: []wfapi.DAGTask{{
-				Name:     "executor",
-				Template: nameContainerImpl,
-				Arguments: wfapi.Arguments{
-					Parameters: append(
-						[]wfapi.Parameter{
-							{
-								Name:  paramPodSpecPatch,
-								Value: wfapi.AnyStringPtr(inputParameter(paramPodSpecPatch)),
-							},
-						},
-						append(
-							c.addParameterInputPath(c.getPodMetadataParameters(k8sExecCfg.GetPodMetadata(), false)),
-							c.addParameterInputPath(c.getTaskRetryParameters(task))...)...),
-				},
-				// When cached decision is true, the container
-				// implementation template will be skipped, but
-				// container executor template is still considered
-				// to have succeeded.
-				// This makes sure downstream tasks are not skipped.
-				When: inputParameter(paramCachedDecision) + " != true",
-			}},
-		},
-	}
-	c.templates[nameContainerExecutor] = container
-
-	args := []string{
-		"--copy", component.KFPLauncherPath,
-	}
+	// Launcher init container: copies the launcher binary to the shared launcher volume.
+	launcherCopyArgs := []string{"--copy", component.KFPLauncherPath}
 	if c.cacheDisabled {
-		args = append(args, "--cache_disabled")
+		launcherCopyArgs = append(launcherCopyArgs, "--cache_disabled")
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
+		launcherCopyArgs = append(launcherCopyArgs, "--log_level", value)
 	}
 	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
+		launcherCopyArgs = append(launcherCopyArgs, "--publish_logs", value)
 	}
+
+	// Main container command. The launcher reads execution-id, executor-input,
+	// user-command, user-args, cached-decision and condition from driverOutputsMountPath.
+	launcherCmd := []string{
+		component.KFPLauncherPath,
+		"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
+		"--run_id", runID(),
+		"--driver_outputs_dir", driverOutputsMountPath,
+		"--component_spec", inputValue(paramComponent),
+		"--pod_name", fmt.Sprintf("$(%s)", component.EnvPodName),
+		"--pod_uid", fmt.Sprintf("$(%s)", component.EnvPodUID),
+		"--ml_pipeline_server_address", config.GetMLPipelineServerConfig().Address,
+		"--ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
+		"--mlmd_server_address", metadata.GetMetadataConfig().Address,
+		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
+	}
+	if c.mlPipelineTLSEnabled {
+		launcherCmd = append(launcherCmd, "--ml_pipeline_tls_enabled")
+	}
+	if common.GetMetadataTLSEnabled() {
+		launcherCmd = append(launcherCmd, "--metadata_tls_enabled")
+	}
+	if setCABundle {
+		launcherCmd = append(launcherCmd, "--ca_cert_path", common.CustomCaCertPath)
+	}
+	if c.cacheDisabled {
+		launcherCmd = append(launcherCmd, "--cache_disabled")
+	}
+	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
+		launcherCmd = append(launcherCmd, "--log_level", value)
+	}
+	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
+		launcherCmd = append(launcherCmd, "--publish_logs", value)
+	}
+
+	// Base volumes: driver outputs, launcher binary, and artifact scratch dirs.
+	volumes := []k8score.Volume{
+		{Name: volumeNameDriverOutputs, VolumeSource: k8score.VolumeSource{EmptyDir: &k8score.EmptyDirVolumeSource{}}},
+		{Name: volumeNameKFPLauncher, VolumeSource: k8score.VolumeSource{EmptyDir: &k8score.EmptyDirVolumeSource{}}},
+		{Name: gcsScratchName, VolumeSource: k8score.VolumeSource{EmptyDir: &k8score.EmptyDirVolumeSource{}}},
+		{Name: s3ScratchName, VolumeSource: k8score.VolumeSource{EmptyDir: &k8score.EmptyDirVolumeSource{}}},
+		{Name: minioScratchName, VolumeSource: k8score.VolumeSource{EmptyDir: &k8score.EmptyDirVolumeSource{}}},
+		{Name: dotLocalScratchName, VolumeSource: k8score.VolumeSource{EmptyDir: &k8score.EmptyDirVolumeSource{}}},
+		{Name: dotCacheScratchName, VolumeSource: k8score.VolumeSource{EmptyDir: &k8score.EmptyDirVolumeSource{}}},
+		{Name: dotConfigScratchName, VolumeSource: k8score.VolumeSource{EmptyDir: &k8score.EmptyDirVolumeSource{}}},
+	}
+
+	// Main container volume mounts.
+	mainVolumeMounts := []k8score.VolumeMount{
+		{Name: volumeNameDriverOutputs, MountPath: driverOutputsMountPath},
+		{Name: volumeNameKFPLauncher, MountPath: component.VolumePathKFPLauncher},
+		{Name: gcsScratchName, MountPath: gcsScratchLocation},
+		{Name: s3ScratchName, MountPath: s3ScratchLocation},
+		{Name: minioScratchName, MountPath: minioScratchLocation},
+		{Name: dotLocalScratchName, MountPath: dotLocalScratchLocation},
+		{Name: dotCacheScratchName, MountPath: dotCacheScratchLocation},
+		{Name: dotConfigScratchName, MountPath: dotConfigScratchLocation},
+	}
+
+	// If the workflow has a workspace PVC, mount it on the main container so
+	// tasks downstream of workspace importers can access workspace artifacts.
+	for _, vct := range c.wf.Spec.VolumeClaimTemplates {
+		if vct.Name == workspaceVolumeName {
+			volumes = append(volumes, k8score.Volume{
+				Name: workspaceVolumeName,
+				VolumeSource: k8score.VolumeSource{
+					PersistentVolumeClaim: &k8score.PersistentVolumeClaimVolumeSource{
+						ClaimName: fmt.Sprintf("{{workflow.name}}-%s", workspaceVolumeName),
+					},
+				},
+			})
+			mainVolumeMounts = append(mainVolumeMounts, k8score.VolumeMount{
+				Name:      workspaceVolumeName,
+				MountPath: component.WorkspaceMountPath,
+			})
+			break
+		}
+	}
+
+	// Add emptyDir volumes and mounts for OCI (Modelcar) artifact sidecars.
+	for i := range ociArtNames {
+		ociVolumeName := fmt.Sprintf("oci-artifact-%d", i)
+		volumes = append(volumes, k8score.Volume{
+			Name:         ociVolumeName,
+			VolumeSource: k8score.VolumeSource{EmptyDir: &k8score.EmptyDirVolumeSource{}},
+		})
+		mainVolumeMounts = append(mainVolumeMounts, k8score.VolumeMount{
+			Name:      ociVolumeName,
+			MountPath: fmt.Sprintf("/oci-artifact-%d/", i),
+		})
+	}
+
+	// Build OCI input parameters for the executor template.
+	ociInputParams := make([]wfapi.Parameter, 0, len(ociArtNames))
+	for i := range ociArtNames {
+		ociInputParams = append(ociInputParams, wfapi.Parameter{
+			Name: fmt.Sprintf("oci-model-image-%d", i),
+		})
+	}
+
 	executor := &wfapi.Template{
 		Name: nameContainerImpl,
 		Inputs: wfapi.Inputs{
 			Parameters: append(
-				[]wfapi.Parameter{
-					{
-						Name: paramPodSpecPatch,
+				append(
+					[]wfapi.Parameter{
+						{Name: paramComponent},
+						{Name: paramTask},
+						{Name: paramContainer},
+						{Name: paramTaskName},
+						{Name: paramParentDagID},
+						{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
+						{Name: paramKubernetesConfig, Default: wfapi.AnyStringPtr("")},
+						// image is passed at call time so templates can be shared across tasks
+						// with the same K8s config but different container images.
+						{Name: paramImage},
 					},
-				},
+					ociInputParams...,
+				),
 				append(
 					c.getPodMetadataParameters(k8sExecCfg.GetPodMetadata(), false),
 					c.getTaskRetryParameters(task)...)...),
 		},
-		// PodSpecPatch input param is where actual image, command and
-		// args come from. It is treated as a strategic merge patch on
-		// top of the Pod spec.
-		PodSpecPatch: inputValue(paramPodSpecPatch),
-		Volumes: []k8score.Volume{
+		Volumes: volumes,
+		InitContainers: []wfapi.UserContainer{
+			// First init container: driver resolves inputs and writes outputs to the shared volume.
 			{
-				Name: volumeNameKFPLauncher,
-				VolumeSource: k8score.VolumeSource{
-					EmptyDir: &k8score.EmptyDirVolumeSource{},
-				},
-			},
-			{
-				Name: gcsScratchName,
-				VolumeSource: k8score.VolumeSource{
-					EmptyDir: &k8score.EmptyDirVolumeSource{},
-				},
-			},
-			{
-				Name: s3ScratchName,
-				VolumeSource: k8score.VolumeSource{
-					EmptyDir: &k8score.EmptyDirVolumeSource{},
-				},
-			},
-			{
-				Name: minioScratchName,
-				VolumeSource: k8score.VolumeSource{
-					EmptyDir: &k8score.EmptyDirVolumeSource{},
-				},
-			},
-			{
-				Name: dotLocalScratchName,
-				VolumeSource: k8score.VolumeSource{
-					EmptyDir: &k8score.EmptyDirVolumeSource{},
-				},
-			},
-			{
-				Name: dotCacheScratchName,
-				VolumeSource: k8score.VolumeSource{
-					EmptyDir: &k8score.EmptyDirVolumeSource{},
-				},
-			},
-			{
-				Name: dotConfigScratchName,
-				VolumeSource: k8score.VolumeSource{
-					EmptyDir: &k8score.EmptyDirVolumeSource{},
-				},
-			},
-		},
-		InitContainers: []wfapi.UserContainer{{
-			Container: k8score.Container{
-				Name:    "kfp-launcher",
-				Image:   c.launcherImage,
-				Command: c.launcherCommand,
-				Args:    args,
-				VolumeMounts: []k8score.VolumeMount{
-					{
-						Name:      volumeNameKFPLauncher,
-						MountPath: component.VolumePathKFPLauncher,
+				Container: k8score.Container{
+					Name:      "kfp-driver",
+					Image:     c.driverImage,
+					Command:   c.driverCommand,
+					Args:      driverArgs,
+					Resources: driverResources,
+					Env:       append(proxy.GetConfig().GetEnvVars(), commonEnvs...),
+					VolumeMounts: []k8score.VolumeMount{
+						{Name: volumeNameDriverOutputs, MountPath: driverOutputsMountPath},
 					},
 				},
-				Resources: launcherResources,
 			},
-		}},
+			// Second init container: copies the launcher binary to the shared launcher volume.
+			{
+				Container: k8score.Container{
+					Name:      "kfp-launcher",
+					Image:     c.launcherImage,
+					Command:   c.launcherCommand,
+					Args:      launcherCopyArgs,
+					Resources: launcherResources,
+					VolumeMounts: []k8score.VolumeMount{
+						{Name: volumeNameKFPLauncher, MountPath: component.VolumePathKFPLauncher},
+					},
+				},
+			},
+		},
 		Container: &k8score.Container{
-			// The placeholder image and command should always be
-			// overridden in podSpecPatch.
-			// In case we have a bug, the placeholder image is kept
-			// in gcr.io/ml-pipeline, so that we are sure the image
-			// never exists.
-			// These are added to pass argo workflows linting.
-			Image:   "gcr.io/ml-pipeline/should-be-overridden-during-runtime",
-			Command: []string{"should-be-overridden-during-runtime"},
-			VolumeMounts: []k8score.VolumeMount{
-				{
-					Name:      volumeNameKFPLauncher,
-					MountPath: component.VolumePathKFPLauncher,
-				},
-				{
-					Name:      gcsScratchName,
-					MountPath: gcsScratchLocation,
-				},
-				{
-					Name:      s3ScratchName,
-					MountPath: s3ScratchLocation,
-				},
-				{
-					Name:      minioScratchName,
-					MountPath: minioScratchLocation,
-				},
-				{
-					Name:      dotLocalScratchName,
-					MountPath: dotLocalScratchLocation,
-				},
-				{
-					Name:      dotCacheScratchName,
-					MountPath: dotCacheScratchLocation,
-				},
-				{
-					Name:      dotConfigScratchName,
-					MountPath: dotConfigScratchLocation,
-				},
-			},
-			EnvFrom: []k8score.EnvFromSource{metadataEnvFrom},
-			Env:     commonEnvs,
+			// Image is parameterized so tasks with the same K8s config can share this template.
+			Image:        inputValue(paramImage),
+			Command:      launcherCmd,
+			EnvFrom:      []k8score.EnvFromSource{metadataEnvFrom},
+			Env:          commonEnvs,
+			VolumeMounts: mainVolumeMounts,
 		},
 	}
-	// If CABUNDLE_SECRET_NAME or CABUNDLE_CONFIGMAP_NAME is set, add the custom CA bundle to the executor.
-	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
-		ConfigureCustomCABundle(executor)
+
+	// Apply static Kubernetes platform settings (volumes, mounts, node selector, etc.)
+	// directly to the template — these were previously applied at runtime via pod-spec-patch.
+	// Build a resolver for ComponentInputParameter PVC names: look up the value from the
+	// run's runtime config first, then fall back to pipeline spec default values.
+	resolveParam := func(paramName string) (string, bool) {
+		if pv := c.job.GetRuntimeConfig().GetParameterValues(); pv != nil {
+			if v, ok := pv[paramName]; ok {
+				if s := v.GetStringValue(); s != "" {
+					return s, true
+				}
+			}
+		}
+		if params := c.spec.GetRoot().GetInputDefinitions().GetParameters(); params != nil {
+			if p, ok := params[paramName]; ok {
+				if dv := p.GetDefaultValue(); dv != nil {
+					if s := dv.GetStringValue(); s != "" {
+						return s, true
+					}
+				}
+			}
+		}
+		return "", false
 	}
+	applyStaticK8sConfig(executor, k8sExecCfg, resolveParam)
+
+	if setCABundle {
+		ConfigureCustomCABundle(executor)
+		// The driver init container also needs the CA bundle for TLS calls to MLMD/API server.
+		for _, vol := range executor.Volumes {
+			if vol.Name == volumeNameCustomCA {
+				executor.InitContainers[0].VolumeMounts = append(
+					executor.InitContainers[0].VolumeMounts,
+					k8score.VolumeMount{Name: volumeNameCustomCA, MountPath: common.CABundleDir},
+				)
+				break
+			}
+		}
+	}
+
 	applySecurityContextToExecutorTemplate(executor, c.defaultRunAsUser, c.defaultRunAsGroup, c.defaultRunAsNonRoot)
 
-	// If retry policy is set, add retryStrategy to executor and inject
-	// KFP_RETRY_INDEX so the launcher can resolve the per-attempt log path
-	// without a Kubernetes API call. {{retries}} is only valid inside a
-	// template that has a retryStrategy; adding it elsewhere resolves to an
-	// empty string, which forces an unnecessary pod-annotation lookup.
 	if taskRetrySpec != nil {
-		executor.RetryStrategy = c.getTaskRetryStrategyFromInput(inputParameter(paramRetryMaxCount),
+		executor.RetryStrategy = c.getTaskRetryStrategyFromInput(
+			inputParameter(paramRetryMaxCount),
 			inputParameter(paramRetryBackOffDuration),
 			inputParameter(paramRetryBackOffFactor),
 			inputParameter(paramRetryBackOffMaxDuration))
 		executor.Container.Env = append(executor.Container.Env, retryIndexEnv)
 	}
-	// Update pod metadata if it defined in the Kubernetes Spec
+
 	if k8sExecCfg.GetPodMetadata() != nil {
 		extendPodMetadata(&executor.Metadata, k8sExecCfg)
 	}
 
+	// Add Modelcar sidecar containers for OCI artifact inputs.
+	// The sidecar copies the OCI image's /models directory into a shared emptyDir
+	// volume so the main container can read the model files without requiring
+	// shareProcessNamespace or /proc symlink tricks.
+	for i := range ociArtNames {
+		ociVolumeName := fmt.Sprintf("oci-artifact-%d", i)
+		ociImageParam := fmt.Sprintf("{{inputs.parameters.oci-model-image-%d}}", i)
+		executor.Sidecars = append(executor.Sidecars, wfapi.UserContainer{
+			Container: k8score.Container{
+				Name:            fmt.Sprintf("oci-%d", i),
+				Image:           ociImageParam,
+				ImagePullPolicy: k8score.PullIfNotPresent,
+				Command: []string{
+					"sh", "-c",
+					fmt.Sprintf(
+						"cp -r /models /oci-artifact-%d/models && echo 'Modelcar ready' && until [ -f /oci-artifact-%d/launcher-complete ]; do sleep 1; done",
+						i, i,
+					),
+				},
+				VolumeMounts: []k8score.VolumeMount{
+					{Name: ociVolumeName, MountPath: fmt.Sprintf("/oci-artifact-%d/", i)},
+				},
+			},
+		})
+	}
+
 	c.templates[nameContainerImpl] = executor
-	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *container, *executor)
-	return nameContainerExecutor
+	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *executor)
+	return nameContainerImpl
+}
+
+// hasStaticK8sSettings reports whether cfg contains any settings that will be
+// embedded directly in the executor template (i.e. beyond PodMetadata which is
+// handled via parameterized metadata parameters).
+func hasStaticK8sSettings(cfg *kubernetesplatform.KubernetesExecutorConfig) bool {
+	if cfg == nil {
+		return false
+	}
+	return len(cfg.GetSecretAsVolume()) > 0 ||
+		len(cfg.GetSecretAsEnv()) > 0 ||
+		len(cfg.GetConfigMapAsVolume()) > 0 ||
+		len(cfg.GetConfigMapAsEnv()) > 0 ||
+		len(cfg.GetPvcMount()) > 0 ||
+		len(cfg.GetFieldPathAsEnv()) > 0 ||
+		len(cfg.GetEmptyDirMounts()) > 0 ||
+		len(cfg.GetGenericEphemeralVolume()) > 0 ||
+		len(cfg.GetTolerations()) > 0 ||
+		cfg.GetNodeSelector() != nil ||
+		cfg.GetNodeAffinity() != nil ||
+		cfg.GetPodAffinity() != nil ||
+		cfg.GetEnabledSharedMemory() != nil ||
+		cfg.GetActiveDeadlineSeconds() > 0 ||
+		cfg.GetImagePullPolicy() != "" ||
+		len(cfg.GetImagePullSecret()) > 0 ||
+		cfg.GetSecurityContext() != nil
+}
+
+// getOCIImporterArtifacts returns a map of input artifact name -> producer task name
+// for all input artifacts whose producer is an importer task. These require Modelcar
+// sidecar containers so the OCI image contents are accessible at runtime.
+func (c *workflowCompiler) getOCIImporterArtifacts(task *pipelinespec.PipelineTaskSpec) map[string]string {
+	result := map[string]string{}
+	if task == nil {
+		return result
+	}
+	for artName, artSpec := range task.GetInputs().GetArtifacts() {
+		toa := artSpec.GetTaskOutputArtifact()
+		if toa == nil {
+			continue
+		}
+		producerTaskName := toa.GetProducerTask()
+		producerTaskSpec := c.spec.GetRoot().GetDag().GetTasks()[producerTaskName]
+		if producerTaskSpec == nil {
+			continue
+		}
+		producerCompName := producerTaskSpec.GetComponentRef().GetName()
+		producerComp := c.spec.GetComponents()[producerCompName]
+		if producerComp == nil {
+			continue
+		}
+		execName := producerComp.GetExecutorLabel()
+		exec := c.executors[execName]
+		if exec.GetImporter() == nil {
+			continue
+		}
+		result[artName] = producerTaskName
+	}
+	return result
+}
+
+// applyStaticK8sConfig embeds static Kubernetes platform settings from cfg into
+// the executor template at compile time. Only settings with statically-known
+// values are applied; settings that require runtime parameter resolution
+// (e.g. PVC names from task output parameters, TolerationJson) are skipped with
+// a log warning.
+//
+// resolveParam resolves a ComponentInputParameter name to its string value. It
+// should first check the run's RuntimeConfig.ParameterValues, then the pipeline
+// spec's root-level parameter defaults. Passing nil is treated as "no resolver"
+// (all ComponentInputParameter PVC references will be skipped).
+func applyStaticK8sConfig(tmpl *wfapi.Template, cfg *kubernetesplatform.KubernetesExecutorConfig, resolveParam func(name string) (string, bool)) {
+	if cfg == nil || tmpl.Container == nil {
+		return
+	}
+
+	// Collect pod-level fields that require a strategic merge patch.
+	podSpec := map[string]interface{}{}
+
+	// Image pull policy (container-level).
+	if p := cfg.GetImagePullPolicy(); p != "" {
+		tmpl.Container.ImagePullPolicy = k8score.PullPolicy(p)
+	}
+
+	// Image pull secrets (pod-level).
+	if secrets := cfg.GetImagePullSecret(); len(secrets) > 0 {
+		refs := make([]map[string]interface{}, 0, len(secrets))
+		for _, s := range secrets {
+			name := resolveStringParam(s.GetSecretNameParameter(), resolveParam)
+			if name == "" {
+				name = s.GetSecretName() //nolint:staticcheck
+			}
+			// Skip entries whose name cannot be resolved at compile time;
+			// they cannot be injected into the static podSpecPatch.
+			if name == "" {
+				continue
+			}
+			refs = append(refs, map[string]interface{}{"name": name})
+		}
+		if len(refs) > 0 {
+			podSpec["imagePullSecrets"] = refs
+		}
+	}
+
+	// Node selector — static labels map only; NodeSelectorJson is skipped.
+	if ns := cfg.GetNodeSelector(); ns != nil {
+		if ns.GetNodeSelectorJson() != nil {
+			glog.Warningf("NodeSelectorJson is not supported with init-container driver; skipping")
+		} else if labels := ns.GetLabels(); len(labels) > 0 {
+			podSpec["nodeSelector"] = labels
+		}
+	}
+
+	// Tolerations — static fields only; TolerationJson is skipped.
+	if tols := cfg.GetTolerations(); len(tols) > 0 {
+		tolList := make([]map[string]interface{}, 0, len(tols))
+		for _, t := range tols {
+			if t.GetTolerationJson() != nil {
+				glog.Warningf("TolerationJson is not supported with init-container driver; skipping")
+				continue
+			}
+			tol := map[string]interface{}{}
+			if t.Key != "" {
+				tol["key"] = t.Key
+			}
+			if t.Operator != "" {
+				tol["operator"] = t.Operator
+			}
+			if t.Value != "" {
+				tol["value"] = t.Value
+			}
+			if t.Effect != "" {
+				tol["effect"] = t.Effect
+			}
+			if t.TolerationSeconds != nil {
+				tol["tolerationSeconds"] = *t.TolerationSeconds
+			}
+			tolList = append(tolList, tol)
+		}
+		if len(tolList) > 0 {
+			podSpec["tolerations"] = tolList
+		}
+	}
+
+	// Active deadline.
+	if ads := cfg.GetActiveDeadlineSeconds(); ads > 0 {
+		podSpec["activeDeadlineSeconds"] = ads
+	}
+
+	if len(podSpec) > 0 {
+		patch := map[string]interface{}{"spec": podSpec}
+		patchBytes, err := json.Marshal(patch)
+		if err == nil {
+			tmpl.PodSpecPatch = string(patchBytes)
+		}
+	}
+
+	// Secret volumes.
+	for _, sv := range cfg.GetSecretAsVolume() {
+		secretName := resolveStringParam(sv.GetSecretNameParameter(), resolveParam)
+		if secretName == "" {
+			secretName = sv.GetSecretName() //nolint:staticcheck
+		}
+		if secretName == "" {
+			glog.Warningf("SecretAsVolume with empty/dynamic secretName is not supported with init-container driver; skipping")
+			continue
+		}
+		optional := sv.Optional != nil && *sv.Optional
+		tmpl.Volumes = append(tmpl.Volumes, k8score.Volume{
+			Name: secretName,
+			VolumeSource: k8score.VolumeSource{
+				Secret: &k8score.SecretVolumeSource{
+					SecretName: secretName,
+					Optional:   &optional,
+				},
+			},
+		})
+		tmpl.Container.VolumeMounts = append(tmpl.Container.VolumeMounts, k8score.VolumeMount{
+			Name:      secretName,
+			MountPath: sv.GetMountPath(),
+		})
+	}
+
+	// Secret env vars.
+	for _, se := range cfg.GetSecretAsEnv() {
+		secretName := resolveStringParam(se.GetSecretNameParameter(), resolveParam)
+		if secretName == "" {
+			secretName = se.GetSecretName() //nolint:staticcheck
+		}
+		if secretName == "" {
+			glog.Warningf("SecretAsEnv with empty/dynamic secretName is not supported with init-container driver; skipping")
+			continue
+		}
+		for _, kToEnv := range se.GetKeyToEnv() {
+			tmpl.Container.Env = append(tmpl.Container.Env, k8score.EnvVar{
+				Name: kToEnv.GetEnvVar(),
+				ValueFrom: &k8score.EnvVarSource{
+					SecretKeyRef: &k8score.SecretKeySelector{
+						LocalObjectReference: k8score.LocalObjectReference{Name: secretName},
+						Key:                  kToEnv.GetSecretKey(),
+						Optional:             se.Optional,
+					},
+				},
+			})
+		}
+	}
+
+	// ConfigMap volumes.
+	for _, cv := range cfg.GetConfigMapAsVolume() {
+		configMapName := resolveStringParam(cv.GetConfigMapNameParameter(), resolveParam)
+		if configMapName == "" {
+			configMapName = cv.GetConfigMapName() //nolint:staticcheck
+		}
+		if configMapName == "" {
+			continue
+		}
+		optional := cv.Optional != nil && *cv.Optional
+		tmpl.Volumes = append(tmpl.Volumes, k8score.Volume{
+			Name: configMapName,
+			VolumeSource: k8score.VolumeSource{
+				ConfigMap: &k8score.ConfigMapVolumeSource{
+					LocalObjectReference: k8score.LocalObjectReference{Name: configMapName},
+					Optional:             &optional,
+				},
+			},
+		})
+		tmpl.Container.VolumeMounts = append(tmpl.Container.VolumeMounts, k8score.VolumeMount{
+			Name:      configMapName,
+			MountPath: cv.GetMountPath(),
+		})
+	}
+
+	// ConfigMap env vars.
+	for _, ce := range cfg.GetConfigMapAsEnv() {
+		configMapName := resolveStringParam(ce.GetConfigMapNameParameter(), resolveParam)
+		if configMapName == "" {
+			configMapName = ce.GetConfigMapName() //nolint:staticcheck
+		}
+		if configMapName == "" {
+			glog.Warningf("ConfigMapAsEnv with empty/dynamic configMapName is not supported with init-container driver; skipping")
+			continue
+		}
+		for _, kToEnv := range ce.GetKeyToEnv() {
+			tmpl.Container.Env = append(tmpl.Container.Env, k8score.EnvVar{
+				Name: kToEnv.GetEnvVar(),
+				ValueFrom: &k8score.EnvVarSource{
+					ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
+						LocalObjectReference: k8score.LocalObjectReference{Name: configMapName},
+						Key:                  kToEnv.GetConfigMapKey(),
+					},
+				},
+			})
+		}
+	}
+
+	// FieldPath env vars.
+	for _, fpe := range cfg.GetFieldPathAsEnv() {
+		tmpl.Container.Env = append(tmpl.Container.Env, k8score.EnvVar{
+			Name: fpe.GetName(),
+			ValueFrom: &k8score.EnvVarSource{
+				FieldRef: &k8score.ObjectFieldSelector{
+					FieldPath: fpe.GetFieldPath(),
+				},
+			},
+		})
+	}
+
+	// EmptyDir mounts.
+	for _, edm := range cfg.GetEmptyDirMounts() {
+		tmpl.Volumes = append(tmpl.Volumes, k8score.Volume{
+			Name:         edm.GetVolumeName(),
+			VolumeSource: k8score.VolumeSource{EmptyDir: &k8score.EmptyDirVolumeSource{}},
+		})
+		tmpl.Container.VolumeMounts = append(tmpl.Container.VolumeMounts, k8score.VolumeMount{
+			Name:      edm.GetVolumeName(),
+			MountPath: edm.GetMountPath(),
+		})
+	}
+
+	// Shared memory (emptyDir with memory medium).
+	if shm := cfg.GetEnabledSharedMemory(); shm != nil {
+		shmName := shm.GetVolumeName()
+		if shmName == "" {
+			shmName = "dshm"
+		}
+		emptyDir := &k8score.EmptyDirVolumeSource{Medium: k8score.StorageMediumMemory}
+		if sizeStr := shm.GetSize(); sizeStr != "" {
+			if q, err := resource.ParseQuantity(sizeStr); err == nil {
+				emptyDir.SizeLimit = &q
+			}
+		}
+		tmpl.Volumes = append(tmpl.Volumes, k8score.Volume{
+			Name:         shmName,
+			VolumeSource: k8score.VolumeSource{EmptyDir: emptyDir},
+		})
+		tmpl.Container.VolumeMounts = append(tmpl.Container.VolumeMounts, k8score.VolumeMount{
+			Name:      shmName,
+			MountPath: "/dev/shm",
+		})
+	}
+
+	// PVC mounts — constant and component-input-parameter names are supported;
+	// TaskOutputParameter names are skipped since they require runtime resolution.
+	for _, pm := range cfg.GetPvcMount() {
+		pvcName := resolvePvcName(pm, resolveParam)
+		if pvcName == "" {
+			continue
+		}
+		mount := k8score.VolumeMount{
+			Name:      pvcName,
+			MountPath: pm.GetMountPath(),
+		}
+		if pm.GetSubPath() != "" {
+			mount.SubPath = pm.GetSubPath()
+		}
+		tmpl.Volumes = append(tmpl.Volumes, k8score.Volume{
+			Name: pvcName,
+			VolumeSource: k8score.VolumeSource{
+				PersistentVolumeClaim: &k8score.PersistentVolumeClaimVolumeSource{
+					ClaimName: pvcName,
+				},
+			},
+		})
+		tmpl.Container.VolumeMounts = append(tmpl.Container.VolumeMounts, mount)
+	}
+}
+
+// resolveStringParam extracts a string value from a TaskInputsSpec_InputParameterSpec.
+// It handles RuntimeValue constants and ComponentInputParameter (via resolveParam).
+// TaskOutputParameter is not supported at compile time and returns "".
+func resolveStringParam(param *pipelinespec.TaskInputsSpec_InputParameterSpec, resolveParam func(name string) (string, bool)) string {
+	if param == nil {
+		return ""
+	}
+	switch kind := param.GetKind().(type) {
+	case *pipelinespec.TaskInputsSpec_InputParameterSpec_RuntimeValue:
+		if c := kind.RuntimeValue.GetConstant(); c != nil {
+			return c.GetStringValue()
+		}
+	case *pipelinespec.TaskInputsSpec_InputParameterSpec_ComponentInputParameter:
+		if resolveParam != nil {
+			if val, ok := resolveParam(kind.ComponentInputParameter); ok {
+				return val
+			}
+		}
+	}
+	return ""
+}
+
+// resolvePvcName extracts the PVC claim name from a PvcMount, resolving
+// ComponentInputParameter references via resolveParam.
+//
+// Resolution priority:
+//  1. PvcNameParameter.RuntimeValue.Constant  – compile-time constant via new field
+//  2. PvcNameParameter.ComponentInputParameter – resolved via resolveParam
+//  3. Deprecated PvcReference.Constant         – compile-time constant string
+//  4. Deprecated PvcReference.ComponentInputParameter – resolved via resolveParam
+//
+// TaskOutputParameter references are always skipped: their values are only known
+// at runtime (they come from another task's output) and cannot be embedded at
+// compile time.
+//
+// Returns "" if the name cannot be determined; callers should skip the mount.
+func resolvePvcName(pm *kubernetesplatform.PvcMount, resolveParam func(name string) (string, bool)) string {
+	if np := pm.GetPvcNameParameter(); np != nil {
+		switch kind := np.GetKind().(type) {
+		case *pipelinespec.TaskInputsSpec_InputParameterSpec_RuntimeValue:
+			// Constant value supplied via the new RuntimeValue field.
+			rv := kind.RuntimeValue
+			if c := rv.GetConstant(); c != nil {
+				return c.GetStringValue()
+			}
+			// Also handle the deprecated ConstantValue sub-field for backward compatibility.
+			if c := rv.GetConstantValue(); c != nil { //nolint:staticcheck
+				return c.GetStringValue()
+			}
+		case *pipelinespec.TaskInputsSpec_InputParameterSpec_ComponentInputParameter:
+			paramName := kind.ComponentInputParameter
+			if paramName == "" {
+				return ""
+			}
+			if resolveParam != nil {
+				if val, ok := resolveParam(paramName); ok {
+					return val
+				}
+			}
+			glog.Warningf("PvcMount: ComponentInputParameter %q could not be resolved at compile time; skipping", paramName)
+			return ""
+		case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskOutputParameter:
+			glog.Warningf("PvcMount: TaskOutputParameter PVC names are not supported with the init-container driver; skipping")
+			return ""
+		}
+		return ""
+	}
+
+	// Deprecated PvcReference oneof fields (backward compatibility with older pipeline specs).
+	if name := pm.GetConstant(); name != "" { //nolint:staticcheck
+		return name
+	}
+	if paramName := pm.GetComponentInputParameter(); paramName != "" { //nolint:staticcheck
+		if resolveParam != nil {
+			if val, ok := resolveParam(paramName); ok {
+				return val
+			}
+		}
+		glog.Warningf("PvcMount: ComponentInputParameter %q could not be resolved at compile time; skipping", paramName)
+		return ""
+	}
+	if pm.GetTaskOutputParameter() != nil { //nolint:staticcheck
+		glog.Warningf("PvcMount: TaskOutputParameter PVC names are not supported with the init-container driver; skipping")
+		return ""
+	}
+	return ""
 }
 
 func (c *workflowCompiler) getTaskRetryParameters(task *pipelinespec.PipelineTaskSpec) []wfapi.Parameter {

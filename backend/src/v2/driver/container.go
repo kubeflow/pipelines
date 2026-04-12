@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
 
 	"github.com/golang/glog"
 	"github.com/google/uuid"
@@ -27,8 +26,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func validateContainer(opts Options) (err error) {
@@ -214,96 +213,82 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		glog.Info("Cache disabled globally at the server level.")
 	}
 
-	taskConfig := &TaskConfig{}
-
-	podSpec, err := initPodSpecPatch(
-		opts.Container,
-		opts.Component,
-		executorInput,
-		execution.ID,
-		opts.PipelineName,
-		opts.RunID,
-		opts.RunName,
-		opts.PipelineLogLevel,
-		opts.PublishLogs,
-		strconv.FormatBool(opts.CacheDisabled),
-		taskConfig,
-		opts.MLPipelineTLSEnabled,
-		opts.MLMDTLSEnabled,
-		opts.CaCertPath,
-		opts.MLPipelineServerAddress,
-		opts.MLPipelineServerPort,
-		opts.MLMDServerAddress,
-		opts.MLMDServerPort,
-	)
+	// Resolve container command and args: replace {{$.inputs.parameters['x']}} placeholders
+	// with the actual resolved values from the executor input. The launcher will further
+	// resolve artifact path placeholders at runtime.
+	userCommand, err := resolveContainerArgs(opts.Container.GetCommand(), executorInput)
 	if err != nil {
-		return execution, err
+		return execution, fmt.Errorf("failed to resolve container command: %w", err)
 	}
+	userArgs, err := resolveContainerArgs(opts.Container.GetArgs(), executorInput)
+	if err != nil {
+		return execution, fmt.Errorf("failed to resolve container args: %w", err)
+	}
+	execution.UserCommand = userCommand
+	execution.UserArgs = userArgs
+
+	// Resolve dynamic secret env vars (secretAsEnv entries with taskOutputParameter names).
 	if opts.KubernetesExecutorConfig != nil {
-		err = extendPodSpecPatch(ctx, podSpec, opts, dag, pipeline, mlmd, inputParams, taskConfig)
-		if err != nil {
-			return execution, err
+		dynamicEnvVars, dynErr := resolveDynamicSecretEnvVars(ctx, dag, pipeline, opts, mlmd, inputParams)
+		if dynErr != nil {
+			glog.Warningf("failed to resolve dynamic secret env vars: %v", dynErr)
+		} else if len(dynamicEnvVars) > 0 {
+			execution.DynamicEnvVars = dynamicEnvVars
 		}
 	}
 
-	// Handle replacing any dsl.TaskConfig inputs with the taskConfig. This is done here because taskConfig is
-	// populated by initPodSpecPatch and extendPodSpecPatch.
-	taskConfigInputs := map[string]bool{}
-	for inputName := range opts.Component.GetInputDefinitions().GetParameters() {
-		compParam := opts.Component.GetInputDefinitions().GetParameters()[inputName]
-		if compParam != nil && compParam.GetParameterType() == pipelinespec.ParameterType_TASK_CONFIG {
-			taskConfigInputs[inputName] = true
-		}
-	}
-
-	if len(taskConfigInputs) > 0 {
-		taskConfigBytes, err := json.Marshal(taskConfig)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal Kubernetes passthrough info: %w", err)
-		}
-
-		taskConfigStruct := &structpb.Struct{}
-		err = protojson.Unmarshal(taskConfigBytes, taskConfigStruct)
-		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal Kubernetes passthrough info: %w", err)
-		}
-
-		for inputName := range taskConfigInputs {
-			executorInput.Inputs.ParameterValues[inputName] = &structpb.Value{
-				Kind: &structpb.Value_StructValue{StructValue: taskConfigStruct},
-			}
-		}
-
-		ecfg.InputParameters = executorInput.Inputs.ParameterValues
-
-		// Overwrite the --executor_input argument in the podSpec container command with the updated executorInput
-		executorInputJSON, err := protojson.Marshal(executorInput)
-		if err != nil {
-			return execution, fmt.Errorf("JSON marshaling executor input: %w", err)
-		}
-
-		for index, container := range podSpec.Containers {
-			if container.Name == "main" {
-				cmd := container.Command
-				for i := 0; i < len(cmd)-1; i++ {
-					if cmd[i] == "--executor_input" {
-						podSpec.Containers[index].Command[i+1] = string(executorInputJSON)
-
-						break
-					}
-				}
-
-				break
-			}
-		}
-
-		execution.ExecutorInput = executorInput
-	}
-
-	podSpecPatchBytes, err := json.Marshal(podSpec)
-	if err != nil {
-		return execution, fmt.Errorf("JSON marshaling pod spec patch: %w", err)
-	}
-	execution.PodSpecPatch = string(podSpecPatchBytes)
 	return execution, nil
+}
+
+// resolveDynamicSecretEnvVars resolves secretAsEnv entries whose secret names come
+// from taskOutputParameter (i.e. runtime-resolved). It reads the actual secret
+// value from Kubernetes and returns a map of env var name -> value.
+func resolveDynamicSecretEnvVars(
+	ctx context.Context,
+	dag *metadata.DAG,
+	pipeline *metadata.Pipeline,
+	opts Options,
+	mlmd *metadata.Client,
+	inputParams map[string]*structpb.Value,
+) (map[string]string, error) {
+	if opts.KubernetesExecutorConfig == nil {
+		return nil, nil
+	}
+	result := map[string]string{}
+	k8sClient, err := createK8sClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create k8s client: %w", err)
+	}
+	for _, se := range opts.KubernetesExecutorConfig.GetSecretAsEnv() {
+		param := se.GetSecretNameParameter()
+		if param == nil {
+			continue
+		}
+		// Only handle taskOutputParameter (runtime-resolved) here; static names are
+		// already handled at compile time.
+		if _, isTask := param.GetKind().(*pipelinespec.TaskInputsSpec_InputParameterSpec_TaskOutputParameter); !isTask {
+			continue
+		}
+		resolvedVal, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd, param, inputParams)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve dynamic secret name: %w", err)
+		}
+		secretName := resolvedVal.GetStringValue()
+		if secretName == "" {
+			continue
+		}
+		secret, err := k8sClient.CoreV1().Secrets(opts.Namespace).Get(ctx, secretName, metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get secret %q: %w", secretName, err)
+		}
+		for _, kToEnv := range se.GetKeyToEnv() {
+			if val, ok := secret.Data[kToEnv.GetSecretKey()]; ok {
+				result[kToEnv.GetEnvVar()] = string(val)
+			}
+		}
+	}
+	if len(result) == 0 {
+		return nil, nil
+	}
+	return result, nil
 }

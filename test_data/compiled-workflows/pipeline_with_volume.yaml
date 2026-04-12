@@ -81,6 +81,201 @@ spec:
   serviceAccountName: pipeline-runner
   templates:
   - container:
+      command:
+      - /kfp-launcher/launch
+      - --pipeline_name
+      - pipeline-with-volume
+      - --run_id
+      - '{{workflow.uid}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
+      - --component_spec
+      - '{{inputs.parameters.component}}'
+      - --pod_name
+      - $(KFP_POD_NAME)
+      - --pod_uid
+      - $(KFP_POD_UID)
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: '{{inputs.parameters.image}}'
+      name: ""
+      resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - pipeline-with-volume
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      command:
+      - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: kfp-driver
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 256Mi
+        requests:
+          cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: task-name
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+      - name: image
+    metadata: {}
+    name: k8s-comp-consumer-system-container-impl
+    outputs: {}
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
+    volumes:
+    - emptyDir: {}
+      name: kfp-driver-outputs
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - container:
       args:
       - --type
       - CONTAINER
@@ -145,7 +340,7 @@ spec:
           memory: 512Mi
         requests:
           cpu: 100m
-          memory: 64Mi
+          memory: 128Mi
       securityContext:
         allowPrivilegeEscalation: false
         capabilities:
@@ -186,26 +381,29 @@ spec:
       runAsNonRoot: true
       seccompProfile:
         type: RuntimeDefault
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{inputs.parameters.pod-spec-patch}}'
-        name: executor
-        template: system-container-impl
-        when: '{{inputs.parameters.cached-decision}} != true'
-    inputs:
-      parameters:
-      - name: pod-spec-patch
-      - default: "false"
-        name: cached-decision
-    metadata: {}
-    name: system-container-executor
-    outputs: {}
   - container:
       command:
-      - should-be-overridden-during-runtime
+      - /kfp-launcher/launch
+      - --pipeline_name
+      - pipeline-with-volume
+      - --run_id
+      - '{{workflow.uid}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
+      - --component_spec
+      - '{{inputs.parameters.component}}'
+      - --pod_name
+      - $(KFP_POD_NAME)
+      - --pod_uid
+      - $(KFP_POD_UID)
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
       env:
       - name: KFP_POD_NAME
         valueFrom:
@@ -219,7 +417,7 @@ spec:
       - configMapRef:
           name: metadata-grpc-configmap
           optional: true
-      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      image: '{{inputs.parameters.image}}'
       name: ""
       resources: {}
       securityContext:
@@ -230,6 +428,8 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       volumeMounts:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
       - mountPath: /kfp-launcher
         name: kfp-launcher
       - mountPath: /gcs
@@ -245,6 +445,78 @@ spec:
       - mountPath: /.config
         name: dot-config-scratch
     initContainers:
+    - args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - pipeline-with-volume
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      command:
+      - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: kfp-driver
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
     - args:
       - --copy
       - /kfp-launcher/launch
@@ -271,15 +543,25 @@ spec:
         name: kfp-launcher
     inputs:
       parameters:
-      - name: pod-spec-patch
+      - name: component
+      - name: task
+      - name: container
+      - name: task-name
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+      - name: image
     metadata: {}
-    name: system-container-impl
+    name: k8s-comp-producer-system-container-impl
     outputs: {}
-    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     securityContext:
       seccompProfile:
         type: RuntimeDefault
     volumes:
+    - emptyDir: {}
+      name: kfp-driver-outputs
     - emptyDir: {}
       name: kfp-launcher
     - emptyDir: {}
@@ -308,21 +590,13 @@ spec:
             value: consumer
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.11
           - name: kubernetes-config
             value: '{{workflow.parameters.kubernetes-comp-consumer}}'
         depends: createpvc.Succeeded && producer.Succeeded
-        name: consumer-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.consumer-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.consumer-driver.outputs.parameters.cached-decision}}'
-        depends: consumer-driver.Succeeded
         name: consumer
-        template: system-container-executor
+        template: k8s-comp-consumer-system-container-impl
       - arguments:
           parameters:
           - name: component
@@ -364,21 +638,13 @@ spec:
             value: producer
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.11
           - name: kubernetes-config
             value: '{{workflow.parameters.kubernetes-comp-producer}}'
         depends: createpvc.Succeeded
-        name: producer-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.producer-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.producer-driver.outputs.parameters.cached-decision}}'
-        depends: producer-driver.Succeeded
         name: producer
-        template: system-container-executor
+        template: k8s-comp-producer-system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id
@@ -439,7 +705,7 @@ spec:
           memory: 512Mi
         requests:
           cpu: 100m
-          memory: 64Mi
+          memory: 128Mi
       securityContext:
         allowPrivilegeEscalation: false
         capabilities:

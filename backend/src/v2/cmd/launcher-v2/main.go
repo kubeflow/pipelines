@@ -17,8 +17,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
@@ -50,6 +55,10 @@ var (
 	caCertPath              = flag.String("ca_cert_path", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
 	mlPipelineTLSEnabled    = flag.Bool("ml_pipeline_tls_enabled", false, "Set to true if mlpipeline API server serves over TLS.")
 	metadataTLSEnabled      = flag.Bool("metadata_tls_enabled", false, "Set to true if MLMD serves over TLS.")
+	// driverOutputsDir is set in init-container mode. When non-empty, the launcher reads
+	// execution-id, executor-input, user-command, user-args, cached-decision and condition
+	// from files in this directory instead of from flags.
+	driverOutputsDir = flag.String("driver_outputs_dir", "", "Directory to read driver outputs from (init-container driver mode).")
 )
 
 func main() {
@@ -126,7 +135,44 @@ func run() error {
 		if err != nil {
 			return err
 		}
-		launcher, err := component.NewLauncherV2(ctx, *executionID, *executorInputJSON, *componentSpecJSON, flag.Args(), launcherV2Opts, clientManager)
+
+		var (
+			resolvedExecutionID   int64
+			resolvedExecutorInput string
+			resolvedCmdArgs       []string
+		)
+
+		if *driverOutputsDir != "" {
+			// Init-container mode: read outputs written by the driver init container.
+			execID, execInput, userCmd, userArgs, cached, conditionMet, dynEnvVars, readErr := readDriverOutputs(*driverOutputsDir)
+			if readErr != nil {
+				return readErr
+			}
+			if cached {
+				glog.Infof("Cache hit; exiting without running user container")
+				return nil
+			}
+			if !conditionMet {
+				glog.Infof("Condition not met; exiting without running user container")
+				return nil
+			}
+			resolvedExecutionID = execID
+			resolvedExecutorInput = execInput
+			resolvedCmdArgs = append(resolvedCmdArgs, userCmd...)
+			resolvedCmdArgs = append(resolvedCmdArgs, userArgs...)
+			// Apply dynamic env vars (from runtime-resolved secrets) so the user process inherits them.
+			for k, v := range dynEnvVars {
+				os.Setenv(k, v)
+			}
+		} else {
+			// Legacy mode: execution-id and executor-input come from flags, user
+			// command+args come from arguments after --.
+			resolvedExecutionID = *executionID
+			resolvedExecutorInput = *executorInputJSON
+			resolvedCmdArgs = flag.Args()
+		}
+
+		launcher, err := component.NewLauncherV2(ctx, resolvedExecutionID, resolvedExecutorInput, *componentSpecJSON, resolvedCmdArgs, launcherV2Opts, clientManager)
 		if err != nil {
 			return err
 		}
@@ -140,6 +186,95 @@ func run() error {
 	}
 	return fmt.Errorf("unsupported executor type %s", *executorType)
 
+}
+
+// readDriverOutputs reads the output files written by the driver init container
+// from dir (the shared emptyDir volume mounted at driverOutputsMountPath).
+func readDriverOutputs(dir string) (
+	executionID int64,
+	executorInput string,
+	userCommand, userArgs []string,
+	cached bool,
+	conditionMet bool,
+	dynamicEnvVars map[string]string,
+	err error,
+) {
+	readFile := func(name string) (string, error) {
+		data, e := os.ReadFile(filepath.Join(dir, name))
+		if e != nil {
+			return "", fmt.Errorf("failed to read driver output %s: %w", name, e)
+		}
+		return strings.TrimSpace(string(data)), nil
+	}
+
+	execIDStr, err := readFile("execution-id")
+	if err != nil {
+		return
+	}
+	executionID, err = strconv.ParseInt(execIDStr, 10, 64)
+	if err != nil {
+		err = fmt.Errorf("failed to parse execution ID %q: %w", execIDStr, err)
+		return
+	}
+
+	executorInput, err = readFile("executor-input")
+	if err != nil {
+		return
+	}
+
+	userCmdJSON, err := readFile("user-command")
+	if err != nil {
+		return
+	}
+	if err = json.Unmarshal([]byte(userCmdJSON), &userCommand); err != nil {
+		err = fmt.Errorf("failed to parse user-command: %w", err)
+		return
+	}
+
+	userArgsJSON, err := readFile("user-args")
+	if err != nil {
+		return
+	}
+	if err = json.Unmarshal([]byte(userArgsJSON), &userArgs); err != nil {
+		err = fmt.Errorf("failed to parse user-args: %w", err)
+		return
+	}
+
+	cachedStr, err := readFile("cached-decision")
+	if err != nil {
+		return
+	}
+	cached, err = strconv.ParseBool(cachedStr)
+	if err != nil {
+		err = fmt.Errorf("failed to parse cached-decision %q: %w", cachedStr, err)
+		return
+	}
+
+	condStr, err := readFile("condition")
+	if err != nil {
+		return
+	}
+	// "nil" means unconditional (always run); "true" means run; "false" means skip.
+	if condStr == "nil" {
+		conditionMet = true
+	} else {
+		conditionMet, err = strconv.ParseBool(condStr)
+		if err != nil {
+			err = fmt.Errorf("failed to parse condition %q: %w", condStr, err)
+			return
+		}
+	}
+
+	// dynamic-env-vars is optional; written only when dynamic secrets are present.
+	dynamicEnvVarsJSON, readErr := os.ReadFile(filepath.Join(dir, "dynamic-env-vars"))
+	if readErr == nil && len(dynamicEnvVarsJSON) > 0 {
+		if err = json.Unmarshal(dynamicEnvVarsJSON, &dynamicEnvVars); err != nil {
+			err = fmt.Errorf("failed to parse dynamic-env-vars: %w", err)
+			return
+		}
+	}
+
+	return
 }
 
 // Use WARNING default logging level to facilitate troubleshooting.

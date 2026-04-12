@@ -17,16 +17,12 @@ package driver
 import (
 	"fmt"
 	"path/filepath"
-	"slices"
 	"strings"
-
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
@@ -148,8 +144,14 @@ type Execution struct {
 	Condition      *bool // true -> trigger the task, false -> not trigger the task, nil -> the task is unconditional
 
 	// only specified when this is a Container execution
-	Cached       *bool
-	PodSpecPatch string
+	Cached *bool
+	// UserCommand and UserArgs hold the resolved user container command and args.
+	// They are written to the shared emptyDir volume for the launcher to read.
+	UserCommand []string
+	UserArgs    []string
+	// DynamicEnvVars holds env var key->value pairs resolved at runtime from
+	// secretAsEnv entries with taskOutputParameter secret names.
+	DynamicEnvVars map[string]string
 }
 
 func (e *Execution) WillTrigger() bool {
@@ -231,277 +233,22 @@ func getTaskConfigOptions(
 	return passthroughEnabled, setOnPod
 }
 
-// initPodSpecPatch generates a strategic merge patch for pod spec, it is merged
-// to container base template generated in compiler/container.go. Therefore, only
-// dynamic values are patched here. The volume mounts / configmap mounts are
-// defined in compiler, because they are static.
-func initPodSpecPatch(
-	container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec,
-	componentSpec *pipelinespec.ComponentSpec,
-	executorInput *pipelinespec.ExecutorInput,
-	executionID int64,
-	pipelineName string,
-	runID string,
-	runName string,
-	pipelineLogLevel string,
-	publishLogs string,
-	cacheDisabled string,
-	taskConfig *TaskConfig,
-	mlPipelineTLSEnabled bool,
-	metadataTLSEnabled bool,
-	caCertPath string,
-	mlPipelineServerAddress string,
-	mlPipelineServerPort string,
-	mlmdServerAddress string,
-	mlmdServerPort string,
-) (*k8score.PodSpec, error) {
-	executorInputJSON, err := protojson.Marshal(executorInput)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
-	}
-	componentJSON, err := protojson.Marshal(componentSpec)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
-	}
-
-	// Convert environment variables
-	userEnvVar := make([]k8score.EnvVar, 0)
-	for _, envVar := range container.GetEnv() {
-		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar.GetName(), Value: envVar.GetValue()})
-	}
-
-	userEnvVar = append(userEnvVar, proxy.GetConfig().GetEnvVars()...)
-
-	setOnTaskConfig, setOnPod := getTaskConfigOptions(componentSpec)
-
-	// Always set setOnTaskConfig to an empty map if taskConfig is nil to avoid nil pointer dereference.
-	if taskConfig == nil {
-		setOnTaskConfig = map[pipelinespec.TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum]bool{}
-	}
-
-	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
-
-	resolvedCommand, err := resolveContainerArgs(container.Command, executorInput)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve container command: %w", err)
-	}
-	userCmdArgs = append(userCmdArgs, resolvedCommand...)
-
-	resolvedArgs, err := resolveContainerArgs(container.Args, executorInput)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve container args: %w", err)
-	}
-	userCmdArgs = append(userCmdArgs, resolvedArgs...)
-	launcherCmd := []string{
-		component.KFPLauncherPath,
-		// TODO(Bobgy): no need to pass pipeline_name and run_id, these info can be fetched via pipeline context and pipeline run context which have been created by root DAG driver.
-		"--pipeline_name", pipelineName,
-		"--run_id", runID,
-		"--execution_id", fmt.Sprintf("%v", executionID),
-		"--executor_input", string(executorInputJSON),
-		"--component_spec", string(componentJSON),
-		"--pod_name",
-		fmt.Sprintf("$(%s)", component.EnvPodName),
-		"--pod_uid",
-		fmt.Sprintf("$(%s)", component.EnvPodUID),
-		"--ml_pipeline_server_address", mlPipelineServerAddress,
-		"--ml_pipeline_server_port", mlPipelineServerPort,
-		"--mlmd_server_address", mlmdServerAddress,
-		"--mlmd_server_port", mlmdServerPort,
-		"--publish_logs", publishLogs,
-	}
-	if mlPipelineTLSEnabled {
-		launcherCmd = append(launcherCmd, "--ml_pipeline_tls_enabled")
-	}
-	if metadataTLSEnabled {
-		launcherCmd = append(launcherCmd, "--metadata_tls_enabled")
-	}
-	if caCertPath != "" {
-		launcherCmd = append(launcherCmd, "--ca_cert_path", caCertPath)
-	}
-	if cacheDisabled == "true" {
-		launcherCmd = append(launcherCmd, "--cache_disabled")
-	}
-	if pipelineLogLevel != "1" {
-		// Add log level to user code launcher if not default (set to 1)
-		launcherCmd = append(launcherCmd, "--log_level", pipelineLogLevel)
-	}
-	if publishLogs == "true" {
-		launcherCmd = append(launcherCmd, "--publish_logs", publishLogs)
-	}
-	launcherCmd = append(launcherCmd, "--") // separater before user command and args
-	res := k8score.ResourceRequirements{
-		Limits:   map[k8score.ResourceName]k8sres.Quantity{},
-		Requests: map[k8score.ResourceName]k8sres.Quantity{},
-	}
-
-	memoryLimit, err := getPodResource(
-		container.GetResources().GetResourceMemoryLimit(),
-		container.GetResources().GetMemoryLimit(),
-		executorInput,
-		"%vG",
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
-	}
-	if memoryLimit != nil {
-		res.Limits[k8score.ResourceMemory] = *memoryLimit
-	}
-
-	memoryRequest, err := getPodResource(
-		container.GetResources().GetResourceMemoryRequest(),
-		container.GetResources().GetMemoryRequest(),
-		executorInput,
-		"%vG",
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
-	}
-	if memoryRequest != nil {
-		res.Requests[k8score.ResourceMemory] = *memoryRequest
-	}
-
-	cpuLimit, err := getPodResource(
-		container.GetResources().GetResourceCpuLimit(),
-		container.GetResources().GetCpuLimit(),
-		executorInput,
-		"%v",
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
-	}
-	if cpuLimit != nil {
-		res.Limits[k8score.ResourceCPU] = *cpuLimit
-	}
-
-	cpuRequest, err := getPodResource(
-		container.GetResources().GetResourceCpuRequest(),
-		container.GetResources().GetCpuRequest(),
-		executorInput,
-		"%v",
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
-	}
-	if cpuRequest != nil {
-		res.Requests[k8score.ResourceCPU] = *cpuRequest
-	}
-
-	accelerator := container.GetResources().GetAccelerator()
-	if accelerator != nil {
-		var acceleratorType string
-		if accelerator.GetResourceType() != "" {
-			acceleratorType, err = resolvePodSpecInputRuntimeParameter(accelerator.GetResourceType(), executorInput)
-			if err != nil {
-				return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
-			}
-		} else if accelerator.GetType() != "" {
-			acceleratorType = accelerator.GetType()
-		}
-
-		var acceleratorCount string
-
-		if accelerator.GetResourceCount() != "" {
-			var err error
-
-			acceleratorCount, err = resolvePodSpecInputRuntimeParameter(accelerator.GetResourceCount(), executorInput)
-			if err != nil {
-				return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
-			}
-		} else if accelerator.Count > 0 {
-			acceleratorCount = fmt.Sprintf("%v", accelerator.GetCount())
-		}
-
-		if acceleratorType != "" && acceleratorCount != "" {
-			q, err := k8sres.ParseQuantity(acceleratorCount)
-			if err != nil {
-				return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
-			}
-			res.Limits[k8score.ResourceName(acceleratorType)] = q
-		}
-	}
-
-	containerImage, err := resolvePodSpecInputRuntimeParameter(container.Image, executorInput)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
-	}
-
-	podSpec := &k8score.PodSpec{
-		Containers: []k8score.Container{{
-			Name:    "main", // argo task user container is always called "main"
-			Command: launcherCmd,
-			Args:    userCmdArgs,
-			Image:   containerImage,
-		}},
-	}
-
-	if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_ENV] {
-		taskConfig.Env = userEnvVar
-	}
-
-	if setOnPod[pipelinespec.TaskConfigPassthroughType_ENV] {
-		podSpec.Containers[0].Env = userEnvVar
-	}
-
-	if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_RESOURCES] {
-		taskConfig.Resources = res
-	}
-
-	if setOnPod[pipelinespec.TaskConfigPassthroughType_RESOURCES] {
-		podSpec.Containers[0].Resources = res
-	}
-
-	addModelcarsToPodSpec(executorInput.GetInputs().GetArtifacts(), podSpec.Containers[0].Env, podSpec)
-
-	if needsWorkspaceMount(executorInput) {
-		// Validate that no user volume mounts conflict with the workspace
-		if err := validateVolumeMounts(podSpec); err != nil {
-			return nil, fmt.Errorf("failed to validate volume mounts: %w", err)
-		}
-
-		if runName == "" {
-			return nil, fmt.Errorf("failed to init podSpecPatch: run name is required when workspace is used")
-		}
-
-		pvcName := GetWorkspacePVCName(runName)
-
-		workspaceVolume, workspaceVolumeMount := getWorkspaceMount(pvcName)
-
-		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES] {
-			taskConfig.Volumes = append(taskConfig.Volumes, workspaceVolume)
-			taskConfig.VolumeMounts = append(taskConfig.VolumeMounts, workspaceVolumeMount)
-		}
-
-		if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES] {
-			podSpec.Volumes = append(podSpec.Volumes, workspaceVolume)
-			podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, workspaceVolumeMount)
-		}
-	}
-
-	return podSpec, nil
-}
-
 // needsWorkspaceMount checks if the component needs workspace mounting based on input parameters and artifacts.
 func needsWorkspaceMount(executorInput *pipelinespec.ExecutorInput) bool {
-	// Check if any input parameter is the workspace path placeholder
 	for _, param := range executorInput.GetInputs().GetParameterValues() {
 		if strVal, ok := param.GetKind().(*structpb.Value_StringValue); ok {
 			if strings.Contains(strVal.StringValue, "{{$.workspace_path}}") {
 				return true
 			}
-
 			if strings.Contains(strVal.StringValue, component.WorkspaceMountPath) {
 				return true
 			}
 		}
 	}
-
-	// Check if any input artifact has workspace metadata
 	for _, artifactList := range executorInput.GetInputs().GetArtifacts() {
 		if len(artifactList.Artifacts) == 0 {
 			continue
 		}
-		// first artifact is used, as the list is expected to contain a single artifact
 		artifact := artifactList.Artifacts[0]
 		if artifact.Metadata != nil {
 			if workspaceVal, ok := artifact.Metadata.Fields["_kfp_workspace"]; ok {
@@ -511,172 +258,22 @@ func needsWorkspaceMount(executorInput *pipelinespec.ExecutorInput) bool {
 			}
 		}
 	}
-
 	return false
 }
 
-// getWorkspaceMount gets the workspace volume and volume mount.
+// getWorkspaceMount returns the workspace volume and volume mount for a given PVC name.
 func getWorkspaceMount(pvcName string) (k8score.Volume, k8score.VolumeMount) {
-	workspaceVolume := k8score.Volume{
-		Name: component.WorkspaceVolumeName,
-		VolumeSource: k8score.VolumeSource{
-			PersistentVolumeClaim: &k8score.PersistentVolumeClaimVolumeSource{
-				ClaimName: pvcName,
-			},
-		},
-	}
-
-	workspaceVolumeMount := k8score.VolumeMount{
-		Name:      component.WorkspaceVolumeName,
-		MountPath: component.WorkspaceMountPath,
-	}
-
-	return workspaceVolume, workspaceVolumeMount
-}
-
-// addModelcarsToPodSpec will patch the pod spec if there are any input artifacts in the Modelcar format.
-// Much of this logic is based on KServe:
-// https://github.com/kserve/kserve/blob/v0.14.1/pkg/webhook/admission/pod/storage_initializer_injector.go#L131
-func addModelcarsToPodSpec(
-	artifacts map[string]*pipelinespec.ArtifactList,
-	userEnvVar []k8score.EnvVar,
-	podSpec *k8score.PodSpec,
-) {
-	// We need to add Modelcar containers and volumes in a deterministic order so that we can have stable naming of
-	// containers and volumes. The approach taken is sorting by input artifact name and then leveraging the index
-	// as a suffix to Modelcar containers and volumes added to the pod spec. The artifact name cannot be directly used
-	// as it may not be a compatible Kubernetes object name.
-	modelcarArtifacts := map[string]*pipelinespec.RuntimeArtifact{}
-	modelcarArtifactNames := []string{}
-
-	for name, artifactList := range artifacts {
-		if len(artifactList.Artifacts) == 0 {
-			continue
-		}
-		// Following the convention of downloadArtifacts in the launcher to look at the entire list.
-		for index, artifact := range artifactList.Artifacts {
-			inputArtifact := artifact
-
-			// This should ideally verify that this is also a model input artifact, but this metadata doesn't seem to
-			// be set on inputArtifact.
-			if !strings.HasPrefix(inputArtifact.Uri, "oci://") {
-				continue
-			}
-
-			artifactName := fmt.Sprintf("%s-%d", name, index)
-			modelcarArtifacts[artifactName] = inputArtifact
-			modelcarArtifactNames = append(modelcarArtifactNames, artifactName)
-		}
-	}
-
-	slices.Sort(modelcarArtifactNames)
-
-	for i, name := range modelcarArtifactNames {
-		inputArtifact := modelcarArtifacts[name]
-
-		localPath, err := component.LocalPathForURI(inputArtifact.Uri)
-		if err != nil {
-			continue
-		}
-
-		// If there is at least one Modelcar image, then shareProcessNamespace must be enabled.
-		trueVal := true
-		podSpec.ShareProcessNamespace = &trueVal
-
-		image := strings.TrimPrefix(inputArtifact.Uri, "oci://")
-
-		// Apply the same security context to modelcar containers as the main
-		// container to ensure matching credentials for /proc/<pid>/root access
-		// via shareProcessNamespace. Without matching security contexts, the
-		// kernel's ptrace_may_access check can deny access to the symlinked
-		// model files.
-		allowPrivilegeEscalation := false
-		modelcarSecurityContext := &k8score.SecurityContext{
-			AllowPrivilegeEscalation: &allowPrivilegeEscalation,
-			Capabilities: &k8score.Capabilities{
-				Drop: []k8score.Capability{"ALL"},
-			},
-			SeccompProfile: &k8score.SeccompProfile{
-				Type: k8score.SeccompProfileTypeRuntimeDefault,
-			},
-		}
-
-		podSpec.InitContainers = append(
-			podSpec.InitContainers,
-			k8score.Container{
-				Name:  fmt.Sprintf("oci-prepull-%d", i),
-				Image: image,
-				Command: []string{
-					"sh",
-					"-c",
-					// Check that the expected models directory exists
-					// Taken from KServe:
-					// https://github.com/kserve/kserve/blob/v0.14.1/pkg/webhook/admission/pod/storage_initializer_injector.go#L732
-					"echo 'Pre-fetching modelcar " + image + ": ' && [ -d /models ] && " +
-						"[ \"$$(ls -A /models)\" ] && echo 'OK ... Prefetched and valid (/models exists)' || " +
-						"(echo 'NOK ... Prefetched but modelcar is invalid (/models does not exist or is empty)' && " +
-						" exit 1)",
-				},
-				Env:                      userEnvVar,
-				SecurityContext:          modelcarSecurityContext,
-				TerminationMessagePolicy: k8score.TerminationMessageFallbackToLogsOnError,
-			},
-		)
-
-		volumeName := fmt.Sprintf("oci-%d", i)
-
-		podSpec.Volumes = append(
-			podSpec.Volumes,
-			k8score.Volume{
-				Name: volumeName,
-				VolumeSource: k8score.VolumeSource{
-					EmptyDir: &k8score.EmptyDirVolumeSource{},
+	return k8score.Volume{
+			Name: component.WorkspaceVolumeName,
+			VolumeSource: k8score.VolumeSource{
+				PersistentVolumeClaim: &k8score.PersistentVolumeClaimVolumeSource{
+					ClaimName: pvcName,
 				},
 			},
-		)
-
-		mountPath := strings.TrimSuffix(localPath, "/models")
-
-		emptyDirVolumeMount := k8score.VolumeMount{
-			Name:      volumeName,
-			MountPath: mountPath,
-			SubPath:   strings.TrimPrefix(mountPath, "/oci/"),
+		}, k8score.VolumeMount{
+			Name:      component.WorkspaceVolumeName,
+			MountPath: component.WorkspaceMountPath,
 		}
-
-		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, emptyDirVolumeMount)
-
-		podSpec.Containers = append(
-			podSpec.Containers,
-			k8score.Container{
-				Name:            fmt.Sprintf("oci-%d", i),
-				Image:           image,
-				ImagePullPolicy: "IfNotPresent",
-				Env:             userEnvVar,
-				VolumeMounts:    []k8score.VolumeMount{emptyDirVolumeMount},
-				SecurityContext: modelcarSecurityContext,
-				Command: []string{
-					"sh",
-					"-c",
-					// $$$$ gets escaped by YAML to $$, which is the current PID
-					// This container will sleep until the main container finishes execution and
-					// communicates its exit via a file creation, at which point this container
-					// will then also exit.
-					// This approach is taken instead of having the main container send a SIGHUP to the
-					// sleep process to avoid the need for the SYS_PTRACE capability which is not always available
-					// depending on the security context restrictions.
-					// This approach is inspired by KServe:
-					// https://github.com/kserve/kserve/blob/v0.14.1/pkg/webhook/admission/pod/storage_initializer_injector.go#L732
-					fmt.Sprintf(
-						"ln -s /proc/$$$$/root/models \"%s\" && "+
-							"echo \"Running Modelcar container...\" && "+
-							"until [ -f \"%s/launcher-complete\" ]; do sleep 1; done",
-						localPath, mountPath,
-					),
-				},
-				TerminationMessagePolicy: k8score.TerminationMessageFallbackToLogsOnError,
-			},
-		)
-	}
 }
 
 func validateNonRoot(opts Options) error {

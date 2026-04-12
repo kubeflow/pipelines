@@ -1868,6 +1868,40 @@ class TestDictToArtifact(parameterized.TestCase):
         self.assertIsInstance(
             executor.create_artifact_instance(runtime_artifact), expected_type)
 
+    def test_create_artifact_instance_with_camelcase_custom_path(self):
+        """CustomPath (camelCase, from protojson) is honoured when present."""
+        runtime_artifact = {
+            'metadata': {},
+            'name': 'input_model',
+            'type': {
+                'schemaTitle': 'system.Model'
+            },
+            'uri': 'oci://registry.example.com/model:v1',
+            'customPath': '/oci-artifact-0',
+        }
+        artifact = executor.create_artifact_instance(runtime_artifact)
+        self.assertIsInstance(artifact, artifact_types.Model)
+        self.assertEqual(artifact.custom_path, '/oci-artifact-0')
+        # Model.path appends /models for OCI URIs.
+        self.assertEqual(artifact.path, '/oci-artifact-0/models')
+
+    def test_create_artifact_instance_with_snakecase_custom_path(self):
+        """custom_path (snake_case, from Python SDK) is honoured when
+        present."""
+        runtime_artifact = {
+            'metadata': {},
+            'name': 'input_model',
+            'type': {
+                'schemaTitle': 'system.Model'
+            },
+            'uri': 'oci://registry.example.com/model:v1',
+            'custom_path': '/oci-artifact-1',
+        }
+        artifact = executor.create_artifact_instance(runtime_artifact)
+        self.assertIsInstance(artifact, artifact_types.Model)
+        self.assertEqual(artifact.custom_path, '/oci-artifact-1')
+        self.assertEqual(artifact.path, '/oci-artifact-1/models')
+
 
 @contextlib.contextmanager
 def temporary_envvar(key: str, value: str) -> None:

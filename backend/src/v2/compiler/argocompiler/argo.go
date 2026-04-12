@@ -486,6 +486,7 @@ const (
 	paramIterationIndex          = "iteration-index"
 	paramExecutorInput           = "executor-input"
 	paramDriverType              = "driver-type"
+	paramImage                   = "image"                       // container image for the executor pod
 	paramCachedDecision          = "cached-decision"             // indicate hit cache or not
 	paramPodSpecPatch            = "pod-spec-patch"              // a strategic patch merged with the pod spec
 	paramCondition               = "condition"                   // condition = false -> skip the task
@@ -547,7 +548,7 @@ var driverResources = k8score.ResourceRequirements{
 		k8score.ResourceCPU:    k8sres.MustParse("0.5"),
 	},
 	Requests: map[k8score.ResourceName]k8sres.Quantity{
-		k8score.ResourceMemory: k8sres.MustParse("64Mi"),
+		k8score.ResourceMemory: k8sres.MustParse("128Mi"),
 		k8score.ResourceCPU:    k8sres.MustParse("0.1"),
 	},
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -147,6 +148,19 @@ func (l *ImportLauncher) Execute(ctx context.Context) (err error) {
 	artifact, err := l.findOrNewArtifactToImport(ctx, createdExecution)
 	if err != nil {
 		return err
+	}
+
+	// Write the OCI model image path so the executor template can read it as an
+	// output parameter (oci-model-image) and pass it to Modelcar sidecar containers.
+	uri := artifact.GetUri()
+	if strings.HasPrefix(uri, "oci://") {
+		ociImage := strings.TrimPrefix(uri, "oci://")
+		if writeErr := os.WriteFile("/tmp/kfp-oci-model-image", []byte(ociImage), 0o644); writeErr != nil {
+			glog.Warningf("failed to write oci-model-image: %v", writeErr)
+		}
+	} else {
+		// Write empty string for non-OCI artifacts so the optional output parameter is present.
+		_ = os.WriteFile("/tmp/kfp-oci-model-image", []byte(""), 0o644)
 	}
 	outputArtifactName, err := l.getOutPutArtifactName()
 	if err != nil {
