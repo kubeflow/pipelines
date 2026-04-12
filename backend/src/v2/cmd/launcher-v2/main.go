@@ -158,7 +158,8 @@ func run() error {
 			}
 			resolvedExecutionID = execID
 			resolvedExecutorInput = execInput
-			resolvedCmdArgs = append(userCmd, userArgs...)
+			resolvedCmdArgs = append(resolvedCmdArgs, userCmd...)
+			resolvedCmdArgs = append(resolvedCmdArgs, userArgs...)
 		} else {
 			// Legacy mode: execution-id and executor-input come from flags, user
 			// command+args come from arguments after --.

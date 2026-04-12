@@ -597,8 +597,8 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 		// The driver init container also needs the CA bundle for TLS calls to MLMD/API server.
 		for _, vol := range executor.Volumes {
 			if vol.Name == volumeNameCABundle {
-				executor.InitContainers[0].Container.VolumeMounts = append(
-					executor.InitContainers[0].Container.VolumeMounts,
+				executor.InitContainers[0].VolumeMounts = append(
+					executor.InitContainers[0].VolumeMounts,
 					k8score.VolumeMount{Name: volumeNameCABundle, MountPath: common.CABundleDir},
 				)
 				break
@@ -679,7 +679,11 @@ func applyStaticK8sConfig(tmpl *wfapi.Template, cfg *kubernetesplatform.Kubernet
 	if secrets := cfg.GetImagePullSecret(); len(secrets) > 0 {
 		refs := make([]map[string]interface{}, 0, len(secrets))
 		for _, s := range secrets {
-			refs = append(refs, map[string]interface{}{"name": s.GetSecretName()})
+			name := resolveStringParam(s.GetSecretNameParameter(), resolveParam)
+			if name == "" {
+				name = s.GetSecretName() //nolint:staticcheck
+			}
+			refs = append(refs, map[string]interface{}{"name": name})
 		}
 		podSpec["imagePullSecrets"] = refs
 	}
@@ -739,7 +743,10 @@ func applyStaticK8sConfig(tmpl *wfapi.Template, cfg *kubernetesplatform.Kubernet
 
 	// Secret volumes.
 	for _, sv := range cfg.GetSecretAsVolume() {
-		secretName := sv.GetSecretName()
+		secretName := resolveStringParam(sv.GetSecretNameParameter(), resolveParam)
+		if secretName == "" {
+			secretName = sv.GetSecretName() //nolint:staticcheck
+		}
 		if secretName == "" {
 			glog.Warningf("SecretAsVolume with empty/dynamic secretName is not supported with init-container driver; skipping")
 			continue
@@ -762,7 +769,10 @@ func applyStaticK8sConfig(tmpl *wfapi.Template, cfg *kubernetesplatform.Kubernet
 
 	// Secret env vars.
 	for _, se := range cfg.GetSecretAsEnv() {
-		secretName := se.GetSecretName()
+		secretName := resolveStringParam(se.GetSecretNameParameter(), resolveParam)
+		if secretName == "" {
+			secretName = se.GetSecretName() //nolint:staticcheck
+		}
 		if secretName == "" {
 			glog.Warningf("SecretAsEnv with empty/dynamic secretName is not supported with init-container driver; skipping")
 			continue
@@ -783,7 +793,10 @@ func applyStaticK8sConfig(tmpl *wfapi.Template, cfg *kubernetesplatform.Kubernet
 
 	// ConfigMap volumes.
 	for _, cv := range cfg.GetConfigMapAsVolume() {
-		configMapName := cv.GetConfigMapName()
+		configMapName := resolveStringParam(cv.GetConfigMapNameParameter(), resolveParam)
+		if configMapName == "" {
+			configMapName = cv.GetConfigMapName() //nolint:staticcheck
+		}
 		if configMapName == "" {
 			continue
 		}
@@ -805,12 +818,16 @@ func applyStaticK8sConfig(tmpl *wfapi.Template, cfg *kubernetesplatform.Kubernet
 
 	// ConfigMap env vars.
 	for _, ce := range cfg.GetConfigMapAsEnv() {
+		configMapName := resolveStringParam(ce.GetConfigMapNameParameter(), resolveParam)
+		if configMapName == "" {
+			configMapName = ce.GetConfigMapName() //nolint:staticcheck
+		}
 		for _, kToEnv := range ce.GetKeyToEnv() {
 			tmpl.Container.Env = append(tmpl.Container.Env, k8score.EnvVar{
 				Name: kToEnv.GetEnvVar(),
 				ValueFrom: &k8score.EnvVarSource{
 					ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
-						LocalObjectReference: k8score.LocalObjectReference{Name: ce.GetConfigMapName()},
+						LocalObjectReference: k8score.LocalObjectReference{Name: configMapName},
 						Key:                  kToEnv.GetConfigMapKey(),
 					},
 				},
@@ -890,6 +907,28 @@ func applyStaticK8sConfig(tmpl *wfapi.Template, cfg *kubernetesplatform.Kubernet
 	}
 }
 
+// resolveStringParam extracts a string value from a TaskInputsSpec_InputParameterSpec.
+// It handles RuntimeValue constants and ComponentInputParameter (via resolveParam).
+// TaskOutputParameter is not supported at compile time and returns "".
+func resolveStringParam(param *pipelinespec.TaskInputsSpec_InputParameterSpec, resolveParam func(name string) (string, bool)) string {
+	if param == nil {
+		return ""
+	}
+	switch kind := param.GetKind().(type) {
+	case *pipelinespec.TaskInputsSpec_InputParameterSpec_RuntimeValue:
+		if c := kind.RuntimeValue.GetConstant(); c != nil {
+			return c.GetStringValue()
+		}
+	case *pipelinespec.TaskInputsSpec_InputParameterSpec_ComponentInputParameter:
+		if resolveParam != nil {
+			if val, ok := resolveParam(kind.ComponentInputParameter); ok {
+				return val
+			}
+		}
+	}
+	return ""
+}
+
 // resolvePvcName extracts the PVC claim name from a PvcMount, resolving
 // ComponentInputParameter references via resolveParam.
 //
@@ -913,8 +952,8 @@ func resolvePvcName(pm *kubernetesplatform.PvcMount, resolveParam func(name stri
 			if c := rv.GetConstant(); c != nil {
 				return c.GetStringValue()
 			}
-			// Also handle the deprecated ConstantValue sub-field.
-			if c := rv.GetConstantValue(); c != nil {
+			// Also handle the deprecated ConstantValue sub-field for backward compatibility.
+			if c := rv.GetConstantValue(); c != nil { //nolint:staticcheck
 				return c.GetStringValue()
 			}
 		case *pipelinespec.TaskInputsSpec_InputParameterSpec_ComponentInputParameter:
@@ -936,11 +975,11 @@ func resolvePvcName(pm *kubernetesplatform.PvcMount, resolveParam func(name stri
 		return ""
 	}
 
-	// Deprecated PvcReference oneof fields.
-	if name := pm.GetConstant(); name != "" {
+	// Deprecated PvcReference oneof fields (backward compatibility with older pipeline specs).
+	if name := pm.GetConstant(); name != "" { //nolint:staticcheck
 		return name
 	}
-	if paramName := pm.GetComponentInputParameter(); paramName != "" {
+	if paramName := pm.GetComponentInputParameter(); paramName != "" { //nolint:staticcheck
 		if resolveParam != nil {
 			if val, ok := resolveParam(paramName); ok {
 				return val
@@ -949,7 +988,7 @@ func resolvePvcName(pm *kubernetesplatform.PvcMount, resolveParam func(name stri
 		glog.Warningf("PvcMount: ComponentInputParameter %q could not be resolved at compile time; skipping", paramName)
 		return ""
 	}
-	if pm.GetTaskOutputParameter() != nil {
+	if pm.GetTaskOutputParameter() != nil { //nolint:staticcheck
 		glog.Warningf("PvcMount: TaskOutputParameter PVC names are not supported with the init-container driver; skipping")
 		return ""
 	}
