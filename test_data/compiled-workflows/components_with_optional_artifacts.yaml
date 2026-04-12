@@ -71,7 +71,6 @@ spec:
       - metadata-grpc-service.kubeflow.svc.cluster.local
       - --mlmd_server_port
       - "8080"
-      - --cache_disabled
       env:
       - name: KFP_POD_NAME
         valueFrom:
@@ -173,7 +172,7 @@ spec:
           memory: 512Mi
         requests:
           cpu: 100m
-          memory: 64Mi
+          memory: 128Mi
       securityContext:
         allowPrivilegeEscalation: false
         capabilities:
@@ -339,7 +338,7 @@ spec:
           memory: 512Mi
         requests:
           cpu: 100m
-          memory: 64Mi
+          memory: 128Mi
       securityContext:
         allowPrivilegeEscalation: false
         capabilities:
@@ -415,7 +414,7 @@ spec:
           memory: 512Mi
         requests:
           cpu: 100m
-          memory: 64Mi
+          memory: 128Mi
       securityContext:
         allowPrivilegeEscalation: false
         capabilities:

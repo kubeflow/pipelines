@@ -569,7 +569,28 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 
 	// Apply static Kubernetes platform settings (volumes, mounts, node selector, etc.)
 	// directly to the template — these were previously applied at runtime via pod-spec-patch.
-	applyStaticK8sConfig(executor, k8sExecCfg)
+	// Build a resolver for ComponentInputParameter PVC names: look up the value from the
+	// run's runtime config first, then fall back to pipeline spec default values.
+	resolveParam := func(paramName string) (string, bool) {
+		if pv := c.job.GetRuntimeConfig().GetParameterValues(); pv != nil {
+			if v, ok := pv[paramName]; ok {
+				if s := v.GetStringValue(); s != "" {
+					return s, true
+				}
+			}
+		}
+		if params := c.spec.GetRoot().GetInputDefinitions().GetParameters(); params != nil {
+			if p, ok := params[paramName]; ok {
+				if dv := p.GetDefaultValue(); dv != nil {
+					if s := dv.GetStringValue(); s != "" {
+						return s, true
+					}
+				}
+			}
+		}
+		return "", false
+	}
+	applyStaticK8sConfig(executor, k8sExecCfg, resolveParam)
 
 	if setCABundle {
 		ConfigureCustomCABundle(executor)
@@ -636,7 +657,12 @@ func hasStaticK8sSettings(cfg *kubernetesplatform.KubernetesExecutorConfig) bool
 // values are applied; settings that require runtime parameter resolution
 // (e.g. PVC names from task output parameters, TolerationJson) are skipped with
 // a log warning.
-func applyStaticK8sConfig(tmpl *wfapi.Template, cfg *kubernetesplatform.KubernetesExecutorConfig) {
+//
+// resolveParam resolves a ComponentInputParameter name to its string value. It
+// should first check the run's RuntimeConfig.ParameterValues, then the pipeline
+// spec's root-level parameter defaults. Passing nil is treated as "no resolver"
+// (all ComponentInputParameter PVC references will be skipped).
+func applyStaticK8sConfig(tmpl *wfapi.Template, cfg *kubernetesplatform.KubernetesExecutorConfig, resolveParam func(name string) (string, bool)) {
 	if cfg == nil || tmpl.Container == nil {
 		return
 	}
@@ -838,12 +864,11 @@ func applyStaticK8sConfig(tmpl *wfapi.Template, cfg *kubernetesplatform.Kubernet
 		})
 	}
 
-	// PVC mounts — constant names only; TaskOutputParameter and ComponentInputParameter
-	// are skipped since they require runtime resolution which is no longer available.
+	// PVC mounts — constant and component-input-parameter names are supported;
+	// TaskOutputParameter names are skipped since they require runtime resolution.
 	for _, pm := range cfg.GetPvcMount() {
-		pvcName := pm.GetConstant()
+		pvcName := resolvePvcName(pm, resolveParam)
 		if pvcName == "" {
-			glog.Warningf("PvcMount with dynamic PVC name (TaskOutputParameter/ComponentInputParameter) is not supported with init-container driver; skipping")
 			continue
 		}
 		mount := k8score.VolumeMount{
@@ -863,6 +888,72 @@ func applyStaticK8sConfig(tmpl *wfapi.Template, cfg *kubernetesplatform.Kubernet
 		})
 		tmpl.Container.VolumeMounts = append(tmpl.Container.VolumeMounts, mount)
 	}
+}
+
+// resolvePvcName extracts the PVC claim name from a PvcMount, resolving
+// ComponentInputParameter references via resolveParam.
+//
+// Resolution priority:
+//  1. PvcNameParameter.RuntimeValue.Constant  – compile-time constant via new field
+//  2. PvcNameParameter.ComponentInputParameter – resolved via resolveParam
+//  3. Deprecated PvcReference.Constant         – compile-time constant string
+//  4. Deprecated PvcReference.ComponentInputParameter – resolved via resolveParam
+//
+// TaskOutputParameter references are always skipped: their values are only known
+// at runtime (they come from another task's output) and cannot be embedded at
+// compile time.
+//
+// Returns "" if the name cannot be determined; callers should skip the mount.
+func resolvePvcName(pm *kubernetesplatform.PvcMount, resolveParam func(name string) (string, bool)) string {
+	if np := pm.GetPvcNameParameter(); np != nil {
+		switch kind := np.GetKind().(type) {
+		case *pipelinespec.TaskInputsSpec_InputParameterSpec_RuntimeValue:
+			// Constant value supplied via the new RuntimeValue field.
+			rv := kind.RuntimeValue
+			if c := rv.GetConstant(); c != nil {
+				return c.GetStringValue()
+			}
+			// Also handle the deprecated ConstantValue sub-field.
+			if c := rv.GetConstantValue(); c != nil {
+				return c.GetStringValue()
+			}
+		case *pipelinespec.TaskInputsSpec_InputParameterSpec_ComponentInputParameter:
+			paramName := kind.ComponentInputParameter
+			if paramName == "" {
+				return ""
+			}
+			if resolveParam != nil {
+				if val, ok := resolveParam(paramName); ok {
+					return val
+				}
+			}
+			glog.Warningf("PvcMount: ComponentInputParameter %q could not be resolved at compile time; skipping", paramName)
+			return ""
+		case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskOutputParameter:
+			glog.Warningf("PvcMount: TaskOutputParameter PVC names are not supported with the init-container driver; skipping")
+			return ""
+		}
+		return ""
+	}
+
+	// Deprecated PvcReference oneof fields.
+	if name := pm.GetConstant(); name != "" {
+		return name
+	}
+	if paramName := pm.GetComponentInputParameter(); paramName != "" {
+		if resolveParam != nil {
+			if val, ok := resolveParam(paramName); ok {
+				return val
+			}
+		}
+		glog.Warningf("PvcMount: ComponentInputParameter %q could not be resolved at compile time; skipping", paramName)
+		return ""
+	}
+	if pm.GetTaskOutputParameter() != nil {
+		glog.Warningf("PvcMount: TaskOutputParameter PVC names are not supported with the init-container driver; skipping")
+		return ""
+	}
+	return ""
 }
 
 func (c *workflowCompiler) getTaskRetryParameters(task *pipelinespec.PipelineTaskSpec) []wfapi.Parameter {

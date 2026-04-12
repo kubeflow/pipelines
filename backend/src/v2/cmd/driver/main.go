@@ -76,7 +76,7 @@ var (
 	mlmdServerPort          = flag.String("mlmd_server_port", "", "MLMD server port")
 
 	// output paths
-	executionIDPath    = flag.String("execution_id_path", "", "Exeucution ID output path")
+	executionIDPath    = flag.String("execution_id_path", "", "Execution ID output path")
 	iterationCountPath = flag.String("iteration_count_path", "", "Iteration Count output path")
 	podSpecPatchPath   = flag.String("pod_spec_patch_path", "", "Pod Spec Patch output path (legacy, used by dummy-image tasks)")
 	// the value stored in the paths will be either 'true' or 'false'

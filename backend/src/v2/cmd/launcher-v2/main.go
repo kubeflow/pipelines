@@ -238,14 +238,26 @@ func readDriverOutputs(dir string) (
 	if err != nil {
 		return
 	}
-	cached = cachedStr == "true"
+	cached, err = strconv.ParseBool(cachedStr)
+	if err != nil {
+		err = fmt.Errorf("failed to parse cached-decision %q: %w", cachedStr, err)
+		return
+	}
 
 	condStr, err := readFile("condition")
 	if err != nil {
 		return
 	}
 	// "nil" means unconditional (always run); "true" means run; "false" means skip.
-	conditionMet = condStr != "false"
+	if condStr == "nil" {
+		conditionMet = true
+	} else {
+		conditionMet, err = strconv.ParseBool(condStr)
+		if err != nil {
+			err = fmt.Errorf("failed to parse condition %q: %w", condStr, err)
+			return
+		}
+	}
 	return
 }
 
