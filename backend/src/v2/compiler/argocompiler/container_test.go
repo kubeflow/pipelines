@@ -65,11 +65,12 @@ func TestAddContainerExecutorTemplate(t *testing.T) {
 				job: &pipelinespec.PipelineJob{},
 			}
 
-			c.addContainerExecutorTemplate(&pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test-ref"}}, &kubernetesplatform.KubernetesExecutorConfig{})
-			assert.NotEmpty(t, c.templates, "Templates map should not be empty")
+			templateName := c.addContainerExecutorTemplate(&pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test-ref"}}, &kubernetesplatform.KubernetesExecutorConfig{})
+			assert.NotEmpty(t, templateName, "Template name should not be empty")
 
 			// The new design has a single executor template (no outer DAG wrapper).
-			executorTemplate, exists := c.templates["system-container-impl"]
+			// Index by the returned name so the test catches compiler naming changes.
+			executorTemplate, exists := c.templates[templateName]
 			assert.True(t, exists, "Template should exist with the returned name")
 			assert.NotNil(t, executorTemplate, "Executor template should not be nil")
 
