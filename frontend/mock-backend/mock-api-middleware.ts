@@ -62,6 +62,29 @@ interface BaseResource {
   error?: string;
 }
 
+function getQueryString(queryParam: unknown): string | undefined {
+  if (typeof queryParam === 'string') {
+    return queryParam;
+  }
+  if (Array.isArray(queryParam)) {
+    return queryParam.find((value): value is string => typeof value === 'string');
+  }
+  return undefined;
+}
+
+function getQueryNumber(queryParam: unknown): number | undefined {
+  const queryString = getQueryString(queryParam);
+  if (queryString === undefined || queryString === '') {
+    return undefined;
+  }
+  const queryNumber = Number(queryString);
+  return Number.isNaN(queryNumber) ? undefined : queryNumber;
+}
+
+function getDecodedQueryString(queryParam: unknown): string {
+  return decodeURIComponent(getQueryString(queryParam) || '');
+}
+
 // tslint:disable-next-line:no-default-export
 export default (app: express.Application) => {
   app.use((req, _, next) => {
@@ -122,11 +145,15 @@ export default (app: express.Application) => {
     };
 
     let jobs: ApiJob[] = fixedData.jobs;
-    if (req.query.filter) {
-      jobs = filterResources(fixedData.jobs, req.query.filter);
+    const filterQuery = getQueryString(req.query.filter);
+    if (filterQuery) {
+      jobs = filterResources(fixedData.jobs, filterQuery);
     }
 
-    const { desc, key } = getSortKeyAndOrder(ExperimentSortKeys.CREATED_AT, req.query.sort_by);
+    const { desc, key } = getSortKeyAndOrder(
+      ExperimentSortKeys.CREATED_AT,
+      getQueryString(req.query.sort_by),
+    );
 
     jobs.sort((a, b) => {
       let result = 1;
@@ -139,8 +166,8 @@ export default (app: express.Application) => {
       return result * (desc ? -1 : 1);
     });
 
-    const start = req.query.page_token ? +req.query.page_token : 0;
-    const end = start + (+req.query.page_size || 20);
+    const start = getQueryNumber(req.query.page_token) || 0;
+    const end = start + (getQueryNumber(req.query.page_size) || 20);
     response.jobs = jobs.slice(start, end);
 
     if (end < jobs.length) {
@@ -159,11 +186,15 @@ export default (app: express.Application) => {
     };
 
     let experiments: ApiExperiment[] = fixedData.experiments;
-    if (req.query.filter) {
-      experiments = filterResources(fixedData.experiments, req.query.filter);
+    const filterQuery = getQueryString(req.query.filter);
+    if (filterQuery) {
+      experiments = filterResources(fixedData.experiments, filterQuery);
     }
 
-    const { desc, key } = getSortKeyAndOrder(ExperimentSortKeys.NAME, req.query.sortBy);
+    const { desc, key } = getSortKeyAndOrder(
+      ExperimentSortKeys.NAME,
+      getQueryString(req.query.sortBy),
+    );
 
     experiments.sort((a, b) => {
       let result = 1;
@@ -176,8 +207,8 @@ export default (app: express.Application) => {
       return result * (desc ? -1 : 1);
     });
 
-    const start = req.query.pageToken ? +req.query.pageToken : 0;
-    const end = start + (+req.query.pageSize || 20);
+    const start = getQueryNumber(req.query.pageToken) || 0;
+    const end = start + (getQueryNumber(req.query.pageSize) || 20);
     response.experiments = experiments.slice(start, end);
 
     if (end < experiments.length) {
@@ -275,21 +306,25 @@ export default (app: express.Application) => {
 
     let runs: ApiRun[] = fixedData.runs.map((r) => r.run!);
 
-    if (req.query.filter) {
-      runs = filterResources(runs, req.query.filter);
+    const filterQuery = getQueryString(req.query.filter);
+    if (filterQuery) {
+      runs = filterResources(runs, filterQuery);
     }
 
-    if (req.query['resource_reference_key.type'] === ApiResourceType.EXPERIMENT) {
+    const resourceReferenceType = getQueryString(req.query['resource_reference_key.type']);
+    const resourceReferenceId = getQueryString(req.query['resource_reference_key.id']);
+    if (resourceReferenceType === ApiResourceType.EXPERIMENT && resourceReferenceId) {
       runs = runs.filter((r) =>
         RunUtils.getAllExperimentReferences(r).some(
-          (ref) =>
-            (ref.key && ref.key.id && ref.key.id === req.query['resource_reference_key.id']) ||
-            false,
+          (ref) => (ref.key && ref.key.id && ref.key.id === resourceReferenceId) || false,
         ),
       );
     }
 
-    const { desc, key } = getSortKeyAndOrder(RunSortKeys.CREATED_AT, req.query.sort_by);
+    const { desc, key } = getSortKeyAndOrder(
+      RunSortKeys.CREATED_AT,
+      getQueryString(req.query.sort_by),
+    );
 
     runs.sort((a, b) => {
       let result = 1;
@@ -302,8 +337,8 @@ export default (app: express.Application) => {
       return result * (desc ? -1 : 1);
     });
 
-    const start = req.query.page_token ? +req.query.page_token : 0;
-    const end = start + (+req.query.page_size || 20);
+    const start = getQueryNumber(req.query.page_token) || 0;
+    const end = start + (getQueryNumber(req.query.page_size) || 20);
     response.runs = runs.slice(start, end);
 
     if (end < runs.length) {
@@ -446,11 +481,15 @@ export default (app: express.Application) => {
     };
 
     let pipelines: ApiPipeline[] = fixedData.pipelines;
-    if (req.query.filter) {
-      pipelines = filterResources(fixedData.pipelines, req.query.filter);
+    const filterQuery = getQueryString(req.query.filter);
+    if (filterQuery) {
+      pipelines = filterResources(fixedData.pipelines, filterQuery);
     }
 
-    const { desc, key } = getSortKeyAndOrder(PipelineSortKeys.CREATED_AT, req.query.sort_by);
+    const { desc, key } = getSortKeyAndOrder(
+      PipelineSortKeys.CREATED_AT,
+      getQueryString(req.query.sort_by),
+    );
 
     pipelines.sort((a, b) => {
       let result = 1;
@@ -463,8 +502,8 @@ export default (app: express.Application) => {
       return result * (desc ? -1 : 1);
     });
 
-    const start = req.query.page_token ? +req.query.page_token : 0;
-    const end = start + (+req.query.page_size || 20);
+    const start = getQueryNumber(req.query.page_token) || 0;
+    const end = start + (getQueryNumber(req.query.page_size) || 20);
     response.pipelines = pipelines.slice(start, end);
 
     if (end < pipelines.length) {
@@ -567,21 +606,19 @@ export default (app: express.Application) => {
     //   page_size: '50',
     //   sort_by: 'created_at desc'
     // },
-    if (
-      req.query['resource_key.id'] &&
-      req.query['resource_key.type'] === 'PIPELINE' &&
-      req.query.page_size > 0
-    ) {
+    const resourceKeyId = getQueryString(req.query['resource_key.id']);
+    const resourceKeyType = getQueryString(req.query['resource_key.type']);
+    const pageSize = getQueryNumber(req.query.page_size);
+    if (resourceKeyId && resourceKeyType === 'PIPELINE' && (pageSize || 0) > 0) {
       const response: ApiListPipelineVersionsResponse = {
         next_page_token: '',
         versions: [],
       };
 
-      let versions: ApiPipelineVersion[] =
-        PIPELINE_VERSIONS_LIST_MAP.get(req.query['resource_key.id']) || [];
+      let versions: ApiPipelineVersion[] = PIPELINE_VERSIONS_LIST_MAP.get(resourceKeyId) || [];
 
       if (versions.length === 0) {
-        const pipeline = fixedData.pipelines.find((p) => p.id === req.query['resource_key.id']);
+        const pipeline = fixedData.pipelines.find((p) => p.id === resourceKeyId);
 
         if (pipeline == null || !pipeline.default_version) {
           return;
@@ -596,8 +633,8 @@ export default (app: express.Application) => {
         return;
       }
 
-      const start = req.query.page_token ? +req.query.page_token : 0;
-      const end = start + (+req.query.page_size || 20);
+      const start = getQueryNumber(req.query.page_token) || 0;
+      const end = start + (pageSize || 20);
       response.versions = versions.slice(start, end);
 
       if (end < versions.length) {
@@ -666,11 +703,11 @@ export default (app: express.Application) => {
   });
 
   app.post(v1beta1Prefix + '/pipelines/upload', (req, res) => {
-    mockCreatePipeline(res, decodeURIComponent(req.query.name), req.body);
+    mockCreatePipeline(res, getDecodedQueryString(req.query.name), req.body);
   });
 
   app.get('/artifacts/get', (req, res) => {
-    const key = decodeURIComponent(req.query.key);
+    const key = getDecodedQueryString(req.query.key);
     res.header('Content-Type', 'application/json');
     if (key.endsWith('roc.csv')) {
       res.sendFile(_path.resolve(__dirname, rocDataPath));
@@ -710,7 +747,7 @@ export default (app: express.Application) => {
   });
 
   app.get('/k8s/pod/logs', (req, res) => {
-    const podName = decodeURIComponent(req.query.podname);
+    const podName = getDecodedQueryString(req.query.podname);
     if (podName === 'json-12abc') {
       res.status(404).send('pod not found');
       return;
