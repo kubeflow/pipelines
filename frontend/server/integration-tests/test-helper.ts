@@ -48,10 +48,12 @@ export function commonSetup(
   return { argv, buildDate, indexHtmlPath, indexHtmlContent };
 }
 
-export function buildQuery(queriesMap: { [key: string]: string | undefined }): string {
+export function buildQuery(queriesMap: { [key: string]: string | number | undefined }): string {
   const queryContent = Object.entries(queriesMap)
-    .filter((entry): entry is [string, string] => entry[1] != null)
-    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+    .filter(
+      (entry): entry is [string, string | number] => entry[1] !== undefined && entry[1] !== null,
+    )
+    .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
     .join('&');
   if (!queryContent) {
     return '';

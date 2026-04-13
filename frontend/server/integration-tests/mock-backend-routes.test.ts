@@ -17,21 +17,11 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import requests from 'supertest';
+import { buildQuery } from './test-helper.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const frontendRoot = path.resolve(__dirname, '..', '..');
 const originalCwd = process.cwd();
-
-function buildQuery(query: Record<string, string | number | undefined>): string {
-  const searchParams = new URLSearchParams();
-  Object.entries(query).forEach(([key, value]) => {
-    if (value !== undefined) {
-      searchParams.set(key, String(value));
-    }
-  });
-  const queryString = searchParams.toString();
-  return queryString ? `?${queryString}` : '';
-}
 
 async function createRequest(): Promise<ReturnType<typeof requests>> {
   vi.resetModules();
