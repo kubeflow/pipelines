@@ -85,7 +85,15 @@ func DeletePipeline(client *api_server.PipelineClient, pipelineID string) {
 
 /* DeleteAllPipelines deletes all pipelines */
 func DeleteAllPipelines(client *api_server.PipelineClient, namespace *string) {
-	pipelines := ListPipelines(client, namespace)
+	parameters := &pipeline_params.PipelineServiceListPipelinesParams{}
+	if namespace != nil {
+		parameters.Namespace = namespace
+	}
+	pipelines, err := client.ListAll(parameters, 10000)
+	if err != nil {
+		logger.Log("Failed to list all pipelines for deletion: %v", err)
+		return
+	}
 	for _, p := range pipelines {
 		DeletePipeline(client, p.PipelineID)
 	}
