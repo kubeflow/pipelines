@@ -158,7 +158,11 @@ class OperatorDeployer:
         print(f'🏷️  Using operator image: {operator_image}')
 
         deploy_env = os.environ.copy()
-        deploy_env.update({'IMAGES_DSPO': operator_image, 'IMG': operator_image})
+        deploy_env.update({
+            'IMAGES_DSPO': operator_image,
+            'IMG': operator_image,
+            'OPERATOR_NS': self.operator_namespace,
+        })
 
         print(f'🔧 Setting IMAGES_DSPO={operator_image}')
         self.deployment_manager.run_command(
