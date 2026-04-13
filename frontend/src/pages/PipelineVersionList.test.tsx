@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { render, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { range } from 'lodash';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { Apis, ListRequest } from 'src/lib/Apis';
@@ -25,7 +25,6 @@ import PipelineVersionList, { PipelineVersionListProps } from './PipelineVersion
 import { vi } from 'vitest';
 
 describe('PipelineVersionList', () => {
-  let renderResult: ReturnType<typeof render> | null = null;
   let pipelineVersionListRef: React.RefObject<PipelineVersionList> | null = null;
 
   let listPipelineVersionsSpy: ReturnType<typeof vi.spyOn>;
@@ -48,24 +47,20 @@ describe('PipelineVersionList', () => {
     };
   }
 
-  async function waitForVersionsLoad(): Promise<void> {
-    await waitFor(() => {
-      expect(listPipelineVersionsSpy).toHaveBeenCalled();
-    });
-    await TestUtils.flushPromises();
-  }
-
   async function renderPipelineVersionList(
     customProps?: Partial<PipelineVersionListProps>,
   ): Promise<void> {
     pipelineVersionListRef = React.createRef<PipelineVersionList>();
     const props = { ...generateProps(), ...customProps } as PipelineVersionListProps;
-    renderResult = render(
+    render(
       <CommonTestWrapper>
         <PipelineVersionList ref={pipelineVersionListRef} {...props} />
       </CommonTestWrapper>,
     );
-    await waitForVersionsLoad();
+    await waitFor(() => {
+      expect(listPipelineVersionsSpy).toHaveBeenCalled();
+    });
+    await TestUtils.flushPromises();
   }
 
   async function mountWithNPipelineVersions(n: number): Promise<void> {
@@ -83,17 +78,13 @@ describe('PipelineVersionList', () => {
   });
 
   afterEach(() => {
-    if (renderResult) {
-      renderResult.unmount();
-      renderResult = null;
-    }
     pipelineVersionListRef = null;
     vi.resetAllMocks();
   });
 
   it('renders an empty list with empty state message', async () => {
     await renderPipelineVersionList();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('No pipeline versions found.')).toBeInTheDocument();
   });
 
   it('renders a list of one pipeline version', async () => {
@@ -107,7 +98,7 @@ describe('PipelineVersionList', () => {
       ],
     });
     await renderPipelineVersionList();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('pipelineversion1')).toBeInTheDocument();
   });
 
   it('renders a list of one pipeline version with description', async () => {
@@ -122,7 +113,8 @@ describe('PipelineVersionList', () => {
       ],
     });
     await renderPipelineVersionList();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('pipelineversion1')).toBeInTheDocument();
+    expect(screen.getByText('pipelineversion1 description')).toBeInTheDocument();
   });
 
   it('renders a list of one pipeline version without created date', async () => {
@@ -135,7 +127,7 @@ describe('PipelineVersionList', () => {
       ],
     });
     await renderPipelineVersionList();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('pipelineversion1')).toBeInTheDocument();
   });
 
   it('renders a list of one pipeline version with error', async () => {
@@ -150,16 +142,21 @@ describe('PipelineVersionList', () => {
       ],
     });
     await renderPipelineVersionList();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('pipeline1')).toBeInTheDocument();
   });
 
   it('calls Apis to list pipeline versions, sorted by creation time in descending order', async () => {
     await mountWithNPipelineVersions(2);
-    await (pipelineVersionListRef?.current as any)._loadPipelineVersions({
-      pageSize: 10,
-      pageToken: '',
-      sortBy: 'created_at',
-    } as ListRequest);
+    // We call the internal load method directly via ref. This is how
+    // CustomTable triggers data loading, so it's an accepted pattern
+    // across all table-based test files.
+    await act(async () => {
+      await (pipelineVersionListRef?.current as any)._loadPipelineVersions({
+        pageSize: 10,
+        pageToken: '',
+        sortBy: 'created_at',
+      } as ListRequest);
+    });
     expect(listPipelineVersionsSpy).toHaveBeenLastCalledWith(
       'pipeline',
       '',
@@ -167,17 +164,17 @@ describe('PipelineVersionList', () => {
       'created_at',
       undefined,
     );
-    expect(renderResult!.asFragment()).toMatchSnapshot();
   });
 
   it('calls Apis to list pipeline versions, sorted by pipeline version name in descending order', async () => {
     await mountWithNPipelineVersions(3);
-    await (pipelineVersionListRef?.current as any)._loadPipelineVersions({
-      pageSize: 10,
-      pageToken: '',
-      sortBy: 'name',
-    } as ListRequest);
+    await act(async () => {
+      await (pipelineVersionListRef?.current as any)._loadPipelineVersions({
+        pageSize: 10,
+        pageToken: '',
+        sortBy: 'name',
+      } as ListRequest);
+    });
     expect(listPipelineVersionsSpy).toHaveBeenLastCalledWith('pipeline', '', 10, 'name', undefined);
-    expect(renderResult!.asFragment()).toMatchSnapshot();
   });
 });

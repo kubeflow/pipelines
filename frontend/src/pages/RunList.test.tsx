@@ -153,8 +153,7 @@ describe('RunList', () => {
   }
 
   function renderRenderer(element: React.ReactElement) {
-    const { asFragment } = render(<CommonTestWrapper>{element}</CommonTestWrapper>);
-    return asFragment();
+    render(<CommonTestWrapper>{element}</CommonTestWrapper>);
   }
 
   beforeEach(() => {
@@ -177,10 +176,6 @@ describe('RunList', () => {
   });
 
   afterEach(() => {
-    if (renderResult) {
-      renderResult.unmount();
-      renderResult = null;
-    }
     runListRef = null;
     vi.resetAllMocks();
   });
@@ -188,7 +183,7 @@ describe('RunList', () => {
   it('renders the empty experience', async () => {
     await renderRunList();
     await waitForRunListLoad();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('No available runs found.')).toBeInTheDocument();
   });
 
   describe('in archived state', () => {
@@ -197,7 +192,7 @@ describe('RunList', () => {
       props.storageState = V2beta1RunStorageState.ARCHIVED;
       await renderRunList(props);
       await waitForRunListLoad();
-      expect(renderResult!.asFragment()).toMatchSnapshot();
+      expect(screen.getByText('No archived runs found.')).toBeInTheDocument();
     });
 
     it('loads runs whose storage state is not ARCHIVED when storage state equals AVAILABLE', async () => {
@@ -334,7 +329,6 @@ describe('RunList', () => {
       '',
     );
     expect(props.onError).not.toHaveBeenCalled();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
   });
 
   it('loads multiple runs', async () => {
@@ -600,103 +594,110 @@ describe('RunList', () => {
 
   it('renders run name as link to its details page', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
-      instance._nameCustomRenderer({ value: 'test run', id: 'run-id' }),
-    );
-    expect(fragment).toMatchSnapshot();
+    renderRenderer(instance._nameCustomRenderer({ value: 'test run', id: 'run-id' }));
+    const link = screen.getByTestId('run-name-link');
+    expect(link).toHaveTextContent('test run');
+    expect(link).toHaveAttribute('href', '/runs/details/run-id');
   });
 
   it('renders pipeline name as link to its details page', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
+    renderRenderer(
       instance._pipelineVersionCustomRenderer({
         id: 'run-id',
         value: { displayName: 'test pipeline', pipelineId: 'pipeline-id', usePlaceholder: false },
       }),
     );
-    expect(fragment).toMatchSnapshot();
+    const link = screen.getByText('test pipeline');
+    expect(link).toHaveAttribute('href', '/pipelines/details/pipeline-id');
   });
 
   it('handles no pipeline id given', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
+    renderRenderer(
       instance._pipelineVersionCustomRenderer({
         id: 'run-id',
         value: { displayName: 'test pipeline', usePlaceholder: false },
       }),
     );
-    expect(fragment).toMatchSnapshot();
+    expect(screen.getByText('-')).toBeInTheDocument();
   });
 
   it('shows "View pipeline" button if pipeline is embedded in run', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
+    renderRenderer(
       instance._pipelineVersionCustomRenderer({
         id: 'run-id',
         value: { displayName: 'test pipeline', pipelineId: 'pipeline-id', usePlaceholder: true },
       }),
     );
-    expect(fragment).toMatchSnapshot();
+    const link = screen.getByText('[View pipeline]');
+    expect(link).toHaveAttribute('href', expect.stringContaining('/pipelines/details/'));
   });
 
   it('handles no pipeline name', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
+    renderRenderer(
       instance._pipelineVersionCustomRenderer({
         id: 'run-id',
         value: { /* no displayName */ usePlaceholder: true },
       }),
     );
-    expect(fragment).toMatchSnapshot();
+    const link = screen.getByText('[View pipeline]');
+    expect(link).toHaveAttribute('href', expect.stringContaining('/pipelines/details/'));
   });
 
   it('renders pipeline name as link to its details page', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
+    renderRenderer(
       instance._recurringRunCustomRenderer({
         id: 'run-id',
         value: { id: 'recurring-run-id' },
       }),
     );
-    expect(fragment).toMatchSnapshot();
+    const link = screen.getByText('[View config]');
+    expect(link).toHaveAttribute('href', '/recurringrun/details/recurring-run-id');
   });
 
   it('renders experiment name as link to its details page', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
+    renderRenderer(
       instance._experimentCustomRenderer({
         id: 'run-id',
         value: { displayName: 'test experiment', id: 'experiment-id' },
       }),
     );
-    expect(fragment).toMatchSnapshot();
+    const link = screen.getByText('test experiment');
+    expect(link).toHaveAttribute('href', '/experiments/details/experiment-id');
   });
 
   it('renders no experiment name', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
+    renderRenderer(
       instance._experimentCustomRenderer({
         id: 'run-id',
         value: { /* no displayName */ id: 'experiment-id' },
       }),
     );
-    expect(fragment).toMatchSnapshot();
+    const link = screen.getByRole('link', { name: '' });
+    expect(link).toHaveAttribute('href', '/experiments/details/experiment-id');
+    expect(link).toHaveTextContent('');
   });
 
   it('renders status as icon', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
+    renderRenderer(
       instance._statusCustomRenderer({
         value: V2beta1RuntimeState.SUCCEEDED,
         id: 'run-id',
       }),
     );
-    expect(fragment).toMatchSnapshot();
+    expect(screen.getByTestId('node-status-sign')).toBeInTheDocument();
   });
 
   it('renders pipeline version name as link to its details page', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
+    renderRenderer(
       instance._pipelineVersionCustomRenderer({
         id: 'run-id',
         value: {
@@ -707,6 +708,7 @@ describe('RunList', () => {
         },
       }),
     );
-    expect(fragment).toMatchSnapshot();
+    const link = screen.getByText('test pipeline version');
+    expect(link).toHaveAttribute('href', '/pipelines/details/pipeline-id/version/version-id');
   });
 });

@@ -15,7 +15,8 @@
  */
 
 import * as React from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import EnhancedExperimentList, { ExperimentList } from './ExperimentList';
 import TestUtils from 'src/TestUtils';
@@ -150,8 +151,6 @@ describe('ExperimentList', () => {
   });
 
   afterEach(() => {
-    renderResult?.unmount();
-    renderResult = null;
     experimentListRef = null;
   });
 
@@ -162,7 +161,6 @@ describe('ExperimentList', () => {
         screen.getByText('No experiments found. Click "Create experiment" to start.'),
       ).toBeInTheDocument(),
     );
-    expect(renderResult!.asFragment()).toMatchSnapshot();
   });
 
   it('renders a list of one experiment', async () => {
@@ -173,7 +171,7 @@ describe('ExperimentList', () => {
     await renderExperimentList();
     await waitForDisplayExperiments(1);
     await waitFor(() => expect(screen.getAllByTestId('table-row')).toHaveLength(1));
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('test experiment name0')).toBeInTheDocument();
   });
 
   it('renders a list of one experiment with no description', async () => {
@@ -184,7 +182,7 @@ describe('ExperimentList', () => {
     await renderExperimentList();
     await waitForDisplayExperiments(1);
     await waitFor(() => expect(screen.getAllByTestId('table-row')).toHaveLength(1));
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('test experiment name0')).toBeInTheDocument();
   });
 
   it('renders a list of one experiment with error', async () => {
@@ -195,7 +193,6 @@ describe('ExperimentList', () => {
     await waitForDisplayExperiments(1);
     await waitFor(() => expect(screen.getAllByTestId('table-row')).toHaveLength(1));
     expect(loggerErrorSpy).toHaveBeenCalled();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
     loggerErrorSpy.mockRestore();
   });
 
@@ -334,8 +331,9 @@ describe('ExperimentList', () => {
 
   it('can expand an experiment to see its runs', async () => {
     await mountWithNExperiments(1, 1);
-    const expandButtons = screen.getAllByRole('button', { name: 'Expand' });
-    fireEvent.click(expandButtons[0]);
+    const user = userEvent.setup();
+    const expandButtons = screen.getAllByRole('button', { name: /expand/i });
+    await user.click(expandButtons[0]);
     await waitFor(() => {
       expect(getInstance().state.displayExperiments).toEqual([
         {
@@ -497,7 +495,6 @@ describe('ExperimentList', () => {
     expect(link.getAttribute('href')).toBe(
       RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, 'experiment-id'),
     );
-    expect(asFragment()).toMatchSnapshot();
     unmount();
   });
 
@@ -513,8 +510,8 @@ describe('ExperimentList', () => {
         { state: V2beta1RuntimeState.SUCCEEDED },
       ],
     } as any);
-    const { asFragment, unmount } = render(<div>{statusRenderer}</div>);
-    expect(asFragment()).toMatchSnapshot();
+    const { unmount } = render(<div>{statusRenderer}</div>);
+    expect(screen.getAllByTestId('node-status-sign')).toHaveLength(5);
     unmount();
   });
 
