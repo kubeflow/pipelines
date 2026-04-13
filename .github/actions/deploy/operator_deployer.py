@@ -113,7 +113,7 @@ class OperatorDeployer:
 
         replacements = {
             'registry.redhat.io/openshift4/ose-kube-rbac-proxy-rhel9:latest':
-                'gcr.io/kubebuilder/kube-rbac-proxy:v0.16.0',
+                'registry.k8s.io/kubebuilder/kube-rbac-proxy:v0.16.0',
             'registry.redhat.io/rhel9/mariadb-105:latest':
                 'quay.io/sclorg/mariadb-105-c9s:latest',
             'registry.redhat.io/openshift-service-mesh/proxyv2-rhel9:2.6':
