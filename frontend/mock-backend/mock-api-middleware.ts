@@ -81,8 +81,41 @@ function getQueryNumber(queryParam: unknown): number | undefined {
   return Number.isNaN(queryNumber) ? undefined : queryNumber;
 }
 
-function getDecodedQueryString(queryParam: unknown): string {
-  return decodeURIComponent(getQueryString(queryParam) || '');
+function getDecodedQueryString(queryParam: unknown): string | undefined {
+  const queryString = getQueryString(queryParam);
+  if (queryString === undefined) {
+    return undefined;
+  }
+  try {
+    return decodeURIComponent(queryString);
+  } catch {
+    return undefined;
+  }
+}
+
+function getRequiredDecodedQueryString(
+  res: Response,
+  queryParam: unknown,
+  queryParamName: string,
+): string | undefined {
+  const queryString = getQueryString(queryParam);
+  if (queryString === undefined || queryString === '') {
+    res.status(400).send(`${queryParamName} argument is required`);
+    return undefined;
+  }
+
+  const decodedQueryString = getDecodedQueryString(queryParam);
+  if (decodedQueryString === undefined) {
+    res.status(400).send(`${queryParamName} argument is invalid`);
+    return undefined;
+  }
+
+  if (decodedQueryString === '') {
+    res.status(400).send(`${queryParamName} argument is required`);
+    return undefined;
+  }
+
+  return decodedQueryString;
 }
 
 // tslint:disable-next-line:no-default-export
@@ -703,11 +736,18 @@ export default (app: express.Application) => {
   });
 
   app.post(v1beta1Prefix + '/pipelines/upload', (req, res) => {
-    mockCreatePipeline(res, getDecodedQueryString(req.query.name), req.body);
+    const pipelineName = getRequiredDecodedQueryString(res, req.query.name, 'name');
+    if (!pipelineName) {
+      return;
+    }
+    mockCreatePipeline(res, pipelineName, req.body);
   });
 
   app.get('/artifacts/get', (req, res) => {
-    const key = getDecodedQueryString(req.query.key);
+    const key = getRequiredDecodedQueryString(res, req.query.key, 'key');
+    if (!key) {
+      return;
+    }
     res.header('Content-Type', 'application/json');
     if (key.endsWith('roc.csv')) {
       res.sendFile(_path.resolve(__dirname, rocDataPath));
@@ -747,7 +787,10 @@ export default (app: express.Application) => {
   });
 
   app.get('/k8s/pod/logs', (req, res) => {
-    const podName = getDecodedQueryString(req.query.podname);
+    const podName = getRequiredDecodedQueryString(res, req.query.podname, 'podname');
+    if (!podName) {
+      return;
+    }
     if (podName === 'json-12abc') {
       res.status(404).send('pod not found');
       return;
