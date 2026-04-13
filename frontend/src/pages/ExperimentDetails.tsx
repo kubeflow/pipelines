@@ -148,7 +148,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { activeRecurringRunsCount, experiment } = this.state;
     const description = experiment ? experiment.description || '' : '';
 

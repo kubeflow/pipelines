@@ -190,7 +190,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const {
       workflowFromRun,
       description,

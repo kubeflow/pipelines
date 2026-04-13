@@ -73,7 +73,7 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { description, experimentName, isbeingCreated, validationError } = this.state;
 
     return (

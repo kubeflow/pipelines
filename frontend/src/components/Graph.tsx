@@ -146,7 +146,7 @@ export class Graph extends React.Component<GraphProps, GraphState> {
     this.state = {};
   }
 
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const { graph } = this.props;
 
     if (!graph.nodes().length) {

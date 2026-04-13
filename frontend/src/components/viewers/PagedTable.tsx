@@ -92,7 +92,7 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
     return 'Table';
   }
 
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     if (!this._config) {
       return null;
     }

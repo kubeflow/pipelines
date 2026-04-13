@@ -300,7 +300,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     this._debouncedFilterRequest.cancel();
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { filterString, pageSize, sortBy, sortOrder } = this.state;
     const numSelected = (this.props.selectedIds || []).length;
     const totalFlex = this.props.columns.reduce((total, c) => (total += c.flex || 1), 0);
@@ -699,7 +699,7 @@ function HeaderRowSelectionSection({
   showExpandButton,
   useRadioButtons,
   disableAdditionalSelection,
-}: HeaderRowSelectionSectionProps): JSX.Element | null {
+}: HeaderRowSelectionSectionProps): React.JSX.Element | null {
   const nonEmpty = disableSelection !== true || showExpandButton;
   if (!nonEmpty) {
     return null;
@@ -740,7 +740,7 @@ function BodyRowSelectionSection({
   showExpandButton,
   useRadioButtons,
   disableAdditionalSelection,
-}: BodyRowSelectionSectionProps): JSX.Element {
+}: BodyRowSelectionSectionProps): React.JSX.Element {
   return (
     <>
       {/* Expansion toggle button */}

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import type * as React from 'react';
 import {
   Api,
   ArtifactProperties,
@@ -106,7 +107,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     return this.load();
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     if (!this.state.artifact) {
       return (
         <div className={commonCss.page}>

@@ -181,7 +181,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const {
       packageUrl,
       pipelineName,

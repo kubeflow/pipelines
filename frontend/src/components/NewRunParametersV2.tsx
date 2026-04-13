@@ -299,7 +299,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
     isJsonField: false,
   };
 
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const { id, onChange, param } = this.props;
 
     if (param.literals?.length) {

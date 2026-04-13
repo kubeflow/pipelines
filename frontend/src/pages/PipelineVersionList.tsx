@@ -101,7 +101,7 @@ class PipelineVersionList extends React.PureComponent<
     );
   };
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const columns: Column[] = [
       {
         customRenderer: this._nameCustomRenderer,
