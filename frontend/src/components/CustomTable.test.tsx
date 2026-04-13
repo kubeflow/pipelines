@@ -149,7 +149,7 @@ async function selectRowsPerPage(pageSize: number): Promise<void> {
   await act(async () => {
     fireEvent.mouseDown(getRowsPerPageCombobox());
   });
-  const option = await screen.findByText(String(pageSize));
+  const option = await screen.findByRole('option', { name: String(pageSize) });
   await act(async () => {
     fireEvent.click(option);
     await TestUtils.flushPromises();
