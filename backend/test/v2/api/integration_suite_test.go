@@ -201,7 +201,7 @@ var _ = ReportAfterEach(func(specReport types.SpecReport) {
 	}
 	logger.Log("Deleting %d pipeline(s)", len(testContext.Pipeline.CreatedPipelines))
 	for _, pipeline := range testContext.Pipeline.CreatedPipelines {
-		testutil.DeletePipeline(pipelineClient, pipeline.PipelineID)
+		testutil.DeletePipeline(pipelineClient, pipeline.PipelineID, true)
 	}
 })
 

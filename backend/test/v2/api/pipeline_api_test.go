@@ -1779,10 +1779,11 @@ var _ = Describe("Delete Pipeline API Tests >", Label(constants.POSITIVE, consta
 			testContext.Pipeline.ExpectedPipeline.Tags = tags
 			createdPipeline := uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 
-			// Delete all versions first, then delete the pipeline
-			utils.DeleteAllPipelineVersions(pipelineClient, createdPipeline.PipelineID)
+			// Delete the pipeline and all its versions via cascade
+			cascade := true
 			err = pipelineClient.Delete(&pipeline_params.PipelineServiceDeletePipelineParams{
 				PipelineID: createdPipeline.PipelineID,
+				Cascade:    &cascade,
 			})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -2553,10 +2554,11 @@ var _ = Describe("Update Pipeline - Negative Tests >", Label(constants.NEGATIVE,
 			}
 			Expect(found).To(BeTrue(), "Pipeline should be found before deletion")
 
-			// Delete the pipeline (clean up versions first)
-			utils.DeleteAllPipelineVersions(pipelineClient, createdPipeline.PipelineID)
+			// Delete the pipeline and all its versions via cascade
+			cascade := true
 			err = pipelineClient.Delete(&pipeline_params.PipelineServiceDeletePipelineParams{
 				PipelineID: createdPipeline.PipelineID,
+				Cascade:    &cascade,
 			})
 			Expect(err).NotTo(HaveOccurred())
 

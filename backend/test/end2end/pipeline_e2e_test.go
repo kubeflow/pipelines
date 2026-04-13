@@ -124,7 +124,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		logger.Log("Deleting %d pipeline(s)", len(testContext.Pipeline.CreatedPipelines))
 		for _, pipeline := range testContext.Pipeline.CreatedPipelines {
 			pipelineID := pipeline.PipelineID
-			testutil.DeletePipeline(pipelineClient, pipelineID)
+			testutil.DeletePipeline(pipelineClient, pipelineID, true)
 		}
 	})
 
