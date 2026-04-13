@@ -15,7 +15,6 @@
 package testutil
 
 import (
-	"fmt"
 	"os"
 
 	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
@@ -68,39 +67,27 @@ func UploadPipeline(pipelineUploadClient api_server.PipelineUploadInterface, pip
 
 /* DeletePipeline deletes a pipeline by id */
 func DeletePipeline(client *api_server.PipelineClient, pipelineID string) {
-	ginkgo.GinkgoHelper()
 	_, err := client.Get(&pipeline_params.PipelineServiceGetPipelineParams{PipelineID: pipelineID})
-	if err == nil {
-		logger.Log("Deleting all pipeline version of pipeline with id=%s", pipelineID)
-		DeleteAllPipelineVersions(client, pipelineID)
-		logger.Log("Deleting pipeline with id=%s", pipelineID)
-		err = client.Delete(&pipeline_params.PipelineServiceDeletePipelineParams{PipelineID: pipelineID})
-		gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Error occurred while deleting pipeline with id=%s", pipelineID))
-		logger.Log("Pipeline with id=%s, DELETED", pipelineID)
-	} else {
+	if err != nil {
 		logger.Log("Pipeline with id=%s does not exist, so skipping deleting it", pipelineID)
+		return
 	}
-
+	logger.Log("Deleting all pipeline version of pipeline with id=%s", pipelineID)
+	DeleteAllPipelineVersions(client, pipelineID)
+	logger.Log("Deleting pipeline with id=%s", pipelineID)
+	err = client.Delete(&pipeline_params.PipelineServiceDeletePipelineParams{PipelineID: pipelineID})
+	if err != nil {
+		logger.Log("Failed to delete pipeline with id=%s: %v", pipelineID, err)
+		return
+	}
+	logger.Log("Pipeline with id=%s, DELETED", pipelineID)
 }
 
 /* DeleteAllPipelines deletes all pipelines */
 func DeleteAllPipelines(client *api_server.PipelineClient, namespace *string) {
-	ginkgo.GinkgoHelper()
 	pipelines := ListPipelines(client, namespace)
-	deletedPipelines := make(map[string]bool)
 	for _, p := range pipelines {
-		deletedPipelines[p.PipelineID] = false
-	}
-	for pID, isRemoved := range deletedPipelines {
-		if !isRemoved {
-			DeleteAllPipelineVersions(client, pID)
-			deletedPipelines[pID] = true
-		}
-		logger.Log("Deleting pipeline with id=%s", pID)
-		gomega.Expect(client.Delete(&pipeline_params.PipelineServiceDeletePipelineParams{PipelineID: pID})).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Error occurred while deleting pipeline with id=%s", pID))
-	}
-	for _, isRemoved := range deletedPipelines {
-		gomega.Expect(isRemoved).To(gomega.BeTrue())
+		DeletePipeline(client, p.PipelineID)
 	}
 }
 
