@@ -168,16 +168,6 @@ var _ = Describe("List Pipelines API Tests >", Label(constants.POSITIVE, constan
 	})
 
 	Context("Pagination >", func() {
-		BeforeEach(func() {
-			ns := utils.GetNamespace()
-			utils.DeleteAllPipelines(pipelineClient, &ns)
-			Eventually(func() int {
-				pipelines, _, _, err := pipelineClient.List(newListPipelinesParams())
-				Expect(err).NotTo(HaveOccurred())
-				return len(pipelines)
-			}, informerSyncTimeout, informerSyncInterval).Should(Equal(0), "expected pipeline list to be empty before running pagination tests")
-		})
-
 		It("List pipelines with page size limit", func() {
 			pipelineDir := "valid"
 			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
@@ -235,16 +225,6 @@ var _ = Describe("List Pipelines API Tests >", Label(constants.POSITIVE, constan
 	})
 
 	Context("Sorting >", func() {
-		BeforeEach(func() {
-			ns := utils.GetNamespace()
-			utils.DeleteAllPipelines(pipelineClient, &ns)
-			Eventually(func() int {
-				pipelines, _, _, err := pipelineClient.List(newListPipelinesParams())
-				Expect(err).NotTo(HaveOccurred())
-				return len(pipelines)
-			}, informerSyncTimeout, informerSyncInterval).Should(Equal(0), "expected pipeline list to be empty before running sorting tests")
-		})
-
 		It("Sort by name in ascending order", func() {
 			pipelineDir := "valid"
 			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)

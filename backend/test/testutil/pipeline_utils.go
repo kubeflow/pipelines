@@ -69,7 +69,7 @@ func UploadPipeline(pipelineUploadClient api_server.PipelineUploadInterface, pip
 func DeletePipeline(client *api_server.PipelineClient, pipelineID string) {
 	_, err := client.Get(&pipeline_params.PipelineServiceGetPipelineParams{PipelineID: pipelineID})
 	if err != nil {
-		logger.Log("Pipeline with id=%s does not exist, so skipping deleting it", pipelineID)
+		logger.Log("Pipeline with id=%s could not be retrieved (skipping deletion): %v", pipelineID, err)
 		return
 	}
 	logger.Log("Deleting all pipeline version of pipeline with id=%s", pipelineID)
