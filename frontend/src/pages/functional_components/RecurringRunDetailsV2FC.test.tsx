@@ -125,9 +125,13 @@ describe('RecurringRunDetailsV2FC', () => {
       </CommonTestWrapper>,
     );
 
+    // Wait for Router to resolve past its own loading state before
+    // asserting V2FC's spinner — the Router also renders a CircularProgress
+    // while loading, so we must confirm it has finished first.
     await waitFor(() => {
-      expect(screen.getByRole('progressbar')).toBeInTheDocument();
+      expect(screen.queryByText('Currently loading recurring run information')).toBeNull();
     });
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('renders a recurring run with periodic schedule', async () => {
