@@ -111,7 +111,7 @@ jobs:
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
-          skip_operator_deployment: 'false'
+          skip_operator_deployment: ${{ github.repository_owner != 'opendatahub-io' }}
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
@@ -208,7 +208,7 @@ jobs:
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
-          skip_operator_deployment: 'false'
+          skip_operator_deployment: ${{ github.repository_owner != 'opendatahub-io' }}
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report
