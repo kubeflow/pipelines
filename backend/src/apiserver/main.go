@@ -637,6 +637,9 @@ func initConfig() error {
 	if _, err := common.GetPluginLimitsConfig(); err != nil {
 		glog.Fatalf("Invalid plugin limits configuration: %v", err)
 	}
+	if _, err := common.GetPluginLimitsConfig(); err != nil {
+		glog.Fatalf("Invalid plugin limits configuration: %v", err)
+	}
 
 	// Watch for configuration change
 	viper.WatchConfig()
