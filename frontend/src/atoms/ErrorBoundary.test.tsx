@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import React, { useState } from 'react';
 import { testBestPractices } from 'src/TestUtils';
 import { ErrorBoundary } from './ErrorBoundary';
 
@@ -44,6 +45,31 @@ describe('ErrorBoundary', () => {
 
     expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
     expect(screen.getByText('Details')).toBeInTheDocument();
+
+    consoleSpy.mockRestore();
+  });
+
+  it('recovers when the key prop changes (simulates navigation)', () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    function Harness() {
+      const [locationKey, setLocationKey] = useState('page-a');
+      return (
+        <>
+          <ErrorBoundary key={locationKey}>
+            {locationKey === 'page-a' ? <ThrowingChild /> : <div>recovered content</div>}
+          </ErrorBoundary>
+          <button onClick={() => setLocationKey('page-b')}>navigate</button>
+        </>
+      );
+    }
+
+    render(<Harness />);
+    expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'navigate' }));
+    expect(screen.queryByText('Something went wrong.')).not.toBeInTheDocument();
+    expect(screen.getByText('recovered content')).toBeInTheDocument();
 
     consoleSpy.mockRestore();
   });
