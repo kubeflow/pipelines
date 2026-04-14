@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { act, render, screen, waitFor, fireEvent, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import TestUtils, { expectErrors, testBestPractices } from 'src/TestUtils';
 import { Artifact, Context, Event, Execution } from 'src/third_party/mlmd';
@@ -710,6 +710,51 @@ describe('CompareV2', () => {
     expect(getRunRow(MOCK_RUN_1_ID)).toHaveAttribute('aria-checked', 'true');
     expect(getRunRow(MOCK_RUN_2_ID)).toHaveAttribute('aria-checked', 'false');
     expect(getRunRow(MOCK_RUN_3_ID)).toHaveAttribute('aria-checked', 'true');
+    expect(getHeaderCheckbox()).not.toBeChecked();
+  });
+
+  it('drops stale manual selections when the toolbar refresh returns different fetched run ids', async () => {
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
+    const refreshedRunIds = new Set<string>();
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => {
+      if (refreshedRunIds.has(id)) {
+        return {
+          ...newMockRun(`replacement-${id}`),
+          display_name: `test run ${id}`,
+        };
+      }
+      return { ...runs.find((r) => r.run_id === id)! };
+    });
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    await waitFor(() => {
+      expect(updateToolbarSpy).toHaveBeenCalled();
+    });
+    await waitForRunCheckboxes(3);
+
+    fireEvent.click(getRunRow(MOCK_RUN_2_ID));
+    await TestUtils.flushPromises();
+    await waitForRunCheckboxes(2);
+
+    refreshedRunIds.add(MOCK_RUN_3_ID);
+    const refreshAction = updateToolbarSpy.mock.lastCall?.[0].actions[ButtonKeys.REFRESH]
+      .action as () => Promise<void>;
+    await act(async () => {
+      await refreshAction();
+    });
+    await TestUtils.flushPromises();
+
+    await waitForRunCheckboxes(1);
+    expect(getRunRow(MOCK_RUN_1_ID)).toHaveAttribute('aria-checked', 'true');
+    expect(getRunRow(MOCK_RUN_2_ID)).toHaveAttribute('aria-checked', 'false');
+    expect(getRunRow(MOCK_RUN_3_ID)).toHaveAttribute('aria-checked', 'false');
     expect(getHeaderCheckbox()).not.toBeChecked();
   });
 

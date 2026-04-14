@@ -36,6 +36,7 @@ import {
 } from 'src/mlmd/MlmdUtils';
 import { useArtifactTypes } from 'src/hooks/useArtifactTypes';
 import { queryKeys } from 'src/hooks/queryKeys';
+import { useKeyedState } from 'src/hooks/useKeyedState';
 import { Artifact, ArtifactType, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
 import RunList from './RunList';
@@ -251,18 +252,6 @@ interface RocCurveSelectionState {
   lineColorsStack: string[];
 }
 
-function useKeyedState<T>(key: string, initialValue: T): [T, (value: T) => void] {
-  const [stateKey, setStateKey] = useState(key);
-  const [value, setValue] = useState(initialValue);
-
-  if (stateKey !== key) {
-    setStateKey(key);
-    setValue(initialValue);
-  }
-
-  return [value, setValue];
-}
-
 const createSelectedArtifactArray = (count: number): SelectedArtifact[] => {
   const array: SelectedArtifact[] = [];
   for (let i = 0; i < count; i++) {
@@ -449,7 +438,7 @@ function CompareV2(props: CompareV2Props) {
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
   const runIdsKey = runIds.join(',');
-  const [selectedIds, setSelectedIds] = useKeyedState<string[]>(runIdsKey, runIds);
+  const [selectedIdsState, setSelectedIds] = useKeyedState<string[]>(runIdsKey, runIds);
   const [metricsTab, setMetricsTab] = useState(MetricsType.SCALAR_METRICS);
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
@@ -513,6 +502,15 @@ function CompareV2(props: CompareV2Props) {
     isError: isErrorArtifactTypes,
     error: errorArtifactTypes,
   } = useArtifactTypes();
+
+  const selectedIds = useMemo(() => {
+    if (!runs) {
+      return selectedIdsState;
+    }
+
+    const validRunIds = new Set(runs.map((run) => run.run_id).filter((id): id is string => !!id));
+    return selectedIdsState.filter((id) => validRunIds.has(id));
+  }, [runs, selectedIdsState]);
 
   const metricsArtifactData = useMemo<DerivedMetricsArtifacts | undefined>(() => {
     if (!(runs && mlmdPackages && artifactTypes)) {
