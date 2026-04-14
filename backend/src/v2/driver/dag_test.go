@@ -15,10 +15,13 @@
 package driver
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func Test_validateDAG(t *testing.T) {
@@ -110,6 +113,46 @@ func Test_validateDAG(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+		})
+	}
+}
+
+func Test_isAlreadyExistsErr(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{
+			name: "grpc already exists",
+			err:  status.Error(codes.AlreadyExists, "duplicate execution"),
+			want: true,
+		},
+		{
+			name: "wrapped grpc already exists",
+			err:  fmt.Errorf("wrapped: %w", status.Error(codes.AlreadyExists, "duplicate execution")),
+			want: true,
+		},
+		{
+			name: "already exists in message",
+			err:  fmt.Errorf("rpc error: code = Internal desc = AlreadyExists: execution exists"),
+			want: true,
+		},
+		{
+			name: "duplicate entry in message",
+			err:  fmt.Errorf("sql failure: Duplicate entry 'run/abc'"),
+			want: true,
+		},
+		{
+			name: "other error",
+			err:  status.Error(codes.Internal, "some other failure"),
+			want: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.want, isAlreadyExistsErr(test.err))
 		})
 	}
 }

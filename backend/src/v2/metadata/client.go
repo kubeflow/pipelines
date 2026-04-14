@@ -826,6 +826,31 @@ func (c *Client) GetExecutions(ctx context.Context, ids []int64) ([]*pb.Executio
 	return res.Executions, nil
 }
 
+// GetExecutionsByTypeAndName retrieves an execution by its type and name from the service.
+// Returns the Execution object if found, or an error if not found or if the request fails.
+func (c *Client) GetExecutionsByTypeAndName(ctx context.Context, typeName, name string) (*Execution, error) {
+	res, err := c.svc.GetExecutionByTypeAndName(ctx, &pb.GetExecutionByTypeAndNameRequest{
+		TypeName:      &typeName,
+		ExecutionName: &name,
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("GetExecutionsByTypeAndName(type=%q, name=%q): %w", typeName, name, err)
+	}
+
+	execution := res.GetExecution()
+	if execution == nil {
+		return nil, fmt.Errorf("no execution found for type=%q, name=%q", typeName, name)
+	}
+
+	pipeline, err := c.GetPipelineFromExecution(ctx, execution.GetId())
+	if err != nil {
+		return nil, err
+	}
+
+	return &Execution{execution: execution, pipeline: pipeline}, nil
+}
+
 func (c *Client) GetExecution(ctx context.Context, id int64) (*Execution, error) {
 	executions, err := c.GetExecutions(ctx, []int64{id})
 	if err != nil {

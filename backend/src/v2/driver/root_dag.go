@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -25,6 +26,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -128,10 +131,39 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	ecfg.Name = fmt.Sprintf("run/%s", opts.RunID)
 	exec, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
+		// When Argo retries the ROOT_DAG driver, the execution was already created on the first attempt.
+		// The deterministic name "run/<runId>" causes a duplicate key error.
+		// Handle it here by looking up the existing record instead of failing.
+		if isAlreadyExistsErr(err) {
+			glog.Infof("Execution %q already exists (likely a retry), looking up existing execution", ecfg.Name)
+			existing, lookupErr := mlmd.GetExecutionsByTypeAndName(ctx, string(metadata.DagExecutionTypeName), ecfg.Name)
+			if lookupErr != nil {
+				return nil, fmt.Errorf("failed to lookup existing execution: %w", lookupErr)
+			}
+
+			if existing == nil {
+				return nil, fmt.Errorf("execution already exists but lookup returned nil: %w", err)
+			}
+			glog.Infof("Found existing execution: %s", existing)
+			return &Execution{ID: existing.GetID()}, nil
+		}
 		return nil, err
 	}
 	glog.Infof("Created execution: %s", exec)
+
 	// No need to return ExecutorInput, because tasks in the DAG will resolve
 	// needed info from MLMD.
 	return &Execution{ID: exec.GetID()}, nil
+}
+
+// isAlreadyExistsErr checks whether the error is a gRPC AlreadyExists error, or contains
+// the "AlreadyExists" string in the error message.
+func isAlreadyExistsErr(err error) bool {
+	if s, ok := status.FromError(err); ok && s.Code() == codes.AlreadyExists {
+		return true
+	}
+
+	// MLMD sometimes wraps the ALreadyExists in an internal error, so also check the error message
+	// string as a fallback
+	return strings.Contains(err.Error(), "AlreadyExists") || strings.Contains(err.Error(), "Duplicate entry")
 }
