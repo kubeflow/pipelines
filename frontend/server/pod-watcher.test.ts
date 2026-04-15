@@ -299,6 +299,40 @@ describe('pod-watcher', () => {
       expect(savedEvents).toEqual(expect.arrayContaining([existingEvent, newEvent]));
     });
 
+    it('persists in-place event updates (bumped count / lastTimestamp)', async () => {
+      // K8s coalesces repeated events by bumping count and advancing
+      // lastTimestamp on the existing Event object instead of creating new
+      // ones. These updates must still be saved.
+      const t1 = '2026-04-15T10:00:00Z';
+      const t2 = '2026-04-15T10:05:00Z';
+
+      mockListNamespacedEvent.mockResolvedValueOnce({
+        items: [{ ...newEvent, count: 3, lastTimestamp: t1 }],
+      });
+      mockGetCachedPodInfo.mockResolvedValueOnce(null);
+      await WATCHER_TEST_EXPORT.processPod(basePod);
+
+      mockSavePodInfo.mockClear();
+
+      mockListNamespacedEvent.mockResolvedValueOnce({
+        items: [{ ...newEvent, count: 7, lastTimestamp: t2 }],
+      });
+      mockGetCachedPodInfo.mockResolvedValueOnce({
+        podName: 'pod-1',
+        namespace: 'test-ns',
+        events: [{ ...newEvent, count: 3, lastTimestamp: t1 }],
+        stateHistory: [],
+        status: null,
+        lastUpdated: Date.now(),
+      });
+      const result = await WATCHER_TEST_EXPORT.processPod(basePod);
+
+      expect(result).toBe(true);
+      expect(mockSavePodInfo).toHaveBeenCalledTimes(1);
+      const savedEvents = mockSavePodInfo.mock.calls[0][3];
+      expect(savedEvents[0]).toMatchObject({ count: 7, lastTimestamp: t2 });
+    });
+
     it('skips save when pod and events are both unchanged', async () => {
       mockListNamespacedEvent.mockResolvedValue({ items: [existingEvent] });
       mockGetCachedPodInfo.mockResolvedValue(null);

@@ -228,10 +228,13 @@ async function processPod(pod: V1Pod): Promise<boolean> {
     fetchPodEvents(podName, namespace),
   ]);
 
-  const eventKey = (e: podEventsCache.CachedPodEvent): string =>
-    `${e.type}:${e.reason}:${(e.message || '').substring(0, 100)}`;
-  const existingKeys = new Set((existing?.events || []).map(eventKey));
-  const hasNewEvents = events.some((e) => !existingKeys.has(eventKey(e)));
+  // Include count/lastTimestamp so in-place K8s event updates (which coalesce
+  // repeated occurrences by bumping count and advancing lastTimestamp on the
+  // same Event object) are detected as "changed" and get persisted.
+  const eventChangeKey = (e: podEventsCache.CachedPodEvent): string =>
+    `${e.type}:${e.reason}:${(e.message || '').substring(0, 100)}|${e.count ?? 0}|${e.lastTimestamp || ''}`;
+  const existingKeys = new Set((existing?.events || []).map(eventChangeKey));
+  const hasNewEvents = events.some((e) => !existingKeys.has(eventChangeKey(e)));
 
   if (!podChanged && !hasNewEvents) {
     updatePodState(pod);
