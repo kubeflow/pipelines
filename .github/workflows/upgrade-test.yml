@@ -7,6 +7,7 @@ env:
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
   PYTHON_VERSION: "3.9"
+  SKIP_OPERATOR_DEPLOYMENT: ${{ github.repository_owner != 'opendatahub-io' }}
 
 on:
   push:
@@ -74,14 +75,18 @@ jobs:
           pod_to_pod_tls_enabled: ${{ matrix.tls_enabled }}
           operator_image_tag: "odh-stable"
           skip_load_docker_images: 'true'
-          skip_operator_deployment: ${{ github.repository_owner != 'opendatahub-io' }}
+          skip_operator_deployment: ${{ env.SKIP_OPERATOR_DEPLOYMENT }}
           operator_branch: 'stable'
 
       - name: Configure Cluster CA e2e for TLS-Enabled Tests
         shell: bash
         run: |
-          kubectl get configmap openshift-service-ca.crt -n kubeflow -o jsonpath='{.data.service-ca\.crt}' > "${{ github.workspace }}/ca.crt"
-          echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> $GITHUB_ENV
+          if [ "${{ env.SKIP_OPERATOR_DEPLOYMENT }}" == "false" ]; then
+            kubectl get configmap openshift-service-ca.crt -n kubeflow -o jsonpath='{.data.service-ca\.crt}' > "${{ github.workspace }}/ca.crt"
+          else
+            kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
+          fi
+          echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
 
       - name: Prepare for Upgrade
         id: prepare-upgrade
@@ -110,7 +115,7 @@ jobs:
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
           forward_port: 'false'
-          skip_operator_deployment: ${{ github.repository_owner != 'opendatahub-io' }}
+          skip_operator_deployment: ${{ env.SKIP_OPERATOR_DEPLOYMENT }}
           pod_to_pod_tls_enabled: ${{ matrix.tls_enabled }}
 
       - name: Verify Upgrade
