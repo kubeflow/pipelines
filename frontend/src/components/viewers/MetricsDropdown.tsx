@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { color, commonCss, fontsize, zIndex } from 'src/Css';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { classes, stylesheet } from 'typestyle';
@@ -37,6 +37,7 @@ import { useQuery } from '@tanstack/react-query';
 import { errorToMessage, logger } from 'src/lib/Utils';
 import {
   metricsTypeToString,
+  COMPARE_PANEL_COUNT,
   ExecutionArtifact,
   MetricsType,
   RunArtifact,
@@ -50,6 +51,10 @@ const css = stylesheet({
   },
   rightCell: {
     borderLeft: `3px solid ${color.divider}`,
+  },
+  middleCell: {
+    borderLeft: `3px solid ${color.divider}`,
+    borderRight: `3px solid ${color.divider}`,
   },
   cell: {
     borderCollapse: 'collapse',
@@ -93,28 +98,22 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
     namespace,
   } = props;
 
-  const selectedArtifactsForDisplay = useMemo(
-    () =>
-      selectedArtifacts.map((selectedArtifact) => ({
-        selectedItem: selectedArtifact.selectedItem,
-        linkedArtifact: getLinkedArtifactFromSelectedItem(
-          filteredRunArtifacts,
-          selectedArtifact.selectedItem,
-        ),
-      })),
-    [filteredRunArtifacts, selectedArtifacts],
+  if (selectedArtifacts.length !== COMPARE_PANEL_COUNT) {
+    logger.error(
+      `MetricsDropdown expected ${COMPARE_PANEL_COUNT} panels but received ${selectedArtifacts.length}.`,
+    );
+    return null;
+  }
+
+  const linkedArtifacts = selectedArtifacts.map((selectedArtifact) =>
+    getLinkedArtifactFromSelectedItem(filteredRunArtifacts, selectedArtifact.selectedItem),
   );
 
   const metricsTabText = metricsTypeToString(metricsTab);
   const updateSelectedItemAndArtifact = (panelIndex: number, selectedItem: SelectedItem): void => {
     const linkedArtifact = getLinkedArtifactFromSelectedItem(filteredRunArtifacts, selectedItem);
-    const nextSelectedArtifacts = selectedArtifactsForDisplay.map((selectedArtifact, index) =>
-      index === panelIndex
-        ? {
-            selectedItem,
-            linkedArtifact,
-          }
-        : selectedArtifact,
+    const nextSelectedArtifacts = selectedArtifacts.map((artifact, index) =>
+      index === panelIndex ? { selectedItem, linkedArtifact } : artifact,
     );
     updateSelectedArtifacts(nextSelectedArtifacts);
   };
@@ -128,34 +127,30 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
     <table>
       <tbody>
         <tr>
-          <td className={classes(css.cell, css.leftCell)}>
-            <TwoLevelDropdown
-              title={`Choose a first ${metricsTabText} artifact`}
-              items={dropdownItems}
-              selectedItem={selectedArtifactsForDisplay[0].selectedItem}
-              setSelectedItem={updateSelectedItemAndArtifact.bind(null, 0)}
-            />
-            <VisualizationPanelItem
-              metricsTab={metricsTab}
-              metricsTabText={metricsTabText}
-              linkedArtifact={selectedArtifactsForDisplay[0].linkedArtifact}
-              namespace={namespace}
-            />
-          </td>
-          <td className={classes(css.cell, css.rightCell)}>
-            <TwoLevelDropdown
-              title={`Choose a second ${metricsTabText} artifact`}
-              items={dropdownItems}
-              selectedItem={selectedArtifactsForDisplay[1].selectedItem}
-              setSelectedItem={updateSelectedItemAndArtifact.bind(null, 1)}
-            />
-            <VisualizationPanelItem
-              metricsTab={metricsTab}
-              metricsTabText={metricsTabText}
-              linkedArtifact={selectedArtifactsForDisplay[1].linkedArtifact}
-              namespace={namespace}
-            />
-          </td>
+          {selectedArtifacts.map((selectedArtifact, panelIndex) => (
+            <td
+              key={panelIndex}
+              className={classes(
+                css.cell,
+                panelIndex === 0 && css.leftCell,
+                panelIndex === selectedArtifacts.length - 1 && css.rightCell,
+                panelIndex > 0 && panelIndex < selectedArtifacts.length - 1 && css.middleCell,
+              )}
+            >
+              <TwoLevelDropdown
+                title={`Choose a ${panelIndex === 0 ? 'first' : panelIndex === 1 ? 'second' : `panel ${panelIndex + 1}`} ${metricsTabText} artifact`}
+                items={dropdownItems}
+                selectedItem={selectedArtifact.selectedItem}
+                setSelectedItem={updateSelectedItemAndArtifact.bind(null, panelIndex)}
+              />
+              <VisualizationPanelItem
+                metricsTab={metricsTab}
+                metricsTabText={metricsTabText}
+                linkedArtifact={linkedArtifacts[panelIndex]}
+                namespace={namespace}
+              />
+            </td>
+          ))}
         </tr>
       </tbody>
     </table>
@@ -317,6 +312,7 @@ function getDropdownItems(filteredRunArtifacts: RunArtifact[]) {
       dropdownItems.push({
         name: runName,
         subItems,
+        id: runArtifact.run.run_id,
       } as DropdownItem);
     }
   }
@@ -328,8 +324,10 @@ function getLinkedArtifactFromSelectedItem(
   filteredRunArtifacts: RunArtifact[],
   selectedItem: SelectedItem,
 ): LinkedArtifact | undefined {
-  const filteredRunArtifact = filteredRunArtifacts.find(
-    (runArtifact) => runArtifact.run.display_name === selectedItem.itemName,
+  const filteredRunArtifact = filteredRunArtifacts.find((runArtifact) =>
+    selectedItem.runId
+      ? runArtifact.run.run_id === selectedItem.runId
+      : runArtifact.run.display_name === selectedItem.itemName,
   );
 
   const executionArtifact = filteredRunArtifact?.executionArtifacts.find((executionArtifact) => {
