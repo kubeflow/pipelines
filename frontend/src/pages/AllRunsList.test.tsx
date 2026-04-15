@@ -83,13 +83,6 @@ describe('AllRunsList', () => {
     toolbarProps = null;
   });
 
-  afterEach(() => {
-    renderResult?.unmount();
-    renderResult = null;
-    allRunsListRef = null;
-    toolbarProps = null;
-  });
-
   it('renders all runs', () => {
     renderAllRunsList();
     expect(lastRunListProps).toBeTruthy();
