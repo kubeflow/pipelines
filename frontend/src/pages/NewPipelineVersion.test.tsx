@@ -18,7 +18,7 @@ import * as React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import { ImportMethod, NewPipelineVersion } from './NewPipelineVersion';
-import TestUtils from 'src/TestUtils';
+import TestUtils, { flushPromisesInAct } from 'src/TestUtils';
 import { PageProps } from './Page';
 import { Apis } from 'src/lib/Apis';
 import { RoutePage, QUERY_PARAMS } from 'src/components/Router';
@@ -124,12 +124,6 @@ describe('NewPipelineVersion', () => {
     const props = { ...generateProps(search), ...propsPatch } as PageProps;
     renderResult = render(<TestNewPipelineVersion ref={pipelineVersionRef} {...props} />);
     await flushPromisesInAct();
-  }
-
-  async function flushPromisesInAct(): Promise<void> {
-    await act(async () => {
-      await TestUtils.flushPromises();
-    });
   }
 
   beforeEach(() => {

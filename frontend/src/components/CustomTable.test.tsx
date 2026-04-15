@@ -18,7 +18,7 @@ import * as React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import CustomTable, { Column, ExpandState, Row } from './CustomTable';
-import TestUtils from '../TestUtils';
+import TestUtils, { flushPromisesInAct, invokeAndFlush } from '../TestUtils';
 import { V2beta1PredicateOperation } from '../apisv2beta1/filter';
 import { logger } from 'src/lib/Utils';
 
@@ -130,19 +130,6 @@ function getRowsPerPageCombobox(): HTMLElement {
     throw new Error('Unable to locate table footer containing the rows-per-page selector');
   }
   return within(footer).getByRole('combobox');
-}
-
-async function flushPromisesInAct(): Promise<void> {
-  await act(async () => {
-    await TestUtils.flushPromises();
-  });
-}
-
-async function invokeAndFlush(callback: () => void | Promise<void>): Promise<void> {
-  await act(async () => {
-    await callback();
-    await TestUtils.flushPromises();
-  });
 }
 
 async function selectRowsPerPage(pageSize: number): Promise<void> {
@@ -590,7 +577,7 @@ describe('CustomTable', () => {
     wrapper.unmount();
   });
 
-  it('calls reload with a different page size, resets page token list when rows/page changes', async () => {
+  it('reloads with new page size and appends next-page token when rows/page changes', async () => {
     const reloadResult = Promise.resolve('some token');
     const spy = vi.fn(() => reloadResult);
     const wrapper = renderTable({ rows: [], columns, reload: spy });
@@ -606,7 +593,7 @@ describe('CustomTable', () => {
     wrapper.unmount();
   });
 
-  it('calls reload with a different page size, resets page token list when rows/page changes', async () => {
+  it('reloads with new page size and resets token list when no next page exists', async () => {
     const reloadResult = Promise.resolve('');
     const spy = vi.fn(() => reloadResult);
     const wrapper = renderTable({ rows: [], columns, reload: spy });

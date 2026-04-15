@@ -31,7 +31,7 @@ import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import { NodePhase } from 'src/lib/StatusUtils';
 import * as Utils from 'src/lib/Utils';
 import WorkflowParser from 'src/lib/WorkflowParser';
-import TestUtils, { testBestPractices } from 'src/TestUtils';
+import TestUtils, { flushPromisesInAct, testBestPractices } from 'src/TestUtils';
 import { PageProps } from './Page';
 import EnhancedRunDetails, { RunDetailsInternalProps, SidePanelTab, TEST_ONLY } from './RunDetails';
 import { Context, Execution, GetArtifactTypesResponse, Value } from 'src/third_party/mlmd';
@@ -1618,9 +1618,7 @@ describe('RunDetails', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
-      await act(async () => {
-        await TestUtils.flushPromises();
-      });
+      await flushPromisesInAct();
       expect(history.location.pathname).toEqual('/initial-path');
       await act(async () => {
         rerender(
@@ -1646,9 +1644,7 @@ describe('RunDetails', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
-      await act(async () => {
-        await TestUtils.flushPromises();
-      });
+      await flushPromisesInAct();
       expect(history.location.pathname).toEqual('/initial-path');
       await act(async () => {
         rerender(

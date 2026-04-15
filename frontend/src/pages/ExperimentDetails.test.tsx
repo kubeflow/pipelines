@@ -15,7 +15,7 @@
  */
 
 import EnhancedExperimentDetails, { ExperimentDetails } from './ExperimentDetails';
-import TestUtils from 'src/TestUtils';
+import TestUtils, { flushPromisesInAct, invokeAndFlush } from 'src/TestUtils';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from './Page';
@@ -23,7 +23,7 @@ import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
 import { range } from 'lodash';
 import { ButtonKeys } from 'src/lib/Buttons';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
@@ -92,19 +92,6 @@ describe('ExperimentDetails', () => {
     );
     await flushPromisesInAct();
     return utils;
-  }
-
-  async function flushPromisesInAct(): Promise<void> {
-    await act(async () => {
-      await TestUtils.flushPromises();
-    });
-  }
-
-  async function invokeAndFlush(callback: () => void | Promise<void>): Promise<void> {
-    await act(async () => {
-      await callback();
-      await TestUtils.flushPromises();
-    });
   }
 
   async function waitForExperimentLoad(): Promise<void> {
