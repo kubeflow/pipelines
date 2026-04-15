@@ -28,9 +28,14 @@ vi.mock('./k8s-helper.js', () => ({
   },
 }));
 
+const { mockGetCachedPodInfo, mockSavePodInfo } = vi.hoisted(() => ({
+  mockGetCachedPodInfo: vi.fn().mockResolvedValue(null),
+  mockSavePodInfo: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('./pod-events-cache.js', () => ({
-  getCachedPodInfo: vi.fn().mockResolvedValue(null),
-  savePodInfo: vi.fn().mockResolvedValue(undefined),
+  getCachedPodInfo: mockGetCachedPodInfo,
+  savePodInfo: mockSavePodInfo,
 }));
 
 import { TEST_ONLY as WATCHER_TEST_EXPORT } from './pod-watcher.js';
@@ -203,6 +208,116 @@ describe('pod-watcher', () => {
       const pods = await WATCHER_TEST_EXPORT.listRunningPipelinePods('test-ns');
 
       expect(pods).toHaveLength(0);
+    });
+  });
+
+  describe('processPod event refresh for stable pods', () => {
+    const basePod = {
+      metadata: {
+        name: 'pod-1',
+        namespace: 'test-ns',
+        resourceVersion: '100',
+        labels: { 'pipeline/runid': 'run-1' },
+        annotations: {},
+      },
+      status: { phase: 'Pending' },
+    } as any;
+
+    const existingEvent = {
+      type: 'Normal',
+      reason: 'Pulling',
+      message: 'Pulling image kfp/op:latest',
+      count: 1,
+    };
+    const newEvent = {
+      type: 'Warning',
+      reason: 'BackOff',
+      message: 'Back-off pulling image kfp/op:latest',
+      count: 3,
+    };
+
+    beforeEach(() => {
+      mockListNamespacedEvent.mockReset();
+      mockGetCachedPodInfo.mockReset();
+      mockSavePodInfo.mockReset();
+      mockSavePodInfo.mockResolvedValue(undefined);
+      WATCHER_TEST_EXPORT.resetPodStates();
+      vi.spyOn(console, 'error').mockImplementation(() => null);
+      vi.spyOn(console, 'log').mockImplementation(() => null);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('fetches events on every tick even when the pod object is unchanged', async () => {
+      // Prime podStates so the pod is considered unchanged on the second tick
+      mockListNamespacedEvent.mockResolvedValue({ items: [existingEvent] });
+      mockGetCachedPodInfo.mockResolvedValue(null);
+      await WATCHER_TEST_EXPORT.processPod(basePod);
+
+      // Second tick: same pod, events unchanged. We should STILL hit the event API.
+      mockListNamespacedEvent.mockClear();
+      mockGetCachedPodInfo.mockResolvedValue({
+        podName: 'pod-1',
+        namespace: 'test-ns',
+        events: [existingEvent],
+        stateHistory: [],
+        status: null,
+        lastUpdated: Date.now(),
+      });
+      await WATCHER_TEST_EXPORT.processPod(basePod);
+
+      expect(mockListNamespacedEvent).toHaveBeenCalledTimes(1);
+    });
+
+    it('persists new events that arrive while pod stays stable', async () => {
+      // First tick: cache existing event
+      mockListNamespacedEvent.mockResolvedValueOnce({ items: [existingEvent] });
+      mockGetCachedPodInfo.mockResolvedValueOnce(null);
+      await WATCHER_TEST_EXPORT.processPod(basePod);
+
+      mockSavePodInfo.mockClear();
+
+      // Second tick: pod object unchanged, but a new BackOff event has appeared.
+      // savePodInfo must still be called so the new event is persisted past
+      // the cluster event TTL.
+      mockListNamespacedEvent.mockResolvedValueOnce({ items: [existingEvent, newEvent] });
+      mockGetCachedPodInfo.mockResolvedValueOnce({
+        podName: 'pod-1',
+        namespace: 'test-ns',
+        events: [existingEvent],
+        stateHistory: [],
+        status: null,
+        lastUpdated: Date.now(),
+      });
+      const result = await WATCHER_TEST_EXPORT.processPod(basePod);
+
+      expect(result).toBe(true);
+      expect(mockSavePodInfo).toHaveBeenCalledTimes(1);
+      const savedEvents = mockSavePodInfo.mock.calls[0][3];
+      expect(savedEvents).toEqual(expect.arrayContaining([existingEvent, newEvent]));
+    });
+
+    it('skips save when pod and events are both unchanged', async () => {
+      mockListNamespacedEvent.mockResolvedValue({ items: [existingEvent] });
+      mockGetCachedPodInfo.mockResolvedValue(null);
+      await WATCHER_TEST_EXPORT.processPod(basePod);
+
+      mockSavePodInfo.mockClear();
+
+      mockGetCachedPodInfo.mockResolvedValue({
+        podName: 'pod-1',
+        namespace: 'test-ns',
+        events: [existingEvent],
+        stateHistory: [],
+        status: null,
+        lastUpdated: Date.now(),
+      });
+      const result = await WATCHER_TEST_EXPORT.processPod(basePod);
+
+      expect(result).toBe(false);
+      expect(mockSavePodInfo).not.toHaveBeenCalled();
     });
   });
 });

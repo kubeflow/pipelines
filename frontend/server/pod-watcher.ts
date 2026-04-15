@@ -212,21 +212,32 @@ async function processPod(pod: V1Pod): Promise<boolean> {
 
   if (!podName || !namespace) return false;
 
-  if (!hasPodChanged(pod)) return false;
-
   const status = extractPodStatus(pod);
   if (!status) return false;
 
+  const podChanged = hasPodChanged(pod);
   const runId = getRunIdFromPod(pod);
   const taskName = getTaskNameFromPod(pod);
 
-  // Fetch existing cache and events in parallel (all async)
+  // Always fetch events — K8s Event objects are separate resources that can
+  // keep evolving (e.g. repeated BackOff/Pulling/Pulled) while the pod's
+  // phase/resourceVersion stays stable. Persisting them past the cluster's
+  // event TTL is the whole point of this watcher.
   const [existing, events] = await Promise.all([
     podEventsCache.getCachedPodInfo(namespace, podName),
     fetchPodEvents(podName, namespace),
   ]);
 
-  // Save to cache (async)
+  const eventKey = (e: podEventsCache.CachedPodEvent): string =>
+    `${e.type}:${e.reason}:${(e.message || '').substring(0, 100)}`;
+  const existingKeys = new Set((existing?.events || []).map(eventKey));
+  const hasNewEvents = events.some((e) => !existingKeys.has(eventKey(e)));
+
+  if (!podChanged && !hasNewEvents) {
+    updatePodState(pod);
+    return false;
+  }
+
   await podEventsCache.savePodInfo(
     podName,
     namespace,
@@ -379,4 +390,6 @@ export const TEST_ONLY = {
   listRunningPipelinePods,
   getTaskNameFromPod,
   getRunIdFromPod,
+  processPod,
+  resetPodStates: () => podStates.clear(),
 };
