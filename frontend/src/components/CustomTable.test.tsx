@@ -132,6 +132,30 @@ function getRowsPerPageCombobox(): HTMLElement {
   return within(footer).getByRole('combobox');
 }
 
+async function flushPromisesInAct(): Promise<void> {
+  await act(async () => {
+    await TestUtils.flushPromises();
+  });
+}
+
+async function invokeAndFlush(callback: () => void | Promise<void>): Promise<void> {
+  await act(async () => {
+    await callback();
+    await TestUtils.flushPromises();
+  });
+}
+
+async function selectRowsPerPage(pageSize: number): Promise<void> {
+  await act(async () => {
+    fireEvent.mouseDown(getRowsPerPageCombobox());
+  });
+  const option = await screen.findByRole('option', { name: String(pageSize) });
+  await act(async () => {
+    fireEvent.click(option);
+    await TestUtils.flushPromises();
+  });
+}
+
 describe('CustomTable', () => {
   beforeEach(() => {
     vi.useRealTimers();
@@ -140,49 +164,49 @@ describe('CustomTable', () => {
 
   it('renders with default filter label', async () => {
     const wrapper = renderTable();
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
     wrapper.unmount();
   });
 
   it('renders with provided filter label', async () => {
     const wrapper = renderTable({ filterLabel: 'test filter label' });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
     wrapper.unmount();
   });
 
   it('renders without filter box', async () => {
     const wrapper = renderTable({ noFilterBox: true });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
     wrapper.unmount();
   });
 
   it('renders without rows or columns', async () => {
     const wrapper = renderTable();
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
     wrapper.unmount();
   });
 
   it('renders empty message on no rows', async () => {
     const wrapper = renderTable({ emptyMessage: 'test empty message' });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
     wrapper.unmount();
   });
 
   it('renders some columns with equal widths without rows', async () => {
     const wrapper = renderTable({ columns: [{ label: 'col1' }, { label: 'col2' }] });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
     wrapper.unmount();
   });
 
   it('renders without the checkboxes if disableSelection is true', async () => {
     const wrapper = renderTable({ rows, columns, disableSelection: true });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
     wrapper.unmount();
   });
@@ -192,7 +216,7 @@ describe('CustomTable', () => {
       columns: [{ label: 'col1', sortKey: 'col1sortkey' }, { label: 'col2' }],
       initialSortOrder: 'desc',
     });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
     wrapper.unmount();
   });
@@ -210,7 +234,7 @@ describe('CustomTable', () => {
         },
       ],
     });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
     wrapper.unmount();
   });
@@ -336,7 +360,7 @@ describe('CustomTable', () => {
       columns: [{ label: 'sortable', sortKey: 'sortableKey' }, { label: 'unsortable' }],
       rows,
     });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     const sortableHeader = screen.getByText('sortable').closest('.MuiTableSortLabel-root');
     const unsortableHeader = screen.getByText('unsortable').closest('.MuiTableSortLabel-root');
@@ -368,7 +392,7 @@ describe('CustomTable', () => {
 
   it('renders some rows', async () => {
     const wrapper = renderTable({ rows, columns });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
     wrapper.unmount();
   }, 20000);
@@ -376,14 +400,14 @@ describe('CustomTable', () => {
   it('starts out with no selected rows', async () => {
     const spy = vi.fn();
     renderTable({ rows, columns, updateSelection: spy });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(spy).not.toHaveBeenCalled();
   });
 
   it('calls update selection callback when items are selected', async () => {
     const spy = vi.fn();
     renderTable({ rows, columns, updateSelection: spy });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     fireEvent.click(screen.getAllByTestId('table-row')[0]);
     expect(spy).toHaveBeenLastCalledWith(['row1']);
   });
@@ -391,7 +415,7 @@ describe('CustomTable', () => {
   it('does not add items to selection when multiple rows are clicked', async () => {
     const spy = vi.fn();
     renderTable({ rows, columns, updateSelection: spy });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     fireEvent.click(screen.getAllByTestId('table-row')[0]);
     fireEvent.click(screen.getAllByTestId('table-row')[1]);
     expect(spy).toHaveBeenLastCalledWith(['row2']);
@@ -401,7 +425,7 @@ describe('CustomTable', () => {
     const selectedIds = ['previouslySelectedRow'];
     const spy = vi.fn();
     renderTable({ rows, columns, selectedIds, updateSelection: spy });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     fireEvent.click(screen.getAllByTestId('table-row')[0]);
     expect(spy).toHaveBeenLastCalledWith(['previouslySelectedRow', 'row1']);
   });
@@ -409,7 +433,7 @@ describe('CustomTable', () => {
   it('does not call selectionCallback if disableSelection is true', async () => {
     const spy = vi.fn();
     renderTable({ rows, columns, updateSelection: spy, disableSelection: true });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     fireEvent.click(screen.getAllByTestId('table-row')[0]);
     fireEvent.click(screen.getAllByTestId('table-row')[1]);
     expect(spy).not.toHaveBeenCalled();
@@ -417,7 +441,7 @@ describe('CustomTable', () => {
 
   it('handles no updateSelection method being passed', async () => {
     renderTable({ rows, columns });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     fireEvent.click(screen.getAllByTestId('table-row')[0]);
     const headerCheckbox = getHeaderCheckbox(document.body);
     fireEvent.click(headerCheckbox);
@@ -426,7 +450,7 @@ describe('CustomTable', () => {
   it('selects all items when head checkbox is clicked', async () => {
     const spy = vi.fn();
     const wrapper = renderTable({ rows, columns, updateSelection: spy });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     const headerCheckbox = getHeaderCheckbox(wrapper.renderResult().container);
     fireEvent.click(headerCheckbox);
     expect(spy).toHaveBeenLastCalledWith(['row1', 'row2']);
@@ -436,7 +460,7 @@ describe('CustomTable', () => {
   it('unselects all items when head checkbox is clicked and all items are selected', async () => {
     const spy = vi.fn();
     const wrapper = renderTable({ rows, columns, updateSelection: spy });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     const headerCheckbox = getHeaderCheckbox(wrapper.renderResult().container);
     fireEvent.click(headerCheckbox);
     expect(spy).toHaveBeenLastCalledWith(['row1', 'row2']);
@@ -456,7 +480,7 @@ describe('CustomTable', () => {
   it('selects all items if one item was checked then the head checkbox is clicked', async () => {
     const spy = vi.fn();
     const wrapper = renderTable({ rows, columns, updateSelection: spy });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     fireEvent.click(screen.getAllByTestId('table-row')[0]);
     const headerCheckbox = getHeaderCheckbox(wrapper.renderResult().container);
     fireEvent.click(headerCheckbox);
@@ -468,7 +492,7 @@ describe('CustomTable', () => {
     const selectedIds = ['previouslySelectedRow'];
     const spy = vi.fn();
     renderTable({ rows, columns, useRadioButtons: true, selectedIds, updateSelection: spy });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     fireEvent.click(screen.getAllByTestId('table-row')[0]);
     expect(spy).toHaveBeenLastCalledWith(['row1']);
   });
@@ -477,7 +501,7 @@ describe('CustomTable', () => {
     const reloadResult = Promise.resolve('');
     const spy = vi.fn(() => reloadResult);
     const wrapper = renderTable({ rows, columns, reload: spy });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(wrapper.state()).toHaveProperty('maxPageIndex', 0);
     const buttons = wrapper.renderResult().container.querySelectorAll('button');
     expect(buttons[0].hasAttribute('disabled')).toBe(true);
@@ -489,7 +513,7 @@ describe('CustomTable', () => {
     const reloadResult = Promise.resolve('some token');
     const spy = vi.fn(() => reloadResult);
     const wrapper = renderTable({ rows, columns, reload: spy });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     const buttons = wrapper.renderResult().container.querySelectorAll('button');
     expect(wrapper.state()).toHaveProperty('maxPageIndex', Number.MAX_SAFE_INTEGER);
     expect(buttons[0].hasAttribute('disabled')).toBe(true);
@@ -501,7 +525,7 @@ describe('CustomTable', () => {
     const reloadResult = Promise.resolve('some token');
     const spy = vi.fn(() => reloadResult);
     const wrapper = renderTable({ rows, columns, reload: spy });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     const buttons = wrapper.renderResult().container.querySelectorAll('button');
     fireEvent.click(buttons[1]);
     await waitFor(() =>
@@ -520,10 +544,10 @@ describe('CustomTable', () => {
     const reloadResult = Promise.resolve('some token');
     const spy = vi.fn(() => reloadResult);
     const wrapper = renderTable({ rows: [], columns, reload: spy });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     const buttons = wrapper.renderResult().container.querySelectorAll('button');
     fireEvent.click(buttons[1]);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(spy).toHaveBeenLastCalledWith({
       filter: '',
       orderAscending: false,
@@ -543,12 +567,12 @@ describe('CustomTable', () => {
     const reloadResult = Promise.resolve('some token');
     const spy = vi.fn(() => reloadResult);
     const wrapper = renderTable({ rows: [], columns, reload: spy });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     const buttons = wrapper.renderResult().container.querySelectorAll('button');
     fireEvent.click(buttons[1]);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     fireEvent.click(buttons[0]);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     await waitFor(() =>
       expect(spy).toHaveBeenLastCalledWith({
         filter: '',
@@ -561,7 +585,7 @@ describe('CustomTable', () => {
     wrapper.rerender({ ...baseProps, rows, columns, reload: spy });
     const updatedButtons = wrapper.renderResult().container.querySelectorAll('button');
     expect(updatedButtons[0].hasAttribute('disabled')).toBe(true);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
     wrapper.unmount();
   });
@@ -570,9 +594,7 @@ describe('CustomTable', () => {
     const reloadResult = Promise.resolve('some token');
     const spy = vi.fn(() => reloadResult);
     const wrapper = renderTable({ rows: [], columns, reload: spy });
-    fireEvent.mouseDown(getRowsPerPageCombobox());
-    fireEvent.click(await screen.findByText('20'));
-    await TestUtils.flushPromises();
+    await selectRowsPerPage(20);
     expect(spy).toHaveBeenLastCalledWith({
       filter: '',
       orderAscending: false,
@@ -588,8 +610,7 @@ describe('CustomTable', () => {
     const reloadResult = Promise.resolve('');
     const spy = vi.fn(() => reloadResult);
     const wrapper = renderTable({ rows: [], columns, reload: spy });
-    fireEvent.mouseDown(getRowsPerPageCombobox());
-    fireEvent.click(await screen.findByText('20'));
+    await selectRowsPerPage(20);
     await reloadResult;
     expect(spy).toHaveBeenLastCalledWith({
       filter: '',
@@ -605,7 +626,7 @@ describe('CustomTable', () => {
   it('renders a collapsed row', async () => {
     const row = { ...rows[0], expandState: ExpandState.COLLAPSED };
     const wrapper = renderTable({ rows: [row], columns, getExpandComponent: () => null });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
     wrapper.unmount();
   });
@@ -618,7 +639,7 @@ describe('CustomTable', () => {
       getExpandComponent: () => null,
       disableSelection: true,
     });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
     wrapper.unmount();
   });
@@ -626,7 +647,7 @@ describe('CustomTable', () => {
   it('renders an expanded row', async () => {
     const row = { ...rows[0], expandState: ExpandState.EXPANDED };
     const wrapper = renderTable({ rows: [row], columns });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
     wrapper.unmount();
   });
@@ -638,7 +659,7 @@ describe('CustomTable', () => {
       columns,
       getExpandComponent: () => <span>Hello World</span>,
     });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
     wrapper.unmount();
   });
@@ -652,7 +673,7 @@ describe('CustomTable', () => {
       getExpandComponent: () => <span>Hello World</span>,
       toggleExpansion: toggleSpy,
     });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     const expandButtons = screen.getAllByLabelText('Expand');
     fireEvent.click(expandButtons[1]);
     expect(toggleSpy).toHaveBeenCalledWith(1);
@@ -660,15 +681,16 @@ describe('CustomTable', () => {
 
   it('renders a table with sorting disabled', async () => {
     const wrapper = renderTable({ rows, columns, disableSorting: true });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
     wrapper.unmount();
   });
 
   it('updates the filter string in state when the filter box input changes', async () => {
     const wrapper = renderTable({ rows, columns });
-    wrapper.instance().handleFilterChange({ target: { value: 'test filter' } });
-    await TestUtils.flushPromises();
+    await invokeAndFlush(() =>
+      wrapper.instance().handleFilterChange({ target: { value: 'test filter' } }),
+    );
     expect(wrapper.state('filterString')).toEqual('test filter');
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
     wrapper.unmount();
@@ -677,7 +699,7 @@ describe('CustomTable', () => {
   it('reloads the table with the encoded filter object', async () => {
     const reload = vi.fn(async () => '');
     const wrapper = renderTable({ rows, columns, reload });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     await act(async () => {
       await wrapper.instance()._requestFilter('test filter');
     });
@@ -705,7 +727,7 @@ describe('CustomTable', () => {
 
   it('uses an empty filter if requestFilter is called with no filter', async () => {
     const wrapper = renderTable({ rows, columns });
-    await wrapper.instance()._requestFilter();
+    await invokeAndFlush(() => wrapper.instance()._requestFilter());
     expect(wrapper.state('filterStringEncoded')).toEqual('');
     wrapper.unmount();
   });
@@ -743,7 +765,7 @@ describe('CustomTable', () => {
   it('The setFilterString method is called when the filter text is changed', async () => {
     const setFilterString = vi.fn();
     renderTable({ rows, columns, setFilterString });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     fireEvent.change(screen.getByLabelText('Filter'), { target: { value: 'test filter' } });
     expect(setFilterString).toHaveBeenLastCalledWith('test filter');
   });
@@ -766,9 +788,7 @@ describe('CustomTable', () => {
   it('persists page size across resources on the same details page', async () => {
     window.location.hash = '#/runs/details/run-abc123';
     const firstWrapper = renderTable({ rows: [], columns, reload: vi.fn(async () => '') });
-    fireEvent.mouseDown(getRowsPerPageCombobox());
-    fireEvent.click(await screen.findByText('20'));
-    await TestUtils.flushPromises();
+    await selectRowsPerPage(20);
     firstWrapper.unmount();
     const reload = vi.fn(async () => '');
     window.location.hash = '#/runs/details/run-def456';
