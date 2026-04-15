@@ -104,8 +104,10 @@ function getRequiredDecodedQueryString(
     return undefined;
   }
 
-  const decodedQueryString = getDecodedQueryString(queryParam);
-  if (decodedQueryString === undefined) {
+  let decodedQueryString: string;
+  try {
+    decodedQueryString = decodeURIComponent(queryString);
+  } catch {
     res.status(400).send(`${queryParamName} argument is invalid`);
     return undefined;
   }
