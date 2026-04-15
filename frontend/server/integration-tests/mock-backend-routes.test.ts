@@ -12,54 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import requests from 'supertest';
-import { buildQuery } from './test-helper.js';
+import { beforeEach, describe, expect, it } from 'vitest';
+import {
+  asText,
+  buildQuery,
+  createMockBackendRequest,
+  setupMockBackendTest,
+} from './test-helper.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const frontendRoot = path.resolve(__dirname, '..', '..');
-const originalCwd = process.cwd();
-
-async function createRequest(): Promise<ReturnType<typeof requests>> {
-  vi.resetModules();
-  const { default: mockApiMiddleware } = await import('../../mock-backend/mock-api-middleware.ts');
-  const app = express();
-  mockApiMiddleware(app as any);
-  return requests(app);
-}
-
-function asText(test: requests.Test): requests.Test {
-  return test.buffer(true).parse((response, callback) => {
-    response.setEncoding('utf8');
-    let text = '';
-    response.on('data', (chunk) => {
-      text += chunk;
-    });
-    response.on('end', () => {
-      callback(null, text);
-    });
-  });
-}
-
-beforeAll(() => {
-  process.chdir(frontendRoot);
-});
-
-afterAll(() => {
-  process.chdir(originalCwd);
-});
+setupMockBackendTest();
 
 describe('mock backend routes', () => {
-  let request: ReturnType<typeof requests>;
+  let request: Awaited<ReturnType<typeof createMockBackendRequest>>;
 
   beforeEach(async () => {
-    vi.restoreAllMocks();
-    vi.spyOn(console, 'info').mockImplementation(() => {});
-    vi.spyOn(console, 'log').mockImplementation(() => {});
-    request = await createRequest();
+    request = await createMockBackendRequest();
   });
 
   describe('basic endpoints', () => {
