@@ -24,7 +24,7 @@ import {
   Radio,
   Checkbox,
 } from '@mui/material';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -44,6 +44,7 @@ import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
 import Trigger from 'src/components/Trigger';
 import { color, commonCss, padding } from 'src/Css';
 import { Apis, ExperimentSortKeys, PipelineSortKeys, PipelineVersionSortKeys } from 'src/lib/Apis';
+import { useKeyedState } from 'src/hooks/useKeyedState';
 import {
   getInitialParameterState,
   type RuntimeParameters,
@@ -98,7 +99,6 @@ interface RunV2Props {
 type NewRunV2Props = RunV2Props & PageProps;
 
 export type { RuntimeParameters, SpecParameters } from 'src/lib/NewRunParametersUtils';
-type KeyedState<T> = { key: string; value: T };
 
 const hashString64 = (value: string): string => {
   let first = 0x9e3779b1;
@@ -141,14 +141,6 @@ const getTemplateData = (templateString?: string) => {
     return getEmptyTemplateData();
   }
 };
-
-function useKeyedState<T>(key: string, initialValue: T) {
-  const [state, setState] = useState<KeyedState<T>>({ key: '', value: initialValue });
-  const value = state.key === key ? state.value : initialValue;
-  const setValue = useCallback((value: T) => setState({ key, value }), [key]);
-
-  return [value, setValue] as const;
-}
 
 type CloneOrigin = {
   isClone: boolean;

@@ -36,6 +36,7 @@ import {
 } from 'src/mlmd/MlmdUtils';
 import { useArtifactTypes } from 'src/hooks/useArtifactTypes';
 import { queryKeys } from 'src/hooks/queryKeys';
+import { useKeyedState } from 'src/hooks/useKeyedState';
 import { Artifact, ArtifactType, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
 import RunList from './RunList';
@@ -434,12 +435,14 @@ function CompareV2(props: CompareV2Props) {
   const { updateBanner, updateToolbar, namespace } = props;
 
   const runlistRef = useRef<RunList>(null);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
+  const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
+  const runIdsKey = runIds.join(',');
+  const [selectedIdsState, setSelectedIds] = useKeyedState<string[]>(runIdsKey, runIds);
   const [metricsTab, setMetricsTab] = useState(MetricsType.SCALAR_METRICS);
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
-  const selectionRunIdsKeyRef = useRef<string>('');
   const [rocCurveSelection, setRocCurveSelection] = useState<RocCurveSelectionState>(
     createInitialRocCurveSelectionState,
   );
@@ -448,9 +451,6 @@ function CompareV2(props: CompareV2Props) {
   const [selectedArtifactsMap, setSelectedArtifactsMap] = useState<{
     [key: string]: SelectedArtifact[];
   }>(createInitialSelectedArtifactsMap);
-
-  const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
-  const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
   // Retrieves run details.
   const {
@@ -502,6 +502,15 @@ function CompareV2(props: CompareV2Props) {
     isError: isErrorArtifactTypes,
     error: errorArtifactTypes,
   } = useArtifactTypes();
+
+  const selectedIds = useMemo(() => {
+    if (!runs) {
+      return selectedIdsState;
+    }
+
+    const validRunIds = new Set(runs.map((run) => run.run_id).filter((id): id is string => !!id));
+    return selectedIdsState.filter((id) => validRunIds.has(id));
+  }, [runs, selectedIdsState]);
 
   const metricsArtifactData = useMemo<DerivedMetricsArtifacts | undefined>(() => {
     if (!(runs && mlmdPackages && artifactTypes)) {
@@ -663,23 +672,6 @@ function CompareV2(props: CompareV2Props) {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if (runs) {
-      const nextRunIds = runs.map((run) => run.run_id!).filter((id): id is string => !!id);
-      const nextRunIdsKey = nextRunIds.join(',');
-      const routeChanged = selectionRunIdsKeyRef.current !== nextRunIdsKey;
-      selectionRunIdsKeyRef.current = nextRunIdsKey;
-
-      setSelectedIds((currentSelectedIds) => {
-        if (routeChanged) {
-          return nextRunIds;
-        }
-        const nextRunIdsSet = new Set(nextRunIds);
-        return currentSelectedIds.filter((id) => nextRunIdsSet.has(id));
-      });
-    }
-  }, [runs]);
 
   const paramsTableProps = useMemo(() => {
     if (!runs) {
