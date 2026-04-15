@@ -27,8 +27,7 @@
 
 **Current focus**:
 
-- The React 18/19 upgrade track is complete through `#15`.
-- Remaining React 19 follow-up cleanup is limited to smaller polish items noted during `#13`, primarily clearing the remaining `act(...)` warning noise in `frontend/src/components/CustomTable.test.tsx`.
+- The React 18/19 upgrade track is complete through `#15`, including the smaller React 19 follow-up cleanup items noted during `#13`.
 
 **How to contribute**: This checklist is now complete. Follow-up frontend work should track new issues directly and continue to pass `npm run test:ci` and `npm run build` before merge.
 
@@ -335,8 +334,7 @@ Run `npm run check:react-peers` (targeting React 19), upgrade any remaining Reac
 Completed by [#13153](https://github.com/kubeflow/pipelines/pull/13153), merged on March 27, 2026 UTC. `frontend/package.json` now pins `react`, `react-dom`, `@types/react`, and `@types/react-dom` to `^19`, and the default React peer gate target is React 19.
 
 **Current note**:
-The React 19 core bump is complete. One smaller follow-up cleanup item remains from the review thread:
-- clear the remaining `act(...)` warning noise reported from `frontend/src/components/CustomTable.test.tsx`
+The React 19 core bump and its smaller follow-up review-thread cleanup items are complete.
 
 **Description** (historical):
 Bump `react`, `react-dom`, `@types/react`, and `@types/react-dom` to v19, address any React 19-specific breakages, regenerate and review affected snapshots, and clear the temporary React core allowlist from the `#12` sweep.
