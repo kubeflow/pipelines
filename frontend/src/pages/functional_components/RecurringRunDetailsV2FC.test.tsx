@@ -97,6 +97,9 @@ describe('RecurringRunDetailsV2FC', () => {
     // mock both v2_alpha and functional feature keys are enable.
     vi.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
 
+    // mockReset clears the mockOnce queue that vi.clearAllMocks leaves behind,
+    // preventing unconsumed one-time mocks from leaking between tests.
+    getRecurringRunSpy.mockReset();
     getRecurringRunSpy.mockImplementation(() => fullTestV2RecurringRun);
     getPipelineVersionSpy.mockImplementation(() => testPipelineVersion);
 
