@@ -141,7 +141,7 @@ jobs:
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
-          skip_operator_deployment: 'false'
+          skip_operator_deployment: ${{ github.repository_owner != 'opendatahub-io' }}
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
