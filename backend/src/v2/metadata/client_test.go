@@ -387,7 +387,7 @@ func Test_GetExecutionsByTypeAndName(t *testing.T) {
 			},
 		})
 
-		execution, err := client.GetExecutionsByTypeAndName(context.Background(), string(metadata.DagExecutionTypeName), "run/my-run")
+		execution, err := client.GetExecutionByTypeAndName(context.Background(), string(metadata.DagExecutionTypeName), "run/my-run")
 		if err != nil {
 			t.Fatalf("GetExecutionsByTypeAndName() error = %v", err)
 		}
@@ -410,11 +410,11 @@ func Test_GetExecutionsByTypeAndName(t *testing.T) {
 			},
 		})
 
-		_, err := client.GetExecutionsByTypeAndName(context.Background(), string(metadata.DagExecutionTypeName), "run/missing")
+		_, err := client.GetExecutionByTypeAndName(context.Background(), string(metadata.DagExecutionTypeName), "run/missing")
 		if err == nil {
 			t.Fatal("GetExecutionsByTypeAndName() error = nil, want non-nil")
 		}
-		if diff := cmp.Diff(err.Error(), `no execution found for type="system.DAGExecution", name="run/missing"`); diff != "" {
+		if diff := cmp.Diff(`no execution found for type="system.DAGExecution", name="run/missing"`, err.Error()); diff != "" {
 			t.Fatalf("GetExecutionsByTypeAndName() error mismatch (-want +got):\n%s", diff)
 		}
 	})
@@ -459,6 +459,10 @@ func (s *stubMetadataStoreServiceClient) GetContextsByExecution(ctx context.Cont
 
 func setMetadataClientService(t *testing.T, client *metadata.Client, svc pb.MetadataStoreServiceClient) {
 	t.Helper()
+	if client == nil {
+		t.Fatal("setMetadataClientService: client must not be nil")
+	}
+
 	field := reflect.ValueOf(client).Elem().FieldByName("svc")
 	reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Set(reflect.ValueOf(svc))
 }

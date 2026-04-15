@@ -180,6 +180,19 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
+		if isAlreadyExistsErr(err) {
+			glog.Infof("Execution %q already exists, looking up existing execution", ecfg.Name)
+			existing, lookupErr := mlmd.GetExecutionByTypeAndName(ctx, string(metadata.DagExecutionTypeName), ecfg.Name)
+			if lookupErr != nil {
+				return nil, fmt.Errorf("failed to lookup existing execution: %w", lookupErr)
+			}
+
+			if existing == nil {
+				return nil, fmt.Errorf("execution already exists but lookup returned nil: %w", err)
+			}
+			glog.Infof("Found existing execution: %s", existing)
+			return &Execution{ID: existing.GetID()}, nil
+		}
 		return execution, err
 	}
 	glog.Infof("Created execution: %s", createdExecution)

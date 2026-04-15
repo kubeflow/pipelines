@@ -826,12 +826,12 @@ func (c *Client) GetExecutions(ctx context.Context, ids []int64) ([]*pb.Executio
 	return res.Executions, nil
 }
 
-// GetExecutionsByTypeAndName retrieves an execution by its type and name from the service.
+// GetExecutionByTypeAndName retrieves an execution by its type and name from the service.
 // Returns the Execution object if found, or an error if not found or if the request fails.
-func (c *Client) GetExecutionsByTypeAndName(ctx context.Context, typeName, name string) (*Execution, error) {
+func (c *Client) GetExecutionByTypeAndName(ctx context.Context, typeName, name string) (*Execution, error) {
 	res, err := c.svc.GetExecutionByTypeAndName(ctx, &pb.GetExecutionByTypeAndNameRequest{
-		TypeName:      &typeName,
-		ExecutionName: &name,
+		TypeName:      new(typeName),
+		ExecutionName: new(name),
 	})
 
 	if err != nil {
