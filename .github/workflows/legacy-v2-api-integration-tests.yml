@@ -99,10 +99,18 @@ jobs:
         id: tests
         if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
         working-directory: ./backend/test/v2/integration
-        run: go test -v ./... -args -runIntegrationTests=true -namespace=kubeflow -tlsEnabled=${{ matrix.pod_to_pod_tls_enabled }} -caCertPath=${{ env.CA_CERT_PATH }} -repoName=${{ github.repository }} -branchName=${{ github.ref_name }}
+        run: |
+          API_SCHEME="http"
+          API_URL="http://localhost:8888"
+          if [ "${{ matrix.pod_to_pod_tls_enabled }}" == "true" ]; then
+            API_SCHEME="https"
+            API_URL="https://localhost:8888"
+          fi
+          go test -v ./... -args -runIntegrationTests=true -namespace=kubeflow -tlsEnabled=${{ matrix.pod_to_pod_tls_enabled }} -caCertPath=${{ env.CA_CERT_PATH }} -apiScheme=$API_SCHEME -apiUrl="$API_URL" -repoName=${{ github.repository }} -branchName="$BRANCH_NAME"
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
           PIPELINE_STORE: ${{ matrix.pipeline_store }}
+          BRANCH_NAME: ${{ github.ref_name }}
         continue-on-error: true
 
       - name: Collect failed logs

@@ -201,10 +201,11 @@ jobs:
           k8s_version: ${{ matrix.k8s_version }}
           cluster_name: ${{ env.CLUSTER_NAME }}
 
+      # deploy-kfp.sh has no TLS overlay for kubernetes-native; skip when using non-operator deployment with TLS
       - name: Deploy KFP
         uses: ./.github/actions/deploy
         id: deploy
-        if: ${{ steps.create-cluster.outcome == 'success' }}
+        if: ${{ steps.create-cluster.outcome == 'success' && !(matrix.pod_to_pod_tls_enabled == 'true' && env.SKIP_OPERATOR_DEPLOYMENT == 'true') }}
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}

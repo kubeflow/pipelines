@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"net/http"
 	"os"
 	"testing"
@@ -32,6 +33,7 @@ import (
 	run_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+	"github.com/kubeflow/pipelines/backend/test/config"
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
@@ -43,8 +45,24 @@ import (
 )
 
 func WaitForReady(initializeTimeout time.Duration) error {
+	var httpClient *http.Client
+	scheme := "http"
+	if *config.TLSEnabled {
+		scheme = "https"
+		tlsCfg, err := GetTLSConfig(*config.CaCertPath)
+		if err != nil {
+			return errors.Wrap(err, "Failed to create TLS config for health check")
+		}
+		httpClient = &http.Client{
+			Transport: &http.Transport{TLSClientConfig: tlsCfg},
+		}
+	} else {
+		httpClient = http.DefaultClient
+	}
+
+	healthzURL := fmt.Sprintf("%s://localhost:8888/apis/v2beta1/healthz", scheme)
 	operation := func() error {
-		response, err := http.Get("http://localhost:8888/apis/v2beta1/healthz")
+		response, err := httpClient.Get(healthzURL)
 		if err != nil {
 			return err
 		}

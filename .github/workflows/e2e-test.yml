@@ -127,9 +127,10 @@ jobs:
           k8s_version: ${{ matrix.k8s_version }}
           cluster_name: ${{ env.CLUSTER_NAME }}
 
+      # deploy-kfp.sh's elif chain selects cache-disabled over tls-enabled; skip unsupported combination for non-operator deployment
       - name: Deploy KFP
         uses: ./.github/actions/deploy
-        if: ${{ steps.create-cluster.outcome == 'success' }}
+        if: ${{ steps.create-cluster.outcome == 'success' && !(matrix.cache_enabled == 'false' && matrix.pod_to_pod_tls_enabled == 'true' && env.SKIP_OPERATOR_DEPLOYMENT == 'true') }}
         id: deploy
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
