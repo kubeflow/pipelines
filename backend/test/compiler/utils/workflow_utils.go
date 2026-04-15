@@ -95,9 +95,35 @@ func ConfigureCacheSettings(workflow *v1alpha1.Workflow, remove bool) *v1alpha1.
 	configuredWorkflow := workflow.DeepCopy()
 	for _, template := range configuredWorkflow.Spec.Templates {
 		if template.Container != nil {
+			// Handle --cache_disabled in the main container's Command (launcher entrypoint)
+			if len(template.Container.Command) > 0 {
+				if remove {
+					if slices.Contains(template.Container.Command, cacheDisabledArg) {
+						for index, arg := range template.Container.Command {
+							if arg == cacheDisabledArg {
+								template.Container.Command = append(template.Container.Command[:index], template.Container.Command[index+1:]...)
+								break
+							}
+						}
+					}
+				} else {
+					if slices.Contains(template.Container.Command, "--run_id") && !slices.Contains(template.Container.Command, cacheDisabledArg) {
+						// Insert --cache_disabled at the same position the compiler would:
+						// after --mlmd_server_port <value> and any TLS flags, before --log_level.
+						insertIdx := len(template.Container.Command)
+						for i, arg := range template.Container.Command {
+							if arg == "--log_level" || arg == "--publish_logs" {
+								insertIdx = i
+								break
+							}
+						}
+						template.Container.Command = slices.Insert(template.Container.Command, insertIdx, cacheDisabledArg)
+					}
+				}
+			}
+			// Handle --cache_disabled in the main container's Args (legacy driver path)
 			if len(template.Container.Args) > 0 {
 				if remove {
-					// Remove cache_disabled arg if it exists
 					if slices.Contains(template.Container.Args, cacheDisabledArg) {
 						for index, arg := range template.Container.Args {
 							if arg == cacheDisabledArg {
@@ -107,15 +133,14 @@ func ConfigureCacheSettings(workflow *v1alpha1.Workflow, remove bool) *v1alpha1.
 						}
 					}
 				} else {
-					// Add cache_disabled arg if it doesn't exist and this is a driver container
 					if slices.Contains(template.Container.Args, "--run_id") && !slices.Contains(template.Container.Args, cacheDisabledArg) {
 						template.Container.Args = append(template.Container.Args, cacheDisabledArg)
 					}
 				}
 			}
+			// Handle --cache_disabled in init containers
 			for index, userContainer := range template.InitContainers {
 				if remove {
-					// Remove cache_disabled arg if it exists
 					if slices.Contains(userContainer.Args, cacheDisabledArg) {
 						for userArgsIndex, arg := range userContainer.Args {
 							if arg == cacheDisabledArg {
@@ -125,13 +150,11 @@ func ConfigureCacheSettings(workflow *v1alpha1.Workflow, remove bool) *v1alpha1.
 						}
 					}
 				} else {
-					// Add cache_disabled arg if it doesn't exist
-					if !slices.Contains(userContainer.Args, cacheDisabledArg) {
-						if len(userContainer.Args) > 0 {
-							userContainer.Args = append(userContainer.Args, cacheDisabledArg)
-						} else {
-							userContainer.Args = []string{cacheDisabledArg}
-						}
+					// Only add --cache_disabled to init containers that already have args;
+					// containers that rely solely on Command (e.g. OCI pre-pull containers)
+					// never receive --cache_disabled from the compiler.
+					if len(userContainer.Args) > 0 && !slices.Contains(userContainer.Args, cacheDisabledArg) {
+						userContainer.Args = append(userContainer.Args, cacheDisabledArg)
 					}
 				}
 				template.InitContainers[index].Args = userContainer.Args

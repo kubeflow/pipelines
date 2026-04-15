@@ -31,6 +31,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/memblob"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -688,6 +689,88 @@ func Test_retrieve_artifact_path(t *testing.T) {
 			path, err := retrieveArtifactPath(test.artifact)
 			assert.Nil(t, err)
 			assert.Equal(t, path, test.expectedPath)
+		})
+	}
+}
+
+func Test_injectOCIArtifactMountPaths(t *testing.T) {
+	tests := []struct {
+		name            string
+		executorInput   *pipelinespec.ExecutorInput
+		wantCustomPaths map[string]string // artifactName → expected CustomPath
+	}{
+		{
+			name: "single OCI input artifact gets index-0 mount dir",
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					Artifacts: map[string]*pipelinespec.ArtifactList{
+						"model": {
+							Artifacts: []*pipelinespec.RuntimeArtifact{
+								{Uri: "oci://registry.example.com/model:v1"},
+							},
+						},
+					},
+				},
+			},
+			wantCustomPaths: map[string]string{
+				"model": "/oci-artifact-0",
+			},
+		},
+		{
+			name: "two OCI input artifacts are sorted and indexed",
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					Artifacts: map[string]*pipelinespec.ArtifactList{
+						"z_model": {
+							Artifacts: []*pipelinespec.RuntimeArtifact{
+								{Uri: "oci://registry.example.com/z:v1"},
+							},
+						},
+						"a_model": {
+							Artifacts: []*pipelinespec.RuntimeArtifact{
+								{Uri: "oci://registry.example.com/a:v1"},
+							},
+						},
+					},
+				},
+			},
+			// alphabetically: a_model < z_model
+			wantCustomPaths: map[string]string{
+				"a_model": "/oci-artifact-0",
+				"z_model": "/oci-artifact-1",
+			},
+		},
+		{
+			name: "non-OCI artifact is not modified",
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					Artifacts: map[string]*pipelinespec.ArtifactList{
+						"dataset": {
+							Artifacts: []*pipelinespec.RuntimeArtifact{
+								{Uri: "gs://bucket/dataset"},
+							},
+						},
+					},
+				},
+			},
+			wantCustomPaths: map[string]string{
+				"dataset": "",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			injectOCIArtifactMountPaths(tt.executorInput)
+			for name, wantPath := range tt.wantCustomPaths {
+				art := tt.executorInput.GetInputs().GetArtifacts()[name].Artifacts[0]
+				if wantPath == "" {
+					assert.Nil(t, art.CustomPath, "artifact %q should have no CustomPath", name)
+				} else {
+					require.NotNil(t, art.CustomPath, "artifact %q should have CustomPath set", name)
+					assert.Equal(t, wantPath, *art.CustomPath, "artifact %q CustomPath", name)
+				}
+			}
 		})
 	}
 }

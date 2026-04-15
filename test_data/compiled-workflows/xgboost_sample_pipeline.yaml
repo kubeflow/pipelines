@@ -292,7 +292,70 @@ spec:
   serviceAccountName: pipeline-runner
   templates:
   - container:
-      args:
+      command:
+      - /kfp-launcher/launch
+      - --pipeline_name
+      - xgboost-sample-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
+      - --component_spec
+      - '{{inputs.parameters.component}}'
+      - --pod_name
+      - $(KFP_POD_NAME)
+      - --pod_uid
+      - $(KFP_POD_UID)
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: '{{inputs.parameters.image}}'
+      name: ""
+      resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
       - --type
       - CONTAINER
       - --pipeline_name
@@ -315,14 +378,10 @@ spec:
       - '{{inputs.parameters.container}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
-      - --cached_decision_path
-      - '{{outputs.parameters.cached-decision.path}}'
-      - --pod_spec_patch_path
-      - '{{outputs.parameters.pod-spec-patch.path}}'
-      - --condition_path
-      - '{{outputs.parameters.condition.path}}'
       - --kubernetes_config
       - '{{inputs.parameters.kubernetes-config}}'
+      - --driver_outputs_dir
+      - /tmp/kfp-driver-outputs
       - --http_proxy
       - ""
       - --https_proxy
@@ -349,14 +408,14 @@ spec:
           fieldRef:
             fieldPath: metadata.uid
       image: ghcr.io/kubeflow/kfp-driver:latest
-      name: ""
+      name: kfp-driver
       resources:
         limits:
           cpu: 500m
           memory: 512Mi
         requests:
           cpu: 100m
-          memory: 64Mi
+          memory: 128Mi
       securityContext:
         allowPrivilegeEscalation: false
         capabilities:
@@ -365,97 +424,9 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-    inputs:
-      parameters:
-      - name: component
-      - name: task
-      - name: container
-      - name: task-name
-      - name: parent-dag-id
-      - default: "-1"
-        name: iteration-index
-      - default: ""
-        name: kubernetes-config
-    metadata: {}
-    name: system-container-driver
-    outputs:
-      parameters:
-      - name: pod-spec-patch
-        valueFrom:
-          default: ""
-          path: /tmp/outputs/pod-spec-patch
-      - default: "false"
-        name: cached-decision
-        valueFrom:
-          default: "false"
-          path: /tmp/outputs/cached-decision
-      - name: condition
-        valueFrom:
-          default: "true"
-          path: /tmp/outputs/condition
-    securityContext:
-      runAsNonRoot: true
-      seccompProfile:
-        type: RuntimeDefault
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{inputs.parameters.pod-spec-patch}}'
-        name: executor
-        template: system-container-impl
-        when: '{{inputs.parameters.cached-decision}} != true'
-    inputs:
-      parameters:
-      - name: pod-spec-patch
-      - default: "false"
-        name: cached-decision
-    metadata: {}
-    name: system-container-executor
-    outputs: {}
-  - container:
-      command:
-      - should-be-overridden-during-runtime
-      env:
-      - name: KFP_POD_NAME
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.name
-      - name: KFP_POD_UID
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.uid
-      envFrom:
-      - configMapRef:
-          name: metadata-grpc-configmap
-          optional: true
-      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
-      name: ""
-      resources: {}
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
-        seccompProfile:
-          type: RuntimeDefault
       volumeMounts:
-      - mountPath: /kfp-launcher
-        name: kfp-launcher
-      - mountPath: /gcs
-        name: gcs-scratch
-      - mountPath: /s3
-        name: s3-scratch
-      - mountPath: /minio
-        name: minio-scratch
-      - mountPath: /.local
-        name: dot-local-scratch
-      - mountPath: /.cache
-        name: dot-cache-scratch
-      - mountPath: /.config
-        name: dot-config-scratch
-    initContainers:
+      - mountPath: /tmp/kfp-driver-outputs
+        name: kfp-driver-outputs
     - args:
       - --copy
       - /kfp-launcher/launch
@@ -482,15 +453,25 @@ spec:
         name: kfp-launcher
     inputs:
       parameters:
-      - name: pod-spec-patch
+      - name: component
+      - name: task
+      - name: container
+      - name: task-name
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+      - name: image
     metadata: {}
     name: system-container-impl
     outputs: {}
-    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     securityContext:
       seccompProfile:
         type: RuntimeDefault
     volumes:
+    - emptyDir: {}
+      name: kfp-driver-outputs
     - emptyDir: {}
       name: kfp-launcher
     - emptyDir: {}
@@ -520,18 +501,10 @@ spec:
             value: chicago-taxi-trips-dataset
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: chicago-taxi-trips-dataset-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.chicago-taxi-trips-dataset-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.chicago-taxi-trips-dataset-driver.outputs.parameters.cached-decision}}'
-        depends: chicago-taxi-trips-dataset-driver.Succeeded
+          - name: image
+            value: byrnedo/alpine-curl@sha256:548379d0a4a0c08b9e55d9d87a592b7d35d9ab3037f4936f5ccd09d0b625a342
         name: chicago-taxi-trips-dataset
-        template: system-container-executor
+        template: system-container-impl
       - arguments:
           parameters:
           - name: component
@@ -544,19 +517,11 @@ spec:
             value: convert-csv-to-apache-parquet
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.7
         depends: chicago-taxi-trips-dataset.Succeeded
-        name: convert-csv-to-apache-parquet-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.convert-csv-to-apache-parquet-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.convert-csv-to-apache-parquet-driver.outputs.parameters.cached-decision}}'
-        depends: convert-csv-to-apache-parquet-driver.Succeeded
         name: convert-csv-to-apache-parquet
-        template: system-container-executor
+        template: system-container-impl
       - arguments:
           parameters:
           - name: component
@@ -569,19 +534,11 @@ spec:
             value: xgboost-predict
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.7
         depends: chicago-taxi-trips-dataset.Succeeded && xgboost-train.Succeeded
-        name: xgboost-predict-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.xgboost-predict-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.xgboost-predict-driver.outputs.parameters.cached-decision}}'
-        depends: xgboost-predict-driver.Succeeded
         name: xgboost-predict
-        template: system-container-executor
+        template: system-container-impl
       - arguments:
           parameters:
           - name: component
@@ -594,19 +551,11 @@ spec:
             value: xgboost-predict-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.7
         depends: convert-csv-to-apache-parquet.Succeeded && xgboost-train-2.Succeeded
-        name: xgboost-predict-2-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.xgboost-predict-2-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.xgboost-predict-2-driver.outputs.parameters.cached-decision}}'
-        depends: xgboost-predict-2-driver.Succeeded
         name: xgboost-predict-2
-        template: system-container-executor
+        template: system-container-impl
       - arguments:
           parameters:
           - name: component
@@ -619,19 +568,11 @@ spec:
             value: xgboost-predict-3
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.7
         depends: convert-csv-to-apache-parquet.Succeeded && xgboost-train.Succeeded
-        name: xgboost-predict-3-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.xgboost-predict-3-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.xgboost-predict-3-driver.outputs.parameters.cached-decision}}'
-        depends: xgboost-predict-3-driver.Succeeded
         name: xgboost-predict-3
-        template: system-container-executor
+        template: system-container-impl
       - arguments:
           parameters:
           - name: component
@@ -644,19 +585,11 @@ spec:
             value: xgboost-predict-4
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.7
         depends: chicago-taxi-trips-dataset.Succeeded && xgboost-train-2.Succeeded
-        name: xgboost-predict-4-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.xgboost-predict-4-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.xgboost-predict-4-driver.outputs.parameters.cached-decision}}'
-        depends: xgboost-predict-4-driver.Succeeded
         name: xgboost-predict-4
-        template: system-container-executor
+        template: system-container-impl
       - arguments:
           parameters:
           - name: component
@@ -669,19 +602,11 @@ spec:
             value: xgboost-train
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.7
         depends: chicago-taxi-trips-dataset.Succeeded
-        name: xgboost-train-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.xgboost-train-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.xgboost-train-driver.outputs.parameters.cached-decision}}'
-        depends: xgboost-train-driver.Succeeded
         name: xgboost-train
-        template: system-container-executor
+        template: system-container-impl
       - arguments:
           parameters:
           - name: component
@@ -694,19 +619,11 @@ spec:
             value: xgboost-train-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
+          - name: image
+            value: python:3.7
         depends: convert-csv-to-apache-parquet.Succeeded
-        name: xgboost-train-2-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.xgboost-train-2-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.xgboost-train-2-driver.outputs.parameters.cached-decision}}'
-        depends: xgboost-train-2-driver.Succeeded
         name: xgboost-train-2
-        template: system-container-executor
+        template: system-container-impl
     inputs:
       parameters:
       - name: parent-dag-id
@@ -767,7 +684,7 @@ spec:
           memory: 512Mi
         requests:
           cpu: 100m
-          memory: 64Mi
+          memory: 128Mi
       securityContext:
         allowPrivilegeEscalation: false
         capabilities:

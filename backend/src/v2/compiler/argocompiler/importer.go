@@ -136,6 +136,17 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 				{Name: paramParentDagID},
 			},
 		},
+		Outputs: wfapi.Outputs{
+			Parameters: []wfapi.Parameter{
+				{
+					Name: "oci-model-image",
+					ValueFrom: &wfapi.ValueFrom{
+						Path:    "/tmp/kfp-oci-model-image",
+						Default: wfapi.AnyStringPtr(""),
+					},
+				},
+			},
+		},
 		Container: &k8score.Container{
 			Image:        c.launcherImage,
 			Command:      c.launcherCommand,

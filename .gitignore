@@ -113,3 +113,5 @@ bin/
 frontend/scripts/ui-smoke-test/node_modules/
 .npm-cache/
 .npm/
+driver
+launcher-v2
