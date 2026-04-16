@@ -284,7 +284,7 @@ class SageMakerComponent:
         """
         submission_ack_printed = False
         ERROR_NOT_CREATED_MESSAGE = "An error occurred while getting resource arn, ACK CR created but Sagemaker resource not created."
-        ERROR_UPDATE_MESSAGE = "An error occured when getting the resource arn. Check the ACK Sagemaker Controller logs."
+        ERROR_UPDATE_MESSAGE = "An error occurred when getting the resource arn. Check the ACK Sagemaker Controller logs."
 
         try:
             while True:
