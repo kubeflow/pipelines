@@ -25,7 +25,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.2
 	// Should match GRPC_GATEWAY_VERSION in backend/api/Dockerfile
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.1
-	github.com/jackc/pgx/v5 v5.7.5
+	github.com/jackc/pgx/v5 v5.9.0
 	github.com/kubeflow/pipelines/api v0.0.0-20250102152816-873e9dedd766
 	github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20240725205754-d911c8b73b49
 	github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20240416215826-da804407ad31
