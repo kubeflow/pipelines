@@ -443,7 +443,7 @@ function CompareV2(props: CompareV2Props) {
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
-  const [rocCurveSelection, setRocCurveSelection] = useState<RocCurveSelectionState>(
+  const [rocCurveSelectionState, setRocCurveSelectionState] = useState<RocCurveSelectionState>(
     createInitialRocCurveSelectionState,
   );
 
@@ -582,15 +582,15 @@ function CompareV2(props: CompareV2Props) {
     [selectedArtifactsMap, metricsArtifactData],
   );
 
-  useEffect(() => {
-    setRocCurveSelection((currentSelection) =>
+  const visibleRocCurveSelection = useMemo(
+    () =>
       reconcileRocCurveSelectionState(
-        currentSelection,
+        rocCurveSelectionState,
         rocCurveData.rocCurveLinkedArtifacts,
         rocCurveData.validRocCurveIdSet,
       ),
-    );
-  }, [rocCurveData]);
+    [rocCurveSelectionState, rocCurveData],
+  );
 
   const scalarMetricsTableData = metricsArtifactData?.scalarMetricsTableData;
   const confusionMatrixRunArtifacts = metricsArtifactData?.confusionMatrixRunArtifacts || [];
@@ -792,23 +792,38 @@ function CompareV2(props: CompareV2Props) {
                   <RocCurveMetrics
                     linkedArtifacts={rocCurveLinkedArtifacts}
                     filter={{
-                      selectedIds: rocCurveSelection.selectedIds,
+                      selectedIds: visibleRocCurveSelection.selectedIds,
                       setSelectedIds: (selectedIds) =>
-                        setRocCurveSelection((currentSelection) => ({
-                          ...currentSelection,
+                        setRocCurveSelectionState((currentSelection) => ({
+                          ...reconcileRocCurveSelectionState(
+                            currentSelection,
+                            rocCurveData.rocCurveLinkedArtifacts,
+                            rocCurveData.validRocCurveIdSet,
+                          ),
+                          hasInitialized: true,
                           selectedIds,
                         })),
                       fullArtifactPathMap,
-                      selectedIdColorMap: rocCurveSelection.selectedIdColorMap,
+                      selectedIdColorMap: visibleRocCurveSelection.selectedIdColorMap,
                       setSelectedIdColorMap: (selectedIdColorMap) =>
-                        setRocCurveSelection((currentSelection) => ({
-                          ...currentSelection,
+                        setRocCurveSelectionState((currentSelection) => ({
+                          ...reconcileRocCurveSelectionState(
+                            currentSelection,
+                            rocCurveData.rocCurveLinkedArtifacts,
+                            rocCurveData.validRocCurveIdSet,
+                          ),
+                          hasInitialized: true,
                           selectedIdColorMap,
                         })),
-                      lineColorsStack: rocCurveSelection.lineColorsStack,
+                      lineColorsStack: visibleRocCurveSelection.lineColorsStack,
                       setLineColorsStack: (lineColorsStack) =>
-                        setRocCurveSelection((currentSelection) => ({
-                          ...currentSelection,
+                        setRocCurveSelectionState((currentSelection) => ({
+                          ...reconcileRocCurveSelectionState(
+                            currentSelection,
+                            rocCurveData.rocCurveLinkedArtifacts,
+                            rocCurveData.validRocCurveIdSet,
+                          ),
+                          hasInitialized: true,
                           lineColorsStack,
                         })),
                     }}

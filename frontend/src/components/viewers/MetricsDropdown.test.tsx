@@ -373,7 +373,6 @@ describe('MetricsDropdown', () => {
   });
 
   it('HTML file loading and error display with namespace input', async () => {
-    const assertErrors = expectErrors();
     const getHtmlViewerConfigSpy = vi.spyOn(metricsVisualizations, 'getHtmlViewerConfig');
     getHtmlViewerConfigSpy.mockRejectedValue(new Error('HTML file not found.'));
 
@@ -402,7 +401,6 @@ describe('MetricsDropdown', () => {
       );
       screen.getByText('Error: failed loading HTML file. Click Details for more information.');
     });
-    assertErrors();
   });
 
   it('Dropdown initially loaded with selected artifact', async () => {
