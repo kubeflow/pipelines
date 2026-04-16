@@ -19,7 +19,7 @@ import SuccessIcon from '@mui/icons-material/CheckCircle';
 import CachedIcon from '@mui/icons-material/Cached';
 
 export default class StatusCached extends React.Component<{ style: any }> {
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { style } = this.props;
     return (
       <div

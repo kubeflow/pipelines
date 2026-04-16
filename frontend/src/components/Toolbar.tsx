@@ -115,13 +115,13 @@ export interface ToolbarProps {
   actions: ToolbarActionMap;
   breadcrumbs: Breadcrumb[];
   history?: History;
-  pageTitle: string | JSX.Element;
+  pageTitle: string | React.JSX.Element;
   pageTitleTooltip?: string;
   topLevelToolbar?: boolean;
 }
 
 class Toolbar extends React.Component<ToolbarProps> {
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const { actions, breadcrumbs, pageTitle, pageTitleTooltip } = { ...this.props };
 
     if (!actions.length && !breadcrumbs.length && !pageTitle) {

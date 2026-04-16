@@ -120,7 +120,7 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
     }
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     return (
       <AutoSizer>
         {({ height, width }) => (

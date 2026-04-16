@@ -78,7 +78,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     this.refresh();
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const columns: Column[] = [
       {
         customRenderer: this._nameCustomRenderer,

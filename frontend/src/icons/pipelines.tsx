@@ -17,7 +17,7 @@
 import * as React from 'react';
 
 export default class PipelinesIcon extends React.Component<{ color: string }> {
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     return (
       <svg
         width='20px'

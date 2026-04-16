@@ -241,7 +241,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     if (this.props.isLoading) {
       return (
         <div className={css.loadingMessage}>

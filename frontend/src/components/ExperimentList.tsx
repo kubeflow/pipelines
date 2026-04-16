@@ -58,7 +58,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const columns: Column[] = [
       {
         customRenderer: this._nameCustomRenderer,
@@ -184,7 +184,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
     this.setState({ displayExperiments });
   }
 
-  private _getExpandedExperimentComponent(experimentIndex: number): JSX.Element {
+  private _getExpandedExperimentComponent(experimentIndex: number): React.JSX.Element {
     const experiment = this.state.displayExperiments[experimentIndex];
     const parentProps = { ...this.props, onError: () => null };
     return (

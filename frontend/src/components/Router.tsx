@@ -278,7 +278,7 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     this.childProps.toolbarProps = this.state.toolbarProps;
     const route = this.props.route;
 

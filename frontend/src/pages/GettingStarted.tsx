@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import type * as React from 'react';
 import Markdown from 'markdown-to-jsx';
 import { classes, cssRaw } from 'typestyle';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
@@ -120,7 +121,7 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
     this.componentDidMount();
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'), 'kfp-start-page')}>
         <Markdown options={OPTIONS}>

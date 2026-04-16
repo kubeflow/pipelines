@@ -61,7 +61,7 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
     return parseInt(this.props.match.params[RouteParams.ID], 10);
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <ExecutionDetailsContent
@@ -110,7 +110,7 @@ export class ExecutionDetailsContent extends Component<
     return this.load();
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     if (!this.state.execution || !this.state.events) {
       return <CircularProgress />;
     }
@@ -348,7 +348,7 @@ class SectionIO extends Component<
     }
   }
 
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const { title, events } = this.props;
     if (events.length === 0) {
       return null;

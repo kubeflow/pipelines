@@ -135,7 +135,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
     this._updateTrigger();
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const {
       cron,
       editCron,

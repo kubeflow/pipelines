@@ -30,7 +30,9 @@ export enum PipelineButtonTooltips {
   SHARED = 'Everyone in your organization will be able to view and use this pipeline.',
 }
 
-const PrivateSharedSelector: React.FC<PrivateSharedSelectorProps> = (props): JSX.Element | null => {
+const PrivateSharedSelector: React.FC<PrivateSharedSelectorProps> = (
+  props,
+): React.JSX.Element | null => {
   const [namespacedPipeline, setNamespacedPipeline] = React.useState(true);
 
   const updateSelection = (isPrivate: boolean) => {

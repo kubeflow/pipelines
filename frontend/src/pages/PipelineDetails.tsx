@@ -18,6 +18,7 @@ import 'ace-builds/src-noconflict/ace';
 import 'ace-builds/src-noconflict/ext-language_tools';
 import 'ace-builds/src-noconflict/mode-yaml';
 import 'ace-builds/src-noconflict/theme-github';
+import type * as React from 'react';
 import { CircularProgress } from '@mui/material';
 import { graphlib } from 'dagre';
 import * as JsYaml from 'js-yaml';
@@ -63,7 +64,7 @@ interface PipelineDetailsState {
   graphIsLoading: boolean;
   v1Pipeline: ApiPipeline | null;
   v2Pipeline: V2beta1Pipeline | null;
-  selectedNodeInfo: JSX.Element | null;
+  selectedNodeInfo: React.JSX.Element | null;
   v1SelectedVersion?: ApiPipelineVersion;
   v2SelectedVersion?: V2beta1PipelineVersion;
   template?: Workflow;
@@ -171,7 +172,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     }
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const {
       v1Pipeline,
       v2Pipeline,

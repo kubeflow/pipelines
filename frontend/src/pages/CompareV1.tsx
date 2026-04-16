@@ -96,7 +96,7 @@ class CompareV1 extends Page<{}, CompareState> {
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { collapseSections, selectedIds, viewersMap } = this.state;
 
     const queryParamRunIds = new URLParser(this.props).get(QUERY_PARAMS.runlist);

@@ -61,7 +61,7 @@ class RunListsRouter extends React.PureComponent<RunListsRouterProps> {
     return;
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
         <MD2Tabs
