@@ -16,7 +16,7 @@
 
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import TestUtils, { expectErrors, testBestPractices } from 'src/TestUtils';
+import TestUtils, { testBestPractices } from 'src/TestUtils';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
 import * as metricsVisualizations from 'src/components/viewers/MetricsVisualizations';
 import * as Utils from 'src/lib/Utils';

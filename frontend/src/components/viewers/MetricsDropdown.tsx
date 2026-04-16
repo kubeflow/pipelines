@@ -234,7 +234,7 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
           <div className={css.errorBanner}>
             <Banner
               message={`Error: failed loading ${metricsTabText} file.${
-                error?.message && ' Click Details for more information.'
+                error?.message ? ' Click Details for more information.' : ''
               }`}
               mode='error'
               additionalInfo={error?.message || undefined}
