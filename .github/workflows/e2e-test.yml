@@ -123,6 +123,7 @@ jobs:
       - name: Create cluster
         uses: ./.github/actions/create-cluster
         id: create-cluster
+        if: ${{ !(matrix.cache_enabled == 'false' && matrix.pod_to_pod_tls_enabled == 'true' && env.SKIP_OPERATOR_DEPLOYMENT == 'true') }}
         with:
           k8s_version: ${{ matrix.k8s_version }}
           cluster_name: ${{ env.CLUSTER_NAME }}
@@ -130,7 +131,7 @@ jobs:
       # deploy-kfp.sh's elif chain selects cache-disabled over tls-enabled; skip unsupported combination for non-operator deployment
       - name: Deploy KFP
         uses: ./.github/actions/deploy
-        if: ${{ steps.create-cluster.outcome == 'success' && !(matrix.cache_enabled == 'false' && matrix.pod_to_pod_tls_enabled == 'true' && env.SKIP_OPERATOR_DEPLOYMENT == 'true') }}
+        if: ${{ steps.create-cluster.outcome == 'success' }}
         id: deploy
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
@@ -147,7 +148,7 @@ jobs:
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
-        if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
+        if: ${{ matrix.pod_to_pod_tls_enabled == 'true' && steps.deploy.outcome == 'success'}}
         run: |
           if [[ "${{ matrix.proxy }}" == "true" || "${{ env.SKIP_OPERATOR_DEPLOYMENT }}" == "true" ]]; then
             kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
