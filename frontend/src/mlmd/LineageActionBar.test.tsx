@@ -15,146 +15,114 @@
  */
 
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { act } from 'react-dom/test-utils';
+import { act, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
-import { LineageActionBar, LineageActionBarProps, LineageActionBarState } from './LineageActionBar';
+import { LineageActionBar } from './LineageActionBar';
+import { ArtifactHelpers } from './MlmdUtils';
 import { buildTestModel, testModel } from './TestUtils';
-import { Artifact } from 'src/third_party/mlmd';
-
-type LineageActionBarInstance = LineageActionBar;
-
-type LineageActionBarRender = ReturnType<typeof render>;
-
-class LineageActionBarWrapper {
-  private _instance: LineageActionBarInstance;
-  private _renderResult: LineageActionBarRender;
-
-  public constructor(instance: LineageActionBarInstance, renderResult: LineageActionBarRender) {
-    this._instance = instance;
-    this._renderResult = renderResult;
-  }
-
-  public instance(): LineageActionBarInstance {
-    return this._instance;
-  }
-
-  public state<K extends keyof LineageActionBarState>(
-    key?: K,
-  ): LineageActionBarState | LineageActionBarState[K] {
-    const state = this._instance.state;
-    return key ? state[key] : state;
-  }
-
-  public unmount(): void {
-    this._renderResult.unmount();
-  }
-
-  public renderResult(): LineageActionBarRender {
-    return this._renderResult;
-  }
-}
-
-function renderActionBar(props: LineageActionBarProps): LineageActionBarWrapper {
-  const ref = React.createRef<LineageActionBarInstance>();
-  const renderResult = render(<LineageActionBar ref={ref} {...props} />);
-  if (!ref.current) {
-    throw new Error('LineageActionBar instance not available');
-  }
-  return new LineageActionBarWrapper(ref.current, renderResult);
-}
 
 describe('LineageActionBar', () => {
+  const user = userEvent.setup();
   const setLineageViewTarget = vi.fn();
+  const label = ArtifactHelpers.getName(testModel);
 
   afterEach(() => {
     setLineageViewTarget.mockReset();
   });
 
-  it('renders correctly for a given initial target', () => {
-    const { asFragment, unmount } = render(
+  it('renders the initial breadcrumb as active and shows the Reset button', () => {
+    const { asFragment } = render(
       <LineageActionBar initialTarget={testModel} setLineageViewTarget={vi.fn()} />,
     );
+    const breadcrumb = screen.getByRole('button', { name: label });
+    expect(breadcrumb).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Reset/i })).toBeInTheDocument();
     expect(asFragment()).toMatchSnapshot();
-    unmount();
   });
 
-  it('does not update the LineageView target when the current breadcrumb is clicked', () => {
-    const wrapper = renderActionBar({
-      initialTarget: testModel,
-      setLineageViewTarget,
-    });
-
-    expect(wrapper.state('history').length).toBe(1);
+  it('does not call setLineageViewTarget when the active breadcrumb is clicked', async () => {
+    render(
+      <LineageActionBar initialTarget={testModel} setLineageViewTarget={setLineageViewTarget} />,
+    );
+    const breadcrumb = screen.getByRole('button', { name: label });
+    expect(breadcrumb).toBeDisabled();
+    await user.click(breadcrumb);
     expect(setLineageViewTarget).not.toHaveBeenCalled();
-
-    const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[0]);
-
-    expect(setLineageViewTarget).not.toHaveBeenCalled();
-    expect(wrapper.state('history').length).toBe(1);
-    wrapper.unmount();
   });
 
-  it('updates the LineageView target model when an inactive breadcrumb is clicked', () => {
-    const wrapper = renderActionBar({
-      initialTarget: testModel,
-      setLineageViewTarget,
-    });
+  it('calls setLineageViewTarget when an inactive breadcrumb is clicked', async () => {
+    const ref = React.createRef<LineageActionBar>();
+    const { asFragment } = render(
+      <LineageActionBar
+        ref={ref}
+        initialTarget={testModel}
+        setLineageViewTarget={setLineageViewTarget}
+      />,
+    );
 
+    // pushHistory is a public API called by parent components.
+    // act() is required because it triggers setState outside of Testing Library.
     act(() => {
-      wrapper.instance().setState({
-        history: [testModel, buildTestModel()],
-      });
+      ref.current!.pushHistory(buildTestModel());
     });
 
-    expect(wrapper.state('history').length).toBe(2);
-    expect(setLineageViewTarget).not.toHaveBeenCalled();
+    const breadcrumbs = screen.getAllByRole('button', { name: label });
+    expect(breadcrumbs).toHaveLength(2);
+    expect(breadcrumbs[0]).not.toBeDisabled();
+    expect(breadcrumbs[1]).toBeDisabled();
 
-    const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[0]);
-
+    await user.click(breadcrumbs[0]);
     expect(setLineageViewTarget).toHaveBeenCalledTimes(1);
-    expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
-    wrapper.unmount();
+    expect(asFragment()).toMatchSnapshot();
   });
 
-  it('adds the artifact to the history state and DOM when pushHistory() is called', () => {
-    const wrapper = renderActionBar({
-      initialTarget: testModel,
-      setLineageViewTarget,
-    });
+  it('adds a breadcrumb when pushHistory() is called', () => {
+    const ref = React.createRef<LineageActionBar>();
+    const { asFragment } = render(
+      <LineageActionBar
+        ref={ref}
+        initialTarget={testModel}
+        setLineageViewTarget={setLineageViewTarget}
+      />,
+    );
 
-    expect(wrapper.state('history').length).toBe(1);
+    expect(screen.getAllByRole('button', { name: label })).toHaveLength(1);
+
     act(() => {
-      wrapper.instance().pushHistory(new Artifact());
+      ref.current!.pushHistory(buildTestModel());
     });
-    expect(wrapper.state('history').length).toBe(2);
 
-    expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
-    wrapper.unmount();
+    const breadcrumbs = screen.getAllByRole('button', { name: label });
+    expect(breadcrumbs).toHaveLength(2);
+    expect(breadcrumbs[0]).not.toBeDisabled();
+    expect(breadcrumbs[1]).toBeDisabled();
+    expect(asFragment()).toMatchSnapshot();
   });
 
-  it('sets history to the initial prop when the reset button is clicked', () => {
-    const wrapper = renderActionBar({
-      initialTarget: testModel,
-      setLineageViewTarget,
-    });
+  it('resets to initial breadcrumb when Reset is clicked', async () => {
+    const ref = React.createRef<LineageActionBar>();
+    render(
+      <LineageActionBar
+        ref={ref}
+        initialTarget={testModel}
+        setLineageViewTarget={setLineageViewTarget}
+      />,
+    );
 
-    expect(wrapper.state('history').length).toBe(1);
     act(() => {
-      wrapper.instance().pushHistory(buildTestModel());
+      ref.current!.pushHistory(buildTestModel());
     });
     act(() => {
-      wrapper.instance().pushHistory(buildTestModel());
+      ref.current!.pushHistory(buildTestModel());
     });
-    expect(wrapper.state('history').length).toBe(3);
 
-    const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[buttons.length - 1]);
+    expect(screen.getAllByRole('button', { name: label })).toHaveLength(3);
 
-    expect(wrapper.state('history').length).toBe(1);
-    expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
-    wrapper.unmount();
+    await user.click(screen.getByRole('button', { name: /Reset/i }));
+
+    const breadcrumbs = screen.getAllByRole('button', { name: label });
+    expect(breadcrumbs).toHaveLength(1);
+    expect(breadcrumbs[0]).toBeDisabled();
   });
 });

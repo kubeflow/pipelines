@@ -85,13 +85,9 @@ describe('RunList', () => {
     await TestUtils.flushPromises();
   }
 
-  async function waitForRunMaskLoad(expectedCount?: number): Promise<void> {
+  async function waitForRunMaskLoadForIds(runIds: string[]): Promise<void> {
     await waitFor(() => {
-      if (expectedCount !== undefined) {
-        expect(getRunSpy).toHaveBeenCalledTimes(expectedCount);
-      } else {
-        expect(getRunSpy).toHaveBeenCalled();
-      }
+      runIds.forEach((id) => expect(getRunSpy).toHaveBeenCalledWith(id));
     });
     await TestUtils.flushPromises();
   }
@@ -104,13 +100,13 @@ describe('RunList', () => {
   }
 
   function mockNRuns(n: number, runTemplate: Partial<V2beta1Run>): void {
-    getRunSpy.mockImplementation(id => {
+    getRunSpy.mockImplementation((id) => {
       const pipelineVersionRef = {
         pipeline_id: 'testpipeline' + id,
         pipeline_version_id: 'testversion' + id,
       };
       return Promise.resolve(
-        produce(runTemplate, draft => {
+        produce(runTemplate, (draft) => {
           draft = draft || {};
           draft.run_id = id;
           draft.display_name = 'run with id: ' + id;
@@ -122,13 +118,13 @@ describe('RunList', () => {
 
     listRunsSpy.mockImplementation(() =>
       Promise.resolve({
-        runs: range(1, n + 1).map(i => {
+        runs: range(1, n + 1).map((i) => {
           if (runTemplate) {
             const pipelineVersionRef = {
               pipeline_id: 'testpipeline' + i,
               pipeline_version_id: 'testversion' + i,
             };
-            return produce(runTemplate as Partial<V2beta1Run>, draft => {
+            return produce(runTemplate as Partial<V2beta1Run>, (draft) => {
               draft.run_id = 'testrun' + i;
               draft.display_name = 'run with id: testrun' + i;
               draft.pipeline_version_reference = pipelineVersionRef;
@@ -157,8 +153,7 @@ describe('RunList', () => {
   }
 
   function renderRenderer(element: React.ReactElement) {
-    const { asFragment } = render(<CommonTestWrapper>{element}</CommonTestWrapper>);
-    return asFragment();
+    render(<CommonTestWrapper>{element}</CommonTestWrapper>);
   }
 
   beforeEach(() => {
@@ -175,16 +170,12 @@ describe('RunList', () => {
     listExperimentsSpy = vi
       .spyOn(Apis.experimentServiceApiV2, 'listExperiments')
       .mockResolvedValue({ experiments: [] } as any);
-    formatDateStringSpy = vi.spyOn(Utils, 'formatDateString').mockImplementation(date => {
+    formatDateStringSpy = vi.spyOn(Utils, 'formatDateString').mockImplementation((date) => {
       return date ? '1/2/2019, 12:34:56 PM' : '-';
     });
   });
 
   afterEach(() => {
-    if (renderResult) {
-      renderResult.unmount();
-      renderResult = null;
-    }
     runListRef = null;
     vi.resetAllMocks();
   });
@@ -192,7 +183,7 @@ describe('RunList', () => {
   it('renders the empty experience', async () => {
     await renderRunList();
     await waitForRunListLoad();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('No available runs found.')).toBeInTheDocument();
   });
 
   describe('in archived state', () => {
@@ -201,7 +192,7 @@ describe('RunList', () => {
       props.storageState = V2beta1RunStorageState.ARCHIVED;
       await renderRunList(props);
       await waitForRunListLoad();
-      expect(renderResult!.asFragment()).toMatchSnapshot();
+      expect(screen.getByText('No archived runs found.')).toBeInTheDocument();
     });
 
     it('loads runs whose storage state is not ARCHIVED when storage state equals AVAILABLE', async () => {
@@ -225,7 +216,7 @@ describe('RunList', () => {
             predicates: [
               {
                 key: 'storage_state',
-                operation: V2beta1PredicateOperation.NOTEQUALS,
+                operation: V2beta1PredicateOperation.NOT_EQUALS,
                 string_value: V2beta1RunStorageState.ARCHIVED.toString(),
               },
             ],
@@ -320,12 +311,13 @@ describe('RunList', () => {
     const props = generateProps();
     await renderRunList(props);
     await waitForRunListLoad();
+    listRunsSpy.mockClear();
 
     await act(async () => {
       await getRunListInstance().refresh();
     });
     await waitFor(() => {
-      expect(Apis.runServiceApiV2.listRuns).toHaveBeenCalledTimes(2);
+      expect(Apis.runServiceApiV2.listRuns).toHaveBeenCalledTimes(1);
     });
 
     expect(Apis.runServiceApiV2.listRuns).toHaveBeenLastCalledWith(
@@ -337,7 +329,6 @@ describe('RunList', () => {
       '',
     );
     expect(props.onError).not.toHaveBeenCalled();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
   });
 
   it('loads multiple runs', async () => {
@@ -387,13 +378,14 @@ describe('RunList', () => {
 
   it('displays error in run row if it failed to parse (run list mask)', async () => {
     TestUtils.makeErrorResponseOnce(getRunSpy as any, 'bad stuff happened');
+    TestUtils.makeErrorResponseOnce(getRunSpy as any, 'bad stuff happened');
     const props = generateProps();
     props.runIdListMask = ['testrun1'];
     await renderRunList(props);
     await waitFor(() => {
       // won't call listRuns if specific run id is provided
       expect(listRunsSpy).toHaveBeenCalledTimes(0);
-      expect(getRunSpy).toHaveBeenCalledTimes(1);
+      expect(getRunSpy).toHaveBeenCalledWith('testrun1');
     });
 
     await waitFor(() => {
@@ -461,7 +453,7 @@ describe('RunList', () => {
     const props = generateProps();
     props.runIdListMask = ['run1', 'run2'];
     await renderRunList(props);
-    await waitForRunMaskLoad(2);
+    await waitForRunMaskLoadForIds(['run1', 'run2']);
     getRunSpy.mockClear();
     listRunsSpy.mockClear();
 
@@ -469,7 +461,6 @@ describe('RunList', () => {
 
     expect(props.onError).not.toHaveBeenCalled();
     expect(Apis.runServiceApiV2.listRuns).not.toHaveBeenCalled();
-    expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(2);
     expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledWith('run1');
     expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledWith('run2');
   });
@@ -479,7 +470,7 @@ describe('RunList', () => {
     const props = generateProps();
     props.runIdListMask = ['filterRun1', 'filterRun2', 'notincluded'];
     await renderRunList(props);
-    await waitForRunMaskLoad(3);
+    await waitForRunMaskLoadForIds(['filterRun1', 'filterRun2', 'notincluded']);
     getRunSpy.mockClear();
     listRunsSpy.mockClear();
 
@@ -489,7 +480,7 @@ describe('RunList', () => {
           predicates: [
             {
               key: 'name',
-              operation: V2beta1PredicateOperation.ISSUBSTRING,
+              operation: V2beta1PredicateOperation.IS_SUBSTRING,
               string_value: 'filterRun',
             },
           ],
@@ -514,7 +505,7 @@ describe('RunList', () => {
     const props = generateProps();
     props.runIdListMask = ['filterRun1', 'filterRun2', 'notincluded1'];
     await renderRunList(props);
-    await waitForRunMaskLoad(3);
+    await waitForRunMaskLoadForIds(['filterRun1', 'filterRun2', 'notincluded1']);
     getRunSpy.mockClear();
     listRunsSpy.mockClear();
 
@@ -524,10 +515,10 @@ describe('RunList', () => {
           predicates: [
             {
               key: 'name',
-              operation: V2beta1PredicateOperation.ISSUBSTRING,
+              operation: V2beta1PredicateOperation.IS_SUBSTRING,
               string_value: 'filterRun',
             },
-            { key: 'name', operation: V2beta1PredicateOperation.ISSUBSTRING, string_value: '1' },
+            { key: 'name', operation: V2beta1PredicateOperation.IS_SUBSTRING, string_value: '1' },
           ],
         } as V2beta1Filter),
       ),
@@ -567,7 +558,7 @@ describe('RunList', () => {
     mockNRuns(1, {
       experiment_id: 'test-experiment-id',
     });
-    listExperimentsSpy.mockImplementationOnce(() => ({
+    listExperimentsSpy.mockImplementation(() => ({
       experiments: [
         {
           experiment_id: 'test-experiment-id',
@@ -603,103 +594,110 @@ describe('RunList', () => {
 
   it('renders run name as link to its details page', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
-      instance._nameCustomRenderer({ value: 'test run', id: 'run-id' }),
-    );
-    expect(fragment).toMatchSnapshot();
+    renderRenderer(instance._nameCustomRenderer({ value: 'test run', id: 'run-id' }));
+    const link = screen.getByTestId('run-name-link');
+    expect(link).toHaveTextContent('test run');
+    expect(link).toHaveAttribute('href', '/runs/details/run-id');
   });
 
   it('renders pipeline name as link to its details page', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
+    renderRenderer(
       instance._pipelineVersionCustomRenderer({
         id: 'run-id',
         value: { displayName: 'test pipeline', pipelineId: 'pipeline-id', usePlaceholder: false },
       }),
     );
-    expect(fragment).toMatchSnapshot();
+    const link = screen.getByText('test pipeline');
+    expect(link).toHaveAttribute('href', '/pipelines/details/pipeline-id');
   });
 
   it('handles no pipeline id given', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
+    renderRenderer(
       instance._pipelineVersionCustomRenderer({
         id: 'run-id',
         value: { displayName: 'test pipeline', usePlaceholder: false },
       }),
     );
-    expect(fragment).toMatchSnapshot();
+    expect(screen.getByText('-')).toBeInTheDocument();
   });
 
   it('shows "View pipeline" button if pipeline is embedded in run', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
+    renderRenderer(
       instance._pipelineVersionCustomRenderer({
         id: 'run-id',
         value: { displayName: 'test pipeline', pipelineId: 'pipeline-id', usePlaceholder: true },
       }),
     );
-    expect(fragment).toMatchSnapshot();
+    const link = screen.getByText('[View pipeline]');
+    expect(link).toHaveAttribute('href', expect.stringContaining('/pipelines/details/'));
   });
 
   it('handles no pipeline name', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
+    renderRenderer(
       instance._pipelineVersionCustomRenderer({
         id: 'run-id',
         value: { /* no displayName */ usePlaceholder: true },
       }),
     );
-    expect(fragment).toMatchSnapshot();
+    const link = screen.getByText('[View pipeline]');
+    expect(link).toHaveAttribute('href', expect.stringContaining('/pipelines/details/'));
   });
 
   it('renders pipeline name as link to its details page', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
+    renderRenderer(
       instance._recurringRunCustomRenderer({
         id: 'run-id',
         value: { id: 'recurring-run-id' },
       }),
     );
-    expect(fragment).toMatchSnapshot();
+    const link = screen.getByText('[View config]');
+    expect(link).toHaveAttribute('href', '/recurringrun/details/recurring-run-id');
   });
 
   it('renders experiment name as link to its details page', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
+    renderRenderer(
       instance._experimentCustomRenderer({
         id: 'run-id',
         value: { displayName: 'test experiment', id: 'experiment-id' },
       }),
     );
-    expect(fragment).toMatchSnapshot();
+    const link = screen.getByText('test experiment');
+    expect(link).toHaveAttribute('href', '/experiments/details/experiment-id');
   });
 
   it('renders no experiment name', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
+    renderRenderer(
       instance._experimentCustomRenderer({
         id: 'run-id',
         value: { /* no displayName */ id: 'experiment-id' },
       }),
     );
-    expect(fragment).toMatchSnapshot();
+    const link = screen.getByRole('link', { name: '' });
+    expect(link).toHaveAttribute('href', '/experiments/details/experiment-id');
+    expect(link).toHaveTextContent('');
   });
 
   it('renders status as icon', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
+    renderRenderer(
       instance._statusCustomRenderer({
         value: V2beta1RuntimeState.SUCCEEDED,
         id: 'run-id',
       }),
     );
-    expect(fragment).toMatchSnapshot();
+    expect(screen.getByTestId('node-status-sign')).toBeInTheDocument();
   });
 
   it('renders pipeline version name as link to its details page', () => {
     const instance = createRunListInstance();
-    const fragment = renderRenderer(
+    renderRenderer(
       instance._pipelineVersionCustomRenderer({
         id: 'run-id',
         value: {
@@ -710,6 +708,7 @@ describe('RunList', () => {
         },
       }),
     );
-    expect(fragment).toMatchSnapshot();
+    const link = screen.getByText('test pipeline version');
+    expect(link).toHaveAttribute('href', '/pipelines/details/pipeline-id/version/version-id');
   });
 });

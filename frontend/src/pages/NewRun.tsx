@@ -14,14 +14,7 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import InputAdornment from '@material-ui/core/InputAdornment';
-import Radio from '@material-ui/core/Radio';
-import { TextFieldProps } from '@material-ui/core/TextField';
+import { TextFieldProps } from '@mui/material/TextField';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink } from 'src/atoms/ExternalLink';
@@ -59,6 +52,16 @@ import { Workflow } from '../third_party/mlmd/argo_template';
 import { Page } from './Page';
 import ResourceSelector from './ResourceSelector';
 import PipelinesDialog from '../components/PipelinesDialog';
+
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  FormControlLabel,
+  InputAdornment,
+  Radio,
+} from '@mui/material';
 
 interface NewRunState {
   description: string;
@@ -117,7 +120,7 @@ const css = stylesheet({
   },
 });
 
-const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props => {
+const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (props) => {
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
@@ -187,7 +190,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const {
       workflowFromRun,
       description,
@@ -351,9 +354,8 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                 emptyMessage='No pipeline versions found. Select or upload a pipeline then try again.'
                 initialSortColumn={PipelineVersionSortKeys.CREATED_AT}
                 selectionChanged={async (selectedId: string) => {
-                  const selectedPipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(
-                    selectedId,
-                  );
+                  const selectedPipelineVersion =
+                    await Apis.pipelineServiceApi.getPipelineVersion(selectedId);
                   this.setStateSafe({
                     unconfirmedSelectedPipelineVersion: selectedPipelineVersion,
                   });
@@ -419,11 +421,11 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                   new_filter.predicates = (new_filter.predicates || []).concat([
                     {
                       key: 'storage_state',
-                      op: PredicateOp.NOTEQUALS,
-                      string_value: ApiExperimentStorageState.ARCHIVED.toString(),
+                      op: PredicateOp.NOT_EQUALS,
+                      string_value: ApiExperimentStorageState.STORAGESTATE_ARCHIVED.toString(),
                     },
                   ]);
-                  const response = await Apis.experimentServiceApi.listExperiment(
+                  const response = await Apis.experimentServiceApi.listExperiments(
                     page_token,
                     page_size,
                     sort_by,
@@ -440,9 +442,8 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                 emptyMessage='No experiments found. Create an experiment and then try again.'
                 initialSortColumn={ExperimentSortKeys.CREATED_AT}
                 selectionChanged={async (selectedId: string) => {
-                  const selectedExperiment = await Apis.experimentServiceApi.getExperiment(
-                    selectedId,
-                  );
+                  const selectedExperiment =
+                    await Apis.experimentServiceApi.getExperiment(selectedId);
                   this.setStateSafe({ unconfirmedSelectedExperiment: selectedExperiment });
                 }}
               />
@@ -603,7 +604,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
               id='exitNewRunPageBtn'
               onClick={() => {
                 this.props.history.push(
-                  !!this.state.experiment
+                  this.state.experiment
                     ? RoutePage.EXPERIMENT_DETAILS.replace(
                         ':' + RouteParams.experimentId,
                         this.state.experiment.id!,
@@ -633,6 +634,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
   }
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     return this.load();
   }
 
@@ -708,9 +710,8 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
             (pipeline.default_version && pipeline.default_version.id);
           if (possiblePipelineVersionId) {
             try {
-              const pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(
-                possiblePipelineVersionId,
-              );
+              const pipelineVersion =
+                await Apis.pipelineServiceApi.getPipelineVersion(possiblePipelineVersionId);
               this.setStateSafe({
                 parameters: pipelineVersion.parameters || [],
                 pipelineVersion,
@@ -798,14 +799,15 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
 
     this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs, pageTitle });
 
-    this.setStateSafe({
-      experiment,
-      experimentName,
-      isFirstRunInExperiment: urlParser.get(QUERY_PARAMS.firstRunInExperiment) === '1',
-      isRecurringRun,
-    });
-
-    this._validate();
+    this.setStateSafe(
+      {
+        experiment,
+        experimentName,
+        isFirstRunInExperiment: urlParser.get(QUERY_PARAMS.firstRunInExperiment) === '1',
+        isRecurringRun,
+      },
+      () => this._validate(),
+    );
   }
 
   public handleChange = (name: string) => (event: any) => {
@@ -1029,12 +1031,15 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
     try {
       const workflow: Workflow = JSON.parse(embeddedPipelineSpec);
       const parameters = RunUtils.getParametersFromRun(runWithEmbeddedPipeline);
-      this.setStateSafe({
-        parameters,
-        usePipelineFromRunLabel: 'Using pipeline from previous page.',
-        useWorkflowFromRun: true,
-        workflowFromRun: workflow,
-      });
+      this.setStateSafe(
+        {
+          parameters,
+          usePipelineFromRunLabel: 'Using pipeline from previous page.',
+          useWorkflowFromRun: true,
+          workflowFromRun: workflow,
+        },
+        () => this._validate(),
+      );
     } catch (err) {
       await this.showPageError(
         `Error: failed to parse the embedded pipeline's spec: ${embeddedPipelineSpec}.`,
@@ -1043,8 +1048,6 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       logger.error(`Failed to parse the embedded pipeline's spec from run: ${embeddedRunId}`, err);
       return;
     }
-
-    this._validate();
   }
 
   private async _prepareFormFromClone(
@@ -1127,21 +1130,22 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       ? await RunUtils.getParametersFromRuntime(runtime) // cloned from run
       : originalRun.pipeline_spec.parameters || []; // cloned from recurring run
 
-    this.setStateSafe({
-      isClone: true,
-      parameters,
-      pipeline,
-      pipelineName: name,
-      pipelineVersion,
-      pipelineVersionName,
-      runName: this._getCloneName(originalRun.name!),
-      usePipelineFromRunLabel,
-      useWorkflowFromRun,
-      workflowFromRun,
-      serviceAccount,
-    });
-
-    this._validate();
+    this.setStateSafe(
+      {
+        isClone: true,
+        parameters,
+        pipeline,
+        pipelineName: name,
+        pipelineVersion,
+        pipelineVersionName,
+        runName: this._getCloneName(originalRun.name!),
+        usePipelineFromRunLabel,
+        useWorkflowFromRun,
+        workflowFromRun,
+        serviceAccount,
+      },
+      () => this._validate(),
+    );
   }
 
   private _runParametersMessage(): string {
@@ -1175,7 +1179,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       references.push({
         key: {
           id: this.state.pipelineVersion!.id,
-          type: ApiResourceType.PIPELINEVERSION,
+          type: ApiResourceType.PIPELINE_VERSION,
         },
         relationship: ApiRelationship.CREATOR,
       });
@@ -1185,7 +1189,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       description: this.state.description,
       name: this.state.runName,
       pipeline_spec: {
-        parameters: (this.state.parameters || []).map(p => {
+        parameters: (this.state.parameters || []).map((p) => {
           p.value = (p.value || '').trim();
           return p;
         }),
@@ -1273,14 +1277,8 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
 
   private _validate(): void {
     // Validate state
-    const {
-      pipeline,
-      pipelineVersion,
-      workflowFromRun,
-      maxConcurrentRuns,
-      runName,
-      trigger,
-    } = this.state;
+    const { pipeline, pipelineVersion, workflowFromRun, maxConcurrentRuns, runName, trigger } =
+      this.state;
     try {
       if (!pipeline && !workflowFromRun) {
         throw new Error('A pipeline must be selected');
@@ -1292,12 +1290,12 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
         throw new Error('Run name is required');
       }
 
-      const hasTrigger = trigger && (!!trigger.cron_schedule || !!trigger.periodic_schedule);
+      const hasTrigger = trigger && (trigger.cron_schedule || trigger.periodic_schedule);
       if (hasTrigger) {
-        const startDate = !!trigger!.cron_schedule
+        const startDate = trigger!.cron_schedule
           ? trigger!.cron_schedule!.start_time
           : trigger!.periodic_schedule!.start_time;
-        const endDate = !!trigger!.cron_schedule
+        const endDate = trigger!.cron_schedule
           ? trigger!.cron_schedule!.end_time
           : trigger!.periodic_schedule!.end_time;
         if (startDate && endDate && startDate > endDate) {
@@ -1321,6 +1319,6 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
 
   private _areParametersMissing(): boolean {
     const { parameters } = this.state;
-    return parameters.some(parameter => !parameter.value);
+    return parameters.some((parameter) => !parameter.value);
   }
 }

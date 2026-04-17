@@ -15,12 +15,8 @@
  */
 
 import * as React from 'react';
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
 import { classes } from 'typestyle';
 import { padding, commonCss } from 'src/Css';
-import DialogContent from '@material-ui/core/DialogContent';
 import ResourceSelector from 'src/pages/ResourceSelector';
 import { Apis, PipelineSortKeys } from 'src/lib/Apis';
 import { Column } from './CustomTable';
@@ -32,6 +28,8 @@ import Toolbar, { ToolbarActionMap } from 'src/components/Toolbar';
 import { PipelineTabsHeaders, PipelineTabsTooltips } from 'src/pages/PrivateAndSharedPipelines';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 import { convertPipelineToResource } from 'src/lib/ResourceConverter';
+
+import { Button, Dialog, DialogActions, DialogContent } from '@mui/material';
 
 enum NamespacedAndSharedTab {
   NAMESPACED = 0,
@@ -47,14 +45,13 @@ export interface PipelinesDialogV2Props extends PageProps {
   toolbarActionMap?: ToolbarActionMap;
 }
 
-const PipelinesDialogV2: React.FC<PipelinesDialogV2Props> = (props): JSX.Element | null => {
+const PipelinesDialogV2: React.FC<PipelinesDialogV2Props> = (props): React.JSX.Element | null => {
   const buildInfo = React.useContext(BuildInfoContext);
   const [view, setView] = React.useState(NamespacedAndSharedTab.NAMESPACED);
-  const [unconfirmedSelectedPipeline, setUnconfirmedSelectedPipeline] = React.useState<
-    V2beta1Pipeline
-  >();
+  const [unconfirmedSelectedPipeline, setUnconfirmedSelectedPipeline] =
+    React.useState<V2beta1Pipeline>();
 
-  function getPipelinesList(): JSX.Element {
+  function getPipelinesList(): React.JSX.Element {
     return (
       <ResourceSelector
         {...props}
@@ -76,7 +73,7 @@ const PipelinesDialogV2: React.FC<PipelinesDialogV2Props> = (props): JSX.Element
           );
           return {
             nextPageToken: response.next_page_token || '',
-            resources: response.pipelines?.map(p => convertPipelineToResource(p)) || [],
+            resources: response.pipelines?.map((p) => convertPipelineToResource(p)) || [],
           };
         }}
         columns={props.pipelineSelectorColumns}
@@ -90,7 +87,7 @@ const PipelinesDialogV2: React.FC<PipelinesDialogV2Props> = (props): JSX.Element
     );
   }
 
-  function getTabs(): JSX.Element | null {
+  function getTabs(): React.JSX.Element | null {
     if (!buildInfo?.apiServerMultiUser) {
       return null;
     }
@@ -124,7 +121,7 @@ const PipelinesDialogV2: React.FC<PipelinesDialogV2Props> = (props): JSX.Element
     setView(NamespacedAndSharedTab.NAMESPACED);
   }
 
-  const getToolbar = (): JSX.Element => {
+  const getToolbar = (): React.JSX.Element => {
     let actions = new Buttons(props, () => {}).getToolbarActionMap();
     if (props.toolbarActionMap) {
       actions = props.toolbarActionMap;

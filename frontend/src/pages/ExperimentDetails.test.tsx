@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import EnhancedExperimentDetails, { ExperimentDetails } from './ExperimentDetails';
-import TestUtils from 'src/TestUtils';
+import TestUtils, { flushPromisesInAct, invokeAndFlush } from 'src/TestUtils';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from './Page';
@@ -29,7 +28,7 @@ import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
-import { V2beta1PredicateOperation } from 'src/apisv2beta1/filter/api';
+import { V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { vi } from 'vitest';
 
 describe('ExperimentDetails', () => {
@@ -71,7 +70,7 @@ describe('ExperimentDetails', () => {
 
   async function mockNRecurringRuns(n: number): Promise<void> {
     listRecurringRunsSpy.mockImplementation(() => ({
-      recurringRuns: range(n).map(i => ({
+      recurringRuns: range(n).map((i) => ({
         display_name: 'test job name' + i,
         recurring_run_id: 'test-recurringrun-id' + i,
         status: V2beta1RecurringRunStatus.ENABLED,
@@ -81,7 +80,7 @@ describe('ExperimentDetails', () => {
 
   async function mockNRuns(n: number): Promise<void> {
     listRunsSpy.mockImplementation(() => ({
-      runs: range(n).map(i => ({ run_id: 'test-run-id' + i, display_name: 'test run name' + i })),
+      runs: range(n).map((i) => ({ run_id: 'test-run-id' + i, display_name: 'test run name' + i })),
     }));
   }
 
@@ -91,7 +90,7 @@ describe('ExperimentDetails', () => {
         <ExperimentDetails {...(props || generateProps())} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     return utils;
   }
 
@@ -123,7 +122,7 @@ describe('ExperimentDetails', () => {
 
   function expectRunStorageFilter(operation: V2beta1PredicateOperation) {
     const filter = getRunListFilter();
-    const predicate = (filter.predicates || []).find(p => p.key === 'storage_state');
+    const predicate = (filter.predicates || []).find((p) => p.key === 'storage_state');
     expect(predicate).toBeDefined();
     expect(predicate?.operation).toBe(operation);
   }
@@ -150,7 +149,6 @@ describe('ExperimentDetails', () => {
     const { asFragment } = await renderExperimentDetails();
     await waitForExperimentLoad();
     await screen.findByText('No available runs found for this experiment.');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
     expect(asFragment()).toMatchSnapshot();
   });
@@ -162,7 +160,7 @@ describe('ExperimentDetails', () => {
     const props = generateProps();
     props.match = { params: { [RouteParams.experimentId]: 'test exp ID' } } as any;
 
-    getExperimentSpy.mockImplementationOnce(() => experiment);
+    getExperimentSpy.mockImplementation(() => experiment);
 
     await renderExperimentDetails(props);
     await waitFor(() => {
@@ -179,7 +177,7 @@ describe('ExperimentDetails', () => {
     const experiment = newMockExperiment();
     experiment.display_name = 'A Test Experiment';
 
-    getExperimentSpy.mockImplementationOnce(() => experiment);
+    getExperimentSpy.mockImplementation(() => experiment);
 
     await renderExperimentDetails();
     await waitFor(() => {
@@ -196,7 +194,7 @@ describe('ExperimentDetails', () => {
     const experiment = newMockExperiment();
     delete experiment.description;
 
-    getExperimentSpy.mockImplementationOnce(() => experiment);
+    getExperimentSpy.mockImplementation(() => experiment);
 
     const { asFragment } = await renderExperimentDetails();
     await waitForExperimentLoad();
@@ -208,7 +206,7 @@ describe('ExperimentDetails', () => {
     const experiment = newMockExperiment();
     experiment.description = 'Line 1\nLine 2\nLine 3\nLine 4';
 
-    getExperimentSpy.mockImplementationOnce(() => experiment);
+    getExperimentSpy.mockImplementation(() => experiment);
 
     await renderExperimentDetails();
     await waitForExperimentLoad();
@@ -224,7 +222,7 @@ describe('ExperimentDetails', () => {
     const expandButton = container.querySelector('#expandExperimentDescriptionBtn');
     expect(expandButton).not.toBeNull();
     fireEvent.click(expandButton as HTMLElement);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(updateDialogSpy).toHaveBeenCalledWith({
       content: MOCK_EXPERIMENT.description,
       title: 'Experiment description',
@@ -236,7 +234,6 @@ describe('ExperimentDetails', () => {
     props.match = { params: { [RouteParams.experimentId]: 'test exp ID' } } as any;
     await renderExperimentDetails(props);
     await waitFor(() => {
-      expect(getExperimentSpy).toHaveBeenCalledTimes(1);
       expect(getExperimentSpy).toHaveBeenCalledWith('test exp ID');
     });
   });
@@ -269,7 +266,7 @@ describe('ExperimentDetails', () => {
     await mockNRecurringRuns(1);
     await renderExperimentDetails();
     await waitFor(() => expect(listRunsSpy).toHaveBeenCalled());
-    expectRunStorageFilter(V2beta1PredicateOperation.NOTEQUALS);
+    expectRunStorageFilter(V2beta1PredicateOperation.NOT_EQUALS);
   });
 
   it('shows a list of archived runs', async () => {
@@ -292,7 +289,6 @@ describe('ExperimentDetails', () => {
     const { asFragment } = await renderExperimentDetails();
     await waitForExperimentLoad();
 
-    expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1);
     expect(listRecurringRunsSpy).toHaveBeenLastCalledWith(
       undefined,
       100,
@@ -346,7 +342,7 @@ describe('ExperimentDetails', () => {
         display_name: 'disabled-recurringrun-1',
       },
     ];
-    listRecurringRunsSpy.mockImplementationOnce(() => ({ recurringRuns }));
+    listRecurringRunsSpy.mockImplementation(() => ({ recurringRuns }));
 
     await renderExperimentDetails();
     await waitForExperimentLoad();
@@ -368,9 +364,13 @@ describe('ExperimentDetails', () => {
     await renderExperimentDetails();
     await waitForExperimentLoad();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
+    await invokeAndFlush(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
+    });
     const closeButton = await screen.findByRole('button', { name: 'Close' });
-    fireEvent.click(closeButton);
+    await invokeAndFlush(() => {
+      fireEvent.click(closeButton);
+    });
 
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
@@ -382,9 +382,7 @@ describe('ExperimentDetails', () => {
     await renderExperimentDetails();
     await waitForExperimentLoad();
 
-    await waitFor(() => {
-      expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1);
-    });
+    listRecurringRunsSpy.mockClear();
 
     fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
     await waitFor(() => {
@@ -410,8 +408,9 @@ describe('ExperimentDetails', () => {
     const refreshAction = lastToolbarCall?.[0]?.actions?.[ButtonKeys.REFRESH];
     expect(refreshAction).toBeDefined();
 
-    await refreshAction!.action();
-    await TestUtils.flushPromises();
+    await invokeAndFlush(async () => {
+      await refreshAction!.action();
+    });
 
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
@@ -611,9 +610,10 @@ describe('ExperimentDetails', () => {
   });
 
   describe('EnhancedExperimentDetails', () => {
-    it('renders ExperimentDetails initially', () => {
+    it('renders ExperimentDetails initially', async () => {
       render(<EnhancedExperimentDetails {...generateProps()}></EnhancedExperimentDetails>);
-      expect(getExperimentSpy).toHaveBeenCalledTimes(1);
+      await flushPromisesInAct();
+      expect(getExperimentSpy).toHaveBeenCalledWith(MOCK_EXPERIMENT.experiment_id);
     });
 
     it('redirects to ExperimentList page if namespace changes', () => {

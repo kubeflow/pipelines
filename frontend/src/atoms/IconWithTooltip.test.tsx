@@ -14,21 +14,20 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import IconWithTooltip from './IconWithTooltip';
-import TestIcon from '@material-ui/icons/Help';
-import { create } from 'react-test-renderer';
+import TestIcon from '@mui/icons-material/Help';
+import { render } from '@testing-library/react';
 
 describe('IconWithTooltip', () => {
   it('renders without height or weight', () => {
-    const tree = create(
+    const { asFragment } = render(
       <IconWithTooltip Icon={TestIcon} iconColor='green' tooltip='test icon tooltip' />,
     );
-    expect(tree).toMatchSnapshot();
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders with height and weight', () => {
-    const tree = create(
+    const { asFragment } = render(
       <IconWithTooltip
         Icon={TestIcon}
         height={20}
@@ -37,6 +36,6 @@ describe('IconWithTooltip', () => {
         tooltip='test icon tooltip'
       />,
     );
-    expect(tree).toMatchSnapshot();
+    expect(asFragment()).toMatchSnapshot();
   });
 });

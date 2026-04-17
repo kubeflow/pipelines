@@ -13,24 +13,35 @@
 # limitations under the License.
 
 test_cases:
-  #  Disabled while https://github.com/kubeflow/pipelines/issues/10918 is failing
-  #  - module: create_mount_delete_dynamic_pvc
-  #    name: my_pipeline
-
+  - module: config_map_as_env
+    name: my_pipeline
+  - module: config_map_as_vol
+    name: my_pipeline
+  - module: create_mount_delete_dynamic_pvc
+    name: my_pipeline
   - module: create_mount_delete_existing_pvc
     name: my_pipeline
   - module: create_mount_delete_existing_pvc_from_task_output
     name: my_pipeline
+  - module: empty_dir_mounts
+    name: my_pipeline
+  - module: field_path_as_env
+    name: my_pipeline
+  - module: general_ephemeral_volume
+    name: my_pipeline
+  - module: image_pull_secrets
+    name: my_pipeline
+  - module: node_selector
+    name: my_pipeline
   - module: nodeaffinity
     name: my_pipeline
-#  Disabled while https://github.com/kubeflow/pipelines/issues/10918 is failing
-#  - module: secret_as_env
-#    name: my_pipeline
-
-#  Disabled while https://github.com/kubeflow/pipelines/issues/10918 is failing
-#  - module: secret_as_vol
-#    name: my_pipeline
-
-#  Disabled while https://github.com/kubeflow/pipelines/issues/10918 is failing
-#  - module: node_selector
-#    name: my_pipeline
+  - module: secret_as_env
+    name: my_pipeline
+  - module: secret_as_vol
+    name: my_pipeline
+  - module: security_context
+    name: my_pipeline
+  - module: timeout
+    name: my_pipeline
+  - module: toleration
+    name: my_pipeline

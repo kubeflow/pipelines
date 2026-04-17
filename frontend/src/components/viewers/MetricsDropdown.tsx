@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { color, commonCss, fontsize, zIndex } from 'src/Css';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { classes, stylesheet } from 'typestyle';
-import { LinkedArtifact, getArtifactName } from 'src/mlmd/MlmdUtils';
+import { LinkedArtifact, getArtifactName, getExecutionDisplayName } from 'src/mlmd/MlmdUtils';
 import TwoLevelDropdown, {
   DropdownItem,
   DropdownSubItem,
@@ -30,12 +31,10 @@ import {
 } from 'src/components/viewers/MetricsVisualizations';
 import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
-import CircularProgress from '@material-ui/core/CircularProgress';
 import Banner from 'src/components/Banner';
 import { SelectedArtifact } from 'src/pages/CompareV2';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { errorToMessage, logger } from 'src/lib/Utils';
-import { getExecutionDisplayName } from 'src/mlmd/MlmdUtils';
 import {
   metricsTypeToString,
   ExecutionArtifact,
@@ -43,6 +42,7 @@ import {
   RunArtifact,
   compareCss,
 } from 'src/lib/v2/CompareUtils';
+import { CircularProgress } from '@mui/material';
 
 const css = stylesheet({
   leftCell: {
@@ -92,29 +92,31 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
     updateSelectedArtifacts,
     namespace,
   } = props;
-  const [firstSelectedItem, setFirstSelectedItem] = useState<SelectedItem>(
-    selectedArtifacts[0].selectedItem,
-  );
-  const [secondSelectedItem, setSecondSelectedItem] = useState<SelectedItem>(
-    selectedArtifacts[1].selectedItem,
-  );
 
-  useEffect(() => {
-    setFirstSelectedItem(selectedArtifacts[0].selectedItem);
-    setSecondSelectedItem(selectedArtifacts[1].selectedItem);
-  }, [selectedArtifacts]);
+  const selectedArtifactsForDisplay = useMemo(
+    () =>
+      selectedArtifacts.map((selectedArtifact) => ({
+        selectedItem: selectedArtifact.selectedItem,
+        linkedArtifact: getLinkedArtifactFromSelectedItem(
+          filteredRunArtifacts,
+          selectedArtifact.selectedItem,
+        ),
+      })),
+    [filteredRunArtifacts, selectedArtifacts],
+  );
 
   const metricsTabText = metricsTypeToString(metricsTab);
-  const updateSelectedItemAndArtifact = (
-    setSelectedItem: (selectedItem: SelectedItem) => void,
-    panelIndex: number,
-    selectedItem: SelectedItem,
-  ): void => {
-    setSelectedItem(selectedItem);
-    selectedArtifacts[panelIndex].selectedItem = selectedItem;
+  const updateSelectedItemAndArtifact = (panelIndex: number, selectedItem: SelectedItem): void => {
     const linkedArtifact = getLinkedArtifactFromSelectedItem(filteredRunArtifacts, selectedItem);
-    selectedArtifacts[panelIndex].linkedArtifact = linkedArtifact;
-    updateSelectedArtifacts(selectedArtifacts);
+    const nextSelectedArtifacts = selectedArtifactsForDisplay.map((selectedArtifact, index) =>
+      index === panelIndex
+        ? {
+            selectedItem,
+            linkedArtifact,
+          }
+        : selectedArtifact,
+    );
+    updateSelectedArtifacts(nextSelectedArtifacts);
   };
 
   const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
@@ -130,13 +132,13 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
             <TwoLevelDropdown
               title={`Choose a first ${metricsTabText} artifact`}
               items={dropdownItems}
-              selectedItem={firstSelectedItem}
-              setSelectedItem={updateSelectedItemAndArtifact.bind(null, setFirstSelectedItem, 0)}
+              selectedItem={selectedArtifactsForDisplay[0].selectedItem}
+              setSelectedItem={updateSelectedItemAndArtifact.bind(null, 0)}
             />
             <VisualizationPanelItem
               metricsTab={metricsTab}
               metricsTabText={metricsTabText}
-              linkedArtifact={selectedArtifacts[0].linkedArtifact}
+              linkedArtifact={selectedArtifactsForDisplay[0].linkedArtifact}
               namespace={namespace}
             />
           </td>
@@ -144,13 +146,13 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
             <TwoLevelDropdown
               title={`Choose a second ${metricsTabText} artifact`}
               items={dropdownItems}
-              selectedItem={secondSelectedItem}
-              setSelectedItem={updateSelectedItemAndArtifact.bind(null, setSecondSelectedItem, 1)}
+              selectedItem={selectedArtifactsForDisplay[1].selectedItem}
+              setSelectedItem={updateSelectedItemAndArtifact.bind(null, 1)}
             />
             <VisualizationPanelItem
               metricsTab={metricsTab}
               metricsTabText={metricsTabText}
-              linkedArtifact={selectedArtifacts[1].linkedArtifact}
+              linkedArtifact={selectedArtifactsForDisplay[1].linkedArtifact}
               namespace={namespace}
             />
           </td>
@@ -187,46 +189,46 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [showError, setShowError] = useState<boolean>(false);
 
-  const { isLoading, isError, error, data: viewerConfigs } = useQuery<ViewerConfig[], Error>(
-    [
-      'viewerConfig',
-      {
-        artifact: linkedArtifact?.artifact.getId(),
-        namespace,
-      },
-    ],
-    async () => {
+  const {
+    isLoading,
+    isError,
+    error,
+    data: viewerConfigs,
+  } = useQuery<ViewerConfig[], Error>({
+    queryKey: queryKeys.visualizationPanelViewerConfig(linkedArtifact?.artifact.getId(), namespace),
+
+    queryFn: async () => {
       let viewerConfigs: ViewerConfig[] = [];
       if (linkedArtifact) {
-        try {
-          if (metricsTab === MetricsType.HTML) {
-            viewerConfigs = await getHtmlViewerConfig([linkedArtifact], namespace);
-          } else if (metricsTab === MetricsType.MARKDOWN) {
-            viewerConfigs = await getMarkdownViewerConfig([linkedArtifact], namespace);
-          }
-        } catch (err) {
-          throw err;
+        if (metricsTab === MetricsType.HTML) {
+          viewerConfigs = await getHtmlViewerConfig([linkedArtifact], namespace);
+        } else if (metricsTab === MetricsType.MARKDOWN) {
+          viewerConfigs = await getMarkdownViewerConfig([linkedArtifact], namespace);
         }
       }
       return viewerConfigs;
     },
-    { staleTime: Infinity },
-  );
+
+    staleTime: Infinity,
+  });
 
   useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
     if (isError) {
-      (async function() {
-        const updatedMessage = await errorToMessage(error);
-        setErrorMessage(updatedMessage);
-        setShowError(true);
-      })();
-    } else {
+      let cancelled = false;
+      errorToMessage(error).then((msg) => {
+        if (!cancelled) {
+          setErrorMessage(msg);
+          setShowError(true);
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    if (!isLoading) {
       setShowError(false);
     }
+    return undefined;
   }, [isLoading, isError, error, setErrorMessage, setShowError]);
 
   if (!linkedArtifact) {
@@ -247,8 +249,9 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
         {showError && (
           <div className={css.errorBanner}>
             <Banner
-              message={`Error: failed loading ${metricsTabText} file.${errorMessage &&
-                ' Click Details for more information.'}`}
+              message={`Error: failed loading ${metricsTabText} file.${
+                errorMessage && ' Click Details for more information.'
+              }`}
               mode='error'
               additionalInfo={errorMessage}
               isLeftAlign
@@ -342,17 +345,17 @@ function getLinkedArtifactFromSelectedItem(
   selectedItem: SelectedItem,
 ): LinkedArtifact | undefined {
   const filteredRunArtifact = filteredRunArtifacts.find(
-    runArtifact => runArtifact.run.display_name === selectedItem.itemName,
+    (runArtifact) => runArtifact.run.display_name === selectedItem.itemName,
   );
 
-  const executionArtifact = filteredRunArtifact?.executionArtifacts.find(executionArtifact => {
+  const executionArtifact = filteredRunArtifact?.executionArtifacts.find((executionArtifact) => {
     const executionText: string =
       getExecutionDisplayName(executionArtifact.execution) ||
       executionArtifact.execution.getId().toString();
     return executionText === selectedItem.subItemName;
   });
 
-  const linkedArtifact = executionArtifact?.linkedArtifacts.find(linkedArtifact => {
+  const linkedArtifact = executionArtifact?.linkedArtifacts.find((linkedArtifact) => {
     const linkedArtifactText: string =
       getArtifactName(linkedArtifact) || linkedArtifact.artifact.getId().toString();
     return linkedArtifactText === selectedItem.subItemSecondaryName;

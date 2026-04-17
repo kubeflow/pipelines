@@ -40,6 +40,7 @@ message KubernetesExecutorConfig {
     repeated PodAffinityTerm pod_affinity = 15;
     EnabledSharedMemory enabled_shared_memory = 16;
     repeated EmptyDirMount empty_dir_mounts = 17;
+    SecurityContext security_context = 18;
 }
 
 message EnabledSharedMemory {
@@ -102,6 +103,20 @@ message PvcMount {
     string sub_path = 6;
 }
 
+// TypedLocalObjectReference contains enough information to let you locate the
+// typed referenced object inside the same namespace.
+// Corresponds to Kubernetes TypedLocalObjectReference.
+message TypedLocalObjectReference {
+    // APIGroup is the group for the resource being referenced.
+    // If APIGroup is not specified, the specified Kind must be in the core API group.
+    // For any other third-party types, APIGroup is required.
+    optional string api_group = 1;
+    // Kind is the type of resource being referenced.
+    string kind = 2;
+    // Name is the name of resource being referenced.
+    string name = 3;
+}
+
 message CreatePvc {
     oneof name {
         // Name of the PVC, if not dynamically generated.
@@ -123,6 +138,9 @@ message CreatePvc {
     string volume_name = 7;
     // Corresponds to PersistentVolumeClaim.metadata.annotations field.
     google.protobuf.Struct annotations = 8;
+    // Corresponds to PersistentVolumeClaim.spec.dataSource field.
+    // This can be used to create a PVC from a VolumeSnapshot or clone from an existing PVC.
+    TypedLocalObjectReference data_source = 9;
 }
 
 message DeletePvc {
@@ -271,6 +289,22 @@ message PodAffinityTerm {
     optional int32 weight = 7;
     //Flag indicating if it is a podaffinity or podantiaffinity
     optional bool anti = 8;
+}
+
+message SecurityContext {
+    // UID to run the container process as.
+    // Uses the container runtime default if not specified.
+    optional int64 run_as_user = 1;
+    // GID to run the container process as.
+    // Uses the container runtime default if not specified.
+    optional int64 run_as_group = 2;
+    // Fields 3-5 removed: privileged, add_capabilities, drop_capabilities
+    // violate Pod Security Standards (PSS) baseline.
+    // All capabilities are always dropped by the backend.
+    reserved 3, 4, 5;
+    // Whether the container must run as a non-root user.
+    // Uses the container runtime default if not specified.
+    optional bool run_as_non_root = 6;
 }
 
 message EmptyDirMount {

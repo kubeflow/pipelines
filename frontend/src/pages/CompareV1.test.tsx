@@ -175,7 +175,7 @@ describe('CompareV1', () => {
     run2.pipeline_runtime!.workflow_manifest = JSON.stringify(workflow);
     runs = [run1, run2];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
 
     const props = generateProps();
@@ -200,7 +200,7 @@ describe('CompareV1', () => {
 
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
     outputArtifactLoaderSpy.mockResolvedValue([]);
     getRunV2Spy.mockImplementation((id: string) => Promise.resolve(newMockRunV2(id)));
@@ -236,21 +236,24 @@ describe('CompareV1', () => {
 
   it('renders a page with multiple runs', async () => {
     await renderCompare();
-    await waitFor(() => expect(getRunSpy).toHaveBeenCalledTimes(3));
+    await waitForRunRows(3);
+    expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_1_ID);
+    expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_2_ID);
+    expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_3_ID);
     expect(stableMuiSnapshotFragment(renderResult!.asFragment())).toMatchSnapshot();
   });
 
   it('fetches a run for each ID in query params', async () => {
     runs = [newMockRun('run-1'), newMockRun('run-2'), newMockRun('run-3')];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
 
     const props = generateProps();
     props.location.search = `?${QUERY_PARAMS.runlist}=run-1,run-2,run-3`;
 
     await renderCompare(props);
-    await waitFor(() => expect(getRunSpy).toHaveBeenCalledTimes(3));
+    await waitForRunRows(3);
 
     expect(getRunSpy).toHaveBeenCalledWith('run-1');
     expect(getRunSpy).toHaveBeenCalledWith('run-2');
@@ -282,7 +285,7 @@ describe('CompareV1', () => {
       newMockRun(MOCK_RUN_3_ID, true),
     ];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
 
     await renderCompare();
@@ -353,7 +356,7 @@ describe('CompareV1', () => {
     run.pipeline_runtime!.workflow_manifest = JSON.stringify(workflow);
     runs = [run];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
 
     const props = generateProps();
@@ -398,14 +401,20 @@ describe('CompareV1', () => {
     run2.pipeline_runtime!.workflow_manifest = JSON.stringify(run2Workflow);
     runs = [run1, run2];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
 
     const props = generateProps();
     props.location.search = `?${QUERY_PARAMS.runlist}=run1,run2`;
 
     await renderCompare(props);
-    await waitFor(() => expect(getRunSpy).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(getInstance().state.paramsCompareProps.yLabels).toEqual([
+        'shared-param',
+        'r1-unique-param',
+        'r2-unique-param1',
+      ]),
+    );
     expect(stableMuiSnapshotFragment(renderResult!.asFragment())).toMatchSnapshot();
   });
 
@@ -417,7 +426,7 @@ describe('CompareV1', () => {
     ];
     runs = [run];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
 
     const props = generateProps();
@@ -444,19 +453,28 @@ describe('CompareV1', () => {
     run2.run!.metrics = [{ name: 'some-metric', number_value: 0.67 }];
     runs = [run1, run2];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
 
     const props = generateProps();
     props.location.search = `?${QUERY_PARAMS.runlist}=run1,run2`;
 
     await renderCompare(props);
-    await waitFor(() => expect(getRunSpy).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(getInstance().state.metricsCompareProps).toEqual({
+        rows: [
+          ['0.330', '0.670'],
+          ['0.554', ''],
+        ],
+        xLabels: ['test run run1', 'test run run2'],
+        yLabels: ['some-metric', 'another-metric'],
+      }),
+    );
     expect(stableMuiSnapshotFragment(renderResult!.asFragment())).toMatchSnapshot();
   });
 
   it('creates a map of viewers', async () => {
-    outputArtifactLoaderSpy.mockImplementationOnce(() => [
+    outputArtifactLoaderSpy.mockImplementation(() => [
       { type: PlotType.TENSORBOARD, url: 'gs://path' },
       { data: [['test']], labels: ['col1, col2'], type: PlotType.TABLE },
     ]);
@@ -481,7 +499,7 @@ describe('CompareV1', () => {
     run.pipeline_runtime!.workflow_manifest = JSON.stringify(workflow);
     runs = [run];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
 
     const props = generateProps();
@@ -661,7 +679,7 @@ describe('CompareV1', () => {
     run2.pipeline_runtime!.workflow_manifest = JSON.stringify(workflow);
     runs = [run1, run2];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
 
     const props = generateProps();

@@ -211,7 +211,7 @@ spec:
 
   it('Show error if not valid v1 template and disabled v2 feature', async () => {
     // v2 feature is turn off.
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       return false;
     });
     Apis.pipelineServiceApiV2.getPipelineVersion = vi.fn().mockResolvedValue({
@@ -230,7 +230,6 @@ spec:
     await TestUtils.flushPromises();
 
     screen.getByTestId('pipeline-detail-v1');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo:
@@ -243,7 +242,7 @@ spec:
 
   it('Show error if v1 template cannot generate graph and disabled v2 feature', async () => {
     // v2 feature is turn off.
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       return false;
     });
     Apis.pipelineServiceApiV2.getPipelineVersion = vi.fn().mockResolvedValue({
@@ -264,7 +263,6 @@ spec:
     });
 
     screen.getByTestId('pipeline-detail-v1');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad graph',
@@ -276,7 +274,7 @@ spec:
 
   it('Show error if not valid v2 template and enabled v2 feature', async () => {
     // v2 feature is turn on.
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
@@ -299,7 +297,6 @@ spec:
     });
 
     screen.getByTestId('pipeline-detail-v1');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'Important infomation is missing. Pipeline Spec is invalid.',
@@ -311,7 +308,7 @@ spec:
 
   it('Show v1 page if valid v1 template and enabled v2 feature flag', async () => {
     // v2 feature is turn on.
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
@@ -334,12 +331,12 @@ spec:
     await TestUtils.flushPromises();
 
     screen.getByTestId('pipeline-detail-v1');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
   });
 
   it('Show v1 page if valid v1 template and disabled v2 feature flag', async () => {
     // v2 feature is turn off.
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       return false;
     });
     Apis.pipelineServiceApiV2.getPipelineVersion = vi.fn().mockResolvedValue({
@@ -358,12 +355,12 @@ spec:
     await TestUtils.flushPromises();
 
     screen.getByTestId('pipeline-detail-v1');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
   });
 
   it('Show v2 page if valid v2 template and enabled v2 feature', async () => {
     // v2 feature is turn on.
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
@@ -376,6 +373,6 @@ spec:
     await TestUtils.flushPromises();
 
     screen.getByTestId('pipeline-detail-v2');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
   });
 });

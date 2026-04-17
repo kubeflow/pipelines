@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import grey from '@material-ui/core/colors/grey';
 import React from 'react';
 import { classes, stylesheet } from 'typestyle';
 import { LineageCard } from './LineageCard';
@@ -23,6 +22,7 @@ import { CARD_OFFSET, EdgeCanvas } from './EdgeCanvas';
 import { Artifact } from 'src/third_party/mlmd';
 import { ControlledEdgeCanvas } from './ControlledEdgeCanvas';
 import { CARD_ROW_HEIGHT } from './LineageCss';
+import { grey } from '@mui/material/colors';
 
 export interface CardDetails {
   title: string;
@@ -46,7 +46,7 @@ const NEXT_ITEM_SAME_CARD_OFFSET = CARD_ROW_HEIGHT;
 const NEXT_ITEM_NEXT_CARD_OFFSET = CARD_ROW_HEIGHT + CARD_OFFSET;
 
 export class LineageCardColumn extends React.Component<LineageCardColumnProps> {
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const { columnPadding, type, title } = this.props;
 
     const css = stylesheet({
@@ -90,7 +90,7 @@ export class LineageCardColumn extends React.Component<LineageCardColumnProps> {
       </div>
     );
   }
-  private jsxFromCardDetails(det: CardDetails, i: number): JSX.Element {
+  private jsxFromCardDetails(det: CardDetails, i: number): React.JSX.Element {
     const isNotFirstEl = i > 0;
     return (
       <LineageCard
@@ -105,12 +105,12 @@ export class LineageCardColumn extends React.Component<LineageCardColumnProps> {
     );
   }
 
-  private drawColumnContent(): JSX.Element {
+  private drawColumnContent(): React.JSX.Element {
     const { cards, columnPadding, columnWidth, skipEdgeCanvas } = this.props;
     const edgeWidth = columnPadding * 2;
     const cardWidth = columnWidth - edgeWidth;
 
-    let edgeCanvases: JSX.Element[] = [];
+    let edgeCanvases: React.JSX.Element[] = [];
 
     if (this.props.outputExecutionToOutputArtifactMap && this.props.connectedCards) {
       edgeCanvases = this.buildOutputExecutionToOutputArtifactEdgeCanvases(
@@ -145,19 +145,19 @@ export class LineageCardColumn extends React.Component<LineageCardColumnProps> {
     executionCards: CardDetails[],
     edgeWidth: number,
     cardWidth: number,
-  ): JSX.Element[] {
-    const edgeCanvases: JSX.Element[] = [];
+  ): React.JSX.Element[] {
+    const edgeCanvases: React.JSX.Element[] = [];
 
     const artifactIdToCardMap = new Map<number, number>();
     artifactCards.forEach((card, index) => {
-      card.elements.forEach(row => {
+      card.elements.forEach((row) => {
         artifactIdToCardMap.set(row.typedResource.resource.getId(), index);
       });
     });
 
     const executionIdToCardMap = new Map<number, number>();
     executionCards.forEach((card, index) => {
-      card.elements.forEach(row => {
+      card.elements.forEach((row) => {
         executionIdToCardMap.set(row.typedResource.resource.getId(), index);
       });
     });
@@ -198,19 +198,14 @@ export class LineageCardColumn extends React.Component<LineageCardColumnProps> {
       );
 
       // Advance starting artifact offset.
-      artifactIds.forEach(artifactId => {
-        if (artifactCardIndex === null) {
-          artifactCardIndex = artifactIdToCardMap.get(artifactId) as number;
-          return;
-        }
-
+      artifactIds.forEach((artifactId) => {
         const newArtifactIndex = artifactIdToCardMap.get(artifactId);
-        if (artifactCardIndex === newArtifactIndex) {
+        if (artifactCardIndex === undefined || newArtifactIndex !== artifactCardIndex) {
+          // First artifact or artifact on a new card
+          artifactOffset += NEXT_ITEM_NEXT_CARD_OFFSET;
+        } else {
           // Next artifact row is on the same card
           artifactOffset += NEXT_ITEM_SAME_CARD_OFFSET;
-        } else {
-          // Next artifact row is on the next card
-          artifactOffset += NEXT_ITEM_NEXT_CARD_OFFSET;
         }
         artifactCardIndex = newArtifactIndex;
       });

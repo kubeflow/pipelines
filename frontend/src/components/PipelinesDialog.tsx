@@ -15,12 +15,8 @@
  */
 
 import * as React from 'react';
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
 import { classes } from 'typestyle';
 import { padding, commonCss } from '../Css';
-import DialogContent from '@material-ui/core/DialogContent';
 import ResourceSelector from '../pages/ResourceSelector';
 import { Apis, PipelineSortKeys } from '../lib/Apis';
 import { Column } from './CustomTable';
@@ -31,6 +27,8 @@ import MD2Tabs from '../atoms/MD2Tabs';
 import Toolbar, { ToolbarActionMap } from '../components/Toolbar';
 import { PipelineTabsHeaders, PipelineTabsTooltips } from '../pages/PrivateAndSharedPipelines';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
+
+import { Button, Dialog, DialogActions, DialogContent } from '@mui/material';
 
 enum NamespacedAndSharedTab {
   NAMESPACED = 0,
@@ -46,14 +44,13 @@ export interface PipelinesDialogProps extends PageProps {
   toolbarActionMap?: ToolbarActionMap;
 }
 
-const PipelinesDialog: React.FC<PipelinesDialogProps> = (props): JSX.Element | null => {
+const PipelinesDialog: React.FC<PipelinesDialogProps> = (props): React.JSX.Element | null => {
   const buildInfo = React.useContext(BuildInfoContext);
   const [view, setView] = React.useState(NamespacedAndSharedTab.NAMESPACED);
-  const [unconfirmedSelectedPipeline, setUnconfirmedSelectedPipeline] = React.useState<
-    ApiPipeline
-  >();
+  const [unconfirmedSelectedPipeline, setUnconfirmedSelectedPipeline] =
+    React.useState<ApiPipeline>();
 
-  function getPipelinesList(): JSX.Element {
+  function getPipelinesList(): React.JSX.Element {
     return (
       <ResourceSelector
         {...props}
@@ -80,7 +77,7 @@ const PipelinesDialog: React.FC<PipelinesDialogProps> = (props): JSX.Element | n
     );
   }
 
-  function getTabs(): JSX.Element | null {
+  function getTabs(): React.JSX.Element | null {
     if (!buildInfo?.apiServerMultiUser) {
       return null;
     }
@@ -114,7 +111,7 @@ const PipelinesDialog: React.FC<PipelinesDialogProps> = (props): JSX.Element | n
     setView(NamespacedAndSharedTab.NAMESPACED);
   }
 
-  const getToolbar = (): JSX.Element => {
+  const getToolbar = (): React.JSX.Element => {
     let actions = new Buttons(props, () => {}).getToolbarActionMap();
     if (props.toolbarActionMap) {
       actions = props.toolbarActionMap;

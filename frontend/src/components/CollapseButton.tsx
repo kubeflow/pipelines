@@ -15,10 +15,10 @@
  */
 
 import * as React from 'react';
-import Button from '@material-ui/core/Button';
-import ExpandedIcon from '@material-ui/icons/ArrowDropUp';
+import ExpandedIcon from '@mui/icons-material/ArrowDropUp';
 import { stylesheet, classes } from 'typestyle';
 import { color, fontsize } from '../Css';
+import { Button } from '@mui/material';
 
 const css = stylesheet({
   collapseBtn: {
@@ -43,7 +43,7 @@ interface CollapseButtonProps {
 }
 
 class CollapseButton extends React.Component<CollapseButtonProps> {
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { collapseSections, collapseSectionsUpdate } = this.props;
     const sectionName = this.props.sectionName;
     return (

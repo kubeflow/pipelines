@@ -20,13 +20,14 @@ import { classes, cssRaw } from 'typestyle';
 import { LineageTypedResource } from './LineageTypes';
 import { getResourceDescription, getResourceName } from './Utils';
 import { Artifact } from 'src/third_party/mlmd';
+import { CARD_ROW_CENTER_Y, CARD_ROW_HEIGHT, EDGE_PORT_SIZE, px } from './LineageCss';
 
 cssRaw(`
 .cardRow {
   align-items: center;
   border-bottom: 1px solid var(--grey-200);
   display: flex;
-  height: 54px;
+  height: ${px(CARD_ROW_HEIGHT)};
   padding: 6px 0px;
   position: relative;
 }
@@ -142,12 +143,12 @@ cssRaw(`
   overflow: hidden;
 }
 .cardRow [class^='edge'] {
-  width: 8px;
-  height: 8px;
+  width: ${px(EDGE_PORT_SIZE)};
+  height: ${px(EDGE_PORT_SIZE)};
   background-color: var(--grey-700);
   border-radius: 2px;
   position: absolute;
-  top: 50%;
+  top: ${px(CARD_ROW_CENTER_Y)};
   transform: translateY(-50%) translateX(-50%);
 }
 .cardRow .edgeRight {
@@ -178,21 +179,21 @@ interface LineageCardRowProps {
 }
 
 export class LineageCardRow extends React.Component<LineageCardRowProps> {
-  private rowContainerRef: React.RefObject<HTMLDivElement> = React.createRef();
+  private rowContainerRef: React.RefObject<HTMLDivElement | null> = React.createRef();
 
   constructor(props: LineageCardRowProps) {
     super(props);
     this.handleClick = this.handleClick.bind(this);
   }
 
-  public checkEdgeAffordances(): JSX.Element[] {
+  public checkEdgeAffordances(): React.JSX.Element[] {
     const affItems = [];
     this.props.leftAffordance && affItems.push(<div className='edgeLeft' key={'edgeLeft'} />);
     this.props.rightAffordance && affItems.push(<div className='edgeRight' key={'edgeRight'} />);
     return affItems;
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { isLastRow } = this.props;
     const cardRowClasses = classes(
       'cardRow',
@@ -219,7 +220,7 @@ export class LineageCardRow extends React.Component<LineageCardRowProps> {
     );
   }
 
-  private checkRadio(): JSX.Element {
+  private checkRadio(): React.JSX.Element {
     if (this.props.hideRadio) {
       return <div className='noRadio' />;
     }
@@ -231,7 +232,7 @@ export class LineageCardRow extends React.Component<LineageCardRowProps> {
           className='form-radio'
           name=''
           value=''
-          onClick={this.handleClick}
+          onClick={this.handleRadioClick}
           checked={this.props.isTarget}
           readOnly={true}
         />
@@ -240,13 +241,18 @@ export class LineageCardRow extends React.Component<LineageCardRowProps> {
           className='form-radio hover-hint'
           name=''
           value=''
-          onClick={this.handleClick}
+          onClick={this.handleRadioClick}
           checked={true}
           readOnly={true}
         />
       </div>
     );
   }
+
+  private handleRadioClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    this.handleClick();
+  };
 
   private handleClick() {
     if (!this.props.setLineageViewTarget || !(this.props.typedResource.type === 'artifact')) return;

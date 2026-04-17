@@ -74,16 +74,27 @@ func GetLatestPipelineVersion(pipelineClient *api_server.PipelineClient, pipelin
 func DeleteAllPipelineVersions(client *api_server.PipelineClient, pipelineID string) {
 	logger.Log("Deleting all pipeline versions for pipeline %s", pipelineID)
 	pipelineVersions, _, _, err := ListPipelineVersions(client, pipelineID)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Error occurred while listing pipeline versions")
+	if err != nil {
+		// Pipeline may have been deleted already (e.g., cascade delete or concurrent cleanup).
+		logger.Log("Could not list pipeline versions for pipeline %s (may already be deleted): %v", pipelineID, err)
+		return
+	}
 	logger.Log("Found %d pipeline versions for pipeline %s", len(pipelineVersions), pipelineID)
 	for _, pv := range pipelineVersions {
 		logger.Log("Deleting pipeline version %s", pv.PipelineVersionID)
-		gomega.Expect(client.DeletePipelineVersion(&pipeline_params.PipelineServiceDeletePipelineVersionParams{PipelineID: pipelineID, PipelineVersionID: pv.PipelineVersionID})).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Pipeline version with id=%s of pipelineID=%s failed", pv.PipelineVersionID, pipelineID))
+		err = client.DeletePipelineVersion(&pipeline_params.PipelineServiceDeletePipelineVersionParams{PipelineID: pipelineID, PipelineVersionID: pv.PipelineVersionID})
+		if err != nil {
+			// Version may have been cascade-deleted already.
+			logger.Log("Could not delete pipeline version %s (may already be deleted): %v", pv.PipelineVersionID, err)
+		}
 	}
 	pipelineVersions, _, _, err = ListPipelineVersions(client, pipelineID)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Error occurred while listing pipeline versions")
+	if err != nil {
+		logger.Log("Could not verify pipeline versions deletion for pipeline %s: %v", pipelineID, err)
+		return
+	}
 	if len(pipelineVersions) > 0 {
-		logger.Log("Failed to delete all pipeline versions")
+		logger.Log("Failed to delete all pipeline versions for pipeline %s, %d remaining", pipelineID, len(pipelineVersions))
 	}
 }
 

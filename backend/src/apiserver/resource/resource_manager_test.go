@@ -22,6 +22,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -1160,6 +1161,7 @@ func TestListPipelines(t *testing.T) {
 	_, nTotal, _, err := manager.ListPipelines(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""}},
 		opts,
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, nTotal)
@@ -1171,6 +1173,7 @@ func TestListPipelines(t *testing.T) {
 	_, nTotal, _, err = manager.ListPipelines(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""}},
 		opts,
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, nTotal)
@@ -1290,6 +1293,7 @@ func TestListPipelineVersions(t *testing.T) {
 	_, nTotal, _, err := manager.ListPipelineVersions(
 		pnew1.UUID,
 		opts,
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, nTotal)
@@ -1301,6 +1305,7 @@ func TestListPipelineVersions(t *testing.T) {
 	_, nTotal, _, err = manager.ListPipelineVersions(
 		pnew1.UUID,
 		opts,
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, nTotal)
@@ -1312,6 +1317,7 @@ func TestListPipelineVersions(t *testing.T) {
 	_, nTotal, _, err = manager.ListPipelineVersions(
 		pnew1.UUID,
 		opts,
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, nTotal)
@@ -1385,6 +1391,103 @@ func TestUpdatePipelineStatus(t *testing.T) {
 	p1retrieved, err = manager.GetPipeline(DefaultFakePipelineId)
 	assert.Nil(t, err)
 	assert.Equal(t, model.PipelineReady, p1retrieved.Status)
+}
+
+// Tests that the go-swagger UpdatePipeline request body correctly serializes
+// empty tags as {"tags":{}} (not omitted), so the server can distinguish
+// "clear all tags" from "don't change tags".
+func TestUpdatePipelineBody_EmptyTagsSerialization(t *testing.T) {
+	type UpdateBody struct {
+		Tags map[string]string `json:"tags"`
+	}
+
+	// Empty map must serialize to {"tags":{}}
+	body := UpdateBody{Tags: map[string]string{}}
+	data, err := json.Marshal(body)
+	assert.Nil(t, err)
+	assert.Contains(t, string(data), `"tags":{}`, "Empty tags map must be present in serialized JSON")
+
+	// Nil map must serialize to {"tags":null}
+	bodyNil := UpdateBody{Tags: nil}
+	dataNil, err := json.Marshal(bodyNil)
+	assert.Nil(t, err)
+	assert.Contains(t, string(dataNil), `"tags":null`, "Nil tags must serialize as null")
+
+	// Verify server-side: unmarshal null back to nil
+	var decoded UpdateBody
+	err = json.Unmarshal(dataNil, &decoded)
+	assert.Nil(t, err)
+	assert.Nil(t, decoded.Tags, "Null tags should unmarshal to nil")
+
+	// Verify server-side: unmarshal {} back to empty (non-nil) map
+	var decodedEmpty UpdateBody
+	err = json.Unmarshal(data, &decodedEmpty)
+	assert.Nil(t, err)
+	assert.NotNil(t, decodedEmpty.Tags, "Empty tags object should unmarshal to non-nil map")
+	assert.Empty(t, decodedEmpty.Tags, "Empty tags object should unmarshal to empty map")
+}
+
+// Tests UpdatePipeline clears tags when an empty map is passed.
+func TestUpdatePipeline_ClearTags(t *testing.T) {
+	initEnvVars()
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+
+	// Create a pipeline with tags.
+	p := &model.Pipeline{
+		Name:   "pipeline-with-tags",
+		Status: model.PipelineReady,
+		Tags:   map[string]string{"team": "ml-ops", "env": "prod"},
+	}
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	createdPipeline, err := manager.CreatePipeline(p)
+	assert.Nil(t, err)
+
+	// Verify tags are set.
+	retrieved, err := manager.GetPipeline(createdPipeline.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, map[string]string{"team": "ml-ops", "env": "prod"}, retrieved.Tags)
+
+	// Clear tags by passing an empty map (not nil).
+	updated, err := manager.UpdatePipeline(createdPipeline.UUID, "", map[string]string{})
+	assert.Nil(t, err)
+	assert.Empty(t, updated.Tags, "Tags should be empty after clearing with empty map")
+
+	// Verify via GetPipeline.
+	retrieved, err = manager.GetPipeline(createdPipeline.UUID)
+	assert.Nil(t, err)
+	assert.Empty(t, retrieved.Tags, "Tags should be empty after clearing with empty map")
+}
+
+// Tests UpdatePipeline does not modify tags when nil is passed.
+func TestUpdatePipeline_NilTagsNoChange(t *testing.T) {
+	initEnvVars()
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+
+	// Create a pipeline with tags.
+	p := &model.Pipeline{
+		Name:   "pipeline-with-tags",
+		Status: model.PipelineReady,
+		Tags:   map[string]string{"team": "ml-ops"},
+	}
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	createdPipeline, err := manager.CreatePipeline(p)
+	assert.Nil(t, err)
+
+	// Update with nil tags should not change existing tags.
+	updated, err := manager.UpdatePipeline(createdPipeline.UUID, "new-name", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, map[string]string{"team": "ml-ops"}, updated.Tags, "Tags should remain unchanged when nil is passed")
+	assert.Equal(t, "new-name", updated.DisplayName)
 }
 
 // Tests UpdatePipelineVersionStatus
@@ -1514,7 +1617,7 @@ func TestDeletePipelineVersion(t *testing.T) {
 	// Verify the latest version
 	pvLatestTeplate, err := manager.GetPipelineLatestTemplate(DefaultFakeUUID)
 	assert.Nil(t, err)
-	assert.Equal(t, "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"creationTimestamp\":null},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}", string(pvLatestTeplate))
+	assert.Equal(t, "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}", string(pvLatestTeplate))
 }
 
 // Tests DeletePipelineVersion (NotFound)
@@ -1613,6 +1716,211 @@ func TestDeletePipeline(t *testing.T) {
 	err = manager.DeletePipeline(pnew1.UUID, false)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), fmt.Sprintf("as it has existing pipeline versions (e.g. %v)", FakeUUIDOne))
+}
+
+func TestIsNamespaceAllowed(t *testing.T) {
+	tt := []struct {
+		msg               string
+		namespace         string
+		allowedNamespaces string
+		expected          bool
+	}{
+		{
+			msg:               "EmptyAllowedNamespaces",
+			namespace:         "ns1",
+			allowedNamespaces: "",
+			expected:          false,
+		},
+		{
+			msg:               "NamespaceInList",
+			namespace:         "ns1",
+			allowedNamespaces: "ns1,ns2,ns3",
+			expected:          true,
+		},
+		{
+			msg:               "NamespaceNotInList",
+			namespace:         "ns4",
+			allowedNamespaces: "ns1,ns2,ns3",
+			expected:          false,
+		},
+		{
+			msg:               "SingleAllowedNamespace_Match",
+			namespace:         "ns1",
+			allowedNamespaces: "ns1",
+			expected:          true,
+		},
+		{
+			msg:               "SingleAllowedNamespace_NoMatch",
+			namespace:         "ns2",
+			allowedNamespaces: "ns1",
+			expected:          false,
+		},
+		{
+			msg:               "CaseInsensitiveNamespace",
+			namespace:         "NS1",
+			allowedNamespaces: "ns1,ns2",
+			expected:          true,
+		},
+		{
+			msg:               "CaseInsensitiveAllowedList",
+			namespace:         "ns1",
+			allowedNamespaces: "NS1,NS2",
+			expected:          true,
+		},
+		{
+			msg:               "WhitespaceAroundNamespace",
+			namespace:         "  ns1  ",
+			allowedNamespaces: "ns1,ns2",
+			expected:          true,
+		},
+		{
+			msg:               "WhitespaceAroundAllowedEntries",
+			namespace:         "ns1",
+			allowedNamespaces: "  ns1  ,  ns2  ",
+			expected:          true,
+		},
+		{
+			msg:               "WhitespaceAndCaseInsensitive",
+			namespace:         "  NS1  ",
+			allowedNamespaces: "  ns1  ,  ns2  ",
+			expected:          true,
+		},
+		{
+			msg:               "EmptyNamespace_EmptyAllowed",
+			namespace:         "",
+			allowedNamespaces: "",
+			expected:          false,
+		},
+		{
+			msg:               "EmptyNamespace_NonEmptyAllowed",
+			namespace:         "",
+			allowedNamespaces: "ns1,ns2",
+			expected:          false,
+		},
+	}
+	for _, test := range tt {
+		t.Run(test.msg, func(t *testing.T) {
+			result := isNamespaceAllowed(test.namespace, test.allowedNamespaces)
+			assert.Equal(t, test.expected, result)
+		})
+	}
+}
+
+func TestCreateRun_BlockV1Pipelines(t *testing.T) {
+	tt := []struct {
+		msg               string
+		blockV1           bool
+		allowedNamespaces string
+		namespace         string
+		useV2Spec         bool
+		errorCode         codes.Code
+		errorMsg          string
+	}{
+		{
+			msg:               "BlockV1_NamespaceNotAllowed",
+			blockV1:           true,
+			allowedNamespaces: "",
+			namespace:         "ns1",
+			useV2Spec:         false,
+			errorCode:         codes.InvalidArgument,
+			errorMsg:          "not allowed to run v1 pipelines",
+		},
+		{
+			msg:               "BlockV1_NamespaceAllowed",
+			blockV1:           true,
+			allowedNamespaces: "ns1",
+			namespace:         "ns1",
+			useV2Spec:         false,
+		},
+		{
+			msg:               "BlockV1_NamespaceAllowed_MultipleNamespaces",
+			blockV1:           true,
+			allowedNamespaces: "ns1,ns2,ns3",
+			namespace:         "ns2",
+			useV2Spec:         false,
+		},
+		{
+			msg:               "BlockV1_Disabled_AnyNamespaceAllowed",
+			blockV1:           false,
+			allowedNamespaces: "",
+			namespace:         "ns1",
+			useV2Spec:         false,
+		},
+		{
+			msg:               "BlockV1_V2PipelineNotBlocked",
+			blockV1:           true,
+			allowedNamespaces: "",
+			namespace:         "ns1",
+			useV2Spec:         true,
+		},
+		{
+			msg:               "BlockV1_NamespaceNotInAllowedList",
+			blockV1:           true,
+			allowedNamespaces: "ns2,ns3",
+			namespace:         "ns1",
+			useV2Spec:         false,
+			errorCode:         codes.InvalidArgument,
+			errorMsg:          "Namespace ns1 is not allowed to run v1 pipelines",
+		},
+		{
+			msg:               "BlockV1_CaseInsensitiveNamespaceMatch",
+			blockV1:           true,
+			allowedNamespaces: "NS1",
+			namespace:         "ns1",
+			useV2Spec:         false,
+		},
+	}
+
+	for _, test := range tt {
+		t.Run(test.msg, func(t *testing.T) {
+			viper.Set(common.BlockV1Pipelines, test.blockV1)
+			viper.Set(common.V1NamespaceWhitelist, test.allowedNamespaces)
+			defer func() {
+				viper.Set(common.BlockV1Pipelines, false)
+				viper.Set(common.V1NamespaceWhitelist, "")
+			}()
+
+			store, manager, exp := initWithExperiment(t)
+			defer store.Close()
+
+			var apiRun *model.Run
+			if test.useV2Spec {
+				apiRun = &model.Run{
+					DisplayName:  "run1",
+					ExperimentId: exp.UUID,
+					Namespace:    test.namespace,
+					PipelineSpec: model.PipelineSpec{
+						PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+						RuntimeConfig: model.RuntimeConfig{
+							Parameters: `{"text":"world"}`,
+						},
+					},
+				}
+			} else {
+				apiRun = &model.Run{
+					DisplayName:  "run1",
+					ExperimentId: exp.UUID,
+					Namespace:    test.namespace,
+					PipelineSpec: model.PipelineSpec{
+						WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+						Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+					},
+				}
+			}
+
+			_, err := manager.CreateRun(context.Background(), apiRun)
+
+			if test.errorCode != 0 {
+				require.NotNil(t, err)
+				assert.Equal(t, test.errorCode, err.(*util.UserError).ExternalStatusCode())
+				if test.errorMsg != "" {
+					assert.Contains(t, err.Error(), test.errorMsg)
+				}
+				return
+			}
+			assert.Nil(t, err)
+		})
+	}
 }
 
 // TODO: use table driven test to test CreateRun api
@@ -2349,6 +2657,118 @@ func TestUnarchiveRun_Failed_ResourceNotFound(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestCreateJob_BlocksV1Pipelines(t *testing.T) {
+	tt := []struct {
+		msg               string
+		blockV1           bool
+		allowedNamespaces string
+		namespace         string
+		useV2Spec         bool
+		errorCode         codes.Code
+		errorMsg          string
+	}{
+		{
+			msg:               "BlockV1_NamespaceNotAllowed",
+			blockV1:           true,
+			allowedNamespaces: "",
+			namespace:         "ns1",
+			useV2Spec:         false,
+			errorCode:         codes.InvalidArgument,
+			errorMsg:          "not allowed to run v1 pipelines",
+		},
+		{
+			msg:               "BlockV1_NamespaceAllowed",
+			blockV1:           true,
+			allowedNamespaces: "ns1",
+			namespace:         "ns1",
+			useV2Spec:         false,
+		},
+		{
+			msg:               "BlockV1_NamespaceAllowed_MultipleNamespaces",
+			blockV1:           true,
+			allowedNamespaces: "ns1,ns2,ns3",
+			namespace:         "ns2",
+			useV2Spec:         false,
+		},
+		{
+			msg:               "BlockV1_Disabled_AnyNamespaceAllowed",
+			blockV1:           false,
+			allowedNamespaces: "",
+			namespace:         "ns1",
+			useV2Spec:         false,
+		},
+		{
+			msg:               "BlockV1_V2PipelineNotBlocked",
+			blockV1:           true,
+			allowedNamespaces: "",
+			namespace:         "ns1",
+			useV2Spec:         true,
+		},
+		{
+			msg:               "BlockV1_NamespaceNotInAllowedList",
+			blockV1:           true,
+			allowedNamespaces: "ns2,ns3",
+			namespace:         "ns1",
+			useV2Spec:         false,
+			errorCode:         codes.InvalidArgument,
+			errorMsg:          "Namespace ns1 is not allowed to run v1 pipelines",
+		},
+		{
+			msg:               "BlockV1_CaseInsensitiveNamespaceMatch",
+			blockV1:           true,
+			allowedNamespaces: "NS1",
+			namespace:         "ns1",
+			useV2Spec:         false,
+		},
+	}
+
+	for _, test := range tt {
+		t.Run(test.msg, func(t *testing.T) {
+			viper.Set(common.BlockV1Pipelines, test.blockV1)
+			viper.Set(common.V1NamespaceWhitelist, test.allowedNamespaces)
+			defer func() {
+				viper.Set(common.BlockV1Pipelines, false)
+				viper.Set(common.V1NamespaceWhitelist, "")
+			}()
+
+			store, manager, exp := initWithExperiment(t)
+			defer store.Close()
+
+			job := &model.Job{
+				DisplayName:  "j1",
+				Enabled:      true,
+				ExperimentId: exp.UUID,
+				Namespace:    test.namespace,
+			}
+			if test.useV2Spec {
+				job.PipelineSpec = model.PipelineSpec{
+					PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters:   "{\"text\":\"world\"}",
+						PipelineRoot: "job-1-root",
+					},
+				}
+			} else {
+				job.PipelineSpec = model.PipelineSpec{
+					WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+				}
+			}
+
+			_, err := manager.CreateJob(context.Background(), job)
+
+			if test.errorCode != 0 {
+				require.NotNil(t, err)
+				assert.Equal(t, test.errorCode, err.(*util.UserError).ExternalStatusCode())
+				if test.errorMsg != "" {
+					assert.Contains(t, err.Error(), test.errorMsg)
+				}
+				return
+			}
+			assert.Nil(t, err)
+		})
+	}
 }
 
 // TODO Use table driven to write UT to test CreateJob
@@ -4105,3 +4525,377 @@ root:
 schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `
+
+// v2SpecWithLiterals is a v2 pipeline spec with literal parameter constraints for testing.
+var v2SpecWithLiterals = `
+components:
+  comp-hello-world:
+    executorLabel: exec-hello-world
+    inputDefinitions:
+      parameters:
+        environment:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-hello-world:
+      container:
+        args:
+        - "--env"
+        - "{{$.inputs.parameters['environment']}}"
+        command:
+        - echo
+        image: python:3.11
+pipelineInfo:
+  name: hello-world-with-literals
+root:
+  dag:
+    tasks:
+      hello-world:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-hello-world
+        inputs:
+          parameters:
+            environment:
+              componentInputParameter: environment
+        taskInfo:
+          name: hello-world
+  inputDefinitions:
+    parameters:
+      environment:
+        parameterType: STRING
+        literals:
+        - "dev"
+        - "staging"
+        - "prod"
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+// v2SpecWithIntLiterals is a v2 pipeline spec with integer literal parameter constraints for testing.
+var v2SpecWithIntLiterals = `
+components:
+  comp-test:
+    executorLabel: exec-test
+    inputDefinitions:
+      parameters:
+        replicas:
+          parameterType: NUMBER_INTEGER
+deploymentSpec:
+  executors:
+    exec-test:
+      container:
+        image: python:3.11
+pipelineInfo:
+  name: test-int-literals
+root:
+  dag:
+    tasks:
+      test-task:
+        componentRef:
+          name: comp-test
+        inputs:
+          parameters:
+            replicas:
+              componentInputParameter: replicas
+        taskInfo:
+          name: test-task
+  inputDefinitions:
+    parameters:
+      replicas:
+        parameterType: NUMBER_INTEGER
+        literals:
+        - 1
+        - 3
+        - 5
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+// v2SpecWithFloatLiterals is a v2 pipeline spec with float literal parameter constraints for testing.
+var v2SpecWithFloatLiterals = `
+components:
+  comp-test:
+    executorLabel: exec-test
+    inputDefinitions:
+      parameters:
+        threshold:
+          parameterType: NUMBER_DOUBLE
+deploymentSpec:
+  executors:
+    exec-test:
+      container:
+        image: python:3.11
+pipelineInfo:
+  name: test-float-literals
+root:
+  dag:
+    tasks:
+      test-task:
+        componentRef:
+          name: comp-test
+        inputs:
+          parameters:
+            threshold:
+              componentInputParameter: threshold
+        taskInfo:
+          name: test-task
+  inputDefinitions:
+    parameters:
+      threshold:
+        parameterType: NUMBER_DOUBLE
+        literals:
+        - 0.1
+        - 0.5
+        - 0.9
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+// v2SpecWithBoolLiterals is a v2 pipeline spec with boolean literal parameter constraints for testing.
+var v2SpecWithBoolLiterals = `
+components:
+  comp-test:
+    executorLabel: exec-test
+    inputDefinitions:
+      parameters:
+        enable_feature:
+          parameterType: BOOLEAN
+deploymentSpec:
+  executors:
+    exec-test:
+      container:
+        image: python:3.11
+pipelineInfo:
+  name: test-bool-literals
+root:
+  dag:
+    tasks:
+      test-task:
+        componentRef:
+          name: comp-test
+        inputs:
+          parameters:
+            enable_feature:
+              componentInputParameter: enable_feature
+        taskInfo:
+          name: test-task
+  inputDefinitions:
+    parameters:
+      enable_feature:
+        parameterType: BOOLEAN
+        literals:
+        - true
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+func TestCreateRun_LiteralParameterValidation(t *testing.T) {
+	tests := []struct {
+		name          string
+		pipelineSpec  string
+		runtimeParams string
+		expectError   bool
+		errorContains string
+	}{
+		{
+			name:          "valid input - string literal",
+			pipelineSpec:  v2SpecWithLiterals,
+			runtimeParams: `{"environment":"dev"}`,
+			expectError:   false,
+		},
+		{
+			name:          "invalid input - string literal",
+			pipelineSpec:  v2SpecWithLiterals,
+			runtimeParams: `{"environment":"test"}`,
+			expectError:   true,
+			errorContains: "does not match any of the allowed literal values",
+		},
+		{
+			name:          "valid input - int literal",
+			pipelineSpec:  v2SpecWithIntLiterals,
+			runtimeParams: `{"replicas":3}`,
+			expectError:   false,
+		},
+		{
+			name:          "invalid input - int literal",
+			pipelineSpec:  v2SpecWithIntLiterals,
+			runtimeParams: `{"replicas":2}`,
+			expectError:   true,
+			errorContains: "does not match any of the allowed literal values",
+		},
+		{
+			name:          "valid input - float literal",
+			pipelineSpec:  v2SpecWithFloatLiterals,
+			runtimeParams: `{"threshold":0.5}`,
+			expectError:   false,
+		},
+		{
+			name:          "invalid input - float literal",
+			pipelineSpec:  v2SpecWithFloatLiterals,
+			runtimeParams: `{"threshold":0.3}`,
+			expectError:   true,
+			errorContains: "does not match any of the allowed literal values",
+		},
+		{
+			name:          "valid input - boolean literal",
+			pipelineSpec:  v2SpecWithBoolLiterals,
+			runtimeParams: `{"enable_feature":true}`,
+			expectError:   false,
+		},
+		{
+			name:          "invalid input - boolean literal",
+			pipelineSpec:  v2SpecWithBoolLiterals,
+			runtimeParams: `{"enable_feature":false}`,
+			expectError:   true,
+			errorContains: "does not match any of the allowed literal values",
+		},
+		{
+			name:          "valid input - nil literals field",
+			pipelineSpec:  v2SpecHelloWorld, // No literals field
+			runtimeParams: `{"text":"any-value-is-fine"}`,
+			expectError:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store, manager, exp := initWithExperiment(t)
+			defer store.Close()
+			apiRun := &model.Run{
+				DisplayName:  "run1",
+				ExperimentId: exp.UUID,
+				PipelineSpec: model.PipelineSpec{
+					PipelineSpecManifest: model.LargeText(tt.pipelineSpec),
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters: model.LargeText(tt.runtimeParams),
+					},
+				},
+			}
+			_, err := manager.CreateRun(context.Background(), apiRun)
+
+			if tt.expectError {
+				require.Error(t, err)
+				if tt.errorContains != "" {
+					assert.ErrorContains(t, err, tt.errorContains)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateTags(t *testing.T) {
+	tests := []struct {
+		name    string
+		tags    map[string]string
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name:    "nil tags",
+			tags:    nil,
+			wantErr: false,
+		},
+		{
+			name:    "empty tags",
+			tags:    map[string]string{},
+			wantErr: false,
+		},
+		{
+			name:    "valid single tag",
+			tags:    map[string]string{"env": "prod"},
+			wantErr: false,
+		},
+		{
+			name: "valid max tags",
+			tags: func() map[string]string {
+				m := make(map[string]string)
+				for i := 0; i < MaxTagsPerEntity; i++ {
+					m[fmt.Sprintf("key%d", i)] = fmt.Sprintf("val%d", i)
+				}
+				return m
+			}(),
+			wantErr: false,
+		},
+		{
+			name: "exceeds max tags",
+			tags: func() map[string]string {
+				m := make(map[string]string)
+				for i := 0; i <= MaxTagsPerEntity; i++ {
+					m[fmt.Sprintf("key%d", i)] = fmt.Sprintf("val%d", i)
+				}
+				return m
+			}(),
+			wantErr: true,
+			errMsg:  "exceeds maximum",
+		},
+		{
+			name:    "empty key",
+			tags:    map[string]string{"": "value"},
+			wantErr: true,
+			errMsg:  "tag key cannot be empty",
+		},
+		{
+			name:    "key with dot",
+			tags:    map[string]string{"team.name": "ml"},
+			wantErr: true,
+			errMsg:  "must not contain '.'",
+		},
+		{
+			name:    "key too long",
+			tags:    map[string]string{strings.Repeat("k", MaxTagKeyLength+1): "v"},
+			wantErr: true,
+			errMsg:  "exceeds maximum length",
+		},
+		{
+			name:    "key at max length",
+			tags:    map[string]string{strings.Repeat("k", MaxTagKeyLength): "v"},
+			wantErr: false,
+		},
+		{
+			name:    "value too long",
+			tags:    map[string]string{"key": strings.Repeat("v", MaxTagValueLength+1)},
+			wantErr: true,
+			errMsg:  "exceeds maximum length",
+		},
+		{
+			name:    "value at max length",
+			tags:    map[string]string{"key": strings.Repeat("v", MaxTagValueLength)},
+			wantErr: false,
+		},
+		{
+			name:    "unicode key at max rune length",
+			tags:    map[string]string{strings.Repeat("日", MaxTagKeyLength): "v"},
+			wantErr: false,
+		},
+		{
+			name: "unicode key exceeds max rune length",
+			tags: func() map[string]string {
+				k := strings.Repeat("日", MaxTagKeyLength+1)
+				assert.Greater(t, utf8.RuneCountInString(k), MaxTagKeyLength)
+				return map[string]string{k: "v"}
+			}(),
+			wantErr: true,
+			errMsg:  "exceeds maximum length",
+		},
+		{
+			name:    "empty value is valid",
+			tags:    map[string]string{"key": ""},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateTags(tt.tags)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.Nil(t, err)
+			}
+		})
+	}
+}

@@ -58,3 +58,96 @@ func TestParameterFormatter_Format(t *testing.T) {
 	assert.Equal(t, "FOO 1970-01-01 00:00:25 FOO", formatter.Format("FOO {{$.scheduledTime.strftime('%Y-%m-%d %H:%M:%S')}} FOO"))
 	assert.Equal(t, "FOO 1970-01-01 00:00:26 FOO", formatter.Format("FOO {{$.currentTime.strftime('%Y-%m-%d %H:%M:%S')}} FOO"))
 }
+
+func TestNewRunParameterFormatter(t *testing.T) {
+	runUUID := "run-abc-123"
+	runAt := int64(1609459200) // 2021-01-01 00:00:00 UTC
+	formatter := NewRunParameterFormatter(runUUID, runAt)
+
+	// RunUUID substitution works
+	result := formatter.Format("prefix-[[RunUUID]]-suffix")
+	assert.Equal(t, "prefix-run-abc-123-suffix", result)
+
+	// CurrentTime substitution works
+	result = formatter.Format("time-[[CurrentTime]]")
+	assert.Equal(t, "time-20210101000000", result)
+
+	// ScheduledTime is disabled, so it should not be substituted
+	result = formatter.Format("sched-[[ScheduledTime]]")
+	assert.Equal(t, "sched-[[ScheduledTime]]", result)
+
+	// Index is disabled, so it should not be substituted
+	result = formatter.Format("idx-[[Index]]")
+	assert.Equal(t, "idx-[[Index]]", result)
+}
+
+func TestFormatWorkflowParameters(t *testing.T) {
+	formatter := NewSWFParameterFormatter("my-run-uuid", 1609459200, 1609545600, 3)
+
+	parameters := map[string]string{
+		"run_id":    "[[RunUUID]]",
+		"scheduled": "[[ScheduledTime]]",
+		"current":   "[[CurrentTime]]",
+		"index":     "[[Index]]",
+		"plain":     "no-substitution",
+	}
+
+	result := formatter.FormatWorkflowParameters(parameters)
+
+	assert.Equal(t, "my-run-uuid", result["run_id"])
+	assert.Equal(t, "20210101000000", result["scheduled"])
+	assert.Equal(t, "20210102000000", result["current"])
+	assert.Equal(t, "3", result["index"])
+	assert.Equal(t, "no-substitution", result["plain"])
+}
+
+func TestFormatWorkflowParameters_EmptyMap(t *testing.T) {
+	formatter := NewRunParameterFormatter("uuid", 1000)
+	result := formatter.FormatWorkflowParameters(map[string]string{})
+	assert.Empty(t, result)
+}
+
+func TestFormat_CustomTimeFormat_ScheduledTime(t *testing.T) {
+	formatter := NewSWFParameterFormatter("uuid", 1609459200, 1609545600, 1)
+
+	// Custom scheduled time format
+	result := formatter.Format("[[ScheduledTime.2006-01-02]]")
+	assert.Equal(t, "2021-01-01", result)
+
+	// Custom current time format
+	result = formatter.Format("[[CurrentTime.2006-01-02]]")
+	assert.Equal(t, "2021-01-02", result)
+}
+
+func TestFormat_Strftime_UnixSeconds(t *testing.T) {
+	formatter := NewSWFParameterFormatter("uuid", 1609459200, 1609545600, 1)
+
+	// Strftime with %s for unix seconds (scheduled time)
+	result := formatter.Format("{{$.scheduledTime.strftime('%s')}}")
+	assert.Equal(t, "1609459200", result)
+
+	// Strftime with %s for unix seconds (current time)
+	result = formatter.Format("{{$.currentTime.strftime('%s')}}")
+	assert.Equal(t, "1609545600", result)
+}
+
+func TestFormat_UnknownExpression(t *testing.T) {
+	formatter := NewSWFParameterFormatter("uuid", 1609459200, 1609545600, 1)
+
+	// Unknown [[expression]] falls through to the else branch
+	result := formatter.Format("[[UnknownExpression]]")
+	assert.Equal(t, "[[UnknownExpression]]", result)
+}
+
+func TestFormat_DisabledScheduledTime(t *testing.T) {
+	// NewRunParameterFormatter disables ScheduledTime and Index
+	formatter := NewRunParameterFormatter("uuid", 1609459200)
+
+	// ScheduledTime prefix with custom format should not be substituted when disabled
+	result := formatter.Format("[[ScheduledTime.2006-01-02]]")
+	assert.Equal(t, "[[ScheduledTime.2006-01-02]]", result)
+
+	// Strftime scheduledTime should not be substituted when disabled
+	result = formatter.Format("{{$.scheduledTime.strftime('%Y')}}")
+	assert.Equal(t, "{{$.scheduledTime.strftime('%Y')}}", result)
+}

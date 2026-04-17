@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import IconButton from '@material-ui/core/IconButton';
-import Tooltip from '@material-ui/core/Tooltip';
-import ArtifactsIcon from '@material-ui/icons/BubbleChart';
-import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
-import JupyterhubIcon from '@material-ui/icons/Code';
-import DescriptionIcon from '@material-ui/icons/Description';
-import OpenInNewIcon from '@material-ui/icons/OpenInNew';
-import ExecutionsIcon from '@material-ui/icons/PlayArrow';
-import DirectionsRun from '@material-ui/icons/DirectionsRun';
+import ArtifactsIcon from '@mui/icons-material/BubbleChart';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import JupyterhubIcon from '@mui/icons-material/Code';
+import DescriptionIcon from '@mui/icons-material/Description';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import ExecutionsIcon from '@mui/icons-material/PlayArrow';
+import DirectionsRun from '@mui/icons-material/DirectionsRun';
 import * as React from 'react';
 import { RouterProps } from 'react-router';
 import { Link } from 'react-router-dom';
@@ -37,8 +34,10 @@ import { BuildInfo } from '../lib/Apis';
 import { Deployments, KFP_FLAGS } from '../lib/Flags';
 import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
 import { GkeMetadataContext, GkeMetadata } from 'src/lib/GkeMetadata';
-import { Alarm } from '@material-ui/icons';
+import { Alarm } from '@mui/icons-material';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
+
+import { Button, IconButton, Tooltip } from '@mui/material';
 
 export const tailwindcss = {
   sideNavItem: 'flex flex-row flex-shrink-0',
@@ -203,10 +202,34 @@ interface SideNavState {
   manualCollapseState: boolean;
 }
 
+type SideNavButtonProps = Omit<
+  React.ComponentPropsWithoutRef<typeof Button>,
+  'children' | 'color'
+> & {
+  children: React.ReactNode;
+  collapsed: boolean;
+};
+
+const SideNavButton: React.FC<SideNavButtonProps> = ({
+  children,
+  collapsed,
+  className,
+  ...buttonProps
+}) => (
+  <Button
+    {...buttonProps}
+    color='inherit'
+    className={classes(css.button, className, collapsed && css.collapsedButton)}
+  >
+    {children}
+  </Button>
+);
+
 export class SideNav extends React.Component<SideNavInternalProps, SideNavState> {
   private _isMounted = true;
   private readonly _AUTO_COLLAPSE_WIDTH = 800;
   private readonly _HUB_ADDRESS = '/hub/';
+  private readonly _boundMaybeResize = this._maybeResize.bind(this);
 
   constructor(props: any) {
     super(props);
@@ -222,15 +245,17 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
   }
 
   public async componentDidMount(): Promise<void> {
-    window.addEventListener('resize', this._maybeResize.bind(this));
+    this._isMounted = true;
+    window.addEventListener('resize', this._boundMaybeResize);
     this._maybeResize();
   }
 
   public componentWillUnmount(): void {
     this._isMounted = false;
+    window.removeEventListener('resize', this._boundMaybeResize);
   }
 
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const page = this.props.page;
     const displayBuildInfo: DisplayBuildInfo = this._getBuildInfo();
     const { collapsed } = this.state;
@@ -272,12 +297,9 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                 disableTouchListener={!collapsed}
               >
                 <Link id='gettingStartedBtn' to={RoutePage.START} className={commonCss.unstyled}>
-                  <Button
-                    className={classes(
-                      css.button,
-                      page.startsWith(RoutePage.START) && css.active,
-                      collapsed && css.collapsedButton,
-                    )}
+                  <SideNavButton
+                    collapsed={collapsed}
+                    className={page.startsWith(RoutePage.START) ? css.active : undefined}
                   >
                     <div className={tailwindcss.sideNavItem}>
                       <DescriptionIcon style={{ width: 20, height: 20 }} />
@@ -285,7 +307,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                         Getting Started
                       </span>
                     </div>
-                  </Button>
+                  </SideNavButton>
                 </Link>
               </Tooltip>
             </>
@@ -305,12 +327,9 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             disableTouchListener={!collapsed}
           >
             <Link id='pipelinesBtn' to={RoutePage.PIPELINES} className={commonCss.unstyled}>
-              <Button
-                className={classes(
-                  css.button,
-                  this._highlightPipelinesButton(page) && css.active,
-                  collapsed && css.collapsedButton,
-                )}
+              <SideNavButton
+                collapsed={collapsed}
+                className={this._highlightPipelinesButton(page) ? css.active : undefined}
               >
                 <div className={tailwindcss.sideNavItem}>
                   <div className={classes({ alignItems: 'stretch' })}>
@@ -324,7 +343,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                     Pipelines
                   </span>
                 </div>
-              </Button>
+              </SideNavButton>
             </Link>
           </Tooltip>
           <div
@@ -342,12 +361,9 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             disableTouchListener={!collapsed}
           >
             <Link id='experimentsBtn' to={RoutePage.EXPERIMENTS} className={commonCss.unstyled}>
-              <Button
-                className={classes(
-                  css.button,
-                  this._highlightExperimentsButton(page) && css.active,
-                  collapsed && css.collapsedButton,
-                )}
+              <SideNavButton
+                collapsed={collapsed}
+                className={this._highlightExperimentsButton(page) ? css.active : undefined}
               >
                 <div className={tailwindcss.sideNavItem}>
                   <div className={classes({ alignItems: 'stretch' })}>
@@ -363,7 +379,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                     Experiments
                   </span>
                 </div>
-              </Button>
+              </SideNavButton>
             </Link>
           </Tooltip>
           <div
@@ -381,18 +397,15 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             disableTouchListener={!collapsed}
           >
             <Link id='runsBtn' to={RoutePage.RUNS} className={commonCss.unstyled}>
-              <Button
-                className={classes(
-                  css.button,
-                  this._highlightRunsButton(page) && css.active,
-                  collapsed && css.collapsedButton,
-                )}
+              <SideNavButton
+                collapsed={collapsed}
+                className={this._highlightRunsButton(page) ? css.active : undefined}
               >
                 <div className={tailwindcss.sideNavItem}>
                   <DirectionsRun />
                   <span className={classes(collapsed && css.collapsedLabel, css.label)}>Runs</span>
                 </div>
-              </Button>
+              </SideNavButton>
             </Link>
           </Tooltip>
           <div
@@ -414,12 +427,9 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
               to={RoutePage.RECURRING_RUNS}
               className={commonCss.unstyled}
             >
-              <Button
-                className={classes(
-                  css.button,
-                  this._highlightRecurringRunsButton(page) && css.active,
-                  collapsed && css.collapsedButton,
-                )}
+              <SideNavButton
+                collapsed={collapsed}
+                className={this._highlightRecurringRunsButton(page) ? css.active : undefined}
               >
                 <div className={tailwindcss.sideNavItem}>
                   <Alarm />
@@ -427,7 +437,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                     Recurring Runs
                   </span>
                 </div>
-              </Button>
+              </SideNavButton>
             </Link>
           </Tooltip>
           <div
@@ -445,12 +455,9 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             disableTouchListener={!collapsed}
           >
             <Link id='artifactsBtn' to={RoutePage.ARTIFACTS} className={commonCss.unstyled}>
-              <Button
-                className={classes(
-                  css.button,
-                  this._highlightArtifactsButton(page) && css.active,
-                  collapsed && css.collapsedButton,
-                )}
+              <SideNavButton
+                collapsed={collapsed}
+                className={this._highlightArtifactsButton(page) ? css.active : undefined}
               >
                 <div className={tailwindcss.sideNavItem}>
                   <ArtifactsIcon />
@@ -458,7 +465,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                     Artifacts
                   </span>
                 </div>
-              </Button>
+              </SideNavButton>
             </Link>
           </Tooltip>
           <div
@@ -476,12 +483,9 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             disableTouchListener={!collapsed}
           >
             <Link id='executionsBtn' to={RoutePage.EXECUTIONS} className={commonCss.unstyled}>
-              <Button
-                className={classes(
-                  css.button,
-                  this._highlightExecutionsButton(page) && css.active,
-                  collapsed && css.collapsedButton,
-                )}
+              <SideNavButton
+                collapsed={collapsed}
+                className={this._highlightExecutionsButton(page) ? css.active : undefined}
               >
                 <div className={tailwindcss.sideNavItem}>
                   <ExecutionsIcon />
@@ -489,7 +493,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                     Executions
                   </span>
                 </div>
-              </Button>
+              </SideNavButton>
             </Link>
           </Tooltip>
           {this.state.jupyterHubAvailable && (
@@ -508,7 +512,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                 target='_blank'
                 rel='noopener'
               >
-                <Button className={classes(css.button, collapsed && css.collapsedButton)}>
+                <SideNavButton collapsed={collapsed}>
                   <div className={tailwindcss.sideNavItem}>
                     <JupyterhubIcon style={{ height: 20, width: 20 }} />
                     <span className={classes(collapsed && css.collapsedLabel, css.label)}>
@@ -516,7 +520,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                     </span>
                     <OpenInNewIcon className={css.openInNewTabIcon} />
                   </div>
-                </Button>
+                </SideNavButton>
               </a>
             </Tooltip>
           )}
@@ -525,13 +529,13 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             title={'Documentation'}
             to={ExternalLinks.DOCUMENTATION}
             collapsed={collapsed}
-            icon={className => <DescriptionIcon className={className} />}
+            icon={(className) => <DescriptionIcon className={className} />}
           />
           <ExternalUri
             title={'Github Repo'}
             to={ExternalLinks.GITHUB}
             collapsed={collapsed}
-            icon={className => (
+            icon={(className) => (
               <img src={GitHubIcon} className={classes(className, css.iconImage)} alt='Github' />
             )}
           />
@@ -539,6 +543,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           <IconButton
             className={classes(css.chevron, collapsed && css.collapsedChevron)}
             onClick={this._toggleNavClicked.bind(this)}
+            size='large'
           >
             <ChevronLeftIcon />
           </IconButton>
@@ -691,18 +696,18 @@ const ExternalUri: React.FC<ExternalUriProps> = ({ title, to, collapsed, icon })
     disableTouchListener={!collapsed}
   >
     <a href={to} className={commonCss.unstyled} target='_blank' rel='noopener noreferrer'>
-      <Button className={classes(css.button, collapsed && css.collapsedButton)}>
+      <SideNavButton collapsed={collapsed}>
         <div className={tailwindcss.sideNavItem}>
           {icon(css.icon)}
           <span className={classes(collapsed && css.collapsedLabel, css.label)}>{title}</span>
           <OpenInNewIcon className={css.openInNewTabIcon} />
         </div>
-      </Button>
+      </SideNavButton>
     </a>
   </Tooltip>
 );
 
-const EnhancedSideNav: React.FC<SideNavProps> = props => {
+const EnhancedSideNav: React.FC<SideNavProps> = (props) => {
   const gkeMetadata = React.useContext(GkeMetadataContext);
   const buildInfo = React.useContext(BuildInfoContext);
   return <SideNav {...props} gkeMetadata={gkeMetadata} buildInfo={buildInfo} />;

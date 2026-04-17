@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import type * as React from 'react';
 import {
   Api,
   ArtifactProperties,
@@ -27,8 +28,7 @@ import {
   GetArtifactsByIDRequest,
   GetArtifactTypesByIDRequest,
 } from 'src/third_party/mlmd';
-import { CircularProgress } from '@material-ui/core';
-import * as React from 'react';
+import { CircularProgress } from '@mui/material';
 import { Route, Switch } from 'react-router-dom';
 import { classes } from 'typestyle';
 import MD2Tabs from '../atoms/MD2Tabs';
@@ -59,7 +59,7 @@ const TABS = {
 };
 
 const TAB_NAMES = [ArtifactDetailsTab.OVERVIEW, ArtifactDetailsTab.LINEAGE_EXPLORER].map(
-  tabConfig => TABS[tabConfig].name,
+  (tabConfig) => TABS[tabConfig].name,
 );
 
 interface ArtifactDetailsState {
@@ -103,10 +103,11 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   private api = Api.getInstance();
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     return this.load();
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     if (!this.state.artifact) {
       return (
         <div className={commonCss.page}>
@@ -196,10 +197,14 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
       if (version) {
         title += ` (version: ${version})`;
       }
+      if (!this._isMounted) {
+        return;
+      }
+
       this.props.updateToolbar({
         pageTitle: title,
       });
-      this.setState({ artifact, artifactType });
+      this.setStateSafe({ artifact, artifactType });
     } catch (err) {
       if (isServiceError(err)) {
         this.showPageError(serviceErrorToString(err));

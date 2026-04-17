@@ -50,7 +50,7 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
           'run',
           () => this.state.selectedIds,
           false,
-          selectedIds => this._selectionChanged(selectedIds),
+          (selectedIds) => this._selectionChanged(selectedIds),
         )
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
@@ -59,7 +59,7 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <RunList

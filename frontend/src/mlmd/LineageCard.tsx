@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { blue, grey } from '@material-ui/core/colors';
+import { blue, grey } from '@mui/material/colors';
 import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
 import { CSSProperties } from 'typestyle/lib/types';
@@ -45,7 +45,7 @@ interface LineageCardProps {
 }
 
 export class LineageCard extends React.Component<LineageCardProps> {
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { title, type, rows, addSpacer, isTarget, setLineageViewTarget } = this.props;
     const isExecution = type === 'execution';
 
@@ -100,7 +100,7 @@ export class LineageCard extends React.Component<LineageCardProps> {
       },
       executionCardTitle: {
         ...cardTitleBase,
-        borderBottom: `${px(CARD_TITLE_BORDER_BOTTOM_HEIGHT)} solid transparent`,
+        borderBottom: `${px(CARD_TITLE_BORDER_BOTTOM_HEIGHT)} solid var(--grey-700)`,
       },
       target: {
         border: `2px solid ${blue[500]}`,

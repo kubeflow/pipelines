@@ -18,7 +18,7 @@ import * as React from 'react';
 import { RouteComponentProps } from 'react-router';
 import { ToolbarProps } from '../components/Toolbar';
 import { BannerProps } from '../components/Banner';
-import { SnackbarProps } from '@material-ui/core/Snackbar';
+import { SnackbarProps } from '@mui/material/Snackbar';
 import { DialogProps } from '../components/Router';
 import { errorToMessage } from '../lib/Utils';
 
@@ -45,7 +45,7 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
     this.props.updateToolbar(this.getInitialToolbarState());
   }
 
-  public abstract render(): JSX.Element;
+  public abstract render(): React.JSX.Element;
 
   public abstract getInitialToolbarState(): ToolbarProps;
 
@@ -57,6 +57,7 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
   }
 
   public componentDidMount(): void {
+    this._isMounted = true;
     this.clearBanner();
   }
 

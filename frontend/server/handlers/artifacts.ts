@@ -21,17 +21,22 @@ import {
 } from '../utils.js';
 import { createMinioClient, getObjectStream } from '../minio-helper.js';
 import * as serverInfo from '../helpers/server-info.js';
-import { Handler, Request, Response } from 'express';
-import { Storage } from '@google-cloud/storage';
+import { Handler, Request, Response, NextFunction } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts.js';
 import { URL } from 'url';
+import { getGCSClient, listGCSObjectNames, downloadGCSObjectStream } from '../gcs-helper.js';
+import type { GCSClient } from '../gcs-helper.js';
 
 import * as fs from 'fs';
 import { isAllowedDomain } from './domain-checker.js';
 import { getK8sSecret } from '../k8s-helper.js';
-import { StorageOptions } from '@google-cloud/storage';
 import { CredentialBody } from 'google-auth-library';
+import { AuthorizeFn } from '../helpers/auth.js';
+import {
+  AuthorizeRequestResources,
+  AuthorizeRequestVerb,
+} from '../src/generated/apis/auth/index.js';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -74,6 +79,111 @@ export interface GCSProviderInfo {
 }
 
 /**
+ * Returns an authorization middleware for artifact endpoints.
+ * This middleware handles 3 modes:
+ *
+ * 1. Standalone KFP deployment without Kubeflow platform (single-tenant):
+ *    No Subject Access Review and 100% insecure. The namespace query
+ *    parameter is optional and not validated or authorized when
+ *    authorization is disabled.
+ *
+ * 2. Default multi-tenant deployment of KFP within Kubeflow platform:
+ *    Namespace parameter is required, its format is validated, and RBAC is
+ *    checked (the user is authenticated to access the artifact from the
+ *    specific namespace folder on the object storage via Subject Access
+ *    Review) before accessing SeaweedFS/storage directly.
+ *
+ * 3. Artifact PROXY MODE (overhead, disabled by default):
+ *    Namespace parameter is required, its format is validated, and RBAC is
+ *    checked. This adds significant overhead to each namespace, decreases
+ *    scalability, and is prone to many CVEs in the artifact proxy
+ *    deployment.
+ *
+ * Note: Secret-backed provider mode (fromEnv === 'false') is unsupported
+ * in multi-user deployments. The ml-pipeline-ui ClusterRole no longer
+ * grants secrets:get/list permissions, so getK8sSecret() calls will be
+ * denied by RBAC at the cluster level. This mode may still work in
+ * standalone (single-tenant) deployments where the service account has
+ * direct secret access. See: https://github.com/kubeflow/pipelines/pull/12860
+ *
+ * Security: This addresses the vulnerability where the namespace parameter
+ * could be manipulated to access artifacts from other namespaces.
+ * See https://github.com/kubeflow/pipelines/issues/9889
+ *
+ * @param authorizeFn The authorization function to validate permissions
+ * @param authEnabled Whether authorization is enabled
+ * @param kubeflowUserIdHeader The header name containing the user identity
+ */
+export function getArtifactsAuthMiddleware(
+  authorizeFn: AuthorizeFn,
+  authEnabled: boolean,
+  kubeflowUserIdHeader: string,
+): Handler {
+  return async (request: Request, response: Response, next: NextFunction) => {
+    if (!authEnabled) {
+      return next();
+    }
+
+    const userId = request.headers[kubeflowUserIdHeader.toLowerCase()];
+    if (!userId) {
+      console.warn(
+        `[SECURITY] Unauthenticated artifact access attempt. Path: ${request.originalUrl}`,
+      );
+      response.status(401).send('Authentication required for artifact access');
+      return;
+    }
+
+    const rawNamespace = request.query.namespace;
+    const namespace: string | undefined = Array.isArray(rawNamespace)
+      ? String(rawNamespace[0])
+      : typeof rawNamespace === 'string'
+        ? rawNamespace
+        : undefined;
+
+    if (!namespace) {
+      console.warn(
+        `[SECURITY] Missing namespace parameter. ` +
+          `User: ${userId}, Path: ${request.originalUrl}`,
+      );
+      response.status(400).send('Namespace parameter is required when authentication is enabled');
+      return;
+    }
+
+    if (!isAllowedResourceName(namespace)) {
+      console.warn(
+        `[SECURITY] Invalid namespace format. ` +
+          `User: ${userId}, ` +
+          `Namespace: ${namespace}, Path: ${request.originalUrl}`,
+      );
+      response.status(400).send('Invalid namespace format');
+      return;
+    }
+
+    const authError = await authorizeFn(
+      {
+        verb: AuthorizeRequestVerb.GET,
+        resources: AuthorizeRequestResources.VIEWERS,
+        namespace: namespace,
+      },
+      request,
+    );
+
+    if (authError) {
+      console.warn(
+        `[SECURITY] Unauthorized cross-namespace access attempt. ` +
+          `User: ${userId}, ` +
+          `Namespace: ${namespace}, Path: ${request.originalUrl}, ` +
+          `Reason: ${authError.message}`,
+      );
+      response.status(403).send(authError.message);
+      return;
+    }
+
+    next();
+  };
+}
+
+/**
  * Returns an artifact handler which retrieve an artifact from the corresponding
  * backend (i.e. gcs, minio, s3, http/https).
  * @param artifactsConfigs configs to retrieve the artifacts from the various backend.
@@ -105,6 +215,10 @@ export function getArtifactsHandler({
     const {
       peek = 0,
       providerInfo = '',
+      // When auth is enabled, the authorization middleware has already validated
+      // and required the namespace parameter before this handler runs.
+      // When auth is disabled (standalone mode), fallback to serverNamespace
+      // for provider-based credential lookups via getK8sSecret (Issue #9889).
       namespace = options.server.serverNamespace,
     } = req.query as Partial<ArtifactsQueryStrings>;
     if (!source) {
@@ -215,13 +329,14 @@ function getHttpArtifactsHandler(
   peek: number = 0,
 ) {
   return async (req: Request, res: Response) => {
-    const headers = {};
+    const headers: Record<string, string> = {};
 
     // add authorization header to fetch request if key is non-empty
     if (auth.key.length > 0) {
       // inject original request's value if exists, otherwise default to provided default value
-      headers[auth.key] =
+      const headerValue =
         req.headers[auth.key] || req.headers[auth.key.toLowerCase()] || auth.defaultValue;
+      headers[auth.key] = Array.isArray(headerValue) ? headerValue[0] : headerValue;
     }
     if (!isAllowedDomain(url, allowedDomain)) {
       res.status(500).send(`Domain not allowed.`);
@@ -249,7 +364,7 @@ function getMinioArtifactHandler(
     try {
       const stream = await getObjectStream(options);
       stream
-        .on('error', err => res.status(500).send(`Failed to get object in bucket: ${err}`))
+        .on('error', (err) => res.status(500).send(`Failed to get object in bucket: ${err}`))
         .pipe(new PreviewStream({ peek }))
         .pipe(res);
     } catch (err) {
@@ -259,16 +374,23 @@ function getMinioArtifactHandler(
   };
 }
 
+/**
+ * Parses GCS provider info and retrieves credentials from a Kubernetes secret.
+ *
+ * WARNING: This function is unsupported in multi-user deployments.
+ * The ml-pipeline-ui ClusterRole no longer grants secrets:get/list
+ * permissions, so getK8sSecret() calls will be denied by RBAC.
+ * See: https://github.com/kubeflow/pipelines/pull/12860
+ */
 async function parseGCSProviderInfo(
   providerInfo: GCSProviderInfo,
   namespace: string,
-): Promise<StorageOptions> {
+): Promise<CredentialBody> {
   if (!providerInfo.Params.tokenKey || !providerInfo.Params.secretName) {
     throw new Error(
       'Provider info with fromEnv:false supplied with incomplete secret credential info.',
     );
   }
-  let configGCS: StorageOptions;
   try {
     const tokenString = await getK8sSecret(
       providerInfo.Params.secretName,
@@ -276,12 +398,27 @@ async function parseGCSProviderInfo(
       namespace,
     );
     const credentials = parseJSONString<CredentialBody>(tokenString);
-    configGCS = { credentials };
-    configGCS.scopes = 'https://www.googleapis.com/auth/devstorage.read_write';
-    return configGCS;
+    if (!credentials) {
+      throw new Error('Provider info token is not valid JSON.');
+    }
+    return credentials;
   } catch (err) {
     throw new Error('Failed to parse GCS Provider config. Error: ' + err);
   }
+}
+
+async function readGCSObjectText(
+  bucket: string,
+  objectName: string,
+  client: GCSClient,
+  credentials?: CredentialBody,
+): Promise<string> {
+  const stream = await downloadGCSObjectStream({ bucket, objectName, credentials, client });
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks).toString();
 }
 
 function getGCSArtifactHandler(
@@ -293,14 +430,15 @@ function getGCSArtifactHandler(
   const { key, bucket } = options;
   return async (_: Request, res: Response) => {
     try {
-      let storageOptions: StorageOptions | undefined;
+      let credentials: CredentialBody | undefined;
       if (providerInfoString) {
         const providerInfo = parseJSONString<GCSProviderInfo>(providerInfoString);
         if (providerInfo && providerInfo.Params.fromEnv === 'false') {
           if (!namespace) {
             res.status(500).send('Failed to parse provider info. Reason: No namespace provided');
+            return;
           } else {
-            storageOptions = await parseGCSProviderInfo(providerInfo, namespace);
+            credentials = await parseGCSProviderInfo(providerInfo, namespace);
           }
         }
       }
@@ -309,23 +447,22 @@ function getGCSArtifactHandler(
       // of the pattern until the first wildcard, then we create a regular
       // expression out of the pattern, escaping all non-wildcard characters,
       // and we use it to match all enumerated paths.
-      const storage = new Storage(storageOptions);
       const prefix = key.indexOf('*') > -1 ? key.substr(0, key.indexOf('*')) : key;
-      const files = await storage.bucket(bucket).getFiles({ prefix });
-      const matchingFiles = files[0].filter(f => {
+      const client = await getGCSClient(credentials);
+      const matchingFiles = (
+        await listGCSObjectNames({
+          bucket,
+          client,
+          credentials,
+          prefix,
+        })
+      ).filter((name) => {
         // Escape regex characters
         const escapeRegexChars = (s: string) => s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
         // Build a RegExp object that only recognizes asterisks ('*'), and
         // escapes everything else.
-        const regex = new RegExp(
-          '^' +
-            key
-              .split(/\*+/)
-              .map(escapeRegexChars)
-              .join('.*') +
-            '$',
-        );
-        return regex.test(f.name);
+        const regex = new RegExp('^' + key.split(/\*+/).map(escapeRegexChars).join('.*') + '$');
+        return regex.test(name);
       });
 
       if (!matchingFiles.length) {
@@ -333,36 +470,25 @@ function getGCSArtifactHandler(
         res.send();
         return;
       }
-      console.log(
-        `Found ${matchingFiles.length} matching files: `,
-        matchingFiles.map(file => file.name).join(','),
-      );
+      console.log(`Found ${matchingFiles.length} matching files: `, matchingFiles.join(','));
       let contents = '';
       // TODO: support peek for concatenated matching files
       if (peek) {
-        matchingFiles[0]
-          .createReadStream()
-          .pipe(new PreviewStream({ peek }))
-          .pipe(res);
+        const stream = await downloadGCSObjectStream({
+          bucket,
+          client,
+          credentials,
+          objectName: matchingFiles[0],
+        });
+        stream.pipe(new PreviewStream({ peek })).pipe(res);
         return;
       }
 
       // if not peeking, iterate and append all the files
-      matchingFiles.forEach((f, i) => {
-        const buffer: Buffer[] = [];
-        f.createReadStream()
-          .on('data', data => buffer.push(Buffer.from(data)))
-          .on('end', () => {
-            contents +=
-              Buffer.concat(buffer)
-                .toString()
-                .trim() + '\n';
-            if (i === matchingFiles.length - 1) {
-              res.send(contents);
-            }
-          })
-          .on('error', () => res.status(500).send('Failed to read file: ' + f.name));
-      });
+      for (const fileName of matchingFiles) {
+        contents += (await readGCSObjectText(bucket, fileName, client, credentials)).trim() + '\n';
+      }
+      res.send(contents);
     } catch (err) {
       res.status(500).send('Failed to download GCS file(s). Error: ' + err);
     }
@@ -406,9 +532,7 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
         return;
       }
 
-      fs.createReadStream(filePath)
-        .pipe(new PreviewStream({ peek }))
-        .pipe(res);
+      fs.createReadStream(filePath).pipe(new PreviewStream({ peek })).pipe(res);
     } catch (err) {
       console.log(`Failed to open volume: ${err}`);
       res.status(500).send(`Failed to open volume.`);
@@ -453,24 +577,24 @@ export function getArtifactsProxyHandler({
   namespacedServiceGetter: NamespacedServiceGetter;
 }): Handler {
   if (!enabled) {
-    return (req, res, next) => next();
+    return (_req, _res, next) => next();
   }
-  return createProxyMiddleware(
+  const proxy = createProxyMiddleware(
     (_pathname, req) => {
       // only proxy requests with namespace query parameter
       return !!getNamespaceFromUrl(req.url || '');
     },
     {
       changeOrigin: true,
-      onProxyReq: proxyReq => {
+      onProxyReq: (proxyReq) => {
         console.log('Proxied artifact request: ', proxyReq.path);
       },
-      pathRewrite: (pathStr, req) => {
+      pathRewrite: (pathStr, _req) => {
         const url = new URL(pathStr || '', DUMMY_BASE_PATH);
         url.searchParams.delete(QUERIES.NAMESPACE);
         return url.pathname + url.search;
       },
-      router: req => {
+      router: (req) => {
         const namespace = getNamespaceFromUrl(req.url || '');
         if (!namespace) {
           console.log(`namespace query param expected in ${req.url}.`);
@@ -487,6 +611,14 @@ export function getArtifactsProxyHandler({
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
     },
   );
+  return (req, res, next) => {
+    const namespace = getNamespaceFromUrl(req.url || '');
+    if (namespace && !isAllowedResourceName(namespace)) {
+      res.status(400).send('Invalid namespace');
+      return;
+    }
+    proxy(req, res, next);
+  };
 }
 
 function getNamespaceFromUrl(path: string): string | undefined {

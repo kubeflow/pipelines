@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import Tooltip from '@material-ui/core/Tooltip';
 import CustomTable, { Column, CustomRendererProps, Row } from 'src/components/CustomTable';
 import * as React from 'react';
 import { Link, RouteComponentProps } from 'react-router-dom';
@@ -27,6 +26,7 @@ import { Apis, ListRequest, PipelineVersionSortKeys } from 'src/lib/Apis';
 import { errorToMessage, formatDateString } from 'src/lib/Utils';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { commonCss } from 'src/Css';
+import { Tooltip } from '@mui/material';
 
 export interface PipelineVersionListProps extends RouteComponentProps {
   pipelineId?: string;
@@ -70,7 +70,7 @@ class PipelineVersionList extends React.PureComponent<
 
   public _nameCustomRenderer: React.FC<
     CustomRendererProps<{ display_name?: string; name: string }>
-  > = props => {
+  > = (props) => {
     return (
       <Tooltip
         title={'Name: ' + (props.value?.name || '')}
@@ -80,7 +80,7 @@ class PipelineVersionList extends React.PureComponent<
         {this.props.pipelineId ? (
           <Link
             className={commonCss.link}
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
             to={RoutePage.PIPELINE_DETAILS.replace(
               ':' + RouteParams.pipelineId,
               this.props.pipelineId,
@@ -91,7 +91,7 @@ class PipelineVersionList extends React.PureComponent<
         ) : (
           <Link
             className={commonCss.link}
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
             to={RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineVersionId, props.id)}
           >
             {props.value?.display_name || props.value?.name}
@@ -101,7 +101,7 @@ class PipelineVersionList extends React.PureComponent<
     );
   };
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const columns: Column[] = [
       {
         customRenderer: this._nameCustomRenderer,
@@ -113,7 +113,7 @@ class PipelineVersionList extends React.PureComponent<
       { label: 'Uploaded on', flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
     ];
 
-    const rows: Row[] = this.state.pipelineVersions.map(v => {
+    const rows: Row[] = this.state.pipelineVersions.map((v) => {
       const row = {
         id: v.pipeline_version_id!,
         otherFields: [

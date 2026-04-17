@@ -47,11 +47,11 @@ googleapis-common-protos==1.70.0
     # via google-api-core
 idna==3.10
     # via requests
-kfp==2.14.3
+kfp==2.16.0
     # via -r requirements.in
-kfp-pipeline-spec==2.14.0
+kfp-pipeline-spec==2.16.0
     # via kfp
-kfp-server-api==2.14.3
+kfp-server-api==2.16.0
     # via kfp
 kubernetes==30.1.0
     # via kfp
@@ -61,14 +61,14 @@ oauthlib==3.3.1
     #   requests-oauthlib
 proto-plus==1.26.1
     # via google-api-core
-protobuf==6.31.1
+protobuf==6.33.5
     # via
     #   google-api-core
     #   googleapis-common-protos
     #   kfp
     #   kfp-pipeline-spec
     #   proto-plus
-pyasn1==0.6.1
+pyasn1==0.6.2
     # via
     #   pyasn1-modules
     #   rsa

@@ -207,7 +207,7 @@ func TestLoadSamples(t *testing.T) {
 	// Expect another Pipeline version added for Pipeline 1
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
 	require.NoError(t, err)
-	_, totalSize, _, err := rm.ListPipelineVersions(pipeline1.UUID, opts)
+	_, totalSize, _, err := rm.ListPipelineVersions(pipeline1.UUID, opts, nil)
 	require.NoError(t, err)
 	require.Equal(t, totalSize, 2)
 
@@ -221,12 +221,12 @@ func TestLoadSamples(t *testing.T) {
 	// Expect another Pipeline version added for Pipeline 2
 	_, err = rm.GetPipelineVersionByName(pc.Pipelines[1].VersionName)
 	require.NoError(t, err)
-	_, totalSize, _, err = rm.ListPipelineVersions(pipeline2.UUID, opts)
+	_, totalSize, _, err = rm.ListPipelineVersions(pipeline2.UUID, opts, nil)
 	require.NoError(t, err)
 	require.Equal(t, totalSize, 2)
 
 	// Confirm previous pipeline version count has not been affected
-	_, totalSize, _, err = rm.ListPipelineVersions(pipeline1.UUID, opts)
+	_, totalSize, _, err = rm.ListPipelineVersions(pipeline1.UUID, opts, nil)
 	require.NoError(t, err)
 	require.Equal(t, totalSize, 2)
 
@@ -242,7 +242,7 @@ func TestLoadSamples(t *testing.T) {
 	require.NoError(t, err)
 
 	// Expect no change
-	_, totalSize, _, err = rm.ListPipelineVersions(pipeline2.UUID, opts)
+	_, totalSize, _, err = rm.ListPipelineVersions(pipeline2.UUID, opts, nil)
 	require.NoError(t, err)
 	require.Equal(t, totalSize, 2)
 }
@@ -287,8 +287,225 @@ func TestLoadSamplesMultiplePipelineVersionsInConfig(t *testing.T) {
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
 	require.NoError(t, err)
 
-	_, totalSize, _, err := rm.ListPipelineVersions(pipeline.UUID, opts)
+	_, totalSize, _, err := rm.ListPipelineVersions(pipeline.UUID, opts, nil)
+	require.NoError(t, err)
 	require.Equal(t, totalSize, 2)
+}
+
+func TestParseManagedPipelinesTags(t *testing.T) {
+	tests := []struct {
+		name    string
+		envVal  string
+		want    map[string]string
+		wantErr bool
+	}{
+		{
+			name:   "multiple tags",
+			envVal: "managed=true,platform-version=v2.18.0",
+			want:   map[string]string{"managed": "true", "platform-version": "v2.18.0"},
+		},
+		{
+			name:   "single tag",
+			envVal: "managed=true",
+			want:   map[string]string{"managed": "true"},
+		},
+		{
+			name:   "empty string returns nil",
+			envVal: "",
+			want:   nil,
+		},
+		{
+			name:   "value containing equals splits on first only",
+			envVal: "key=val=ue",
+			want:   map[string]string{"key": "val=ue"},
+		},
+		{
+			name:    "missing equals is malformed",
+			envVal:  "badentry",
+			wantErr: true,
+		},
+		{
+			name:    "empty key is malformed",
+			envVal:  "=value",
+			wantErr: true,
+		},
+		{
+			name:   "whitespace in key and value is preserved",
+			envVal: " key = value ",
+			want:   map[string]string{" key ": " value "},
+		},
+		{
+			name:    "trailing comma produces empty entry",
+			envVal:  "managed=true,",
+			wantErr: true,
+		},
+		{
+			name:   "empty value is valid",
+			envVal: "key=",
+			want:   map[string]string{"key": ""},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv(managedPipelinesUploadTagsEnv, tt.envVal)
+			got, err := parseManagedPipelinesTags()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestLoadSamples_TagsApplied(t *testing.T) {
+	viper.Set("POD_NAMESPACE", "")
+	t.Setenv(managedPipelinesUploadTagsEnv, "managed=true,platform-version=v2.18.0")
+	wantTags := map[string]string{"managed": "true", "platform-version": "v2.18.0"}
+
+	rm := fakeResourceManager()
+	pc := config{
+		LoadSamplesOnRestart: true,
+		Pipelines: []configPipelines{
+			{
+				Name:        "Tagged Pipeline",
+				Description: "test",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "Tagged Pipeline - Ver 1",
+			},
+		},
+	}
+
+	path, err := writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	pipeline, err := rm.GetPipelineByNameAndNamespace("Tagged Pipeline", "")
+	require.NoError(t, err)
+	assert.Equal(t, wantTags, pipeline.Tags)
+
+	version, err := rm.GetPipelineVersionByName("Tagged Pipeline - Ver 1")
+	require.NoError(t, err)
+	assert.Empty(t, version.Tags)
+}
+
+func TestLoadSamples_NoTagsWhenEnvUnset(t *testing.T) {
+	viper.Set("POD_NAMESPACE", "")
+	t.Setenv(managedPipelinesUploadTagsEnv, "")
+
+	rm := fakeResourceManager()
+	pc := config{
+		LoadSamplesOnRestart: true,
+		Pipelines: []configPipelines{
+			{
+				Name:        "Untagged Pipeline",
+				Description: "test",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "Untagged Pipeline - Ver 1",
+			},
+		},
+	}
+
+	path, err := writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	pipeline, err := rm.GetPipelineByNameAndNamespace("Untagged Pipeline", "")
+	require.NoError(t, err)
+	assert.Empty(t, pipeline.Tags)
+
+	version, err := rm.GetPipelineVersionByName("Untagged Pipeline - Ver 1")
+	require.NoError(t, err)
+	assert.Empty(t, version.Tags)
+}
+
+func TestLoadSamples_MalformedTagsReturnsError(t *testing.T) {
+	viper.Set("POD_NAMESPACE", "")
+	t.Setenv(managedPipelinesUploadTagsEnv, "badentry")
+
+	rm := fakeResourceManager()
+	pc := config{
+		LoadSamplesOnRestart: true,
+		Pipelines: []configPipelines{
+			{
+				Name:        "Should Not Load",
+				Description: "test",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "Should Not Load - Ver 1",
+			},
+		},
+	}
+
+	path, err := writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	err = LoadSamples(rm, path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "badentry")
+}
+
+func TestLoadSamples_MalformedTagsIgnoredWhenLoadingSkipped(t *testing.T) {
+	viper.Set("POD_NAMESPACE", "")
+	rm := fakeResourceManager()
+
+	pc := config{
+		LoadSamplesOnRestart: false,
+		Pipelines: []configPipelines{
+			{
+				Name:        "Already Loaded Pipeline",
+				Description: "test",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "Already Loaded Pipeline - Ver 1",
+			},
+		},
+	}
+
+	// First load succeeds (no malformed tags, samples not yet loaded).
+	t.Setenv(managedPipelinesUploadTagsEnv, "")
+	path, err := writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	// Second load: samples already loaded + LoadSamplesOnRestart=false → skip.
+	// A malformed env var must NOT cause an error because loading is skipped.
+	t.Setenv(managedPipelinesUploadTagsEnv, "badentry")
+	path, err = writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+}
+
+func TestLoadSamples_ExistingPipelineNotRetagged(t *testing.T) {
+	viper.Set("POD_NAMESPACE", "")
+	rm := fakeResourceManager()
+
+	// First load: create pipeline + version without tags
+	t.Setenv(managedPipelinesUploadTagsEnv, "")
+	pc := config{
+		LoadSamplesOnRestart: true,
+		Pipelines: []configPipelines{
+			{
+				Name:        "Existing Pipeline",
+				Description: "test",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "Existing Pipeline - Ver 1",
+			},
+		},
+	}
+	path, err := writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	// Second load: add a new version with tags enabled
+	t.Setenv(managedPipelinesUploadTagsEnv, "managed=true")
+	pc.Pipelines[0].VersionName = "Existing Pipeline - Ver 2"
+	path, err = writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	// Existing pipeline should NOT have been re-tagged
+	pipeline, err := rm.GetPipelineByNameAndNamespace("Existing Pipeline", "")
+	require.NoError(t, err)
+	assert.Empty(t, pipeline.Tags)
 }
 
 func writeSampleConfig(t *testing.T, config config, path string) (string, error) {

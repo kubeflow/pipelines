@@ -19,7 +19,7 @@ from kfp import dsl
 
 
 @dsl.component(
-    base_image='python:3.9', packages_to_install=['tensorflow==2.16.1']
+    base_image='python:3.9-slim', packages_to_install=['tensorflow==2.16.1']
 )
 def set_test_set(
     dataprep_dir: dsl.InputPath(),
