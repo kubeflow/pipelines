@@ -246,7 +246,7 @@ class DSPADeployer:
             frontend_service_name = f'ds-pipeline-ui-{self.dspa_name}'
         else:
             deployment_name = 'ml-pipeline'
-            service_account_name = 'ml-pipeline'
+            service_account_name = 'pipeline-runner'
             database_name = 'mysql'
             mlmd_service_name = 'metadata-grpc-service'
             frontend_service_name = 'ml-pipeline-ui'
