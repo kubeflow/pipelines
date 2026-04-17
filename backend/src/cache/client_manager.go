@@ -186,8 +186,13 @@ func initDBDriver(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 		if err != nil {
 			glog.Fatalf("Invalid port for PostgreSQL: %v", err)
 		}
+		var pgxExtraParams = map[string]string{}
+		json.Unmarshal([]byte(params.dbExtraParams), &pgxExtraParams)
 		// Connect without target DB first
-		cfgNoDB, _ := client.CreatePostgreSQLConfig(params.dbUser, params.dbPwd, params.dbHost, "postgres", uint16(port))
+		cfgNoDB, _, err := client.CreatePostgreSQLConfig(params.dbUser, params.dbPwd, params.dbHost, "postgres", uint16(port), pgxExtraParams)
+		if err != nil {
+			glog.Fatalf("Failed to create PostgreSQL config: %v", err)
+		}
 		var db *sql.DB
 		var operation = func() error {
 			db, err = sql.Open(params.dbDriver, cfgNoDB.ConnString())
@@ -210,7 +215,10 @@ func initDBDriver(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 		db.Close()
 
 		// Return DSN with target DB
-		cfg, _ := client.CreatePostgreSQLConfig(params.dbUser, params.dbPwd, params.dbHost, params.dbName, uint16(port))
+		cfg, _, err := client.CreatePostgreSQLConfig(params.dbUser, params.dbPwd, params.dbHost, params.dbName, uint16(port), pgxExtraParams)
+		if err != nil {
+			glog.Fatalf("Failed to create PostgreSQL config: %v", err)
+		}
 		return cfg.ConnString()
 	default:
 		glog.Fatalf("Driver %v is not supported", params.dbDriver)

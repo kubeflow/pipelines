@@ -16,6 +16,7 @@ package filter
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"google.golang.org/protobuf/encoding/prototext"
@@ -705,6 +706,47 @@ func TestUnmarshalJSON(t *testing.T) {
 	err := json.Unmarshal([]byte(in), got)
 	if err != nil || !cmp.Equal(got, want, cmpopts.EquateEmpty(), protocmp.Transform(), cmp.AllowUnexported(Filter{})) {
 		t.Errorf("json.Unmarshal(%+v):\nGot: %v, Error: %v\nWant:\n%+v, Error: nil\nDiff:%s\n", in, got, err, want, cmp.Diff(want, got, cmp.AllowUnexported(Filter{})))
+	}
+}
+
+func TestINFilterPageTokenRoundTrip(t *testing.T) {
+	// Simulate what happens when a Filter with IN string values is serialized
+	// into a page token and then deserialized back. json.Unmarshal decodes
+	// []string as []interface{} when the target type is interface{}, which
+	// would cause the second page to lose case-insensitive LOWER() semantics.
+	original := &Filter{
+		in: map[string][]interface{}{
+			"label": {[]string{"Foo", "Bar"}},
+		},
+	}
+
+	b, err := json.Marshal(original)
+	if err != nil {
+		t.Fatalf("json.Marshal: %v", err)
+	}
+
+	roundTripped := &Filter{}
+	if err := json.Unmarshal(b, roundTripped); err != nil {
+		t.Fatalf("json.Unmarshal: %v", err)
+	}
+
+	// The value must be []string, not []interface{}, after round-trip.
+	vals := roundTripped.in["label"]
+	if len(vals) != 1 {
+		t.Fatalf("expected 1 value in f.in[label], got %d", len(vals))
+	}
+	if _, ok := vals[0].([]string); !ok {
+		t.Errorf("after JSON round-trip, f.in[label][0] type = %T, want []string", vals[0])
+	}
+
+	// AddToSelect must still emit LOWER() (case-insensitive path).
+	sb := squirrel.Select("mycolumn")
+	gotSQL, _, err := roundTripped.AddToSelect(sb, nil).ToSql()
+	if err != nil {
+		t.Fatalf("AddToSelect: %v", err)
+	}
+	if !strings.Contains(gotSQL, "LOWER") {
+		t.Errorf("expected LOWER in SQL after round-trip, got: %s", gotSQL)
 	}
 }
 

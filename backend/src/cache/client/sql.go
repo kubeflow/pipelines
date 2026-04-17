@@ -48,16 +48,25 @@ func CreateMySQLConfig(user, password string, mysqlServiceHost string,
 }
 
 func CreatePostgreSQLConfig(user, password, postgresHost, dbName string, postgresPort uint16,
-) (*pgx.ConnConfig, string) {
+	extraParams map[string]string,
+) (*pgx.ConnConfig, string, error) {
+	q := url.Values{}
+	q.Set("sslmode", "disable")
+	for k, v := range extraParams {
+		q.Set(k, v)
+	}
 	u := &url.URL{
 		Scheme:   "postgres",
 		User:     url.UserPassword(user, password),
 		Host:     fmt.Sprintf("%s:%d", postgresHost, postgresPort),
 		Path:     dbName,
-		RawQuery: "sslmode=disable",
+		RawQuery: q.Encode(),
 	}
-	cfg, _ := pgx.ParseConfig(u.String())
-	redactedDSN := fmt.Sprintf("host=%s port=%d user=%s password=*** database=%s sslmode=disable",
-		postgresHost, postgresPort, user, dbName)
-	return cfg, redactedDSN
+	cfg, err := pgx.ParseConfig(u.String())
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to parse PostgreSQL config: %w", err)
+	}
+	redactedDSN := fmt.Sprintf("host=%s port=%d user=%s password=*** database=%s sslmode=%s",
+		postgresHost, postgresPort, user, dbName, q.Get("sslmode"))
+	return cfg, redactedDSN, nil
 }

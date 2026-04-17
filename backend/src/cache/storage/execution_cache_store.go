@@ -45,9 +45,8 @@ func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string, cacheS
 	if cacheStaleness == 0 {
 		return nil, fmt.Errorf("CacheStaleness=0, Cache is disabled.")
 	}
-	// Use GORM's standard query method with struct field name to avoid case-sensitivity issues
 	var executionCaches []model.ExecutionCache
-	result := s.db.Where(&model.ExecutionCache{ExecutionCacheKey: executionCacheKey}).Find(&executionCaches)
+	result := s.db.Where(map[string]interface{}{"ExecutionCacheKey": executionCacheKey}).Find(&executionCaches)
 	if result.Error != nil {
 		return nil, fmt.Errorf("failed to get execution cache: %q, err: %v", executionCacheKey, result.Error)
 	}
@@ -147,9 +146,8 @@ func getLatestCacheEntry(executionCaches []*model.ExecutionCache) (*model.Execut
 func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.ExecutionCache) (*model.ExecutionCache, error) {
 	log.Printf("checking for existing row with cache key: %s before insertion", executionCache.ExecutionCacheKey)
 
-	// Use GORM's standard query method with struct field name to avoid case-sensitivity issues
 	var existingCaches []model.ExecutionCache
-	result := s.db.Where(&model.ExecutionCache{ExecutionCacheKey: executionCache.ExecutionCacheKey}).Find(&existingCaches)
+	result := s.db.Where(map[string]interface{}{"ExecutionCacheKey": executionCache.ExecutionCacheKey}).Find(&existingCaches)
 	if result.Error != nil {
 		log.Printf("Failed to get execution cache with key: %s, err: %v", executionCache.ExecutionCacheKey, result.Error)
 		return nil, result.Error

@@ -23,7 +23,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - image: docker.io/postgres:18-alpine
+        - image: docker.io/postgres:18.3-alpine3.22
           name: postgres
           securityContext:
             allowPrivilegeEscalation: false

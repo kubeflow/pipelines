@@ -16,6 +16,7 @@ package storage
 
 import (
 	"log"
+	"strings"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
@@ -198,4 +199,75 @@ func TestGetExecutionCacheWithExpiredMaximumCacheStaleness(t *testing.T) {
 	log.Println("error: " + err.Error())
 	require.Contains(t, err.Error(), "Execution cache not found")
 	require.Nil(t, executionCache)
+}
+
+// Regression test: empty-key queries must not return unrelated rows.
+// If Where is mistakenly changed to struct-based (which omits zero-value fields),
+// an empty key would produce an unfiltered query and return an existing row.
+func TestGetExecutionCacheWithEmptyKey(t *testing.T) {
+	db, dialect := NewFakeDBOrFatal()
+	defer closeDB(t, db)
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
+
+	_, err := executionCacheStore.CreateExecutionCache(createExecutionCache("someKey", "output1"))
+	require.NoError(t, err)
+
+	result, err := executionCacheStore.GetExecutionCache("", -1, -1)
+	require.Nil(t, result)
+	require.Contains(t, err.Error(), "Execution cache not found")
+}
+
+// Guardrail: the WHERE predicate must use the model-tag column name
+// "ExecutionCacheKey" to maintain compatibility with various SQL dialects,
+// instead of GORM's default snake_case "execution_cache_key".
+func TestGetExecutionCache_SQLUsesTaggedColumnName(t *testing.T) {
+	db, dialect := NewFakeDBOrFatal()
+	defer closeDB(t, db)
+
+	dryRun := db.Session(&gorm.Session{DryRun: true}).
+		Where(&model.ExecutionCache{ExecutionCacheKey: "anyKey"}).
+		Find(&[]model.ExecutionCache{})
+
+	sql := dryRun.Statement.SQL.String()
+	assert.True(t, strings.Contains(sql, "ExecutionCacheKey"),
+		"WHERE clause must reference the tag-declared column name 'ExecutionCacheKey', got: %s", sql)
+	assert.False(t, strings.Contains(sql, "execution_cache_key"),
+		"WHERE clause must not use GORM's default snake_case conversion, got: %s", sql)
+
+	_ = dialect
+}
+
+// Same guardrail for the duplicate-existence check in CreateExecutionCache.
+func TestCreateExecutionCache_DuplicateCheck_SQLUsesTaggedColumnName(t *testing.T) {
+	db, dialect := NewFakeDBOrFatal()
+	defer closeDB(t, db)
+
+	dryRun := db.Session(&gorm.Session{DryRun: true}).
+		Where(&model.ExecutionCache{ExecutionCacheKey: "anyKey"}).
+		Find(&[]model.ExecutionCache{})
+
+	sql := dryRun.Statement.SQL.String()
+	assert.True(t, strings.Contains(sql, "ExecutionCacheKey"),
+		"duplicate-check WHERE clause must reference the tag-declared column name 'ExecutionCacheKey', got: %s", sql)
+	assert.False(t, strings.Contains(sql, "execution_cache_key"),
+		"duplicate-check WHERE clause must not use GORM's default snake_case conversion, got: %s", sql)
+
+	_ = dialect
+}
+
+// Regression test: empty-key creation must not falsely report a duplicate.
+// If Where is mistakenly changed to struct-based, the duplicate check becomes
+// unfiltered and any existing row would be mistaken for a duplicate.
+func TestCreateExecutionCacheWithEmptyKey(t *testing.T) {
+	db, dialect := NewFakeDBOrFatal()
+	defer closeDB(t, db)
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
+
+	_, err := executionCacheStore.CreateExecutionCache(createExecutionCache("someKey", "output1"))
+	require.NoError(t, err)
+
+	_, err = executionCacheStore.CreateExecutionCache(createExecutionCache("", "output2"))
+	if err != nil {
+		assert.NotContains(t, err.Error(), "already exists")
+	}
 }

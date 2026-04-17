@@ -29,6 +29,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -130,6 +131,20 @@ func (t *token) unmarshal(pageToken string) error {
 		return errorF(err)
 	}
 
+	// Migrate legacy tokens: before the SortByMetricName field was introduced,
+	// the user-supplied metric name (e.g. "log-loss") was stored directly in
+	// SortByFieldName. Such values fail SQL identifier validation, so detect
+	// and migrate them to the new layout before validating.
+	if t.SortByMetricName == "" && t.SortByFieldName != "" && !identifierPattern.MatchString(t.SortByFieldName) {
+		t.SortByMetricName = t.SortByFieldName
+		t.SortByFieldName = model.MetricSortSQLAlias
+	}
+
+	// Normalize prefixes: legacy tokens may carry a trailing dot; strip it so
+	// downstream SQL quoting does not produce double dots.
+	t.KeyFieldPrefix = strings.TrimSuffix(t.KeyFieldPrefix, ".")
+	t.SortByFieldPrefix = strings.TrimSuffix(t.SortByFieldPrefix, ".")
+
 	// Validate all identifier fields to prevent SQL injection attacks.
 	// pageToken fields are used to construct SQL queries; unvalidated field
 	// names allow injection of arbitrary SQL through the pageToken parameter.
@@ -148,12 +163,12 @@ func (t *token) unmarshal(pageToken string) error {
 		return err
 	}
 	if t.KeyFieldPrefix != "" {
-		if err := validateIdentifierName(strings.TrimSuffix(t.KeyFieldPrefix, "."), "key field prefix"); err != nil {
+		if err := validateIdentifierName(t.KeyFieldPrefix, "key field prefix"); err != nil {
 			return err
 		}
 	}
 	if t.SortByFieldPrefix != "" {
-		if err := validateIdentifierName(strings.TrimSuffix(t.SortByFieldPrefix, "."), "sort field prefix"); err != nil {
+		if err := validateIdentifierName(t.SortByFieldPrefix, "sort field prefix"); err != nil {
 			return err
 		}
 	}
@@ -196,7 +211,9 @@ func EmptyOptions() *Options {
 // Matches returns trues if the sorting and filtering criteria in o matches that
 // of the one supplied in opts.
 func (o *Options) Matches(opts *Options) bool {
-	return o.SortByFieldName == opts.SortByFieldName && o.SortByFieldPrefix == opts.SortByFieldPrefix &&
+	return o.SortByFieldName == opts.SortByFieldName &&
+		o.SortByMetricName == opts.SortByMetricName &&
+		o.SortByFieldPrefix == opts.SortByFieldPrefix &&
 		o.IsDesc == opts.IsDesc &&
 		reflect.DeepEqual(o.Filter, opts.Filter)
 }
@@ -250,7 +267,11 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 			// n is the original field/metric name used for value lookups.
 			token.SortByFieldName = sqlCol
 			if n != sqlCol {
-				// Metric sort: preserve the original metric name for CASE WHEN queries.
+				// Metric sort: validate the name up front so an invalid metric name
+				// fails on page 1 rather than on page 2 when the token is decoded.
+				if err := validateMetricName(n); err != nil {
+					return nil, err
+				}
 				token.SortByMetricName = n
 			}
 		} else {

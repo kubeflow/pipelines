@@ -61,10 +61,6 @@ spec:
                 secretKeyRef:
                   name: postgres-secret
                   key: password
-            - name: NAMESPACE_TO_WATCH
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
             # If you update WEBHOOK_PORT, also change the value of the
             # containerPort "webhook-api" to match.
             - name: WEBHOOK_PORT

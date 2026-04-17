@@ -104,6 +104,8 @@ func FilterByResourceReference(
 	}
 
 	// Subquery: SELECT rf.ResourceUUID FROM resource_references AS rf WHERE ...
+	// Force '?' placeholders so the outer builder can assign sequential $N numbers
+	// in one unified pass (PostgreSQL). See pipeline_store.go for the same pattern.
 	sub, args, err := qb.
 		Select(q("ResourceUUID")).
 		From(q("resource_references") + " AS " + q("rf")).
@@ -112,7 +114,7 @@ func FilterByResourceReference(
 			sq.Eq{qualifyIdentifier(q, "rf.ReferenceUUID"): filterContext.ID},
 			sq.Eq{qualifyIdentifier(q, "rf.ReferenceType"): filterContext.Type},
 		}).
-		ToSql()
+		PlaceholderFormat(sq.Question).ToSql()
 	if err != nil {
 		return sel, util.NewInternalServerError(err, "Failed to create subquery to filter by resource reference: %v", err.Error())
 	}

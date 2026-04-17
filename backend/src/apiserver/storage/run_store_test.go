@@ -376,34 +376,12 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 }
 
 func TestListRuns_MetricSortInjectionSafe(t *testing.T) {
-	db, _, runStore := initializeRunStore()
-	defer db.Close()
-
-	// A malicious sortBy value attempting SQL injection through the metric name.
-	// The payload has no spaces so it passes format validation and reaches SQL
-	// generation. Prior to the fix, opts.SortByFieldName was concatenated directly
-	// into SQL structure (alias and JOIN predicate). After the fix, the metric name
-	// is passed as a bind parameter and the SQL alias is the fixed string
-	// "sort_metric_value", so this must execute without error.
+	// Malicious sortBy payload must be rejected at validation time by NewOptions,
+	// never reaching SQL generation.
 	maliciousSort := "metric:';DROP/**/TABLE/**/run_metrics;--"
-	opts, err := list.NewOptions(&model.Run{}, 10, maliciousSort, nil)
-	assert.Nil(t, err)
-
-	runs, _, _, err := runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
-	assert.Nil(t, err, "SQL injection payload must not cause a query error")
-	// Runs are returned but without a matching metric value (NULL join), so
-	// ordering is stable but no metric value is injected into SQL structure.
-	assert.NotNil(t, runs)
-
-	// Verify the run_metrics table was NOT dropped by confirming a normal
-	// metric-sort query still works.
-	opts2, err := list.NewOptions(&model.Run{}, 10, "metric:dummymetric", nil)
-	assert.Nil(t, err)
-	_, _, _, err = runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}},
-		opts2)
-	assert.Nil(t, err, "run_metrics table must still exist after injection attempt")
+	_, err := list.NewOptions(&model.Run{}, 10, maliciousSort, nil)
+	assert.NotNil(t, err, "NewOptions must reject invalid metric names")
+	assert.Contains(t, err.Error(), "Invalid metric name")
 }
 
 // TestListRuns_HyphenatedMetricSort verifies that metric names containing
@@ -1576,4 +1554,67 @@ func TestListRuns_Pagination_WithSortingOnMetrics_StringValueInToken(t *testing.
 	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed with string token")
 	assert.Empty(t, nextPageToken)
+}
+
+// TestBuildSelectRunsQuery_PgxPlaceholder verifies that buildSelectRunsQuery
+// produces well-formed $N placeholders for the pgx dialect, with no bare ?
+// and no duplicate numbering.
+//
+// This test encodes three invariants of the squirrel placeholder contract:
+//  1. No bare ? in the final SQL (Dollar conversion covers all sub-queries,
+//     including those nested via FromSelect inside addMetricsResourceReferencesAndTasks).
+//  2. $N numbers are globally sequential with no gaps or duplicates. If any
+//     sub-builder inside addMetricsResourceReferencesAndTasks used Dollar format
+//     prematurely, its own ?s would become $1,$2 before the outer scan runs,
+//     producing duplicate $1 in the final SQL — caught here by exact string match.
+//  3. args length == max N, and each arg value is in the correct position
+//     (caught by exact args slice match).
+//
+// Background: squirrel's aliasExpr.ToSql() (used by FromSelect) calls each
+// sub-builder's own ToSql() independently. The inner builder applies its own
+// PlaceholderFormat before handing the SQL string to the outer builder. This
+// means all sub-builders MUST use Question format (a no-op), leaving a single
+// unified Dollar replacement to the outermost caller. sq.SelectBuilder couples
+// query structure with placeholder format (squirrel design limitation), so
+// addMetricsResourceReferencesAndTasks() enforces this contract at its entry
+// by overwriting whatever format the caller passed in.
+//
+// Why not an integration test? Existing CI tests run against SQLite, which uses
+// Question format and never exercises the pgx Dollar path. This unit test is the
+// only gate that catches placeholder bugs before they reach a real PostgreSQL
+// instance. See the integration test conversation for the pgx end-to-end layer.
+func TestBuildSelectRunsQuery_PgxPlaceholder(t *testing.T) {
+	// Use initializeRunStore to get a fully wired store (SQLite DB + time/UUID fakes),
+	// then swap its dialect to pgx. buildSelectRunsQuery only generates SQL — it does
+	// not execute — so the underlying SQLite connection is never used in this test.
+	db, _, runStore := initializeRunStore()
+	defer db.Close()
+	runStore.dbDialect = dialect.NewDBDialect("pgx")
+
+	filterContext := &model.FilterContext{
+		ReferenceKey: &model.ReferenceKey{
+			Type: model.ExperimentResourceType,
+			ID:   "exp-123",
+		},
+	}
+	// "created_at" maps to the SQL column "CreatedAtInSec" via Run.APIToModelFieldMap.
+	opts, err := list.NewOptions(&model.Run{}, 10, "created_at desc", nil)
+	assert.Nil(t, err)
+
+	sqlStr, args, err := runStore.buildSelectRunsQuery(false, opts, filterContext)
+	assert.Nil(t, err)
+
+	// Invariant 1 & 2: exact SQL match catches both bare ? (Dollar conversion missed
+	// a sub-query) and duplicate $1 (a sub-builder used Dollar format prematurely,
+	// causing its own ?s to be numbered before the outer scan runs).
+	// The only bind parameter is ExperimentUUID = $1; all other clauses are literal SQL.
+	expectedSQL := `SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", "PipelineRuntimeManifest", "WorkflowRuntimeManifest", "JobUUID", "State", "StateHistory", "PipelineContextId", "PipelineRunContextId", "refs", "taskDetails", "metrics" FROM (SELECT rd."UUID", rd."ExperimentUUID", rd."DisplayName", rd."Name", rd."StorageState", rd."Namespace", rd."ServiceAccount", rd."Description", rd."CreatedAtInSec", rd."ScheduledAtInSec", rd."FinishedAtInSec", rd."Conditions", rd."PipelineId", rd."PipelineVersionId", rd."PipelineName", rd."PipelineSpecManifest", rd."WorkflowSpecManifest", rd."Parameters", rd."RuntimeParameters", rd."PipelineRoot", rd."PipelineRuntimeManifest", rd."WorkflowRuntimeManifest", rd."JobUUID", rd."State", rd."StateHistory", rd."PipelineContextId", rd."PipelineRunContextId", withmetrics."refs", withmetrics."taskDetails", withmetrics."metrics" FROM (SELECT subq."UUID", subq."refs", subq."taskDetails", '[' || COALESCE(string_agg(rm."Payload", ','), '') || ']' AS "metrics" FROM (SELECT rdref."UUID", rdref."refs", '[' || COALESCE(string_agg(tasks."Payload", ','), '') || ']' AS "taskDetails" FROM (SELECT filtered."UUID", '[' || COALESCE(string_agg(rr."Payload", ','), '') || ']' AS "refs" FROM (SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", "PipelineRuntimeManifest", "WorkflowRuntimeManifest", "JobUUID", "State", "StateHistory", "PipelineContextId", "PipelineRunContextId" FROM "run_details" WHERE "ExperimentUUID" = $1) AS filtered LEFT JOIN "resource_references" AS rr ON rr."ResourceType"='Run' AND filtered."UUID"=rr."ResourceUUID" GROUP BY filtered."UUID") AS rdref LEFT JOIN "tasks" AS tasks ON rdref."UUID"=tasks."RunUUID" GROUP BY rdref."UUID", rdref."refs") AS subq LEFT JOIN "run_metrics" AS rm ON subq."UUID"=rm."RunUUID" GROUP BY subq."UUID", subq."refs", subq."taskDetails") AS withmetrics JOIN "run_details" AS rd ON withmetrics."UUID"=rd."UUID") AS final ORDER BY "CreatedAtInSec" DESC, "UUID" DESC LIMIT 11`
+	assert.Equal(t, expectedSQL, sqlStr,
+		"SQL must use $N placeholders (not ?) and $1 must appear exactly once for ExperimentUUID")
+
+	// Invariant 3: args length == max N (here 1), and each value is in the correct
+	// position. If squirrel appended args in the wrong order or emitted extra args
+	// from a sub-builder, this exact match will fail.
+	assert.Equal(t, []interface{}{"exp-123"}, args,
+		"args must contain exactly the ExperimentUUID bind value at position 0 ($1)")
 }

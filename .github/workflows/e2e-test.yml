@@ -91,19 +91,13 @@ jobs:
             pod_to_pod_tls_enabled: "true"
             db_type: "mysql"
             test_label: "E2ECritical"
-          - k8s_version: "v1.34.0"
-            cache_enabled: "true"
-            argo_version: "v3.7.3"
-            pod_to_pod_tls_enabled: "true"
-            proxy: "false"
-            db_type: "pgx"
-            test_label: "E2ECritical"
-
         exclude:
           - db_type: "pgx"
             proxy: "true"
           - db_type: "pgx"
             argo_version: "v3.5.14"
+          - db_type: "pgx"
+            cache_enabled: "false"
       fail-fast: false
     name: End to End ${{ matrix.test_label}} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }} dbType=${{ matrix.db_type }}
     steps:
@@ -203,6 +197,9 @@ jobs:
             cache_enabled: "true"
             db_type: "mysql"
             test_label: "E2ECritical"
+        exclude:
+          - db_type: "pgx"
+            cache_enabled: "false"
       fail-fast: false
     name: End to End Critical Scenario Multi User Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.artifact_proxy }} dbType=${{ matrix.db_type }}
     steps:

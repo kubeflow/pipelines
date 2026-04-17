@@ -181,6 +181,9 @@ func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 		sqlBuilder = s.addResourceReferences(sqlBuilder)
 		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder, q, s.dbDialect.StringCollation())
 	}
+	if s.dbDialect.Name() == "pgx" {
+		sqlBuilder = sqlBuilder.PlaceholderFormat(sq.Dollar)
+	}
 	sql, args, err := sqlBuilder.ToSql()
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)

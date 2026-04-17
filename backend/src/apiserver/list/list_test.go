@@ -458,12 +458,38 @@ func TestNewOptions_InvalidSortOptions(t *testing.T) {
 		{"unknownfield"},
 		{"timestamp descending"},
 		{"timestamp asc hello"},
+		// Metric names with invalid characters must be rejected on page 1.
+		{"metric:val/loss"}, // slash not allowed
+		{"metric:123bad"},   // must start with a letter
 	}
 
 	for _, test := range tests {
 		got, err := NewOptions(&fakeListable{}, pageSize, test.sortBy, nil)
 		if err == nil {
 			t.Errorf("NewOptions(sortBy=%q) =\nGot: %+v, <nil>\nWant error", test.sortBy, got)
+		}
+	}
+}
+
+func TestNewOptions_ValidMetricSort(t *testing.T) {
+	pageSize := 10
+	tests := []struct {
+		sortBy         string
+		wantMetricName string
+	}{
+		{"metric:accuracy", "accuracy"},
+		{"metric:log-loss", "log-loss"},
+		{"metric:val_accuracy", "val_accuracy"},
+	}
+
+	for _, test := range tests {
+		got, err := NewOptions(&fakeListable{}, pageSize, test.sortBy, nil)
+		if err != nil {
+			t.Errorf("NewOptions(sortBy=%q) returned unexpected error: %v", test.sortBy, err)
+			continue
+		}
+		if got.SortByMetricName != test.wantMetricName {
+			t.Errorf("NewOptions(sortBy=%q) SortByMetricName = %q, want %q", test.sortBy, got.SortByMetricName, test.wantMetricName)
 		}
 	}
 }
@@ -902,6 +928,61 @@ func TestTokenSerialization(t *testing.T) {
 	}
 }
 
+func TestUnmarshalInvalidMetricNameRoundTrip(t *testing.T) {
+	// A tampered or legacy token may carry a metric name that is now invalid
+	// (e.g. contains a slash). unmarshal must reject it so that page 2 never
+	// silently accepts what page 1 would reject after the NewOptions fix.
+	badToken := token{
+		SortByFieldName:  model.MetricSortSQLAlias,
+		SortByMetricName: "val/loss",
+		KeyFieldName:     "UUID",
+	}
+	s, err := badToken.marshal()
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	got := &token{}
+	if err := got.unmarshal(s); err == nil {
+		t.Errorf("unmarshal token with metric name %q: expected error, got nil", "val/loss")
+	}
+}
+
+func TestUnmarshalLegacyTokenMigration(t *testing.T) {
+	// Legacy tokens stored the user-supplied metric name (e.g. "log-loss") in
+	// SortByFieldName and left SortByMetricName empty. unmarshal must migrate
+	// them to the new layout without returning an error.
+	legacyToken := token{
+		SortByFieldName:   "log-loss",
+		SortByFieldPrefix: "pipeline_runs.",
+		KeyFieldPrefix:    "pipeline_runs.",
+		KeyFieldName:      "UUID",
+		KeyFieldValue:     "abc",
+		IsDesc:            false,
+	}
+	s, err := legacyToken.marshal()
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+
+	got := &token{}
+	if err := got.unmarshal(s); err != nil {
+		t.Fatalf("unmarshal legacy token: %v", err)
+	}
+
+	if got.SortByFieldName != model.MetricSortSQLAlias {
+		t.Errorf("SortByFieldName = %q, want %q", got.SortByFieldName, model.MetricSortSQLAlias)
+	}
+	if got.SortByMetricName != "log-loss" {
+		t.Errorf("SortByMetricName = %q, want %q", got.SortByMetricName, "log-loss")
+	}
+	if got.SortByFieldPrefix != "pipeline_runs" {
+		t.Errorf("SortByFieldPrefix = %q, want trailing dot stripped", got.SortByFieldPrefix)
+	}
+	if got.KeyFieldPrefix != "pipeline_runs" {
+		t.Errorf("KeyFieldPrefix = %q, want trailing dot stripped", got.KeyFieldPrefix)
+	}
+}
+
 func TestMatches(t *testing.T) {
 	protoFilter1 := &api.Filter{
 		Predicates: []*api.Predicate{
@@ -960,6 +1041,18 @@ func TestMatches(t *testing.T) {
 			o1:   &Options{token: &token{Filter: f1}},
 			o2:   &Options{token: &token{Filter: f2}},
 			want: false,
+		},
+		// Metric sort: same SQL alias but different metric names are distinct queries.
+		{
+			o1:   &Options{token: &token{SortByFieldName: "sort_metric_value", SortByMetricName: "accuracy"}},
+			o2:   &Options{token: &token{SortByFieldName: "sort_metric_value", SortByMetricName: "log-loss"}},
+			want: false,
+		},
+		// Metric sort: same SQL alias and same metric name are the same query.
+		{
+			o1:   &Options{token: &token{SortByFieldName: "sort_metric_value", SortByMetricName: "accuracy"}},
+			o2:   &Options{token: &token{SortByFieldName: "sort_metric_value", SortByMetricName: "accuracy"}},
+			want: true,
 		},
 	}
 

@@ -99,6 +99,31 @@ func (f *Filter) UnmarshalJSON(b []byte) error {
 	f.in = ffm.IN
 	f.substring = ffm.SUBSTRING
 
+	// json.Unmarshal decodes JSON arrays into []interface{}.
+	// These codes normalize them back to []string when possible,
+	// so that AddToSelect always sees []string and applies LOWER() correctly.
+	for k, vs := range f.in {
+		for i, v := range vs {
+			iface, ok := v.([]interface{})
+			if !ok {
+				continue
+			}
+			strs := make([]string, len(iface))
+			allStrings := true
+			for j, elem := range iface {
+				s, isStr := elem.(string)
+				if !isStr {
+					allStrings = false
+					break
+				}
+				strs[j] = s
+			}
+			if allStrings {
+				f.in[k][i] = strs
+			}
+		}
+	}
+
 	return nil
 }
 

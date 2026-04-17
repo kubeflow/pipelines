@@ -65,11 +65,12 @@ const (
 	mysqlGroupConcatMaxLen = "DBConfig.MySQLConfig.GroupConcatMaxLen"
 	mysqlExtraParams       = "DBConfig.MySQLConfig.ExtraParams"
 
-	postgresHost     = "DBConfig.PostgreSQLConfig.Host"
-	postgresPort     = "DBConfig.PostgreSQLConfig.Port"
-	postgresUser     = "DBConfig.PostgreSQLConfig.User"
-	postgresPassword = "DBConfig.PostgreSQLConfig.Password"
-	postgresDBName   = "DBConfig.PostgreSQLConfig.DBName"
+	postgresHost        = "DBConfig.PostgreSQLConfig.Host"
+	postgresPort        = "DBConfig.PostgreSQLConfig.Port"
+	postgresUser        = "DBConfig.PostgreSQLConfig.User"
+	postgresPassword    = "DBConfig.PostgreSQLConfig.Password"
+	postgresDBName      = "DBConfig.PostgreSQLConfig.DBName"
+	postgresExtraParams = "DBConfig.PostgreSQLConfig.ExtraParams"
 
 	archiveLogFileName   = "ARCHIVE_CONFIG_LOG_FILE_NAME"
 	archiveLogPathPrefix = "ARCHIVE_CONFIG_LOG_PATH_PREFIX"
@@ -407,13 +408,18 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 		sqlConfig = mysqlConfig.FormatDSN()
 		dbName = common.GetStringConfig(mysqlDBName)
 	case "pgx":
-		pgxConfig, _ = client.CreatePostgreSQLConfig(
+		var pgxConfigErr error
+		pgxConfig, _, pgxConfigErr = client.CreatePostgreSQLConfig(
 			common.GetStringConfigWithDefault(postgresUser, "user"),
 			common.GetStringConfigWithDefault(postgresPassword, "password"),
 			common.GetStringConfigWithDefault(postgresHost, "postgresql"),
 			"postgres",
 			uint16(common.GetIntConfigWithDefault(postgresPort, 5432)),
+			common.GetMapConfig(postgresExtraParams),
 		)
+		if pgxConfigErr != nil {
+			glog.Fatalf("Failed to create PostgreSQL config: %v", pgxConfigErr)
+		}
 		sqlConfig = pgxConfig.ConnString()
 		dbName = common.GetStringConfig(postgresDBName)
 	default:
@@ -468,13 +474,17 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 	case "pgx":
 		// Note: postgreSQL does not have the option `ClientFoundRows`
 		// Config reference: https://www.postgresql.org/docs/current/libpq-connect.html
-		pgxCfg, _ := client.CreatePostgreSQLConfig(
+		pgxCfg, _, pgxCfgErr := client.CreatePostgreSQLConfig(
 			common.GetStringConfigWithDefault(postgresUser, "user"),
 			common.GetStringConfigWithDefault(postgresPassword, "password"),
 			common.GetStringConfigWithDefault(postgresHost, "postgresql"),
 			dbName,
 			uint16(common.GetIntConfigWithDefault(postgresPort, 5432)),
+			common.GetMapConfig(postgresExtraParams),
 		)
+		if pgxCfgErr != nil {
+			glog.Fatalf("Failed to create PostgreSQL config: %v", pgxCfgErr)
+		}
 		sqlConfig = pgxCfg.ConnString()
 	default:
 		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, or \"pgx\" for PostgreSQL", driverName)

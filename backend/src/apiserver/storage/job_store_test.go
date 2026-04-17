@@ -16,6 +16,7 @@ package storage
 
 import (
 	"database/sql"
+	"strings"
 	"testing"
 	"time"
 
@@ -972,4 +973,63 @@ func TestJobAPIFieldMap(t *testing.T) {
 	for _, modelField := range (&model.Job{}).APIToModelFieldMap() {
 		assert.Contains(t, jobColumns, modelField)
 	}
+}
+
+// TestBuildSelectJobsQuery_PgxPlaceholder verifies that buildSelectJobsQuery
+// produces well-formed $N placeholders for the pgx dialect, with no bare ?
+// and no duplicate numbering.
+//
+// This test encodes three invariants of the squirrel placeholder contract:
+//  1. No bare ? in the final SQL (Dollar conversion covers all sub-queries,
+//     including those nested via FromSelect inside addResourceReferences).
+//  2. $N numbers are globally sequential with no gaps or duplicates. If any
+//     sub-builder inside addResourceReferences used Dollar format prematurely,
+//     its own ?s would become $1,$2 before the outer scan runs,
+//     producing duplicate $1 in the final SQL — caught here by exact string match.
+//  3. args length == max N, and each arg value is in the correct position
+//     (caught by exact args slice match).
+//
+// Background: squirrel's aliasExpr.ToSql() (used by FromSelect) calls each
+// sub-builder's own ToSql() independently. If any sub-builder uses Dollar format,
+// it replaces its own ?s with $1,$2 before the outer builder runs, causing
+// duplicate $1 numbering and mismatched args. The fix is to defer Dollar conversion
+// to the outermost ToSql() call in buildSelectJobsQuery.
+//
+// Why not an integration test? Existing CI tests run against SQLite, which uses
+// Question format and never exercises the pgx Dollar path. This unit test is the
+// only gate that catches placeholder bugs before they reach a real PostgreSQL
+// instance.
+func TestBuildSelectJobsQuery_PgxPlaceholder(t *testing.T) {
+	// Use initializeDBAndStore to get a fully wired store (SQLite DB + time/UUID fakes),
+	// then swap its dialect to pgx. buildSelectJobsQuery only generates SQL — it does
+	// not execute — so the underlying SQLite connection is never used in this test.
+	db, _, jobStore := initializeDBAndStore()
+	defer db.Close()
+	jobStore.dbDialect = dialect.NewDBDialect("pgx")
+
+	filterContext := &model.FilterContext{
+		ReferenceKey: &model.ReferenceKey{
+			Type: model.ExperimentResourceType,
+			ID:   "exp-123",
+		},
+	}
+	opts, err := list.NewOptions(&model.Job{}, 10, "name", nil)
+	assert.Nil(t, err)
+
+	sqlStr, args, err := jobStore.buildSelectJobsQuery(false, opts, filterContext)
+	assert.Nil(t, err)
+
+	// Invariant 1: no bare ? — Dollar conversion must cover the filteredSelectBuilder
+	// nested inside addResourceReferences via FromSelect.
+	assert.NotContains(t, sqlStr, "?",
+		"SQL must not contain bare ? placeholders in pgx mode")
+
+	// Invariant 2: $1 appears exactly once (for ExperimentUUID). If the inner builder
+	// prematurely applied Dollar format, its $1 would collide with the outer $1.
+	assert.Equal(t, 1, strings.Count(sqlStr, "$1"),
+		"$1 must appear exactly once — duplicate indicates premature Dollar conversion in a sub-builder")
+
+	// Invariant 3: args contains exactly the ExperimentUUID bind value at position 0 ($1).
+	assert.Equal(t, []interface{}{"exp-123"}, args,
+		"args must contain exactly the ExperimentUUID bind value at position 0 ($1)")
 }

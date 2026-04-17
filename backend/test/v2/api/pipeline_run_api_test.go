@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
 	experimentparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
@@ -223,50 +224,488 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 		})
 	})
 
-	PContext("Get All pipeline run >", func() {
+	Context("Get All pipeline run >", func() {
+		var listPipelineFile string
+		var listCreatedPipeline *pipeline_upload_model.V2beta1Pipeline
+		var listCreatedPipelineVersion *pipeline_model.V2beta1PipelineVersion
+		var listPipelineRuntimeInputs map[string]interface{}
+
+		BeforeEach(func() {
+			listPipelineFile = filepath.Join(testutil.GetValidPipelineFilesDir(), helloWorldPipelineFileName)
+			listCreatedPipeline = uploadAPipeline(listPipelineFile, &testContext.Pipeline.PipelineGeneratedName)
+			listCreatedPipelineVersion = testutil.GetLatestPipelineVersion(pipelineClient, &listCreatedPipeline.PipelineID)
+			listPipelineRuntimeInputs = testutil.GetPipelineRunTimeInputs(listPipelineFile)
+		})
+
 		It("Create a Pipeline Run and validate that it gets returned in the List Runs API call", func() {
+			createdExperiment := createExperiment(experimentName)
+			createdRun := createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			runs, err := runClient.ListAll(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+			}, 1000)
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs")
+			var found bool
+			for _, r := range runs {
+				if r.RunID == createdRun.RunID {
+					found = true
+					break
+				}
+			}
+			Expect(found).To(BeTrue(), "Created run not found in list")
 		})
+
 		It("Create 2 pipeline Runs, and list it", func() {
+			createdExperiment := createExperiment(experimentName)
+			createdRun1 := createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			createdRun2 := createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			runs, err := runClient.ListAll(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+			}, 1000)
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs")
+			Expect(len(runs)).To(BeNumerically(">=", 2))
+			runIDs := make(map[string]bool)
+			for _, r := range runs {
+				runIDs[r.RunID] = true
+			}
+			Expect(runIDs[createdRun1.RunID]).To(BeTrue(), "Run 1 not found in list")
+			Expect(runIDs[createdRun2.RunID]).To(BeTrue(), "Run 2 not found in list")
 		})
+
 		It("List pipeline Runs when no runs exist", func() {
+			isolatedExperiment := createExperiment(experimentName + "-isolated")
+			runs, err := runClient.ListAll(&runparams.RunServiceListRunsParams{
+				ExperimentID: &isolatedExperiment.ExperimentID,
+			}, 1000)
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs")
+			Expect(runs).To(BeEmpty(), "Expected no runs for isolated experiment")
 		})
+
 		It("List pipeline Runs and sort by display name in ascending order", func() {
+			createdExperiment := createExperiment(experimentName)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			sortBy := "display_name asc"
+			runs, err := runClient.ListAll(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+				SortBy:       &sortBy,
+			}, 1000)
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs sorted by display name asc")
+			for i := 1; i < len(runs); i++ {
+				Expect(strings.ToLower(runs[i-1].DisplayName) <= strings.ToLower(runs[i].DisplayName)).To(BeTrue(), "Runs not sorted by display_name asc")
+			}
 		})
+
 		It("List pipeline Runs and sort by display name in descending order", func() {
+			createdExperiment := createExperiment(experimentName)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			sortBy := "display_name desc"
+			runs, err := runClient.ListAll(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+				SortBy:       &sortBy,
+			}, 1000)
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs sorted by display name desc")
+			for i := 1; i < len(runs); i++ {
+				Expect(strings.ToLower(runs[i-1].DisplayName) >= strings.ToLower(runs[i].DisplayName)).To(BeTrue(), "Runs not sorted by display_name desc")
+			}
 		})
+
 		It("List pipeline Runs and sort by id in ascending order", func() {
+			createdExperiment := createExperiment(experimentName)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			sortBy := "id asc"
+			runs, err := runClient.ListAll(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+				SortBy:       &sortBy,
+			}, 1000)
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs sorted by id asc")
+			for i := 1; i < len(runs); i++ {
+				Expect(runs[i-1].RunID <= runs[i].RunID).To(BeTrue(), "Runs not sorted by id asc")
+			}
 		})
+
 		It("List pipeline Runs and sort by id in descending order", func() {
+			createdExperiment := createExperiment(experimentName)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			sortBy := "id desc"
+			runs, err := runClient.ListAll(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+				SortBy:       &sortBy,
+			}, 1000)
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs sorted by id desc")
+			for i := 1; i < len(runs); i++ {
+				Expect(runs[i-1].RunID >= runs[i].RunID).To(BeTrue(), "Runs not sorted by id desc")
+			}
 		})
-		It("List pipeline Runs and sort by pipeline version id in ascending order", func() {
+
+		It("List pipeline Runs and sort by scheduled_at in ascending order", func() {
+			createdExperiment := createExperiment(experimentName)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			sortBy := "scheduled_at asc"
+			runs, err := runClient.ListAll(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+				SortBy:       &sortBy,
+			}, 1000)
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs sorted by scheduled_at asc")
+			Expect(len(runs)).To(BeNumerically(">=", 1))
 		})
-		It("List pipeline Runs and sort by pipeline version id in descending order", func() {
+
+		It("List pipeline Runs and sort by scheduled_at in descending order", func() {
+			createdExperiment := createExperiment(experimentName)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			sortBy := "scheduled_at desc"
+			runs, err := runClient.ListAll(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+				SortBy:       &sortBy,
+			}, 1000)
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs sorted by scheduled_at desc")
+			Expect(len(runs)).To(BeNumerically(">=", 1))
 		})
+
 		It("List pipeline Runs and sort by creation date in ascending order", func() {
+			createdExperiment := createExperiment(experimentName)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			sortBy := "created_at asc"
+			runs, err := runClient.ListAll(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+				SortBy:       &sortBy,
+			}, 1000)
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs sorted by created_at asc")
+			for i := 1; i < len(runs); i++ {
+				t1 := time.Time(runs[i-1].CreatedAt)
+				t2 := time.Time(runs[i].CreatedAt)
+				Expect(t1.Before(t2) || t1.Equal(t2)).To(BeTrue(), "Runs not sorted by created_at asc")
+			}
 		})
+
 		It("List pipeline Runs and sort by creation date in descending order", func() {
+			createdExperiment := createExperiment(experimentName)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			sortBy := "created_at desc"
+			runs, err := runClient.ListAll(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+				SortBy:       &sortBy,
+			}, 1000)
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs sorted by created_at desc")
+			for i := 1; i < len(runs); i++ {
+				t1 := time.Time(runs[i-1].CreatedAt)
+				t2 := time.Time(runs[i].CreatedAt)
+				Expect(t1.After(t2) || t1.Equal(t2)).To(BeTrue(), "Runs not sorted by created_at desc")
+			}
 		})
-		It("List pipeline Runs and sort by updated date in ascending order", func() {
+
+		It("List pipeline Runs and sort by finished_at in ascending order", func() {
+			createdExperiment := createExperiment(experimentName)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			sortBy := "finished_at asc"
+			runs, err := runClient.ListAll(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+				SortBy:       &sortBy,
+			}, 1000)
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs sorted by finished_at asc")
+			Expect(len(runs)).To(BeNumerically(">=", 1))
 		})
-		It("List pipeline Runs and sort by updated date in descending order", func() {
+
+		It("List pipeline Runs and sort by finished_at in descending order", func() {
+			createdExperiment := createExperiment(experimentName)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			sortBy := "finished_at desc"
+			runs, err := runClient.ListAll(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+				SortBy:       &sortBy,
+			}, 1000)
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs sorted by finished_at desc")
+			Expect(len(runs)).To(BeNumerically(">=", 1))
 		})
+
 		It("List pipeline Runs by specifying page size", func() {
+			createdExperiment := createExperiment(experimentName)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			pageSize := int32(1)
+			runs, totalSize, nextPageToken, err := runClient.List(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+				PageSize:     &pageSize,
+			})
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs with page size")
+			Expect(len(runs)).To(Equal(1))
+			Expect(totalSize).To(BeNumerically(">=", 2))
+			Expect(nextPageToken).NotTo(BeEmpty(), "Expected nextPageToken to be non-empty")
 		})
+
 		It("List pipeline Runs by specifying page size and iterate over at least 2 pages", func() {
+			createdExperiment := createExperiment(experimentName)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			pageSize := int32(1)
+			pageToken := ""
+			pagesVisited := 0
+			collectedRuns := make([]*run_model.V2beta1Run, 0)
+			for {
+				params := &runparams.RunServiceListRunsParams{
+					ExperimentID: &createdExperiment.ExperimentID,
+					PageSize:     &pageSize,
+				}
+				if pageToken != "" {
+					params.PageToken = &pageToken
+				}
+				runs, _, nextPageToken, err := runClient.List(params)
+				Expect(err).NotTo(HaveOccurred(), "Failed to list runs on page iteration")
+				collectedRuns = append(collectedRuns, runs...)
+				pagesVisited++
+				if nextPageToken == "" {
+					break
+				}
+				pageToken = nextPageToken
+			}
+			Expect(pagesVisited).To(BeNumerically(">=", 2), "Expected at least 2 pages")
+			Expect(len(collectedRuns)).To(BeNumerically(">=", 3), "Expected at least 3 runs collected")
 		})
+
 		It("List pipeline Runs filtering by run id", func() {
+			createdExperiment := createExperiment(experimentName)
+			createdRun := createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			filterStr := fmt.Sprintf(`{"predicates":[{"key":"run_id","operation":"EQUALS","string_value":"%s"}]}`, createdRun.RunID)
+			runs, totalSize, _, err := runClient.List(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+				Filter:       &filterStr,
+			})
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs filtered by run_id")
+			Expect(totalSize).To(Equal(1))
+			Expect(len(runs)).To(Equal(1))
+			Expect(runs[0].RunID).To(Equal(createdRun.RunID))
 		})
+
 		It("List pipeline Runs filtering by display name containing", func() {
+			createdExperiment := createExperiment(experimentName)
+			createdRun := createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			filterStr := fmt.Sprintf(`{"predicates":[{"key":"display_name","operation":"IS_SUBSTRING","string_value":"%s"}]}`, createdRun.DisplayName)
+			runs, _, _, err := runClient.List(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+				Filter:       &filterStr,
+			})
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs filtered by display_name IS_SUBSTRING")
+			var found bool
+			for _, r := range runs {
+				if r.RunID == createdRun.RunID {
+					found = true
+					break
+				}
+			}
+			Expect(found).To(BeTrue(), "Run not found after IS_SUBSTRING filter on display_name")
 		})
+
 		It("List pipeline Runs filtering by `name` EQUALS", func() {
+			createdExperiment := createExperiment(experimentName)
+			createdRun := createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			filterStr := fmt.Sprintf(`{"predicates":[{"key":"name","operation":"EQUALS","string_value":"%s"}]}`, createdRun.DisplayName)
+			runs, _, _, err := runClient.List(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+				Filter:       &filterStr,
+			})
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs filtered by name EQUALS")
+			var found bool
+			for _, r := range runs {
+				if r.RunID == createdRun.RunID {
+					found = true
+					break
+				}
+			}
+			Expect(found).To(BeTrue(), "Run not found after EQUALS filter on name")
 		})
+
 		It("List pipeline Runs filtering by `name` NOT Equals", func() {
+			createdExperiment := createExperiment(experimentName)
+			createdRun1 := createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			filterStr := fmt.Sprintf(`{"predicates":[{"key":"name","operation":"NOT_EQUALS","string_value":"%s"}]}`, createdRun1.DisplayName)
+			runs, _, _, err := runClient.List(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+				Filter:       &filterStr,
+			})
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs filtered by name NOT_EQUALS")
+			for _, r := range runs {
+				Expect(r.RunID).NotTo(Equal(createdRun1.RunID), "Excluded run should not appear in results")
+			}
 		})
+
 		It("List pipeline Runs filtering by creation date", func() {
+			createdExperiment := createExperiment(experimentName)
+			createdRun := createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			// Use the run's created_at timestamp as the filter boundary (must be Unix seconds as long_value)
+			createdAtUnix := time.Time(createdRun.CreatedAt).Unix()
+			filterStr := fmt.Sprintf(`{"predicates":[{"key":"created_at","operation":"GREATER_THAN_EQUALS","long_value":%d}]}`, createdAtUnix)
+			runs, _, _, err := runClient.List(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+				Filter:       &filterStr,
+			})
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs filtered by created_at")
+			Expect(len(runs)).To(BeNumerically(">=", 1), "Expected at least 1 run matching created_at filter")
 		})
+
 		It("List pipeline Runs by experiment id", func() {
+			createdExperiment1 := createExperiment(experimentName + "-exp1")
+			createdExperiment2 := createExperiment(experimentName + "-exp2")
+			createdRun1 := createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment1.ExperimentID, listPipelineRuntimeInputs)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment2.ExperimentID, listPipelineRuntimeInputs)
+
+			runs, _, _, err := runClient.List(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment1.ExperimentID,
+			})
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs by experiment_id")
+			Expect(len(runs)).To(Equal(1), "Expected exactly 1 run for experiment 1")
+			Expect(runs[0].RunID).To(Equal(createdRun1.RunID), "Expected run 1 to be returned")
 		})
+
 		It("List pipeline Runs by namespace", func() {
+			if !*config.KubeflowMode && !*config.MultiUserMode {
+				// In non-kubeflow mode, just verify the API call succeeds without error
+				ns := *config.Namespace
+				runs, _, _, err := runClient.List(&runparams.RunServiceListRunsParams{
+					Namespace: &ns,
+				})
+				Expect(err).NotTo(HaveOccurred(), "Failed to list runs by namespace")
+				_ = runs
+				return
+			}
+			ns := testutil.GetNamespace()
+			createdExperiment := createExperiment(experimentName)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+
+			runs, _, _, err := runClient.List(&runparams.RunServiceListRunsParams{
+				Namespace: &ns,
+			})
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs by namespace in Kubeflow mode")
+			Expect(len(runs)).To(BeNumerically(">=", 1))
+		})
+
+		It("List pipeline Runs by namespace with filter AND pagination (FilterByResourceReference placeholder numbering)", func() {
+			// This test specifically targets the PostgreSQL placeholder-collision bug in
+			// FilterByResourceReference. Filtering by Namespace goes through that code path
+			// (unlike ExperimentID which bypasses it), and combining it with a display_name
+			// filter + pagination produces multiple args that must be numbered sequentially
+			// ($1/$2/$3 for subquery, $4 for filter, $5/$6 for page cursor).
+			// On PostgreSQL, a collision causes wrong rows or a driver error.
+			ns := testutil.GetNamespace()
+			uniquePrefix := "pgx-ns-test-" + randomName
+			origRunName := runName
+			runName = uniquePrefix + "-run"
+			createdExperiment := createExperiment(experimentName)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			runName = origRunName
+
+			filterStr := fmt.Sprintf(`{"predicates":[{"key":"display_name","operation":"IS_SUBSTRING","string_value":"%s"}]}`, uniquePrefix)
+			pageSize := int32(1)
+
+			// Page 1: Namespace filter + display_name filter + pagination
+			page1Runs, _, page1Token, err := runClient.List(&runparams.RunServiceListRunsParams{
+				Namespace: &ns,
+				Filter:    &filterStr,
+				PageSize:  &pageSize,
+			})
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs page 1 by namespace with filter+pagination")
+			Expect(len(page1Runs)).To(Equal(1), "Page 1 should return exactly 1 run")
+			Expect(page1Token).NotTo(BeEmpty(), "Expected non-empty nextPageToken after page 1")
+
+			// Page 2: same params + page token — args must not collide on PostgreSQL
+			page2Runs, _, _, err := runClient.List(&runparams.RunServiceListRunsParams{
+				Namespace: &ns,
+				Filter:    &filterStr,
+				PageSize:  &pageSize,
+				PageToken: &page1Token,
+			})
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs page 2 by namespace with filter+pagination")
+			Expect(len(page2Runs)).To(Equal(1), "Page 2 should return exactly 1 run")
+
+			allRunIDs := make(map[string]bool)
+			for _, r := range page1Runs {
+				allRunIDs[r.RunID] = true
+			}
+			for _, r := range page2Runs {
+				allRunIDs[r.RunID] = true
+			}
+			Expect(len(allRunIDs)).To(BeNumerically(">=", 2), "Expected at least 2 distinct runs across 2 pages")
+		})
+
+		It("List pipeline Runs with filter AND pagination across 2 pages", func() {
+			// This test specifically targets pgx multi-level subquery placeholder numbering correctness.
+			// When filter + pagination are combined, buildSelectRunsQuery produces SQL with multiple
+			// args (filter value + page cursor value). All ?s are unified into $1,$2,... in one pass
+			// via PlaceholderFormat(sq.Dollar). If args order is wrong, PostgreSQL returns incorrect
+			// rows or an error, which would not be caught by SQLite-based unit tests.
+			createdExperiment := createExperiment(experimentName)
+			// Use unique prefix in display name to avoid cross-test interference
+			uniquePrefix := "pgx-test-" + randomName
+			// Override runName to embed uniquePrefix — createPipelineRun uses the package-level runName
+			origRunName := runName
+			runName = uniquePrefix + "-run"
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			createPipelineRun(&listCreatedPipeline.PipelineID, &listCreatedPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, listPipelineRuntimeInputs)
+			runName = origRunName
+
+			filterStr := fmt.Sprintf(`{"predicates":[{"key":"display_name","operation":"IS_SUBSTRING","string_value":"%s"}]}`, uniquePrefix)
+			pageSize := int32(1)
+
+			// Page 1
+			page1Runs, _, page1Token, err := runClient.List(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+				Filter:       &filterStr,
+				PageSize:     &pageSize,
+			})
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs page 1 with filter+pagination")
+			Expect(len(page1Runs)).To(Equal(1), "Page 1 should return exactly 1 run")
+			Expect(page1Token).NotTo(BeEmpty(), "Expected non-empty nextPageToken after page 1")
+
+			// Page 2 — this is the critical call: filter arg + page cursor arg must map to correct $1/$2
+			page2Runs, _, _, err := runClient.List(&runparams.RunServiceListRunsParams{
+				ExperimentID: &createdExperiment.ExperimentID,
+				Filter:       &filterStr,
+				PageSize:     &pageSize,
+				PageToken:    &page1Token,
+			})
+			Expect(err).NotTo(HaveOccurred(), "Failed to list runs page 2 with filter+pagination")
+			Expect(len(page2Runs)).To(Equal(1), "Page 2 should return exactly 1 run")
+
+			// Combined result
+			allRunIDs := make(map[string]bool)
+			for _, r := range page1Runs {
+				allRunIDs[r.RunID] = true
+			}
+			for _, r := range page2Runs {
+				allRunIDs[r.RunID] = true
+			}
+			Expect(len(allRunIDs)).To(BeNumerically(">=", 2), "Expected at least 2 distinct runs across 2 pages")
 		})
 	})
 })

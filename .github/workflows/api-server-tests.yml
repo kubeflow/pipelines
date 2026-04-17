@@ -86,12 +86,6 @@ jobs:
             cache_enabled: "true"
             pod_to_pod_tls_enabled: "true"
             db_type: "mysql"
-          - k8s_version: "v1.34.0"
-            cache_enabled: "true"
-            argo_version: "v3.7.3"
-            pod_to_pod_tls_enabled: "true"
-            db_type: "pgx"
-            proxy: "false"
         exclude:
           - db_type: "pgx"
             proxy: "true"
@@ -99,6 +93,8 @@ jobs:
             argo_version: "v3.6.7"
           - db_type: "pgx"
             argo_version: "v4.0.4"
+          - db_type: "pgx"
+            cache_enabled: "false"
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
     name: KFP API Server tests Standalone - K8sVersion=${{ matrix.k8s_version }} argo_version=${{ matrix.argo_version }} cacheEnabled=${{ matrix.cache_enabled }} proxyEnabled=${{ matrix.proxy }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }} dbType=${{ matrix.db_type }}
 

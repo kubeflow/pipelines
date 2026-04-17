@@ -229,12 +229,15 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 func (s *RunStore) GetRun(runId string) (*model.Run, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
-	sql, args, err := s.addMetricsResourceReferencesAndTasks(
+	getRunBuilder := s.addMetricsResourceReferencesAndTasks(
 		qb.Select(quoteAll(q, runColumns)...).
 			From(q("run_details")).
 			Where(sq.Eq{q("UUID"): runId}).
-			Limit(1), nil).
-		ToSql()
+			Limit(1), nil)
+	if s.dbDialect.Name() == "pgx" {
+		getRunBuilder = getRunBuilder.PlaceholderFormat(sq.Dollar)
+	}
+	sql, args, err := getRunBuilder.ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
 	}
@@ -260,8 +263,20 @@ func (s *RunStore) GetRun(runId string) (*model.Run, error) {
 
 func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
 	q := s.dbDialect.QuoteIdentifier
-	// Use Question format for subqueries to ensure correct parameter numbering
+	// All builders in this function must use Question format.
+	// Reason: squirrel's aliasExpr.ToSql() (used by FromSelect) calls each
+	// sub-builder's own ToSql() independently. If any sub-builder uses Dollar
+	// format, it replaces its own ?s with $1,$2 before the outer builder runs,
+	// causing duplicate $1 numbering and mismatched args. Question is a no-op,
+	// so the outermost caller can do one unified Dollar replacement on the
+	// complete SQL string.
+	//
+	// sq.SelectBuilder couples query structure with placeholder format (squirrel
+	// design limitation — not separable at the KFP layer), so we enforce the
+	// contract here rather than relying on callers to pass the right format.
+	// Callers MUST apply PlaceholderFormat(sq.Dollar) before ToSql() on pgx.
 	qb := sq.StatementBuilder.PlaceholderFormat(sq.Question)
+	filteredSelectBuilder = filteredSelectBuilder.PlaceholderFormat(sq.Question)
 
 	// Optimization: Only pass UUID and aggregated columns through the 3 LEFT JOINs,
 	// then JOIN back to run_details at the end to get all runColumns.
@@ -428,8 +443,10 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&metricsInString,
 		}
 
-		// If there's an extra column (metric sort column), add a dummy variable to scan it
-		if len(columns) > 30 {
+		// If there's an extra column (metric sort column), add a dummy variable to scan it.
+		// Base count = runColumns + 3 aggregated columns (refs, taskDetails, metrics).
+		baseColumnCount := len(runColumns) + 3
+		if len(columns) > baseColumnCount {
 			var dummyMetricValue sql.NullFloat64
 			scanDest = append(scanDest, &dummyMetricValue)
 		}

@@ -16,6 +16,7 @@ package storage
 import (
 	"testing"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/stretchr/testify/require"
@@ -174,6 +175,53 @@ func TestFilterByNamespace(t *testing.T) {
 					require.Equal(t, tc.want[dl.name], gotSQL)
 				})
 			}
+		})
+	}
+}
+
+// TestFilterByResourceReferenceCombinedPredicate verifies that when an additional
+// WHERE predicate is appended after FilterByResourceReference, PostgreSQL placeholder
+// numbers are assigned sequentially ($1/$2/$3 for the subquery, $4 for the extra
+// predicate) with no collision.
+func TestFilterByResourceReferenceCombinedPredicate(t *testing.T) {
+	fctx := &model.FilterContext{
+		ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: "ref-id"},
+	}
+
+	cases := []struct {
+		name      string
+		d         dialect.DBDialect
+		wantSQL   string
+		wantArgsN int
+	}{
+		{
+			name:      "pgx",
+			d:         dialect.NewDBDialect("pgx"),
+			wantSQL:   `SELECT "*" FROM "testTable" WHERE "UUID" IN (SELECT "ResourceUUID" FROM "resource_references" AS "rf" WHERE ("rf"."ResourceType" = $1 AND "rf"."ReferenceUUID" = $2 AND "rf"."ReferenceType" = $3)) AND "Name" = $4`,
+			wantArgsN: 4,
+		},
+		{
+			name:      "mysql",
+			d:         dialect.NewDBDialect("mysql"),
+			wantSQL:   "SELECT `*` FROM `testTable` WHERE `UUID` IN (SELECT `ResourceUUID` FROM `resource_references` AS `rf` WHERE (`rf`.`ResourceType` = ? AND `rf`.`ReferenceUUID` = ? AND `rf`.`ReferenceType` = ?)) AND `Name` = ?",
+			wantArgsN: 4,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			qb := tc.d.QueryBuilder()
+			q := tc.d.QuoteIdentifier
+
+			builder, err := FilterByResourceReference(qb, q, "testTable", []string{"*"}, model.RunResourceType, false, fctx)
+			require.NoError(t, err)
+
+			builder = builder.Where(sq.Eq{q("Name"): "foo"})
+
+			gotSQL, args, err := builder.ToSql()
+			require.NoError(t, err)
+			require.Equal(t, tc.wantArgsN, len(args))
+			require.Equal(t, tc.wantSQL, gotSQL)
 		})
 	}
 }

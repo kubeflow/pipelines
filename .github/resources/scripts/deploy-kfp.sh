@@ -148,26 +148,29 @@ fi
 # platform-agnostic-postgresql), so they cannot be stacked as independent patches.
 # Cache-disabled and proxy are orthogonal env-var patches but are bundled into
 # dedicated overlay directories for simplicity.
-# If conflicting flags are passed (e.g. --tls-enabled --db-type pgx), the
-# higher-priority branch wins; lower-priority flags are ignored for overlay
-# selection, and a warning is printed to stderr to make this precedence explicit.
+# Conflicting flag combinations (e.g. --tls-enabled --db-type pgx) are rejected
+# with a hard error, since no overlay exists for them and silently deploying the
+# wrong overlay would produce misleading CI results.
 #
 # Priority 1: Multi-user false + standalone (not kubernetes-native)
 if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/standalone"
 
-  # Warn about conflicting or overshadowed flags for standalone mode. This mirrors
-  # the precedence applied below without changing which overlay is selected.
+  # Reject conflicting flag combinations for standalone mode — these combinations
+  # have no corresponding overlay, so continuing would silently deploy the wrong config.
   if $POD_TO_POD_TLS_ENABLED; then
     if [ "${DB_TYPE}" == "pgx" ]; then
-      echo "Warning: Both POD_TO_POD_TLS_ENABLED and DB_TYPE=pgx are set; using the TLS-enabled overlay and ignoring the PostgreSQL (pgx) setting for manifest selection." >&2
+      echo "Error: POD_TO_POD_TLS_ENABLED and DB_TYPE=pgx cannot be used together (TLS+PostgreSQL overlay not yet implemented)." >&2
+      exit 1
     fi
     if $CACHE_DISABLED || $USE_PROXY; then
-      echo "Warning: POD_TO_POD_TLS_ENABLED is set together with CACHE_DISABLED and/or USE_PROXY; using the TLS-enabled overlay and ignoring cache/proxy-specific overlays." >&2
+      echo "Error: POD_TO_POD_TLS_ENABLED cannot be combined with CACHE_DISABLED or USE_PROXY." >&2
+      exit 1
     fi
   elif [ "${DB_TYPE}" == "pgx" ]; then
     if $CACHE_DISABLED || $USE_PROXY; then
-      echo "Warning: DB_TYPE=pgx is set together with CACHE_DISABLED and/or USE_PROXY; using the PostgreSQL overlay and ignoring cache/proxy-specific overlays." >&2
+      echo "Error: DB_TYPE=pgx cannot be combined with CACHE_DISABLED or USE_PROXY." >&2
+      exit 1
     fi
   fi
 
@@ -207,8 +210,13 @@ elif [ "${MULTI_USER}" == "true" ]; then
 
   # Warn about conflicting or overshadowed flags for multiuser mode.
   if [ "${DB_TYPE}" == "pgx" ]; then
-    if $ARTIFACT_PROXY_ENABLED || $CACHE_DISABLED; then
-      echo "Warning: DB_TYPE=pgx is set together with ARTIFACT_PROXY_ENABLED and/or CACHE_DISABLED; using the PostgreSQL overlay and ignoring other overlay flags." >&2
+    if $CACHE_DISABLED; then
+      echo "Error: DB_TYPE=pgx cannot be combined with CACHE_DISABLED in multi-user mode (no corresponding overlay exists)." >&2
+      exit 1
+    fi
+    if $ARTIFACT_PROXY_ENABLED; then
+      echo "Error: DB_TYPE=pgx cannot be combined with ARTIFACT_PROXY_ENABLED in multi-user mode (no corresponding overlay exists)." >&2
+      exit 1
     fi
   elif $ARTIFACT_PROXY_ENABLED; then
     if $CACHE_DISABLED; then

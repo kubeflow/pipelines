@@ -213,6 +213,8 @@ server locally.
         "DBDRIVERNAME": "pgx",
         "DBCONFIG_POSTGRESQLCONFIG_HOST": "localhost",
         "DBCONFIG_POSTGRESQLCONFIG_DBNAME": "mlpipeline",
+        // Optional: override sslmode or inject other libpq params, e.g. {"sslmode":"require"}
+        // "DBCONFIG_POSTGRESQLCONFIG_EXTRAPARAMS": "",
         "OBJECTSTORECONFIG_HOST": "localhost",
         "OBJECTSTORECONFIG_PORT": "9000",
         "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",

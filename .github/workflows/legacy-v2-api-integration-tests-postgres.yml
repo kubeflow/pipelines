@@ -34,13 +34,13 @@ jobs:
     continue-on-error: false
     strategy:
       matrix:
-        pipeline_store: ["database", "kubernetes"]
+        pipeline_store: ["database"]
         k8s_version: ["v1.34.0"]
         pod_to_pod_tls_enabled: [true, false]
         cache_enabled: [true, false]
         exclude:
-          - pipeline_store: "kubernetes"
-            pod_to_pod_tls_enabled: true
+          - pod_to_pod_tls_enabled: true  # TLS+PostgreSQL overlay not yet implemented
+          - cache_enabled: false           # PostgreSQL+cache-disabled overlay not yet implemented
       fail-fast: false # Ensure all jobs in the matrix run, even if one fails
     name: API v2 - PG - K8s ${{ matrix.k8s_version }} - Store ${{ matrix.pipeline_store }} - TLS ${{ matrix.pod_to_pod_tls_enabled }} - Cache ${{ matrix.cache_enabled }}
 

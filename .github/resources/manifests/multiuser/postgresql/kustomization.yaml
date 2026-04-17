@@ -59,6 +59,26 @@ patches:
     target:
       kind: Deployment
       name: cache-server
+  - path: ../../base/metadata-writer-pull-policy.yaml
+    target:
+      kind: Deployment
+      name: metadata-writer
+  - path: ../../base/viewer-crd-pull-policy.yaml
+    target:
+      kind: Deployment
+      name: ml-pipeline-viewer-crd
+  - path: ../../base/cache-deployer-pull-policy.yaml
+    target:
+      kind: Deployment
+      name: cache-deployer-deployment
+  - path: ../../base/cache-server-pull-policy.yaml
+    target:
+      kind: Deployment
+      name: cache-server
+  - path: ../../base/metadata-envoy-pull-policy.yaml
+    target:
+      kind: Deployment
+      name: metadata-envoy-deployment
 
 replacements:
   - source:
