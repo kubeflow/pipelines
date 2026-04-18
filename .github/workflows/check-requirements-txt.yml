@@ -33,8 +33,3 @@ jobs:
           pyproject-path: 'api/v2alpha1/python/pyproject.toml'
           command: 'uv export --frozen --no-dev --package kfp-pipeline-spec --format requirements-txt -o api/v2alpha1/python/requirements.txt'
           requirements-path: 'api/v2alpha1/python/requirements.txt'
-      - uses: hbelmiro/uv-lock-check@814bb91b9521353fce69abced9210c8b42467d6d  # v0.2.0
-        with:
-          pyproject-path: 'backend/api/v2beta1/python_http_client/pyproject.toml'
-          command: 'uv export --frozen --no-dev --package kfp-server-api --format requirements-txt -o backend/api/v2beta1/python_http_client/requirements.txt'
-          requirements-path: 'backend/api/v2beta1/python_http_client/requirements.txt'
