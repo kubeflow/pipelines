@@ -88,7 +88,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     // Default to error styles.
     let bannerModeCss = stylesheet({
       mode: { backgroundColor: color.errorBg, color: color.errorText },

@@ -64,7 +64,7 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
     return 'Visualization Creator';
   }
 
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const { configs } = this.props;
     const config = configs[0];
     const { arguments: _arguments, code, source, selectedType } = this.state;

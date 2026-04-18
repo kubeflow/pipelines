@@ -14,19 +14,17 @@
  * limitations under the License.
  */
 
-// @types/react@19 removed the global JSX namespace. This shim restores it by
-// re-exporting React.JSX so existing JSX.Element return-type annotations
-// compile without a mass rewrite across ~80 source files.
-//
-// Safe to remove once those annotations are cleaned up in a follow-up.
+import { useCallback, useState } from 'react';
 
-import type { JSX as ReactJSX } from 'react';
+type KeyedState<T> = {
+  key: string;
+  value: T;
+};
 
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace JSX {
-    type Element = ReactJSX.Element;
-    type ElementClass = ReactJSX.ElementClass;
-    type IntrinsicElements = ReactJSX.IntrinsicElements;
-  }
+export function useKeyedState<T>(key: string, initialValue: T) {
+  const [state, setState] = useState<KeyedState<T>>({ key: '', value: initialValue });
+  const value = state.key === key ? state.value : initialValue;
+  const setValue = useCallback((nextValue: T) => setState({ key, value: nextValue }), [key]);
+
+  return [value, setValue] as const;
 }

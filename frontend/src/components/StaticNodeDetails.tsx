@@ -38,7 +38,7 @@ interface StaticNodeDetailsProps {
 }
 
 class StaticNodeDetails extends React.Component<StaticNodeDetailsProps> {
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const nodeInfo = this.props.nodeInfo;
 
     return (

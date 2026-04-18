@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { act, render, screen, waitFor, fireEvent, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import TestUtils, { expectErrors, testBestPractices } from 'src/TestUtils';
 import { Artifact, Context, Event, Execution } from 'src/third_party/mlmd';
@@ -23,6 +23,7 @@ import { ButtonKeys } from 'src/lib/Buttons';
 import { QUERY_PARAMS } from 'src/components/Router';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';
 import * as Utils from 'src/lib/Utils';
+import * as metricsVisualizations from 'src/components/viewers/MetricsVisualizations';
 import { TEST_ONLY } from './CompareV2';
 import { PageProps } from './Page';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
@@ -712,6 +713,51 @@ describe('CompareV2', () => {
     expect(getHeaderCheckbox()).not.toBeChecked();
   });
 
+  it('drops stale manual selections when the toolbar refresh returns different fetched run ids', async () => {
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
+    const refreshedRunIds = new Set<string>();
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => {
+      if (refreshedRunIds.has(id)) {
+        return {
+          ...newMockRun(`replacement-${id}`),
+          display_name: `test run ${id}`,
+        };
+      }
+      return { ...runs.find((r) => r.run_id === id)! };
+    });
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    await waitFor(() => {
+      expect(updateToolbarSpy).toHaveBeenCalled();
+    });
+    await waitForRunCheckboxes(3);
+
+    fireEvent.click(getRunRow(MOCK_RUN_2_ID));
+    await TestUtils.flushPromises();
+    await waitForRunCheckboxes(2);
+
+    refreshedRunIds.add(MOCK_RUN_3_ID);
+    const refreshAction = updateToolbarSpy.mock.lastCall?.[0].actions[ButtonKeys.REFRESH]
+      .action as () => Promise<void>;
+    await act(async () => {
+      await refreshAction();
+    });
+    await TestUtils.flushPromises();
+
+    await waitForRunCheckboxes(1);
+    expect(getRunRow(MOCK_RUN_1_ID)).toHaveAttribute('aria-checked', 'true');
+    expect(getRunRow(MOCK_RUN_2_ID)).toHaveAttribute('aria-checked', 'false');
+    expect(getRunRow(MOCK_RUN_3_ID)).toHaveAttribute('aria-checked', 'false');
+    expect(getHeaderCheckbox()).not.toBeChecked();
+  });
+
   it('reinitializes selection to the new runlist after a route change', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
@@ -741,6 +787,102 @@ describe('CompareV2', () => {
     await waitForRunCheckboxes(2);
     expect(getRunRow(MOCK_RUN_2_ID)).toHaveAttribute('aria-checked', 'true');
     expect(getRunRow(MOCK_RUN_3_ID)).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('refreshes the selected HTML artifact after a route change with the same visible labels', async () => {
+    const ORIGINAL_ROUTE_RUN_ID = 'html-route-original';
+    const UPDATED_ROUTE_RUN_ID = 'html-route-updated';
+    const SHARED_RUN_NAME = 'shared run';
+    const SHARED_EXECUTION_NAME = 'shared execution';
+    const SHARED_ARTIFACT_NAME = 'shared artifact';
+
+    runs = [
+      {
+        ...newMockRun(ORIGINAL_ROUTE_RUN_ID),
+        display_name: SHARED_RUN_NAME,
+      },
+      {
+        ...newMockRun(UPDATED_ROUTE_RUN_ID),
+        display_name: SHARED_RUN_NAME,
+      },
+    ];
+
+    const originalContext = newMockContext(ORIGINAL_ROUTE_RUN_ID, 200);
+    const updatedContext = newMockContext(UPDATED_ROUTE_RUN_ID, 300);
+    vi.spyOn(mlmdUtils, 'getKfpV2RunContext').mockImplementation((runID: string) =>
+      Promise.resolve(
+        [originalContext, updatedContext].find((context) => context.getName() === runID),
+      ),
+    );
+
+    const originalExecution = newMockExecution(200, SHARED_EXECUTION_NAME);
+    const updatedExecution = newMockExecution(300, SHARED_EXECUTION_NAME);
+    vi.spyOn(mlmdUtils, 'getExecutionsFromContext').mockImplementation((context: Context) =>
+      Promise.resolve(
+        context.getId() === originalContext.getId() ? [originalExecution] : [updatedExecution],
+      ),
+    );
+
+    const originalArtifact = newMockArtifact(200, false, false, SHARED_ARTIFACT_NAME);
+    const updatedArtifact = newMockArtifact(300, false, false, SHARED_ARTIFACT_NAME);
+    vi.spyOn(mlmdUtils, 'getArtifactsFromContext').mockImplementation((context: Context) =>
+      Promise.resolve(
+        context.getId() === originalContext.getId() ? [originalArtifact] : [updatedArtifact],
+      ),
+    );
+
+    vi.spyOn(mlmdUtils, 'getEventsByExecutions').mockImplementation((executions: Execution[]) =>
+      Promise.resolve(
+        executions[0]?.getId() === originalExecution.getId()
+          ? [newMockEvent(200, SHARED_ARTIFACT_NAME)]
+          : [newMockEvent(300, SHARED_ARTIFACT_NAME)],
+      ),
+    );
+
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([]);
+    vi.spyOn(mlmdUtils, 'filterLinkedArtifactsByType').mockImplementation(
+      (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
+        metricsFilter === 'system.HTML' ? linkedArtifacts : [],
+    );
+
+    const getHtmlViewerConfigSpy = vi.spyOn(metricsVisualizations, 'getHtmlViewerConfig');
+    getHtmlViewerConfigSpy.mockResolvedValue([]);
+
+    const initialProps = generateProps();
+    initialProps.location.search = `?${QUERY_PARAMS.runlist}=${ORIGINAL_ROUTE_RUN_ID}`;
+
+    const renderResult = render(
+      <CommonTestWrapper>
+        <CompareV2 {...initialProps} />
+      </CommonTestWrapper>,
+    );
+    await waitForRunCheckboxes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'HTML' }));
+    fireEvent.click(await screen.findByText('Choose a first HTML artifact', { timeout: 10000 }));
+    fireEvent.mouseEnter(screen.getAllByText(SHARED_RUN_NAME)[1]);
+    fireEvent.click(screen.getByLabelText(`${SHARED_EXECUTION_NAME} > ${SHARED_ARTIFACT_NAME}`));
+
+    await waitFor(() => {
+      const lastCall = getHtmlViewerConfigSpy.mock.lastCall;
+      expect(lastCall?.[0]?.[0]?.artifact.getId()).toBe(originalArtifact.getId());
+      expect(lastCall?.[1]).toBeUndefined();
+    });
+
+    const nextProps = generateProps();
+    nextProps.location.search = `?${QUERY_PARAMS.runlist}=${UPDATED_ROUTE_RUN_ID}`;
+    renderResult.rerender(
+      <CommonTestWrapper>
+        <CompareV2 {...nextProps} />
+      </CommonTestWrapper>,
+    );
+
+    await TestUtils.flushPromises();
+    await waitFor(() => {
+      const lastCall = getHtmlViewerConfigSpy.mock.lastCall;
+      expect(lastCall?.[0]?.[0]?.artifact.getId()).toBe(updatedArtifact.getId());
+      expect(lastCall?.[1]).toBeUndefined();
+    });
   });
 
   it('Parameters and Scalar metrics tab initially enabled with loading then error, and switch tabs', async () => {

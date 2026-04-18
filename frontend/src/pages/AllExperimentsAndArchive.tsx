@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import type * as React from 'react';
 import ExperimentsPage from './ExperimentList';
 import ArchivedExperimentsPage from './ArchivedExperiments';
 import MD2Tabs from '../atoms/MD2Tabs';
@@ -44,7 +45,7 @@ class AllExperimentsAndArchive extends Page<
     return { actions: {}, breadcrumbs: [], pageTitle: '' };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
         <MD2Tabs

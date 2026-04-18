@@ -104,7 +104,7 @@ class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
     );
   }
 
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const { title, configs, maxDimension, ...otherProps } = this.props;
 
     if (!configs || !configs.length) {

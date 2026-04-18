@@ -68,7 +68,7 @@ class HTMLViewer extends Viewer<HTMLViewerProps, any> {
     this._updateHtmlContent(this._config);
   }
 
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     if (!this._config) {
       return null;
     }

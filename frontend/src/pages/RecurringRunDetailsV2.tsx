@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import type * as React from 'react';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import DetailsTable from 'src/components/DetailsTable';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
@@ -61,7 +62,7 @@ class RecurringRunDetailsV2 extends Page<{}, RecurringRunConfigState> {
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { run } = this.state;
     let runDetails: Array<KeyValue<string>> = [];
     let inputParameters: Array<KeyValue<string>> = [];

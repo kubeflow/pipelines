@@ -15,6 +15,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
+import { CircularProgress } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
 import { commonCss, padding } from 'src/Css';
@@ -63,6 +64,7 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
 
   // Retrieves input and output artifacts from Metadata store.
   const {
+    isLoading,
     isSuccess,
     error,
     data: linkedArtifacts,
@@ -119,6 +121,8 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
       <div className={commonCss.page}>
         <div className={padding(20)}>
           <ExecutionTitle execution={execution} />
+
+          {isLoading && <CircularProgress />}
 
           {error && (
             <Banner
