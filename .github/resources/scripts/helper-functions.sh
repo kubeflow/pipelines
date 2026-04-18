@@ -57,7 +57,7 @@ wait_for_namespace () {
 
 wait_for_pods () {
     C_DIR="${BASH_SOURCE%/*}"
-    pip install -r "${C_DIR}"/kfp-readiness/requirements.txt
+    python -m pip install "kubernetes==30.1.0" "urllib3==2.6.3"
     python "${C_DIR}"/kfp-readiness/wait_for_pods.py
 }
 

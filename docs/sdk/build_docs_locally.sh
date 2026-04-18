@@ -15,7 +15,7 @@
 # install requirements
 
 pushd ../..
-pip install -r docs/sdk/requirements.txt
+uv sync --frozen --extra docs
 popd
 
 # build docs

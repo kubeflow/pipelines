@@ -34,6 +34,8 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - '.github/workflows/api-server-tests.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
@@ -173,6 +175,9 @@ jobs:
         argo_version: [ "v3.7.3", "v3.5.14", "v4.0.4" ]
         pipeline_store: [ "kubernetes" ]
         pod_to_pod_tls_enabled: [ "false" ]
+        exclude:
+          - k8s_version: "v1.34.0"
+            argo_version: "v3.5.14"
         include:
           - k8s_version: "v1.34.0"
             cache_enabled: "true"

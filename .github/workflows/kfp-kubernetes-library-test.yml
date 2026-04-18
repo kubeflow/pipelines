@@ -5,6 +5,8 @@ on:
     branches: [master]
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - '.github/workflows/kfp-kubernetes-library-test.yml'
       - 'sdk/python/**'
       - 'api/v2alpha1/**'
@@ -25,19 +27,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python
         with:
           python-version: ${{matrix.python.version}}
-          cache: 'pip'
 
-      - name: Install protobuf dependencies & kfp-pipeline-spec
+      - name: Install protobuf dependencies & generate proto files
         id: install-protobuf-deps
         uses: ./.github/actions/protobuf
 
-      - name: Install kfp & kfp-kubernetes from source
-        id: install-kfp-k8s-deps
-        uses: ./.github/actions/kfp-k8s
-
       - name: Run tests
-        run: pytest ./kubernetes_platform/python/test
+        run: uv run pytest ./kubernetes_platform/python/test

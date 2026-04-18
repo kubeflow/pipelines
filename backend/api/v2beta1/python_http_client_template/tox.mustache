@@ -1,0 +1,11 @@
+[tox]
+envlist = py27, py3
+skip_missing_interpreters = true
+
+[testenv]
+deps=
+     -r{toxinidir}/requirements.txt
+     -r{toxinidir}/test-requirements.txt
+
+commands=
+   pytest --cov={{{packageName}}}

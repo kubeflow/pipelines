@@ -19,7 +19,11 @@ docformatter -r . --in-place
 
 ## Developer Setup
 
-To set up your development environment, we have included all necessary Python pip requirements in the `requirements.txt` and `dev_requirements.txt` files. We recommend that you install these in either a `conda` or `pyenv` environment. The current version of Python that the project uses is `Python 3.7`. The `PYTHONPATH` for this project should be set at the root of the component (`components/aws/sagemaker`).
+To set up your development environment, install dependencies with `uv` from the
+workspace root (for example `uv sync --extra dev`). We recommend using either a
+`conda` or `pyenv` environment. The current version of Python that the project
+uses is `Python 3.7`. The `PYTHONPATH` for this project should be set at the
+root of the component (`components/aws/sagemaker`).
 
 ### Code Generators
 

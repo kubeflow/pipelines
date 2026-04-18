@@ -150,8 +150,8 @@ def get_service_account_credentials(
         return None
     if isinstance(bootstrap_credentials, google.auth.app_engine.Credentials):
         # import requests_toolbelt.adapters.appengine here for those who run KFP
-        # in an environment where urllib3<2.0.0 (https://github.com/kubeflow/pipelines/blob/9f278f3682662b24b46be2d9ef4a783bcc1f9b0c/sdk/python/requirements.in#L25C14-L25C14)
-        # is not available, preventing breaks due to https://github.com/kubeflow/pipelines/issues/9326#issuecomment-1535491761
+        # in environments where the appengine adapter dependency stack may be
+        # unavailable, preventing breaks due to https://github.com/kubeflow/pipelines/issues/9326#issuecomment-1535491761
         # whenever the user runs `import kfp`.
         # by putting the import statement here, only those invoking the KFP SDK client
         # from within App Engine are strictly required to have urllib3<2.0.0.
