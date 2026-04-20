@@ -53,7 +53,7 @@ function SubDagNode({ id, data }: SubDagNodeProps) {
                   {executionIcon}
                 </div>
                 <div className='px-4 py-4 w-44 flex flex-col justify-center items-center '>
-                  <span className='w-full truncate' id={id}>
+                  <span className='w-full truncate' id={id} data-testid={id}>
                     {data.label}
                   </span>
                 </div>

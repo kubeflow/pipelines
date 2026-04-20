@@ -216,12 +216,10 @@ describe('ExperimentDetails', () => {
   });
 
   it('opens the expanded description modal when the expand button is clicked', async () => {
-    const { container } = await renderExperimentDetails();
+    await renderExperimentDetails();
     await waitForExperimentLoad();
 
-    const expandButton = container.querySelector('#expandExperimentDescriptionBtn');
-    expect(expandButton).not.toBeNull();
-    fireEvent.click(expandButton as HTMLElement);
+    fireEvent.click(screen.getByTestId('LaunchIcon'));
     await flushPromisesInAct();
     expect(updateDialogSpy).toHaveBeenCalledWith({
       content: MOCK_EXPERIMENT.description,

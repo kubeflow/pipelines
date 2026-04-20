@@ -170,7 +170,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
           />
         )}
         {this.state.isJsonField && this.state.isEditorOpen && (
-          <div className={css.row}>
+          <div className={css.row} data-testid={`json-editor-${id}`}>
             <Editor
               width='100%'
               minLines={3}
