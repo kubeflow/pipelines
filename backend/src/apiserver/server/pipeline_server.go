@@ -1263,11 +1263,13 @@ func (s *BasePipelineServer) canAccessPipeline(ctx context.Context, pipelineId s
 		}
 	}
 	// Skip authorization for read-only operations on shared pipelines in multi-user mode.
-	// Write operations (create, update, delete) on shared pipelines must still be authorized.
+	// Write operations (create, update, delete) on shared pipelines must still be authorized
+	// against the KFP system namespace, since shared pipelines have no namespace of their own.
 	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
 		if resourceAttributes.Verb == common.RbacResourceVerbGet || resourceAttributes.Verb == common.RbacResourceVerbList {
 			return nil
 		}
+		resourceAttributes.Namespace = common.GetPodNamespace()
 		resourceAttributes.Group = common.RbacPipelinesGroup
 		resourceAttributes.Version = common.RbacPipelinesVersion
 		resourceAttributes.Resource = common.RbacResourceTypePipelines
