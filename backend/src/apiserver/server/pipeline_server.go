@@ -1092,8 +1092,21 @@ func (s *BasePipelineServer) canAccessPipeline(ctx context.Context, pipelineId s
 			resourceAttributes.Name = pipeline.Name
 		}
 	}
-	// Skip authentication if the namespace is empty to enable shared pipelines in multi-user mode
+	// Skip authorization for read-only operations on shared pipelines in multi-user mode.
+	// Write operations (create, update, delete) on shared pipelines must still be authorized
+	// against the KFP system namespace, since shared pipelines have no namespace of their own.
 	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
+		if resourceAttributes.Verb == common.RbacResourceVerbGet || resourceAttributes.Verb == common.RbacResourceVerbList {
+			return nil
+		}
+		resourceAttributes.Namespace = common.GetPodNamespace()
+		resourceAttributes.Group = common.RbacPipelinesGroup
+		resourceAttributes.Version = common.RbacPipelinesVersion
+		resourceAttributes.Resource = common.RbacResourceTypePipelines
+		err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
+		if err != nil {
+			return util.Wrapf(err, "Failed to access shared pipeline %s. Check if you have permission to %s shared pipelines", pipelineId, resourceAttributes.Verb)
+		}
 		return nil
 	}
 	resourceAttributes.Group = common.RbacPipelinesGroup

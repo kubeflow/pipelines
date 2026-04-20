@@ -190,6 +190,9 @@ if [ "${MULTI_USER}" == "true" ]; then
 
   echo "Applying network policy to allow user namespace access to kubeflow services..."
   kubectl apply -f test_data/kubernetes/seaweedfs/allow-user-namespace-access.yaml
+
+  echo "Applying shared pipeline RBAC for test user..."
+  kubectl apply -f test_data/kubernetes/seaweedfs/shared-pipeline-rbac.yaml
 fi
 
 # Verify pipeline integration for multi-user mode
