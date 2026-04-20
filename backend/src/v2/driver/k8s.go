@@ -769,6 +769,19 @@ func extendPodSpecPatch(
 		}
 	}
 
+	// Post-processing: enforce administrator hostUsers regardless of any
+	// user override. hostUsers is a pod-level field controlling Linux user
+	// namespace isolation; allowing users to silently flip it to true would
+	// defeat the administrator's security policy.
+	if opts.DefaultHostUsers != nil {
+		if podSpec.HostUsers != nil && *podSpec.HostUsers != *opts.DefaultHostUsers {
+			glog.Warningf("Ignoring user-specified hostUsers=%t: administrator default hostUsers=%t takes precedence",
+				*podSpec.HostUsers, *opts.DefaultHostUsers)
+		}
+		v := *opts.DefaultHostUsers
+		podSpec.HostUsers = &v
+	}
+
 	return nil
 }
 
