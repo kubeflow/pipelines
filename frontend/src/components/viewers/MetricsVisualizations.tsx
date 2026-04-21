@@ -15,11 +15,12 @@
  */
 
 import HelpIcon from '@mui/icons-material/Help';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Array as ArrayRunType, Failure, Number, Record, String, ValidationError } from 'runtypes';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
 import { color, commonCss, padding } from 'src/Css';
+import { useKeyedState } from 'src/hooks/useKeyedState';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis, ListRequest } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
@@ -62,7 +63,6 @@ import {
 import { logger } from 'src/lib/Utils';
 import { stylesheet } from 'typestyle';
 import { buildRocCurveConfig, validateConfidenceMetrics } from './ROCCurveHelper';
-import { isEqual } from 'lodash';
 import { Tooltip } from '@mui/material';
 
 const css = stylesheet({
@@ -496,15 +496,17 @@ const updateRocCurveSelection = (
   setSelectedIds(sharedIds.concat(limitedAddedIds));
 
   // Update the color stack and mapping to match the new selected ROC Curves.
+  const nextLineColorsStack = [...lineColorsStack];
+  const nextSelectedIdColorMap = { ...selectedIdColorMap };
   removedIds.forEach((removedId) => {
-    lineColorsStack.push(selectedIdColorMap[removedId]);
-    delete selectedIdColorMap[removedId];
+    nextLineColorsStack.push(selectedIdColorMap[removedId]);
+    delete nextSelectedIdColorMap[removedId];
   });
   limitedAddedIds.forEach((addedId) => {
-    selectedIdColorMap[addedId] = lineColorsStack.pop()!;
+    nextSelectedIdColorMap[addedId] = nextLineColorsStack.pop()!;
   });
-  setSelectedIdColorMap(selectedIdColorMap);
-  setLineColorsStack(lineColorsStack);
+  setSelectedIdColorMap(nextSelectedIdColorMap);
+  setLineColorsStack(nextLineColorsStack);
 };
 
 function reloadRocCurve(
@@ -561,23 +563,14 @@ export function ConfidenceMetricsSection({
   filter,
 }: ConfidenceMetricsSectionProps) {
   const maxSelectedRocCurves: number = 10;
-  const [allLinkedArtifacts, setAllLinkedArtifacts] = useState<LinkedArtifact[]>(linkedArtifacts);
-  const [linkedArtifactsPage, setLinkedArtifactsPage] = useState<LinkedArtifact[]>(linkedArtifacts);
+  const linkedArtifactsKey = linkedArtifacts
+    .map((linkedArtifact) => getRocCurveId(linkedArtifact))
+    .join(',');
+  const [linkedArtifactsPage, setLinkedArtifactsPage] = useKeyedState<LinkedArtifact[]>(
+    linkedArtifactsKey,
+    linkedArtifacts,
+  );
   const [filterString, setFilterString] = useState<string>('');
-
-  // Reload the page on linked artifacts refresh or re-selection.
-  useEffect(() => {
-    if (filter && !isEqual(linkedArtifacts, allLinkedArtifacts)) {
-      setLinkedArtifactsPage(linkedArtifacts);
-      setAllLinkedArtifacts(linkedArtifacts);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [linkedArtifacts]);
-
-  // Verify that the existing linked artifacts are correct; otherwise, wait for refresh.
-  if (filter && !isEqual(linkedArtifacts, allLinkedArtifacts)) {
-    return null;
-  }
 
   let confidenceMetricsDataList: ConfidenceMetricsData[] = linkedArtifacts
     .map((linkedArtifact) => {

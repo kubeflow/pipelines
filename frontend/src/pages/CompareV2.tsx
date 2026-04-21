@@ -796,6 +796,7 @@ function CompareV2(props: CompareV2Props) {
                       setSelectedIds: (selectedIds) =>
                         setRocCurveSelection((currentSelection) => ({
                           ...currentSelection,
+                          hasInitialized: true,
                           selectedIds,
                         })),
                       fullArtifactPathMap,
@@ -803,12 +804,14 @@ function CompareV2(props: CompareV2Props) {
                       setSelectedIdColorMap: (selectedIdColorMap) =>
                         setRocCurveSelection((currentSelection) => ({
                           ...currentSelection,
+                          hasInitialized: true,
                           selectedIdColorMap,
                         })),
                       lineColorsStack: rocCurveSelection.lineColorsStack,
                       setLineColorsStack: (lineColorsStack) =>
                         setRocCurveSelection((currentSelection) => ({
                           ...currentSelection,
+                          hasInitialized: true,
                           lineColorsStack,
                         })),
                     }}

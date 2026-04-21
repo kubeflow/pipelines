@@ -15,12 +15,15 @@
  */
 
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useEffect, useState } from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import TestUtils, { expectErrors, testBestPractices } from 'src/TestUtils';
 import { Artifact, Context, Event, Execution } from 'src/third_party/mlmd';
 import { Apis } from 'src/lib/Apis';
 import { ButtonKeys } from 'src/lib/Buttons';
 import { QUERY_PARAMS } from 'src/components/Router';
+import { ArtifactType } from 'src/mlmd';
+import { LinkedArtifact } from 'src/mlmd/MlmdUtils';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';
 import * as Utils from 'src/lib/Utils';
 import * as metricsVisualizations from 'src/components/viewers/MetricsVisualizations';
@@ -239,6 +242,73 @@ describe('CompareV2', () => {
     expect(TEST_ONLY.reconcileRocCurveSelectionState(initialSelection, [], new Set())).toBe(
       initialSelection,
     );
+  });
+
+  it('initializes ROC selection once and only prunes invalid ids on later refreshes', async () => {
+    const initialLinkedArtifacts: LinkedArtifact[] = [
+      {
+        artifact: newMockArtifact(100, false, true, 'artifact-100'),
+        event: newMockEvent(100, 'artifact-100'),
+      },
+      {
+        artifact: newMockArtifact(200, false, true, 'artifact-200'),
+        event: newMockEvent(200, 'artifact-200'),
+      },
+      {
+        artifact: newMockArtifact(300, false, true, 'artifact-300'),
+        event: newMockEvent(300, 'artifact-300'),
+      },
+    ];
+    const refreshedLinkedArtifacts: LinkedArtifact[] = [
+      {
+        artifact: newMockArtifact(50, false, true, 'artifact-50'),
+        event: newMockEvent(50, 'artifact-50'),
+      },
+      ...initialLinkedArtifacts,
+    ];
+
+    function RocCurveSelectionHarness() {
+      const [linkedArtifacts, setLinkedArtifacts] = useState(initialLinkedArtifacts);
+      const [selection, setSelection] = useState(TEST_ONLY.createInitialRocCurveSelectionState);
+
+      useEffect(() => {
+        setSelection((currentSelection) =>
+          TEST_ONLY.reconcileRocCurveSelectionState(
+            currentSelection,
+            linkedArtifacts,
+            new Set(
+              linkedArtifacts.map(
+                (linkedArtifact) =>
+                  `${linkedArtifact.event.getExecutionId()}-${linkedArtifact.artifact.getId()}`,
+              ),
+            ),
+          ),
+        );
+      }, [linkedArtifacts]);
+
+      return (
+        <>
+          <div data-testid='roc-selected-ids'>{selection.selectedIds.join(',')}</div>
+          <button onClick={() => setLinkedArtifacts(refreshedLinkedArtifacts)}>refresh ROC</button>
+        </>
+      );
+    }
+
+    render(
+      <CommonTestWrapper>
+        <RocCurveSelectionHarness />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('roc-selected-ids')).toHaveTextContent('100-100,200-200,300-300');
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'refresh ROC' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('roc-selected-ids')).toHaveTextContent('100-100,200-200,300-300');
+    });
   });
 
   it('reconciles invalid two-panel artifact selections against the available run artifacts', () => {

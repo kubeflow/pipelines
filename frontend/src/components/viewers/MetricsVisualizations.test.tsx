@@ -106,17 +106,18 @@ describe('ConfidenceMetricsSection', () => {
     selectedIds: string[];
   }
 
-  function generateRocCurveDataByCount(count: number): RocCurveData {
+  function generateRocCurveDataByCount(count: number, offset = 0): RocCurveData {
     const linkedArtifacts: LinkedArtifact[] = [];
     const fullArtifactPathMap: FullArtifactPathMap = {};
     const selectedIds: string[] = [];
     for (let i = 0; i < count; i++) {
-      const rocCurveId: string = `${i}-${i}`;
-      linkedArtifacts.push(newMockLinkedArtifact(i, i, `artifact${i}`));
-      fullArtifactPathMap[`${i}-${i}`] = {
-        run: { name: `run${i}`, id: `${i}` },
-        execution: { name: `execution${i}`, id: `${i}` },
-        artifact: { name: `artifact${i}`, id: `${i}` },
+      const artifactId = i + offset;
+      const rocCurveId: string = `${artifactId}-${artifactId}`;
+      linkedArtifacts.push(newMockLinkedArtifact(artifactId, artifactId, `artifact${artifactId}`));
+      fullArtifactPathMap[rocCurveId] = {
+        run: { name: `run${artifactId}`, id: `${artifactId}` },
+        execution: { name: `execution${artifactId}`, id: `${artifactId}` },
+        artifact: { name: `artifact${artifactId}`, id: `${artifactId}` },
       };
       if (i < 10) {
         selectedIds.push(rocCurveId);
@@ -342,6 +343,49 @@ describe('ConfidenceMetricsSection', () => {
     // Selecting a disabled checkbox has no change.
     fireEvent.click(checkboxes[1]);
     expect(setSelectedIdsSpy).toHaveBeenLastCalledWith(rocCurveData.selectedIds);
+  });
+
+  it('resets the ROC filter page when linked artifacts change', async () => {
+    const initialRocCurveData = generateRocCurveDataByCount(15);
+    const renderResult = render(
+      <CommonTestWrapper>
+        <ConfidenceMetricsSection
+          {...generateProps(
+            initialRocCurveData.selectedIds,
+            initialRocCurveData.linkedArtifacts,
+            initialRocCurveData.fullArtifactPathMap,
+          )}
+        />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    const buttons = screen.queryAllByRole('button');
+    const nextPage = buttons[buttons.length - 1];
+    fireEvent.click(nextPage);
+
+    await waitFor(() => {
+      expect(screen.getByText('execution10 > artifact10')).toBeInTheDocument();
+    });
+
+    const updatedRocCurveData = generateRocCurveDataByCount(3, 100);
+    renderResult.rerender(
+      <CommonTestWrapper>
+        <ConfidenceMetricsSection
+          {...generateProps(
+            updatedRocCurveData.selectedIds,
+            updatedRocCurveData.linkedArtifacts,
+            updatedRocCurveData.fullArtifactPathMap,
+          )}
+        />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    await waitFor(() => {
+      expect(screen.getByText('execution100 > artifact100')).toBeInTheDocument();
+      expect(screen.queryByText('execution10 > artifact10')).toBeNull();
+    });
   });
 
   it('Filter table is present with relevant rows', async () => {
