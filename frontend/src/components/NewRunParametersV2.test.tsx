@@ -118,6 +118,21 @@ describe('NewRunParametersV2', () => {
     expect(initialParameterState.errorMessages).toEqual({ intParam: 'Missing parameter.' });
   });
 
+  it('computes invalid initial state for literal parameter with no default', () => {
+    const initialParameterState = getInitialParameterState({
+      env: {
+        parameterType: ParameterType_ParameterTypeEnum.STRING,
+        literals: ['dev', 'staging', 'prod'],
+        isOptional: false,
+      },
+    });
+
+    expect(initialParameterState.isValid).toBe(false);
+    expect(initialParameterState.runtimeParameters).toEqual({});
+    expect(initialParameterState.updatedParameters).toEqual({});
+    expect(initialParameterState.errorMessages).toEqual({ env: 'Missing parameter.' });
+  });
+
   it('call convertInput function for string type with default value', () => {
     const handleParameterChangeSpy = vi.fn();
     const props = {
