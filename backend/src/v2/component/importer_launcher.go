@@ -279,13 +279,29 @@ func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact
 		return nil, fmt.Errorf("no provider scheme found in artifact URI: %s", artifactUri)
 	}
 
-	// Assume all imported artifacts will rely on execution environment for store provider session info
-	storeSessionInfo := objectstore.SessionInfo{
-		Provider: provider,
-		Params: map[string]string{
-			"fromEnv": "true",
-		},
+	// Try to resolve full session info from ConfigMap first
+	bucketConfig, err := l.resolveBucketConfigForURI(ctx, artifactUri)
+	var storeSessionInfo objectstore.SessionInfo
+	if err != nil || bucketConfig == nil || bucketConfig.SessionInfo == nil {
+		// Fallback to basic fromEnv session info if ConfigMap doesn't have provider config
+		if err != nil {
+			glog.Warningf("Could not resolve session info from ConfigMap for URI %s (error: %v), using fromEnv fallback", artifactUri, err)
+		} else if bucketConfig == nil {
+			glog.Warningf("No bucket config found in ConfigMap for URI %s, using fromEnv fallback", artifactUri)
+		} else {
+			glog.Warningf("Bucket config in ConfigMap for URI %s has no session info, using fromEnv fallback", artifactUri)
+		}
+		storeSessionInfo = objectstore.SessionInfo{
+			Provider: provider,
+			Params: map[string]string{
+				"fromEnv": "true",
+			},
+		}
+	} else {
+		// Use the full session info from ConfigMap
+		storeSessionInfo = *bucketConfig.SessionInfo
 	}
+
 	storeSessionInfoJSON, err := json.Marshal(storeSessionInfo)
 	if err != nil {
 		return nil, err
