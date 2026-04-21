@@ -41,23 +41,23 @@ describe('SubDagNode', () => {
     expect(screen.getByText('sub-pipeline')).toBeInTheDocument();
   });
 
-  it('sets the title attribute on the button', () => {
+  it('sets accessible label on the button', () => {
     renderWithProvider(<SubDagNode id='subdag-1' data={defaultData} />);
-    expect(screen.getByTitle('sub-pipeline')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'sub-pipeline' })).toBeInTheDocument();
   });
 
-  it('renders with COMPLETE state', () => {
+  it('renders COMPLETE state icon', () => {
     renderWithProvider(
       <SubDagNode id='subdag-1' data={{ ...defaultData, state: Execution.State.COMPLETE }} />,
     );
-    expect(screen.getByText('sub-pipeline')).toBeInTheDocument();
+    expect(screen.getByTestId('CheckCircleIcon')).toBeInTheDocument();
   });
 
-  it('renders with RUNNING state', () => {
+  it('renders RUNNING state icon', () => {
     renderWithProvider(
       <SubDagNode id='subdag-1' data={{ ...defaultData, state: Execution.State.RUNNING }} />,
     );
-    expect(screen.getByText('sub-pipeline')).toBeInTheDocument();
+    expect(screen.getByTestId('RefreshIcon')).toBeInTheDocument();
   });
 
   it('calls expand callback when expand button is clicked', () => {
@@ -69,7 +69,7 @@ describe('SubDagNode', () => {
   });
 
   it('renders with the correct id on the label span', () => {
-    const { container } = renderWithProvider(<SubDagNode id='subdag-42' data={defaultData} />);
-    expect(container.querySelector('#subdag-42')).toBeInTheDocument();
+    renderWithProvider(<SubDagNode id='subdag-42' data={defaultData} />);
+    expect(screen.getByTestId('subdag-42')).toBeInTheDocument();
   });
 });

@@ -312,7 +312,7 @@ describe('RecurringRunDetailsRouter', () => {
   it('returns null when fetch fails and no template is available', async () => {
     getRecurringRunSpy.mockRejectedValue(new Error('Not found'));
 
-    const { container } = render(
+    render(
       <CommonTestWrapper>
         <RecurringRunDetailsRouter {...generateProps()} />
       </CommonTestWrapper>,
@@ -323,7 +323,9 @@ describe('RecurringRunDetailsRouter', () => {
     });
 
     await waitFor(() => {
-      expect(container.querySelector('[data-testid]')).toBeNull();
+      expect(screen.queryByTestId('recurring-run-details-v1')).toBeNull();
+      expect(screen.queryByTestId('recurring-run-details-v2')).toBeNull();
+      expect(screen.queryByTestId('recurring-run-details-v2-fc')).toBeNull();
       expect(screen.queryByRole('progressbar')).toBeNull();
     });
   });
