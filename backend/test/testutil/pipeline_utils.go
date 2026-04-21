@@ -29,6 +29,7 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"google.golang.org/grpc/codes"
 )
 
 func ListPipelines(client *api_server.PipelineClient, namespace *string) []*pipeline_model.V2beta1Pipeline {
@@ -67,12 +68,17 @@ func UploadPipeline(pipelineUploadClient api_server.PipelineUploadInterface, pip
 }
 
 // DeletePipeline deletes a pipeline by id. When cascade is true the server also deletes all pipeline versions.
+// If the pipeline no longer exists (NotFound), the deletion is skipped silently.
+// Any other Get error is treated as a real failure so it surfaces in the test report.
 func DeletePipeline(client *api_server.PipelineClient, pipelineID string, cascade bool) {
 	ginkgo.GinkgoHelper()
 	_, err := client.Get(&pipeline_params.PipelineServiceGetPipelineParams{PipelineID: pipelineID})
 	if err != nil {
-		logger.Log("Pipeline with id=%s could not be retrieved (skipping deletion): %v", pipelineID, err)
-		return
+		if util.IsUserErrorCodeMatch(err, codes.NotFound) {
+			logger.Log("Pipeline with id=%s does not exist, skipping deletion", pipelineID)
+			return
+		}
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Failed to retrieve pipeline with id=%s before deletion", pipelineID))
 	}
 	logger.Log("Deleting pipeline with id=%s (cascade=%v)", pipelineID, cascade)
 	err = client.Delete(&pipeline_params.PipelineServiceDeletePipelineParams{PipelineID: pipelineID, Cascade: &cascade})
