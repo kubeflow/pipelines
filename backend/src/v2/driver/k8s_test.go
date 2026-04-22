@@ -3461,3 +3461,31 @@ func Test_extendPodSpecPatch_RootUserWithHostUsersNamespace(t *testing.T) {
 	assert.Equal(t, &k8score.Capabilities{Drop: []k8score.Capability{"ALL"}},
 		podSpec.Containers[0].SecurityContext.Capabilities)
 }
+
+// Test_extendPodSpecPatch_HostUsersAdminOverrideProtection verifies that the
+// post-processing guard re-applies the administrator's hostUsers default even
+// when a user-supplied podSpecPatch has set hostUsers to a different value.
+func Test_extendPodSpecPatch_HostUsersAdminOverrideProtection(t *testing.T) {
+	adminFalse := false
+	// Simulate user setting hostUsers=true via podSpecPatch before
+	// the post-processing guard runs.
+	userTrue := true
+	podSpec := &k8score.PodSpec{
+		Containers: []k8score.Container{{Name: "main"}},
+		HostUsers:  &userTrue,
+	}
+	err := extendPodSpecPatch(
+		context.Background(),
+		podSpec,
+		Options{
+			DefaultHostUsers: &adminFalse,
+		},
+		nil, nil, nil,
+		map[string]*structpb.Value{},
+		nil,
+	)
+	assert.Nil(t, err)
+	// The administrator's false must override the user's true.
+	assert.NotNil(t, podSpec.HostUsers)
+	assert.False(t, *podSpec.HostUsers)
+}

@@ -262,9 +262,10 @@ func drive() (err error) {
 		}
 		if *defaultHostUsers != "" {
 			v, err := strconv.ParseBool(*defaultHostUsers)
-			if err == nil {
-				options.DefaultHostUsers = &v
+			if err != nil {
+				return fmt.Errorf("invalid --default_host_users value %q: %w", *defaultHostUsers, err)
 			}
+			options.DefaultHostUsers = &v
 		}
 		execution, driverErr = driver.Container(ctx, options, client, cacheClient)
 	default:
