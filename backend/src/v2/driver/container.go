@@ -182,18 +182,18 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	if err != nil {
 		if isAlreadyExistsErr(err) {
 			glog.Infof("Execution %q already exists, looking up existing execution", ecfg.Name)
-			existing, lookupErr := mlmd.GetExecutionByTypeAndName(ctx, string(metadata.DagExecutionTypeName), ecfg.Name)
+			existing, lookupErr := mlmd.GetExecutionByTypeAndName(ctx, string(metadata.ContainerExecutionTypeName), ecfg.Name)
 			if lookupErr != nil {
-				return nil, fmt.Errorf("failed to lookup existing execution: %w", lookupErr)
+				return execution, fmt.Errorf("failed to lookup existing execution: %w", lookupErr)
 			}
-
 			if existing == nil {
-				return nil, fmt.Errorf("execution already exists but lookup returned nil: %w", err)
+				return execution, fmt.Errorf("execution already exists but lookup returned nil: %w", err)
 			}
 			glog.Infof("Found existing execution: %s", existing)
-			return &Execution{ID: existing.GetID()}, nil
+			createdExecution = existing
+		} else {
+			return execution, err
 		}
-		return execution, err
 	}
 	glog.Infof("Created execution: %s", createdExecution)
 	execution.ID = createdExecution.GetID()
