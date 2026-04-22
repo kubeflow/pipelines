@@ -15,10 +15,15 @@
 package driver
 
 import (
+	"context"
 	"testing"
 
+	"github.com/go-openapi/errors"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_validateRootDAG(t *testing.T) {
@@ -165,4 +170,84 @@ func Test_validateRootDAG(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRootDAG_CreateExecutionAlreadyExistsReturnsExistingID(t *testing.T) {
+	execution, err := RootDAG(context.Background(), Options{
+		PipelineName:   "pipeline-1",
+		RunID:          "run-1",
+		Component:      &pipelinespec.ComponentSpec{},
+		RuntimeConfig:  &pipelinespec.PipelineJob_RuntimeConfig{},
+		Namespace:      "kubeflow",
+		IterationIndex: -1,
+	}, &metadata.FakeClient{
+		CreateExecutionFunc: func(ctx context.Context, pipeline *metadata.Pipeline, config *metadata.ExecutionConfig) (*metadata.Execution, error) {
+			return nil, errors.New(6, "AlreadyExists")
+		},
+		GetPipelineFunc: func(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot string, storeSessionInfo string) (*metadata.Pipeline, error) {
+			return &metadata.Pipeline{}, nil
+		},
+		GetExecutionByTypeAndNameFunc: func(ctx context.Context, typeName, name string) (*metadata.Execution, error) {
+			return &metadata.Execution{
+				Execution: &pb.Execution{
+					Id: new(int64(1234)),
+				},
+			}, nil
+		},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, execution)
+	assert.Equal(t, int64(1234), execution.ID)
+}
+
+func TestRootDAG_CreateExecutionAlreadyExistsLookupFailure(t *testing.T) {
+	execution, err := RootDAG(context.Background(), Options{
+		PipelineName:   "pipeline-1",
+		RunID:          "run-1",
+		Component:      &pipelinespec.ComponentSpec{},
+		RuntimeConfig:  &pipelinespec.PipelineJob_RuntimeConfig{},
+		Namespace:      "kubeflow",
+		IterationIndex: -1,
+	}, &metadata.FakeClient{
+		CreateExecutionFunc: func(ctx context.Context, pipeline *metadata.Pipeline, config *metadata.ExecutionConfig) (*metadata.Execution, error) {
+			return nil, errors.New(6, "AlreadyExists")
+		},
+		GetPipelineFunc: func(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot string, storeSessionInfo string) (*metadata.Pipeline, error) {
+			return &metadata.Pipeline{}, nil
+		},
+		// Error on lookup
+		GetExecutionByTypeAndNameFunc: func(ctx context.Context, typeName, name string) (*metadata.Execution, error) {
+			return nil, errors.New(0, "Failed to connect (test)")
+		},
+	})
+	require.Nil(t, execution)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Failed to connect (test)")
+	assert.Contains(t, err.Error(), "failed to lookup existing execution")
+}
+
+func TestRootDAG_CreateExecutionAlreadyExistsLookupFailure_NilExistingRecord(t *testing.T) {
+	execution, err := RootDAG(context.Background(), Options{
+		PipelineName:   "pipeline-1",
+		RunID:          "run-1",
+		Component:      &pipelinespec.ComponentSpec{},
+		RuntimeConfig:  &pipelinespec.PipelineJob_RuntimeConfig{},
+		Namespace:      "kubeflow",
+		IterationIndex: -1,
+	}, &metadata.FakeClient{
+		CreateExecutionFunc: func(ctx context.Context, pipeline *metadata.Pipeline, config *metadata.ExecutionConfig) (*metadata.Execution, error) {
+			return nil, errors.New(6, "AlreadyExists")
+		},
+		GetPipelineFunc: func(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot string, storeSessionInfo string) (*metadata.Pipeline, error) {
+			return &metadata.Pipeline{}, nil
+		},
+		// Lookup succeeds but record is nil
+		GetExecutionByTypeAndNameFunc: func(ctx context.Context, typeName, name string) (*metadata.Execution, error) {
+			return nil, nil
+		},
+	})
+	require.Nil(t, execution)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "execution already exists but lookup returned nil")
 }

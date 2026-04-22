@@ -64,7 +64,7 @@ func validateRootDAG(opts Options) (err error) {
 	return nil
 }
 
-func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *Execution, err error) {
+func RootDAG(ctx context.Context, opts Options, mlmd metadata.ClientInterface) (execution *Execution, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("driver.RootDAG(%s) failed: %w", opts.info(), err)
@@ -127,6 +127,8 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	ecfg.ExecutionType = metadata.DagExecutionTypeName
 	ecfg.Name = fmt.Sprintf("run/%s", opts.RunID)
 	exec, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
+
+	glog.Infof("Creating execution: %s", exec.String())
 	if err != nil {
 		// When Argo retries the ROOT_DAG driver, the execution was already created on the first attempt.
 		// The deterministic name "run/<runId>" causes a duplicate key error.
@@ -141,6 +143,7 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 			if existing == nil {
 				return nil, fmt.Errorf("execution already exists but lookup returned nil: %w", err)
 			}
+
 			glog.Infof("Found existing execution: %s", existing)
 			return &Execution{ID: existing.GetID()}, nil
 		}

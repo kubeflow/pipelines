@@ -26,7 +26,7 @@ import (
 // A hacky way to get Execution from pb.Execution, usually you should get
 // an Execution from this metadata package directly without using ml_metadata.Execution
 func NewExecution(e *pb.Execution) *Execution {
-	return &Execution{execution: e}
+	return &Execution{Execution: e}
 }
 
 func (e *Execution) GetParameters() (inputs, outputs map[string]*structpb.Value, err error) {
@@ -37,15 +37,15 @@ func (e *Execution) GetParameters() (inputs, outputs map[string]*structpb.Value,
 			err = fmt.Errorf("execution(ID=%v).GetParameters failed: %w", e.GetID(), err)
 		}
 	}()
-	if e == nil || e.execution == nil {
+	if e == nil || e.Execution == nil {
 		return nil, nil, nil
 	}
-	if stored_inputs, ok := e.execution.CustomProperties[keyInputs]; ok {
+	if stored_inputs, ok := e.Execution.CustomProperties[keyInputs]; ok {
 		for name, value := range stored_inputs.GetStructValue().GetFields() {
 			inputs[name] = value
 		}
 	}
-	if stored_outputs, ok := e.execution.CustomProperties[keyOutputs]; ok {
+	if stored_outputs, ok := e.Execution.CustomProperties[keyOutputs]; ok {
 		for name, value := range stored_outputs.GetStructValue().GetFields() {
 			outputs[name] = value
 		}

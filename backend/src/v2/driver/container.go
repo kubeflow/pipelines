@@ -186,9 +186,6 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 			if lookupErr != nil {
 				return execution, fmt.Errorf("failed to lookup existing execution: %w", lookupErr)
 			}
-			if existing == nil {
-				return execution, fmt.Errorf("execution already exists but lookup returned nil: %w", err)
-			}
 			glog.Infof("Found existing execution: %s", existing)
 			createdExecution = existing
 		} else {
