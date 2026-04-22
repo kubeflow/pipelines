@@ -134,6 +134,7 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' }}
         id: deploy
         with:
+          proxy: ${{ matrix.proxy }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
           storage_backend: ${{ matrix.storage }}
@@ -194,6 +195,7 @@ jobs:
         id: test-run
         if: ${{ steps.configure.outcome == 'success' }}
         with:
+          proxy: ${{ matrix.proxy }}
           cache_enabled: ${{ matrix.cache_enabled }}
           test_directory: ${{ env.E2E_TESTS_DIR }}
           test_label: ${{ steps.configure.outputs.TEST_LABEL }}
