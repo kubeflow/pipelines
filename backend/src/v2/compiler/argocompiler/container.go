@@ -245,6 +245,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	if c.defaultRunAsNonRoot != nil {
 		args = append(args, "--default_run_as_non_root", strconv.FormatBool(*c.defaultRunAsNonRoot))
 	}
+	if c.defaultHostUsers != nil {
+		args = append(args, "--default_host_users", strconv.FormatBool(*c.defaultHostUsers))
+	}
 
 	template := &wfapi.Template{
 		Name: name,
