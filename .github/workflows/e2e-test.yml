@@ -63,9 +63,9 @@ jobs:
       matrix:
         k8s_version: ["v1.34.0"]
         cache_enabled: ["true", "false"]
-        argo_version: [ "v3.7.3", "v3.6.7", "v3.5.14"]
+        argo_version: [ "v3.7.3", "v3.5.14"]
         proxy: [ "false" ]
-        test_label: [ "E2ECritical" ]
+        test_label: [ "E2ECritical", "E2EEssential", "E2EParallelNested" ]
         pod_to_pod_tls_enabled: [ "false" ]
         include:
           - k8s_version: "v1.29.2"
@@ -76,9 +76,6 @@ jobs:
             cache_enabled: "false"
             proxy: "true"
             test_label: "E2EProxy"
-          - k8s_version: "v1.34.0"
-            cache_enabled: "false"
-            test_label: "E2EEssential"
           - k8s_version: "v1.34.0"
             cache_enabled: "false"
             test_label: "E2EFailure"
@@ -129,6 +126,10 @@ jobs:
             NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
             TEST_LABEL=${{ inputs.test_label }}
             NAMESPACE=${{ inputs.namespace }}
+          fi
+
+          if [ "$TEST_LABEL" == "E2EParallelNested" ]; then
+            NUMBER_OF_NODES=3
           fi
 
           {

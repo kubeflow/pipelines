@@ -109,10 +109,8 @@ def DeletePVC(pvc_name: str):
     return dsl.ContainerSpec(image='argostub/deletepvc')
 
 
-def _assign_pvc_name_to_msg(
-    msg: message.Message,
-    pvc_name: Union[str, 'PipelineChannel'],
-) -> bool:
+def _assign_pvc_name_to_msg(msg: message.Message,
+                            pvc_name: Union[str, 'PipelineChannel']) -> bool:
     """Assigns pvc_name to the msg's pvc_reference oneof.
 
     Returns True if pvc_name is an upstream task output; otherwise, False.
