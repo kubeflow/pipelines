@@ -15,8 +15,6 @@
 package api_server_v2
 
 import (
-	"fmt"
-
 	"github.com/go-openapi/strfmt"
 	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
@@ -65,7 +63,11 @@ func (c *RunClientFake) Unarchive(params *params.RunServiceUnarchiveRunParams) e
 	return nil
 }
 
+func (c *RunClientFake) Retry(params *params.RunServiceRetryRunParams) error {
+	return nil
+}
+
 func (c *RunClientFake) Terminate(params *params.RunServiceTerminateRunParams) error {
-	return fmt.Errorf(InvalidFakeRequest, params.RunID)
+	return nil
 
 }

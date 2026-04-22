@@ -27,7 +27,7 @@ const (
 	FileForClientErrorTest = "./samples/hello-world.yaml"
 
 	ClientErrorString  = "error with client"
-	InvalidFakeRequest = "invalid fake request, don't know how to handle '%s' in the fake client."
+	InvalidFakeRequest = "invalid fake request, don't know how to handle '%s' in the fake client"
 )
 
 func getDefaultUploadedPipeline() *model.V2beta1Pipeline {
