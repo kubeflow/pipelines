@@ -917,7 +917,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('does not display any text fields if there are no parameters', () => {
-    const { container } = render(
+    render(
       <CommonTestWrapper>
         <NewRunParametersV2
           titleMessage='Specify parameters required by the pipeline'
@@ -927,7 +927,9 @@ describe('NewRunParametersV2', () => {
       </CommonTestWrapper>,
     );
 
-    expect(container.querySelector('input').type).toEqual('checkbox');
+    // The only input should be the pipeline root checkbox — no text fields for parameters
+    expect(screen.getByRole('checkbox')).toBeInTheDocument();
+    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
   });
 
   // Test for fix: Default parameters not displayed in Compare Runs
