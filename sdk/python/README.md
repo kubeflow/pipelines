@@ -35,13 +35,14 @@ def add_pipeline(
 ):
     first_add_task = add(a=a, b=4.0)
     second_add_task = add(a=first_add_task.output, b=b)
+```
 
+Before running the pipeline, replace `<my-host-url>` with your Kubeflow Pipelines endpoint (for example, the URL of your deployed Kubeflow instance).
 
+```python
 client = kfp.Client(host='<my-host-url>')
 client.create_run_from_pipeline_func(
     add_pipeline, arguments={
         'a': 7.0,
         'b': 8.0
     })
-
-```
