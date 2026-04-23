@@ -31,6 +31,9 @@ import (
 // Workflow templates by the API server.
 const EnvMLflowConfig = "KFP_MLFLOW_CONFIG"
 
+// MLflow tag on nested runs (parent linkage).
+const TagNestedRunParentRunID = "mlflow.parentRunId"
+
 // MLflowRuntimeConfig is the JSON payload marshalled into KFP_MLFLOW_CONFIG.
 type MLflowRuntimeConfig struct {
 	Endpoint           string     `json:"endpoint"`
@@ -81,6 +84,9 @@ type MLflowPluginSettings struct {
 	ExperimentDescription *string `json:"experimentDescription,omitempty"`
 	DefaultExperimentName string  `json:"defaultExperimentName,omitempty"`
 	KFPBaseURL            string  `json:"kfpBaseURL,omitempty"`
+	KFPRunURLPathTemplate string  `json:"kfpRunURLPathTemplate,omitempty"`
+	MLflowBaseURL         string  `json:"mlflowBaseURL,omitempty"`
+	MLflowUIPathPrefix    string  `json:"mlflowUIPathPrefix,omitempty"`
 	InjectUserEnvVars     *bool   `json:"injectUserEnvVars,omitempty"`
 }
 
@@ -125,6 +131,15 @@ func mergeSettings(global, namespace *MLflowPluginSettings) *MLflowPluginSetting
 	}
 	if namespace.KFPBaseURL != "" {
 		merged.KFPBaseURL = namespace.KFPBaseURL
+	}
+	if namespace.KFPRunURLPathTemplate != "" {
+		merged.KFPRunURLPathTemplate = namespace.KFPRunURLPathTemplate
+	}
+	if namespace.MLflowBaseURL != "" {
+		merged.MLflowBaseURL = namespace.MLflowBaseURL
+	}
+	if namespace.MLflowUIPathPrefix != "" {
+		merged.MLflowUIPathPrefix = namespace.MLflowUIPathPrefix
 	}
 	if namespace.InjectUserEnvVars != nil {
 		merged.InjectUserEnvVars = namespace.InjectUserEnvVars
