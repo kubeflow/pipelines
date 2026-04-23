@@ -62,8 +62,15 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
   const pipelineId = v2RecurringRun?.pipeline_version_reference?.pipeline_id;
   const pipelineVersionId = v2RecurringRun?.pipeline_version_reference?.pipeline_version_id;
 
-  const { isLoading: templateStrIsLoading, data: templateStrFromPipelineVersion } =
-    usePipelineVersionTemplate(pipelineId, pipelineVersionId);
+  const {
+    isLoading: templateStrIsLoading,
+    isError: templateStrIsError,
+    error: templateStrError,
+    data: templateStrFromPipelineVersion,
+  } = usePipelineVersionTemplate(
+    pipelineManifest ? undefined : pipelineId,
+    pipelineManifest ? undefined : pipelineVersionId,
+  );
 
   const templateString = pipelineManifest ?? templateStrFromPipelineVersion;
 
@@ -85,6 +92,26 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
     }
     return undefined;
   }, [getRecurringRunError, recurringRunError, recurringRunId, updateBanner]);
+
+  useEffect(() => {
+    if (templateStrIsError && templateStrError && !getRecurringRunError) {
+      let cancelled = false;
+      errorToMessage(templateStrError).then((msg) => {
+        if (!cancelled) {
+          updateBanner({
+            message:
+              'Error: failed to retrieve pipeline version template. Click Details for more information.',
+            mode: 'error',
+            additionalInfo: msg,
+          });
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    return undefined;
+  }, [templateStrIsError, templateStrError, getRecurringRunError, updateBanner]);
 
   if (getRecurringRunSuccess && v2RecurringRun && templateString) {
     const isV2Pipeline = WorkflowUtils.isPipelineSpec(templateString);
