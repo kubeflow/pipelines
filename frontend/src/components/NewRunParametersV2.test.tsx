@@ -16,9 +16,10 @@
 
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
 import NewRunParametersV2 from 'src/components/NewRunParametersV2';
+import { getInitialParameterState } from 'src/lib/NewRunParametersUtils';
 
 testBestPractices();
 
@@ -88,6 +89,48 @@ describe('NewRunParametersV2', () => {
     const boolParam = screen.getByDisplayValue('true');
     fireEvent.change(boolParam, { target: { value: false } });
     expect(boolParam.closest('input').value).toEqual('false');
+  });
+
+  it('computes valid initial state with default integer input', () => {
+    const initialParameterState = getInitialParameterState({
+      intParam: {
+        parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+        defaultValue: 123,
+      },
+    });
+
+    expect(initialParameterState.isValid).toBe(true);
+    expect(initialParameterState.runtimeParameters).toEqual({ intParam: 123 });
+    expect(initialParameterState.updatedParameters).toEqual({ intParam: '123' });
+    expect(initialParameterState.errorMessages).toEqual({});
+  });
+
+  it('computes invalid initial state with no default integer input', () => {
+    const initialParameterState = getInitialParameterState({
+      intParam: {
+        parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+      },
+    });
+
+    expect(initialParameterState.isValid).toBe(false);
+    expect(initialParameterState.runtimeParameters).toEqual({});
+    expect(initialParameterState.updatedParameters).toEqual({});
+    expect(initialParameterState.errorMessages).toEqual({ intParam: 'Missing parameter.' });
+  });
+
+  it('computes invalid initial state for literal parameter with no default', () => {
+    const initialParameterState = getInitialParameterState({
+      env: {
+        parameterType: ParameterType_ParameterTypeEnum.STRING,
+        literals: ['dev', 'staging', 'prod'],
+        isOptional: false,
+      },
+    });
+
+    expect(initialParameterState.isValid).toBe(false);
+    expect(initialParameterState.runtimeParameters).toEqual({});
+    expect(initialParameterState.updatedParameters).toEqual({});
+    expect(initialParameterState.errorMessages).toEqual({ env: 'Missing parameter.' });
   });
 
   it('call convertInput function for string type with default value', () => {
@@ -512,48 +555,6 @@ describe('NewRunParametersV2', () => {
     screen.getByDisplayValue('"A":1,"B":2');
   });
 
-  it('set input as valid type with valid default integer input', () => {
-    const setIsValidInputSpy = vi.fn();
-    const props = {
-      titleMessage: 'default Title',
-      pipelineRoot: 'default pipelineRoot',
-      specParameters: {
-        intParam: {
-          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
-          defaultValue: 123,
-        },
-      },
-      clonedRuntimeConfig: {},
-      handlePipelineRootChange: vi.fn(),
-      handleParameterChange: vi.fn(),
-      setIsValidInput: setIsValidInputSpy,
-    };
-    render(<NewRunParametersV2 {...props} />);
-
-    expect(setIsValidInputSpy).toHaveBeenLastCalledWith(true);
-    screen.getByDisplayValue('123');
-  });
-
-  it('set input as invalid type with no default integer input', () => {
-    const setIsValidInputSpy = vi.fn();
-    const props = {
-      titleMessage: 'default Title',
-      pipelineRoot: 'default pipelineRoot',
-      specParameters: {
-        intParam: {
-          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
-        },
-      },
-      clonedRuntimeConfig: {},
-      handlePipelineRootChange: vi.fn(),
-      handleParameterChange: vi.fn(),
-      setIsValidInput: setIsValidInputSpy,
-    };
-    render(<NewRunParametersV2 {...props} />);
-
-    expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
-  });
-
   it('show error message for invalid integer input', () => {
     const setIsValidInputSpy = vi.fn();
     const props = {
@@ -932,58 +933,6 @@ describe('NewRunParametersV2', () => {
     expect(screen.queryAllByRole('textbox')).toHaveLength(0);
   });
 
-  // Test for fix: Default parameters not displayed in Compare Runs
-  // https://github.com/kubeflow/pipelines/issues/12536
-  it('calls handleParameterChange with default values on mount', () => {
-    const handleParameterChangeSpy = vi.fn();
-    const props = {
-      titleMessage: 'default Title',
-      pipelineRoot: 'default pipelineRoot',
-      specParameters: {
-        strParam: {
-          parameterType: ParameterType_ParameterTypeEnum.STRING,
-          defaultValue: 'default string',
-        },
-        intParam: {
-          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
-          defaultValue: 42,
-        },
-        boolParam: {
-          parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
-          defaultValue: true,
-        },
-        listParam: {
-          parameterType: ParameterType_ParameterTypeEnum.LIST,
-          defaultValue: [1, 2, 3],
-        },
-        structParam: {
-          parameterType: ParameterType_ParameterTypeEnum.STRUCT,
-          defaultValue: { key: 'value' },
-        },
-      },
-      clonedRuntimeConfig: {},
-      handlePipelineRootChange: vi.fn(),
-      handleParameterChange: handleParameterChangeSpy,
-    };
-    render(<NewRunParametersV2 {...props} />);
-
-    // Verify that handleParameterChange was called on mount with all default values
-    expect(handleParameterChangeSpy).toHaveBeenCalledWith({
-      strParam: 'default string',
-      intParam: 42,
-      boolParam: true,
-      listParam: [1, 2, 3],
-      structParam: { key: 'value' },
-    });
-
-    // Verify that the default values are displayed in the UI
-    screen.getByDisplayValue('default string');
-    screen.getByDisplayValue('42');
-    screen.getByDisplayValue('true');
-    screen.getByDisplayValue('[1,2,3]');
-    screen.getByDisplayValue('{"key":"value"}');
-  });
-
   it('renders provided initial state without firing mount callbacks', () => {
     const handleParameterChangeSpy = vi.fn();
     const setIsValidInputSpy = vi.fn();
@@ -1017,47 +966,36 @@ describe('NewRunParametersV2', () => {
 });
 
 describe('Bug Fix: Default Parameters in Compare Runs (#12536)', () => {
-  it('SCENARIO 1: User creates run with ALL default parameters (no changes)', () => {
-    const handleParameterChangeSpy = vi.fn();
-
-    const props = {
-      titleMessage: 'Specify parameters required by the pipeline',
-      specParameters: {
-        string_param: {
-          parameterType: ParameterType_ParameterTypeEnum.STRING,
-          defaultValue: 'default_string_value',
-        },
-        integer_param: {
-          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
-          defaultValue: 42,
-        },
-        boolean_param: {
-          parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
-          defaultValue: true,
-        },
-        float_param: {
-          parameterType: ParameterType_ParameterTypeEnum.NUMBER_DOUBLE,
-          defaultValue: 3.14,
-        },
-        list_param: {
-          parameterType: ParameterType_ParameterTypeEnum.LIST,
-          defaultValue: [1, 2, 3],
-        },
-        struct_param: {
-          parameterType: ParameterType_ParameterTypeEnum.STRUCT,
-          defaultValue: { key: 'value', nested: { data: 123 } },
-        },
+  it('returns all default parameters in the initial state', () => {
+    const initialParameterState = getInitialParameterState({
+      string_param: {
+        parameterType: ParameterType_ParameterTypeEnum.STRING,
+        defaultValue: 'default_string_value',
       },
-      clonedRuntimeConfig: {},
-      handleParameterChange: handleParameterChangeSpy,
-    };
+      integer_param: {
+        parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+        defaultValue: 42,
+      },
+      boolean_param: {
+        parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
+        defaultValue: true,
+      },
+      float_param: {
+        parameterType: ParameterType_ParameterTypeEnum.NUMBER_DOUBLE,
+        defaultValue: 3.14,
+      },
+      list_param: {
+        parameterType: ParameterType_ParameterTypeEnum.LIST,
+        defaultValue: [1, 2, 3],
+      },
+      struct_param: {
+        parameterType: ParameterType_ParameterTypeEnum.STRUCT,
+        defaultValue: { key: 'value', nested: { data: 123 } },
+      },
+    });
 
-    // User does NOT interact - just renders form
-    render(<NewRunParametersV2 {...props} />);
-
-    // KEY ASSERTION: handleParameterChange called on mount (not 0!)
-    // ALL default parameters sent to API
-    expect(handleParameterChangeSpy).toHaveBeenCalledWith({
+    expect(initialParameterState.isValid).toBe(true);
+    expect(initialParameterState.runtimeParameters).toEqual({
       string_param: 'default_string_value',
       integer_param: 42,
       boolean_param: true,
@@ -1089,15 +1027,7 @@ describe('Bug Fix: Default Parameters in Compare Runs (#12536)', () => {
       clonedRuntimeConfig: {},
       handleParameterChange: handleParameterChangeSpy,
     };
-
     render(<NewRunParametersV2 {...props} />);
-
-    // On mount, all defaults sent
-    expect(handleParameterChangeSpy).toHaveBeenCalledWith({
-      param_a: 'default_a',
-      param_b: 100,
-      param_c: false,
-    });
 
     // User changes only param_a
     const paramAInput = screen.getByDisplayValue('default_a');
@@ -1113,36 +1043,26 @@ describe('Bug Fix: Default Parameters in Compare Runs (#12536)', () => {
   });
 
   it('SCENARIO 3: Falsy default values (0, false, empty list) are included', () => {
-    const handleParameterChangeSpy = vi.fn();
-
-    const props = {
-      titleMessage: 'Test falsy defaults',
-      specParameters: {
-        zero_param: {
-          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
-          defaultValue: 0,
-        },
-        false_param: {
-          parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
-          defaultValue: false,
-        },
-        zero_float: {
-          parameterType: ParameterType_ParameterTypeEnum.NUMBER_DOUBLE,
-          defaultValue: 0.0,
-        },
-        empty_list: {
-          parameterType: ParameterType_ParameterTypeEnum.LIST,
-          defaultValue: [],
-        },
+    const initialParameterState = getInitialParameterState({
+      zero_param: {
+        parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+        defaultValue: 0,
       },
-      clonedRuntimeConfig: {},
-      handleParameterChange: handleParameterChangeSpy,
-    };
+      false_param: {
+        parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
+        defaultValue: false,
+      },
+      zero_float: {
+        parameterType: ParameterType_ParameterTypeEnum.NUMBER_DOUBLE,
+        defaultValue: 0.0,
+      },
+      empty_list: {
+        parameterType: ParameterType_ParameterTypeEnum.LIST,
+        defaultValue: [],
+      },
+    });
 
-    render(<NewRunParametersV2 {...props} />);
-
-    // CRITICAL: Falsy values NOT omitted
-    expect(handleParameterChangeSpy).toHaveBeenCalledWith({
+    expect(initialParameterState.runtimeParameters).toEqual({
       zero_param: 0,
       false_param: false,
       zero_float: 0.0,
@@ -1276,9 +1196,6 @@ describe('Literal Parameter Dropdown (#12603)', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    // On mount, default is propagated
-    expect(handleParameterChangeSpy).toHaveBeenCalledWith({ env: 'dev' });
-
     // Open dropdown and select a different value
     const selectButton = screen.getByText('dev');
     fireEvent.mouseDown(selectButton);
@@ -1289,30 +1206,7 @@ describe('Literal Parameter Dropdown (#12603)', () => {
     expect(handleParameterChangeSpy).toHaveBeenCalledWith({ env: 'staging' });
   });
 
-  it('marks input as invalid when literal parameter has no default value', () => {
-    const setIsValidInputSpy = vi.fn();
-    const props = {
-      titleMessage: 'default Title',
-      specParameters: {
-        env: {
-          parameterType: ParameterType_ParameterTypeEnum.STRING,
-          literals: ['dev', 'staging', 'prod'],
-          isOptional: false,
-          description: '',
-        },
-      },
-      clonedRuntimeConfig: {},
-      handleParameterChange: vi.fn(),
-      setIsValidInput: setIsValidInputSpy,
-    };
-    render(<NewRunParametersV2 {...props} />);
-
-    // Without a default value, the form should be invalid (run button disabled)
-    expect(setIsValidInputSpy).toHaveBeenCalledWith(false);
-  });
-
   it('pre-selects the correct value from cloned RuntimeConfig for literal parameter', () => {
-    const handleParameterChangeSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       specParameters: {
@@ -1325,7 +1219,7 @@ describe('Literal Parameter Dropdown (#12603)', () => {
         },
       },
       clonedRuntimeConfig: { parameters: { env: 'prod' } },
-      handleParameterChange: handleParameterChangeSpy,
+      handleParameterChange: vi.fn(),
       setIsValidInput: vi.fn(),
     };
     render(<NewRunParametersV2 {...props} />);
@@ -1333,9 +1227,6 @@ describe('Literal Parameter Dropdown (#12603)', () => {
     // The cloned value 'prod' should be displayed, not the default 'dev'
     screen.getByText('prod');
     screen.getByDisplayValue('prod');
-
-    // handleParameterChange should be called with the cloned value
-    expect(handleParameterChangeSpy).toHaveBeenCalledWith({ env: 'prod' });
   });
 
   it('marks input as valid after selecting a value from a no-default literal dropdown', () => {
@@ -1356,9 +1247,6 @@ describe('Literal Parameter Dropdown (#12603)', () => {
       setIsValidInput: setIsValidInputSpy,
     };
     render(<NewRunParametersV2 {...props} />);
-
-    // Initially invalid
-    expect(setIsValidInputSpy).toHaveBeenCalledWith(false);
 
     // Open dropdown - MUI v5 Select renders with role="combobox"
     const selectElement = screen.getByRole('combobox');
@@ -1390,9 +1278,6 @@ describe('Literal Parameter Dropdown (#12603)', () => {
       setIsValidInput: setIsValidInputSpy,
     };
     render(<NewRunParametersV2 {...props} />);
-
-    // Initially invalid (no default value)
-    expect(setIsValidInputSpy).toHaveBeenCalledWith(false);
 
     // Open dropdown - MUI v5 Select renders with role="combobox"
     const selectElement = screen.getByRole('combobox');

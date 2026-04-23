@@ -26,7 +26,7 @@ import {
   TextField,
 } from '@mui/material';
 import * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { PipelineSpecRuntimeConfig } from 'src/apis/run';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
@@ -106,27 +106,6 @@ function NewRunParametersV2(props: NewRunParametersProps) {
   const [updatedParameters, setUpdatedParameters] = useState<RuntimeParameters>(
     initialParameterState.updatedParameters,
   );
-
-  useEffect(() => {
-    // NewRunV2 already seeds parent state before render, so only preserve the
-    // standalone mount-time callback behavior for callers that do not provide it.
-    if (providedInitialParameterState) {
-      return;
-    }
-    if (setIsValidInput) {
-      setIsValidInput(initialParameterState.isValid);
-    }
-    // Propagate initial default/cloned parameter values so parent runtime_config stays populated.
-    if (handleParameterChange) {
-      handleParameterChange(initialParameterState.runtimeParameters);
-    }
-  }, [
-    handleParameterChange,
-    initialParameterState.isValid,
-    initialParameterState.runtimeParameters,
-    providedInitialParameterState,
-    setIsValidInput,
-  ]);
 
   return (
     <div>
