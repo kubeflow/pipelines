@@ -209,6 +209,56 @@ func TestGetWorkspacePVC(t *testing.T) {
 			expectError: true,
 		},
 		{
+			name: "workspace with nil storageClassName should succeed",
+			workspace: &pipelinespec.WorkspaceConfig{
+				Size: "8Gi",
+				Kubernetes: &pipelinespec.KubernetesWorkspaceConfig{
+					PvcSpecPatch: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"accessModes": structpb.NewListValue(&structpb.ListValue{
+								Values: []*structpb.Value{
+									structpb.NewStringValue("ReadWriteOnce"),
+								},
+							}),
+						},
+					},
+				},
+			},
+			opts: nil,
+			expectedPVC: k8score.PersistentVolumeClaim{
+				ObjectMeta: k8smeta.ObjectMeta{
+					Name: "kfp-workspace",
+				},
+				Spec: k8score.PersistentVolumeClaimSpec{
+					AccessModes: []k8score.PersistentVolumeAccessMode{
+						k8score.ReadWriteOnce,
+					},
+					Resources: k8score.VolumeResourceRequirements{
+						Requests: map[k8score.ResourceName]resource.Quantity{
+							k8score.ResourceStorage: resource.MustParse("8Gi"),
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "workspace with explicit empty storageClassName should fail",
+			workspace: &pipelinespec.WorkspaceConfig{
+				Size: "8Gi",
+			},
+			opts: &argocompiler.Options{
+				DefaultWorkspace: &k8score.PersistentVolumeClaimSpec{
+					AccessModes: []k8score.PersistentVolumeAccessMode{
+						k8score.ReadWriteOnce,
+					},
+					StorageClassName: stringPtr(""),
+				},
+			},
+			expectedPVC: k8score.PersistentVolumeClaim{},
+			expectError: true,
+		},
+		{
 			name: "workspace with invalid PVC spec patch",
 			workspace: &pipelinespec.WorkspaceConfig{
 				Size: "10Gi",
