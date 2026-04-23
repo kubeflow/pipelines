@@ -17,7 +17,6 @@ package testutil
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
@@ -30,7 +29,6 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	"google.golang.org/grpc/codes"
 )
 
 func ListPipelines(client *api_server.PipelineClient, namespace *string) []*pipeline_model.V2beta1Pipeline {
@@ -69,35 +67,14 @@ func UploadPipeline(pipelineUploadClient api_server.PipelineUploadInterface, pip
 }
 
 // DeletePipeline deletes a pipeline by id. When cascade is true the server also deletes all pipeline versions.
-// If the pipeline no longer exists (NotFound), the deletion is skipped silently.
-// Any other Get error is treated as a real failure so it surfaces in the test report.
 func DeletePipeline(client *api_server.PipelineClient, pipelineID string, cascade bool) {
 	ginkgo.GinkgoHelper()
 	_, err := client.Get(&pipeline_params.PipelineServiceGetPipelineParams{PipelineID: pipelineID})
-	if err != nil {
-		if isNotFoundError(err) {
-			logger.Log("Pipeline with id=%s does not exist, skipping deletion", pipelineID)
-			return
-		}
-		gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Failed to retrieve pipeline with id=%s before deletion", pipelineID))
-	}
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Failed to retrieve pipeline with id=%s before deletion", pipelineID))
 	logger.Log("Deleting pipeline with id=%s (cascade=%v)", pipelineID, cascade)
 	err = client.Delete(&pipeline_params.PipelineServiceDeletePipelineParams{PipelineID: pipelineID, Cascade: &cascade})
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Error occurred while deleting pipeline with id=%s", pipelineID))
 	logger.Log("Pipeline with id=%s, DELETED", pipelineID)
-}
-
-// isNotFoundError returns true when the error represents a "not found" response from the API
-// server. The pipeline client wraps API errors through CreateErrorFromAPIStatus and then
-// util.NewUserError, which always assigns codes.Internal regardless of the original HTTP/gRPC
-// status. Therefore util.IsUserErrorCodeMatch(err, codes.NotFound) does not work and we fall
-// back to inspecting the error message.
-func isNotFoundError(err error) bool {
-	if util.IsUserErrorCodeMatch(err, codes.NotFound) {
-		return true
-	}
-	msg := err.Error()
-	return strings.Contains(msg, "ResourceNotFoundError") || strings.Contains(msg, "not found")
 }
 
 /* GetPipeline does its job via GET pipeline end point call, so that we retrieve the values from DB */
