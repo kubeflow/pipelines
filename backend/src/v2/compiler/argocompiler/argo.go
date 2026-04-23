@@ -653,8 +653,12 @@ func GetWorkspacePVC(
 		return k8score.PersistentVolumeClaim{}, fmt.Errorf("workspace PVC spec must specify accessModes")
 	}
 
-	if pvcSpec.StorageClassName == nil || *pvcSpec.StorageClassName == "" {
-		return k8score.PersistentVolumeClaim{}, fmt.Errorf("workspace PVC spec must specify storageClassName")
+	// Allow nil storageClassName so Kubernetes can apply the cluster default.
+	// Explicit empty string requests "no storage class" behavior and is rejected.
+	if pvcSpec.StorageClassName != nil && *pvcSpec.StorageClassName == "" {
+		return k8score.PersistentVolumeClaim{}, fmt.Errorf(
+			"workspace PVC spec storageClassName must be omitted or set to a non-empty value",
+		)
 	}
 
 	quantity, err := k8sres.ParseQuantity(sizeStr)
