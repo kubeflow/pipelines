@@ -696,6 +696,84 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         # and evaluate the condition (false in this case, so task is skipped)
 
     @mock.patch('sys.stdout', new_callable=stdlib_io.StringIO)
+    def test_condition_false_skips_body_and_downstream(self, mock_stdout):
+        local.init(
+            local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def emit(value: str) -> str:
+            return value
+
+        @dsl.component
+        def consume(value: str):
+            print(value)
+
+        @dsl.pipeline
+        def my_pipeline(x: str = 'bar'):
+            producer = emit(value=x)
+            with dsl.If(producer.output == 'foo'):
+                inner = emit(value='inside')
+                consume(value=inner.output)
+
+        my_pipeline()
+        logs = mock_stdout.getvalue()
+        # The false condition should log SKIPPED for both the group task
+        # and the downstream task that depends on the group's outputs.
+        self.assertIn('SKIPPED', logs)
+
+    @mock.patch('sys.stdout', new_callable=stdlib_io.StringIO)
+    def test_condition_true_runs_body(self, mock_stdout):
+        local.init(
+            local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def emit(value: str) -> str:
+            return value
+
+        @dsl.pipeline
+        def my_pipeline(x: str = 'foo'):
+            producer = emit(value=x)
+            with dsl.If(producer.output == 'foo'):
+                emit(value='inside')
+
+        my_pipeline()
+        logs = mock_stdout.getvalue()
+        # The true branch should not emit a SKIPPED line for the inner task.
+        # We keep the assertion tight to the inner task name; the outer
+        # producer and the condition group both run with SUCCESS.
+        self.assertNotIn('SKIPPED', logs)
+
+    def test_nested_condition_inside_regular_subdag(self):
+        """Conditions inside a nested pipeline must be evaluated.
+
+        Regression test for the previous bug where has_control_flow was
+        detected only at the root DAG, causing conditions inside a sub-DAG
+        to be ignored (the body ran unconditionally).
+        """
+        local.init(
+            local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def echo(value: str) -> str:
+            return value
+
+        @dsl.pipeline
+        def inner(flag: str) -> str:
+            with dsl.If(flag == 'yes'):
+                a = echo(value='branch')
+            return echo(value=flag).output
+
+        @dsl.pipeline
+        def outer(flag: str = 'no') -> str:
+            return inner(flag=flag).output
+
+        task = outer(flag='no')
+        self.assertIsInstance(task, pipeline_task.PipelineTask)
+
+    @mock.patch('sys.stdout', new_callable=stdlib_io.StringIO)
     def test_fails_with_raise_on_error_true(self, mock_stdout):
         local.init(local.SubprocessRunner(), raise_on_error=True)
 

@@ -12,13 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, Dict, List
+import threading
+from typing import Any, Dict, List, Set
 
 import docker
 from kfp.dsl import constants as dsl_constants
 from kfp.local import config
 from kfp.local import status
 from kfp.local import task_handler_interface
+
+# Single-flight image pull. When a ParallelFor fans out N iterations that all
+# share the same image, we want exactly one pull on cold cache rather than N
+# concurrent pulls racing the Docker daemon.
+_PULL_LOCK = threading.Lock()
+_PULL_LOCKS: Dict[str, threading.Lock] = {}
+_PULLED_IMAGES: Set[str] = set()
+
+
+def _image_lock(image: str) -> threading.Lock:
+    with _PULL_LOCK:
+        lock = _PULL_LOCKS.get(image)
+        if lock is None:
+            lock = threading.Lock()
+            _PULL_LOCKS[image] = lock
+        return lock
 
 
 class DockerTaskHandler(task_handler_interface.ITaskHandler):
@@ -114,19 +131,33 @@ def add_latest_tag_if_not_present(image: str) -> str:
     return image
 
 
+def _ensure_image_present(client: 'docker.DockerClient', image: str) -> None:
+    """Ensure an image is available locally, pulling at most once across
+    concurrent callers requesting the same image."""
+    if image in _PULLED_IMAGES:
+        print(f'Found image {image!r}\n')
+        return
+    with _image_lock(image):
+        if image in _PULLED_IMAGES:
+            print(f'Found image {image!r}\n')
+            return
+        image_exists = any(
+            image in (existing_image.tags + existing_image.attrs['RepoDigests'])
+            for existing_image in client.images.list())
+        if image_exists:
+            print(f'Found image {image!r}\n')
+        else:
+            print(f'Pulling image {image!r}')
+            client.images.pull(image)
+            print('Image pull complete\n')
+        _PULLED_IMAGES.add(image)
+
+
 def run_docker_container(client: 'docker.DockerClient', image: str,
                          command: List[str], volumes: Dict[str, Any],
                          **container_run_args) -> int:
     image = add_latest_tag_if_not_present(image=image)
-    image_exists = any(
-        image in (existing_image.tags + existing_image.attrs['RepoDigests'])
-        for existing_image in client.images.list())
-    if image_exists:
-        print(f'Found image {image!r}\n')
-    else:
-        print(f'Pulling image {image!r}')
-        client.images.pull(image)
-        print('Image pull complete\n')
+    _ensure_image_present(client, image)
     container = client.containers.run(
         image=image,
         command=command,

@@ -17,144 +17,52 @@ dsl.ParallelFor."""
 
 import concurrent.futures
 import logging
-import re
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 from kfp.local import config
 from kfp.local import graph_utils
 from kfp.local import io
+from kfp.local import logging_utils
 from kfp.local import status
 from kfp.pipeline_spec import pipeline_spec_pb2
 
+from . import cel
 from .orchestrator_utils import OrchestratorUtils
 
 Outputs = Dict[str, Any]
 
 
 class ConditionEvaluator:
-    """Evaluates condition expressions for dsl.Condition support."""
+    """Evaluates compiler-emitted CEL condition expressions.
 
-    @staticmethod
-    def _extract_pipeline_channels(condition: str) -> List[str]:
-        """Extract pipeline channel references from condition string.
-
-        Args:
-            condition: The condition expression
-
-        Returns:
-            List of pipeline channel references found
-        """
-        # Look for patterns like pipelinechannel--task-name-output-name
-        pattern = r'pipelinechannel--[a-zA-Z0-9_\-]+'
-        return re.findall(pattern, condition)
-
-    @staticmethod
-    def _resolve_pipeline_channel(channel_ref: str,
-                                  io_store: io.IOStore) -> Any:
-        """Resolve a pipeline channel reference to its actual value.
-
-        Args:
-            channel_ref: The pipeline channel reference string
-            io_store: IOStore containing values
-
-        Returns:
-            The resolved value
-        """
-        # Remove the pipelinechannel-- prefix
-        actual_ref = channel_ref.replace('pipelinechannel--', '')
-
-        # Check if this is a task output reference
-        if '-Output' in actual_ref or '--' in actual_ref:
-            # Parse task output reference: task-name-Output or task-name--output-name
-            if '--' in actual_ref:
-                parts = actual_ref.split('--')
-                output_task_name = parts[0]
-                output_key = parts[1] if len(parts) > 1 else 'Output'
-            else:
-                parts = actual_ref.split('-Output')
-                output_task_name = parts[0]
-                output_key = 'Output'
-
-            try:
-                return io_store.get_task_output(output_task_name, output_key)
-            except Exception:
-                logging.warning(
-                    f'Could not resolve task output: {output_task_name}.{output_key}'
-                )
-                return None
-        else:
-            # This is a parent input parameter
-            try:
-                return io_store.get_parent_input(actual_ref)
-            except Exception:
-                logging.warning(f'Could not resolve parent input: {actual_ref}')
-                return None
+    The Kubeflow Pipelines compiler emits conditions of the form
+    ``inputs.parameter_values['pipelinechannel--<name>'] <op> <literal>`` plus
+    ``&&`` / ``||`` / ``!`` combinators. We evaluate them via the CEL subset
+    parser in :mod:`kfp.local.orchestrator.cel`, resolving the parameter
+    references from the task's already-resolved input arguments.
+    """
 
     @staticmethod
     def evaluate_condition(
         condition: str,
-        io_store: io.IOStore,
+        task_arguments: Dict[str, Any],
     ) -> bool:
-        """Evaluates a condition string using available values from IOStore.
+        """Evaluate a CEL condition using a task's resolved inputs.
 
         Args:
-            condition: The condition expression to evaluate
-            io_store: IOStore containing available values
+            condition: The condition expression.
+            task_arguments: The task's resolved input parameters — the same
+                dict produced by
+                :meth:`OrchestratorUtils.make_task_arguments`. Keys are the
+                ``pipelinechannel--<name>`` identifiers the compiler uses in
+                the expression.
 
         Returns:
-            True if condition evaluates to True, False otherwise
+            ``True`` if the condition evaluates truthy. Raises the underlying
+            :class:`cel.CELError` on parse/eval failure so the caller can fail
+            the pipeline instead of silently skipping.
         """
-        if not condition or not condition.strip():
-            return True
-
-        try:
-            # Create a safe evaluation environment
-            safe_condition = condition
-
-            # Extract and resolve pipeline channel references
-            pipeline_channels = ConditionEvaluator._extract_pipeline_channels(
-                condition)
-
-            for channel_ref in pipeline_channels:
-                value = ConditionEvaluator._resolve_pipeline_channel(
-                    channel_ref, io_store)
-                if value is not None:
-                    # Replace the reference with the actual value
-                    # Convert value to string representation for substitution
-                    if isinstance(value, str):
-                        safe_condition = safe_condition.replace(
-                            channel_ref, f"'{value}'")
-                    else:
-                        safe_condition = safe_condition.replace(
-                            channel_ref, str(value))
-                else:
-                    logging.warning(
-                        f'Could not resolve channel reference: {channel_ref}')
-                    return False
-
-            # Use a restricted evaluation environment for safety
-            allowed_names = {
-                '__builtins__': {},
-                'True': True,
-                'False': False,
-                'None': None,
-                'int': int,
-                'float': float,
-                'str': str,
-                'bool': bool,
-                'len': len,
-                'min': min,
-                'max': max,
-            }
-
-            # Add basic comparison and logical operators by evaluating in restricted context
-            result = eval(safe_condition, allowed_names, {})
-            return bool(result)
-
-        except Exception as e:
-            logging.warning(
-                f'Condition evaluation failed for "{condition}": {e}')
-            return False
+        return cel.evaluate(condition, parameter_values=task_arguments)
 
 
 class ParallelExecutor:
@@ -627,171 +535,66 @@ def run_enhanced_dag(
         io_store.put_parent_input(k, v)
 
     dag_spec = dag_component_spec.dag
+    tasks = dict(dag_spec.tasks.items())
 
-    # Group tasks by control flow type
-    regular_tasks = []
-    condition_tasks = []
-    parallel_for_tasks = []
+    # Topologically sort ALL tasks using explicit `dependent_tasks` plus
+    # implicit edges derived from task output references. Conditions,
+    # ParallelFors and regular tasks are scheduled in the same pass so that
+    # a task downstream of a condition/parallel-for group can correctly
+    # observe its skip/success status.
+    dependency_map = _build_full_dependency_map(tasks)
+    sorted_task_names = graph_utils.topological_sort(dependency_map)
+    # topological_sort returns a stack (pop from right); normalise to
+    # execution order left->right.
+    execution_order = list(reversed(sorted_task_names))
 
-    for task_name, task_spec in dag_spec.tasks.items():
-        if task_spec.trigger_policy.condition:
-            condition_tasks.append((task_name, task_spec))
-        elif task_spec.WhichOneof('iterator') and _has_valid_iterator(
-                task_spec):
-            parallel_for_tasks.append((task_name, task_spec))
-        else:
-            regular_tasks.append((task_name, task_spec))
-
-    # Execute regular tasks first (topologically sorted)
-    regular_task_dict = {name: spec for name, spec in regular_tasks}
-    if regular_task_dict:
-        sorted_task_names = graph_utils.topological_sort_tasks(
-            regular_task_dict)
-
-        while sorted_task_names:
-            task_name = sorted_task_names.pop()
-            task_spec = regular_task_dict[task_name]
-
-            # Use execute_task which handles both executor and nested DAG implementations
-            outputs, task_status = execute_task(
-                task_name=task_name,
-                task_spec=task_spec,
-                pipeline_resource_name=pipeline_resource_name,
-                components=components,
-                executors=executors,
-                io_store=io_store,
-                pipeline_root=pipeline_root,
-                runner=runner,
-                unique_pipeline_id=unique_pipeline_id,
-                fail_stack=fail_stack,
-            )
-
-            if task_status == status.Status.FAILURE:
-                return {}, status.Status.FAILURE
-
-            # Update IO store on success
-            for key, output in outputs.items():
-                io_store.put_task_output(task_name, key, output)
-
-    # Execute conditional tasks
     condition_evaluator = ConditionEvaluator()
-    for task_name, task_spec in condition_tasks:
-        # Evaluate condition
-        condition_expr = task_spec.trigger_policy.condition
-        should_execute = condition_evaluator.evaluate_condition(
-            condition_expr, io_store)
-
-        if should_execute:
-            outputs, task_status = execute_task(
-                task_name=task_name,
-                task_spec=task_spec,
-                pipeline_resource_name=pipeline_resource_name,
-                components=components,
-                executors=executors,
-                io_store=io_store,
-                pipeline_root=pipeline_root,
-                runner=runner,
-                unique_pipeline_id=unique_pipeline_id,
-                fail_stack=fail_stack,
-            )
-
-            if task_status == status.Status.FAILURE:
-                return {}, status.Status.FAILURE
-
-            # Update IO store on success
-            for key, output in outputs.items():
-                io_store.put_task_output(task_name, key, output)
-        else:
-            logging.info(
-                f'Skipping conditional task {task_name} (condition evaluated to False)'
-            )
-
-    # Execute parallel for tasks
     parallel_executor = ParallelExecutor()
-    for task_name, task_spec in parallel_for_tasks:
-        # Get iterator configuration
-        iterator = task_spec.WhichOneof('iterator')
-        if iterator == 'parameter_iterator':
-            param_iter = task_spec.parameter_iterator
-            # Get items from the ItemsSpec
-            items_spec = param_iter.items
-            if items_spec.HasField('input_parameter'):
-                # Get items from input parameter (from IOStore)
-                param_name = items_spec.input_parameter
-                # Check if this is a task output parameter or a parent input parameter
-                if param_name.startswith('pipelinechannel--'):
-                    # Remove the prefix but check if it contains a task output reference
-                    actual_param = param_name.replace('pipelinechannel--',
-                                                      '').replace(
-                                                          '-loop-item', '')
-                    # Check if this looks like a task output (task-name-output-name)
-                    if '-Output' in actual_param:
-                        # This is a task output, split it
-                        parts = actual_param.split('-Output')
-                        output_task_name = parts[
-                            0]  # Don't overwrite the loop variable!
-                        output_key = 'Output'
-                        items = io_store.get_task_output(
-                            output_task_name, output_key)
-                    else:
-                        # This is a parent input - try both the stripped name and
-                        # the full pipelinechannel name since IOStore keys may use either
-                        try:
-                            items = io_store.get_parent_input(actual_param)
-                        except Exception:
-                            # Try with the pipelinechannel prefix
-                            items = io_store.get_parent_input(
-                                f'pipelinechannel--{actual_param}')
-                else:
-                    # Direct parameter name
-                    items = io_store.get_parent_input(param_name)
-            elif items_spec.HasField('raw'):
-                # Parse raw JSON string
-                import json
-                items = json.loads(items_spec.raw)
-            else:
-                logging.warning(f'Unknown items type for task {task_name}')
-                continue
-            parallelism_limit = getattr(param_iter, 'parallelism_limit', 0)
-        elif iterator == 'artifact_iterator':
-            # Handle artifact iterator using helper function
-            try:
-                items, artifact_item_input, parallelism_limit = _get_artifact_iterator_items(
-                    task_spec, io_store, task_name)
-            except ValueError as e:
-                logging.warning(f'Failed to get artifact iterator items: {e}')
-                continue
-        else:
-            logging.warning(
-                f'Unknown iterator type for task {task_name}: {iterator}')
+    skipped_tasks: Set[str] = set()
+
+    for task_name in execution_order:
+        task_spec = tasks[task_name]
+
+        # A task is skipped if any upstream it depends on was skipped. Note
+        # that a task downstream of a false condition is skipped, but a task
+        # downstream of a *failed* task short-circuits the whole DAG below
+        # (handled via the FAILURE return path).
+        upstream_skipped = any(dep in skipped_tasks
+                               for dep in dependency_map[task_name])
+        if upstream_skipped:
+            _mark_skipped(task_name, io_store, skipped_tasks,
+                          reason='upstream was skipped')
             continue
 
-        # Create parallel tasks for each loop item
-        loop_tasks = []
-        for i, item in enumerate(items):
-            # Create a unique task name for this iteration
-            iteration_task_name = f"{task_name}-iteration-{i}"
+        # Evaluate dsl.Condition trigger policy, if any.
+        if task_spec.trigger_policy.condition:
+            condition_arguments = OrchestratorUtils.make_task_arguments(
+                task_spec.inputs, io_store)
+            try:
+                should_execute = condition_evaluator.evaluate_condition(
+                    task_spec.trigger_policy.condition,
+                    condition_arguments,
+                )
+            except cel.CELError as e:
+                logging.error(
+                    f"Failed to evaluate condition for task '{task_name}': {e}")
+                fail_stack.append(task_name)
+                return {}, status.Status.FAILURE
+            if not should_execute:
+                _mark_skipped(
+                    task_name,
+                    io_store,
+                    skipped_tasks,
+                    reason=
+                    f'condition evaluated to False: {task_spec.trigger_policy.condition}',
+                )
+                continue
 
-            # Create a modified task spec for this iteration
-            if iterator == 'artifact_iterator':
-                iteration_task_spec = _create_artifact_loop_iteration_task_spec(
-                    task_spec, item, i, task_name, artifact_item_input)
-                # For artifact iterators, store the artifact in io_store with iteration-specific keys
-                # Use artifact_item_input as base since that's what the nested component expects
-                # (e.g., pipelinechannel--make-artifacts-Output-loop-item-iteration-0)
-                iteration_key = f'{artifact_item_input}-iteration-{i}'
-                io_store.put_parent_input(iteration_key, item)
-            else:
-                iteration_task_spec = _create_loop_iteration_task_spec(
-                    task_spec, item, i, task_name)
-
-            loop_tasks.append((iteration_task_name, iteration_task_spec))
-
-        # Execute all loop iterations in parallel
-        if loop_tasks:
-
-            parallel_outputs, parallel_status = parallel_executor.execute_parallel_tasks(
-                tasks=loop_tasks,
+        # Fan out dsl.ParallelFor iterations.
+        if task_spec.WhichOneof('iterator') and _has_valid_iterator(task_spec):
+            parallel_status = _run_parallel_for(
+                task_name=task_name,
+                task_spec=task_spec,
                 pipeline_resource_name=pipeline_resource_name,
                 components=components,
                 executors=executors,
@@ -800,30 +603,42 @@ def run_enhanced_dag(
                 runner=runner,
                 unique_pipeline_id=unique_pipeline_id,
                 fail_stack=fail_stack,
-                parallelism_limit=parallelism_limit,
+                parallel_executor=parallel_executor,
             )
-
             if parallel_status == status.Status.FAILURE:
+                fail_stack.append(task_name)
                 return {}, status.Status.FAILURE
+            continue
 
-            # Aggregate loop outputs - collect all iteration outputs under the main task name
-            aggregated_outputs = {}
-            for iteration_name, outputs in parallel_outputs.items():
-                # Store outputs with iteration index for later aggregation
-                iteration_index = iteration_name.split('-iteration-')[-1]
-                for output_key, output_value in outputs.items():
-                    if output_key not in aggregated_outputs:
-                        aggregated_outputs[output_key] = {}
-                    aggregated_outputs[output_key][
-                        iteration_index] = output_value
+        # Regular task or condition-true subDAG.
+        outputs, task_status = execute_task(
+            task_name=task_name,
+            task_spec=task_spec,
+            pipeline_resource_name=pipeline_resource_name,
+            components=components,
+            executors=executors,
+            io_store=io_store,
+            pipeline_root=pipeline_root,
+            runner=runner,
+            unique_pipeline_id=unique_pipeline_id,
+            fail_stack=fail_stack,
+        )
 
-            # Store the aggregated outputs in the main task's namespace
-            for output_key, iteration_outputs in aggregated_outputs.items():
-                # Create a list of outputs in iteration order
-                ordered_outputs = [
-                    iteration_outputs.get(str(i)) for i in range(len(items))
-                ]
-                io_store.put_task_output(task_name, output_key, ordered_outputs)
+        if task_status == status.Status.FAILURE:
+            fail_stack.append(task_name)
+            return {}, status.Status.FAILURE
+        if task_status == status.Status.SKIPPED:
+            # A nested DAG propagated a skip up; treat this task as skipped.
+            _mark_skipped(
+                task_name,
+                io_store,
+                skipped_tasks,
+                reason='nested DAG reported SKIPPED',
+            )
+            continue
+
+        for key, output in outputs.items():
+            io_store.put_task_output(task_name, key, output)
 
     # Get DAG outputs
     dag_outputs = OrchestratorUtils.get_dag_outputs(
@@ -832,6 +647,195 @@ def run_enhanced_dag(
     )
 
     return dag_outputs, status.Status.SUCCESS
+
+
+def _build_full_dependency_map(
+    tasks: Dict[str, pipeline_spec_pb2.PipelineTaskSpec],
+) -> Dict[str, List[str]]:
+    """Build a dependency map covering every task in the DAG.
+
+    Combines explicit ``dependent_tasks`` with implicit edges derived from
+    input bindings and iterator sources. Only edges to tasks *in this same
+    DAG* are kept; references to outer-scope producers (which the compiler
+    surfaces through ``component_input_parameter``) are ignored for
+    scheduling purposes.
+    """
+    known = set(tasks.keys())
+    deps: Dict[str, List[str]] = {}
+    for task_name, task_spec in tasks.items():
+        seen: Set[str] = set()
+
+        def add(producer: str) -> None:
+            if producer and producer != task_name and producer in known and producer not in seen:
+                seen.add(producer)
+
+        for dep in task_spec.dependent_tasks:
+            add(dep)
+
+        for input_spec in task_spec.inputs.parameters.values():
+            if input_spec.HasField('task_output_parameter'):
+                add(input_spec.task_output_parameter.producer_task)
+        for input_spec in task_spec.inputs.artifacts.values():
+            if input_spec.HasField('task_output_artifact'):
+                add(input_spec.task_output_artifact.producer_task)
+
+        # ParallelFor iterators can pull items from an upstream task output.
+        iterator_type = task_spec.WhichOneof('iterator')
+        if iterator_type == 'parameter_iterator':
+            items = task_spec.parameter_iterator.items
+            if items.HasField('input_parameter'):
+                name = items.input_parameter
+                # pipelinechannel--<producer>-<output_key>-loop-item
+                if name.startswith('pipelinechannel--') and '-Output' in name:
+                    producer = name[len('pipelinechannel--'):].split(
+                        '-Output', 1)[0]
+                    add(producer)
+        elif iterator_type == 'artifact_iterator':
+            items = task_spec.artifact_iterator.items
+            if items.input_artifact:
+                name = items.input_artifact
+                if name.startswith('pipelinechannel--'):
+                    # Best-effort: fall back to rsplit('-',1) producer guess.
+                    stripped = name[len('pipelinechannel--'):]
+                    if '-' in stripped:
+                        add(stripped.rsplit('-', 1)[0])
+
+        deps[task_name] = sorted(seen)
+    return deps
+
+
+def _mark_skipped(
+    task_name: str,
+    io_store: io.IOStore,
+    skipped_tasks: Set[str],
+    reason: str,
+) -> None:
+    """Record a skipped task and emit a SKIPPED log line."""
+    io_store.mark_task_skipped(task_name)
+    skipped_tasks.add(task_name)
+    with logging_utils.local_logger_context():
+        logging.info(
+            f'Task {logging_utils.format_task_name(task_name)} finished with '
+            f'status {logging_utils.format_status(status.Status.SKIPPED)}'
+            f' ({reason})')
+
+
+def _run_parallel_for(
+    task_name: str,
+    task_spec: pipeline_spec_pb2.PipelineTaskSpec,
+    pipeline_resource_name: str,
+    components: Dict[str, pipeline_spec_pb2.ComponentSpec],
+    executors: Dict[str,
+                    pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec],
+    io_store: io.IOStore,
+    pipeline_root: str,
+    runner: config.LocalRunnerType,
+    unique_pipeline_id: str,
+    fail_stack: List[str],
+    parallel_executor: 'ParallelExecutor',
+) -> status.Status:
+    """Fan out a ParallelFor group and aggregate its iteration outputs.
+
+    Returns SUCCESS even if ``items`` is empty (the task simply contributes
+    no outputs). Returns FAILURE if any iteration fails.
+    """
+    iterator = task_spec.WhichOneof('iterator')
+    artifact_item_input = None
+    parallelism_limit = 0
+    if iterator == 'parameter_iterator':
+        param_iter = task_spec.parameter_iterator
+        items_spec = param_iter.items
+        if items_spec.HasField('input_parameter'):
+            items = _resolve_parameter_iterator_items(
+                items_spec.input_parameter, io_store)
+        elif items_spec.HasField('raw'):
+            import json
+            items = json.loads(items_spec.raw)
+        else:
+            logging.warning(f'Unknown items type for task {task_name}')
+            return status.Status.SUCCESS
+        parallelism_limit = getattr(param_iter, 'parallelism_limit', 0)
+    elif iterator == 'artifact_iterator':
+        try:
+            items, artifact_item_input, parallelism_limit = _get_artifact_iterator_items(
+                task_spec, io_store, task_name)
+        except ValueError as e:
+            logging.warning(f'Failed to get artifact iterator items: {e}')
+            return status.Status.SUCCESS
+    else:
+        logging.warning(
+            f'Unknown iterator type for task {task_name}: {iterator}')
+        return status.Status.SUCCESS
+
+    if not items:
+        logging.info(
+            f'ParallelFor task {task_name} has no items; producing empty output lists.'
+        )
+        return status.Status.SUCCESS
+
+    loop_tasks: List[Tuple[str, pipeline_spec_pb2.PipelineTaskSpec]] = []
+    for i, item in enumerate(items):
+        iteration_task_name = f'{task_name}-iteration-{i}'
+        if iterator == 'artifact_iterator':
+            iteration_task_spec = _create_artifact_loop_iteration_task_spec(
+                task_spec, item, i, task_name, artifact_item_input)
+            iteration_key = f'{artifact_item_input}-iteration-{i}'
+            io_store.put_parent_input(iteration_key, item)
+        else:
+            iteration_task_spec = _create_loop_iteration_task_spec(
+                task_spec, item, i, task_name)
+        loop_tasks.append((iteration_task_name, iteration_task_spec))
+
+    parallel_outputs, parallel_status = parallel_executor.execute_parallel_tasks(
+        tasks=loop_tasks,
+        pipeline_resource_name=pipeline_resource_name,
+        components=components,
+        executors=executors,
+        io_store=io_store,
+        pipeline_root=pipeline_root,
+        runner=runner,
+        unique_pipeline_id=unique_pipeline_id,
+        fail_stack=fail_stack,
+        parallelism_limit=parallelism_limit,
+    )
+    if parallel_status == status.Status.FAILURE:
+        return status.Status.FAILURE
+
+    aggregated_outputs: Dict[str, Dict[str, Any]] = {}
+    for iteration_name, outputs in parallel_outputs.items():
+        iteration_index = iteration_name.split('-iteration-')[-1]
+        for output_key, output_value in outputs.items():
+            aggregated_outputs.setdefault(output_key,
+                                          {})[iteration_index] = output_value
+    for output_key, iteration_outputs in aggregated_outputs.items():
+        ordered_outputs = [
+            iteration_outputs.get(str(i)) for i in range(len(items))
+        ]
+        io_store.put_task_output(task_name, output_key, ordered_outputs)
+    return status.Status.SUCCESS
+
+
+def _resolve_parameter_iterator_items(
+    param_name: str,
+    io_store: io.IOStore,
+) -> Any:
+    """Resolve the items list for a ParallelFor parameter iterator.
+
+    Mirrors the existing best-effort logic: items can come from a parent
+    pipeline input or from an upstream task output; the compiler-emitted
+    name disambiguates.
+    """
+    if not param_name.startswith('pipelinechannel--'):
+        return io_store.get_parent_input(param_name)
+    actual_param = param_name[len('pipelinechannel--'):].replace(
+        '-loop-item', '')
+    if '-Output' in actual_param:
+        producer, _, _ = actual_param.partition('-Output')
+        return io_store.get_task_output(producer, 'Output')
+    try:
+        return io_store.get_parent_input(actual_param)
+    except Exception:
+        return io_store.get_parent_input(f'pipelinechannel--{actual_param}')
 
 
 def execute_task(
@@ -913,9 +917,15 @@ def execute_task(
                     # Artifact not available in parent IOStore
                     pass
 
-        # For nested DAGs (especially ParallelFor iterations), include the task name
-        # in the pipeline_resource_name to ensure unique output paths for each iteration
-        nested_resource_name = f"{pipeline_resource_name}/{task_name}"
+        # For ParallelFor iteration tasks, include the task name in the
+        # pipeline_resource_name so each iteration writes to its own output
+        # directory. For regular nested sub-DAGs we intentionally keep the
+        # parent's resource name so all tasks share a single flat output
+        # directory (matching the legacy simple-DAG orchestrator contract).
+        if '-iteration-' in task_name:
+            nested_resource_name = f"{pipeline_resource_name}/{task_name}"
+        else:
+            nested_resource_name = pipeline_resource_name
 
         return run_enhanced_dag(
             pipeline_resource_name=nested_resource_name,
