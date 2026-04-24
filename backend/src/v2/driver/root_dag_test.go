@@ -177,6 +177,23 @@ func Test_validateRootDAG(t *testing.T) {
 }
 
 func TestRootDAG_CreateExecutionAlreadyExistsReturnsExistingID(t *testing.T) {
+	mockConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kfp-launcher",
+			Namespace: "kubeflow",
+		},
+		Data: map[string]string{
+			"defaultPipelineRoot": "s3://bucket/pipelines",
+		},
+	}
+
+	originalBuildClient := buildK8sClient
+	defer func() { buildK8sClient = originalBuildClient }()
+
+	buildK8sClient = func() (kubernetes.Interface, error) {
+		return fake.NewClientset(mockConfigMap), nil
+	}
+
 	execution, err := RootDAG(context.Background(), Options{
 		PipelineName:   "pipeline-1",
 		RunID:          "run-1",
