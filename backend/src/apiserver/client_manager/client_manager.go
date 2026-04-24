@@ -1072,6 +1072,7 @@ func newS3BucketClient(ctx context.Context, config *blobStorageConfig) (*s3.Clie
 func loadAWSConfig(ctx context.Context, config *blobStorageConfig) (awsv2.Config, error) {
 	opts := []func(*awsv2cfg.LoadOptions) error{
 		awsv2cfg.WithRegion(config.region),
+		awsv2cfg.WithRequestChecksumCalculation(awsv2.RequestChecksumCalculationWhenRequired),
 	}
 	if config.accessKey != "" && config.secretKey != "" {
 		opts = append(opts, awsv2cfg.WithCredentialsProvider(
