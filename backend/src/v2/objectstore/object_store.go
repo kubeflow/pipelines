@@ -309,6 +309,8 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 		}),
 		config.WithCredentialsProvider(*creds),
 		config.WithRegion(*aws.String(params.Region)),
+		config.WithRequestChecksumCalculation(aws.RequestChecksumCalculationWhenRequired),
+		config.WithResponseChecksumValidation(aws.ResponseChecksumValidationWhenRequired),
 	)
 	if err != nil {
 		return nil, err
