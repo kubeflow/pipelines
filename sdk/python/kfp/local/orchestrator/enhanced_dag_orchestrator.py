@@ -627,15 +627,6 @@ def run_enhanced_dag(
         if task_status == status.Status.FAILURE:
             fail_stack.append(task_name)
             return {}, status.Status.FAILURE
-        if task_status == status.Status.SKIPPED:
-            # A nested DAG propagated a skip up; treat this task as skipped.
-            _mark_skipped(
-                task_name,
-                io_store,
-                skipped_tasks,
-                reason='nested DAG reported SKIPPED',
-            )
-            continue
 
         for key, output in outputs.items():
             io_store.put_task_output(task_name, key, output)

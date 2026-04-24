@@ -133,7 +133,12 @@ def add_latest_tag_if_not_present(image: str) -> str:
 
 def _ensure_image_present(client: 'docker.DockerClient', image: str) -> None:
     """Ensure an image is available locally, pulling at most once across
-    concurrent callers requesting the same image."""
+    concurrent callers requesting the same image.
+
+    Once an image is confirmed present (or pulled), its per-image lock is
+    evicted from :data:`_PULL_LOCKS` so the map doesn't grow unbounded in
+    long-lived processes that touch many distinct images.
+    """
     if image in _PULLED_IMAGES:
         print(f'Found image {image!r}\n')
         return
@@ -151,6 +156,11 @@ def _ensure_image_present(client: 'docker.DockerClient', image: str) -> None:
             client.images.pull(image)
             print('Image pull complete\n')
         _PULLED_IMAGES.add(image)
+    # Evict the per-image lock now that readers hit the fast path above.
+    # Safe because future callers short-circuit on _PULLED_IMAGES before
+    # ever looking up _PULL_LOCKS.
+    with _PULL_LOCK:
+        _PULL_LOCKS.pop(image, None)
 
 
 def run_docker_container(client: 'docker.DockerClient', image: str,
