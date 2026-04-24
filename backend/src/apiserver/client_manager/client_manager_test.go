@@ -412,6 +412,7 @@ func TestLoadAWSConfig_EmptyCredentials(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "us-west-2", awsCfg.Region)
 	assert.Equal(t, awsv2.RequestChecksumCalculationWhenRequired, awsCfg.RequestChecksumCalculation)
+	require.Equal(t, awsv2.ResponseChecksumValidationWhenRequired, awsCfg.ResponseChecksumValidation)
 }
 
 func TestLoadAWSConfig_WithCredentials(t *testing.T) {
@@ -425,6 +426,7 @@ func TestLoadAWSConfig_WithCredentials(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "us-east-1", awsCfg.Region)
 	assert.Equal(t, awsv2.RequestChecksumCalculationWhenRequired, awsCfg.RequestChecksumCalculation)
+	require.Equal(t, awsv2.ResponseChecksumValidationWhenRequired, awsCfg.ResponseChecksumValidation)
 
 	creds, err := awsCfg.Credentials.Retrieve(context.Background())
 	require.NoError(t, err)

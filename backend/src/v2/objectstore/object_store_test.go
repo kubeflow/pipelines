@@ -604,6 +604,7 @@ func Test_createS3BucketSession(t *testing.T) {
 			if test.expectValidClient {
 				assert.NotNil(t, actualSession)
 				assert.Equal(t, aws.RequestChecksumCalculationWhenRequired, actualSession.Options().RequestChecksumCalculation)
+				require.Equal(t, aws.ResponseChecksumValidationWhenRequired, actualSession.Options().ResponseChecksumValidation)
 			} else {
 				assert.Nil(t, actualSession)
 			}
