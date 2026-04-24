@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gocloud.dev/blob"
@@ -601,11 +602,9 @@ func Test_createS3BucketSession(t *testing.T) {
 			}
 
 			if test.expectValidClient {
-				// confirm that a valid S3 client was returned
 				assert.NotNil(t, actualSession)
-				// In AWS SDK v2, we can't directly access internal config details
-				// but we can verify that the client was created successfully
-				// and would have the expected configuration based on our inputs
+				assert.Equal(t, aws.RequestChecksumCalculationWhenRequired, actualSession.Options().RequestChecksumCalculation)
+				require.Equal(t, aws.ResponseChecksumValidationWhenRequired, actualSession.Options().ResponseChecksumValidation)
 			} else {
 				assert.Nil(t, actualSession)
 			}
