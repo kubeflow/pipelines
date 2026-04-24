@@ -161,13 +161,12 @@ var _ = BeforeEach(func() {
 	testContext.Pipeline.UploadParams = uploadparams.NewUploadPipelineParams()
 	testContext.PipelineRun.CreatedRunIds = make([]string, 0)
 	testContext.Experiment.CreatedExperimentIds = make([]string, 0)
+
+	DeferCleanup(cleanupTestResources)
 })
 
 var _ = ReportAfterEach(func(specReport types.SpecReport) {
-	logger.Log("################### Global Cleanup after each test #####################")
-
 	if testContext == nil {
-		logger.Log("Test context not initialized (pending/skipped test) - skipping cleanup")
 		return
 	}
 
@@ -187,23 +186,36 @@ var _ = ReportAfterEach(func(specReport types.SpecReport) {
 	} else {
 		log.Printf("Test passed")
 	}
+})
 
+func cleanupTestResources() {
+	logger.Log("################### Global Cleanup after each test #####################")
+	cleanupRuns()
+	cleanupExperiments()
+	cleanupPipelines()
+}
+
+func cleanupRuns() {
 	logger.Log("Deleting %d run(s)", len(testContext.PipelineRun.CreatedRunIds))
 	for _, runID := range testContext.PipelineRun.CreatedRunIds {
 		testutil.TerminatePipelineRun(runClient, runID)
 		testutil.DeletePipelineRun(runClient, runID)
 	}
+}
+
+func cleanupExperiments() {
 	logger.Log("Deleting %d experiment(s)", len(testContext.Experiment.CreatedExperimentIds))
-	if len(testContext.Experiment.CreatedExperimentIds) > 0 {
-		for _, experimentID := range testContext.Experiment.CreatedExperimentIds {
-			testutil.DeleteExperiment(experimentClient, experimentID)
-		}
+	for _, experimentID := range testContext.Experiment.CreatedExperimentIds {
+		testutil.DeleteExperiment(experimentClient, experimentID)
 	}
+}
+
+func cleanupPipelines() {
 	logger.Log("Deleting %d pipeline(s)", len(testContext.Pipeline.CreatedPipelines))
 	for _, pipeline := range testContext.Pipeline.CreatedPipelines {
 		testutil.DeletePipeline(pipelineClient, pipeline.PipelineID, true)
 	}
-})
+}
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)

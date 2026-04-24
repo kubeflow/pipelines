@@ -69,10 +69,8 @@ func UploadPipeline(pipelineUploadClient api_server.PipelineUploadInterface, pip
 // DeletePipeline deletes a pipeline by id. When cascade is true the server also deletes all pipeline versions.
 func DeletePipeline(client *api_server.PipelineClient, pipelineID string, cascade bool) {
 	ginkgo.GinkgoHelper()
-	_, err := client.Get(&pipeline_params.PipelineServiceGetPipelineParams{PipelineID: pipelineID})
-	gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Failed to retrieve pipeline with id=%s before deletion", pipelineID))
 	logger.Log("Deleting pipeline with id=%s (cascade=%v)", pipelineID, cascade)
-	err = client.Delete(&pipeline_params.PipelineServiceDeletePipelineParams{PipelineID: pipelineID, Cascade: &cascade})
+	err := client.Delete(&pipeline_params.PipelineServiceDeletePipelineParams{PipelineID: pipelineID, Cascade: &cascade})
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Error occurred while deleting pipeline with id=%s", pipelineID))
 	logger.Log("Pipeline with id=%s, DELETED", pipelineID)
 }
