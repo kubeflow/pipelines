@@ -28,6 +28,7 @@ import (
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -37,6 +38,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 func createPipelineServerV1(resourceManager *resource.ResourceManager, httpClient *http.Client) *PipelineServerV1 {
@@ -1103,4 +1105,133 @@ func TestExtractTagFiltersFromFilterSpec(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCanAccessPipeline_SharedPipeline_ReadAllowed(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	initEnvVars()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	defer clientManager.Close()
+
+	// Create a shared pipeline (empty namespace)
+	pipeline, err := resourceManager.CreatePipeline(&model.Pipeline{
+		Name:      "shared-pipeline",
+		Namespace: "",
+	})
+	assert.Nil(t, err)
+
+	pipelineServer := createPipelineServer(resourceManager, nil)
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	// GET on shared pipeline should be allowed
+	err = pipelineServer.canAccessPipeline(ctx, pipeline.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	assert.Nil(t, err)
+
+	// LIST on shared pipeline should be allowed
+	err = pipelineServer.canAccessPipeline(ctx, "", &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbList})
+	assert.Nil(t, err)
+}
+
+func TestCanAccessPipeline_SharedPipeline_WriteUnauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	initEnvVars()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	defer clientManager.Close()
+
+	// Create a shared pipeline (empty namespace)
+	pipeline, err := resourceManager.CreatePipeline(&model.Pipeline{
+		Name:      "shared-pipeline",
+		Namespace: "",
+	})
+	assert.Nil(t, err)
+
+	pipelineServer := createPipelineServer(resourceManager, nil)
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	// DELETE on shared pipeline should be rejected for unauthorized user
+	err = pipelineServer.canAccessPipeline(ctx, pipeline.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to access shared pipeline")
+
+	// UPDATE on shared pipeline should be rejected for unauthorized user
+	err = pipelineServer.canAccessPipeline(ctx, pipeline.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUpdate})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to access shared pipeline")
+
+	// CREATE on shared pipeline should be rejected for unauthorized user
+	err = pipelineServer.canAccessPipeline(ctx, "", &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbCreate})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to access shared pipeline")
+}
+
+func TestCanAccessPipeline_SharedPipeline_WriteAuthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	initEnvVars()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	defer clientManager.Close()
+
+	// Create a shared pipeline (empty namespace)
+	pipeline, err := resourceManager.CreatePipeline(&model.Pipeline{
+		Name:      "shared-pipeline",
+		Namespace: "",
+	})
+	assert.Nil(t, err)
+
+	pipelineServer := createPipelineServer(resourceManager, nil)
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	// DELETE on shared pipeline should succeed for authorized user
+	err = pipelineServer.canAccessPipeline(ctx, pipeline.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
+	assert.Nil(t, err)
+
+	// UPDATE on shared pipeline should succeed for authorized user
+	err = pipelineServer.canAccessPipeline(ctx, pipeline.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUpdate})
+	assert.Nil(t, err)
+}
+
+func TestCanAccessPipeline_SharedPipeline_ReadAllowed_EvenWhenUnauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	initEnvVars()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	defer clientManager.Close()
+
+	// Create a shared pipeline (empty namespace)
+	pipeline, err := resourceManager.CreatePipeline(&model.Pipeline{
+		Name:      "shared-pipeline",
+		Namespace: "",
+	})
+	assert.Nil(t, err)
+
+	pipelineServer := createPipelineServer(resourceManager, nil)
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	// GET on shared pipeline should still be allowed even for unauthorized user
+	err = pipelineServer.canAccessPipeline(ctx, pipeline.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	assert.Nil(t, err)
+
+	// LIST on shared pipeline should still be allowed even for unauthorized user
+	err = pipelineServer.canAccessPipeline(ctx, "", &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbList})
+	assert.Nil(t, err)
 }

@@ -127,19 +127,8 @@ describe('RecurringRunDetailsRouter', () => {
         pipeline_version_id: TEST_PIPELINE_VERSION_ID,
       },
     };
-    const pipelineVersion: V2beta1PipelineVersion = {
-      pipeline_id: TEST_PIPELINE_ID,
-      pipeline_version_id: TEST_PIPELINE_VERSION_ID,
-      pipeline_spec: {
-        apiVersion: 'argoproj.io/v1alpha1',
-        kind: 'Workflow',
-        metadata: { name: 'from-version' },
-        spec: { arguments: { parameters: [{ name: 'output' }] } },
-      },
-    };
 
     getRecurringRunSpy.mockResolvedValue(recurringRun);
-    getPipelineVersionSpy.mockResolvedValue(pipelineVersion);
 
     render(
       <CommonTestWrapper>
@@ -148,12 +137,9 @@ describe('RecurringRunDetailsRouter', () => {
     );
 
     await waitFor(() => {
-      expect(getPipelineVersionSpy).toHaveBeenCalledWith(
-        TEST_PIPELINE_ID,
-        TEST_PIPELINE_VERSION_ID,
-      );
       expect(screen.getByTestId('recurring-run-details-v2')).toBeInTheDocument();
     });
+    expect(getPipelineVersionSpy).not.toHaveBeenCalled();
   });
 
   it('renders RecurringRunDetailsV2FC when FUNCTIONAL_COMPONENT flag is enabled', async () => {
@@ -312,7 +298,7 @@ describe('RecurringRunDetailsRouter', () => {
   it('returns null when fetch fails and no template is available', async () => {
     getRecurringRunSpy.mockRejectedValue(new Error('Not found'));
 
-    const { container } = render(
+    render(
       <CommonTestWrapper>
         <RecurringRunDetailsRouter {...generateProps()} />
       </CommonTestWrapper>,
@@ -323,9 +309,67 @@ describe('RecurringRunDetailsRouter', () => {
     });
 
     await waitFor(() => {
-      expect(container.querySelector('[data-testid]')).toBeNull();
+      expect(screen.queryByTestId('recurring-run-details-v1')).toBeNull();
+      expect(screen.queryByTestId('recurring-run-details-v2')).toBeNull();
+      expect(screen.queryByTestId('recurring-run-details-v2-fc')).toBeNull();
       expect(screen.queryByRole('progressbar')).toBeNull();
     });
+  });
+
+  it('shows error banner when pipeline version template fetch fails', async () => {
+    const recurringRun: V2beta1RecurringRun = {
+      recurring_run_id: TEST_RECURRING_RUN_ID,
+      pipeline_version_reference: {
+        pipeline_id: TEST_PIPELINE_ID,
+        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
+      },
+    };
+    getRecurringRunSpy.mockResolvedValue(recurringRun);
+    getPipelineVersionSpy.mockRejectedValue(new Error('Version not found'));
+
+    const props = generateProps();
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsRouter {...props} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(props.updateBanner).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining('failed to retrieve pipeline version template'),
+          mode: 'error',
+        }),
+      );
+    });
+  });
+
+  it('does not show error banner when inline pipeline_spec is present and getPipelineVersion rejects', async () => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+    );
+    const recurringRun: V2beta1RecurringRun = {
+      recurring_run_id: TEST_RECURRING_RUN_ID,
+      pipeline_spec: v2PipelineSpec,
+      pipeline_version_reference: {
+        pipeline_id: TEST_PIPELINE_ID,
+        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
+      },
+    };
+    getRecurringRunSpy.mockResolvedValue(recurringRun);
+    getPipelineVersionSpy.mockRejectedValue(new Error('Version not found'));
+
+    const props = generateProps();
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsRouter {...props} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('recurring-run-details-v2')).toBeInTheDocument();
+    });
+    expect(props.updateBanner).not.toHaveBeenCalled();
   });
 
   it('shows loading message while recurring run data is being fetched', () => {

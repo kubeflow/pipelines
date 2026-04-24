@@ -17,6 +17,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -33,6 +35,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/structpb"
 	corev1 "k8s.io/api/core/v1"
@@ -577,6 +580,13 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 
 	// If the workflow is not found, we need to create it.
 	if swf.Spec.Workflow != nil && swf.Spec.Workflow.Spec != nil {
+		// V1 recurring runs bypass the API server by embedding the workflow spec directly in the ScheduledWorkflow CRD,
+		// so the V1 pipeline block needs to be enforced at the controller level as well.
+
+		if shouldEnforceV1Block(swf) {
+			return false, "", fmt.Errorf(
+				"namespace %s is not allowed to run v1 pipelines; please migrate to KFP v2 pipelines", swf.Namespace)
+		}
 		newWorkflow, err := swf.NewWorkflow(nextScheduledEpoch, nowEpoch)
 		if err != nil {
 			return false, "", err
@@ -688,4 +698,37 @@ func (c *Controller) updateStatus(
 		return err
 	}
 	return nil
+}
+
+// isV1PipelineBlocked checks if the given namespace is blocked from running V1 pipelines
+// based on the BLOCK_V1_PIPELINES and V1_ALLOWED_NAMESPACES environment variables.
+func isV1PipelineBlocked(namespace string) bool {
+	blockV1Value := viper.GetString("BLOCK_V1_PIPELINES")
+	blockV1, err := strconv.ParseBool(blockV1Value)
+	if err != nil {
+		log.WithError(err).Warnf("Invalid BLOCK_V1_PIPELINES value %q; V1 pipelines are not blocked", blockV1Value)
+		blockV1 = false
+	}
+	if !blockV1 {
+		return false
+	}
+
+	allowedNamespaces := viper.GetString("V1_ALLOWED_NAMESPACES")
+	if allowedNamespaces == "" {
+		return true
+	}
+
+	targetNamespace := strings.ToLower(strings.TrimSpace(namespace))
+	for _, n := range strings.Split(allowedNamespaces, ",") {
+		if strings.ToLower(strings.TrimSpace(n)) == targetNamespace {
+			return false
+		}
+	}
+	return true
+}
+
+// shouldEnforceV1Block checks if the V1 pipeline block should be enforced for the given ScheduledWorkflow.
+// v2 ScheduledWorkflows can also have embedded workflow spec, but should not be blocked with this feature flag.
+func shouldEnforceV1Block(swf *util.ScheduledWorkflow) bool {
+	return strings.HasPrefix(swf.APIVersion, commonutil.ApiVersionV1) && isV1PipelineBlocked(swf.Namespace)
 }
