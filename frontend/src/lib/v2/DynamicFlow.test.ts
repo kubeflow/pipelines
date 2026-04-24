@@ -346,6 +346,39 @@ describe('DynamicFlow', () => {
       const trainNode = runtimeGraph.find((e) => e.id === 'task.train');
       expect(trainNode?.data?.state).toEqual(Execution.State.FAILED);
     });
+
+    it('skips display_name fallback in nested sub-DAG layers to avoid cross-DAG collisions', () => {
+      const EXECUTION_ROOT = new Execution().setId(2).setLastKnownState(Execution.State.COMPLETE);
+      EXECUTION_ROOT.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue(''));
+      const EXECUTION_SUBDAG = new Execution()
+        .setId(10)
+        .setLastKnownState(Execution.State.RUNNING);
+      EXECUTION_SUBDAG.getCustomPropertiesMap()
+        .set(TASK_NAME_KEY, new Value().setStringValue('inner'))
+        .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2));
+
+      const innerTaskElems: Node<FlowElementDataBase>[] = [
+        {
+          id: 'task.inner-step',
+          type: NodeTypeNames.EXECUTION,
+          position: { x: 0, y: 0 },
+          data: { label: 'inner-step', taskType: TaskType.EXECUTOR },
+        },
+      ];
+
+      const runtimeGraph = updateFlowElementsState(
+        ['root', 'inner'],
+        innerTaskElems,
+        [EXECUTION_ROOT, EXECUTION_SUBDAG],
+        [],
+        [],
+        [{ display_name: 'inner-step', state: V2beta1RuntimeState.FAILED }],
+      );
+      const innerNode = runtimeGraph.find((e) => e.id === 'task.inner-step');
+      // display_name fallback is disabled in nested layers; without execution_id
+      // or mlmdId match, the node should NOT be marked FAILED.
+      expect(innerNode?.data?.state).not.toEqual(Execution.State.FAILED);
+    });
   });
 
   describe('getNodeMlmdInfo', () => {

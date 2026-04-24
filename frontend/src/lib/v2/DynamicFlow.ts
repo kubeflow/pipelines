@@ -86,9 +86,16 @@ function buildTaskDetailsFailedOverlay(
   return { displayNames, executionIds };
 }
 
+// applyFailedOverlayFromTaskDetails marks an element as FAILED when the API's
+// task_details reports it so. Matching uses execution_id first (precise). When
+// useDisplayNameFallback is true, falls back to display_name matching by task
+// key or label. The display_name fallback should only be enabled at the root
+// layer because task_details are flat (no parent DAG info) and display_name
+// can collide across different sub-DAGs.
 function applyFailedOverlayFromTaskDetails(
   elem: PipelineFlowElement,
   overlay: TaskDetailsFailedOverlay,
+  useDisplayNameFallback: boolean = true,
 ): void {
   if (
     isTaskDetailsFailedOverlayEmpty(overlay) ||
@@ -104,6 +111,9 @@ function applyFailedOverlayFromTaskDetails(
     } else {
       (elem.data as SubDagFlowElementData).state = Execution.State.FAILED;
     }
+    return;
+  }
+  if (!useDisplayNameFallback) {
     return;
   }
   let taskKey: string;
@@ -309,6 +319,9 @@ export function updateFlowElementsState(
 ): PipelineFlowElement[] {
   const executionLayers = getExecutionLayers(layers, executions);
   const failedFromApi = buildTaskDetailsFailedOverlay(taskDetails);
+  // display_name fallback is only safe at the root layer because task_details
+  // are flat and display_name can collide across different sub-DAGs.
+  const isRootLayer = layers.length === 1;
 
   if (executionLayers.length < layers.length) {
     // Sub-DAG layer not fully matched in MLMD yet; still apply API task_details overlay for failures.
@@ -318,7 +331,7 @@ export function updateFlowElementsState(
     const overlayGraph: PipelineFlowElement[] = [];
     for (const elem of elems) {
       const updatedElem = cloneFlowElement(elem);
-      applyFailedOverlayFromTaskDetails(updatedElem, failedFromApi);
+      applyFailedOverlayFromTaskDetails(updatedElem, failedFromApi, isRootLayer);
       overlayGraph.push(updatedElem);
     }
     return overlayGraph;
@@ -355,7 +368,7 @@ export function updateFlowElementsState(
         (updatedElem.data as SubDagFlowElementData).state = matchedExecs[0].getLastKnownState();
         (updatedElem.data as SubDagFlowElementData).mlmdId = matchedExecs[0].getId();
       }
-      applyFailedOverlayFromTaskDetails(updatedElem, failedFromApi);
+      applyFailedOverlayFromTaskDetails(updatedElem, failedFromApi, isRootLayer);
       flowGraph.push(updatedElem);
     }
     return flowGraph;
@@ -404,7 +417,7 @@ export function updateFlowElementsState(
         (updatedElem.data as SubDagFlowElementData).mlmdId = executions[0]?.getId();
       }
     }
-    applyFailedOverlayFromTaskDetails(updatedElem, failedFromApi);
+    applyFailedOverlayFromTaskDetails(updatedElem, failedFromApi, isRootLayer);
     flowGraph.push(updatedElem);
   }
   return flowGraph;

@@ -499,10 +499,11 @@ func Test_qualifyExecutorLogsURI(t *testing.T) {
 
 func Test_retryIndexFromPodAnnotation(t *testing.T) {
 	tests := []struct {
-		name       string
-		annotation string
-		wantIndex  string
-		wantErr    bool
+		name           string
+		annotation     string
+		wantIndex      string
+		wantErr        bool
+		wantNoRetrySuf bool
 	}{
 		{
 			name:       "parses first attempt (0)",
@@ -520,9 +521,10 @@ func Test_retryIndexFromPodAnnotation(t *testing.T) {
 			wantErr:    true,
 		},
 		{
-			name:       "annotation without parenthesised suffix",
-			annotation: "my-pipeline-abc.root.always-fail.executor",
-			wantErr:    true,
+			name:           "annotation without parenthesised suffix returns errNoRetrySuffix",
+			annotation:     "my-pipeline-abc.root.always-fail.executor",
+			wantErr:        true,
+			wantNoRetrySuf: true,
 		},
 		{
 			name:       "annotation with non-integer index",
@@ -548,6 +550,10 @@ func Test_retryIndexFromPodAnnotation(t *testing.T) {
 			idx, err := retryIndexFromPodAnnotation(context.Background(), clientset, "test-ns", "test-pod")
 			if tc.wantErr {
 				assert.Error(t, err)
+				if tc.wantNoRetrySuf {
+					assert.True(t, errors.Is(err, errNoRetrySuffix),
+						"expected errNoRetrySuffix sentinel for non-retry pods, got: %v", err)
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tc.wantIndex, idx)

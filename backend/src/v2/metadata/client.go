@@ -60,6 +60,11 @@ const (
 	// than a typical RPC retry budget because MySQL deadlocks (codes.Aborted) on
 	// the MLMD server are transient and require time to resolve under sustained
 	// parallel execution.
+	//
+	// Worst-case total retry latency with these settings is approximately
+	// 4–5 minutes (sum of capped exponential backoff intervals across 10
+	// attempts). During a sustained MLMD outage, launcher pods will stall
+	// for this duration before failing.
 	mlmdClientSideMaxRetries    = 10
 	mlmdClientSideBackoffBase   = 1 * time.Second
 	mlmdClientSideBackoffJitter = 0.25
