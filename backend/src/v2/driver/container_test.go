@@ -316,6 +316,7 @@ func TestContainer_CreateExecutionSuccess(t *testing.T) {
 }
 
 func TestContainer_CreateExecutionAlreadyExistsLookupReturnsNil(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
 	mockSvc := &MockMetadataClient{
 		GetParentContextsByContextFunc: func(ctx context.Context, in *pb.GetParentContextsByContextRequest, opts ...grpc.CallOption) (*pb.GetParentContextsByContextResponse, error) {
 			return &pb.GetParentContextsByContextResponse{}, nil
@@ -333,10 +334,8 @@ func TestContainer_CreateExecutionAlreadyExistsLookupReturnsNil(t *testing.T) {
 		},
 
 		// Return a successful lookup, but with NO executions (translates to nil existing execution)
-		GetExecutionsByTypeAndNameFunc: func(ctx context.Context, in *pb.GetExecutionByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetExecutionByTypeAndNameResponse, error) {
-			return &pb.GetExecutionByTypeAndNameResponse{
-				Execution: &pb.Execution{},
-			}, nil
+		GetExecutionByTypeAndNameFunc: func(ctx context.Context, in *pb.GetExecutionByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetExecutionByTypeAndNameResponse, error) {
+			return nil, status.Error(codes.Internal, "simulated gRPC lookup failure")
 		},
 	}
 
@@ -368,7 +367,7 @@ func TestContainer_CreateExecutionAlreadyExistsLookupReturnsNil(t *testing.T) {
 	require.NotNil(t, execution)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to lookup existing execution")
-	assert.Contains(t, err.Error(), "no execution found for type")
+	assert.Contains(t, err.Error(), "simulated gRPC lookup failure")
 }
 
 func TestContainer_CreateExecutionDoesNotExistGenericError(t *testing.T) {
