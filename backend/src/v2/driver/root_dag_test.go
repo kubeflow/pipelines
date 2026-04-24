@@ -24,6 +24,10 @@ import (
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/fake"
 )
 
 func Test_validateRootDAG(t *testing.T) {
@@ -202,6 +206,24 @@ func TestRootDAG_CreateExecutionAlreadyExistsReturnsExistingID(t *testing.T) {
 }
 
 func TestRootDAG_CreateExecutionAlreadyExistsLookupFailure(t *testing.T) {
+	mockConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kfp-launcher",
+			Namespace: "kubeflow",
+		},
+		Data: map[string]string{
+			"defaultPipelineRoot": "s3://bucket/pipelines",
+		},
+	}
+
+	// Swap out the client builder with our fake client
+	originalBuildClient := buildK8sClient
+	defer func() { buildK8sClient = originalBuildClient }()
+
+	buildK8sClient = func() (kubernetes.Interface, error) {
+		return fake.NewClientset(mockConfigMap), nil
+	}
+
 	execution, err := RootDAG(context.Background(), Options{
 		PipelineName:   "pipeline-1",
 		RunID:          "run-1",
@@ -228,6 +250,24 @@ func TestRootDAG_CreateExecutionAlreadyExistsLookupFailure(t *testing.T) {
 }
 
 func TestRootDAG_CreateExecutionAlreadyExistsLookupFailure_NilExistingRecord(t *testing.T) {
+	mockConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kfp-launcher",
+			Namespace: "kubeflow",
+		},
+		Data: map[string]string{
+			"defaultPipelineRoot": "s3://bucket/pipelines",
+		},
+	}
+
+	// Swap out the client builder with our fake client
+	originalBuildClient := buildK8sClient
+	defer func() { buildK8sClient = originalBuildClient }()
+
+	buildK8sClient = func() (kubernetes.Interface, error) {
+		return fake.NewClientset(mockConfigMap), nil
+	}
+
 	execution, err := RootDAG(context.Background(), Options{
 		PipelineName:   "pipeline-1",
 		RunID:          "run-1",

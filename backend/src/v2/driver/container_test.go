@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"github.com/stretchr/testify/assert"
@@ -258,6 +259,60 @@ func TestContainer_CreateExecutionGeneralFailure(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "database connection failed")
 	assert.NotContains(t, err.Error(), "failed to lookup existing execution")
+}
+
+func TestContainer_CreateExecutionSuccess(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+
+	mockSvc := &MockMetadataClient{
+		GetParentContextsByContextFunc: func(ctx context.Context, in *pb.GetParentContextsByContextRequest, opts ...grpc.CallOption) (*pb.GetParentContextsByContextResponse, error) {
+			return &pb.GetParentContextsByContextResponse{}, nil
+		},
+		GetContextByTypeAndNameFunc: func(ctx context.Context, in *pb.GetContextByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetContextByTypeAndNameResponse, error) {
+			return &pb.GetContextByTypeAndNameResponse{Context: &pb.Context{Id: new(int64(1234))}}, nil
+		},
+		GetExecutionsByIDFunc: func(ctx context.Context, in *pb.GetExecutionsByIDRequest, opts ...grpc.CallOption) (*pb.GetExecutionsByIDResponse, error) {
+			return &pb.GetExecutionsByIDResponse{Executions: []*pb.Execution{{Id: func() *int64 { i := int64(55); return &i }()}}}, nil
+		},
+		PutExecutionFunc: func(ctx context.Context, in *pb.PutExecutionRequest, opts ...grpc.CallOption) (*pb.PutExecutionResponse, error) {
+			return nil, status.Error(codes.AlreadyExists, "execution already exists")
+		},
+		GetExecutionByTypeAndNameFunc: func(ctx context.Context, in *pb.GetExecutionByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetExecutionByTypeAndNameResponse, error) {
+			return &pb.GetExecutionByTypeAndNameResponse{
+				Execution: &pb.Execution{
+					Id: new(int64(1234)),
+				},
+			}, nil
+		},
+	}
+
+	mlmdClient := metadata.NewTestClient(mockSvc)
+
+	execution, err := Container(context.Background(), Options{
+		IterationIndex: -1,
+		PipelineName:   "pipeline-1",
+		RunID:          "run-1",
+		TaskName:       "task-1",
+		Component: &pipelinespec.ComponentSpec{
+			Implementation:   &pipelinespec.ComponentSpec_ExecutorLabel{ExecutorLabel: "executor"},
+			InputDefinitions: &pipelinespec.ComponentInputsSpec{Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{}},
+			OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+				Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{"output": {ParameterType: pipelinespec.ParameterType_STRING}},
+			},
+		},
+		DAGExecutionID: 55,
+		Task: &pipelinespec.PipelineTaskSpec{
+			TaskInfo:       &pipelinespec.PipelineTaskInfo{Name: "task-1"},
+			CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{EnableCache: true},
+		},
+		Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+			Image:   "python:3.11",
+			Command: []string{"python", "main.py"},
+		},
+	}, mlmdClient, &mockCacheClient{})
+
+	require.NotNil(t, execution)
+	require.NoError(t, err)
 }
 
 func TestContainer_CreateExecutionAlreadyExistsLookupReturnsNil(t *testing.T) {

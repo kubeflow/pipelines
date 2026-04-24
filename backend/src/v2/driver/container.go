@@ -198,7 +198,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, nil
 	}
 
-	// Use cache and skip launcher if all contions met:
+	// Use cache and skip launcher if all conditions met:
 	// (1) Cache is enabled globally
 	// (2) Cache is enabled for the task
 	// (3) CachedMLMDExecutionID is non-empty, which means a cache entry exists

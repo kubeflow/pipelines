@@ -28,6 +28,23 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// buildK8sClient builds a Kubernetes client to be used to fetch the config map in
+// RootDAG. This is used so that the method signature of RootDAG doesn't change but
+// the client can be stubbed out for testing.
+var buildK8sClient = func() (kubernetes.Interface, error) {
+	restConfig, err := util.GetKubernetesConfig()
+	
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize kubernetes config: %w", err)
+	}
+	client, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize kubernetes client: %w", err)
+	}
+
+	return client, nil
+}
+
 func validateRootDAG(opts Options) (err error) {
 	defer func() {
 		if err != nil {
@@ -79,11 +96,7 @@ func RootDAG(ctx context.Context, opts Options, mlmd metadata.ClientInterface) (
 	// TODO(v2): in pipeline spec, rename GCS output directory to pipeline root.
 	pipelineRoot := opts.RuntimeConfig.GetGcsOutputDirectory()
 
-	restConfig, err := util.GetKubernetesConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize kubernetes client: %w", err)
-	}
-	k8sClient, err := kubernetes.NewForConfig(restConfig)
+	k8sClient, err := buildK8sClient()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
 	}
