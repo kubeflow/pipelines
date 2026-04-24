@@ -68,7 +68,11 @@ inputs:
     required: false
     default: ""
   deployment_service_account_name:
-    description: "Service account name from deployment (from deploy action)"
+    description: "API server service account name for auth token generation (from deploy action)"
+    required: false
+    default: ""
+  pipeline_runner_service_account_name:
+    description: "Pipeline runner service account for workflow execution (from deploy action)"
     required: false
     default: ""
   deployment_mode:
@@ -123,6 +127,7 @@ runs:
         INPUT_MULTI_USER: ${{ inputs.multi_user }}
         INPUT_SERVICE_ACCOUNT_NAME: ${{ inputs.service_account_name }}
         INPUT_DEPLOYMENT_SERVICE_ACCOUNT_NAME: ${{ inputs.deployment_service_account_name }}
+        INPUT_PIPELINE_RUNNER_SERVICE_ACCOUNT_NAME: ${{ inputs.pipeline_runner_service_account_name }}
         INPUT_DEPLOYMENT_NAME: ${{ inputs.deployment_name }}
         INPUT_DEFAULT_NAMESPACE: ${{ inputs.default_namespace }}
       run: |
@@ -148,23 +153,34 @@ runs:
           echo "🔍 Auto-detected API URL: $API_URL"
         fi
 
-        # Determine service account name (needed regardless of token source)
-        if [ -n "$INPUT_SERVICE_ACCOUNT_NAME" ]; then
-          SERVICE_ACCOUNT_NAME="$INPUT_SERVICE_ACCOUNT_NAME"
-          echo "ℹ️  Using provided service account: $SERVICE_ACCOUNT_NAME"
-        elif [ -n "$INPUT_DEPLOYMENT_SERVICE_ACCOUNT_NAME" ]; then
-          SERVICE_ACCOUNT_NAME="$INPUT_DEPLOYMENT_SERVICE_ACCOUNT_NAME"
-          echo "🔍 Using deployment service account: $SERVICE_ACCOUNT_NAME"
+        # Resolve AUTH_SERVICE_ACCOUNT: used for API token generation.
+        # Priority: deployment SA > deployment name > fallback.
+        if [ -n "$INPUT_DEPLOYMENT_SERVICE_ACCOUNT_NAME" ]; then
+          AUTH_SERVICE_ACCOUNT="$INPUT_DEPLOYMENT_SERVICE_ACCOUNT_NAME"
+          echo "🔍 Auth service account (from deployment): $AUTH_SERVICE_ACCOUNT"
         else
-          # Fallback based on deployment name
           DEPLOYMENT_NAME="${INPUT_DEPLOYMENT_NAME:-}"
           if [ -n "$DEPLOYMENT_NAME" ]; then
-            SERVICE_ACCOUNT_NAME="$DEPLOYMENT_NAME"
-            echo "🔍 Using deployment name as service account: $SERVICE_ACCOUNT_NAME"
+            AUTH_SERVICE_ACCOUNT="$DEPLOYMENT_NAME"
+            echo "🔍 Auth service account (from deployment name): $AUTH_SERVICE_ACCOUNT"
           else
-            SERVICE_ACCOUNT_NAME="ml-pipeline"  # Final fallback
-            echo "⚠️  Using fallback service account: $SERVICE_ACCOUNT_NAME"
+            AUTH_SERVICE_ACCOUNT="ml-pipeline"
+            echo "⚠️  Auth service account (fallback): $AUTH_SERVICE_ACCOUNT"
           fi
+        fi
+
+        # Resolve EXECUTION_SERVICE_ACCOUNT: used for ginkgo -serviceAccountName
+        # (the SA that pipeline runs execute under).
+        # Priority: explicit override > pipeline runner SA > default.
+        if [ -n "$INPUT_SERVICE_ACCOUNT_NAME" ]; then
+          EXECUTION_SERVICE_ACCOUNT="$INPUT_SERVICE_ACCOUNT_NAME"
+          echo "ℹ️  Execution service account (override): $EXECUTION_SERVICE_ACCOUNT"
+        elif [ -n "$INPUT_PIPELINE_RUNNER_SERVICE_ACCOUNT_NAME" ]; then
+          EXECUTION_SERVICE_ACCOUNT="$INPUT_PIPELINE_RUNNER_SERVICE_ACCOUNT_NAME"
+          echo "🔍 Execution service account (pipeline runner): $EXECUTION_SERVICE_ACCOUNT"
+        else
+          EXECUTION_SERVICE_ACCOUNT="pipeline-runner"
+          echo "⚠️  Execution service account (fallback): $EXECUTION_SERVICE_ACCOUNT"
         fi
 
         # Use provided token if available, otherwise generate from service account
@@ -193,9 +209,9 @@ runs:
             done
           fi
 
-          # Generate API token
-          echo "🔑 Generating token for $SERVICE_ACCOUNT_NAME..."
-          API_TOKEN=$(kubectl create token "$SERVICE_ACCOUNT_NAME" --namespace "$DEFAULT_NAMESPACE" --duration=60m)
+          # Generate API token from the auth SA (not the pipeline runner SA)
+          echo "🔑 Generating token for $AUTH_SERVICE_ACCOUNT..."
+          API_TOKEN=$(kubectl create token "$AUTH_SERVICE_ACCOUNT" --namespace "$DEFAULT_NAMESPACE" --duration=60m)
           if [ $? -eq 0 ]; then
             echo "✅ Token generated successfully"
           else
@@ -210,7 +226,7 @@ runs:
         fi
         echo "API_URL=$API_URL" >> "$GITHUB_OUTPUT"
         echo "API_TOKEN=$API_TOKEN" >> "$GITHUB_OUTPUT"
-        echo "SERVICE_ACCOUNT_NAME=${SERVICE_ACCOUNT_NAME:-${INPUT_SERVICE_ACCOUNT_NAME:-}}" >> "$GITHUB_OUTPUT"
+        echo "SERVICE_ACCOUNT_NAME=${EXECUTION_SERVICE_ACCOUNT}" >> "$GITHUB_OUTPUT"
 
     - name: Run Tests
       id: run-tests

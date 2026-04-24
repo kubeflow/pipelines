@@ -104,6 +104,7 @@ jobs:
           # Deployment metadata from deploy-release action
           deployment_name: ${{ steps.deploy-release.outputs.deployment_name }}
           deployment_service_account_name: ${{ steps.deploy-release.outputs.service_account_name }}
+          pipeline_runner_service_account_name: ${{ steps.deploy-release.outputs.pipeline_runner_service_account }}
           deployment_mode: ${{ steps.deploy-release.outputs.deployment_mode }}
 
       - name: Deploy from Branch
@@ -133,4 +134,5 @@ jobs:
           # Deployment metadata from deploy action
           deployment_name: ${{ steps.deploy.outputs.deployment_name }}
           deployment_service_account_name: ${{ steps.deploy.outputs.service_account_name }}
+          pipeline_runner_service_account_name: ${{ steps.deploy.outputs.pipeline_runner_service_account }}
           deployment_mode: ${{ steps.deploy.outputs.deployment_mode }}

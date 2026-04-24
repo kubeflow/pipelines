@@ -241,12 +241,14 @@ class DSPADeployer:
         if is_operator:
             deployment_name = f'ds-pipeline-{self.dspa_name}'
             service_account_name = f'ds-pipeline-{self.dspa_name}'
+            pipeline_runner_service_account = f'pipeline-runner-{self.dspa_name}'
             database_name = f'ds-pipeline-db-{self.dspa_name}'
             mlmd_service_name = f'ds-pipeline-metadata-grpc-{self.dspa_name}'
             frontend_service_name = f'ds-pipeline-ui-{self.dspa_name}'
         else:
             deployment_name = 'ml-pipeline'
             service_account_name = 'ml-pipeline'
+            pipeline_runner_service_account = 'pipeline-runner'
             database_name = 'mysql'
             mlmd_service_name = 'metadata-grpc-service'
             frontend_service_name = 'ml-pipeline-ui'
@@ -255,6 +257,7 @@ class DSPADeployer:
         print(f'   DEPLOYMENT_MODE={deployment_mode}')
         print(f'   DEPLOYMENT_NAME={deployment_name}')
         print(f'   SERVICE_ACCOUNT_NAME={service_account_name}')
+        print(f'   PIPELINE_RUNNER_SERVICE_ACCOUNT={pipeline_runner_service_account}')
         print(f'   DATABASE_NAME={database_name}')
         print(f'   MLMD_SERVICE_NAME={mlmd_service_name}')
         print(f'   FRONTEND_SERVICE_NAME={frontend_service_name}')
@@ -263,6 +266,7 @@ class DSPADeployer:
             'DEPLOYMENT_MODE': deployment_mode,
             'DEPLOYMENT_NAME': deployment_name,
             'SERVICE_ACCOUNT_NAME': service_account_name,
+            'PIPELINE_RUNNER_SERVICE_ACCOUNT': pipeline_runner_service_account,
             'DATABASE_NAME': database_name,
             'MLMD_SERVICE_NAME': mlmd_service_name,
             'FRONTEND_SERVICE_NAME': frontend_service_name,

@@ -109,6 +109,9 @@ outputs:
   service_account_name:
     description: "Name of the KFP API server service account"
     value: ${{ steps.deploy-kfp.outputs.SERVICE_ACCOUNT_NAME }}
+  pipeline_runner_service_account:
+    description: "Service account for pipeline execution (may differ from API server SA)"
+    value: ${{ steps.deploy-kfp.outputs.PIPELINE_RUNNER_SERVICE_ACCOUNT }}
   deployment_mode:
     description: "Deployment mode used (operator or direct)"
     value: ${{ steps.deploy-kfp.outputs.DEPLOYMENT_MODE }}

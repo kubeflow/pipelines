@@ -169,6 +169,7 @@ jobs:
           # Deployment metadata from deploy action
           deployment_name: ${{ steps.deploy.outputs.deployment_name }}
           deployment_service_account_name: ${{ steps.deploy.outputs.service_account_name }}
+          pipeline_runner_service_account_name: ${{ steps.deploy.outputs.pipeline_runner_service_account }}
           deployment_mode: ${{ steps.deploy.outputs.deployment_mode }}
 
   api-test-k8s-native:
@@ -235,6 +236,7 @@ jobs:
           # Deployment metadata from deploy action
           deployment_name: ${{ steps.deploy.outputs.deployment_name }}
           deployment_service_account_name: ${{ steps.deploy.outputs.service_account_name }}
+          pipeline_runner_service_account_name: ${{ steps.deploy.outputs.pipeline_runner_service_account }}
           deployment_mode: ${{ steps.deploy.outputs.deployment_mode }}
 
   api-test-multi-user:
@@ -289,4 +291,5 @@ jobs:
           # Deployment metadata from deploy action
           deployment_name: ${{ steps.deploy.outputs.deployment_name }}
           deployment_service_account_name: ${{ steps.deploy.outputs.service_account_name }}
+          pipeline_runner_service_account_name: ${{ steps.deploy.outputs.pipeline_runner_service_account }}
           deployment_mode: ${{ steps.deploy.outputs.deployment_mode }}
