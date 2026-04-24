@@ -33,7 +33,7 @@ import (
 // the client can be stubbed out for testing.
 var buildK8sClient = func() (kubernetes.Interface, error) {
 	restConfig, err := util.GetKubernetesConfig()
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize kubernetes config: %w", err)
 	}

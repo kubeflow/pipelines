@@ -40,13 +40,13 @@ func (e *Execution) GetParameters() (inputs, outputs map[string]*structpb.Value,
 	if e == nil || e.Execution == nil {
 		return nil, nil, nil
 	}
-	if stored_inputs, ok := e.Execution.CustomProperties[keyInputs]; ok {
-		for name, value := range stored_inputs.GetStructValue().GetFields() {
+	if storedInputs, ok := e.Execution.CustomProperties[keyInputs]; ok {
+		for name, value := range storedInputs.GetStructValue().GetFields() {
 			inputs[name] = value
 		}
 	}
-	if stored_outputs, ok := e.Execution.CustomProperties[keyOutputs]; ok {
-		for name, value := range stored_outputs.GetStructValue().GetFields() {
+	if storedOutputs, ok := e.Execution.CustomProperties[keyOutputs]; ok {
+		for name, value := range storedOutputs.GetStructValue().GetFields() {
 			outputs[name] = value
 		}
 	}
