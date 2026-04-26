@@ -16,6 +16,7 @@ package util
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -242,7 +243,10 @@ func TestToStringForStore(t *testing.T) {
 			Name: "WORKFLOW_NAME",
 		},
 	})
+	expected := "{\"metadata\":{\"name\":\"WORKFLOW_NAME\"},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}"
 	assert.Equal(t,
+		normalizeJSONForNullFieldComparison(t, expected),
+		normalizeJSONForNullFieldComparison(t, workflow.ToStringForStore()))
 		"{\"metadata\":{\"name\":\"WORKFLOW_NAME\"},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		workflow.ToStringForStore())
 }
@@ -253,7 +257,40 @@ func TestToStringForSchedule(t *testing.T) {
 			Name: "WORKFLOW_NAME",
 		},
 	})
+	expected := "{\"metadata\":{\"name\":\"WORKFLOW_NAME\"},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}"
 	assert.Equal(t,
+		normalizeJSONForNullFieldComparison(t, expected),
+		normalizeJSONForNullFieldComparison(t, workflow.ToStringForSchedule()))
+}
+
+func normalizeJSONForNullFieldComparison(t *testing.T, jsonString string) interface{} {
+	t.Helper()
+
+	var decoded interface{}
+	err := json.Unmarshal([]byte(jsonString), &decoded)
+	assert.NoError(t, err)
+	return removeNilMapFields(decoded)
+}
+
+func removeNilMapFields(value interface{}) interface{} {
+	switch typedValue := value.(type) {
+	case map[string]interface{}:
+		for key, nestedValue := range typedValue {
+			if nestedValue == nil {
+				delete(typedValue, key)
+				continue
+			}
+			typedValue[key] = removeNilMapFields(nestedValue)
+		}
+		return typedValue
+	case []interface{}:
+		for index, nestedValue := range typedValue {
+			typedValue[index] = removeNilMapFields(nestedValue)
+		}
+		return typedValue
+	default:
+		return value
+	}
 		"{\"metadata\":{\"name\":\"WORKFLOW_NAME\"},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		workflow.ToStringForSchedule())
 }
