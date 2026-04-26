@@ -140,15 +140,21 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 
 	Context("Archive pipeline run(s) >", func() {
 		pipelineFile := filepath.Join(pipelineFilesRootDir, pipelineDirectory, "hello_world.yaml")
-		It("Create a pipeline run, archive it and verify that the run state does not change on archiving", func() {
+		It("Create a pipeline run, wait for the run state to be reported, archive it and verify that the run state does not change on archiving", func() {
 			createdExperiment := createExperiment(experimentName)
 			createdPipeline := uploadAPipeline(pipelineFile, &testContext.Pipeline.PipelineGeneratedName)
 			createdPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &createdPipeline.PipelineID)
 			pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(pipelineFile)
 			createdPipelineRun := createPipelineRun(&createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
+			Eventually(func() *run_model.V2beta1RuntimeState {
+				return testutil.GetPipelineRun(runClient, &createdPipelineRun.RunID).State
+			}, "30s", "1s").ShouldNot(BeNil(), "Expected pipeline run state to be reported before archiving")
+			pipelineRunBeforeArchive := testutil.GetPipelineRun(runClient, &createdPipelineRun.RunID)
+			Expect(*pipelineRunBeforeArchive.State).To(Not(BeElementOf([]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateCANCELED, run_model.V2beta1RuntimeStateCANCELING, run_model.V2beta1RuntimeStateRUNTIMESTATEUNSPECIFIED})))
 			archivePipelineRun(&createdPipelineRun.RunID)
 			pipelineRunAfterArchive := testutil.GetPipelineRun(runClient, &createdPipelineRun.RunID)
-			Expect(*pipelineRunAfterArchive.State).To(Not(BeElementOf([]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateCANCELED, run_model.V2beta1RuntimeStateCANCELING, run_model.V2beta1RuntimeStateRUNTIMESTATEUNSPECIFIED})))
+			Expect(pipelineRunAfterArchive.State).NotTo(BeNil())
+			Expect(*pipelineRunAfterArchive.State).To(Equal(*pipelineRunBeforeArchive.State))
 			Expect(*pipelineRunAfterArchive.StorageState).To(Equal(run_model.V2beta1RunStorageStateARCHIVED))
 
 		})
