@@ -420,7 +420,7 @@ func executeV2(
 			bucketConfig:   bucketConfig,
 			bucket:         bucket,
 			metadataClient: metadataClient,
-		}, true, openBucketConfig, 2)
+		}, false, openBucketConfig, 2)
 
 		return executorOutput, outputArtifacts, err
 	}
@@ -798,18 +798,16 @@ func uploadOutputArtifactsWithRetry(
 	openBucketConfig *OpenBucketConfig,
 	maxAttempts int,
 ) ([]*metadata.OutputArtifact, error) {
-	var finalErr error
-	for retryCount := 0; retryCount < maxAttempts; retryCount++ {
-		glog.Infof("Executing uploadOutputArtifacts attempt: %d", retryCount+1)
-		outputArtifacts, err := uploadOutputArtifacts(ctx, executorInput, executorOutput, opts, componentSucceeded)
+	glog.Infof("Executing uploadOutputArtifacts attempt: 1")
+	outputArtifacts, err := uploadOutputArtifacts(ctx, executorInput, executorOutput, opts, componentSucceeded)
 
-		if err == nil {
-			return outputArtifacts, nil
-		}
+	if err == nil {
+		return outputArtifacts, nil
+	}
+	finalErr := err
 
+	for retryCount := 1; retryCount < maxAttempts; retryCount++ {
 		glog.Warningf("Failed to upload output artifacts: %v", err)
-		finalErr = err
-
 		glog.Info("Refreshing credentials before retrying artifacts upload.")
 		opts.bucket, err = objectstore.OpenBucket(
 			openBucketConfig.ctx,
@@ -817,6 +815,19 @@ func uploadOutputArtifactsWithRetry(
 			openBucketConfig.namespace,
 			openBucketConfig.config,
 		)
+		if err != nil {
+			glog.Infof("Failed to refresh credentials: %v", err)
+			finalErr = err
+			continue
+		}
+
+		glog.Infof("Executing uploadOutputArtifacts attempt: %d", retryCount+1)
+		outputArtifacts, err := uploadOutputArtifacts(ctx, executorInput, executorOutput, opts, componentSucceeded)
+
+		if err == nil {
+			return outputArtifacts, nil
+		}
+		finalErr = err
 	}
 	glog.Errorf("All upload artifact attempts failed: %v", finalErr)
 	return nil, finalErr

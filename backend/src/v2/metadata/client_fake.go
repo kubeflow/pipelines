@@ -113,7 +113,7 @@ func (c *FakeClient) FindMatchedArtifact(ctx context.Context, artifactToMatch *p
 	return nil, nil
 }
 
-// Fake client used for testing launcher publish failure handling
+// RecordArtifactFailureFakeClient is used for testing launcher publish failure handling
 type RecordArtifactFailureFakeClient struct {
 	*FakeClient
 	RecordArtifactCalls int
