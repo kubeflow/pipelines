@@ -315,3 +315,76 @@ export async function getObjectStream({
   const stream = await client.getObject(bucket, key);
   return tryExtract ? stream.pipe(gunzip()).pipe(maybeTarball()) : stream.pipe(new PassThrough());
 }
+
+/**
+ * Returns a minio/s3 error as a NoSuchKey error if applicable. Different
+ * providers surface the "object not found" condition slightly differently
+ * (code, Code, or message). This normalizes the check.
+ */
+export function isNoSuchKeyError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') {
+    return false;
+  }
+  const e = err as { code?: string; Code?: string; message?: string };
+  const code = e.code || e.Code;
+  if (code === 'NoSuchKey' || code === 'NotFound') {
+    return true;
+  }
+  return typeof e.message === 'string' && e.message.includes('NoSuchKey');
+}
+
+/**
+ * Lists all objects under a given prefix in an s3-compatible bucket,
+ * recursively, along with their sizes.
+ *
+ * Pages via the lower-level `listObjectsV2Query` instead of the public
+ * `listObjectsV2` streaming API. The public API hard-codes maxKeys=1000 per
+ * page, and minio's bundled fast-xml-parser caps entity expansions at 1000;
+ * each Contents entry has ~2 `&quot;` entities in its ETag, so a full page
+ * trips "Entity expansion limit exceeded" once a directory holds more than
+ * ~500 objects. A smaller page size keeps each XML parse under the cap.
+ */
+export async function listObjectsUnderPrefix(
+  client: MinioClient,
+  bucket: string,
+  prefix: string,
+): Promise<Array<{ name: string; size: number }>> {
+  const PAGE_SIZE = 300;
+  const items: Array<{ name: string; size: number }> = [];
+  let continuationToken = '';
+  let isTruncated = true;
+
+  while (isTruncated) {
+    const page = await new Promise<{
+      objects: Array<{ name?: string; size?: number }>;
+      isTruncated: boolean;
+      nextContinuationToken: string;
+    }>((resolve, reject) => {
+      const stream = (
+        client as unknown as {
+          listObjectsV2Query: (
+            bucket: string,
+            prefix: string,
+            continuationToken: string,
+            delimiter: string,
+            maxKeys: number,
+            startAfter: string,
+          ) => NodeJS.EventEmitter;
+        }
+      ).listObjectsV2Query(bucket, prefix, continuationToken, '', PAGE_SIZE, '');
+      stream.on('error', reject);
+      stream.on('data', resolve);
+    });
+
+    for (const item of page.objects) {
+      if (item.name) {
+        items.push({ name: item.name, size: item.size ?? 0 });
+      }
+    }
+
+    isTruncated = page.isTruncated;
+    continuationToken = page.nextContinuationToken;
+  }
+
+  return items;
+}

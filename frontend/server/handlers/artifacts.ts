@@ -19,7 +19,14 @@ import {
   parseJSONString,
   isAllowedResourceName,
 } from '../utils.js';
-import { createMinioClient, getObjectStream } from '../minio-helper.js';
+import {
+  createMinioClient,
+  getObjectStream,
+  isNoSuchKeyError,
+  listObjectsUnderPrefix,
+} from '../minio-helper.js';
+import * as tar from 'tar-stream';
+import * as zlib from 'zlib';
 import * as serverInfo from '../helpers/server-info.js';
 import { Handler, Request, Response, NextFunction } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
@@ -368,10 +375,66 @@ function getMinioArtifactHandler(
         .pipe(new PreviewStream({ peek }))
         .pipe(res);
     } catch (err) {
+      // In KFP v2, output artifacts may be directories (prefixes) rather than
+      // single objects. Fall back to packaging the contents of the prefix as
+      // a .tar.gz so users can still download them. See
+      // https://github.com/kubeflow/pipelines/issues/7809
+      if (isNoSuchKeyError(err)) {
+        try {
+          await streamDirectoryAsTarGz(options, res);
+          return;
+        } catch (tarErr) {
+          console.error(tarErr);
+          if (!res.headersSent) {
+            res.status(500).send(`Failed to get object in bucket: ${tarErr}`);
+          } else {
+            res.end();
+          }
+          return;
+        }
+      }
       console.error(err);
       res.status(500).send(`Failed to get object in bucket: ${err}`);
     }
   };
+}
+
+async function streamDirectoryAsTarGz(
+  options: { bucket: string; key: string; client: MinioClient },
+  res: Response,
+) {
+  const { bucket, key, client } = options;
+  // Trailing slash so prefix "foo" doesn't also match sibling key "foobar".
+  const prefix = key.endsWith('/') ? key : `${key}/`;
+  const objects = await listObjectsUnderPrefix(client, bucket, prefix);
+  if (objects.length === 0) {
+    res.status(404).send(`No objects found at ${bucket}/${key}`);
+    return;
+  }
+
+  const baseName = key.replace(/\/+$/, '').split('/').pop() || 'artifact';
+  res.setHeader('Content-Type', 'application/gzip');
+  res.setHeader('Content-Disposition', `attachment; filename="${baseName}.tar.gz"`);
+
+  const pack = tar.pack();
+  const gzip = zlib.createGzip();
+  pack.pipe(gzip).pipe(res);
+
+  try {
+    for (const { name, size } of objects) {
+      const objStream = await client.getObject(bucket, name);
+      const entryName = name.startsWith(prefix) ? name.slice(prefix.length) : name;
+      await new Promise<void>((resolve, reject) => {
+        const entry = pack.entry({ name: entryName, size }, (err) =>
+          err ? reject(err) : resolve(),
+        );
+        objStream.on('error', reject);
+        objStream.pipe(entry);
+      });
+    }
+  } finally {
+    pack.finalize();
+  }
 }
 
 /**
