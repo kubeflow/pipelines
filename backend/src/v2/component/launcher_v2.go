@@ -401,7 +401,7 @@ func executeV2(
 		return nil, nil, err
 	}
 
-	executorOutput, err := execute(
+	executorOutput, executeErr := execute(
 		ctx,
 		executorInput,
 		compiledCmd,
@@ -413,20 +413,19 @@ func executeV2(
 		publishLogs,
 		customCAPath,
 	)
-	if err != nil {
-		glog.Errorf("Component failed to execute successfully: %v", err)
+	if executeErr != nil {
+		glog.Errorf("Component failed to execute successfully: %v", executeErr)
 
 		outputArtifacts, uploadErr := uploadOutputArtifacts(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
 			bucketConfig:   bucketConfig,
 			bucket:         bucket,
 			metadataClient: metadataClient,
 		}, false)
-
 		if uploadErr != nil {
 			glog.Errorf("Failed to upload log artifact: %v", uploadErr)
 		}
 
-		return executorOutput, outputArtifacts, err
+		return executorOutput, outputArtifacts, executeErr
 	}
 	// These are not added in execute(), because execute() is shared between v2 compatible and v2 engine launcher.
 	// In v2 compatible mode, we get output parameter info from runtimeInfo. In v2 engine, we get it from component spec.
@@ -469,7 +468,7 @@ func executeV2(
 
 	// TODO(Bobgy): only return executor output. Merge info in output artifacts
 	// to executor output.
-	return executorOutput, outputArtifacts, nil
+	return executorOutput, outputArtifacts, executeErr
 }
 
 // collectOutputParameters collect output parameters from local disk and add them
@@ -682,11 +681,12 @@ func execute(
 	defer glog.Flush()
 
 	// Execute end user code.
-	if err := command.Run(); err != nil {
-		return nil, err
+	runErr := command.Run()
+	executorOutput, outputErr := getExecutorOutputFile(executorInput.GetOutputs().GetOutputFile())
+	if runErr != nil {
+		return executorOutput, runErr
 	}
-
-	return getExecutorOutputFile(executorInput.GetOutputs().GetOutputFile())
+	return executorOutput, outputErr
 }
 
 // Create a temp file that contains the system CA bundle (and custom CA if it has been mounted).
