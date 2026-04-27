@@ -313,6 +313,12 @@ func TestContainer_CreateExecutionSuccess(t *testing.T) {
 
 	require.NotNil(t, execution)
 	require.NoError(t, err)
+	require.NotNil(t, execution)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1234), execution.ID)
+	require.NotNil(t, execution.Cached)
+	assert.False(t, *execution.Cached)
+	assert.NotEmpty(t, execution.PodSpecPatch)
 }
 
 func TestContainer_CreateExecutionAlreadyExistsLookupReturnsNil(t *testing.T) {
