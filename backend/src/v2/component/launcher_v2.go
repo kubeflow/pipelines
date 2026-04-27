@@ -416,15 +416,11 @@ func executeV2(
 	if err != nil {
 		glog.Errorf("Component failed to execute successfully: %v", err)
 
-		outputArtifacts, uploadErr := uploadOutputArtifacts(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
+		outputArtifacts, _ := uploadOutputArtifactsWithRetry(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
 			bucketConfig:   bucketConfig,
 			bucket:         bucket,
 			metadataClient: metadataClient,
-		}, false)
-
-		if uploadErr != nil {
-			glog.Errorf("Failed to upload log artifact: %v", uploadErr)
-		}
+		}, true, openBucketConfig, 2)
 
 		return executorOutput, outputArtifacts, err
 	}
@@ -436,35 +432,14 @@ func executeV2(
 		return nil, nil, err
 	}
 
-	outputArtifacts, err := uploadOutputArtifacts(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
+	outputArtifacts, err := uploadOutputArtifactsWithRetry(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
 		bucketConfig:   bucketConfig,
 		bucket:         bucket,
 		metadataClient: metadataClient,
-	}, true)
+	}, true, openBucketConfig, 2)
 
 	if err != nil {
-		glog.Errorf("Failed to upload output artifacts: %v", err)
-
-		glog.Info("Refreshing credentials before retrying artifacts upload.")
-		bucket, err = objectstore.OpenBucket(
-			openBucketConfig.ctx,
-			openBucketConfig.k8sClient,
-			openBucketConfig.namespace,
-			openBucketConfig.config,
-		)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		glog.Info("Executing second uploadOutputArtifacts attempt.")
-		outputArtifacts, err = uploadOutputArtifacts(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
-			bucketConfig:   bucketConfig,
-			bucket:         bucket,
-			metadataClient: metadataClient,
-		}, true)
-		if err != nil {
-			return nil, nil, err
-		}
+		return nil, nil, err
 	}
 
 	// TODO(Bobgy): only return executor output. Merge info in output artifacts
@@ -812,6 +787,39 @@ func uploadOutputArtifacts(
 		}
 	}
 	return outputArtifacts, nil
+}
+
+func uploadOutputArtifactsWithRetry(
+	ctx context.Context,
+	executorInput *pipelinespec.ExecutorInput,
+	executorOutput *pipelinespec.ExecutorOutput,
+	opts uploadOutputArtifactsOptions,
+	componentSucceeded bool,
+	openBucketConfig *OpenBucketConfig,
+	maxAttempts int,
+) ([]*metadata.OutputArtifact, error) {
+	var finalErr error
+	for retryCount := 0; retryCount < maxAttempts; retryCount++ {
+		glog.Infof("Executing uploadOutputArtifacts attempt: %d", retryCount+1)
+		outputArtifacts, err := uploadOutputArtifacts(ctx, executorInput, executorOutput, opts, componentSucceeded)
+
+		if err == nil {
+			return outputArtifacts, nil
+		}
+
+		glog.Warningf("Failed to upload output artifacts: %v", err)
+		finalErr = err
+
+		glog.Info("Refreshing credentials before retrying artifacts upload.")
+		opts.bucket, err = objectstore.OpenBucket(
+			openBucketConfig.ctx,
+			openBucketConfig.k8sClient,
+			openBucketConfig.namespace,
+			openBucketConfig.config,
+		)
+	}
+	glog.Errorf("All upload artifact attempts failed: %v", finalErr)
+	return nil, finalErr
 }
 
 // waitForModelcar assumes the Modelcar has already been validated by the init container on the launcher

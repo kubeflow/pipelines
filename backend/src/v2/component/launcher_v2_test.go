@@ -125,6 +125,7 @@ func Test_executeV2_publishLogs(t *testing.T) {
 		executorArgs  []string
 		retryIndex    string
 		wantErr       bool
+		uploadFailure bool
 	}{
 		{
 			"happy pass",
@@ -135,6 +136,7 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			},
 			[]string{"-c", "echo testoutput && test {{$.inputs.parameters['a']}} -eq 1 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
 			"",
+			false,
 			false,
 		},
 		{
@@ -147,6 +149,7 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			[]string{"-c", "echo testoutput && test {{$.inputs.parameters['a']}} -eq 5 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
 			"",
 			false,
+			false,
 		},
 		{
 			"sad fail",
@@ -157,6 +160,31 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			},
 			[]string{"-c", "echo testoutput && exit 1"},
 			"",
+			true,
+			false,
+		},
+		{
+			"retry required - component success",
+			&pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{"a": structpb.NewNumberValue(1), "b": structpb.NewNumberValue(2)},
+				},
+			},
+			[]string{"-c", "echo testoutput && test {{$.inputs.parameters['a']}} -eq 1 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
+			"",
+			false,
+			true,
+		},
+		{
+			"retry required - component failure",
+			&pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{"a": structpb.NewNumberValue(1), "b": structpb.NewNumberValue(2)},
+				},
+			},
+			[]string{"-c", "echo testoutput && exit 1"},
+			"",
+			true,
 			true,
 		},
 		{
@@ -173,13 +201,23 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			[]string{"-c", "echo testoutput && test {{$.inputs.parameters['a']}} -eq 1 || exit 1"},
 			"3",
 			false,
+			false,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			fakeKubernetesClientset := &fake.Clientset{}
-			fakeMetadataClient := metadata.NewFakeClient()
+			var fakeMetadataClient metadata.ClientInterface
+			var countingFakeMetadataClient *metadata.RecordArtifactFailureFakeClient
+			// Use a fake client that will fail the RecordArtifact call in uploadArtifactLogs the first time,
+			// and succeed the second time, to test retry behavior
+			if test.uploadFailure {
+				countingFakeMetadataClient = metadata.NewRecordArtifactFailureFakeClient(1)
+				fakeMetadataClient = countingFakeMetadataClient
+			} else {
+				fakeMetadataClient = metadata.NewFakeClient()
+			}
 			bucket, err := blob.OpenBucket(context.Background(), "mem://test-bucket")
 			assert.Nil(t, err)
 			bucketConfig, err := objectstore.ParseBucketConfig("mem://test-bucket/pipeline-root/", nil)
@@ -248,6 +286,10 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			assert.Equal(t, "testoutput\n", string(outputLog))
 
 			assert.Len(t, outputArtifacts, 1, "Expected 1 output artifact (executor-logs)")
+
+			if test.uploadFailure {
+				assert.Equal(t, 2, countingFakeMetadataClient.RecordArtifactCalls)
+			}
 		})
 	}
 }
