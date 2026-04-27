@@ -333,9 +333,36 @@ export function isNoSuchKeyError(err: unknown): boolean {
   return typeof e.message === 'string' && e.message.includes('NoSuchKey');
 }
 
+type ListObjectsV2Query = (
+  bucket: string,
+  prefix: string,
+  continuationToken: string,
+  delimiter: string,
+  maxKeys: number,
+  startAfter: string,
+) => NodeJS.EventEmitter;
+
+// `listObjectsV2Query` is an internal helper on the minio client and is not
+// declared in its public type definitions. We narrow to it via a runtime
+// check so a future minio upgrade that removes the method fails fast with a
+// clear message instead of throwing `undefined is not a function` deep inside
+// a stream pipeline.
+function getListObjectsV2Query(client: MinioClient): ListObjectsV2Query {
+  const candidate = (client as unknown as { listObjectsV2Query?: unknown }).listObjectsV2Query;
+  if (typeof candidate !== 'function') {
+    throw new Error(
+      'Minio client does not expose listObjectsV2Query; the bundled minio version may be incompatible with listObjectsUnderPrefix',
+    );
+  }
+  return (candidate as ListObjectsV2Query).bind(client);
+}
+
 /**
- * Lists all objects under a given prefix in an s3-compatible bucket,
- * recursively, along with their sizes.
+ * Yields all objects under a given prefix in an s3-compatible bucket,
+ * recursively, along with their sizes. Implemented as an async generator so
+ * callers can begin streaming the first object before the full listing
+ * completes — important for large directory artifacts where buffering all
+ * keys would delay the first byte and inflate memory use.
  *
  * Pages via the lower-level `listObjectsV2Query` instead of the public
  * `listObjectsV2` streaming API. The public API hard-codes maxKeys=1000 per
@@ -344,13 +371,13 @@ export function isNoSuchKeyError(err: unknown): boolean {
  * trips "Entity expansion limit exceeded" once a directory holds more than
  * ~500 objects. A smaller page size keeps each XML parse under the cap.
  */
-export async function listObjectsUnderPrefix(
+export async function* listObjectsUnderPrefix(
   client: MinioClient,
   bucket: string,
   prefix: string,
-): Promise<Array<{ name: string; size: number }>> {
+): AsyncGenerator<{ name: string; size: number }> {
   const PAGE_SIZE = 300;
-  const items: Array<{ name: string; size: number }> = [];
+  const listObjectsV2Query = getListObjectsV2Query(client);
   let continuationToken = '';
   let isTruncated = true;
 
@@ -360,31 +387,18 @@ export async function listObjectsUnderPrefix(
       isTruncated: boolean;
       nextContinuationToken: string;
     }>((resolve, reject) => {
-      const stream = (
-        client as unknown as {
-          listObjectsV2Query: (
-            bucket: string,
-            prefix: string,
-            continuationToken: string,
-            delimiter: string,
-            maxKeys: number,
-            startAfter: string,
-          ) => NodeJS.EventEmitter;
-        }
-      ).listObjectsV2Query(bucket, prefix, continuationToken, '', PAGE_SIZE, '');
+      const stream = listObjectsV2Query(bucket, prefix, continuationToken, '', PAGE_SIZE, '');
       stream.on('error', reject);
       stream.on('data', resolve);
     });
 
     for (const item of page.objects) {
       if (item.name) {
-        items.push({ name: item.name, size: item.size ?? 0 });
+        yield { name: item.name, size: item.size ?? 0 };
       }
     }
 
     isTruncated = page.isTruncated;
     continuationToken = page.nextContinuationToken;
   }
-
-  return items;
 }
