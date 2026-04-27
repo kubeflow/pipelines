@@ -59,8 +59,11 @@ const (
 // Workspace header used when workspace-based multi-tenancy is enabled.
 const workspaceHeader = "X-MLflow-Workspace"
 
-// ParentRunTagKey is a key used to store parent run ID as a Tag
-const ParentRunTagKey = "mlflow.parentRunId"
+// ParentRunTagKey is a key used to store parent run ID as a Tag.
+const ParentRunTagKey = "tags.mlflow.parentRunId"
+
+// ParentRunUIFormatTagKey is a key used to store parent run ID as a resolvable Tag compatible with the MLflow UI.
+const ParentRunUIFormatTagKey = "mlflow.parentRunId"
 
 // RetryPolicy configures the exponential backoff for retrying failed requests.
 type RetryPolicy struct {

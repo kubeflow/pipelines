@@ -28,16 +28,15 @@ import (
 	"time"
 	"unicode/utf8"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
-
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/util/file"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
-	apiservermlflow "github.com/kubeflow/pipelines/backend/src/apiserver/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	apiservermlflow "github.com/kubeflow/pipelines/backend/src/apiserver/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 

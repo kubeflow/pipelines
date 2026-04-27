@@ -23,7 +23,7 @@ import (
 	"github.com/golang/glog"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
-	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/mlflow"
+	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 )
 
 var _ apiserverPlugins.RunPluginHandler = (*Handler)(nil)
@@ -97,6 +97,7 @@ func (h *Handler) OnBeforeRunCreation(ctx context.Context, run *apiserverPlugins
 	mlflowRuntimeConfig := commonmlflow.MLflowRuntimeConfig{
 		Endpoint:           mlflowRequestCtx.BaseURL.String(),
 		Workspace:          workspace,
+		WorkspacesEnabled:  settings.WorkspacesEnabled != nil && *settings.WorkspacesEnabled,
 		ParentRunID:        parentRunID,
 		ExperimentID:       mlflowExperiment.ID,
 		AuthType:           commonmlflow.AuthTypeKubernetes,

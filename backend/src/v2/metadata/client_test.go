@@ -18,11 +18,13 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"maps"
 	"runtime/debug"
 	"sync"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata/testutils"
+	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -333,6 +335,75 @@ func Test_DAG(t *testing.T) {
 	if task1Children["task1ChildA"].GetID() != task1ChildA.GetID() {
 		t.Errorf("executions[\"task1ChildA\"].GetID()=%v, task1ChildA.GetID()=%v. Not equal", task1Children["task1ChildA"].GetID(), task1ChildA.GetID())
 	}
+}
+
+func TestFormatOutputArtifacts(t *testing.T) {
+	var outputArtifacts = []*metadata.OutputArtifact{
+		{
+			Name: "accuracy_metrics",
+			Artifact: &pb.Artifact{
+				Type: new("system.Metrics"),
+				CustomProperties: map[string]*pb.Value{
+					"accuracy":           {Value: &pb.Value_DoubleValue{DoubleValue: 0.95}},
+					"display_name":       {Value: &pb.Value_StringValue{StringValue: "accuracy_metrics"}},
+					"store_session_info": {Value: &pb.Value_StringValue{StringValue: "session-abc-123"}},
+				},
+			},
+			Schema: "title: kfp.Metrics\ntype: object",
+		},
+		{
+			Name: "loss_metrics",
+			Artifact: &pb.Artifact{
+				Type: new("system.Metrics"),
+				CustomProperties: map[string]*pb.Value{
+					"loss":               {Value: &pb.Value_DoubleValue{DoubleValue: 0.05}},
+					"display_name":       {Value: &pb.Value_StringValue{StringValue: "loss_metrics"}},
+					"store_session_info": {Value: &pb.Value_StringValue{StringValue: "session-abc-123"}},
+				},
+			},
+			Schema: "title: kfp.Metrics\ntype: object",
+		},
+	}
+
+	expectedResult := map[string]float64{
+		"accuracy": 0.95,
+		"loss":     0.05,
+	}
+
+	result := metadata.FormatOutputArtifacts(outputArtifacts)
+
+	if !maps.Equal(expectedResult, result) {
+		t.Errorf("result differs from expected result. Expected: %v, Actual: %v", expectedResult, result)
+	}
+}
+
+func TestFormatExecutionParameters(t *testing.T) {
+	var execution = metadata.NewExecution(&pb.Execution{
+		LastKnownState:           pb.Execution_COMPLETE.Enum(),
+		LastUpdateTimeSinceEpoch: new(int64(1714400000000)),
+		CustomProperties: map[string]*pb.Value{
+			"inputs": {Value: &pb.Value_StructValue{
+				StructValue: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"param_one": structpb.NewStringValue("hello"),
+						"param_two": structpb.NewNumberValue(42),
+					},
+				},
+			}},
+		},
+	})
+
+	expectedResult := map[string]string{
+		"param_one": "hello",
+		"param_two": "42",
+	}
+
+	result := metadata.FormatExecutionParameters(execution)
+
+	if !maps.Equal(expectedResult, result) {
+		t.Errorf("result differs from expected result. Expected: %v, Actual: %v", expectedResult, result)
+	}
+
 }
 
 func newLocalClientOrFatal(t *testing.T) *metadata.Client {

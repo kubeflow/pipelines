@@ -44,7 +44,7 @@ func validateContainer(opts Options) (err error) {
 	return validateNonRoot(opts)
 }
 
-func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheClient cacheutils.Client, dispatcher plugins.TaskPluginDispatcher) (execution *Execution, err error) {
+func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheClient cacheutils.Client) (execution *Execution, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("driver.Container(%s) failed: %w", opts.info(), err)
@@ -188,12 +188,13 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	if !execution.WillTrigger() {
 		return execution, nil
 	}
-
-	taskStartResult, err := dispatcher.OnTaskStart(ctx, opts.TaskName)
-	if err != nil {
-		glog.Errorf("failed to dispatch task start: %v", err)
-	} else if taskStartResult != nil {
-		ecfg.MLflowRunID = taskStartResult.RunID
+	taskPluginInfo := &plugins.TaskInfo{Name: opts.TaskName}
+	pluginStartResult, dispatchErr := opts.PluginDispatcher.OnTaskStart(ctx, taskPluginInfo)
+	if dispatchErr != nil {
+		glog.Errorf("Failed to dispatch task start: %v", dispatchErr)
+	} else if pluginStartResult != nil {
+		taskPluginInfo.TaskStartResult = pluginStartResult
+		ecfg.PluginCustomProperties = pluginStartResult.CustomProperties
 	}
 
 	// Use cache and skip launcher if all contions met:
@@ -204,7 +205,17 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	execution.Cached = &cached
 	if !opts.CacheDisabled {
 		if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
-			executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, mlmd, ecfg.CachedMLMDExecutionID)
+			var outputArtifacts []*metadata.OutputArtifact
+			var executorOutput *pipelinespec.ExecutorOutput
+			defer func() {
+				cachedStatus, _ := reuseCachedExecutionMetadata(ctx, mlmd, ecfg.CachedMLMDExecutionID)
+				taskPluginInfo.UpdateTaskInfoWithMetadata(cachedStatus, metadata.FormatOutputArtifacts(outputArtifacts), metadata.FormatExecutionParameters(createdExecution))
+				dispatchErr = opts.PluginDispatcher.OnTaskEnd(ctx, taskPluginInfo)
+				if dispatchErr != nil {
+					glog.Errorf("failed to dispatch task end: %v", dispatchErr)
+				}
+			}()
+			executorOutput, outputArtifacts, err = reuseCachedOutputs(ctx, execution.ExecutorInput, mlmd, ecfg.CachedMLMDExecutionID)
 			if err != nil {
 				return execution, err
 			}
@@ -213,10 +224,6 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 			// to publish output artifacts to the context too.
 			if err := mlmd.PublishExecution(ctx, createdExecution, executorOutput.GetParameterValues(), outputArtifacts, pb.Execution_CACHED); err != nil {
 				return execution, fmt.Errorf("failed to publish cached execution: %w", err)
-			}
-			err = dispatcher.OnTaskEnd(ctx, createdExecution, outputArtifacts)
-			if err != nil {
-				glog.Errorf("failed to dispatch task end: %v", err)
 			}
 			glog.Infof("Use cache for task %s", opts.Task.GetTaskInfo().GetName())
 			*execution.Cached = true
@@ -228,8 +235,12 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 
 	taskConfig := &TaskConfig{}
 
+	pluginEnvVars, dispatchErr := opts.PluginDispatcher.RetrieveUserContainerEnvVars(taskPluginInfo)
+	if dispatchErr != nil {
+		glog.Errorf("failed to retrieve plugin-level user container env vars: %s", dispatchErr)
+	}
+
 	podSpec, err := initPodSpecPatch(
-		dispatcher,
 		opts.Container,
 		opts.Component,
 		executorInput,
@@ -248,6 +259,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		opts.MLPipelineServerPort,
 		opts.MLMDServerAddress,
 		opts.MLMDServerPort,
+		pluginEnvVars,
 	)
 	if err != nil {
 		return execution, err

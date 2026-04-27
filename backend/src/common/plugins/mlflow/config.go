@@ -27,25 +27,22 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-const (
-	LauncherConfigMapName = "kfp-launcher"
-	LauncherConfigKey     = "plugins.mlflow"
-)
-
 // EnvMLflowConfig is the single environment variable injected into Argo
 // Workflow templates by the API server.
 const EnvMLflowConfig = "KFP_MLFLOW_CONFIG"
 
 // MLflowRuntimeConfig is the JSON payload marshalled into KFP_MLFLOW_CONFIG.
 type MLflowRuntimeConfig struct {
-	Endpoint           string `json:"endpoint"`
-	Workspace          string `json:"workspace,omitempty"`
-	ParentRunID        string `json:"parentRunId"`
-	ExperimentID       string `json:"experimentId"`
-	AuthType           string `json:"authType"`
-	Timeout            string `json:"timeout,omitempty"`
-	InsecureSkipVerify bool   `json:"insecureSkipVerify,omitempty"`
-	InjectUserEnvVars  bool   `json:"injectUserEnvVars,omitempty"`
+	Endpoint           string     `json:"endpoint"`
+	WorkspacesEnabled  bool       `json:"workspacesEnabled,omitempty"`
+	Workspace          string     `json:"workspace,omitempty"`
+	ParentRunID        string     `json:"parentRunId"`
+	ExperimentID       string     `json:"experimentId"`
+	AuthType           string     `json:"authType"`
+	Timeout            string     `json:"timeout,omitempty"`
+	InsecureSkipVerify bool       `json:"insecureSkipVerify,omitempty"`
+	InjectUserEnvVars  bool       `json:"injectUserEnvVars,omitempty"`
+	TLS                *TLSConfig `json:"tls,omitempty" mapstructure:"tls"`
 }
 
 // TLSConfig holds TLS settings for the MLflow endpoint.

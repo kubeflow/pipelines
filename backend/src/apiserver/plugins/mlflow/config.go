@@ -22,7 +22,7 @@ import (
 	"io"
 
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
-	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/mlflow"
+	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -37,6 +37,11 @@ const (
 	DefaultExperimentName = "KFP-Default"
 	// DefaultTimeout is the default HTTP request timeout for the MLflow client.
 	DefaultTimeout = "30s"
+)
+
+const (
+	LauncherConfigMapName = "kfp-launcher"
+	LauncherConfigKey     = "plugins.mlflow"
 )
 
 // ApplySettingsDefaults applies default values to a parsed MLflowPluginSettings.
@@ -109,20 +114,20 @@ func GetNamespaceMLflowConfig(ctx context.Context, clientSet kubernetes.Interfac
 	if clientSet == nil {
 		return nil, util.NewInternalServerError(fmt.Errorf("clientSet is nil"), "Kubernetes clientset must be provided when reading MLflow namespace config")
 	}
-	cm, err := clientSet.CoreV1().ConfigMaps(namespace).Get(ctx, commonmlflow.LauncherConfigMapName, v1.GetOptions{})
+	cm, err := clientSet.CoreV1().ConfigMaps(namespace).Get(ctx, LauncherConfigMapName, v1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, nil
 		}
-		return nil, util.NewInternalServerError(err, "failed to read MLflow namespace config from configmap %q in namespace %q", commonmlflow.LauncherConfigMapName, namespace)
+		return nil, util.NewInternalServerError(err, "failed to read MLflow namespace config from configmap %q in namespace %q", LauncherConfigMapName, namespace)
 	}
-	raw, ok := cm.Data[commonmlflow.LauncherConfigKey]
+	raw, ok := cm.Data[LauncherConfigKey]
 	if !ok || raw == "" {
 		return nil, nil
 	}
 	var cfg commonmlflow.PluginConfig
 	if err := json.Unmarshal([]byte(raw), &cfg); err != nil {
-		return nil, util.NewInternalServerError(err, "failed to parse MLflow config from key %q in configmap %q/%q", commonmlflow.LauncherConfigKey, namespace, commonmlflow.LauncherConfigMapName)
+		return nil, util.NewInternalServerError(err, "failed to parse MLflow config from key %q in configmap %q/%q", LauncherConfigKey, namespace, LauncherConfigMapName)
 	}
 	return &cfg, nil
 }

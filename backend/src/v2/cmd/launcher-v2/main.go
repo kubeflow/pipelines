@@ -148,6 +148,5 @@ func init() {
 	flag.Set("logtostderr", "true")
 	// Change the WARNING to INFO level for debugging.
 	flag.Set("stderrthreshold", "WARNING")
-	// Configure Viper env
 	viper.AutomaticEnv()
 }

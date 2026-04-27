@@ -20,8 +20,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
@@ -31,6 +32,10 @@ import (
 	k8score "k8s.io/api/core/v1"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 )
+
+// LoopDriverPluginStartResult is the parameter key used to propagate plugin custom
+// properties from the loop DAG driver through iteration DAGs to container drivers.
+const LoopDriverPluginStartResult = "LoopDriverPluginStartResult"
 
 // Driver options
 type Options struct {
@@ -91,6 +96,8 @@ type Options struct {
 	PipelineJobCreateTimeUTC string
 
 	PipelineJobScheduleTimeUTC string
+
+	PluginDispatcher plugins.TaskPluginDispatcher
 
 	// Admin-configured default runAsUser for user containers. Nil means not set.
 	DefaultRunAsUser *int64
@@ -236,7 +243,6 @@ func getTaskConfigOptions(
 // dynamic values are patched here. The volume mounts / configmap mounts are
 // defined in compiler, because they are static.
 func initPodSpecPatch(
-	dispatcher plugins.TaskPluginDispatcher,
 	container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec,
 	componentSpec *pipelinespec.ComponentSpec,
 	executorInput *pipelinespec.ExecutorInput,
@@ -255,6 +261,7 @@ func initPodSpecPatch(
 	mlPipelineServerPort string,
 	mlmdServerAddress string,
 	mlmdServerPort string,
+	pluginEnvVars map[string]string,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -271,9 +278,10 @@ func initPodSpecPatch(
 		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar.GetName(), Value: envVar.GetValue()})
 	}
 
-	// Append any env variables relevant for task plugin.
-	pluginEnvVars := dispatcher.RetrieveUserContainerEnvVars()
-	userEnvVar = append(userEnvVar, pluginEnvVars...)
+	// Append necessary env variables for task-level plugin(s).
+	for envVar, val := range pluginEnvVars {
+		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar, Value: val})
+	}
 
 	userEnvVar = append(userEnvVar, proxy.GetConfig().GetEnvVars()...)
 

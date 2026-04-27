@@ -528,6 +528,7 @@ func TestMLflowRuntimeConfig_JSONFieldAlignment(t *testing.T) {
 	cfg := MLflowRuntimeConfig{
 		Endpoint:           "http://mlflow:5000",
 		Workspace:          "ns1",
+		WorkspacesEnabled:  true,
 		ParentRunID:        "parent-1",
 		ExperimentID:       "exp-1",
 		AuthType:           "kubernetes",
@@ -573,6 +574,7 @@ func TestMLflowRuntimeConfig_OmitEmptyFields(t *testing.T) {
 
 	// Fields with omitempty and zero values should be absent.
 	assert.NotContains(t, raw, "workspace", "workspace should be omitted when empty")
+	assert.NotContains(t, raw, "workspacesEnabled", "workspacesEnabled should be omitted when false")
 	assert.NotContains(t, raw, "timeout", "timeout should be omitted when empty")
 	assert.NotContains(t, raw, "insecureSkipVerify", "insecureSkipVerify should be omitted when false")
 	assert.NotContains(t, raw, "injectUserEnvVars", "injectUserEnvVars should be omitted when false")

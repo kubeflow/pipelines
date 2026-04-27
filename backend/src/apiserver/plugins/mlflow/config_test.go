@@ -28,7 +28,7 @@ import (
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
-	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/mlflow"
+	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -473,11 +473,11 @@ func TestResolveMLflowRequestConfig_NamespaceOnlyIsDisabled(t *testing.T) {
 	clientSet := k8sfake.NewSimpleClientset(
 		&corev1.ConfigMap{
 			ObjectMeta: v1.ObjectMeta{
-				Name:      commonmlflow.LauncherConfigMapName,
+				Name:      LauncherConfigMapName,
 				Namespace: "ns-only",
 			},
 			Data: map[string]string{
-				commonmlflow.LauncherConfigKey: `{
+				LauncherConfigKey: `{
 					"endpoint": "https://ns-mlflow.example.com",
 					"timeout": "15s",
 					"settings": {"workspacesEnabled": true}

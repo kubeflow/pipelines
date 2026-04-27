@@ -26,6 +26,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
@@ -76,6 +77,7 @@ func kubernetesPlatformOps(
 	var createdExecution *metadata.Execution
 	status := pb.Execution_FAILED
 	var pvcName string
+	taskPluginInfo := &plugins.TaskInfo{Name: opts.TaskName}
 	defer func() {
 		// We publish the execution, no matter this operartion succeeds or not
 		perr := publishDriverExecution(k8sClient, mlmd, ctx, createdExecution, outputParameters, nil, status)
@@ -84,8 +86,21 @@ func kubernetesPlatformOps(
 		} else if perr != nil {
 			err = fmt.Errorf("failed to publish driver execution: %w", perr)
 		}
+		taskPluginInfo.UpdateTaskInfoWithMetadata(status.String(), nil, nil)
+		dispatchErr := opts.PluginDispatcher.OnTaskEnd(ctx, taskPluginInfo)
+		if dispatchErr != nil {
+			glog.Errorf("failed to dispatch task end: %v", dispatchErr)
+		}
+
 	}()
 
+	pluginStartResult, dispatchErr := opts.PluginDispatcher.OnTaskStart(ctx, taskPluginInfo)
+	if dispatchErr != nil {
+		glog.Errorf("Failed to dispatch task start: %v", dispatchErr)
+	} else if pluginStartResult != nil {
+		taskPluginInfo.TaskStartResult = pluginStartResult
+		ecfg.PluginCustomProperties = pluginStartResult.CustomProperties
+	}
 	switch opts.Container.Image {
 	case "argostub/createpvc":
 		pvcName, createdExecution, status, err = createPVC(ctx, k8sClient, *execution, opts, cacheClient, mlmd, ecfg)

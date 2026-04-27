@@ -19,12 +19,9 @@ import (
 	"fmt"
 	"testing"
 
-	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/mlflow"
-	"github.com/kubeflow/pipelines/backend/src/v2/common/mlflow"
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
-	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
@@ -269,7 +266,6 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			taskConfig := &TaskConfig{}
 
 			podSpec, err := initPodSpecPatch(
-				plugins.NoOpDispatcher{},
 				tt.args.container,
 				tt.args.componentSpec,
 				tt.args.executorInput,
@@ -288,6 +284,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				"8887",
 				"metadata-grpc-service.kubeflow.svc.local",
 				"8080",
+				map[string]string{},
 			)
 			if tt.wantErr {
 				assert.Nil(t, podSpec)
@@ -393,7 +390,6 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 	taskConfig := &TaskConfig{}
 
 	podSpec, err := initPodSpecPatch(
-		plugins.NoOpDispatcher{},
 		containerSpec,
 		componentSpec,
 		executorInput,
@@ -412,6 +408,7 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		"8887",
 		"metadata-grpc-service.kubeflow.svc.local",
 		"8080",
+		map[string]string{},
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -448,7 +445,6 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 	taskConfig := &TaskConfig{}
 
 	podSpec, err := initPodSpecPatch(
-		plugins.NoOpDispatcher{},
 		containerSpec,
 		componentSpec,
 		executorInput,
@@ -467,6 +463,7 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 		"8887",
 		"metadata-grpc-service.kubeflow.svc.local",
 		"8080",
+		map[string]string{},
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -505,7 +502,6 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 	taskConfig := &TaskConfig{}
 
 	podSpec, err := initPodSpecPatch(
-		plugins.NoOpDispatcher{},
 		containerSpec,
 		componentSpec,
 		executorInput,
@@ -524,6 +520,7 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 		"8887",
 		"metadata-grpc-service.kubeflow.svc.local",
 		"8080",
+		map[string]string{},
 	)
 	assert.Nil(t, err)
 
@@ -566,7 +563,6 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 // commands in the podSpec.
 func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 	podSpec, err := initPodSpecPatch(
-		plugins.NoOpDispatcher{},
 		&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{},
 		&pipelinespec.ComponentSpec{},
 		&pipelinespec.ExecutorInput{},
@@ -586,6 +582,7 @@ func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 		"8887",
 		"metadata-grpc-service.kubeflow.svc.local",
 		"8080",
+		map[string]string{},
 	)
 	assert.Nil(t, err)
 	cmd := podSpec.Containers[0].Command
@@ -699,7 +696,6 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 			taskConfig := &TaskConfig{}
 
 			podSpec, err := initPodSpecPatch(
-				plugins.NoOpDispatcher{},
 				tt.args.container,
 				tt.args.componentSpec,
 				tt.args.executorInput,
@@ -718,6 +714,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				"8887",
 				"metadata-grpc-service.kubeflow.svc.local",
 				"8080",
+				map[string]string{},
 			)
 			assert.Nil(t, err)
 			assert.NotEmpty(t, podSpec)
@@ -762,7 +759,6 @@ func Test_initPodSpecPatch_TaskConfig_ForwardsResourcesOnly(t *testing.T) {
 
 	taskCfg := &TaskConfig{}
 	podSpec, err := initPodSpecPatch(
-		plugins.NoOpDispatcher{},
 		containerSpec,
 		componentSpec,
 		executorInput,
@@ -781,6 +777,7 @@ func Test_initPodSpecPatch_TaskConfig_ForwardsResourcesOnly(t *testing.T) {
 		"8887",
 		"metadata-grpc-service.kubeflow.svc.local",
 		"8080",
+		map[string]string{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, podSpec)
@@ -831,7 +828,6 @@ func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 	}
 
 	podSpec, err := initPodSpecPatch(
-		plugins.NoOpDispatcher{},
 		containerSpec,
 		componentSpec,
 		executorInput,
@@ -850,6 +846,7 @@ func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 		"8887",
 		"metadata-grpc-service.kubeflow.svc.local",
 		"8080",
+		map[string]string{},
 	)
 	require.Nil(t, err)
 
@@ -1036,7 +1033,6 @@ func Test_initPodSpecPatch_WorkspaceRequiresRunName(t *testing.T) {
 	}
 	taskCfg := &TaskConfig{}
 	_, err := initPodSpecPatch(
-		plugins.NoOpDispatcher{},
 		containerSpec,
 		componentSpec,
 		executorInput,
@@ -1055,6 +1051,7 @@ func Test_initPodSpecPatch_WorkspaceRequiresRunName(t *testing.T) {
 		"8887",
 		"metadata-grpc-service.kubeflow.svc.local",
 		"8080",
+		map[string]string{},
 	)
 	require.NotNil(t, err)
 }
@@ -1167,8 +1164,9 @@ func TestWorkspaceMount_PassthroughVolumes_CaptureOnly(t *testing.T) {
 	}
 	taskCfg := &TaskConfig{}
 	podSpec, err := initPodSpecPatch(
-		plugins.NoOpDispatcher{}, containerSpec, componentSpec, executorInput,
+		containerSpec, componentSpec, executorInput,
 		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg, false, false, "", "ml-pipeline.kubeflow", "8887", "metadata-grpc-service.kubeflow.svc.local", "8080",
+		map[string]string{},
 	)
 	assert.Nil(t, err)
 
@@ -1210,8 +1208,9 @@ func TestWorkspaceMount_PassthroughVolumes_ApplyAndCapture(t *testing.T) {
 	}
 	taskCfg := &TaskConfig{}
 	podSpec, err := initPodSpecPatch(
-		plugins.NoOpDispatcher{}, containerSpec, componentSpec, executorInput,
+		containerSpec, componentSpec, executorInput,
 		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg, false, false, "", "ml-pipeline.kubeflow", "8887", "metatadata-grpc-service.kubeflow.svc.local", "8080",
+		map[string]string{},
 	)
 	assert.Nil(t, err)
 	// Should mount workspace to pod and also capture to TaskConfig
@@ -1280,8 +1279,9 @@ func TestWorkspaceMount_TriggeredByArtifactMetadata(t *testing.T) {
 
 	taskCfg := &TaskConfig{}
 	podSpec, err := initPodSpecPatch(
-		plugins.NoOpDispatcher{}, containerSpec, componentSpec, execInput,
+		containerSpec, componentSpec, execInput,
 		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg, false, false, "", "ml-pipeline.kubeflow", "8887", "metadata-grpc-service.kubeflow.svc.local", "8080",
+		map[string]string{},
 	)
 	assert.Nil(t, err)
 
@@ -1326,7 +1326,6 @@ func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) 
 	executorInput := &pipelinespec.ExecutorInput{}
 	taskCfg := &TaskConfig{}
 	podSpec, err := initPodSpecPatch(
-		plugins.NoOpDispatcher{},
 		containerSpec,
 		componentSpec,
 		executorInput,
@@ -1345,6 +1344,7 @@ func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) 
 		"8887",
 		"metadata-grpc-service.kubeflow.svc.local",
 		"8080",
+		map[string]string{},
 	)
 	assert.Nil(t, err)
 
@@ -1378,7 +1378,6 @@ func Test_initPodSpecPatch_TaskConfig_Resources_Passthrough_ApplyAndCapture(t *t
 	executorInput := &pipelinespec.ExecutorInput{}
 	taskCfg := &TaskConfig{}
 	podSpec, err := initPodSpecPatch(
-		plugins.NoOpDispatcher{},
 		containerSpec,
 		componentSpec,
 		executorInput,
@@ -1397,6 +1396,7 @@ func Test_initPodSpecPatch_TaskConfig_Resources_Passthrough_ApplyAndCapture(t *t
 		"8887",
 		"metadata-grpc-service.kubeflow.svc.local",
 		"8080",
+		map[string]string{},
 	)
 	assert.Nil(t, err)
 	// Resources should be both on pod and in TaskConfig
@@ -1461,7 +1461,6 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_Passthro
 	taskCfg := &TaskConfig{}
 
 	podSpec, err := initPodSpecPatch(
-		plugins.NoOpDispatcher{},
 		containerSpec,
 		componentSpec,
 		executorInput,
@@ -1480,6 +1479,7 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_Passthro
 		"8887",
 		"metadata-grpc-service.kubeflow.svc.local",
 		"8080",
+		map[string]string{},
 	)
 	assert.Nil(t, err)
 
@@ -1565,7 +1565,6 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_ApplyAnd
 	taskCfg := &TaskConfig{}
 
 	podSpec, err := initPodSpecPatch(
-		plugins.NoOpDispatcher{},
 		containerSpec,
 		componentSpec,
 		executorInput,
@@ -1584,6 +1583,7 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_ApplyAnd
 		"8887",
 		"metadata-grpc-service.kubeflow.svc.local",
 		"8080",
+		map[string]string{},
 	)
 	assert.Nil(t, err)
 
@@ -1651,7 +1651,6 @@ func Test_initPodSpecPatch_mlPipelineServerConfig(t *testing.T) {
 	customPort := "9999"
 
 	podSpec, err := initPodSpecPatch(
-		plugins.NoOpDispatcher{},
 		&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{},
 		&pipelinespec.ComponentSpec{},
 		&pipelinespec.ExecutorInput{},
@@ -1670,6 +1669,7 @@ func Test_initPodSpecPatch_mlPipelineServerConfig(t *testing.T) {
 		customPort,
 		"metadata-grpc-service.kubeflow.svc.local",
 		"8080",
+		map[string]string{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, podSpec)
@@ -1925,183 +1925,4 @@ func Test_provisionOutputs(t *testing.T) {
 			}
 		})
 	}
-}
-
-func Test_initPodSpecPatch_mlflowConfig(t *testing.T) {
-
-	proxy.InitializeConfigWithEmptyForTests()
-
-	tests := []struct {
-		name                   string
-		mlflowPluginEnabled    bool
-		mlflowRunID            string
-		mlflowRuntimeCfgEnvVar commonmlflow.MLflowRuntimeConfig
-		expectedEnvVar         []k8score.EnvVar
-	}{
-		{
-			"K8s auth & workspaces enabled",
-			true,
-			"test-run-id",
-			commonmlflow.MLflowRuntimeConfig{
-				Endpoint:           "test-endpoint",
-				Workspace:          "test-workspace",
-				ParentRunID:        "test-parent-id",
-				ExperimentID:       "exp-id",
-				AuthType:           "kubernetes",
-				Timeout:            "10s",
-				InsecureSkipVerify: true,
-				InjectUserEnvVars:  true,
-			},
-			[]k8score.EnvVar{
-				{Name: "MLFLOW_RUN_ID", Value: "test-run-id"},
-				{Name: "MLFLOW_TRACKING_URI", Value: "test-endpoint"},
-				{Name: "MLFLOW_EXPERIMENT_ID", Value: "exp-id"},
-				{Name: "MLFLOW_WORKSPACE", Value: "test-workspace"},
-				{Name: "MLFLOW_TRACKING_AUTH", Value: "kubernetes-namespaced"},
-			},
-		},
-		{
-			"k8s auth & workspaces disabled",
-			true,
-			"test-run-id",
-			commonmlflow.MLflowRuntimeConfig{
-				Endpoint:           "test-endpoint",
-				Workspace:          "",
-				ParentRunID:        "test-parent-id",
-				ExperimentID:       "exp-id",
-				AuthType:           "kubernetes",
-				Timeout:            "10s",
-				InsecureSkipVerify: true,
-				InjectUserEnvVars:  true,
-			},
-			[]k8score.EnvVar{
-				{Name: "MLFLOW_RUN_ID", Value: "test-run-id"},
-				{Name: "MLFLOW_TRACKING_URI", Value: "test-endpoint"},
-				{Name: "MLFLOW_EXPERIMENT_ID", Value: "exp-id"},
-				{Name: "MLFLOW_TRACKING_AUTH", Value: "kubernetes"},
-			},
-		},
-		{
-			"non-k8s auth",
-			true,
-			"test-run-id",
-			commonmlflow.MLflowRuntimeConfig{
-				Endpoint:           "test-endpoint",
-				Workspace:          "test-workspace",
-				ParentRunID:        "test-parent-id",
-				ExperimentID:       "exp-id",
-				AuthType:           "not-kubernetes",
-				Timeout:            "10s",
-				InsecureSkipVerify: true,
-				InjectUserEnvVars:  true,
-			},
-			[]k8score.EnvVar{
-				{Name: "MLFLOW_RUN_ID", Value: "test-run-id"},
-				{Name: "MLFLOW_TRACKING_URI", Value: "test-endpoint"},
-				{Name: "MLFLOW_EXPERIMENT_ID", Value: "exp-id"},
-				{Name: "MLFLOW_WORKSPACE", Value: "test-workspace"},
-			},
-		},
-		{
-			"empty runID",
-			true,
-			"",
-			commonmlflow.MLflowRuntimeConfig{
-				Endpoint:           "test-endpoint",
-				Workspace:          "test-workspace",
-				ParentRunID:        "test-parent-id",
-				ExperimentID:       "exp-id",
-				AuthType:           "kubernetes",
-				Timeout:            "10s",
-				InsecureSkipVerify: true,
-				InjectUserEnvVars:  true,
-			},
-			[]k8score.EnvVar{
-				{Name: "MLFLOW_TRACKING_URI", Value: "test-endpoint"},
-				{Name: "MLFLOW_EXPERIMENT_ID", Value: "exp-id"},
-				{Name: "MLFLOW_WORKSPACE", Value: "test-workspace"},
-				{Name: "MLFLOW_TRACKING_AUTH", Value: "kubernetes-namespaced"},
-			},
-		},
-		{
-			"InjectUserEnvVars disabled",
-			true,
-			"test-run-id",
-			commonmlflow.MLflowRuntimeConfig{
-				Endpoint:           "test-endpoint",
-				Workspace:          "test-workspace",
-				ParentRunID:        "test-parent-id",
-				ExperimentID:       "exp-id",
-				AuthType:           "kubernetes",
-				Timeout:            "10s",
-				InsecureSkipVerify: true,
-				InjectUserEnvVars:  false,
-			},
-			[]k8score.EnvVar{
-				{Name: "MLFLOW_RUN_ID", Value: "test-run-id"},
-			},
-		},
-		{
-			"MLflow plugin disabled",
-			false,
-			"",
-			commonmlflow.MLflowRuntimeConfig{},
-			[]k8score.EnvVar{},
-		},
-	}
-	for _, tt := range tests {
-		data, err := json.Marshal(tt.mlflowRuntimeCfgEnvVar)
-		if err != nil {
-			t.Fatalf("failed to marshal mlflow runtime config: %v", err)
-		}
-
-		viper.Set("KFP_MLFLOW_CONFIG", string(data))
-		viper.Set("MLFLOW_RUN_ID", tt.mlflowRunID)
-		var dispatcher plugins.TaskPluginDispatcher = plugins.NoOpDispatcher{}
-		if tt.mlflowPluginEnabled {
-			var err error
-			dispatcher, err = mlflow.NewDispatcher()
-			if err != nil {
-				t.Fatalf("failed to create mlflow dispatcher: %v", err)
-			}
-		}
-		viper.Set("MLFLOW_RUN_ID", tt.mlflowRunID)
-		t.Run(tt.name, func(t *testing.T) {
-			containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.11"}
-			componentSpec := &pipelinespec.ComponentSpec{}
-			executorInput := &pipelinespec.ExecutorInput{}
-			taskConfig := &TaskConfig{}
-
-			podSpec, err := initPodSpecPatch(
-				dispatcher,
-				containerSpec,
-				componentSpec,
-				executorInput,
-				27,
-				"test",
-				"0254beba-0be4-4065-8d97-7dc5e3adf300",
-				"my-run-name",
-				"1",
-				"false",
-				"false",
-				taskConfig,
-				false,
-				false,
-				"",
-				"ml-pipeline.kubeflow",
-				"8887",
-				"metadata-grpc-service.kubeflow.svc.local",
-				"8080",
-			)
-
-			assert.Nil(t, err)
-			assert.NotNil(t, podSpec)
-
-			containerEnvVars := podSpec.Containers[0].Env
-			//assert.Contains(t, envVars, tt.expectedEnvVar)
-			assert.ElementsMatch(t, tt.expectedEnvVar, containerEnvVars)
-
-		})
-	}
-
 }

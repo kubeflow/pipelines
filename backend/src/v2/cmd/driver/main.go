@@ -21,13 +21,12 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/kubeflow/pipelines/backend/src/v2/common/mlflow"
-	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/spf13/viper"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 
 	"os"
 	"path/filepath"
@@ -41,6 +40,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
+
+	_ "github.com/kubeflow/pipelines/backend/src/v2/common/plugins/all"
 )
 
 const (
@@ -217,11 +218,9 @@ func drive() (err error) {
 		return err
 	}
 	// pluginDispatcher executes task-level plugin lifecycle hooks
-	var pluginDispatcher plugins.TaskPluginDispatcher = plugins.NoOpDispatcher{}
-	if mlflow.IsEnabled() {
-		if d, err := mlflow.NewDispatcher(); err == nil {
-			pluginDispatcher = d
-		}
+	pluginDispatcher, err := plugins.GetPluginDispatcher()
+	if err != nil {
+		glog.Errorf("Failed to initialize plugin dispatcher: %v", err)
 	}
 	options := driver.Options{
 		PipelineName:            *pipelineName,
@@ -245,6 +244,7 @@ func drive() (err error) {
 		MLPipelineTLSEnabled:    *mlPipelineTLSEnabled,
 		MLMDTLSEnabled:          *metadataTLSEnabled,
 		CaCertPath:              *caCertPath,
+		PluginDispatcher:        pluginDispatcher,
 	}
 	var execution *driver.Execution
 	var driverErr error
@@ -253,7 +253,7 @@ func drive() (err error) {
 		options.RuntimeConfig = runtimeConfig
 		execution, driverErr = driver.RootDAG(ctx, options, client)
 	case DAG:
-		execution, driverErr = driver.DAG(ctx, options, client, pluginDispatcher)
+		execution, driverErr = driver.DAG(ctx, options, client)
 	case CONTAINER:
 		options.Container = containerSpec
 		options.KubernetesExecutorConfig = k8sExecCfg
@@ -270,7 +270,7 @@ func drive() (err error) {
 				options.DefaultRunAsNonRoot = &v
 			}
 		}
-		execution, driverErr = driver.Container(ctx, options, client, cacheClient, pluginDispatcher)
+		execution, driverErr = driver.Container(ctx, options, client, cacheClient)
 	default:
 		err = fmt.Errorf("unknown driverType %s", *driverType)
 	}
@@ -395,6 +395,5 @@ func newMlmdClient(mlmdServerAddress string, mlmdServerPort string, tlsCfg *tls.
 }
 
 func initConfig() {
-	//Configure Viper env
 	viper.AutomaticEnv()
 }
