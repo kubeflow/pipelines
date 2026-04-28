@@ -31,6 +31,8 @@ kpt version
 kustomization_yamls=(
   "cluster-scoped-resources"
   "base/installs/generic"
+  "base/metadata/overlays/db"
+  "base/metadata/overlays/postgres"
   "env/dev"
   "env/gcp"
   "env/platform-agnostic"

@@ -10,7 +10,7 @@ spec:
         env:
         - $patch: replace
         - name: WAIT_HOST
-          value: $(MLMD_DB_HOST)
+          value: metadata-postgres-db
         - name: WAIT_PORT
           value: "5432"
       containers:
