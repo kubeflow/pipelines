@@ -2,6 +2,9 @@ name: Build and Push images
 run-name: Build images
 on:
   workflow_call:
+    secrets:
+      GITHUB_TOKEN:
+        required: true
     inputs:
       src_branch:
         type: string
