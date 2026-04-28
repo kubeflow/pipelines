@@ -19,6 +19,7 @@ package metadata
 
 import (
 	"context"
+	"errors"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 
@@ -109,5 +110,27 @@ func (c *FakeClient) GetOrInsertArtifactType(ctx context.Context, schema string)
 }
 
 func (c *FakeClient) FindMatchedArtifact(ctx context.Context, artifactToMatch *pb.Artifact, pipelineContextId int64) (matchedArtifact *pb.Artifact, err error) {
+	return nil, nil
+}
+
+// RecordArtifactFailureFakeClient is used for testing launcher publish failure handling
+type RecordArtifactFailureFakeClient struct {
+	*FakeClient
+	RecordArtifactCalls int
+	FailUntilCall       int
+}
+
+func NewRecordArtifactFailureFakeClient(failUntilCall int) *RecordArtifactFailureFakeClient {
+	return &RecordArtifactFailureFakeClient{
+		FakeClient:    NewFakeClient(),
+		FailUntilCall: failUntilCall,
+	}
+}
+
+func (c *RecordArtifactFailureFakeClient) RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State, bucketConfig *objectstore.Config) (*OutputArtifact, error) {
+	c.RecordArtifactCalls++
+	if c.RecordArtifactCalls <= c.FailUntilCall {
+		return nil, errors.New("simulated error")
+	}
 	return nil, nil
 }
