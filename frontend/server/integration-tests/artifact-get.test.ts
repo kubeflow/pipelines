@@ -18,7 +18,6 @@ import * as minio from 'minio';
 import * as path from 'path';
 import * as tar from 'tar-stream';
 import * as zlib from 'zlib';
-import { EventEmitter } from 'events';
 import { PassThrough, Readable } from 'stream';
 import requests from 'supertest';
 import { UIServer } from '../app.js';
@@ -962,21 +961,16 @@ describe('/artifacts', () => {
               }
               throw makeNoSuchKeyError();
             },
-            listObjectsV2Query: (_bucket: string, prefix: string) => {
-              const emitter = new EventEmitter();
-              // Emit asynchronously so the handler's `.on('data', ...)` is
-              // attached before the event fires.
-              setImmediate(() => {
-                emitter.emit('data', {
-                  objects: Object.entries(fileContents)
-                    .filter(([key]) => key.startsWith(prefix))
-                    .map(([name, content]) => ({ name, size: content.length })),
-                  isTruncated: false,
-                  nextContinuationToken: '',
-                });
-              });
-              return emitter;
-            },
+            // minio@8.x exposes listObjectsV2Query as an async method that
+            // resolves to the parsed page; mirror that here so the mock
+            // matches the real client's runtime shape.
+            listObjectsV2Query: async (_bucket: string, prefix: string) => ({
+              objects: Object.entries(fileContents)
+                .filter(([key]) => key.startsWith(prefix))
+                .map(([name, content]) => ({ name, size: content.length })),
+              isTruncated: false,
+              nextContinuationToken: '',
+            }),
           };
         });
       }

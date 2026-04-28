@@ -333,6 +333,12 @@ export function isNoSuchKeyError(err: unknown): boolean {
   return typeof e.message === 'string' && e.message.includes('NoSuchKey');
 }
 
+type ListObjectsV2QueryResult = {
+  objects: Array<{ name?: string; size?: number }>;
+  isTruncated: boolean;
+  nextContinuationToken: string;
+};
+
 type ListObjectsV2Query = (
   bucket: string,
   prefix: string,
@@ -340,13 +346,13 @@ type ListObjectsV2Query = (
   delimiter: string,
   maxKeys: number,
   startAfter: string,
-) => NodeJS.EventEmitter;
+) => Promise<ListObjectsV2QueryResult>;
 
 // `listObjectsV2Query` is an internal helper on the minio client and is not
 // declared in its public type definitions. We narrow to it via a runtime
 // check so a future minio upgrade that removes the method fails fast with a
 // clear message instead of throwing `undefined is not a function` deep inside
-// a stream pipeline.
+// the listing loop.
 function getListObjectsV2Query(client: MinioClient): ListObjectsV2Query {
   const candidate = (client as unknown as { listObjectsV2Query?: unknown }).listObjectsV2Query;
   if (typeof candidate !== 'function') {
@@ -382,15 +388,7 @@ export async function* listObjectsUnderPrefix(
   let isTruncated = true;
 
   while (isTruncated) {
-    const page = await new Promise<{
-      objects: Array<{ name?: string; size?: number }>;
-      isTruncated: boolean;
-      nextContinuationToken: string;
-    }>((resolve, reject) => {
-      const stream = listObjectsV2Query(bucket, prefix, continuationToken, '', PAGE_SIZE, '');
-      stream.on('error', reject);
-      stream.on('data', resolve);
-    });
+    const page = await listObjectsV2Query(bucket, prefix, continuationToken, '', PAGE_SIZE, '');
 
     for (const item of page.objects) {
       if (item.name) {

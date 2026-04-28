@@ -13,7 +13,6 @@
 // limitations under the License.
 import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
 import * as zlib from 'zlib';
-import { EventEmitter } from 'events';
 import { PassThrough } from 'stream';
 import { Client as MinioClient } from 'minio';
 import {
@@ -271,21 +270,15 @@ describe('minio-helper', () => {
 
   // listObjectsUnderPrefix drives the directory-artifact download path. Its
   // pagination logic (continuation tokens) and result normalization (default
-  // size, missing-name skip) are easy to break without coverage.
+  // size, missing-name skip) are easy to break without coverage. Mocks
+  // mirror the real minio@8.x shape — `listObjectsV2Query` is async and
+  // resolves to a {objects, isTruncated, nextContinuationToken} record.
   describe('listObjectsUnderPrefix', () => {
     type Page = {
       objects: Array<{ name?: string; size?: number }>;
       isTruncated: boolean;
       nextContinuationToken: string;
     };
-
-    function emitPage(page: Page): EventEmitter {
-      const emitter = new EventEmitter();
-      // Emit asynchronously so the consumer's `.on('data', ...)` is attached
-      // before the event fires.
-      setImmediate(() => emitter.emit('data', page));
-      return emitter;
-    }
 
     async function collect<T>(iter: AsyncGenerator<T>): Promise<T[]> {
       const items: T[] = [];
@@ -297,8 +290,8 @@ describe('minio-helper', () => {
 
     it('yields a single page of objects with name and size', async () => {
       const client = {
-        listObjectsV2Query: vi.fn(() =>
-          emitPage({
+        listObjectsV2Query: vi.fn(
+          async (): Promise<Page> => ({
             objects: [
               { name: 'a.txt', size: 10 },
               { name: 'b.txt', size: 20 },
@@ -340,10 +333,12 @@ describe('minio-helper', () => {
         },
       };
       const client = {
-        listObjectsV2Query: vi.fn((_bucket: string, _prefix: string, continuationToken: string) => {
-          seenTokens.push(continuationToken);
-          return emitPage(pagesByToken[continuationToken]);
-        }),
+        listObjectsV2Query: vi.fn(
+          async (_bucket: string, _prefix: string, continuationToken: string): Promise<Page> => {
+            seenTokens.push(continuationToken);
+            return pagesByToken[continuationToken];
+          },
+        ),
       } as unknown as MinioClient;
 
       const results = await collect(listObjectsUnderPrefix(client, 'bucket', 'p/'));
@@ -355,8 +350,8 @@ describe('minio-helper', () => {
 
     it('defaults missing size to 0 and skips entries without a name', async () => {
       const client = {
-        listObjectsV2Query: vi.fn(() =>
-          emitPage({
+        listObjectsV2Query: vi.fn(
+          async (): Promise<Page> => ({
             objects: [{ name: 'has-size', size: 42 }, { name: 'no-size' }, { size: 99 }],
             isTruncated: false,
             nextContinuationToken: '',
