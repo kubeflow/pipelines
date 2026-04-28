@@ -8,15 +8,7 @@ components:
     inputDefinitions:
       parameters:
         access_modes:
-          description: 'AccessModes to request for the provisioned PVC. May
-
-            be one or more of ``''ReadWriteOnce''``, ``''ReadOnlyMany''``,
-
-            ``''ReadWriteMany''``, or ``''ReadWriteOncePod''``. Corresponds to
-
-            `PersistentVolumeClaim.spec.accessModes
-
-            <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes>`_.'
+          description: Values for ``PersistentVolumeClaim.spec.accessModes``.
           parameterType: LIST
         annotations:
           description: 'Annotations for the PVC''s metadata. Corresponds to
@@ -117,7 +109,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -192,7 +184,7 @@ root:
         taskInfo:
           name: deletepvc
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.15.2
+sdkVersion: kfp-2.13.0
 ---
 platforms:
   kubernetes:

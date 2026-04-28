@@ -36,6 +36,12 @@ def CreatePVC(
 ):
     """Create a PersistentVolumeClaim, which can be used by downstream tasks.
 
+    Standard Kubernetes ``access_modes`` values include ``ReadWriteOnce``,
+    ``ReadOnlyMany``, ``ReadWriteMany``, and ``ReadWriteOncePod``. See
+    `access modes
+    <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes>`_
+    for details.
+
     See `PersistentVolume
     <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistent-volumes>`_
     and `PersistentVolumeClaim
@@ -43,11 +49,7 @@ def CreatePVC(
     documentation for more information about the component input parameters.
 
     Args:
-        access_modes: AccessModes to request for the provisioned PVC. May
-            be one or more of ``'ReadWriteOnce'``, ``'ReadOnlyMany'``,
-            ``'ReadWriteMany'``, or ``'ReadWriteOncePod'``. Corresponds to
-            `PersistentVolumeClaim.spec.accessModes
-            <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes>`_.
+        access_modes: Values for ``PersistentVolumeClaim.spec.accessModes``.
         size: The size of storage requested by the PVC that will be
             provisioned. For example, ``'5Gi'``. Corresponds to
             `PersistentVolumeClaim.spec.resources.requests.storage
