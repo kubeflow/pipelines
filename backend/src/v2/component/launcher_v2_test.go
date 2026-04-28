@@ -222,7 +222,7 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			assert.Nil(t, err)
 			bucketConfig, err := objectstore.ParseBucketConfig("mem://test-bucket/pipeline-root/", nil)
 			assert.Nil(t, err)
-			// Add executor-logs artifact to outputs
+			// Add executor-logs and output artifact to outputs
 			if test.executorInput.Outputs == nil {
 				test.executorInput.Outputs = &pipelinespec.ExecutorInput_Outputs{}
 			}
@@ -238,6 +238,16 @@ func Test_executeV2_publishLogs(t *testing.T) {
 						Uri:        "mem://test-bucket/pipeline-root/executor-logs",
 						Type:       &pipelinespec.ArtifactTypeSchema{Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Artifact"}},
 						CustomPath: &customPath,
+					},
+				},
+			}
+			outputDataPath := filepath.Join(tempDir, "output-data")
+			test.executorInput.Outputs.Artifacts["output-data"] = &pipelinespec.ArtifactList{
+				Artifacts: []*pipelinespec.RuntimeArtifact{
+					{
+						Uri:        "mem://test-bucket/pipeline-root/output-data",
+						Type:       &pipelinespec.ArtifactTypeSchema{Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Dataset"}},
+						CustomPath: &outputDataPath,
 					},
 				},
 			}
@@ -265,8 +275,18 @@ func Test_executeV2_publishLogs(t *testing.T) {
 
 			if test.wantErr {
 				assert.NotNil(t, err)
+				assert.Len(t, outputArtifacts, 1, "Expected 1 output artifact (executor-logs)")
+				if test.uploadFailure {
+					// Only logs uploaded - first call fails, second call succeeds
+					assert.Equal(t, 2, countingFakeMetadataClient.RecordArtifactCalls)
+				}
 			} else {
 				assert.Nil(t, err)
+				assert.Len(t, outputArtifacts, 2, "Expected 2 output artifacts (executor-logs and output-data)")
+				if test.uploadFailure {
+					// First call fails and returns early, then both artifacts succeed on retry
+					assert.Equal(t, 3, countingFakeMetadataClient.RecordArtifactCalls)
+				}
 			}
 
 			// When a retry index is set, the executor-logs URI (and therefore the
@@ -284,12 +304,6 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			outputLog, err := bucket.ReadAll(context.TODO(), logKey)
 			assert.Nil(t, err, "Expected executor-logs to be readable at key %q", logKey)
 			assert.Equal(t, "testoutput\n", string(outputLog))
-
-			assert.Len(t, outputArtifacts, 1, "Expected 1 output artifact (executor-logs)")
-
-			if test.uploadFailure {
-				assert.Equal(t, 2, countingFakeMetadataClient.RecordArtifactCalls)
-			}
 		})
 	}
 }
