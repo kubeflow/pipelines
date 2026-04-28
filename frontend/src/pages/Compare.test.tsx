@@ -108,9 +108,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     );
 
     await waitFor(() => {
-      expect(updateBannerSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ mode: 'error' }),
-      );
+      expect(updateBannerSpy).toHaveBeenCalledWith(expect.objectContaining({ mode: 'error' }));
     });
 
     expect(screen.queryByRole('progressbar')).toBeNull();
