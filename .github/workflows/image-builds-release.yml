@@ -95,7 +95,7 @@ jobs:
 
     uses: ./.github/workflows/build-and-push.yml
     secrets: 
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUBTOKEN: ${{ secrets.GITHUB_TOKEN }}
     with:
       src_branch: ${{ inputs.src_branch }}
       target_tag: ${{ inputs.target_tag }}
@@ -149,7 +149,7 @@ jobs:
       id-token: write
     uses: ./.github/workflows/create-manifest.yml
     secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUBTOKEN: ${{ secrets.GITHUB_TOKEN }}
     with:
       target_tag: ${{ inputs.target_tag }}
       app_to_build: ${{ matrix.component.image }}
