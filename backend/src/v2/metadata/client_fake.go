@@ -27,7 +27,14 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+// FakeClient is a fake metadata client that adheres to the ClientInterface. It can be passed in place
+// of the mlmd.Client in tests to mock specific calls to MLMD. TODO Future tests which need to mock
+// other parts of MLMD will have to add functions to the FakeClient struct for mocking those calls.
 type FakeClient struct {
+	CreateExecutionFunc           func(ctx context.Context, pipeline *Pipeline, config *ExecutionConfig) (*Execution, error)
+	GetExecutionByTypeAndNameFunc func(ctx context.Context, typeName, name string) (*Execution, error)
+	GetPipelineFunc               func(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot string, storeSessionInfo string) (*Pipeline, error)
+	GetDAGFunc                    func(ctx context.Context, executionID int64) (*DAG, error)
 }
 
 func NewFakeClient() *FakeClient {
@@ -35,11 +42,11 @@ func NewFakeClient() *FakeClient {
 }
 
 func (c *FakeClient) GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot string, storeSessionInfo string) (*Pipeline, error) {
-	return nil, nil
+	return c.GetPipelineFunc(ctx, pipelineName, runID, namespace, runResource, pipelineRoot, storeSessionInfo)
 }
 
 func (c *FakeClient) GetDAG(ctx context.Context, executionID int64) (*DAG, error) {
-	return nil, nil
+	return c.GetDAGFunc(ctx, executionID)
 }
 
 func (c *FakeClient) PublishExecution(ctx context.Context, execution *Execution, outputParameters map[string]*structpb.Value, outputArtifacts []*OutputArtifact, state pb.Execution_State) error {
@@ -47,10 +54,14 @@ func (c *FakeClient) PublishExecution(ctx context.Context, execution *Execution,
 }
 
 func (c *FakeClient) CreateExecution(ctx context.Context, pipeline *Pipeline, config *ExecutionConfig) (*Execution, error) {
-	return nil, nil
+	return c.CreateExecutionFunc(ctx, pipeline, config)
 }
 func (c *FakeClient) PrePublishExecution(ctx context.Context, execution *Execution, config *ExecutionConfig) (*Execution, error) {
 	return nil, nil
+}
+
+func (c *FakeClient) GetExecutionByTypeAndName(ctx context.Context, typeName, name string) (*Execution, error) {
+	return c.GetExecutionByTypeAndNameFunc(ctx, typeName, name)
 }
 
 func (c *FakeClient) GetExecutions(ctx context.Context, ids []int64) ([]*pb.Execution, error) {
