@@ -17,6 +17,7 @@ package driver
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"google.golang.org/grpc/codes"
