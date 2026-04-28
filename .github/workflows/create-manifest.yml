@@ -2,7 +2,7 @@ name: Create Multi-Arch Manifest
 on:
   workflow_call:
     secrets:
-      GITHUB_TOKEN:
+      GITHUBTOKEN:
         required: true    
     inputs:
       target_tag:
@@ -73,7 +73,7 @@ jobs:
         with:
           registry: ${{ env.IMAGE_REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GITHUBTOKEN }}
 
       - name: Set up Docker Buildx
         id: set_buildx
