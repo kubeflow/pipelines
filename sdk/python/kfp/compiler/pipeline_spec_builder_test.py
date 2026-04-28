@@ -24,6 +24,7 @@ import kfp
 from kfp import dsl
 from kfp import kubernetes
 from kfp.compiler import compiler
+from kfp.compiler import compiler_utils
 from kfp.compiler import pipeline_spec_builder
 from kfp.dsl import TaskConfigField
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -553,6 +554,429 @@ class TestTaskConfigPassthroughValidationPositive(unittest.TestCase):
             package_path = os.path.join(tmpdir, 'pipeline.yaml')
             compiler.Compiler().compile(
                 pipeline_func=pipe, package_path=package_path)
+
+
+class TestPlatformConfigDAGBoundaryHandling(unittest.TestCase):
+    """Tests that platform config input references are correctly rewritten when
+    tasks are inside sub-DAGs (e.g. ParallelFor)."""
+
+    def _compile_and_parse(self, pipeline_func):
+        """Compile a pipeline and return (pipeline_spec, platform_spec)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            package_path = os.path.join(tmpdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_func, package_path=package_path)
+            with open(package_path, 'r') as f:
+                docs = list(yaml.safe_load_all(f))
+            pipeline_spec = json_format.ParseDict(
+                docs[0], pipeline_spec_pb2.PipelineSpec())
+            platform_spec = json_format.ParseDict(
+                docs[1], pipeline_spec_pb2.PlatformSpec()) if len(
+                    docs) > 1 else pipeline_spec_pb2.PlatformSpec()
+            return pipeline_spec, platform_spec
+
+    def test_simple_secret_no_subdag(self):
+        """Baseline: secret_name from pipeline param at root level.
+        No rewriting needed - componentInputParameter stays unprefixed."""
+
+        @dsl.component
+        def my_comp():
+            print('hello')
+
+        @dsl.pipeline
+        def pipe(secret_name: str):
+            task = my_comp()
+            kubernetes.use_secret_as_env(
+                task,
+                secret_name=secret_name,
+                secret_key_to_env={'key': 'VAL'},
+            )
+
+        pipeline_spec, platform_spec = self._compile_and_parse(pipe)
+
+        # At root level the param name should NOT be prefixed
+        secret_param = (
+            platform_spec.platforms['kubernetes'].deployment_spec
+            .executors['exec-my-comp'].fields['secretAsEnv'].list_value
+            .values[0].struct_value.fields['secretNameParameter'].struct_value
+            .fields['componentInputParameter'].string_value)
+        self.assertEqual(secret_param, 'secret_name')
+
+    def test_parallelfor_pipeline_input_secret(self):
+        """Bug scenario: secret_name from pipeline param inside ParallelFor.
+
+        The sub-DAG must surface the param, and the platform config must
+        reference the prefixed name.
+        """
+
+        @dsl.component
+        def my_comp(item: str):
+            print(item)
+
+        @dsl.pipeline
+        def pipe(secret_name: str):
+            with dsl.ParallelFor(items=['a', 'b'], parallelism=1) as item:
+                t = my_comp(item=item)
+                kubernetes.use_secret_as_env(
+                    t,
+                    secret_name=secret_name,
+                    secret_key_to_env={'key': 'VAL'},
+                )
+
+        pipeline_spec, platform_spec = self._compile_and_parse(pipe)
+
+        # Sub-DAG component must have the surfaced input
+        loop_component = pipeline_spec.components['comp-for-loop-2']
+        self.assertIn('pipelinechannel--secret_name',
+                      loop_component.input_definitions.parameters)
+
+        # Root DAG task must wire the input
+        root_task_params = pipeline_spec.root.dag.tasks[
+            'for-loop-2'].inputs.parameters
+        self.assertEqual(
+            root_task_params['pipelinechannel--secret_name']
+            .component_input_parameter,
+            'secret_name',
+        )
+
+        # Platform config must reference the prefixed name
+        secret_param = (
+            platform_spec.platforms['kubernetes'].deployment_spec
+            .executors['exec-my-comp'].fields['secretAsEnv'].list_value
+            .values[0].struct_value.fields['secretNameParameter'].struct_value
+            .fields['componentInputParameter'].string_value)
+        self.assertEqual(secret_param, 'pipelinechannel--secret_name')
+
+    def test_parallelfor_outer_task_output_secret(self):
+        """Cross-DAG: secret_name from outer task output inside ParallelFor.
+        The taskOutputParameter must be rewritten to componentInputParameter
+        pointing to the surfaced input."""
+
+        @dsl.component
+        def emit_secret_name() -> str:
+            return 'secret'
+
+        @dsl.component
+        def my_comp():
+            print('hello')
+
+        @dsl.pipeline
+        def pipe():
+            secret_task = emit_secret_name()
+            with dsl.ParallelFor(items=[1, 2], parallelism=1):
+                t = my_comp()
+                kubernetes.use_secret_as_env(
+                    t,
+                    secret_name=secret_task.output,
+                    secret_key_to_env={'key': 'VAL'},
+                )
+
+        pipeline_spec, platform_spec = self._compile_and_parse(pipe)
+
+        # Sub-DAG component must have the surfaced task output
+        loop_component = pipeline_spec.components['comp-for-loop-2']
+        self.assertIn('pipelinechannel--emit-secret-name-Output',
+                      loop_component.input_definitions.parameters)
+
+        # Root DAG task must wire the task output
+        root_task_params = pipeline_spec.root.dag.tasks[
+            'for-loop-2'].inputs.parameters
+        self.assertEqual(
+            root_task_params['pipelinechannel--emit-secret-name-Output']
+            .task_output_parameter.producer_task,
+            'emit-secret-name',
+        )
+
+        # Platform config must use componentInputParameter (NOT taskOutputParameter)
+        secret_name_fields = (
+            platform_spec.platforms['kubernetes'].deployment_spec.
+            executors['exec-my-comp'].fields['secretAsEnv'].list_value.values[0]
+            .struct_value.fields['secretNameParameter'].struct_value.fields)
+        self.assertEqual(
+            secret_name_fields['componentInputParameter'].string_value,
+            'pipelinechannel--emit-secret-name-Output',
+        )
+        self.assertNotIn('taskOutputParameter', secret_name_fields)
+
+    def test_parallelfor_literal_secret_unchanged(self):
+        """Literal secret names should not be affected by the rewriting."""
+
+        @dsl.component
+        def my_comp(item: str):
+            print(item)
+
+        @dsl.pipeline
+        def pipe():
+            with dsl.ParallelFor(items=['a', 'b'], parallelism=1) as item:
+                t = my_comp(item=item)
+                kubernetes.use_secret_as_env(
+                    t,
+                    secret_name='my-literal-secret',
+                    secret_key_to_env={'key': 'VAL'},
+                )
+
+        pipeline_spec, platform_spec = self._compile_and_parse(pipe)
+
+        # Platform config should have the constant value, not a parameter ref
+        secret_name_fields = (
+            platform_spec.platforms['kubernetes'].deployment_spec.
+            executors['exec-my-comp'].fields['secretAsEnv'].list_value.values[0]
+            .struct_value.fields['secretNameParameter'].struct_value.fields)
+        self.assertNotIn('componentInputParameter', secret_name_fields)
+        self.assertNotIn('taskOutputParameter', secret_name_fields)
+
+    def test_parallelfor_pipeline_input_mount_pvc(self):
+        """Pipeline pvc_name param inside ParallelFor is correctly surfaced and
+        rewritten for mount_pvc platform config."""
+
+        @dsl.component
+        def my_comp(item: str):
+            print(item)
+
+        @dsl.pipeline
+        def pipe(pvc_name: str):
+            with dsl.ParallelFor(items=['a', 'b'], parallelism=1) as item:
+                t = my_comp(item=item)
+                kubernetes.mount_pvc(
+                    t,
+                    pvc_name=pvc_name,
+                    mount_path='/mnt/data',
+                )
+
+        pipeline_spec, platform_spec = self._compile_and_parse(pipe)
+
+        loop_component = pipeline_spec.components['comp-for-loop-2']
+        self.assertIn('pipelinechannel--pvc_name',
+                      loop_component.input_definitions.parameters)
+
+        root_task_params = pipeline_spec.root.dag.tasks[
+            'for-loop-2'].inputs.parameters
+        self.assertEqual(
+            root_task_params['pipelinechannel--pvc_name']
+            .component_input_parameter,
+            'pvc_name',
+        )
+
+        pvc_param = (
+            platform_spec.platforms['kubernetes'].deployment_spec
+            .executors['exec-my-comp'].fields['pvcMount'].list_value.values[0]
+            .struct_value.fields['pvcNameParameter'].struct_value
+            .fields['componentInputParameter'].string_value)
+        self.assertEqual(pvc_param, 'pipelinechannel--pvc_name')
+
+    def test_exit_handler_platform_config_rewrite_path(self):
+        """Exit handler task platform config uses rewrite path with parent
+        component context."""
+
+        @dsl.component
+        def cleanup():
+            print('cleanup')
+
+        @dsl.component
+        def main_task():
+            print('main')
+
+        @dsl.pipeline
+        def pipe(secret_name: str):
+            exit_task = cleanup()
+            kubernetes.use_secret_as_env(
+                exit_task,
+                secret_name=secret_name,
+                secret_key_to_env={'key': 'VAL'},
+            )
+            with dsl.ExitHandler(exit_task=exit_task):
+                main_task()
+
+        _, platform_spec = self._compile_and_parse(pipe)
+
+        cleanup_executors = [
+            executor for executor in platform_spec.platforms['kubernetes']
+            .deployment_spec.executors.values()
+            if 'secretAsEnv' in executor.fields
+        ]
+        self.assertEqual(len(cleanup_executors), 1)
+        secret_param = (
+            cleanup_executors[0].fields['secretAsEnv'].list_value.values[0]
+            .struct_value.fields['secretNameParameter'].struct_value
+            .fields['componentInputParameter'].string_value)
+        self.assertEqual(secret_param, 'secret_name')
+
+
+class TestRewritePlatformConfigInputReferences(unittest.TestCase):
+    """Unit tests for the _rewrite_platform_config_input_references helper."""
+
+    def test_rewrites_unprefixed_component_input_param(self):
+        platform_config = {
+            'kubernetes': {
+                'secretAsEnv': [{
+                    'secretNameParameter': {
+                        'componentInputParameter': 'secret_name'
+                    },
+                    'keyToEnv': [{
+                        'secretKey': 'pw',
+                        'envVar': 'PASSWORD'
+                    }],
+                }]
+            }
+        }
+        parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
+        parent_inputs.parameters[
+            'pipelinechannel--secret_name'].parameter_type = (
+                pipeline_spec_pb2.ParameterType.STRING)
+
+        result = pipeline_spec_builder._rewrite_platform_config_input_references(
+            platform_config, parent_inputs, [])
+
+        self.assertEqual(
+            result['kubernetes']['secretAsEnv'][0]['secretNameParameter']
+            ['componentInputParameter'],
+            'pipelinechannel--secret_name',
+        )
+
+    def test_no_rewrite_when_param_exists_in_parent(self):
+        platform_config = {
+            'kubernetes': {
+                'secretAsEnv': [{
+                    'secretNameParameter': {
+                        'componentInputParameter': 'secret_name'
+                    },
+                }]
+            }
+        }
+        parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
+        parent_inputs.parameters['secret_name'].parameter_type = (
+            pipeline_spec_pb2.ParameterType.STRING)
+
+        result = pipeline_spec_builder._rewrite_platform_config_input_references(
+            platform_config, parent_inputs, [])
+
+        self.assertEqual(
+            result['kubernetes']['secretAsEnv'][0]['secretNameParameter']
+            ['componentInputParameter'],
+            'secret_name',
+        )
+
+    def test_rewrites_task_output_from_outer_task(self):
+        platform_config = {
+            'kubernetes': {
+                'secretAsEnv': [{
+                    'secretNameParameter': {
+                        'taskOutputParameter': {
+                            'producerTask': 'emit-secret',
+                            'outputParameterKey': 'Output',
+                        }
+                    },
+                }]
+            }
+        }
+        parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
+        parent_inputs.parameters[
+            'pipelinechannel--emit-secret-Output'].parameter_type = (
+                pipeline_spec_pb2.ParameterType.STRING)
+
+        result = pipeline_spec_builder._rewrite_platform_config_input_references(
+            platform_config,
+            parent_inputs,
+            tasks_in_current_dag=['worker-task'])
+
+        # taskOutputParameter should be replaced with componentInputParameter
+        secret_ref = result['kubernetes']['secretAsEnv'][0][
+            'secretNameParameter']
+        self.assertNotIn('taskOutputParameter', secret_ref)
+        self.assertEqual(
+            secret_ref['componentInputParameter'],
+            'pipelinechannel--emit-secret-Output',
+        )
+
+    def test_no_rewrite_task_output_from_local_task(self):
+        platform_config = {
+            'kubernetes': {
+                'secretAsEnv': [{
+                    'secretNameParameter': {
+                        'taskOutputParameter': {
+                            'producerTask': 'local-task',
+                            'outputParameterKey': 'Output',
+                        }
+                    },
+                }]
+            }
+        }
+        parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
+
+        result = pipeline_spec_builder._rewrite_platform_config_input_references(
+            platform_config, parent_inputs, tasks_in_current_dag=['local-task'])
+
+        # taskOutputParameter should remain since the producer is in the current DAG
+        secret_ref = result['kubernetes']['secretAsEnv'][0][
+            'secretNameParameter']
+        self.assertIn('taskOutputParameter', secret_ref)
+        self.assertNotIn('componentInputParameter', secret_ref)
+
+    def test_returns_copy_when_no_parent_inputs(self):
+        platform_config = {'kubernetes': {'secretAsEnv': [{'key': 'val'}]}}
+        result = pipeline_spec_builder._rewrite_platform_config_input_references(
+            platform_config, None, None)
+        self.assertEqual(result, platform_config)
+        # Must be a copy, not the same object
+        self.assertIsNot(result, platform_config)
+
+    def test_rewrites_multiple_params(self):
+        platform_config = {
+            'kubernetes': {
+                'secretAsEnv': [{
+                    'secretNameParameter': {
+                        'componentInputParameter': 'secret1'
+                    },
+                }],
+                'pvcMount': [{
+                    'pvcNameParameter': {
+                        'componentInputParameter': 'pvc_name'
+                    },
+                }],
+            }
+        }
+        parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
+        parent_inputs.parameters['pipelinechannel--secret1'].parameter_type = (
+            pipeline_spec_pb2.ParameterType.STRING)
+        parent_inputs.parameters['pipelinechannel--pvc_name'].parameter_type = (
+            pipeline_spec_pb2.ParameterType.STRING)
+
+        result = pipeline_spec_builder._rewrite_platform_config_input_references(
+            platform_config, parent_inputs, [])
+
+        self.assertEqual(
+            result['kubernetes']['secretAsEnv'][0]['secretNameParameter']
+            ['componentInputParameter'],
+            'pipelinechannel--secret1',
+        )
+        self.assertEqual(
+            result['kubernetes']['pvcMount'][0]['pvcNameParameter']
+            ['componentInputParameter'],
+            'pipelinechannel--pvc_name',
+        )
+
+    def test_raises_when_cross_dag_output_missing_surfaced_input(self):
+        platform_config = {
+            'kubernetes': {
+                'secretAsEnv': [{
+                    'secretNameParameter': {
+                        'taskOutputParameter': {
+                            'producerTask': 'emit-secret',
+                            'outputParameterKey': 'Output',
+                        }
+                    },
+                }]
+            }
+        }
+        parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
+
+        with self.assertRaisesRegex(compiler_utils.InvalidTopologyException,
+                                    'Expected surfaced input'):
+            pipeline_spec_builder._rewrite_platform_config_input_references(
+                platform_config,
+                parent_inputs,
+                tasks_in_current_dag=['worker-task'],
+            )
 
 
 def pipeline_spec_from_file(filepath: str) -> str:

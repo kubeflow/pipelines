@@ -106,7 +106,7 @@ const LINEAGE_VIEW_CSS = stylesheet({
 
 export class LineageView extends React.Component<LineageViewProps, LineageViewState> {
   private readonly actionBarRef: React.Ref<LineageActionBar>;
-  private readonly containerRef: React.RefObject<HTMLDivElement> = React.createRef();
+  private readonly containerRef: React.RefObject<HTMLDivElement | null> = React.createRef();
   private readonly metadataStoreService: MetadataStoreServicePromiseClient;
   private artifactTypes: Map<number, ArtifactType>;
   private executionTypes: Map<number, ExecutionType>;
@@ -143,7 +143,7 @@ export class LineageView extends React.Component<LineageViewProps, LineageViewSt
     window.removeEventListener('resize', this.setColumnWidth);
   }
 
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     if (!this.artifactTypes || !this.state.columnWidth) {
       return (
         // Return an empty page to allow componentDidMount() to measure the flex container.
@@ -369,7 +369,7 @@ export class LineageView extends React.Component<LineageViewProps, LineageViewSt
 
   // Updates the view and action bar when the target is set from a lineage card.
   private setTargetFromLineageCard(target: Artifact): void {
-    const actionBarRefObject = this.actionBarRef as RefObject<LineageActionBar>;
+    const actionBarRefObject = this.actionBarRef as RefObject<LineageActionBar | null>;
     if (!actionBarRefObject.current) {
       return;
     }

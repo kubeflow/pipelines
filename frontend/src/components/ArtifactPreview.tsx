@@ -18,6 +18,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { color } from 'src/Css';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
 import WorkflowParser, { StoragePath } from 'src/lib/WorkflowParser';
 import { stylesheet } from 'typestyle';
@@ -79,7 +80,7 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   }
 
   const { isSuccess, isError, data, error } = useQuery<string, Error>({
-    queryKey: ['artifact_preview', { value, namespace, maxbytes, maxlines }],
+    queryKey: queryKeys.artifactPreview(value, namespace, maxbytes, maxlines),
     queryFn: () => getPreview(storage, providerInfo, namespace, maxbytes, maxlines),
     staleTime: Infinity,
   });

@@ -16,7 +16,6 @@
 
 import { render, screen, waitFor } from '@testing-library/react';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
-import React from 'react';
 import { Apis } from 'src/lib/Apis';
 import { Api } from 'src/mlmd/library';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';
@@ -44,6 +43,20 @@ testBestPractices();
 describe('InoutOutputTab', () => {
   beforeEach(() => {
     vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([]);
+  });
+
+  it('shows a loading spinner while artifacts are being fetched', () => {
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs').mockReturnValue(
+      new Promise(() => {}),
+    );
+
+    render(
+      <CommonTestWrapper>
+        <InputOutputTab execution={buildBasicExecution()} namespace={namespace} />
+      </CommonTestWrapper>,
+    );
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('shows execution title', () => {

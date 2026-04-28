@@ -30,13 +30,15 @@ export enum PipelineButtonTooltips {
   SHARED = 'Everyone in your organization will be able to view and use this pipeline.',
 }
 
-const PrivateSharedSelector: React.FC<PrivateSharedSelectorProps> = (props): JSX.Element | null => {
+const PrivateSharedSelector: React.FC<PrivateSharedSelectorProps> = (
+  props,
+): React.JSX.Element | null => {
   const [namespacedPipeline, setNamespacedPipeline] = React.useState(true);
 
-  React.useEffect(() => {
-    props.onChange(namespacedPipeline);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [namespacedPipeline]);
+  const updateSelection = (isPrivate: boolean) => {
+    setNamespacedPipeline(isPrivate);
+    props.onChange(isPrivate);
+  };
 
   return (
     <React.Fragment>
@@ -48,9 +50,7 @@ const PrivateSharedSelector: React.FC<PrivateSharedSelectorProps> = (props): JSX
             label={PipelineTabsHeaders.PRIVATE}
             checked={namespacedPipeline === true}
             control={<Radio color='primary' />}
-            onChange={() => {
-              setNamespacedPipeline(true);
-            }}
+            onChange={() => updateSelection(true)}
           />
         </Tooltip>
         <Tooltip title={PipelineButtonTooltips.SHARED} placement='top-start'>
@@ -59,9 +59,7 @@ const PrivateSharedSelector: React.FC<PrivateSharedSelectorProps> = (props): JSX
             label={PipelineTabsHeaders.SHARED}
             checked={namespacedPipeline === false}
             control={<Radio color='primary' />}
-            onChange={() => {
-              setNamespacedPipeline(false);
-            }}
+            onChange={() => updateSelection(false)}
           />
         </Tooltip>
       </div>

@@ -21,12 +21,14 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -34,7 +36,9 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 func createPipelineServerV1(resourceManager *resource.ResourceManager, httpClient *http.Client) *PipelineServerV1 {
@@ -970,4 +974,264 @@ func TestPipelineServer_CreatePipelineAndVersion_v2(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRecoverClearTagsIntent(t *testing.T) {
+	tests := []struct {
+		name    string
+		ctx     context.Context
+		tags    map[string]string
+		wantNil bool
+		wantLen int
+	}{
+		{
+			name:    "non-nil tags pass through unchanged",
+			ctx:     context.Background(),
+			tags:    map[string]string{"k": "v"},
+			wantNil: false,
+			wantLen: 1,
+		},
+		{
+			name:    "nil tags without metadata stay nil",
+			ctx:     context.Background(),
+			tags:    nil,
+			wantNil: true,
+		},
+		{
+			name: "nil tags with clear header become empty map",
+			ctx: metadata.NewIncomingContext(
+				context.Background(),
+				metadata.Pairs(common.ClearTagsMetadataKey, "true"),
+			),
+			tags:    nil,
+			wantNil: false,
+			wantLen: 0,
+		},
+		{
+			name: "nil tags with wrong header value stay nil",
+			ctx: metadata.NewIncomingContext(
+				context.Background(),
+				metadata.Pairs(common.ClearTagsMetadataKey, "false"),
+			),
+			tags:    nil,
+			wantNil: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := recoverClearTagsIntent(tt.ctx, tt.tags)
+			if tt.wantNil {
+				assert.Nil(t, result)
+			} else {
+				assert.NotNil(t, result)
+				assert.Len(t, result, tt.wantLen)
+			}
+		})
+	}
+}
+
+func TestExtractTagFiltersFromFilterSpec(t *testing.T) {
+	// Helper to build a URL-encoded filter JSON with given predicates.
+	makeFilter := func(predicates ...string) string {
+		return url.QueryEscape(fmt.Sprintf(`{"predicates":[%s]}`, strings.Join(predicates, ",")))
+	}
+	tagPredicate := func(key, value string) string {
+		return fmt.Sprintf(`{"key":"%s","operation":"EQUALS","string_value":"%s"}`, key, value)
+	}
+
+	tests := []struct {
+		name       string
+		filterSpec string
+		wantFilter string // expected remaining filter (empty means no remaining)
+		wantTags   map[string]string
+		wantErr    bool
+		errMsg     string
+	}{
+		{
+			name:       "empty filter spec",
+			filterSpec: "",
+			wantFilter: "",
+			wantTags:   nil,
+		},
+		{
+			name:       "no tag predicates",
+			filterSpec: makeFilter(`{"key":"name","operation":"EQUALS","string_value":"my-pipeline"}`),
+			wantTags:   nil,
+		},
+		{
+			name:       "single tag predicate",
+			filterSpec: makeFilter(tagPredicate("tags.env", "prod")),
+			wantFilter: "",
+			wantTags:   map[string]string{"env": "prod"},
+		},
+		{
+			name:       "multiple tag predicates",
+			filterSpec: makeFilter(tagPredicate("tags.env", "prod"), tagPredicate("tags.team", "ml")),
+			wantFilter: "",
+			wantTags:   map[string]string{"env": "prod", "team": "ml"},
+		},
+		{
+			name:       "mixed tag and non-tag predicates",
+			filterSpec: makeFilter(`{"key":"name","operation":"EQUALS","string_value":"test"}`, tagPredicate("tags.env", "prod")),
+			wantTags:   map[string]string{"env": "prod"},
+		},
+		{
+			name:       "tag predicate with non-EQUALS operation",
+			filterSpec: makeFilter(`{"key":"tags.env","operation":"NOT_EQUALS","string_value":"prod"}`),
+			wantErr:    true,
+			errMsg:     "only EQUALS operation is supported",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			remainingFilter, tagFilters, err := extractTagFiltersFromFilterSpec(tt.filterSpec)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+				return
+			}
+			assert.Nil(t, err)
+			if tt.wantTags == nil {
+				assert.Nil(t, tagFilters)
+			} else {
+				assert.Equal(t, tt.wantTags, tagFilters)
+			}
+			if tt.wantFilter != "" {
+				assert.NotEmpty(t, remainingFilter)
+			}
+			// For the "no tag predicates" case, the original filter should be returned unchanged
+			if tt.wantTags == nil && tt.filterSpec != "" {
+				assert.Equal(t, tt.filterSpec, remainingFilter)
+			}
+		})
+	}
+}
+
+func TestCanAccessPipeline_SharedPipeline_ReadAllowed(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	initEnvVars()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	defer clientManager.Close()
+
+	// Create a shared pipeline (empty namespace)
+	pipeline, err := resourceManager.CreatePipeline(&model.Pipeline{
+		Name:      "shared-pipeline",
+		Namespace: "",
+	})
+	assert.Nil(t, err)
+
+	pipelineServer := createPipelineServer(resourceManager, nil)
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	// GET on shared pipeline should be allowed
+	err = pipelineServer.canAccessPipeline(ctx, pipeline.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	assert.Nil(t, err)
+
+	// LIST on shared pipeline should be allowed
+	err = pipelineServer.canAccessPipeline(ctx, "", &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbList})
+	assert.Nil(t, err)
+}
+
+func TestCanAccessPipeline_SharedPipeline_WriteUnauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	initEnvVars()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	defer clientManager.Close()
+
+	// Create a shared pipeline (empty namespace)
+	pipeline, err := resourceManager.CreatePipeline(&model.Pipeline{
+		Name:      "shared-pipeline",
+		Namespace: "",
+	})
+	assert.Nil(t, err)
+
+	pipelineServer := createPipelineServer(resourceManager, nil)
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	// DELETE on shared pipeline should be rejected for unauthorized user
+	err = pipelineServer.canAccessPipeline(ctx, pipeline.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to access shared pipeline")
+
+	// UPDATE on shared pipeline should be rejected for unauthorized user
+	err = pipelineServer.canAccessPipeline(ctx, pipeline.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUpdate})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to access shared pipeline")
+
+	// CREATE on shared pipeline should be rejected for unauthorized user
+	err = pipelineServer.canAccessPipeline(ctx, "", &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbCreate})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to access shared pipeline")
+}
+
+func TestCanAccessPipeline_SharedPipeline_WriteAuthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	initEnvVars()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	defer clientManager.Close()
+
+	// Create a shared pipeline (empty namespace)
+	pipeline, err := resourceManager.CreatePipeline(&model.Pipeline{
+		Name:      "shared-pipeline",
+		Namespace: "",
+	})
+	assert.Nil(t, err)
+
+	pipelineServer := createPipelineServer(resourceManager, nil)
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	// DELETE on shared pipeline should succeed for authorized user
+	err = pipelineServer.canAccessPipeline(ctx, pipeline.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
+	assert.Nil(t, err)
+
+	// UPDATE on shared pipeline should succeed for authorized user
+	err = pipelineServer.canAccessPipeline(ctx, pipeline.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUpdate})
+	assert.Nil(t, err)
+}
+
+func TestCanAccessPipeline_SharedPipeline_ReadAllowed_EvenWhenUnauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	initEnvVars()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	defer clientManager.Close()
+
+	// Create a shared pipeline (empty namespace)
+	pipeline, err := resourceManager.CreatePipeline(&model.Pipeline{
+		Name:      "shared-pipeline",
+		Namespace: "",
+	})
+	assert.Nil(t, err)
+
+	pipelineServer := createPipelineServer(resourceManager, nil)
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	// GET on shared pipeline should still be allowed even for unauthorized user
+	err = pipelineServer.canAccessPipeline(ctx, pipeline.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	assert.Nil(t, err)
+
+	// LIST on shared pipeline should still be allowed even for unauthorized user
+	err = pipelineServer.canAccessPipeline(ctx, "", &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbList})
+	assert.Nil(t, err)
 }

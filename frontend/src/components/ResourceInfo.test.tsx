@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import { ResourceInfo, ResourceType } from './ResourceInfo';
 import { getByTestId, render, screen } from '@testing-library/react';
 import { Artifact, Value } from 'src/third_party/mlmd';
@@ -102,5 +101,33 @@ describe('ResourceInfo', () => {
         </pre>,
       ]
     `);
+  });
+
+  it('filters reserved artifact custom properties from display', async () => {
+    const artifact = new Artifact();
+    artifact.setState(Artifact.State.LIVE);
+    artifact.getCustomPropertiesMap().set('accuracy', new Value().setDoubleValue(0.95));
+    artifact
+      .getCustomPropertiesMap()
+      .set('store_session_info', new Value().setStringValue('internal-data'));
+    render(
+      <ResourceInfo
+        resourceType={ResourceType.ARTIFACT}
+        resource={artifact}
+        typeName='system.Metrics'
+      />,
+    );
+    const keyEquals = (key: string) => (property: HTMLElement) => {
+      return getByTestId(property, 'resource-info-property-key').textContent === key;
+    };
+    const accuracyProperty = screen
+      .getAllByTestId('resource-info-property')
+      .find(keyEquals('accuracy'));
+    expect(accuracyProperty).toBeTruthy();
+
+    const storeSessionProperty = screen
+      .getAllByTestId('resource-info-property')
+      .find(keyEquals('store_session_info'));
+    expect(storeSessionProperty).toBeUndefined();
   });
 });

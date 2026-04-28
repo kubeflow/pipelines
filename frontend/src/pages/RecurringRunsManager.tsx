@@ -54,7 +54,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { runs, selectedIds, toolbarActionMap: toolbarActions } = this.state;
 
     const columns: Column[] = [

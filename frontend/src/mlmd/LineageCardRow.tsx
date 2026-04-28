@@ -179,21 +179,21 @@ interface LineageCardRowProps {
 }
 
 export class LineageCardRow extends React.Component<LineageCardRowProps> {
-  private rowContainerRef: React.RefObject<HTMLDivElement> = React.createRef();
+  private rowContainerRef: React.RefObject<HTMLDivElement | null> = React.createRef();
 
   constructor(props: LineageCardRowProps) {
     super(props);
     this.handleClick = this.handleClick.bind(this);
   }
 
-  public checkEdgeAffordances(): JSX.Element[] {
+  public checkEdgeAffordances(): React.JSX.Element[] {
     const affItems = [];
     this.props.leftAffordance && affItems.push(<div className='edgeLeft' key={'edgeLeft'} />);
     this.props.rightAffordance && affItems.push(<div className='edgeRight' key={'edgeRight'} />);
     return affItems;
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { isLastRow } = this.props;
     const cardRowClasses = classes(
       'cardRow',
@@ -220,7 +220,7 @@ export class LineageCardRow extends React.Component<LineageCardRowProps> {
     );
   }
 
-  private checkRadio(): JSX.Element {
+  private checkRadio(): React.JSX.Element {
     if (this.props.hideRadio) {
       return <div className='noRadio' />;
     }
@@ -232,7 +232,7 @@ export class LineageCardRow extends React.Component<LineageCardRowProps> {
           className='form-radio'
           name=''
           value=''
-          onClick={this.handleClick}
+          onClick={this.handleRadioClick}
           checked={this.props.isTarget}
           readOnly={true}
         />
@@ -241,13 +241,18 @@ export class LineageCardRow extends React.Component<LineageCardRowProps> {
           className='form-radio hover-hint'
           name=''
           value=''
-          onClick={this.handleClick}
+          onClick={this.handleRadioClick}
           checked={true}
           readOnly={true}
         />
       </div>
     );
   }
+
+  private handleRadioClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    this.handleClick();
+  };
 
   private handleClick() {
     if (!this.props.setLineageViewTarget || !(this.props.typedResource.type === 'artifact')) return;

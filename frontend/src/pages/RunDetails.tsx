@@ -171,6 +171,10 @@ export const css = stylesheet({
     fontWeight: 'bold',
     paddingLeft: 20,
   },
+  loadingMessage: {
+    textAlign: 'center',
+    paddingTop: 40,
+  },
 });
 
 class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
@@ -237,9 +241,14 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     if (this.props.isLoading) {
-      return <div>Currently loading run information</div>;
+      return (
+        <div className={css.loadingMessage}>
+          <CircularProgress />
+          <div>Currently loading run information.</div>
+        </div>
+      );
     }
 
     const {
@@ -708,6 +717,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   }
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     window.addEventListener('focus', this.onFocusHandler);
     window.addEventListener('blur', this.onBlurHandler);
     await this._startAutoRefresh();
@@ -753,6 +763,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       this.showPageError('Error: Unable to enable custom visualizations.', err);
     }
 
+    let workflow: Workflow | undefined;
     try {
       const runDetail = await Apis.runServiceApi.getRun(runId);
 
@@ -790,7 +801,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
           console.error(`Failed to decode compressedNodes: ${err}`);
         }
       }
-      const workflow = jsonWorkflow as Workflow;
+      workflow = jsonWorkflow as Workflow;
 
       // Show workflow errors
       const workflowError = WorkflowParser.getWorkflowError(workflow);
@@ -919,10 +930,14 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
     // Make sure logs and artifacts in the side panel are refreshed when
     // the user hits "Refresh", either in the top toolbar or in an error banner.
-    await this._loadSidePaneTab(this.state.sidepanelSelectedTab);
+    // Pass workflow explicitly to avoid React 18 batching: setState above hasn't flushed yet,
+    // so this.state.workflow would still be stale.
+    await this._loadSidePaneTab(this.state.sidepanelSelectedTab, workflow);
 
     // Load all run's outputs
-    await this._loadAllOutputs();
+    // Pass workflow explicitly for the same reason as _loadSidePaneTab above:
+    // React 19 batching may not have committed the setState yet.
+    await this._loadAllOutputs(workflow);
   }
 
   private handleError = async (error: Error) => {
@@ -953,25 +968,29 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     }
   }
 
-  private async _loadAllOutputs(): Promise<void> {
-    const workflow = this.state.workflow;
+  private async _loadAllOutputs(workflowOverride?: Workflow): Promise<void> {
+    const workflow = workflowOverride || this.state.workflow;
 
     if (!workflow) {
       return;
     }
 
-    const outputPathsList = WorkflowParser.loadAllOutputPathsWithStepNames(workflow);
+    try {
+      const outputPathsList = WorkflowParser.loadAllOutputPathsWithStepNames(workflow);
 
-    const configLists = await Promise.all(
-      outputPathsList.map(({ stepName, path }) =>
-        OutputArtifactLoader.load(path, workflow?.metadata?.namespace).then((configs) =>
-          configs.map((config) => ({ config, stepName })),
+      const configLists = await Promise.all(
+        outputPathsList.map(({ stepName, path }) =>
+          OutputArtifactLoader.load(path, workflow?.metadata?.namespace).then((configs) =>
+            configs.map((config) => ({ config, stepName })),
+          ),
         ),
-      ),
-    );
-    const allArtifactConfigs = flatten(configLists);
+      );
+      const allArtifactConfigs = flatten(configLists);
 
-    this.setStateSafe({ allArtifactConfigs });
+      this.setStateSafe({ allArtifactConfigs });
+    } catch (err) {
+      logger.error('Failed to load run outputs:', err);
+    }
   }
 
   private _getDetailsFields(workflow: Workflow, runMetadata?: ApiRun): Array<KeyValue<string>> {
@@ -1012,8 +1031,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     );
   }
 
-  private async _loadSidePaneTab(tab: SidePanelTab): Promise<void> {
-    const workflow = this.state.workflow;
+  private async _loadSidePaneTab(tab: SidePanelTab, workflowOverride?: Workflow): Promise<void> {
+    const workflow = workflowOverride ?? this.state.workflow;
     const selectedNodeDetails = this.state.selectedNodeDetails;
 
     let sidepanelBannerMode: Mode = 'warning';

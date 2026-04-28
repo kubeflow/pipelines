@@ -56,7 +56,7 @@ interface ControlledEdgeCanvasProps {
  * elements in an adjacent <LineageCardColumn />.
  */
 export class ControlledEdgeCanvas extends React.Component<ControlledEdgeCanvasProps> {
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const { reverseEdges, edgeWidth } = this.props;
 
     let viewHeight = 1;
@@ -64,18 +64,20 @@ export class ControlledEdgeCanvas extends React.Component<ControlledEdgeCanvasPr
     const lastNode = reverseEdges ? 'y1' : 'y4';
     const lastNodePositions = { y1: 0, y4: 0 };
     if (this.props.offset) {
-      lastNodePositions[lastNode] += this.props.offset;
-      viewHeight += this.props.offset;
+      const clampedOffset = Math.max(0, this.props.offset);
+      lastNodePositions[lastNode] += clampedOffset;
+      viewHeight += clampedOffset;
     }
 
-    const edgeLines: JSX.Element[] = [];
+    const edgeLines: React.JSX.Element[] = [];
     this.props.artifactIds.forEach((artifactId, index) => {
       if (index !== 0) {
         let offset = CARD_OFFSET;
 
+        const prevArtifactId = this.props.artifactIds[index - 1];
         if (
           this.props.artifactToCardMap.get(artifactId) !==
-          this.props.artifactToCardMap.get(artifactId - 1)
+          this.props.artifactToCardMap.get(prevArtifactId)
         ) {
           offset += CARD_ROW_HEIGHT;
         }

@@ -190,7 +190,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const {
       workflowFromRun,
       description,
@@ -634,6 +634,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
   }
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     return this.load();
   }
 
@@ -798,14 +799,15 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
 
     this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs, pageTitle });
 
-    this.setStateSafe({
-      experiment,
-      experimentName,
-      isFirstRunInExperiment: urlParser.get(QUERY_PARAMS.firstRunInExperiment) === '1',
-      isRecurringRun,
-    });
-
-    this._validate();
+    this.setStateSafe(
+      {
+        experiment,
+        experimentName,
+        isFirstRunInExperiment: urlParser.get(QUERY_PARAMS.firstRunInExperiment) === '1',
+        isRecurringRun,
+      },
+      () => this._validate(),
+    );
   }
 
   public handleChange = (name: string) => (event: any) => {
@@ -1029,12 +1031,15 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
     try {
       const workflow: Workflow = JSON.parse(embeddedPipelineSpec);
       const parameters = RunUtils.getParametersFromRun(runWithEmbeddedPipeline);
-      this.setStateSafe({
-        parameters,
-        usePipelineFromRunLabel: 'Using pipeline from previous page.',
-        useWorkflowFromRun: true,
-        workflowFromRun: workflow,
-      });
+      this.setStateSafe(
+        {
+          parameters,
+          usePipelineFromRunLabel: 'Using pipeline from previous page.',
+          useWorkflowFromRun: true,
+          workflowFromRun: workflow,
+        },
+        () => this._validate(),
+      );
     } catch (err) {
       await this.showPageError(
         `Error: failed to parse the embedded pipeline's spec: ${embeddedPipelineSpec}.`,
@@ -1043,8 +1048,6 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       logger.error(`Failed to parse the embedded pipeline's spec from run: ${embeddedRunId}`, err);
       return;
     }
-
-    this._validate();
   }
 
   private async _prepareFormFromClone(
@@ -1127,21 +1130,22 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       ? await RunUtils.getParametersFromRuntime(runtime) // cloned from run
       : originalRun.pipeline_spec.parameters || []; // cloned from recurring run
 
-    this.setStateSafe({
-      isClone: true,
-      parameters,
-      pipeline,
-      pipelineName: name,
-      pipelineVersion,
-      pipelineVersionName,
-      runName: this._getCloneName(originalRun.name!),
-      usePipelineFromRunLabel,
-      useWorkflowFromRun,
-      workflowFromRun,
-      serviceAccount,
-    });
-
-    this._validate();
+    this.setStateSafe(
+      {
+        isClone: true,
+        parameters,
+        pipeline,
+        pipelineName: name,
+        pipelineVersion,
+        pipelineVersionName,
+        runName: this._getCloneName(originalRun.name!),
+        usePipelineFromRunLabel,
+        useWorkflowFromRun,
+        workflowFromRun,
+        serviceAccount,
+      },
+      () => this._validate(),
+    );
   }
 
   private _runParametersMessage(): string {

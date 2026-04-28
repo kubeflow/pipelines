@@ -7,8 +7,8 @@
 
 ### Document metadata
 
-- Last updated: 2026-03-09
-- Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 17)
+- Last updated: 2026-04-25
+- Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
 
@@ -26,6 +26,14 @@
 - If existing code needs slight modifications to be reusable, prefer refactoring the existing code to be more general over duplicating it with changes.
 - Use descriptive variable and function names. Avoid abbreviations or single-letter names — prefer full, meaningful names that clearly convey purpose (e.g., `executionID` over `execID`, `fingerPrint` over `fp`).
 
+### Architectural boundary policy (agents and contributors)
+
+- Keep `ResourceManager` lean. It should coordinate core run/job persistence and lifecycle flow, not accumulate feature-specific orchestration or engine-specific mutation logic.
+- Respect compiler and `ExecutionSpec` boundaries. If a change affects how executions are generated or mutated, prefer adding explicit methods to the compiler / execution abstraction rather than reaching through and mutating Argo Workflow details directly.
+- Keep shared layers execution-engine neutral. Do not downcast to `*util.Workflow` or encode Argo-specific behavior into common utilities when the behavior belongs behind an engine-neutral interface.
+- Put reusable interfaces in neutral packages and keep boundaries natural. Avoid forcing code to translate between partial API types and model types just to satisfy an interface; prefer interfaces that accept the natural domain type for that layer.
+- Preserve documented behavior in the abstraction itself. Do not simplify away field-wise override semantics, ownership boundaries, or other architectural contracts just because a local implementation can get by without them.
+
 ### Testing policy (agents and contributors)
 
 - Every new non-trivial function, method, or exported API must have accompanying unit tests before merging. Trivial helpers and glue code may be excluded when testing adds no meaningful value.
@@ -37,6 +45,7 @@
 
 - Always sign off on commits with `git commit -s` (adds a `Signed-off-by:` trailer).
 - Never include AI agents (e.g. Claude Code, Copilot, or similar tools) as co-authors on commits. The human author is responsible for the work.
+- See `CONTRIBUTING.md` at the repo root for DCO sign-off requirements and general PR conventions.
 
 ## Baseline architecture
 
@@ -167,6 +176,8 @@ KFP supports two main deployment modes:
 - Includes user isolation, namespace-based access control, and Istio integration
 - Suitable for production environments with multiple users/teams
 
+See `manifests/kustomize/README.md` for full installation options and environment-specific instructions.
+
 ## Local testing
 
 - Python (SDK):
@@ -199,6 +210,7 @@ Notes:
 
 - API Server tests under `backend/test/v2/api` are integration tests run with Ginkgo; they require a running cluster and are not part of unit tests.
 - Compiler tests live under `backend/test/compiler` and E2E tests under `backend/test/end2end`; both are Ginkgo-based and excluded from unit presubmits.
+- See `test/README.md` for integration/E2E test infrastructure details (Kind clusters, GitHub Actions setup).
 
 ### Backend Ginkgo test suites
 
@@ -281,7 +293,8 @@ Notes:
 
 ## Regenerate protobufs after schema changes
 
-- Pipeline spec Protobufs live under `api/`.
+- Pipeline spec Protobufs live under `api/` (see `api/README.md` for proto code generation details).
+- Backend API generation tools and prerequisites are documented in `backend/api/README.md`.
 - Run both Python and Go generations:
 
 ```bash
@@ -306,7 +319,7 @@ The following files are generated; edit their sources and regenerate:
 - `kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2.py`
   - Source: `kubernetes_platform/proto/kubernetes_executor_config.proto`
   - Generate: `make -C kubernetes_platform python` (or `make -C kubernetes_platform python-dev`)
-- Frontend API clients under `frontend/src/apis` and `frontend/src/apisv2beta1`
+- Frontend OpenAPI clients under `frontend/src/apis`, `frontend/src/apisv2beta1`, `frontend/server/src/generated/apis`, and `frontend/server/src/generated/apisv2beta1`, with shared runtime/model support under `frontend/src/generated/openapi` and `frontend/server/src/generated/openapi`
   - Sources: Swagger specs under `backend/api/**/swagger/*.json`
   - Generate: `cd frontend && npm run apis` / `npm run apis:v2beta1` / `npm run apis:all` (uses pinned Docker image `openapitools/openapi-generator-cli:v7.19.0`)
 - Frontend MLMD proto outputs under `frontend/src/third_party/mlmd/generated`
@@ -320,11 +333,11 @@ The following files are generated; edit their sources and regenerate:
 - DSL core: `sdk/python/kfp/dsl/` (e.g., `component_factory.py`, `pipeline_task.py`, `pipeline_context.py`)
 - Executor entrypoint: `sdk/python/kfp/dsl/executor_main.py`
 - Platform integration (Python): `kubernetes_platform/python/kfp/`
-- Platform spec proto: `kubernetes_platform/proto/`
+- Platform spec proto: `kubernetes_platform/proto/` (see `kubernetes_platform/README.md` for proto generation and library setup)
 - API definitions (Protobufs): `api/`
-- Backend (API server, driver, launcher, etc.): `backend/`
+- Backend (API server, driver, launcher, etc.): `backend/` (see `backend/README.md` for build, test, and local development setup)
 - Backend test suites: `backend/test/compiler`, `backend/test/v2/api`, `backend/test/end2end`
-- Frontend: `frontend/` (React TypeScript, see `frontend/CONTRIBUTING.md`)
+- Frontend: `frontend/` (React TypeScript, see `frontend/README.md` for quick start and `frontend/CONTRIBUTING.md` for detailed guidelines)
 - Manifests (Kustomize bases/overlays for deployments): `manifests/`
 - CI manifests and overlays used by workflows: `.github/resources/manifests/{kubernetes-native,multiuser,standalone}`
 - Test data (inputs/goldens): `test_data/pipeline_files/valid/`, `test_data/compiled-workflows/`
@@ -340,15 +353,15 @@ The KFP frontend is a React TypeScript application that provides the web UI for 
 
 ### Prerequisites
 
-- Node.js version specified in `frontend/.nvmrc` (currently v22.19.0)
+- Node.js version specified in `frontend/.nvmrc`
 - Docker (required for frontend API client generation via OpenAPI Generator container)
 - Use [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm) for Node version management:
 
   ```bash
   # With fnm (faster)
-  fnm install 22.19.0 && fnm use 22.19.0
+  fnm install "$(cat frontend/.nvmrc)" && fnm use "$(cat frontend/.nvmrc)"
   # With nvm
-  nvm install 22.19.0 && nvm use 22.19.0
+  nvm install "$(cat frontend/.nvmrc)" && nvm use "$(cat frontend/.nvmrc)"
   ```
 
 ### Setup and installation
@@ -397,16 +410,44 @@ For full integration testing against a real KFP deployment:
 
 ### Key technologies and architecture
 
-- **React 17** with TypeScript
-- **Material-UI v3** for components
+- **React 19** with TypeScript
+- **MUI v5** with Emotion for components and theming
 - **React Router v5** for navigation
+- **TanStack Query v5** for data fetching and caching
 - **Dagre** for graph layout visualization
 - **D3** for data visualization
-- **Vitest + Testing Library** for UI testing
-- **Jest** for frontend server tests (UI tests migrated off Jest/Enzyme)
+- **Vitest + Testing Library v16** for UI testing
+- **Vitest** for frontend server tests
 - **Prettier + ESLint** for code formatting/linting
-- **Storybook** for component development
+- **Storybook 10** for component development
 - **Tailwind CSS** for utility-first styling
+
+Development (`npm start`) and Vitest UI renders run under React Strict Mode.
+Production builds keep Strict Mode disabled.
+
+### React effect discipline
+
+When writing or reviewing React code in `frontend/src`:
+
+- Treat every `useEffect` as an escape hatch for external synchronization.
+  Valid cases include browser APIs, timers, subscriptions, storage, imperative DOM APIs,
+  or coordinating with async systems that exist outside React render.
+- Do not use `useEffect` for derived UI state.
+  If state can be computed from props, query results, or existing state, derive it during render
+  or with a memoized pure helper.
+- Do not put user-action behavior in an effect.
+  Navigation, snackbars, dialog open/close behavior, and mutation success/failure handling should
+  live in event handlers or mutation callbacks.
+- Avoid effect chains where one effect sets state that triggers another.
+  If a page needs several coupled state transitions, prefer a reducer or a single explicit update path.
+- Preserve user-controlled state across refreshes and refetches.
+  Query refreshes must not silently reset selected runs, selected artifacts, typed names, or toggles
+  unless that reset is an explicit product requirement.
+- Treat `eslint-disable react-hooks/exhaustive-deps` as a code smell.
+  Only keep it when the invariant is documented in code and covered by a targeted test.
+- During reviews, classify each new or changed effect as one of:
+  `external sync`, `derived state`, `event-driven`, `state reset`, or `effect chain`.
+  Anything except `external sync` requires explicit justification in the diff or review notes.
 
 ### Essential commands (frontend)
 
@@ -421,10 +462,11 @@ For full integration testing against a real KFP deployment:
 - `npm run test -u` - Update Vitest snapshots
 - `npm run lint` - Run ESLint
 - `npm run typecheck` - Run TypeScript typecheck (`tsc --noEmit`)
-- `npm run check:react-peers` - Enforce lockfile React peer compatibility for current target (React 17 today)
+- `npm run typecheck:mock-backend` - Typecheck mock-backend against generated API types
+- `npm run check:react-peers` - Enforce lockfile React peer compatibility for current target (React 19)
 - `npm run check:react-peers:18` - Preview lockfile React peer compatibility against React 18
-- `npm run check:react-peers:19` - Preview lockfile React peer compatibility against React 19
 - `npm run format` - Format code with Prettier
+- `npm run format:check` - Fast pre-push check for frontend formatting; for a small TS/TSX diff, `npx prettier --check <changed files>` is the quickest equivalent
 - `npm run storybook` - Start Storybook on port 6006
 
 ### Code generation
@@ -440,6 +482,7 @@ The frontend includes several generated code components:
   ```
 
   Note: These commands use Docker image `openapitools/openapi-generator-cli:v7.19.0`.
+  Generated API-surface clients are emitted under `src/apis*` and `server/src/generated/apis*`, while shared OpenAPI runtime/model files are deduplicated into `src/generated/openapi` and `server/src/generated/openapi`.
   Ensure Docker is running.
 
 - **Protocol Buffers**: Generated from proto definitions
@@ -453,12 +496,21 @@ The frontend includes several generated code components:
 ### Testing
 
 - **UI tests**: `npm run test:ui` or `npm test` (Vitest + Testing Library)
-- **Server tests**: `npm run test:server:coverage` (Jest)
-- **Coverage**: `npm run test:ui:coverage` (Vitest) + `npm run test:coverage` (Vitest UI + Jest server)
+- **Server tests**: `npm run test:server:coverage` (Vitest)
+- **Coverage**: `npm run test:ui:coverage` (Vitest) + `npm run test:coverage` (Vitest UI + Vitest server)
 - **Stability loop**: `npm run test:ui:coverage:loop` (Vitest coverage with capped workers)
-- **CI pipeline**: `npm run test:ci` (format check + lint + typecheck + lockfile React peer check + Vitest UI coverage + Jest coverage)
+- **CI pipeline**: `npm run test:ci` (format check + lint + typecheck + lockfile React peer check + Vitest UI coverage + Vitest server coverage)
 - **Snapshot tests**: Auto-update with `npm test -u` or `npm run test:ui -- -u` (Vitest)
 - **Frontend integration tests**: See `test/frontend-integration-test/README.md` for the containerized local flow. Supported debug env vars include `DEBUG=1`, `HEADLESS=false`, and `WDIO_SPECS=./tensorboard-example.spec.js`; headful runs expose Selenium's noVNC desktop on port `7900`.
+
+### Effect-focused frontend verification
+
+When changing an effect-heavy frontend component, add or run the smallest relevant regression test:
+
+- mutation success runs exactly once even if related async work resolves later
+- refresh/refetch does not overwrite user selection or form edits unless intended
+- error banners and dialogs clear after a successful retry or recovery path
+- mount-time logic does not emit parent callbacks unless the component contract explicitly requires it
 
 ## CI/CD (GitHub Actions)
 
@@ -473,7 +525,7 @@ The frontend includes several generated code components:
   - Examples: `e2e-test.yml`, `sdk-execution.yml`, `upgrade-test.yml`, `kfp-kubernetes-execution-tests.yml`, `kfp-webhooks.yml`, `api-server-tests.yml`, `compiler-tests.yml`, `legacy-v2-api-integration-tests.yml`, `integration-tests-v1.yml`, and frontend integration in `e2e-test-frontend.yml`.
 - Pipeline store variants (v2 engine): tests run with `database` and `kubernetes` stores, and a dedicated job compiles pipelines to Kubernetes-native manifests.
   - Example: `e2e-test.yml` job "API integration tests v2 - K8s with ${pipeline_store}" and "compile pipelines with Kubernetes".
-- Argo Workflows version matrix for compatibility (where relevant): e.g., `e2e-test.yml` includes an Argo job (e.g., `v3.5.14`).
+- Argo Workflows version matrix for compatibility (where relevant): `e2e-test.yml` exercises `v3.5.14`, `v3.7.3`, and `v4.0.4` across the standard cache/test-label matrix, while `api-server-tests.yml` covers standalone and Kubernetes-native Argo compatibility across the standard matrices (with standalone low-Kubernetes spot lanes per supported Argo version).
 - Proxy / cache toggles: dedicated jobs run with HTTP proxy enabled and with execution cache disabled to validate those modes.
 - Artifacts: failing logs and test outputs are uploaded as workflow artifacts for debugging.
 
@@ -598,7 +650,7 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - Frontend dev server: `cd frontend && npm start`
 - Frontend with cluster: `cd frontend && npm run start:proxy-and-server`
 - Frontend tests: `cd frontend && npm run test:ui` (Vitest) or `npm test` (same as `test:ui`)
-- Frontend React peer gate: `cd frontend && npm run check:react-peers` (or `check:react-peers:18` / `check:react-peers:19`)
+- Frontend React peer gate: `cd frontend && npm run check:react-peers` (or `check:react-peers:18`)
 - Frontend formatting: `cd frontend && npm run format`
 - Generate frontend APIs: `cd frontend && npm run apis:all`
 

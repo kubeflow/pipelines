@@ -97,7 +97,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     // Only show the two most prevalent metrics
     const metricMetadata: MetricMetadata[] = this.state.metrics.slice(0, 2);
     const columns: Column[] = [
@@ -203,6 +203,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         />
       </div>
     );
+  }
+
+  public componentDidMount(): void {
+    this._isMounted = true;
   }
 
   public componentWillUnmount(): void {

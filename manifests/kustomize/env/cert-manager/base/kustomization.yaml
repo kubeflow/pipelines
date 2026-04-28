@@ -7,8 +7,6 @@ resources:
 - cache-cert.yaml
 - cache-webhook-config.yaml
 
-configurations:
-- params.yaml
 labels:
 - includeSelectors: true
   pairs:

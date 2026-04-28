@@ -24,6 +24,7 @@ import Separator from '../atoms/Separator';
 import { ListRequest } from '../lib/Apis';
 import { classes, stylesheet } from 'typestyle';
 import { fonts, fontsize, dimension, commonCss, color, padding, zIndex } from '../Css';
+import { LocalStorage } from '../lib/LocalStorage';
 import { logger } from '../lib/Utils';
 import { debounce } from 'lodash';
 import {
@@ -220,6 +221,9 @@ interface CustomTableState {
 export default class CustomTable extends React.Component<CustomTableProps, CustomTableState> {
   private _isMounted = true;
 
+  /** Suppresses stale `isBusy` updates when reload() overlaps (e.g. React StrictMode remounts). */
+  private _activeReloadGeneration = 0;
+
   private _debouncedFilterRequest = debounce(
     (filterString: string) => this._requestFilter(filterString),
     300,
@@ -239,7 +243,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             : '',
       isBusy: false,
       maxPageIndex: Number.MAX_SAFE_INTEGER,
-      pageSize: 10,
+      pageSize: LocalStorage.getTablePageSize(this._getPageId()),
       sortBy:
         props.initialSortColumn || (props.columns.length ? props.columns[0].sortKey || '' : ''),
       sortOrder: props.initialSortOrder || 'desc',
@@ -287,6 +291,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   }
 
   public componentDidMount(): void {
+    this._isMounted = true;
     this._pageChanged(0);
   }
 
@@ -295,7 +300,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     this._debouncedFilterRequest.cancel();
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { filterString, pageSize, sortBy, sortOrder } = this.state;
     const numSelected = (this.props.selectedIds || []).length;
     const totalFlex = this.props.columns.reduce((total, c) => (total += c.flex || 1), 0);
@@ -500,6 +505,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       loadRequest,
     );
 
+    const reloadGeneration = ++this._activeReloadGeneration;
     let result = '';
     try {
       this.setStateSafe({
@@ -516,7 +522,9 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
       result = await this.props.reload(request);
     } finally {
-      this.setStateSafe({ isBusy: false });
+      if (this._isMounted && reloadGeneration === this._activeReloadGeneration) {
+        this.setStateSafe({ isBusy: false });
+      }
     }
     return result;
   }
@@ -619,8 +627,30 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ): Promise<void> {
     const pageSize = Number(event.target.value);
-
+    LocalStorage.saveTablePageSize(pageSize, this._getPageId());
     this._resetToFirstPage(await this.reload({ pageSize, pageToken: '' }));
+  }
+
+  private _getPageId(): string | undefined {
+    const pathSegments = window.location.hash
+      .split('?')[0]
+      .replace(/^#\//, '')
+      .split('/')
+      .filter(Boolean);
+    if (pathSegments.length === 0) {
+      return undefined;
+    }
+    const [root, second] = pathSegments;
+    if (root === 'shared' && second === 'pipelines') {
+      return 'shared/pipelines';
+    }
+    if (root === 'archive' && second) {
+      return `${root}/${second}`;
+    }
+    if (second && ['details', 'new', 'lineage'].includes(second)) {
+      return `${root}/${second}`;
+    }
+    return root;
   }
 
   private _resetToFirstPage(newPageToken?: string): void {
@@ -661,7 +691,7 @@ interface HeaderRowSelectionSectionProps extends SelectionSectionCommonProps {
   onSelectAll: React.ChangeEventHandler;
   disableAdditionalSelection?: boolean;
 }
-const HeaderRowSelectionSection: React.FC<HeaderRowSelectionSectionProps> = ({
+function HeaderRowSelectionSection({
   disableSelection,
   indeterminate,
   isSelected,
@@ -669,7 +699,7 @@ const HeaderRowSelectionSection: React.FC<HeaderRowSelectionSectionProps> = ({
   showExpandButton,
   useRadioButtons,
   disableAdditionalSelection,
-}) => {
+}: HeaderRowSelectionSectionProps): React.JSX.Element | null {
   const nonEmpty = disableSelection !== true || showExpandButton;
   if (!nonEmpty) {
     return null;
@@ -695,14 +725,14 @@ const HeaderRowSelectionSection: React.FC<HeaderRowSelectionSectionProps> = ({
       {showExpandButton && <Separator orientation='horizontal' units={40} />}
     </div>
   );
-};
+}
 
 interface BodyRowSelectionSectionProps extends SelectionSectionCommonProps {
   expandState?: ExpandState;
   onExpand: React.MouseEventHandler;
   disableAdditionalSelection?: boolean;
 }
-const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
+function BodyRowSelectionSection({
   disableSelection,
   expandState,
   isSelected,
@@ -710,40 +740,42 @@ const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
   showExpandButton,
   useRadioButtons,
   disableAdditionalSelection,
-}) => (
-  <>
-    {/* Expansion toggle button */}
-    {(disableSelection !== true || showExpandButton) && expandState !== ExpandState.NONE && (
-      <div className={classes(css.cell, css.selectionToggle)}>
-        {/* If using checkboxes */}
-        {disableSelection !== true && useRadioButtons !== true && (
-          <Checkbox
-            color='primary'
-            checked={isSelected}
-            disabled={!isSelected && disableAdditionalSelection}
-          />
-        )}
-        {/* If using radio buttons */}
-        {disableSelection !== true && useRadioButtons && (
-          <Radio color='primary' checked={isSelected} />
-        )}
-        {showExpandButton && (
-          <IconButton
-            className={classes(
-              css.expandButton,
-              expandState === ExpandState.EXPANDED && css.expandButtonExpanded,
-            )}
-            onClick={onExpand}
-            aria-label='Expand'
-            size='large'
-          >
-            <ArrowRight />
-          </IconButton>
-        )}
-      </div>
-    )}
+}: BodyRowSelectionSectionProps): React.JSX.Element {
+  return (
+    <>
+      {/* Expansion toggle button */}
+      {(disableSelection !== true || showExpandButton) && expandState !== ExpandState.NONE && (
+        <div className={classes(css.cell, css.selectionToggle)}>
+          {/* If using checkboxes */}
+          {disableSelection !== true && useRadioButtons !== true && (
+            <Checkbox
+              color='primary'
+              checked={isSelected}
+              disabled={!isSelected && disableAdditionalSelection}
+            />
+          )}
+          {/* If using radio buttons */}
+          {disableSelection !== true && useRadioButtons && (
+            <Radio color='primary' checked={isSelected} />
+          )}
+          {showExpandButton && (
+            <IconButton
+              className={classes(
+                css.expandButton,
+                expandState === ExpandState.EXPANDED && css.expandButtonExpanded,
+              )}
+              onClick={onExpand}
+              aria-label='Expand'
+              size='large'
+            >
+              <ArrowRight />
+            </IconButton>
+          )}
+        </div>
+      )}
 
-    {/* Placeholder for non-expandable rows */}
-    {expandState === ExpandState.NONE && <div className={css.expandButtonPlaceholder} />}
-  </>
-);
+      {/* Placeholder for non-expandable rows */}
+      {expandState === ExpandState.NONE && <div className={css.expandButtonPlaceholder} />}
+    </>
+  );
+}

@@ -81,6 +81,7 @@ describe('WorkflowUtils', () => {
     expect(platformSpec).toEqual({
       platforms: {
         kubernetes: {
+          platform: '',
           deploymentSpec: {
             executors: {
               'exec-consumer': {

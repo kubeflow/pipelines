@@ -15,14 +15,15 @@
  */
 
 import React from 'react';
+import Banner from 'src/components/Banner';
 
 interface ErrorBoundaryState {
   error: any;
   errorInfo: any;
 }
 
-export class ErrorBoundary extends React.Component<Readonly<{}>, ErrorBoundaryState> {
-  constructor(props: Readonly<Readonly<{}>>) {
+export class ErrorBoundary extends React.Component<React.PropsWithChildren, ErrorBoundaryState> {
+  constructor(props: React.PropsWithChildren) {
     super(props);
     this.state = { error: null, errorInfo: null };
   }
@@ -36,19 +37,20 @@ export class ErrorBoundary extends React.Component<Readonly<{}>, ErrorBoundarySt
 
   render() {
     if (this.state.errorInfo) {
-      // Error path
       return (
-        <div>
-          <h2>Something went wrong.</h2>
-          <details style={{ whiteSpace: 'pre-wrap' }}>
-            {this.state.error && this.state.error.toString()}
-            <br />
-            {this.state.errorInfo.componentStack}
-          </details>
+        <div style={{ padding: 20 }}>
+          <Banner
+            message='Something went wrong.'
+            mode='error'
+            additionalInfo={
+              this.state.error
+                ? `${this.state.error.toString()}\n${this.state.errorInfo.componentStack}`
+                : this.state.errorInfo.componentStack
+            }
+          />
         </div>
       );
     }
-    // Normally, just render children
     return this.props.children;
   }
 }

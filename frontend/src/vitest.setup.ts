@@ -1,8 +1,40 @@
+/// <reference types="node" />
 import '@testing-library/jest-dom/vitest';
 import { afterEach } from 'vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 
 process.env.TZ = 'UTC';
+
+configure({ reactStrictMode: true });
+
+// Pin default locale for stable snapshots; when callers pass a locale, honor it.
+const originalToLocaleString = Date.prototype.toLocaleString;
+const originalToLocaleDateString = Date.prototype.toLocaleDateString;
+const originalToLocaleTimeString = Date.prototype.toLocaleTimeString;
+
+Date.prototype.toLocaleString = function (
+  locales?: Intl.LocalesArgument,
+  options?: Intl.DateTimeFormatOptions,
+): string {
+  const resolvedLocales = locales === undefined || locales === null ? 'en-US' : locales;
+  return originalToLocaleString.call(this, resolvedLocales, options);
+};
+
+Date.prototype.toLocaleDateString = function (
+  locales?: Intl.LocalesArgument,
+  options?: Intl.DateTimeFormatOptions,
+): string {
+  const resolvedLocales = locales === undefined || locales === null ? 'en-US' : locales;
+  return originalToLocaleDateString.call(this, resolvedLocales, options);
+};
+
+Date.prototype.toLocaleTimeString = function (
+  locales?: Intl.LocalesArgument,
+  options?: Intl.DateTimeFormatOptions,
+): string {
+  const resolvedLocales = locales === undefined || locales === null ? 'en-US' : locales;
+  return originalToLocaleTimeString.call(this, resolvedLocales, options);
+};
 
 // @xyflow/react uses DOMMatrixReadOnly which jsdom does not implement.
 if (!globalThis.DOMMatrixReadOnly) {
@@ -25,10 +57,18 @@ if (!globalThis.DOMMatrixReadOnly) {
 if (typeof window !== 'undefined') {
   const patchView = (event: MouseEvent) => {
     if (event.view === null) {
-      Object.defineProperty(event, 'view', {
-        get: () => window,
-        configurable: true,
-      });
+      try {
+        (event as { view?: Window }).view = window;
+      } catch {
+        try {
+          Object.defineProperty(event, 'view', {
+            get: () => window,
+            configurable: true,
+          });
+        } catch {
+          // user-event v14 may create events with non-configurable view
+        }
+      }
     }
   };
   for (const type of ['mousedown', 'mouseup'] as const) {

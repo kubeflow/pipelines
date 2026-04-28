@@ -42,7 +42,7 @@ exports[`PagedTable > does not break on empty data 1`] = `
         />
         <p
           class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
-          id="mui-id-0"
+          id="react-use-id-0"
         >
           Rows per page:
         </p>
@@ -50,12 +50,12 @@ exports[`PagedTable > does not break on empty data 1`] = `
           class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
         >
           <div
-            aria-controls="mui-1"
+            aria-controls="react-use-id-2"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-id-0 mui-id-1"
+            aria-labelledby="react-use-id-0 react-use-id-1"
             class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
-            id="mui-id-1"
+            id="react-use-id-1"
             role="combobox"
             tabindex="0"
           >
@@ -296,7 +296,7 @@ exports[`PagedTable > renders simple data 1`] = `
         />
         <p
           class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
-          id="mui-id-0"
+          id="react-use-id-0"
         >
           Rows per page:
         </p>
@@ -304,12 +304,12 @@ exports[`PagedTable > renders simple data 1`] = `
           class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
         >
           <div
-            aria-controls="mui-7"
+            aria-controls="react-use-id-2"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-id-0 mui-id-1"
+            aria-labelledby="react-use-id-0 react-use-id-1"
             class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
-            id="mui-id-1"
+            id="react-use-id-1"
             role="combobox"
             tabindex="0"
           >
@@ -471,7 +471,7 @@ exports[`PagedTable > renders simple data without labels 1`] = `
         />
         <p
           class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
-          id="mui-id-0"
+          id="react-use-id-0"
         >
           Rows per page:
         </p>
@@ -479,12 +479,12 @@ exports[`PagedTable > renders simple data without labels 1`] = `
           class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
         >
           <div
-            aria-controls="mui-10"
+            aria-controls="react-use-id-2"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-id-0 mui-id-1"
+            aria-labelledby="react-use-id-0 react-use-id-1"
             class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
-            id="mui-id-1"
+            id="react-use-id-1"
             role="combobox"
             tabindex="0"
           >
@@ -723,7 +723,7 @@ exports[`PagedTable > sorts on first column ascending 1`] = `
         />
         <p
           class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
-          id="mui-id-0"
+          id="react-use-id-0"
         >
           Rows per page:
         </p>
@@ -731,12 +731,12 @@ exports[`PagedTable > sorts on first column ascending 1`] = `
           class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
         >
           <div
-            aria-controls="mui-22"
+            aria-controls="react-use-id-2"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-id-0 mui-id-1"
+            aria-labelledby="react-use-id-0 react-use-id-1"
             class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
-            id="mui-id-1"
+            id="react-use-id-1"
             role="combobox"
             tabindex="0"
           >
@@ -975,7 +975,7 @@ exports[`PagedTable > sorts on first column descending 1`] = `
         />
         <p
           class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
-          id="mui-id-0"
+          id="react-use-id-0"
         >
           Rows per page:
         </p>
@@ -983,12 +983,12 @@ exports[`PagedTable > sorts on first column descending 1`] = `
           class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
         >
           <div
-            aria-controls="mui-16"
+            aria-controls="react-use-id-2"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-id-0 mui-id-1"
+            aria-labelledby="react-use-id-0 react-use-id-1"
             class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
-            id="mui-id-1"
+            id="react-use-id-1"
             role="combobox"
             tabindex="0"
           >

@@ -33,13 +33,14 @@ import {
   EXECUTION_KEY_CACHED_EXECUTION_ID,
   getArtifactName,
   getArtifactTypeName,
-  getArtifactTypes,
   getLinkedArtifactsByExecution,
   getStoreSessionInfoFromArtifact,
   filterEventWithOutputArtifact,
   KfpExecutionProperties,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
+import { useArtifactTypes } from 'src/hooks/useArtifactTypes';
+import { queryKeys } from 'src/hooks/queryKeys';
 import WorkflowParser from 'src/lib/WorkflowParser';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { ArtifactType, Execution } from 'src/third_party/mlmd';
@@ -154,8 +155,12 @@ function TaskNodeDetail({
   layers,
   namespace,
 }: TaskNodeDetailProps) {
-  const { data: logsInfo } = useQuery<Map<string, string>, Error>({
-    queryKey: ['execution_logs', { executionId: execution?.getId(), namespace }],
+  const {
+    data: logsInfo,
+    isError: logsQueryFailed,
+    error: logsQueryError,
+  } = useQuery<Map<string, string>, Error>({
+    queryKey: queryKeys.executionLogs(execution?.getId(), namespace),
     queryFn: async () => {
       if (!execution) {
         throw new Error('No execution is found.');
@@ -166,8 +171,11 @@ function TaskNodeDetail({
   });
 
   const logsDetails = logsInfo?.get(LOGS_DETAILS);
-  const logsBannerMessage = logsInfo?.get(LOGS_BANNER_MESSAGE);
-  const logsBannerAdditionalInfo = logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO);
+  const logsBannerMessage =
+    logsInfo?.get(LOGS_BANNER_MESSAGE) ||
+    (logsQueryFailed ? 'Failed to retrieve pod logs.' : undefined);
+  const logsBannerAdditionalInfo =
+    logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO) || logsQueryError?.message;
 
   const [selectedTab, setSelectedTab] = useState(0);
 
@@ -202,9 +210,7 @@ function TaskNodeDetail({
         {selectedTab === 2 && (
           <div className={commonCss.page}>
             {logsBannerMessage && (
-              <React.Fragment>
-                <Banner message={logsBannerMessage} additionalInfo={logsBannerAdditionalInfo} />
-              </React.Fragment>
+              <Banner message={logsBannerMessage} additionalInfo={logsBannerAdditionalInfo} />
             )}
             {!logsBannerMessage && (
               <div className={commonCss.pageOverflowHidden} data-testid={'logs-view-window'}>
@@ -375,10 +381,7 @@ interface ArtifactNodeDetailProps {
   namespace: string | undefined;
 }
 function ArtifactNodeDetail({ execution, linkedArtifact, namespace }: ArtifactNodeDetailProps) {
-  const { data } = useQuery<ArtifactType[], Error>({
-    queryKey: ['artifact_types', { linkedArtifact }],
-    queryFn: () => getArtifactTypes(),
-  });
+  const { data } = useArtifactTypes();
 
   const [selectedTab, setSelectedTab] = useState(0);
   return (
@@ -413,19 +416,14 @@ function ArtifactNodeDetail({ execution, linkedArtifact, namespace }: ArtifactNo
   );
 }
 
-interface ArtifactNodeDetailProps {
+interface ArtifactInfoProps {
   execution?: Execution;
   artifactTypes?: ArtifactType[];
   linkedArtifact?: LinkedArtifact;
   namespace: string | undefined;
 }
 
-function ArtifactInfo({
-  execution,
-  artifactTypes,
-  linkedArtifact,
-  namespace,
-}: ArtifactNodeDetailProps) {
+function ArtifactInfo({ execution, artifactTypes, linkedArtifact, namespace }: ArtifactInfoProps) {
   if (!execution || !linkedArtifact) {
     return NODE_STATE_UNAVAILABLE;
   }

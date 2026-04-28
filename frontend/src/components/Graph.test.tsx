@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
+import type * as React from 'react';
 import * as dagre from 'dagre';
-import * as React from 'react';
 import { fireEvent, render } from '@testing-library/react';
 import { vi } from 'vitest';
 import EnhancedGraph, { Graph } from './Graph';
@@ -35,7 +35,12 @@ const testIcon = (
   </Tooltip>
 );
 
-const newNode = (label: string, isPlaceHolder?: boolean, color?: string, icon?: JSX.Element) => ({
+const newNode = (
+  label: string,
+  isPlaceHolder?: boolean,
+  color?: string,
+  icon?: React.JSX.Element,
+) => ({
   bgColor: color,
   height: 10,
   icon: icon || testIcon,

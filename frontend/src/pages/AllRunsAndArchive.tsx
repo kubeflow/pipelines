@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
+import type * as React from 'react';
 import AllRunsListPage from './AllRunsList';
 import MD2Tabs from '../atoms/MD2Tabs';
 import { Page, PageProps } from './Page';
@@ -42,7 +42,7 @@ class AllRunsAndArchive extends Page<AllRunsAndArchiveProps, AllRunsAndArchiveSt
     return { actions: {}, breadcrumbs: [], pageTitle: '' };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
         <MD2Tabs

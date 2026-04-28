@@ -18,6 +18,7 @@ import { CircularProgress } from '@mui/material';
 import React, { Component } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { Api, getArtifactTypes } from 'src/mlmd/library';
 import {
   ExecutionHelpers,
@@ -60,7 +61,7 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
     return parseInt(this.props.match.params[RouteParams.ID], 10);
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <ExecutionDetailsContent
@@ -109,7 +110,7 @@ export class ExecutionDetailsContent extends Component<
     return this.load();
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     if (!this.state.execution || !this.state.events) {
       return <CircularProgress />;
     }
@@ -268,7 +269,7 @@ export class ExecutionDetailsContent extends Component<
   };
 }
 
-function parseEventsByType(
+export function parseEventsByType(
   response: GetEventsByExecutionIDsResponse | null,
 ): Record<Event.Type, Event[]> {
   const events: Record<Event.Type, Event[]> = {
@@ -347,7 +348,7 @@ class SectionIO extends Component<
     }
   }
 
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const { title, events } = this.props;
     if (events.length === 0) {
       return null;
@@ -438,12 +439,13 @@ interface ExecutionReferenceProps {
 }
 
 function ExecutionReference({ execution }: ExecutionReferenceProps) {
-  const { isSuccess, data: context } = useQuery<Context | undefined, Error>({
-    queryKey: [
-      'context_by_execution',
-      { id: execution.getId(), state: execution.getLastKnownState() },
-    ],
-    queryFn: () => getContextByExecution(execution, KFP_V2_RUN_CONTEXT_TYPE),
+  const {
+    isSuccess,
+    isError,
+    data: context,
+  } = useQuery<Context | null, Error>({
+    queryKey: queryKeys.contextByExecution(execution.getId(), execution.getLastKnownState()),
+    queryFn: async () => (await getContextByExecution(execution, KFP_V2_RUN_CONTEXT_TYPE)) ?? null,
     staleTime: Infinity,
   });
 
@@ -463,6 +465,13 @@ function ExecutionReference({ execution }: ExecutionReferenceProps) {
           </tr>
         </thead>
         <tbody>
+          {isError && (
+            <tr className={css.row}>
+              <td className={css.tableCell} colSpan={2}>
+                Failed to load pipeline run reference.
+              </td>
+            </tr>
+          )}
           {isSuccess && context && (
             <tr className={css.row}>
               <td className={css.tableCell}>{'Pipeline Run'}</td>

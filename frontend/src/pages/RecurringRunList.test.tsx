@@ -35,12 +35,13 @@ vi.mock('src/components/CustomTable', () => {
     Column: {},
     Row: {},
     CustomRendererProps: {},
-    default: React.forwardRef((props: any, ref) => {
-      lastCustomTableProps = props;
+    default: (props: any) => {
+      const { ref, ...tableProps } = props;
+      lastCustomTableProps = tableProps;
       React.useImperativeHandle(ref, () => ({
         reload: async () => {
-          const sortBy = props.initialSortColumn ? `${props.initialSortColumn} desc` : '';
-          return props.reload({
+          const sortBy = tableProps.initialSortColumn ? `${tableProps.initialSortColumn} desc` : '';
+          return tableProps.reload({
             pageToken: '',
             pageSize: 10,
             sortBy,
@@ -49,7 +50,7 @@ vi.mock('src/components/CustomTable', () => {
         },
       }));
       return <div data-testid='custom-table' />;
-    }),
+    },
   };
 });
 
@@ -132,8 +133,6 @@ describe('RecurringRunList', () => {
   });
 
   afterEach(() => {
-    renderResult?.unmount();
-    renderResult = null;
     recurringRunListRef = null;
     vi.resetAllMocks();
   });

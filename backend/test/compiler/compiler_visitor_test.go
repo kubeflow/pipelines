@@ -92,7 +92,7 @@ var _ = Describe("Verify iteration over the pipeline components >", Label(POSITI
 				},
 			},
 			{
-				pipelineSpecPath: "critical/nested_pipeline_opt_input_child_level_compiled.yaml",
+				pipelineSpecPath: "parallel_and_nested/nested_pipeline_opt_input_child_level_compiled.yaml",
 				expectedVisited: []string{
 					"container(name=\"comp-component-a-bool\")",
 					"container(name=\"comp-component-a-int\")",

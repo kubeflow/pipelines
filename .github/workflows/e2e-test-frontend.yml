@@ -31,7 +31,7 @@ jobs:
     name: Frontend Integration Tests - K8s ${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -73,7 +73,7 @@ jobs:
 
       - name: Build frontend integration tests image
         working-directory: ./test/frontend-integration-test
-        run: docker build . -t kfp-frontend-integration-test:local
+        run: docker build --build-arg NODE_VERSION=$(tr -d 'v' < ../../frontend/.nvmrc) -t kfp-frontend-integration-test:local .
 
       - name: Prepare frontend integration test artifacts
         if: ${{ steps.forward-frontend-port.outcome == 'success' }}
@@ -100,7 +100,7 @@ jobs:
 
       - name: Collect test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kfp-frontend-integration-test-artifacts-k8s-${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
           if-no-files-found: warn

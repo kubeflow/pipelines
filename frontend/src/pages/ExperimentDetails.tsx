@@ -148,7 +148,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { activeRecurringRunsCount, experiment } = this.state;
     const description = experiment ? experiment.description || '' : '';
 
@@ -270,6 +270,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   }
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     return this.load(true);
   }
 
@@ -340,13 +341,17 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       }
 
       let runlistRefreshCount = this.state.runlistRefreshCount + 1;
-      this.setStateSafe({
-        activeRecurringRunsCount,
-        experiment,
-        runStorageState,
-        runlistRefreshCount,
-      });
-      this._selectionChanged([]);
+      this.setStateSafe(
+        {
+          activeRecurringRunsCount,
+          experiment,
+          runStorageState,
+          runlistRefreshCount,
+        },
+        () => {
+          this._selectionChanged([]);
+        },
+      );
     } catch (err) {
       const error = err instanceof Error ? err : new Error(await errorToMessage(err));
       await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, error);

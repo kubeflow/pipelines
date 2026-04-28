@@ -15,6 +15,7 @@
  */
 
 import { CompareTableProps, xParentLabel } from 'src/components/CompareTable';
+import { isReservedArtifactProperty } from 'src/lib/ReservedArtifactProperties';
 import { getArtifactName, getExecutionDisplayName, LinkedArtifact } from 'src/mlmd/MlmdUtils';
 import { getMetadataValue } from 'src/mlmd/Utils';
 import { Execution, Value } from 'src/third_party/mlmd';
@@ -306,7 +307,7 @@ const addScalarDataItems = (
 ) => {
   for (const entry of customProperties.getEntryList()) {
     const scalarMetricName: string = entry[0];
-    if (scalarMetricName === 'display_name') {
+    if (scalarMetricName === 'display_name' || isReservedArtifactProperty(scalarMetricName)) {
       continue;
     }
 

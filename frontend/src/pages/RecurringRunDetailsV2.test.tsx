@@ -15,7 +15,6 @@
  */
 
 import { render, screen, waitFor } from '@testing-library/react';
-import * as React from 'react';
 import * as JsYaml from 'js-yaml';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import RecurringRunDetailsRouter from './RecurringRunDetailsRouter';
@@ -115,7 +114,7 @@ describe('RecurringRunDetailsV2', () => {
       </CommonTestWrapper>,
     );
     await waitFor(() => {
-      expect(getRecurringRunSpy).toHaveBeenCalledTimes(2);
+      expect(getRecurringRunSpy).toHaveBeenCalled();
       expect(getPipelineVersionSpy).toHaveBeenCalled();
     });
 

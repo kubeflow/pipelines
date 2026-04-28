@@ -72,7 +72,7 @@ class MD2Tabs extends React.Component<MD2TabsProps, any> {
   private _tabRefs = this.props.tabs.map((_tab) => React.createRef<HTMLSpanElement>());
   private _timeoutHandle: ReturnType<typeof setTimeout> | undefined;
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const selected = this._getSelectedIndex();
     const switchHandler = this.props.onSwitch || (() => null);
     const tabs = this.props.tabs.map((tab) => {

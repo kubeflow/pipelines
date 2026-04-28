@@ -62,7 +62,7 @@ export interface CompareTableProps {
 }
 
 class CompareTable extends React.PureComponent<CompareTableProps> {
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const { rows, xLabels, yLabels, xParentLabels } = this.props;
     if (rows.length !== yLabels.length) {
       logger.error(

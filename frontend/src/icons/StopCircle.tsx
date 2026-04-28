@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-
 interface StopCircleProps {
   colorClass: string;
 }
 
 export default function StopCircle({ colorClass }: StopCircleProps) {
   return (
-    <div className={colorClass}>
+    <div className={colorClass} data-testid='StopCircleIcon'>
       <svg
         xmlns='http://www.w3.org/2000/svg'
         enableBackground='new 0 0 24 24'

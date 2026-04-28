@@ -53,6 +53,7 @@ interface SidePanelProps {
   onClose: () => void;
   title: string;
   defaultWidth?: string | number;
+  children?: React.ReactNode;
 }
 
 class SidePanel extends React.Component<SidePanelProps> {
@@ -70,7 +71,7 @@ class SidePanel extends React.Component<SidePanelProps> {
     }
   };
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { isBusy, isOpen, onClose, title, defaultWidth } = this.props;
     return (
       <Slide in={isOpen} direction='left'>

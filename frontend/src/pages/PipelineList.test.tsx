@@ -15,7 +15,8 @@
  */
 
 import * as React from 'react';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { range } from 'lodash';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
@@ -127,21 +128,21 @@ describe('PipelineList', () => {
 
   async function selectPipeline(id: string): Promise<void> {
     const row = await waitForRowById(id);
-    fireEvent.click(row);
+    await userEvent.click(row);
     await waitForSelectedPipelines([id]);
   }
 
   async function selectPipelines(ids: string[]): Promise<void> {
     for (const id of ids) {
       const row = await waitForRowById(id);
-      fireEvent.click(row);
+      await userEvent.click(row);
     }
     await waitForSelectedPipelines(ids);
   }
 
   async function deselectPipeline(id: string): Promise<void> {
     const row = await waitForRowById(id);
-    fireEvent.click(row);
+    await userEvent.click(row);
     await waitForSelectedPipelines([]);
   }
 
@@ -150,7 +151,7 @@ describe('PipelineList', () => {
     pipelineVersionId: string,
   ): Promise<void> {
     const row = await waitForRowById(pipelineVersionId);
-    fireEvent.click(row);
+    await userEvent.click(row);
     await waitFor(() => {
       expect(getPipelineListState()).toHaveProperty('selectedVersionIds');
       expect(getPipelineListState()!.selectedVersionIds[pipelineId]).toEqual([pipelineVersionId]);
@@ -208,10 +209,6 @@ describe('PipelineList', () => {
   });
 
   afterEach(() => {
-    if (renderResult) {
-      renderResult.unmount();
-      renderResult = null;
-    }
     pipelineListRef = null;
     vi.resetAllMocks();
   });
@@ -219,7 +216,9 @@ describe('PipelineList', () => {
   it('renders an empty list with empty state message', async () => {
     await renderPipelineList();
     await waitForPipelinesLoad();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(
+      screen.getByText('No pipelines found. Click "Upload pipeline" to start.'),
+    ).toBeInTheDocument();
   });
 
   it('renders a list of one pipeline', async () => {
@@ -236,7 +235,7 @@ describe('PipelineList', () => {
     });
     await renderPipelineList();
     await waitForPipelinesLoad();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('pipeline1')).toBeInTheDocument();
   });
 
   it('renders a list of one pipeline with no description or created date', async () => {
@@ -251,7 +250,7 @@ describe('PipelineList', () => {
     });
     await renderPipelineList();
     await waitForPipelinesLoad();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('pipeline1')).toBeInTheDocument();
   });
 
   it('renders a list of one pipeline with a display name that is not the same as the name', async () => {
@@ -266,7 +265,7 @@ describe('PipelineList', () => {
     });
     await renderPipelineList();
     await waitForPipelinesLoad();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('Pipeline One')).toBeInTheDocument();
   });
 
   it('renders a list of one pipeline with error', async () => {
@@ -284,7 +283,7 @@ describe('PipelineList', () => {
     });
     await renderPipelineList();
     await waitForPipelinesLoad();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('pipeline1')).toBeInTheDocument();
   });
 
   it('calls Apis to list pipelines, sorted by creation time in descending order', async () => {
@@ -301,14 +300,14 @@ describe('PipelineList', () => {
 
   it('has a Refresh button, clicking it refreshes the pipeline list', async () => {
     await mountWithNPipelines(1, { namespace: 'test-ns' });
-    expect(listPipelinesSpy).toHaveBeenCalledTimes(1);
+    listPipelinesSpy.mockClear();
     const refreshBtn = getToolbarActionFromInstance(ButtonKeys.REFRESH);
     expect(refreshBtn).toBeDefined();
     await act(async () => {
       await refreshBtn.action();
     });
     await waitFor(() => {
-      expect(listPipelinesSpy).toHaveBeenCalledTimes(2);
+      expect(listPipelinesSpy).toHaveBeenCalledTimes(1);
     });
     expect(listPipelinesSpy).toHaveBeenLastCalledWith('test-ns', '', 10, 'created_at desc', '');
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
@@ -332,6 +331,7 @@ describe('PipelineList', () => {
   it('shows error banner when listing pipelines fails after refresh', async () => {
     await renderPipelineList();
     await waitForPipelinesLoad();
+    listPipelinesSpy.mockClear();
     const refreshBtn = getToolbarActionFromInstance(ButtonKeys.REFRESH);
     expect(refreshBtn).toBeDefined();
     TestUtils.makeErrorResponseOnce(listPipelinesSpy as any, 'bad stuff happened');
@@ -339,7 +339,7 @@ describe('PipelineList', () => {
       await refreshBtn.action();
     });
     await waitFor(() => {
-      expect(listPipelinesSpy).toHaveBeenCalledTimes(2);
+      expect(listPipelinesSpy).toHaveBeenCalledTimes(1);
     });
     expect(listPipelinesSpy).toHaveBeenLastCalledWith(undefined, '', 10, 'created_at desc', '');
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
@@ -365,6 +365,7 @@ describe('PipelineList', () => {
       );
     });
     updateBannerSpy.mockReset();
+    listPipelinesSpy.mockClear();
 
     const refreshBtn = getToolbarActionFromInstance(ButtonKeys.REFRESH);
     listPipelinesSpy.mockResolvedValueOnce({
@@ -374,7 +375,7 @@ describe('PipelineList', () => {
       await refreshBtn.action();
     });
     await waitFor(() => {
-      expect(listPipelinesSpy).toHaveBeenCalledTimes(2);
+      expect(listPipelinesSpy).toHaveBeenCalledTimes(1);
     });
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
@@ -604,8 +605,8 @@ describe('PipelineList', () => {
     });
 
     await mountWithNPipelines(2);
-    const expandButtons = screen.getAllByLabelText('Expand');
-    fireEvent.click(expandButtons[1]);
+    const expandButtons = screen.getAllByRole('button', { name: /expand/i });
+    await userEvent.click(expandButtons[1]);
     await waitFor(() => {
       expect(listPipelineVersionsSpy).toHaveBeenCalled();
     });
@@ -639,6 +640,106 @@ describe('PipelineList', () => {
         message: 'Deletion succeeded for 1 pipeline and 1 pipeline version',
         open: true,
       });
+    });
+  });
+
+  it('waits for all selected version deletions before updating snackbar or selection state', async () => {
+    let resolveSecondDelete!: () => void;
+    const secondDeletePromise = new Promise<void>((resolve) => {
+      resolveSecondDelete = resolve;
+    });
+
+    deletePipelineVersionSpy
+      .mockImplementationOnce(() => {
+        throw {
+          text: () => Promise.resolve('first version failed'),
+        };
+      })
+      .mockImplementationOnce(() => secondDeletePromise as any);
+
+    listPipelineVersionsSpy.mockImplementation((pipelineId: string) => {
+      if (pipelineId === 'test-pipeline-id0') {
+        return Promise.resolve({
+          pipeline_versions: [
+            {
+              display_name: 'test-pipeline-id0_version_1',
+              name: 'test-pipeline-id0_version_1',
+              pipeline_id: 'test-pipeline-id0',
+              pipeline_version_id: 'test-pipeline-version-id1',
+            },
+            {
+              display_name: 'test-pipeline-id0_version_2',
+              name: 'test-pipeline-id0_version_2',
+              pipeline_id: 'test-pipeline-id0',
+              pipeline_version_id: 'test-pipeline-version-id2',
+            },
+          ],
+        });
+      }
+      return Promise.resolve({ pipeline_versions: [] });
+    });
+
+    await mountWithNPipelines(1);
+    const expandButtons = screen.getAllByRole('button', { name: /expand/i });
+    await userEvent.click(expandButtons[0]);
+    await waitFor(() => {
+      expect(listPipelineVersionsSpy).toHaveBeenCalled();
+    });
+
+    await userEvent.click(await waitForRowById('test-pipeline-version-id1'));
+    await userEvent.click(await waitForRowById('test-pipeline-version-id2'));
+    await waitFor(() => {
+      expect(
+        getPipelineListState()!.selectedVersionIds['test-pipeline-id0'].slice().sort(),
+      ).toEqual(['test-pipeline-version-id1', 'test-pipeline-version-id2']);
+    });
+
+    const call = await openDeleteDialog();
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+
+    let confirmPromise!: Promise<void>;
+    await act(async () => {
+      confirmPromise = confirmBtn.onClick();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(deletePipelineVersionSpy).toHaveBeenCalledTimes(2);
+    });
+    await TestUtils.flushPromises();
+
+    expect(updateSnackbarSpy).not.toHaveBeenCalled();
+    expect(updateDialogSpy).toHaveBeenCalledTimes(1);
+    expect(getPipelineListState()!.selectedVersionIds['test-pipeline-id0'].slice().sort()).toEqual([
+      'test-pipeline-version-id1',
+      'test-pipeline-version-id2',
+    ]);
+
+    await act(async () => {
+      resolveSecondDelete();
+      await confirmPromise;
+    });
+
+    await waitFor(() => {
+      expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
+        message: 'Deletion succeeded for 1 pipeline version',
+        open: true,
+      });
+    });
+    await waitFor(() => {
+      expect(updateDialogSpy).toHaveBeenCalledTimes(2);
+    });
+    expect(updateDialogSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        content:
+          'Failed to delete pipeline version: test-pipeline-version-id1 with error: "first version failed"',
+        title: 'Failed to delete some pipelines and/or some pipeline versions',
+      }),
+    );
+    await waitFor(() => {
+      expect(getPipelineListState()!.selectedVersionIds['test-pipeline-id0']).toEqual([
+        'test-pipeline-version-id1',
+      ]);
     });
   });
 

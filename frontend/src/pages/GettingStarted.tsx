@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
+import type * as React from 'react';
 import Markdown from 'markdown-to-jsx';
-import * as React from 'react';
 import { classes, cssRaw } from 'typestyle';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { AutoLink } from 'src/atoms/ExternalLink';
@@ -45,8 +45,10 @@ This section contains demo and tutorial pipelines.
 
 **Tutorials** - Learn pipeline concepts by following a tutorial.
 
-* [Data passing in Python components](${data}) - Shows how to pass data between Python components. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components)
-* [DSL - Control structures](${control}) - Shows how to use conditional execution and exit handlers. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures)
+* [Data passing in Python components](${data})
+  - Shows how to pass data between Python components. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components)
+* [DSL - Control structures](${control})
+  - Shows how to use conditional execution and exit handlers. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures)
 
 Want to learn more? [Learn from sample and tutorial pipelines.](https://www.kubeflow.org/docs/pipelines/tutorials/)
 `;
@@ -96,6 +98,7 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
 
   // token size sort filter
   public async componentDidMount() {
+    this._isMounted = true;
     const ids = await Promise.all(
       DEMO_PIPELINES.map((name) =>
         Apis.pipelineServiceApiV2
@@ -118,7 +121,7 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
     this.componentDidMount();
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'), 'kfp-start-page')}>
         <Markdown options={OPTIONS}>

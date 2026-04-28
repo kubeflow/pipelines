@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import type * as React from 'react';
 import * as dagre from 'dagre';
 import { Template, Workflow } from '../third_party/mlmd/argo_template';
 import { color } from '../Css';
@@ -25,7 +26,7 @@ import { graphlib } from 'dagre';
 export type nodeType = 'container' | 'resource' | 'dag' | 'unknown';
 
 export interface KeyValue<T> extends Array<any> {
-  0?: string | JSX.Element;
+  0?: string | React.JSX.Element;
   1?: T;
 }
 

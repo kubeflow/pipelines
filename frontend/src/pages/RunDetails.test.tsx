@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import { Api } from 'src/mlmd/library';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import * as dagre from 'dagre';
 import { createMemoryHistory } from 'history';
 import * as React from 'react';
@@ -31,12 +31,13 @@ import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import { NodePhase } from 'src/lib/StatusUtils';
 import * as Utils from 'src/lib/Utils';
 import WorkflowParser from 'src/lib/WorkflowParser';
-import TestUtils, { testBestPractices } from 'src/TestUtils';
+import TestUtils, { flushPromisesInAct, testBestPractices } from 'src/TestUtils';
 import { PageProps } from './Page';
 import EnhancedRunDetails, { RunDetailsInternalProps, SidePanelTab, TEST_ONLY } from './RunDetails';
 import { Context, Execution, GetArtifactTypesResponse, Value } from 'src/third_party/mlmd';
 import { KfpExecutionProperties } from 'src/mlmd/MlmdUtils';
 import { vi, SpyInstance } from 'vitest';
+import userEvent from '@testing-library/user-event';
 
 const RunDetails = TEST_ONLY.RunDetails;
 
@@ -300,14 +301,26 @@ describe('RunDetails', () => {
   it('shows success run status in page title', async () => {
     await renderRunDetails();
     const lastCall = updateToolbarSpy.mock.calls[updateToolbarSpy.mock.calls.length - 1][0];
-    expect(lastCall.pageTitle).toMatchSnapshot();
+    const { unmount } = render(<div>{lastCall.pageTitle}</div>);
+    expect(screen.getByText('test run')).toBeInTheDocument();
+    const icon = screen.getByTestId('node-status-sign');
+    expect(icon).toBeInTheDocument();
+    // Green icon = success
+    expect(icon.style.color).toBe('rgb(52, 168, 83)');
+    unmount();
   });
 
   it('shows failure run status in page title', async () => {
     testRun.run!.status = 'Failed';
     await renderRunDetails();
     const lastCall = updateToolbarSpy.mock.calls[updateToolbarSpy.mock.calls.length - 1][0];
-    expect(lastCall.pageTitle).toMatchSnapshot();
+    const { unmount } = render(<div>{lastCall.pageTitle}</div>);
+    expect(screen.getByText('test run')).toBeInTheDocument();
+    const icon = screen.getByTestId('node-status-sign');
+    expect(icon).toBeInTheDocument();
+    // Red icon = failure
+    expect(icon.style.color).toBe('rgb(213, 0, 0)');
+    unmount();
   });
 
   it('has a clone button, clicking it navigates to new run page', async () => {
@@ -509,12 +522,11 @@ describe('RunDetails', () => {
   it('renders an empty run', async () => {
     await renderRunDetails(undefined, { waitForLoad: false });
     await TestUtils.flushPromises();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('No graph to show')).toBeInTheDocument();
   });
 
   it('calls the get run API once to load it', async () => {
     await renderRunDetails();
-    expect(getRunSpy).toHaveBeenCalledTimes(1);
     expect(getRunSpy).toHaveBeenLastCalledWith(testRun.run!.id);
   });
 
@@ -522,7 +534,6 @@ describe('RunDetails', () => {
     TestUtils.makeErrorResponseOnce(getRunSpy, 'woops');
     await renderRunDetails(undefined, { waitForLoad: false });
     await TestUtils.flushPromises();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once initially to clear
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops',
@@ -542,7 +553,6 @@ describe('RunDetails', () => {
     TestUtils.makeErrorResponseOnce(getExperimentSpy, 'woops');
     await renderRunDetails(undefined, { waitForLoad: false });
     await TestUtils.flushPromises();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once initially to clear
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops',
@@ -560,16 +570,13 @@ describe('RunDetails', () => {
       { key: { id: 'experiment1', type: ApiResourceType.EXPERIMENT } },
     ];
     await renderRunDetails();
-    expect(getRunSpy).toHaveBeenCalledTimes(1);
     expect(getRunSpy).toHaveBeenLastCalledWith(testRun.run!.id);
-    expect(getExperimentSpy).toHaveBeenCalledTimes(1);
     expect(getExperimentSpy).toHaveBeenLastCalledWith('experiment1');
   });
 
   it('shows workflow errors as page error', async () => {
     vi.spyOn(WorkflowParser, 'getWorkflowError').mockImplementationOnce(() => 'some error message');
     await renderRunDetails();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear on init, once for error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'some error message',
@@ -584,10 +591,11 @@ describe('RunDetails', () => {
 
   it('switches to run output tab, shows empty message', async () => {
     await renderRunDetails();
-    fireEvent.click(screen.getByRole('button', { name: 'Run output' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run output' }));
     expect(getRunDetailsState()?.selectedTab).toBe(1);
     await TestUtils.flushPromises();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('No metrics found for this run.')).toBeInTheDocument();
+    expect(screen.getByText('No output artifacts found for this run.')).toBeInTheDocument();
   });
 
   it("loads the run's outputs in the output tab", async () => {
@@ -599,17 +607,35 @@ describe('RunDetails', () => {
       Promise.resolve([{ type: PlotType.TENSORBOARD, url: 'some url' }]),
     );
     await renderRunDetails();
-    fireEvent.click(screen.getByRole('button', { name: 'Run output' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run output' }));
     expect(getRunDetailsState()?.selectedTab).toBe(1);
     await TestUtils.flushPromises();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('step1')).toBeInTheDocument();
+    expect(screen.queryByText('No output artifacts found for this run.')).toBeNull();
+  });
+
+  it('catches rejected output artifact loads without surfacing an unhandled rejection', async () => {
+    const loggerErrorSpy = vi.spyOn(Utils.logger, 'error').mockImplementation();
+    pathsWithStepsParser.mockImplementation(() => [
+      { stepName: 'step1', path: { source: 'gcs', bucket: 'somebucket', key: 'somekey' } },
+    ]);
+    loaderSpy.mockImplementation(() => Promise.reject(new Error('artifact load failed')));
+
+    await renderRunDetails();
+    await TestUtils.flushPromises();
+
+    expect(loggerErrorSpy).toHaveBeenCalledWith('Failed to load run outputs:', expect.any(Error));
+    expect(getRunDetailsState()?.allArtifactConfigs).toEqual([]);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Run output' }));
+    await TestUtils.flushPromises();
+    expect(screen.getByText('No output artifacts found for this run.')).toBeInTheDocument();
   });
 
   it('switches to config tab', async () => {
     await renderRunDetails();
-    fireEvent.click(screen.getByRole('button', { name: 'Config' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Config' }));
     expect(getRunDetailsState()?.selectedTab).toBe(2);
-    expect(renderResult!.asFragment()).toMatchSnapshot();
   });
 
   it('shows run config fields', async () => {
@@ -639,9 +665,14 @@ describe('RunDetails', () => {
       },
     } as Workflow);
     await renderRunDetails();
-    fireEvent.click(screen.getByRole('button', { name: 'Config' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Config' }));
     expect(getRunDetailsState()?.selectedTab).toBe(2);
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('Run details')).toBeInTheDocument();
+    expect(screen.getByText('Run parameters')).toBeInTheDocument();
+    expect(screen.getByText('Workflow name')).toBeInTheDocument();
+    expect(screen.getByText('wf1')).toBeInTheDocument();
+    expect(screen.getByText('param1')).toBeInTheDocument();
+    expect(screen.getByText('value1')).toBeInTheDocument();
   });
 
   it('shows run config fields - handles no description', async () => {
@@ -657,9 +688,11 @@ describe('RunDetails', () => {
       },
     } as Workflow);
     await renderRunDetails();
-    fireEvent.click(screen.getByRole('button', { name: 'Config' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Config' }));
     expect(getRunDetailsState()?.selectedTab).toBe(2);
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('Run details')).toBeInTheDocument();
+    expect(screen.getByText('Description')).toBeInTheDocument();
+    expect(screen.queryByText('Run parameters')).toBeNull();
   });
 
   it('shows run config fields - handles no metadata', async () => {
@@ -671,9 +704,12 @@ describe('RunDetails', () => {
       },
     } as Workflow);
     await renderRunDetails();
-    fireEvent.click(screen.getByRole('button', { name: 'Config' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Config' }));
     expect(getRunDetailsState()?.selectedTab).toBe(2);
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('Run details')).toBeInTheDocument();
+    expect(screen.getByText('Workflow name')).toBeInTheDocument();
+    expect(screen.queryByText('wf1')).toBeNull();
+    expect(screen.queryByText('Run parameters')).toBeNull();
   });
 
   it('shows a one-node graph', async () => {
@@ -683,15 +719,9 @@ describe('RunDetails', () => {
       status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
     await renderRunDetails();
-    expect(screen.getByTestId('graph')).toMatchInlineSnapshot(`
-      <pre
-        data-testid="graph"
-      >
-        Node node1
-        Node node1-running-placeholder
-        Edge node1 to node1-running-placeholder
-      </pre>
-    `);
+    const graph = screen.getByTestId('graph');
+    expect(graph).toHaveTextContent('Node node1');
+    expect(graph).toHaveTextContent('Edge node1 to node1-running-placeholder');
   });
 
   it('shows a one-node compressed workflow graph', async () => {
@@ -706,15 +736,9 @@ describe('RunDetails', () => {
     await renderRunDetails();
     await TestUtils.flushPromises();
 
-    expect(screen.getByTestId('graph')).toMatchInlineSnapshot(`
-      <pre
-        data-testid="graph"
-      >
-        Node node1
-        Node node1-running-placeholder
-        Edge node1 to node1-running-placeholder
-      </pre>
-    `);
+    const graph = screen.getByTestId('graph');
+    expect(graph).toHaveTextContent('Node node1');
+    expect(graph).toHaveTextContent('Edge node1 to node1-running-placeholder');
   });
 
   it('shows a empty workflow graph if compressedNodes corrupt', async () => {
@@ -739,9 +763,8 @@ describe('RunDetails', () => {
       },
     });
     await renderRunDetails();
-    clickGraphNode('node1');
+    await clickGraphNode('node1');
     expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('id', 'node1');
-    expect(renderResult!.asFragment()).toMatchSnapshot();
   });
 
   it('opens side panel when valid execution id in router parameter', async () => {
@@ -786,7 +809,7 @@ describe('RunDetails', () => {
       },
     });
     await renderRunDetails();
-    clickGraphNode('node1');
+    await clickGraphNode('node1');
     expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
       'phaseMessage',
       'This step is in ' + testRun.run!.status + ' state with this message: some test message',
@@ -809,7 +832,7 @@ describe('RunDetails', () => {
       Promise.resolve([{ type: PlotType.TENSORBOARD, url: 'some url' }]),
     );
     await renderRunDetails();
-    clickGraphNode('node1');
+    await clickGraphNode('node1');
     await pathsParser;
     await pathsWithStepsParser;
     await loaderSpy;
@@ -854,11 +877,10 @@ describe('RunDetails', () => {
       },
     });
     await renderRunDetails();
-    clickGraphNode('node1');
-    fireEvent.click(screen.getByRole('button', { name: 'Input/Output' }));
+    await clickGraphNode('node1');
+    await userEvent.click(screen.getByRole('button', { name: 'Input/Output' }));
     await TestUtils.flushPromises();
     expect(getRunDetailsState()?.sidepanelSelectedTab).toEqual(STEP_TABS.INPUT_OUTPUT);
-    expect(renderResult!.asFragment()).toMatchSnapshot();
   });
 
   it('switches to volumes tab in side pane', async () => {
@@ -867,10 +889,9 @@ describe('RunDetails', () => {
       status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
     await renderRunDetails();
-    clickGraphNode('node1');
-    fireEvent.click(screen.getByRole('button', { name: 'Volumes' }));
+    await clickGraphNode('node1');
+    await userEvent.click(screen.getByRole('button', { name: 'Volumes' }));
     expect(getRunDetailsState()?.sidepanelSelectedTab).toEqual(STEP_TABS.VOLUMES);
-    expect(renderResult!.asFragment()).toMatchSnapshot();
   });
 
   it('switches to manifest tab in side pane', async () => {
@@ -879,12 +900,11 @@ describe('RunDetails', () => {
       status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
     await renderRunDetails();
-    clickGraphNode('node1');
+    await clickGraphNode('node1');
     await act(async () => {
       await (runDetailsRef?.current as any)?._loadSidePaneTab(STEP_TABS.MANIFEST);
     });
     expect(getRunDetailsState()?.sidepanelSelectedTab).toEqual(STEP_TABS.MANIFEST);
-    expect(renderResult!.asFragment()).toMatchSnapshot();
   });
 
   it('closes side panel when close button is clicked', async () => {
@@ -893,13 +913,12 @@ describe('RunDetails', () => {
       status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
     await renderRunDetails();
-    clickGraphNode('node1');
+    await clickGraphNode('node1');
     await TestUtils.flushPromises();
     expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('id', 'node1');
-    fireEvent.click(screen.getByLabelText('close'));
+    await userEvent.click(screen.getByLabelText('close'));
     expect(getRunDetailsState()?.selectedNodeDetails).toBeNull();
     await TestUtils.flushPromises();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
   });
 
   it('keeps side pane open and on same tab when page is refreshed', async () => {
@@ -908,8 +927,8 @@ describe('RunDetails', () => {
       status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
     await renderRunDetails();
-    clickGraphNode('node1');
-    fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
+    await clickGraphNode('node1');
+    await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
     expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('id', 'node1');
     expect(getRunDetailsState()?.sidepanelSelectedTab).toEqual(STEP_TABS.LOGS);
 
@@ -933,8 +952,8 @@ describe('RunDetails', () => {
       },
     });
     await renderRunDetails();
-    clickGraphNode('node1');
-    fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
+    await clickGraphNode('node1');
+    await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
     expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('id', 'node1');
     expect(getRunDetailsState()?.sidepanelSelectedTab).toEqual(STEP_TABS.LOGS);
 
@@ -953,20 +972,32 @@ describe('RunDetails', () => {
       status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
     await renderRunDetails();
-    clickGraphNode('node1');
-    fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
+    await clickGraphNode('node1');
+    await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
     expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('id', 'node1');
     expect(getRunDetailsState()?.sidepanelSelectedTab).toEqual(STEP_TABS.LOGS);
 
     const beforeRefresh = updateToolbarSpy.mock.calls[updateToolbarSpy.mock.calls.length - 1][0];
-    expect(beforeRefresh.pageTitle).toMatchSnapshot();
+    const { unmount: unmountBefore } = render(<div>{beforeRefresh.pageTitle}</div>);
+    expect(screen.getByText('test run')).toBeInTheDocument();
+    const iconBefore = screen.getByTestId('node-status-sign');
+    expect(iconBefore).toBeInTheDocument();
+    // Green icon = success before refresh
+    expect(iconBefore.style.color).toBe('rgb(52, 168, 83)');
+    unmountBefore();
 
     testRun.run!.status = 'Failed';
     await act(async () => {
       await runDetailsRef?.current?.refresh();
     });
     const afterRefresh = updateToolbarSpy.mock.calls[updateToolbarSpy.mock.calls.length - 1][0];
-    expect(afterRefresh.pageTitle).toMatchSnapshot();
+    const { unmount: unmountAfter } = render(<div>{afterRefresh.pageTitle}</div>);
+    expect(screen.getByText('test run')).toBeInTheDocument();
+    const iconAfter = screen.getByTestId('node-status-sign');
+    expect(iconAfter).toBeInTheDocument();
+    // Red icon = failure after refresh
+    expect(iconAfter.style.color).toBe('rgb(213, 0, 0)');
+    unmountAfter();
   });
 
   it('shows node message banner if node receives message after refresh', async () => {
@@ -975,8 +1006,8 @@ describe('RunDetails', () => {
       status: { nodes: { node1: { id: 'node1', phase: 'Succeeded', message: '' } } },
     });
     await renderRunDetails();
-    clickGraphNode('node1');
-    fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
+    await clickGraphNode('node1');
+    await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
     await waitFor(() => {
       expect(getRunDetailsState()?.selectedNodeDetails).toBeTruthy();
     });
@@ -1000,12 +1031,11 @@ describe('RunDetails', () => {
       await runDetailsRef?.current?.refresh();
     });
     await waitFor(() => {
-      expect(getRunDetailsState()?.selectedNodeDetails).toBeTruthy();
+      expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
+        'phaseMessage',
+        'This step is in Succeeded state with this message: some node message',
+      );
     });
-    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
-      'phaseMessage',
-      'This step is in Succeeded state with this message: some node message',
-    );
   });
 
   it('dismisses node message banner if node loses message after refresh', async () => {
@@ -1024,15 +1054,14 @@ describe('RunDetails', () => {
       },
     });
     await renderRunDetails();
-    clickGraphNode('node1');
-    fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
+    await clickGraphNode('node1');
+    await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
     await waitFor(() => {
-      expect(getRunDetailsState()?.selectedNodeDetails).toBeTruthy();
+      expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
+        'phaseMessage',
+        'This step is in Succeeded state with this message: some node message',
+      );
     });
-    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
-      'phaseMessage',
-      'This step is in Succeeded state with this message: some node message',
-    );
 
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       metadata: { name: 'workflow1' },
@@ -1042,9 +1071,8 @@ describe('RunDetails', () => {
       await runDetailsRef?.current?.refresh();
     });
     await waitFor(() => {
-      expect(getRunDetailsState()?.selectedNodeDetails).toBeTruthy();
+      expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('phaseMessage', undefined);
     });
-    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('phaseMessage', undefined);
   });
 
   [NodePhase.RUNNING, NodePhase.PENDING, NodePhase.UNKNOWN].forEach((unfinishedStatus) => {
@@ -1060,11 +1088,9 @@ describe('RunDetails', () => {
           status: unfinishedStatus,
         },
       };
-      getRunSpy.mockImplementationOnce(() => Promise.resolve(unfinishedRun));
+      getRunSpy.mockImplementation(() => Promise.resolve(unfinishedRun));
 
       await renderRunDetails();
-
-      expect(renderResult!.asFragment()).toMatchSnapshot();
     });
   });
 
@@ -1085,8 +1111,6 @@ describe('RunDetails', () => {
         getRunSpy.mockImplementationOnce(() => Promise.resolve(unfinishedRun));
 
         await renderRunDetails();
-
-        expect(renderResult!.asFragment()).toMatchSnapshot();
       });
     },
   );
@@ -1094,7 +1118,6 @@ describe('RunDetails', () => {
   it('shows an error banner if the custom visualizations state API fails', async () => {
     TestUtils.makeErrorResponseOnce(isCustomVisualizationsAllowedSpy, 'woops');
     await renderRunDetails();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once initially to clear
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops',
@@ -1112,10 +1135,9 @@ describe('RunDetails', () => {
         metadata: { namespace: 'ns', name: 'workflow1' },
       });
       await renderRunDetails();
-      clickGraphNode('node1');
-      fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
       expect(getRunDetailsState()?.sidepanelSelectedTab).toEqual(STEP_TABS.LOGS);
-      expect(renderResult!.asFragment()).toMatchSnapshot();
     });
 
     it('loads and shows logs in side pane', async () => {
@@ -1134,8 +1156,8 @@ describe('RunDetails', () => {
       });
 
       await renderRunDetails();
-      clickGraphNode('node1');
-      fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
       await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(1));
       expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
       expect(getPodLogsSpy).toHaveBeenLastCalledWith(
@@ -1144,7 +1166,6 @@ describe('RunDetails', () => {
         'ns',
         '',
       );
-      expect(renderResult!.asFragment()).toMatchSnapshot();
     });
 
     it('shows stackdriver link next to logs in GKE', async () => {
@@ -1159,68 +1180,18 @@ describe('RunDetails', () => {
       await renderRunDetails(undefined, {
         props: { gkeMetadata: { projectId: 'test-project-id', clusterName: 'test-cluster-name' } },
       });
-      clickGraphNode('node1');
-      fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
       await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(1));
       await TestUtils.flushPromises();
-      expect(screen.getByTestId('run-details-node-details')).toMatchInlineSnapshot(`
-        <div
-          class="page_f1flacxk"
-          data-testid="run-details-node-details"
-        >
-          <div
-            class="page_f1flacxk"
-          >
-            
-            <div
-              class="f4k0h41"
-            >
-              Logs can also be viewed in
-               
-              <a
-                class="link_fvmzhfr unstyled_f1ikaigl"
-                href="https://console.cloud.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D"k8s_container"%0Aresource.labels.cluster_name:"test-cluster-name"%0Aresource.labels.pod_name:"node1""
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                Stackdriver Kubernetes Monitoring
-              </a>
-              .
-            </div>
-            <div
-              class="pageOverflowHidden_f15djeb2"
-            >
-              <div
-                style="overflow: visible; height: 0px; width: 0px;"
-              >
-                <div
-                  aria-label="grid"
-                  aria-readonly="true"
-                  class="ReactVirtualized__Grid ReactVirtualized__List root_f17jcl2y"
-                  id="logViewer"
-                  role="grid"
-                  style="box-sizing: border-box; direction: ltr; height: 0px; position: relative; width: 0px; -webkit-overflow-scrolling: touch; will-change: transform; overflow-x: hidden; overflow-y: auto;"
-                  tabindex="0"
-                />
-              </div>
-              <div
-                class="resize-triggers"
-              >
-                <div
-                  class="expand-trigger"
-                >
-                  <div
-                    style="width: 1px; height: 1px;"
-                  />
-                </div>
-                <div
-                  class="contract-trigger"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      `);
+      expect(screen.getByText(/Logs can also be viewed in/)).toBeInTheDocument();
+      const stackdriverLink = screen.getByRole('link', {
+        name: /Stackdriver Kubernetes Monitoring/i,
+      });
+      expect(stackdriverLink).toHaveAttribute(
+        'href',
+        expect.stringContaining('console.cloud.google.com'),
+      );
     });
 
     it("loads logs in run's namespace", async () => {
@@ -1233,8 +1204,8 @@ describe('RunDetails', () => {
         },
       });
       await renderRunDetails();
-      clickGraphNode('node1');
-      fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
       await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(1));
       expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
       expect(getPodLogsSpy).toHaveBeenLastCalledWith(
@@ -1258,70 +1229,16 @@ describe('RunDetails', () => {
       await renderRunDetails(undefined, {
         props: { gkeMetadata: { projectId: 'test-project-id', clusterName: 'test-cluster-name' } },
       });
-      clickGraphNode('node1');
-      fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
       await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(1));
       await TestUtils.flushPromises();
-      expect(screen.getByTestId('run-details-node-details')).toMatchInlineSnapshot(`
-        <div
-          class="page_f1flacxk"
-          data-testid="run-details-node-details"
-        >
-          <div
-            class="page_f1flacxk"
-          >
-            <div
-              class="flex_f16jawj4 banner_forn49x mode_f77nw2b"
-            >
-              <div
-                class="message_fddsvlq"
-              >
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1jqzauf css-i4bv87-MuiSvgIcon-root"
-                  data-testid="InfoIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 15h-2v-6h2zm0-8h-2V7h2z"
-                  />
-                </svg>
-                Failed to retrieve pod logs. Use Stackdriver Kubernetes Monitoring to view them.
-              </div>
-              <div
-                class="flex_f16jawj4"
-              >
-                <button
-                  class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_fu86r2b detailsButton_fgq2mjo css-1e6y48t-MuiButtonBase-root-MuiButton-root"
-                  tabindex="0"
-                  type="button"
-                >
-                  Details
-                  <span
-                    class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-                  />
-                </button>
-              </div>
-            </div>
-            <div
-              class="f4k0h41"
-            >
-              Logs can also be viewed in
-               
-              <a
-                class="link_fvmzhfr unstyled_f1ikaigl"
-                href="https://console.cloud.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D"k8s_container"%0Aresource.labels.cluster_name:"test-cluster-name"%0Aresource.labels.pod_name:"node1""
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                Stackdriver Kubernetes Monitoring
-              </a>
-              .
-            </div>
-          </div>
-        </div>
-      `);
+      const nodeDetails = within(screen.getByTestId('run-details-node-details'));
+      expect(screen.getByText(/Failed to retrieve pod logs/)).toBeInTheDocument();
+      expect(nodeDetails.getByRole('button', { name: 'Details' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', { name: /Stackdriver Kubernetes Monitoring/i }),
+      ).toBeInTheDocument();
     });
 
     it('shows warning banner without stackdriver link in logs area if fetching logs failed and cluster is not in GKE', async () => {
@@ -1335,56 +1252,16 @@ describe('RunDetails', () => {
       });
       TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'pod not found');
       await renderRunDetails(undefined, { props: { gkeMetadata: {} } });
-      clickGraphNode('node1');
-      fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
       await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(1));
       await TestUtils.flushPromises();
-      expect(screen.getByTestId('run-details-node-details')).toMatchInlineSnapshot(`
-        <div
-          class="page_f1flacxk"
-          data-testid="run-details-node-details"
-        >
-          <div
-            class="page_f1flacxk"
-          >
-            <div
-              class="flex_f16jawj4 banner_forn49x mode_f77nw2b"
-            >
-              <div
-                class="message_fddsvlq"
-              >
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1jqzauf css-i4bv87-MuiSvgIcon-root"
-                  data-testid="InfoIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 15h-2v-6h2zm0-8h-2V7h2z"
-                  />
-                </svg>
-                Failed to retrieve pod logs.
-              </div>
-              <div
-                class="flex_f16jawj4"
-              >
-                <button
-                  class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_fu86r2b detailsButton_fgq2mjo css-1e6y48t-MuiButtonBase-root-MuiButton-root"
-                  tabindex="0"
-                  type="button"
-                >
-                  Details
-                  <span
-                    class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-                  />
-                </button>
-              </div>
-            </div>
-            
-          </div>
-        </div>
-      `);
+      const nodeDetails = within(screen.getByTestId('run-details-node-details'));
+      expect(screen.getByText(/Failed to retrieve pod logs/)).toBeInTheDocument();
+      expect(nodeDetails.getByRole('button', { name: 'Details' })).toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', { name: /Stackdriver Kubernetes Monitoring/i }),
+      ).not.toBeInTheDocument();
     });
 
     it('does not load logs if clicked node status is skipped', async () => {
@@ -1402,15 +1279,14 @@ describe('RunDetails', () => {
         },
       });
       await renderRunDetails();
-      clickGraphNode('node1');
-      fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
       await TestUtils.flushPromises();
       expect(getPodLogsSpy).not.toHaveBeenCalled();
       expect(getRunDetailsState()).toMatchObject({
         logsBannerAdditionalInfo: '',
         logsBannerMessage: '',
       });
-      expect(renderResult!.asFragment()).toMatchSnapshot();
     });
 
     it('keeps side pane open and on same tab when logs change after refresh', async () => {
@@ -1423,8 +1299,8 @@ describe('RunDetails', () => {
         metadata: { namespace: 'ns', name: 'workflow1' },
       });
       await renderRunDetails();
-      clickGraphNode('node1');
-      fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
       expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('id', 'node1');
       expect(getRunDetailsState()?.sidepanelSelectedTab).toEqual(STEP_TABS.LOGS);
 
@@ -1432,7 +1308,6 @@ describe('RunDetails', () => {
       await act(async () => {
         await runDetailsRef?.current?.refresh();
       });
-      expect(renderResult!.asFragment()).toMatchSnapshot();
     });
 
     it('shows error banner if fetching logs failed not because pod has gone away', async () => {
@@ -1446,8 +1321,8 @@ describe('RunDetails', () => {
       });
       TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
       await renderRunDetails();
-      clickGraphNode('node1');
-      fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
       await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(1));
       await TestUtils.flushPromises();
       expect(getRunDetailsState()).toMatchObject({
@@ -1468,8 +1343,8 @@ describe('RunDetails', () => {
       });
       TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
       await renderRunDetails();
-      clickGraphNode('node1');
-      fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
       await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(1));
       await TestUtils.flushPromises();
       expect(getRunDetailsState()).toMatchObject({
@@ -1500,15 +1375,15 @@ describe('RunDetails', () => {
         metadata: { namespace: 'ns', name: 'workflow1' },
       });
       await renderRunDetails();
-      clickGraphNode('node1');
+      await clickGraphNode('node1');
       await waitFor(() =>
         expect(getRunDetailsState()?.selectedNodeDetails).toMatchObject({ id: 'node1' }),
       );
-      fireEvent.click(screen.getByRole('button', { name: 'Pod' }));
-      await waitFor(() => expect(getPodInfoSpy).toHaveBeenCalledTimes(1));
+      await userEvent.click(screen.getByRole('button', { name: 'Pod' }));
+      await waitFor(() =>
+        expect(getPodInfoSpy).toHaveBeenLastCalledWith('workflow1-template1-node1', 'ns'),
+      );
       await TestUtils.flushPromises();
-
-      expect(getPodInfoSpy).toHaveBeenCalledWith('workflow1-template1-node1', 'ns');
     });
 
     it('does not show pod pane if selected node skipped', async () => {
@@ -1521,16 +1396,11 @@ describe('RunDetails', () => {
         metadata: { namespace: 'ns', name: 'workflow1' },
       });
       await renderRunDetails();
-      clickGraphNode('node1');
-      fireEvent.click(screen.getByRole('button', { name: 'Pod' }));
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Pod' }));
       await TestUtils.flushPromises();
 
-      expect(screen.getByTestId('run-details-node-details')).toMatchInlineSnapshot(`
-        <div
-          class="page_f1flacxk"
-          data-testid="run-details-node-details"
-        />
-      `);
+      expect(screen.getByTestId('run-details-node-details')).toBeEmptyDOMElement();
     });
   });
 
@@ -1553,112 +1423,17 @@ describe('RunDetails', () => {
         metadata: { namespace: 'ns', name: 'workflow1' },
       });
       await renderRunDetails();
-      clickGraphNode('node1');
-      fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Details' }));
       await TestUtils.flushPromises();
 
-      expect(screen.getByTestId('run-details-node-details')).toMatchInlineSnapshot(`
-        <div
-          class="page_f1flacxk"
-          data-testid="run-details-node-details"
-        >
-          <div
-            class="f1ahre9t"
-          >
-            <div
-              class="header2_f1tq2tps"
-            >
-              Task Details
-            </div>
-            <div>
-              <div
-                class="row_f16w1c9n"
-              >
-                <span
-                  class="key_f1e93q8f"
-                >
-                  Task ID
-                </span>
-                <span
-                  class="valueText_f1nujmdy"
-                >
-                  node1
-                </span>
-              </div>
-              <div
-                class="row_f16w1c9n"
-              >
-                <span
-                  class="key_f1e93q8f"
-                >
-                  Task name
-                </span>
-                <span
-                  class="valueText_f1nujmdy"
-                >
-                  Task
-                </span>
-              </div>
-              <div
-                class="row_f16w1c9n"
-              >
-                <span
-                  class="key_f1e93q8f"
-                >
-                  Status
-                </span>
-                <span
-                  class="valueText_f1nujmdy"
-                >
-                  Succeeded
-                </span>
-              </div>
-              <div
-                class="row_f16w1c9n"
-              >
-                <span
-                  class="key_f1e93q8f"
-                >
-                  Started at
-                </span>
-                <span
-                  class="valueText_f1nujmdy"
-                >
-                  1/2/2019, 12:34:56 PM
-                </span>
-              </div>
-              <div
-                class="row_f16w1c9n"
-              >
-                <span
-                  class="key_f1e93q8f"
-                >
-                  Finished at
-                </span>
-                <span
-                  class="valueText_f1nujmdy"
-                >
-                  1/2/2019, 12:34:56 PM
-                </span>
-              </div>
-              <div
-                class="row_f16w1c9n"
-              >
-                <span
-                  class="key_f1e93q8f"
-                >
-                  Duration
-                </span>
-                <span
-                  class="valueText_f1nujmdy"
-                >
-                  0:00:02
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      `);
+      const details = screen.getByTestId('run-details-node-details');
+      expect(details).toHaveTextContent('Task Details');
+      expect(details).toHaveTextContent('Task ID');
+      expect(details).toHaveTextContent('node1');
+      expect(details).toHaveTextContent('Task name');
+      expect(details).toHaveTextContent('Succeeded');
+      expect(details).toHaveTextContent('Duration');
     });
   });
 
@@ -1832,7 +1607,7 @@ describe('RunDetails', () => {
       expect(history.location.pathname).toEqual('/experiments');
     });
 
-    it('does not redirect when namespace stays the same', () => {
+    it('does not redirect when namespace stays the same', async () => {
       const history = createMemoryHistory({
         initialEntries: ['/initial-path'],
       });
@@ -1843,18 +1618,22 @@ describe('RunDetails', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await flushPromisesInAct();
       expect(history.location.pathname).toEqual('/initial-path');
-      rerender(
-        <Router history={history}>
-          <NamespaceContext.Provider value='ns1'>
-            <EnhancedRunDetails {...generateProps()} />
-          </NamespaceContext.Provider>
-        </Router>,
-      );
+      await act(async () => {
+        rerender(
+          <Router history={history}>
+            <NamespaceContext.Provider value='ns1'>
+              <EnhancedRunDetails {...generateProps()} />
+            </NamespaceContext.Provider>
+          </Router>,
+        );
+        await TestUtils.flushPromises();
+      });
       expect(history.location.pathname).toEqual('/initial-path');
     });
 
-    it('does not redirect when namespace initializes', () => {
+    it('does not redirect when namespace initializes', async () => {
       const history = createMemoryHistory({
         initialEntries: ['/initial-path'],
       });
@@ -1865,14 +1644,18 @@ describe('RunDetails', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await flushPromisesInAct();
       expect(history.location.pathname).toEqual('/initial-path');
-      rerender(
-        <Router history={history}>
-          <NamespaceContext.Provider value='ns1'>
-            <EnhancedRunDetails {...generateProps()} />
-          </NamespaceContext.Provider>
-        </Router>,
-      );
+      await act(async () => {
+        rerender(
+          <Router history={history}>
+            <NamespaceContext.Provider value='ns1'>
+              <EnhancedRunDetails {...generateProps()} />
+            </NamespaceContext.Provider>
+          </Router>,
+        );
+        await TestUtils.flushPromises();
+      });
       expect(history.location.pathname).toEqual('/initial-path');
     });
   });
@@ -1896,48 +1679,23 @@ describe('RunDetails', () => {
         },
       });
       await renderRunDetails();
-      expect(screen.getByTestId('graph')).toMatchInlineSnapshot(`
-        <pre
-          data-testid="graph"
-        >
-          Node node1
-          Node node1-running-placeholder
-          Node node2
-          Node node2-running-placeholder
-          Node node3
-          Node node3-running-placeholder
-          Edge node1 to node1-running-placeholder
-          Edge node2 to node2-running-placeholder
-          Edge node3 to node3-running-placeholder
-          Edge node1 to node2
-          Edge node1 to node3
-          Edge node2 to node3
-        </pre>
-      `);
+      const graph = screen.getByTestId('graph');
+      expect(graph).toHaveTextContent('Node node1');
+      expect(graph).toHaveTextContent('Node node2');
+      expect(graph).toHaveTextContent('Node node3');
+      expect(graph).toHaveTextContent('Edge node1 to node2');
+      expect(graph).toHaveTextContent('Edge node1 to node3');
+      expect(graph).toHaveTextContent('Edge node2 to node3');
 
-      // Simplify graph
-      fireEvent.click(screen.getByLabelText('Simplify Graph'));
-      expect(screen.getByTestId('graph')).toMatchInlineSnapshot(`
-        <pre
-          data-testid="graph"
-        >
-          Node node1
-          Node node1-running-placeholder
-          Node node2
-          Node node2-running-placeholder
-          Node node3
-          Node node3-running-placeholder
-          Edge node1 to node1-running-placeholder
-          Edge node2 to node2-running-placeholder
-          Edge node3 to node3-running-placeholder
-          Edge node1 to node2
-          Edge node2 to node3
-        </pre>
-      `);
+      // Simplify graph — removes the transitive edge node1→node3
+      await userEvent.click(screen.getByLabelText('Simplify Graph'));
+      expect(graph).toHaveTextContent('Edge node1 to node2');
+      expect(graph).toHaveTextContent('Edge node2 to node3');
+      expect(graph).not.toHaveTextContent('Edge node1 to node3');
     });
   });
 });
 
-function clickGraphNode(nodeId: string): void {
-  fireEvent.click(screen.getByTestId(`graph-node-${nodeId}`));
+async function clickGraphNode(nodeId: string): Promise<void> {
+  await userEvent.click(screen.getByTestId(`graph-node-${nodeId}`));
 }

@@ -11,15 +11,15 @@ are available at their corresponding GitHub repositories.
 ### fnm
 
 ```bash
-fnm install 22.19.0
-fnm use 22.19.0
+fnm install "$(cat .nvmrc)"
+fnm use "$(cat .nvmrc)"
 ```
 
 ### nvm
 
 ```bash
-nvm install 22.19.0
-nvm use 22.19.0
+nvm install "$(cat .nvmrc)"
+nvm use "$(cat .nvmrc)"
 ```
 
 ## Manage dev environment with npm
@@ -54,7 +54,17 @@ Install the NPM dependencies:
 
 ### Daily workflow
 
-You will see a lot of `npm run xxx` commands in the instructions below, the actual script being run is defined in the "scripts" field of [package.json](https://github.com/kubeflow/pipelines/blob/91db95a601fa7fffcb670cb744a5dcaeb08290ae/frontend/package.json#L32). Common development scripts are maintained in package.json, and we use npm to call them conveniently.
+You will see a lot of `npm run xxx` commands in the instructions below. The actual scripts are defined in the `scripts` field of [package.json](./package.json). Common development scripts are maintained there, and we use npm to call them conveniently.
+
+## Frontend stack
+
+- React 19 with TypeScript
+- MUI v5 with Emotion
+- TanStack Query v5
+- React Router v5
+- Vitest with Testing Library v16 for UI tests
+- Vitest for frontend server tests
+- Storybook 10
 
 ### npm next step
 
@@ -69,6 +79,9 @@ http://localhost:3000/apis/v1beta1/pipelines, which is proxied by the
 webserver to http://localhost:3001/apis/v1beta1/pipelines,
 which should return the list of pipelines. To override the port, run
 `npm run start -- --port 3002` or update `frontend/vite.config.mts`.
+
+The development bootstrap renders the app under React Strict Mode. Production
+builds remain outside Strict Mode.
 
 Follow the next section to start an API server (mock or proxy) to let localhost:3001
 respond to API requests.
@@ -160,16 +173,28 @@ There are a few types of tests during pre-submit:
 * linting, you can also run locally with `npm run lint`
   (`npm run lint:ui` and `npm run lint:server` are available for narrower checks)
 * TypeScript typecheck (no emit), run locally with `npm run typecheck`
-* client UI unit tests (Vitest), you can run locally with `npm run test:ui`
-  (uncapped workers) or `npm run test:ui:coverage:loop` for stability loops
-  (coverage + `--maxWorkers 4`). `npm test` is an alias for `vitest run`.
-* UI node server unit tests (Jest), you can run locally with
+* React peer compatibility gate, run locally with `npm run check:react-peers`
+  (targets React 19 by default)
+* client UI unit tests (Vitest + Testing Library v16), you can run locally with
+  `npm run test:ui` (uncapped workers) or `npm run test:ui:coverage:loop` for
+  stability loops (coverage + `--maxWorkers 4`). `npm test` is an alias for
+  `vitest run`. The global test setup enables Testing Library
+  `reactStrictMode`, so direct `render()` calls exercise the same Strict Mode
+  behavior as `npm start`.
+* UI node server unit tests (Vitest), you can run locally with
   `npm run test:server:coverage` or `cd server && npm test -- --coverage`
 
-There is a special type of unit test called [snapshot tests](https://jestjs.io/docs/en/snapshot-testing). When
-snapshot tests are failing, you can update them automatically with `npm test -u` or
-`npm run test:ui -- -u` (Vitest) and run all tests. For server test snapshots (if any),
-use `cd server && npm test -- -u`. Then commit the snapshot changes.
+There is a special type of unit test called
+[snapshot tests](https://vitest.dev/guide/snapshot.html). When snapshot tests
+are failing, you can update them automatically with `npm test -u` or
+`npm run test:ui -- -u` (Vitest) and run all tests. For server test snapshots
+(if any), use `cd server && npm test -- -u`. Then commit the snapshot changes.
+
+## Frontend coding conventions
+
+- Prefer Testing Library and assertions against user-visible behavior in new UI tests. Avoid Enzyme and implementation-detail testing in new code. For examples, see [frontend/src/pages/ExecutionList.test.tsx](src/pages/ExecutionList.test.tsx) and [frontend/src/pages/RunDetailsV2.test.tsx](src/pages/RunDetailsV2.test.tsx).
+- Keep snapshot tests small and intentional. Use them as focused regression coverage, not as a substitute for behavioral assertions.
+- Prefer prop/state-driven data flow over imperative refs. Reach for `useEffect` when synchronizing with systems outside React, not for derived UI state. For more detailed guidance used in reviews, see [AGENTS.md](../AGENTS.md#react-effect-discipline).
 
 ## Production Build
 
@@ -316,7 +341,7 @@ Prerequisite: Add `protoc` ([download](https://github.com/protocolbuffers/protob
 Compile pipeline_spec.proto to Typed classes in TypeScript,
 so it can convert a payload stream to a PipelineSpec object during runtime.
 
-You can check out the result like `pipeline_spec_pb.js`, `pipeline_spec_pb.d.ts` in [frontend/src/generated/pipeline_spec](/frontend/src/generated/pipeline_spec).
+You can check out the generated TypeScript outputs like `pipeline_spec.ts` and `google/rpc/status.ts` in [frontend/src/generated/pipeline_spec](/frontend/src/generated/pipeline_spec).
 
 The plugin tool for conversion we currently use is [ts-proto](https://github.com/stephenh/ts-proto). We previously use
 [protobuf.js](https://github.com/protobufjs/protobuf.js) but it doesn't natively support Protobuf.Value processing.

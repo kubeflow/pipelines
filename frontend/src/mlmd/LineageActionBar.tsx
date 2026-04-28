@@ -136,7 +136,7 @@ export class LineageActionBar extends React.Component<
   }
 
   public render() {
-    const breadcrumbs: JSX.Element[] = [
+    const breadcrumbs: React.JSX.Element[] = [
       <span className={classes(actionBarCss.workspace)} key='workspace'>
         {getResourcePropertyViaFallBack(
           this.state.history[0],

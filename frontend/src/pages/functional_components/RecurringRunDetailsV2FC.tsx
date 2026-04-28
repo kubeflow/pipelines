@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { CircularProgress } from '@mui/material';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
+import { queryKeys } from 'src/hooks/queryKeys';
 import DetailsTable from 'src/components/DetailsTable';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
@@ -32,39 +34,36 @@ import { triggerDisplayString } from 'src/lib/TriggerUtils';
 
 export function RecurringRunDetailsV2FC(props: PageProps) {
   const { updateBanner, updateToolbar } = props;
-  const [refresh, setRefresh] = useState(true);
-  const [getRecurringRunErrMsg, setGetRecurringRunErrMsg] = useState<string>('');
-  const [getExperimentErrMsg, setGetExperimentErrMsg] = useState<string>('');
-
-  // Related to Api Response
-  const [experimentName, setExperimentName] = useState<string>();
-  const [experimentIdFromApi, setExperimentIdFromApi] = useState<string>();
-  const [recurringRunName, setRecurringRunName] = useState<string>();
-  const [recurringRunIdFromApi, setRecurringRunIdFromApi] = useState<string>();
-  const [recurringRunStatus, setRecurringRunStatus] = useState<V2beta1RecurringRunStatus>();
 
   const recurringRunId = props.match.params[RouteParams.recurringRunId];
-  const Refresh = () => setRefresh((refreshed) => !refreshed);
 
   const {
+    isLoading: isRecurringRunLoading,
     data: recurringRun,
     error: getRecurringRunError,
     refetch: refetchRecurringRun,
   } = useQuery<V2beta1RecurringRun, Error>({
-    queryKey: ['recurringRun', recurringRunId],
+    queryKey: queryKeys.recurringRun(recurringRunId),
     queryFn: async () => {
       return await Apis.recurringRunServiceApi.getRecurringRun(recurringRunId);
     },
 
     enabled: !!recurringRunId,
     staleTime: 0,
-    cacheTime: 0, // v5: renamed to gcTime
+    gcTime: 0,
   });
 
-  const experimentId = recurringRun?.experiment_id!;
-  const { data: experiment, error: getExperimentError } = useQuery<V2beta1Experiment, Error>({
-    queryKey: ['experiment', experimentId],
+  const experimentId = recurringRun?.experiment_id;
+  const {
+    data: experiment,
+    error: getExperimentError,
+    refetch: refetchExperiment,
+  } = useQuery<V2beta1Experiment, Error>({
+    queryKey: queryKeys.experiment(experimentId),
     queryFn: async () => {
+      if (!experimentId) {
+        throw new Error('Experiment ID is missing');
+      }
       return await Apis.experimentServiceApiV2.getExperiment(experimentId);
     },
 
@@ -72,86 +71,73 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
     staleTime: 0,
   });
 
-  useEffect(() => {
-    if (recurringRun) {
-      setRecurringRunName(recurringRun.display_name);
-      setRecurringRunStatus(recurringRun.status);
-      setRecurringRunIdFromApi(recurringRun.recurring_run_id);
+  const refreshRecurringRun = async () => {
+    await refetchRecurringRun();
+    if (experimentId) {
+      await refetchExperiment();
     }
-  }, [recurringRun]);
-
-  useEffect(() => {
-    if (experiment) {
-      setExperimentName(experiment.display_name);
-      setExperimentIdFromApi(experiment.experiment_id);
-    }
-  }, [experiment]);
+  };
 
   useEffect(() => {
     const toolbarState = getInitialToolbarState();
 
     toolbarState.actions[ButtonKeys.ENABLE_RECURRING_RUN].disabled =
-      recurringRunStatus === V2beta1RecurringRunStatus.ENABLED;
+      recurringRun?.status === V2beta1RecurringRunStatus.ENABLED;
     toolbarState.actions[ButtonKeys.DISABLE_RECURRING_RUN].disabled =
-      recurringRunStatus !== V2beta1RecurringRunStatus.ENABLED;
-    toolbarState.pageTitle = recurringRunName || recurringRunIdFromApi || 'Unknown recurring run';
-    toolbarState.breadcrumbs = getBreadcrumbs(experimentIdFromApi, experimentName);
+      recurringRun?.status !== V2beta1RecurringRunStatus.ENABLED;
+    toolbarState.pageTitle =
+      recurringRun?.display_name || recurringRun?.recurring_run_id || 'Unknown recurring run';
+    toolbarState.breadcrumbs = getBreadcrumbs(experiment?.experiment_id, experiment?.display_name);
     updateToolbar(toolbarState);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    recurringRunIdFromApi,
-    recurringRunName,
-    recurringRunStatus,
-    experimentIdFromApi,
-    experimentName,
+    recurringRun?.recurring_run_id,
+    recurringRun?.display_name,
+    recurringRun?.status,
+    experiment?.experiment_id,
+    experiment?.display_name,
   ]);
 
   useEffect(() => {
-    if (getRecurringRunError) {
-      (async () => {
+    let cancelled = false;
+
+    const syncBanner = async () => {
+      if (getRecurringRunError) {
         const errorMessage = await errorToMessage(getRecurringRunError);
-        setGetRecurringRunErrMsg(errorMessage);
-      })();
-    }
+        if (!cancelled) {
+          updateBanner({
+            additionalInfo: errorMessage ? errorMessage : undefined,
+            message:
+              `Error: failed to retrieve recurring run: ${recurringRunId}.` +
+              (errorMessage ? ' Click Details for more information.' : ''),
+            mode: 'error',
+          });
+        }
+        return;
+      }
 
-    // getExperimentError is from the getExperiment useQuery which is enabled by the
-    // experiment ID in recurringRun object. => when getExperimentError changed,
-    // getRecurringRun useQuery must be successful (getRecurringRunError is null)
-    if (getExperimentError) {
-      (async () => {
+      if (getExperimentError) {
         const errorMessage = await errorToMessage(getExperimentError);
-        setGetExperimentErrMsg(errorMessage);
-      })();
-    }
-  }, [getRecurringRunError, getExperimentError]);
+        if (!cancelled) {
+          updateBanner({
+            additionalInfo: errorMessage ? errorMessage : undefined,
+            message:
+              `Error: failed to retrieve this recurring run's experiment.` +
+              (errorMessage ? ' Click Details for more information.' : ''),
+            mode: 'warning',
+          });
+        }
+        return;
+      }
 
-  useEffect(() => {
-    if (getRecurringRunErrMsg) {
-      updateBanner({
-        additionalInfo: getRecurringRunErrMsg ? getRecurringRunErrMsg : undefined,
-        message:
-          `Error: failed to retrieve recurring run: ${recurringRunId}.` +
-          (getRecurringRunErrMsg ? ' Click Details for more information.' : ''),
-        mode: 'error',
-      });
-    }
+      updateBanner({});
+    };
 
-    if (getExperimentErrMsg) {
-      updateBanner({
-        additionalInfo: getExperimentErrMsg ? getExperimentErrMsg : undefined,
-        message:
-          `Error: failed to retrieve this recurring run's experiment.` +
-          (getExperimentErrMsg ? ' Click Details for more information.' : ''),
-        mode: 'warning',
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getRecurringRunErrMsg, getExperimentErrMsg]);
-
-  useEffect(() => {
-    refetchRecurringRun();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refresh]);
+    syncBanner();
+    return () => {
+      cancelled = true;
+    };
+  }, [getRecurringRunError, getExperimentError, recurringRunId, updateBanner]);
 
   const deleteCallback = (_: string[], success: boolean) => {
     if (success) {
@@ -164,11 +150,11 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
   };
 
   const getInitialToolbarState = (): ToolbarProps => {
-    const buttons = new Buttons(props, Refresh);
+    const buttons = new Buttons(props, refreshRecurringRun);
     return {
       actions: buttons
         .cloneRecurringRun(() => (recurringRun ? [recurringRun.recurring_run_id!] : []), true)
-        .refresh(Refresh)
+        .refresh(refreshRecurringRun)
         .enableRecurringRun(() => (recurringRun ? recurringRun.recurring_run_id! : ''))
         .disableRecurringRun(() => (recurringRun ? recurringRun.recurring_run_id! : ''))
         .delete(
@@ -182,6 +168,10 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
       pageTitle: '',
     };
   };
+
+  if (isRecurringRunLoading) {
+    return <CircularProgress />;
+  }
 
   return (
     <div className={classes(commonCss.page, padding(20, 'lr'))}>

@@ -168,7 +168,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
     return true;
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const width = this.props.maxDimension || 800;
     const height = width * 0.65;
     const isSmall = width < 600;
@@ -386,7 +386,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
       .filter((row): row is TooltipRow => !!row);
   }
 
-  private renderTooltipRows(rows: TooltipRow[], labels: string[]): JSX.Element {
+  private renderTooltipRows(rows: TooltipRow[], labels: string[]): React.JSX.Element {
     return (
       <div className={css.crosshair}>
         {rows.map((row) => (

@@ -27,7 +27,17 @@ import (
 	k8sfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func setupPipelineWebhookTest(t *testing.T) (*PipelineVersionsWebhook, string) {
+// jsonToInterface marshals a value to JSON and unmarshals it back to interface{},
+// producing the map[string]interface{} types that runtime.DeepCopyJSONValue expects.
+func jsonToInterface(t *testing.T, v interface{}) interface{} {
+	data, err := json.Marshal(v)
+	require.NoError(t, err)
+	var result interface{}
+	require.NoError(t, json.Unmarshal(data, &result))
+	return result
+}
+
+func setupPipelineWebhookTest(t *testing.T) (*PipelineVersionsWebhook, interface{}) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, k8sapi.AddToScheme(scheme))
 
@@ -57,10 +67,7 @@ func setupPipelineWebhookTest(t *testing.T) (*PipelineVersionsWebhook, string) {
 		"sdkVersion":    "kfp-2.11.0",
 	}
 
-	validPipelineSpecJSON, err := json.Marshal(validPipelineSpec)
-	require.NoError(t, err, "Failed to marshal pipeline spec")
-
-	return pipelineWebhook, string(validPipelineSpecJSON)
+	return pipelineWebhook, jsonToInterface(t, validPipelineSpec)
 }
 
 func TestPipelineVersionWebhook_ValidateCreate(t *testing.T) {
@@ -74,7 +81,7 @@ func TestPipelineVersionWebhook_ValidateCreate(t *testing.T) {
 		Spec: k8sapi.PipelineVersionSpec{
 			PipelineName: "test-pipeline",
 			PipelineSpec: k8sapi.IRSpec{
-				Value: json.RawMessage(validPipelineSpecJSON),
+				Value: validPipelineSpecJSON,
 			},
 		},
 	}
@@ -100,9 +107,6 @@ func TestPipelineVersionWebhook_ValidateCreate_InvalidPipelineSpec(t *testing.T)
 		},
 	}
 
-	invalidPipelineSpecJSON, err := json.Marshal(invalidPipelineSpec)
-	require.NoError(t, err, "Failed to marshal pipeline spec")
-
 	invalidPipelineVersion := &k8sapi.PipelineVersion{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-pipeline-v1",
@@ -111,12 +115,12 @@ func TestPipelineVersionWebhook_ValidateCreate_InvalidPipelineSpec(t *testing.T)
 		Spec: k8sapi.PipelineVersionSpec{
 			PipelineName: "test-pipeline",
 			PipelineSpec: k8sapi.IRSpec{
-				Value: json.RawMessage(invalidPipelineSpecJSON),
+				Value: jsonToInterface(t, invalidPipelineSpec),
 			},
 		},
 	}
 
-	_, err = pipelineWebhook.ValidateCreate(context.TODO(), invalidPipelineVersion)
+	_, err := pipelineWebhook.ValidateCreate(context.TODO(), invalidPipelineVersion)
 	assert.Error(t, err, "Expected error for invalid PipelineSpec")
 	assert.Contains(t, err.Error(), "The pipeline spec is invalid")
 }
@@ -133,7 +137,7 @@ func TestPipelineVersionWebhook_ValidateUpdate(t *testing.T) {
 		Spec: k8sapi.PipelineVersionSpec{
 			PipelineName: "test-pipeline",
 			PipelineSpec: k8sapi.IRSpec{
-				Value: json.RawMessage(validPipelineSpecJSON),
+				Value: validPipelineSpecJSON,
 			},
 		},
 	}
@@ -152,9 +156,6 @@ func TestPipelineVersionWebhook_ValidateUpdate(t *testing.T) {
 		"sdkVersion":    "kfp-2.11.0",
 	}
 
-	updatedPipelineSpecJSON, err := json.Marshal(updatedPipelineSpec)
-	require.NoError(t, err, "Failed to marshal updated pipeline spec")
-
 	newPipelineVersion := &k8sapi.PipelineVersion{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "test-pipeline-v1",
@@ -164,11 +165,11 @@ func TestPipelineVersionWebhook_ValidateUpdate(t *testing.T) {
 		Spec: k8sapi.PipelineVersionSpec{
 			PipelineName: "test-pipeline",
 			PipelineSpec: k8sapi.IRSpec{
-				Value: json.RawMessage(updatedPipelineSpecJSON),
+				Value: jsonToInterface(t, updatedPipelineSpec),
 			},
 		},
 	}
-	_, err = pipelineWebhook.ValidateUpdate(context.TODO(), oldPipelineVersion, newPipelineVersion)
+	_, err := pipelineWebhook.ValidateUpdate(context.TODO(), oldPipelineVersion, newPipelineVersion)
 	assert.Error(t, err, "Expected error for modifying pipeline spec")
 	assert.Contains(t, err.Error(), "Pipeline spec is immutable")
 }
@@ -186,7 +187,7 @@ func TestPipelineVersionWebhook_ValidateUpdate_MetadataChangeAllowed(t *testing.
 		Spec: k8sapi.PipelineVersionSpec{
 			PipelineName: "test-pipeline",
 			PipelineSpec: k8sapi.IRSpec{
-				Value: json.RawMessage(validPipelineSpecJSON),
+				Value: validPipelineSpecJSON,
 			},
 		},
 	}
@@ -201,7 +202,7 @@ func TestPipelineVersionWebhook_ValidateUpdate_MetadataChangeAllowed(t *testing.
 		Spec: k8sapi.PipelineVersionSpec{
 			PipelineName: "test-pipeline",
 			PipelineSpec: k8sapi.IRSpec{
-				Value: json.RawMessage(validPipelineSpecJSON),
+				Value: validPipelineSpecJSON,
 			},
 		},
 	}
@@ -232,7 +233,7 @@ func TestPipelineVersionWebhook_MutatingUpdate_FixesOwnersRef(t *testing.T) {
 		Spec: k8sapi.PipelineVersionSpec{
 			PipelineName: "test-pipeline",
 			PipelineSpec: k8sapi.IRSpec{
-				Value: json.RawMessage(validPipelineSpecJSON),
+				Value: validPipelineSpecJSON,
 			},
 		},
 	}

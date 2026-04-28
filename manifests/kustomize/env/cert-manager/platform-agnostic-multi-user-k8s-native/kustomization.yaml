@@ -37,3 +37,37 @@ patches:
       kind: ClusterRole
       name: ml-pipeline
 
+replacements:
+- source:
+    kind: ConfigMap
+    name: pipeline-install-config
+    fieldPath: metadata.namespace
+  targets:
+  - select:
+      kind: MutatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org
+    fieldPaths:
+    - webhooks.0.clientConfig.service.namespace
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: /
+      index: 0
+  - select:
+      kind: ValidatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org
+    fieldPaths:
+    - webhooks.0.clientConfig.service.namespace
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: /
+      index: 0
+  - select:
+      kind: Certificate
+      name: kfp-api-webhook-cert
+    fieldPaths:
+    - spec.dnsNames.1
+    - spec.dnsNames.2
+    - spec.dnsNames.3
+    options:
+      delimiter: .
+      index: 1

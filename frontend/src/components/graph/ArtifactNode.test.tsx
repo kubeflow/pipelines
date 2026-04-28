@@ -32,23 +32,27 @@ describe('ArtifactNode', () => {
     expect(screen.getByText('my-artifact')).toBeInTheDocument();
   });
 
-  it('renders with LIVE state and yellow icon', () => {
-    const { container } = renderWithProvider(
+  it('renders with LIVE state and correct icon', () => {
+    renderWithProvider(
       <ArtifactNode
         id='artifact-1'
         data={{ label: 'live-artifact', state: Artifact.State.LIVE }}
       />,
     );
     expect(screen.getByText('live-artifact')).toBeInTheDocument();
-    expect(container.querySelector('.text-mui-yellow-800')).toBeInTheDocument();
+    const liveIcon = screen.getByTestId('artifact-icon-live');
+    expect(liveIcon).toBeInTheDocument();
+    expect(liveIcon).toHaveClass('text-mui-yellow-800');
   });
 
-  it('renders with undefined state and grey icon', () => {
-    const { container } = renderWithProvider(
+  it('renders with undefined state and default icon', () => {
+    renderWithProvider(
       <ArtifactNode id='artifact-1' data={{ label: 'unknown-artifact', state: undefined }} />,
     );
     expect(screen.getByText('unknown-artifact')).toBeInTheDocument();
-    expect(container.querySelector('.text-mui-grey-300-dark')).toBeInTheDocument();
+    const defaultIcon = screen.getByTestId('artifact-icon-default');
+    expect(defaultIcon).toBeInTheDocument();
+    expect(defaultIcon).toHaveClass('text-mui-grey-300-dark');
   });
 
   it('sets the title attribute on the button', () => {
@@ -59,9 +63,9 @@ describe('ArtifactNode', () => {
   });
 
   it('renders with the correct id on the label span', () => {
-    const { container } = renderWithProvider(
+    renderWithProvider(
       <ArtifactNode id='artifact-42' data={{ label: 'test', state: undefined }} />,
     );
-    expect(container.querySelector('#artifact-42')).toBeInTheDocument();
+    expect(screen.getByTestId('artifact-42')).toBeInTheDocument();
   });
 });

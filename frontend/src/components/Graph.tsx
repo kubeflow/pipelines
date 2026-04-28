@@ -111,6 +111,7 @@ interface GraphState {
 
 interface GraphErrorBoundaryProps {
   onError?: (message: string, additionalInfo: string) => void;
+  children?: React.ReactNode;
 }
 class GraphErrorBoundary extends React.Component<GraphErrorBoundaryProps> {
   state = {
@@ -145,7 +146,7 @@ export class Graph extends React.Component<GraphProps, GraphState> {
     this.state = {};
   }
 
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const { graph } = this.props;
 
     if (!graph.nodes().length) {

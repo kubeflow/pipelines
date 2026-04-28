@@ -45,7 +45,7 @@ interface LineageCardProps {
 }
 
 export class LineageCard extends React.Component<LineageCardProps> {
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { title, type, rows, addSpacer, isTarget, setLineageViewTarget } = this.props;
     const isExecution = type === 'execution';
 

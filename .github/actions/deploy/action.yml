@@ -2,6 +2,10 @@ name: "Set up KFP on KinD"
 description: "Step to start and configure KFP on Kind"
 
 inputs:
+  cluster_name:
+    description: "Kind cluster name"
+    default: 'kfp'
+    required: false
   pipeline_store:
     description: "Flag to deploy KFP with K8s Native API"
     default: 'database'
@@ -53,22 +57,48 @@ runs:
       run: ./.github/resources/squid/deploy-squid.sh
 
     - name: Download Docker Images
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v7
       with:
         path: "images_${{ github.run_id }}"
+        pattern: "!*.dockerbuild"
 
-    - name: Load Docker Images
+    - name: Load Control Plane Images Into Kind
       shell: bash
       run: |
-        APPS=("apiserver" "driver" "launcher" "scheduledworkflow" "persistenceagent" "frontend" "metadata-writer" "viewer-crd-controller" "visualization-server" "cache-deployer" "cache-server" "metadata-envoy"  )
+        # These images are deployed directly by the CI manifests and use
+        # IfNotPresent in the CI install path, so loading the image archive
+        # into the Kind node is sufficient.
+        APPS=("apiserver" "scheduledworkflow" "persistenceagent" "frontend" "metadata-writer" "viewer-crd-controller" "visualization-server" "cache-deployer" "cache-server" "metadata-envoy")
         for app in "${APPS[@]}"; do
-          docker image load -i ${{ inputs.image_path }}/$app/$app.tar
-          docker tag ${{ inputs.image_registry }}/$app:${{ inputs.image_tag }} localhost:5000/$app:${{ inputs.image_tag }}
-          docker push localhost:5000/$app:${{ inputs.image_tag }}
+          kind --name "${{ inputs.cluster_name }}" load image-archive "${{ inputs.image_path }}/$app/$app.tar"
           rm ${{ inputs.image_path }}/$app/$app.tar
-          docker image rm ${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}
-          docker image rm localhost:5000/$app:${{ inputs.image_tag }}
         done
+
+    - name: Load Driver and Launcher Images Into Kind
+      shell: bash
+      run: |
+        # Runtime-generated workflow pods inherit these refs from the API server
+        # environment. Tagging them away from `latest` makes Kubernetes default
+        # them to IfNotPresent, so they can also be loaded directly into Kind.
+        APPS=("driver" "launcher")
+        for app in "${APPS[@]}"; do
+          docker image load -i "${{ inputs.image_path }}/$app/$app.tar"
+          docker tag "${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}" "${{ inputs.image_registry }}/$app:ci"
+          kind --name "${{ inputs.cluster_name }}" load docker-image "${{ inputs.image_registry }}/$app:ci"
+          rm "${{ inputs.image_path }}/$app/$app.tar"
+          docker image rm "${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}"
+          docker image rm "${{ inputs.image_registry }}/$app:ci"
+        done
+
+    - name: Load Runtime Base Images Into Kind
+      shell: bash
+      run: |
+        docker pull python:3.11
+        docker pull registry.access.redhat.com/ubi9/python-311:latest
+        kind load docker-image python:3.11 --name ${{ inputs.cluster_name }}
+        kind load docker-image registry.access.redhat.com/ubi9/python-311:latest --name ${{ inputs.cluster_name }}
+        docker image rm python:3.11
+        docker image rm registry.access.redhat.com/ubi9/python-311:latest
 
     - name: Configure Args
       shell: bash

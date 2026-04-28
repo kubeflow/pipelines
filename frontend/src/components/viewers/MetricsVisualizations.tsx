@@ -15,15 +15,18 @@
  */
 
 import HelpIcon from '@mui/icons-material/Help';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Array as ArrayRunType, Failure, Number, Record, String, ValidationError } from 'runtypes';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
 import { color, commonCss, padding } from 'src/Css';
+import { useKeyedState } from 'src/hooks/useKeyedState';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis, ListRequest } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import WorkflowParser, { StoragePath } from 'src/lib/WorkflowParser';
 import { getMetadataValue } from 'src/mlmd/library';
+import { isReservedArtifactProperty } from 'src/lib/ReservedArtifactProperties';
 import {
   filterArtifactsByType,
   filterLinkedArtifactsByType,
@@ -60,7 +63,6 @@ import {
 import { logger } from 'src/lib/Utils';
 import { stylesheet } from 'typestyle';
 import { buildRocCurveConfig, validateConfidenceMetrics } from './ROCCurveHelper';
-import { isEqual } from 'lodash';
 import { Tooltip } from '@mui/material';
 
 const css = stylesheet({
@@ -105,14 +107,11 @@ export function MetricsVisualizations({
     error: v1ViewerConfigError,
     data: v1ViewerConfigs,
   } = useQuery<ViewerConfig[], Error>({
-    queryKey: [
-      'viewconfig',
-      {
-        artifact: v1VisualizationArtifact?.artifact.getId(),
-        state: execution.getLastKnownState(),
-        namespace: namespace,
-      },
-    ],
+    queryKey: queryKeys.viewConfig(
+      v1VisualizationArtifact?.artifact.getId(),
+      execution.getLastKnownState(),
+      namespace,
+    ),
 
     queryFn: () => getViewConfig(v1VisualizationArtifact, namespace),
     staleTime: Infinity,
@@ -123,16 +122,11 @@ export function MetricsVisualizations({
     error: htmlError,
     data: htmlViewerConfigs,
   } = useQuery<HTMLViewerConfig[], Error>({
-    queryKey: [
-      'htmlViewerConfig',
-      {
-        artifacts: htmlArtifacts.map((linkedArtifact) => {
-          return linkedArtifact.artifact.getId();
-        }),
-        state: execution.getLastKnownState(),
-        namespace: namespace,
-      },
-    ],
+    queryKey: queryKeys.htmlViewerConfig(
+      htmlArtifacts.map((linkedArtifact) => linkedArtifact.artifact.getId()),
+      execution.getLastKnownState(),
+      namespace,
+    ),
 
     queryFn: () => getHtmlViewerConfig(htmlArtifacts, namespace),
     staleTime: Infinity,
@@ -143,16 +137,11 @@ export function MetricsVisualizations({
     error: markdownError,
     data: markdownViewerConfigs,
   } = useQuery<MarkdownViewerConfig[], Error>({
-    queryKey: [
-      'markdownViewerConfig',
-      {
-        artifacts: mdArtifacts.map((linkedArtifact) => {
-          return linkedArtifact.artifact.getId();
-        }),
-        state: execution.getLastKnownState(),
-        namespace: namespace,
-      },
-    ],
+    queryKey: queryKeys.markdownViewerConfig(
+      mdArtifacts.map((linkedArtifact) => linkedArtifact.artifact.getId()),
+      execution.getLastKnownState(),
+      namespace,
+    ),
 
     queryFn: () => getMarkdownViewerConfig(mdArtifacts, namespace),
     staleTime: Infinity,
@@ -507,15 +496,17 @@ const updateRocCurveSelection = (
   setSelectedIds(sharedIds.concat(limitedAddedIds));
 
   // Update the color stack and mapping to match the new selected ROC Curves.
+  const nextLineColorsStack = [...lineColorsStack];
+  const nextSelectedIdColorMap = { ...selectedIdColorMap };
   removedIds.forEach((removedId) => {
-    lineColorsStack.push(selectedIdColorMap[removedId]);
-    delete selectedIdColorMap[removedId];
+    nextLineColorsStack.push(selectedIdColorMap[removedId]);
+    delete nextSelectedIdColorMap[removedId];
   });
   limitedAddedIds.forEach((addedId) => {
-    selectedIdColorMap[addedId] = lineColorsStack.pop()!;
+    nextSelectedIdColorMap[addedId] = nextLineColorsStack.pop()!;
   });
-  setSelectedIdColorMap(selectedIdColorMap);
-  setLineColorsStack(lineColorsStack);
+  setSelectedIdColorMap(nextSelectedIdColorMap);
+  setLineColorsStack(nextLineColorsStack);
 };
 
 function reloadRocCurve(
@@ -572,23 +563,14 @@ export function ConfidenceMetricsSection({
   filter,
 }: ConfidenceMetricsSectionProps) {
   const maxSelectedRocCurves: number = 10;
-  const [allLinkedArtifacts, setAllLinkedArtifacts] = useState<LinkedArtifact[]>(linkedArtifacts);
-  const [linkedArtifactsPage, setLinkedArtifactsPage] = useState<LinkedArtifact[]>(linkedArtifacts);
+  const linkedArtifactsKey = linkedArtifacts
+    .map((linkedArtifact) => getRocCurveId(linkedArtifact))
+    .join(',');
+  const [linkedArtifactsPage, setLinkedArtifactsPage] = useKeyedState<LinkedArtifact[]>(
+    linkedArtifactsKey,
+    linkedArtifacts,
+  );
   const [filterString, setFilterString] = useState<string>('');
-
-  // Reload the page on linked artifacts refresh or re-selection.
-  useEffect(() => {
-    if (filter && !isEqual(linkedArtifacts, allLinkedArtifacts)) {
-      setLinkedArtifactsPage(linkedArtifacts);
-      setAllLinkedArtifacts(linkedArtifacts);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [linkedArtifacts]);
-
-  // Verify that the existing linked artifacts are correct; otherwise, wait for refresh.
-  if (filter && !isEqual(linkedArtifacts, allLinkedArtifacts)) {
-    return null;
-  }
 
   let confidenceMetricsDataList: ConfidenceMetricsData[] = linkedArtifacts
     .map((linkedArtifact) => {
@@ -822,7 +804,8 @@ function ScalarMetricsSection({ artifact }: ScalarMetricsSectionProps) {
       key,
       value: JSON.stringify(getMetadataValue(customProperties.get(key))),
     }))
-    .filter((metric) => metric.key !== 'display_name');
+    .filter((metric) => metric.key !== 'display_name')
+    .filter((metric) => !isReservedArtifactProperty(metric.key));
 
   if (data.length === 0) {
     return null;
