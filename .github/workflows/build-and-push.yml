@@ -3,7 +3,7 @@ run-name: Build images
 on:
   workflow_call:
     secrets:
-      GITHUB_TOKEN:
+      GITHUBTOKEN:
         required: true
     inputs:
       src_branch:
@@ -159,7 +159,7 @@ jobs:
         with:
           registry: ${{ env.IMAGE_REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GITHUBTOKEN }}
 
       - name: Set up Docker Buildx
         id: buildx
