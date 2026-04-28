@@ -22,6 +22,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	k8score "k8s.io/api/core/v1"
 )
@@ -82,6 +83,8 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 		fmt.Sprintf("$(%s)", component.EnvPodName),
 		"--pod_uid",
 		fmt.Sprintf("$(%s)", component.EnvPodUID),
+		"--ml_pipeline_server_address", config.GetMLPipelineServerConfig().Address,
+		"--ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
 		"--mlmd_server_address", metadata.GetMetadataConfig().Address,
 		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
 	}
@@ -102,12 +105,17 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 		setCABundle = true
 	}
 
+	logLevel := "1"
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
+		logLevel = value
 	}
+	args = append(args, "--log_level", logLevel)
+
+	publishLogs := "true"
 	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
+		publishLogs = value
 	}
+	args = append(args, "--publish_logs", publishLogs)
 
 	var volumeMounts []k8score.VolumeMount
 	var volumes []k8score.Volume
