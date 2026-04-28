@@ -94,7 +94,8 @@ jobs:
             arch: { arch_name: arm64 }
 
     uses: ./.github/workflows/build-and-push.yml
-    secrets: inherit
+    secrets: 
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     with:
       src_branch: ${{ inputs.src_branch }}
       target_tag: ${{ inputs.target_tag }}
