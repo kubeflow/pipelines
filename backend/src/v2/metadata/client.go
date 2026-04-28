@@ -839,8 +839,8 @@ func (c *Client) GetExecutions(ctx context.Context, ids []int64) ([]*pb.Executio
 // Returns the Execution object if found, or an error if not found or if the request fails.
 func (c *Client) GetExecutionByTypeAndName(ctx context.Context, typeName, name string) (*Execution, error) {
 	res, err := c.svc.GetExecutionByTypeAndName(ctx, &pb.GetExecutionByTypeAndNameRequest{
-		TypeName:      new(typeName),
-		ExecutionName: new(name),
+		TypeName:      proto.String(typeName),
+		ExecutionName: proto.String(name),
 	})
 
 	if err != nil {
