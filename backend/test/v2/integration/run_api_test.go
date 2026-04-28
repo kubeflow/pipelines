@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -36,6 +37,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -432,6 +434,77 @@ func (s *RunAPITestSuite) checkArgParamsRunDetail(t *testing.T, run *run_model.V
 	}
 
 	assert.Equal(t, expectedRun, run)
+}
+
+// TestRunAPIx_MissingSecretEnvReportsFailedTaskDetail polls the cluster until
+// run_details.task_details reports at least one FAILED task caused by a missing Secret
+// (CreateContainerConfigError). In v2, the failing node is the "executor" pod, not the KFP task itself.
+func (s *RunAPITestSuite) TestRunAPIx_MissingSecretEnvReportsFailedTaskDetail() {
+	t := s.T()
+	const pipelinePath = "../resources/missing-secret-env.yaml"
+	pl, err := s.pipelineUploadClient.UploadFile(pipelinePath, upload_params.NewUploadPipelineParams())
+	require.NoError(t, err)
+	require.NotNil(t, pl)
+	time.Sleep(1 * time.Second)
+	pv, err := s.pipelineUploadClient.UploadPipelineVersion(
+		pipelinePath,
+		&upload_params.UploadPipelineVersionParams{
+			Name:       util.StringPointer("e2e-missing-secret-env"),
+			Pipelineid: util.StringPointer(pl.PipelineID),
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, pv)
+
+	exp := test.MakeExperiment("e2e missing secret env", "", s.resourceNamespace)
+	ex, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Experiment: exp})
+	require.NoError(t, err)
+
+	runDetail, err := s.runClient.Create(&run_params.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
+		DisplayName:  "e2e-missing-secret-env-run",
+		Description:  "Expect FAILED task_details when Secret is missing (CreateContainerConfigError)",
+		ExperimentID: ex.ExperimentID,
+		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
+			PipelineID:        pv.PipelineID,
+			PipelineVersionID: pv.PipelineVersionID,
+		},
+	}})
+	require.NoError(t, err)
+	require.NotEmpty(t, runDetail.RunID)
+
+	deadline := time.Now().Add(8 * time.Minute)
+	var failedDisplayName string
+	var lastDebug string
+	for time.Now().Before(deadline) {
+		time.Sleep(5 * time.Second)
+		run, err := s.runClient.Get(&run_params.RunServiceGetRunParams{RunID: runDetail.RunID})
+		if err != nil {
+			lastDebug = fmt.Sprintf("get error (will retry): %v", err)
+			continue
+		}
+		if run.RunDetails == nil {
+			lastDebug = "run_details=nil"
+			continue
+		}
+		var parts []string
+		for _, td := range run.RunDetails.TaskDetails {
+			st := "<nil>"
+			if td.State != nil {
+				st = string(*td.State)
+			}
+			parts = append(parts, fmt.Sprintf("%q:%s", td.DisplayName, st))
+			if td.State != nil && *td.State == run_model.V2beta1RuntimeStateFAILED {
+				failedDisplayName = td.DisplayName
+			}
+		}
+		lastDebug = fmt.Sprintf("task_details[%s]", strings.Join(parts, ", "))
+		if failedDisplayName != "" {
+			break
+		}
+	}
+	require.NotEmpty(t, failedDisplayName,
+		"expected at least one FAILED task in run_details.task_details (missing Secret / CreateContainerConfigError); last poll: %s", lastDebug)
+	t.Logf("FAILED task display_name=%q (v2 executor pod); last poll: %s", failedDisplayName, lastDebug)
 }
 
 func TestRunAPI(t *testing.T) {

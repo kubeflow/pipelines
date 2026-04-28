@@ -521,9 +521,9 @@ const OutputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
 // We overwrite this as a DI mechanism for testing getLogWriter.
 var osCreateFunc = os.Create
 
-// qualifyExecutorLogsURI appends the retry index to the executor-logs artifact
-// URI so that each Argo retry attempt writes to and registers a distinct,
-// human-readable path in the object store and MLMD (e.g. executor-logs-0,
+// qualifyExecutorLogsURI mutates the executor-logs artifact URI in-place,
+// appending the retry index so that each Argo retry attempt writes to a
+// distinct path in the object store and MLMD (e.g. executor-logs-0,
 // executor-logs-1, …). Without this, all retry pods share the single URI that
 // the driver provisioned before any attempt ran, causing every retry to
 // overwrite the same S3 key and register duplicate MLMD artifacts pointing at
@@ -543,12 +543,20 @@ func qualifyExecutorLogsURI(artifacts map[string]*pipelinespec.ArtifactList, ret
 	art.Uri = art.Uri + "-" + retryIndex
 }
 
+// errNoRetrySuffix is returned by retryIndexFromPodAnnotation when the Argo
+// node-name annotation exists but has no "(N)" retry suffix. This is the
+// expected case for non-retry (single-attempt) pods and should not be logged
+// as a warning.
+var errNoRetrySuffix = errors.New("argo node-name has no retry index suffix")
+
 // retryIndexFromPodAnnotation reads the Argo node-name annotation on the current
 // pod and parses the 0-based retry index from it. Argo encodes the index as a
 // parenthesised suffix on the node name, e.g. "…executor(3)". This provides a
 // fallback when the KFP_RETRY_INDEX env var (set via {{retries}} in the Argo
 // template) is unavailable, which is the case when an older API server that
 // does not yet inject KFP_RETRY_INDEX is in use.
+//
+// Returns errNoRetrySuffix for non-retry pods (expected, not an error condition).
 func retryIndexFromPodAnnotation(ctx context.Context, k8sClient kubernetes.Interface, namespace, podName string) (string, error) {
 	pod, err := k8sClient.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
 	if err != nil {
@@ -562,7 +570,7 @@ func retryIndexFromPodAnnotation(ctx context.Context, k8sClient kubernetes.Inter
 	open := strings.LastIndex(nodeName, "(")
 	close := strings.LastIndex(nodeName, ")")
 	if open < 0 || close <= open {
-		return "", fmt.Errorf("argo node-name %q has no retry index suffix", nodeName)
+		return "", fmt.Errorf("%w: %q", errNoRetrySuffix, nodeName)
 	}
 	index := nodeName[open+1 : close]
 	if _, err := strconv.Atoi(index); err != nil {
@@ -651,7 +659,7 @@ func execute(
 			if podName != "" && k8sClient != nil && namespace != "" {
 				if idx, err := retryIndexFromPodAnnotation(ctx, k8sClient, namespace, podName); err == nil {
 					retryIndex = idx
-				} else {
+				} else if !errors.Is(err, errNoRetrySuffix) {
 					glog.Warningf("Could not determine retry index from pod annotation, defaulting to 0: %v", err)
 				}
 			}
