@@ -425,7 +425,7 @@ class TestPlatformSpecificFunctionality(unittest.TestCase):
             t.platform_config = {'platform1': {'feature': [1, 2, 3]}}
             with self.assertRaisesRegex(
                     ValueError,
-                    r"Can only access '\.platform_spec' property on a tasks created from pipelines\. Use '\.platform_config' for tasks created from primitive components\."
+                    r"Can only access '\.platform_spec' property on tasks created from pipelines\. Use '\.platform_config' for tasks created from primitive components\."
             ):
                 t.platform_spec
 

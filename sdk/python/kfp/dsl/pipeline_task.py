@@ -258,9 +258,12 @@ class PipelineTask:
             return self.component_spec.platform_spec
 
         # can only create primitive task platform spec at compile-time, since the executor label is not known until then
+        pipeline_property = '.platform_spec'
+        primitive_property = '.platform_config'
         raise ValueError(
-            f'Can only access {".platform_spec"!r} property on a tasks created from pipelines. Use {".platform_config"!r} for tasks created from primitive components.'
-        )
+            f'Can only access {pipeline_property!r} property on tasks '
+            f'created from pipelines. Use {primitive_property!r} for tasks '
+            f'created from primitive components.')
 
     @property
     def name(self) -> str:

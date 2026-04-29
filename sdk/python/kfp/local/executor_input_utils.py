@@ -168,8 +168,8 @@ def dsl_artifact_to_artifact_list(
 ) -> pipeline_spec_pb2.ArtifactList:
     """Converts a dsl.Artifact (or list of them) to a protobuf ArtifactList.
 
-    A list is produced when the consumer's input came from `dsl.Collected`
-    over a ParallelFor fan-out.
+    A list is produced when the consumer's input came from
+    `dsl.Collected` over a ParallelFor fan-out.
     """
     artifacts = artifact if isinstance(artifact, list) else [artifact]
     return pipeline_spec_pb2.ArtifactList(artifacts=[

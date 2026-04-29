@@ -234,9 +234,13 @@ class LocalExecutionConfig:
     ) -> None:
         permitted_runners = (SubprocessRunner, DockerRunner)
         if not isinstance(runner, permitted_runners):
+            permitted_runner_names = '. '.join(
+                permitted_runner.__name__
+                for permitted_runner in permitted_runners)
             raise ValueError(
-                f'Got unknown runner {runner} of type {runner.__class__.__name__}. Runner should be one of the following types: {'. '.join(prunner.__name__ for prunner in permitted_runners)}.'
-            )
+                f'Got unknown runner {runner} of type '
+                f'{runner.__class__.__name__}. Runner should be one of the '
+                f'following types: {permitted_runner_names}.')
         self.runner = runner
         self.pipeline_root = pipeline_root
         self.workspace_root = workspace_root

@@ -26,7 +26,7 @@ from kfp import dsl
 from kfp import local
 import pytest
 
-base_image = "registry.access.redhat.com/ubi9/python-311:latest"
+base_image = 'registry.access.redhat.com/ubi9/python-311:latest'
 _KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 
 dsl.component = functools.partial(
@@ -389,17 +389,17 @@ class TestDockerRunner:
         else:
             pipeline_task = test_data.pipeline_func()
         if test_data.expected_output is None:
-            print("Skipping output check")
+            print('Skipping output check')
         elif type(test_data.expected_output) == list:
-            assert pipeline_task.output in test_data.expected_output or pipeline_task.output == test_data.expected_output, "Output of the pipeline is not the same as expected"
+            assert pipeline_task.output in test_data.expected_output or pipeline_task.output == test_data.expected_output, 'Output of the pipeline is not the same as expected'
         else:
-            assert pipeline_task.output == test_data.expected_output, "Output of the pipeline is not the same as expected"
+            assert pipeline_task.output == test_data.expected_output, 'Output of the pipeline is not the same as expected'
 
 
 @pytest.mark.regression
 class TestSubProcessRunner:
 
-    @pytest.fixture(scope="class", autouse=True)
+    @pytest.fixture(scope='class', autouse=True)
     def setup_and_teardown(self, worker_id):
         ws_root = f'{ws_root_base}_subprocess_{worker_id}'
         pipeline_root = f'{pipeline_root_base}_subprocess_{worker_id}'
@@ -427,11 +427,11 @@ class TestSubProcessRunner:
         else:
             pipeline_task = test_data.pipeline_func()
         if test_data.expected_output is None:
-            print("Skipping output check")
+            print('Skipping output check')
         elif type(test_data.expected_output) == list:
-            assert pipeline_task.output in test_data.expected_output or pipeline_task.output == test_data.expected_output, "Output of the pipeline is not the same as expected"
+            assert pipeline_task.output in test_data.expected_output or pipeline_task.output == test_data.expected_output, 'Output of the pipeline is not the same as expected'
         else:
-            assert pipeline_task.output == test_data.expected_output, "Output of the pipeline is not the same as expected"
+            assert pipeline_task.output == test_data.expected_output, 'Output of the pipeline is not the same as expected'
 
 
 @pytest.mark.regression
@@ -517,13 +517,13 @@ class TestK8sOnlyWarningsIntegration:
         assert any('set_accelerator_type' in m for m in messages), messages
 
     def test_k8s_methods_warn_during_pipeline_execution(self, tmp_path):
-        """Normal pipeline flow: K8s-only resource fields in the compiled
-        spec must produce a warning at task execution time.
+        """Normal pipeline flow: K8s-only resource fields in the compiled spec
+        must produce a warning at task execution time.
 
-        The DSL-level `@warn_if_final` only fires for tasks in FINAL state.
-        Inside a pipeline decorator the task is still FUTURE when
-        `set_cpu_limit(...)` runs, so the warning must come from the local
-        orchestrator inspecting the compiled ResourceSpec.
+        The DSL-level `@warn_if_final` only fires for tasks in FINAL
+        state. Inside a pipeline decorator the task is still FUTURE when
+        `set_cpu_limit(...)` runs, so the warning must come from the
+        local orchestrator inspecting the compiled ResourceSpec.
         """
         local.init(
             runner=local.SubprocessRunner(),
@@ -622,8 +622,8 @@ class TestCacheEnvVarInvalidation:
     """Cache entries must be invalidated when a container's env vars change.
 
     Regression for a bug where cache key ignored `container.env`, so
-    changing `set_env_variable('X', 'one')` → `set_env_variable('X', 'two')`
-    returned the stale prior result.
+    changing `set_env_variable('X', 'one')` → `set_env_variable('X',
+    'two')` returned the stale prior result.
     """
 
     def test_env_var_change_invalidates_cache(self, tmp_path, caplog):
