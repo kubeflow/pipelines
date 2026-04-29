@@ -47,6 +47,10 @@ spec:
         command: ["/bin/sh", "-ec"]
         args:
           - |
+            if [ -z "${WAIT_HOST}" ] || [ -z "${WAIT_PORT}" ]; then
+              echo "ERROR: WAIT_HOST or WAIT_PORT is not set."
+              exit 1
+            fi
             MAX_RETRIES=60; i=0
             while ! nc -z -w 2 "${WAIT_HOST}" "${WAIT_PORT}"; do
               i=$((i+1))
