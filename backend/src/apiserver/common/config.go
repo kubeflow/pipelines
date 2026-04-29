@@ -44,6 +44,8 @@ const (
 	DefaultSecurityContextRunAsUser         string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_USER"
 	DefaultSecurityContextRunAsGroup        string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_GROUP"
 	DefaultSecurityContextRunAsNonRoot      string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT"
+	BlockV1Pipelines                        string = "BLOCK_V1_PIPELINES"
+	V1NamespaceWhitelist                    string = "V1_ALLOWED_NAMESPACES"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {

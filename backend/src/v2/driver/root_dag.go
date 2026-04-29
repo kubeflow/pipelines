@@ -28,6 +28,23 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// buildK8sClient builds a Kubernetes client to be used to fetch the config map in
+// RootDAG. This is used so that the method signature of RootDAG doesn't change but
+// the client can be stubbed out for testing.
+var buildK8sClient = func() (kubernetes.Interface, error) {
+	restConfig, err := util.GetKubernetesConfig()
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize kubernetes config: %w", err)
+	}
+	client, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize kubernetes client: %w", err)
+	}
+
+	return client, nil
+}
+
 func validateRootDAG(opts Options) (err error) {
 	defer func() {
 		if err != nil {
@@ -64,7 +81,7 @@ func validateRootDAG(opts Options) (err error) {
 	return nil
 }
 
-func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *Execution, err error) {
+func RootDAG(ctx context.Context, opts Options, mlmd metadata.ClientInterface) (execution *Execution, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("driver.RootDAG(%s) failed: %w", opts.info(), err)
@@ -79,11 +96,7 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	// TODO(v2): in pipeline spec, rename GCS output directory to pipeline root.
 	pipelineRoot := opts.RuntimeConfig.GetGcsOutputDirectory()
 
-	restConfig, err := util.GetKubernetesConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize kubernetes client: %w", err)
-	}
-	k8sClient, err := kubernetes.NewForConfig(restConfig)
+	k8sClient, err := buildK8sClient()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
 	}
@@ -127,10 +140,30 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	ecfg.ExecutionType = metadata.DagExecutionTypeName
 	ecfg.Name = fmt.Sprintf("run/%s", opts.RunID)
 	exec, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
+
+	glog.Infof("Creating execution: %s", exec.String())
 	if err != nil {
+		// When Argo retries the ROOT_DAG driver, the execution was already created on the first attempt.
+		// The deterministic name "run/<runId>" causes a duplicate key error.
+		// Handle it here by looking up the existing record instead of failing.
+		if isAlreadyExistsErr(err) {
+			glog.Infof("Execution %q already exists, looking up existing execution", ecfg.Name)
+			existing, lookupErr := mlmd.GetExecutionByTypeAndName(ctx, string(metadata.DagExecutionTypeName), ecfg.Name)
+			if lookupErr != nil {
+				return nil, fmt.Errorf("failed to lookup existing execution: %w", lookupErr)
+			}
+
+			if existing == nil {
+				return nil, fmt.Errorf("execution already exists but lookup returned nil: %w", err)
+			}
+
+			glog.Infof("Found existing execution: %s", existing)
+			return &Execution{ID: existing.GetID()}, nil
+		}
 		return nil, err
 	}
 	glog.Infof("Created execution: %s", exec)
+
 	// No need to return ExecutorInput, because tasks in the DAG will resolve
 	// needed info from MLMD.
 	return &Execution{ID: exec.GetID()}, nil
