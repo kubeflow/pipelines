@@ -135,9 +135,9 @@ def _ensure_image_present(client: 'docker.DockerClient', image: str) -> None:
     """Ensure an image is available locally, pulling at most once across
     concurrent callers requesting the same image.
 
-    Once an image is confirmed present (or pulled), its per-image lock is
-    evicted from :data:`_PULL_LOCKS` so the map doesn't grow unbounded in
-    long-lived processes that touch many distinct images.
+    Once an image is confirmed present (or pulled), its per-image lock
+    is evicted from :data:`_PULL_LOCKS` so the map doesn't grow
+    unbounded in long-lived processes that touch many distinct images.
     """
     if image in _PULLED_IMAGES:
         print(f'Found image {image!r}\n')

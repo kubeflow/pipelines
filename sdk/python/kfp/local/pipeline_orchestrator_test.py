@@ -707,8 +707,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         # raise rather than silently "passing" with a substring match.
         @dsl.component
         def never_runs(value: str) -> str:
-            raise RuntimeError(
-                'branch body executed despite false condition')
+            raise RuntimeError('branch body executed despite false condition')
 
         @dsl.component
         def emit(value: str) -> str:
@@ -758,10 +757,10 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         """Conditions inside a nested pipeline must be evaluated.
 
         Regression test for the previous bug where has_control_flow was
-        detected only at the root DAG, causing conditions inside a sub-DAG
-        to be ignored (the body ran unconditionally). The branch body
-        raises on execution so this test fails loudly if the regression
-        returns instead of silently passing.
+        detected only at the root DAG, causing conditions inside a sub-
+        DAG to be ignored (the body ran unconditionally). The branch
+        body raises on execution so this test fails loudly if the
+        regression returns instead of silently passing.
         """
         local.init(
             local.SubprocessRunner(use_venv=False),

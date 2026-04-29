@@ -435,7 +435,7 @@ def _create_loop_iteration_task_spec(
                     input_spec.ClearField('component_input_parameter')
                     input_spec.ClearField('parameter_expression_selector')
                     if extracted_value is None:
-                        raise ValueError("Extracted value is None")
+                        raise ValueError('Extracted value is None')
                     new_constant = pipeline_spec_builder.to_protobuf_value(
                         extracted_value)
                     input_spec.runtime_value.constant.CopyFrom(new_constant)
@@ -443,7 +443,7 @@ def _create_loop_iteration_task_spec(
                     # Replace with the entire loop item value
                     input_spec.ClearField('component_input_parameter')
                     if loop_item is None:
-                        raise ValueError("Loop item is None")
+                        raise ValueError('Loop item is None')
                     new_constant = pipeline_spec_builder.to_protobuf_value(
                         loop_item)
                     input_spec.runtime_value.constant.CopyFrom(new_constant)
@@ -559,11 +559,14 @@ def run_enhanced_dag(
         # that a task downstream of a false condition is skipped, but a task
         # downstream of a *failed* task short-circuits the whole DAG below
         # (handled via the FAILURE return path).
-        upstream_skipped = any(dep in skipped_tasks
-                               for dep in dependency_map[task_name])
+        upstream_skipped = any(
+            dep in skipped_tasks for dep in dependency_map[task_name])
         if upstream_skipped:
-            _mark_skipped(task_name, io_store, skipped_tasks,
-                          reason='upstream was skipped')
+            _mark_skipped(
+                task_name,
+                io_store,
+                skipped_tasks,
+                reason='upstream was skipped')
             continue
 
         # Evaluate dsl.Condition trigger policy, if any.
@@ -585,8 +588,7 @@ def run_enhanced_dag(
                     task_name,
                     io_store,
                     skipped_tasks,
-                    reason=
-                    f'condition evaluated to False: {task_spec.trigger_policy.condition}',
+                    reason=f'condition evaluated to False: {task_spec.trigger_policy.condition}',
                 )
                 continue
 
@@ -641,8 +643,8 @@ def run_enhanced_dag(
 
 
 def _build_full_dependency_map(
-    tasks: Dict[str, pipeline_spec_pb2.PipelineTaskSpec],
-) -> Dict[str, List[str]]:
+    tasks: Dict[str,
+                pipeline_spec_pb2.PipelineTaskSpec],) -> Dict[str, List[str]]:
     """Build a dependency map covering every task in the DAG.
 
     Combines explicit ``dependent_tasks`` with implicit edges derived from
@@ -727,8 +729,8 @@ def _run_parallel_for(
 ) -> status.Status:
     """Fan out a ParallelFor group and aggregate its iteration outputs.
 
-    Returns SUCCESS even if ``items`` is empty (the task simply contributes
-    no outputs). Returns FAILURE if any iteration fails.
+    Returns SUCCESS even if ``items`` is empty (the task simply
+    contributes no outputs). Returns FAILURE if any iteration fails.
     """
     iterator = task_spec.WhichOneof('iterator')
     artifact_item_input = None

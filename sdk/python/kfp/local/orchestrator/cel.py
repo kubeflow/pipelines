@@ -314,8 +314,7 @@ class _ParameterValues:
     def __getitem__(self, key: str) -> Any:
         if key not in self._values:
             raise CELError(
-                f"parameter_values[{key!r}] is not bound in this task's inputs"
-            )
+                f"parameter_values[{key!r}] is not bound in this task's inputs")
         return self._values[key]
 
 

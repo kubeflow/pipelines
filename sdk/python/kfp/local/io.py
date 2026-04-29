@@ -18,8 +18,8 @@ from typing import Any, Dict, Set
 
 
 class _Skipped:
-    """Sentinel marking a task output that was skipped due to a false
-    condition or a skipped upstream."""
+    """Sentinel marking a task output that was skipped due to a false condition
+    or a skipped upstream."""
 
     _instance = None
 

@@ -99,10 +99,11 @@ class TestRunDockerContainer(DockerMockTestCase):
 class TestSingleFlightImagePull(DockerMockTestCase):
     """Tests that the image pull cache deduplicates concurrent pulls.
 
-    Parallel ParallelFor iterations sharing an image must not each issue a
-    concurrent ``docker pull`` for the same tag; that can race the Docker
-    daemon and waste bandwidth. The ``_ensure_image_present`` helper
-    serializes the first pull and lets subsequent callers hit the cache.
+    Parallel ParallelFor iterations sharing an image must not each issue
+    a concurrent ``docker pull`` for the same tag; that can race the
+    Docker daemon and waste bandwidth. The ``_ensure_image_present``
+    helper serializes the first pull and lets subsequent callers hit the
+    cache.
     """
 
     def test_image_absent_triggers_exactly_one_pull(self):
@@ -111,7 +112,7 @@ class TestSingleFlightImagePull(DockerMockTestCase):
         self.mocked_docker_client.images.list.return_value = []
 
         docker_task_handler._ensure_image_present(self.mocked_docker_client,
-                                                 'alpine:latest')
+                                                  'alpine:latest')
 
         self.mocked_docker_client.images.pull.assert_called_once_with(
             'alpine:latest')
@@ -122,7 +123,7 @@ class TestSingleFlightImagePull(DockerMockTestCase):
         docker_task_handler._PULLED_IMAGES.add('alpine:latest')
 
         docker_task_handler._ensure_image_present(self.mocked_docker_client,
-                                                 'alpine:latest')
+                                                  'alpine:latest')
 
         self.mocked_docker_client.images.list.assert_not_called()
         self.mocked_docker_client.images.pull.assert_not_called()
@@ -131,9 +132,9 @@ class TestSingleFlightImagePull(DockerMockTestCase):
         # Emulate a cold cache and simulate a slow pull so threads actually
         # contend on the per-image lock. The pull must still be issued
         # exactly once despite N concurrent callers.
+        from concurrent.futures import ThreadPoolExecutor
         import threading
         import time
-        from concurrent.futures import ThreadPoolExecutor
 
         self.mocked_docker_client.images.list.return_value = []
 
@@ -147,8 +148,8 @@ class TestSingleFlightImagePull(DockerMockTestCase):
         self.mocked_docker_client.images.pull.side_effect = slow_pull
 
         def call():
-            docker_task_handler._ensure_image_present(
-                self.mocked_docker_client, 'alpine:latest')
+            docker_task_handler._ensure_image_present(self.mocked_docker_client,
+                                                      'alpine:latest')
 
         with ThreadPoolExecutor(max_workers=8) as pool:
             futures = [pool.submit(call) for _ in range(8)]

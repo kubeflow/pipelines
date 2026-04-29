@@ -13,9 +13,8 @@
 # limitations under the License.
 """Tests for the CEL subset evaluator."""
 
-import pytest
 from kfp.local.orchestrator import cel
-
+import pytest
 
 PV_KEY = 'pipelinechannel--flip-coin-Output'
 
@@ -26,56 +25,76 @@ PV_KEY = 'pipelinechannel--flip-coin-Output'
         # equality on strings
         (
             f"inputs.parameter_values['{PV_KEY}'] == 'heads'",
-            {PV_KEY: 'heads'},
+            {
+                PV_KEY: 'heads'
+            },
             True,
         ),
         (
             f"inputs.parameter_values['{PV_KEY}'] == 'heads'",
-            {PV_KEY: 'tails'},
+            {
+                PV_KEY: 'tails'
+            },
             False,
         ),
         # int() cast with comparison
         (
             "int(inputs.parameter_values['pipelinechannel--n']) > 5",
-            {'pipelinechannel--n': '7'},
+            {
+                'pipelinechannel--n': '7'
+            },
             True,
         ),
         (
             "int(inputs.parameter_values['pipelinechannel--n']) > 5",
-            {'pipelinechannel--n': '3'},
+            {
+                'pipelinechannel--n': '3'
+            },
             False,
         ),
         # int() on both sides of >=
         (
             ("int(inputs.parameter_values['pipelinechannel--x']) >= "
              "int(inputs.parameter_values['pipelinechannel--y'])"),
-            {'pipelinechannel--x': 5, 'pipelinechannel--y': 5},
+            {
+                'pipelinechannel--x': 5,
+                'pipelinechannel--y': 5
+            },
             True,
         ),
         # unary !
         (
             f"!(inputs.parameter_values['{PV_KEY}'] == 'heads')",
-            {PV_KEY: 'tails'},
+            {
+                PV_KEY: 'tails'
+            },
             True,
         ),
         # mixed && with negation (if_elif_else_complex pattern)
         (
             ("!(int(inputs.parameter_values['pipelinechannel--x']) < 5000)"
              " && int(inputs.parameter_values['pipelinechannel--x']) >= 7500"),
-            {'pipelinechannel--x': '8000'},
+            {
+                'pipelinechannel--x': '8000'
+            },
             True,
         ),
         (
             ("!(int(inputs.parameter_values['pipelinechannel--x']) < 5000)"
              " && int(inputs.parameter_values['pipelinechannel--x']) >= 7500"),
-            {'pipelinechannel--x': '6000'},
+            {
+                'pipelinechannel--x': '6000'
+            },
             False,
         ),
         # || short-circuit
         (
             ("inputs.parameter_values['pipelinechannel--x'] == 'a'"
              " || inputs.parameter_values['pipelinechannel--y'] == 'b'"),
-            {'pipelinechannel--x': 'a', 'pipelinechannel--y': 'z'},
+            {
+                'pipelinechannel--x': 'a',
+                'pipelinechannel--y': 'z'
+            },
             True,
         ),
         # bool literal
@@ -105,9 +124,9 @@ def test_evaluate_rejects_arbitrary_expressions():
 
 def test_evaluate_unknown_function():
     with pytest.raises(cel.CELError):
-        cel.evaluate("min(1, 2) == 1", parameter_values={})
+        cel.evaluate('min(1, 2) == 1', parameter_values={})
 
 
 def test_parser_errors_on_garbage():
     with pytest.raises(cel.CELError):
-        cel.evaluate("inputs.parameter_values[ == 1", parameter_values={})
+        cel.evaluate('inputs.parameter_values[ == 1', parameter_values={})
