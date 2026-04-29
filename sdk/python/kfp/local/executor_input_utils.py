@@ -14,7 +14,7 @@
 """Utilities for constructing the ExecutorInput message."""
 import datetime
 import os
-from typing import Any, Dict
+from typing import Any, Dict, List, Union
 
 from google.protobuf import json_format
 from google.protobuf import struct_pb2
@@ -164,17 +164,22 @@ def dict_to_protobuf_struct(d: Dict[str, Any]) -> struct_pb2.Struct:
 
 
 def dsl_artifact_to_artifact_list(
-        artifact: dsl.Artifact) -> pipeline_spec_pb2.ArtifactList:
-    """Converts a single dsl.Aritfact to a protobuf ArtifactList."""
+    artifact: Union[dsl.Artifact, List[dsl.Artifact]]
+) -> pipeline_spec_pb2.ArtifactList:
+    """Converts a dsl.Artifact (or list of them) to a protobuf ArtifactList.
+
+    A list is produced when the consumer's input came from `dsl.Collected`
+    over a ParallelFor fan-out.
+    """
+    artifacts = artifact if isinstance(artifact, list) else [artifact]
     return pipeline_spec_pb2.ArtifactList(artifacts=[
         pipeline_spec_pb2.RuntimeArtifact(
-            name=artifact.name,
+            name=a.name,
             type=pipeline_spec_pb2.ArtifactTypeSchema(
-                schema_title=artifact.schema_title,
-                schema_version=artifact.schema_version),
-            uri=artifact.uri,
-            metadata=dict_to_protobuf_struct(artifact.metadata),
-        )
+                schema_title=a.schema_title, schema_version=a.schema_version),
+            uri=a.uri,
+            metadata=dict_to_protobuf_struct(a.metadata),
+        ) for a in artifacts
     ])
 
 

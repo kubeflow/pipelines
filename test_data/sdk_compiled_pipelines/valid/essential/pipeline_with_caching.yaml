@@ -1,0 +1,81 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-caching
+# Inputs:
+#    x: int [Default: 1.0]
+# Outputs:
+#    Output: int
+components:
+  comp-add-one:
+    executorLabel: exec-add-one
+    inputDefinitions:
+      parameters:
+        x:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+deploymentSpec:
+  executors:
+    exec-add-one:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - add_one
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef add_one(x: int) -> int:\n    return x + 1\n\n"
+        image: python:3.11
+pipelineInfo:
+  name: pipeline-with-caching
+root:
+  dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: Output
+            producerSubtask: add-one
+    tasks:
+      add-one:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-add-one
+        inputs:
+          parameters:
+            x:
+              componentInputParameter: x
+        taskInfo:
+          name: add-one
+  inputDefinitions:
+    parameters:
+      x:
+        defaultValue: 1.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: NUMBER_INTEGER
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2

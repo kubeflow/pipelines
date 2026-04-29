@@ -22,7 +22,6 @@ import re
 from typing import Any, Dict, List, Mapping, Optional, TYPE_CHECKING, Union
 import warnings
 
-from kfp.dsl import constants
 from kfp.dsl import pipeline_channel
 from kfp.dsl import placeholders
 from kfp.dsl import structures
@@ -57,6 +56,37 @@ def block_if_final(custom_message: Optional[str] = None):
                     custom_message or
                     f"Task configuration methods are not supported for local execution. Got call to '.{method_name}()'."
                 )
+            elif self.state == TaskState.FUTURE:
+                return method(self, *args, **kwargs)
+            else:
+                raise ValueError(
+                    f'Got unknown {TaskState.__name__}: {self.state}.')
+
+        return wrapper
+
+    return actual_decorator
+
+
+def warn_if_final():
+    """Decorator for K8s-only task config methods that have no local
+    equivalent.
+
+    In local execution (FINAL state), emits a warning and returns self
+    instead of raising.
+    """
+
+    def actual_decorator(method):
+        method_name = method.__name__
+
+        @functools.wraps(method)
+        def wrapper(self: 'PipelineTask', *args, **kwargs):
+            if self.state == TaskState.FINAL:
+                import warnings
+                warnings.warn(
+                    f"'.{method_name}()' is not used by the current local runner and will be ignored.",
+                    stacklevel=2,
+                )
+                return self
             elif self.state == TaskState.FUTURE:
                 return method(self, *args, **kwargs)
             else:
@@ -385,7 +415,7 @@ class PipelineTask:
                     ' followed by "m".')
         return cpu
 
-    @block_if_final()
+    @warn_if_final()
     def set_cpu_request(
             self,
             cpu: Union[str,
@@ -413,7 +443,7 @@ class PipelineTask:
 
         return self
 
-    @block_if_final()
+    @warn_if_final()
     def set_cpu_limit(
             self,
             cpu: Union[str,
@@ -441,7 +471,7 @@ class PipelineTask:
 
         return self
 
-    @block_if_final()
+    @warn_if_final()
     def set_accelerator_limit(
         self, limit: Union[int, str,
                            pipeline_channel.PipelineChannel]) -> 'PipelineTask':
@@ -474,7 +504,7 @@ class PipelineTask:
 
         return self
 
-    @block_if_final()
+    @warn_if_final()
     def set_gpu_limit(self, gpu: str) -> 'PipelineTask':
         """Sets GPU limit (maximum) for the task. Only applies if accelerator
         type is also set via .add_accelerator_type().
@@ -518,7 +548,7 @@ class PipelineTask:
                     '"Gi", "M", "Mi", "K", "Ki".')
         return memory
 
-    @block_if_final()
+    @warn_if_final()
     def set_memory_request(
             self,
             memory: Union[str,
@@ -545,7 +575,7 @@ class PipelineTask:
 
         return self
 
-    @block_if_final()
+    @warn_if_final()
     def set_memory_limit(
             self,
             memory: Union[str,
@@ -597,7 +627,7 @@ class PipelineTask:
         )
         return self
 
-    @block_if_final()
+    @warn_if_final()
     def add_node_selector_constraint(self, accelerator: str) -> 'PipelineTask':
         """Deprecated. Use :meth:`set_accelerator_type` instead.
 
@@ -614,7 +644,7 @@ class PipelineTask:
             category=DeprecationWarning)
         return self.set_accelerator_type(accelerator)
 
-    @block_if_final()
+    @warn_if_final()
     def set_accelerator_type(
         self, accelerator: Union[str, pipeline_channel.PipelineChannel]
     ) -> 'PipelineTask':
@@ -640,7 +670,7 @@ class PipelineTask:
 
         return self
 
-    @block_if_final()
+    @warn_if_final()
     def set_display_name(self, name: str) -> 'PipelineTask':
         """Sets display name for the task.
 

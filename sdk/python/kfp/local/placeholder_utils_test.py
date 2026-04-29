@@ -15,6 +15,7 @@
 
 import json
 import os
+import tempfile
 from typing import List, Optional
 import unittest
 
@@ -468,6 +469,9 @@ class TestWorkspacePlaceholderResolution(unittest.TestCase):
         # Initialize local config for testing
         from kfp import local
         local.init(runner=local.SubprocessRunner())
+        # Workspace prefix respects TMPDIR (via tempfile.mkdtemp).
+        self._workspace_prefix = os.path.join(tempfile.gettempdir(),
+                                              'kfp-workspace-')
 
     def test_workspace_path_placeholder_resolution(self):
         """Test that workspace path placeholder is correctly resolved."""
@@ -492,7 +496,7 @@ class TestWorkspacePlaceholderResolution(unittest.TestCase):
             pipeline_task_id='test-task-id')
 
         self.assertIsInstance(result, str)
-        self.assertTrue(result.startswith('/tmp/kfp-workspace-'))
+        self.assertTrue(result.startswith(self._workspace_prefix))
 
     def test_embedded_workspace_placeholder(self):
         """Test embedded workspace placeholder resolution."""
@@ -519,7 +523,7 @@ class TestWorkspacePlaceholderResolution(unittest.TestCase):
 
         self.assertIsInstance(result, str)
         self.assertIn('os.path.join', result)
-        self.assertIn('/tmp/kfp-workspace-', result)
+        self.assertIn(self._workspace_prefix, result)
         self.assertIn('data', result)
         self.assertIn('file.txt', result)
 
@@ -548,7 +552,7 @@ class TestWorkspacePlaceholderResolution(unittest.TestCase):
 
         # Should resolve to actual workspace path
         self.assertIsInstance(result, str)
-        self.assertTrue(result.startswith('/tmp/kfp-workspace-'))
+        self.assertTrue(result.startswith(self._workspace_prefix))
 
     def test_literal_mount_path_replaced_for_subprocess(self):
         """'/kfp-workspace' should be replaced with host workspace in
@@ -573,7 +577,7 @@ class TestWorkspacePlaceholderResolution(unittest.TestCase):
             pipeline_task_id='test-task-id')
 
         self.assertIsInstance(result, str)
-        self.assertTrue(result.startswith('/tmp/kfp-workspace-'))
+        self.assertTrue(result.startswith(self._workspace_prefix))
         self.assertTrue(result.endswith('/data/file.txt'))
 
 

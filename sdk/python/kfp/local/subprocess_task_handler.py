@@ -18,7 +18,7 @@ import os
 import subprocess
 import sys
 import tempfile
-from typing import List
+from typing import Dict, List, Optional
 import venv
 import warnings
 
@@ -37,6 +37,7 @@ class SubprocessTaskHandler(task_handler_interface.ITaskHandler):
         full_command: List[str],
         pipeline_root: str,
         runner: config.SubprocessRunner,
+        env_vars: Optional[Dict[str, str]] = None,
     ) -> None:
         self.validate_image(image)
         self.validate_not_container_component(full_command)
@@ -46,6 +47,7 @@ class SubprocessTaskHandler(task_handler_interface.ITaskHandler):
         self.full_command = full_command
         self.pipeline_root = pipeline_root
         self.runner = runner
+        self.env_vars = env_vars or {}
 
     def run(self) -> status.Status:
         """Runs the local subprocess and returns the status.
@@ -68,7 +70,10 @@ class SubprocessTaskHandler(task_handler_interface.ITaskHandler):
                 self.full_command,
                 py_executable,
             )
-            return_code = run_local_subprocess(full_command=full_command)
+            return_code = run_local_subprocess(
+                full_command=full_command,
+                env_vars=self.env_vars,
+            )
             return status.Status.SUCCESS if return_code == 0 else status.Status.FAILURE
 
     def validate_image(self, image: str) -> None:
@@ -100,7 +105,14 @@ class SubprocessTaskHandler(task_handler_interface.ITaskHandler):
             )
 
 
-def run_local_subprocess(full_command: List[str]) -> int:
+def run_local_subprocess(
+    full_command: List[str],
+    env_vars: Optional[Dict[str, str]] = None,
+) -> int:
+    env = None
+    if env_vars:
+        env = {**os.environ, **env_vars}
+
     with subprocess.Popen(
             full_command,
             stdout=subprocess.PIPE,
@@ -112,6 +124,7 @@ def run_local_subprocess(full_command: List[str]) -> int:
             text=True,
             # buffer line-by-line
             bufsize=1,
+            env=env,
     ) as process:
         if process.stdout:
             for line in iter(process.stdout.readline, ''):

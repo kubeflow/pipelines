@@ -94,7 +94,24 @@ def _run_local_pipeline_implementation(
             task_spec.trigger_policy.condition or
             task_spec.WhichOneof('iterator')
             for task_spec in dag_spec.tasks.values())
-        if has_control_flow:
+        # Also detect OneOf in DAG outputs, which implies conditional
+        # branches inside nested sub-DAGs
+        has_oneof_output = any(
+            param_spec.WhichOneof('kind') == 'value_from_oneof'
+            for param_spec in dag_spec.outputs.parameters.values()
+        ) if dag_spec.outputs.parameters else False
+        # Detect nested DAGs that may contain control flow
+        has_nested_dags = any(
+            components.get(task_spec.component_ref.name,
+                           pipeline_spec_pb2.ComponentSpec()).WhichOneof(
+                               'implementation') == 'dag'
+            for task_spec in dag_spec.tasks.values())
+        # Detect exit handler tasks (trigger_policy.strategy == ALL_UPSTREAM_TASKS_COMPLETED)
+        has_exit_handler = any(task_spec.trigger_policy.strategy ==
+                               pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy
+                               .TriggerStrategy.ALL_UPSTREAM_TASKS_COMPLETED
+                               for task_spec in dag_spec.tasks.values())
+        if has_control_flow or has_oneof_output or has_nested_dags or has_exit_handler:
             from kfp.local.orchestrator import enhanced_dag_orchestrator
             outputs, dag_status = enhanced_dag_orchestrator.run_enhanced_dag(
                 pipeline_resource_name=pipeline_resource_name,
