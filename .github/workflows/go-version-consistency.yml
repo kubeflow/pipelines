@@ -1,0 +1,19 @@
+name: Go Version Consistency
+
+on:
+  pull_request:
+    paths:
+      - 'go.mod'
+      - '**/Dockerfile*'
+      - '.github/scripts/verify-go-version-consistency.sh'
+      - '.github/workflows/go-version-consistency.yml'
+
+jobs:
+  verify-go-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Verify Go version consistency
+        run: bash .github/scripts/verify-go-version-consistency.sh
