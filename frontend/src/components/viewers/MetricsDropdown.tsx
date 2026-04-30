@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { color, commonCss, fontsize, zIndex } from 'src/Css';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { classes, stylesheet } from 'typestyle';
@@ -92,39 +92,21 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
     updateSelectedArtifacts,
     namespace,
   } = props;
-  const [firstSelectedItem, setFirstSelectedItem] = useState<SelectedItem>(
-    selectedArtifacts[0].selectedItem,
-  );
-  const [secondSelectedItem, setSecondSelectedItem] = useState<SelectedItem>(
-    selectedArtifacts[1].selectedItem,
-  );
-
-  useEffect(() => {
-    setFirstSelectedItem(selectedArtifacts[0].selectedItem);
-    setSecondSelectedItem(selectedArtifacts[1].selectedItem);
-  }, [selectedArtifacts]);
 
   const selectedArtifactsForDisplay = useMemo(
-    () => [
-      {
-        selectedItem: firstSelectedItem,
-        linkedArtifact: getLinkedArtifactFromSelectedItem(filteredRunArtifacts, firstSelectedItem),
-      },
-      {
-        selectedItem: secondSelectedItem,
-        linkedArtifact: getLinkedArtifactFromSelectedItem(filteredRunArtifacts, secondSelectedItem),
-      },
-    ],
-    [filteredRunArtifacts, firstSelectedItem, secondSelectedItem],
+    () =>
+      selectedArtifacts.map((selectedArtifact) => ({
+        selectedItem: selectedArtifact.selectedItem,
+        linkedArtifact: getLinkedArtifactFromSelectedItem(
+          filteredRunArtifacts,
+          selectedArtifact.selectedItem,
+        ),
+      })),
+    [filteredRunArtifacts, selectedArtifacts],
   );
 
   const metricsTabText = metricsTypeToString(metricsTab);
-  const updateSelectedItemAndArtifact = (
-    setSelectedItem: (selectedItem: SelectedItem) => void,
-    panelIndex: number,
-    selectedItem: SelectedItem,
-  ): void => {
-    setSelectedItem(selectedItem);
+  const updateSelectedItemAndArtifact = (panelIndex: number, selectedItem: SelectedItem): void => {
     const linkedArtifact = getLinkedArtifactFromSelectedItem(filteredRunArtifacts, selectedItem);
     const nextSelectedArtifacts = selectedArtifactsForDisplay.map((selectedArtifact, index) =>
       index === panelIndex
@@ -150,8 +132,8 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
             <TwoLevelDropdown
               title={`Choose a first ${metricsTabText} artifact`}
               items={dropdownItems}
-              selectedItem={firstSelectedItem}
-              setSelectedItem={updateSelectedItemAndArtifact.bind(null, setFirstSelectedItem, 0)}
+              selectedItem={selectedArtifactsForDisplay[0].selectedItem}
+              setSelectedItem={updateSelectedItemAndArtifact.bind(null, 0)}
             />
             <VisualizationPanelItem
               metricsTab={metricsTab}
@@ -164,8 +146,8 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
             <TwoLevelDropdown
               title={`Choose a second ${metricsTabText} artifact`}
               items={dropdownItems}
-              selectedItem={secondSelectedItem}
-              setSelectedItem={updateSelectedItemAndArtifact.bind(null, setSecondSelectedItem, 1)}
+              selectedItem={selectedArtifactsForDisplay[1].selectedItem}
+              setSelectedItem={updateSelectedItemAndArtifact.bind(null, 1)}
             />
             <VisualizationPanelItem
               metricsTab={metricsTab}
@@ -204,8 +186,8 @@ interface VisualizationPanelItemProps {
 
 function VisualizationPanelItem(props: VisualizationPanelItemProps) {
   const { metricsTab, metricsTabText, linkedArtifact, namespace } = props;
-  const [errorMessage, setErrorMessage] = useState<string>('');
-  const [showError, setShowError] = useState<boolean>(false);
+  const shouldLoadViewerConfig =
+    !!linkedArtifact && (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN);
 
   const {
     isLoading,
@@ -216,38 +198,22 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     queryKey: queryKeys.visualizationPanelViewerConfig(linkedArtifact?.artifact.getId(), namespace),
 
     queryFn: async () => {
-      let viewerConfigs: ViewerConfig[] = [];
-      if (linkedArtifact) {
+      try {
         if (metricsTab === MetricsType.HTML) {
-          viewerConfigs = await getHtmlViewerConfig([linkedArtifact], namespace);
-        } else if (metricsTab === MetricsType.MARKDOWN) {
-          viewerConfigs = await getMarkdownViewerConfig([linkedArtifact], namespace);
+          return await getHtmlViewerConfig([linkedArtifact!], namespace);
         }
+        if (metricsTab === MetricsType.MARKDOWN) {
+          return await getMarkdownViewerConfig([linkedArtifact!], namespace);
+        }
+        return [];
+      } catch (queryError) {
+        throw new Error(await errorToMessage(queryError));
       }
-      return viewerConfigs;
     },
 
+    enabled: shouldLoadViewerConfig,
     staleTime: Infinity,
   });
-
-  useEffect(() => {
-    if (isError) {
-      let cancelled = false;
-      errorToMessage(error).then((msg) => {
-        if (!cancelled) {
-          setErrorMessage(msg);
-          setShowError(true);
-        }
-      });
-      return () => {
-        cancelled = true;
-      };
-    }
-    if (!isLoading) {
-      setShowError(false);
-    }
-    return undefined;
-  }, [isLoading, isError, error, setErrorMessage, setShowError]);
 
   if (!linkedArtifact) {
     return <VisualizationPlaceholder metricsTabText={metricsTabText} />;
@@ -261,17 +227,17 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     );
   }
 
-  if (showError || isLoading) {
+  if (isError || isLoading) {
     return (
       <React.Fragment>
-        {showError && (
+        {isError && (
           <div className={css.errorBanner}>
             <Banner
               message={`Error: failed loading ${metricsTabText} file.${
-                errorMessage && ' Click Details for more information.'
+                error?.message ? ' Click Details for more information.' : ''
               }`}
               mode='error'
-              additionalInfo={errorMessage}
+              additionalInfo={error?.message || undefined}
               isLeftAlign
             />
           </div>

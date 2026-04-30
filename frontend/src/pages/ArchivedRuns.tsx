@@ -57,7 +57,7 @@ export class ArchivedRuns extends Page<{ namespace?: string }, ArchivedRunsState
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <RunList

@@ -82,6 +82,38 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     vi.spyOn(Apis.runServiceApiV2, 'getRun').mockImplementation((id: string) => newMockV2Run(id));
   });
 
+  it('shows a loading spinner while runs are being fetched', () => {
+    vi.spyOn(Apis.runServiceApi, 'getRun').mockReturnValue(new Promise(() => {}));
+
+    render(
+      <CommonTestWrapper>
+        <Compare {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('does not show a loading spinner after runs fail to load', async () => {
+    vi.spyOn(Apis.runServiceApi, 'getRun').mockRejectedValue(new Error('fail'));
+
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+    );
+
+    render(
+      <CommonTestWrapper>
+        <Compare {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(updateBannerSpy).toHaveBeenCalledWith(expect.objectContaining({ mode: 'error' }));
+    });
+
+    expect(screen.queryByRole('progressbar')).toBeNull();
+  });
+
   it('getRun is called with query param IDs', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApi, 'getRun');
     runs = [

@@ -284,6 +284,7 @@ describe('NewRunSwitcher', () => {
         </CommonTestWrapper>,
       );
 
+      expect(screen.getByRole('progressbar')).toBeInTheDocument();
       expect(screen.getByText('Currently loading pipeline information')).toBeInTheDocument();
     });
 
@@ -458,6 +459,79 @@ describe('NewRunSwitcher', () => {
           ORIGINAL_TEST_PIPELINE_VERSION_ID,
         );
         expect(screen.getByText('Pipeline Root')).toBeInTheDocument();
+      });
+    });
+
+    it('shows error banner when pipeline version fetch fails', async () => {
+      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+      );
+      vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline').mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion').mockRejectedValue(
+        new Error('Version not found'),
+      );
+
+      const props = generatePropsNewRun();
+      render(
+        <CommonTestWrapper>
+          <NewRunSwitcher {...props} />
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(props.updateBanner).toHaveBeenCalledWith(
+          expect.objectContaining({
+            message:
+              'Error: failed to retrieve run creation data. Click Details for more information.',
+            additionalInfo: 'Version not found',
+            mode: 'error',
+          }),
+        );
+      });
+    });
+
+    it('clears error banner when queries succeed (fail-to-recover transition)', async () => {
+      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+      );
+      vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline').mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion').mockResolvedValue(
+        ORIGINAL_TEST_PIPELINE_VERSION,
+      );
+
+      const props = generatePropsNewRun();
+      render(
+        <CommonTestWrapper>
+          <NewRunSwitcher {...props} />
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(props.updateBanner).toHaveBeenLastCalledWith({});
+      });
+    });
+
+    it('shows error banner when experiment fetch fails', async () => {
+      vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockRejectedValue(
+        new Error('Experiment unavailable'),
+      );
+
+      const props = generatePropsNoPipelineDef(NEW_EXPERIMENT.experiment_id);
+      render(
+        <CommonTestWrapper>
+          <NewRunSwitcher {...props} />
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(props.updateBanner).toHaveBeenCalledWith(
+          expect.objectContaining({
+            message:
+              'Error: failed to retrieve run creation data. Click Details for more information.',
+            additionalInfo: 'Experiment unavailable',
+            mode: 'error',
+          }),
+        );
       });
     });
 

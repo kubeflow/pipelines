@@ -54,6 +54,12 @@ export interface Credentials {
  * (defaultConfigs or ProviderInfo), and return a minio client configured
  * respectively.
  *
+ * Security: By default, credentials are injected via environment variables
+ * (MINIO_ACCESS_KEY, MINIO_SECRET_KEY) from the deployment spec. When
+ * providerInfo indicates that credentials should not come from the environment
+ * (fromEnv === 'false'), this helper may read namespace-scoped Kubernetes
+ * secrets via getK8sSecret. See: https://github.com/kubeflow/pipelines/issues/12373
+ *
  * @param config minio client options where `accessKey` and `secretKey` are optional.
  * @param providerType provider type ('s3' or 'minio')
  * @param providerInfoString
@@ -140,7 +146,14 @@ export async function createMinioClient(
   return mc;
 }
 
-// Parse provider info for any s3 compatible store that's not AWS S3
+/**
+ * Parse provider info for any S3-compatible store that's not AWS S3.
+ *
+ * WARNING: This function is unsupported in multi-user deployments.
+ * The ml-pipeline-ui ClusterRole no longer grants secrets:get/list
+ * permissions, so getK8sSecret() calls will be denied by RBAC.
+ * See: https://github.com/kubeflow/pipelines/pull/12860
+ */
 async function parseS3ProviderInfo(
   config: MinioClientOptionsWithOptionalSecrets,
   providerInfo: S3ProviderInfo,

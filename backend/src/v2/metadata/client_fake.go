@@ -19,6 +19,7 @@ package metadata
 
 import (
 	"context"
+	"errors"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -31,18 +32,14 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+// FakeClient is a fake metadata client that adheres to the ClientInterface. It can be passed in place
+// of the mlmd.Client in tests to mock specific calls to MLMD. TODO Future tests which need to mock
+// other parts of MLMD will have to add functions to the FakeClient struct for mocking those calls.
 type FakeClient struct {
-	contexts             []*pb.Context
-	artifacts            []*pb.Artifact
-	artifactIdsToContext map[int64]*pb.Context
-}
-
-func intPtr(i int64) *int64 {
-	return &i
-}
-
-func strPtr(i string) *string {
-	return &i
+	CreateExecutionFunc           func(ctx context.Context, pipeline *Pipeline, config *ExecutionConfig) (*Execution, error)
+	GetExecutionByTypeAndNameFunc func(ctx context.Context, typeName, name string) (*Execution, error)
+	GetPipelineFunc               func(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot string, storeSessionInfo string) (*Pipeline, error)
+	GetDAGFunc                    func(ctx context.Context, executionID int64) (*DAG, error)
 }
 
 func NewFakeClient() *FakeClient {
@@ -52,11 +49,11 @@ func NewFakeClient() *FakeClient {
 }
 
 func (c *FakeClient) GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot string, storeSessionInfo string) (*Pipeline, error) {
-	return nil, nil
+	return c.GetPipelineFunc(ctx, pipelineName, runID, namespace, runResource, pipelineRoot, storeSessionInfo)
 }
 
 func (c *FakeClient) GetDAG(ctx context.Context, executionID int64) (*DAG, error) {
-	return nil, nil
+	return c.GetDAGFunc(ctx, executionID)
 }
 
 func (c *FakeClient) PublishExecution(ctx context.Context, execution *Execution, outputParameters map[string]*structpb.Value, outputArtifacts []*OutputArtifact, state pb.Execution_State) error {
@@ -64,10 +61,14 @@ func (c *FakeClient) PublishExecution(ctx context.Context, execution *Execution,
 }
 
 func (c *FakeClient) CreateExecution(ctx context.Context, pipeline *Pipeline, config *ExecutionConfig) (*Execution, error) {
-	return nil, nil
+	return c.CreateExecutionFunc(ctx, pipeline, config)
 }
 func (c *FakeClient) PrePublishExecution(ctx context.Context, execution *Execution, config *ExecutionConfig) (*Execution, error) {
 	return nil, nil
+}
+
+func (c *FakeClient) GetExecutionByTypeAndName(ctx context.Context, typeName, name string) (*Execution, error) {
+	return c.GetExecutionByTypeAndNameFunc(ctx, typeName, name)
 }
 
 func (c *FakeClient) GetExecutions(ctx context.Context, ids []int64) ([]*pb.Execution, error) {
@@ -228,4 +229,26 @@ func (c *FakeClient) createDummyData() {
 		*art1.Id: ctx1,
 		*art2.Id: ctx2,
 	}
+}
+
+// RecordArtifactFailureFakeClient is used for testing launcher publish failure handling
+type RecordArtifactFailureFakeClient struct {
+	*FakeClient
+	RecordArtifactCalls int
+	FailUntilCall       int
+}
+
+func NewRecordArtifactFailureFakeClient(failUntilCall int) *RecordArtifactFailureFakeClient {
+	return &RecordArtifactFailureFakeClient{
+		FakeClient:    NewFakeClient(),
+		FailUntilCall: failUntilCall,
+	}
+}
+
+func (c *RecordArtifactFailureFakeClient) RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State, bucketConfig *objectstore.Config) (*OutputArtifact, error) {
+	c.RecordArtifactCalls++
+	if c.RecordArtifactCalls <= c.FailUntilCall {
+		return nil, errors.New("simulated error")
+	}
+	return nil, nil
 }

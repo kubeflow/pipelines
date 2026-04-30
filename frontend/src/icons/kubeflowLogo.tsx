@@ -20,7 +20,7 @@ export default class KubeflowLogo extends React.Component<{
   color: string;
   style: React.CSSProperties;
 }> {
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     return (
       <svg
         style={this.props.style}

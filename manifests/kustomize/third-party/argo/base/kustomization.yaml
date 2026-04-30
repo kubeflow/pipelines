@@ -7,8 +7,3 @@ resources:
 patches:
 - path: workflow-controller-deployment-patch.yaml
 - path: workflow-controller-configmap-patch.yaml
-
-# Allow Kustomize vars to replace fields defined in params.yaml.
-# The vars can be defined anywhere.
-configurations:
-- params.yaml

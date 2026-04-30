@@ -15,6 +15,7 @@
  */
 
 import { fireEvent, render, screen } from '@testing-library/react';
+import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
 import { PlotType } from './Viewer';
 import ROCCurve, { findNearestDisplayPoint, lineColors } from './ROCCurve';
 
@@ -29,17 +30,17 @@ describe('ROCCurve', () => {
 
   it('does not break on no config', () => {
     const { asFragment } = render(<ROCCurve configs={[]} />);
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('does not break on empty data', () => {
     const { asFragment } = render(<ROCCurve configs={[{ data: [], type: PlotType.ROC }]} />);
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('renders a simple ROC curve given one config', () => {
     const { asFragment } = render(<ROCCurve configs={[{ data, type: PlotType.ROC }]} />);
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('renders a reference base line series', () => {
@@ -51,7 +52,7 @@ describe('ROCCurve', () => {
   it('renders an ROC curve using three configs', () => {
     const config = { data, type: PlotType.ROC };
     const { asFragment } = render(<ROCCurve configs={[config, config, config]} />);
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('renders three lines with three different colors', () => {

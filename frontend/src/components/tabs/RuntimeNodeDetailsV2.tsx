@@ -155,7 +155,11 @@ function TaskNodeDetail({
   layers,
   namespace,
 }: TaskNodeDetailProps) {
-  const { data: logsInfo } = useQuery<Map<string, string>, Error>({
+  const {
+    data: logsInfo,
+    isError: logsQueryFailed,
+    error: logsQueryError,
+  } = useQuery<Map<string, string>, Error>({
     queryKey: queryKeys.executionLogs(execution?.getId(), namespace),
     queryFn: async () => {
       if (!execution) {
@@ -167,8 +171,11 @@ function TaskNodeDetail({
   });
 
   const logsDetails = logsInfo?.get(LOGS_DETAILS);
-  const logsBannerMessage = logsInfo?.get(LOGS_BANNER_MESSAGE);
-  const logsBannerAdditionalInfo = logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO);
+  const logsBannerMessage =
+    logsInfo?.get(LOGS_BANNER_MESSAGE) ||
+    (logsQueryFailed ? 'Failed to retrieve pod logs.' : undefined);
+  const logsBannerAdditionalInfo =
+    logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO) || logsQueryError?.message;
 
   const [selectedTab, setSelectedTab] = useState(0);
 
@@ -203,9 +210,7 @@ function TaskNodeDetail({
         {selectedTab === 2 && (
           <div className={commonCss.page}>
             {logsBannerMessage && (
-              <React.Fragment>
-                <Banner message={logsBannerMessage} additionalInfo={logsBannerAdditionalInfo} />
-              </React.Fragment>
+              <Banner message={logsBannerMessage} additionalInfo={logsBannerAdditionalInfo} />
             )}
             {!logsBannerMessage && (
               <div className={commonCss.pageOverflowHidden} data-testid={'logs-view-window'}>
@@ -411,19 +416,14 @@ function ArtifactNodeDetail({ execution, linkedArtifact, namespace }: ArtifactNo
   );
 }
 
-interface ArtifactNodeDetailProps {
+interface ArtifactInfoProps {
   execution?: Execution;
   artifactTypes?: ArtifactType[];
   linkedArtifact?: LinkedArtifact;
   namespace: string | undefined;
 }
 
-function ArtifactInfo({
-  execution,
-  artifactTypes,
-  linkedArtifact,
-  namespace,
-}: ArtifactNodeDetailProps) {
+function ArtifactInfo({ execution, artifactTypes, linkedArtifact, namespace }: ArtifactInfoProps) {
   if (!execution || !linkedArtifact) {
     return NODE_STATE_UNAVAILABLE;
   }

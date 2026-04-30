@@ -140,7 +140,6 @@ jobs:
           storage_backend: ${{ matrix.storage }}
           deploy_external_argo: ${{ matrix.deploy_external_argo }}
           deploy_pypi_server: ${{ matrix.deploy_pypi_server }}
-          proxy: ${{ matrix.proxy }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
