@@ -18,6 +18,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -300,12 +301,145 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			logArt := test.executorInput.Outputs.Artifacts["executor-logs"].Artifacts[0]
 			assert.Contains(t, logArt.Uri, effectiveIndex,
 				"executor-logs URI should contain the retry index for attempt isolation")
+			if assert.NotNil(t, logArt.CustomPath) {
+				assert.Contains(t, *logArt.CustomPath, effectiveIndex,
+					"executor-logs CustomPath should contain the retry index for attempt isolation")
+				_, err = os.Stat(*logArt.CustomPath)
+				assert.NoError(t, err, "Expected executor-logs file to exist at the qualified custom path")
+			}
 
 			outputLog, err := bucket.ReadAll(context.TODO(), logKey)
 			assert.Nil(t, err, "Expected executor-logs to be readable at key %q", logKey)
 			assert.Equal(t, "testoutput\n", string(outputLog))
 		})
 	}
+}
+
+func Test_executeV2_publishLogs_skipsArtifactWhenSetupFailsBeforeLogsExist(t *testing.T) {
+	fakeKubernetesClientset := &fake.Clientset{}
+	fakeMetadataClient := metadata.NewFakeClient()
+	bucket, err := blob.OpenBucket(context.Background(), "mem://test-bucket")
+	assert.Nil(t, err)
+	bucketConfig, err := objectstore.ParseBucketConfig("mem://test-bucket/pipeline-root/", nil)
+	assert.Nil(t, err)
+
+	tempDir := t.TempDir()
+	customPath := filepath.Join(tempDir, "executor-logs")
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{},
+		},
+		Outputs: &pipelinespec.ExecutorInput_Outputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"executor-logs": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							Uri:        "mem://test-bucket/pipeline-root/executor-logs",
+							Type:       &pipelinespec.ArtifactTypeSchema{Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Artifact"}},
+							CustomPath: &customPath,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, outputArtifacts, err := executeV2(
+		context.Background(),
+		executorInput,
+		addNumbersComponent,
+		"sh",
+		[]string{"-c", "echo testoutput"},
+		bucket,
+		bucketConfig,
+		fakeMetadataClient,
+		"namespace",
+		fakeKubernetesClientset,
+		"true",
+		filepath.Join(tempDir, "missing-ca.pem"),
+		&OpenBucketConfig{context.Background(), fakeKubernetesClientset, "namespace", bucketConfig},
+	)
+
+	assert.Error(t, err)
+	assert.Empty(t, outputArtifacts, "Expected no output artifacts when logs were never created")
+
+	_, err = bucket.ReadAll(context.TODO(), "executor-logs-0")
+	assert.Error(t, err, "Expected no qualified executor-logs blob to be uploaded")
+}
+
+func Test_executeV2_publishLogs_qualifiesExecutorInputBeforeCommandCompilation(t *testing.T) {
+	fakeKubernetesClientset := &fake.Clientset{}
+	fakeMetadataClient := metadata.NewFakeClient()
+	bucket, err := blob.OpenBucket(context.Background(), "mem://test-bucket")
+	assert.Nil(t, err)
+	bucketConfig, err := objectstore.ParseBucketConfig("mem://test-bucket/pipeline-root/", nil)
+	assert.Nil(t, err)
+
+	tempDir := t.TempDir()
+	logPath := filepath.Join(tempDir, "executor-logs")
+	outputMetadataFile := filepath.Join(tempDir, "output_metadata.json")
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"a": structpb.NewNumberValue(1),
+				"b": structpb.NewNumberValue(2),
+			},
+		},
+		Outputs: &pipelinespec.ExecutorInput_Outputs{
+			OutputFile: outputMetadataFile,
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"executor-logs": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							Name:       "executor-logs",
+							Uri:        "mem://test-bucket/pipeline-root/executor-logs",
+							Type:       &pipelinespec.ArtifactTypeSchema{Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Artifact"}},
+							CustomPath: &logPath,
+						},
+					},
+				},
+			},
+		},
+	}
+	t.Setenv(EnvRetryIndex, "0")
+
+	script := fmt.Sprintf(`echo testoutput && mkdir -p %q && cat <<'EOF' > %q
+{"artifacts":{"executor-logs":{"artifacts":[{"name":"executor-logs","uri":"{{$.outputs.artifacts['executor-logs'].uri}}","customPath":"{{$.outputs.artifacts['executor-logs'].path}}","type":{"schemaTitle":"system.Artifact"}}]}}}
+EOF`, filepath.Dir(outputMetadataFile), outputMetadataFile)
+
+	_, outputArtifacts, err := executeV2(
+		context.Background(),
+		executorInput,
+		addNumbersComponent,
+		"sh",
+		[]string{"-c", script},
+		bucket,
+		bucketConfig,
+		fakeMetadataClient,
+		"namespace",
+		fakeKubernetesClientset,
+		"true",
+		"",
+		&OpenBucketConfig{context.Background(), fakeKubernetesClientset, "namespace", bucketConfig},
+	)
+
+	assert.Nil(t, err)
+	assert.Len(t, outputArtifacts, 1, "Expected executor-logs to be uploaded")
+
+	logArtifact := executorInput.Outputs.Artifacts["executor-logs"].Artifacts[0]
+	assert.Contains(t, logArtifact.Uri, "-0")
+	if assert.NotNil(t, logArtifact.CustomPath) {
+		assert.Contains(t, *logArtifact.CustomPath, "-0")
+	}
+
+	outputMetadata, err := os.ReadFile(outputMetadataFile)
+	assert.Nil(t, err)
+	assert.Contains(t, string(outputMetadata), "executor-logs-0",
+		"Expected compiled executor input placeholders to use the retry-qualified log location")
+
+	outputLog, err := bucket.ReadAll(context.TODO(), "executor-logs-0")
+	assert.Nil(t, err)
+	assert.Equal(t, "testoutput\n", string(outputLog))
 }
 
 func Test_getPlaceholders_WorkspaceArtifactPath(t *testing.T) {
@@ -473,42 +607,73 @@ func Test_get_log_Writer(t *testing.T) {
 
 func Test_qualifyExecutorLogsURI(t *testing.T) {
 	baseURI := "minio://mlpipeline/v2/artifacts/my-pipeline/run-id/always-fail/salt123/executor-logs"
+	baseCustomPath := "/minio/mlpipeline/v2/artifacts/my-pipeline/run-id/always-fail/salt123/executor-logs"
+	stringPtr := func(s string) *string { return &s }
 
 	tests := []struct {
-		name       string
-		artifacts  map[string]*pipelinespec.ArtifactList
-		retryIndex string
-		wantURI    string
+		name           string
+		artifacts      map[string]*pipelinespec.ArtifactList
+		retryIndex     string
+		wantURI        string
+		wantCustomPath *string
 	}{
 		{
 			name: "appends retry index to executor-logs URI",
 			artifacts: map[string]*pipelinespec.ArtifactList{
 				"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{{Uri: baseURI}}},
 			},
-			retryIndex: "2",
-			wantURI:    baseURI + "-2",
+			retryIndex:     "2",
+			wantURI:        baseURI + "-2",
+			wantCustomPath: nil,
+		},
+		{
+			name: "appends retry index to executor-logs CustomPath",
+			artifacts: map[string]*pipelinespec.ArtifactList{
+				"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{{
+					Uri:        baseURI,
+					CustomPath: stringPtr(baseCustomPath),
+				}}},
+			},
+			retryIndex:     "2",
+			wantURI:        baseURI + "-2",
+			wantCustomPath: stringPtr(baseCustomPath + "-2"),
+		},
+		{
+			name: "no-op when retry index already applied",
+			artifacts: map[string]*pipelinespec.ArtifactList{
+				"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{{
+					Uri:        baseURI + "-2",
+					CustomPath: stringPtr(baseCustomPath + "-2"),
+				}}},
+			},
+			retryIndex:     "2",
+			wantURI:        baseURI + "-2",
+			wantCustomPath: stringPtr(baseCustomPath + "-2"),
 		},
 		{
 			name: "no-op when retry index is empty",
 			artifacts: map[string]*pipelinespec.ArtifactList{
 				"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{{Uri: baseURI}}},
 			},
-			retryIndex: "",
-			wantURI:    baseURI,
+			retryIndex:     "",
+			wantURI:        baseURI,
+			wantCustomPath: nil,
 		},
 		{
-			name:       "no-op when executor-logs key is absent",
-			artifacts:  map[string]*pipelinespec.ArtifactList{},
-			retryIndex: "1",
-			wantURI:    "", // no artifact to check
+			name:           "no-op when executor-logs key is absent",
+			artifacts:      map[string]*pipelinespec.ArtifactList{},
+			retryIndex:     "1",
+			wantURI:        "", // no artifact to check
+			wantCustomPath: nil,
 		},
 		{
 			name: "no-op when executor-logs list is empty",
 			artifacts: map[string]*pipelinespec.ArtifactList{
 				"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{}},
 			},
-			retryIndex: "1",
-			wantURI:    "", // no artifact to check
+			retryIndex:     "1",
+			wantURI:        "", // no artifact to check
+			wantCustomPath: nil,
 		},
 		{
 			name: "no-op when executor-logs list has multiple artifacts",
@@ -520,21 +685,24 @@ func Test_qualifyExecutorLogsURI(t *testing.T) {
 			},
 			retryIndex: "1",
 			// list len != 1: guard should skip, original URIs unchanged
-			wantURI: baseURI,
+			wantURI:        baseURI,
+			wantCustomPath: nil,
 		},
 		{
-			name:       "no-op when ArtifactList value is nil",
-			artifacts:  map[string]*pipelinespec.ArtifactList{"executor-logs": nil},
-			retryIndex: "1",
-			wantURI:    "", // nil list: no artifact to check
+			name:           "no-op when ArtifactList value is nil",
+			artifacts:      map[string]*pipelinespec.ArtifactList{"executor-logs": nil},
+			retryIndex:     "1",
+			wantURI:        "", // nil list: no artifact to check
+			wantCustomPath: nil,
 		},
 		{
 			name: "no-op when first artifact is nil",
 			artifacts: map[string]*pipelinespec.ArtifactList{
 				"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{nil}},
 			},
-			retryIndex: "1",
-			wantURI:    "", // nil artifact: no URI to check
+			retryIndex:     "1",
+			wantURI:        "", // nil artifact: no URI to check
+			wantCustomPath: nil,
 		},
 	}
 
@@ -549,6 +717,11 @@ func Test_qualifyExecutorLogsURI(t *testing.T) {
 				return
 			}
 			assert.Equal(t, tc.wantURI, list.Artifacts[0].Uri)
+			if tc.wantCustomPath == nil {
+				assert.Nil(t, list.Artifacts[0].CustomPath)
+			} else if assert.NotNil(t, list.Artifacts[0].CustomPath) {
+				assert.Equal(t, *tc.wantCustomPath, *list.Artifacts[0].CustomPath)
+			}
 		})
 	}
 }
