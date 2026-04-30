@@ -386,6 +386,7 @@ func executeV2(
 	customCAPath string,
 	openBucketConfig *OpenBucketConfig,
 ) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
+	qualifyExecutorLogsForRetry(ctx, executorInput, publishLogs, namespace, k8sClient)
 
 	// Add parameter default values to executorInput, if there is not already a user input.
 	// This process is done in the launcher because we let the component resolve default values internally.
@@ -515,7 +516,54 @@ func qualifyExecutorLogsURI(artifacts map[string]*pipelinespec.ArtifactList, ret
 	if art == nil {
 		return
 	}
-	art.Uri = art.Uri + "-" + retryIndex
+	art.Uri = appendRetryIndexSuffix(art.Uri, retryIndex)
+	if art.CustomPath != nil && *art.CustomPath != "" {
+		*art.CustomPath = appendRetryIndexSuffix(*art.CustomPath, retryIndex)
+	}
+}
+
+// appendRetryIndexSuffix appends "-<retryIndex>" to a log path or URI once,
+// preserving already-qualified values.
+func appendRetryIndexSuffix(pathOrURI, retryIndex string) string {
+	if pathOrURI == "" || retryIndex == "" {
+		return pathOrURI
+	}
+	suffix := "-" + retryIndex
+	if strings.HasSuffix(pathOrURI, suffix) {
+		return pathOrURI
+	}
+	return pathOrURI + suffix
+}
+
+// qualifyExecutorLogsForRetry resolves the current retry attempt and updates the
+// launcher-managed executor-logs artifact before placeholder compilation and
+// execution so downstream paths and serialized executor input stay aligned.
+func qualifyExecutorLogsForRetry(
+	ctx context.Context,
+	executorInput *pipelinespec.ExecutorInput,
+	publishLogs string,
+	namespace string,
+	k8sClient kubernetes.Interface,
+) {
+	if publishLogs != "true" {
+		return
+	}
+
+	retryIndex := os.Getenv(EnvRetryIndex)
+	if retryIndex == "" {
+		podName := os.Getenv(EnvPodName)
+		if podName != "" && k8sClient != nil && namespace != "" {
+			if idx, err := retryIndexFromPodAnnotation(ctx, k8sClient, namespace, podName); err == nil {
+				retryIndex = idx
+			} else {
+				glog.Warningf("Could not determine retry index from pod annotation, defaulting to 0: %v", err)
+			}
+		}
+	}
+	if retryIndex == "" {
+		retryIndex = "0"
+	}
+	qualifyExecutorLogsURI(executorInput.GetOutputs().GetArtifacts(), retryIndex)
 }
 
 // retryIndexFromPodAnnotation reads the Argo node-name annotation on the current
@@ -611,30 +659,6 @@ func execute(
 	}
 	if err := downloadArtifacts(ctx, executorInput, bucket, bucketConfig, namespace, k8sClient); err != nil {
 		return nil, err
-	}
-
-	// Qualify the executor-logs URI with the retry index before preparing output
-	// folders so the per-attempt directory is created at the correct path.
-	// Prefer KFP_RETRY_INDEX, which is injected by the Argo compiler as
-	// "{{retries}}" and resolved by Argo at pod creation time. Fall back to
-	// reading the Argo node-name pod annotation, which encodes the index as
-	// executor(N), for compatibility with older API server versions.
-	if publishLogs == "true" {
-		retryIndex := os.Getenv(EnvRetryIndex)
-		if retryIndex == "" {
-			podName := os.Getenv(EnvPodName)
-			if podName != "" && k8sClient != nil && namespace != "" {
-				if idx, err := retryIndexFromPodAnnotation(ctx, k8sClient, namespace, podName); err == nil {
-					retryIndex = idx
-				} else {
-					glog.Warningf("Could not determine retry index from pod annotation, defaulting to 0: %v", err)
-				}
-			}
-		}
-		if retryIndex == "" {
-			retryIndex = "0"
-		}
-		qualifyExecutorLogsURI(executorInput.Outputs.GetArtifacts(), retryIndex)
 	}
 
 	if err := prepareOutputFolders(executorInput); err != nil {
@@ -744,8 +768,9 @@ func uploadOutputArtifacts(
 		for _, outputArtifact := range artifactList.Artifacts {
 			glog.Infof("outputArtifact in uploadOutputArtifacts call: %s", outputArtifact.Name)
 
-			// Merge executor output artifact info with executor input
-			if executorOutput != nil {
+			// executor-logs is launcher-managed; keep its qualified location stable
+			// even if the user executor echoes an older value in ExecutorOutput.
+			if executorOutput != nil && name != "executor-logs" {
 				if list, ok := executorOutput.Artifacts[name]; ok && len(list.Artifacts) > 0 {
 					mergeRuntimeArtifacts(list.Artifacts[0], outputArtifact)
 				}
@@ -755,6 +780,11 @@ func uploadOutputArtifacts(
 			localDir, err := retrieveArtifactPath(outputArtifact)
 			if err != nil {
 				glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.", name, outputArtifact.Uri)
+				if name == "executor-logs" {
+					// Avoid registering a broken executor-logs artifact when launcher setup fails
+					// before the log file path can be initialized.
+					continue
+				}
 			} else if !strings.HasPrefix(outputArtifact.Uri, "oci://") {
 				blobKey, err := opts.bucketConfig.KeyFromURI(outputArtifact.Uri)
 				if err != nil {
@@ -764,6 +794,11 @@ func uploadOutputArtifacts(
 					//  We allow components to not produce output files
 					if errors.Is(err, os.ErrNotExist) {
 						glog.Warningf("Local filepath %q does not exist", localDir)
+						if name == "executor-logs" {
+							// If the executor never started streaming logs to disk, skip recording
+							// the log artifact instead of surfacing a dead link in the UI.
+							continue
+						}
 					} else {
 						return nil, fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)
 					}
