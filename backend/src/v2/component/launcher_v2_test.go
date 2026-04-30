@@ -363,8 +363,8 @@ func Test_executeV2_publishLogs_skipsArtifactWhenSetupFailsBeforeLogsExist(t *te
 	assert.Error(t, err)
 	assert.Empty(t, outputArtifacts, "Expected no output artifacts when logs were never created")
 
-	_, err = bucket.ReadAll(context.TODO(), "executor-logs")
-	assert.Error(t, err, "Expected no executor-logs blob to be uploaded")
+	_, err = bucket.ReadAll(context.TODO(), "executor-logs-0")
+	assert.Error(t, err, "Expected no qualified executor-logs blob to be uploaded")
 }
 
 func Test_executeV2_publishLogs_qualifiesExecutorInputBeforeCommandCompilation(t *testing.T) {
