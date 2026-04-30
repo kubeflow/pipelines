@@ -5,6 +5,14 @@ metadata:
 spec:
   template:
     spec:
+      initContainers:
+      - name: wait-for-database
+        env:
+        - $patch: replace
+        - name: WAIT_HOST
+          value: metadata-postgres-db
+        - name: WAIT_PORT
+          value: "5432"
       containers:
         - name: container
           # Remove existing environment variables
