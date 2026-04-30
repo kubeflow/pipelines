@@ -1,8 +1,9 @@
 # PIPELINE DEFINITION
 # Name: pipeline-with-exit-handler
-# Description: Runs `echo` inside an ExitHandler. On success the exit task receives
-#              a PipelineTaskFinalStatus with state='SUCCEEDED'. No pipeline output —
-#              KFP's compiler rejects returning a value from inside an ExitHandler.
+# Description: Runs `echo` inside an ExitHandler.
+#              On success the exit task receives a PipelineTaskFinalStatus with
+#              state='SUCCEEDED'. No pipeline output — KFP's compiler rejects
+#              returning a value from inside an ExitHandler.
 # Inputs:
 #    message: str [Default: 'hello']
 components:
@@ -105,9 +106,9 @@ deploymentSpec:
           \ f'exit:{status.state}'\n\n"
         image: python:3.11
 pipelineInfo:
-  description: "Runs `echo` inside an ExitHandler. On success the exit task receives\n\
-    a PipelineTaskFinalStatus with state='SUCCEEDED'. No pipeline output \u2014\n\
-    KFP's compiler rejects returning a value from inside an ExitHandler."
+  description: "Runs `echo` inside an ExitHandler.\nOn success the exit task receives\
+    \ a PipelineTaskFinalStatus with\nstate='SUCCEEDED'. No pipeline output \u2014\
+    \ KFP's compiler rejects\nreturning a value from inside an ExitHandler."
   name: pipeline-with-exit-handler
 root:
   dag:

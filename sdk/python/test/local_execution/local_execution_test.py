@@ -61,22 +61,22 @@ from test_data.sdk_compiled_pipelines.valid.essential.dict_input import \
     dict_input
 from test_data.sdk_compiled_pipelines.valid.essential.lightweight_python_functions_with_outputs import \
     pipeline as lightweight_with_outputs_pipeline
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_caching import \
-    pipeline_with_caching
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_collected_artifacts import \
-    pipeline_with_collected_artifacts
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_exit_handler import \
-    pipeline_with_exit_handler
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_ignore_upstream_failure import \
-    pipeline_with_ignore_upstream_failure
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_k8s_only_methods import \
-    pipeline_with_k8s_only_methods
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_oneof import \
-    pipeline_with_oneof
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_retry import \
-    pipeline_with_retry
 from test_data.sdk_compiled_pipelines.valid.hello_world import echo
 from test_data.sdk_compiled_pipelines.valid.identity import identity
+from test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_exit_handler import \
+    pipeline_with_exit_handler
+from test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_ignore_upstream_failure import \
+    pipeline_with_ignore_upstream_failure
+from test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_k8s_only_methods import \
+    pipeline_with_k8s_only_methods
+from test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_oneof import \
+    pipeline_with_oneof
+from test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_retry import \
+    pipeline_with_retry
+from test_data.sdk_compiled_pipelines.valid.local_execution.pipeline_with_caching import \
+    pipeline_with_caching
+from test_data.sdk_compiled_pipelines.valid.local_execution.pipeline_with_collected_artifacts import \
+    pipeline_with_collected_artifacts
 from test_data.sdk_compiled_pipelines.valid.nested_return import nested_return
 from test_data.sdk_compiled_pipelines.valid.output_metrics import \
     output_metrics
