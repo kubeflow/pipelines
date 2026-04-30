@@ -14,8 +14,9 @@
 """Pipeline exercising `dsl.ExitHandler` + `PipelineTaskFinalStatus` for local-
 execution regression tests.
 
-On success the body task runs, the exit task runs with
-`state='SUCCEEDED'`, and the pipeline returns the body task's output.
+On success the body task runs, and the exit task runs with
+`state='SUCCEEDED'`. The pipeline has no output because KFP rejects
+returning a value from inside an ExitHandler.
 """
 from kfp import compiler
 from kfp import dsl

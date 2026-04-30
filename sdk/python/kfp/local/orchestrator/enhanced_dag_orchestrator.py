@@ -408,7 +408,9 @@ def _run_parallel_for_task(
         else:
             logging.warning(f'Unknown items type for task {task_name}')
             return False
-        parallelism_limit = getattr(param_iter, 'parallelism_limit', 0)
+        parallelism_limit = 0
+        if task_spec.HasField('iterator_policy'):
+            parallelism_limit = task_spec.iterator_policy.parallelism_limit
     elif iterator == 'artifact_iterator':
         try:
             items, artifact_item_input, parallelism_limit = (
