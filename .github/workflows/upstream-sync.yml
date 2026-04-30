@@ -1,0 +1,107 @@
+name: Upstream Sync (kubeflow/pipelines)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '3 13 * * 2'  # Tuesday 13:03 UTC
+
+env:
+  UPSTREAM_REPO: https://github.com/kubeflow/pipelines.git
+  UPSTREAM_BRANCH: master
+  DOWNSTREAM_BRANCH: master
+  GH_USER_NAME: dsp-developers
+  GH_USER_EMAIL: 140449482+dsp-developers@users.noreply.github.com
+  IGNORE_FILES: ".tekton/*, .github/renovate.json5, backend/Dockerfile*"
+
+jobs:
+  sync:
+    if: github.repository_owner == 'opendatahub-io'
+    name: Sync upstream to downstream
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout downstream
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ env.DOWNSTREAM_BRANCH }}
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN_PROJECT_EDIT }}
+
+      - name: Configure git
+        run: |
+          git config user.name "${{ env.GH_USER_NAME }}"
+          git config user.email "${{ env.GH_USER_EMAIL }}"
+          git config merge.ours.driver true
+
+      - name: Add upstream remote and fetch
+        run: |
+          git remote add upstream ${{ env.UPSTREAM_REPO }}
+          git fetch upstream ${{ env.UPSTREAM_BRANCH }}
+
+      - name: Check if sync is needed
+        id: check
+        run: |
+          MERGE_BASE=$(git merge-base HEAD upstream/${{ env.UPSTREAM_BRANCH }})
+          UPSTREAM_HEAD=$(git rev-parse upstream/${{ env.UPSTREAM_BRANCH }})
+
+          if [ "$MERGE_BASE" = "$UPSTREAM_HEAD" ]; then
+            echo "Already up to date with upstream."
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Upstream has $(git rev-list --count HEAD..upstream/${{ env.UPSTREAM_BRANCH }}) new commit(s)."
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure file exclusions
+        if: steps.check.outputs.needed == 'true'
+        run: |
+          IFS=', ' read -r -a exclusions <<< "${{ env.IGNORE_FILES }}"
+          for pattern in "${exclusions[@]}"; do
+            pattern=$(echo "$pattern" | xargs)
+            echo "$pattern merge=ours" >> .git/info/attributes
+          done
+          echo "--- .git/info/attributes ---"
+          cat .git/info/attributes
+
+      - name: Merge upstream
+        if: steps.check.outputs.needed == 'true'
+        id: merge
+        run: |
+          BRANCH_NAME="sync/upstream-merge-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$BRANCH_NAME"
+
+          MERGE_RESULT=$(git merge --no-edit upstream/${{ env.UPSTREAM_BRANCH }} 2>&1) || {
+            echo "::error::Merge failed with conflicts. Manual resolution required."
+            echo "$MERGE_RESULT"
+            exit 1
+          }
+
+          echo "$MERGE_RESULT"
+          echo "branch=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Push and create Pull Request
+        if: steps.check.outputs.needed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN_PROJECT_EDIT }}
+        run: |
+          git push origin "${{ steps.merge.outputs.branch }}"
+
+          EXCLUDED_LIST=""
+          IFS=', ' read -r -a exclusions <<< "${{ env.IGNORE_FILES }}"
+          for pattern in "${exclusions[@]}"; do
+            pattern=$(echo "$pattern" | xargs)
+            EXCLUDED_LIST="${EXCLUDED_LIST}- \`${pattern}\`"$'\n'
+          done
+
+          gh pr create \
+            --head "${{ steps.merge.outputs.branch }}" \
+            --base "${{ env.DOWNSTREAM_BRANCH }}" \
+            --title "chore: sync upstream kubeflow/pipelines" \
+            --body "Automated sync from [kubeflow/pipelines](https://github.com/kubeflow/pipelines) \`${{ env.UPSTREAM_BRANCH }}\` branch.
+
+          **Excluded files** (kept as downstream versions):
+          ${EXCLUDED_LIST}
+          ---
+          *Created by the [Upstream Sync](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow.*"
