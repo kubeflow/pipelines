@@ -20,17 +20,14 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/url"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
-
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
-	"github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
@@ -115,7 +112,6 @@ type ClientManagerInterface interface {
 	KubernetesCoreClient() client.KubernetesCoreInterface
 	SubjectAccessReviewClient() client.SubjectAccessReviewInterface
 	TokenReviewClient() client.TokenReviewInterface
-	MetadataClient() metadata.ClientInterface
 	LogArchive() archive.LogArchiveInterface
 	Time() util.TimeInterface
 	UUID() util.UUIDGeneratorInterface
@@ -147,7 +143,6 @@ type ResourceManager struct {
 	k8sCoreClient             client.KubernetesCoreInterface
 	subjectAccessReviewClient client.SubjectAccessReviewInterface
 	tokenReviewClient         client.TokenReviewInterface
-	metadataClient            metadata.ClientInterface
 	logArchive                archive.LogArchiveInterface
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
@@ -171,7 +166,6 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 		k8sCoreClient:             clientManager.KubernetesCoreClient(),
 		subjectAccessReviewClient: clientManager.SubjectAccessReviewClient(),
 		tokenReviewClient:         clientManager.TokenReviewClient(),
-		metadataClient:            clientManager.MetadataClient(),
 		logArchive:                clientManager.LogArchive(),
 		time:                      clientManager.Time(),
 		uuid:                      clientManager.UUID(),
@@ -392,14 +386,40 @@ func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versio
 
 // MaxTagKeyLength is the maximum allowed length (in characters) for a tag key.
 // Consistent with Kubernetes label value length limit (63 characters).
-const MaxTagKeyLength = common.MaxTagKeyLength
+const MaxTagKeyLength = 63
 
 // MaxTagValueLength is the maximum allowed length (in characters) for a tag value.
 // Consistent with Kubernetes label value length limit (63 characters).
-const MaxTagValueLength = common.MaxTagValueLength
+const MaxTagValueLength = 63
 
 // MaxTagsPerEntity is the maximum number of tags allowed on a single pipeline or pipeline version.
-const MaxTagsPerEntity = common.MaxTagsPerEntity
+const MaxTagsPerEntity = 20
+
+// validateTags checks that tags conform to all constraints:
+// - maximum number of tags per entity
+// - no empty keys
+// - keys must not contain "." (conflicts with tag filter prefix "tags.")
+// - key and value character lengths within limits
+func validateTags(tags map[string]string) error {
+	if len(tags) > MaxTagsPerEntity {
+		return util.NewInvalidInputError("number of tags (%d) exceeds maximum of %d per entity", len(tags), MaxTagsPerEntity)
+	}
+	for key, value := range tags {
+		if key == "" {
+			return util.NewInvalidInputError("tag key cannot be empty")
+		}
+		if strings.Contains(key, ".") {
+			return util.NewInvalidInputError("tag key %q must not contain '.' character", key)
+		}
+		if utf8.RuneCountInString(key) > MaxTagKeyLength {
+			return util.NewInvalidInputError("tag key %q exceeds maximum length of %d characters", key, MaxTagKeyLength)
+		}
+		if utf8.RuneCountInString(value) > MaxTagValueLength {
+			return util.NewInvalidInputError("tag value %q for key %q exceeds maximum length of %d characters", value, key, MaxTagValueLength)
+		}
+	}
+	return nil
+}
 
 // UpdatePipeline updates mutable fields of a pipeline (display_name, tags).
 // Both fields are updated in a single transaction via UpdatePipelineFields.
@@ -407,7 +427,7 @@ func (r *ResourceManager) UpdatePipeline(pipelineID string, displayName string, 
 	if pipelineID == "" {
 		return nil, util.NewInvalidInputError("pipeline id cannot be empty when updating pipeline")
 	}
-	if err := common.ValidateTags(tags); err != nil {
+	if err := validateTags(tags); err != nil {
 		return nil, err
 	}
 	// Update fields and tags in a single transaction to prevent deadlocks.
@@ -424,7 +444,7 @@ func (r *ResourceManager) UpdatePipelineVersion(pipelineVersionID string, displa
 	if pipelineVersionID == "" {
 		return nil, util.NewInvalidInputError("pipeline version id cannot be empty when updating pipeline version")
 	}
-	if err := common.ValidateTags(tags); err != nil {
+	if err := validateTags(tags); err != nil {
 		return nil, err
 	}
 	// Update fields and tags in a single transaction to prevent deadlocks.
@@ -446,7 +466,7 @@ func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, er
 		p.DisplayName = p.Name
 	}
 
-	if err := common.ValidateTags(p.Tags); err != nil {
+	if err := validateTags(p.Tags); err != nil {
 		return nil, err
 	}
 
@@ -470,10 +490,10 @@ func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, er
 // Creates a pipeline and a pipeline version.
 // This is used when two resources need to be created in a single DB transaction.
 func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv *model.PipelineVersion) (*model.Pipeline, *model.PipelineVersion, error) {
-	if err := common.ValidateTags(p.Tags); err != nil {
+	if err := validateTags(p.Tags); err != nil {
 		return nil, nil, err
 	}
-	if err := common.ValidateTags(pv.Tags); err != nil {
+	if err := validateTags(pv.Tags); err != nil {
 		return nil, nil, err
 	}
 
@@ -755,7 +775,7 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 			return failedToReconcileSwfCrsError(err)
 		}
 
-		newScheduledWorkflow, err := tmpl.ScheduledWorkflow(jobs[i], r.getOwnerReferences())
+		newScheduledWorkflow, err := tmpl.ScheduledWorkflow(jobs[i])
 		if err != nil {
 			return failedToReconcileSwfCrsError(err)
 		}
@@ -1229,7 +1249,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 
 		// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
 		// Convert modelJob into scheduledWorkflow.
-		scheduledWorkflow, err = tmpl.ScheduledWorkflow(job, r.getOwnerReferences())
+		scheduledWorkflow, err = tmpl.ScheduledWorkflow(job)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
 		}
@@ -1257,12 +1277,12 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			return nil, util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 		}
 
-		_, err = tmpl.ScheduledWorkflow(job, r.getOwnerReferences())
+		_, err = tmpl.ScheduledWorkflow(job)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
 		}
 
-		scheduledWorkflow, err = template.NewGenericScheduledWorkflow(job, r.getOwnerReferences())
+		scheduledWorkflow, err = template.NewGenericScheduledWorkflow(job)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
 		}
@@ -1320,27 +1340,6 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		job.PipelineSpecManifest = model.LargeText(manifest)
 	}
 	return r.jobStore.CreateJob(job)
-}
-
-func (r *ResourceManager) getOwnerReferences() []v1.OwnerReference {
-	ownerName := common.GetStringConfigWithDefault("OWNER_NAME", "")
-	ownerAPIVersion := common.GetStringConfigWithDefault("OWNER_API_VERSION", "")
-	ownerKind := common.GetStringConfigWithDefault("OWNER_KIND", "")
-	ownerUID := types.UID(common.GetStringConfigWithDefault("OWNER_UID", ""))
-
-	if ownerName == "" || ownerAPIVersion == "" || ownerKind == "" || ownerUID == "" {
-		glog.Info("Missing ScheduledWorkflow owner fields. Proceeding without OwnerReferences")
-		return []v1.OwnerReference{}
-	} else {
-		return []v1.OwnerReference{
-			{
-				APIVersion: ownerAPIVersion,
-				Kind:       ownerKind,
-				Name:       ownerName,
-				UID:        ownerUID,
-			},
-		}
-	}
 }
 
 // Enables or disables a recurring run with given id.
@@ -1909,7 +1908,7 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	pv.Status = model.PipelineVersionCreating
 	pv.PipelineSpec = model.LargeText(string(tmpl.Bytes()))
 
-	if err := common.ValidateTags(pv.Tags); err != nil {
+	if err := validateTags(pv.Tags); err != nil {
 		return nil, err
 	}
 
@@ -2247,130 +2246,4 @@ func (r *ResourceManager) GetTask(taskId string) (*model.Task, error) {
 		return nil, util.Wrapf(err, "Failed to fetch task %v", taskId)
 	}
 	return task, nil
-}
-
-// GetContexts Fetches Contexts with the given sort/filter options.
-func (r *ResourceManager) GetContexts(ctx context.Context, maxResultSize int32, orderByAscending bool, orderByField, filterQuery, nextPageToken string) ([]*ml_metadata.Context, *string, error) {
-	return r.metadataClient.GetContexts(ctx, maxResultSize, orderByAscending, orderByField, filterQuery, nextPageToken)
-}
-
-// GetArtifacts Fetches Artifacts with the given sort/filter options.
-func (r *ResourceManager) GetArtifacts(ctx context.Context, maxResultSize int32, orderByAscending bool, orderByField, filterQuery, nextPageToken string) ([]*ml_metadata.Artifact, *string, error) {
-	return r.metadataClient.GetArtifacts(ctx, maxResultSize, orderByAscending, orderByField, filterQuery, nextPageToken)
-}
-
-// GetArtifactById Fetches Artifacts with the given artifact ids.
-func (r *ResourceManager) GetArtifactById(ctx context.Context, id []int64) ([]*ml_metadata.Artifact, error) {
-	return r.metadataClient.GetArtifactsByID(ctx, id)
-}
-
-// GetArtifactSessionInfo provides the bucket config that contains a session info for a given Artifact.
-// The bucket config contains information on where the artifact is store within object store.
-// The session info is pulled from the artifact's parent context.
-// TODO: In kfp 2.3 the session info can be retrieved directly from the Artifact custom properties.
-func (r *ResourceManager) GetArtifactSessionInfo(ctx context.Context, artifact *ml_metadata.Artifact) (*objectstore.Config, string, error) {
-	artifactCtx, err := r.metadataClient.GetContextByArtifactID(ctx, artifact.GetId())
-	if err != nil {
-		return nil, "", err
-	}
-
-	// Retrieve Pipeline Root info
-	pipelineRoot := artifactCtx.CustomProperties["pipeline_root"].GetStringValue()
-	if pipelineRoot == "" {
-		return nil, "", fmt.Errorf("Unable to retrieve artifact pipeline_root info via context property.")
-	}
-
-	// Retrieve Session info
-	storeSessionInfo, ok_session := artifactCtx.CustomProperties["store_session_info"]
-
-	var sessionInfoString = ""
-
-	if ok_session {
-		sessionInfoString = storeSessionInfo.GetStringValue()
-	} else {
-		// bucket_session_info is an old struct that needs to be converted to store_session_info
-		bucketSession := &objectstore.S3Params{}
-		err1 := json.Unmarshal([]byte(artifactCtx.CustomProperties["bucket_session_info"].GetStringValue()), bucketSession)
-		if err1 != nil {
-			return nil, "", err1
-		}
-		sessionInfoParams := &map[string]string{
-			"fromEnv":      "false",
-			"endpoint":     bucketSession.Endpoint,
-			"region":       bucketSession.Region,
-			"disableSSL":   strconv.FormatBool(bucketSession.DisableSSL),
-			"secretName":   bucketSession.SecretName,
-			"accessKeyKey": bucketSession.AccessKeyKey,
-			"secretKeyKey": bucketSession.SecretKeyKey,
-		}
-
-		sessionInfo := &objectstore.SessionInfo{
-			Provider: "s3",
-			Params:   *sessionInfoParams,
-		}
-		sessionInfoBytes, err2 := json.Marshal(*sessionInfo)
-		if err2 != nil {
-			return nil, "", err2
-		}
-		sessionInfoString = string(sessionInfoBytes)
-	}
-
-	if sessionInfoString == "" {
-		return nil, "", fmt.Errorf("Unable to retrieve artifact session info via context property.")
-	}
-	sessionInfo, err := objectstore.GetSessionInfoFromString(sessionInfoString)
-	if err != nil {
-		return nil, "", err
-	}
-	config, err := objectstore.ParseBucketConfig(pipelineRoot, sessionInfo)
-	if err != nil {
-		return nil, "", err
-	}
-	if artifact.Uri == nil {
-		return nil, "", fmt.Errorf("Artifact did not have a URI property.")
-	}
-
-	// Retrieve namespace
-	namespace := artifactCtx.CustomProperties["namespace"].GetStringValue()
-	if namespace == "" {
-		return nil, "", fmt.Errorf("Unable to retrieve artifact namespace info via context property.")
-	}
-
-	return config, namespace, nil
-}
-
-// GetSecretKeyValue retrieves the value identified by the Secret name and key within the provided namespace.
-func (r *ResourceManager) GetSecretKeyValue(ctx context.Context, ns, name, key string) (string, error) {
-	secret, err := r.k8sCoreClient.SecretClient(ns).Get(ctx, name, v1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-	return string(secret.Data[key]), nil
-}
-
-// GetSecret retrieves the secret identified by name from the provided namespace.
-func (r *ResourceManager) GetSecret(ctx context.Context, namespace, name string) (*corev1.Secret, error) {
-	secret, err := r.k8sCoreClient.SecretClient(namespace).Get(ctx, name, v1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return secret, nil
-}
-
-// GetSignedUrl retrieves a signed url for the associated artifact.
-func (r *ResourceManager) GetSignedUrl(ctx context.Context, bucketConfig *objectstore.Config, secret *corev1.Secret, expirySeconds time.Duration, artifactURI string, queryParams url.Values) (string, error) {
-	signedUrl, err := r.objectStore.GetSignedUrl(ctx, bucketConfig, secret, expirySeconds, artifactURI, queryParams)
-	if err != nil {
-		return "", err
-	}
-	return signedUrl, nil
-}
-
-// GetObjectSize retrieves the size of the Artifact's object in bytes.
-func (r *ResourceManager) GetObjectSize(ctx context.Context, bucketConfig *objectstore.Config, secret *corev1.Secret, artifactURI string) (int64, error) {
-	size, err := r.objectStore.GetObjectSize(ctx, bucketConfig, secret, artifactURI)
-	if err != nil {
-		return 0, err
-	}
-	return size, nil
 }
