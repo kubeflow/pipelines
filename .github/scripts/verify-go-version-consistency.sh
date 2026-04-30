@@ -42,13 +42,13 @@ done < <(cd "$REPO_ROOT" && git ls-files '*Dockerfile*' | xargs grep -il 'FROM g
 echo ""
 
 if [[ $CHECKED -eq 0 ]]; then
-    echo "ERROR: No Dockerfiles with 'FROM golang:' found." >&2
+    echo "ERROR: No 'FROM golang:' stages found in any Dockerfile." >&2
     exit 1
 fi
 
 if [[ $ERRORS -gt 0 ]]; then
-    echo "FAILED: $ERRORS Dockerfile(s) have a Go version mismatch with go.mod ($GOMOD_VERSION)." >&2
+    echo "FAILED: $ERRORS 'FROM golang:' stage(s) have a Go version mismatch with go.mod ($GOMOD_VERSION)." >&2
     exit 1
 fi
 
-echo "PASSED: All $CHECKED Dockerfile(s) use Go $GOMOD_VERSION, matching go.mod."
+echo "PASSED: All $CHECKED 'FROM golang:' stage(s) use Go $GOMOD_VERSION, matching go.mod."
