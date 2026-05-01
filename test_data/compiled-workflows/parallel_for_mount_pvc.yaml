@@ -6,36 +6,36 @@ spec:
   arguments:
     parameters:
     - name: components-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767
-      value: '{"executorLabel":"exec-createpvc","inputDefinitions":{"parameters":{"access_modes":{"description":"AccessModes
-        to request for the provisioned PVC. May\nbe one or more of ``''ReadWriteOnce''``,
-        ``''ReadOnlyMany''``, ``''ReadWriteMany''``, or\n``''ReadWriteOncePod''``.
-        Corresponds to `PersistentVolumeClaim.spec.accessModes \u003chttps://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes\u003e`_.","parameterType":"LIST"},"annotations":{"description":"Annotations
-        for the PVC''s metadata. Corresponds to `PersistentVolumeClaim.metadata.annotations
-        \u003chttps://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim\u003e`_.","isOptional":true,"parameterType":"STRUCT"},"pvc_name":{"description":"Name
-        of the PVC. Corresponds to `PersistentVolumeClaim.metadata.name \u003chttps://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim\u003e`_.
-        Only one of ``pvc_name`` and ``pvc_name_suffix`` can\nbe provided.","isOptional":true,"parameterType":"STRING"},"pvc_name_suffix":{"description":"Prefix
+      value: '{"executorLabel":"exec-createpvc","inputDefinitions":{"parameters":{"access_modes":{"description":"Values
+        for ``PersistentVolumeClaim.spec.accessModes``.","parameterType":"LIST"},"annotations":{"description":"Annotations
+        for the PVC''s metadata. Corresponds to\n`PersistentVolumeClaim.metadata.annotations\n\u003chttps://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim\u003e`_.","isOptional":true,"parameterType":"STRUCT"},"data_source":{"description":"Specifies
+        the data source for the PVC. This can be used to\ncreate a PVC from a VolumeSnapshot
+        or to clone an existing PVC.\nShould be a dictionary with ``''apiGroup''``,
+        ``''kind''``, and\n``''name''`` keys. For example:\n``{''apiGroup'': ''snapshot.storage.k8s.io'',
+        ''kind'': ''VolumeSnapshot'', ''name'': ''my-snapshot''}``.\nCorresponds to
+        `PersistentVolumeClaim.spec.dataSource\n\u003chttps://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec\u003e`_.","isOptional":true,"parameterType":"STRUCT"},"pvc_name":{"description":"Name
+        of the PVC. Corresponds to\n`PersistentVolumeClaim.metadata.name\n\u003chttps://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim\u003e`_.\nOnly
+        one of ``pvc_name`` and ``pvc_name_suffix`` can be provided.","isOptional":true,"parameterType":"STRING"},"pvc_name_suffix":{"description":"Prefix
         to use for a dynamically generated name, which\nwill take the form ``\u003cargo-workflow-name\u003e-\u003cpvc_name_suffix\u003e``.
-        Only one\nof ``pvc_name`` and ``pvc_name_suffix`` can be provided.","isOptional":true,"parameterType":"STRING"},"size":{"description":"The
-        size of storage requested by the PVC that will be provisioned. For example,
-        ``''5Gi''``. Corresponds to `PersistentVolumeClaim.spec.resources.requests.storage
-        \u003chttps://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec\u003e`_.","parameterType":"STRING"},"storage_class_name":{"defaultValue":"","description":"Name
+        Only\none of ``pvc_name`` and ``pvc_name_suffix`` can be provided.","isOptional":true,"parameterType":"STRING"},"size":{"description":"The
+        size of storage requested by the PVC that will be\nprovisioned. For example,
+        ``''5Gi''``. Corresponds to\n`PersistentVolumeClaim.spec.resources.requests.storage\n\u003chttps://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec\u003e`_.","parameterType":"STRING"},"storage_class_name":{"defaultValue":"","description":"Name
         of StorageClass from which to provision the PV\nto back the PVC. ``None``
         indicates to use the cluster''s default\nstorage_class_name. Set to ``''''``
         for a statically specified PVC.","isOptional":true,"parameterType":"STRING"},"volume_name":{"description":"Pre-existing
         PersistentVolume that should back the\nprovisioned PersistentVolumeClaim.
-        Used for statically\nspecified PV only. Corresponds to `PersistentVolumeClaim.spec.volumeName
-        \u003chttps://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec\u003e`_.","isOptional":true,"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"name":{"parameterType":"STRING"}}}}'
+        Used for statically\nspecified PV only. Corresponds to\n`PersistentVolumeClaim.spec.volumeName\n\u003chttps://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec\u003e`_.","isOptional":true,"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"name":{"parameterType":"STRING"}}}}'
     - name: implementations-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767
       value: '{"image":"argostub/createpvc"}'
     - name: kubernetes-comp-example-component
       value: '{"pvcMount":[{"componentInputParameter":"pipelinechannel--createpvc-name","mountPath":"/data","pvcNameParameter":{"componentInputParameter":"pipelinechannel--createpvc-name"}}]}'
-    - name: components-1e6d3fc350583cb591281c08420927b09565ea68a8ea52650e820b1ed008f913
+    - name: components-ce19d17fe577b0cce019d175bc48446321013be21d0d3351410f8733bc41ac71
       value: '{"executorLabel":"exec-example-component","inputDefinitions":{"parameters":{"item":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-1e6d3fc350583cb591281c08420927b09565ea68a8ea52650e820b1ed008f913
+    - name: implementations-ce19d17fe577b0cce019d175bc48446321013be21d0d3351410f8733bc41ac71
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","example_component"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -278,11 +278,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-1e6d3fc350583cb591281c08420927b09565ea68a8ea52650e820b1ed008f913}}'
+            value: '{{workflow.parameters.components-ce19d17fe577b0cce019d175bc48446321013be21d0d3351410f8733bc41ac71}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-example-component"},"inputs":{"parameters":{"item":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"example-component"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-1e6d3fc350583cb591281c08420927b09565ea68a8ea52650e820b1ed008f913}}'
+            value: '{{workflow.parameters.implementations-ce19d17fe577b0cce019d175bc48446321013be21d0d3351410f8733bc41ac71}}'
           - name: task-name
             value: example-component
           - name: parent-dag-id
