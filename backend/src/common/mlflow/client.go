@@ -50,6 +50,7 @@ const (
 	pathExperimentsGet       = "/api/2.0/mlflow/experiments/get"
 	pathExperimentsGetByName = "/api/2.0/mlflow/experiments/get-by-name"
 	pathRunsCreate           = "/api/2.0/mlflow/runs/create"
+	pathRunsGet              = "/api/2.0/mlflow/runs/get"
 	pathRunsUpdate           = "/api/2.0/mlflow/runs/update"
 	pathRunsSetTag           = "/api/2.0/mlflow/runs/set-tag"
 	pathRunsSearch           = "/api/2.0/mlflow/runs/search"
@@ -262,6 +263,33 @@ func (c *Client) SetTag(ctx context.Context, runID, key, value string) error {
 	}
 	_, err := c.postJSON(ctx, pathRunsSetTag, body)
 	return err
+}
+
+// GetRun returns a single MLflow run by run ID.
+func (c *Client) GetRun(ctx context.Context, runID string) (json.RawMessage, error) {
+	reqURL := c.buildURL(pathRunsGet)
+	q := reqURL.Query()
+	q.Set("run_id", runID)
+	reqURL.RawQuery = q.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create GetRun request: %w", err)
+	}
+	c.applyHeaders(req)
+
+	respBody, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result struct {
+		Run json.RawMessage `json:"run"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse GetRun response: %w", err)
+	}
+	return result.Run, nil
 }
 
 // SearchRuns searches for runs matching a filter expression.

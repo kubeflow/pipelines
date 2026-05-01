@@ -63,3 +63,20 @@ rules:
   - tokenreviews
   verbs:
   - create
+- apiGroups:
+  - mlflow.kubeflow.org
+  resources:
+  - experiments
+  verbs:
+  - get
+  - list
+  - create
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  resourceNames:
+  - kfp-launcher
+  verbs:
+  - get

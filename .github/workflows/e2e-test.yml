@@ -7,6 +7,11 @@ env:
   PYTHON_VERSION: "3.9"
   USER_NAMESPACE: "kubeflow-user-example-com"
   CA_CERT_PATH: ""
+  AWS_ACCESS_KEY_ID: 'minio'
+  AWS_SECRET_ACCESS_KEY: 'minio123'
+  AWS_S3_BUCKET: 'mlpipeline'
+  MLFLOW_TRACKING_URI: "https://localhost:8080"
+  MLFLOW_TRACKING_INSECURE_TLS: "true"
 
 on:
   push:
@@ -254,3 +259,119 @@ jobs:
           python_version: ${{ env.PYTHON_VERSION }}
           user_namespace: ${{ env.USER_NAMESPACE }}
           report_name: "E2EMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"
+
+
+  end-to-end-critical-mlflow-tests:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        k8s_version: [ "v1.34.0" ]
+        cache_enabled: [ "true", "false" ]
+        argo_version: [ "v3.7.3" ]
+        proxy: [ "false" ]
+        test_label: [ "MLflow" ]
+        pod_to_pod_tls_enabled: [ "false" ]
+        multi_user: [ "false" ]
+        artifact_proxy: [ "false" ]
+        artifact_storage: [ "file", "s3" ]
+        backend_store: [ "postgres" ]
+        registry_store: [ "postgres" ]
+      fail-fast: false
+    name: End to End Critical Scenario MLflow Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.artifact_proxy }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Create cluster
+        uses: ./.github/actions/create-cluster
+        id: create-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          cluster_name: ${{ env.CLUSTER_NAME }}
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy
+        if: ${{ steps.create-cluster.outcome == 'success' }}
+        id: deploy
+        with:
+          cache_enabled: ${{ matrix.cache_enabled }}
+          argo_version: ${{ matrix.argo_version }}
+          pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+          multi_user: ${{ matrix.multi_user }}
+          artifact_proxy: ${{ matrix.artifact_proxy }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+
+      - name: Deploy MLflow
+        id: deploy-mlflow
+        # TEMP: pin pre-migration-init regression in upstream @main.
+        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@daa0c1a28be532563ca6c0f1925ddecd0d0290f1
+        if: ${{ steps.create-cluster.outcome == 'success' }}
+        with:
+          namespace: 'opendatahub'
+          mlflow_image: quay.io/${{ github.repository_owner == 'red-hat-data-services' && 'rhoai' || 'opendatahub' }}/mlflow:odh-stable
+          mlflow_operator_image: quay.io/${{ github.repository_owner == 'red-hat-data-services' && 'rhoai' || 'opendatahub' }}/mlflow-operator:odh-stable
+          backend_store: ${{ matrix.backend_store }}
+          artifact_storage: ${{ matrix.artifact_storage }}
+          registry_store: ${{ matrix.registry_store }}
+          s3_access_key: ${{ env.AWS_ACCESS_KEY_ID }}
+          s3_secret_key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Wait for MLflow stack readiness
+        shell: bash
+        if: ${{ steps.deploy-mlflow.outcome == 'success' }}
+        run: |
+          kubectl wait --for=condition=Ready pods --field-selector=status.phase=Running -n opendatahub --timeout=180s
+          echo "All running pods in opendatahub are Ready"
+
+      - name: Configure MLflow Plugin and Forward Ports
+        shell: bash
+        id: configure-mlflow-plugin
+        if: ${{ steps.deploy.outcome == 'success' && steps.deploy-mlflow.outcome == 'success' }}
+        run: ./.github/resources/scripts/configure-mlflow.sh kubeflow opendatahub backend/src/apiserver/config/config.json
+
+      - name: Configure Input Variables
+        shell: bash
+        id: configure
+        if: ${{ steps.deploy.outcome == 'success' }}
+        run: |
+          NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
+          TEST_LABEL=${{ matrix.test_label }}
+          NAMESPACE=${{ env.NAMESPACE }}
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
+            TEST_LABEL=${{ inputs.test_label }}
+            NAMESPACE=${{ inputs.namespace }}
+          fi
+
+          {
+            echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"
+            echo "TEST_LABEL=$TEST_LABEL"
+            echo "NAMESPACE=$NAMESPACE"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and upload the sample Modelcar image to Kind
+        id: build-sample-modelcar-image
+        if: ${{ steps.deploy.outcome == 'success' }}
+        run: |
+          docker build -f ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
+          kind --name kfp load docker-image registry.domain.local/modelcar:test
+        continue-on-error: true
+
+      - name: Run Tests
+        uses: ./.github/actions/test-and-report
+        id: test-run
+        if: ${{ steps.configure.outcome == 'success' && steps.deploy-mlflow.outcome == 'success' && steps.configure-mlflow-plugin.outcome == 'success'}}
+        with:
+          cache_enabled: ${{ matrix.cache_enabled }}
+          test_directory: ${{ env.E2E_TESTS_DIR }}
+          test_label: ${{ steps.configure.outputs.TEST_LABEL }}
+          num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
+          default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          report_name: "MLflowTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_artifactStorage=${{ matrix.artifact_storage }}"
+          tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+          ca_cert_path: ${{ env.CA_CERT_PATH }}
+          mlflow_enabled: 'true'

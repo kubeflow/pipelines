@@ -208,4 +208,14 @@ spec:
             requests:
               cpu: 250m
               memory: 500Mi
+          # Trust bundle for plugins.mlflow.tls.caBundlePath (create ConfigMap mlflow-tracking-ca in the same namespace).
+          volumeMounts:
+            - name: mlflow-tracking-ca
+              mountPath: /etc/mlflow-tracking-ca
+              readOnly: true
+      volumes:
+        - name: mlflow-tracking-ca
+          configMap:
+            name: mlflow-tracking-ca
+            optional: true
       serviceAccountName: ml-pipeline
