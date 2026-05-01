@@ -24,5 +24,6 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
   },
+  "include": ["."],
   "exclude": ["dist", "coverage"],
 }

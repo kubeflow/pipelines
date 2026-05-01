@@ -43,7 +43,7 @@ interface MetricProps {
 }
 
 class Metric extends React.PureComponent<MetricProps> {
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { metric, metadata } = this.props;
     if (!metric || metric.number_value === undefined) {
       return <div />;

@@ -29,7 +29,7 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
         tabindex="-1"
       >
         <div
-          aria-labelledby=":r0:"
+          aria-labelledby="_r_0_"
           class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation24 MuiDialog-paper MuiDialog-paperScrollPaper MuiDialog-paperWidthSm css-1t1j96h-MuiPaper-root-MuiDialog-paper"
           id="pipelineSelectorDialog"
           role="dialog"
@@ -263,7 +263,6 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
                           <input
                             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
                             type="radio"
-                            value=""
                           />
                           <span
                             class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -340,7 +339,6 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
                           <input
                             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
                             type="radio"
-                            value=""
                           />
                           <span
                             class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -413,12 +411,12 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
                       class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
                     >
                       <div
-                        aria-controls=":r8:"
+                        aria-controls="_r_8_"
                         aria-expanded="false"
                         aria-haspopup="listbox"
-                        aria-labelledby=":r7:"
+                        aria-labelledby="_r_7_"
                         class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-                        id=":r7:"
+                        id="_r_7_"
                         role="combobox"
                         tabindex="0"
                       >
@@ -602,7 +600,7 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
         tabindex="-1"
       >
         <div
-          aria-labelledby=":rb:"
+          aria-labelledby="_r_b_"
           class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation24 MuiDialog-paper MuiDialog-paperScrollPaper MuiDialog-paperWidthSm css-1t1j96h-MuiPaper-root-MuiDialog-paper"
           id="pipelineSelectorDialog"
           role="dialog"
@@ -797,7 +795,6 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
                           <input
                             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
                             type="radio"
-                            value=""
                           />
                           <span
                             class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -874,7 +871,6 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
                           <input
                             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
                             type="radio"
-                            value=""
                           />
                           <span
                             class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -947,12 +943,12 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
                       class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
                     >
                       <div
-                        aria-controls=":rh:"
+                        aria-controls="_r_h_"
                         aria-expanded="false"
                         aria-haspopup="listbox"
-                        aria-labelledby=":rg:"
+                        aria-labelledby="_r_g_"
                         class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-                        id=":rg:"
+                        id="_r_g_"
                         role="combobox"
                         tabindex="0"
                       >

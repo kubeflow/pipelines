@@ -109,3 +109,9 @@ data:
   defaultSecurityContextRunAsUser: ""
   defaultSecurityContextRunAsGroup: ""
   defaultSecurityContextRunAsNonRoot: ""
+  ## BLOCK_V1_PIPELINES: Controls whether v1 pipelines are allowed to be created and run.
+  ## Valid values are 'true' and 'false'. Defaults to 'false'.
+  BLOCK_V1_PIPELINES: "false"
+  ## V1_ALLOWED_NAMESPACES: Comma-separated list of namespaces that are allowed to use v1 pipelines
+  ## when BLOCK_V1_PIPELINES is set to true. This is only evaluated if BLOCK_V1_PIPELINES is set to true.
+  V1_ALLOWED_NAMESPACES: ""

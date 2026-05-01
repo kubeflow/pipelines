@@ -17,11 +17,13 @@
 // import './CSSReset';
 import 'src/build/tailwind.output.css';
 import '@xyflow/react/dist/style.css';
+import React, { StrictMode } from 'react';
 import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { HashRouter } from 'react-router-dom';
+import { HashRouter, useLocation } from 'react-router-dom';
 import { cssRule } from 'typestyle';
+import { ErrorBoundary } from './atoms/ErrorBoundary';
 import Router from './components/Router';
 import { fonts, theme } from './Css';
 import { initFeatures } from './features';
@@ -34,6 +36,11 @@ import {
 } from './lib/KubeflowClient';
 import { BuildInfoProvider } from './lib/BuildInfo';
 // TODO: license headers
+
+function LocationKeyedErrorBoundary({ children }: React.PropsWithChildren) {
+  const location = useLocation();
+  return <ErrorBoundary key={location.key}>{children}</ErrorBoundary>;
+}
 
 if (KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW) {
   initKfClient();
@@ -59,7 +66,9 @@ const app = (
         <BuildInfoProvider>
           <GkeMetadataProvider>
             <HashRouter>
-              <Router />
+              <LocationKeyedErrorBoundary>
+                <Router />
+              </LocationKeyedErrorBoundary>
             </HashRouter>
           </GkeMetadataProvider>
         </BuildInfoProvider>
@@ -71,12 +80,12 @@ const app = (
 const container = document.getElementById('root');
 if (!container) throw new Error('Root element not found');
 const root = createRoot(container);
-root.render(
+const rootElement =
   KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (
     <NamespaceContextProvider>{app}</NamespaceContextProvider>
   ) : (
     <NamespaceContext.Provider value={import.meta.env.VITE_NAMESPACE || undefined}>
       {app}
     </NamespaceContext.Provider>
-  ),
-);
+  );
+root.render(import.meta.env.DEV ? <StrictMode>{rootElement}</StrictMode> : rootElement);

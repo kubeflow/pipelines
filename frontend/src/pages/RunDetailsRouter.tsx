@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
+import { useEffect } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useQuery } from '@tanstack/react-query';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
+import { errorToMessage } from 'src/lib/Utils';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { RouteComponentProps } from 'react-router-dom';
 import EnhancedRunDetails, { RunDetailsProps } from 'src/pages/RunDetails';
@@ -30,13 +32,14 @@ import { queryKeys } from 'src/hooks/queryKeys';
 export default function RunDetailsRouter(
   props: RunDetailsProps & RouteComponentProps<RunDetailsV2Params>,
 ) {
+  const { updateBanner } = props;
   const runId = props.match.params[RouteParams.runId];
   let pipelineManifest: string | undefined;
 
   // Retrieves v2 run detail.
   const {
     isSuccess: getV2RunSuccess,
-    isFetching: runIsFetching,
+    isLoading: runIsLoading,
     data: v2Run,
   } = useQuery<V2beta1Run, Error>({
     queryKey: queryKeys.v2RunDetail(runId),
@@ -50,8 +53,35 @@ export default function RunDetailsRouter(
   const pipelineId = v2Run?.pipeline_version_reference?.pipeline_id;
   const pipelineVersionId = v2Run?.pipeline_version_reference?.pipeline_version_id;
 
-  const { isFetching: templateStrIsFetching, data: templateStrFromPipelineVersion } =
-    usePipelineVersionTemplate(pipelineId, pipelineVersionId);
+  const {
+    isLoading: templateStrIsLoading,
+    isError: templateStrIsError,
+    error: templateStrError,
+    data: templateStrFromPipelineVersion,
+  } = usePipelineVersionTemplate(
+    pipelineManifest ? undefined : pipelineId,
+    pipelineManifest ? undefined : pipelineVersionId,
+  );
+
+  useEffect(() => {
+    if (templateStrIsError && templateStrError) {
+      let cancelled = false;
+      errorToMessage(templateStrError).then((msg) => {
+        if (!cancelled) {
+          updateBanner({
+            message:
+              'Error: failed to retrieve pipeline version template. Click Details for more information.',
+            mode: 'error',
+            additionalInfo: msg,
+          });
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    return undefined;
+  }, [templateStrIsError, templateStrError, updateBanner]);
 
   const templateString = pipelineManifest ?? templateStrFromPipelineVersion;
 
@@ -62,5 +92,5 @@ export default function RunDetailsRouter(
     }
   }
 
-  return <EnhancedRunDetails {...props} isLoading={runIsFetching || templateStrIsFetching} />;
+  return <EnhancedRunDetails {...props} isLoading={runIsLoading || templateStrIsLoading} />;
 }

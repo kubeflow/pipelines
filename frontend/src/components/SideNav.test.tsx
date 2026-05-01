@@ -201,8 +201,8 @@ describe('SideNav', () => {
   });
 
   it('collapses if collapse state is true localStorage', async () => {
-    localStorageIsCollapsedSpy.mockImplementationOnce(() => true);
-    localStorageHasKeySpy.mockImplementationOnce(() => true);
+    localStorageIsCollapsedSpy.mockImplementation(() => true);
+    localStorageHasKeySpy.mockImplementation(() => true);
     (window as any).innerWidth = wideWidth;
     const { renderResult } = renderSideNav(RoutePage.COMPARE);
     await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(true));
@@ -277,8 +277,8 @@ describe('SideNav', () => {
   });
 
   it('does not collapse if collapse state is saved in localStorage, and window resizes', async () => {
-    localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
-    localStorageHasKeySpy.mockImplementationOnce(() => true);
+    localStorageIsCollapsedSpy.mockImplementation(() => false);
+    localStorageHasKeySpy.mockImplementation(() => true);
 
     (window as any).innerWidth = wideWidth;
     const { renderResult } = renderSideNav(RoutePage.COMPARE);

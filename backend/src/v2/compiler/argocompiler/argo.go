@@ -124,6 +124,23 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		}
 	}
 
+	// Resolve the workflow-level TTL strategy from the pipeline config.
+	// resource_ttl_on_completion is interpreted as seconds-after-completion so that Argo's
+	// TTL controller removes the Workflow object after the run finishes,
+	// regardless of success or failure.
+	var ttlStrategy *wfapi.TTLStrategy
+	if hasPipelineConfig {
+		ttlStrategy = buildTTLStrategy(kubernetesSpec.GetPipelineConfig())
+	}
+
+	// Resolve the workflow-level active deadline from the pipeline config.
+	// This sets a hard timeout after which Argo forcibly terminates the
+	// workflow, preventing stuck/zombie runs that never complete.
+	var activeDeadlineSeconds *int64
+	if kubernetesSpec != nil {
+		activeDeadlineSeconds = buildActiveDeadlineSeconds(kubernetesSpec.GetPipelineConfig())
+	}
+
 	// initialization
 	wf := &wfapi.Workflow{
 		TypeMeta: k8smeta.TypeMeta{
@@ -153,9 +170,11 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			Arguments: wfapi.Arguments{
 				Parameters: []wfapi.Parameter{},
 			},
-			ServiceAccountName:   common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount),
-			Entrypoint:           tmplEntrypoint,
-			VolumeClaimTemplates: volumeClaimTemplates,
+			ServiceAccountName:    common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount),
+			Entrypoint:            tmplEntrypoint,
+			VolumeClaimTemplates:  volumeClaimTemplates,
+			TTLStrategy:           ttlStrategy,
+			ActiveDeadlineSeconds: activeDeadlineSeconds,
 		},
 	}
 
@@ -223,6 +242,62 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 func retrieveLastValidString(s string) string {
 	sections := strings.Split(s, "/")
 	return sections[len(sections)-1]
+}
+
+// buildTTLStrategy constructs an Argo TTLStrategy from a pipeline config.
+//
+// The three proto fields map to Argo's three TTL knobs:
+//   - resource_ttl_on_completion → SecondsAfterCompletion (regardless of outcome)
+//   - resource_ttl_on_success    → SecondsAfterSuccess   (successful runs only)
+//   - resource_ttl_on_failure    → SecondsAfterFailure   (failed runs only)
+//
+// Only positive values are applied; a value of 0 (proto default) is treated as
+// "not set".  Returns nil when none of the fields is positive.
+func buildTTLStrategy(pipelineConfig *pipelinespec.PipelineConfig) *wfapi.TTLStrategy {
+	if pipelineConfig == nil {
+		return nil
+	}
+
+	afterCompletion := pipelineConfig.GetResourceTtlOnCompletion()
+	afterSuccess := pipelineConfig.GetResourceTtlOnSuccess()
+	afterFailure := pipelineConfig.GetResourceTtlOnFailure()
+
+	if afterCompletion <= 0 && afterSuccess <= 0 && afterFailure <= 0 {
+		return nil
+	}
+
+	strategy := &wfapi.TTLStrategy{}
+	if afterCompletion > 0 {
+		v := int32(afterCompletion)
+		strategy.SecondsAfterCompletion = &v
+	}
+	if afterSuccess > 0 {
+		v := int32(afterSuccess)
+		strategy.SecondsAfterSuccess = &v
+	}
+	if afterFailure > 0 {
+		v := int32(afterFailure)
+		strategy.SecondsAfterFailure = &v
+	}
+	return strategy
+}
+
+// buildActiveDeadlineSeconds returns a pointer to the active-deadline value
+// that should be set on the Argo Workflow spec.
+//
+// Semantics (opt-in, backward compatible):
+//   - pipelineConfig == nil or field <= 0 → no deadline (nil)
+//   - field > 0                           → use the user-supplied value
+func buildActiveDeadlineSeconds(pipelineConfig *pipelinespec.PipelineConfig) *int64 {
+	if pipelineConfig == nil {
+		return nil
+	}
+	userValue := pipelineConfig.GetActiveDeadlineSeconds()
+	if userValue <= 0 {
+		return nil
+	}
+	v := int64(userValue)
+	return &v
 }
 
 type workflowCompiler struct {
@@ -478,9 +553,12 @@ var driverResources = k8score.ResourceRequirements{
 }
 
 // Launcher only copies the binary into the volume, so it needs minimal resources.
+// Note: Memory limit is set to 256Mi to prevent OOMKilled errors during binary copy.
+// The launcher binary is 123 MiB — nearly at the 128 MiB container memory limit.
+// The --copy operation alone uses ~59 MiB peak RSS.
 var launcherResources = k8score.ResourceRequirements{
 	Limits: map[k8score.ResourceName]k8sres.Quantity{
-		k8score.ResourceMemory: k8sres.MustParse("128Mi"),
+		k8score.ResourceMemory: k8sres.MustParse("256Mi"),
 		k8score.ResourceCPU:    k8sres.MustParse("0.5"),
 	},
 	Requests: map[k8score.ResourceName]k8sres.Quantity{
@@ -575,8 +653,12 @@ func GetWorkspacePVC(
 		return k8score.PersistentVolumeClaim{}, fmt.Errorf("workspace PVC spec must specify accessModes")
 	}
 
-	if pvcSpec.StorageClassName == nil || *pvcSpec.StorageClassName == "" {
-		return k8score.PersistentVolumeClaim{}, fmt.Errorf("workspace PVC spec must specify storageClassName")
+	// Allow nil storageClassName so Kubernetes can apply the cluster default.
+	// Explicit empty string requests "no storage class" behavior and is rejected.
+	if pvcSpec.StorageClassName != nil && *pvcSpec.StorageClassName == "" {
+		return k8score.PersistentVolumeClaim{}, fmt.Errorf(
+			"workspace PVC spec storageClassName must be omitted or set to a non-empty value",
+		)
 	}
 
 	quantity, err := k8sres.ParseQuantity(sizeStr)

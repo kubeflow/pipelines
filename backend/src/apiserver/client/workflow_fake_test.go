@@ -205,6 +205,35 @@ func TestFakeWorkflowClient_PatchMetadata(t *testing.T) {
 	}
 }
 
+func TestFakeWorkflowClient_Stubs(t *testing.T) {
+	client := NewWorkflowClientFake()
+	ctx := context.Background()
+
+	t.Run("List", func(t *testing.T) {
+		list, err := client.List(ctx, v1.ListOptions{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if list != nil {
+			t.Error("expected nil from unimplemented stub")
+		}
+	})
+	t.Run("Watch", func(t *testing.T) {
+		watcher, err := client.Watch(ctx, v1.ListOptions{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if watcher != nil {
+			t.Error("expected nil from unimplemented stub")
+		}
+	})
+	t.Run("DeleteCollection", func(t *testing.T) {
+		if err := client.DeleteCollection(ctx, v1.DeleteOptions{}, v1.ListOptions{}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+}
+
 func TestFakeBadWorkflowClient_Create(t *testing.T) {
 	client := &FakeBadWorkflowClient{}
 	ctx := context.Background()

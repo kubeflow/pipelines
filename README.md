@@ -28,7 +28,7 @@ The Kubeflow pipelines service has the following goals:
 
 | Dependency     | Versions         |
 | -------------- |------------------|
-| Argo Workflows | v3.5, v3.6, v3.7 |
+| Argo Workflows | v3.5, v3.7, v4.0 |
 | MySQL          | v8               |
 
 ## Documentation

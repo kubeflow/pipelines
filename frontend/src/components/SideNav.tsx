@@ -245,6 +245,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
   }
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     window.addEventListener('resize', this._boundMaybeResize);
     this._maybeResize();
   }
@@ -254,7 +255,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
     window.removeEventListener('resize', this._boundMaybeResize);
   }
 
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const page = this.props.page;
     const displayBuildInfo: DisplayBuildInfo = this._getBuildInfo();
     const { collapsed } = this.state;

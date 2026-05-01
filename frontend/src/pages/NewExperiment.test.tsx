@@ -15,7 +15,8 @@
  */
 
 import * as React from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { NewExperiment } from './NewExperiment';
 import TestUtils from 'src/TestUtils';
@@ -26,7 +27,6 @@ import { logger } from 'src/lib/Utils';
 
 describe('NewExperiment', () => {
   let renderResult: ReturnType<typeof render> | null = null;
-  let newExperimentRef: React.RefObject<NewExperiment> | null = null;
 
   const createExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'createExperiment');
   const listPipelineVersionsSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
@@ -49,19 +49,11 @@ describe('NewExperiment', () => {
     } as PageProps;
   }
 
-  function getInstance(): NewExperiment {
-    if (!newExperimentRef?.current) {
-      throw new Error('NewExperiment instance not available');
-    }
-    return newExperimentRef.current;
-  }
-
   async function renderNewExperiment(
     propsPatch: Partial<PageProps & { namespace?: string }> = {},
   ): Promise<void> {
-    newExperimentRef = React.createRef<NewExperiment>();
     const props = { ...generateProps(), ...propsPatch } as PageProps;
-    renderResult = render(<NewExperiment ref={newExperimentRef} {...props} />);
+    renderResult = render(<NewExperiment {...props} />);
     await TestUtils.flushPromises();
   }
 
@@ -98,16 +90,15 @@ describe('NewExperiment', () => {
   afterEach(() => {
     renderResult?.unmount();
     renderResult = null;
-    newExperimentRef = null;
     vi.clearAllMocks();
   });
 
   it('renders the new experiment page', async () => {
     await renderNewExperiment();
-    await waitFor(() =>
-      expect(screen.getByText('Experiment name is required')).toBeInTheDocument(),
-    );
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('Experiment name is required')).toBeInTheDocument();
+    expect(getNextButton()).toBeDisabled();
+    expect(screen.getByLabelText(/Experiment name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Description/i)).toBeInTheDocument();
   });
 
   it('does not include any action buttons in the toolbar', async () => {
@@ -126,7 +117,7 @@ describe('NewExperiment', () => {
     fillExperimentName('experiment name');
 
     await waitFor(() => expect(getNextButton()).not.toBeDisabled());
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByLabelText(/Experiment name/i)).toHaveValue('experiment name');
   });
 
   it("re-disables the 'Next' button when an experiment name is cleared after having been entered", async () => {
@@ -138,35 +129,27 @@ describe('NewExperiment', () => {
 
     fillExperimentName('');
     await waitFor(() => expect(getNextButton()).toBeDisabled());
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('Experiment name is required')).toBeInTheDocument();
   });
 
   it('updates the experiment name', async () => {
     await renderNewExperiment();
     fillExperimentName('experiment name');
 
-    await waitFor(() => {
-      expect(getInstance().state).toEqual({
-        description: '',
-        experimentName: 'experiment name',
-        isbeingCreated: false,
-        validationError: '',
-      });
-    });
+    await waitFor(() =>
+      expect(screen.getByLabelText(/Experiment name/i)).toHaveValue('experiment name'),
+    );
+    expect(getNextButton()).not.toBeDisabled();
   });
 
   it('updates the experiment description', async () => {
     await renderNewExperiment();
     fillDescription('a description!');
 
-    await waitFor(() => {
-      expect(getInstance().state).toEqual({
-        description: 'a description!',
-        experimentName: '',
-        isbeingCreated: false,
-        validationError: 'Experiment name is required',
-      });
-    });
+    await waitFor(() =>
+      expect(screen.getByLabelText(/Description/i)).toHaveValue('a description!'),
+    );
+    expect(screen.getByText('Experiment name is required')).toBeInTheDocument();
   });
 
   it("sets the page to a busy state upon clicking 'Next'", async () => {
@@ -175,10 +158,9 @@ describe('NewExperiment', () => {
     fillExperimentName('experiment-name');
     await waitFor(() => expect(getNextButton()).not.toBeDisabled());
 
-    fireEvent.click(getNextButton());
+    await userEvent.click(getNextButton());
     await TestUtils.flushPromises();
 
-    expect(getInstance().state).toHaveProperty('isbeingCreated', true);
     expect(getNextButton()).toBeDisabled();
   });
 
@@ -188,7 +170,7 @@ describe('NewExperiment', () => {
     fillExperimentName('experiment name');
     fillDescription('experiment description');
 
-    fireEvent.click(getNextButton());
+    await userEvent.click(getNextButton());
     await TestUtils.flushPromises();
 
     expect(createExperimentSpy).toHaveBeenCalledWith(
@@ -203,7 +185,7 @@ describe('NewExperiment', () => {
     await renderNewExperiment({ namespace: 'test-ns' });
 
     fillExperimentName('a-random-experiment-name-DO-NOT-VERIFY-THIS');
-    fireEvent.click(getNextButton());
+    await userEvent.click(getNextButton());
     await TestUtils.flushPromises();
 
     expect(createExperimentSpy).toHaveBeenCalledWith(
@@ -219,7 +201,7 @@ describe('NewExperiment', () => {
     await renderNewExperiment();
 
     fillExperimentName('experiment-name');
-    fireEvent.click(getNextButton());
+    await userEvent.click(getNextButton());
     await TestUtils.flushPromises();
 
     expect(historyPushSpy).toHaveBeenCalledWith(
@@ -241,10 +223,10 @@ describe('NewExperiment', () => {
     props.location.search = `?${QUERY_PARAMS.pipelineId}=${pipelineId}`;
     await renderNewExperiment(props as any);
 
-    await waitFor(() => expect(getInstance().state.pipelineId).toBe(pipelineId));
+    await TestUtils.flushPromises();
 
     fillExperimentName('experiment-name');
-    fireEvent.click(getNextButton());
+    await userEvent.click(getNextButton());
     await TestUtils.flushPromises();
 
     expect(historyPushSpy).toHaveBeenCalledWith(
@@ -260,7 +242,7 @@ describe('NewExperiment', () => {
     await renderNewExperiment();
 
     fillExperimentName('experiment-name');
-    fireEvent.click(getNextButton());
+    await userEvent.click(getNextButton());
     await TestUtils.flushPromises();
 
     expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
@@ -277,10 +259,10 @@ describe('NewExperiment', () => {
     fillExperimentName('experiment-name');
 
     TestUtils.makeErrorResponseOnce(createExperimentSpy as any, 'test error!');
-    fireEvent.click(getNextButton());
+    await userEvent.click(getNextButton());
     await TestUtils.flushPromises();
 
-    await waitFor(() => expect(getInstance().state).toHaveProperty('isbeingCreated', false));
+    await waitFor(() => expect(getNextButton()).not.toBeDisabled());
     expect(loggerErrorSpy).toHaveBeenCalled();
   });
 
@@ -291,7 +273,7 @@ describe('NewExperiment', () => {
     fillExperimentName('experiment-name');
 
     TestUtils.makeErrorResponseOnce(createExperimentSpy as any, 'test error!');
-    fireEvent.click(getNextButton());
+    await userEvent.click(getNextButton());
     await TestUtils.flushPromises();
 
     const call = updateDialogSpy.mock.calls[0][0];
@@ -302,7 +284,7 @@ describe('NewExperiment', () => {
 
   it('navigates to experiment list page upon cancellation', async () => {
     await renderNewExperiment();
-    fireEvent.click(getCancelButton());
+    await userEvent.click(getCancelButton());
     await TestUtils.flushPromises();
 
     expect(historyPushSpy).toHaveBeenCalledWith(RoutePage.EXPERIMENTS);

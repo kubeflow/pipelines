@@ -18,6 +18,7 @@ import unittest
 
 from absl.testing import parameterized
 from kfp import dsl
+from kfp.dsl import pipeline_channel
 from kfp.dsl import pipeline_task
 from kfp.dsl import placeholders
 from kfp.dsl import structures
@@ -141,6 +142,21 @@ class PipelineTaskTest(parameterized.TestCase):
         )
         task.set_caching_options(False)
         self.assertEqual(False, task._task_spec.enable_caching)
+
+    def test_register_pipeline_channels_deduplicates_channels(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        channel = pipeline_channel.PipelineParameterChannel(
+            name='secret_name',
+            channel_type='String',
+        )
+
+        task.register_pipeline_channels([channel, channel])
+
+        self.assertEqual(task.channel_inputs, [channel])
 
     @parameterized.parameters(
         {
@@ -528,6 +544,21 @@ class TestTaskInFinalState(unittest.TestCase):
                 r"Task configuration methods are not supported for local execution\. Got call to '\.ignore_upstream_failure\(\)'\."
         ):
             task.ignore_upstream_failure()
+
+    def test_after_rejects_invalid_dependency_type(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'PipelineTask\.after\(\) only supports PipelineTask and dsl\.ExitHandler dependencies\. Got str\.'
+        ):
+            task.after('not-a-task')
+
+        self.assertEqual(task.dependent_tasks, [])
 
 
 def assert_artifacts_equal(

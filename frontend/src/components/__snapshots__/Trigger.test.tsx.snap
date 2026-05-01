@@ -11,8 +11,8 @@ exports[`Trigger > enables a single day on click 1`] = `
       <label
         class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="true"
-        for=":r1f:"
-        id=":r1f:-label"
+        for="_r_1f_"
+        id="_r_1f_-label"
       >
         Trigger type
         <span
@@ -26,12 +26,12 @@ exports[`Trigger > enables a single day on click 1`] = `
         class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <div
-          aria-controls=":r1g:"
+          aria-controls="_r_1g_"
           aria-expanded="false"
           aria-haspopup="listbox"
-          aria-labelledby=":r1f:-label :r1f:"
+          aria-labelledby="_r_1f_-label _r_1f_"
           class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
-          id=":r1f:"
+          id="_r_1f_"
           role="combobox"
           tabindex="0"
         >
@@ -79,8 +79,8 @@ exports[`Trigger > enables a single day on click 1`] = `
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
-          for=":r1h:"
-          id=":r1h:-label"
+          for="_r_1h_"
+          id="_r_1h_-label"
         >
           Maximum concurrent runs
           <span
@@ -96,7 +96,7 @@ exports[`Trigger > enables a single day on click 1`] = `
           <input
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-            id=":r1h:"
+            id="_r_1h_"
             required=""
             type="text"
             value="10"
@@ -158,8 +158,8 @@ exports[`Trigger > enables a single day on click 1`] = `
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":r1i:"
-            id=":r1i:-label"
+            for="_r_1i_"
+            id="_r_1i_-label"
           >
             Start date
           </label>
@@ -169,7 +169,7 @@ exports[`Trigger > enables a single day on click 1`] = `
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":r1i:"
+              id="_r_1i_"
               type="date"
               value="2018-12-21"
             />
@@ -198,8 +198,8 @@ exports[`Trigger > enables a single day on click 1`] = `
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":r1j:"
-            id=":r1j:-label"
+            for="_r_1j_"
+            id="_r_1j_-label"
           >
             Start time
           </label>
@@ -209,7 +209,7 @@ exports[`Trigger > enables a single day on click 1`] = `
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":r1j:"
+              id="_r_1j_"
               type="time"
               value="07:53"
             />
@@ -276,8 +276,8 @@ exports[`Trigger > enables a single day on click 1`] = `
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":r1k:"
-            id=":r1k:-label"
+            for="_r_1k_"
+            id="_r_1k_-label"
           >
             End date
           </label>
@@ -287,7 +287,7 @@ exports[`Trigger > enables a single day on click 1`] = `
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":r1k:"
+              id="_r_1k_"
               type="date"
               value="2018-12-28"
             />
@@ -316,8 +316,8 @@ exports[`Trigger > enables a single day on click 1`] = `
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":r1l:"
-            id=":r1l:-label"
+            for="_r_1l_"
+            id="_r_1l_-label"
           >
             End time
           </label>
@@ -327,7 +327,7 @@ exports[`Trigger > enables a single day on click 1`] = `
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":r1l:"
+              id="_r_1l_"
               type="time"
               value="07:53"
             />
@@ -422,15 +422,15 @@ exports[`Trigger > enables a single day on click 1`] = `
           style="height: 30px; max-width: 600px; width: 95px;"
         >
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary Mui-focused MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
-              aria-controls=":r1p:"
+              aria-controls="_r_1p_"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby=":r1o:"
+              aria-labelledby="_r_1o_"
               class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":r1o:"
+              id="_r_1o_"
               role="combobox"
               tabindex="0"
             >
@@ -640,8 +640,8 @@ exports[`Trigger > enables a single day on click 1`] = `
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
-          for=":r1q:"
-          id=":r1q:-label"
+          for="_r_1q_"
+          id="_r_1q_-label"
         >
           cron expression
         </label>
@@ -652,7 +652,7 @@ exports[`Trigger > enables a single day on click 1`] = `
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":r1q:"
+            id="_r_1q_"
             type="text"
             value="0 0 0 ? * 0,2,4,5,6"
           />
@@ -689,8 +689,8 @@ exports[`Trigger > renders all week days enabled 1`] = `
       <label
         class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="true"
-        for=":r13:"
-        id=":r13:-label"
+        for="_r_13_"
+        id="_r_13_-label"
       >
         Trigger type
         <span
@@ -704,12 +704,12 @@ exports[`Trigger > renders all week days enabled 1`] = `
         class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <div
-          aria-controls=":r14:"
+          aria-controls="_r_14_"
           aria-expanded="false"
           aria-haspopup="listbox"
-          aria-labelledby=":r13:-label :r13:"
+          aria-labelledby="_r_13_-label _r_13_"
           class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
-          id=":r13:"
+          id="_r_13_"
           role="combobox"
           tabindex="0"
         >
@@ -757,8 +757,8 @@ exports[`Trigger > renders all week days enabled 1`] = `
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
-          for=":r15:"
-          id=":r15:-label"
+          for="_r_15_"
+          id="_r_15_-label"
         >
           Maximum concurrent runs
           <span
@@ -774,7 +774,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
           <input
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-            id=":r15:"
+            id="_r_15_"
             required=""
             type="text"
             value="10"
@@ -836,8 +836,8 @@ exports[`Trigger > renders all week days enabled 1`] = `
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":r16:"
-            id=":r16:-label"
+            for="_r_16_"
+            id="_r_16_-label"
           >
             Start date
           </label>
@@ -847,7 +847,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":r16:"
+              id="_r_16_"
               type="date"
               value="2018-12-21"
             />
@@ -876,8 +876,8 @@ exports[`Trigger > renders all week days enabled 1`] = `
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":r17:"
-            id=":r17:-label"
+            for="_r_17_"
+            id="_r_17_-label"
           >
             Start time
           </label>
@@ -887,7 +887,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":r17:"
+              id="_r_17_"
               type="time"
               value="07:53"
             />
@@ -954,8 +954,8 @@ exports[`Trigger > renders all week days enabled 1`] = `
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":r18:"
-            id=":r18:-label"
+            for="_r_18_"
+            id="_r_18_-label"
           >
             End date
           </label>
@@ -965,7 +965,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":r18:"
+              id="_r_18_"
               type="date"
               value="2018-12-28"
             />
@@ -994,8 +994,8 @@ exports[`Trigger > renders all week days enabled 1`] = `
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":r19:"
-            id=":r19:-label"
+            for="_r_19_"
+            id="_r_19_-label"
           >
             End time
           </label>
@@ -1005,7 +1005,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":r19:"
+              id="_r_19_"
               type="time"
               value="07:53"
             />
@@ -1100,15 +1100,15 @@ exports[`Trigger > renders all week days enabled 1`] = `
           style="height: 30px; max-width: 600px; width: 95px;"
         >
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary Mui-focused MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
-              aria-controls=":r1d:"
+              aria-controls="_r_1d_"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby=":r1c:"
+              aria-labelledby="_r_1c_"
               class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":r1c:"
+              id="_r_1c_"
               role="combobox"
               tabindex="0"
             >
@@ -1318,8 +1318,8 @@ exports[`Trigger > renders all week days enabled 1`] = `
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
-          for=":r1e:"
-          id=":r1e:-label"
+          for="_r_1e_"
+          id="_r_1e_-label"
         >
           cron expression
         </label>
@@ -1330,7 +1330,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":r1e:"
+            id="_r_1e_"
             type="text"
             value="0 0 0 ? *"
           />
@@ -1367,8 +1367,8 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
       <label
         class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="true"
-        for=":r0:"
-        id=":r0:-label"
+        for="_r_0_"
+        id="_r_0_-label"
       >
         Trigger type
         <span
@@ -1382,12 +1382,12 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
         class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <div
-          aria-controls=":r1:"
+          aria-controls="_r_1_"
           aria-expanded="false"
           aria-haspopup="listbox"
-          aria-labelledby=":r0:-label :r0:"
+          aria-labelledby="_r_0_-label _r_0_"
           class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
-          id=":r0:"
+          id="_r_0_"
           role="combobox"
           tabindex="0"
         >
@@ -1435,8 +1435,8 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
-          for=":r2:"
-          id=":r2:-label"
+          for="_r_2_"
+          id="_r_2_-label"
         >
           Maximum concurrent runs
           <span
@@ -1452,7 +1452,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
           <input
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-            id=":r2:"
+            id="_r_2_"
             required=""
             type="text"
             value="10"
@@ -1514,8 +1514,8 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":r3:"
-            id=":r3:-label"
+            for="_r_3_"
+            id="_r_3_-label"
           >
             Start date
           </label>
@@ -1525,7 +1525,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":r3:"
+              id="_r_3_"
               type="date"
               value="2018-12-21"
             />
@@ -1554,8 +1554,8 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":r4:"
-            id=":r4:-label"
+            for="_r_4_"
+            id="_r_4_-label"
           >
             Start time
           </label>
@@ -1565,7 +1565,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":r4:"
+              id="_r_4_"
               type="time"
               value="07:53"
             />
@@ -1632,8 +1632,8 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":r5:"
-            id=":r5:-label"
+            for="_r_5_"
+            id="_r_5_-label"
           >
             End date
           </label>
@@ -1643,7 +1643,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":r5:"
+              id="_r_5_"
               type="date"
               value="2018-12-28"
             />
@@ -1672,8 +1672,8 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":r6:"
-            id=":r6:-label"
+            for="_r_6_"
+            id="_r_6_-label"
           >
             End time
           </label>
@@ -1683,7 +1683,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":r6:"
+              id="_r_6_"
               type="time"
               value="07:53"
             />
@@ -1786,7 +1786,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
               <input
                 aria-invalid="false"
                 class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-                id=":r8:"
+                id="_r_8_"
                 min="1"
                 required=""
                 type="number"
@@ -1821,12 +1821,12 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
             class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
-              aria-controls=":ra:"
+              aria-controls="_r_a_"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby=":r9:"
+              aria-labelledby="_r_9_"
               class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":r9:"
+              id="_r_9_"
               role="combobox"
               tabindex="0"
             >
@@ -1882,10 +1882,10 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
       style="height: 40px; max-width: 600px; width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-focused Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="true"
-        for=":rb:"
-        id=":rb:-label"
+        for="_r_b_"
+        id="_r_b_-label"
       >
         Trigger type
         <span
@@ -1896,15 +1896,15 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
         </span>
       </label>
       <div
-        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary Mui-focused MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <div
-          aria-controls=":rc:"
+          aria-controls="_r_c_"
           aria-expanded="false"
           aria-haspopup="listbox"
-          aria-labelledby=":rb:-label :rb:"
+          aria-labelledby="_r_b_-label _r_b_"
           class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
-          id=":rb:"
+          id="_r_b_"
           role="combobox"
           tabindex="0"
         >
@@ -1952,8 +1952,8 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
-          for=":rd:"
-          id=":rd:-label"
+          for="_r_d_"
+          id="_r_d_-label"
         >
           Maximum concurrent runs
           <span
@@ -1969,7 +1969,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
           <input
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-            id=":rd:"
+            id="_r_d_"
             required=""
             type="text"
             value="10"
@@ -2031,8 +2031,8 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":re:"
-            id=":re:-label"
+            for="_r_e_"
+            id="_r_e_-label"
           >
             Start date
           </label>
@@ -2042,7 +2042,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":re:"
+              id="_r_e_"
               type="date"
               value="2018-12-21"
             />
@@ -2071,8 +2071,8 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":rf:"
-            id=":rf:-label"
+            for="_r_f_"
+            id="_r_f_-label"
           >
             Start time
           </label>
@@ -2082,7 +2082,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":rf:"
+              id="_r_f_"
               type="time"
               value="07:53"
             />
@@ -2149,8 +2149,8 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":rg:"
-            id=":rg:-label"
+            for="_r_g_"
+            id="_r_g_-label"
           >
             End date
           </label>
@@ -2160,7 +2160,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":rg:"
+              id="_r_g_"
               type="date"
               value="2018-12-28"
             />
@@ -2189,8 +2189,8 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":rh:"
-            id=":rh:-label"
+            for="_r_h_"
+            id="_r_h_-label"
           >
             End time
           </label>
@@ -2200,7 +2200,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":rh:"
+              id="_r_h_"
               type="time"
               value="07:53"
             />
@@ -2298,12 +2298,12 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
             class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
-              aria-controls=":rl:"
+              aria-controls="_r_l_"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby=":rk:"
+              aria-labelledby="_r_k_"
               class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":rk:"
+              id="_r_k_"
               role="combobox"
               tabindex="0"
             >
@@ -2402,8 +2402,8 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
-          for=":rm:"
-          id=":rm:-label"
+          for="_r_m_"
+          id="_r_m_-label"
         >
           cron expression
         </label>
@@ -2414,7 +2414,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":rm:"
+            id="_r_m_"
             type="text"
             value="0 0 * * * ?"
           />
@@ -2451,8 +2451,8 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
       <label
         class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="true"
-        for=":rn:"
-        id=":rn:-label"
+        for="_r_n_"
+        id="_r_n_-label"
       >
         Trigger type
         <span
@@ -2466,12 +2466,12 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
         class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <div
-          aria-controls=":ro:"
+          aria-controls="_r_o_"
           aria-expanded="false"
           aria-haspopup="listbox"
-          aria-labelledby=":rn:-label :rn:"
+          aria-labelledby="_r_n_-label _r_n_"
           class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
-          id=":rn:"
+          id="_r_n_"
           role="combobox"
           tabindex="0"
         >
@@ -2519,8 +2519,8 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
-          for=":rp:"
-          id=":rp:-label"
+          for="_r_p_"
+          id="_r_p_-label"
         >
           Maximum concurrent runs
           <span
@@ -2536,7 +2536,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           <input
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-            id=":rp:"
+            id="_r_p_"
             required=""
             type="text"
             value="10"
@@ -2598,8 +2598,8 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":rq:"
-            id=":rq:-label"
+            for="_r_q_"
+            id="_r_q_-label"
           >
             Start date
           </label>
@@ -2609,7 +2609,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":rq:"
+              id="_r_q_"
               type="date"
               value="2018-12-21"
             />
@@ -2638,8 +2638,8 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":rr:"
-            id=":rr:-label"
+            for="_r_r_"
+            id="_r_r_-label"
           >
             Start time
           </label>
@@ -2649,7 +2649,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":rr:"
+              id="_r_r_"
               type="time"
               value="07:53"
             />
@@ -2716,8 +2716,8 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":rs:"
-            id=":rs:-label"
+            for="_r_s_"
+            id="_r_s_-label"
           >
             End date
           </label>
@@ -2727,7 +2727,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":rs:"
+              id="_r_s_"
               type="date"
               value="2018-12-28"
             />
@@ -2756,8 +2756,8 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":rt:"
-            id=":rt:-label"
+            for="_r_t_"
+            id="_r_t_-label"
           >
             End time
           </label>
@@ -2767,7 +2767,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
             <input
               aria-invalid="false"
               class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":rt:"
+              id="_r_t_"
               type="time"
               value="07:53"
             />
@@ -2862,15 +2862,15 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           style="height: 30px; max-width: 600px; width: 95px;"
         >
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary Mui-focused MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
-              aria-controls=":r11:"
+              aria-controls="_r_11_"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby=":r10:"
+              aria-labelledby="_r_10_"
               class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":r10:"
+              id="_r_10_"
               role="combobox"
               tabindex="0"
             >
@@ -3080,8 +3080,8 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
-          for=":r12:"
-          id=":r12:-label"
+          for="_r_12_"
+          id="_r_12_-label"
         >
           cron expression
         </label>
@@ -3092,7 +3092,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":r12:"
+            id="_r_12_"
             type="text"
             value="0 0 0 ? * *"
           />

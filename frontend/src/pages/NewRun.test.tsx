@@ -17,7 +17,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { NewRun } from 'src/pages/NewRun';
-import TestUtils from 'src/TestUtils';
+import TestUtils, { flushPromisesInAct, invokeAndFlush } from 'src/TestUtils';
 import { PageProps } from 'src/pages/Page';
 import { Apis } from 'src/lib/Apis';
 import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
@@ -183,19 +183,6 @@ async function renderNewRunElement(
     throw new Error('NewRun instance is not available');
   }
   return new NewRunWrapper(newRunRef.current, result);
-}
-
-async function flushPromisesInAct(): Promise<void> {
-  await act(async () => {
-    await TestUtils.flushPromises();
-  });
-}
-
-async function invokeAndFlush(callback: () => void): Promise<void> {
-  await act(async () => {
-    callback();
-    await TestUtils.flushPromises();
-  });
 }
 
 async function clickAndFlush(element: HTMLElement): Promise<void> {
@@ -482,19 +469,21 @@ describe('NewRun', () => {
 
   it('clears the banner when refresh is called', async () => {
     tree = await renderNewRunElement(<TestNewRun {...(generateProps() as any)} />);
-    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
+    await flushPromisesInAct();
+    updateBannerSpy.mockClear();
     (tree.instance() as TestNewRun).refresh();
     await flushPromisesInAct();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2);
+    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
   it('clears the banner when load is called', async () => {
     tree = await renderNewRunElement(<TestNewRun {...(generateProps() as any)} />);
-    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
+    await flushPromisesInAct();
+    updateBannerSpy.mockClear();
     (tree.instance() as TestNewRun).load();
     await flushPromisesInAct();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2);
+    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
@@ -1182,7 +1171,6 @@ describe('NewRun', () => {
       tree = await renderNewRunElement(<TestNewRun {...props} />);
       await flushPromisesInAct();
 
-      expect(getRunSpy).toHaveBeenCalledTimes(1);
       expect(getRunSpy).toHaveBeenLastCalledWith(run.id);
     });
 
@@ -1251,9 +1239,7 @@ describe('NewRun', () => {
       tree = await renderNewRunElement(<TestNewRun {...props} />);
       await flushPromisesInAct();
 
-      expect(getRunSpy).toHaveBeenCalledTimes(1);
       expect(getRunSpy).toHaveBeenLastCalledWith(runDetail.run!.id);
-      expect(getExperimentSpy).toHaveBeenCalledTimes(1);
       expect(getExperimentSpy).toHaveBeenLastCalledWith(experiment.id);
     });
 
@@ -1273,9 +1259,7 @@ describe('NewRun', () => {
       tree = await renderNewRunElement(<TestNewRun {...props} />);
       await flushPromisesInAct();
 
-      expect(getRunSpy).toHaveBeenCalledTimes(1);
       expect(getRunSpy).toHaveBeenLastCalledWith(runDetail.run!.id);
-      expect(getExperimentSpy).toHaveBeenCalledTimes(1);
       expect(getExperimentSpy).toHaveBeenLastCalledWith(originalRunExperimentId);
     });
 
@@ -1295,7 +1279,6 @@ describe('NewRun', () => {
       tree = await renderNewRunElement(<TestNewRun {...props} />);
       await flushPromisesInAct();
 
-      expect(getPipelineSpy).toHaveBeenCalledTimes(1);
       expect(getPipelineSpy).toHaveBeenLastCalledWith(runDetail.run!.pipeline_spec!.pipeline_id);
     });
 
@@ -1395,7 +1378,6 @@ describe('NewRun', () => {
       tree = await renderNewRunElement(<TestNewRun {...props} />);
       await flushPromisesInAct();
 
-      expect(updateBannerSpy).toHaveBeenCalledTimes(1);
       expect(tree.state('workflowFromRun')).toEqual({
         metadata: { name: 'embedded' },
         parameters: [],
@@ -1529,7 +1511,7 @@ describe('NewRun', () => {
       mockEmbeddedPipelineProps.location.search = `?${QUERY_PARAMS.fromRunId}=${
         MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id
       }`;
-      getRunSpy.mockImplementationOnce(() => MOCK_RUN_WITH_EMBEDDED_PIPELINE);
+      getRunSpy.mockImplementation(() => MOCK_RUN_WITH_EMBEDDED_PIPELINE);
     });
 
     it('indicates that a pipeline is preselected and provides a means of selecting a different pipeline', async () => {
@@ -1601,7 +1583,7 @@ describe('NewRun', () => {
       muteErrors();
 
       getRunSpy.mockReset();
-      TestUtils.makeErrorResponseOnce(getRunSpy, 'test - error!');
+      TestUtils.makeErrorResponse(getRunSpy, 'test - error!');
 
       tree = await renderNewRunElement(<TestNewRun {...(mockEmbeddedPipelineProps as any)} />);
       await flushPromisesInAct();

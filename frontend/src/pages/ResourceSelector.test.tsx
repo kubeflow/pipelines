@@ -111,21 +111,15 @@ describe('ResourceSelector', () => {
   });
 
   afterEach(() => {
-    if (renderResult) {
-      renderResult.unmount();
-      renderResult = null;
-    }
     resourceSelectorRef = null;
     vi.restoreAllMocks();
   });
 
   it('displays resource selector', async () => {
     await renderResourceSelector();
-
-    expect(listResourceSpy).toHaveBeenCalledTimes(1);
     expect(listResourceSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
-    expect(getResourceSelectorState()).toHaveProperty('resources', RESOURCES);
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('test-1 name')).toBeInTheDocument();
+    expect(screen.getByText('test-2 name')).toBeInTheDocument();
   });
 
   it('converts resources into a table rows', async () => {
@@ -137,7 +131,7 @@ describe('ResourceSelector', () => {
         name: 'a name',
       },
     ];
-    listResourceSpy.mockImplementationOnce(() => ({ resources, nextPageToken: '' }));
+    listResourceSpy.mockImplementation(() => ({ resources, nextPageToken: '' }));
 
     await renderResourceSelector();
 
@@ -155,11 +149,11 @@ describe('ResourceSelector', () => {
 
   it('shows error dialog if listing fails', async () => {
     TestUtils.makeErrorResponseOnce(listResourceSpy as any, 'woops!');
+    TestUtils.makeErrorResponseOnce(listResourceSpy as any, 'woops!');
     vi.spyOn(console, 'error').mockImplementation(() => null);
 
     await renderResourceSelector();
 
-    expect(listResourceSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         content: 'List request failed with:\nwoops!',

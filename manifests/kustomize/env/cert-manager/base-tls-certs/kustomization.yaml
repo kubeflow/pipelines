@@ -5,7 +5,4 @@ resources:
 - ./kfp-api-cert-issuer.yaml
 - ./kfp-api-cert.yaml
 
-configurations:
-- params.yaml
-
 namespace: kubeflow

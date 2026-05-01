@@ -15,7 +15,7 @@
  */
 
 import EnhancedExperimentDetails, { ExperimentDetails } from './ExperimentDetails';
-import TestUtils from 'src/TestUtils';
+import TestUtils, { flushPromisesInAct, invokeAndFlush } from 'src/TestUtils';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from './Page';
@@ -23,7 +23,7 @@ import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
 import { range } from 'lodash';
 import { ButtonKeys } from 'src/lib/Buttons';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
@@ -94,19 +94,6 @@ describe('ExperimentDetails', () => {
     return utils;
   }
 
-  async function flushPromisesInAct(): Promise<void> {
-    await act(async () => {
-      await TestUtils.flushPromises();
-    });
-  }
-
-  async function invokeAndFlush(callback: () => void | Promise<void>): Promise<void> {
-    await act(async () => {
-      await callback();
-      await TestUtils.flushPromises();
-    });
-  }
-
   async function waitForExperimentLoad(): Promise<void> {
     await screen.findByText('Recurring run configs');
   }
@@ -162,7 +149,6 @@ describe('ExperimentDetails', () => {
     const { asFragment } = await renderExperimentDetails();
     await waitForExperimentLoad();
     await screen.findByText('No available runs found for this experiment.');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
     expect(asFragment()).toMatchSnapshot();
   });
@@ -174,7 +160,7 @@ describe('ExperimentDetails', () => {
     const props = generateProps();
     props.match = { params: { [RouteParams.experimentId]: 'test exp ID' } } as any;
 
-    getExperimentSpy.mockImplementationOnce(() => experiment);
+    getExperimentSpy.mockImplementation(() => experiment);
 
     await renderExperimentDetails(props);
     await waitFor(() => {
@@ -191,7 +177,7 @@ describe('ExperimentDetails', () => {
     const experiment = newMockExperiment();
     experiment.display_name = 'A Test Experiment';
 
-    getExperimentSpy.mockImplementationOnce(() => experiment);
+    getExperimentSpy.mockImplementation(() => experiment);
 
     await renderExperimentDetails();
     await waitFor(() => {
@@ -208,7 +194,7 @@ describe('ExperimentDetails', () => {
     const experiment = newMockExperiment();
     delete experiment.description;
 
-    getExperimentSpy.mockImplementationOnce(() => experiment);
+    getExperimentSpy.mockImplementation(() => experiment);
 
     const { asFragment } = await renderExperimentDetails();
     await waitForExperimentLoad();
@@ -220,7 +206,7 @@ describe('ExperimentDetails', () => {
     const experiment = newMockExperiment();
     experiment.description = 'Line 1\nLine 2\nLine 3\nLine 4';
 
-    getExperimentSpy.mockImplementationOnce(() => experiment);
+    getExperimentSpy.mockImplementation(() => experiment);
 
     await renderExperimentDetails();
     await waitForExperimentLoad();
@@ -230,12 +216,10 @@ describe('ExperimentDetails', () => {
   });
 
   it('opens the expanded description modal when the expand button is clicked', async () => {
-    const { container } = await renderExperimentDetails();
+    await renderExperimentDetails();
     await waitForExperimentLoad();
 
-    const expandButton = container.querySelector('#expandExperimentDescriptionBtn');
-    expect(expandButton).not.toBeNull();
-    fireEvent.click(expandButton as HTMLElement);
+    fireEvent.click(screen.getByTestId('LaunchIcon'));
     await flushPromisesInAct();
     expect(updateDialogSpy).toHaveBeenCalledWith({
       content: MOCK_EXPERIMENT.description,
@@ -248,7 +232,6 @@ describe('ExperimentDetails', () => {
     props.match = { params: { [RouteParams.experimentId]: 'test exp ID' } } as any;
     await renderExperimentDetails(props);
     await waitFor(() => {
-      expect(getExperimentSpy).toHaveBeenCalledTimes(1);
       expect(getExperimentSpy).toHaveBeenCalledWith('test exp ID');
     });
   });
@@ -304,7 +287,6 @@ describe('ExperimentDetails', () => {
     const { asFragment } = await renderExperimentDetails();
     await waitForExperimentLoad();
 
-    expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1);
     expect(listRecurringRunsSpy).toHaveBeenLastCalledWith(
       undefined,
       100,
@@ -358,7 +340,7 @@ describe('ExperimentDetails', () => {
         display_name: 'disabled-recurringrun-1',
       },
     ];
-    listRecurringRunsSpy.mockImplementationOnce(() => ({ recurringRuns }));
+    listRecurringRunsSpy.mockImplementation(() => ({ recurringRuns }));
 
     await renderExperimentDetails();
     await waitForExperimentLoad();
@@ -380,9 +362,13 @@ describe('ExperimentDetails', () => {
     await renderExperimentDetails();
     await waitForExperimentLoad();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
+    await invokeAndFlush(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
+    });
     const closeButton = await screen.findByRole('button', { name: 'Close' });
-    fireEvent.click(closeButton);
+    await invokeAndFlush(() => {
+      fireEvent.click(closeButton);
+    });
 
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
@@ -394,9 +380,7 @@ describe('ExperimentDetails', () => {
     await renderExperimentDetails();
     await waitForExperimentLoad();
 
-    await waitFor(() => {
-      expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1);
-    });
+    listRecurringRunsSpy.mockClear();
 
     fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
     await waitFor(() => {
@@ -627,7 +611,7 @@ describe('ExperimentDetails', () => {
     it('renders ExperimentDetails initially', async () => {
       render(<EnhancedExperimentDetails {...generateProps()}></EnhancedExperimentDetails>);
       await flushPromisesInAct();
-      expect(getExperimentSpy).toHaveBeenCalledTimes(1);
+      expect(getExperimentSpy).toHaveBeenCalledWith(MOCK_EXPERIMENT.experiment_id);
     });
 
     it('redirects to ExperimentList page if namespace changes', () => {

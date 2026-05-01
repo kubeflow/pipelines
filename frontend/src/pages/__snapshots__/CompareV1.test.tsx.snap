@@ -685,7 +685,7 @@ exports[`CompareV1 > creates a map of viewers 1`] = `
                       class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
                     >
                       <div
-                        aria-controls=":r51:"
+                        aria-controls="react-use-id-2"
                         aria-expanded="false"
                         aria-haspopup="listbox"
                         class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
@@ -889,7 +889,7 @@ exports[`CompareV1 > creates a map of viewers 1`] = `
                   />
                   <p
                     class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
-                    id=":r56:"
+                    id="react-use-id-0"
                   >
                     Rows per page:
                   </p>
@@ -897,12 +897,12 @@ exports[`CompareV1 > creates a map of viewers 1`] = `
                     class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
                   >
                     <div
-                      aria-controls=":r57:"
+                      aria-controls="react-use-id-3"
                       aria-expanded="false"
                       aria-haspopup="listbox"
-                      aria-labelledby=":r56: :r55:"
+                      aria-labelledby="react-use-id-0 react-use-id-1"
                       class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
-                      id=":r55:"
+                      id="react-use-id-1"
                       role="combobox"
                       tabindex="0"
                     >
@@ -1654,7 +1654,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                       class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
                     >
                       <div
-                        aria-controls=":rb0:"
+                        aria-controls="react-use-id-0"
                         aria-expanded="false"
                         aria-haspopup="listbox"
                         class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
@@ -1766,7 +1766,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                       class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
                     >
                       <div
-                        aria-controls=":rb3:"
+                        aria-controls="react-use-id-1"
                         aria-expanded="false"
                         aria-haspopup="listbox"
                         class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
@@ -1878,7 +1878,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                       class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
                     >
                       <div
-                        aria-controls=":rb6:"
+                        aria-controls="react-use-id-2"
                         aria-expanded="false"
                         aria-haspopup="listbox"
                         class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
@@ -6310,7 +6310,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                       class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
                     >
                       <div
-                        aria-controls=":r7k:"
+                        aria-controls="react-use-id-4"
                         aria-expanded="false"
                         aria-haspopup="listbox"
                         class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
@@ -6422,7 +6422,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                       class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
                     >
                       <div
-                        aria-controls=":r7n:"
+                        aria-controls="react-use-id-5"
                         aria-expanded="false"
                         aria-haspopup="listbox"
                         class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
@@ -6534,7 +6534,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                       class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
                     >
                       <div
-                        aria-controls=":r7q:"
+                        aria-controls="react-use-id-6"
                         aria-expanded="false"
                         aria-haspopup="listbox"
                         class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
@@ -6732,7 +6732,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                   />
                   <p
                     class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
-                    id=":r7v:"
+                    id="react-use-id-0"
                   >
                     Rows per page:
                   </p>
@@ -6740,12 +6740,12 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                     class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
                   >
                     <div
-                      aria-controls=":r80:"
+                      aria-controls="react-use-id-7"
                       aria-expanded="false"
                       aria-haspopup="listbox"
-                      aria-labelledby=":r7v: :r7u:"
+                      aria-labelledby="react-use-id-0 react-use-id-1"
                       class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
-                      id=":r7u:"
+                      id="react-use-id-1"
                       role="combobox"
                       tabindex="0"
                     >
@@ -6934,7 +6934,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                   />
                   <p
                     class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
-                    id=":r85:"
+                    id="react-use-id-2"
                   >
                     Rows per page:
                   </p>
@@ -6942,12 +6942,12 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                     class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
                   >
                     <div
-                      aria-controls=":r86:"
+                      aria-controls="react-use-id-8"
                       aria-expanded="false"
                       aria-haspopup="listbox"
-                      aria-labelledby=":r85: :r84:"
+                      aria-labelledby="react-use-id-2 react-use-id-3"
                       class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
-                      id=":r84:"
+                      id="react-use-id-3"
                       role="combobox"
                       tabindex="0"
                     >

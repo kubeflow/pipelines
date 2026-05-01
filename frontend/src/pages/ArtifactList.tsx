@@ -109,7 +109,7 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { rows, columns } = this.state;
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>

@@ -63,9 +63,9 @@ jobs:
       matrix:
         k8s_version: ["v1.34.0"]
         cache_enabled: ["true", "false"]
-        argo_version: [ "v3.7.3", "v3.6.7", "v3.5.14"]
+        argo_version: [ "v3.7.3", "v3.5.14", "v4.0.4" ]
         proxy: [ "false" ]
-        test_label: [ "E2ECritical" ]
+        test_label: [ "E2ECritical", "E2EEssential", "E2EParallelNested" ]
         pod_to_pod_tls_enabled: [ "false" ]
         include:
           - k8s_version: "v1.29.2"
@@ -76,9 +76,6 @@ jobs:
             cache_enabled: "false"
             proxy: "true"
             test_label: "E2EProxy"
-          - k8s_version: "v1.34.0"
-            cache_enabled: "false"
-            test_label: "E2EEssential"
           - k8s_version: "v1.34.0"
             cache_enabled: "false"
             test_label: "E2EFailure"
@@ -104,6 +101,7 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' }}
         id: deploy
         with:
+          proxy: ${{ matrix.proxy }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
@@ -131,6 +129,10 @@ jobs:
             NAMESPACE=${{ inputs.namespace }}
           fi
 
+          if [ "$TEST_LABEL" == "E2EParallelNested" ]; then
+            NUMBER_OF_NODES=3
+          fi
+
           {
             echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"
             echo "TEST_LABEL=$TEST_LABEL"
@@ -150,6 +152,7 @@ jobs:
         id: test-run
         if: ${{ steps.configure.outcome == 'success' }}
         with:
+          proxy: ${{ matrix.proxy }}
           cache_enabled: ${{ matrix.cache_enabled }}
           test_directory: ${{ env.E2E_TESTS_DIR }}
           test_label: ${{ steps.configure.outputs.TEST_LABEL }}

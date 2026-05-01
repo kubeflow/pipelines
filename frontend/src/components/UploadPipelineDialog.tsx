@@ -142,7 +142,7 @@ class UploadPipelineDialog extends React.Component<
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const {
       dropzoneActive,
       file,

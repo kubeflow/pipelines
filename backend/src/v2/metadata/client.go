@@ -55,9 +55,19 @@ const (
 	pipelineRunContextTypeName         = "system.PipelineRun"
 	ImporterExecutionTypeName          = "system.ImporterExecution"
 	ImporterWorkspaceExecutionTypeName = "system.ImporterWorkspaceExecution"
-	mlmdClientSideMaxRetries           = 3
-	defaultMaxGRPCMessageSize          = 100 * 1024 * 1024 // 100MB
-	maxGRPCMessageSizeEnv              = "METADATA_GRPC_MESSAGE_SIZE"
+	// mlmdClientSideMaxRetries is the number of times the MLMD client will retry
+	// a failed gRPC call before returning an error. This is intentionally higher
+	// than a typical RPC retry budget because MySQL deadlocks (codes.Aborted) on
+	// the MLMD server are transient and require time to resolve under sustained
+	// parallel execution.
+	mlmdClientSideMaxRetries    = 10
+	mlmdClientSideBackoffBase   = 1 * time.Second
+	mlmdClientSideBackoffJitter = 0.25
+	// mlmdClientSideBackoffCap limits the maximum per-attempt wait so a single
+	// deadlock retry never stalls a pod for more than 30 s.
+	mlmdClientSideBackoffCap  = 30 * time.Second
+	defaultMaxGRPCMessageSize = 100 * 1024 * 1024 // 100MB
+	maxGRPCMessageSizeEnv     = "METADATA_GRPC_MESSAGE_SIZE"
 )
 
 // MaxGRPCMessageSize is the max gRPC message size for the metadata client.
@@ -117,6 +127,7 @@ type ClientInterface interface {
 	PrePublishExecution(ctx context.Context, execution *Execution, config *ExecutionConfig) (*Execution, error)
 	GetExecutions(ctx context.Context, ids []int64) ([]*pb.Execution, error)
 	GetExecution(ctx context.Context, id int64) (*Execution, error)
+	GetExecutionByTypeAndName(ctx context.Context, typeName, name string) (*Execution, error)
 	GetPipelineFromExecution(ctx context.Context, id int64) (*Pipeline, error)
 	GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pipeline, filter bool) (executionsMap map[string]*Execution, err error)
 	UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipeline *Pipeline) (err error)
@@ -138,10 +149,17 @@ type Client struct {
 
 // NewClient creates a Client given the MLMD server address and port.
 func NewClient(serverAddress, serverPort string, tlsCfg *tls.Config) (*Client, error) {
+	// Retry on Aborted (MySQL deadlock) and Unavailable (transient connectivity).
+	// Use bounded exponential backoff so that high-concurrency deadlock storms
+	// are given enough time to resolve without stalling a pod indefinitely.
 	opts := []grpc_retry.CallOption{
 		grpc_retry.WithMax(mlmdClientSideMaxRetries),
-		grpc_retry.WithBackoff(grpc_retry.BackoffExponentialWithJitter(300*time.Millisecond, 0.20)),
-		grpc_retry.WithCodes(codes.Aborted),
+		grpc_retry.WithBackoff(grpc_retry.BackoffExponentialWithJitterBounded(
+			mlmdClientSideBackoffBase,
+			mlmdClientSideBackoffJitter,
+			mlmdClientSideBackoffCap,
+		)),
+		grpc_retry.WithCodes(codes.Aborted, codes.Unavailable),
 	}
 
 	creds := insecure.NewCredentials()
@@ -166,6 +184,14 @@ func NewClient(serverAddress, serverPort string, tlsCfg *tls.Config) (*Client, e
 		svc:          pb.NewMetadataStoreServiceClient(conn),
 		ctxTypeCache: sync.Map{},
 	}, nil
+}
+
+// NewTestClient allows injecting a mocked gRPC service for testing
+func NewTestClient(mockSvc pb.MetadataStoreServiceClient) *Client {
+	return &Client{
+		svc:          mockSvc,
+		ctxTypeCache: sync.Map{},
+	}
 }
 
 // ExecutionConfig represents the input parameters and artifacts to an Execution.
@@ -275,7 +301,7 @@ func (p *Pipeline) GetPipelineRoot() string {
 
 // Execution is a handle for the current execution.
 type Execution struct {
-	execution *pb.Execution
+	Execution *pb.Execution
 	pipeline  *Pipeline
 }
 
@@ -283,14 +309,14 @@ func (e *Execution) GetID() int64 {
 	if e == nil {
 		return 0
 	}
-	return e.execution.GetId()
+	return e.Execution.GetId()
 }
 
 func (e *Execution) String() string {
 	if e == nil {
 		return ""
 	}
-	return e.execution.String()
+	return e.Execution.String()
 }
 
 func (e *Execution) GetPipeline() *Pipeline {
@@ -304,21 +330,21 @@ func (e *Execution) GetExecution() *pb.Execution {
 	if e == nil {
 		return nil
 	}
-	return e.execution
+	return e.Execution
 }
 
 func (e *Execution) TaskName() string {
 	if e == nil {
 		return ""
 	}
-	return e.execution.GetCustomProperties()[keyTaskName].GetStringValue()
+	return e.Execution.GetCustomProperties()[keyTaskName].GetStringValue()
 }
 
 func (e *Execution) FingerPrint() string {
 	if e == nil {
 		return ""
 	}
-	return e.execution.GetCustomProperties()[keyCacheFingerPrint].GetStringValue()
+	return e.Execution.GetCustomProperties()[keyCacheFingerPrint].GetStringValue()
 }
 
 // GetTaskNameWithDagID appends the taskName with its parent dag id. This is
@@ -437,7 +463,7 @@ func (c *Client) GetDAG(ctx context.Context, executionID int64) (*DAG, error) {
 	}
 	execution := res.GetExecution()
 	// TODO(Bobgy): verify execution type is system.DAGExecution
-	return &DAG{Execution: &Execution{execution: execution}}, nil
+	return &DAG{Execution: &Execution{Execution: execution}}, nil
 }
 
 func (c *Client) putParentContexts(ctx context.Context, req *pb.PutParentContextsRequest) error {
@@ -506,7 +532,7 @@ func getArtifactName(eventPath *pb.Event_Path) (string, error) {
 // PublishExecution publishes the specified execution with the given output
 // parameters, artifacts and state.
 func (c *Client) PublishExecution(ctx context.Context, execution *Execution, outputParameters map[string]*structpb.Value, outputArtifacts []*OutputArtifact, state pb.Execution_State) error {
-	e := execution.execution
+	e := execution.Execution
 	e.LastKnownState = state.Enum()
 	glog.V(4).Infof("outputParameters: %v", outputParameters)
 	glog.V(4).Infof("outputArtifacts: %v", outputArtifacts)
@@ -718,13 +744,13 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 
 	return &Execution{
 		pipeline:  pipeline,
-		execution: getRes.Executions[0],
+		Execution: getRes.Executions[0],
 	}, nil
 }
 
 // PrePublishExecution updates an existing MLMD execution with Pod info.
 func (c *Client) PrePublishExecution(ctx context.Context, execution *Execution, config *ExecutionConfig) (*Execution, error) {
-	e := execution.execution
+	e := execution.Execution
 	if e.CustomProperties == nil {
 		e.CustomProperties = make(map[string]*pb.Value)
 	}
@@ -749,7 +775,7 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 		return err
 	}
 
-	totalDagTasks := dag.Execution.execution.CustomProperties["total_dag_tasks"].GetIntValue()
+	totalDagTasks := dag.Execution.Execution.CustomProperties["total_dag_tasks"].GetIntValue()
 
 	glog.V(4).Infof("tasks: %v", tasks)
 	glog.V(4).Infof("Checking Tasks' State")
@@ -792,9 +818,9 @@ func (c *Client) PutDAGExecutionState(ctx context.Context, executionID int64, st
 	if err != nil {
 		return err
 	}
-	e.execution.LastKnownState = state.Enum()
+	e.Execution.LastKnownState = state.Enum()
 	_, err = c.svc.PutExecution(ctx, &pb.PutExecutionRequest{
-		Execution: e.execution,
+		Execution: e.Execution,
 	})
 	return err
 }
@@ -807,6 +833,31 @@ func (c *Client) GetExecutions(ctx context.Context, ids []int64) ([]*pb.Executio
 		return nil, err
 	}
 	return res.Executions, nil
+}
+
+// GetExecutionByTypeAndName retrieves an execution by its type and name from the service.
+// Returns the Execution object if found, or an error if not found or if the request fails.
+func (c *Client) GetExecutionByTypeAndName(ctx context.Context, typeName, name string) (*Execution, error) {
+	res, err := c.svc.GetExecutionByTypeAndName(ctx, &pb.GetExecutionByTypeAndNameRequest{
+		TypeName:      proto.String(typeName),
+		ExecutionName: proto.String(name),
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("GetExecutionsByTypeAndName(type=%q, name=%q): %w", typeName, name, err)
+	}
+
+	execution := res.GetExecution()
+	if execution == nil {
+		return nil, fmt.Errorf("no execution found for type=%q, name=%q", typeName, name)
+	}
+
+	pipeline, err := c.GetPipelineFromExecution(ctx, execution.GetId())
+	if err != nil {
+		return nil, err
+	}
+
+	return &Execution{Execution: execution, pipeline: pipeline}, nil
 }
 
 func (c *Client) GetExecution(ctx context.Context, id int64) (*Execution, error) {
@@ -825,7 +876,7 @@ func (c *Client) GetExecution(ctx context.Context, id int64) (*Execution, error)
 	if err != nil {
 		return nil, err
 	}
-	return &Execution{execution: execution, pipeline: pipeline}, nil
+	return &Execution{Execution: execution, pipeline: pipeline}, nil
 }
 
 func (c *Client) GetPipelineFromExecution(ctx context.Context, id int64) (*Pipeline, error) {
@@ -899,7 +950,7 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 		execs := res.GetExecutions()
 		glog.V(4).Infof("execs: %v", execs)
 		for _, e := range execs {
-			execution := &Execution{execution: e}
+			execution := &Execution{Execution: e}
 			glog.V(4).Infof("taskName before DAG injection: %s", execution.TaskName())
 			// Sometimes components in nested DAGs have identical task names. We
 			// update all task names to include the DAG ID to avoid potential

@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 export default class StatusTerminated extends React.Component<{ style: React.CSSProperties }> {
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { style } = this.props;
     return (
       <svg width={style.width as string} height={style.height as string} viewBox='0 0 18 18'>
