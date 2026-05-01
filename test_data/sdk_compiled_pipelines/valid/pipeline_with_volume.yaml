@@ -12,39 +12,59 @@ components:
     inputDefinitions:
       parameters:
         access_modes:
-          description: 'AccessModes to request for the provisioned PVC. May
-
-            be one or more of ``''ReadWriteOnce''``, ``''ReadOnlyMany''``, ``''ReadWriteMany''``,
-            or
-
-            ``''ReadWriteOncePod''``. Corresponds to `PersistentVolumeClaim.spec.accessModes
-            <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes>`_.'
+          description: Values for ``PersistentVolumeClaim.spec.accessModes``.
           parameterType: LIST
         annotations:
-          description: Annotations for the PVC's metadata. Corresponds to `PersistentVolumeClaim.metadata.annotations
-            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.
+          description: 'Annotations for the PVC''s metadata. Corresponds to
+
+            `PersistentVolumeClaim.metadata.annotations
+
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.'
+          isOptional: true
+          parameterType: STRUCT
+        data_source:
+          description: 'Specifies the data source for the PVC. This can be used to
+
+            create a PVC from a VolumeSnapshot or to clone an existing PVC.
+
+            Should be a dictionary with ``''apiGroup''``, ``''kind''``, and
+
+            ``''name''`` keys. For example:
+
+            ``{''apiGroup'': ''snapshot.storage.k8s.io'', ''kind'': ''VolumeSnapshot'',
+            ''name'': ''my-snapshot''}``.
+
+            Corresponds to `PersistentVolumeClaim.spec.dataSource
+
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.'
           isOptional: true
           parameterType: STRUCT
         pvc_name:
-          description: 'Name of the PVC. Corresponds to `PersistentVolumeClaim.metadata.name
-            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.
-            Only one of ``pvc_name`` and ``pvc_name_suffix`` can
+          description: 'Name of the PVC. Corresponds to
 
-            be provided.'
+            `PersistentVolumeClaim.metadata.name
+
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.
+
+            Only one of ``pvc_name`` and ``pvc_name_suffix`` can be provided.'
           isOptional: true
           parameterType: STRING
         pvc_name_suffix:
           description: 'Prefix to use for a dynamically generated name, which
 
-            will take the form ``<argo-workflow-name>-<pvc_name_suffix>``. Only one
+            will take the form ``<argo-workflow-name>-<pvc_name_suffix>``. Only
 
-            of ``pvc_name`` and ``pvc_name_suffix`` can be provided.'
+            one of ``pvc_name`` and ``pvc_name_suffix`` can be provided.'
           isOptional: true
           parameterType: STRING
         size:
-          description: The size of storage requested by the PVC that will be provisioned.
-            For example, ``'5Gi'``. Corresponds to `PersistentVolumeClaim.spec.resources.requests.storage
-            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.
+          description: 'The size of storage requested by the PVC that will be
+
+            provisioned. For example, ``''5Gi''``. Corresponds to
+
+            `PersistentVolumeClaim.spec.resources.requests.storage
+
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.'
           parameterType: STRING
         storage_class_name:
           defaultValue: ''
@@ -60,7 +80,10 @@ components:
 
             provisioned PersistentVolumeClaim. Used for statically
 
-            specified PV only. Corresponds to `PersistentVolumeClaim.spec.volumeName
+            specified PV only. Corresponds to
+
+            `PersistentVolumeClaim.spec.volumeName
+
             <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.'
           isOptional: true
           parameterType: STRING
@@ -113,7 +136,7 @@ deploymentSpec:
           \ *\n\ndef consumer() -> str:\n    with open('/data/file.txt', 'r') as file:\n\
           \        content = file.read()\n    print(content)\n    return content\n\
           \n"
-        image: python:3.11
+        image: registry.access.redhat.com/ubi9/python-311:latest
     exec-createpvc:
       container:
         image: argostub/createpvc
@@ -150,7 +173,7 @@ deploymentSpec:
           \        file.write('Hello world')\n    with open('/data/file.txt', 'r')\
           \ as file:\n        content = file.read()\n    print(content)\n    return\
           \ content\n\n"
-        image: python:3.11
+        image: registry.access.redhat.com/ubi9/python-311:latest
 pipelineInfo:
   name: pipeline-with-volume
 root:
