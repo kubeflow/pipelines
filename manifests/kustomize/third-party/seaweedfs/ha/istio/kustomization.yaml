@@ -4,12 +4,4 @@ namespace: kubeflow
 
 resources:
 - ../base
-patches:
-- target:
-    version: security.istio.io/v1beta1
-    kind: AuthorizationPolicy
-    name: seaweedfs-service
-  patch: |-
-    - op: add
-      path: /spec/selector/matchLabels/component
-      value: s3
+- istio-authorization-policy.yaml
