@@ -22,6 +22,7 @@ import {
   getObjectStream,
   isNoSuchKeyError,
   listObjectsUnderPrefix,
+  summarizeDirectoryUnderPrefix,
   MinioClientOptionsWithOptionalSecrets,
   Credentials,
 } from './minio-helper.js';
@@ -370,6 +371,66 @@ describe('minio-helper', () => {
       const client = {} as unknown as MinioClient;
       const iter = listObjectsUnderPrefix(client, 'bucket', 'p/');
       await expect(iter.next()).rejects.toThrow(/listObjectsV2Query/);
+    });
+  });
+
+  // summarizeDirectoryUnderPrefix backs the bounded directory preview path.
+  // It must not paginate — large directories should still cost one round
+  // trip, with `truncated: true` signalling there's more.
+  describe('summarizeDirectoryUnderPrefix', () => {
+    it('returns count and truncated=false for a small, complete listing', async () => {
+      const listObjectsV2Query = vi.fn(async () => ({
+        objects: [
+          { name: 'a', size: 1 },
+          { name: 'b', size: 2 },
+          { name: 'c', size: 3 },
+        ],
+        isTruncated: false,
+        nextContinuationToken: '',
+      }));
+      const client = { listObjectsV2Query } as unknown as MinioClient;
+
+      const summary = await summarizeDirectoryUnderPrefix(client, 'bucket', 'p/');
+      expect(summary).toEqual({ count: 3, truncated: false });
+      expect(listObjectsV2Query).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns truncated=true when minio reports more pages exist', async () => {
+      const listObjectsV2Query = vi.fn(async () => ({
+        objects: Array.from({ length: 50 }, (_, i) => ({ name: `f-${i}`, size: 1 })),
+        isTruncated: true,
+        nextContinuationToken: 'next',
+      }));
+      const client = { listObjectsV2Query } as unknown as MinioClient;
+
+      const summary = await summarizeDirectoryUnderPrefix(client, 'bucket', 'p/');
+      expect(summary).toEqual({ count: 50, truncated: true });
+      // Bounded — does not loop on the continuation token.
+      expect(listObjectsV2Query).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns null for an empty prefix so callers can answer 404', async () => {
+      const listObjectsV2Query = vi.fn(async () => ({
+        objects: [],
+        isTruncated: false,
+        nextContinuationToken: '',
+      }));
+      const client = { listObjectsV2Query } as unknown as MinioClient;
+
+      const summary = await summarizeDirectoryUnderPrefix(client, 'bucket', 'p/');
+      expect(summary).toBeNull();
+    });
+
+    it('passes the configured maxKeys cap to listObjectsV2Query', async () => {
+      const listObjectsV2Query = vi.fn(async () => ({
+        objects: [{ name: 'a', size: 1 }],
+        isTruncated: false,
+        nextContinuationToken: '',
+      }));
+      const client = { listObjectsV2Query } as unknown as MinioClient;
+
+      await summarizeDirectoryUnderPrefix(client, 'bucket', 'p/', 25);
+      expect(listObjectsV2Query).toHaveBeenCalledWith('bucket', 'p/', '', '', 25, '');
     });
   });
 });

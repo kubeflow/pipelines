@@ -1031,6 +1031,120 @@ describe('/artifacts', () => {
         expect(entries.get('sub/file2.txt')!.toString()).toBe('second file contents');
       });
 
+      it('returns a small text summary for preview requests instead of streaming the archive', async () => {
+        // The run details panel calls Apis.readFile with peek=N to render a
+        // small inline preview. Falling through to the tar fallback would
+        // list every object under the prefix and stream the whole gzip just
+        // to render a few KB. The preview path must instead answer with a
+        // bounded summary: exactly one capped listObjectsV2Query call (no
+        // pagination), no per-child getObject fetches, small text body.
+        const listObjectsV2Query = vi.fn(
+          async (
+            _bucket: string,
+            _prefix: string,
+            _continuationToken: string,
+            _delimiter: string,
+            _maxKeys: number,
+          ) => ({
+            objects: Array.from({ length: 5 }, (_, i) => ({
+              name: `some-directory/file-${i}.txt`,
+              size: 10,
+            })),
+            isTruncated: false,
+            nextContinuationToken: '',
+          }),
+        );
+        const getObject = vi.fn(async (bucket: string, key: string) => {
+          if (bucket === 'ml-pipeline' && key === 'some-directory') {
+            throw makeNoSuchKeyError();
+          }
+          throw new Error(`unexpected getObject(${bucket}, ${key})`);
+        });
+        const mockedMinioClient = minio.Client as any;
+        mockedMinioClient.mockImplementation(function () {
+          return { getObject, listObjectsV2Query };
+        });
+
+        const configs = loadConfigs(argv, minioConfigEnv);
+        app = new UIServer(configs);
+
+        const request = requests(app.app);
+        const res = await request
+          .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=some-directory&peek=256')
+          .expect(200);
+
+        // Response is small text, not a gzip archive.
+        expect(res.headers['content-type']).toMatch(/^text\/plain/);
+        expect(res.headers['content-type']).not.toMatch(/gzip/);
+        expect(res.text.length).toBeLessThan(512);
+        expect(res.text).toContain('Directory artifact');
+        expect(res.text).toContain('some-directory');
+        expect(res.text).toContain('5');
+
+        // Exactly one listing call; no pagination loop.
+        expect(listObjectsV2Query).toHaveBeenCalledTimes(1);
+        // Only the original single-object lookup was attempted; no per-file
+        // fetches under the prefix.
+        expect(getObject).toHaveBeenCalledTimes(1);
+        expect(getObject).toHaveBeenCalledWith('ml-pipeline', 'some-directory');
+      });
+
+      it('marks the file count as truncated when minio reports more pages exist', async () => {
+        // For very large directories the single capped list call only sees
+        // the first page; surface that to the user as "N+" rather than a
+        // misleading exact count.
+        const listObjectsV2Query = vi.fn(async () => ({
+          objects: Array.from({ length: 50 }, (_, i) => ({
+            name: `huge-dir/file-${i}.txt`,
+            size: 1,
+          })),
+          isTruncated: true,
+          nextContinuationToken: 'next-page-token',
+        }));
+        const getObject = vi.fn(async () => {
+          throw makeNoSuchKeyError();
+        });
+        const mockedMinioClient = minio.Client as any;
+        mockedMinioClient.mockImplementation(function () {
+          return { getObject, listObjectsV2Query };
+        });
+
+        const configs = loadConfigs(argv, minioConfigEnv);
+        app = new UIServer(configs);
+
+        const request = requests(app.app);
+        const res = await request
+          .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=huge-dir&peek=256')
+          .expect(200);
+
+        expect(res.text).toContain('50+');
+        // Did not paginate even though more pages exist.
+        expect(listObjectsV2Query).toHaveBeenCalledTimes(1);
+      });
+
+      it('returns 404 for preview requests on an empty prefix', async () => {
+        const listObjectsV2Query = vi.fn(async () => ({
+          objects: [],
+          isTruncated: false,
+          nextContinuationToken: '',
+        }));
+        const getObject = vi.fn(async () => {
+          throw makeNoSuchKeyError();
+        });
+        const mockedMinioClient = minio.Client as any;
+        mockedMinioClient.mockImplementation(function () {
+          return { getObject, listObjectsV2Query };
+        });
+
+        const configs = loadConfigs(argv, minioConfigEnv);
+        app = new UIServer(configs);
+
+        const request = requests(app.app);
+        await request
+          .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=missing-dir&peek=256')
+          .expect(404);
+      });
+
       it('returns 404 when the prefix has no objects', async () => {
         mockMinioForDirectory({});
 

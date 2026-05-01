@@ -24,6 +24,7 @@ import {
   getObjectStream,
   isNoSuchKeyError,
   listObjectsUnderPrefix,
+  summarizeDirectoryUnderPrefix,
 } from '../minio-helper.js';
 import * as tar from 'tar-stream';
 import * as zlib from 'zlib';
@@ -380,6 +381,24 @@ function getMinioArtifactHandler(
       // a .tar.gz so users can still download them. See
       // https://github.com/kubeflow/pipelines/issues/7809
       if (isNoSuchKeyError(err)) {
+        if (peek > 0) {
+          // Preview request (e.g. the run details panel calls
+          // Apis.readFile with a small peek size). We must not stream a
+          // full directory archive here — that would list every object
+          // under the prefix and gzip the whole tree just to render a few
+          // KB of inline text. Instead, answer with a small text summary
+          // backed by one capped ListObjectsV2 call: cost stays bounded
+          // (one round trip, <1KB body) and the user sees that the
+          // artifact is a directory with N files.
+          try {
+            await previewDirectorySummary(options, res);
+            return;
+          } catch (summaryErr) {
+            console.error(summaryErr);
+            res.status(500).send(`Failed to summarize directory: ${summaryErr}`);
+            return;
+          }
+        }
         try {
           await streamDirectoryAsTarGz(options, res);
           return;
@@ -397,6 +416,25 @@ function getMinioArtifactHandler(
       res.status(500).send(`Failed to get object in bucket: ${err}`);
     }
   };
+}
+
+async function previewDirectorySummary(
+  options: { bucket: string; key: string; client: MinioClient },
+  res: Response,
+) {
+  const { bucket, key, client } = options;
+  // Trailing slash so prefix "foo" doesn't also match sibling key "foobar".
+  const prefix = key.endsWith('/') ? key : `${key}/`;
+  const summary = await summarizeDirectoryUnderPrefix(client, bucket, prefix);
+  if (!summary) {
+    res.status(404).send(`No objects found at ${bucket}/${key}`);
+    return;
+  }
+  const baseName = key.replace(/\/+$/, '').split('/').pop() || 'artifact';
+  const countLabel = `${summary.count}${summary.truncated ? '+' : ''}`;
+  res
+    .type('text/plain')
+    .send(`Directory artifact "${baseName}" — ${countLabel} file(s). Download to view contents.\n`);
 }
 
 async function streamDirectoryAsTarGz(

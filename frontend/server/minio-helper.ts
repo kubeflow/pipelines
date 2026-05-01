@@ -400,3 +400,28 @@ export async function* listObjectsUnderPrefix(
     continuationToken = page.nextContinuationToken;
   }
 }
+
+/**
+ * Returns a bounded summary of a prefix using a single capped
+ * `listObjectsV2Query` call — does not paginate. Designed for preview-style
+ * requests where the caller just needs to know "is there anything here, and
+ * roughly how many files?" without paying for a full listing of a
+ * potentially huge directory.
+ *
+ * Resolves to `null` for an empty prefix so callers can answer with a 404.
+ * `truncated: true` means the directory has more than `maxKeys` files; the
+ * caller should treat `count` as a lower bound.
+ */
+export async function summarizeDirectoryUnderPrefix(
+  client: MinioClient,
+  bucket: string,
+  prefix: string,
+  maxKeys: number = 50,
+): Promise<{ count: number; truncated: boolean } | null> {
+  const listObjectsV2Query = getListObjectsV2Query(client);
+  const page = await listObjectsV2Query(bucket, prefix, '', '', maxKeys, '');
+  if (page.objects.length === 0) {
+    return null;
+  }
+  return { count: page.objects.length, truncated: page.isTruncated };
+}
