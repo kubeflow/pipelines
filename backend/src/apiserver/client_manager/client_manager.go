@@ -93,7 +93,7 @@ func init() {
 	}
 }
 
-// Container for all service clients.
+// ClientManager contains all service clients.
 type ClientManager struct {
 	db                        *storage.DB
 	experimentStore           storage.ExperimentStoreInterface
@@ -955,9 +955,25 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 		return nil, fmt.Errorf("failed to build config from environment variables: %w", err)
 	}
 
-	if err := ensureBucketExists(ctx, blobConfig); err != nil {
-		// Best-effort: some S3-compatible stores (e.g., MinIO/SeaweedFS) can return non-AWS-ish errors for bucket
-		// creation/existence checks even when the bucket is usable; don't fail apiserver init on those false negatives.
+	// Use a bounded timeout to prevent indefinite hangs when credential providers
+	// (e.g. EC2 IMDS) are unreachable outside of AWS.
+	ensureCtx, ensureCancel := context.WithTimeout(ctx, 30*time.Second)
+	defer ensureCancel()
+
+	if err := ensureBucketExists(ensureCtx, blobConfig); err != nil {
+		if isCredentialError(err) {
+			glog.Errorf("========================================")
+			glog.Errorf("FATAL: Object store credential error.")
+			glog.Errorf("The API server cannot start without valid credentials.")
+			glog.Errorf("")
+			glog.Errorf("If using IRSA   : ensure AWS_ROLE_ARN and AWS_WEB_IDENTITY_TOKEN_FILE are set correctly.")
+			glog.Errorf("If using static  : ensure OBJECTSTORECONFIG_ACCESSKEY and OBJECTSTORECONFIG_SECRETACCESSKEY are set.")
+			glog.Errorf("Details: %v", err)
+			glog.Errorf("========================================")
+			glog.Exitf("Exiting due to object store credential error.")
+		}
+		// Best-effort: some S3-compatible stores (e.g., MinIO/SeaweedFS) can return non-AWS-ish errors
+		// for bucket creation/existence checks even when the bucket is usable.
 		glog.Warningf("Failed to ensure bucket exists: %v", err)
 	}
 
@@ -968,6 +984,20 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 
 	glog.Infof("Successfully initialized blob storage for bucket: %s", blobConfig.bucketName)
 	return storage.NewBlobObjectStore(bucket, pipelinePath), nil
+}
+
+// isCredentialError returns true when the error is caused by missing or invalid
+// AWS credentials, as opposed to a bucket-not-found or transient network error.
+// This distinguishes IRSA/IMDS failures (fatal) from S3-compatible store quirks (warning).
+func isCredentialError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "get credentials") ||
+		strings.Contains(msg, "failed to refresh cached credentials") ||
+		strings.Contains(msg, "no EC2 IMDS role found") ||
+		strings.Contains(msg, "failed to retrieve jwt")
 }
 
 // blobStorageConfig holds the bucket configuration and credentials
