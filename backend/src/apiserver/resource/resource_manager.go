@@ -22,9 +22,7 @@ import (
 	"net"
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
-	"unicode/utf8"
 
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -386,40 +384,14 @@ func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versio
 
 // MaxTagKeyLength is the maximum allowed length (in characters) for a tag key.
 // Consistent with Kubernetes label value length limit (63 characters).
-const MaxTagKeyLength = 63
+const MaxTagKeyLength = common.MaxTagKeyLength
 
 // MaxTagValueLength is the maximum allowed length (in characters) for a tag value.
 // Consistent with Kubernetes label value length limit (63 characters).
-const MaxTagValueLength = 63
+const MaxTagValueLength = common.MaxTagValueLength
 
 // MaxTagsPerEntity is the maximum number of tags allowed on a single pipeline or pipeline version.
-const MaxTagsPerEntity = 20
-
-// validateTags checks that tags conform to all constraints:
-// - maximum number of tags per entity
-// - no empty keys
-// - keys must not contain "." (conflicts with tag filter prefix "tags.")
-// - key and value character lengths within limits
-func validateTags(tags map[string]string) error {
-	if len(tags) > MaxTagsPerEntity {
-		return util.NewInvalidInputError("number of tags (%d) exceeds maximum of %d per entity", len(tags), MaxTagsPerEntity)
-	}
-	for key, value := range tags {
-		if key == "" {
-			return util.NewInvalidInputError("tag key cannot be empty")
-		}
-		if strings.Contains(key, ".") {
-			return util.NewInvalidInputError("tag key %q must not contain '.' character", key)
-		}
-		if utf8.RuneCountInString(key) > MaxTagKeyLength {
-			return util.NewInvalidInputError("tag key %q exceeds maximum length of %d characters", key, MaxTagKeyLength)
-		}
-		if utf8.RuneCountInString(value) > MaxTagValueLength {
-			return util.NewInvalidInputError("tag value %q for key %q exceeds maximum length of %d characters", value, key, MaxTagValueLength)
-		}
-	}
-	return nil
-}
+const MaxTagsPerEntity = common.MaxTagsPerEntity
 
 // UpdatePipeline updates mutable fields of a pipeline (display_name, tags).
 // Both fields are updated in a single transaction via UpdatePipelineFields.
@@ -427,7 +399,7 @@ func (r *ResourceManager) UpdatePipeline(pipelineID string, displayName string, 
 	if pipelineID == "" {
 		return nil, util.NewInvalidInputError("pipeline id cannot be empty when updating pipeline")
 	}
-	if err := validateTags(tags); err != nil {
+	if err := common.ValidateTags(tags); err != nil {
 		return nil, err
 	}
 	// Update fields and tags in a single transaction to prevent deadlocks.
@@ -444,7 +416,7 @@ func (r *ResourceManager) UpdatePipelineVersion(pipelineVersionID string, displa
 	if pipelineVersionID == "" {
 		return nil, util.NewInvalidInputError("pipeline version id cannot be empty when updating pipeline version")
 	}
-	if err := validateTags(tags); err != nil {
+	if err := common.ValidateTags(tags); err != nil {
 		return nil, err
 	}
 	// Update fields and tags in a single transaction to prevent deadlocks.
@@ -466,7 +438,7 @@ func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, er
 		p.DisplayName = p.Name
 	}
 
-	if err := validateTags(p.Tags); err != nil {
+	if err := common.ValidateTags(p.Tags); err != nil {
 		return nil, err
 	}
 
@@ -490,10 +462,10 @@ func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, er
 // Creates a pipeline and a pipeline version.
 // This is used when two resources need to be created in a single DB transaction.
 func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv *model.PipelineVersion) (*model.Pipeline, *model.PipelineVersion, error) {
-	if err := validateTags(p.Tags); err != nil {
+	if err := common.ValidateTags(p.Tags); err != nil {
 		return nil, nil, err
 	}
-	if err := validateTags(pv.Tags); err != nil {
+	if err := common.ValidateTags(pv.Tags); err != nil {
 		return nil, nil, err
 	}
 
@@ -1908,7 +1880,7 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	pv.Status = model.PipelineVersionCreating
 	pv.PipelineSpec = model.LargeText(string(tmpl.Bytes()))
 
-	if err := validateTags(pv.Tags); err != nil {
+	if err := common.ValidateTags(pv.Tags); err != nil {
 		return nil, err
 	}
 
