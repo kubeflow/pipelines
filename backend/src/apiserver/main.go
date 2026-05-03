@@ -356,11 +356,14 @@ func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Confi
 	ReportServerV1 := server.NewReportServerV1(resourceManager)
 	ReportServer := server.NewReportServer(resourceManager)
 
+	TaskServerV1 := server.NewTaskServerV1(resourceManager)
+	TaskServer := server.NewTaskServer(resourceManager)
+
 	apiv1beta1.RegisterExperimentServiceServer(s, ExperimentServerV1)
 	apiv1beta1.RegisterPipelineServiceServer(s, PipelineServerV1)
 	apiv1beta1.RegisterJobServiceServer(s, JobServerV1)
 	apiv1beta1.RegisterRunServiceServer(s, RunServerV1)
-	apiv1beta1.RegisterTaskServiceServer(s, server.NewTaskServer(resourceManager))
+	apiv1beta1.RegisterTaskServiceServer(s, TaskServerV1)
 	apiv1beta1.RegisterReportServiceServer(s, ReportServerV1)
 
 	apiv1beta1.RegisterVisualizationServiceServer(
@@ -376,6 +379,7 @@ func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Confi
 	apiv2beta1.RegisterPipelineServiceServer(s, PipelineServer)
 	apiv2beta1.RegisterRecurringRunServiceServer(s, JobServer)
 	apiv2beta1.RegisterRunServiceServer(s, RunServer)
+	apiv2beta1.RegisterTaskServiceServer(s, TaskServer)
 	apiv2beta1.RegisterReportServiceServer(s, ReportServer)
 
 	// Register reflection service on gRPC server.
@@ -424,6 +428,7 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	register(apiv2beta1.RegisterRecurringRunServiceHandlerFromEndpoint, "RecurringRunService")
 	register(apiv2beta1.RegisterRunServiceHandlerFromEndpoint, "RunService")
 	register(apiv2beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService")
+	register(apiv2beta1.RegisterTaskServiceHandlerFromEndpoint, "TaskService")
 
 	sharedPipelineUploadServer := server.NewPipelineUploadServer(resourceManager, &server.PipelineUploadServerOptions{CollectMetrics: *collectMetricsFlag})
 	runLogServer := server.NewRunLogServer(resourceManager)
