@@ -19,6 +19,7 @@ rules:
   verbs:
   - get
   - list
+  - watch
 - apiGroups:
   - kubeflow.org
   resources:
