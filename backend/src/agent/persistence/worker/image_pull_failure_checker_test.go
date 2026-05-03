@@ -195,7 +195,7 @@ func TestCheckAndTerminate_HealthyPods(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "healthy-pod",
 			Namespace: "default",
-			Labels:    map[string]string{argoWorkflowLabelKey: "my-workflow"},
+			Labels:    map[string]string{ArgoWorkflowLabelKey: "my-workflow"},
 		},
 		Status: corev1.PodStatus{
 			ContainerStatuses: []corev1.ContainerStatus{
@@ -218,7 +218,7 @@ func TestCheckAndTerminate_ImagePullFailureWithinGracePeriod(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "failing-pod",
 			Namespace:         "default",
-			Labels:            map[string]string{argoWorkflowLabelKey: "my-workflow"},
+			Labels:            map[string]string{ArgoWorkflowLabelKey: "my-workflow"},
 			CreationTimestamp: metav1.Now(), // just created
 		},
 		Status: corev1.PodStatus{
@@ -245,7 +245,7 @@ func TestCheckAndTerminate_ImagePullFailureExceedsGracePeriod(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "failing-pod",
 			Namespace:         "default",
-			Labels:            map[string]string{argoWorkflowLabelKey: "my-workflow"},
+			Labels:            map[string]string{ArgoWorkflowLabelKey: "my-workflow"},
 			CreationTimestamp: metav1.NewTime(time.Now().Add(-10 * time.Minute)), // created 10 min ago
 		},
 		Status: corev1.PodStatus{
@@ -275,7 +275,7 @@ func TestCheckAndTerminate_MixedPods(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "healthy-pod",
 			Namespace:         "default",
-			Labels:            map[string]string{argoWorkflowLabelKey: "my-workflow"},
+			Labels:            map[string]string{ArgoWorkflowLabelKey: "my-workflow"},
 			CreationTimestamp: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
 		},
 		Status: corev1.PodStatus{
@@ -293,7 +293,7 @@ func TestCheckAndTerminate_MixedPods(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "new-failing-pod",
 			Namespace:         "default",
-			Labels:            map[string]string{argoWorkflowLabelKey: "my-workflow"},
+			Labels:            map[string]string{ArgoWorkflowLabelKey: "my-workflow"},
 			CreationTimestamp: metav1.Now(),
 		},
 		Status: corev1.PodStatus{
@@ -321,7 +321,7 @@ func TestCheckAndTerminate_OnlyListsPodsForWorkflow(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "other-pod",
 			Namespace:         "default",
-			Labels:            map[string]string{argoWorkflowLabelKey: "other-workflow"},
+			Labels:            map[string]string{ArgoWorkflowLabelKey: "other-workflow"},
 			CreationTimestamp: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
 		},
 		Status: corev1.PodStatus{
@@ -348,7 +348,7 @@ func TestCheckAndTerminate_SuccessfulTermination(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "failing-pod",
 			Namespace:         "default",
-			Labels:            map[string]string{argoWorkflowLabelKey: "my-workflow"},
+			Labels:            map[string]string{ArgoWorkflowLabelKey: "my-workflow"},
 			CreationTimestamp: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
 		},
 		Status: corev1.PodStatus{
