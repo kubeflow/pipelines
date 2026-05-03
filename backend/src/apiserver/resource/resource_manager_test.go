@@ -2583,6 +2583,39 @@ func TestRetryRun(t *testing.T) {
 	assert.Equal(t, actualRunDetail.RunDetails.State, model.RuntimeStateRunning)
 }
 
+func TestRetryRun_PreservesRunFields(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	originalRun, err := manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, string(v1alpha1.WorkflowFailed), string(originalRun.Conditions))
+
+	err = manager.RetryRun(context.Background(), runDetail.UUID)
+	assert.Nil(t, err)
+
+	retriedRun, err := manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+
+	// Core identifying fields must be preserved after retry
+	assert.Equal(t, originalRun.UUID, retriedRun.UUID)
+	assert.Equal(t, originalRun.DisplayName, retriedRun.DisplayName)
+	assert.Equal(t, originalRun.ExperimentId, retriedRun.ExperimentId)
+	// FinishedAtInSec must be reset to 0 on retry
+	assert.Equal(t, int64(0), retriedRun.FinishedAtInSec)
+	// State must be updated to Running
+	assert.Equal(t, model.RuntimeStateRunning, retriedRun.State)
+
+	// StateHistory must preserve pre-retry entries and append a new RUNNING entry.
+	// With the old sparse-struct UpdateRun call, StateHistory would be overwritten
+	// to a single entry; passing the full run object preserves history.
+	originalHistoryLen := len(originalRun.StateHistory)
+	assert.Greater(t, originalHistoryLen, 0)
+	assert.Greater(t, len(retriedRun.StateHistory), originalHistoryLen)
+	lastEntry := retriedRun.StateHistory[len(retriedRun.StateHistory)-1]
+	assert.Equal(t, model.RuntimeStateRunning, lastEntry.State)
+}
+
 func TestRetryRun_RunNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
