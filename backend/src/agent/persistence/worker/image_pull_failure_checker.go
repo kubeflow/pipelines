@@ -32,8 +32,8 @@ import (
 )
 
 const (
-	// argoWorkflowLabelKey is the label Argo sets on pods to identify the parent workflow.
-	argoWorkflowLabelKey = "workflows.argoproj.io/workflow"
+	// ArgoWorkflowLabelKey is the label Argo sets on pods to identify the parent workflow.
+	ArgoWorkflowLabelKey = "workflows.argoproj.io/workflow"
 )
 
 // ImagePullFailureCheckerInterface checks workflow pods for image pull failures
@@ -71,7 +71,7 @@ func NewImagePullFailureChecker(
 // if any pod has been stuck in ImagePullBackOff or ErrImagePull longer than the
 // grace period (measured from pod creation time).
 func (c *ImagePullFailureChecker) CheckAndTerminate(namespace string, workflowName string) error {
-	selector, err := labels.Parse(fmt.Sprintf("%s=%s", argoWorkflowLabelKey, workflowName))
+	selector, err := labels.Parse(fmt.Sprintf("%s=%s", ArgoWorkflowLabelKey, workflowName))
 	if err != nil {
 		return fmt.Errorf("failed to parse label selector for workflow %s/%s: %w", namespace, workflowName, err)
 	}
