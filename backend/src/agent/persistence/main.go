@@ -26,6 +26,7 @@ import (
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	swfinformers "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions"
 	log "github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -65,7 +66,7 @@ const (
 	timeoutFlagName                          = "timeout"
 	mlPipelineAPIServerBasePathFlagName      = "mlPipelineAPIServerBasePath"
 	mlPipelineAPIServerNameFlagName          = "mlPipelineAPIServerName"
-	mlPipelineAPIServerHTTPPortFlagName      = "mlPipelineServiceHTTPPort"
+	mlPipelineAPIServerHTTPPortFlagName      = "mlPipelineServiceHttpPort"
 	mlPipelineAPIServerGRPCPortFlagName      = "mlPipelineServiceGRPCPort"
 	mlPipelineAPIServerTLSEnabledFlagName    = "mlPipelineServiceTLSEnabled"
 	namespaceFlagName                        = "namespace"
@@ -167,13 +168,16 @@ func main() {
 
 		// Create a shared informer for pods so that image pull failure checks
 		// read from a local cache instead of making API calls on every check.
-		var podInformerFactory informers.SharedInformerFactory
-		if namespace == "" {
-			podInformerFactory = informers.NewSharedInformerFactory(kubeClient, time.Second*30)
-		} else {
-			podInformerFactory = informers.NewFilteredSharedInformerFactory(
-				kubeClient, time.Second*30, namespace, nil)
+		// Filter to only Argo workflow pods to avoid caching every pod in the
+		// cluster (or namespace) for this opt-in feature.
+		argoPodLabelSelector := func(opts *metav1.ListOptions) {
+			opts.LabelSelector = worker.ArgoWorkflowLabelKey
 		}
+		podInformerFactory := informers.NewSharedInformerFactoryWithOptions(
+			kubeClient, time.Second*30,
+			informers.WithNamespace(namespace),
+			informers.WithTweakListOptions(argoPodLabelSelector),
+		)
 		podLister := podInformerFactory.Core().V1().Pods().Lister()
 		go podInformerFactory.Start(stopCh)
 		if !cache.WaitForCacheSync(stopCh, podInformerFactory.Core().V1().Pods().Informer().HasSynced) {
