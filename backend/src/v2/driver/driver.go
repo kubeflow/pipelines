@@ -98,6 +98,11 @@ type Options struct {
 	DefaultRunAsGroup *int64
 	// Admin-configured default runAsNonRoot for user containers. Nil means not set.
 	DefaultRunAsNonRoot *bool
+	// Administrator-configured default hostUsers for user workload pods. Nil means not set.
+	// When set to false the pod runs in a dedicated Linux user namespace:
+	// UID 0 inside the pod maps to an unprivileged host UID, so root processes
+	// in the container are not root on the host.
+	DefaultHostUsers *bool
 }
 
 // TaskConfig needs to stay aligned with the TaskConfig in the SDK.

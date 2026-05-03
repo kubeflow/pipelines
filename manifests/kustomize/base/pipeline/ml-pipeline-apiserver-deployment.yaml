@@ -239,6 +239,12 @@ spec:
                   name: pipeline-install-config
                   key: defaultSecurityContextRunAsNonRoot
                   optional: true
+            - name: DEFAULT_SECURITY_CONTEXT_HOST_USERS
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: defaultSecurityContextHostUsers
+                  optional: true
             - name: BLOCK_V1_PIPELINES
               valueFrom:
                 configMapKeyRef:
