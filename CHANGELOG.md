@@ -1,5 +1,17 @@
 Changelog
 
+## 2.16.1 (2026-05-03)
+
+### Bug Fixes
+
+- **docs** update doc generation deps ([#12908](https://github.com/kubeflow/pipelines/pull/12908))
+- **docs** update readthedocs python version ([#12909](https://github.com/kubeflow/pipelines/pull/12909))
+- **backend** ensure log artifact index handling ([#13334](https://github.com/kubeflow/pipelines/pull/13334)) ([#13340](https://github.com/kubeflow/pipelines/pull/13340))
+### Other
+
+- **release** bumped version to 2.16.0 ([#12887](https://github.com/kubeflow/pipelines/pull/12887))
+- **sdk** bump sdk versions to 2.16.0 ([#12888](https://github.com/kubeflow/pipelines/pull/12888))
+
 ## 2.16.0 (2026-02-24)
 
 ### Bug Fixes
