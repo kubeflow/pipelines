@@ -202,7 +202,12 @@ export class LineageCardRow extends React.Component<LineageCardRowProps> {
     );
 
     return (
-      <div className={cardRowClasses} ref={this.rowContainerRef} onClick={this.handleClick}>
+      <div
+        className={cardRowClasses}
+        ref={this.rowContainerRef}
+        onClick={this.handleClick}
+        data-testid='card-row'
+      >
         {this.checkRadio()}
         <footer>
           <Link

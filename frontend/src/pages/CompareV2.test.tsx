@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { useEffect, useState } from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import TestUtils, { expectErrors, testBestPractices } from 'src/TestUtils';
@@ -198,10 +198,7 @@ describe('CompareV2', () => {
   }
 
   function getRunRow(id: string): HTMLElement {
-    const runListContainer = getRunListContainer();
-    const runRows = Array.from(
-      runListContainer.querySelectorAll('[data-testid="table-row"]'),
-    ) as HTMLElement[];
+    const runRows = within(getRunListContainer()).getAllByTestId('table-row');
     const runRow = runRows.find((row) => row.textContent?.includes(`test run ${id}`));
     if (!runRow) {
       throw new Error(`Run row not found for ${id}`);
@@ -212,10 +209,8 @@ describe('CompareV2', () => {
   async function waitForRunCheckboxes(expectedCount: number): Promise<HTMLElement[]> {
     let runCheckboxes: HTMLElement[] = [];
     await waitFor(() => {
-      const runListContainer = getRunListContainer();
-      runCheckboxes = Array.from(
-        runListContainer.querySelectorAll('[data-testid="table-row"][aria-checked="true"]'),
-      );
+      const allRows = within(getRunListContainer()).getAllByTestId('table-row');
+      runCheckboxes = allRows.filter((row) => row.getAttribute('aria-checked') === 'true');
       expect(runCheckboxes).toHaveLength(expectedCount);
     });
     return runCheckboxes;
