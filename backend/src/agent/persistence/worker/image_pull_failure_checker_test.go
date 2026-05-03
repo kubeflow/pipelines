@@ -65,7 +65,7 @@ func (f *fakeExecutionClient) Compare(old, new interface{}) bool {
 // informer cache is synced.
 func newTestPodLister(pods ...*corev1.Pod) corelisters.PodLister {
 	ctx := context.Background()
-	kubeClient := fake.NewSimpleClientset()
+	kubeClient := fake.NewClientset()
 	for _, pod := range pods {
 		kubeClient.CoreV1().Pods(pod.Namespace).Create(ctx, pod, metav1.CreateOptions{})
 	}
