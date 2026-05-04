@@ -1,0 +1,224 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: ml-pipeline
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ml-pipeline
+  template:
+    metadata:
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+      labels:
+        app: ml-pipeline
+    spec:
+      serviceAccountName: ml-pipeline
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ml-pipeline-api-server
+          image: ghcr.io/kubeflow/kfp-api-server:2.16.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8888
+              name: http
+            - containerPort: 8887
+              name: grpc
+
+          env:
+            - name: PUBLISH_LOGS
+              value: "true"
+            - name: LOG_LEVEL
+              value: info
+            - name: PIPELINE_LOG_LEVEL
+              value: "1"
+
+            - name: AUTO_UPDATE_PIPELINE_DEFAULT_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  key: autoUpdatePipelineDefaultVersion
+                  name: pipeline-install-config
+
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+
+            - name: CLUSTER_DOMAIN
+              value: cluster.local
+
+            - name: OBJECTSTORECONFIG_SECURE
+              value: "false"
+
+            - name: OBJECTSTORECONFIG_BUCKETNAME
+              valueFrom:
+                configMapKeyRef:
+                  key: bucketName
+                  name: pipeline-install-config
+
+            - name: OBJECTSTORECONFIG_HOST
+              value: seaweedfs.kubeflow
+
+            - name: OBJECTSTORECONFIG_PORT
+              value: "9000"
+
+            - name: DBCONFIG_USER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: mysql-secret
+
+            - name: DBCONFIG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: mysql-secret
+
+            - name: DBCONFIG_DBNAME
+              valueFrom:
+                configMapKeyRef:
+                  key: pipelineDb
+                  name: pipeline-install-config
+
+            - name: DBCONFIG_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: dbHost
+                  name: pipeline-install-config
+
+            - name: DBCONFIG_PORT
+              valueFrom:
+                configMapKeyRef:
+                  key: dbPort
+                  name: pipeline-install-config
+
+            - name: DBCONFIG_CONMAXLIFETIME
+              valueFrom:
+                configMapKeyRef:
+                  key: ConMaxLifeTime
+                  name: pipeline-install-config
+
+            - name: DB_DRIVER_NAME
+              valueFrom:
+                configMapKeyRef:
+                  key: dbType
+                  name: pipeline-install-config
+
+            - name: DBCONFIG_MYSQLCONFIG_USER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: mysql-secret
+
+            - name: DBCONFIG_MYSQLCONFIG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: mysql-secret
+
+            - name: DBCONFIG_MYSQLCONFIG_DBNAME
+              valueFrom:
+                configMapKeyRef:
+                  key: pipelineDb
+                  name: pipeline-install-config
+
+            - name: DBCONFIG_MYSQLCONFIG_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: mysqlHost
+                  name: pipeline-install-config
+
+            - name: DBCONFIG_MYSQLCONFIG_PORT
+              valueFrom:
+                configMapKeyRef:
+                  key: mysqlPort
+                  name: pipeline-install-config
+
+            - name: OBJECTSTORECONFIG_ACCESSKEY
+              valueFrom:
+                secretKeyRef:
+                  key: accesskey
+                  name: mlpipeline-minio-artifact
+
+            - name: OBJECTSTORECONFIG_SECRETACCESSKEY
+              valueFrom:
+                secretKeyRef:
+                  key: secretkey
+                  name: mlpipeline-minio-artifact
+
+            - name: V2_DRIVER_IMAGE
+              value: ghcr.io/kubeflow/kfp-driver:2.16.0
+
+            - name: V2_LAUNCHER_IMAGE
+              value: ghcr.io/kubeflow/kfp-launcher:2.16.0
+
+            - name: COMPILED_PIPELINE_SPEC_PATCH
+              value: '{}'
+
+            - name: DEFAULT_SECURITY_CONTEXT_RUN_AS_USER
+              valueFrom:
+                configMapKeyRef:
+                  key: defaultSecurityContextRunAsUser
+                  name: pipeline-install-config
+                  optional: true
+
+            - name: DEFAULT_SECURITY_CONTEXT_RUN_AS_GROUP
+              valueFrom:
+                configMapKeyRef:
+                  key: defaultSecurityContextRunAsGroup
+                  name: pipeline-install-config
+                  optional: true
+
+            - name: DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT
+              valueFrom:
+                configMapKeyRef:
+                  key: defaultSecurityContextRunAsNonRoot
+                  name: pipeline-install-config
+                  optional: true
+
+          resources:
+            requests:
+              cpu: 250m
+              memory: 500Mi
+
+          livenessProbe:
+            httpGet:
+              path: /apis/v1beta1/healthz
+              port: 8888
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+
+          readinessProbe:
+            httpGet:
+              path: /apis/v1beta1/healthz
+              port: 8888
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+
+          startupProbe:
+            httpGet:
+              path: /apis/v1beta1/healthz
+              port: 8888
+            failureThreshold: 12
+            periodSeconds: 5
+            timeoutSeconds: 2
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsGroup: 0
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
