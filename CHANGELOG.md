@@ -17,10 +17,6 @@ Changelog
 
 **backend** Selectively block v1 pipeline runs by namespace #13068
 
-
-
-
-
 ## 2.16.0 (2026-02-24)
 
 ### Bug Fixes
