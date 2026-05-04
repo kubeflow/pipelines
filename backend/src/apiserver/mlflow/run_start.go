@@ -386,7 +386,7 @@ func syncNestedRuns(ctx context.Context, requestCtx *commonmlflow.RequestContext
 		action = "reopen nested run"
 	}
 	var syncErrors []string
-	filter := fmt.Sprintf("tags.mlflow.parentRunId = '%s'", parentRunID)
+	filter := fmt.Sprintf(`tags.%q = '%s'`, commonmlflow.TagNestedRunParentRunID, parentRunID)
 	pageToken := ""
 	for page := 0; page < maxSearchPages; page++ {
 		searchResp, err := requestCtx.Client.SearchRuns(ctx, []string{experimentID}, filter, 1000, pageToken)
@@ -407,7 +407,6 @@ func syncNestedRuns(ctx context.Context, requestCtx *commonmlflow.RequestContext
 			if nestedRunID == "" || nestedRunID == parentRunID || !shouldSyncNestedRun(mode, mlflowRun.Info.Status) {
 				continue
 			}
-			// Recurse into children before updating this run .
 			childErrors := syncNestedRuns(ctx, requestCtx, nestedRunID, experimentID, mode, targetStatus, endTimeMs, depth+1)
 			syncErrors = append(syncErrors, childErrors...)
 			if err := requestCtx.Client.UpdateRun(ctx, nestedRunID, targetStatus, endTimeMs); err != nil {
