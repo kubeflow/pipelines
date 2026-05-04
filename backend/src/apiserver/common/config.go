@@ -46,7 +46,17 @@ const (
 	DefaultSecurityContextRunAsNonRoot      string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT"
 	BlockV1Pipelines                        string = "BLOCK_V1_PIPELINES"
 	V1NamespaceWhitelist                    string = "V1_ALLOWED_NAMESPACES"
+	WorkflowGCGracePeriodSeconds            string = "WORKFLOW_GC_GRACE_PERIOD_SECONDS"
 )
+
+// GetWorkflowGCGracePeriodSeconds returns the grace period in seconds before
+// a workflow without a corresponding DB entry is eligible for garbage collection.
+// This prevents race conditions where the persistence agent reports a workflow
+// before the API server has finished writing the run record to the database.
+// See https://github.com/kubeflow/pipelines/issues/13342.
+func GetWorkflowGCGracePeriodSeconds() int {
+	return GetIntConfigWithDefault(WorkflowGCGracePeriodSeconds, 120)
+}
 
 func IsPipelineVersionUpdatedByDefault() bool {
 	return GetBoolConfigWithDefault(UpdatePipelineVersionByDefault, true)

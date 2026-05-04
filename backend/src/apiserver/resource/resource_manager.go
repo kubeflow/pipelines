@@ -1482,7 +1482,28 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 				return nil, util.Wrap(updateError, "Failed to update the run")
 			}
 			// Handle run not found in run store error.
-			// To avoid letting the workflow leak for ever, we need to GC it when its record does not exist in KFP DB.
+			// Before GC, apply a grace period to avoid deleting workflows whose
+			// DB writes are still in-flight.
+			// See https://github.com/kubeflow/pipelines/issues/13342.
+			gracePeriodSeconds := common.GetWorkflowGCGracePeriodSeconds()
+			gracePeriod := time.Duration(gracePeriodSeconds) * time.Second
+			workflowAge := r.time.Now().Sub(objMeta.CreationTimestamp.Time)
+			if workflowAge < gracePeriod {
+				glog.Warningf(
+					"Workflow name=%q namespace=%q runId=%q not found in run store, "+
+						"but workflow is only %v old (grace period: %v). "+
+						"Skipping GC to allow in-flight DB write to complete. "+
+						"See https://github.com/kubeflow/pipelines/issues/13342",
+					execSpec.ExecutionName(), execSpec.ExecutionNamespace(), runId,
+					workflowAge.Round(time.Second), gracePeriod)
+				return nil, util.NewUnavailableServerError(
+					fmt.Errorf("workflow %s is within GC grace period (%v old, threshold %v)",
+						execSpec.ExecutionName(), workflowAge.Round(time.Second), gracePeriod),
+					"Skipping GC for workflow %s - will retry",
+					execSpec.ExecutionName())
+			}
+			// Workflow is beyond the grace period. To avoid letting the workflow
+			// leak forever, GC it since its record does not exist in KFP DB.
 			glog.Errorf("Cannot find reported workflow name=%q namespace=%q runId=%q in run store. "+
 				"Deleting the workflow to avoid resource leaking. "+
 				"This can be caused by installing two KFP instances that try to manage the same workflows "+
