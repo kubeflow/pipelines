@@ -21,7 +21,7 @@ CHECKED=0
 while IFS= read -r dockerfile; do
     relative="${dockerfile#"$REPO_ROOT"/}"
     while IFS= read -r line; do
-        docker_version=$(echo "$line" | sed -E 's/.*FROM golang:([0-9]+\.[0-9]+(\.[0-9]+)?).*/\1/')
+        docker_version=$(echo "$line" | sed -E 's/.*FROM[[:space:]]+(--[^[:space:]]+[[:space:]]+)*golang:([0-9]+\.[0-9]+(\.[0-9]+)?).*/\2/')
 
         if [[ ! "$docker_version" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
             echo "WARNING: Could not parse Go version from line in $relative: $line" >&2
