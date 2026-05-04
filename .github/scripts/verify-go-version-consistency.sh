@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Verifies that all Dockerfiles using a golang base image
-# specify a Go major.minor version consistent with the root go.mod.
+# specify a Go version consistent with the root go.mod.
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
-GOMOD_VERSION=$(grep -E '^go [0-9]' "$REPO_ROOT/go.mod" | awk '{print $2}' | sed -E 's/^([0-9]+\.[0-9]+).*/\1/')
+GOMOD_VERSION=$(grep -E '^go [0-9]' "$REPO_ROOT/go.mod" | awk '{print $2}' || true)
 
 if [[ -z "$GOMOD_VERSION" ]]; then
     echo "ERROR: Could not extract Go version from go.mod" >&2
@@ -21,9 +21,9 @@ CHECKED=0
 while IFS= read -r dockerfile; do
     relative="${dockerfile#"$REPO_ROOT"/}"
     while IFS= read -r line; do
-        docker_version=$(echo "$line" | sed -E 's/.*FROM golang:([0-9]+\.[0-9]+).*/\1/')
+        docker_version=$(echo "$line" | sed -E 's/.*FROM golang:([0-9]+\.[0-9]+(\.[0-9]+)?).*/\1/')
 
-        if [[ ! "$docker_version" =~ ^[0-9]+\.[0-9]+$ ]]; then
+        if [[ ! "$docker_version" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
             echo "WARNING: Could not parse Go version from line in $relative: $line" >&2
             continue
         fi
