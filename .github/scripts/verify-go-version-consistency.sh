@@ -36,8 +36,8 @@ while IFS= read -r dockerfile; do
         else
             echo "  OK: $relative (Go $docker_version)"
         fi
-    done < <(grep -i '^FROM golang:' "$dockerfile")
-done < <(cd "$REPO_ROOT" && git ls-files '*Dockerfile*' | xargs grep -il 'FROM golang:' | sed "s|^|$REPO_ROOT/|")
+    done < <(grep -iE '^FROM[[:space:]]+(--[^[:space:]]+[[:space:]]+)*golang:' "$dockerfile")
+done < <(cd "$REPO_ROOT" && git ls-files '*Dockerfile*' | xargs grep -ilE 'FROM[[:space:]]+(--[^[:space:]]+[[:space:]]+)*golang:' | sed "s|^|$REPO_ROOT/|")
 
 echo ""
 

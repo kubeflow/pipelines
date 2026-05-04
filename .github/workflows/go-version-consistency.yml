@@ -3,7 +3,7 @@ name: Go Version Consistency
 on:
   pull_request:
     paths:
-      - 'go.mod'
+      - '**/go.mod'
       - '**/Dockerfile*'
       - '.github/scripts/verify-go-version-consistency.sh'
       - '.github/workflows/go-version-consistency.yml'
