@@ -819,14 +819,24 @@ func (w *Workflow) PatchTemplateOutputArtifacts() {
 func (w *Workflow) NodeStatuses() map[string]NodeStatus {
 	rev := make(map[string]NodeStatus, len(w.Status.Nodes))
 	for id, node := range w.Status.Nodes {
+		childPodNames := make([]string, 0, len(node.Children))
+		for _, childID := range node.Children {
+			if childNode, ok := w.Status.Nodes[childID]; ok {
+				childPodNames = append(childPodNames, RetrievePodName(*w.Workflow, childNode))
+			} else {
+				// Fallback: preserve the original child ID when node status is partial or offloaded.
+				childPodNames = append(childPodNames, childID)
+			}
+		}
 		rev[id] = NodeStatus{
 			ID:          RetrievePodName(*w.Workflow, node),
 			DisplayName: node.DisplayName,
 			State:       string(node.Phase),
+			Message:     node.Message,
 			StartTime:   node.StartedAt.Unix(),
 			CreateTime:  node.StartedAt.Unix(),
 			FinishTime:  node.FinishedAt.Unix(),
-			Children:    node.Children,
+			Children:    childPodNames,
 		}
 	}
 	return rev

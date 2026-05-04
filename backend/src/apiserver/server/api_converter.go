@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -31,6 +32,8 @@ import (
 	swapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron"
+	rpcstatus "google.golang.org/genproto/googleapis/rpc/status"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -1625,6 +1628,36 @@ func toApiRunDetailV1(r *model.Run) *apiv1beta1.RunDetail {
 	return apiRunDetails
 }
 
+var podLifecycleFailurePatterns = []string{
+	"ImagePullBackOff",
+	"ErrImagePull",
+	"ErrImageNeverPull",
+	"CrashLoopBackOff",
+	"OOMKilled",
+	"DeadlineExceeded",
+	"exceeded its deadline",
+	"ContainerCannotRun",
+	"InvalidImageName",
+	"CreateContainerConfigError",
+	"CreateContainerError",
+	"RunContainerError",
+	"PreStartHookError",
+	"PostStartHookError",
+	"ContainerStatusUnknown",
+}
+
+func isPodLifecycleFailure(message string) bool {
+	if message == "" {
+		return false
+	}
+	for _, pattern := range podLifecycleFailurePatterns {
+		if strings.Contains(message, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
 // Converts API task to its internal representation.
 // Supports both v1beta1 and v2beta1 API.
 func toModelTask(t interface{}) (*model.Task, error) {
@@ -1633,6 +1666,7 @@ func toModelTask(t interface{}) (*model.Task, error) {
 	}
 	var taskId, nodeId, namespace, pipelineName, runId, mlmdExecId, fingerprint string
 	var name, parentTaskId, state, inputs, outputs string
+	var lifecycleFailureReason, lifecycleFailureMessage string
 	var createTime, startTime, finishTime int64
 	var stateHistory []*model.RuntimeStatus
 	var children []string
@@ -1693,27 +1727,33 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		createTime = wfStatus.CreateTime
 		finishTime = wfStatus.FinishTime
 		children = wfStatus.Children
+		if isPodLifecycleFailure(wfStatus.Message) {
+			lifecycleFailureReason = "PodLifecycleFailure"
+			lifecycleFailureMessage = wfStatus.Message
+		}
 	default:
 		return nil, util.NewUnknownApiVersionError("Task", t)
 	}
 	return &model.Task{
-		UUID:              taskId,
-		PodName:           nodeId,
-		Namespace:         namespace,
-		PipelineName:      pipelineName,
-		RunID:             runId,
-		MLMDExecutionID:   mlmdExecId,
-		CreatedTimestamp:  createTime,
-		StartedTimestamp:  startTime,
-		FinishedTimestamp: finishTime,
-		Fingerprint:       fingerprint,
-		Name:              name,
-		ParentTaskId:      parentTaskId,
-		State:             model.RuntimeState(state).ToV2(),
-		StateHistory:      stateHistory,
-		MLMDInputs:        model.LargeText(inputs),
-		MLMDOutputs:       model.LargeText(outputs),
-		ChildrenPods:      children,
+		UUID:                    taskId,
+		PodName:                 nodeId,
+		Namespace:               namespace,
+		PipelineName:            pipelineName,
+		RunID:                   runId,
+		MLMDExecutionID:         mlmdExecId,
+		CreatedTimestamp:        createTime,
+		StartedTimestamp:        startTime,
+		FinishedTimestamp:       finishTime,
+		Fingerprint:             fingerprint,
+		Name:                    name,
+		ParentTaskId:            parentTaskId,
+		State:                   model.RuntimeState(state).ToV2(),
+		StateHistory:            stateHistory,
+		MLMDInputs:              model.LargeText(inputs),
+		MLMDOutputs:             model.LargeText(outputs),
+		ChildrenPods:            children,
+		LifecycleFailureReason:  lifecycleFailureReason,
+		LifecycleFailureMessage: lifecycleFailureMessage,
 	}, nil
 }
 
@@ -1747,7 +1787,10 @@ func toModelTasks(t interface{}) ([]*model.Task, error) {
 			nodeNames = append(nodeNames, nodeName)
 		}
 		sort.Strings(nodeNames)
+
 		modelTasks := make([]*model.Task, 0)
+		taskByPodName := make(map[string]*model.Task)
+
 		for _, nodeName := range nodeNames {
 			node := nodes[nodeName]
 			modelTask, err := toModelTask(node)
@@ -1757,8 +1800,31 @@ func toModelTasks(t interface{}) ([]*model.Task, error) {
 			modelTask.RunID = runId
 			modelTask.Namespace = namespace
 			modelTask.CreatedTimestamp = createdAt
+
+			taskByPodName[modelTask.PodName] = modelTask
 			modelTasks = append(modelTasks, modelTask)
 		}
+
+		// Record which tasks have a direct (non-inherited) lifecycle failure.
+		directFailures := make(map[string]bool, len(modelTasks))
+		for _, task := range modelTasks {
+			if task.LifecycleFailureMessage != "" {
+				directFailures[task.PodName] = true
+			}
+		}
+		// Bubble up only from directly-failing children, preventing cascade
+		// through the entire DAG chain.
+		for _, parent := range modelTasks {
+			for _, childPod := range parent.ChildrenPods {
+				if child, ok := taskByPodName[childPod]; ok {
+					if directFailures[child.PodName] && parent.LifecycleFailureMessage == "" {
+						parent.LifecycleFailureReason = child.LifecycleFailureReason
+						parent.LifecycleFailureMessage = child.LifecycleFailureMessage
+					}
+				}
+			}
+		}
+
 		return modelTasks, nil
 	default:
 		return nil, util.NewUnknownApiVersionError("[]Task", t)
@@ -1816,7 +1882,8 @@ func toApiPipelineTaskDetail(t *model.Task) *apiv2beta1.PipelineTaskDetail {
 			ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: c},
 		})
 	}
-	return &apiv2beta1.PipelineTaskDetail{
+
+	detail := &apiv2beta1.PipelineTaskDetail{
 		RunId:        t.RunID,
 		TaskId:       t.UUID,
 		DisplayName:  t.Name,
@@ -1831,6 +1898,13 @@ func toApiPipelineTaskDetail(t *model.Task) *apiv2beta1.PipelineTaskDetail {
 		StateHistory: toApiRuntimeStatuses(t.StateHistory),
 		ChildTasks:   children,
 	}
+	if t.LifecycleFailureMessage != "" {
+		detail.Error = &rpcstatus.Status{
+			Code:    int32(codes.Internal),
+			Message: fmt.Sprintf("[%s] %s", t.LifecycleFailureReason, t.LifecycleFailureMessage),
+		}
+	}
+	return detail
 }
 
 // Converts and array of internal task representations to its API counterpart.
