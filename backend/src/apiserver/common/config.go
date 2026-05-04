@@ -57,6 +57,7 @@ const (
 	PluginMaxPayloadBytes                   string = "PLUGIN_MAX_PAYLOAD_BYTES"
 	PluginMaxTotalPayloadBytes              string = "PLUGIN_MAX_TOTAL_PAYLOAD_BYTES"
 	PluginMaxNestingDepth                   string = "PLUGIN_MAX_NESTING_DEPTH"
+	WorkflowGCGracePeriodSeconds            string = "WORKFLOW_GC_GRACE_PERIOD_SECONDS"
 )
 
 type PluginLimitsConfig struct {
@@ -64,6 +65,15 @@ type PluginLimitsConfig struct {
 	MaxPayloadBytes      int
 	MaxTotalPayloadBytes int
 	MaxNestingDepth      int
+}
+
+// GetWorkflowGCGracePeriodSeconds returns the grace period in seconds before
+// a workflow without a corresponding DB entry is eligible for garbage collection.
+// This prevents race conditions where the persistence agent reports a workflow
+// before the API server has finished writing the run record to the database.
+// See https://github.com/kubeflow/pipelines/issues/13342.
+func GetWorkflowGCGracePeriodSeconds() int {
+	return GetIntConfigWithDefault(WorkflowGCGracePeriodSeconds, 120)
 }
 
 func IsPipelineVersionUpdatedByDefault() bool {
