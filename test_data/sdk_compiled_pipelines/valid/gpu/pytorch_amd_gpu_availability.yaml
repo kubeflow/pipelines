@@ -1,0 +1,141 @@
+# PIPELINE DEFINITION
+# Name: pytorch-amd-gpu-availability
+# Description: Verifies pipeline tasks run on GPU nodes only when tolerations are added
+components:
+  comp-verify-gpu-availability:
+    executorLabel: exec-verify-gpu-availability
+    inputDefinitions:
+      parameters:
+        gpu_toleration:
+          parameterType: BOOLEAN
+  comp-verify-gpu-availability-2:
+    executorLabel: exec-verify-gpu-availability-2
+    inputDefinitions:
+      parameters:
+        gpu_toleration:
+          parameterType: BOOLEAN
+deploymentSpec:
+  executors:
+    exec-verify-gpu-availability:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - verify_gpu_availability
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef verify_gpu_availability(gpu_toleration: bool):\n    import torch\
+          \  # noqa: PLC0415\n\n    cuda_available = torch.cuda.is_available()\n \
+          \   device_count = torch.cuda.device_count()\n    print(\"------------------------------\"\
+          )\n    print(\"GPU availability\")\n    print(\"------------------------------\"\
+          )\n    print(f\"cuda available: {cuda_available}\")\n    print(f\"device\
+          \ count: {device_count}\")\n    if gpu_toleration:\n        assert torch.cuda.is_available()\n\
+          \        assert torch.cuda.device_count() > 0\n        t = torch.tensor([5,\
+          \ 5, 5], dtype=torch.int64, device=\"cuda\")\n    else:\n        assert\
+          \ not torch.cuda.is_available()\n        assert torch.cuda.device_count()\
+          \ == 0\n        t = torch.tensor([5, 5, 5], dtype=torch.int64)\n    print(f\"\
+          tensor: {t}\")\n    print(\"GPU availability test: PASS\")\n\n"
+        image: quay.io/modh/odh-pipeline-runtime-pytorch-rocm-py311-ubi9@sha256:d9fb9efa196afd97d8ff9c0bf4c5bd09a9f01bd03d1166bebf974c8bf18958c4
+    exec-verify-gpu-availability-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - verify_gpu_availability
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef verify_gpu_availability(gpu_toleration: bool):\n    import torch\
+          \  # noqa: PLC0415\n\n    cuda_available = torch.cuda.is_available()\n \
+          \   device_count = torch.cuda.device_count()\n    print(\"------------------------------\"\
+          )\n    print(\"GPU availability\")\n    print(\"------------------------------\"\
+          )\n    print(f\"cuda available: {cuda_available}\")\n    print(f\"device\
+          \ count: {device_count}\")\n    if gpu_toleration:\n        assert torch.cuda.is_available()\n\
+          \        assert torch.cuda.device_count() > 0\n        t = torch.tensor([5,\
+          \ 5, 5], dtype=torch.int64, device=\"cuda\")\n    else:\n        assert\
+          \ not torch.cuda.is_available()\n        assert torch.cuda.device_count()\
+          \ == 0\n        t = torch.tensor([5, 5, 5], dtype=torch.int64)\n    print(f\"\
+          tensor: {t}\")\n    print(\"GPU availability test: PASS\")\n\n"
+        image: quay.io/modh/odh-pipeline-runtime-pytorch-rocm-py311-ubi9@sha256:d9fb9efa196afd97d8ff9c0bf4c5bd09a9f01bd03d1166bebf974c8bf18958c4
+        resources:
+          accelerator:
+            count: '1'
+            resourceCount: '1'
+            resourceType: amd.com/gpu
+            type: amd.com/gpu
+pipelineInfo:
+  description: Verifies pipeline tasks run on GPU nodes only when tolerations are
+    added
+  name: pytorch-amd-gpu-availability
+root:
+  dag:
+    tasks:
+      verify-gpu-availability:
+        cachingOptions: {}
+        componentRef:
+          name: comp-verify-gpu-availability
+        inputs:
+          parameters:
+            gpu_toleration:
+              runtimeValue:
+                constant: false
+        taskInfo:
+          name: verify-gpu-availability
+      verify-gpu-availability-2:
+        cachingOptions: {}
+        componentRef:
+          name: comp-verify-gpu-availability-2
+        inputs:
+          parameters:
+            gpu_toleration:
+              runtimeValue:
+                constant: true
+        taskInfo:
+          name: verify-gpu-availability-2
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-verify-gpu-availability-2:
+          tolerations:
+          - effect: NoSchedule
+            key: amd.com/gpu
+            operator: Exists

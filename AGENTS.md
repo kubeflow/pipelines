@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-04-25
+- Last updated: 2026-05-01
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -243,10 +243,13 @@ ginkgo -v --label-filter="Smoke" ./backend/test/v2/api
 ginkgo -v ./backend/test/end2end -- -namespace=kubeflow -isDebugMode=true
 ```
 
+Without `--label-filter`, `gpu`-labeled E2E tests run as well (they request accelerators) and may pend or fail on CPU-only clusters; pass `--label-filter` to limit what runs (for example `Smoke`, or `gpu` on GPU-capable clusters). NVIDIA vs AMD fixtures: set `KFP_E2E_GPU_VENDOR` to `nvidia` (default if unset), `amd`, or `both` so only matching IRs run (`pytorch_nvidia_gpu_availability.yaml` / `pytorch_amd_gpu_availability.yaml`).
+
 Test data is centralized under:
 
 - `test_data/pipeline_files/valid/` (inputs) with a `valid/critical/` subset for smoke lanes
 - `test_data/compiled-workflows/` (expected compiled Argo Workflows)
+- `test_data/sdk_compiled_pipelines/valid/gpu/` (GPU pipeline IR + `.py` sources vendored from [ods-ci PyTorch GPU samples](https://github.com/red-hat-data-services/ods-ci/tree/master/ods_ci/tests/Resources/Files/pipeline-samples/v2/cache-disabled/gpu/pytorch); checked-in `pytorch_*.yaml` matches upstream `*_compiled.yaml` names expected by this repo’s compiler goldens)
 
 ## Local execution
 
@@ -644,7 +647,7 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - Run backend unit tests: `go test -v $(go list ./backend/... | grep -v backend/test/)`
 - Run compiler tests: `ginkgo -v ./backend/test/compiler`
 - Run API tests: `ginkgo -v --label-filter="Smoke" ./backend/test/v2/api`
-- Run E2E tests: `ginkgo -v ./backend/test/end2end -- -namespace=kubeflow`
+- Run E2E tests: `ginkgo -v ./backend/test/end2end -- -namespace=kubeflow` (CPU-only: add `--label-filter`, e.g. `Smoke`, to avoid `gpu` tests)
 - Check formatting:
   `yapf --recursive --diff sdk/python/ && pycln --check sdk/python && isort --check --profile google sdk/python`
 - Frontend dev server: `cd frontend && npm start`

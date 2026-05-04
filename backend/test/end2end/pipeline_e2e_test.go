@@ -16,6 +16,7 @@ package end2end
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -235,7 +236,37 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			})
 		}
 	})
+
+	// gpu-labeled specs run even when the package has no --label-filter; see AGENTS.md (Local execution → E2E tests).
+	Context("GPU component test >", Label("gpu"), func() {
+		var pipelineDir = "valid/gpu"
+		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
+		for _, pipelineFile := range pipelineFiles {
+			if !gpuPipelineFixtureSelected(pipelineFile) {
+				continue
+			}
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
+				validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
+			})
+		}
+	})
 })
+
+// gpuPipelineFixtureSelected returns whether to run an E2E for this IR fixture.
+// Fixtures are vendored from ods-ci (NVIDIA vs AMD); only one vendor typically matches the cluster.
+// KFP_E2E_GPU_VENDOR: unset or "nvidia" → pytorch_nvidia_gpu_availability.yaml only;
+// "amd" → pytorch_amd_gpu_availability.yaml only; "both" → all yaml in valid/gpu.
+func gpuPipelineFixtureSelected(pipelineFile string) bool {
+	vendor := strings.ToLower(strings.TrimSpace(os.Getenv("KFP_E2E_GPU_VENDOR")))
+	switch vendor {
+	case "amd":
+		return strings.Contains(pipelineFile, "amd")
+	case "both", "all":
+		return true
+	default:
+		return strings.Contains(pipelineFile, "nvidia")
+	}
+}
 
 func validatePipelineRunSuccess(pipelineFile string, pipelineDir string, testContext *apitests.TestContext) {
 	testutil.CheckIfSkipping(pipelineFile)

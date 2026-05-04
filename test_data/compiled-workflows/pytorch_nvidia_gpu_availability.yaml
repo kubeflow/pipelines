@@ -1,0 +1,464 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: pytorch-nvidia-gpu-availability-
+spec:
+  arguments:
+    parameters:
+    - name: components-b99207864ea365706de69474d5b81360a07ae5147608481feab23a922e67c3a5
+      value: '{"executorLabel":"exec-verify-gpu-availability","inputDefinitions":{"parameters":{"gpu_toleration":{"parameterType":"BOOLEAN"}}}}'
+    - name: implementations-b99207864ea365706de69474d5b81360a07ae5147608481feab23a922e67c3a5
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","verify_gpu_availability"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        verify_gpu_availability(gpu_toleration: bool):\n    import torch  # noqa:
+        PLC0415\n\n    cuda_available = torch.cuda.is_available()\n    device_count
+        = torch.cuda.device_count()\n    print(\"------------------------------\")\n    print(\"GPU
+        availability\")\n    print(\"------------------------------\")\n    print(f\"cuda
+        available: {cuda_available}\")\n    print(f\"device count: {device_count}\")\n    if
+        gpu_toleration:\n        assert torch.cuda.is_available()\n        assert
+        torch.cuda.device_count() \u003e 0\n        t = torch.tensor([5, 5, 5], dtype=torch.int64,
+        device=\"cuda\")\n    else:\n        assert not torch.cuda.is_available()\n        assert
+        torch.cuda.device_count() == 0\n        t = torch.tensor([5, 5, 5], dtype=torch.int64)\n    print(f\"tensor:
+        {t}\")\n    print(\"GPU availability test: PASS\")\n\n"],"image":"quay.io/modh/odh-pipeline-runtime-pytorch-cuda-py311-ubi9@sha256:4706be608af3f33c88700ef6ef6a99e716fc95fc7d2e879502e81c0022fd840e"}'
+    - name: kubernetes-comp-verify-gpu-availability-2
+      value: '{"tolerations":[{"effect":"NoSchedule","key":"nvidia.com/gpu","operator":"Exists"}]}'
+    - name: components-f7cf7dc5d52074851c1e8b89d7731afd4398b29b02fd8bc71cd73322f0002bbe
+      value: '{"executorLabel":"exec-verify-gpu-availability-2","inputDefinitions":{"parameters":{"gpu_toleration":{"parameterType":"BOOLEAN"}}}}'
+    - name: implementations-f7cf7dc5d52074851c1e8b89d7731afd4398b29b02fd8bc71cd73322f0002bbe
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","verify_gpu_availability"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        verify_gpu_availability(gpu_toleration: bool):\n    import torch  # noqa:
+        PLC0415\n\n    cuda_available = torch.cuda.is_available()\n    device_count
+        = torch.cuda.device_count()\n    print(\"------------------------------\")\n    print(\"GPU
+        availability\")\n    print(\"------------------------------\")\n    print(f\"cuda
+        available: {cuda_available}\")\n    print(f\"device count: {device_count}\")\n    if
+        gpu_toleration:\n        assert torch.cuda.is_available()\n        assert
+        torch.cuda.device_count() \u003e 0\n        t = torch.tensor([5, 5, 5], dtype=torch.int64,
+        device=\"cuda\")\n    else:\n        assert not torch.cuda.is_available()\n        assert
+        torch.cuda.device_count() == 0\n        t = torch.tensor([5, 5, 5], dtype=torch.int64)\n    print(f\"tensor:
+        {t}\")\n    print(\"GPU availability test: PASS\")\n\n"],"image":"quay.io/modh/odh-pipeline-runtime-pytorch-cuda-py311-ubi9@sha256:4706be608af3f33c88700ef6ef6a99e716fc95fc7d2e879502e81c0022fd840e","resources":{"accelerator":{"count":"1","resourceCount":"1","resourceType":"nvidia.com/gpu","type":"nvidia.com/gpu"}}}'
+    - name: components-root
+      value: '{"dag":{"tasks":{"verify-gpu-availability":{"cachingOptions":{},"componentRef":{"name":"comp-verify-gpu-availability"},"inputs":{"parameters":{"gpu_toleration":{"runtimeValue":{"constant":false}}}},"taskInfo":{"name":"verify-gpu-availability"}},"verify-gpu-availability-2":{"cachingOptions":{},"componentRef":{"name":"comp-verify-gpu-availability-2"},"inputs":{"parameters":{"gpu_toleration":{"runtimeValue":{"constant":true}}}},"taskInfo":{"name":"verify-gpu-availability-2"}}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - pytorch-nvidia-gpu-availability
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      command:
+      - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: task-name
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 256Mi
+        requests:
+          cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+    metadata: {}
+    name: system-container-impl
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-b99207864ea365706de69474d5b81360a07ae5147608481feab23a922e67c3a5}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-verify-gpu-availability"},"inputs":{"parameters":{"gpu_toleration":{"runtimeValue":{"constant":false}}}},"taskInfo":{"name":"verify-gpu-availability"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-b99207864ea365706de69474d5b81360a07ae5147608481feab23a922e67c3a5}}'
+          - name: task-name
+            value: verify-gpu-availability
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: verify-gpu-availability-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.verify-gpu-availability-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.verify-gpu-availability-driver.outputs.parameters.cached-decision}}'
+        depends: verify-gpu-availability-driver.Succeeded
+        name: verify-gpu-availability
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-f7cf7dc5d52074851c1e8b89d7731afd4398b29b02fd8bc71cd73322f0002bbe}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-verify-gpu-availability-2"},"inputs":{"parameters":{"gpu_toleration":{"runtimeValue":{"constant":true}}}},"taskInfo":{"name":"verify-gpu-availability-2"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-f7cf7dc5d52074851c1e8b89d7731afd4398b29b02fd8bc71cd73322f0002bbe}}'
+          - name: task-name
+            value: verify-gpu-availability-2
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: kubernetes-config
+            value: '{{workflow.parameters.kubernetes-comp-verify-gpu-availability-2}}'
+        name: verify-gpu-availability-2-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.verify-gpu-availability-2-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.verify-gpu-availability-2-driver.outputs.parameters.cached-decision}}'
+        depends: verify-gpu-availability-2-driver.Succeeded
+        name: verify-gpu-availability-2
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - pytorch-nvidia-gpu-availability
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+    inputs:
+      parameters:
+      - name: component
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
+      - default: ""
+        name: task-name
+      - default: "0"
+        name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
+          - name: runtime-config
+            value: '{}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null
