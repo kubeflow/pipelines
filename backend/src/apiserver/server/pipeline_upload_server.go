@@ -185,6 +185,11 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 			s.writeErrorToResponse(w, http.StatusConflict, errors.New("Failed to create a pipeline and a pipeline version"))
 			return
 		}
+		if util.IsUserErrorCodeMatch(err, codes.InvalidArgument) {
+			glog.Errorf("Failed to create a pipeline and a pipeline version: %v", err)
+			s.writeErrorToResponse(w, http.StatusBadRequest, errors.New(err.(*util.UserError).ExternalMessage()))
+			return
+		}
 		glog.Errorf("Failed to create a pipeline and a pipeline version: %v", err)
 		s.writeErrorToResponse(w, http.StatusInternalServerError, errors.New("Failed to create a pipeline and a pipeline version"))
 		return
@@ -333,6 +338,11 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 		if util.IsUserErrorCodeMatch(err, codes.AlreadyExists) {
 			glog.Errorf("Failed to create a pipeline version. The pipeline already exists: %v", err)
 			s.writeErrorToResponse(w, http.StatusConflict, errors.New("Failed to create a pipeline version"))
+			return
+		}
+		if util.IsUserErrorCodeMatch(err, codes.InvalidArgument) {
+			glog.Errorf("Failed to create a pipeline version: %v", err)
+			s.writeErrorToResponse(w, http.StatusBadRequest, errors.New(err.(*util.UserError).ExternalMessage()))
 			return
 		}
 		glog.Errorf("Failed to create a pipeline version: %v", err)
