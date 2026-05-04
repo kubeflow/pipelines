@@ -113,7 +113,7 @@ func (h *Handler) OnBeforeRunCreation(ctx context.Context, run *apiserverPlugins
 		commonmlflow.EnvMLflowConfig: string(mlflowConfigJSON),
 	}
 
-	runURL := BuildRunURL(mlflowRequestCtx, mlflowExperiment.ID, parentRunID)
+	runURL := BuildRunURL(mlflowRequestCtx, mlflowExperiment.ID, parentRunID, settings.KFPBaseURL)
 	return SuccessfulPluginOutput(mlflowExperiment.ID, mlflowExperiment.Name, parentRunID, runURL, endpoint), nil
 }
 

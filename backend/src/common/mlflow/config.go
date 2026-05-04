@@ -33,6 +33,9 @@ const (
 // Workflow templates by the API server.
 const EnvMLflowConfig = "KFP_MLFLOW_CONFIG"
 
+// MLflow tag on nested runs (parent linkage).
+const TagNestedRunParentRunID = "mlflow.parentRunId"
+
 // MLflowRuntimeConfig is the JSON payload marshalled into KFP_MLFLOW_CONFIG.
 type MLflowRuntimeConfig struct {
 	Endpoint           string `json:"endpoint"`

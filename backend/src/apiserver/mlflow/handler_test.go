@@ -347,6 +347,7 @@ func TestBuildKFPRunURL(t *testing.T) {
 	tests := []struct {
 		name       string
 		runID      string
+		namespace  string
 		kfpBaseURL string
 		wantURL    string
 	}{
@@ -358,27 +359,94 @@ func TestBuildKFPRunURL(t *testing.T) {
 		{
 			name:    "no base URL returns relative path",
 			runID:   "abc",
-			wantURL: "/#/runs/details/abc",
+			wantURL: "",
 		},
 		{
-			name:       "with base URL returns absolute URL",
+			name:       "non-template base URL returns empty",
 			runID:      "abc",
+			namespace:  "team-a",
 			kfpBaseURL: "https://kfp.example.com",
-			wantURL:    "https://kfp.example.com/#/runs/details/abc",
+			wantURL:    "https://kfp.example.com/develop-train/pipelines/runs/team-a/runs/abc",
 		},
 		{
-			name:       "trailing slash on base URL is trimmed",
+			name:       "non-template base URL with empty namespace returns empty",
 			runID:      "abc",
-			kfpBaseURL: "https://kfp.example.com/",
-			wantURL:    "https://kfp.example.com/#/runs/details/abc",
+			namespace:  "",
+			kfpBaseURL: "https://kfp.example.com",
+			wantURL:    "",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := BuildKFPRunURL(tt.runID, tt.kfpBaseURL)
+			got := BuildKFPRunURL(tt.runID, tt.namespace, tt.kfpBaseURL)
 			assert.Equal(t, tt.wantURL, got)
 		})
 	}
+}
+
+func TestBuildRunURL(t *testing.T) {
+	tests := []struct {
+		name          string
+		requestCtx    *commonmlflow.RequestContext
+		experimentID  string
+		runID         string
+		kfpBaseURL    string
+		wantURL       string
+	}{
+		{
+			name:         "returns external mlflow UI URL",
+			requestCtx:   &commonmlflow.RequestContext{},
+			experimentID: "5",
+			runID:        "abc123",
+			kfpBaseURL:   "https://rh-ai.example.com",
+			wantURL:      "https://rh-ai.example.com/mlflow/#/experiments/5/runs/abc123",
+		},
+		{
+			name: "includes workspace in fragment route query",
+			requestCtx: &commonmlflow.RequestContext{
+				WorkspacesEnabled: true,
+				Workspace:         "mlflow-kfp-test",
+			},
+			experimentID: "5",
+			runID:        "abc123",
+			kfpBaseURL:   "https://rh-ai.example.com",
+			wantURL:      "https://rh-ai.example.com/mlflow/#/experiments/5/runs/abc123?workspace=mlflow-kfp-test",
+		},
+		{
+			name:         "returns empty without base URL and request context base URL",
+			requestCtx:   &commonmlflow.RequestContext{},
+			experimentID: "5",
+			runID:        "abc123",
+			kfpBaseURL:   "",
+			wantURL:      "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := BuildRunURL(tt.requestCtx, tt.experimentID, tt.runID, tt.kfpBaseURL)
+			assert.Equal(t, tt.wantURL, got)
+		})
+	}
+}
+
+func TestShouldSyncNestedRun(t *testing.T) {
+	t.Run("terminal mode syncs non-terminal statuses", func(t *testing.T) {
+		assert.True(t, shouldSyncNestedRun(RunSyncModeTerminal, "RUNNING"))
+		assert.True(t, shouldSyncNestedRun(RunSyncModeTerminal, "SCHEDULED"))
+		assert.True(t, shouldSyncNestedRun(RunSyncModeTerminal, "PENDING"))
+		assert.True(t, shouldSyncNestedRun(RunSyncModeTerminal, ""))
+		assert.False(t, shouldSyncNestedRun(RunSyncModeTerminal, "FINISHED"))
+		assert.False(t, shouldSyncNestedRun(RunSyncModeTerminal, "FAILED"))
+		assert.False(t, shouldSyncNestedRun(RunSyncModeTerminal, "KILLED"))
+	})
+
+	t.Run("retry mode syncs only failed and killed", func(t *testing.T) {
+		assert.True(t, shouldSyncNestedRun(RunSyncModeRetry, "FAILED"))
+		assert.True(t, shouldSyncNestedRun(RunSyncModeRetry, "KILLED"))
+		assert.False(t, shouldSyncNestedRun(RunSyncModeRetry, "RUNNING"))
+		assert.False(t, shouldSyncNestedRun(RunSyncModeRetry, "FINISHED"))
+	})
 }
 
 // ---- ModelToPersistedRun tests ----

@@ -344,22 +344,29 @@ func TestEnsureExperimentExists(t *testing.T) {
 func TestBuildKFPTags(t *testing.T) {
 	run := &apiserverPlugins.PendingRun{
 		RunID:             "kfp-run-1",
+		Namespace:         "ns-1",
 		PipelineID:        "pipeline-1",
 		PipelineVersionID: "pipeline-version-1",
 	}
 	tags := BuildKFPTags(run, "")
 	require.Len(t, tags, 4)
 	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPRunID, Value: "kfp-run-1"})
-	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPRunURL, Value: "/#/runs/details/kfp-run-1"})
+	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPRunURL, Value: ""})
 	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPPipelineID, Value: "pipeline-1"})
 	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPPipelineVersionID, Value: "pipeline-version-1"})
 }
 
 func TestBuildKFPTags_WithBaseURL(t *testing.T) {
-	run := &apiserverPlugins.PendingRun{RunID: "run-1"}
+	run := &apiserverPlugins.PendingRun{
+		RunID:     "run-1",
+		Namespace: "ns-1",
+	}
 	tags := BuildKFPTags(run, "https://kfp.example.com")
 	require.Len(t, tags, 2)
-	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPRunURL, Value: "https://kfp.example.com/#/runs/details/run-1"})
+	assert.Contains(t, tags, commonmlflow.Tag{
+		Key:   TagKFPRunURL,
+		Value: "https://kfp.example.com/develop-train/pipelines/runs/ns-1/runs/run-1",
+	})
 }
 
 func TestBuildKFPTags_NilRun(t *testing.T) {

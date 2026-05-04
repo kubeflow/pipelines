@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -403,6 +404,9 @@ func (rt *retryRoundTripper) RoundTrip(req *http.Request) (*http.Response, error
 
 	var resp *http.Response
 	operation := func() error {
+		if ctxErr := req.Context().Err(); ctxErr != nil {
+			return backoff.Permanent(ctxErr)
+		}
 		// Reset the request body for each attempt.
 		if req.GetBody != nil {
 			body, err := req.GetBody()
@@ -415,6 +419,9 @@ func (rt *retryRoundTripper) RoundTrip(req *http.Request) (*http.Response, error
 		var err error
 		resp, err = rt.next.RoundTrip(req)
 		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return backoff.Permanent(err)
+			}
 			glog.Warningf("MLflow request %s %s failed (will retry): %v", req.Method, req.URL.Path, err)
 			return err
 		}
@@ -452,7 +459,8 @@ func (rt *retryRoundTripper) RoundTrip(req *http.Request) (*http.Response, error
 		b.Multiplier = rt.retry.Multiplier
 	}
 
-	if err := backoff.Retry(operation, b); err != nil {
+	retryBackoff := backoff.WithContext(b, req.Context())
+	if err := backoff.Retry(operation, retryBackoff); err != nil {
 		// If we have a response (4xx case), return it so the caller can parse the error body.
 		if resp != nil {
 			return resp, nil

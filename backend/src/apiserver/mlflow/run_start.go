@@ -139,15 +139,17 @@ func CreateExperiment(ctx context.Context, requestCtx *commonmlflow.RequestConte
 }
 
 // BuildKFPRunURL constructs a KFP pipeline run URL.
-func BuildKFPRunURL(runID, kfpBaseURL string) string {
-	if runID == "" {
+func BuildKFPRunURL(runID, namespace, kfpBaseURL string) string {
+	if runID == "" || namespace == "" || kfpBaseURL == "" {
 		return ""
 	}
-	path := fmt.Sprintf("/#/runs/details/%s", runID)
-	if kfpBaseURL != "" {
-		return strings.TrimRight(kfpBaseURL, "/") + path
-	}
-	return path
+	trimmedBaseURL := strings.TrimRight(kfpBaseURL, "/")
+	return fmt.Sprintf(
+		"%s/develop-train/pipelines/runs/%s/runs/%s",
+		trimmedBaseURL,
+		url.PathEscape(namespace),
+		url.PathEscape(runID),
+	)
 }
 
 // BuildKFPTags builds MLflow tags containing KFP metadata for a pipeline run.
@@ -157,7 +159,7 @@ func BuildKFPTags(run *apiserverPlugins.PendingRun, kfpBaseURL string) []commonm
 	}
 	tags := []commonmlflow.Tag{
 		{Key: TagKFPRunID, Value: run.RunID},
-		{Key: TagKFPRunURL, Value: BuildKFPRunURL(run.RunID, kfpBaseURL)},
+		{Key: TagKFPRunURL, Value: BuildKFPRunURL(run.RunID, run.Namespace, kfpBaseURL)},
 	}
 	if run.PipelineID != "" {
 		tags = append(tags, commonmlflow.Tag{Key: TagKFPPipelineID, Value: run.PipelineID})
@@ -168,8 +170,24 @@ func BuildKFPTags(run *apiserverPlugins.PendingRun, kfpBaseURL string) []commonm
 	return tags
 }
 
-func BuildRunURL(requestCtx *commonmlflow.RequestContext, experimentID, runID string) string {
-	if requestCtx == nil || requestCtx.BaseURL == nil || experimentID == "" || runID == "" {
+// BuildRunURL constructs an MLflow run URL for plugin output metadata.
+func BuildRunURL(requestCtx *commonmlflow.RequestContext, experimentID, runID, kfpBaseURL string) string {
+	if experimentID == "" || runID == "" {
+		return ""
+	}
+	if kfpBaseURL != "" {
+		base := strings.TrimRight(kfpBaseURL, "/")
+		fragmentRoute := fmt.Sprintf(
+			"/experiments/%s/runs/%s",
+			url.PathEscape(experimentID),
+			url.PathEscape(runID),
+		)
+		if requestCtx != nil && requestCtx.WorkspacesEnabled && requestCtx.Workspace != "" {
+			fragmentRoute = fmt.Sprintf("%s?workspace=%s", fragmentRoute, url.QueryEscape(requestCtx.Workspace))
+		}
+		return fmt.Sprintf("%s/mlflow/#%s", base, fragmentRoute)
+	}
+	if requestCtx == nil || requestCtx.BaseURL == nil {
 		return ""
 	}
 	u := *requestCtx.BaseURL
@@ -368,7 +386,7 @@ func syncNestedRuns(ctx context.Context, requestCtx *commonmlflow.RequestContext
 		action = "reopen nested run"
 	}
 	var syncErrors []string
-	filter := fmt.Sprintf("tags.mlflow.parentRunId = '%s'", parentRunID)
+	filter := fmt.Sprintf(`tags.%q = '%s'`, commonmlflow.TagNestedRunParentRunID, parentRunID)
 	pageToken := ""
 	for page := 0; page < maxSearchPages; page++ {
 		searchResp, err := requestCtx.Client.SearchRuns(ctx, []string{experimentID}, filter, 1000, pageToken)
@@ -389,7 +407,6 @@ func syncNestedRuns(ctx context.Context, requestCtx *commonmlflow.RequestContext
 			if nestedRunID == "" || nestedRunID == parentRunID || !shouldSyncNestedRun(mode, mlflowRun.Info.Status) {
 				continue
 			}
-			// Recurse into children before updating this run .
 			childErrors := syncNestedRuns(ctx, requestCtx, nestedRunID, experimentID, mode, targetStatus, endTimeMs, depth+1)
 			syncErrors = append(syncErrors, childErrors...)
 			if err := requestCtx.Client.UpdateRun(ctx, nestedRunID, targetStatus, endTimeMs); err != nil {
@@ -442,7 +459,7 @@ func shouldSyncNestedRun(mode RunSyncMode, status string) bool {
 	upperStatus := strings.ToUpper(status)
 	switch mode {
 	case RunSyncModeTerminal:
-		return upperStatus == "RUNNING" || upperStatus == "SCHEDULED"
+		return upperStatus != "FINISHED" && upperStatus != "FAILED" && upperStatus != "KILLED"
 	case RunSyncModeRetry:
 		return upperStatus == "FAILED" || upperStatus == "KILLED"
 	default:

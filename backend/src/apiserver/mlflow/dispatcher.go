@@ -16,6 +16,7 @@ package mlflow
 
 import (
 	"context"
+	"time"
 
 	"github.com/golang/glog"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -25,6 +26,8 @@ import (
 )
 
 var _ apiserverPlugins.PluginDispatcher = (*Dispatcher)(nil)
+
+const preRunMLflowTimeout = 3 * time.Second
 
 // Dispatcher implements PluginDispatcher for MLflow.
 type Dispatcher struct {
@@ -62,14 +65,24 @@ func (d *Dispatcher) OnBeforeRunCreation(ctx context.Context, run *apiserverPlug
 
 	resolvedCfg, err := ResolveMLflowRequestConfig(ctx, d.kubeClients, run.Namespace)
 	if err != nil {
-		return util.NewInternalServerError(err, "MLflow config resolution failed for run %q", run.RunID)
+		message := "MLflow config resolution failed; run creation will continue: " + err.Error()
+		glog.Warningf("MLflow OnBeforeRunCreation failed for run %q (%s)", run.RunID, message)
+		pluginOutput := FailedPluginOutput(selectedID, selectedName, "", "", "", message)
+		if outputErr := SetPendingRunPluginOutput(run, PluginName, pluginOutput); outputErr != nil {
+			glog.Warningf("Failed to persist MLflow plugin output for run %q: %v", run.RunID, outputErr)
+		}
+		return nil
 	}
 	if resolvedCfg == nil {
 		return nil
 	}
 
 	handler := NewHandler(mlflowInput, run.Namespace)
-	pluginOutput, pluginErr := handler.OnBeforeRunCreation(ctx, run, resolvedCfg.Config)
+	// Limit MLflow pre-run calls to a short timeout budget so MLflow outages
+	// do not exhaust the CreateRun request deadline.
+	mlflowCtx, cancel := context.WithTimeout(context.Background(), preRunMLflowTimeout)
+	defer cancel()
+	pluginOutput, pluginErr := handler.OnBeforeRunCreation(mlflowCtx, run, resolvedCfg.Config)
 	if pluginErr != nil {
 		glog.Warningf("MLflow OnBeforeRunCreation failed for run %q (run creation will continue): %v", run.RunID, pluginErr)
 	}
