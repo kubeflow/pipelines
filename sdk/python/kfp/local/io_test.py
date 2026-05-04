@@ -90,6 +90,45 @@ class IOStoreTest(unittest.TestCase):
             artifact,
         )
 
+    def test_put_and_get_task_status_success(self):
+        from kfp.local import status
+        store = io.IOStore()
+        store.put_task_status('my-task', status.Status.SUCCESS)
+        self.assertEqual(
+            store.get_task_status('my-task'),
+            status.Status.SUCCESS,
+        )
+
+    def test_put_and_get_task_status_failure(self):
+        from kfp.local import status
+        store = io.IOStore()
+        store.put_task_status('my-task', status.Status.FAILURE, 'Task failed')
+        self.assertEqual(
+            store.get_task_status('my-task'),
+            status.Status.FAILURE,
+        )
+        self.assertEqual(
+            store.get_task_error('my-task'),
+            'Task failed',
+        )
+
+    def test_task_status_not_found(self):
+        store = io.IOStore()
+        with self.assertRaisesRegex(
+                ValueError,
+                r"Task 'my-task' status not found\."):
+            store.get_task_status('my-task')
+
+    def test_get_task_error_returns_none_when_no_error(self):
+        from kfp.local import status
+        store = io.IOStore()
+        store.put_task_status('my-task', status.Status.SUCCESS)
+        self.assertIsNone(store.get_task_error('my-task'))
+
+    def test_get_task_error_returns_none_for_unknown_task(self):
+        store = io.IOStore()
+        self.assertIsNone(store.get_task_error('unknown-task'))
+
 
 if __name__ == '__main__':
     unittest.main()

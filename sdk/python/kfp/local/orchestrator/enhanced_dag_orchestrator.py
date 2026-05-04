@@ -30,6 +30,24 @@ from .orchestrator_utils import OrchestratorUtils
 
 Outputs = Dict[str, Any]
 
+# Trigger strategy enum value for ALL_UPSTREAM_TASKS_COMPLETED
+ALL_UPSTREAM_TASKS_COMPLETED = 2
+
+
+def _is_exit_handler_task(task_spec: pipeline_spec_pb2.PipelineTaskSpec) -> bool:
+    """Check if a task is an exit handler task.
+
+    Exit handler tasks have trigger_policy.strategy == ALL_UPSTREAM_TASKS_COMPLETED,
+    which means they should run regardless of upstream task success/failure.
+
+    Args:
+        task_spec: The task specification.
+
+    Returns:
+        True if the task is an exit handler task.
+    """
+    return task_spec.trigger_policy.strategy == ALL_UPSTREAM_TASKS_COMPLETED
+
 
 class ConditionEvaluator:
     """Evaluates condition expressions for dsl.Condition support."""
@@ -611,10 +629,10 @@ def run_enhanced_dag(
     unique_pipeline_id: str,
     fail_stack: List[str],
 ) -> Tuple[Outputs, status.Status]:
-    """Enhanced DAG runner with support for dsl.Condition and dsl.ParallelFor.
+    """Enhanced DAG runner with support for dsl.Condition, dsl.ParallelFor, and dsl.ExitHandler.
 
     This is an enhanced version of dag_orchestrator.run_dag that
-    supports control flow features like conditions and parallel loops.
+    supports control flow features like conditions, parallel loops, and exit handlers.
     """
     dag_arguments_with_defaults = OrchestratorUtils.join_user_inputs_and_defaults(
         dag_arguments=dag_arguments,
@@ -632,15 +650,31 @@ def run_enhanced_dag(
     regular_tasks = []
     condition_tasks = []
     parallel_for_tasks = []
+    exit_handler_tasks = []
 
     for task_name, task_spec in dag_spec.tasks.items():
-        if task_spec.trigger_policy.condition:
+        # Check for exit handler first.
+        # NOTE: The enhanced orchestrator deliberately treats only *unconditional*
+        # tasks that use the ALL_UPSTREAM_TASKS_COMPLETED trigger strategy as
+        # exit handlers. Tasks that have a trigger condition are instead
+        # classified as conditional tasks below, even if they also satisfy
+        # _is_exit_handler_task. This is intentionally stricter than the logic in
+        # dag_orchestrator.py, which uses only _is_exit_handler_task(task_spec),
+        # to avoid misclassifying conditional control-flow tasks as exit handlers.
+        if _is_exit_handler_task(task_spec) and not task_spec.trigger_policy.condition:
+            exit_handler_tasks.append((task_name, task_spec))
+        elif task_spec.trigger_policy.condition:
             condition_tasks.append((task_name, task_spec))
         elif task_spec.WhichOneof('iterator') and _has_valid_iterator(
                 task_spec):
             parallel_for_tasks.append((task_name, task_spec))
         else:
             regular_tasks.append((task_name, task_spec))
+
+    # Track whether any task failed
+    dag_failure = False
+    failed_task_name = None
+    error_message = None
 
     # Execute regular tasks first (topologically sorted)
     regular_task_dict = {name: spec for name, spec in regular_tasks}
@@ -666,49 +700,69 @@ def run_enhanced_dag(
                 fail_stack=fail_stack,
             )
 
+            # Store task status for exit handler tasks
             if task_status == status.Status.FAILURE:
-                return {}, status.Status.FAILURE
+                dag_failure = True
+                failed_task_name = task_name
+                error_message = f"Task '{task_name}' failed during execution"
+                io_store.put_task_status(task_name, task_status, error_message)
+                # Don't return immediately if there are exit handler tasks
+                if not exit_handler_tasks:
+                    return {}, status.Status.FAILURE
+                # Stop executing remaining regular tasks
+                break
+            else:
+                io_store.put_task_status(task_name, task_status)
+                # Update IO store on success
+                for key, output in outputs.items():
+                    io_store.put_task_output(task_name, key, output)
 
-            # Update IO store on success
-            for key, output in outputs.items():
-                io_store.put_task_output(task_name, key, output)
-
-    # Execute conditional tasks
+    # Execute conditional tasks (skip if already failed)
     condition_evaluator = ConditionEvaluator()
-    for task_name, task_spec in condition_tasks:
-        # Evaluate condition
-        condition_expr = task_spec.trigger_policy.condition
-        should_execute = condition_evaluator.evaluate_condition(
-            condition_expr, io_store)
+    if not dag_failure:
+        for task_name, task_spec in condition_tasks:
+            # Evaluate condition
+            condition_expr = task_spec.trigger_policy.condition
+            should_execute = condition_evaluator.evaluate_condition(
+                condition_expr, io_store)
 
-        if should_execute:
-            outputs, task_status = execute_task(
-                task_name=task_name,
-                task_spec=task_spec,
-                pipeline_resource_name=pipeline_resource_name,
-                components=components,
-                executors=executors,
-                io_store=io_store,
-                pipeline_root=pipeline_root,
-                runner=runner,
-                unique_pipeline_id=unique_pipeline_id,
-                fail_stack=fail_stack,
-            )
+            if should_execute:
+                outputs, task_status = execute_task(
+                    task_name=task_name,
+                    task_spec=task_spec,
+                    pipeline_resource_name=pipeline_resource_name,
+                    components=components,
+                    executors=executors,
+                    io_store=io_store,
+                    pipeline_root=pipeline_root,
+                    runner=runner,
+                    unique_pipeline_id=unique_pipeline_id,
+                    fail_stack=fail_stack,
+                )
 
-            if task_status == status.Status.FAILURE:
-                return {}, status.Status.FAILURE
+                # Store task status for exit handler tasks
+                if task_status == status.Status.FAILURE:
+                    dag_failure = True
+                    failed_task_name = task_name
+                    error_message = f"Task '{task_name}' failed during execution"
+                    io_store.put_task_status(task_name, task_status, error_message)
+                    if not exit_handler_tasks:
+                        return {}, status.Status.FAILURE
+                    break
+                else:
+                    io_store.put_task_status(task_name, task_status)
+                    # Update IO store on success
+                    for key, output in outputs.items():
+                        io_store.put_task_output(task_name, key, output)
+            else:
+                logging.info(
+                    f'Skipping conditional task {task_name} (condition evaluated to False)'
+                )
 
-            # Update IO store on success
-            for key, output in outputs.items():
-                io_store.put_task_output(task_name, key, output)
-        else:
-            logging.info(
-                f'Skipping conditional task {task_name} (condition evaluated to False)'
-            )
-
-    # Execute parallel for tasks
+    # Execute parallel for tasks (skip if already failed)
     parallel_executor = ParallelExecutor()
-    for task_name, task_spec in parallel_for_tasks:
+    if not dag_failure:
+        for task_name, task_spec in parallel_for_tasks:
         # Get iterator configuration
         iterator = task_spec.WhichOneof('iterator')
         if iterator == 'parameter_iterator':
@@ -804,7 +858,16 @@ def run_enhanced_dag(
             )
 
             if parallel_status == status.Status.FAILURE:
-                return {}, status.Status.FAILURE
+                dag_failure = True
+                failed_task_name = task_name
+                error_message = f"Parallel task '{task_name}' failed during execution"
+                io_store.put_task_status(task_name, parallel_status, error_message)
+                if not exit_handler_tasks:
+                    return {}, status.Status.FAILURE
+                break
+
+            # Store task status for exit handler tasks
+            io_store.put_task_status(task_name, status.Status.SUCCESS)
 
             # Aggregate loop outputs - collect all iteration outputs under the main task name
             aggregated_outputs = {}
@@ -824,6 +887,39 @@ def run_enhanced_dag(
                     iteration_outputs.get(str(i)) for i in range(len(items))
                 ]
                 io_store.put_task_output(task_name, output_key, ordered_outputs)
+
+    # Execute exit handler tasks (they run regardless of success/failure)
+    for task_name, task_spec in exit_handler_tasks:
+        logging.info(f'Running exit handler task: {task_name}')
+
+        try:
+            outputs, task_status = execute_task(
+                task_name=task_name,
+                task_spec=task_spec,
+                pipeline_resource_name=pipeline_resource_name,
+                components=components,
+                executors=executors,
+                io_store=io_store,
+                pipeline_root=pipeline_root,
+                runner=runner,
+                unique_pipeline_id=unique_pipeline_id,
+                fail_stack=fail_stack,
+            )
+
+            # Store exit handler task outputs
+            if task_status == status.Status.SUCCESS:
+                for key, output in outputs.items():
+                    io_store.put_task_output(task_name, key, output)
+
+        except Exception as e:
+            logging.error(f'Exit handler task {task_name} failed with exception: {e}')
+            # Exit handler failures don't affect the overall DAG status
+            # (the DAG already failed if regular tasks failed)
+
+    # If a regular task failed, return failure status
+    if dag_failure:
+        fail_stack.append(failed_task_name)
+        return {}, status.Status.FAILURE
 
     # Get DAG outputs
     dag_outputs = OrchestratorUtils.get_dag_outputs(
