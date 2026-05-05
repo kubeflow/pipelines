@@ -1,0 +1,89 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-retry
+# Inputs:
+#    counter_path: str
+# Outputs:
+#    Output: str
+components:
+  comp-flaky:
+    executorLabel: exec-flaky
+    inputDefinitions:
+      parameters:
+        counter_path:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-flaky:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - flaky
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef flaky(counter_path: str) -> str:\n    import os\n    count =\
+          \ 0\n    if os.path.exists(counter_path):\n        with open(counter_path)\
+          \ as f:\n            count = int(f.read().strip() or '0')\n    count +=\
+          \ 1\n    with open(counter_path, 'w') as f:\n        f.write(str(count))\n\
+          \    if count <= 1:\n        raise RuntimeError(f'flaky attempt {count}')\n\
+          \    return f'attempt={count}'\n\n"
+        image: python:3.11
+pipelineInfo:
+  name: pipeline-with-retry
+root:
+  dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: Output
+            producerSubtask: flaky
+    tasks:
+      flaky:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-flaky
+        inputs:
+          parameters:
+            counter_path:
+              componentInputParameter: counter_path
+        retryPolicy:
+          backoffDuration: 0s
+          backoffFactor: 1.0
+          backoffMaxDuration: 3600s
+          maxRetryCount: 3
+        taskInfo:
+          name: flaky
+  inputDefinitions:
+    parameters:
+      counter_path:
+        parameterType: STRING
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2

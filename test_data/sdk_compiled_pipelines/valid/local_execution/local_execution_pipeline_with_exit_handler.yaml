@@ -1,0 +1,148 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-exit-handler
+# Description: Runs `echo` inside an ExitHandler.
+#              On success the exit task receives a PipelineTaskFinalStatus with
+#              state='SUCCEEDED'. No pipeline output — KFP's compiler rejects
+#              returning a value from inside an ExitHandler.
+# Inputs:
+#    message: str [Default: 'hello']
+components:
+  comp-echo:
+    executorLabel: exec-echo
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-exit-handler-1:
+    dag:
+      tasks:
+        echo:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-echo
+          inputs:
+            parameters:
+              message:
+                componentInputParameter: pipelinechannel--message
+          taskInfo:
+            name: echo
+    inputDefinitions:
+      parameters:
+        pipelinechannel--message:
+          parameterType: STRING
+  comp-record-exit:
+    executorLabel: exec-record-exit
+    inputDefinitions:
+      parameters:
+        status:
+          isOptional: true
+          parameterType: TASK_FINAL_STATUS
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-echo:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - echo
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef echo(message: str) -> str:\n    return message\n\n"
+        image: python:3.11
+    exec-record-exit:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - record_exit
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef record_exit(status: PipelineTaskFinalStatus) -> str:\n    return\
+          \ f'exit:{status.state}'\n\n"
+        image: python:3.11
+pipelineInfo:
+  description: "Runs `echo` inside an ExitHandler.\nOn success the exit task receives\
+    \ a PipelineTaskFinalStatus with\nstate='SUCCEEDED'. No pipeline output \u2014\
+    \ KFP's compiler rejects\nreturning a value from inside an ExitHandler."
+  name: pipeline-with-exit-handler
+root:
+  dag:
+    tasks:
+      exit-handler-1:
+        componentRef:
+          name: comp-exit-handler-1
+        inputs:
+          parameters:
+            pipelinechannel--message:
+              componentInputParameter: message
+        taskInfo:
+          name: exit-handler-1
+      record-exit:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-record-exit
+        dependentTasks:
+        - exit-handler-1
+        inputs:
+          parameters:
+            status:
+              taskFinalStatus:
+                producerTask: exit-handler-1
+        taskInfo:
+          name: record-exit
+        triggerPolicy:
+          strategy: ALL_UPSTREAM_TASKS_COMPLETED
+  inputDefinitions:
+    parameters:
+      message:
+        defaultValue: hello
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Code for dispatching a local task execution."""
 
+import copy
 import logging
 from typing import Any, Dict, Tuple
 
@@ -77,6 +78,56 @@ def get_executor_spec(
 Outputs = Dict[str, Any]
 
 
+def _extract_container_env_vars(
+    container: pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
+) -> Dict[str, str]:
+    return {env_var.name: env_var.value for env_var in container.env}
+
+
+def _normalize_environment_config(environment: Any) -> Dict[str, Any]:
+    """Normalize Docker-style environment config to a dict for merging."""
+    if environment is None:
+        return {}
+    if isinstance(environment, dict):
+        return dict(environment)
+    if isinstance(environment, (list, tuple)):
+        normalized = {}
+        for item in environment:
+            if isinstance(item, str):
+                key, _, value = item.partition('=')
+                normalized[key] = value
+            elif isinstance(item, (list, tuple)) and len(item) == 2:
+                key, value = item
+                normalized[key] = value
+            else:
+                raise ValueError(
+                    'DockerRunner environment must be a dict or a sequence '
+                    'of KEY=VALUE strings / (key, value) pairs for local execution.'
+                )
+        return normalized
+    raise ValueError(
+        'DockerRunner environment must be a dict or a sequence of KEY=VALUE '
+        'strings / (key, value) pairs for local execution.')
+
+
+def _prepare_runner_and_env_vars(
+    runner: config.LocalRunnerType,
+    env_vars: Dict[str, str],
+) -> Tuple[config.LocalRunnerType, Dict[str, str]]:
+    """Apply runner-level env override policy before launching a task."""
+    if not isinstance(runner, local.DockerRunner):
+        return runner, env_vars
+
+    runner_env = _normalize_environment_config(
+        runner.container_run_args.get('environment'))
+    merged_env = {**env_vars, **runner_env}
+
+    runner_copy = copy.copy(runner)
+    runner_copy.container_run_args = dict(runner.container_run_args)
+    runner_copy.container_run_args.pop('environment', None)
+    return runner_copy, merged_env
+
+
 def run_single_task_implementation(
     pipeline_resource_name: str,
     component_name: str,
@@ -107,6 +158,9 @@ def run_single_task_implementation(
     container = executor_spec.container
     image = container.image
     full_command = list(container.command) + list(container.args)
+
+    env_vars = _extract_container_env_vars(container)
+    runner, env_vars = _prepare_runner_and_env_vars(runner, env_vars)
 
     executor_input_dict = executor_input_utils.executor_input_to_dict(
         executor_input=executor_input,
@@ -148,6 +202,7 @@ def run_single_task_implementation(
             full_command=full_command,
             pipeline_root=pipeline_root,
             runner=runner,
+            env_vars=env_vars,
         )
 
         # separate logs visually
