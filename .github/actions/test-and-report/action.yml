@@ -215,7 +215,6 @@ runs:
     - name: Run Tests
       id: run-tests
       shell: bash
-      working-directory: ${{ inputs.test_directory }}
       env:
         PIPELINE_STORE: ${{ inputs.pipeline_store }}
       run: |
@@ -249,6 +248,19 @@ runs:
         fi
         PULL_NUMBER="${{ github.event.inputs.pull_number || github.event.pull_request.number }}"
         REPO_NAME="${{ github.repository }}"
+        make test-e2e \
+          E2E_TEST_DIR=${{ inputs.test_directory }} \
+          NUM_NODES=${{ inputs.num_parallel_nodes }} \
+          LABEL_FILTER=${{ inputs.test_label }} \
+          NAMESPACE=${{ inputs.default_namespace }} \
+          MULTI_USER=$MULTI_USER \
+          USE_PROXY=$USE_PROXY \
+          USER_NAMESPACE=${{ inputs.user_namespace }} \
+          UPLOAD_K8S_CLIENT=${{ inputs.upload_pipelines_with_kubernetes_client }} \
+          TLS_ENABLED=$TLS_ENABLED \
+          CA_CERT_PATH=$CA_CERT_PATH \
+          PULL_NUMBER=$PULL_NUMBER \
+          REPO_NAME=$REPO_NAME
         API_URL="${{ steps.configure-api.outputs.API_URL }}"
         AUTH_TOKEN="${{ steps.configure-api.outputs.API_TOKEN }}"
         SERVICE_ACCOUNT_NAME="${{ steps.configure-api.outputs.SERVICE_ACCOUNT_NAME }}"
