@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: seaweedfs
+    component: filer
+  name: seaweedfs-filer
+spec:
+  serviceName: seaweedfs-filer
+  replicas: 2
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+        app: seaweedfs
+        component: filer
+  template:
+    metadata:
+      labels:
+        app: seaweedfs
+        component: filer
+        application-crd-id: kubeflow-pipelines
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: seaweedfs
+                component: filer
+            topologyKey: kubernetes.io/hostname
+      serviceAccountName: seaweedfs
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+        fsGroup: 1000
+      containers:
+      - name: seaweedfs-filer
+        env:
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: mlpipeline-minio-artifact
+              key: accesskey
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: mlpipeline-minio-artifact
+              key: secretkey
+        # These two env vars are needed to enable weed shell to discover the master server
+        - name: WEED_CLUSTER_SW_MASTER
+          value: seaweedfs-master.kubeflow:9333
+        - name: WEED_CLUSTER_DEFAULT
+          value: sw
+        image: 'chrislusf/seaweedfs'
+        args:
+        - 'filer'
+        - '-port=8888'
+        - '-iam'
+        - '-master=seaweedfs-master-0.seaweedfs-master:9333,seaweedfs-master-1.seaweedfs-master:9333,seaweedfs-master-2.seaweedfs-master:9333'
+        volumeMounts:
+          - name: data-filer
+            mountPath: /data
+        ports:
+          - containerPort: 8888
+            name: http-filer
+          - containerPort: 18888
+            name: grpc-filer
+          - containerPort: 8333
+            name: http-s3
+          - containerPort: 8111
+            name: http-iam
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8888
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          successThreshold: 1
+          failureThreshold: 100
+          timeoutSeconds: 10
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            memory: 2Gi
+        securityContext: # Using restricted profile
+          allowPrivilegeEscalation: false
+          privileged: false
+          runAsNonRoot: true
+          # image defaults to root user
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities:
+            drop:
+            - ALL
+  volumeClaimTemplates:
+    - metadata:
+        name: data-filer
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 20Gi
