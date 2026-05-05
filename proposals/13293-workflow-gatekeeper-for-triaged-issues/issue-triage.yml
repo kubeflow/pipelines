@@ -1,0 +1,44 @@
+# Triage issues upon opening.
+name: issue-triage.yml
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  on-issue-opened:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Welcome message
+        run: gh issue comment ${{ github.event.issue.number }} --body "Thanks for opening this issue! A maintainer will triage it shortly."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          GH_ISSUE: ${{ github.event.issue.number }}
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        run: |
+          pip install PyGithub pyyaml
+
+      - name: Add 'request ai review' label
+        run: gh issue edit "${{ github.event.issue.number }}" --add-label "request ai review"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+
+      - name: Triage
+        id: triage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_ISSUE: ${{ github.event.issue.number }}
+        run: |
+        # Placeholder for issue triage logic

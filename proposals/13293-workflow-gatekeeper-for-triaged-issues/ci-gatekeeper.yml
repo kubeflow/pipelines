@@ -1,0 +1,55 @@
+# Gatekeep CI workflows to PRs that link an issue labeled `ready`.
+name: Gatekeeper
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  validate-linked-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.13"
+
+      - name: Install Dependencies
+        run: |
+          pip install PyGithub
+
+      - name: Verify Linked Issue is Valid
+        id: verify
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+        # Placeholder for validation logic
+
+      - name: Retrieve Workflow IDs if Validation Failed
+        id: workflow-list
+        if: steps.verify.outcome == 'failure'
+        run: |
+          ids=$(ls .github/workflows/ \
+            | grep -v -e '^cancel\.yml$' -e '^pr-gatekeeper\.yml$' \
+            | paste -sd ',' -)
+          echo "ids=$ids" >> "$GITHUB_OUTPUT"
+
+      - name: Cancel Workflows on Validation Failure
+        id: cancel
+        if: steps.verify.outcome == 'failure'
+        run: |
+          # Placeholder for cancellation logic
+        with:
+          workflow_id: ${{ steps.workflow-list.outputs.ids }}
+
+      - name: Close PR on failure
+        if: always() && steps.verify.outcome == 'failure'
+        run: gh pr close "${{ github.event.pull_request.number }}" --comment "Closing this PR automatically. Link an issue with 'ready' label in the PR body and then reopen. See https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md for more details."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
