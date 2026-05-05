@@ -36,12 +36,16 @@ rules:
   - argoproj.io
   resources:
   - workflows
+  - workflowtaskresults
+  - workflowtasksets
+  - "workflowtasksets/status"
   verbs:
   - get
-  - list
-  - watch
-  - update
+  - create
   - patch
+  - watch
+  - list
+  - update
 - apiGroups:
   - ""
   resources:
@@ -85,3 +89,62 @@ rules:
   verbs:
   - create
   - patch
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ml-pipeline-driver-agent-executor-plugin
+  labels:
+    application-crd-id: kubeflow-pipelines
+secrets:
+  - name: ml-pipeline-driver-agent-executor-plugin.service-account-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ml-pipeline-driver-agent-executor-plugin.service-account-token
+  annotations:
+    kubernetes.io/service-account.name: ml-pipeline-driver-agent-executor-plugin
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ml-pipeline-executor-plugin-role
+rules:
+    # Execution is usually published by the launcher, but for Kubernetes-specific
+    # operations we bypass the default flow. In these cases, the driver uses the
+    # Kubernetes API to list pods during publishing. see publishDriverExecution method
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+    # the driver may need permissions to create and delete PVCs
+    # see test_data/sdk_compiled_pipelines/valid/pipeline_with_volume.py for example
+  - apiGroups: [ "" ]
+    resources: [ "persistentvolumeclaims" ]
+    verbs: ["create", "get", "list", "delete"]
+    # The root DAG driver reads the runtime configuration from the kfp-launcher cm
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["kfp-launcher"]
+    verbs: ["get", "list", "watch"]
+    # The driver now uploads its logs to artifact storage so they are visible in the UI
+    # for improved troubleshooting. To do this, it needs access to the
+    # `mlpipeline-minio-artifact` Secret containing storage credentials.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["mlpipeline-minio-artifact"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ml-pipeline-driver-agent-executor-plugin-binding
+subjects:
+  - kind: ServiceAccount
+    name: ml-pipeline-driver-agent-executor-plugin
+roleRef:
+  kind: Role
+  name: ml-pipeline-executor-plugin-role
+  apiGroup: rbac.authorization.k8s.io

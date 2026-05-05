@@ -162,6 +162,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			PodMetadata: &wfapi.Metadata{
 				Annotations: map[string]string{
 					"pipelines.kubeflow.org/v2_component": "true",
+					util.AnnotationKeyIstioSidecarInject:  util.AnnotationValueIstioSidecarInjectDisabled,
 				},
 				Labels: map[string]string{
 					"pipelines.kubeflow.org/v2_component": "true",
@@ -200,8 +201,6 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		// TODO(chensun): release process and update the images.
 		launcherImage:   GetLauncherImage(),
 		launcherCommand: GetLauncherCommand(),
-		driverImage:     GetDriverImage(),
-		driverCommand:   GetDriverCommand(),
 		job:             job,
 		spec:            spec,
 		executors:       deploy.GetExecutors(),

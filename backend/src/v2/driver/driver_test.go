@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -1469,7 +1471,7 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_Passthro
 	assert.Nil(t, err)
 
 	err = extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		podSpec,
 		opts,
 		nil,
@@ -1572,7 +1574,7 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_ApplyAnd
 	assert.Nil(t, err)
 
 	err = extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		podSpec,
 		opts,
 		nil,

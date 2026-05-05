@@ -19,8 +19,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -38,14 +38,18 @@ func validateDAG(opts Options) (err error) {
 	return validateNonRoot(opts)
 }
 
-func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *Execution, err error) {
+func DAG(ctx context.Context, pipeline *metadata.Pipeline, opts Options, mlmd *metadata.Client) (execution *Execution, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("driver.DAG(%s) failed: %w", opts.info(), err)
 		}
 	}()
 	b, _ := json.Marshal(opts)
-	glog.V(4).Info("DAG opts: ", string(b))
+	log := util.GetLoggerFrom(ctx)
+	if log == nil {
+		return nil, fmt.Errorf("failed to get logger for DAG driver options: %s", string(b))
+	}
+	log.Trace("DAG opts: ", string(b))
 	err = validateDAG(opts)
 	if err != nil {
 		return nil, err
@@ -55,17 +59,11 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 		index := opts.IterationIndex
 		iterationIndex = &index
 	}
-	// TODO(Bobgy): there's no need to pass any parameters, because pipeline
-	// and pipeline run context have been created by root DAG driver.
-	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "", "")
-	if err != nil {
-		return nil, err
-	}
 	dag, err := mlmd.GetDAG(ctx, opts.DAGExecutionID)
 	if err != nil {
 		return nil, err
 	}
-	glog.Infof("parent DAG: %+v", dag.Execution)
+	log.Infof("parent DAG: %+v", dag.Execution)
 	expr, err := expression.New()
 	if err != nil {
 		return nil, err
@@ -77,7 +75,7 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	executorInput := &pipelinespec.ExecutorInput{
 		Inputs: inputs,
 	}
-	glog.Infof("executorInput value: %+v", executorInput)
+	log.Infof("executorInput value: %+v", executorInput)
 	execution = &Execution{ExecutorInput: executorInput}
 	condition := opts.Task.GetTriggerPolicy().GetCondition()
 	if condition != "" {
@@ -109,15 +107,15 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 
 	// Handle writing output parameters to MLMD.
 	ecfg.OutputParameters = opts.Component.GetDag().GetOutputs().GetParameters()
-	glog.V(4).Info("outputParameters: ", ecfg.OutputParameters)
+	log.Trace("outputParameters: ", ecfg.OutputParameters)
 
 	// Handle writing output artifacts to MLMD.
 	ecfg.OutputArtifacts = opts.Component.GetDag().GetOutputs().GetArtifacts()
-	glog.V(4).Info("outputArtifacts: ", ecfg.OutputArtifacts)
+	log.Trace("outputArtifacts: ", ecfg.OutputArtifacts)
 
 	totalDagTasks := len(opts.Component.GetDag().GetTasks())
 	ecfg.TotalDagTasks = &totalDagTasks
-	glog.V(4).Info("totalDagTasks: ", *ecfg.TotalDagTasks)
+	log.Trace("totalDagTasks: ", *ecfg.TotalDagTasks)
 
 	if opts.Task.GetArtifactIterator() != nil {
 		return execution, fmt.Errorf("ArtifactIterator is not implemented")
@@ -164,17 +162,17 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 		execution.IterationCount = &count
 	}
 
-	glog.V(4).Info("pipeline: ", pipeline)
+	log.Trace("pipeline: ", pipeline)
 	b, _ = json.Marshal(*ecfg)
-	glog.V(4).Info("ecfg: ", string(b))
-	glog.V(4).Infof("dag: %v", dag)
+	log.Trace("ecfg: ", string(b))
+	log.Tracef("dag: %v", dag)
 
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
 		return execution, err
 	}
-	glog.Infof("Created execution: %s", createdExecution)
+	log.Infof("Created execution: %s", createdExecution)
 	execution.ID = createdExecution.GetID()
 	return execution, nil
 }
