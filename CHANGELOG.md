@@ -5,12 +5,13 @@ Changelog
 ### Bug Fixes
 
 - **backend** ensure log artifact index handling ([#13334](https://github.com/kubeflow/pipelines/pull/13334)) ([#13340](https://github.com/kubeflow/pipelines/pull/13340))
-- **metadata** cast DEBUG_FILES_SIZE and handle cleanup races* ([#13300](https://github.com/kubeflow/pipelines/pull/13300))
+- **metadata** cast DEBUG_FILES_SIZE and handle cleanup races ([#13300](https://github.com/kubeflow/pipelines/pull/13300))
 - **backend** resolve use_secret_as_env pipeline params in ParallelFor ([#13128](https://github.com/kubeflow/pipelines/pull/13128))
 - **backend** isolate executor-logs per retry pod ([#13175](https://github.com/kubeflow/pipelines/pull/13175))
 - **backend** Fix duplicate entry in MLMD with Kubeflow driver ([#13276](https://github.com/kubeflow/pipelines/pull/13276))
 - **backend** Add retry logic to launcher artifact upload if component fails ([#13324](https://github.com/kubeflow/pipelines/pull/13324))
 - **backend** use proto.String instead of new ([#13329](https://github.com/kubeflow/pipelines/pull/13329))
+- **backend** enforce pipeline authorization ([#13288](https://github.com/kubeflow/pipelines/pull/13288))
 
 ### Features
 
