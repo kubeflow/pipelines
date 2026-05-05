@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -31,6 +32,7 @@ import (
 	swapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron"
+	statuspb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -2451,13 +2453,22 @@ func toModelRuntimeStatus(s *apiv2beta1.RuntimeStatus) (*model.RuntimeStatus, er
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert runtime status to its internal representation")
 	}
+
+	var runtimeErr *model.RuntimeError
+	if s.GetError() != nil {
+		runtimeErr = &model.RuntimeError{
+			Code:    s.GetError().GetCode(),
+			Message: s.GetError().GetMessage(),
+			Type:    "*util.UserError",
+		}
+	}
+
 	modelStatus := &model.RuntimeStatus{
 		UpdateTimeInSec: s.GetUpdateTime().GetSeconds(),
 		State:           state.ToV2(),
+		Error:           runtimeErr,
 	}
-	if s.GetError() != nil {
-		modelStatus.Error = util.ToError(s.GetError())
-	}
+
 	return modelStatus, nil
 }
 
@@ -2484,15 +2495,41 @@ func toApiRuntimeStatus(s *model.RuntimeStatus) *apiv2beta1.RuntimeStatus {
 	if s == nil {
 		return nil
 	}
+
 	apiStatus := &apiv2beta1.RuntimeStatus{
 		State: toApiRuntimeState(&s.State),
 	}
+
 	if s.UpdateTimeInSec > 0 {
 		apiStatus.UpdateTime = &timestamppb.Timestamp{Seconds: s.UpdateTimeInSec}
 	}
+
 	if s.Error != nil {
-		apiStatus.Error = util.ToRpcStatus(s.Error)
+		switch s.Error.Code {
+		case 3:
+			msg := strings.TrimPrefix(s.Error.Message, "Invalid input error: ")
+			apiStatus.Error = util.ToRpcStatus(util.NewInvalidInputError("%s", msg))
+		case 13:
+			msg := strings.TrimPrefix(s.Error.Message, "InternalServerError: ")
+			parts := strings.SplitN(msg, ": ", 2)
+			if len(parts) == 2 {
+				apiStatus.Error = util.ToRpcStatus(
+					util.NewInternalServerError(errors.New(parts[1]), "%s", parts[0]),
+				)
+			} else {
+				apiStatus.Error = &statuspb.Status{
+					Code:    s.Error.Code,
+					Message: s.Error.Message,
+				}
+			}
+		default:
+			apiStatus.Error = &statuspb.Status{
+				Code:    s.Error.Code,
+				Message: s.Error.Message,
+			}
+		}
 	}
+
 	return apiStatus
 }
 
