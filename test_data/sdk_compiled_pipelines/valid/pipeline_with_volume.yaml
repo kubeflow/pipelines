@@ -12,15 +12,7 @@ components:
     inputDefinitions:
       parameters:
         access_modes:
-          description: 'AccessModes to request for the provisioned PVC. May
-
-            be one or more of ``''ReadWriteOnce''``, ``''ReadOnlyMany''``,
-
-            ``''ReadWriteMany''``, or ``''ReadWriteOncePod''``. Corresponds to
-
-            `PersistentVolumeClaim.spec.accessModes
-
-            <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes>`_.'
+          description: Values for ``PersistentVolumeClaim.spec.accessModes``.
           parameterType: LIST
         annotations:
           description: 'Annotations for the PVC''s metadata. Corresponds to
