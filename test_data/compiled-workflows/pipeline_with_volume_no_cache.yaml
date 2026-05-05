@@ -7,9 +7,9 @@ spec:
     parameters:
     - name: kubernetes-comp-consumer
       value: '{"pvcMount":[{"mountPath":"/data","pvcNameParameter":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}},"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}]}'
-    - name: components-7c670709fc771e1d79ebc2c954ea9e008eb5216e226dfa1594e8dec49167ac06
+    - name: components-164ebf6c9edef2ec7e814664ae8893f32d1b633aceccbac8af7c429339ebfd16
       value: '{"executorLabel":"exec-consumer","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-7c670709fc771e1d79ebc2c954ea9e008eb5216e226dfa1594e8dec49167ac06
+    - name: implementations-164ebf6c9edef2ec7e814664ae8893f32d1b633aceccbac8af7c429339ebfd16
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","consumer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -20,7 +20,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         consumer() -\u003e str:\n    with open(''/data/file.txt'', ''r'') as file:\n        content
-        = file.read()\n    print(content)\n    return content\n\n"],"image":"python:3.11"}'
+        = file.read()\n    print(content)\n    return content\n\n"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
     - name: components-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767
       value: '{"executorLabel":"exec-createpvc","inputDefinitions":{"parameters":{"access_modes":{"description":"AccessModes
         to request for the provisioned PVC. May\nbe one or more of ``''ReadWriteOnce''``,
@@ -53,9 +53,9 @@ spec:
       value: '{"image":"argostub/deletepvc"}'
     - name: kubernetes-comp-producer
       value: '{"pvcMount":[{"mountPath":"/data","pvcNameParameter":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}},"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}]}'
-    - name: components-7cefc145506c478b829283f76980bbba7892efa3ed3b73e4dfe0d6be991d14a8
+    - name: components-7d2ef8c6eafd8b7081f9cf3f0b9efd4eedf5a65eefc5f0d5baab340648b638a6
       value: '{"executorLabel":"exec-producer","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-7cefc145506c478b829283f76980bbba7892efa3ed3b73e4dfe0d6be991d14a8
+    - name: implementations-7d2ef8c6eafd8b7081f9cf3f0b9efd4eedf5a65eefc5f0d5baab340648b638a6
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","producer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -67,7 +67,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         producer() -\u003e str:\n    with open(''/data/file.txt'', ''w'') as file:\n        file.write(''Hello
         world'')\n    with open(''/data/file.txt'', ''r'') as file:\n        content
-        = file.read()\n    print(content)\n    return content\n\n"],"image":"python:3.11"}'
+        = file.read()\n    print(content)\n    return content\n\n"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
     - name: components-root
       value: '{"dag":{"tasks":{"consumer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-consumer"},"dependentTasks":["createpvc","producer"],"taskInfo":{"name":"consumer"}},"createpvc":{"cachingOptions":{},"componentRef":{"name":"comp-createpvc"},"inputs":{"parameters":{"access_modes":{"runtimeValue":{"constant":["ReadWriteOnce"]}},"pvc_name_suffix":{"runtimeValue":{"constant":"-my-pvc"}},"size":{"runtimeValue":{"constant":"5Mi"}},"storage_class_name":{"runtimeValue":{"constant":"standard"}}}},"taskInfo":{"name":"createpvc"}},"deletepvc":{"cachingOptions":{},"componentRef":{"name":"comp-deletepvc"},"dependentTasks":["consumer","createpvc"],"inputs":{"parameters":{"pvc_name":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}}},"taskInfo":{"name":"deletepvc"}},"producer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-producer"},"dependentTasks":["createpvc"],"taskInfo":{"name":"producer"}}}}}'
   entrypoint: entrypoint
@@ -301,11 +301,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-7c670709fc771e1d79ebc2c954ea9e008eb5216e226dfa1594e8dec49167ac06}}'
+            value: '{{workflow.parameters.components-164ebf6c9edef2ec7e814664ae8893f32d1b633aceccbac8af7c429339ebfd16}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-consumer"},"dependentTasks":["createpvc","producer"],"taskInfo":{"name":"consumer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-7c670709fc771e1d79ebc2c954ea9e008eb5216e226dfa1594e8dec49167ac06}}'
+            value: '{{workflow.parameters.implementations-164ebf6c9edef2ec7e814664ae8893f32d1b633aceccbac8af7c429339ebfd16}}'
           - name: task-name
             value: consumer
           - name: parent-dag-id
@@ -357,11 +357,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-7cefc145506c478b829283f76980bbba7892efa3ed3b73e4dfe0d6be991d14a8}}'
+            value: '{{workflow.parameters.components-7d2ef8c6eafd8b7081f9cf3f0b9efd4eedf5a65eefc5f0d5baab340648b638a6}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-producer"},"dependentTasks":["createpvc"],"taskInfo":{"name":"producer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-7cefc145506c478b829283f76980bbba7892efa3ed3b73e4dfe0d6be991d14a8}}'
+            value: '{{workflow.parameters.implementations-7d2ef8c6eafd8b7081f9cf3f0b9efd4eedf5a65eefc5f0d5baab340648b638a6}}'
           - name: task-name
             value: producer
           - name: parent-dag-id
