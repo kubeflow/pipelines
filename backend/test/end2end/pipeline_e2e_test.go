@@ -237,8 +237,8 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		}
 	})
 
-	// gpu-labeled specs run even when the package has no --label-filter; see AGENTS.md (Local execution → E2E tests).
-	Context("GPU component test >", Label("gpu"), func() {
+	// E2eGpu-labeled specs run even when the package has no --label-filter; see AGENTS.md (Local execution → E2E tests).
+	Context("GPU component test >", Label(E2eGpu), func() {
 		var pipelineDir = "valid/gpu"
 		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
 		for _, pipelineFile := range pipelineFiles {
