@@ -77,6 +77,19 @@ func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.Executo
 	return executorOutput, outputArtifacts, nil
 }
 
+func reuseCachedExecutionMetadata(ctx context.Context, mlmd *metadata.Client, cachedMLMDExecutionID string) (string, error) {
+	cachedMLMDExecutionIDInt64, err := strconv.ParseInt(cachedMLMDExecutionID, 10, 64)
+	if err != nil {
+		return "", fmt.Errorf("failure while transferring cachedMLMDExecutionID %s from string to int64: %w", cachedMLMDExecutionID, err)
+	}
+	execution, err := mlmd.GetExecution(ctx, cachedMLMDExecutionIDInt64)
+	if err != nil {
+		return "", fmt.Errorf("failure while getting execution of cachedMLMDExecutionID %v: %w", cachedMLMDExecutionIDInt64, err)
+	}
+	cachedStatus := execution.GetExecution().GetLastKnownState().String()
+	return cachedStatus, nil
+}
+
 // getFingerPrint generates a fingerprint for caching. The PVC names are included in the fingerprint since it's assumed
 // PVCs have side effects (e.g. files written for tasks later on in the run) on the execution. If the PVC names are
 // different, the execution shouldn't be reused for the cache.

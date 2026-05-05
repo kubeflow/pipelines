@@ -26,23 +26,22 @@ import (
 	"time"
 	"unicode/utf8"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
-	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
-
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
-	apiservermlflow "github.com/kubeflow/pipelines/backend/src/apiserver/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
+	apiservermlflow "github.com/kubeflow/pipelines/backend/src/apiserver/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	exec "github.com/kubeflow/pipelines/backend/src/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -176,7 +175,7 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 		options:                   options,
 	}
 	if apiservermlflow.IsEnabled() {
-		rm.pluginDispatcher = apiservermlflow.NewDispatcher(rm.k8sCoreClient, rm.runStore)
+		rm.pluginDispatcher = apiservermlflow.NewRunPluginDispatcher(rm.k8sCoreClient, rm.runStore)
 	} else {
 		rm.pluginDispatcher = &apiserverPlugins.NoOpDispatcher{}
 	}

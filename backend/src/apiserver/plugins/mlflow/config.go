@@ -20,13 +20,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/url"
-	"os"
-	"strings"
-	"time"
 
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
-	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/mlflow"
+	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -41,6 +37,11 @@ const (
 	DefaultExperimentName = "KFP-Default"
 	// DefaultTimeout is the default HTTP request timeout for the MLflow client.
 	DefaultTimeout = "30s"
+)
+
+const (
+	LauncherConfigMapName = "kfp-launcher"
+	LauncherConfigKey     = "plugins.mlflow"
 )
 
 // ApplySettingsDefaults applies default values to a parsed MLflowPluginSettings.
@@ -113,20 +114,20 @@ func GetNamespaceMLflowConfig(ctx context.Context, clientSet kubernetes.Interfac
 	if clientSet == nil {
 		return nil, util.NewInternalServerError(fmt.Errorf("clientSet is nil"), "Kubernetes clientset must be provided when reading MLflow namespace config")
 	}
-	cm, err := clientSet.CoreV1().ConfigMaps(namespace).Get(ctx, commonmlflow.LauncherConfigMapName, v1.GetOptions{})
+	cm, err := clientSet.CoreV1().ConfigMaps(namespace).Get(ctx, LauncherConfigMapName, v1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, nil
 		}
-		return nil, util.NewInternalServerError(err, "failed to read MLflow namespace config from configmap %q in namespace %q", commonmlflow.LauncherConfigMapName, namespace)
+		return nil, util.NewInternalServerError(err, "failed to read MLflow namespace config from configmap %q in namespace %q", LauncherConfigMapName, namespace)
 	}
-	raw, ok := cm.Data[commonmlflow.LauncherConfigKey]
+	raw, ok := cm.Data[LauncherConfigKey]
 	if !ok || raw == "" {
 		return nil, nil
 	}
 	var cfg commonmlflow.PluginConfig
 	if err := json.Unmarshal([]byte(raw), &cfg); err != nil {
-		return nil, util.NewInternalServerError(err, "failed to parse MLflow config from key %q in configmap %q/%q", commonmlflow.LauncherConfigKey, namespace, commonmlflow.LauncherConfigMapName)
+		return nil, util.NewInternalServerError(err, "failed to parse MLflow config from key %q in configmap %q/%q", LauncherConfigKey, namespace, LauncherConfigMapName)
 	}
 	return &cfg, nil
 }
@@ -157,86 +158,22 @@ func ResolveMLflowRequestConfig(ctx context.Context, kubeClients KubeClientProvi
 	}, nil
 }
 
-// ResolveMLflowCredentials resolves the Kubernetes service account token used
-// to authenticate with the MLflow endpoint.
-func ResolveMLflowCredentials() (commonmlflow.MLflowCredentials, error) {
-	restConfig, err := util.GetKubernetesConfig()
-	if err != nil {
-		return commonmlflow.MLflowCredentials{}, util.NewInternalServerError(err, "failed to get Kubernetes config for MLflow auth")
-	}
-	token := restConfig.BearerToken
-	if token == "" && restConfig.BearerTokenFile != "" {
-		tokenBytes, err := os.ReadFile(restConfig.BearerTokenFile)
-		if err != nil {
-			return commonmlflow.MLflowCredentials{}, util.NewInternalServerError(err, "failed to read bearer token file %q for MLflow auth", restConfig.BearerTokenFile)
-		}
-		token = strings.TrimSpace(string(tokenBytes))
-	}
-	if token == "" {
-		return commonmlflow.MLflowCredentials{}, util.NewInvalidInputError("Kubernetes bearer token is empty for MLflow auth")
-	}
-	return commonmlflow.MLflowCredentials{
-		AuthType:    commonmlflow.AuthTypeKubernetes,
-		BearerToken: token,
-	}, nil
-}
-
-// BuildMLflowRequestContext constructs a fully initialized RequestContext including
-// the underlying MLflow HTTP client with authentication.
-func BuildMLflowRequestContext(ctx context.Context, namespace string, requestCfg *ResolvedConfig) (*commonmlflow.RequestContext, error) {
+// BuildMLflowRunRequestContext constructs a fully initialized RequestContext by
+// performing API-server-specific validation and then delegating to the common
+// BuildRequestContext.
+func BuildMLflowRunRequestContext(ctx context.Context, namespace string, requestCfg *ResolvedConfig) (*commonmlflow.RequestContext, error) {
 	if requestCfg == nil || requestCfg.Config == nil {
 		return nil, util.NewInternalServerError(errors.New("MLflow config is nil"), "cannot build MLflow request context without a resolved config")
 	}
 	if requestCfg.Config.Endpoint == "" {
 		return nil, util.NewInvalidInputError("plugins.mlflow endpoint must be set")
 	}
-	baseURL, err := url.Parse(requestCfg.Config.Endpoint)
-	if err != nil || baseURL.Scheme == "" || baseURL.Host == "" {
-		return nil, util.NewInvalidInputError("invalid plugins.mlflow endpoint %q", requestCfg.Config.Endpoint)
-	}
 	settings := requestCfg.Settings
 	if settings == nil {
 		return nil, util.NewInternalServerError(errors.New("MLflow plugin settings are nil"), "BuildMLflowRequestContext requires resolved settings")
 	}
-	timeout, err := time.ParseDuration(requestCfg.Config.Timeout)
-	if err != nil {
-		return nil, util.NewInvalidInputError("invalid plugins.mlflow timeout %q: %v", requestCfg.Config.Timeout, err)
-	}
-	if timeout <= 0 {
-		return nil, util.NewInvalidInputError("plugins.mlflow timeout must be > 0")
-	}
-	authMaterial, err := ResolveMLflowCredentials()
-	if err != nil {
-		return nil, err
-	}
-	httpClient, err := commonmlflow.BuildHTTPClient(timeout, requestCfg.Config.TLS)
-	if err != nil {
-		return nil, err
-	}
 	workspacesEnabled := settings.WorkspacesEnabled != nil && *settings.WorkspacesEnabled
-	retrySettings := commonmlflow.RetryPolicy{
-		InitialInterval: commonmlflow.DefaultRetryInitial,
-		MaxInterval:     commonmlflow.DefaultRetryMax,
-		MaxElapsedTime:  commonmlflow.DefaultRetryElapsed,
-		Multiplier:      2.0,
-	}
-	sharedClient, err := commonmlflow.NewClient(commonmlflow.Config{
-		Endpoint:          requestCfg.Config.Endpoint,
-		HTTPClient:        httpClient,
-		BearerToken:       authMaterial.BearerToken,
-		WorkspacesEnabled: workspacesEnabled,
-		Workspace:         namespace,
-		Retry:             retrySettings,
-	})
-	if err != nil {
-		return nil, util.NewInvalidInputError("failed to build MLflow client: %v", err)
-	}
-	return &commonmlflow.RequestContext{
-		BaseURL:           baseURL,
-		Workspace:         namespace,
-		WorkspacesEnabled: workspacesEnabled,
-		Client:            sharedClient,
-	}, nil
+	return commonmlflow.BuildMLflowRequestContext(*requestCfg.Config, namespace, workspacesEnabled)
 }
 
 // ResolveMLflowPluginInput parses the plugins_input.mlflow JSON from a run model,
@@ -306,4 +243,17 @@ func InjectMLflowRuntimeEnv(executionSpec util.ExecutionSpec, env map[string]str
 		util.ExecutionRuntimeRoleDriver,
 		util.ExecutionRuntimeRoleLauncher,
 	)
+}
+
+// ToMLflowTerminalStatus converts a KFP RuntimeState string to an MLflow
+// terminal status.
+func ToMLflowTerminalStatus(stateV2 string) string {
+	switch stateV2 {
+	case "SUCCEEDED":
+		return "FINISHED"
+	case "CANCELED", "CANCELING":
+		return "KILLED"
+	default:
+		return "FAILED"
+	}
 }

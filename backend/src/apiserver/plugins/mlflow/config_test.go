@@ -28,7 +28,7 @@ import (
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
-	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/mlflow"
+	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -279,7 +279,7 @@ func TestBuildMLflowRequestContextKubernetesAuth(t *testing.T) {
 		},
 	}
 
-	mlflowCtx, err := BuildMLflowRequestContext(context.Background(), "ns1", requestCfg)
+	mlflowCtx, err := BuildMLflowRunRequestContext(context.Background(), "ns1", requestCfg)
 	require.NoError(t, err)
 	require.NotNil(t, mlflowCtx)
 	assert.Equal(t, "https://mlflow.example.com", mlflowCtx.BaseURL.String())
@@ -433,11 +433,11 @@ func TestSetPendingRunPluginOutput(t *testing.T) {
 }
 
 func TestToMLflowTerminalStatus(t *testing.T) {
-	assert.Equal(t, "FINISHED", commonmlflow.ToMLflowTerminalStatus("SUCCEEDED"))
-	assert.Equal(t, "KILLED", commonmlflow.ToMLflowTerminalStatus("CANCELED"))
-	assert.Equal(t, "KILLED", commonmlflow.ToMLflowTerminalStatus("CANCELING"))
-	assert.Equal(t, "FAILED", commonmlflow.ToMLflowTerminalStatus("FAILED"))
-	assert.Equal(t, "FAILED", commonmlflow.ToMLflowTerminalStatus("UNKNOWN"))
+	assert.Equal(t, "FINISHED", ToMLflowTerminalStatus("SUCCEEDED"))
+	assert.Equal(t, "KILLED", ToMLflowTerminalStatus("CANCELED"))
+	assert.Equal(t, "KILLED", ToMLflowTerminalStatus("CANCELING"))
+	assert.Equal(t, "FAILED", ToMLflowTerminalStatus("FAILED"))
+	assert.Equal(t, "FAILED", ToMLflowTerminalStatus("UNKNOWN"))
 }
 
 func strPtr(s string) *string {
@@ -473,11 +473,11 @@ func TestResolveMLflowRequestConfig_NamespaceOnlyIsDisabled(t *testing.T) {
 	clientSet := k8sfake.NewSimpleClientset(
 		&corev1.ConfigMap{
 			ObjectMeta: v1.ObjectMeta{
-				Name:      commonmlflow.LauncherConfigMapName,
+				Name:      LauncherConfigMapName,
 				Namespace: "ns-only",
 			},
 			Data: map[string]string{
-				commonmlflow.LauncherConfigKey: `{
+				LauncherConfigKey: `{
 					"endpoint": "https://ns-mlflow.example.com",
 					"timeout": "15s",
 					"settings": {"workspacesEnabled": true}
@@ -512,7 +512,7 @@ func TestResolveMLflowRequestConfig_NeitherGlobalNorNamespace(t *testing.T) {
 func TestResolveMLflowCredentials_EmptySAToken(t *testing.T) {
 	setupFakeKubernetesConfig(t, "")
 
-	_, err := ResolveMLflowCredentials()
+	_, err := commonmlflow.ResolveMLflowCredentials()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "bearer token is empty")
 }
@@ -525,7 +525,7 @@ func TestBuildMLflowRequestContext_InvalidEndpoint(t *testing.T) {
 		},
 		Settings: &commonmlflow.MLflowPluginSettings{},
 	}
-	ctx, err := BuildMLflowRequestContext(context.Background(), "ns1", requestCfg)
+	ctx, err := BuildMLflowRunRequestContext(context.Background(), "ns1", requestCfg)
 	require.Error(t, err)
 	assert.Nil(t, ctx)
 	assert.Contains(t, err.Error(), "invalid plugins.mlflow endpoint")
@@ -541,7 +541,7 @@ func TestBuildMLflowRequestContext_ZeroTimeout(t *testing.T) {
 		},
 		Settings: &commonmlflow.MLflowPluginSettings{},
 	}
-	ctx, err := BuildMLflowRequestContext(context.Background(), "ns1", requestCfg)
+	ctx, err := BuildMLflowRunRequestContext(context.Background(), "ns1", requestCfg)
 	require.Error(t, err)
 	assert.Nil(t, ctx)
 	assert.Contains(t, err.Error(), "timeout must be > 0")
@@ -611,7 +611,7 @@ func newTestMLflowRequestContext(t *testing.T, serverURL string) *commonmlflow.R
 			WorkspacesEnabled: &enabled,
 		},
 	}
-	ctx, err := BuildMLflowRequestContext(context.Background(), "ns1", requestCfg)
+	ctx, err := BuildMLflowRunRequestContext(context.Background(), "ns1", requestCfg)
 	require.NoError(t, err)
 	require.NotNil(t, ctx)
 	return ctx

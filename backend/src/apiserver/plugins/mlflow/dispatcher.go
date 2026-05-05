@@ -20,7 +20,7 @@ import (
 	"github.com/golang/glog"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
-	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/mlflow"
+	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -32,8 +32,8 @@ type Dispatcher struct {
 	runOutputStore apiserverPlugins.RunPluginOutputStore
 }
 
-// NewDispatcher creates a new MLflow plugin dispatcher.
-func NewDispatcher(kubeClients KubeClientProvider, runOutputStore apiserverPlugins.RunPluginOutputStore) *Dispatcher {
+// NewRunPluginDispatcher creates a new MLflow plugin dispatcher.
+func NewRunPluginDispatcher(kubeClients KubeClientProvider, runOutputStore apiserverPlugins.RunPluginOutputStore) *Dispatcher {
 	return &Dispatcher{
 		kubeClients:    kubeClients,
 		runOutputStore: runOutputStore,

@@ -27,7 +27,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
-	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/mlflow"
+	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -481,7 +481,7 @@ func TestSyncParentAndNestedRuns_Pagination(t *testing.T) {
 		Config:   &commonmlflow.PluginConfig{Endpoint: server.URL, Timeout: "10s"},
 		Settings: &commonmlflow.MLflowPluginSettings{WorkspacesEnabled: &enabled},
 	}
-	mlflowCtx, err := BuildMLflowRequestContext(context.Background(), "ns1", requestCfg)
+	mlflowCtx, err := BuildMLflowRunRequestContext(context.Background(), "ns1", requestCfg)
 	require.NoError(t, err)
 
 	endTime := int64(1700000000000)

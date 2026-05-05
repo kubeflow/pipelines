@@ -206,6 +206,10 @@ type ExecutionConfig struct {
 	// DAGExecution custom properties
 	IterationCount *int // Number of iterations for an iterator DAG.
 	TotalDagTasks  *int // Number of tasks inside the DAG
+
+	// PluginCustomProperties holds arbitrary key-value pairs contributed by
+	// task-level plugins (e.g. "plugins.mlflow.run_id").
+	PluginCustomProperties map[string]string
 }
 
 // InputArtifact is a wrapper around an MLMD artifact used as component inputs.
@@ -694,6 +698,9 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 	}
 	if config.TotalDagTasks != nil {
 		e.CustomProperties[keyTotalDagTasks] = intValue(int64(*config.TotalDagTasks))
+	}
+	for k, v := range config.PluginCustomProperties {
+		e.CustomProperties[k] = StringValue(v)
 	}
 
 	req := &pb.PutExecutionRequest{
@@ -1366,4 +1373,44 @@ func (c *Client) getContextByID(ctx context.Context, id int64) (*pb.Context, err
 		return nil, fmt.Errorf("getContext(id=%v): got nil context", id)
 	}
 	return contexts[0], nil
+}
+
+func FormatExecutionParameters(execution *Execution) map[string]string {
+	if execution == nil {
+		return nil
+	}
+	params := make(map[string]string)
+	inputParams, _, err := execution.GetParameters()
+	if err != nil {
+		glog.Errorf("failed to retrieve task parameters: %v", err)
+	} else {
+		for key, value := range inputParams {
+			var valueFmt string
+			valueFmt, err = PbValueToText(value)
+			if err != nil {
+				glog.Errorf("failed to format parameter value for key %s: %v", key, err)
+				continue
+			}
+			params[key] = valueFmt
+		}
+	}
+	return params
+}
+
+func FormatOutputArtifacts(outputArtifacts []*OutputArtifact) map[string]float64 {
+	metrics := map[string]float64{}
+	if outputArtifacts != nil {
+		for _, artifact := range outputArtifacts {
+			if artifact.Artifact != nil && artifact.Artifact.GetType() == "system.Metrics" {
+				for customKey, customValue := range artifact.Artifact.CustomProperties {
+					// retrieve scalar metric artifact values. do not retrieve display_name or store_session_info.
+					if customKey == "display_name" || customKey == "store_session_info" {
+						continue
+					}
+					metrics[customKey] = customValue.GetDoubleValue()
+				}
+			}
+		}
+	}
+	return metrics
 }

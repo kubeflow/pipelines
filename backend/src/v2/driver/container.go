@@ -24,6 +24,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
@@ -187,6 +188,14 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	if !execution.WillTrigger() {
 		return execution, nil
 	}
+	taskPluginInfo := &plugins.TaskInfo{Name: opts.TaskName}
+	pluginStartResult, dispatchErr := opts.PluginDispatcher.OnTaskStart(ctx, taskPluginInfo)
+	if dispatchErr != nil {
+		glog.Errorf("Failed to dispatch task start: %v", dispatchErr)
+	} else if pluginStartResult != nil {
+		taskPluginInfo.TaskStartResult = pluginStartResult
+		ecfg.PluginCustomProperties = pluginStartResult.CustomProperties
+	}
 
 	// Use cache and skip launcher if all contions met:
 	// (1) Cache is enabled globally
@@ -196,7 +205,17 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	execution.Cached = &cached
 	if !opts.CacheDisabled {
 		if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
-			executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, mlmd, ecfg.CachedMLMDExecutionID)
+			var outputArtifacts []*metadata.OutputArtifact
+			var executorOutput *pipelinespec.ExecutorOutput
+			defer func() {
+				cachedStatus, _ := reuseCachedExecutionMetadata(ctx, mlmd, ecfg.CachedMLMDExecutionID)
+				taskPluginInfo.UpdateTaskInfoWithMetadata(cachedStatus, metadata.FormatOutputArtifacts(outputArtifacts), metadata.FormatExecutionParameters(createdExecution))
+				dispatchErr = opts.PluginDispatcher.OnTaskEnd(ctx, taskPluginInfo)
+				if dispatchErr != nil {
+					glog.Errorf("failed to dispatch task end: %v", dispatchErr)
+				}
+			}()
+			executorOutput, outputArtifacts, err = reuseCachedOutputs(ctx, execution.ExecutorInput, mlmd, ecfg.CachedMLMDExecutionID)
 			if err != nil {
 				return execution, err
 			}
@@ -215,6 +234,11 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	}
 
 	taskConfig := &TaskConfig{}
+
+	pluginEnvVars, dispatchErr := opts.PluginDispatcher.RetrieveUserContainerEnvVars(taskPluginInfo)
+	if dispatchErr != nil {
+		glog.Errorf("failed to retrieve plugin-level user container env vars: %s", dispatchErr)
+	}
 
 	podSpec, err := initPodSpecPatch(
 		opts.Container,
@@ -235,6 +259,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		opts.MLPipelineServerPort,
 		opts.MLMDServerAddress,
 		opts.MLMDServerPort,
+		pluginEnvVars,
 	)
 	if err != nil {
 		return execution, err

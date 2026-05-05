@@ -27,7 +27,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	_ "github.com/kubeflow/pipelines/backend/src/v2/common/plugins/all"
 
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -72,6 +75,7 @@ type LauncherV2 struct {
 	args          []string
 	options       LauncherV2Options
 	clientManager client_manager.ClientManagerInterface
+	dispatcher    plugins.TaskPluginDispatcher
 }
 
 // Client is the struct to hold the Kubernetes Clientset
@@ -114,6 +118,10 @@ func NewLauncherV2(
 	if err != nil {
 		return nil, err
 	}
+	pluginDispatcher, dispatchErr := plugins.GetPluginDispatcher()
+	if dispatchErr != nil {
+		glog.Errorf("Failed to get plugin dispatcher: %v", dispatchErr)
+	}
 	return &LauncherV2{
 		executionID:   executionID,
 		executorInput: executorInput,
@@ -122,6 +130,7 @@ func NewLauncherV2(
 		args:          cmdArgs[1:],
 		options:       *opts,
 		clientManager: clientManager,
+		dispatcher:    pluginDispatcher,
 	}, nil
 }
 
@@ -200,6 +209,17 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 			}
 		}
 		glog.Infof("publish success.")
+
+		taskPluginInfo := &plugins.TaskInfo{
+			RunStatus:     status.String(),
+			ScalarMetrics: metadata.FormatOutputArtifacts(outputArtifacts),
+			Parameters:    metadata.FormatExecutionParameters(execution),
+		}
+		dispatchErr := l.dispatcher.OnTaskEnd(ctx, taskPluginInfo)
+		if dispatchErr != nil {
+			glog.Errorf("failed to dispatch task end: %v", dispatchErr)
+		}
+
 		// At the end of the current task, we check the statuses of all tasks in
 		// the current DAG and update the DAG's status accordingly.
 		dag, err := l.clientManager.MetadataClient().GetDAG(ctx, execution.GetExecution().CustomProperties["parent_dag_id"].GetIntValue())

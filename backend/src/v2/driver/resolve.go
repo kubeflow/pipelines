@@ -123,6 +123,14 @@ func resolveInputs(
 	if err != nil {
 		return nil, err
 	}
+	// Retrieve plugin TaskStartResult input parameter set by loop DAG driver, if applicable.
+	if loopPluginStartResult := inputParams[LoopDriverPluginStartResult]; loopPluginStartResult.GetStructValue() != nil {
+		properties := make(map[string]string, len(loopPluginStartResult.GetStructValue().GetFields()))
+		for k, v := range loopPluginStartResult.GetStructValue().GetFields() {
+			properties[k] = v.GetStringValue()
+		}
+		opts.PluginDispatcher.ApplyCustomProperties(properties)
+	}
 	inputArtifacts, err := mlmd.GetInputArtifactsByExecutionID(ctx, dag.Execution.GetID())
 	if err != nil {
 		return nil, err

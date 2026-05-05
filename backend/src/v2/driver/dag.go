@@ -21,8 +21,10 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -107,6 +109,48 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	ecfg.IterationIndex = iterationIndex
 	ecfg.NotTriggered = !execution.WillTrigger()
 
+	isIterator := opts.Task.GetParameterIterator() != nil && opts.IterationIndex < 0
+
+	// Dispatch a plugin task for each loop DAG driver, but not the loop's individual iteration DAG drivers.
+	var taskPluginInfo *plugins.TaskInfo
+	if execution.WillTrigger() && isIterator {
+		taskPluginInfo = &plugins.TaskInfo{Name: opts.TaskName}
+		pluginStartResult, dispatchErr := opts.PluginDispatcher.OnTaskStart(ctx, taskPluginInfo)
+		if dispatchErr != nil {
+			glog.Errorf("Failed to dispatch task start: %v", dispatchErr)
+		} else if pluginStartResult != nil {
+			taskPluginInfo.TaskStartResult = pluginStartResult
+			ecfg.PluginCustomProperties = pluginStartResult.CustomProperties
+
+			// Store plugin start result custom properties as an input parameter to propagate through iteration DAGs to container drivers.\
+			if len(pluginStartResult.CustomProperties) > 0 {
+				fields := make(map[string]*structpb.Value, len(pluginStartResult.CustomProperties))
+				for k, v := range pluginStartResult.CustomProperties {
+					fields[k] = structpb.NewStringValue(v)
+				}
+				executorInput.Inputs.ParameterValues[LoopDriverPluginStartResult] =
+					structpb.NewStructValue(&structpb.Struct{
+						Fields: fields,
+					})
+			}
+		}
+	}
+
+	var createdExecution *metadata.Execution
+	defer func() {
+		if execution.WillTrigger() && isIterator {
+			status := pb.Execution_COMPLETE
+			if err != nil {
+				status = pb.Execution_FAILED
+			}
+			taskPluginInfo.UpdateTaskInfoWithMetadata(status.String(), nil, metadata.FormatExecutionParameters(createdExecution))
+			dispatchErr := opts.PluginDispatcher.OnTaskEnd(ctx, taskPluginInfo)
+			if dispatchErr != nil {
+				glog.Errorf("failed to dispatch task end: %v", dispatchErr)
+			}
+		}
+	}()
+
 	// Handle writing output parameters to MLMD.
 	ecfg.OutputParameters = opts.Component.GetDag().GetOutputs().GetParameters()
 	glog.V(4).Info("outputParameters: ", ecfg.OutputParameters)
@@ -122,7 +166,6 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	if opts.Task.GetArtifactIterator() != nil {
 		return execution, fmt.Errorf("ArtifactIterator is not implemented")
 	}
-	isIterator := opts.Task.GetParameterIterator() != nil && opts.IterationIndex < 0
 	// Fan out iterations
 	if execution.WillTrigger() && isIterator {
 		iterator := opts.Task.GetParameterIterator()
@@ -170,7 +213,7 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	glog.V(4).Infof("dag: %v", dag)
 
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
-	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
+	createdExecution, err = mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
 		return execution, err
 	}
