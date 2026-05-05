@@ -16,6 +16,7 @@ package util
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	argoclient "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
@@ -26,6 +27,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -76,6 +78,21 @@ type ExecutionInterface interface {
 	List(ctx context.Context, opts v1.ListOptions) (*ExecutionSpecList, error)
 	// Path an ExecutionSpec
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (ExecutionSpec, error)
+}
+
+// NewExecutionClientFromConfig creates an ExecutionClient from an existing rest.Config.
+// This ensures the client uses the same configuration as other clients in the process.
+func NewExecutionClientFromConfig(execType ExecutionType, cfg *rest.Config) (ExecutionClient, error) {
+	switch execType {
+	case ArgoWorkflow:
+		argoProjClient, err := argoclient.NewForConfig(cfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Argo client: %w", err)
+		}
+		return &WorkflowClient{client: argoProjClient}, nil
+	default:
+		return nil, fmt.Errorf("not supported type of Execution: %s", execType)
+	}
 }
 
 // Create an ExecutionClient for the specified ExecutionType
