@@ -123,6 +123,7 @@ class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
                 onClick={() => this.setState({ fullscreenDialogOpen: true })}
                 style={{ padding: 4, minHeight: 0, minWidth: 0 }}
                 className='popOutButton'
+                data-testid='pop-out-button'
               >
                 <Tooltip title='Pop out'>
                   <PopOutIcon classes={{ root: css.popoutIcon }} />
@@ -142,6 +143,7 @@ class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
             <Button
               onClick={() => this.setState({ fullscreenDialogOpen: false })}
               className={classes(css.fullscreenCloseBtn, 'fullscreenCloseButton')}
+              data-testid='fullscreen-close-button'
             >
               <CloseIcon />
             </Button>

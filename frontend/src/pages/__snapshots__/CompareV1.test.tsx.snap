@@ -638,6 +638,7 @@ exports[`CompareV1 > creates a map of viewers 1`] = `
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -789,6 +790,7 @@ exports[`CompareV1 > creates a map of viewers 1`] = `
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -1607,6 +1609,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -1719,6 +1722,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -1831,6 +1835,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -1982,6 +1987,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -2268,6 +2274,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -2523,6 +2530,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -6263,6 +6271,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -6375,6 +6384,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -6487,6 +6497,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -6638,6 +6649,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -6840,6 +6852,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"

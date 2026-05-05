@@ -18,6 +18,7 @@ exports[`PlotCard > renders a confusion matrix plot card 1`] = `
         <div>
           <button
             class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+            data-testid="pop-out-button"
             style="padding: 4px; min-height: 0; min-width: 0;"
             tabindex="0"
             type="button"

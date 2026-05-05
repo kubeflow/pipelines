@@ -34,13 +34,13 @@ describe('NameWithTooltip', () => {
   });
 
   it('renders empty string when both display_name and name are missing', () => {
-    const { container } = render(<NameWithTooltip value={{}} id='test-id' />);
-    expect(container.querySelector('span')?.textContent).toBe('');
+    render(<NameWithTooltip value={{}} id='test-id' />);
+    expect(screen.queryByText(/\S/)).toBeNull();
   });
 
   it('renders empty string when value is undefined', () => {
-    const { container } = render(<NameWithTooltip value={undefined} id='test-id' />);
-    expect(container.querySelector('span')?.textContent).toBe('');
+    render(<NameWithTooltip value={undefined} id='test-id' />);
+    expect(screen.queryByText(/\S/)).toBeNull();
   });
 
   it('prefers display_name over name', () => {

@@ -272,6 +272,7 @@ export class Graph extends React.Component<GraphProps, GraphState> {
                 'graphNode',
                 node.id === this.props.selectedNodeId ? css.nodeSelected : '',
               )}
+              data-testid={`graph-node-${node.id}`}
               key={i}
               onMouseEnter={() => {
                 if (!this.props.selectedNodeId) {
