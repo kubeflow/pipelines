@@ -145,6 +145,17 @@ def build_task_spec_for_task(
         if val and pipeline_channel.extract_pipeline_channels_from_any(val):
             task.inputs['base_image'] = val
 
+    if task.container_spec and task.container_spec.env:
+        for env_name, env_val in task.container_spec.env.items():
+            if env_val and pipeline_channel.extract_pipeline_channels_from_any(
+                    env_val):
+                if env_name in task.inputs:
+                    raise ValueError(
+                        f'Environment variable name "{env_name}" collides '
+                        f'with an existing task input. Please rename either '
+                        f'the input or the environment variable.')
+                task.inputs[env_name] = env_val
+
     for input_name, input_value in task.inputs.items():
         # Since LoopParameterArgument and LoopArtifactArgument and LoopArgumentVariable are narrower
         # types than PipelineParameterChannel, start with them.
@@ -729,9 +740,7 @@ def build_container_spec_for_task(
         compiler injected input name."""
         pipeline_channels = (
             pipeline_channel.extract_pipeline_channels_from_any(input_value))
-        if pipeline_channels:
-            assert len(pipeline_channels) == 1
-            channel = pipeline_channels[0]
+        for channel in pipeline_channels:
             additional_input_name = (
                 compiler_utils.additional_input_name_for_pipeline_channel(
                     channel))
@@ -748,7 +757,7 @@ def build_container_spec_for_task(
             args=task.container_spec.args,
             env=[
                 pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
-                .EnvVar(name=name, value=value)
+                .EnvVar(name=name, value=convert_to_placeholder(value))
                 for name, value in (task.container_spec.env or {}).items()
             ]))
 
