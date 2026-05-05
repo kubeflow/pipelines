@@ -12,9 +12,6 @@ components:
     inputDefinitions:
       parameters:
         access_modes:
-<<<<<<< HEAD
-          description: Values for ``PersistentVolumeClaim.spec.accessModes``.
-=======
           description: 'AccessModes to request for the provisioned PVC. May
 
             be one or more of ``''ReadWriteOnce''``, ``''ReadOnlyMany''``,
@@ -24,7 +21,6 @@ components:
             `PersistentVolumeClaim.spec.accessModes
 
             <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes>`_.'
->>>>>>> 98bf6e441 (chore: fix py3.9 linting/formatter, add compiled wf test)
           parameterType: LIST
         annotations:
           description: 'Annotations for the PVC''s metadata. Corresponds to
@@ -148,7 +144,7 @@ deploymentSpec:
           \ *\n\ndef consumer() -> str:\n    with open('/data/file.txt', 'r') as file:\n\
           \        content = file.read()\n    print(content)\n    return content\n\
           \n"
-        image: registry.access.redhat.com/ubi9/python-311:latest
+        image: python:3.11
     exec-createpvc:
       container:
         image: argostub/createpvc
@@ -185,7 +181,7 @@ deploymentSpec:
           \        file.write('Hello world')\n    with open('/data/file.txt', 'r')\
           \ as file:\n        content = file.read()\n    print(content)\n    return\
           \ content\n\n"
-        image: registry.access.redhat.com/ubi9/python-311:latest
+        image: python:3.11
 pipelineInfo:
   name: pipeline-with-volume
 root:
