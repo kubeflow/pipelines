@@ -17,6 +17,7 @@ package util
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -43,7 +44,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/json"
+	k8sjson "k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/yaml"
 )
@@ -64,7 +65,7 @@ func NewWorkflowFromBytes(bytes []byte) (*Workflow, error) {
 
 func NewWorkflowFromBytesJSON(bytes []byte) (*Workflow, error) {
 	var workflow workflowapi.Workflow
-	err := json.Unmarshal(bytes, &workflow)
+	err := k8sjson.Unmarshal(bytes, &workflow)
 	if err != nil {
 		return nil, NewInvalidInputErrorWithDetails(err, "Failed to unmarshal the inputs")
 	}
@@ -73,7 +74,7 @@ func NewWorkflowFromBytesJSON(bytes []byte) (*Workflow, error) {
 
 func NewWorkflowFromScheduleWorkflowSpecBytesJSON(bytes []byte) (*Workflow, error) {
 	var workflow workflowapi.Workflow
-	err := json.Unmarshal(bytes, &workflow)
+	err := k8sjson.Unmarshal(bytes, &workflow)
 	if err != nil {
 		return nil, NewInvalidInputErrorWithDetails(err, "Failed to unmarshal the inputs into workflow")
 	}
@@ -557,10 +558,35 @@ func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, r
 // newer snakecase so we can continue to support camelcase Metric Values for
 // backwards compatibility for the end user.
 func transformJSONForBackwardCompatibility(jsonStr string) (string, error) {
-	replacer := strings.NewReplacer(
-		`"numberValue":`, `"number_value":`,
-	)
-	return replacer.Replace(jsonStr), nil
+	var raw map[string]interface{}
+
+	if err := json.Unmarshal([]byte(jsonStr), &raw); err != nil {
+		return "", err
+	}
+
+	metrics, ok := raw["metrics"].([]interface{})
+	if !ok {
+		return jsonStr, nil
+	}
+
+	for _, m := range metrics {
+		metricMap, ok := m.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		if val, exists := metricMap["numberValue"]; exists {
+			metricMap["number_value"] = val
+			delete(metricMap, "numberValue")
+		}
+	}
+
+	updatedJSON, err := json.Marshal(raw)
+	if err != nil {
+		return "", err
+	}
+
+	return string(updatedJSON), nil
 }
 
 func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus,
@@ -615,7 +641,7 @@ func (w *Workflow) HasMetrics() bool {
 }
 
 func (w *Workflow) ToStringForStore() string {
-	workflow, err := json.Marshal(w.Workflow)
+	workflow, err := k8sjson.Marshal(w.Workflow)
 	if err != nil {
 		glog.Errorf("Could not marshal the workflow: %v", w.Workflow)
 		return ""
@@ -711,7 +737,7 @@ func (w *Workflow) SetPodMetadataLabels(key string, value string) {
 func (w *Workflow) ReplaceUID(id string) error {
 	newWorkflowString := strings.ReplaceAll(w.ToStringForStore(), "{{workflow.uid}}", id)
 	var workflow *workflowapi.Workflow
-	if err := json.Unmarshal([]byte(newWorkflowString), &workflow); err != nil {
+	if err := k8sjson.Unmarshal([]byte(newWorkflowString), &workflow); err != nil {
 		return NewInternalServerError(err,
 			"Failed to unmarshal workflow spec manifest. Workflow: %s", w.ToStringForStore())
 	}
@@ -796,7 +822,7 @@ func (w *Workflow) CanRetry() error {
 
 // TODO: merge with ToStringForStore()
 func (w *Workflow) ToStringForSchedule() string {
-	workflow, err := json.Marshal(w.Workflow)
+	workflow, err := k8sjson.Marshal(w.Workflow)
 	if err != nil {
 		glog.Errorf("Could not marshal the workflow: %v", w.Workflow)
 		return ""
