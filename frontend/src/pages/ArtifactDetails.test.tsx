@@ -181,6 +181,7 @@ describe('ArtifactDetails', () => {
         }),
       );
     });
+    expect(screen.queryByRole('progressbar')).toBeNull();
   });
 
   it('shows page error banner when multiple artifacts found for the given ID', async () => {
@@ -213,6 +214,7 @@ describe('ArtifactDetails', () => {
         }),
       );
     });
+    expect(screen.queryByRole('progressbar')).toBeNull();
   });
 
   it('shows fallback error message when a non-service error with no message is thrown', async () => {
@@ -228,6 +230,7 @@ describe('ArtifactDetails', () => {
         }),
       );
     });
+    expect(screen.queryByRole('progressbar')).toBeNull();
   });
 
   it('shows extracted error message when a non-service error with text() is thrown', async () => {

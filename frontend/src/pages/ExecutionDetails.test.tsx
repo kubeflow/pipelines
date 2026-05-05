@@ -139,6 +139,7 @@ describe('ExecutionDetailsContent', () => {
   let getExecutionTypesByIDSpy: Mock;
   let getArtifactTypesSpy: Mock;
   let getArtifactsByIDSpy: Mock;
+  let getLinkedArtifactsByEventsSpy: ReturnType<typeof vi.spyOn>;
   let getContextByExecutionSpy: ReturnType<typeof vi.spyOn>;
   let onErrorSpy: Mock;
   let onTitleUpdateSpy: Mock;
@@ -157,6 +158,7 @@ describe('ExecutionDetailsContent', () => {
     );
     getArtifactTypesSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes');
     getArtifactsByIDSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID');
+    getLinkedArtifactsByEventsSpy = vi.spyOn(MlmdUtils, 'getLinkedArtifactsByEvents');
     getContextByExecutionSpy = vi.spyOn(MlmdUtils, 'getContextByExecution');
 
     getArtifactTypesSpy.mockResolvedValue(new GetArtifactTypesResponse());
@@ -229,6 +231,7 @@ describe('ExecutionDetailsContent', () => {
         expect.any(Function),
       );
     });
+    expect(screen.queryByRole('progressbar')).toBeNull();
   });
 
   it('shows page error when multiple executions found', async () => {
@@ -301,6 +304,18 @@ describe('ExecutionDetailsContent', () => {
     });
   });
 
+  it('removes spinner after load fails with a ServiceError', async () => {
+    getExecutionsByIDSpy.mockRejectedValue({ message: 'GRPC unavailable', code: 14 });
+    getEventsByExecutionIDsSpy.mockRejectedValue({ message: 'GRPC unavailable', code: 14 });
+
+    renderContent();
+
+    await waitFor(() => {
+      expect(onErrorSpy).toHaveBeenCalled();
+    });
+    expect(screen.queryByRole('progressbar')).toBeNull();
+  });
+
   it('shows fallback error when load fails with a non-service error', async () => {
     getExecutionsByIDSpy.mockRejectedValue(undefined);
     getEventsByExecutionIDsSpy.mockRejectedValue(undefined);
@@ -315,6 +330,18 @@ describe('ExecutionDetailsContent', () => {
         expect.any(Function),
       );
     });
+  });
+
+  it('removes spinner after load fails with a non-service error', async () => {
+    getExecutionsByIDSpy.mockRejectedValue(undefined);
+    getEventsByExecutionIDsSpy.mockRejectedValue(undefined);
+
+    renderContent();
+
+    await waitFor(() => {
+      expect(onErrorSpy).toHaveBeenCalled();
+    });
+    expect(screen.queryByRole('progressbar')).toBeNull();
   });
 
   it('shows warning when artifact types fetch fails', async () => {
@@ -390,6 +417,19 @@ describe('ExecutionDetailsContent', () => {
       const outputsSection = screen.getByText('Outputs').closest('section')!;
       const outputRows = within(outputsSection as HTMLElement).getAllByRole('row');
       expect(outputRows).toHaveLength(2); // 1 header + 1 data row
+    });
+  });
+
+  it('shows error message in IO section when linked artifacts fetch fails', async () => {
+    getLinkedArtifactsByEventsSpy.mockRejectedValue(new Error('MLMD unavailable'));
+    mockLoadWithEvents([buildEvent(Event.Type.INPUT, 10)]);
+
+    renderContent();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Failed to load artifact details for this section.'),
+      ).toBeInTheDocument();
     });
   });
 
