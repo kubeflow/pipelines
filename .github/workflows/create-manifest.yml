@@ -1,0 +1,153 @@
+name: Create Multi-Arch Manifest
+on:
+  workflow_call:
+    secrets:
+      GITHUBTOKEN:
+        required: true    
+    inputs:
+      target_tag:
+        type: string
+        description: 'Target Image Tag'
+        required: true
+      app_to_build:
+        type: string
+        description: 'Provide the app name'
+        required: true
+      set_latest:
+        type: string
+        default: 'true'
+        description: 'Set latest tag'
+        required: false
+      add_sha_tag:
+        type: string
+        default: 'true'
+        required: false
+      sha_tag:
+        type: string
+        required: false
+
+env:
+  TARGET_IMAGE_TAG: ${{ inputs.target_tag }}
+  IMAGE_REGISTRY: ghcr.io
+  IMAGE_ORG: ${{ github.repository_owner }}
+  APP_NAME: ${{ inputs.app_to_build }}
+  SET_LATEST: ${{ inputs.set_latest }}
+  ADD_SHA_TAG: ${{ inputs.add_sha_tag }}
+  SHA_TAG: ${{ inputs.sha_tag }}
+
+jobs:
+  create-manifest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-${{ env.APP_NAME }}-*
+          merge-multiple: true
+          
+
+      - name: Validate inputs and artifacts
+        run: |
+          # Validate target_tag format
+          if ! [[ "$TARGET_IMAGE_TAG" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+            echo "ERROR: Invalid target_tag format: $TARGET_IMAGE_TAG"
+            exit 1
+          fi
+          
+          # Validate digest artifacts exist
+          if [ ! -d /tmp/digests ] || [ -z "$(ls -A /tmp/digests)" ]; then
+            echo "ERROR: No digest artifacts found for ${APP_NAME}"
+            echo "This workflow must run after build-and-push.yml uploads digests"
+            exit 1
+          fi
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.IMAGE_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUBTOKEN }}
+
+      - name: Set up Docker Buildx
+        id: set_buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create and Push Manifest
+        id: create_manifest
+        working-directory: /tmp/digests
+        run: |
+          set -eo pipefail
+
+          IMAGE="${IMAGE_REGISTRY}/${IMAGE_ORG}/${APP_NAME}"
+          
+          echo "Building sources from digests..."
+          SOURCES=""
+          for digest in *; do
+            # Only accept filenames that look like a 64-character hexadecimal SHA-256 digest
+            if [[ "$digest" =~ ^[a-fA-F0-9]{64}$ ]]; then
+              SOURCES+="${IMAGE}@sha256:${digest} "
+            else
+              echo "Skipping invalid digest file: ${digest}" >&2
+            fi
+          done
+
+          # Validate we have sources
+          if [ -z "$SOURCES" ]; then
+            echo "ERROR: No valid digests found in /tmp/digests"
+            ls -la /tmp/digests
+            exit 1
+          fi
+          
+          # Prepare tags to create manifest for the image.
+          # Always include the target tag, and conditionally include latest and SHA tag based on inputs.
+          TAGS=("${TARGET_IMAGE_TAG}")
+          if [ "${SET_LATEST}" = "true" ]; then
+            TAGS+=("latest")
+          fi
+          if [ "${ADD_SHA_TAG}" = "true" ] && [ -n "${SHA_TAG}" ]; then
+            TAGS+=("${SHA_TAG}")
+          fi
+          
+          # Collecting manifest digest after create and push manifest for each tag
+          MANIFEST_DIGEST=""
+          for tag in "${TAGS[@]}"; do
+            metadata_file="/tmp/${APP_NAME}-${tag}-metadata.json"
+            echo "Creating manifest for ${IMAGE}:${tag} with sources: ${SOURCES}"
+            docker buildx imagetools create \
+              -t "${IMAGE}:${tag}" \
+              --metadata-file "${metadata_file}" \
+              ${SOURCES}
+            digest="$(jq -r '."containerimage.descriptor".digest // empty' "${metadata_file}")"
+            if [ -z "${digest}" ]; then
+              echo "ERROR: No manifest digest found in ${metadata_file} for ${IMAGE}:${tag}"
+              cat "${metadata_file}"
+              exit 1
+            fi
+            if [ -z "${MANIFEST_DIGEST}" ]; then
+              MANIFEST_DIGEST="${digest}"
+              echo "manifest_digest=${MANIFEST_DIGEST}" >> "$GITHUB_OUTPUT"
+            elif [ "${MANIFEST_DIGEST}" != "${digest}" ]; then
+              echo "ERROR: Manifest digest mismatch across tags"
+              echo "First digest: ${MANIFEST_DIGEST}"
+              echo "${tag} digest: ${digest}"
+              exit 1
+            fi
+          done
+          # Log summary
+          echo "## Manifest Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Image: ${IMAGE}" >> $GITHUB_STEP_SUMMARY
+          echo "- Tags: ${TAGS[*]}" >> $GITHUB_STEP_SUMMARY
+          echo "- Manifest digest: ${MANIFEST_DIGEST}" >> $GITHUB_STEP_SUMMARY
+          echo "- Sources: ${SOURCES}" >> $GITHUB_STEP_SUMMARY
+      - name: Generate manifest artifact attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ env.APP_NAME }}
+          subject-digest: ${{ steps.create_manifest.outputs.manifest_digest }}
