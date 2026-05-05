@@ -60,8 +60,7 @@ func (h *MLflowHandler) OnTaskStart(ctx context.Context, taskInfo *plugins.TaskI
 	}
 
 	parentRunTag := commonmlflow.Tag{Key: commonmlflow.ParentRunTagKey, Value: h.runtimeCfg.ParentRunID}
-	parentRunTagUI := commonmlflow.Tag{Key: commonmlflow.ParentRunUIFormatTagKey, Value: h.runtimeCfg.ParentRunID}
-	nestedRunID, err := requestCtx.Client.CreateRun(ctx, h.runtimeCfg.ExperimentID, taskInfo.Name, []commonmlflow.Tag{parentRunTagUI, parentRunTag})
+	nestedRunID, err := requestCtx.Client.CreateRun(ctx, h.runtimeCfg.ExperimentID, taskInfo.Name, []commonmlflow.Tag{parentRunTag})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create task-level MLflow run: %v", err)
 	}
