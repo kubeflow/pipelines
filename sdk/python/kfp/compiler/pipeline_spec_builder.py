@@ -417,6 +417,11 @@ def _build_component_spec_from_component_spec_structure(
             if input_spec.description:
                 component_spec.input_definitions.parameters[
                     input_name].description = input_spec.description
+            if input_spec.literals:
+                for literal_value in input_spec.literals:
+                    component_spec.input_definitions.parameters[
+                        input_name].literals.append(
+                            to_protobuf_value(literal_value))
 
         else:
             component_spec.input_definitions.artifacts[
