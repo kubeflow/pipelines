@@ -99,6 +99,31 @@ func (f *Filter) UnmarshalJSON(b []byte) error {
 	f.in = ffm.IN
 	f.substring = ffm.SUBSTRING
 
+	// json.Unmarshal decodes JSON arrays into []interface{}.
+	// These codes normalize them back to []string when possible,
+	// so that AddToSelect always sees []string and applies LOWER() correctly.
+	for k, vs := range f.in {
+		for i, v := range vs {
+			iface, ok := v.([]interface{})
+			if !ok {
+				continue
+			}
+			strs := make([]string, len(iface))
+			allStrings := true
+			for j, elem := range iface {
+				s, isStr := elem.(string)
+				if !isStr {
+					allStrings = false
+					break
+				}
+				strs[j] = s
+			}
+			if allStrings {
+				f.in[k][i] = strs
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -241,7 +266,7 @@ func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) 
 	for k := range f.eq {
 		fieldVal := fmt.Sprint(getField(k))
 		for _, v := range f.eq[k] {
-			if fieldVal != fmt.Sprint(v) {
+			if !strings.EqualFold(fieldVal, fmt.Sprint(v)) {
 				return false, nil
 			}
 		}
@@ -251,7 +276,7 @@ func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) 
 	for k := range f.neq {
 		fieldVal := fmt.Sprint(getField(k))
 		for _, v := range f.neq[k] {
-			if fieldVal == fmt.Sprint(v) {
+			if strings.EqualFold(fieldVal, fmt.Sprint(v)) {
 				return false, nil
 			}
 		}
@@ -283,7 +308,7 @@ func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) 
 				return false, nil
 			}
 			for i := 0; i < rv.Len(); i++ {
-				if fieldVal == fmt.Sprint(rv.Index(i).Interface()) {
+				if strings.EqualFold(fieldVal, fmt.Sprint(rv.Index(i).Interface())) {
 					inOne = true
 					break
 				}
@@ -298,7 +323,7 @@ func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) 
 	for k := range f.substring {
 		fieldVal := fmt.Sprint(getField(k))
 		for _, v := range f.substring[k] {
-			if !strings.Contains(fieldVal, fmt.Sprint(v)) {
+			if !strings.Contains(strings.ToLower(fieldVal), strings.ToLower(fmt.Sprint(v))) {
 				return false, nil
 			}
 		}
@@ -308,67 +333,115 @@ func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) 
 	return true, nil
 }
 
+// QualifyIdentifier quotes identifiers correctly when they are qualified with dots,
+// e.g. "experiments.Name" -> `"experiments"."Name"` (or the dialect's quote style).
+// If there is no dot, it simply quotes the key.
+func QualifyIdentifier(q func(string) string, key string) string {
+	if q == nil {
+		return key
+	}
+	if strings.Contains(key, ".") {
+		parts := strings.Split(key, ".")
+		for i := range parts {
+			parts[i] = q(parts[i])
+		}
+		return strings.Join(parts, ".")
+	}
+	return q(key)
+}
+
 // AddToSelect builds a WHERE clause from the Filter f, adds it to the supplied
 // SelectBuilder object and returns it for use in SQL queries.
-func (f *Filter) AddToSelect(sb squirrel.SelectBuilder) squirrel.SelectBuilder {
-	for k := range f.eq {
-		for _, v := range f.eq[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.Eq(m))
+func (f *Filter) AddToSelect(sb squirrel.SelectBuilder, quote func(string) string) squirrel.SelectBuilder {
+	if quote == nil {
+		quote = func(s string) string { return s }
+	}
+
+	var andExprs []squirrel.Sqlizer
+
+	for k, vs := range f.eq {
+		for _, v := range vs {
+			if s, ok := v.(string); ok {
+				col := QualifyIdentifier(quote, k)
+				andExprs = append(andExprs, squirrel.Expr(
+					fmt.Sprintf("LOWER(%s) = LOWER(?)", col), s,
+				))
+			} else {
+				andExprs = append(andExprs, squirrel.Eq{QualifyIdentifier(quote, k): v})
+			}
 		}
 	}
 
-	for k := range f.neq {
-		for _, v := range f.neq[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.NotEq(m))
+	for k, vs := range f.neq {
+		for _, v := range vs {
+			if s, ok := v.(string); ok {
+				col := QualifyIdentifier(quote, k)
+				andExprs = append(andExprs, squirrel.Expr(
+					fmt.Sprintf("LOWER(%s) <> LOWER(?)", col), s,
+				))
+			} else {
+				andExprs = append(andExprs, squirrel.NotEq{QualifyIdentifier(quote, k): v})
+			}
 		}
 	}
 
-	for k := range f.gt {
-		for _, v := range f.gt[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.Gt(m))
+	for k, vs := range f.gt {
+		for _, v := range vs {
+			andExprs = append(andExprs, squirrel.Gt{QualifyIdentifier(quote, k): v})
 		}
 	}
 
-	for k := range f.gte {
-		for _, v := range f.gte[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.GtOrEq(m))
+	for k, vs := range f.gte {
+		for _, v := range vs {
+			andExprs = append(andExprs, squirrel.GtOrEq{QualifyIdentifier(quote, k): v})
 		}
 	}
 
-	for k := range f.lt {
-		for _, v := range f.lt[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.Lt(m))
+	for k, vs := range f.lt {
+		for _, v := range vs {
+			andExprs = append(andExprs, squirrel.Lt{QualifyIdentifier(quote, k): v})
 		}
 	}
 
-	for k := range f.lte {
-		for _, v := range f.lte[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.LtOrEq(m))
+	for k, vs := range f.lte {
+		for _, v := range vs {
+			andExprs = append(andExprs, squirrel.LtOrEq{QualifyIdentifier(quote, k): v})
 		}
 	}
 
-	// In
-	for k := range f.in {
-		for _, v := range f.in[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.Eq(m))
+	for k, vs := range f.in {
+		for _, v := range vs {
+			switch ss := v.(type) {
+			case []string:
+				col := QualifyIdentifier(quote, k)
+				placeholders := make([]string, len(ss))
+				args := make([]interface{}, len(ss))
+				for i, s := range ss {
+					placeholders[i] = "LOWER(?)"
+					args[i] = s
+				}
+				andExprs = append(andExprs, squirrel.Expr(
+					fmt.Sprintf("LOWER(%s) IN (%s)", col, strings.Join(placeholders, ", ")),
+					args...,
+				))
+			default:
+				andExprs = append(andExprs, squirrel.Eq{QualifyIdentifier(quote, k): v})
+			}
 		}
 	}
 
-	for k := range f.substring {
-		// Modify each string value v so it looks like %v% so we are doing a substring
-		// match with the LIKE operator.
-		for _, v := range f.substring[k] {
-			like := make(squirrel.Like)
-			like[k] = fmt.Sprintf("%%%s%%", v)
-			sb = sb.Where(like)
+	for k, vs := range f.substring {
+		for _, v := range vs {
+			col := QualifyIdentifier(quote, k)
+			andExprs = append(andExprs, squirrel.Expr(
+				fmt.Sprintf("LOWER(%s) LIKE LOWER(?)", col),
+				fmt.Sprintf("%%%s%%", v),
+			))
 		}
+	}
+
+	if len(andExprs) > 0 {
+		return sb.Where(squirrel.And(andExprs))
 	}
 
 	return sb

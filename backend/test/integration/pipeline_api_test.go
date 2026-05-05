@@ -178,8 +178,15 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	require.Nil(t, err)
 	assert.Equal(t, 2, len(listFirstPagePipelines))
 	assert.Equal(t, 5, totalSize)
-	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelines[1].Name)
-	assert.Equal(t, "arguments_parameters.zip", listFirstPagePipelines[0].Name)
+	// MySQL: _ sorts before - (ascending), so zip comes first at index 0
+	// PostgreSQL: - sorts before _ (en_US.utf8), so yaml comes first at index 0
+	if *runPostgreSQLTests {
+		assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelines[0].Name)
+		assert.Equal(t, "arguments_parameters.zip", listFirstPagePipelines[1].Name)
+	} else {
+		assert.Equal(t, "arguments_parameters.zip", listFirstPagePipelines[0].Name)
+		assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelines[1].Name)
+	}
 	assert.NotEmpty(t, nextPageToken)
 
 	listSecondPagePipelines, totalSize, nextPageToken, err := s.pipelineClient.List(
@@ -235,8 +242,15 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	require.Nil(t, err)
 	assert.Equal(t, 2, len(listSecondPagePipelines))
 	assert.Equal(t, 5, totalSize)
-	assert.Equal(t, "arguments_parameters.zip", listSecondPagePipelines[1].Name)
-	assert.Equal(t, "arguments-parameters.yaml", listSecondPagePipelines[0].Name)
+	// MySQL: descending order puts yaml at index 0, zip at index 1
+	// PostgreSQL: descending order puts zip at index 0, yaml at index 1
+	if *runPostgreSQLTests {
+		assert.Equal(t, "arguments_parameters.zip", listSecondPagePipelines[0].Name)
+		assert.Equal(t, "arguments-parameters.yaml", listSecondPagePipelines[1].Name)
+	} else {
+		assert.Equal(t, "arguments-parameters.yaml", listSecondPagePipelines[0].Name)
+		assert.Equal(t, "arguments_parameters.zip", listSecondPagePipelines[1].Name)
+	}
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- Verify get pipeline works ---------- */

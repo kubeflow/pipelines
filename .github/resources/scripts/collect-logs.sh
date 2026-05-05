@@ -52,7 +52,36 @@ function display_pod_info {
             kubectl describe pod "${POD_NAME}" -n "${NAMESPACE}" | grep -A 100 Events || echo "No events found for pod ${POD_NAME}."
 
             echo "----- LOGS -----"
-            kubectl logs "${POD_NAME}" -n "${NAMESPACE}" || echo "No logs found for pod ${POD_NAME}."
+
+            # Get all containers (init + regular) from the pod
+            INIT_CONTAINERS=$(kubectl get pod "${POD_NAME}" -n "${NAMESPACE}" -o jsonpath='{.spec.initContainers[*].name}' 2>/dev/null || echo "")
+            CONTAINERS=$(kubectl get pod "${POD_NAME}" -n "${NAMESPACE}" -o jsonpath='{.spec.containers[*].name}' 2>/dev/null || echo "")
+
+            # Collect logs from init containers
+            if [[ -n "${INIT_CONTAINERS}" ]]; then
+                for CONTAINER in ${INIT_CONTAINERS}; do
+                    echo "----- Init Container: ${CONTAINER} (current) -----"
+                    kubectl logs "${POD_NAME}" -c "${CONTAINER}" -n "${NAMESPACE}" 2>&1 || echo "No current logs found for init container ${CONTAINER}."
+
+                    echo "----- Init Container: ${CONTAINER} (previous) -----"
+                    kubectl logs "${POD_NAME}" -c "${CONTAINER}" -n "${NAMESPACE}" --previous 2>&1 || echo "No previous logs found for init container ${CONTAINER}."
+                done
+            fi
+
+            # Collect logs from regular containers
+            if [[ -n "${CONTAINERS}" ]]; then
+                for CONTAINER in ${CONTAINERS}; do
+                    echo "----- Container: ${CONTAINER} (current) -----"
+                    kubectl logs "${POD_NAME}" -c "${CONTAINER}" -n "${NAMESPACE}" 2>&1 || echo "No current logs found for container ${CONTAINER}."
+
+                    echo "----- Container: ${CONTAINER} (previous) -----"
+                    kubectl logs "${POD_NAME}" -c "${CONTAINER}" -n "${NAMESPACE}" --previous 2>&1 || echo "No previous logs found for container ${CONTAINER}."
+                done
+            else
+                # Fallback: try to get logs without specifying container (for single-container pods)
+                echo "----- Default Container -----"
+                kubectl logs "${POD_NAME}" -n "${NAMESPACE}" 2>&1 || echo "No logs found for pod ${POD_NAME}."
+            fi
 
             echo "==========================="
             echo ""
