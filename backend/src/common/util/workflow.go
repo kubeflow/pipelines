@@ -459,12 +459,83 @@ func (w *Workflow) FinishedAt() int64 {
 	return w.Status.FinishedAt.Unix()
 }
 
+// imagePullErrorGracePeriod is the duration to wait before treating an
+// image pull error as terminal. ImagePullBackOff is often transient and
+// Kubernetes will retry for up to ~5 minutes before giving up.
+const imagePullErrorGracePeriod = 5 * time.Minute
+
+// Condition returns the execution phase of the workflow. If the workflow is
+// still in a non-final phase but one of its nodes reports a terminal image
+// pull error that has persisted beyond the grace period, surface this as a
+// failed condition to Kubeflow Pipelines so that the corresponding run can
+// be marked as failed instead of remaining in a misleading running state.
 func (w *Workflow) Condition() exec.ExecutionPhase {
+	if !w.IsInFinalState() && w.hasImagePullError() {
+		return exec.ExecutionFailed
+	}
 	return exec.ExecutionPhase(w.Status.Phase)
 }
 
+// hasImagePullError returns true if any node in the workflow reports a message
+// indicating a terminal container image pull error (for example,
+// ImagePullBackOff or ErrImagePull) that has persisted beyond the grace period.
+// This is based on the node status message surfaced by Argo Workflows, which
+// in turn reflects the underlying Pod's container waiting reason.
+func (w *Workflow) hasImagePullError() bool {
+	if w.Status.Nodes == nil {
+		return false
+	}
+	now := time.Now()
+	for _, node := range w.Status.Nodes {
+		if node.Message == "" {
+			continue
+		}
+		if !strings.Contains(node.Message, "ImagePullBackOff") &&
+			!strings.Contains(node.Message, "ErrImagePull") {
+			continue
+		}
+		// Check if the error has persisted beyond the grace period.
+		// Use the node's start time to determine how long it has been in this state.
+		if node.StartedAt.IsZero() {
+			// If no start time, treat as immediate failure (shouldn't happen in practice)
+			return true
+		}
+		elapsed := now.Sub(node.StartedAt.Time)
+		if elapsed >= imagePullErrorGracePeriod {
+			return true
+		}
+	}
+	return false
+}
+
+// ImagePullErrorMessage returns the image pull error message from any node
+// that reports ImagePullBackOff or ErrImagePull, or empty string if none found.
+// This is used to surface the error to users when a run fails due to image
+// pull issues.
+func (w *Workflow) ImagePullErrorMessage() string {
+	if w.Status.Nodes == nil {
+		return ""
+	}
+	for _, node := range w.Status.Nodes {
+		if node.Message == "" {
+			continue
+		}
+		if strings.Contains(node.Message, "ImagePullBackOff") ||
+			strings.Contains(node.Message, "ErrImagePull") {
+			return fmt.Sprintf("Node %q failed: %s", node.DisplayName, node.Message)
+		}
+	}
+	return ""
+}
+
+// Message returns the workflow status message. If the workflow has an image
+// pull error but no top-level message, returns the image pull error message
+// to surface the error to users.
 func (w *Workflow) Message() string {
-	return w.Status.Message
+	if w.Status.Message != "" {
+		return w.Status.Message
+	}
+	return w.ImagePullErrorMessage()
 }
 
 func (w *Workflow) FinishedAtTime() metav1.Time {
