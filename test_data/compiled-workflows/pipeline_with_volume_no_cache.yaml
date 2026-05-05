@@ -22,10 +22,8 @@ spec:
         consumer() -\u003e str:\n    with open(''/data/file.txt'', ''r'') as file:\n        content
         = file.read()\n    print(content)\n    return content\n\n"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
     - name: components-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767
-      value: '{"executorLabel":"exec-createpvc","inputDefinitions":{"parameters":{"access_modes":{"description":"AccessModes
-        to request for the provisioned PVC. May\nbe one or more of ``''ReadWriteOnce''``,
-        ``''ReadOnlyMany''``,\n``''ReadWriteMany''``, or ``''ReadWriteOncePod''``.
-        Corresponds to\n`PersistentVolumeClaim.spec.accessModes\n\u003chttps://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes\u003e`_.","parameterType":"LIST"},"annotations":{"description":"Annotations
+      value: '{"executorLabel":"exec-createpvc","inputDefinitions":{"parameters":{"access_modes":{"description":"Values
+        for ``PersistentVolumeClaim.spec.accessModes``.","parameterType":"LIST"},"annotations":{"description":"Annotations
         for the PVC''s metadata. Corresponds to\n`PersistentVolumeClaim.metadata.annotations\n\u003chttps://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim\u003e`_.","isOptional":true,"parameterType":"STRUCT"},"data_source":{"description":"Specifies
         the data source for the PVC. This can be used to\ncreate a PVC from a VolumeSnapshot
         or to clone an existing PVC.\nShould be a dictionary with ``''apiGroup''``,
