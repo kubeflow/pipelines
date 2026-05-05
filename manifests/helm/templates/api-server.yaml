@@ -1,0 +1,468 @@
+{{- if .Values.components.apiserver.enabled }}
+# API Server Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ml-pipeline
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+    app: ml-pipeline
+  annotations:
+    {{- include "kubeflow-pipelines.careem-annotations" . | nindent 4 }}
+    {{- if .Values.serviceAccount.annotations }}
+    {{- toYaml .Values.serviceAccount.annotations | nindent 4 }}
+    {{- else if .Values.components.apiserver.serviceAccount.annotations }}
+    {{- toYaml .Values.components.apiserver.serviceAccount.annotations | nindent 4 }}
+    {{- end }}
+
+---
+# API Server Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-pipeline
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+    app: ml-pipeline
+  annotations:
+    {{- include "kubeflow-pipelines.careem-annotations" . | nindent 4 }}
+    prometheus.io/port: "8888"
+    prometheus.io/scheme: http
+    prometheus.io/scrape: "true"
+spec:
+  ports:
+    - name: http
+      port: 8888
+      protocol: TCP
+      targetPort: 8888
+    - name: grpc
+      port: 8887
+      protocol: TCP
+      targetPort: 8887
+    {{- if and .Values.kubernetesNative.enabled .Values.webhook.certManager.enabled }}
+    - name: webhook
+      port: 8443
+      protocol: TCP
+      targetPort: 8443
+    {{- end }}
+  selector:
+    app: ml-pipeline
+
+---
+# API Server Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+    app: ml-pipeline
+  annotations:
+    {{- include "kubeflow-pipelines.careem-annotations" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.components.apiserver.replicas }}
+  selector:
+    matchLabels:
+      app: ml-pipeline
+  template:
+    metadata:
+      labels:
+        app: ml-pipeline
+        {{- include "kubeflow-pipelines.selectorLabels" . | nindent 8 }}
+      annotations:
+        {{- include "kubeflow-pipelines.careem-annotations" . | nindent 8 }}
+        {{- include "kubeflow-pipelines.config-checksum" . | nindent 8 }}
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: ml-pipeline
+      {{- if eq .Values.storage.type "s3" }}
+      initContainers:
+        - name: verify-aws-access
+          image: amazon/aws-cli:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              mkdir -p /tmp/.aws
+              export HOME=/tmp
+              export AWS_SHARED_CREDENTIALS_FILE=/tmp/.aws/credentials
+              export AWS_CONFIG_FILE=/tmp/.aws/config
+              echo "=== AWS Credential Check ==="
+              echo "Checking AWS identity..."
+              aws sts get-caller-identity || echo "ERROR: Failed to get AWS identity"
+              echo ""
+              echo "=== S3 Bucket Check ==="
+              echo "Bucket: {{ .Values.storage.bucket }}"
+              echo "Region: {{ .Values.storage.region }}"
+              echo "Checking if bucket exists and is accessible..."
+              aws s3api head-bucket --bucket {{ .Values.storage.bucket }} --region {{ .Values.storage.region }} || echo "ERROR: Failed to access bucket"
+              echo "Listing bucket contents..."
+              aws s3 ls s3://{{ .Values.storage.bucket }}/ --region {{ .Values.storage.region }} || echo "ERROR: Failed to list bucket"
+          env:
+            - name: AWS_REGION
+              value: {{ .Values.storage.region | quote }}
+            - name: AWS_DEFAULT_REGION
+              value: {{ .Values.storage.region | quote }}
+            - name: AWS_STS_REGIONAL_ENDPOINTS
+              value: "regional"
+            - name: HOME
+              value: /tmp
+            - name: AWS_SHARED_CREDENTIALS_FILE
+              value: /tmp/.aws/credentials
+            - name: AWS_CONFIG_FILE
+              value: /tmp/.aws/config
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+      {{- end }}
+      containers:
+        {{- if eq .Values.storage.type "s3" }}
+        - name: aws-credential-refresher
+          image: amazon/aws-cli:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              export HOME=/tmp
+              export AWS_SHARED_CREDENTIALS_FILE=/tmp/.aws/credentials
+              export AWS_CONFIG_FILE=/tmp/.aws/config
+              mkdir -p /shared/aws-credentials
+              
+              # Function to fetch and write credentials
+              fetch_credentials() {
+                echo "=== Fetching AWS Credentials for MinIO Client ==="
+                
+                # Read the web identity token from file
+                WEB_IDENTITY_TOKEN=$(cat ${AWS_WEB_IDENTITY_TOKEN_FILE})
+                
+                CREDS=$(aws sts assume-role-with-web-identity \
+                  --role-arn ${AWS_ROLE_ARN} \
+                  --role-session-name kubeflow-pipelines \
+                  --web-identity-token "${WEB_IDENTITY_TOKEN}" \
+                  --duration-seconds 3600 \
+                  --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
+                  --output text 2>&1)
+                
+                if [ $? -eq 0 ]; then
+                  ACCESS_KEY=$(echo $CREDS | awk '{print $1}')
+                  SECRET_KEY=$(echo $CREDS | awk '{print $2}')
+                  SESSION_TOKEN=$(echo $CREDS | awk '{print $3}')
+                  
+                  echo "AccessKeyId=${ACCESS_KEY}" > /shared/aws-credentials/accesskey
+                  echo "SecretAccessKey=${SECRET_KEY}" > /shared/aws-credentials/secretkey
+                  echo "SessionToken=${SESSION_TOKEN}" > /shared/aws-credentials/sessiontoken
+                  echo "Region={{ .Values.storage.region }}" > /shared/aws-credentials/region
+                  touch /shared/aws-credentials/.ready
+                  echo "=== Credentials fetched successfully ==="
+                  return 0
+                else
+                  echo "ERROR: Failed to fetch credentials: $CREDS"
+                  return 1
+                fi
+              }
+              
+              # Fetch initial credentials
+              fetch_credentials
+              
+              # Refresh credentials every 50 minutes (before 1-hour expiration)
+              while true; do
+                sleep 3000  # 50 minutes
+                fetch_credentials || echo "Warning: Failed to refresh credentials, will retry"
+              done
+          env:
+            - name: AWS_ROLE_ARN
+              {{- if .Values.components.apiserver.serviceAccount.annotations }}
+              value: {{ index .Values.components.apiserver.serviceAccount.annotations "eks.amazonaws.com/role-arn" | quote }}
+              {{- else if .Values.serviceAccount.annotations }}
+              value: {{ index .Values.serviceAccount.annotations "eks.amazonaws.com/role-arn" | quote }}
+              {{- end }}
+            - name: AWS_WEB_IDENTITY_TOKEN_FILE
+              value: /var/run/secrets/eks.amazonaws.com/serviceaccount/token
+            - name: AWS_REGION
+              value: {{ .Values.storage.region | quote }}
+            - name: AWS_DEFAULT_REGION
+              value: {{ .Values.storage.region | quote }}
+            - name: AWS_STS_REGIONAL_ENDPOINTS
+              value: "regional"
+            - name: HOME
+              value: /tmp
+            - name: AWS_SHARED_CREDENTIALS_FILE
+              value: /tmp/.aws/credentials
+            - name: AWS_CONFIG_FILE
+              value: /tmp/.aws/config
+          volumeMounts:
+            - name: aws-credentials
+              mountPath: /shared/aws-credentials
+            - name: aws-iam-token
+              mountPath: /var/run/secrets/eks.amazonaws.com/serviceaccount
+              readOnly: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 50m
+              memory: 128Mi
+        {{- end }}
+        - name: ml-pipeline-api-server
+          image: {{ .Values.images.registry }}/kfp-api-server:{{ .Values.images.tag }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          {{- if eq .Values.storage.type "s3" }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              # Wait for credentials to be ready
+              echo "Waiting for AWS credentials..."
+              while [ ! -f /shared/aws-credentials/.ready ]; do
+                sleep 1
+              done
+              
+              # Read credentials from shared volume
+              export OBJECTSTORECONFIG_ACCESSKEY=$(cat /shared/aws-credentials/accesskey | cut -d'=' -f2)
+              export OBJECTSTORECONFIG_SECRETACCESSKEY=$(cat /shared/aws-credentials/secretkey | cut -d'=' -f2)
+              SESSION_TOKEN=$(cat /shared/aws-credentials/sessiontoken | cut -d'=' -f2)
+              
+              # Set session token for both MinIO client and AWS SDK
+              export AWS_SESSION_TOKEN="${SESSION_TOKEN}"
+              export OBJECTSTORECONFIG_SESSIONTOKEN="${SESSION_TOKEN}"
+              
+              # Also set standard AWS SDK environment variables as fallback
+              export AWS_ACCESS_KEY_ID="${OBJECTSTORECONFIG_ACCESSKEY}"
+              export AWS_SECRET_ACCESS_KEY="${OBJECTSTORECONFIG_SECRETACCESSKEY}"
+              
+              # Debug: Print credential lengths (not the actual values for security)
+              echo "Access Key length: ${#OBJECTSTORECONFIG_ACCESSKEY}"
+              echo "Secret Key length: ${#OBJECTSTORECONFIG_SECRETACCESSKEY}"
+              echo "Session Token length: ${#AWS_SESSION_TOKEN}"
+              
+              echo "AWS credentials loaded successfully"
+              
+              # Start the main application
+              exec /bin/apiserver \
+                {{- if and .Values.kubernetesNative.enabled .Values.webhook.certManager.enabled }}
+                --config=/config \
+                --sampleconfig=/config/sample_config.json \
+                -logtostderr=true \
+                --webhookTLSCertPath=/etc/webhook/certs/tls.crt \
+                --webhookTLSKeyPath=/etc/webhook/certs/tls.key \
+                --pipelinesStoreKubernetes=true
+                {{- else }}
+                --config=/etc/config/config.json \
+                -logtostderr=true
+                {{- end }}
+          {{- else if and .Values.kubernetesNative.enabled .Values.webhook.certManager.enabled }}
+          command:
+            - "/bin/apiserver"
+          args:
+            - "--config=/config"
+            - "--sampleconfig=/config/sample_config.json"
+            - "-logtostderr=true"
+            - "--webhookTLSCertPath=/etc/webhook/certs/tls.crt"
+            - "--webhookTLSKeyPath=/etc/webhook/certs/tls.key"
+            - "--pipelinesStoreKubernetes=true"
+          {{- else }}
+          args:
+            - "--config=/etc/config/config.json"
+            - "--logtostderr=true"
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 8888
+              protocol: TCP
+            - name: grpc
+              containerPort: 8887
+              protocol: TCP
+            {{- if and .Values.kubernetesNative.enabled .Values.webhook.certManager.enabled }}
+            - name: webhook
+              containerPort: 8443
+              protocol: TCP
+            {{- end }}
+          env:
+            - name: PUBLISH_LOGS
+              value: "true"
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: LOG_LEVEL
+            - name: PIPELINE_LOG_LEVEL
+              value: "1"
+            - name: AUTO_UPDATE_PIPELINE_DEFAULT_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: autoUpdatePipelineDefaultVersion
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OBJECTSTORECONFIG_SECURE
+              value: {{ eq .Values.storage.type "s3" | ternary "true" "false" | quote }}
+            - name: OBJECTSTORECONFIG_BUCKETNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: bucketName
+            {{- if eq .Values.storage.type "s3" }}
+            - name: OBJECTSTORECONFIG_HOST
+              value: "s3.{{ .Values.storage.region }}.amazonaws.com"
+            - name: OBJECTSTORECONFIG_REGION
+              value: {{ .Values.storage.region | quote }}
+            - name: AWS_REGION
+              value: {{ .Values.storage.region | quote }}
+            - name: AWS_DEFAULT_REGION
+              value: {{ .Values.storage.region | quote }}
+            - name: AWS_STS_REGIONAL_ENDPOINTS
+              value: "regional"
+            - name: AWS_SDK_LOAD_CONFIG
+              value: "true"
+            - name: AWS_LOG_LEVEL
+              value: "debug"
+            - name: AWS_ENABLE_ENDPOINT_DISCOVERY
+              value: "true"
+            # Note: OBJECTSTORECONFIG_ACCESSKEY and OBJECTSTORECONFIG_SECRETACCESSKEY are set by the wrapper script
+            # from credentials fetched by the aws-credential-refresher sidecar using IRSA
+            {{- else if or .Values.seaweedfs.enabled (eq .Values.storage.type "minio") }}
+            - name: OBJECTSTORECONFIG_HOST
+              value: "minio-service.{{ include "kubeflow-pipelines.namespace" . }}"
+            - name: OBJECTSTORECONFIG_PORT
+              value: "9000"
+            - name: OBJECTSTORECONFIG_ACCESSKEY
+              valueFrom:
+                secretKeyRef:
+                  name: mlpipeline-minio-artifact
+                  key: accesskey
+            - name: OBJECTSTORECONFIG_SECRETACCESSKEY
+              valueFrom:
+                secretKeyRef:
+                  name: mlpipeline-minio-artifact
+                  key: secretkey
+            {{- end }}
+            - name: V2_DRIVER_IMAGE
+              value: {{ .Values.images.registry }}/kfp-driver:{{ .Values.images.tag }}
+            - name: V2_LAUNCHER_IMAGE
+              value: {{ .Values.images.registry }}/kfp-launcher:{{ .Values.images.tag }}
+            - name: COMPILED_PIPELINE_SPEC_PATCH
+              value: "{}"
+            {{- if .Values.mysql.external }}
+            - name: DBCONFIG_CONMAXLIFETIME
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: ConMaxLifeTime
+            - name: DB_DRIVER_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: dbType
+            - name: DBCONFIG_MYSQLCONFIG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.mysql.secretName }}
+                  key: username
+            - name: DBCONFIG_MYSQLCONFIG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.mysql.secretName }}
+                  key: password
+            - name: DBCONFIG_MYSQLCONFIG_DBNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: pipelineDb
+            - name: DBCONFIG_MYSQLCONFIG_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.mysql.secretName }}
+                  key: host
+            - name: DBCONFIG_MYSQLCONFIG_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.mysql.secretName }}
+                  key: port
+            {{- end }}
+          volumeMounts:
+            {{- if eq .Values.storage.type "s3" }}
+            - name: aws-credentials
+              mountPath: /shared/aws-credentials
+              readOnly: true
+            {{- end }}
+            {{- if and .Values.kubernetesNative.enabled .Values.webhook.certManager.enabled }}
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
+              readOnly: true
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /apis/v1beta1/healthz
+              port: 8888
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /apis/v1beta1/healthz
+              port: 8888
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+          startupProbe:
+            httpGet:
+              path: /apis/v1beta1/healthz
+              port: 8888
+            failureThreshold: 12
+            periodSeconds: 5
+            timeoutSeconds: 2
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 0
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            {{- if .Values.components.apiserver.resources }}
+            {{- toYaml .Values.components.apiserver.resources | nindent 12 }}
+            {{- else }}
+            requests:
+              cpu: 250m
+              memory: 500Mi
+            {{- end }}
+      volumes:
+        {{- if eq .Values.storage.type "s3" }}
+        - name: aws-credentials
+          emptyDir: {}
+        - name: aws-iam-token
+          projected:
+            defaultMode: 420
+            sources:
+            - serviceAccountToken:
+                audience: sts.amazonaws.com
+                expirationSeconds: 86400
+                path: token
+        {{- end }}
+        {{- if and .Values.kubernetesNative.enabled .Values.webhook.certManager.enabled }}
+        - name: webhook-certs
+          secret:
+            secretName: kfp-api-webhook-cert
+        {{- end }}
+{{- end }}

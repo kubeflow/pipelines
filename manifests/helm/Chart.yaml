@@ -1,0 +1,15 @@
+apiVersion: v2
+name: kubeflow-pipelines
+description: Kubeflow Pipelines v2.15.0 for Kubernetes Native API Mode
+type: application
+version: 2.15.0
+appVersion: "2.15.0"
+
+
+annotations: {}
+  # Prerequisites:
+  # - cert-manager must be pre-installed (cluster-wide infrastructure)
+  # - Argo Workflows cluster resources must be pre-installed
+  # - MySQL database for ML Metadata (MLMD) - pipelines/versions stored as K8s CRs
+  # Note: Kubernetes-native mode stores pipelines as CRs, NOT in MySQL.
+  #       MySQL is only used for ML Metadata artifact tracking.
