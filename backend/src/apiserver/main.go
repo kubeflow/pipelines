@@ -356,6 +356,12 @@ func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Confi
 	ReportServerV1 := server.NewReportServerV1(resourceManager)
 	ReportServer := server.NewReportServer(resourceManager)
 
+	VisualizationServerV1 := server.NewVisualizationServerV1(resourceManager)
+	VisualizationServer := server.NewVisualizationServer(resourceManager)
+
+	AuthServerV1 := server.NewAuthServerV1(resourceManager)
+	AuthServer := server.NewAuthServer(resourceManager)
+
 	apiv1beta1.RegisterExperimentServiceServer(s, ExperimentServerV1)
 	apiv1beta1.RegisterPipelineServiceServer(s, PipelineServerV1)
 	apiv1beta1.RegisterJobServiceServer(s, JobServerV1)
@@ -363,20 +369,16 @@ func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Confi
 	apiv1beta1.RegisterTaskServiceServer(s, server.NewTaskServer(resourceManager))
 	apiv1beta1.RegisterReportServiceServer(s, ReportServerV1)
 
-	apiv1beta1.RegisterVisualizationServiceServer(
-		s,
-		server.NewVisualizationServer(
-			resourceManager,
-			common.GetStringConfig(cm.VisualizationServiceHost),
-			common.GetStringConfig(cm.VisualizationServicePort),
-		))
-	apiv1beta1.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
+	apiv1beta1.RegisterVisualizationServiceServer(s, VisualizationServerV1)
+	apiv1beta1.RegisterAuthServiceServer(s, AuthServerV1)
 
 	apiv2beta1.RegisterExperimentServiceServer(s, ExperimentServer)
 	apiv2beta1.RegisterPipelineServiceServer(s, PipelineServer)
 	apiv2beta1.RegisterRecurringRunServiceServer(s, JobServer)
 	apiv2beta1.RegisterRunServiceServer(s, RunServer)
 	apiv2beta1.RegisterReportServiceServer(s, ReportServer)
+	apiv2beta1.RegisterAuthServiceServer(s, AuthServer)
+	apiv2beta1.RegisterVisualizationServiceServer(s, VisualizationServer)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
@@ -424,6 +426,8 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	register(apiv2beta1.RegisterRecurringRunServiceHandlerFromEndpoint, "RecurringRunService")
 	register(apiv2beta1.RegisterRunServiceHandlerFromEndpoint, "RunService")
 	register(apiv2beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService")
+	register(apiv2beta1.RegisterVisualizationServiceHandlerFromEndpoint, "Visualization")
+	register(apiv2beta1.RegisterAuthServiceHandlerFromEndpoint, "AuthService")
 
 	sharedPipelineUploadServer := server.NewPipelineUploadServer(resourceManager, &server.PipelineUploadServerOptions{CollectMetrics: *collectMetricsFlag})
 	runLogServer := server.NewRunLogServer(resourceManager)
