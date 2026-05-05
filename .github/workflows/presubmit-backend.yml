@@ -5,13 +5,7 @@ on:
     branches:
       - master
   pull_request:
-    branches:
-      - master
-    paths:
-      - 'backend/**'
-      - 'test/presubmit-backend-test.sh'
-      - '!**/*.md'
-      - '!**/OWNERS'
+    - 'backend/**'
 
 jobs:
   backend-tests:
