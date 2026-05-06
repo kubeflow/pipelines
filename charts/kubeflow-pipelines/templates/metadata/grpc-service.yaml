@@ -1,0 +1,15 @@
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: metadata
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+  name: metadata-grpc-service
+spec:
+  selector:
+    component: metadata-grpc-server
+  type: ClusterIP
+  ports:
+  - port: 8080
+    protocol: TCP
+    name: grpc-api

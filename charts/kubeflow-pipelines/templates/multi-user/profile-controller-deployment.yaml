@@ -1,0 +1,102 @@
+{{- if .Values.multiUser.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubeflow-pipelines-profile-controller
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kubeflow-pipelines-profile-controller
+  template:
+    metadata:
+      labels:
+        app: kubeflow-pipelines-profile-controller
+        sidecar.istio.io/inject: "false"
+    spec:
+      {{- include "kubeflow-pipelines.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: profile-controller
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
+        image: "{{ .Values.profileController.image.repository }}:{{ .Values.profileController.image.tag }}"
+        command: ["python", "/hooks/sync.py"]
+        envFrom:
+        - configMapRef:
+            name: kubeflow-pipelines-profile-controller-env
+        env:
+        - name: KFP_VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: appVersion
+        - name: AWS_ENDPOINT_URL
+          value: http://seaweedfs.{{ .Release.Namespace }}:8111
+        - name: S3_ENDPOINT_URL
+          value: http://seaweedfs.{{ .Release.Namespace }}:8333
+        - name: AWS_REGION
+          value: us-east-1
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              key: accesskey
+              name: {{ include "kubeflow-pipelines.objectStoreSecretName" . }}
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              key: secretkey
+              name: {{ include "kubeflow-pipelines.objectStoreSecretName" . }}
+        - name: KFP_DEFAULT_PIPELINE_ROOT
+          valueFrom:
+            configMapKeyRef:
+              key: defaultPipelineRoot
+              name: pipeline-install-config
+              optional: true
+        - name: ARTIFACTS_PROXY_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              key: ARTIFACTS_PROXY_ENABLED
+              name: pipeline-install-config
+              optional: true
+        - name: ARTIFACT_RETENTION_DAYS
+          valueFrom:
+            configMapKeyRef:
+              key: ARTIFACT_RETENTION_DAYS
+              name: pipeline-install-config
+        volumeMounts:
+        - name: hooks
+          mountPath: /hooks
+        ports:
+        - containerPort: 8080
+        {{- with .Values.profileController.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      volumes:
+      - name: hooks
+        configMap:
+          name: kubeflow-pipelines-profile-controller-code
+      {{- with ((kindIs "invalid" .Values.profileController.nodeSelector) | ternary .Values.global.nodeSelector .Values.profileController.nodeSelector) }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with ((kindIs "invalid" .Values.profileController.tolerations) | ternary .Values.global.tolerations .Values.profileController.tolerations) }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with ((kindIs "invalid" .Values.profileController.affinity) | ternary .Values.global.affinity .Values.profileController.affinity) }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

@@ -1,0 +1,20 @@
+{{- if and .Values.compat.enabled .Values.compat.argo.rbac }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argo-binding
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- if .Values.compat.applicationCrdIdLabel }}
+    application-crd-id: kubeflow-pipelines
+    {{- end }}
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: argo-role
+subjects:
+  - kind: ServiceAccount
+    name: argo
+    namespace: {{ .Release.Namespace }}
+{{- end }}

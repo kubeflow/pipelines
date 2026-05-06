@@ -1,0 +1,61 @@
+{{- if .Values.multiUser.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ml-pipeline-ui
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - pods/log
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - "kubeflow.org"
+  resources:
+  - viewers
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+  - delete
+- apiGroups:
+  - "argoproj.io"
+  resources:
+  - workflows
+  verbs:
+  - get
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ml-pipeline-ui
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ml-pipeline-ui
+subjects:
+- kind: ServiceAccount
+  name: ml-pipeline-ui
+  namespace: {{ .Release.Namespace }}
+{{- end }}
