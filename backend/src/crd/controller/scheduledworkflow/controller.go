@@ -670,34 +670,9 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 		}})
 	}
 
-	var runtimeConfig *api.RuntimeConfig
-
-	if swf.Spec.Workflow != nil {
-		runtimeConfig = &api.RuntimeConfig{
-			Parameters:   map[string]*structpb.Value{},
-			PipelineRoot: swf.Spec.Workflow.PipelineRoot,
-		}
-
-		// Expand recurring-run macros such as [[ScheduledTime]], [[Index]] and
-		// [[CurrentTime]] with the trigger's epochs and index, matching the
-		// substitution the embedded-workflow path performs in NewWorkflow. The run
-		// UUID is not known yet, so [[RunUUID]] is left for the API server to expand.
-		formatter := commonutil.NewSWFParameterFormatter("", nextScheduledEpoch, nowEpoch, swf.NextIndex())
-
-		for _, param := range swf.Spec.Workflow.Parameters {
-			val := &structpb.Value{}
-
-			err := val.UnmarshalJSON([]byte(param.Value))
-			if err != nil {
-				return false, "", nextScheduledEpoch, err
-			}
-
-			if stringValue, ok := val.GetKind().(*structpb.Value_StringValue); ok {
-				val = structpb.NewStringValue(formatter.Format(stringValue.StringValue))
-			}
-
-			runtimeConfig.Parameters[param.Name] = val
-		}
+	runtimeConfig, err := buildRuntimeConfigForScheduledRun(swf, nextScheduledEpoch, nowEpoch)
+	if err != nil {
+		return false, "", nextScheduledEpoch, err
 	}
 
 	// Convert PluginsInput from the SWF spec (map[string]apiextensionsv1.JSON)
@@ -717,13 +692,9 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 			ExperimentId:   swf.Spec.ExperimentId,
 			DisplayName:    swf.NextResourceName(),
 			RecurringRunId: string(swf.UID),
+			ScheduledAt:    timestamppb.New(time.Unix(nextScheduledEpoch, 0)),
 			RuntimeConfig:  runtimeConfig,
 			PluginsInput:   pluginsInput,
-			// Record the time the run was due, not the time it was created. Without
-			// this the API server falls back to the creation time, which is wrong
-			// whenever the two differ -- most visibly when catch-up is enabled and
-			// the controller deliberately triggers for epochs in the past.
-			ScheduledAt: timestamppb.New(time.Unix(nextScheduledEpoch, 0)),
 			PipelineSource: &api.Run_PipelineVersionReference{
 				PipelineVersionReference: &api.PipelineVersionReference{
 					PipelineId: swf.Spec.PipelineId,
@@ -751,6 +722,38 @@ func (c *Controller) createRun(ctx context.Context, swf *util.ScheduledWorkflow,
 		nextScheduledEpoch = run.GetScheduledAt().AsTime().Unix()
 	}
 	return true, run.DisplayName, nextScheduledEpoch, nil
+}
+
+func buildRuntimeConfigForScheduledRun(
+	swf *util.ScheduledWorkflow,
+	nextScheduledEpoch int64,
+	nowEpoch int64,
+) (*api.RuntimeConfig, error) {
+	if swf == nil || swf.Spec.Workflow == nil {
+		return nil, nil
+	}
+	workflowParameters := make(map[string]string, len(swf.Spec.Workflow.Parameters))
+	for _, param := range swf.Spec.Workflow.Parameters {
+		workflowParameters[param.Name] = param.Value
+	}
+	formatter := commonutil.NewSWFParameterFormatter("", nextScheduledEpoch, nowEpoch, swf.NextIndex())
+	formattedParameters := formatter.FormatWorkflowParameters(workflowParameters)
+	runtimeConfig := &api.RuntimeConfig{
+		Parameters:   map[string]*structpb.Value{},
+		PipelineRoot: swf.Spec.Workflow.PipelineRoot,
+	}
+	for _, param := range swf.Spec.Workflow.Parameters {
+		val := &structpb.Value{}
+		rawValue := param.Value
+		if formattedValue, ok := formattedParameters[param.Name]; ok {
+			rawValue = formattedValue
+		}
+		if err := val.UnmarshalJSON([]byte(rawValue)); err != nil {
+			return nil, err
+		}
+		runtimeConfig.Parameters[param.Name] = val
+	}
+	return runtimeConfig, nil
 }
 
 func (c *Controller) updateStatus(

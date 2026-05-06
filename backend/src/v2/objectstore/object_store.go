@@ -33,6 +33,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"gocloud.dev/blob"
+	_ "gocloud.dev/blob/fileblob"
 	"gocloud.dev/blob/gcsblob"
 	"gocloud.dev/blob/s3blob"
 	"gocloud.dev/gcp"

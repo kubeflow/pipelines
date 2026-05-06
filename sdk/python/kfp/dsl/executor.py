@@ -187,6 +187,10 @@ class Executor:
                 raise TypeError(
                     f'Invalid type argument to {type_annotations.InputPath.__name__}: {annotation.type}'
                 )
+        elif type_annotations.is_Input_Output_artifact_annotation(annotation):
+            artifact_cls = type_annotations.get_io_artifact_class(annotation)
+            if artifact_cls is None:
+                artifact_cls = dsl.Artifact
         else:
             artifact_cls = annotation
         return create_artifact_instance(
@@ -560,7 +564,7 @@ def create_artifact_instance(
     artifact_cls = artifact_types._SCHEMA_TITLE_TO_TYPE.get(
         schema_title, fallback_artifact_cls
     )
-    return (
+    artifact_instance = (
         artifact_cls._from_executor_fields(
             uri=runtime_artifact.get('uri', ''),
             name=runtime_artifact.get('name', ''),
@@ -573,6 +577,12 @@ def create_artifact_instance(
             metadata=runtime_artifact.get('metadata', {}),
         )
     )
+    custom_path = runtime_artifact.get(
+        'custom_path', runtime_artifact.get('customPath', '')
+    )
+    if custom_path:
+        artifact_instance.custom_path = custom_path
+    return artifact_instance
 
 
 # TODO: merge with type_utils.is_parameter_type

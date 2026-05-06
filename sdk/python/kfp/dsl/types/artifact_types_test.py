@@ -107,6 +107,15 @@ class TestGetUri(unittest.TestCase):
                 dsl.get_uri(),
             )
 
+    def test_default_file(self):
+        with set_temporary_task_root(
+            '/file/tmp/kfp-artifacts/123456789/abc-09-14-2023-14-21-53/foo_123456789'
+        ):
+            self.assertEqual(
+                'file:///tmp/kfp-artifacts/123456789/abc-09-14-2023-14-21-53/foo_123456789/Output',
+                dsl.get_uri(),
+            )
+
     def test_default_minio(self):
         with set_temporary_task_root(
             '/minio/my_bucket/123456789/abc-09-14-2023-14-21-53/foo_123456789'
@@ -150,6 +159,7 @@ class TestConvertLocalPathToRemotePath(parameterized.TestCase):
             {'local_path': local_path, 'expected': expected}
             for local_path, expected in [
                 ('/gcs/foo/bar', 'gs://foo/bar'),
+                ('/file/tmp/foo/bar', 'file:///tmp/foo/bar'),
                 ('/minio/foo/bar', 'minio://foo/bar'),
                 ('/s3/foo/bar', 's3://foo/bar'),
                 (

@@ -5,6 +5,9 @@
       "DBName": "mlpipeline",
       "GroupConcatMaxLen": "4194304"
     },
+    "SQLiteConfig": {
+      "DataSourceName": ""
+    },
     "PostgreSQLConfig": {
       "DBName": "mlpipeline",
       "ExtraParams": {}
@@ -15,6 +18,7 @@
     "AccessKey": "minio",
     "SecretAccessKey": "minio123",
     "BucketName": "mlpipeline",
+    "BucketURL": "",
     "PipelinePath": "pipelines"
   },
   "DBDriverName": "mysql",
