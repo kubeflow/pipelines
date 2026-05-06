@@ -7,6 +7,7 @@ exports[`Graph > gracefully renders a graph with a selected node id that does no
   >
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-node1"
       style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -36,6 +37,7 @@ exports[`Graph > gracefully renders a graph with a selected node id that does no
     </div>
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-node2"
       style="left: 5px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -92,6 +94,7 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
   >
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-flipcoin1"
       style="left: 75px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -121,6 +124,7 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
     </div>
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-tails1"
       style="left: 45px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -150,6 +154,7 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
     </div>
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-heads1"
       style="left: 105px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -179,6 +184,7 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
     </div>
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-flipcoin2"
       style="left: 45px; max-height: 10px; min-height: 10px; top: 125px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -208,6 +214,7 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
     </div>
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-heads2"
       style="left: 5px; max-height: 10px; min-height: 10px; top: 185px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -237,6 +244,7 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
     </div>
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-tails2"
       style="left: 85px; max-height: 10px; min-height: 10px; top: 185px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -417,6 +425,7 @@ exports[`Graph > renders a graph with a placeholder node and edge 1`] = `
   >
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-node1"
       style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -446,6 +455,7 @@ exports[`Graph > renders a graph with a placeholder node and edge 1`] = `
     </div>
     <div
       class="placeholderNode_f1hx9p42 graphNode"
+      data-testid="graph-node-node2"
       style="left: 5px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -487,6 +497,7 @@ exports[`Graph > renders a graph with a selected node 1`] = `
   >
     <div
       class="node_flbuigk graphNode nodeSelected_f1a563lq"
+      data-testid="graph-node-node1"
       style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -516,6 +527,7 @@ exports[`Graph > renders a graph with a selected node 1`] = `
     </div>
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-node2"
       style="left: 5px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -572,6 +584,7 @@ exports[`Graph > renders a graph with colored edges 1`] = `
   >
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-node1"
       style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -601,6 +614,7 @@ exports[`Graph > renders a graph with colored edges 1`] = `
     </div>
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-node2"
       style="left: 5px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -657,6 +671,7 @@ exports[`Graph > renders a graph with colored nodes 1`] = `
   >
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-node1"
       style="background-color: red; left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -686,6 +701,7 @@ exports[`Graph > renders a graph with colored nodes 1`] = `
     </div>
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-node2"
       style="background-color: green; left: 65px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -724,6 +740,7 @@ exports[`Graph > renders a graph with one node 1`] = `
   >
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-node1"
       style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -762,6 +779,7 @@ exports[`Graph > renders a graph with two connectd nodes 1`] = `
   >
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-node1"
       style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -791,6 +809,7 @@ exports[`Graph > renders a graph with two connectd nodes 1`] = `
     </div>
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-node2"
       style="left: 5px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -847,6 +866,7 @@ exports[`Graph > renders a graph with two connectd nodes in reverse order 1`] = 
   >
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-node1"
       style="left: 5px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -876,6 +896,7 @@ exports[`Graph > renders a graph with two connectd nodes in reverse order 1`] = 
     </div>
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-node2"
       style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -932,6 +953,7 @@ exports[`Graph > renders a graph with two disparate nodes 1`] = `
   >
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-node1"
       style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
@@ -961,6 +983,7 @@ exports[`Graph > renders a graph with two disparate nodes 1`] = `
     </div>
     <div
       class="node_flbuigk graphNode"
+      data-testid="graph-node-node2"
       style="left: 65px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
