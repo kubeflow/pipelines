@@ -70,6 +70,11 @@ class TestTopologicalSort(unittest.TestCase):
         expected = ['A', 'C', 'B', 'D']
         self.assertEqual(actual, expected)
 
+    def test_cycle_detection(self):
+        graph = {'A': ['B'], 'B': ['A']}
+        with self.assertRaisesRegex(RuntimeError, 'Pipeline has a cycle'):
+            graph_utils.topological_sort(graph)
+
 
 class TestTopologicalSortTasks(unittest.TestCase):
 
