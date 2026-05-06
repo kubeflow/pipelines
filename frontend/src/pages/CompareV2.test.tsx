@@ -450,6 +450,209 @@ describe('CompareV2', () => {
     });
   });
 
+  it('keeps runId-bearing selection when runId matches a valid run', () => {
+    const selectedArtifactsMap = {
+      [MetricsType.CONFUSION_MATRIX]: [
+        {
+          selectedItem: {
+            runId: MOCK_RUN_2_ID,
+            itemName: `test run ${MOCK_RUN_2_ID}`,
+            subItemName: 'artifactName',
+          },
+        },
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+      ],
+      [MetricsType.HTML]: [
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+      ],
+      [MetricsType.MARKDOWN]: [
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+      ],
+    };
+
+    const reconciledArtifactsMap = TEST_ONLY.reconcileSelectedArtifactsMap(selectedArtifactsMap, {
+      scalarMetricsTableData: undefined,
+      confusionMatrixRunArtifacts: [
+        { run: newMockRun(MOCK_RUN_2_ID), executionArtifacts: [] as any },
+      ],
+      htmlRunArtifacts: [],
+      markdownRunArtifacts: [],
+      rocCurveRunArtifacts: [],
+    });
+
+    expect(reconciledArtifactsMap[MetricsType.CONFUSION_MATRIX][0].selectedItem).toEqual({
+      runId: MOCK_RUN_2_ID,
+      itemName: `test run ${MOCK_RUN_2_ID}`,
+      subItemName: 'artifactName',
+    });
+    expect(reconciledArtifactsMap[MetricsType.CONFUSION_MATRIX][1].selectedItem).toEqual({
+      itemName: '',
+      subItemName: '',
+    });
+  });
+
+  it('falls back to display_name and clears runId when runId is stale but display_name still matches', () => {
+    const selectedArtifactsMap = {
+      [MetricsType.CONFUSION_MATRIX]: [
+        {
+          selectedItem: {
+            runId: 'stale-run-id',
+            itemName: `test run ${MOCK_RUN_2_ID}`,
+            subItemName: 'artifactName',
+          },
+        },
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+      ],
+      [MetricsType.HTML]: [
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+      ],
+      [MetricsType.MARKDOWN]: [
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+      ],
+    };
+
+    const reconciledArtifactsMap = TEST_ONLY.reconcileSelectedArtifactsMap(selectedArtifactsMap, {
+      scalarMetricsTableData: undefined,
+      confusionMatrixRunArtifacts: [
+        { run: newMockRun(MOCK_RUN_2_ID), executionArtifacts: [] as any },
+      ],
+      htmlRunArtifacts: [],
+      markdownRunArtifacts: [],
+      rocCurveRunArtifacts: [],
+    });
+
+    expect(reconciledArtifactsMap[MetricsType.CONFUSION_MATRIX][0].selectedItem).toEqual({
+      runId: undefined,
+      itemName: `test run ${MOCK_RUN_2_ID}`,
+      subItemName: 'artifactName',
+    });
+    expect(reconciledArtifactsMap[MetricsType.CONFUSION_MATRIX][1].selectedItem).toEqual({
+      itemName: '',
+      subItemName: '',
+    });
+  });
+
+  it('clears selection when both runId and display_name are invalid', () => {
+    const selectedArtifactsMap = {
+      [MetricsType.CONFUSION_MATRIX]: [
+        {
+          selectedItem: {
+            runId: 'stale-run-id',
+            itemName: 'missing run',
+            subItemName: 'staleArtifact',
+          },
+        },
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+      ],
+      [MetricsType.HTML]: [
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+      ],
+      [MetricsType.MARKDOWN]: [
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+        {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        },
+      ],
+    };
+
+    const reconciledArtifactsMap = TEST_ONLY.reconcileSelectedArtifactsMap(selectedArtifactsMap, {
+      scalarMetricsTableData: undefined,
+      confusionMatrixRunArtifacts: [
+        { run: newMockRun(MOCK_RUN_2_ID), executionArtifacts: [] as any },
+      ],
+      htmlRunArtifacts: [],
+      markdownRunArtifacts: [],
+      rocCurveRunArtifacts: [],
+    });
+
+    expect(reconciledArtifactsMap[MetricsType.CONFUSION_MATRIX][0].selectedItem).toEqual({
+      itemName: '',
+      subItemName: '',
+    });
+    expect(reconciledArtifactsMap[MetricsType.CONFUSION_MATRIX][1].selectedItem).toEqual({
+      itemName: '',
+      subItemName: '',
+    });
+  });
+
   it('getRun is called with query param IDs', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];

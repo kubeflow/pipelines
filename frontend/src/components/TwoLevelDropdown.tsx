@@ -81,6 +81,7 @@ export interface SelectedItem {
   itemName: string;
   subItemName: string;
   subItemSecondaryName?: string;
+  runId?: string;
 }
 
 export interface DropdownSubItem {
@@ -91,6 +92,7 @@ export interface DropdownSubItem {
 export interface DropdownItem {
   name: string;
   subItems: DropdownSubItem[];
+  id?: string;
 }
 
 interface DropdownButtonProps {
@@ -163,6 +165,7 @@ function DropdownSubMenu(props: DropdownSubMenuProps) {
               itemName: item.name,
               subItemName: subItem.name,
               subItemSecondaryName: subItem.secondaryName,
+              runId: item.id,
             });
             setSubDropdownActive(-1);
           }}
