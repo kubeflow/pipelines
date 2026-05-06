@@ -1,4 +1,4 @@
-# PipelineTaskDetailChildTask
+# V2beta1PipelineTaskDetailChildTask
 
 A dependent task that requires this one to succeed. Represented by either task_id or pod_name.
 ## Properties

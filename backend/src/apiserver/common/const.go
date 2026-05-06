@@ -27,6 +27,7 @@ const (
 	RbacResourceTypeVisualizations     = "visualizations"
 	RbacResourceTypeScheduledWorkflows = "scheduledworkflows"
 	RbacResourceTypeWorkflows          = "workflows"
+	RbacResourceTypeArtifacts          = "artifacts"
 
 	RbacResourceVerbArchive       = "archive"
 	RbacResourceVerbUpdate        = "update"

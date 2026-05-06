@@ -1,6 +1,6 @@
 # V2beta1PipelineTaskDetail
 
-Runtime information of a task execution.
+Deprecated: use PipelineTask instead. This legacy message remains only for backward compatibility with RunDetails.task_details and will be removed in the next major API version.
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
@@ -19,7 +19,7 @@ Name | Type | Description | Notes
 **parent_task_id** | **str** | ID of the parent task if the task is within a component scope. Empty if the task is at the root level. | [optional] 
 **state_history** | [**list[V2beta1RuntimeStatus]**](V2beta1RuntimeStatus.md) | A sequence of task statuses. This field keeps a record of state transitions. | [optional] 
 **pod_name** | **str** | Name of the corresponding pod assigned by the orchestration engine. Also known as node_id. | [optional] 
-**child_tasks** | [**list[PipelineTaskDetailChildTask]**](PipelineTaskDetailChildTask.md) | Sequence of dependen tasks. | [optional] 
+**child_tasks** | [**list[V2beta1PipelineTaskDetailChildTask]**](V2beta1PipelineTaskDetailChildTask.md) | Sequence of dependent tasks. | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 
