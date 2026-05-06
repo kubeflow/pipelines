@@ -158,6 +158,8 @@ func GetTokenReviewAudience() string {
 	return GetStringConfigWithDefault(TokenReviewAudience, DefaultTokenReviewAudience)
 }
 
+// Keep this getter during the PR 1 extraction so packages that still depend on
+// the MLMD runtime wiring continue to build until PR 2 removes those call sites.
 func GetMetadataTLSEnabled() bool {
 	return GetBoolConfigWithDefault(MetadataTLSEnabled, DefaultMetadataTLSEnabled)
 }

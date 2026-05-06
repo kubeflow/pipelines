@@ -106,7 +106,7 @@ func PatchPipelineDefaultParameter(text string) (string, error) {
 	return text, nil
 }
 
-// Validates a pipeline name to match MLMD requirements.
+// ValidatePipelineName Validates a pipeline name.
 func ValidatePipelineName(pipelineName string) error {
 	if pipelineName == "" {
 		return util.NewInvalidInputError("pipeline's name cannot be empty")

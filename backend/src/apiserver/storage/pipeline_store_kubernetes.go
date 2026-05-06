@@ -66,13 +66,17 @@ func (k *PipelineStoreKubernetes) ListPipelinesV1(filterContext *model.FilterCon
 	return nil, nil, 0, "", ErrNoV1
 }
 
-func (k *PipelineStoreKubernetes) ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters map[string]string) ([]*model.Pipeline, int, string, error) {
+func (k *PipelineStoreKubernetes) ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters ...map[string]string) ([]*model.Pipeline, int, string, error) {
+	var resolvedTagFilters map[string]string
+	if len(tagFilters) > 0 {
+		resolvedTagFilters = tagFilters[0]
+	}
 	k8sPipelines := v2beta1.PipelineList{}
 
 	listOptions := []ctrlclient.ListOption{ctrlclient.UnsafeDisableDeepCopy}
 
-	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
-		listOptions = append(listOptions, ctrlclient.InNamespace(filterContext.ReferenceKey.ID))
+	if filterContext.ReferenceKey != nil && filterContext.Type == model.NamespaceResourceType {
+		listOptions = append(listOptions, ctrlclient.InNamespace(filterContext.ID))
 	}
 
 	// Be careful, the deep copy is disabled here to reduce memory allocations
@@ -96,9 +100,9 @@ func (k *PipelineStoreKubernetes) ListPipelines(filterContext *model.FilterConte
 			}
 		}
 		// Filter by tags if tag filters are provided
-		if len(tagFilters) > 0 {
+		if len(resolvedTagFilters) > 0 {
 			match := true
-			for key, value := range tagFilters {
+			for key, value := range resolvedTagFilters {
 				if k8sPipeline.Spec.Tags[key] != value {
 					match = false
 					break
@@ -346,7 +350,7 @@ func (k *PipelineStoreKubernetes) GetLatestPipelineVersion(pipelineId string) (*
 	var latestK8sPipelineVersion *v2beta1.PipelineVersion
 
 	for _, k8sPipelineVersion := range k8sPipelineVersions.Items {
-		if latestK8sPipelineVersion == nil || k8sPipelineVersion.CreationTimestamp.Time.After(latestK8sPipelineVersion.CreationTimestamp.Time) {
+		if latestK8sPipelineVersion == nil || k8sPipelineVersion.CreationTimestamp.After(latestK8sPipelineVersion.CreationTimestamp.Time) {
 			latestK8sPipelineVersion = &k8sPipelineVersion
 		}
 	}
@@ -401,7 +405,11 @@ func (k *PipelineStoreKubernetes) GetPipelineVersionWithStatus(pipelineVersionId
 	return pipelineVersion, nil
 }
 
-func (k *PipelineStoreKubernetes) ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters map[string]string) (versions []*model.PipelineVersion, totalSize int, nextPageToken string, err error) {
+func (k *PipelineStoreKubernetes) ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters ...map[string]string) (versions []*model.PipelineVersion, totalSize int, nextPageToken string, err error) {
+	var resolvedTagFilters map[string]string
+	if len(tagFilters) > 0 {
+		resolvedTagFilters = tagFilters[0]
+	}
 	k8sPipelineVersions, err := k.getK8sPipelineVersions(context.TODO(), pipelineID, "")
 	if err != nil {
 		return nil, 0, "", err
@@ -420,9 +428,9 @@ func (k *PipelineStoreKubernetes) ListPipelineVersions(pipelineID string, opts *
 			}
 		}
 		// Filter by tags if tag filters are provided
-		if len(tagFilters) > 0 {
+		if len(resolvedTagFilters) > 0 {
 			match := true
-			for key, value := range tagFilters {
+			for key, value := range resolvedTagFilters {
 				if k8sPipelineVersion.Spec.Tags[key] != value {
 					match = false
 					break

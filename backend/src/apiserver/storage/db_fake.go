@@ -30,6 +30,7 @@ func NewFakeDB() (*DB, error) {
 	}
 	// Create tables
 	if err := dbInstance.AutoMigrate(
+		&model.Artifact{},
 		&model.Experiment{},
 		&model.Job{},
 		&model.Pipeline{},
@@ -38,8 +39,9 @@ func NewFakeDB() (*DB, error) {
 		&model.PipelineVersionTag{},
 		&model.ResourceReference{},
 		&model.Run{},
-		&model.RunMetric{},
+		&model.RunMetricV1{},
 		&model.Task{},
+		&model.ArtifactTask{},
 		&model.DBStatus{},
 		&model.DefaultExperiment{},
 	); err != nil {

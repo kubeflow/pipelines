@@ -835,12 +835,12 @@ func TestListExperiments(t *testing.T) {
 
 func TestListExperimentsByLastRunCreation(t *testing.T) {
 	// Create experiment and runs/jobs under it.
-	clients, manager, experiment1, _ := initWithExperimentAndPipelineVersion(t)
+	clients, _, experiment1, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 
 	// Create another experiment
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeIdTwo, nil))
-	manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := createExperimentServer(manager)
 	experiment := &apiV2beta1.Experiment{DisplayName: "exp2"}
 	experiment2, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
@@ -910,6 +910,7 @@ func TestListExperimentsByLastRunCreation(t *testing.T) {
 	listExperimentsRequest = &apiV2beta1.ListExperimentsRequest{SortBy: "last_run_created_at desc"}
 	result, err = experimentServer.ListExperiments(nil, listExperimentsRequest)
 	assert.Equal(t, []*apiV2beta1.Experiment{expected2, expected1}, result.Experiments)
+	assert.NoError(t, err)
 }
 
 func TestListExperimentsV1_Failed(t *testing.T) {
