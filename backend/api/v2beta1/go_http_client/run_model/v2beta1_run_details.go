@@ -25,7 +25,11 @@ type V2beta1RunDetails struct {
 	// Pipeline run context ID of a run.
 	PipelineRunContextID string `json:"pipeline_run_context_id,omitempty"`
 
-	// Runtime details of the tasks that belong to the run.
+	// Deprecated: use top-level task APIs and Run.tasks instead.
+	// This legacy field remains in the schema for backward wire compatibility
+	// only. As part of the next major release, the backend intentionally stops
+	// populating this field and returns task data only through the top-level
+	// task APIs and Run.tasks. It will be removed in the next major API version.
 	TaskDetails []*V2beta1PipelineTaskDetail `json:"task_details"`
 }
 

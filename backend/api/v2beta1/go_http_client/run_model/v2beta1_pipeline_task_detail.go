@@ -15,13 +15,15 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// V2beta1PipelineTaskDetail Runtime information of a task execution.
+// V2beta1PipelineTaskDetail Deprecated: use PipelineTask instead.
+// This legacy message remains only for backward compatibility with
+// RunDetails.task_details and will be removed in the next major API version.
 //
 // swagger:model v2beta1PipelineTaskDetail
 type V2beta1PipelineTaskDetail struct {
 
-	// Sequence of dependen tasks.
-	ChildTasks []*PipelineTaskDetailChildTask `json:"child_tasks"`
+	// Sequence of dependent tasks.
+	ChildTasks []*V2beta1PipelineTaskDetailChildTask `json:"child_tasks"`
 
 	// Creation time of a task.
 	// Format: date-time
