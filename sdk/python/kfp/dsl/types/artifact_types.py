@@ -14,6 +14,7 @@
 """Classes and utilities for using and creating artifacts in components."""
 
 import enum
+import math
 import os
 from typing import Dict, List, Optional, Type
 import warnings
@@ -227,6 +228,11 @@ class Metrics(Artifact):
           metric: The metric key.
           value: The metric value.
         """
+        if math.isnan(value) or math.isinf(value):
+            raise ValueError(
+                f'Invalid metric value for "{metric}": {value}. '
+                'Metrics must be finite numbers (no NaN or Inf) to be JSON compliant.'
+            )
         self.metadata[metric] = value
 
 
