@@ -434,7 +434,7 @@ func apiParametersToStringV1(params []*apiv1beta1.Parameter) string {
 }
 
 // Validates a run metric fields from request.
-func validateRunMetric(metric *model.RunMetric) error {
+func validateRunMetricV1(metric *model.RunMetricV1) error {
 	matched, err := regexp.MatchString(metricNamePattern, metric.Name)
 	if err != nil {
 		// This should never happen.
