@@ -1,0 +1,72 @@
+name: AI Issue Labeler
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  label-issue:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+      models: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get AI Label
+        id: ai_logic
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TITLE: ${{ github.event.issue.title }}
+          BODY: ${{ github.event.issue.body }}
+        run: |
+          # 1. Install and run in the same step
+          gh extension install github/gh-models --force
+
+
+          # 2. Strict prompt to get ONLY good first issue label
+          RESULT=$(gh models run openai/gpt-4o-mini "You are a maintainer of the repo. 
+          Analyze if this issue is a good first issue based on these rules:
+            - Clear Scope: Tasks completed in a few hours or a weekend.
+            - Detailed Context: Clear description, expected behavior, and acceptance criteria.
+            - Guidance: Links to relevant code areas or suggestions on how to approach the fix.
+            - Low Complexity: Typos, documentation, or minor bug fixes.
+
+          If it matches, respond:
+          LABEL: good first issue
+          REASON: <reasoning>
+
+          If it DOES NOT match, respond:
+          LABEL: none
+          REASON: Too complex, needs deep understanding of the codebase.
+        
+          Title: $TITLE
+          Body: $BODY"
+          )
+
+          # 1. Extract label from AI
+          DECISION=$(echo "$RESULT" | grep -i "LABEL: " | sed 's/LABEL: //I' | xargs)
+          REASON=$(echo "$RESULT" | grep -i "REASON: " | sed 's/REASON: //I' | xargs)
+
+          echo "label=$DECISION" >> $GITHUB_OUTPUT
+          echo "reason<<EOF" >> $GITHUB_OUTPUT
+          echo "$REASON" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+
+      - name: Apply Label and a comment
+        if: steps.ai_logic.outputs.label == 'good first issue'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          LABEL: ${{ steps.ai_logic.outputs.label }}
+          REASON: ${{ steps.ai_logic.outputs.reason }}
+        run: |
+          gh label create "$LABEL" --color "5319E7" || true
+
+          gh issue edit "$ISSUE_NUMBER" --add-label "$LABEL"
+
+          gh issue comment "$ISSUE_NUMBER" --body "### 🤖 AI Result
+          This issue has been tagged as: **$LABEL**
+          **Reasoning:** $REASON"
