@@ -220,7 +220,7 @@ func (s *JobStore) addResourceReferences(filteredSelectBuilder sq.SelectBuilder)
 	return sq.
 		Select("jobs.*", resourceRefConcatQuery+" AS refs").
 		FromSelect(filteredSelectBuilder, "jobs").
-		// Append all the resource references for the run as a json column
+		// append all the resource references for the run as a json column
 		LeftJoin("(select * from resource_references where ResourceType='Job') AS r ON jobs.UUID=r.ResourceUUID").
 		GroupBy("jobs.UUID")
 }

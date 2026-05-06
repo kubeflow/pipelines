@@ -53,7 +53,7 @@ import DagCanvas from './v2/DagCanvas';
 
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
 const QUERY_REFETCH_INTERVAL = 10000; // 10000 milliseconds == 10 seconds.
-const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
+const TAB_NAMES = ['Graph', 'Config', 'Pipeline Spec'];
 
 interface MlmdPackage {
   executions: Execution[];

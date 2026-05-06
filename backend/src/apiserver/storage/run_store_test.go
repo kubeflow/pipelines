@@ -37,7 +37,7 @@ const (
 	defaultFakeRunIdThree = "123e4567-e89b-12d3-a456-426655440023"
 )
 
-type RunMetricSorter []*model.RunMetric
+type RunMetricSorter []*model.RunMetricV1
 
 func (r RunMetricSorter) Len() int           { return len(r) }
 func (r RunMetricSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
@@ -119,22 +119,22 @@ func initializeRunStore() (*DB, *RunStore) {
 	runStore.CreateRun(run2)
 	runStore.CreateRun(run3)
 
-	metric1 := &model.RunMetric{
+	metric1 := &model.RunMetricV1{
 		RunUUID:     "1",
 		NodeID:      "node1",
 		Name:        "dummymetric",
 		NumberValue: 1.0,
 		Format:      "PERCENTAGE",
 	}
-	metric2 := &model.RunMetric{
+	metric2 := &model.RunMetricV1{
 		RunUUID:     "2",
 		NodeID:      "node2",
 		Name:        "dummymetric",
 		NumberValue: 2.0,
 		Format:      "PERCENTAGE",
 	}
-	runStore.CreateMetric(metric1)
-	runStore.CreateMetric(metric2)
+	runStore.CreateV1Metric(metric1)
+	runStore.CreateV1Metric(metric2)
 
 	return db, runStore
 }
@@ -164,7 +164,7 @@ func TestListRuns_Pagination(t *testing.T) {
 					},
 				},
 			},
-			Metrics: []*model.RunMetric{
+			Metrics: []*model.RunMetricV1{
 				{
 					RunUUID:     "1",
 					NodeID:      "node1",
@@ -204,7 +204,7 @@ func TestListRuns_Pagination(t *testing.T) {
 					},
 				},
 			},
-			Metrics: []*model.RunMetric{
+			Metrics: []*model.RunMetricV1{
 				{
 					RunUUID:     "2",
 					NodeID:      "node2",
@@ -227,7 +227,7 @@ func TestListRuns_Pagination(t *testing.T) {
 	assert.Nil(t, err)
 
 	runs, total_size, nextPageToken, err := runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
@@ -237,7 +237,7 @@ func TestListRuns_Pagination(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
 	runs, total_size, nextPageToken, err = runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
@@ -270,7 +270,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 					},
 				},
 			},
-			Metrics: []*model.RunMetric{
+			Metrics: []*model.RunMetricV1{
 				{
 					RunUUID:     "1",
 					NodeID:      "node1",
@@ -309,7 +309,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 					},
 				},
 			},
-			Metrics: []*model.RunMetric{
+			Metrics: []*model.RunMetricV1{
 				{
 					RunUUID:     "2",
 					NodeID:      "node2",
@@ -333,7 +333,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 	assert.Nil(t, err)
 
 	runs, total_size, nextPageToken, err := runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
@@ -343,7 +343,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
 	runs, total_size, nextPageToken, err = runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
@@ -355,7 +355,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 	assert.Nil(t, err)
 
 	runs, total_size, nextPageToken, err = runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
@@ -365,7 +365,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
 	runs, total_size, nextPageToken, err = runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
@@ -388,7 +388,7 @@ func TestListRuns_MetricSortInjectionSafe(t *testing.T) {
 	assert.Nil(t, err)
 
 	runs, _, _, err := runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
 	assert.Nil(t, err, "SQL injection payload must not cause a query error")
 	// Runs are returned but without a matching metric value (NULL join), so
 	// ordering is stable but no metric value is injected into SQL structure.
@@ -400,7 +400,7 @@ func TestListRuns_MetricSortInjectionSafe(t *testing.T) {
 	assert.Nil(t, err)
 	_, _, _, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}},
-		opts2)
+		opts2, false)
 	assert.Nil(t, err, "run_metrics table must still exist after injection attempt")
 }
 
@@ -414,8 +414,8 @@ func TestListRuns_HyphenatedMetricSort(t *testing.T) {
 	defer db.Close()
 
 	// Seed runs 1 and 2 with the hyphenated metric so pagination produces a page token.
-	runStore.CreateMetric(&model.RunMetric{RunUUID: "1", NodeID: "node1", Name: "log-loss", NumberValue: 0.5, Format: "RAW"})
-	runStore.CreateMetric(&model.RunMetric{RunUUID: "2", NodeID: "node2", Name: "log-loss", NumberValue: 0.3, Format: "RAW"})
+	runStore.CreateV1Metric(&model.RunMetricV1{RunUUID: "1", NodeID: "node1", Name: "log-loss", NumberValue: 0.5, Format: "RAW"})
+	runStore.CreateV1Metric(&model.RunMetricV1{RunUUID: "2", NodeID: "node2", Name: "log-loss", NumberValue: 0.3, Format: "RAW"})
 
 	// Page 1: metric:log-loss — must not error even though "log-loss" contains "-".
 	opts, err := list.NewOptions(&model.Run{}, 1, "metric:log-loss", nil)
@@ -423,7 +423,7 @@ func TestListRuns_HyphenatedMetricSort(t *testing.T) {
 
 	_, total, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}},
-		opts)
+		opts, false)
 	assert.Nil(t, err, "page-1 ListRuns must succeed with hyphenated metric name")
 	assert.Equal(t, 2, total)
 	assert.NotEmpty(t, nextPageToken, "must produce a page token when there are 2 runs")
@@ -434,7 +434,7 @@ func TestListRuns_HyphenatedMetricSort(t *testing.T) {
 	assert.Nil(t, err, "NewOptionsFromToken must not reject hyphenated metric name in pageToken")
 	_, _, _, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}},
-		opts2)
+		opts2, false)
 	assert.Nil(t, err, "page-2 ListRuns must succeed with hyphenated metric name in pageToken")
 }
 
@@ -445,10 +445,10 @@ func TestListRuns_TotalSizeWithNoFilter(t *testing.T) {
 	opts, _ := list.NewOptions(&model.Run{}, 4, "", nil)
 
 	// No filter
-	runs, total_size, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts, false)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(runs))
-	assert.Equal(t, 3, total_size)
+	assert.Equal(t, 3, totalSize)
 }
 
 func TestListRuns_TotalSizeWithFilter(t *testing.T) {
@@ -471,10 +471,10 @@ func TestListRuns_TotalSizeWithFilter(t *testing.T) {
 	}
 	newFilter, _ := filter.New(filterProto)
 	opts, _ := list.NewOptions(&model.Run{}, 4, "", newFilter)
-	runs, total_size, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts, false)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(runs))
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 }
 
 func TestListRuns_Pagination_Descend(t *testing.T) {
@@ -502,7 +502,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 					},
 				},
 			},
-			Metrics: []*model.RunMetric{
+			Metrics: []*model.RunMetricV1{
 				{
 					RunUUID:     "2",
 					NodeID:      "node2",
@@ -541,7 +541,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 					},
 				},
 			},
-			Metrics: []*model.RunMetric{
+			Metrics: []*model.RunMetricV1{
 				{
 					RunUUID:     "1",
 					NodeID:      "node1",
@@ -563,7 +563,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 	opts, err := list.NewOptions(&model.Run{}, 1, "id desc", nil)
 	assert.Nil(t, err)
 	runs, total_size, nextPageToken, err := runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
 	for i, run := range runs {
 		runs[i] = run.ToV1()
 		fmt.Printf("%+v\n", run)
@@ -577,7 +577,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
 	runs, total_size, nextPageToken, err = runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
@@ -611,7 +611,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 					},
 				},
 			},
-			Metrics: []*model.RunMetric{
+			Metrics: []*model.RunMetricV1{
 				{
 					RunUUID:     "1",
 					NodeID:      "node1",
@@ -648,7 +648,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 					},
 				},
 			},
-			Metrics: []*model.RunMetric{
+			Metrics: []*model.RunMetricV1{
 				{
 					RunUUID:     "2",
 					NodeID:      "node2",
@@ -671,7 +671,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 	opts, err := list.NewOptions(&model.Run{}, 10, "", nil)
 	assert.Nil(t, err)
 	runs, total_size, nextPageToken, err := runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
 
 	runs[0] = runs[0].ToV1()
 	runs[1] = runs[1].ToV1()
@@ -687,7 +687,7 @@ func TestListRunsError(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
 	_, _, _, err = runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to throw an internal error")
 }
@@ -716,7 +716,7 @@ func TestGetRun(t *testing.T) {
 				},
 			},
 		},
-		Metrics: []*model.RunMetric{
+		Metrics: []*model.RunMetricV1{
 			{
 				RunUUID:     "1",
 				NodeID:      "node1",
@@ -733,7 +733,7 @@ func TestGetRun(t *testing.T) {
 		},
 	}
 
-	runDetail, err := runStore.GetRun("1")
+	runDetail, err := runStore.GetRun("1", false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRun.ToV1(), runDetail.ToV1())
 }
@@ -742,7 +742,7 @@ func TestGetRun_NotFoundError(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
 
-	_, err := runStore.GetRun("notfound")
+	_, err := runStore.GetRun("notfound", false)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
 		"Expected not to find the run")
 }
@@ -751,7 +751,7 @@ func TestGetRun_InternalError(t *testing.T) {
 	db, runStore := initializeRunStore()
 	db.Close()
 
-	_, err := runStore.GetRun("1")
+	_, err := runStore.GetRun("1", false)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get run to return internal error")
 }
@@ -780,7 +780,7 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 				},
 			},
 		},
-		Metrics: []*model.RunMetric{
+		Metrics: []*model.RunMetricV1{
 			{
 				RunUUID:     "1",
 				NodeID:      "node1",
@@ -797,7 +797,7 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 		},
 	}
 
-	runDetail, err := runStore.GetRun("1")
+	runDetail, err := runStore.GetRun("1", false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRun.ToV1(), runDetail.ToV1())
 
@@ -837,7 +837,7 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 				},
 			},
 		},
-		Metrics: []*model.RunMetric{
+		Metrics: []*model.RunMetricV1{
 			{
 				RunUUID:     "1",
 				NodeID:      "node1",
@@ -854,7 +854,7 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 		},
 	}
 
-	runDetail, err = runStore.GetRun("1")
+	runDetail, err = runStore.GetRun("1", false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRun.ToV1(), runDetail.ToV1())
 }
@@ -865,7 +865,7 @@ func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
 	// Checking that the run is not yet in the DB
-	_, err := runStore.GetRun("2000")
+	_, err := runStore.GetRun("2000", false)
 	assert.NotNil(t, err)
 
 	runDetail := &model.Run{
@@ -912,7 +912,7 @@ func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
 		StorageState: model.StorageStateAvailable,
 	}
 
-	runDetail, err = runStore.GetRun("2000")
+	runDetail, err = runStore.GetRun("2000", false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRun.ToV1(), runDetail.ToV1())
 }
@@ -976,7 +976,7 @@ func TestCreateOrUpdateRun_DuplicateUUID(t *testing.T) {
 			WorkflowRuntimeManifest: "workflow1",
 			State:                   model.RuntimeStateRunning,
 		},
-		Metrics: []*model.RunMetric{
+		Metrics: []*model.RunMetricV1{
 			{
 				RunUUID:     "1",
 				NodeID:      "node1",
@@ -1029,7 +1029,7 @@ func TestTerminateRun(t *testing.T) {
 				},
 			},
 		},
-		Metrics: []*model.RunMetric{
+		Metrics: []*model.RunMetricV1{
 			{
 				RunUUID:     "1",
 				NodeID:      "node1",
@@ -1046,7 +1046,7 @@ func TestTerminateRun(t *testing.T) {
 		},
 	}
 
-	runDetail, err := runStore.GetRun("1")
+	runDetail, err := runStore.GetRun("1", false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRun.ToV1(), runDetail.ToV1())
 }
@@ -1073,19 +1073,19 @@ func TestCreateMetric_Success(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
 
-	metric := &model.RunMetric{
+	metric := &model.RunMetricV1{
 		RunUUID:     "1",
 		NodeID:      "node1",
 		Name:        "acurracy",
 		NumberValue: 0.77,
 		Format:      "PERCENTAGE",
 	}
-	runStore.CreateMetric(metric)
+	runStore.CreateV1Metric(metric)
 
-	runDetail, err := runStore.GetRun("1")
+	runDetail, err := runStore.GetRun("1", false)
 	assert.Nil(t, err, "Got error: %+v", err)
 	sort.Sort(RunMetricSorter(runDetail.Metrics))
-	assert.Equal(t, []*model.RunMetric{
+	assert.Equal(t, []*model.RunMetricV1{
 		metric,
 		{
 			RunUUID:     "1",
@@ -1101,23 +1101,23 @@ func TestCreateMetric_DupReports_Fail(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
 
-	metric1 := &model.RunMetric{
+	metric1 := &model.RunMetricV1{
 		RunUUID:     "1",
 		NodeID:      "node1",
 		Name:        "acurracy",
 		NumberValue: 0.77,
 		Format:      "PERCENTAGE",
 	}
-	metric2 := &model.RunMetric{
+	metric2 := &model.RunMetricV1{
 		RunUUID:     "1",
 		NodeID:      "node1",
 		Name:        "acurracy",
 		NumberValue: 0.88,
 		Format:      "PERCENTAGE",
 	}
-	runStore.CreateMetric(metric1)
+	runStore.CreateV1Metric(metric1)
 
-	err := runStore.CreateMetric(metric2)
+	err := runStore.CreateV1Metric(metric2)
 	_, ok := err.(*util.UserError)
 	assert.True(t, ok)
 }
@@ -1137,7 +1137,7 @@ func TestGetRun_InvalidMetricPayload_Ignore(t *testing.T) {
 		}).ToSql()
 	db.Exec(sql, args...)
 
-	run, err := runStore.GetRun("1")
+	run, err := runStore.GetRun("1", false)
 	assert.Nil(t, err, "Got error: %+v", err)
 	assert.Empty(t, run.Metrics)
 }
@@ -1145,30 +1145,30 @@ func TestGetRun_InvalidMetricPayload_Ignore(t *testing.T) {
 func TestListRuns_WithMetrics(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
-	metric1 := &model.RunMetric{
+	metric1 := &model.RunMetricV1{
 		RunUUID:     "1",
 		NodeID:      "node1",
 		Name:        "acurracy",
 		NumberValue: 0.77,
 		Format:      "PERCENTAGE",
 	}
-	metric2 := &model.RunMetric{
+	metric2 := &model.RunMetricV1{
 		RunUUID:     "1",
 		NodeID:      "node2",
 		Name:        "logloss",
 		NumberValue: -1.2,
 		Format:      "RAW",
 	}
-	metric3 := &model.RunMetric{
+	metric3 := &model.RunMetricV1{
 		RunUUID:     "2",
 		NodeID:      "node2",
 		Name:        "logloss",
 		NumberValue: -1.3,
 		Format:      "RAW",
 	}
-	runStore.CreateMetric(metric1)
-	runStore.CreateMetric(metric2)
-	runStore.CreateMetric(metric3)
+	runStore.CreateV1Metric(metric1)
+	runStore.CreateV1Metric(metric2)
+	runStore.CreateV1Metric(metric3)
 
 	expectedRuns := []*model.Run{
 		{
@@ -1197,7 +1197,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 					PipelineRoot: "gs://my-bucket/path/to/root/run1",
 				},
 			},
-			Metrics: []*model.RunMetric{
+			Metrics: []*model.RunMetricV1{
 				{
 					RunUUID:     "1",
 					NodeID:      "node1",
@@ -1236,7 +1236,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 					PipelineRoot: "gs://my-bucket/path/to/root/run2",
 				},
 			},
-			Metrics: []*model.RunMetric{
+			Metrics: []*model.RunMetricV1{
 				{
 					RunUUID:     "2",
 					NodeID:      "node2",
@@ -1253,10 +1253,10 @@ func TestListRuns_WithMetrics(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Run{}, 2, "id", nil)
 	assert.Nil(t, err)
-	runs, total_size, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts, false)
 	runs[0] = runs[0].ToV1()
 	runs[1] = runs[1].ToV1()
-	assert.Equal(t, 3, total_size)
+	assert.Equal(t, 3, totalSize)
 	assert.Nil(t, err)
 	for _, run := range expectedRuns {
 		sort.Sort(RunMetricSorter(run.Metrics))
@@ -1279,7 +1279,7 @@ func TestArchiveRun(t *testing.T) {
 	// Archive run
 	err = runStore.ArchiveRun("1")
 	assert.Nil(t, err)
-	run, getRunErr := runStore.GetRun("1")
+	run, getRunErr := runStore.GetRun("1", false)
 	assert.Nil(t, getRunErr)
 	assert.Equal(t, run.StorageState, model.StorageStateArchived)
 
@@ -1311,14 +1311,14 @@ func TestUnarchiveRun(t *testing.T) {
 	// Archive run
 	err = runStore.ArchiveRun("1")
 	assert.Nil(t, err)
-	run, getRunErr := runStore.GetRun("1")
+	run, getRunErr := runStore.GetRun("1", false)
 	assert.Nil(t, getRunErr)
 	assert.Equal(t, run.StorageState, model.StorageStateArchived)
 
 	// Unarchive it back
 	err = runStore.UnarchiveRun("1")
 	assert.Nil(t, err)
-	run, getRunErr = runStore.GetRun("1")
+	run, getRunErr = runStore.GetRun("1", false)
 	assert.Nil(t, getRunErr)
 	assert.Equal(t, run.StorageState, model.StorageStateAvailable)
 
@@ -1345,7 +1345,7 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 	// Archive run
 	err := runStore.ArchiveRun("1")
 	assert.Nil(t, err)
-	run, getRunErr := runStore.GetRun("1")
+	run, getRunErr := runStore.GetRun("1", false)
 	assert.Nil(t, getRunErr)
 	assert.Equal(t, run.StorageState, model.StorageStateArchived)
 
@@ -1371,7 +1371,7 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 					},
 				},
 			},
-			Metrics: []*model.RunMetric{
+			Metrics: []*model.RunMetricV1{
 				{
 					RunUUID:     "1",
 					NodeID:      "node1",
@@ -1391,7 +1391,7 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 	expectedRuns[0] = expectedRuns[0].ToV1()
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
 	runs, total_size, nextPageToken, err := runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
@@ -1411,7 +1411,7 @@ func TestDeleteRun(t *testing.T) {
 	// Delete run
 	err = runStore.DeleteRun("1")
 	assert.Nil(t, err)
-	_, err = runStore.GetRun("1")
+	_, err = runStore.GetRun("1", false)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Run 1 not found")
 
@@ -1431,7 +1431,7 @@ func TestDeleteRun_InternalError(t *testing.T) {
 }
 
 func TestParseMetrics(t *testing.T) {
-	expectedModelRunMetrics := []*model.RunMetric{
+	expectedModelRunMetrics := []*model.RunMetricV1{
 		{
 			RunUUID:     "run-1",
 			Name:        "metric-1",

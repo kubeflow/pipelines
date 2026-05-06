@@ -124,8 +124,8 @@ spec:
       - '{{workflow.name}}'
       - --run_display_name
       - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
+      - --parent_task_id
+      - '{{inputs.parameters.parent-dag-task-id}}'
       - --component
       - '{{inputs.parameters.component}}'
       - --task
@@ -154,10 +154,6 @@ spec:
       - ml-pipeline.kubeflow.svc.cluster.local
       - --ml_pipeline_server_port
       - "8887"
-      - --mlmd_server_address
-      - metadata-grpc-service.kubeflow.svc.cluster.local
-      - --mlmd_server_port
-      - "8080"
       command:
       - driver
       env:
@@ -169,6 +165,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -186,13 +186,17 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
     inputs:
       parameters:
       - name: component
       - name: task
       - name: container
       - name: task-name
-      - name: parent-dag-id
+      - name: parent-dag-task-id
       - default: "-1"
         name: iteration-index
       - default: ""
@@ -218,6 +222,14 @@ spec:
       runAsNonRoot: true
       seccompProfile:
         type: RuntimeDefault
+    volumes:
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
   - dag:
       tasks:
       - arguments:
@@ -247,6 +259,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap
@@ -264,6 +280,9 @@ spec:
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
       - mountPath: /gcs
         name: gcs-scratch
       - mountPath: /s3
@@ -314,6 +333,13 @@ spec:
     volumes:
     - emptyDir: {}
       name: kfp-launcher
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
     - emptyDir: {}
       name: gcs-scratch
     - emptyDir: {}
@@ -338,8 +364,8 @@ spec:
             value: '{{workflow.parameters.implementations-32f06a188ecaaebfd19502d5193eca7e8ceab20f38ca2c202c113df604e90a52}}'
           - name: task-name
             value: print-text-2
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         name: print-text-2-driver
         template: system-container-driver
       - arguments:
@@ -354,7 +380,7 @@ spec:
         template: system-container-executor
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: comp-condition-3
     outputs: {}
@@ -370,8 +396,8 @@ spec:
             value: '{{workflow.parameters.implementations-32f06a188ecaaebfd19502d5193eca7e8ceab20f38ca2c202c113df604e90a52}}'
           - name: task-name
             value: print-text-3
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         name: print-text-3-driver
         template: system-container-driver
       - arguments:
@@ -386,7 +412,7 @@ spec:
         template: system-container-executor
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: comp-condition-4
     outputs: {}
@@ -402,8 +428,10 @@ spec:
             value: '{{workflow.parameters.implementations-8853c56a797c7cf679a34e10437594f376f7496f7902f009aa8bb52f84544af7}}'
           - name: task-name
             value: print-struct
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         name: print-struct-driver
         template: system-container-driver
       - arguments:
@@ -413,12 +441,15 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-struct-driver.outputs.parameters.cached-decision}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         depends: print-struct-driver.Succeeded
         name: print-struct
         template: system-container-executor
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
+      - name: iteration-index
     metadata: {}
     name: comp-for-loop-7
     outputs: {}
@@ -434,8 +465,8 @@ spec:
       - '{{workflow.name}}'
       - --run_display_name
       - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
+      - --parent_task_id
+      - '{{inputs.parameters.parent-dag-task-id}}'
       - --component
       - '{{inputs.parameters.component}}'
       - --task
@@ -446,8 +477,8 @@ spec:
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
-      - --execution_id_path
-      - '{{outputs.parameters.execution-id.path}}'
+      - --parent_task_id_path
+      - '{{outputs.parameters.parent-dag-task-id-path.path}}'
       - --iteration_count_path
       - '{{outputs.parameters.iteration-count.path}}'
       - --condition_path
@@ -462,12 +493,21 @@ spec:
       - ml-pipeline.kubeflow.svc.cluster.local
       - --ml_pipeline_server_port
       - "8887"
-      - --mlmd_server_address
-      - metadata-grpc-service.kubeflow.svc.cluster.local
-      - --mlmd_server_port
-      - "8080"
       command:
       - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -477,14 +517,10 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
     inputs:
       parameters:
       - name: component
@@ -494,8 +530,8 @@ spec:
         name: task
       - default: ""
         name: task-name
-      - default: "0"
-        name: parent-dag-id
+      - default: ""
+        name: parent-dag-task-id
       - default: "-1"
         name: iteration-index
       - default: DAG
@@ -504,9 +540,9 @@ spec:
     name: system-dag-driver
     outputs:
       parameters:
-      - name: execution-id
+      - name: parent-dag-task-id-path
         valueFrom:
-          path: /tmp/outputs/execution-id
+          path: /tmp/outputs/task-id
       - name: iteration-count
         valueFrom:
           default: "0"
@@ -515,51 +551,22 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
-    securityContext:
-      runAsNonRoot: true
-      seccompProfile:
-        type: RuntimeDefault
+    volumes:
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
   - dag:
       tasks:
       - arguments:
           parameters:
           - name: component
             value: '{{workflow.parameters.components-comp-for-loop-7}}'
-          - name: iteration-index
-            value: '{{inputs.parameters.iteration-index}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-          - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-7"},"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output-loop-item":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item"},"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-6","items":{"raw":"[{\"a\":
-              \"-1\"}, {\"a\": \"-2\"}]"}},"taskInfo":{"name":"for-loop-7"}}'
-          - name: task-name
-            value: for-loop-7
-        name: iteration-item-driver
-        template: system-dag-driver
-      - arguments:
-          parameters:
-          - name: parent-dag-id
-            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
-          - name: condition
-            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
-        depends: iteration-item-driver.Succeeded
-        name: iteration-item
-        template: comp-for-loop-7
-    inputs:
-      parameters:
-      - name: parent-dag-id
-      - name: iteration-index
-    metadata: {}
-    name: comp-for-loop-7-iteration
-    outputs: {}
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: component
-            value: '{{workflow.parameters.components-comp-for-loop-7}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-7"},"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output-loop-item":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item"},"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-6","items":{"raw":"[{\"a\":
               \"-1\"}, {\"a\": \"-2\"}]"}},"taskInfo":{"name":"for-loop-7"}}'
@@ -569,18 +576,18 @@ spec:
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.iteration-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: iteration-index
             value: '{{item}}'
         depends: iteration-driver.Succeeded
         name: iteration-iterations
-        template: comp-for-loop-7-iteration
+        template: comp-for-loop-7
         withSequence:
           count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: comp-for-loop-7-for-loop-7-iterator
     outputs: {}
@@ -588,13 +595,13 @@ spec:
       tasks:
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         name: for-loop-7
         template: comp-for-loop-7-for-loop-7-iterator
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: comp-condition-5
     outputs: {}
@@ -610,8 +617,8 @@ spec:
             value: '{{workflow.parameters.implementations-32f06a188ecaaebfd19502d5193eca7e8ceab20f38ca2c202c113df604e90a52}}'
           - name: task-name
             value: print-text-8
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         name: print-text-8-driver
         template: system-container-driver
       - arguments:
@@ -626,7 +633,7 @@ spec:
         template: system-container-executor
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: comp-condition-13
     outputs: {}
@@ -636,21 +643,25 @@ spec:
           parameters:
           - name: component
             value: '{{workflow.parameters.components-comp-condition-13}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-condition-13"},"inputs":{"parameters":{"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"},"pipelinechannel--loop-item-param-11":{"componentInputParameter":"pipelinechannel--loop-item-param-11"}}},"taskInfo":{"name":"condition-13"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--loop-item-param-11'']
               == ''1''"}}'
           - name: task-name
             value: condition-13
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         name: condition-13-driver
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.condition-13-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.condition-13-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: condition
             value: '{{tasks.condition-13-driver.outputs.parameters.condition}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         depends: condition-13-driver.Succeeded
         name: condition-13
         template: comp-condition-13
@@ -665,8 +676,10 @@ spec:
             value: '{{workflow.parameters.implementations-32f06a188ecaaebfd19502d5193eca7e8ceab20f38ca2c202c113df604e90a52}}'
           - name: task-name
             value: print-text-7
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         name: print-text-7-driver
         template: system-container-driver
       - arguments:
@@ -676,12 +689,15 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-text-7-driver.outputs.parameters.cached-decision}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         depends: print-text-7-driver.Succeeded
         name: print-text-7
         template: system-container-executor
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
+      - name: iteration-index
     metadata: {}
     name: comp-for-loop-12
     outputs: {}
@@ -697,8 +713,10 @@ spec:
             value: '{{workflow.parameters.implementations-32f06a188ecaaebfd19502d5193eca7e8ceab20f38ca2c202c113df604e90a52}}'
           - name: task-name
             value: print-text-4
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         name: print-text-4-driver
         template: system-container-driver
       - arguments:
@@ -708,12 +726,15 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-text-4-driver.outputs.parameters.cached-decision}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         depends: print-text-4-driver.Succeeded
         name: print-text-4
         template: system-container-executor
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
+      - name: iteration-index
     metadata: {}
     name: comp-for-loop-8
     outputs: {}
@@ -729,8 +750,10 @@ spec:
             value: '{{workflow.parameters.implementations-32f06a188ecaaebfd19502d5193eca7e8ceab20f38ca2c202c113df604e90a52}}'
           - name: task-name
             value: print-text-6
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         name: print-text-6-driver
         template: system-container-driver
       - arguments:
@@ -740,12 +763,15 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-text-6-driver.outputs.parameters.cached-decision}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         depends: print-text-6-driver.Succeeded
         name: print-text-6
         template: system-container-executor
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
+      - name: iteration-index
     metadata: {}
     name: comp-for-loop-10
     outputs: {}
@@ -755,40 +781,8 @@ spec:
           parameters:
           - name: component
             value: '{{workflow.parameters.components-comp-for-loop-10}}'
-          - name: iteration-index
-            value: '{{inputs.parameters.iteration-index}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-          - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-10"},"inputs":{"parameters":{"pipelinechannel--args-generator-op-2-Output":{"componentInputParameter":"pipelinechannel--args-generator-op-2-Output"},"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"},"pipelinechannel--loop_parameter-loop-item":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item"}}},"parameterIterator":{"itemInput":"pipelinechannel--args-generator-op-2-Output-loop-item","items":{"inputParameter":"pipelinechannel--args-generator-op-2-Output"}},"taskInfo":{"name":"for-loop-10"}}'
-          - name: task-name
-            value: for-loop-10
-        name: iteration-item-driver
-        template: system-dag-driver
-      - arguments:
-          parameters:
-          - name: parent-dag-id
-            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
-          - name: condition
-            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
-        depends: iteration-item-driver.Succeeded
-        name: iteration-item
-        template: comp-for-loop-10
-    inputs:
-      parameters:
-      - name: parent-dag-id
-      - name: iteration-index
-    metadata: {}
-    name: comp-for-loop-10-iteration
-    outputs: {}
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: component
-            value: '{{workflow.parameters.components-comp-for-loop-10}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-10"},"inputs":{"parameters":{"pipelinechannel--args-generator-op-2-Output":{"componentInputParameter":"pipelinechannel--args-generator-op-2-Output"},"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"},"pipelinechannel--loop_parameter-loop-item":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item"}}},"parameterIterator":{"itemInput":"pipelinechannel--args-generator-op-2-Output-loop-item","items":{"inputParameter":"pipelinechannel--args-generator-op-2-Output"}},"taskInfo":{"name":"for-loop-10"}}'
           - name: task-name
@@ -797,18 +791,18 @@ spec:
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.iteration-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: iteration-index
             value: '{{item}}'
         depends: iteration-driver.Succeeded
         name: iteration-iterations
-        template: comp-for-loop-10-iteration
+        template: comp-for-loop-10
         withSequence:
           count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: comp-for-loop-10-for-loop-10-iterator
     outputs: {}
@@ -816,8 +810,10 @@ spec:
       tasks:
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         name: for-loop-10
         template: comp-for-loop-10-for-loop-10-iterator
       - arguments:
@@ -830,8 +826,10 @@ spec:
             value: '{{workflow.parameters.implementations-32f06a188ecaaebfd19502d5193eca7e8ceab20f38ca2c202c113df604e90a52}}'
           - name: task-name
             value: print-text-5
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         name: print-text-5-driver
         template: system-container-driver
       - arguments:
@@ -841,12 +839,15 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-text-5-driver.outputs.parameters.cached-decision}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         depends: print-text-5-driver.Succeeded
         name: print-text-5
         template: system-container-executor
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
+      - name: iteration-index
     metadata: {}
     name: comp-for-loop-9
     outputs: {}
@@ -856,41 +857,8 @@ spec:
           parameters:
           - name: component
             value: '{{workflow.parameters.components-comp-for-loop-12}}'
-          - name: iteration-index
-            value: '{{inputs.parameters.iteration-index}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-          - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-12"},"inputs":{"parameters":{"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-11","items":{"raw":"[\"1\",
-              \"2\"]"}},"taskInfo":{"name":"for-loop-12"}}'
-          - name: task-name
-            value: for-loop-12
-        name: iteration-item-driver
-        template: system-dag-driver
-      - arguments:
-          parameters:
-          - name: parent-dag-id
-            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
-          - name: condition
-            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
-        depends: iteration-item-driver.Succeeded
-        name: iteration-item
-        template: comp-for-loop-12
-    inputs:
-      parameters:
-      - name: parent-dag-id
-      - name: iteration-index
-    metadata: {}
-    name: comp-for-loop-12-iteration
-    outputs: {}
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: component
-            value: '{{workflow.parameters.components-comp-for-loop-12}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-12"},"inputs":{"parameters":{"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-11","items":{"raw":"[\"1\",
               \"2\"]"}},"taskInfo":{"name":"for-loop-12"}}'
@@ -900,18 +868,18 @@ spec:
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.iteration-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: iteration-index
             value: '{{item}}'
         depends: iteration-driver.Succeeded
         name: iteration-iterations
-        template: comp-for-loop-12-iteration
+        template: comp-for-loop-12
         withSequence:
           count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: comp-for-loop-12-for-loop-12-iterator
     outputs: {}
@@ -921,40 +889,8 @@ spec:
           parameters:
           - name: component
             value: '{{workflow.parameters.components-comp-for-loop-8}}'
-          - name: iteration-index
-            value: '{{inputs.parameters.iteration-index}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-          - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-8"},"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output-loop-item":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item"},"pipelinechannel--args-generator-op-Output-loop-item-subvar-B_b":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"},"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"}}},"parameterIterator":{"itemInput":"pipelinechannel--args-generator-op-Output-loop-item-subvar-B_b-loop-item","items":{"inputParameter":"pipelinechannel--args-generator-op-Output-loop-item-subvar-B_b"}},"taskInfo":{"name":"for-loop-8"}}'
-          - name: task-name
-            value: for-loop-8
-        name: iteration-item-driver
-        template: system-dag-driver
-      - arguments:
-          parameters:
-          - name: parent-dag-id
-            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
-          - name: condition
-            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
-        depends: iteration-item-driver.Succeeded
-        name: iteration-item
-        template: comp-for-loop-8
-    inputs:
-      parameters:
-      - name: parent-dag-id
-      - name: iteration-index
-    metadata: {}
-    name: comp-for-loop-8-iteration
-    outputs: {}
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: component
-            value: '{{workflow.parameters.components-comp-for-loop-8}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-8"},"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output-loop-item":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item"},"pipelinechannel--args-generator-op-Output-loop-item-subvar-B_b":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"},"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"}}},"parameterIterator":{"itemInput":"pipelinechannel--args-generator-op-Output-loop-item-subvar-B_b-loop-item","items":{"inputParameter":"pipelinechannel--args-generator-op-Output-loop-item-subvar-B_b"}},"taskInfo":{"name":"for-loop-8"}}'
           - name: task-name
@@ -963,18 +899,18 @@ spec:
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.iteration-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: iteration-index
             value: '{{item}}'
         depends: iteration-driver.Succeeded
         name: iteration-iterations
-        template: comp-for-loop-8-iteration
+        template: comp-for-loop-8
         withSequence:
           count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: comp-for-loop-8-for-loop-8-iterator
     outputs: {}
@@ -984,40 +920,8 @@ spec:
           parameters:
           - name: component
             value: '{{workflow.parameters.components-comp-for-loop-9}}'
-          - name: iteration-index
-            value: '{{inputs.parameters.iteration-index}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-          - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-9"},"inputs":{"parameters":{"pipelinechannel--args-generator-op-2-Output":{"componentInputParameter":"pipelinechannel--args-generator-op-2-Output"},"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"},"pipelinechannel--loop_parameter":{"componentInputParameter":"pipelinechannel--loop_parameter"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop_parameter-loop-item","items":{"inputParameter":"pipelinechannel--loop_parameter"}},"taskInfo":{"name":"for-loop-9"}}'
-          - name: task-name
-            value: for-loop-9
-        name: iteration-item-driver
-        template: system-dag-driver
-      - arguments:
-          parameters:
-          - name: parent-dag-id
-            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
-          - name: condition
-            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
-        depends: iteration-item-driver.Succeeded
-        name: iteration-item
-        template: comp-for-loop-9
-    inputs:
-      parameters:
-      - name: parent-dag-id
-      - name: iteration-index
-    metadata: {}
-    name: comp-for-loop-9-iteration
-    outputs: {}
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: component
-            value: '{{workflow.parameters.components-comp-for-loop-9}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-9"},"inputs":{"parameters":{"pipelinechannel--args-generator-op-2-Output":{"componentInputParameter":"pipelinechannel--args-generator-op-2-Output"},"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"},"pipelinechannel--loop_parameter":{"componentInputParameter":"pipelinechannel--loop_parameter"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop_parameter-loop-item","items":{"inputParameter":"pipelinechannel--loop_parameter"}},"taskInfo":{"name":"for-loop-9"}}'
           - name: task-name
@@ -1026,18 +930,18 @@ spec:
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.iteration-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: iteration-index
             value: '{{item}}'
         depends: iteration-driver.Succeeded
         name: iteration-iterations
-        template: comp-for-loop-9-iteration
+        template: comp-for-loop-9
         withSequence:
           count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: comp-for-loop-9-for-loop-9-iterator
     outputs: {}
@@ -1047,21 +951,25 @@ spec:
           parameters:
           - name: component
             value: '{{workflow.parameters.components-comp-condition-3}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-condition-3"},"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output-loop-item":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item"},"pipelinechannel--args-generator-op-Output-loop-item-subvar-A_a":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"},"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"}}},"taskInfo":{"name":"condition-3"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--args-generator-op-Output-loop-item-subvar-A_a'']
               == ''heads''"}}'
           - name: task-name
             value: condition-3
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         name: condition-3-driver
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.condition-3-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.condition-3-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: condition
             value: '{{tasks.condition-3-driver.outputs.parameters.condition}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         depends: condition-3-driver.Succeeded
         name: condition-3
         template: comp-condition-3
@@ -1070,21 +978,25 @@ spec:
           parameters:
           - name: component
             value: '{{workflow.parameters.components-comp-condition-4}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-condition-4"},"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output-loop-item":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item"},"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"}}},"taskInfo":{"name":"condition-4"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-coin-op-Output'']
               == ''heads''"}}'
           - name: task-name
             value: condition-4
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         name: condition-4-driver
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.condition-4-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.condition-4-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: condition
             value: '{{tasks.condition-4-driver.outputs.parameters.condition}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         depends: condition-4-driver.Succeeded
         name: condition-4
         template: comp-condition-4
@@ -1093,41 +1005,51 @@ spec:
           parameters:
           - name: component
             value: '{{workflow.parameters.components-comp-condition-5}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-condition-5"},"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output-loop-item":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item"},"pipelinechannel--args-generator-op-Output-loop-item-subvar-A_a":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"},"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"}}},"taskInfo":{"name":"condition-5"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--args-generator-op-Output-loop-item-subvar-A_a'']
               == ''tails''"}}'
           - name: task-name
             value: condition-5
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         name: condition-5-driver
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.condition-5-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.condition-5-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: condition
             value: '{{tasks.condition-5-driver.outputs.parameters.condition}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         depends: condition-5-driver.Succeeded
         name: condition-5
         template: comp-condition-5
         when: '{{tasks.condition-5-driver.outputs.parameters.condition}} != false'
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         name: for-loop-12
         template: comp-for-loop-12-for-loop-12-iterator
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         name: for-loop-8
         template: comp-for-loop-8-for-loop-8-iterator
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         name: for-loop-9
         template: comp-for-loop-9-for-loop-9-iterator
       - arguments:
@@ -1140,8 +1062,10 @@ spec:
             value: '{{workflow.parameters.implementations-32f06a188ecaaebfd19502d5193eca7e8ceab20f38ca2c202c113df604e90a52}}'
           - name: task-name
             value: print-text
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         name: print-text-driver
         template: system-container-driver
       - arguments:
@@ -1151,12 +1075,15 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-text-driver.outputs.parameters.cached-decision}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         depends: print-text-driver.Succeeded
         name: print-text
         template: system-container-executor
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
+      - name: iteration-index
     metadata: {}
     name: comp-for-loop-2
     outputs: {}
@@ -1166,40 +1093,8 @@ spec:
           parameters:
           - name: component
             value: '{{workflow.parameters.components-comp-for-loop-2}}'
-          - name: iteration-index
-            value: '{{inputs.parameters.iteration-index}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-          - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-2"},"dependentTasks":["args-generator-op-2"],"inputs":{"parameters":{"pipelinechannel--args-generator-op-2-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"args-generator-op-2"}},"pipelinechannel--args-generator-op-Output":{"componentInputParameter":"pipelinechannel--args-generator-op-Output"},"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"},"pipelinechannel--loop_parameter":{"componentInputParameter":"pipelinechannel--loop_parameter"},"pipelinechannel--msg":{"componentInputParameter":"pipelinechannel--msg"}}},"parameterIterator":{"itemInput":"pipelinechannel--args-generator-op-Output-loop-item","items":{"inputParameter":"pipelinechannel--args-generator-op-Output"}},"taskInfo":{"name":"for-loop-2"}}'
-          - name: task-name
-            value: for-loop-2
-        name: iteration-item-driver
-        template: system-dag-driver
-      - arguments:
-          parameters:
-          - name: parent-dag-id
-            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
-          - name: condition
-            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
-        depends: iteration-item-driver.Succeeded
-        name: iteration-item
-        template: comp-for-loop-2
-    inputs:
-      parameters:
-      - name: parent-dag-id
-      - name: iteration-index
-    metadata: {}
-    name: comp-for-loop-2-iteration
-    outputs: {}
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: component
-            value: '{{workflow.parameters.components-comp-for-loop-2}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-2"},"dependentTasks":["args-generator-op-2"],"inputs":{"parameters":{"pipelinechannel--args-generator-op-2-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"args-generator-op-2"}},"pipelinechannel--args-generator-op-Output":{"componentInputParameter":"pipelinechannel--args-generator-op-Output"},"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"},"pipelinechannel--loop_parameter":{"componentInputParameter":"pipelinechannel--loop_parameter"},"pipelinechannel--msg":{"componentInputParameter":"pipelinechannel--msg"}}},"parameterIterator":{"itemInput":"pipelinechannel--args-generator-op-Output-loop-item","items":{"inputParameter":"pipelinechannel--args-generator-op-Output"}},"taskInfo":{"name":"for-loop-2"}}'
           - name: task-name
@@ -1208,18 +1103,18 @@ spec:
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.iteration-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: iteration-index
             value: '{{item}}'
         depends: iteration-driver.Succeeded
         name: iteration-iterations
-        template: comp-for-loop-2-iteration
+        template: comp-for-loop-2
         withSequence:
           count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: comp-for-loop-2-for-loop-2-iterator
     outputs: {}
@@ -1235,8 +1130,8 @@ spec:
             value: '{{workflow.parameters.implementations-ac68354549bad0bc7c4df15cdbcb5ecaacdd64a74d077c031e7c4c8d91aab247}}'
           - name: task-name
             value: args-generator-op-2
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         name: args-generator-op-2-driver
         template: system-container-driver
       - arguments:
@@ -1251,14 +1146,14 @@ spec:
         template: system-container-executor
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         depends: args-generator-op-2.Succeeded
         name: for-loop-2
         template: comp-for-loop-2-for-loop-2-iterator
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: comp-condition-1
     outputs: {}
@@ -1274,8 +1169,10 @@ spec:
             value: '{{workflow.parameters.implementations-32f06a188ecaaebfd19502d5193eca7e8ceab20f38ca2c202c113df604e90a52}}'
           - name: task-name
             value: print-text-9
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         name: print-text-9-driver
         template: system-container-driver
       - arguments:
@@ -1285,12 +1182,15 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.print-text-9-driver.outputs.parameters.cached-decision}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         depends: print-text-9-driver.Succeeded
         name: print-text-9
         template: system-container-executor
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
+      - name: iteration-index
     metadata: {}
     name: comp-for-loop-16
     outputs: {}
@@ -1300,40 +1200,8 @@ spec:
           parameters:
           - name: component
             value: '{{workflow.parameters.components-comp-for-loop-16}}'
-          - name: iteration-index
-            value: '{{inputs.parameters.iteration-index}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-          - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-16"},"inputs":{"parameters":{"pipelinechannel--loop_parameter-loop-item":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item"},"pipelinechannel--loop_parameter-loop-item-subvar-B_b":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop_parameter-loop-item-subvar-B_b-loop-item","items":{"inputParameter":"pipelinechannel--loop_parameter-loop-item-subvar-B_b"}},"taskInfo":{"name":"for-loop-16"}}'
-          - name: task-name
-            value: for-loop-16
-        name: iteration-item-driver
-        template: system-dag-driver
-      - arguments:
-          parameters:
-          - name: parent-dag-id
-            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
-          - name: condition
-            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
-        depends: iteration-item-driver.Succeeded
-        name: iteration-item
-        template: comp-for-loop-16
-    inputs:
-      parameters:
-      - name: parent-dag-id
-      - name: iteration-index
-    metadata: {}
-    name: comp-for-loop-16-iteration
-    outputs: {}
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: component
-            value: '{{workflow.parameters.components-comp-for-loop-16}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-16"},"inputs":{"parameters":{"pipelinechannel--loop_parameter-loop-item":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item"},"pipelinechannel--loop_parameter-loop-item-subvar-B_b":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop_parameter-loop-item-subvar-B_b-loop-item","items":{"inputParameter":"pipelinechannel--loop_parameter-loop-item-subvar-B_b"}},"taskInfo":{"name":"for-loop-16"}}'
           - name: task-name
@@ -1342,18 +1210,18 @@ spec:
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.iteration-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: iteration-index
             value: '{{item}}'
         depends: iteration-driver.Succeeded
         name: iteration-iterations
-        template: comp-for-loop-16-iteration
+        template: comp-for-loop-16
         withSequence:
           count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: comp-for-loop-16-for-loop-16-iterator
     outputs: {}
@@ -1361,13 +1229,13 @@ spec:
       tasks:
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         name: for-loop-16
         template: comp-for-loop-16-for-loop-16-iterator
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: comp-condition-15
     outputs: {}
@@ -1377,28 +1245,33 @@ spec:
           parameters:
           - name: component
             value: '{{workflow.parameters.components-comp-condition-15}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-condition-15"},"inputs":{"parameters":{"pipelinechannel--loop_parameter-loop-item":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item"},"pipelinechannel--loop_parameter-loop-item-subvar-A_a":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"condition-15"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--loop_parameter-loop-item-subvar-A_a'']
               == ''heads''"}}'
           - name: task-name
             value: condition-15
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         name: condition-15-driver
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.condition-15-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.condition-15-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: condition
             value: '{{tasks.condition-15-driver.outputs.parameters.condition}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
         depends: condition-15-driver.Succeeded
         name: condition-15
         template: comp-condition-15
         when: '{{tasks.condition-15-driver.outputs.parameters.condition}} != false'
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
+      - name: iteration-index
     metadata: {}
     name: comp-for-loop-14
     outputs: {}
@@ -1408,40 +1281,8 @@ spec:
           parameters:
           - name: component
             value: '{{workflow.parameters.components-comp-for-loop-14}}'
-          - name: iteration-index
-            value: '{{inputs.parameters.iteration-index}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-          - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-14"},"inputs":{"parameters":{"pipelinechannel--loop_parameter":{"componentInputParameter":"loop_parameter"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop_parameter-loop-item","items":{"inputParameter":"pipelinechannel--loop_parameter"}},"taskInfo":{"name":"for-loop-14"}}'
-          - name: task-name
-            value: for-loop-14
-        name: iteration-item-driver
-        template: system-dag-driver
-      - arguments:
-          parameters:
-          - name: parent-dag-id
-            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
-          - name: condition
-            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
-        depends: iteration-item-driver.Succeeded
-        name: iteration-item
-        template: comp-for-loop-14
-    inputs:
-      parameters:
-      - name: parent-dag-id
-      - name: iteration-index
-    metadata: {}
-    name: comp-for-loop-14-iteration
-    outputs: {}
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: component
-            value: '{{workflow.parameters.components-comp-for-loop-14}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-14"},"inputs":{"parameters":{"pipelinechannel--loop_parameter":{"componentInputParameter":"loop_parameter"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop_parameter-loop-item","items":{"inputParameter":"pipelinechannel--loop_parameter"}},"taskInfo":{"name":"for-loop-14"}}'
           - name: task-name
@@ -1450,18 +1291,18 @@ spec:
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.iteration-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: iteration-index
             value: '{{item}}'
         depends: iteration-driver.Succeeded
         name: iteration-iterations
-        template: comp-for-loop-14-iteration
+        template: comp-for-loop-14
         withSequence:
           count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: comp-for-loop-14-for-loop-14-iterator
     outputs: {}
@@ -1477,8 +1318,8 @@ spec:
             value: '{{workflow.parameters.implementations-ac68354549bad0bc7c4df15cdbcb5ecaacdd64a74d077c031e7c4c8d91aab247}}'
           - name: task-name
             value: args-generator-op
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         name: args-generator-op-driver
         template: system-container-driver
       - arguments:
@@ -1495,8 +1336,8 @@ spec:
           parameters:
           - name: component
             value: '{{workflow.parameters.components-comp-condition-1}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-condition-1"},"dependentTasks":["args-generator-op","flip-coin-op"],"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"args-generator-op"}},"pipelinechannel--flip-coin-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin-op"}},"pipelinechannel--loop_parameter":{"componentInputParameter":"loop_parameter"},"pipelinechannel--msg":{"componentInputParameter":"msg"}}},"taskInfo":{"name":"condition-1"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-coin-op-Output'']
               != ''no-such-result''"}}'
@@ -1507,8 +1348,8 @@ spec:
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.condition-1-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.condition-1-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: condition
             value: '{{tasks.condition-1-driver.outputs.parameters.condition}}'
         depends: condition-1-driver.Succeeded
@@ -1525,8 +1366,8 @@ spec:
             value: '{{workflow.parameters.implementations-663f234c274873c6b1c76e2f91561ee25169ff505cfe45310e51e4b0265a2d98}}'
           - name: task-name
             value: flip-coin-op
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         name: flip-coin-op-driver
         template: system-container-driver
       - arguments:
@@ -1541,13 +1382,13 @@ spec:
         template: system-container-executor
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         name: for-loop-14
         template: comp-for-loop-14-for-loop-14-iterator
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: root
     outputs: {}
@@ -1565,8 +1406,8 @@ spec:
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.root-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: condition
             value: ""
         depends: root-driver.Succeeded

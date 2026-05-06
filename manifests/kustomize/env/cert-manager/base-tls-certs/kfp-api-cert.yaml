@@ -10,13 +10,9 @@ spec:
     - ml-pipeline.$(kfp-namespace)
     - ml-pipeline.$(kfp-namespace).svc
     - ml-pipeline.$(kfp-namespace).svc.cluster.local
+    - ml-pipeline.kubeflow
+    - ml-pipeline.$(kfp-namespace).svc.cluster.local
     - ml-pipeline-scheduledworkflow
-    - metadata-envoy
-    - metadata-envoy-service
-    - metadata-grpc-service
-    - metadata-grpc-service.$(kfp-namespace)
-    - metadata-grpc-service.$(kfp-namespace).svc
-    - metadata-grpc-service.$(kfp-namespace).svc.cluster.local
     # localhost included here because cert is used in KFP pod-to-pod TLS-enabled testing against localhost base URL
     - localhost
   ipAddresses:
