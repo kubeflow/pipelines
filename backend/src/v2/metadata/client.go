@@ -768,14 +768,31 @@ func (c *Client) PrePublishExecution(ctx context.Context, execution *Execution, 
 	return execution, nil
 }
 
-// UpdateDAGExecutionState checks all the statuses of the tasks in the given DAG, based on that it will update the DAG to the corresponding status if necessary.
+// UpdateDAGExecutionsState checks all the statuses of the tasks in the given DAG, based on that it will update the DAG to the corresponding status if necessary.
+// If the DAG reaches a terminal state, propagation continues upward to ancestor DAGs until reaching the root.
 func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipeline *Pipeline) error {
+	// Prefer runtime iteration_count (set by ParallelFor) over compile-time total_dag_tasks.
+	// We must check key presence because iteration_count=0 is valid (empty loop)
+	// and distinct from the key being absent (non-iterator DAG).
+	customProperties := dag.Execution.GetExecution().GetCustomProperties()
+	iterationCountValue, hasIterationCount := customProperties[keyIterationCount]
+
+	var expectedTaskCount int64
+	if hasIterationCount {
+		expectedTaskCount = iterationCountValue.GetIntValue()
+	} else {
+		expectedTaskCount = customProperties[keyTotalDagTasks].GetIntValue()
+	}
+
+	if expectedTaskCount == 0 && !hasIterationCount {
+		glog.V(4).Infof("DAG %d has no expected task count (root DAG or unknown), skipping state update", dag.Execution.GetID())
+		return nil
+	}
+
 	tasks, err := c.GetExecutionsInDAG(ctx, dag, pipeline, true)
 	if err != nil {
 		return err
 	}
-
-	totalDagTasks := dag.Execution.Execution.CustomProperties["total_dag_tasks"].GetIntValue()
 
 	glog.V(4).Infof("tasks: %v", tasks)
 	glog.V(4).Infof("Checking Tasks' State")
@@ -798,17 +815,39 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 	}
 	glog.V(4).Infof("completedTasks: %d", completedTasks)
 	glog.V(4).Infof("failedTasks: %d", failedTasks)
-	glog.V(4).Infof("totalTasks: %d", totalDagTasks)
+	glog.V(4).Infof("expectedTaskCount: %d", expectedTaskCount)
 
-	glog.Infof("Attempting to update DAG state")
-	if completedTasks == int(totalDagTasks) {
-		c.PutDAGExecutionState(ctx, dag.Execution.GetID(), pb.Execution_COMPLETE)
-	} else if failedTasks > 0 {
-		c.PutDAGExecutionState(ctx, dag.Execution.GetID(), pb.Execution_FAILED)
-	} else {
+	glog.Infof("Attempting to update DAG state for execution %d", dag.Execution.GetID())
+
+	var newState pb.Execution_State
+	switch {
+	case completedTasks == int(expectedTaskCount):
+		newState = pb.Execution_COMPLETE
+	case failedTasks > 0:
+		newState = pb.Execution_FAILED
+	default:
 		glog.V(4).Infof("DAG is still running")
+		return nil
 	}
-	return nil
+
+	if err := c.PutDAGExecutionState(ctx, dag.Execution.GetID(), newState); err != nil {
+		return err
+	}
+
+	// Propagate upward to parent DAG if this is not the root.
+	parentDagID := dag.Execution.GetExecution().GetCustomProperties()[keyParentDagID].GetIntValue()
+	if parentDagID == 0 {
+		glog.V(4).Infof("DAG %d is root or has no parent, stopping propagation", dag.Execution.GetID())
+		return nil
+	}
+
+	glog.Infof("Propagating state update to parent DAG %d", parentDagID)
+	parentDAG, err := c.GetDAG(ctx, parentDagID)
+	if err != nil {
+		return fmt.Errorf("failed to get parent DAG %d for recursive state update: %w", parentDagID, err)
+	}
+
+	return c.UpdateDAGExecutionsState(ctx, parentDAG, pipeline)
 }
 
 // PutDAGExecutionState updates the given DAG Id to the state provided.
