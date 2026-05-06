@@ -1632,7 +1632,7 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		return &model.Task{}, nil
 	}
 	var taskId, nodeId, namespace, pipelineName, runId, mlmdExecId, fingerprint string
-	var name, parentTaskId, state, inputs, outputs string
+	var name, parentTaskID, state, inputs, outputs, taskPayload string
 	var createTime, startTime, finishTime int64
 	var stateHistory []*model.RuntimeStatus
 	var children []string
@@ -1649,7 +1649,7 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		startTime = createTime
 		finishTime = apiTaskV1.GetFinishedAt().GetSeconds()
 		name = ""
-		parentTaskId = ""
+		parentTaskID = ""
 		state = ""
 		inputs = ""
 		outputs = ""
@@ -1665,7 +1665,7 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		startTime = apiTaskDetailV2.GetStartTime().GetSeconds()
 		finishTime = apiTaskDetailV2.GetEndTime().GetSeconds()
 		name = apiTaskDetailV2.GetDisplayName()
-		parentTaskId = apiTaskDetailV2.GetParentTaskId()
+		parentTaskID = apiTaskDetailV2.GetParentTaskId()
 		state = apiTaskDetailV2.GetState().String()
 		if hist, err := toModelRuntimeStatuses(apiTaskDetailV2.GetStateHistory()); err == nil {
 			stateHistory = hist
@@ -1693,6 +1693,12 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		createTime = wfStatus.CreateTime
 		finishTime = wfStatus.FinishTime
 		children = wfStatus.Children
+
+		if len(wfStatus.FailedAttempts) > 0 {
+			if payloadBytes, err := json.Marshal(wfStatus.FailedAttempts); err == nil {
+				taskPayload = string(payloadBytes)
+			}
+		}
 	default:
 		return nil, util.NewUnknownApiVersionError("Task", t)
 	}
@@ -1708,12 +1714,13 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		FinishedTimestamp: finishTime,
 		Fingerprint:       fingerprint,
 		Name:              name,
-		ParentTaskId:      parentTaskId,
+		ParentTaskId:      parentTaskID,
 		State:             model.RuntimeState(state).ToV2(),
 		StateHistory:      stateHistory,
 		MLMDInputs:        model.LargeText(inputs),
 		MLMDOutputs:       model.LargeText(outputs),
 		ChildrenPods:      children,
+		Payload:           model.LargeText(taskPayload),
 	}, nil
 }
 
@@ -1816,20 +1823,30 @@ func toApiPipelineTaskDetail(t *model.Task) *apiv2beta1.PipelineTaskDetail {
 			ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: c},
 		})
 	}
+	var executorDetail *apiv2beta1.PipelineTaskExecutorDetail
+	if t.Payload != "" {
+		var payload []string
+		if err := json.Unmarshal([]byte(t.Payload), &payload); err == nil && len(payload) > 0 {
+			executorDetail = &apiv2beta1.PipelineTaskExecutorDetail{
+				FailedMainJobs: payload,
+			}
+		}
+	}
 	return &apiv2beta1.PipelineTaskDetail{
-		RunId:        t.RunID,
-		TaskId:       t.UUID,
-		DisplayName:  t.Name,
-		CreateTime:   timestamppb.New(time.Unix(t.CreatedTimestamp, 0)),
-		StartTime:    timestamppb.New(time.Unix(t.StartedTimestamp, 0)),
-		EndTime:      timestamppb.New(time.Unix(t.FinishedTimestamp, 0)),
-		State:        apiv2beta1.RuntimeState(apiv2beta1.RuntimeState_value[t.State.ToString()]),
-		ExecutionId:  execId,
-		Inputs:       inputArtifacts,
-		Outputs:      outputArtifacts,
-		ParentTaskId: t.ParentTaskId,
-		StateHistory: toApiRuntimeStatuses(t.StateHistory),
-		ChildTasks:   children,
+		RunId:          t.RunID,
+		TaskId:         t.UUID,
+		DisplayName:    t.Name,
+		CreateTime:     timestamppb.New(time.Unix(t.CreatedTimestamp, 0)),
+		StartTime:      timestamppb.New(time.Unix(t.StartedTimestamp, 0)),
+		EndTime:        timestamppb.New(time.Unix(t.FinishedTimestamp, 0)),
+		State:          apiv2beta1.RuntimeState(apiv2beta1.RuntimeState_value[t.State.ToString()]),
+		ExecutionId:    execId,
+		Inputs:         inputArtifacts,
+		Outputs:        outputArtifacts,
+		ParentTaskId:   t.ParentTaskId,
+		StateHistory:   toApiRuntimeStatuses(t.StateHistory),
+		ChildTasks:     children,
+		ExecutorDetail: executorDetail,
 	}
 }
 
