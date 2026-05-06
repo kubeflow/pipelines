@@ -37,6 +37,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -93,7 +94,10 @@ func init() {
 	}
 }
 
-// Container for all service clients.
+// Ensure that ClientManager implements the resource.ClientManagerInterface interface.
+var _ resource.ClientManagerInterface = &ClientManager{}
+
+// ClientManager Container for all service clients.
 type ClientManager struct {
 	db                        *storage.DB
 	experimentStore           storage.ExperimentStoreInterface
@@ -101,6 +105,8 @@ type ClientManager struct {
 	jobStore                  storage.JobStoreInterface
 	runStore                  storage.RunStoreInterface
 	taskStore                 storage.TaskStoreInterface
+	artifactStore             storage.ArtifactStoreInterface
+	artifactTaskStore         storage.ArtifactTaskStoreInterface
 	resourceReferenceStore    storage.ResourceReferenceStoreInterface
 	dBStatusStore             storage.DBStatusStoreInterface
 	defaultExperimentStore    storage.DefaultExperimentStoreInterface
@@ -161,6 +167,14 @@ func (c *ClientManager) JobStore() storage.JobStoreInterface {
 
 func (c *ClientManager) RunStore() storage.RunStoreInterface {
 	return c.runStore
+}
+
+func (c *ClientManager) ArtifactStore() storage.ArtifactStoreInterface {
+	return c.artifactStore
+}
+
+func (c *ClientManager) ArtifactTaskStore() storage.ArtifactTaskStoreInterface {
+	return c.artifactTaskStore
 }
 
 func (c *ClientManager) ResourceReferenceStore() storage.ResourceReferenceStoreInterface {
@@ -322,6 +336,8 @@ func (c *ClientManager) init(options *Options) error {
 
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
+	c.artifactStore = storage.NewArtifactStore(db, c.time, c.uuid)
+	c.artifactTaskStore = storage.NewArtifactTaskStore(db, c.uuid)
 
 	// Log archive
 	c.logArchive = initLogArchive()

@@ -69,9 +69,9 @@ func (f *fakeRunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchS
 }
 
 // Stubs for the remaining RunStoreInterface methods.
-func (f *fakeRunStore) CreateRun(_ *model.Run) (*model.Run, error) { return nil, nil }
-func (f *fakeRunStore) GetRun(_ string) (*model.Run, error)        { return nil, nil }
-func (f *fakeRunStore) ListRuns(_ *model.FilterContext, _ *list.Options) ([]*model.Run, int, string, error) {
+func (f *fakeRunStore) CreateRun(_ *model.Run) (*model.Run, error)  { return nil, nil }
+func (f *fakeRunStore) GetRun(_ string, _ bool) (*model.Run, error) { return nil, nil }
+func (f *fakeRunStore) ListRuns(_ *model.FilterContext, _ *list.Options, _ bool) ([]*model.Run, int, string, error) {
 	return nil, 0, "", nil
 }
 func (f *fakeRunStore) UpdateRun(_ *model.Run) error                              { return nil }
@@ -79,7 +79,7 @@ func (f *fakeRunStore) UpdateRunPluginsOutput(_ string, _ *model.LargeText) erro
 func (f *fakeRunStore) ArchiveRun(_ string) error                                 { return nil }
 func (f *fakeRunStore) UnarchiveRun(_ string) error                               { return nil }
 func (f *fakeRunStore) DeleteRun(_ string) error                                  { return nil }
-func (f *fakeRunStore) CreateMetric(_ *model.RunMetric) error                     { return nil }
+func (f *fakeRunStore) CreateV1Metric(_ *model.RunMetricV1) error                 { return nil }
 func (f *fakeRunStore) TerminateRun(_ string) error                               { return nil }
 func (f *fakeRunStore) GetRunByRecurringRunIDAndDisplayName(_, _ string) (string, error) {
 	return "", nil
