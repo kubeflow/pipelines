@@ -327,7 +327,11 @@ func (s *PipelineServerV1) GetPipelineV1(ctx context.Context, request *apiv1beta
 
 	pipelineVersion, err := s.getLatestPipelineVersion(ctx, pipelineId)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to get a pipeline (v1beta1) %s due to error fetching the latest pipeline version", pipelineId)
+		if strings.Contains(strings.ToLower(err.Error()), "not found") {
+			pipelineVersion = nil
+		} else {
+			return nil, util.Wrapf(err, "Failed to get a pipeline (v1beta1) %s due to error fetching the latest pipeline version", pipelineId)
+		}
 	}
 
 	return toApiPipelineV1(pipeline, pipelineVersion), nil
