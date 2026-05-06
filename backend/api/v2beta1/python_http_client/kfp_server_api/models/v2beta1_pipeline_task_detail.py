@@ -48,7 +48,7 @@ class V2beta1PipelineTaskDetail(object):
         'parent_task_id': 'str',
         'state_history': 'list[V2beta1RuntimeStatus]',
         'pod_name': 'str',
-        'child_tasks': 'list[PipelineTaskDetailChildTask]'
+        'child_tasks': 'list[V2beta1PipelineTaskDetailChildTask]'
     }
 
     attribute_map = {
@@ -470,10 +470,10 @@ class V2beta1PipelineTaskDetail(object):
     def child_tasks(self):
         """Gets the child_tasks of this V2beta1PipelineTaskDetail.  # noqa: E501
 
-        Sequence of dependen tasks.  # noqa: E501
+        Sequence of dependent tasks.  # noqa: E501
 
         :return: The child_tasks of this V2beta1PipelineTaskDetail.  # noqa: E501
-        :rtype: list[PipelineTaskDetailChildTask]
+        :rtype: list[V2beta1PipelineTaskDetailChildTask]
         """
         return self._child_tasks
 
@@ -481,10 +481,10 @@ class V2beta1PipelineTaskDetail(object):
     def child_tasks(self, child_tasks):
         """Sets the child_tasks of this V2beta1PipelineTaskDetail.
 
-        Sequence of dependen tasks.  # noqa: E501
+        Sequence of dependent tasks.  # noqa: E501
 
         :param child_tasks: The child_tasks of this V2beta1PipelineTaskDetail.  # noqa: E501
-        :type child_tasks: list[PipelineTaskDetailChildTask]
+        :type child_tasks: list[V2beta1PipelineTaskDetailChildTask]
         """
 
         self._child_tasks = child_tasks

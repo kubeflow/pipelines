@@ -112,7 +112,7 @@ class V2beta1RunDetails(object):
     def task_details(self):
         """Gets the task_details of this V2beta1RunDetails.  # noqa: E501
 
-        Runtime details of the tasks that belong to the run.  # noqa: E501
+        Deprecated: use top-level task APIs and Run.tasks instead. This legacy field remains in the schema for backward wire compatibility only. As part of the next major release, the backend intentionally stops populating this field and returns task data only through the top-level task APIs and Run.tasks. It will be removed in the next major API version.  # noqa: E501
 
         :return: The task_details of this V2beta1RunDetails.  # noqa: E501
         :rtype: list[V2beta1PipelineTaskDetail]
@@ -123,7 +123,7 @@ class V2beta1RunDetails(object):
     def task_details(self, task_details):
         """Sets the task_details of this V2beta1RunDetails.
 
-        Runtime details of the tasks that belong to the run.  # noqa: E501
+        Deprecated: use top-level task APIs and Run.tasks instead. This legacy field remains in the schema for backward wire compatibility only. As part of the next major release, the backend intentionally stops populating this field and returns task data only through the top-level task APIs and Run.tasks. It will be removed in the next major API version.  # noqa: E501
 
         :param task_details: The task_details of this V2beta1RunDetails.  # noqa: E501
         :type task_details: list[V2beta1PipelineTaskDetail]
