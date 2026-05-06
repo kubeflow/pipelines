@@ -566,3 +566,49 @@ func TestNormalizeBucketURLForBlobOpen(t *testing.T) {
 		assert.Equal(t, "s3://mlpipeline?prefix=v2/artifacts/root", got)
 	})
 }
+
+func TestOpenBucket_FileURL(t *testing.T) {
+	ctx := context.Background()
+	rootDir := filepath.Join(t.TempDir(), "artifacts")
+	require.NoError(t, os.MkdirAll(rootDir, 0o755))
+
+	bucketConfig, err := ParseBucketPathToConfig("file://" + rootDir)
+	require.NoError(t, err)
+
+	bucket, err := OpenBucket(ctx, fake.NewSimpleClientset(), "kubeflow", bucketConfig, nil)
+	require.NoError(t, err)
+	defer bucket.Close()
+
+	require.NoError(t, bucket.WriteAll(ctx, "dir/file.txt", []byte("hello from file bucket"), nil))
+
+	downloadDir := filepath.Join(t.TempDir(), "download")
+	err = DownloadBlob(ctx, bucket, downloadDir, "dir")
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(filepath.Join(downloadDir, "file.txt"))
+	require.NoError(t, err)
+	assert.Equal(t, "hello from file bucket", string(content))
+}
+
+func TestOpenBucket_FileURLWithPrefix(t *testing.T) {
+	ctx := context.Background()
+	rootDir := filepath.Join(t.TempDir(), "artifacts")
+	require.NoError(t, os.MkdirAll(rootDir, 0o755))
+
+	bucketConfig, err := ParseBucketPathToConfig("file://" + filepath.Join(rootDir, "v2", "artifacts"))
+	require.NoError(t, err)
+
+	bucket, err := OpenBucket(ctx, fake.NewSimpleClientset(), "kubeflow", bucketConfig, nil)
+	require.NoError(t, err)
+	defer bucket.Close()
+
+	require.NoError(t, bucket.WriteAll(ctx, "run/file.txt", []byte("prefixed file bucket"), nil))
+
+	downloadPath := filepath.Join(t.TempDir(), "file.txt")
+	err = DownloadBlob(ctx, bucket, downloadPath, "run/file.txt")
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(downloadPath)
+	require.NoError(t, err)
+	assert.Equal(t, "prefixed file bucket", string(content))
+}

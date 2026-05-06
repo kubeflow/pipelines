@@ -19,6 +19,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -47,8 +48,10 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
+	pocruntime "github.com/kubeflow/pipelines/backend/src/v2/runtime/poc"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -56,6 +59,7 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"gocloud.dev/blob"
+	_ "gocloud.dev/blob/fileblob"
 	_ "gocloud.dev/blob/gcsblob"
 	"gocloud.dev/blob/s3blob"
 )
@@ -75,6 +79,7 @@ const (
 	postgresPassword    = "DBConfig.PostgreSQLConfig.Password"
 	postgresDBName      = "DBConfig.PostgreSQLConfig.DBName"
 	postgresExtraParams = "DBConfig.PostgreSQLConfig.ExtraParams"
+	sqliteDSN           = "DBConfig.SQLiteConfig.DataSourceName"
 
 	archiveLogFileName   = "ARCHIVE_CONFIG_LOG_FILE_NAME"
 	archiveLogPathPrefix = "ARCHIVE_CONFIG_LOG_PATH_PREFIX"
@@ -147,6 +152,16 @@ type Options struct {
 // migration without restarting the API server.
 func (c *ClientManager) GarbageCollectorIndexChecker() func() bool {
 	return c.gcIndexChecker
+}
+
+func shouldInitKubernetesClients(options *Options) bool {
+	if options.UsePipelineKubernetesStorage || options.GlobalKubernetesWebhookMode {
+		return true
+	}
+	if pocruntime.Enabled() && pocruntime.RequestedExecutor() == pocruntime.ExecutorDocker {
+		return false
+	}
+	return true
 }
 
 func (c *ClientManager) TaskStore() storage.TaskStoreInterface {
@@ -340,11 +355,13 @@ func (c *ClientManager) init(options *Options) error {
 		Burst: common.GetIntConfigWithDefault(clientBurst, 10),
 	}
 
-	c.execClient = util.NewExecutionClientOrFatal(util.CurrentExecutionType(), common.GetDurationConfig(initConnectionTimeout), clientParams)
-
-	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
-
-	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+	if shouldInitKubernetesClients(options) {
+		c.execClient = util.NewExecutionClientOrFatal(util.CurrentExecutionType(), common.GetDurationConfig(initConnectionTimeout), clientParams)
+		c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+		c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+	} else {
+		glog.Infof("Skipping Kubernetes client initialization for coordinator Docker runtime mode.")
+	}
 
 	glog.Info("Initializing Object store client...")
 	objectStore, err := initBlobObjectStore(options.Context, common.GetDurationConfig(initConnectionTimeout))
@@ -362,10 +379,12 @@ func (c *ClientManager) init(options *Options) error {
 	// Log archive
 	c.logArchive = initLogArchive()
 
-	if common.IsMultiUserMode() {
+	if common.IsMultiUserMode() && shouldInitKubernetesClients(options) {
 		c.subjectAccessReviewClient = client.CreateSubjectAccessReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 		c.tokenReviewClient = client.CreateTokenReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 		c.authenticators = auth.GetAuthenticators(c.tokenReviewClient)
+	} else if common.IsMultiUserMode() {
+		glog.Infof("Skipping Kubernetes-backed auth client initialization for coordinator Docker runtime mode.")
 	}
 	glog.Infof("Client manager initialized successfully")
 
@@ -518,6 +537,8 @@ func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialec
 		})
 	case "pgx":
 		dialector = postgres.Open(arg)
+	case "sqlite":
+		dialector = sqlite.Open(arg)
 	default:
 		glog.Fatalf("Unsupported driver %v", driverName)
 	}
@@ -528,18 +549,24 @@ func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialec
 	util.TerminateIfError(err)
 	dbDialect := sqldrv.NewDBDialect(driverName)
 
-	legacy, err := isLegacySchema(db)
-	if err != nil {
-		glog.Fatalf("failed to detect schema version: %v", err)
-	}
-	if legacy {
-		// Legacy schema (pre-2.15): run the one-time legacy upgrade to shrink columns,
-		// clean up legacy indexes/constraints, and perform backfills.
-		util.TerminateIfError(runLegacyUpgradeFlow(db, dbDialect))
-	} else {
-		// Non-legacy schema (>=2.15): run autoMigrate for both first-time installs and
-		// upgrades between >=2.15 versions.
+	if driverName == "sqlite" {
+		// SQLite support is used for local/containerless development flows.
+		// Keep startup simple and always reconcile directly to the current schema.
 		util.TerminateIfError(autoMigrate(db))
+	} else {
+		legacy, err := isLegacySchema(db)
+		if err != nil {
+			glog.Fatalf("failed to detect schema version: %v", err)
+		}
+		if legacy {
+			// Legacy schema (pre-2.15): run the one-time legacy upgrade to shrink columns,
+			// clean up legacy indexes/constraints, and perform backfills.
+			util.TerminateIfError(runLegacyUpgradeFlow(db, dbDialect))
+		} else {
+			// Non-legacy schema (>=2.15): run autoMigrate for both first-time installs and
+			// upgrades between >=2.15 versions.
+			util.TerminateIfError(autoMigrate(db))
+		}
 	}
 
 	// Runs on both paths: a deployment that took the legacy upgrade before this
@@ -576,6 +603,7 @@ func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialec
 // Initializes Database driver. Use `driverName` to indicate which type of DB to use:
 // 1) "mysql" for MySQL
 // 2) "pgx" for PostgreSQL
+// 3) "sqlite" for a local SQLite database
 func initDBDriver(driverName string, initConnectionTimeout time.Duration) string {
 	var sqlConfig, dbName string
 	var mysqlConfig *mysqlStd.Config
@@ -608,8 +636,14 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 		}
 		sqlConfig = pgxConfig.ConnString()
 		dbName = common.GetStringConfig(postgresDBName)
+	case "sqlite":
+		sqlConfig = common.GetStringConfigWithDefault(sqliteDSN, "")
+		if sqlConfig == "" {
+			glog.Fatalf("Driver %v requires %s to be set", driverName, sqliteDSN)
+		}
+		return sqlConfig
 	default:
-		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, or \"pgx\" for PostgreSQL", driverName)
+		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, \"pgx\" for PostgreSQL, or \"sqlite\" for SQLite", driverName)
 	}
 
 	var db *sql.DB
@@ -673,7 +707,7 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 		}
 		sqlConfig = pgxCfg.ConnString()
 	default:
-		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, or \"pgx\" for PostgreSQL", driverName)
+		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, \"pgx\" for PostgreSQL, or \"sqlite\" for SQLite", driverName)
 	}
 	return sqlConfig
 }
@@ -1334,18 +1368,33 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 		return nil, fmt.Errorf("failed to open blob storage bucket: %w", err)
 	}
 
-	glog.Infof("Successfully initialized blob storage for bucket: %s", blobConfig.bucketName)
+	glog.Infof("Successfully initialized blob storage for bucket: %s", blobConfig.identifier())
 	return storage.NewBlobObjectStore(bucket, pipelinePath), nil
 }
 
 // blobStorageConfig holds the bucket configuration and credentials
 type blobStorageConfig struct {
 	bucketName string
+	bucketURL  string
 	endpoint   string
 	secure     bool
 	region     string
 	accessKey  string
 	secretKey  string
+}
+
+func (c *blobStorageConfig) usesBucketURL() bool {
+	return c != nil && c.bucketURL != ""
+}
+
+func (c *blobStorageConfig) identifier() string {
+	if c == nil {
+		return ""
+	}
+	if c.bucketURL != "" {
+		return c.bucketURL
+	}
+	return c.bucketName
 }
 
 type s3BucketAPI interface {
@@ -1367,6 +1416,21 @@ func ensureProtocol(endpoint string, secure bool) string {
 
 // buildConfigFromEnvVars creates a bucket config from environment variables
 func buildConfigFromEnvVars() (*blobStorageConfig, error) {
+	bucketURL := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketURL", "")
+	if bucketURL != "" {
+		if err := validateRequiredConfig("", "", "", "", bucketURL); err != nil {
+			return nil, err
+		}
+		parsedURL, err := url.Parse(bucketURL)
+		if err != nil {
+			return nil, fmt.Errorf("ObjectStoreConfig.BucketURL is invalid: %w", err)
+		}
+		return &blobStorageConfig{
+			bucketName: parsedURL.Path,
+			bucketURL:  bucketURL,
+		}, nil
+	}
+
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
 	host := common.GetStringConfigWithDefault("ObjectStoreConfig.Host", "")
 	port := common.GetStringConfigWithDefault("ObjectStoreConfig.Port", "")
@@ -1375,7 +1439,7 @@ func buildConfigFromEnvVars() (*blobStorageConfig, error) {
 	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
 	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
 
-	err := validateRequiredConfig(bucketName, host, accessKey, secretKey)
+	err := validateRequiredConfig(bucketName, host, accessKey, secretKey, "")
 	if err != nil {
 		return nil, err
 	}
@@ -1433,11 +1497,24 @@ func loadAWSConfig(ctx context.Context, config *blobStorageConfig) (awsv2.Config
 }
 
 // validateRequiredConfig validates the required object store configuration fields.
-// bucketName and host are always required. Credentials (accessKey/secretKey) are optional
-// to support AWS IRSA (IAM Roles for Service Accounts), environment variables,
+// For S3-compatible stores, bucketName and host are required. Credentials
+// (accessKey/secretKey) are optional to support AWS IRSA, environment variables,
 // and instance profile-based authentication through the default AWS credential chain.
 // However, if credentials are provided, both accessKey and secretKey must be set.
-func validateRequiredConfig(bucketName, host, accessKey, secretKey string) error {
+func validateRequiredConfig(bucketName, host, accessKey, secretKey, bucketURL string) error {
+	if bucketURL != "" {
+		parsedURL, err := url.Parse(bucketURL)
+		if err != nil {
+			return fmt.Errorf("ObjectStoreConfig.BucketURL is invalid: %w", err)
+		}
+		if parsedURL.Scheme != "file" {
+			return fmt.Errorf("ObjectStoreConfig.BucketURL only supports file:// URLs, got %q", parsedURL.Scheme)
+		}
+		if parsedURL.Path == "" {
+			return fmt.Errorf("ObjectStoreConfig.BucketURL must include a directory path")
+		}
+		return nil
+	}
 	if bucketName == "" {
 		return fmt.Errorf("ObjectStoreConfig.BucketName is required")
 	}
@@ -1458,6 +1535,10 @@ func openBucketWithRetry(ctx context.Context, config *blobStorageConfig, timeout
 	var err error
 
 	operation := func() error {
+		if config.usesBucketURL() {
+			bucket, err = blob.OpenBucket(ctx, config.bucketURL)
+			return err
+		}
 		s3Client, err := newS3BucketClient(ctx, config)
 		if err != nil {
 			return err
@@ -1482,6 +1563,9 @@ func openBucketWithRetry(ctx context.Context, config *blobStorageConfig, timeout
 // It relies on the AWS SDK default credential chain (plus optional static creds) so IRSA/web-identity
 // tokens, environment variables, and instance profiles are all supported.
 func ensureBucketExists(ctx context.Context, config *blobStorageConfig) error {
+	if config.usesBucketURL() {
+		return nil
+	}
 	s3Client, err := newS3BucketClient(ctx, config)
 	if err != nil {
 		return fmt.Errorf("failed to create S3 client: %w", err)

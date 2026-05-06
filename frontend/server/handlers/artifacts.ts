@@ -43,6 +43,7 @@ import { Handler, Request, Response, NextFunction } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts.js';
 import { URL } from 'url';
+import path from 'path';
 import {
   DEFAULT_GCS_UNIVERSE_DOMAIN,
   getGCSClient,
@@ -496,7 +497,7 @@ export function getArtifactsAuthMiddleware(
 
 /**
  * Returns an artifact handler which retrieve an artifact from the corresponding
- * backend (i.e. gcs, minio, s3, http/https).
+ * backend (i.e. gcs, minio, s3, file, http/https).
  * @param artifactsConfigs configs to retrieve the artifacts from the various backend.
  * @param useParameter get bucket and key from parameter instead of query. When true, expect
  *    to be used in a route like `/artifacts/:source/:bucket/*`.
@@ -513,6 +514,7 @@ export function getArtifactsHandler({
   artifactsConfigs: {
     aws: AWSConfigs;
     http: HttpConfigs;
+    localRoot: string;
     minio: MinioConfigs;
     allowedDomain: string;
     allowedEndpoints?: string[];
@@ -526,6 +528,7 @@ export function getArtifactsHandler({
   const {
     aws,
     http,
+    localRoot,
     minio,
     allowedDomain,
     allowedEndpoints = [],
@@ -843,6 +846,16 @@ export function getArtifactsHandler({
         await getHttpArtifactsHandler(allowedDomain, httpUrl, http.auth, peek)(req, res);
         break;
       }
+      case 'file':
+        await getFileArtifactsHandler(
+          {
+            bucket,
+            key,
+            localRoot,
+          },
+          peek,
+        )(req, res);
+        break;
       case 'volume':
         await getVolumeArtifactsHandler(
           {
@@ -1025,6 +1038,48 @@ function parsePeekValue(value: string | undefined): number {
   return Number.isFinite(peek) && peek > 0 ? peek : 0;
 }
 
+function getFileArtifactsHandler(
+  options: { bucket: string; key: string; localRoot: string },
+  peek: number = 0,
+) {
+  const { bucket, key, localRoot } = options;
+  return async (_: Request, res: Response) => {
+    if (!localRoot) {
+      sendArtifactError(res, 500, 'File artifacts are not enabled on this server.');
+      return;
+    }
+    const filePath = path.resolve('/', bucket, key);
+    const normalizedRoot = path.resolve(localRoot);
+    const [fileHandle, containmentError] = await openFileWithinRoot(filePath, normalizedRoot);
+    if (containmentError || !fileHandle) {
+      sendArtifactError(
+        res,
+        containmentError?.pathEscaped ? 404 : 500,
+        'Failed to open file artifact.',
+      );
+      return;
+    }
+    try {
+      const stat = await fileHandle.stat();
+      if (stat.isDirectory()) {
+        await fileHandle.close();
+        sendArtifactError(
+          res,
+          400,
+          `Failed to open file ${filePath}: directories are not supported`,
+        );
+        return;
+      }
+      const stream = fileHandle.createReadStream({ autoClose: true });
+      pipePreviewResponse(stream, res, peek, (error) =>
+        sendArtifactError(res, 500, `Failed to open file artifact: ${error}`),
+      );
+    } catch (error) {
+      await fileHandle.close().catch(() => undefined);
+      sendArtifactError(res, 500, `Failed to open file artifact: ${error}`);
+    }
+  };
+}
 /**
  * Returns the http/https url to retrieve a kfp artifact (of the form: `${source}://${baseUrl}${bucket}/${key}`)
  * @param source "http" or "https".

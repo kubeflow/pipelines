@@ -1,0 +1,74 @@
+name: Coordinator Runtime Local Docker E2E
+
+env:
+  LOCAL_DOCKER_TEST_DIR: "./backend/test/local_docker_e2e"
+
+on:
+  push:
+    branches: [master]
+
+  pull_request:
+    paths:
+      - '.github/workflows/e2e-test-coordinator-local-docker.yml'
+      - 'backend/Makefile'
+      - 'backend/src/**'
+      - 'backend/test/**'
+      - '.github/resources/squid/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
+
+  workflow_dispatch:
+
+concurrency:
+  group: coordinator-runtime-local-docker-e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  end-to-end-coordinator-runtime-local-docker-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        db_backend: [ "sqlite" ]
+        object_store_backend: [ "file" ]
+        test_label: [ "E2ECritical", "E2EEssential", "E2EParallelNested", "E2EFailure" ]
+        include:
+          - test_label: "E2EProxy"
+            db_backend: "sqlite"
+            object_store_backend: "file"
+            run_proxy_tests: "true"
+          - test_label: "E2EParallelNested"
+            db_backend: "sqlite"
+            object_store_backend: "file"
+            num_nodes: "3"
+    name: End to End Coordinator Runtime Local Docker Tests - ${{ matrix.test_label }} (${{ matrix.db_backend }}, ${{ matrix.object_store_backend }})
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Run local Docker coordinator suite
+        shell: bash
+        env:
+          TEST_LABEL: ${{ matrix.test_label }}
+          NUM_NODES: ${{ matrix.num_nodes || '3' }}
+          RUN_PROXY_TESTS: ${{ matrix.run_proxy_tests || 'false' }}
+          DB_BACKEND: ${{ matrix.db_backend }}
+          OBJECT_STORE_BACKEND: ${{ matrix.object_store_backend }}
+        run: |
+          ./backend/test/local_docker_e2e/run_local_docker_e2e.sh
+
+      - name: Upload local Docker reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coordinator-runtime-local-docker-${{ matrix.test_label }}-${{ matrix.db_backend }}-${{ matrix.object_store_backend }}
+          path: |
+            ${{ env.LOCAL_DOCKER_TEST_DIR }}/reports
+            ${{ env.LOCAL_DOCKER_TEST_DIR }}/logs
+          retention-days: 7

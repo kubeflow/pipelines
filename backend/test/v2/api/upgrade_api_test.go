@@ -15,7 +15,11 @@
 package api
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"path/filepath"
 
 	experimentparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
@@ -318,9 +322,61 @@ func verifyPipelines() {
 
 func preparePipelineRun(pipelineToUpload string, pipelineName string, experimentName string, runName string) *run_model.V2beta1Run {
 	expectedPipelineRun := getExpectedPipelineRun(pipelineToUpload, pipelineName, experimentName, runName)
-	pipelineRun, pipelineRunError := runClient.Create(&runparams.RunServiceCreateRunParams{Run: expectedPipelineRun})
+	pipelineRun, pipelineRunError := createUpgradeCompatibleRun(expectedPipelineRun)
 	Expect(pipelineRunError).To(BeNil(), "Failed to create pipeline run")
 	return pipelineRun
+}
+
+func createUpgradeCompatibleRun(run *run_model.V2beta1Run) (*run_model.V2beta1Run, error) {
+	requestBody := map[string]any{
+		"display_name":    run.DisplayName,
+		"description":     run.Description,
+		"experiment_id":   run.ExperimentID,
+		"service_account": run.ServiceAccount,
+	}
+	if run.PipelineVersionReference != nil {
+		requestBody["pipeline_version_reference"] = map[string]any{
+			"pipeline_id":         run.PipelineVersionReference.PipelineID,
+			"pipeline_version_id": run.PipelineVersionReference.PipelineVersionID,
+		}
+	}
+	if run.RuntimeConfig != nil {
+		requestBody["runtime_config"] = run.RuntimeConfig
+	}
+
+	requestJSON, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, err
+	}
+
+	request, err := http.NewRequest(http.MethodPost, *config.ApiUrl+"/apis/v2beta1/runs", bytes.NewReader(requestJSON))
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	if userToken != "" {
+		request.Header.Set("Authorization", "Bearer "+userToken)
+	}
+
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	responseBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		return nil, fmt.Errorf("status %d: %s", response.StatusCode, string(responseBody))
+	}
+
+	var createdRun run_model.V2beta1Run
+	if err := json.Unmarshal(responseBody, &createdRun); err != nil {
+		return nil, err
+	}
+	return &createdRun, nil
 }
 
 func verifyPipelineRun(uploadedPipeline string, pipelineName string, experimentName string, runName string) {

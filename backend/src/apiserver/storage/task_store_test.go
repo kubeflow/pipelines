@@ -1325,6 +1325,44 @@ func TestMergeParameters_WithProducer_WithIteration(t *testing.T) {
 	assert.True(t, iterations[1])
 }
 
+func TestMergeParameters_PreservesInsertionOrder(t *testing.T) {
+	makeParam := func(value float64) *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
+		structValue, err := structpb.NewValue(value)
+		require.NoError(t, err)
+		return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+			Value:        structValue,
+			ParameterKey: "loop-output",
+			Type:         apiv2beta1.IOType_ITERATOR_OUTPUT,
+			Producer: &apiv2beta1.IOProducer{
+				TaskName: "loop-task",
+			},
+		}
+	}
+
+	result, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{makeParam(2)})
+	require.NoError(t, err)
+
+	next, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{makeParam(4)})
+	require.NoError(t, err)
+	result, err = mergeParameters(result, next)
+	require.NoError(t, err)
+
+	last, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{makeParam(6)})
+	require.NoError(t, err)
+	result, err = mergeParameters(result, last)
+	require.NoError(t, err)
+
+	typeFunc := func() *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
+		return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{}
+	}
+	resultProtos, err := model.JSONSliceToProtoSlice(result, typeFunc)
+	require.NoError(t, err)
+	require.Len(t, resultProtos, 3)
+	assert.Equal(t, 2.0, resultProtos[0].GetValue().GetNumberValue())
+	assert.Equal(t, 4.0, resultProtos[1].GetValue().GetNumberValue())
+	assert.Equal(t, 6.0, resultProtos[2].GetValue().GetNumberValue())
+}
+
 func TestMergeParameters_RaceConditionScenario(t *testing.T) {
 	// Simulate a race condition where two driver tasks from different iterations
 	// within a loop try to update parameters simultaneously

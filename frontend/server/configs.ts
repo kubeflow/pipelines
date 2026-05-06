@@ -194,6 +194,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     AWS_SSL = 'true',
     /** http/https base URL */
     HTTP_BASE_URL = '',
+    /** Absolute host path for local file-backed artifacts. */
+    ARTIFACTS_LOCAL_ROOT = '',
     /** By default, allowing access to all domains. Modify this flag to allow querying matching domains */
     ALLOWED_ARTIFACT_DOMAIN_REGEX = '^.*$',
     /** Additional object-store origins allowed for artifact provider configs. */
@@ -326,6 +328,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
         },
         baseUrl: HTTP_BASE_URL,
       },
+      localRoot: ARTIFACTS_LOCAL_ROOT ? path.resolve(ARTIFACTS_LOCAL_ROOT) : '',
       minio,
       proxy: loadArtifactsProxyConfig(env),
       allowOfficialAwsEndpoints: Boolean(configuredAwsEndpoint),
@@ -471,6 +474,7 @@ export interface UIConfigs {
     aws: AWSConfigs;
     minio: MinioConfigs;
     http: HttpConfigs;
+    localRoot: string;
     proxy: ArtifactsProxyConfig;
     allowOfficialAwsEndpoints: boolean;
     streamLogsFromServerApi: boolean;

@@ -71,6 +71,12 @@ const (
 	ArchivedRunsRetentionTime string = "ARCHIVED_RUNS_RETENTION_TIME"
 	RunsGCInterval            string = "RUNS_GC_INTERVAL"
 	RunsGCBatchSize           string = "RUNS_GC_BATCH_SIZE"
+	BlockV1Pipelines          string = "BLOCK_V1_PIPELINES"
+	V1NamespaceWhitelist      string = "V1_ALLOWED_NAMESPACES"
+	V2RuntimeMode             string = "KFP_V2_RUNTIME_MODE"
+	V2RuntimeExecutor         string = "KFP_V2_RUNTIME_EXECUTOR"
+	V2RuntimeWorkspaceRoot    string = "KFP_V2_RUNTIME_WORKSPACE_ROOT"
+	V2RuntimeAutoExecute      string = "KFP_V2_RUNTIME_AUTO_EXECUTE"
 )
 
 type PluginLimitsConfig struct {

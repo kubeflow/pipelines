@@ -612,6 +612,36 @@ func TestExample_launcherV2WithMocks(t *testing.T) {
 	println("Test passed - launcher executed successfully with mocked dependencies")
 }
 
+func TestLocalPathForURI_FileSchemes(t *testing.T) {
+	rootPath := t.TempDir()
+	t.Setenv("ARTIFACT_LOCAL_PATH", rootPath)
+
+	tests := []struct {
+		name     string
+		uri      string
+		expected string
+	}{
+		{
+			name:     "file triple slash",
+			uri:      "file:///tmp/kfp-artifacts/model.txt",
+			expected: filepath.Join(rootPath, "file", "tmp", "kfp-artifacts", "model.txt"),
+		},
+		{
+			name:     "file double slash",
+			uri:      "file://tmp/kfp-artifacts/model.txt",
+			expected: filepath.Join(rootPath, "file", "tmp", "kfp-artifacts", "model.txt"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			localPath, err := LocalPathForURI(test.uri)
+			require.NoError(t, err)
+			assert.Equal(t, test.expected, localPath)
+		})
+	}
+}
+
 // TestLauncherV2_ArtifactHandling demonstrates testing artifact download and upload
 func TestLauncherV2_ArtifactHandling(t *testing.T) {
 	// Setup
@@ -643,6 +673,49 @@ func TestLauncherV2_ArtifactHandling(t *testing.T) {
 	modelUploads := mockObjStore.GetUploadCallsForKey("model_output")
 	assert.Len(t, modelUploads, 1)
 	assert.Equal(t, "s3://bucket/output/model.pkl", modelUploads[0].RemoteURI)
+}
+
+func TestUploadOutputArtifacts_IgnoresExecutorLogsUploadFailure(t *testing.T) {
+	mockAPI := kfpapi.NewMockAPI()
+	clientManager := client_manager.NewFakeClientManager(fake.NewClientset(), mockAPI)
+	mockObjStore := NewMockObjectStoreClient()
+	mockObjStore.UploadError = errors.New("seaweedfs timeout")
+
+	launcher := &LauncherV2{
+		clientManager: clientManager,
+		objectStore:   mockObjStore,
+		batchUpdater:  NewBatchUpdater(),
+		options: LauncherV2Options{
+			Namespace: "kubeflow",
+			Run: &apiv2beta1.Run{
+				RunId: "run-1",
+			},
+			Task: &apiv2beta1.PipelineTask{
+				TaskId: "task-1",
+			},
+		},
+		executorInput: &pipelinespec.ExecutorInput{
+			Outputs: &pipelinespec.ExecutorInput_Outputs{
+				Artifacts: map[string]*pipelinespec.ArtifactList{
+					"executor-logs": {
+						Artifacts: []*pipelinespec.RuntimeArtifact{{
+							Name: "executor-logs",
+							Type: &pipelinespec.ArtifactTypeSchema{
+								Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Artifact"},
+							},
+							Uri: "minio://mlpipeline/run/task/executor-logs",
+						}},
+					},
+				},
+			},
+		},
+	}
+
+	err := launcher.uploadOutputArtifacts(context.Background(), &pipelinespec.ExecutorOutput{
+		Artifacts: map[string]*pipelinespec.ArtifactList{},
+	})
+	require.NoError(t, err)
+	require.Len(t, mockObjStore.UploadCalls, 1)
 }
 
 // TestLauncherV2_CommandExecution demonstrates testing command execution
@@ -917,6 +990,59 @@ func Test_prepareOutputFolders_CustomPath(t *testing.T) {
 	require.NoError(t, launcher.prepareOutputFolders(execIn))
 	require.Len(t, mockFS.MkdirAllCalls, 1)
 	assert.Equal(t, filepath.Dir(customPath), mockFS.MkdirAllCalls[0].Path)
+}
+
+func Test_getPlaceholders_CustomArtifactPath(t *testing.T) {
+	customPath := "/tmp/kfp-v2-runtime/run-123/artifact-local/file/tmp/artifact.txt"
+	execIn := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"data": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{Uri: "file:///tmp/artifact.txt", CustomPath: &customPath},
+					},
+				},
+			},
+		},
+	}
+	ph, err := getPlaceholders(execIn)
+	require.NoError(t, err)
+	assert.Equal(t, customPath, ph["{{$.inputs.artifacts['data'].path}}"])
+}
+
+func Test_getPlaceholders_InputArtifactListJSON(t *testing.T) {
+	customPath := "/tmp/kfp-v2-runtime/run-123/artifact-local/file/tmp/artifact.txt"
+	execIn := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"data": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							Name:       "artifact-1",
+							Uri:        "file:///tmp/artifact.txt",
+							CustomPath: &customPath,
+							Type: &pipelinespec.ArtifactTypeSchema{
+								Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
+									SchemaTitle: "system.Dataset",
+								},
+								SchemaVersion: "0.0.1",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ph, err := getPlaceholders(execIn)
+	require.NoError(t, err)
+
+	var actual []map[string]any
+	err = json.Unmarshal([]byte(ph["{{$.inputs.artifacts['data']}}"]), &actual)
+	require.NoError(t, err)
+	require.Len(t, actual, 1)
+	assert.Equal(t, "artifact-1", actual[0]["name"])
+	assert.Equal(t, "file:///tmp/artifact.txt", actual[0]["uri"])
+	assert.Equal(t, customPath, actual[0]["customPath"])
 }
 
 func Test_executorInput_compileCmdAndArgs(t *testing.T) {

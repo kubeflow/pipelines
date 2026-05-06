@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export const ARTIFACT_SOURCES = ['minio', 's3', 'gcs', 'http', 'https', 'volume'] as const;
+export const ARTIFACT_SOURCES = ['minio', 's3', 'gcs', 'file', 'http', 'https', 'volume'] as const;
 export type ArtifactSource = (typeof ARTIFACT_SOURCES)[number];
 
 export const LAUNCHER_ARTIFACT_SOURCES = [
@@ -27,6 +27,7 @@ const ARTIFACT_SOURCE_SET: ReadonlySet<string> = new Set(ARTIFACT_SOURCES);
 const LAUNCHER_ARTIFACT_SOURCE_SET: ReadonlySet<string> = new Set(LAUNCHER_ARTIFACT_SOURCES);
 const OWNERSHIP_VALIDATED_ARTIFACT_SOURCE_SET: ReadonlySet<string> = new Set([
   ...LAUNCHER_ARTIFACT_SOURCES,
+  'file',
   'http',
   'https',
 ]);

@@ -50,11 +50,47 @@ export const defaultPodTemplateSpec = {
 if (fs.existsSync(namespaceFilePath)) {
   serverNamespace = fs.readFileSync(namespaceFilePath, 'utf-8').trim();
 }
-const kc = new KubeConfig();
-// This loads kubectl config when not in cluster.
-kc.loadFromDefault();
-const k8sV1Client = kc.makeApiClient(CoreV1Api);
-const k8sV1CustomObjectClient = kc.makeApiClient(CustomObjectsApi);
+
+type KubernetesClients = {
+  k8sV1Client: CoreV1Api;
+  k8sV1CustomObjectClient: CustomObjectsApi;
+};
+
+let kubernetesClients: KubernetesClients | undefined;
+
+function kubernetesClientsEnabled(): boolean {
+  if (process.env.KFP_V2_RUNTIME_MODE !== 'coordinator-poc') {
+    return true;
+  }
+
+  const requestedExecutor = (process.env.KFP_V2_RUNTIME_EXECUTOR || '').toLowerCase();
+  if (requestedExecutor === 'docker') {
+    return false;
+  }
+  if (requestedExecutor === 'kubernetes') {
+    return true;
+  }
+
+  // Mirror the local-default behavior by treating an unset executor as Docker
+  // when the UI backend is not running inside Kubernetes.
+  return serverNamespace !== undefined;
+}
+
+function getKubernetesClients(): KubernetesClients {
+  if (!kubernetesClientsEnabled()) {
+    throw new Error('Kubernetes clients are disabled in Docker/non-Kubernetes runtime mode.');
+  }
+  if (!kubernetesClients) {
+    const kubeConfig = new KubeConfig();
+    // This loads kubectl config when not in cluster.
+    kubeConfig.loadFromDefault();
+    kubernetesClients = {
+      k8sV1Client: kubeConfig.makeApiClient(CoreV1Api),
+      k8sV1CustomObjectClient: kubeConfig.makeApiClient(CustomObjectsApi),
+    };
+  }
+  return kubernetesClients;
+}
 
 function getConfiguredServerNamespace(): string | undefined {
   return serverNamespace || process.env.FRONTEND_SERVER_NAMESPACE?.trim() || undefined;
@@ -132,6 +168,7 @@ export async function newTensorboardInstance(
   tfversion: string,
   podTemplateSpec: object = defaultPodTemplateSpec,
 ): Promise<void> {
+  const { k8sV1CustomObjectClient } = getKubernetesClients();
   const currentPod = await getTensorboardInstance(logdir, namespace);
   if (currentPod.viewerName) {
     if (tfversion === currentPod.tfVersion) {
@@ -176,6 +213,7 @@ export async function getTensorboardInstance(
   logdir: string,
   namespace: string,
 ): Promise<{ viewerName: string; tfVersion: string; image: string }> {
+  const { k8sV1CustomObjectClient } = getKubernetesClients();
   return await k8sV1CustomObjectClient
     .getNamespacedCustomObject({
       group: viewerGroup,
@@ -224,6 +262,7 @@ export async function getTensorboardInstance(
  */
 
 export async function deleteTensorboardInstance(logdir: string, namespace: string): Promise<void> {
+  const { k8sV1CustomObjectClient } = getKubernetesClients();
   const currentPod = await getTensorboardInstance(logdir, namespace);
   if (!currentPod.viewerName) {
     return;
@@ -287,12 +326,13 @@ export function getPodLogs(
       `podNamespace is not specified and cannot get namespace from ${namespaceFilePath}.`,
     );
   }
+  const { k8sV1Client } = getKubernetesClients();
   return k8sV1Client
     .readNamespacedPodLog({ name: podName, namespace: podNamespace, container: containerName })
     .then(
       (response: string) => response || '',
       (error: any) => {
-        throw new Error(JSON.stringify(error.body));
+        throw new Error(JSON.stringify(error.body || error.message || error));
       },
     );
 }
@@ -307,6 +347,7 @@ export async function getPod(
   podNamespace: string,
 ): Promise<[V1Pod, undefined] | [undefined, K8sError]> {
   try {
+    const { k8sV1Client } = getKubernetesClients();
     const pod = await k8sV1Client.readNamespacedPod({ name: podName, namespace: podNamespace });
     return [pod, undefined];
   } catch (error) {
@@ -328,6 +369,7 @@ export async function getConfigMap(
   configMapNamespace: string,
 ): Promise<[V1ConfigMap, undefined] | [undefined, K8sError]> {
   try {
+    const { k8sV1Client } = getKubernetesClients();
     const configMap = await k8sV1Client.readNamespacedConfigMap({
       name: configMapName,
       namespace: configMapNamespace,
@@ -354,6 +396,7 @@ export async function getConfigMap(
 export type Result<T, E = K8sError> = [T, undefined] | [undefined, E];
 export async function listPodEvents(podName: string, podNamespace: string): Promise<Result<any>> {
   try {
+    const { k8sV1Client } = getKubernetesClients();
     const events = await k8sV1Client.listNamespacedEvent({
       namespace: podNamespace,
       fieldSelector: `involvedObject.namespace=${podNamespace},involvedObject.name=${podName},involvedObject.kind=Pod`,
@@ -382,6 +425,7 @@ export async function getArgoWorkflow(
     throw new Error(`Cannot get namespace from ${namespaceFilePath}`);
   }
 
+  const { k8sV1CustomObjectClient } = getKubernetesClients();
   const res = await k8sV1CustomObjectClient.getNamespacedCustomObject({
     group: workflowGroup,
     version: workflowVersion,
@@ -406,6 +450,7 @@ export async function getK8sSecret(name: string, key: string, providedNamespace?
     throw new Error(`Cannot get namespace from ${namespaceFilePath}`);
   }
 
+  const { k8sV1Client } = getKubernetesClients();
   const k8sSecret = await k8sV1Client.readNamespacedSecret({ name, namespace });
   const secretb64 = k8sSecret.data?.[key] || '';
   const buff = Buffer.from(secretb64, 'base64');
@@ -413,8 +458,14 @@ export async function getK8sSecret(name: string, key: string, providedNamespace?
 }
 
 export const TEST_ONLY = {
-  k8sV1Client,
-  k8sV1CustomObjectClient,
+  get k8sV1Client() {
+    return getKubernetesClients().k8sV1Client;
+  },
+  get k8sV1CustomObjectClient() {
+    return getKubernetesClients().k8sV1CustomObjectClient;
+  },
   parseTensorboardLogDir,
   resolveNamespace,
+  kubernetesClientsEnabled,
+  kubernetesClientsInitialized: () => kubernetesClients !== undefined,
 };

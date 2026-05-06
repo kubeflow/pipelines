@@ -76,22 +76,60 @@ func GetRandomString(length int) string {
 
 // CheckIfSkipping - checks input string against skip conditions, and skips pipeline run if applicable.
 func CheckIfSkipping(stringValue string) {
+	lowerName := strings.ToLower(stringValue)
 	// Skip pipeline if name contains "GH-" (case-insensitive)
-	if strings.Contains(strings.ToLower(stringValue), "_gh-") {
-		issue := strings.Split(strings.ToLower(stringValue), "_gh-")[1]
+	if strings.Contains(lowerName, "_gh-") {
+		issue := strings.Split(lowerName, "_gh-")[1]
 		ginkgo.Skip("Skipping pipeline run")
 		fmt.Printf("Skipping pipeline run test because of a known issue: https://github.com/kubeflow/pipelines/issues/%s", issue)
 
 	}
 	// Skip pipeline 'pipeline_submit_request' test if TLS is not enabled
-	if !*config.TLSEnabled && strings.Contains(strings.ToLower(stringValue), "pipeline_submit_request") {
+	if !*config.TLSEnabled && strings.Contains(lowerName, "pipeline_submit_request") {
 		ginkgo.Skip("Skipping pipeline run test because TLS is not enabled")
+	}
+
+	// Coordinator runtime in Kubernetes mode does not yet support importer
+	// download_to_workspace into PVC-backed workspaces.
+	if ShouldUseCoordinatorRuntimeSelector() && strings.Contains(lowerName, "pipeline_with_importer_workspace") {
+		ginkgo.Skip("Skipping importer workspace pipeline for coordinator runtime")
+	}
+
+	// Skip Kubernetes-specific pipelines when validating the local Docker executor path.
+	if os.Getenv("LOCAL_API_SERVER") == "true" {
+		for _, pipelineName := range []string{
+			"pipeline_with_secret_as_env",
+			"parallel_for_secret",
+			"nested_parallel_for_secret",
+			"parallel_for_mount_pvc",
+			"pipeline_with_pod_metadata",
+			"pipeline_with_importer_workspace",
+			"pipeline_with_volume_long_name",
+			"modelcar",
+			"ray_integration_compiled",
+			"missing_kubernetes_optional_inputs",
+		} {
+			if strings.Contains(lowerName, pipelineName) {
+				ginkgo.Skip("Skipping Kubernetes-specific pipeline for local Docker executor")
+			}
+		}
 	}
 }
 
 func WriteLogFile(specReport types.SpecReport, testName, logDirectory string) {
 	stdOutput := specReport.CapturedGinkgoWriterOutput
-	testLogFile := filepath.Join(logDirectory, testName+".log")
+	sanitizedName := strings.NewReplacer(
+		`"`, "_",
+		`:`, "_",
+		`<`, "_",
+		`>`, "_",
+		`|`, "_",
+		`*`, "_",
+		`?`, "_",
+		"\r", "_",
+		"\n", "_",
+	).Replace(testName)
+	testLogFile := filepath.Join(logDirectory, sanitizedName+".log")
 	logFile, err := os.Create(testLogFile)
 	if err != nil {
 		logger.Log("Failed to create log file due to: %s", err.Error())
@@ -135,6 +173,9 @@ func GetNamespace() string {
 // getPackagePath generates the package path based on environment variables
 // Equivalent to the Python function get_package_path
 func getPackagePath(subdir string) string {
+	if localPackagePath := os.Getenv("LOCAL_API_SERVER_SDK_PACKAGE_PATH"); os.Getenv("LOCAL_API_SERVER") == "true" && localPackagePath != "" && subdir == "sdk/python" {
+		return localPackagePath
+	}
 	repoName := *config.REPO_NAME
 
 	pullNumber := *config.PULL_NUMBER
