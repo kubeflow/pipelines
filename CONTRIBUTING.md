@@ -66,7 +66,7 @@ request issue to help reviewers catch up on the context.
 
 ## Project Structure
 
-Kubeflow Pipelines consists of multiple components. Before you begin, learn how to [build the Kubeflow Pipelines component container images](./developer_guide.md##build-image). To get started, see the development guides:
+Kubeflow Pipelines consists of multiple components. Before you begin, learn how to [build the Kubeflow Pipelines component container images](./developer_guide.md#build-image). To get started, see the development guides:
 
 * [Frontend development guide](./frontend/README.md)
 * [Backend development guide](./backend/README.md)
@@ -112,7 +112,7 @@ PR titles should:
 
 * Provide a user-friendly description of the change.
 * Follow the [Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/).
-* Specifies issue(s) fixed, or worked on at the end of the title.
+* Specify issue(s) fixed, or worked on at the end of the title.
 
 Examples:
 
@@ -136,7 +136,7 @@ Replace the following:
 * **`<type>`**: The PR type describes the reason for the change, such as `fix` to indicate that the PR fixes a bug. More information about PR types is available in the next section.
 * **`[optional scope]`**: (Optional.) The PR scope describes the part of Kubeflow Pipelines that this PR changes, such as `frontend` to indicate that the change affects the user interface. Choose a scope according to [PR Scope section](#pr-scope).
 * **`<description>`**: A user friendly description of this change.
-* **`[ Fixes #<issues-number>]`**: (Optional.) Specifies the issues fixed by this PR.
+* **`[ Fixes #<issue-number>]`**: (Optional.) Specifies the issues fixed by this PR.
 
 ### PR Type
 
@@ -183,7 +183,7 @@ omit the scope because it's optional, or propose an additional scope here.
 
 ## Adding Kubernetes Enhancement Proposals (KEPs)
 
-When a change requires a significant change to the underlying system, it should be preceded with an Kubernetes Enhancement Proposal (KEP).
+When a change requires a significant change to the underlying system, it should be preceded with a Kubernetes Enhancement Proposal (KEP).
 
 KEPs are found in the `proposals` folder at the root of this repo. Read more about the process [here](proposals/README.md).
 
