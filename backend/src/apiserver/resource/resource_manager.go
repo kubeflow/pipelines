@@ -1050,7 +1050,10 @@ func TerminateWorkflow(ctx context.Context, wfClient util.ExecutionInterface, na
 		_, err = wfClient.Patch(ctx, name, types.MergePatchType, patch, v1.PatchOptions{})
 		return util.Wrapf(err, "Failed to terminate workflow %s due to patching error", name)
 	}
-	backoffPolicy := backoff.WithMaxRetries(backoff.NewConstantBackOff(100), 10)
+	exponentialBackoff := backoff.NewExponentialBackOff()
+	exponentialBackoff.InitialInterval = 100 * time.Millisecond
+	exponentialBackoff.MaxInterval = 5 * time.Second
+	backoffPolicy := backoff.WithMaxRetries(exponentialBackoff, 10)
 	err = backoff.Retry(operation, backoffPolicy)
 	if err != nil {
 		return util.Wrapf(err, "Failed to terminate workflow %s due to patching error after multiple retries", name)
@@ -1760,7 +1763,10 @@ func addWorkflowLabel(ctx context.Context, wfClient util.ExecutionInterface, nam
 		_, err = wfClient.Patch(ctx, name, types.MergePatchType, patch, v1.PatchOptions{})
 		return err
 	}
-	backoffPolicy := backoff.WithMaxRetries(backoff.NewConstantBackOff(100), 10)
+	exponentialBackoff := backoff.NewExponentialBackOff()
+	exponentialBackoff.InitialInterval = 100 * time.Millisecond
+	exponentialBackoff.MaxInterval = 5 * time.Second
+	backoffPolicy := backoff.WithMaxRetries(exponentialBackoff, 10)
 	err = backoff.Retry(operation, backoffPolicy)
 	return err
 }
