@@ -38,6 +38,7 @@ import (
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -608,24 +609,9 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 		ctx = metadata.AppendToOutgoingContext(ctx, "Authorization", "Bearer "+token.AccessToken)
 	}
 
-	var runtimeConfig *api.RuntimeConfig
-
-	if swf.Spec.Workflow != nil {
-		runtimeConfig = &api.RuntimeConfig{
-			Parameters:   map[string]*structpb.Value{},
-			PipelineRoot: swf.Spec.Workflow.PipelineRoot,
-		}
-
-		for _, param := range swf.Spec.Workflow.Parameters {
-			val := &structpb.Value{}
-
-			err := val.UnmarshalJSON([]byte(param.Value))
-			if err != nil {
-				return false, "", err
-			}
-
-			runtimeConfig.Parameters[param.Name] = val
-		}
+	runtimeConfig, err := buildRuntimeConfigForScheduledRun(swf, nextScheduledEpoch, nowEpoch)
+	if err != nil {
+		return false, "", err
 	}
 
 	run, err := c.runClient.CreateRun(ctx, &api.CreateRunRequest{
@@ -634,6 +620,7 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 			ExperimentId:   swf.Spec.ExperimentId,
 			DisplayName:    swf.NextResourceName(),
 			RecurringRunId: string(swf.UID),
+			ScheduledAt:    timestamppb.New(time.Unix(nextScheduledEpoch, 0)),
 			RuntimeConfig:  runtimeConfig,
 			PipelineSource: &api.Run_PipelineVersionReference{
 				PipelineVersionReference: &api.PipelineVersionReference{
@@ -652,6 +639,38 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 	}
 
 	return true, run.DisplayName, nil
+}
+
+func buildRuntimeConfigForScheduledRun(
+	swf *util.ScheduledWorkflow,
+	nextScheduledEpoch int64,
+	nowEpoch int64,
+) (*api.RuntimeConfig, error) {
+	if swf == nil || swf.Spec.Workflow == nil {
+		return nil, nil
+	}
+	workflowParameters := make(map[string]string, len(swf.Spec.Workflow.Parameters))
+	for _, param := range swf.Spec.Workflow.Parameters {
+		workflowParameters[param.Name] = param.Value
+	}
+	formatter := commonutil.NewSWFParameterFormatter("", nextScheduledEpoch, nowEpoch, swf.NextIndex())
+	formattedParameters := formatter.FormatWorkflowParameters(workflowParameters)
+	runtimeConfig := &api.RuntimeConfig{
+		Parameters:   map[string]*structpb.Value{},
+		PipelineRoot: swf.Spec.Workflow.PipelineRoot,
+	}
+	for _, param := range swf.Spec.Workflow.Parameters {
+		val := &structpb.Value{}
+		rawValue := param.Value
+		if formattedValue, ok := formattedParameters[param.Name]; ok {
+			rawValue = formattedValue
+		}
+		if err := val.UnmarshalJSON([]byte(rawValue)); err != nil {
+			return nil, err
+		}
+		runtimeConfig.Parameters[param.Name] = val
+	}
+	return runtimeConfig, nil
 }
 
 func (c *Controller) updateStatus(

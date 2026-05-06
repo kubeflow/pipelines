@@ -160,6 +160,18 @@ func ResolveInputParameter(
 		}
 		return resolvedInput, apiv2beta1.IOType_COMPONENT_INPUT, nil
 	case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskOutputParameter:
+		producerTaskName := paramSpec.GetTaskOutputParameter().GetProducerTask()
+		outputKey := paramSpec.GetTaskOutputParameter().GetOutputParameterKey()
+		if opts.ParentTask == nil && outputKey != "" && len(inputParams) > 0 {
+			parameter, err := findParameterByProducerKeyInList(outputKey, producerTaskName, inputParams)
+			if err == nil {
+				ioType := apiv2beta1.IOType_TASK_OUTPUT_INPUT
+				if parameter.GetType() == apiv2beta1.IOType_COLLECTED_INPUTS {
+					ioType = apiv2beta1.IOType_COLLECTED_INPUTS
+				}
+				return parameter, ioType, nil
+			}
+		}
 		parameter, err := resolveTaskOutputParameter(opts, paramSpec)
 		if err != nil {
 			return nil, apiv2beta1.IOType_TASK_OUTPUT_INPUT, err

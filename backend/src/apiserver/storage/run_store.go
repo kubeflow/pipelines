@@ -382,7 +382,7 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	columnsAfterJoiningResourceReferences := append(
 		apply(func(column string) string { return "rd." + column }, runColumns), // Add prefix "rd." to runColumns
 		resourceRefConcatQuery+" AS refs")
-	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
+	if opts != nil && opts.SortByFieldName != "" && !r.IsRegularField(opts.SortByFieldName) {
 		columnsAfterJoiningResourceReferences = append(columnsAfterJoiningResourceReferences, "rd."+model.MetricSortSQLAlias)
 	}
 	subQ := sq.
@@ -648,6 +648,25 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 	if err != nil {
 		return util.NewInternalServerError(err, "transaction creation failed")
 	}
+	if len(run.RunDetails.StateHistory) == 0 ||
+		(run.PipelineRuntimeManifest == "" && run.WorkflowRuntimeManifest == "") {
+		existingRun, err := s.getRunUpdateSnapshot(tx, run.UUID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		if run.PipelineRuntimeManifest == "" {
+			run.PipelineRuntimeManifest = existingRun.PipelineRuntimeManifest
+			run.RunDetails.PipelineRuntimeManifest = existingRun.PipelineRuntimeManifest
+		}
+		if run.WorkflowRuntimeManifest == "" {
+			run.WorkflowRuntimeManifest = existingRun.WorkflowRuntimeManifest
+			run.RunDetails.WorkflowRuntimeManifest = existingRun.WorkflowRuntimeManifest
+		}
+		if len(run.RunDetails.StateHistory) == 0 {
+			run.RunDetails.StateHistory = append([]*model.RuntimeStatus(nil), existingRun.RunDetails.StateHistory...)
+		}
+	}
 	if len(run.RunDetails.StateHistory) == 0 || run.RunDetails.StateHistory[len(run.RunDetails.StateHistory)-1].State != run.RunDetails.State {
 		run.RunDetails.StateHistory = append(run.RunDetails.StateHistory, &model.RuntimeStatus{
 			UpdateTimeInSec: s.time.Now().Unix(),
@@ -665,6 +684,7 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 			"State":                   run.State.ToString(),
 			"StateHistory":            stateHistoryString,
 			"FinishedAtInSec":         run.FinishedAtInSec,
+			"PipelineRuntimeManifest": run.PipelineRuntimeManifest,
 			"WorkflowRuntimeManifest": run.WorkflowRuntimeManifest,
 		}).
 		Where(sq.Eq{"UUID": run.UUID}).
@@ -698,6 +718,43 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 		return util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
 	}
 	return nil
+}
+
+func (s *RunStore) getRunUpdateSnapshot(tx *sql.Tx, runID string) (*model.Run, error) {
+	sqlStr, args, err := sq.
+		Select("StateHistory", "PipelineRuntimeManifest", "WorkflowRuntimeManifest").
+		From("run_details").
+		Where(sq.Eq{"UUID": runID}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to get run update snapshot: %v", err.Error())
+	}
+	sqlStr = s.db.SelectForUpdate(sqlStr)
+	row := tx.QueryRow(sqlStr, args...)
+	var stateHistory sql.NullString
+	var pipelineRuntimeManifest string
+	var workflowRuntimeManifest string
+	if err := row.Scan(&stateHistory, &pipelineRuntimeManifest, &workflowRuntimeManifest); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, util.Wrap(util.NewResourceNotFoundError("Run", runID), "Failed to update run")
+		}
+		return nil, util.NewInternalServerError(err, "Failed to get run update snapshot: %v", err)
+	}
+	var parsedStateHistory []*model.RuntimeStatus
+	if stateHistory.Valid && stateHistory.String != "" {
+		if err := json.Unmarshal([]byte(stateHistory.String), &parsedStateHistory); err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to parse run state history for update")
+		}
+	}
+	return &model.Run{
+		UUID: runID,
+		RunDetails: model.RunDetails{
+			StateHistory:            parsedStateHistory,
+			PipelineRuntimeManifest: model.LargeText(pipelineRuntimeManifest),
+			WorkflowRuntimeManifest: model.LargeText(workflowRuntimeManifest),
+		},
+	}, nil
 }
 
 func (s *RunStore) ArchiveRun(runId string) error {
@@ -851,7 +908,7 @@ func (s *RunStore) TerminateRun(runId string) error {
 // TODO(jingzhang36): example of resulting SQL query and explanation for it.
 func (s *RunStore) addSortByRunMetricToSelect(sqlBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
 	var r model.Run
-	if r.IsRegularField(opts.SortByFieldName) {
+	if opts == nil || opts.SortByFieldName == "" || r.IsRegularField(opts.SortByFieldName) {
 		return sqlBuilder
 	}
 	// Use a fixed alias for the metric column so user input never reaches SQL

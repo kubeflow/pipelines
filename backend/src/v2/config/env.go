@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -35,6 +36,7 @@ import (
 const (
 	configMapName                = "kfp-launcher"
 	defaultPipelineRoot          = "minio://mlpipeline/v2/artifacts"
+	defaultPipelineRootEnvVar    = "KFP_DEFAULT_PIPELINE_ROOT"
 	configKeyDefaultPipelineRoot = "defaultPipelineRoot"
 	configBucketProviders        = "providers"
 	minioArtifactSecretName      = "mlpipeline-minio-artifact"
@@ -69,6 +71,9 @@ type ServerConfig struct {
 
 // DefaultPipelineRoot gets the configured default pipeline root.
 func (c *Config) DefaultPipelineRoot() string {
+	if value := os.Getenv(defaultPipelineRootEnvVar); value != "" {
+		return value
+	}
 	// The key defaultPipelineRoot is optional in launcher config.
 	if c == nil || c.data == nil {
 		return defaultPipelineRoot
@@ -93,6 +98,8 @@ func (c *Config) GetStoreSessionInfo(path string) (objectstore.SessionInfo, erro
 	var sessProvider SessionInfoProvider
 
 	switch provider {
+	case "file":
+		return objectstore.SessionInfo{Provider: "file"}, nil
 	case "minio":
 		if bucketProviders == nil || bucketProviders.Minio == nil {
 			sessProvider = &MinioProviderConfig{}
@@ -178,19 +185,22 @@ func GetPipelineRootWithPipelineRunContext(
 }
 
 func getDefaultMinioSessionInfo() (objectstore.SessionInfo, error) {
+	useCredentialsFromEnv := os.Getenv("LOCAL_API_SERVER") == "true"
 	sess := objectstore.SessionInfo{
 		Provider: "minio",
 		Params: map[string]string{
 			"region":     "minio",
 			"endpoint":   getDefaultMinioHost(),
 			"disableSSL": strconv.FormatBool(true),
-			"fromEnv":    strconv.FormatBool(false),
+			"fromEnv":    strconv.FormatBool(useCredentialsFromEnv),
 			"maxRetries": strconv.FormatInt(int64(5), 10),
-			"secretName": minioArtifactSecretName,
-			// The k8s secret "Key" for "Artifact SecretKey" and "Artifact AccessKey"
-			"accessKeyKey": minioArtifactAccessKeyKey,
-			"secretKeyKey": minioArtifactSecretKeyKey,
 		},
+	}
+	if !useCredentialsFromEnv {
+		sess.Params["secretName"] = minioArtifactSecretName
+		// The k8s secret "Key" for "Artifact SecretKey" and "Artifact AccessKey"
+		sess.Params["accessKeyKey"] = minioArtifactAccessKeyKey
+		sess.Params["secretKeyKey"] = minioArtifactSecretKeyKey
 	}
 	return sess, nil
 }
@@ -204,6 +214,12 @@ func getDefaultMinioHost() string {
 	if os.Getenv("OBJECT_STORE_PORT") != "" {
 		port = os.Getenv("OBJECT_STORE_PORT")
 	}
+	if host == "" && os.Getenv("OBJECTSTORECONFIG_HOST") != "" {
+		host = os.Getenv("OBJECTSTORECONFIG_HOST")
+	}
+	if port == "" && os.Getenv("OBJECTSTORECONFIG_PORT") != "" {
+		port = os.Getenv("OBJECTSTORECONFIG_PORT")
+	}
 	if host != "" && port != "" {
 		return fmt.Sprintf("%s:%s", host, port)
 	} else {
@@ -216,4 +232,20 @@ func GetMLPipelineServerConfig() *ServerConfig {
 		Address: common.GetMLPipelineServiceName() + "." + common.GetPodNamespace() + ".svc." + common.GetClusterDomain(),
 		Port:    mlPipelineGrpcServicePort,
 	}
+}
+
+func InPodName() (string, error) {
+	if podName := os.Getenv("KFP_POD_NAME"); podName != "" {
+		return podName, nil
+	}
+
+	hostnameBytes, err := os.ReadFile("/etc/hostname")
+	if err == nil {
+		hostname := strings.TrimSpace(string(hostnameBytes))
+		if hostname != "" {
+			return hostname, nil
+		}
+	}
+
+	return "", fmt.Errorf("failed to get pod name in Pod")
 }

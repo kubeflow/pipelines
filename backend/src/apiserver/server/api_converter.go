@@ -1497,6 +1497,10 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 		// If TaskCount wasn't populated but we have tasks, use the task slice length
 		taskCount = int32(len(apiTasks))
 	}
+	runState := r.RunDetails.State
+	if (runState == "" || runState == model.RuntimeStateUnspecified) && len(r.RunDetails.StateHistory) > 0 {
+		runState = r.RunDetails.StateHistory[len(r.RunDetails.StateHistory)-1].State
+	}
 
 	apiRunV2 := &apiv2beta1.Run{
 		RunId:          r.UUID,
@@ -1507,7 +1511,7 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 		ServiceAccount: r.ServiceAccount,
 		RuntimeConfig:  runtimeConfig,
 		StorageState:   toApiRunStorageState(&r.StorageState),
-		State:          toApiRuntimeState(&r.RunDetails.State),
+		State:          toApiRuntimeState(&runState),
 		StateHistory:   toApiRuntimeStatuses(r.RunDetails.StateHistory),
 		CreatedAt:      timestamppb.New(time.Unix(r.CreatedAtInSec, 0)),
 		ScheduledAt:    timestamppb.New(time.Unix(r.ScheduledAtInSec, 0)),

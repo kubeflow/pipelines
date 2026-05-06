@@ -30,6 +30,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/golang/glog"
 	"gocloud.dev/blob"
+	_ "gocloud.dev/blob/fileblob"
 	"gocloud.dev/blob/gcsblob"
 	"gocloud.dev/blob/s3blob"
 	"gocloud.dev/gcp"
@@ -286,25 +287,28 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 	if err != nil {
 		return nil, err
 	}
-	if params.FromEnv {
+	if params.FromEnv && params.Endpoint == "" {
 		return nil, nil
 	}
-	creds, err := getS3BucketCredential(ctx, client, namespace, params.SecretName, params.SecretKeyKey, params.AccessKeyKey)
-	if err != nil {
-		return nil, err
-	}
-	s3Config, err := config.LoadDefaultConfig(ctx,
+	loadOptions := []func(*config.LoadOptions) error{
 		config.WithRetryer(func() aws.Retryer {
 			// Use standard retry logic with exponential backoff for transient S3 connection failures.
 			// The standard retryer implements exponential backoff with jitter, starting with a base delay
 			// and doubling the wait time between retries up to a maximum, helping to avoid thundering herd problems.
 			return retry.AddWithMaxAttempts(retry.NewStandard(), params.MaxRetries)
 		}),
-		config.WithCredentialsProvider(*creds),
 		config.WithRegion(*aws.String(params.Region)),
 		config.WithRequestChecksumCalculation(aws.RequestChecksumCalculationWhenRequired),
 		config.WithResponseChecksumValidation(aws.ResponseChecksumValidationWhenRequired),
-	)
+	}
+	if !params.FromEnv {
+		creds, err := getS3BucketCredential(ctx, client, namespace, params.SecretName, params.SecretKeyKey, params.AccessKeyKey)
+		if err != nil {
+			return nil, err
+		}
+		loadOptions = append(loadOptions, config.WithCredentialsProvider(*creds))
+	}
+	s3Config, err := config.LoadDefaultConfig(ctx, loadOptions...)
 	if err != nil {
 		return nil, err
 	}

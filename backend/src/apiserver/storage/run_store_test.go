@@ -438,6 +438,18 @@ func TestListRuns_HyphenatedMetricSort(t *testing.T) {
 	assert.Nil(t, err, "page-2 ListRuns must succeed with hyphenated metric name in pageToken")
 }
 
+func TestListRuns_EmptyOptionsDoesNotInjectMetricSort(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	_, _, _, err := runStore.ListRuns(
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}},
+		list.EmptyOptions(),
+		false,
+	)
+	assert.Nil(t, err, "empty list options must not trigger metric-sort SQL")
+}
+
 func TestListRuns_TotalSizeWithNoFilter(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
@@ -832,6 +844,10 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 			WorkflowRuntimeManifest: "workflow1_done",
 			StateHistory: []*model.RuntimeStatus{
 				{
+					UpdateTimeInSec: 1,
+					State:           model.RuntimeStateRunning,
+				},
+				{
 					UpdateTimeInSec: 4,
 					State:           model.RuntimeStateSucceeded,
 				},
@@ -933,7 +949,7 @@ func TestCreateAndUpdateRun_UpdateNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "Failed to create a new transaction to create run")
 	err = runStore.UpdateRun(&model.Run{DisplayName: "Test display name"})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "transaction creation failed")
+	assert.Contains(t, err.Error(), "database is closed")
 }
 
 func TestCreateOrUpdateRun_NoStorageStateValue(t *testing.T) {
@@ -1000,6 +1016,43 @@ func TestUpdateRun_RunNotExist(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
 	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestUpdateRun_PreservesRuntimeManifestsOnPartialStateUpdate(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	runDetail := &model.Run{
+		UUID:         "managed-run",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "managed-run",
+		Namespace:    "n1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			ScheduledAtInSec:        1,
+			Conditions:              "Pending",
+			State:                   model.RuntimeStatePending,
+			PipelineRuntimeManifest: `{"kind":"KfpRuntimeManifest","mode":"coordinator-poc"}`,
+			WorkflowRuntimeManifest: "legacy-workflow-manifest",
+		},
+	}
+	_, err := runStore.CreateRun(runDetail)
+	assert.Nil(t, err)
+
+	err = runStore.UpdateRun(&model.Run{
+		UUID: "managed-run",
+		RunDetails: model.RunDetails{
+			Conditions: "Running",
+			State:      model.RuntimeStateRunning,
+		},
+	})
+	assert.Nil(t, err)
+
+	persistedRun, err := runStore.GetRun("managed-run", false)
+	assert.Nil(t, err)
+	assert.Equal(t, model.LargeText(`{"kind":"KfpRuntimeManifest","mode":"coordinator-poc"}`), persistedRun.PipelineRuntimeManifest)
+	assert.Equal(t, model.LargeText("legacy-workflow-manifest"), persistedRun.WorkflowRuntimeManifest)
+	assert.Equal(t, model.RuntimeStateRunning, persistedRun.State)
 }
 
 func TestTerminateRun(t *testing.T) {

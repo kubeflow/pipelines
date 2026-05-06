@@ -67,6 +67,11 @@ func getFingerPrint(opts common.Options, executorInput *pipelinespec.ExecutorInp
 	return fingerPrint, err
 }
 
+// BuildCacheFingerprint computes the cache fingerprint for a task execution.
+func BuildCacheFingerprint(opts common.Options, executorInput *pipelinespec.ExecutorInput, pvcNames []string) (string, error) {
+	return getFingerPrint(opts, executorInput, pvcNames)
+}
+
 func getFingerPrintsAndID(
 	ctx context.Context,
 	execution *Execution,

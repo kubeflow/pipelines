@@ -24,6 +24,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -918,6 +919,44 @@ func TestMergeParameters_WithProducer_WithIteration(t *testing.T) {
 	}
 	assert.True(t, iterations[0])
 	assert.True(t, iterations[1])
+}
+
+func TestMergeParameters_PreservesInsertionOrder(t *testing.T) {
+	makeParam := func(value float64) *apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter {
+		structValue, err := structpb.NewValue(value)
+		require.NoError(t, err)
+		return &apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+			Value:        structValue,
+			ParameterKey: "loop-output",
+			Type:         apiv2beta1.IOType_OUTPUT,
+			Producer: &apiv2beta1.IOProducer{
+				TaskName: "loop-task",
+			},
+		}
+	}
+
+	result, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{makeParam(2)})
+	require.NoError(t, err)
+
+	next, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{makeParam(4)})
+	require.NoError(t, err)
+	result, err = mergeParameters(result, next)
+	require.NoError(t, err)
+
+	last, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{makeParam(6)})
+	require.NoError(t, err)
+	result, err = mergeParameters(result, last)
+	require.NoError(t, err)
+
+	typeFunc := func() *apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter {
+		return &apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{}
+	}
+	resultProtos, err := model.JSONSliceToProtoSlice(result, typeFunc)
+	require.NoError(t, err)
+	require.Len(t, resultProtos, 3)
+	assert.Equal(t, 2.0, resultProtos[0].GetValue().GetNumberValue())
+	assert.Equal(t, 4.0, resultProtos[1].GetValue().GetNumberValue())
+	assert.Equal(t, 6.0, resultProtos[2].GetValue().GetNumberValue())
 }
 
 func TestMergeParameters_RaceConditionScenario(t *testing.T) {

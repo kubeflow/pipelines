@@ -78,6 +78,39 @@ func Test_createS3BucketSession(t *testing.T) {
 			expectValidClient: false,
 		},
 		{
+			msg: "Bucket with env-backed session and explicit endpoint",
+			ns:  "testnamespace",
+			sessionInfo: &SessionInfo{
+				Provider: "minio",
+				Params: map[string]string{
+					"region":         "us-east-1",
+					"endpoint":       "127.0.0.1:9000",
+					"disableSSL":     "true",
+					"fromEnv":        "true",
+					"forcePathStyle": "true",
+					"maxRetries":     "5",
+				},
+			},
+			expectValidClient: true,
+			expectedRegion:    "us-east-1",
+			expectedEndpoint:  "127.0.0.1:9000",
+			expectedPathStyle: true,
+		},
+		{
+			msg: "Bucket with env-backed session and no endpoint",
+			ns:  "testnamespace",
+			sessionInfo: &SessionInfo{
+				Provider: "s3",
+				Params: map[string]string{
+					"region":     "us-east-1",
+					"disableSSL": "false",
+					"fromEnv":    "true",
+					"maxRetries": "5",
+				},
+			},
+			expectValidClient: false,
+		},
+		{
 			msg: "Bucket with session but secret doesn't exist",
 			ns:  "testnamespace",
 			sessionInfo: &SessionInfo{
@@ -194,4 +227,50 @@ func TestDownloadBlob_SkipsDirectoryMarkerWhenDownloadingNestedObjects(t *testin
 	data, err := os.ReadFile(filepath.Join(localPath, "file.txt"))
 	assert.NoError(t, err)
 	assert.Equal(t, "nested content", string(data))
+}
+
+func TestOpenBucket_FileURL(t *testing.T) {
+	ctx := context.Background()
+	rootDir := filepath.Join(t.TempDir(), "artifacts")
+	require.NoError(t, os.MkdirAll(rootDir, 0o755))
+
+	bucketConfig, err := ParseBucketPathToConfig("file://" + rootDir)
+	require.NoError(t, err)
+
+	bucket, err := OpenBucket(ctx, fake.NewSimpleClientset(), "kubeflow", bucketConfig, nil)
+	require.NoError(t, err)
+	defer bucket.Close()
+
+	require.NoError(t, bucket.WriteAll(ctx, "dir/file.txt", []byte("hello from file bucket"), nil))
+
+	downloadDir := filepath.Join(t.TempDir(), "download")
+	err = DownloadBlob(ctx, bucket, downloadDir, "dir")
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(filepath.Join(downloadDir, "file.txt"))
+	require.NoError(t, err)
+	assert.Equal(t, "hello from file bucket", string(content))
+}
+
+func TestOpenBucket_FileURLWithPrefix(t *testing.T) {
+	ctx := context.Background()
+	rootDir := filepath.Join(t.TempDir(), "artifacts")
+	require.NoError(t, os.MkdirAll(rootDir, 0o755))
+
+	bucketConfig, err := ParseBucketPathToConfig("file://" + filepath.Join(rootDir, "v2", "artifacts"))
+	require.NoError(t, err)
+
+	bucket, err := OpenBucket(ctx, fake.NewSimpleClientset(), "kubeflow", bucketConfig, nil)
+	require.NoError(t, err)
+	defer bucket.Close()
+
+	require.NoError(t, bucket.WriteAll(ctx, "run/file.txt", []byte("prefixed file bucket"), nil))
+
+	downloadPath := filepath.Join(t.TempDir(), "file.txt")
+	err = DownloadBlob(ctx, bucket, downloadPath, "run/file.txt")
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(downloadPath)
+	require.NoError(t, err)
+	assert.Equal(t, "prefixed file bucket", string(content))
 }

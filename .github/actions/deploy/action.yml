@@ -46,6 +46,10 @@ inputs:
     description: "If KFP should be deployed with TLS pod-to-pod communication."
     required: false
     default: 'false'
+  runtime_mode:
+    description: "Optional API server runtime mode override, for example coordinator-poc"
+    required: false
+    default: ''
 
 runs:
   using: "composite"
@@ -149,6 +153,15 @@ runs:
         max_attempts: 2
         timeout_minutes: 15
         command: ./.github/resources/scripts/deploy-kfp.sh ${{ steps.configure.outputs.ARGS }}
+
+    - name: Configure API server runtime mode
+      id: configure-runtime-mode
+      shell: bash
+      if: ${{ steps.deploy-kfp.outcome == 'success' && inputs.runtime_mode != '' }}
+      run: |
+        echo "Setting API server runtime mode to ${{ inputs.runtime_mode }}"
+        kubectl -n kubeflow set env deployment/ml-pipeline KFP_V2_RUNTIME_MODE="${{ inputs.runtime_mode }}"
+        kubectl -n kubeflow rollout status deployment/ml-pipeline --timeout=180s
 
     - name: Forward API port
       id: forward-api-port

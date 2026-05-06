@@ -138,6 +138,26 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 		})
 	})
 
+	Context("Create a coordinator-managed pipeline run >", func() {
+		pipelineFile := filepath.Join(pipelineFilesRootDir, pipelineDirectory, "hello_world.yaml")
+		It("Create a run with an explicit coordinator selector and verify it succeeds without creating an Argo workflow", Label(constants.CoordinatorRuntime), func() {
+			createdExperiment := createExperiment(experimentName)
+			createdPipeline := uploadAPipeline(pipelineFile, &testContext.Pipeline.PipelineGeneratedName)
+			createdPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &createdPipeline.PipelineID)
+			pipelineRuntimeInputs := testutil.WithCoordinatorRuntimeSelector(testutil.GetPipelineRunTimeInputs(pipelineFile))
+			createdPipelineRun := createPipelineRun(&createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
+			testutil.WaitForRunToBeInState(runClient, &createdPipelineRun.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateSUCCEEDED}, nil)
+
+			createdPipelineRunFromDB, createRunError := runClient.Get(&runparams.RunServiceGetRunParams{
+				RunID: createdPipelineRun.RunID,
+			})
+			Expect(createRunError).NotTo(HaveOccurred(), "Failed to get run with Id="+createdPipelineRun.RunID)
+			Expect(testutil.GetWorkflowNameByRunID(testutil.GetNamespace(), createdPipelineRun.RunID)).To(BeEmpty(), "Coordinator-managed run should not create an Argo Workflow")
+			Expect(createdPipelineRunFromDB.State).NotTo(BeNil())
+			Expect(*createdPipelineRunFromDB.State).To(Equal(run_model.V2beta1RuntimeStateSUCCEEDED))
+		})
+	})
+
 	Context("Archive pipeline run(s) >", func() {
 		pipelineFile := filepath.Join(pipelineFilesRootDir, pipelineDirectory, "hello_world.yaml")
 		It("Create a pipeline run, wait for the run state to be reported, archive it and verify that archiving keeps the runtime state reported", func() {
@@ -182,7 +202,14 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 			createdPipelineRun := createPipelineRun(&createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
 			testutil.WaitForRunToBeInState(runClient, &createdPipelineRun.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateRUNNING, run_model.V2beta1RuntimeStatePENDING}, nil)
 			archivePipelineRun(&createdPipelineRun.RunID)
-			pipelineRunAfterArchive := testutil.GetPipelineRun(runClient, &createdPipelineRun.RunID)
+			var pipelineRunAfterArchive *run_model.V2beta1Run
+			Eventually(func() *run_model.V2beta1Run {
+				pipelineRunAfterArchive = testutil.GetPipelineRun(runClient, &createdPipelineRun.RunID)
+				if pipelineRunAfterArchive.State == nil || pipelineRunAfterArchive.StorageState == nil || *pipelineRunAfterArchive.StorageState != run_model.V2beta1RunStorageStateARCHIVED {
+					return nil
+				}
+				return pipelineRunAfterArchive
+			}, "30s", "1s").ShouldNot(BeNil(), "Expected archived pipeline run to have a reported runtime state")
 			Expect(*pipelineRunAfterArchive.State).To(BeElementOf([]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateRUNNING, run_model.V2beta1RuntimeStatePENDING}))
 			Expect(*pipelineRunAfterArchive.StorageState).To(Equal(run_model.V2beta1RunStorageStateARCHIVED))
 
@@ -424,7 +451,7 @@ func createPipelineRunPayload(pipelineID *string, pipelineVersionID *string, exp
 			PipelineVersionID: testutil.ParsePointersToString(pipelineVersionID),
 		},
 		RuntimeConfig: &run_model.V2beta1RuntimeConfig{
-			Parameters: inputParams,
+			Parameters: testutil.MaybeWithCoordinatorRuntimeSelector(inputParams),
 		},
 	}
 }

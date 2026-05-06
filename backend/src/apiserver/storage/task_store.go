@@ -75,6 +75,10 @@ type TaskStoreInterface interface {
 
 	// GetChildTasks Fetches all child tasks for a given task UUID.
 	GetChildTasks(taskID string) ([]*model.Task, error)
+
+	// FindLatestSucceededTaskByFingerprint returns the newest succeeded task
+	// in a namespace with the given cache fingerprint.
+	FindLatestSucceededTaskByFingerprint(namespace, fingerprint string) (*model.Task, error)
 }
 
 type TaskStore struct {
@@ -424,29 +428,29 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 		return nil, util.NewInternalServerError(err, "Failed to marshal type attributes in a new task")
 	}
 
+	insertValues := sq.Eq{
+		"UUID":             newTask.UUID,
+		"Namespace":        newTask.Namespace,
+		"RunUUID":          newTask.RunUUID,
+		"Pods":             podsString,
+		"CreatedAtInSec":   newTask.CreatedAtInSec,
+		"StartedInSec":     newTask.StartedInSec,
+		"FinishedInSec":    newTask.FinishedInSec,
+		"Fingerprint":      newTask.Fingerprint,
+		"Name":             newTask.Name,
+		"DisplayName":      newTask.DisplayName,
+		"ParentTaskUUID":   newTask.ParentTaskUUID,
+		"ScopePath":        newTask.ScopePath,
+		"State":            newTask.State,
+		"StateHistory":     stateHistoryString,
+		"InputParameters":  inputParamsString,
+		"OutputParameters": outputParamsString,
+		"Type":             newTask.Type,
+		"TypeAttrs":        typeAttrsString,
+	}
 	sql, args, err := sq.
 		Insert(tableName).
-		SetMap(
-			sq.Eq{
-				"UUID":             newTask.UUID,
-				"Namespace":        newTask.Namespace,
-				"RunUUID":          newTask.RunUUID,
-				"Pods":             podsString,
-				"CreatedAtInSec":   newTask.CreatedAtInSec,
-				"StartedInSec":     newTask.StartedInSec,
-				"FinishedInSec":    newTask.FinishedInSec,
-				"Fingerprint":      newTask.Fingerprint,
-				"Name":             newTask.Name,
-				"ParentTaskUUID":   newTask.ParentTaskUUID,
-				"ScopePath":        newTask.ScopePath,
-				"State":            newTask.State,
-				"StateHistory":     stateHistoryString,
-				"InputParameters":  inputParamsString,
-				"OutputParameters": outputParamsString,
-				"Type":             newTask.Type,
-				"TypeAttrs":        typeAttrsString,
-			},
-		).
+		SetMap(insertValues).
 		ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to insert task to task table: %v",
@@ -458,6 +462,32 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 			err.Error())
 	}
 	return &newTask, nil
+}
+
+func (s *TaskStore) FindLatestSucceededTaskByFingerprint(namespace, fingerprint string) (*model.Task, error) {
+	sqlQuery, args, err := sq.
+		Select(taskColumns...).
+		From(tableName).
+		Where(sq.Eq{
+			"Namespace":   namespace,
+			"Fingerprint": fingerprint,
+			"State":       model.TaskStatus(apiv2beta1.PipelineTaskDetail_SUCCEEDED),
+		}).
+		OrderBy("CreatedAtInSec DESC").
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to fetch succeeded task by fingerprint")
+	}
+	row := s.db.QueryRow(sqlQuery, args...)
+	task, scanErr := scanTaskRow(row)
+	if scanErr == sql.ErrNoRows {
+		return nil, nil
+	}
+	if scanErr != nil {
+		return nil, util.NewInternalServerError(scanErr, "Failed to fetch succeeded task by fingerprint")
+	}
+	return task, nil
 }
 
 // ListTasks Runs two SQL queries in a transaction to return a list of matching experiments, as well as their
@@ -862,23 +892,31 @@ func mergeParameters(old, new model.JSONSlice) (model.JSONSlice, error) {
 		return key, nil
 	}
 	mergedParams := map[string]*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{}
-	for _, p := range oldParams {
+	orderedKeys := make([]string, 0, len(oldParams)+len(newParams))
+	addOrReplace := func(p *apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter) error {
 		key, err := makeKey(p)
 		if err != nil {
-			return nil, err
+			return err
+		}
+		if _, ok := mergedParams[key]; !ok {
+			orderedKeys = append(orderedKeys, key)
 		}
 		mergedParams[key] = p
+		return nil
+	}
+	for _, p := range oldParams {
+		if err := addOrReplace(p); err != nil {
+			return nil, err
+		}
 	}
 	for _, p := range newParams {
-		key, err := makeKey(p)
-		if err != nil {
+		if err := addOrReplace(p); err != nil {
 			return nil, err
 		}
-		mergedParams[key] = p
 	}
 	paramsSlice := make([]*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter, 0, len(mergedParams))
-	for _, p := range mergedParams {
-		paramsSlice = append(paramsSlice, p)
+	for _, key := range orderedKeys {
+		paramsSlice = append(paramsSlice, mergedParams[key])
 	}
 	parameters, err := model.ProtoSliceToJSONSlice(paramsSlice)
 	if err != nil {

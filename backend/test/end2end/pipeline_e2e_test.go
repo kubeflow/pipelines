@@ -182,6 +182,16 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		}
 	})
 
+	Context("Upload a simple pipeline file and run it with the coordinator runtime >", FlakeAttempts(1), Label(CoordinatorRuntime), func() {
+		var pipelineDir = "valid"
+		pipelineFiles := []string{"hello_world.yaml"}
+		for _, pipelineFile := range pipelineFiles {
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
+				validateCoordinatorPipelineRunSuccess(pipelineFile, pipelineDir, testContext)
+			})
+		}
+	})
+
 	Context("Create a pipeline run with HTTP proxy >", Label(E2eProxy), func() {
 		var pipelineDir = "valid"
 		pipelineFile := "env-var.yaml"
@@ -255,6 +265,31 @@ func validatePipelineRunSuccess(pipelineFile string, pipelineDir string, testCon
 	compiledWorkflow := workflowutils.UnmarshallWorkflowYAML(filepath.Join(testutil.GetCompiledWorkflowsFilesDir(), pipelineFile))
 	e2e_utils.ValidateComponentStatuses(runClient, k8Client, testContext, createdRunID, compiledWorkflow)
 
+}
+
+func validateCoordinatorPipelineRunSuccess(pipelineFile string, pipelineDir string, testContext *apitests.TestContext) {
+	testutil.CheckIfSkipping(pipelineFile)
+	pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
+	logger.Log("Uploading pipeline file %s for coordinator runtime validation", pipelineFile)
+	uploadedPipeline, uploadErr := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+	Expect(uploadErr).To(BeNil(), "Failed to upload pipeline %s", pipelineFile)
+	testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
+	uploadedPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
+	pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(pipelineFilePath)
+	createdRunID := e2e_utils.CreateCoordinatorPipelineRunAndWaitForItToFinish(
+		runClient,
+		testContext,
+		uploadedPipeline.PipelineID,
+		uploadedPipeline.DisplayName,
+		&uploadedPipelineVersion.PipelineVersionID,
+		experimentID,
+		pipelineRuntimeInputs,
+		maxPipelineWaitTime,
+	)
+	updatedRun := testutil.GetPipelineRun(runClient, &createdRunID)
+	Expect(updatedRun.State).NotTo(BeNil(), "Updated pipeline run state is Nil")
+	Expect(*updatedRun.State).To(Equal(run_model.V2beta1RuntimeStateSUCCEEDED), "Pipeline run was expected to succeed")
+	Expect(testutil.GetWorkflowNameByRunID(testutil.GetNamespace(), createdRunID)).To(BeEmpty(), "Coordinator-managed run should not create an Argo Workflow")
 }
 
 func cleanupE2ETestResources(testContext *apitests.TestContext) {

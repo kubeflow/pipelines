@@ -52,7 +52,7 @@ func GenerateCacheKey(
 	for inputArtifactName, inputArtifactList := range inputs.GetArtifacts() {
 		inputArtifactNameList := cachekey.ArtifactNameList{ArtifactNames: make([]string, 0)}
 		for _, artifact := range inputArtifactList.Artifacts {
-			inputArtifactNameList.ArtifactNames = append(inputArtifactNameList.ArtifactNames, artifact.GetName())
+			inputArtifactNameList.ArtifactNames = append(inputArtifactNameList.ArtifactNames, cacheKeyInputArtifactIdentity(artifact))
 		}
 		cacheKey.InputArtifactNames[inputArtifactName] = &inputArtifactNameList
 	}
@@ -91,4 +91,11 @@ func GenerateCacheKey(
 	}
 
 	return &cacheKey, nil
+}
+
+func cacheKeyInputArtifactIdentity(artifact *pipelinespec.RuntimeArtifact) string {
+	if artifact == nil {
+		return ""
+	}
+	return artifact.GetName()
 }

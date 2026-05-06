@@ -33,7 +33,7 @@ import (
 
 var pipelineFilesRootDir = testutil.GetPipelineFilesDir()
 var pipelineDirectory = "valid"
-var argoYAMLDir = filepath.Join(testutil.GetTestDataDir(), "compiled-workflows")
+var argoYAMLDir = testutil.GetCompiledWorkflowsFilesDir()
 var updateGoldenFiles = flag.Bool("updateCompiledFiles", false, "update golden/expected compiled workflow files")
 var createMissingGoldenFiles = flag.Bool("createGoldenFiles", false, "create missing golden/expected compiled workflow files")
 

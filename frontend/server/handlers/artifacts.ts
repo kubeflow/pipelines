@@ -25,6 +25,7 @@ import { Handler, Request, Response, NextFunction } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts.js';
 import { URL } from 'url';
+import path from 'path';
 import { getGCSClient, listGCSObjectNames, downloadGCSObjectStream } from '../gcs-helper.js';
 import type { GCSClient } from '../gcs-helper.js';
 
@@ -44,7 +45,7 @@ import {
  */
 interface ArtifactsQueryStrings {
   /** artifact source. */
-  source: 'minio' | 's3' | 'gcs' | 'http' | 'https' | 'volume';
+  source: 'minio' | 's3' | 'gcs' | 'file' | 'http' | 'https' | 'volume';
   /** bucket name. */
   bucket: string;
   /** artifact key/path that is uri encoded.  */
@@ -185,7 +186,7 @@ export function getArtifactsAuthMiddleware(
 
 /**
  * Returns an artifact handler which retrieve an artifact from the corresponding
- * backend (i.e. gcs, minio, s3, http/https).
+ * backend (i.e. gcs, minio, s3, file, http/https).
  * @param artifactsConfigs configs to retrieve the artifacts from the various backend.
  * @param useParameter get bucket and key from parameter instead of query. When true, expect
  *    to be used in a route like `/artifacts/:source/:bucket/*`.
@@ -200,6 +201,7 @@ export function getArtifactsHandler({
   artifactsConfigs: {
     aws: AWSConfigs;
     http: HttpConfigs;
+    localRoot: string;
     minio: MinioConfigs;
     allowedDomain: string;
   };
@@ -207,7 +209,7 @@ export function getArtifactsHandler({
   useParameter: boolean;
   options: UIConfigs;
 }): Handler {
-  const { aws, http, minio, allowedDomain } = artifactsConfigs;
+  const { aws, http, localRoot, minio, allowedDomain } = artifactsConfigs;
   return async (req, res) => {
     const source = (useParameter ? req.params.source : req.query.source) as string | undefined;
     const bucket = (useParameter ? req.params.bucket : req.query.bucket) as string | undefined;
@@ -290,6 +292,16 @@ export function getArtifactsHandler({
           peek,
         )(req, res);
         break;
+      case 'file':
+        await getFileArtifactsHandler(
+          {
+            bucket,
+            key,
+            localRoot,
+          },
+          peek,
+        )(req, res);
+        break;
       case 'volume':
         await getVolumeArtifactsHandler(
           {
@@ -302,6 +314,38 @@ export function getArtifactsHandler({
       default:
         res.status(500).send('Unknown storage source');
         return;
+    }
+  };
+}
+
+function getFileArtifactsHandler(
+  options: { bucket: string; key: string; localRoot: string },
+  peek: number = 0,
+) {
+  const { bucket, key, localRoot } = options;
+  return async (_: Request, res: Response) => {
+    try {
+      if (!localRoot) {
+        res.status(500).send('File artifacts are not enabled on this server.');
+        return;
+      }
+      const filePath = path.resolve('/', bucket, key);
+      const normalizedRoot = path.resolve(localRoot);
+      const withinRoot =
+        filePath === normalizedRoot || filePath.startsWith(normalizedRoot + path.sep);
+      if (!withinRoot) {
+        res.status(403).send('File artifact path is outside the configured local artifact root.');
+        return;
+      }
+      const stat = await fs.promises.stat(filePath);
+      if (stat.isDirectory()) {
+        res.status(400).send(`Failed to open file ${filePath} is directory, does not support now`);
+        return;
+      }
+      fs.createReadStream(filePath).pipe(new PreviewStream({ peek })).pipe(res);
+    } catch (err) {
+      console.log(`Failed to open file: ${err}`);
+      res.status(500).send(`Failed to open file.`);
     }
   };
 }

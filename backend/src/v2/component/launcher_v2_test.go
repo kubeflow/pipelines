@@ -213,6 +213,36 @@ func TestExample_launcherV2WithMocks(t *testing.T) {
 	println("Test passed - launcher executed successfully with mocked dependencies")
 }
 
+func TestLocalPathForURI_FileSchemes(t *testing.T) {
+	rootPath := t.TempDir()
+	t.Setenv("ARTIFACT_LOCAL_PATH", rootPath)
+
+	tests := []struct {
+		name     string
+		uri      string
+		expected string
+	}{
+		{
+			name:     "file triple slash",
+			uri:      "file:///tmp/kfp-artifacts/model.txt",
+			expected: filepath.Join(rootPath, "file", "tmp", "kfp-artifacts", "model.txt"),
+		},
+		{
+			name:     "file double slash",
+			uri:      "file://tmp/kfp-artifacts/model.txt",
+			expected: filepath.Join(rootPath, "file", "tmp", "kfp-artifacts", "model.txt"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			localPath, err := LocalPathForURI(test.uri)
+			require.NoError(t, err)
+			assert.Equal(t, test.expected, localPath)
+		})
+	}
+}
+
 // TestLauncherV2_ArtifactHandling demonstrates testing artifact download and upload
 func TestLauncherV2_ArtifactHandling(t *testing.T) {
 	// Setup
@@ -472,6 +502,29 @@ func Test_getPlaceholders_WorkspaceArtifactPath(t *testing.T) {
 	expected := filepath.Join(WorkspaceMountPath, ".artifacts", "minio", "mlpipeline", "sample", "sample.txt")
 	if actual != expected {
 		t.Fatalf("placeholder path mismatch: actual=%q expected=%q", actual, expected)
+	}
+}
+
+func Test_getPlaceholders_CustomArtifactPath(t *testing.T) {
+	customPath := "/tmp/kfp-v2-runtime/run-123/artifact-local/file/tmp/artifact.txt"
+	execIn := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"data": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{Uri: "file:///tmp/artifact.txt", CustomPath: &customPath},
+					},
+				},
+			},
+		},
+	}
+	ph, err := getPlaceholders(execIn)
+	if err != nil {
+		t.Fatalf("getPlaceholders error: %v", err)
+	}
+	actual := ph["{{$.inputs.artifacts['data'].path}}"]
+	if actual != customPath {
+		t.Fatalf("placeholder path mismatch: actual=%q expected=%q", actual, customPath)
 	}
 }
 

@@ -45,6 +45,10 @@ const (
 	DefaultSecurityContextRunAsNonRoot      string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT"
 	BlockV1Pipelines                        string = "BLOCK_V1_PIPELINES"
 	V1NamespaceWhitelist                    string = "V1_ALLOWED_NAMESPACES"
+	V2RuntimeMode                           string = "KFP_V2_RUNTIME_MODE"
+	V2RuntimeExecutor                       string = "KFP_V2_RUNTIME_EXECUTOR"
+	V2RuntimeWorkspaceRoot                  string = "KFP_V2_RUNTIME_WORKSPACE_ROOT"
+	V2RuntimeAutoExecute                    string = "KFP_V2_RUNTIME_AUTO_EXECUTE"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {

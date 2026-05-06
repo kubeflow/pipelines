@@ -1868,6 +1868,32 @@ class TestDictToArtifact(parameterized.TestCase):
         self.assertIsInstance(
             executor.create_artifact_instance(runtime_artifact), expected_type)
 
+    def test_create_artifact_instance_preserves_custom_path(self):
+        runtime_artifact = {
+            'name': 'artifact',
+            'uri': 'minio://mlpipeline/path/to/artifact',
+            'metadata': {},
+            'custom_path': '/tmp/out_dataset',
+        }
+
+        artifact_instance = executor.create_artifact_instance(runtime_artifact)
+
+        self.assertEqual(artifact_instance.custom_path, '/tmp/out_dataset')
+        self.assertEqual(artifact_instance.path, '/tmp/out_dataset')
+
+    def test_create_artifact_instance_preserves_custom_path_camel_case(self):
+        runtime_artifact = {
+            'name': 'artifact',
+            'uri': 'minio://mlpipeline/path/to/artifact',
+            'metadata': {},
+            'customPath': '/tmp/out_dataset',
+        }
+
+        artifact_instance = executor.create_artifact_instance(runtime_artifact)
+
+        self.assertEqual(artifact_instance.custom_path, '/tmp/out_dataset')
+        self.assertEqual(artifact_instance.path, '/tmp/out_dataset')
+
 
 @contextlib.contextmanager
 def temporary_envvar(key: str, value: str) -> None:

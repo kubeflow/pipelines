@@ -7,10 +7,42 @@ import (
 )
 
 func Test_ParseBucketPathToConfig(t *testing.T) {
-	pipelineRoot := "s3://mlpipeline/v2/artifacts/"
-	result, err := ParseBucketPathToConfig(pipelineRoot)
+	tests := []struct {
+		name               string
+		pipelineRoot       string
+		expectedScheme     string
+		expectedPrefix     string
+		expectedBucketName string
+	}{
+		{
+			name:               "s3 path",
+			pipelineRoot:       "s3://mlpipeline/v2/artifacts/",
+			expectedScheme:     "s3://",
+			expectedPrefix:     "v2/artifacts/",
+			expectedBucketName: "mlpipeline",
+		},
+		{
+			name:               "file path",
+			pipelineRoot:       "file:///tmp/kfp-artifacts/v2/artifacts/",
+			expectedScheme:     "file:///",
+			expectedPrefix:     "kfp-artifacts/v2/artifacts/",
+			expectedBucketName: "tmp",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result, err := ParseBucketPathToConfig(test.pipelineRoot)
+			require.NoError(t, err)
+			require.Equal(t, test.expectedScheme, result.Scheme)
+			require.Equal(t, test.expectedPrefix, result.Prefix)
+			require.Equal(t, test.expectedBucketName, result.BucketName)
+		})
+	}
+}
+
+func TestParseProviderFromPath_File(t *testing.T) {
+	provider, err := ParseProviderFromPath("file:///tmp/kfp-artifacts/v2/artifacts/")
 	require.NoError(t, err)
-	require.Equal(t, "s3://", result.Scheme)
-	require.Equal(t, "v2/artifacts/", result.Prefix)
-	require.Equal(t, "mlpipeline", result.BucketName)
+	require.Equal(t, "file", provider)
 }

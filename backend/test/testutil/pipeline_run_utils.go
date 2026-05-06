@@ -86,13 +86,9 @@ func GetPipelineRun(runClient *api_server.RunClient, pipelineRunID *string) *run
 
 func WaitForRunToBeInState(runClient *api_server.RunClient, pipelineRunID *string, expectedStates []run_model.V2beta1RuntimeState, timeout *time.Duration) {
 	logger.Log("Waiting for pipeline run with id=%s to be in one of '%s'", *pipelineRunID, expectedStates)
-	maxTimeToWait := time.Duration(300)
-	pollTime := time.Duration(5)
-	if timeout != nil {
-		maxTimeToWait = *timeout
-	}
-	deadline := time.Now().Add(maxTimeToWait * time.Second)
-	ticker := time.NewTicker(pollTime * time.Second)
+	maxTimeToWait, pollTime := resolveRunWaitDurations(timeout)
+	deadline := time.Now().Add(maxTimeToWait)
+	ticker := time.NewTicker(pollTime)
 	defer ticker.Stop()
 	for {
 		currentPipelineRunState := GetPipelineRun(runClient, pipelineRunID).State
@@ -113,6 +109,14 @@ func WaitForRunToBeInState(runClient *api_server.RunClient, pipelineRunID *strin
 		<-ticker.C
 	}
 
+}
+
+func resolveRunWaitDurations(timeout *time.Duration) (time.Duration, time.Duration) {
+	maxTimeToWait := 300 * time.Second
+	if timeout != nil {
+		maxTimeToWait = *timeout
+	}
+	return maxTimeToWait, 5 * time.Second
 }
 
 func GetPipelineRunTimeInputs(pipelineSpecFile string) map[string]interface{} {

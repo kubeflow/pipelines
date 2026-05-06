@@ -26,10 +26,10 @@ The Kubeflow pipelines service has the following goals:
 
 ### Dependencies Compatibility Matrix
 
-| Dependency     | Versions         |
-| -------------- |------------------|
-| Argo Workflows | v3.5, v3.7, v4.0 |
-| MySQL          | v8               |
+| Dependency     | Versions          |
+| -------------- | ----------------- |
+| Argo Workflows | v3.5, v3.7, v4.0  |
+| MySQL          | v8                |
 
 ## Documentation
 
@@ -42,7 +42,8 @@ See the Kubeflow [Pipelines API doc](https://www.kubeflow.org/docs/components/pi
 Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.io/en/stable/) when writing pipelines using the Python SDK.
 
 ## Deep Wiki
-Check out our AI Powered repo documentation on [DeepWiki](https://deepwiki.com/kubeflow/pipelines). 
+
+Check out our AI Powered repo documentation on [DeepWiki](https://deepwiki.com/kubeflow/pipelines).
 
 > :warning: Please note, this is AI generated and may not have completely accurate information.
 
@@ -98,4 +99,4 @@ Details about the KFP Architecture can be found at [Architecture.md](docs/sdk/Ar
 
 ## Acknowledgments
 
-Kubeflow pipelines uses [Argo Workflows](https://github.com/argoproj/argo-workflows) by default under the hood to orchestrate Kubernetes resources. The Argo community has been very supportive and we are very grateful.
+Argo Workflows remains the default orchestration runtime in this branch. A KFP-managed coordinator runtime also exists as a separate experimental option.

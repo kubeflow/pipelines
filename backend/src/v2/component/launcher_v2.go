@@ -1421,7 +1421,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 			}
 		}
 
-		localPath, err := LocalPathForURI(inputArtifact.Uri)
+		localPath, err := retrieveArtifactPath(inputArtifact)
 		if err != nil {
 			// Input Artifact does not have a recognized storage URI
 			continue
@@ -1560,6 +1560,11 @@ func LocalPathForURI(uri string) (string, error) {
 	if strings.HasPrefix(uri, "s3://") {
 		return fmt.Sprintf("%s/s3/", rootPath) + strings.TrimPrefix(uri, "s3://"), nil
 	}
+	if strings.HasPrefix(uri, "file:///") || strings.HasPrefix(uri, "file://") {
+		trimmedURI := strings.TrimPrefix(uri, "file:///")
+		trimmedURI = strings.TrimPrefix(trimmedURI, "file://")
+		return fmt.Sprintf("%s/file/", rootPath) + trimmedURI, nil
+	}
 	if strings.HasPrefix(uri, "oci://") {
 		return fmt.Sprintf("%s/oci/", rootPath) + strings.ReplaceAll(strings.TrimPrefix(uri, "oci://"), "/", "_") + "/models", nil
 	}
@@ -1574,6 +1579,23 @@ func retrieveArtifactPath(artifact *pipelinespec.RuntimeArtifact) (string, error
 	} else {
 		return LocalPathForURI(artifact.Uri)
 	}
+}
+
+// CompileCommandAndArgs resolves placeholders in a container command/args pair
+// using the provided executor input.
+func CompileCommandAndArgs(
+	executorInput *pipelinespec.ExecutorInput,
+	command []string,
+	args []string,
+) ([]string, []string, error) {
+	if len(command) == 0 {
+		return nil, append([]string{}, args...), nil
+	}
+	compiledCommand, compiledArgs, err := compileCmdAndArgs(executorInput, command[0], append(append([]string{}, command[1:]...), args...))
+	if err != nil {
+		return nil, nil, err
+	}
+	return []string{compiledCommand}, compiledArgs, nil
 }
 
 // LocalWorkspacePathForURI returns the local workspace path for a given artifact URI.

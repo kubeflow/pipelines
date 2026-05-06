@@ -99,8 +99,7 @@ func ParseBucketPathToConfig(path string) (*Config, error) {
 		return nil, fmt.Errorf("parse bucket config failed: unrecognized pipeline root format: %q", path)
 	}
 
-	// TODO: Verify/add support for file:///.
-	if ms[1] != "gs://" && ms[1] != "s3://" && ms[1] != "minio://" && ms[1] != "mem://" {
+	if ms[1] != "gs://" && ms[1] != "s3://" && ms[1] != "minio://" && ms[1] != "mem://" && ms[1] != "file:///" {
 		return nil, fmt.Errorf("parse bucket config failed: unsupported Cloud bucket: %q", path)
 	}
 
@@ -145,7 +144,9 @@ func ParseProviderFromPath(uri string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSuffix(bucketConfig.Scheme, "://"), nil
+	provider := strings.TrimSuffix(bucketConfig.Scheme, ":///")
+	provider = strings.TrimSuffix(provider, "://")
+	return provider, nil
 }
 
 func StructuredS3Params(p map[string]string) (*S3Params, error) {

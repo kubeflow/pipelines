@@ -80,6 +80,12 @@ func run() error {
 	if namespace == "" {
 		return fmt.Errorf("NAMESPACE environment variable must be set")
 	}
+	if err := os.Setenv("KFP_API_ADDRESS", *mlPipelineServerAddress); err != nil {
+		return fmt.Errorf("failed to set KFP_API_ADDRESS: %w", err)
+	}
+	if err := os.Setenv("KFP_API_PORT", *mlPipelineServerPort); err != nil {
+		return fmt.Errorf("failed to set KFP_API_PORT: %w", err)
+	}
 
 	// Create a client manager
 	clientOptions := &client_manager.Options{

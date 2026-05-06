@@ -32,6 +32,8 @@ const (
 	E2eParallelNested string = "E2EParallelNested"
 	// E2eProxy - For pipeline that runs with a proxy
 	E2eProxy string = "E2EProxy"
+	// CoordinatorRuntime - focused lane for explicitly selected coordinator-managed runs
+	CoordinatorRuntime string = "CoordinatorRuntime"
 
 	WorkflowCompiler       string = "WorkflowCompiler"
 	WorkflowCompilerVisits string = "WorkflowCompilerVisits"

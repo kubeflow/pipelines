@@ -3525,6 +3525,102 @@ func Test_toApiRun(t *testing.T) {
 			"Failed to parse runtime config",
 		},
 		{
+			"v2 falls back to latest state history when state is unspecified",
+			&model.Run{
+				UUID:           "run1",
+				ExperimentId:   "exp1",
+				DisplayName:    "name1",
+				Description:    "this is a run",
+				ServiceAccount: "sa1",
+				RecurringRunId: "job1",
+				StorageState:   model.StorageStateArchived,
+				PipelineSpec: model.PipelineSpec{
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters: "{\"param2\":\"world\"}",
+					},
+					PipelineSpecManifest: "Boolean: false\nNumber: 19.1\nString: pv2\nStruct:\n  InnerList:\n  - a\n  - b\n  InnerNull: null\n",
+				},
+				RunDetails: model.RunDetails{
+					StateHistory: []*model.RuntimeStatus{
+						{
+							UpdateTimeInSec: 9,
+							State:           model.RuntimeStateRunning,
+						},
+						{
+							UpdateTimeInSec: 10,
+							State:           model.RuntimeStateCancelling,
+						},
+					},
+					CreatedAtInSec:       1,
+					ScheduledAtInSec:     2,
+					FinishedAtInSec:      3,
+					PipelineContextId:    10,
+					PipelineRunContextId: 11,
+				},
+				ResourceReferences: nil,
+				Namespace:          "",
+				K8SName:            "",
+			},
+			&apiv2beta1.Run{
+				ExperimentId: "exp1",
+				RunId:        "run1",
+				DisplayName:  "name1",
+				Description:  "this is a run",
+				StorageState: apiv2beta1.Run_ARCHIVED,
+				PipelineSource: &apiv2beta1.Run_PipelineSpec{
+					PipelineSpec: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"String":  structpb.NewStringValue("pv2"),
+							"Boolean": structpb.NewBoolValue(false),
+							"Number":  structpb.NewNumberValue(19.1),
+							"Struct": structpb.NewStructValue(
+								&structpb.Struct{
+									Fields: map[string]*structpb.Value{
+										"InnerNull": structpb.NewNullValue(),
+										"InnerList": structpb.NewListValue(
+											&structpb.ListValue{
+												Values: []*structpb.Value{
+													structpb.NewStringValue("a"),
+													structpb.NewStringValue("b"),
+												},
+											},
+										),
+									},
+								},
+							),
+						},
+					},
+				},
+				RuntimeConfig: &apiv2beta1.RuntimeConfig{
+					Parameters: map[string]*structpb.Value{
+						"param2": structpb.NewStringValue("world"),
+					},
+				},
+				ServiceAccount: "sa1",
+				CreatedAt:      &timestamppb.Timestamp{Seconds: 1},
+				ScheduledAt:    &timestamppb.Timestamp{Seconds: 2},
+				FinishedAt:     &timestamppb.Timestamp{Seconds: 3},
+				State:          apiv2beta1.RuntimeState_CANCELING,
+				RunDetails: &apiv2beta1.RunDetails{
+					PipelineContextId:    10,
+					PipelineRunContextId: 11,
+				},
+				RecurringRunId: "job1",
+				StateHistory: []*apiv2beta1.RuntimeStatus{
+					{
+						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
+						State:      apiv2beta1.RuntimeState_RUNNING,
+					},
+					{
+						UpdateTime: &timestamppb.Timestamp{Seconds: 10},
+						State:      apiv2beta1.RuntimeState_CANCELING,
+					},
+				},
+			},
+			false,
+			"",
+		},
+		{
 			"v2 error pipeline source",
 			&model.Run{
 				UUID:           "run1",
