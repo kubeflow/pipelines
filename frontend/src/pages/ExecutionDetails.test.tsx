@@ -344,6 +344,28 @@ describe('ExecutionDetailsContent', () => {
     expect(screen.queryByRole('progressbar')).toBeNull();
   });
 
+  it('shows spinner again when retrying after a failure', async () => {
+    getExecutionsByIDSpy.mockRejectedValueOnce(new Error('transient'));
+    getEventsByExecutionIDsSpy.mockRejectedValueOnce(new Error('transient'));
+
+    renderContent();
+
+    await waitFor(() => {
+      expect(onErrorSpy).toHaveBeenCalled();
+    });
+    expect(screen.queryByRole('progressbar')).toBeNull();
+
+    const refreshFn = onErrorSpy.mock.calls[0][3] as () => Promise<void>;
+    mockSuccessfulLoad();
+    onErrorSpy.mockClear();
+
+    await refreshFn();
+
+    await waitFor(() => {
+      expect(screen.getByText('Reference')).toBeInTheDocument();
+    });
+  });
+
   it('shows warning when artifact types fetch fails', async () => {
     mockSuccessfulLoad();
     getArtifactTypesSpy.mockRejectedValue(new Error('artifact types unavailable'));

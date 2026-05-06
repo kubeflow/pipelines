@@ -177,6 +177,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   }
 
   private load = async (): Promise<void> => {
+    this.setStateSafe({ hasError: false });
     const request = new GetArtifactsByIDRequest();
     request.setArtifactIdsList([Number(this.id)]);
 

@@ -248,6 +248,33 @@ describe('ArtifactDetails', () => {
     });
   });
 
+  it('shows spinner again when retrying after a failure', async () => {
+    getArtifactsByIDSpy.mockRejectedValueOnce(new Error('transient'));
+
+    renderWithRouter(generateProps());
+
+    let refreshFn: (() => Promise<void>) | undefined;
+    await waitFor(() => {
+      expect(updateBannerSpy).toHaveBeenCalledWith(expect.objectContaining({ mode: 'error' }));
+      const bannerCall = updateBannerSpy.mock.calls.find(
+        (call) => call[0]?.mode === 'error' && typeof call[0]?.refresh === 'function',
+      );
+      expect(bannerCall).toBeDefined();
+      refreshFn = bannerCall![0].refresh;
+    });
+    expect(screen.queryByRole('progressbar')).toBeNull();
+
+    mockSuccessfulLoad();
+    updateBannerSpy.mockClear();
+
+    await refreshFn!();
+
+    await waitFor(() => {
+      expect(screen.getByText('Overview')).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('progressbar')).toBeNull();
+  });
+
   it('renders a new ArtifactDetails instance when artifact ID in URL changes', async () => {
     getArtifactsByIDSpy.mockImplementation((req) => {
       const id = req.getArtifactIdsList()[0];

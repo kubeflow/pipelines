@@ -164,6 +164,7 @@ export class ExecutionDetailsContent extends Component<
   };
 
   private load = async (): Promise<void> => {
+    this.setState({ hasError: false });
     const metadataStoreServiceClient = Api.getInstance().metadataStoreService;
 
     // this runs parallelly because it's not a critical resource
