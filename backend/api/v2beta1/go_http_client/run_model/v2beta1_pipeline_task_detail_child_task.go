@@ -12,11 +12,11 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// PipelineTaskDetailChildTask A dependent task that requires this one to succeed.
+// V2beta1PipelineTaskDetailChildTask A dependent task that requires this one to succeed.
 // Represented by either task_id or pod_name.
 //
-// swagger:model PipelineTaskDetailChildTask
-type PipelineTaskDetailChildTask struct {
+// swagger:model v2beta1PipelineTaskDetailChildTask
+type V2beta1PipelineTaskDetailChildTask struct {
 
 	// Name of the corresponding pod assigned by the orchestration engine.
 	// Also known as node_id.
@@ -26,18 +26,18 @@ type PipelineTaskDetailChildTask struct {
 	TaskID string `json:"task_id,omitempty"`
 }
 
-// Validate validates this pipeline task detail child task
-func (m *PipelineTaskDetailChildTask) Validate(formats strfmt.Registry) error {
+// Validate validates this v2beta1 pipeline task detail child task
+func (m *V2beta1PipelineTaskDetailChildTask) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-// ContextValidate validates this pipeline task detail child task based on context it is used
-func (m *PipelineTaskDetailChildTask) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+// ContextValidate validates this v2beta1 pipeline task detail child task based on context it is used
+func (m *V2beta1PipelineTaskDetailChildTask) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *PipelineTaskDetailChildTask) MarshalBinary() ([]byte, error) {
+func (m *V2beta1PipelineTaskDetailChildTask) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -45,8 +45,8 @@ func (m *PipelineTaskDetailChildTask) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *PipelineTaskDetailChildTask) UnmarshalBinary(b []byte) error {
-	var res PipelineTaskDetailChildTask
+func (m *V2beta1PipelineTaskDetailChildTask) UnmarshalBinary(b []byte) error {
+	var res V2beta1PipelineTaskDetailChildTask
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}
