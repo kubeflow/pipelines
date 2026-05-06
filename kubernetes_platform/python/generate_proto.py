@@ -14,26 +14,28 @@
 
 import os
 import re
+from shutil import which
 import subprocess
 import sys
 
 try:
     from distutils.spawn import find_executable
 except ImportError:
-    from shutil import which as find_executable
+    find_executable = which
 
-PLATFORM_DIR = os.path.realpath(os.path.dirname(os.path.dirname(__file__)))
-PIPELINE_API_PROTO_DIR = os.path.join(os.path.dirname(PLATFORM_DIR), 'api', 'v2alpha1')
+# Get the absolute path of the script, then traverse up to kubernetes_platform directory
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PLATFORM_DIR = os.path.dirname(SCRIPT_DIR)
+PIPELINE_API_PROTO_DIR = os.path.join(
+    os.path.dirname(PLATFORM_DIR), 'api', 'v2alpha1')
 PROTO_DIR = os.path.join(PLATFORM_DIR, 'proto')
-
-PKG_DIR = os.path.realpath(
-    os.path.join(PLATFORM_DIR, 'python', 'kfp', 'kubernetes'))
+PKG_DIR = os.path.join(SCRIPT_DIR, 'kfp', 'kubernetes')
 
 # Find the Protocol Compiler. (Taken from protobuf/python/setup.py)
 if 'PROTOC' in os.environ and os.path.exists(os.environ['PROTOC']):
     PROTOC = os.environ['PROTOC']
 else:
-    PROTOC = find_executable('protoc')
+    PROTOC = which('protoc')
 
 
 def replace_import(file_path):
@@ -45,16 +47,16 @@ def replace_import(file_path):
         r'^import\s+pipeline_spec_pb2\s+as\s+pipeline__spec__pb2\s*$',
         'from kfp.pipeline_spec import pipeline_spec_pb2 as pipeline__spec__pb2\n',
         content,
-        flags=re.MULTILINE
-    )
+        flags=re.MULTILINE)
 
     # Only write back if something changed
     if content != new_content:
         with open(file_path, 'w') as f:
             f.write(new_content)
-        print(f"Updated imports in {file_path}")
+        print(f'Updated imports in {file_path}')
     else:
-        print(f"No changes needed in {file_path}")
+        print(f'No changes needed in {file_path}')
+
 
 def generate_proto(source: str) -> None:
     """Generate a _pb2.py from a .proto file.
@@ -66,7 +68,9 @@ def generate_proto(source: str) -> None:
     Args:
       source: The source proto file that needs to be compiled.
     """
-    output = source.replace('.proto', '_pb2.py')
+    # Extract filename from source and place output in PKG_DIR
+    proto_filename = os.path.basename(source)
+    output = os.path.join(PKG_DIR, proto_filename.replace('.proto', '_pb2.py'))
 
     if not os.path.exists(output) or (
             os.path.exists(source) and
@@ -98,7 +102,16 @@ def generate_proto(source: str) -> None:
         # expects it to be in the kfp.kubernetes.* namespace
         # this will correctly change the import to point to
         # kfp.pipeline_spec instead.
-        replace_import(f"{PKG_DIR}/kubernetes_executor_config_pb2.py")
+        generated_file = f'{PKG_DIR}/kubernetes_executor_config_pb2.py'
+        if not os.path.exists(generated_file):
+            sys.stderr.write(
+                f'Error: protoc failed to generate {generated_file}\n')
+            sys.stderr.write(f'PKG_DIR: {PKG_DIR}\n')
+            sys.stderr.write(f'PROTO_DIR: {PROTO_DIR}\n')
+            sys.stderr.write(
+                f'PIPELINE_API_PROTO_DIR: {PIPELINE_API_PROTO_DIR}\n')
+            sys.exit(-1)
+        replace_import(generated_file)
 
 
 if __name__ == '__main__':
