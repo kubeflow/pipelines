@@ -14,7 +14,28 @@
 """Object for storing task outputs in-memory during local execution."""
 
 import collections
-from typing import Any, Dict
+from typing import Any, Dict, Set
+
+
+class _Skipped:
+    """Sentinel marking a task output that was skipped due to a false condition
+    or a skipped upstream."""
+
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __repr__(self) -> str:
+        return '<SKIPPED>'
+
+    def __bool__(self) -> bool:
+        return False
+
+
+SKIPPED = _Skipped()
 
 
 class IOStore:
@@ -25,6 +46,7 @@ class IOStore:
                                      Dict[str,
                                           Any]] = collections.defaultdict(dict)
         self._parent_input_data: Dict[str, Any] = {}
+        self._skipped_tasks: Set[str] = set()
 
     def put_parent_input(
         self,
@@ -84,8 +106,10 @@ class IOStore:
             key: Output name.
 
         Returns:
-            The output value.
+            The output value, or ``SKIPPED`` if the producer was skipped.
         """
+        if task_name in self._skipped_tasks:
+            return SKIPPED
         common_exception_string = f"Tried to get output '{key}' from task '{task_name}'"
         if task_name in self._task_output_data:
             outputs = self._task_output_data[task_name]
@@ -99,3 +123,13 @@ class IOStore:
             raise ValueError(
                 f"{common_exception_string}, but task '{task_name}' has no output named '{key}'."
             )
+
+    def mark_task_skipped(self, task_name: str) -> None:
+        """Record that a task was skipped (e.g. condition was false)."""
+        self._skipped_tasks.add(task_name)
+
+    def is_task_skipped(self, task_name: str) -> bool:
+        return task_name in self._skipped_tasks
+
+    def is_skipped(self, value: Any) -> bool:
+        return value is SKIPPED

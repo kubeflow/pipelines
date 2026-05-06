@@ -696,6 +696,104 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         # and evaluate the condition (false in this case, so task is skipped)
 
     @mock.patch('sys.stdout', new_callable=stdlib_io.StringIO)
+    def test_condition_false_skips_body_and_downstream(self, mock_stdout):
+        local.init(
+            local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        # The branch components raise if they ever execute; that makes
+        # this test a proper regression guard — if the condition is
+        # ignored (the pre-fix behavior), the pipeline blows up with a
+        # raise rather than silently "passing" with a substring match.
+        @dsl.component
+        def never_runs(value: str) -> str:
+            raise RuntimeError('branch body executed despite false condition')
+
+        @dsl.component
+        def emit(value: str) -> str:
+            return value
+
+        @dsl.pipeline
+        def my_pipeline(x: str = 'bar'):
+            producer = emit(value=x)
+            with dsl.If(producer.output == 'foo'):
+                never_runs(value=producer.output)
+
+        my_pipeline()
+        logs = mock_stdout.getvalue()
+        # The group task name is auto-generated ("condition-1"); match the
+        # concrete SKIPPED log line for that task rather than a loose
+        # substring, so unrelated log text can't make this pass.
+        self.assertRegex(logs, r"'condition-1'.*SKIPPED")
+        # The body task must never have run (it would raise); absence of
+        # its marker in logs double-confirms.
+        self.assertNotIn('branch body executed', logs)
+
+    @mock.patch('sys.stdout', new_callable=stdlib_io.StringIO)
+    def test_condition_true_runs_body(self, mock_stdout):
+        local.init(
+            local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def emit(value: str) -> str:
+            return value
+
+        @dsl.pipeline
+        def my_pipeline(x: str = 'foo'):
+            producer = emit(value=x)
+            with dsl.If(producer.output == 'foo'):
+                emit(value='inside')
+
+        my_pipeline()
+        logs = mock_stdout.getvalue()
+        # The true branch should not emit a SKIPPED line for the inner task.
+        # We keep the assertion tight to the inner task name; the outer
+        # producer and the condition group both run with SUCCESS.
+        self.assertNotIn('SKIPPED', logs)
+
+    @mock.patch('sys.stdout', new_callable=stdlib_io.StringIO)
+    def test_nested_condition_inside_regular_subdag(self, mock_stdout):
+        """Conditions inside a nested pipeline must be evaluated.
+
+        Regression test for the previous bug where has_control_flow was
+        detected only at the root DAG, causing conditions inside a sub-
+        DAG to be ignored (the body ran unconditionally). The branch
+        body raises on execution so this test fails loudly if the
+        regression returns instead of silently passing.
+        """
+        local.init(
+            local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def echo(value: str) -> str:
+            return value
+
+        @dsl.component
+        def branch_should_not_run(value: str) -> str:
+            raise RuntimeError(
+                'nested condition body ran when flag was not "yes"')
+
+        @dsl.pipeline
+        def inner(flag: str) -> str:
+            with dsl.If(flag == 'yes'):
+                branch_should_not_run(value=flag)
+            return echo(value=flag).output
+
+        @dsl.pipeline
+        def outer(flag: str = 'no') -> str:
+            return inner(flag=flag).output
+
+        task = outer(flag='no')
+        self.assertIsInstance(task, pipeline_task.PipelineTask)
+        self.assertEqual(task.output, 'no')
+        logs = mock_stdout.getvalue()
+        # The nested condition group must have been skipped.
+        self.assertRegex(logs, r"'condition-1'.*SKIPPED")
+        self.assertNotIn('nested condition body ran', logs)
+
+    @mock.patch('sys.stdout', new_callable=stdlib_io.StringIO)
     def test_fails_with_raise_on_error_true(self, mock_stdout):
         local.init(local.SubprocessRunner(), raise_on_error=True)
 
