@@ -3766,12 +3766,10 @@ func TestReportWorkflowResource_RunNotFound(t *testing.T) {
 			Name:              "obsolete",
 			Namespace:         "kubeflow",
 			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
-			CreationTimestamp: v1.NewTime(time.Unix(0, 0).UTC()),
+			CreationTimestamp: v1.NewTime(time.Now().Add(-10 * time.Minute)),
 		},
 	})
 	store.ExecClient().Execution("kubeflow").Create(ctx, workflow, v1.CreateOptions{})
-	// Set time well beyond the default grace period (120s) so GC proceeds.
-	manager.time = util.NewFakeTime(time.Unix(500, 0).UTC())
 	_, err := manager.ReportWorkflowResource(ctx, workflow)
 	require.NotNil(t, err)
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
@@ -3788,20 +3786,16 @@ func TestReportWorkflowResource_RunNotFound_WithinGracePeriod(t *testing.T) {
 	ctx := context.Background()
 	defer store.Close()
 
-	// Set CreationTimestamp to a recent time relative to the manager's clock.
+	// Set CreationTimestamp to a recent time so the workflow is within the grace period.
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			Name:              "young-workflow",
 			Namespace:         "kubeflow",
 			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
-			CreationTimestamp: v1.NewTime(time.Unix(100, 0).UTC()),
+			CreationTimestamp: v1.NewTime(time.Now().Add(-10 * time.Second)),
 		},
 	})
 	store.ExecClient().Execution("kubeflow").Create(ctx, workflow, v1.CreateOptions{})
-
-	// Override the manager's time to return a time close to the creation time,
-	// so the workflow is within the grace period (only ~10s old vs 120s threshold).
-	manager.time = util.NewFakeTime(time.Unix(110, 0).UTC())
 	_, err := manager.ReportWorkflowResource(ctx, workflow)
 	require.NotNil(t, err)
 	// Should be UNAVAILABLE (retryable), not NOT_FOUND (permanent).
@@ -3823,19 +3817,16 @@ func TestReportWorkflowResource_RunNotFound_BeyondGracePeriod(t *testing.T) {
 	ctx := context.Background()
 	defer store.Close()
 
-	// Set CreationTimestamp far in the past relative to the manager's clock.
+	// Set CreationTimestamp far in the past relative to the real clock.
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			Name:              "old-orphan-workflow",
 			Namespace:         "kubeflow",
 			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
-			CreationTimestamp: v1.NewTime(time.Unix(0, 0).UTC()),
+			CreationTimestamp: v1.NewTime(time.Now().Add(-10 * time.Minute)),
 		},
 	})
 	store.ExecClient().Execution("kubeflow").Create(ctx, workflow, v1.CreateOptions{})
-
-	// Override the manager's time to return a time well beyond the grace period.
-	manager.time = util.NewFakeTime(time.Unix(500, 0).UTC())
 	_, err := manager.ReportWorkflowResource(ctx, workflow)
 	require.NotNil(t, err)
 	// Should be NOT_FOUND (permanent), indicating the workflow was GC'd.
