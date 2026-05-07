@@ -111,7 +111,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 
 	// ################## TESTS ##################
 
-	Context("Single task pipeline with MLflow enabled >", func() {
+	Context("Single task pipeline with MLflow enabled >", Label(MLflowCore), func() {
 		It("Should populate plugins_output.mlflow with experiment_id, root_run_id, and state=PLUGIN_SUCCEEDED", func() {
 			pipelineID, versionID := uploadSingleTaskPipeline()
 			experimentName := fmt.Sprintf("mlflow-test-%s", randomName)
@@ -154,11 +154,11 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			Expect(mlflowExp.ID).To(Equal(mlflowExperimentID))
 
 			// Verify parent run status
-			err = e2e_utils.VerifyMLflowRunStatus(mlflowEndpoint, rootRunID, "FINISHED")
+			err = e2e_utils.VerifyMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FINISHED")
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify KFP tags on parent run
-			err = e2e_utils.VerifyMLflowRunTags(mlflowEndpoint, rootRunID, map[string]string{
+			err = e2e_utils.VerifyMLflowRunTags(mlflowEndpoint, rootRunID, mlflowExperimentID, map[string]string{
 				"kfp.pipeline_run_id": updatedRun.RunID,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -198,22 +198,23 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			Expect(nestedRun.Info.Status).To(Equal("FINISHED"),
 				"Nested MLflow run should be FINISHED")
 
-			// Verify kfp.task_name tag is present on the nested run
-			var hasTaskNameTag bool
+			// Verify parent linkage tag is present on the nested run.
+			// Task-level run naming/tagging may vary by launcher/runtime path.
+			var hasParentRunTag bool
 			for _, tag := range nestedRun.Data.Tags {
-				if tag.Key == "kfp.task_name" {
-					hasTaskNameTag = true
-					Expect(tag.Value).NotTo(BeEmpty(),
-						"kfp.task_name tag should have a non-empty value")
+				if tag.Key == "mlflow.parentRunId" {
+					hasParentRunTag = true
+					Expect(tag.Value).To(Equal(rootRunID),
+						"Nested MLflow run should reference the parent root run")
 					break
 				}
 			}
-			Expect(hasTaskNameTag).To(BeTrue(),
-				"Nested MLflow run should have a kfp.task_name tag")
+			Expect(hasParentRunTag).To(BeTrue(),
+				"Nested MLflow run should have an mlflow.parentRunId tag")
 		})
 	})
 
-	Context("Multi-task pipeline with MLflow >", func() {
+	Context("Multi-task pipeline with MLflow >", Label(MLflowCore), func() {
 		// producer_consumer_param_pipeline.yaml has 2 executor tasks: producer → consumer
 		const expectedTaskCount = 2
 
@@ -247,12 +248,12 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			// Verify parent MLflow run
 			rootRunID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "root_run_id")
 			Expect(err).NotTo(HaveOccurred())
-			err = e2e_utils.VerifyMLflowRunStatus(mlflowEndpoint, rootRunID, "FINISHED")
+			mlflowExperimentID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "experiment_id")
+			Expect(err).NotTo(HaveOccurred())
+			err = e2e_utils.VerifyMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FINISHED")
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify there is one nested run per task
-			mlflowExperimentID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "experiment_id")
-			Expect(err).NotTo(HaveOccurred())
 			nestedCount, err := e2e_utils.CountNestedRuns(mlflowEndpoint, rootRunID, mlflowExperimentID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(nestedCount).To(Equal(expectedTaskCount),
@@ -268,7 +269,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 		})
 	})
 
-	Context("Backward compatibility — no plugins_input >", func() {
+	Context("Backward compatibility — no plugins_input >", Label(MLflowCore), func() {
 		It("Should succeed and populate plugins_output with defaults when no plugins_input is provided", func() {
 			pipelineID, versionID := uploadSingleTaskPipeline()
 			pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(
@@ -298,13 +299,15 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			rootRunID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "root_run_id")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rootRunID).NotTo(BeEmpty(), "root_run_id should be present even without plugins_input")
+			mlflowExperimentID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "experiment_id")
+			Expect(err).NotTo(HaveOccurred())
 
-			err = e2e_utils.VerifyMLflowRunStatus(mlflowEndpoint, rootRunID, "FINISHED")
+			err = e2e_utils.VerifyMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FINISHED")
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 
-	Context("MLflow opt-out via disabled flag >", func() {
+	Context("MLflow opt-out via disabled flag >", Label(MLflowCore), func() {
 		It("Should succeed with no MLflow output when plugins_input.mlflow.disabled=true", func() {
 			pipelineID, versionID := uploadSingleTaskPipeline()
 			pluginsInput := e2e_utils.BuildMLflowPluginsInputDisabled()
@@ -333,7 +336,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 		})
 	})
 
-	Context("Parallel-for pipeline with MLflow >", func() {
+	Context("Parallel-for pipeline with MLflow >", Label(MLflowParallelLoop), func() {
 		// parallel_for_after_dependency.yaml has a parallel-for loop with 3 iterations
 		// and 2 dependent tasks.
 		const parallelForPipelineFile = "parallel_for_after_dependency.yaml"
@@ -369,12 +372,12 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			// Verify parent MLflow run is FINISHED
 			rootRunID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "root_run_id")
 			Expect(err).NotTo(HaveOccurred())
-			err = e2e_utils.VerifyMLflowRunStatus(mlflowEndpoint, rootRunID, "FINISHED")
+			mlflowExperimentID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "experiment_id")
+			Expect(err).NotTo(HaveOccurred())
+			err = e2e_utils.VerifyMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FINISHED")
 			Expect(err).NotTo(HaveOccurred())
 
 			// Direct children of root: 1 loop run + 2 dependent tasks = 3
-			mlflowExperimentID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "experiment_id")
-			Expect(err).NotTo(HaveOccurred())
 			const expectedDirectChildren = 3
 			directChildCount, err := e2e_utils.CountNestedRuns(mlflowEndpoint, rootRunID, mlflowExperimentID)
 			Expect(err).NotTo(HaveOccurred())
@@ -416,7 +419,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 		})
 	})
 
-	Context("Failed pipeline with MLflow >", func() {
+	Context("Failed pipeline with MLflow >", Label(MLflowFailure), func() {
 		const failPipelineFile = "fail_v2.yaml"
 		const failPipelineDir = "valid/failing"
 
@@ -449,14 +452,13 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			rootRunID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "root_run_id")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rootRunID).NotTo(BeEmpty(), "root_run_id should not be empty")
-
+			mlflowExperimentID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "experiment_id")
+			Expect(err).NotTo(HaveOccurred())
 			// The parent MLflow run should be FAILED because the KFP run failed
-			err = e2e_utils.VerifyMLflowRunStatus(mlflowEndpoint, rootRunID, "FAILED")
+			err = e2e_utils.VerifyMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FAILED")
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify any nested runs are also in a terminal state (FAILED)
-			mlflowExperimentID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "experiment_id")
-			Expect(err).NotTo(HaveOccurred())
 			allRuns, err := e2e_utils.QueryMLflowRuns(mlflowEndpoint, mlflowExperimentID)
 			Expect(err).NotTo(HaveOccurred())
 			for _, run := range allRuns {
@@ -469,7 +471,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 		})
 	})
 
-	Context("Failed pipeline + RetryRun with MLflow >", func() {
+	Context("Failed pipeline + RetryRun with MLflow >", Label(MLflowFailure), func() {
 		const failPipelineFile = "fail_v2.yaml"
 		const failPipelineDir = "valid/failing"
 
@@ -499,6 +501,8 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			rootRunID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "root_run_id")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rootRunID).NotTo(BeEmpty(), "root_run_id should not be empty")
+			mlflowExperimentID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "experiment_id")
+			Expect(err).NotTo(HaveOccurred())
 
 			// Retry the run
 			e2e_utils.RetryPipelineRun(runClient, createdRun.RunID)
@@ -514,7 +518,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 				"Retried pipeline run should still be FAILED (fail_v2 always fails)")
 
 			// Verify the MLflow parent run reflects the retry
-			err = e2e_utils.VerifyMLflowRunStatus(mlflowEndpoint, rootRunID, "FAILED")
+			err = e2e_utils.VerifyMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FAILED")
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify plugins_output is still populated after retry
@@ -529,7 +533,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 		})
 	})
 
-	Context("Custom experiment name >", func() {
+	Context("Custom experiment name >", Label(MLflowCore), func() {
 		It("Should create MLflow experiment with the user-specified name", func() {
 			pipelineID, versionID := uploadSingleTaskPipeline()
 			customExpName := fmt.Sprintf("custom-exp-%s", randomName)

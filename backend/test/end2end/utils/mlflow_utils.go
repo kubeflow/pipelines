@@ -294,22 +294,26 @@ func QueryMLflowRuns(endpoint, experimentID string) ([]MLflowRun, error) {
 	return searchMLflowRuns(endpoint, []string{experimentID}, "", 1000)
 }
 
-func QueryMLflowRunByID(endpoint, runID string) (*MLflowRun, error) {
+func QueryMLflowRunByID(endpoint, runID, experimentID string) (*MLflowRun, error) {
 	ginkgo.GinkgoHelper()
-	filter := fmt.Sprintf("attributes.run_id = '%s'", runID)
-	runs, err := searchMLflowRuns(endpoint, nil, filter, 1)
+	if experimentID == "" {
+		return nil, fmt.Errorf("experimentID is required to query MLflow run %q", runID)
+	}
+	runs, err := searchMLflowRuns(endpoint, []string{experimentID}, "", 1000)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query MLflow run %q: %w", runID, err)
 	}
-	if len(runs) == 0 {
-		return nil, fmt.Errorf("MLflow run %q not found", runID)
+	for _, run := range runs {
+		if run.Info.RunID == runID {
+			return &run, nil
+		}
 	}
-	return &runs[0], nil
+	return nil, fmt.Errorf("MLflow run %q not found in experiment %q", runID, experimentID)
 }
 
-func VerifyMLflowRunStatus(endpoint, runID, expectedStatus string) error {
+func VerifyMLflowRunStatus(endpoint, runID, experimentID, expectedStatus string) error {
 	ginkgo.GinkgoHelper()
-	mlflowRun, err := QueryMLflowRunByID(endpoint, runID)
+	mlflowRun, err := QueryMLflowRunByID(endpoint, runID, experimentID)
 	if err != nil {
 		return err
 	}
@@ -319,9 +323,9 @@ func VerifyMLflowRunStatus(endpoint, runID, expectedStatus string) error {
 	return nil
 }
 
-func VerifyMLflowRunTags(endpoint, runID string, expectedTags map[string]string) error {
+func VerifyMLflowRunTags(endpoint, runID, experimentID string, expectedTags map[string]string) error {
 	ginkgo.GinkgoHelper()
-	mlflowRun, err := QueryMLflowRunByID(endpoint, runID)
+	mlflowRun, err := QueryMLflowRunByID(endpoint, runID, experimentID)
 	if err != nil {
 		return err
 	}

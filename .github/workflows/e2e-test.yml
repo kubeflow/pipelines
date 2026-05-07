@@ -10,7 +10,7 @@ env:
   AWS_ACCESS_KEY_ID: 'minio'
   AWS_SECRET_ACCESS_KEY: 'minio123'
   AWS_S3_BUCKET: 'mlpipeline'
-  MLFLOW_TRACKING_URI: "https://localhost:8080"
+  MLFLOW_TRACKING_URI: "https://localhost:8080/mlflow"
   MLFLOW_TRACKING_INSECURE_TLS: "true"
 
 on:
@@ -307,9 +307,8 @@ jobs:
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
 
       - name: Deploy MLflow
-        id: deploy-mlflow
-        # TEMP: pin pre-migration-init regression in upstream @main.
-        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@daa0c1a28be532563ca6c0f1925ddecd0d0290f1
+        id: deploy-mlflow        
+        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@8ab07a89d6d2d6bc2ffa0c8601f4a856a4cb1b18
         if: ${{ steps.create-cluster.outcome == 'success' }}
         with:
           namespace: 'opendatahub'

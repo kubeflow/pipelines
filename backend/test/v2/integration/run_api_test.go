@@ -359,6 +359,8 @@ func (s *RunAPITestSuite) checkTerminatedRunDetail(t *testing.T, run *run_model.
 		StorageState:   run.StorageState,
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec:   run.PipelineSpec,
+		PluginsInput:   run.PluginsInput,
+		PluginsOutput:  run.PluginsOutput,
 		ExperimentID:   experimentID,
 		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
 			PipelineID:        pipelineID,
@@ -383,6 +385,8 @@ func (s *RunAPITestSuite) checkHelloWorldRunDetail(t *testing.T, run *run_model.
 		StorageState:   run.StorageState,
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec:   run.PipelineSpec,
+		PluginsInput:   run.PluginsInput,
+		PluginsOutput:  run.PluginsOutput,
 		ExperimentID:   experimentID,
 		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
 			PipelineID:        pipelineID,
@@ -419,6 +423,8 @@ func (s *RunAPITestSuite) checkArgParamsRunDetail(t *testing.T, run *run_model.V
 		StorageState:   run.StorageState,
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec:   run.PipelineSpec,
+		PluginsInput:   run.PluginsInput,
+		PluginsOutput:  run.PluginsOutput,
 		RuntimeConfig: &run_model.V2beta1RuntimeConfig{
 			Parameters: map[string]interface{}{
 				"param1": "goodbye",
