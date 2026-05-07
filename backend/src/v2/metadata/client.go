@@ -215,6 +215,10 @@ type ExecutionConfig struct {
 	// DAGExecution custom properties
 	IterationCount *int // Number of iterations for an iterator DAG.
 	TotalDagTasks  *int // Number of tasks inside the DAG
+
+	// PluginCustomProperties holds arbitrary key-value pairs contributed by
+	// task-level plugins (e.g. "plugins.mlflow.run_id").
+	PluginCustomProperties map[string]string
 }
 
 // InputArtifact is a wrapper around an MLMD artifact used as component inputs.
@@ -345,6 +349,26 @@ func (e *Execution) FingerPrint() string {
 		return ""
 	}
 	return e.Execution.GetCustomProperties()[keyCacheFingerPrint].GetStringValue()
+}
+
+const pluginCustomPropertyPrefix = "plugins."
+
+// ExtractPluginCustomProperties returns all MLMD execution custom properties
+// that match the plugin naming convention (keys starting with "plugins.").
+func ExtractPluginCustomProperties(execution *Execution) map[string]string {
+	if execution == nil || execution.Execution == nil {
+		return nil
+	}
+	result := map[string]string{}
+	for key, value := range execution.Execution.GetCustomProperties() {
+		if len(key) > len(pluginCustomPropertyPrefix) && key[:len(pluginCustomPropertyPrefix)] == pluginCustomPropertyPrefix {
+			result[key] = value.GetStringValue()
+		}
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
 }
 
 // GetTaskNameWithDagID appends the taskName with its parent dag id. This is
@@ -703,6 +727,9 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 	}
 	if config.TotalDagTasks != nil {
 		e.CustomProperties[keyTotalDagTasks] = intValue(int64(*config.TotalDagTasks))
+	}
+	for k, v := range config.PluginCustomProperties {
+		e.CustomProperties[k] = StringValue(v)
 	}
 
 	req := &pb.PutExecutionRequest{
@@ -1400,4 +1427,42 @@ func (c *Client) getContextByID(ctx context.Context, id int64) (*pb.Context, err
 		return nil, fmt.Errorf("getContext(id=%v): got nil context", id)
 	}
 	return contexts[0], nil
+}
+
+func FormatExecutionParameters(execution *Execution) map[string]interface{} {
+	if execution == nil {
+		return nil
+	}
+	params := make(map[string]interface{})
+	inputParams, _, err := execution.GetParameters()
+	if err != nil {
+		glog.Errorf("failed to retrieve task parameters: %v", err)
+	} else {
+		for key, value := range inputParams {
+			if value == nil {
+				params[key] = nil
+				continue
+			}
+			params[key] = value.AsInterface()
+		}
+	}
+	return params
+}
+
+func FormatScalarMetricArtifacts(outputArtifacts []*OutputArtifact) map[string]float64 {
+	metrics := map[string]float64{}
+	if outputArtifacts != nil {
+		for _, artifact := range outputArtifacts {
+			if artifact.Artifact != nil && artifact.Artifact.GetType() == "system.Metrics" {
+				for customKey, customValue := range artifact.Artifact.CustomProperties {
+					// retrieve scalar metric artifact values. do not retrieve display_name or store_session_info.
+					if customKey == "display_name" || customKey == "store_session_info" {
+						continue
+					}
+					metrics[customKey] = customValue.GetDoubleValue()
+				}
+			}
+		}
+	}
+	return metrics
 }

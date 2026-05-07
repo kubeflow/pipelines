@@ -123,6 +123,14 @@ func resolveInputs(
 	if err != nil {
 		return nil, err
 	}
+	// Recover plugin custom properties from the parent DAG's MLMD execution
+	// (e.g. loop DAG → iteration DAG → container). This calls
+	// ApplyCustomProperties so that subsequent OnTaskStart uses the correct
+	// parent run ID.
+	pluginProps := metadata.ExtractPluginCustomProperties(dag.Execution)
+	if pluginProps != nil {
+		opts.PluginDispatcher.ApplyCustomProperties(pluginProps)
+	}
 	inputArtifacts, err := mlmd.GetInputArtifactsByExecutionID(ctx, dag.Execution.GetID())
 	if err != nil {
 		return nil, err
