@@ -38,7 +38,8 @@ if [ -z "$MLFLOW_SVC" ]; then
 fi
 MLFLOW_PORT=$(kubectl get svc -n "$MLFLOW_NAMESPACE" "$MLFLOW_SVC" -o jsonpath='{.spec.ports[0].port}')
 MLFLOW_HOST="${MLFLOW_SVC}.${MLFLOW_NAMESPACE}.svc.cluster.local"
-MLFLOW_ENDPOINT="https://${MLFLOW_HOST}:${MLFLOW_PORT}"
+MLFLOW_STATIC_PREFIX="/mlflow"
+MLFLOW_ENDPOINT="https://${MLFLOW_HOST}:${MLFLOW_PORT}${MLFLOW_STATIC_PREFIX}"
 echo "MLflow service: $MLFLOW_SVC port=$MLFLOW_PORT endpoint=$MLFLOW_ENDPOINT"
 
 MLFLOW_PATCH=$(jq -n --arg endpoint "$MLFLOW_ENDPOINT" '{
@@ -98,7 +99,7 @@ fi
 kubectl port-forward -n "$MLFLOW_NAMESPACE" "svc/$MLFLOW_SVC" "8080:$MLFLOW_PORT" &
 sleep 3
 
-HEALTH_URL="https://localhost:8080/api/2.0/mlflow/experiments/search"
+HEALTH_URL="https://localhost:8080${MLFLOW_STATIC_PREFIX}/health"
 CURL_HEADERS=(-H "X-MLflow-Workspace: $KFP_NAMESPACE")
 [ -n "$SA_TOKEN" ] && CURL_HEADERS+=(-H "Authorization: Bearer $SA_TOKEN")
 
