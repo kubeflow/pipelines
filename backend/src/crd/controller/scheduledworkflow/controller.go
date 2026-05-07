@@ -818,17 +818,3 @@ func crdPluginsInputToProto(input map[string]apiextensionsv1.JSON) (map[string]*
 	}
 	return result, nil
 }
-
-// crdPluginsInputToProto converts the CRD's map[string]apiextensionsv1.JSON
-// representation into the protobuf map expected by the CreateRun request.
-func crdPluginsInputToProto(input map[string]apiextensionsv1.JSON) (map[string]*structpb.Struct, error) {
-	result := make(map[string]*structpb.Struct, len(input))
-	for key, val := range input {
-		s := &structpb.Struct{}
-		if err := protojson.Unmarshal(val.Raw, s); err != nil {
-			return nil, fmt.Errorf("invalid plugins_input entry %q: %w", key, err)
-		}
-		result[key] = s
-	}
-	return result, nil
-}

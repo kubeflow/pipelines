@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/spf13/viper"
 )
@@ -60,7 +61,7 @@ func ParseKfpMLflowRuntimeConfig() (*commonmlflow.MLflowRuntimeConfig, error) {
 	}
 	// Only InsecureSkipVerify is propagated from the API server. Driver/launcher CA trust is configured
 	// separately (e.g., cluster-wide trusted CA injection).
-	cfg.TLS = &commonmlflow.TLSConfig{
+	cfg.TLS = &commonplugins.TLSConfig{
 		InsecureSkipVerify: cfg.InsecureSkipVerify,
 	}
 	return &cfg, nil
@@ -81,7 +82,7 @@ func BuildMLflowTaskRequestContext(runtimeCfg commonmlflow.MLflowRuntimeConfig) 
 		InjectUserEnvVars: &runtimeCfg.InjectUserEnvVars,
 	}
 
-	pluginCfg := commonmlflow.PluginConfig{
+	pluginCfg := commonmlflow.MLflowPluginConfig{
 		Endpoint: runtimeCfg.Endpoint,
 		Timeout:  runtimeCfg.Timeout,
 		TLS:      runtimeCfg.TLS,

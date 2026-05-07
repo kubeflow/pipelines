@@ -12,19 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package plugins
+package all
 
-import "context"
-
-// TaskInfo holds task-level information passed to OnTaskStart/OnTaskEnd hooks.
-type TaskInfo struct{}
-
-// TaskStartResult holds the result of an OnTaskStart hook.
-type TaskStartResult struct{}
-
-// TaskPluginHandler defines the task-level plugin hooks invoked by the driver
-// and launcher.
-type TaskPluginHandler interface {
-	OnTaskStart(ctx context.Context, taskInfo TaskInfo, config interface{}) (*TaskStartResult, error)
-	OnTaskEnd(ctx context.Context, taskInfo TaskInfo, metrics map[string]float64, params map[string]string, config interface{}) error
-}
+import (
+	_ "github.com/kubeflow/pipelines/backend/src/apiserver/plugins/mlflow"
+)

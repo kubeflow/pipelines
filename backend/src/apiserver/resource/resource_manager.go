@@ -149,7 +149,7 @@ type ResourceManager struct {
 	uuid                      util.UUIDGeneratorInterface
 	authenticators            []kfpauth.Authenticator
 	options                   *ResourceManagerOptions
-	pluginDispatcher          apiserverPlugins.PluginDispatcher
+	pluginDispatcher          apiserverPlugins.RunPluginDispatcher
 }
 
 func NewResourceManager(clientManager ClientManagerInterface, options *ResourceManagerOptions) *ResourceManager {
@@ -174,11 +174,11 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 		authenticators:            clientManager.Authenticators(),
 		options:                   options,
 	}
-	if apiservermlflow.IsEnabled() {
-		rm.pluginDispatcher = apiservermlflow.NewRunPluginDispatcher(rm.k8sCoreClient, rm.runStore)
-	} else {
-		rm.pluginDispatcher = &apiserverPlugins.NoOpDispatcher{}
+	dispatcher, err := apiserverPlugins.GetPluginDispatcher(rm.k8sCoreClient, rm.runStore)
+	if err != nil {
+		glog.Errorf("Failed to create plugin dispatcher: %v", err)
 	}
+	rm.pluginDispatcher = dispatcher
 	return rm
 }
 
@@ -1146,7 +1146,10 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	// Notify plugins of retry
 	if run.PluginsOutputString != nil && *run.PluginsOutputString != "" {
 		if pr, prErr := apiservermlflow.ModelToPersistedRun(run, namespace); prErr == nil {
-			r.pluginDispatcher.OnRunRetry(ctx, pr)
+			err = r.pluginDispatcher.OnRunRetry(ctx, pr)
+			if err != nil {
+				return util.NewInternalServerError(err, "Failed to notify plugins of retry for run %s", runId)
+			}
 		}
 	}
 

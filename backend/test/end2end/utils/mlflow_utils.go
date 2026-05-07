@@ -326,7 +326,7 @@ func VerifyMLflowRunStatus(endpoint, runID, experimentID, expectedStatus string)
 func WaitForMLflowRunStatus(endpoint, runID, experimentID, expectedStatus string, timeout *time.Duration) error {
 	ginkgo.GinkgoHelper()
 	logger.Log("Waiting for MLflow run %s to reach status %s", runID, expectedStatus)
-	maxTimeToWait := time.Duration(300)
+	maxTimeToWait := time.Duration(120)
 	pollTime := time.Duration(5)
 	if timeout != nil {
 		maxTimeToWait = *timeout
