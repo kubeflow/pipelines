@@ -28,6 +28,7 @@ import (
 	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
+	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
@@ -35,9 +36,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	k8sfake "k8s.io/client-go/kubernetes/fake"
 )
 
 // setupFakeKubernetesConfig writes a temp kubeconfig with the given bearer token
@@ -240,66 +239,61 @@ func TestGetGlobalMLflowConfig(t *testing.T) {
 	require.NotNil(t, cfg.Settings)
 }
 
-func TestMergePluginConfigAndSettingsDefaults(t *testing.T) {
-	globalDesc := "Global desc"
-	wsDisabled := false
-	global := commonmlflow.PluginConfig{
-		Endpoint: "https://global-mlflow.example.com",
-		Timeout:  "30s",
-		Settings: &commonmlflow.MLflowPluginSettings{
-			ExperimentDescription: &globalDesc,
-			KFPBaseURL:            "https://global-kfp.example.com",
-			KFPRunURLPathTemplate: "/global/{run_id}",
-			MLflowBaseURL:         "https://global-mlflow-ui.example.com",
-			MLflowUIPathPrefix:    "/global-mlflow",
-		},
-	}
-	namespace := &commonmlflow.PluginConfig{
-		Endpoint: "https://ns-mlflow.example.com",
-		Settings: &commonmlflow.MLflowPluginSettings{
-			WorkspacesEnabled:     &wsDisabled,
-			KFPRunURLPathTemplate: "/ns/{namespace}/runs/{run_id}",
-			MLflowBaseURL:         "https://ns-mlflow-ui.example.com",
-			MLflowUIPathPrefix:    "/ns-mlflow",
-		},
-	}
-
-	merged := commonmlflow.MergePluginConfig(global, namespace)
-	assert.Equal(t, "https://ns-mlflow.example.com", merged.Endpoint)
-	assert.Equal(t, "30s", merged.Timeout)
-
-	settings := ApplySettingsDefaults(merged.Settings)
-	require.NotNil(t, settings)
-	require.NotNil(t, settings.WorkspacesEnabled)
-	assert.False(t, *settings.WorkspacesEnabled)
-	require.NotNil(t, settings.ExperimentDescription)
-	assert.Equal(t, "Global desc", *settings.ExperimentDescription)
-	assert.Equal(t, "https://global-kfp.example.com", settings.KFPBaseURL)
-	assert.Equal(t, "/ns/{namespace}/runs/{run_id}", settings.KFPRunURLPathTemplate)
-	assert.Equal(t, "https://ns-mlflow-ui.example.com", settings.MLflowBaseURL)
-	assert.Equal(t, "/ns-mlflow", settings.MLflowUIPathPrefix)
-}
-
 func TestBuildMLflowRequestContextKubernetesAuth(t *testing.T) {
 	setupFakeKubernetesConfig(t, "sa-token-value")
 
 	workspacesEnabled := true
-	requestCfg := &ResolvedConfig{
-		Config: &commonmlflow.PluginConfig{
-			Endpoint: "https://mlflow.example.com",
-			Timeout:  "12s",
+	mlflowPluginCfg := &commonmlflow.MLflowPluginConfig{
+		Endpoint: "https://mlflow.example.com",
+		Timeout:  "12s",
+		TLS: &commonplugins.TLSConfig{
+			InsecureSkipVerify: false,
 		},
 		Settings: &commonmlflow.MLflowPluginSettings{
 			WorkspacesEnabled: &workspacesEnabled,
 		},
 	}
 
-	mlflowCtx, err := BuildMLflowRunRequestContext(context.Background(), "ns1", requestCfg)
+	mlflowCtx, err := BuildMLflowRunRequestContext("ns1", mlflowPluginCfg)
 	require.NoError(t, err)
 	require.NotNil(t, mlflowCtx)
 	assert.Equal(t, "https://mlflow.example.com", mlflowCtx.BaseURL.String())
 	assert.True(t, mlflowCtx.WorkspacesEnabled)
 	assert.NotNil(t, mlflowCtx.Client)
+}
+
+func TestBuildMLflowRunRequestContext_InvalidEndpoint(t *testing.T) {
+	enabled := true
+	cfg := &commonmlflow.MLflowPluginConfig{
+		Endpoint: "not-a-url",
+		Timeout:  "10s",
+		Settings: &commonmlflow.MLflowPluginSettings{
+			WorkspacesEnabled: &enabled,
+		},
+	}
+
+	ctx, err := BuildMLflowRunRequestContext("ns1", cfg)
+	require.Error(t, err)
+	assert.Nil(t, ctx)
+	assert.Contains(t, err.Error(), "invalid plugins.mlflow endpoint")
+}
+
+func TestBuildMLflowRunRequestContext_ZeroTimeout(t *testing.T) {
+	setupFakeKubernetesConfig(t, "sa-token-value")
+
+	enabled := true
+	cfg := &commonmlflow.MLflowPluginConfig{
+		Endpoint: "https://mlflow.example.com",
+		Timeout:  "0s",
+		Settings: &commonmlflow.MLflowPluginSettings{
+			WorkspacesEnabled: &enabled,
+		},
+	}
+
+	ctx, err := BuildMLflowRunRequestContext("ns1", cfg)
+	require.Error(t, err)
+	assert.Nil(t, ctx)
+	assert.Contains(t, err.Error(), "timeout must be > 0")
 }
 
 func TestEnsureExperimentExists(t *testing.T) {
@@ -454,16 +448,16 @@ func TestSetPendingRunPluginOutput(t *testing.T) {
 		PluginsOutput: &existing,
 	}
 	mlflowOutput := SuccessfulPluginOutput("exp-1", "my-exp", "run-1", "https://mlflow.example/runs/run-1", "https://mlflow.example")
-	err := SetPendingRunPluginOutput(run, "mlflow", mlflowOutput)
+	err := apiserverPlugins.SetPendingRunPluginOutput(run, "MLflow", mlflowOutput)
 	require.NoError(t, err)
 	require.NotNil(t, run.PluginsOutput)
 
-	var envelope pluginsOutputEnvelope
+	var envelope apiserverPlugins.PluginsOutputEnvelope
 	require.NoError(t, json.Unmarshal([]byte(*run.PluginsOutput), &envelope))
-	assert.NotNil(t, envelope.others["other"], "pre-existing 'other' entry should be preserved")
-	assert.NotEmpty(t, envelope.MLflow, "mlflow entry should be set")
+	assert.NotNil(t, envelope.Plugins["MLflow"], "mlflow entry should be set")
+	assert.NotNil(t, envelope.Plugins["other"], "pre-existing 'other' entry should be preserved")
 	var parsed apiv2beta1.PluginOutput
-	require.NoError(t, protojson.Unmarshal(envelope.MLflow, &parsed))
+	require.NoError(t, protojson.Unmarshal(envelope.Plugins["MLflow"], &parsed))
 	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, parsed.State)
 	assert.Contains(t, parsed.Entries, "experiment_id")
 }
@@ -489,98 +483,12 @@ func (f *fakeKubeClientProvider) GetClientSet() kubernetes.Interface {
 	return f.clientSet
 }
 
-// TestResolveMLflowRequestConfig_NamespaceOnlyIsDisabled verifies that MLflow
-// is disabled when no global plugins.mlflow config exists, even if the namespace
-// has a valid kfp-launcher ConfigMap.  Global config is required to opt in.
-func TestResolveMLflowRequestConfig_NamespaceOnlyIsDisabled(t *testing.T) {
-	// Ensure no global config.
-	originalPlugins := viper.Get("plugins")
-	viper.Set("plugins", nil)
-	t.Cleanup(func() {
-		viper.Set("plugins", originalPlugins)
-	})
-
-	// Verify global is absent.
-	_, hasGlobal, err := GetGlobalMLflowConfig()
-	require.NoError(t, err)
-	require.False(t, hasGlobal, "global config should be absent for this test")
-
-	// Create a fake namespace ConfigMap with MLflow config.
-	clientSet := k8sfake.NewClientset(
-		&corev1.ConfigMap{
-			ObjectMeta: v1.ObjectMeta{
-				Name:      LauncherConfigMapName,
-				Namespace: "ns-only",
-			},
-			Data: map[string]string{
-				LauncherConfigKey: `{
-					"endpoint": "https://ns-mlflow.example.com",
-					"timeout": "15s",
-					"settings": {"workspacesEnabled": true}
-				}`,
-			},
-		},
-	)
-	kubeClients := &fakeKubeClientProvider{clientSet: clientSet}
-
-	resolved, err := ResolveMLflowRequestConfig(context.Background(), kubeClients, "ns-only")
-	require.NoError(t, err)
-	require.Nil(t, resolved, "namespace-only config should NOT enable MLflow without global opt-in")
-}
-
-// TestResolveMLflowRequestConfig_NeitherGlobalNorNamespace verifies that MLflow
-// is disabled (nil return) when both global and namespace configs are absent.
-func TestResolveMLflowRequestConfig_NeitherGlobalNorNamespace(t *testing.T) {
-	originalPlugins := viper.Get("plugins")
-	viper.Set("plugins", nil)
-	t.Cleanup(func() {
-		viper.Set("plugins", originalPlugins)
-	})
-
-	clientSet := k8sfake.NewClientset() // no ConfigMap
-	kubeClients := &fakeKubeClientProvider{clientSet: clientSet}
-
-	resolved, err := ResolveMLflowRequestConfig(context.Background(), kubeClients, "empty-ns")
-	require.NoError(t, err)
-	assert.Nil(t, resolved, "MLflow should be disabled when neither global nor namespace config exists")
-}
-
 func TestResolveMLflowCredentials_EmptySAToken(t *testing.T) {
 	setupFakeKubernetesConfig(t, "")
 
 	_, err := commonmlflow.ResolveMLflowCredentials()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "bearer token is empty")
-}
-
-func TestBuildMLflowRequestContext_InvalidEndpoint(t *testing.T) {
-	requestCfg := &ResolvedConfig{
-		Config: &commonmlflow.PluginConfig{
-			Endpoint: "not-a-valid-url",
-			Timeout:  "10s",
-		},
-		Settings: &commonmlflow.MLflowPluginSettings{},
-	}
-	ctx, err := BuildMLflowRunRequestContext(context.Background(), "ns1", requestCfg)
-	require.Error(t, err)
-	assert.Nil(t, ctx)
-	assert.Contains(t, err.Error(), "invalid plugins.mlflow endpoint")
-}
-
-func TestBuildMLflowRequestContext_ZeroTimeout(t *testing.T) {
-	setupFakeKubernetesConfig(t, "valid-token")
-
-	requestCfg := &ResolvedConfig{
-		Config: &commonmlflow.PluginConfig{
-			Endpoint: "https://mlflow.example.com",
-			Timeout:  "0s",
-		},
-		Settings: &commonmlflow.MLflowPluginSettings{},
-	}
-	ctx, err := BuildMLflowRunRequestContext(context.Background(), "ns1", requestCfg)
-	require.Error(t, err)
-	assert.Nil(t, ctx)
-	assert.Contains(t, err.Error(), "timeout must be > 0")
 }
 
 func TestInjectMLflowRuntimeEnv(t *testing.T) {
@@ -615,7 +523,7 @@ func TestInjectMLflowRuntimeEnv(t *testing.T) {
 	env := map[string]string{
 		commonmlflow.EnvMLflowConfig: `{"endpoint":"https://mlflow.example.com","parentRunId":"abc"}`,
 	}
-	err := InjectMLflowRuntimeEnv(workflow, env)
+	err := apiserverPlugins.InjectPluginRuntimeEnv(workflow, env)
 	require.NoError(t, err)
 
 	expectedEnv := corev1.EnvVar{Name: commonmlflow.EnvMLflowConfig, Value: env[commonmlflow.EnvMLflowConfig]}
@@ -631,13 +539,13 @@ func TestInjectMLflowRuntimeEnv(t *testing.T) {
 }
 
 func TestInjectMLflowRuntimeEnv_NilSpec(t *testing.T) {
-	err := InjectMLflowRuntimeEnv(nil, map[string]string{"key": "val"})
+	err := apiserverPlugins.InjectPluginRuntimeEnv(nil, map[string]string{"key": "val"})
 	require.NoError(t, err, "nil spec should be a no-op")
 }
 
 func TestInjectMLflowRuntimeEnv_EmptyEnv(t *testing.T) {
 	workflow := util.NewWorkflow(&workflowapi.Workflow{})
-	err := InjectMLflowRuntimeEnv(workflow, map[string]string{})
+	err := apiserverPlugins.InjectPluginRuntimeEnv(workflow, map[string]string{})
 	require.NoError(t, err, "empty env should be a no-op")
 }
 
@@ -648,16 +556,17 @@ func newTestMLflowRequestContext(t *testing.T, serverURL string) *commonmlflow.R
 	setupFakeKubernetesConfig(t, "bearer-secret")
 
 	enabled := true
-	requestCfg := &ResolvedConfig{
-		Config: &commonmlflow.PluginConfig{
-			Endpoint: serverURL,
-			Timeout:  "10s",
+	mlflowPluginCfg := &commonmlflow.MLflowPluginConfig{
+		Endpoint: serverURL,
+		Timeout:  "10s",
+		TLS: &commonplugins.TLSConfig{
+			InsecureSkipVerify: false,
 		},
 		Settings: &commonmlflow.MLflowPluginSettings{
 			WorkspacesEnabled: &enabled,
 		},
 	}
-	ctx, err := BuildMLflowRunRequestContext(context.Background(), "ns1", requestCfg)
+	ctx, err := BuildMLflowRunRequestContext("ns1", mlflowPluginCfg)
 	require.NoError(t, err)
 	require.NotNil(t, ctx)
 	return ctx

@@ -36,7 +36,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
-	apiservermlflow "github.com/kubeflow/pipelines/backend/src/apiserver/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	exec "github.com/kubeflow/pipelines/backend/src/common"
@@ -150,7 +149,7 @@ type ResourceManager struct {
 	uuid                      util.UUIDGeneratorInterface
 	authenticators            []kfpauth.Authenticator
 	options                   *ResourceManagerOptions
-	pluginDispatcher          apiserverPlugins.PluginDispatcher
+	pluginDispatcher          apiserverPlugins.RunPluginDispatcher
 }
 
 func NewResourceManager(clientManager ClientManagerInterface, options *ResourceManagerOptions) *ResourceManager {
@@ -175,11 +174,11 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 		authenticators:            clientManager.Authenticators(),
 		options:                   options,
 	}
-	if apiservermlflow.IsEnabled() {
-		rm.pluginDispatcher = apiservermlflow.NewRunPluginDispatcher(rm.k8sCoreClient, rm.runStore)
-	} else {
-		rm.pluginDispatcher = &apiserverPlugins.NoOpDispatcher{}
+	dispatcher, err := apiserverPlugins.GetPluginDispatcher(rm.k8sCoreClient, rm.runStore)
+	if err != nil {
+		glog.Errorf("failed to create plugin dispatcher: %s", err)
 	}
+	rm.pluginDispatcher = dispatcher
 	return rm
 }
 
@@ -760,8 +759,11 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 
 	defer func() {
 		if !runPersisted {
-			if pr, prErr := apiservermlflow.ModelToPersistedRun(run, k8sNamespace); prErr == nil {
-				r.pluginDispatcher.OnRunEnd(ctx, pr)
+			if pr, prErr := apiserverPlugins.ModelToPersistedRun(run, k8sNamespace); prErr == nil {
+				err = r.pluginDispatcher.OnRunEnd(ctx, pr)
+				if err != nil {
+					glog.Warningf("failed to notify plugins of run end for run %s: %v", run.UUID, err)
+				}
 			}
 		}
 	}()
@@ -1147,8 +1149,11 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	}
 	// Notify plugins of retry
 	if run.PluginsOutputString != nil && *run.PluginsOutputString != "" {
-		if pr, prErr := apiservermlflow.ModelToPersistedRun(run, namespace); prErr == nil {
-			r.pluginDispatcher.OnRunRetry(ctx, pr)
+		if pr, prErr := apiserverPlugins.ModelToPersistedRun(run, namespace); prErr == nil {
+			err = r.pluginDispatcher.OnRunRetry(ctx, pr)
+			if err != nil {
+				glog.Warningf("failed to notify plugins of retry for run %s: %v", runId, err)
+			}
 		}
 	}
 
@@ -1315,10 +1320,6 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	var scheduledWorkflow *scheduledworkflow.ScheduledWorkflow
 	var tmpl template.Template
 
-	// When plugins are enabled the SWF controller must call the CreateRun API
-	// so that per-run plugin logic executes.
-	pluginsEnabled := job.PluginsInputString != nil && *job.PluginsInputString != ""
-
 	// If the pipeline version or pipeline spec is provided, this means the user wants to pin to a specific pipeline.
 	// Otherwise, always let the ScheduledWorkflow controller pick the latest.
 	if job.PipelineVersionId != "" || job.PipelineSpecManifest != "" || job.WorkflowSpecManifest != "" {
@@ -1330,7 +1331,9 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			return nil, util.NewInternalServerError(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
 		}
 
-		if pluginsEnabled {
+		// When plugins are enabled, the SWF controller must call the CreateRun API
+		// so that per-run plugin logic executes.
+		if r.pluginDispatcher.PluginsRegistered() {
 			// Plugin-enabled: create a lightweight SWF without inline workflow spec
 			// so the SWF controller calls the CreateRun API for per-run plugin logic.
 			scheduledWorkflow, err = template.NewGenericScheduledWorkflow(job)
@@ -1679,11 +1682,11 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		// needs retry, defer the persistedFinalState label so the
 		// persistence agent re-reports the workflow on its next cycle.
 		if run != nil && run.PluginsOutputString != nil && *run.PluginsOutputString != "" {
-			pr, prErr := apiservermlflow.ModelToPersistedRun(run, execSpec.ExecutionNamespace())
+			pr, prErr := apiserverPlugins.ModelToPersistedRun(run, execSpec.ExecutionNamespace())
 			if prErr != nil {
 				glog.Warningf("Failed to build PersistedRun for plugin sync on run %q: %v", run.UUID, prErr)
-			} else if !r.pluginDispatcher.OnRunEnd(ctx, pr) {
-				glog.Warningf("Plugin sync failed for run %q; deferring persistedFinalState label so persistence agent retries", run.UUID)
+			} else if err := r.pluginDispatcher.OnRunEnd(ctx, pr); err != nil {
+				glog.Warningf("Plugin sync failed for run %q; deferring persistedFinalState label so persistence agent retries: %v", run.UUID, err)
 				return nil, nil
 			}
 		}
