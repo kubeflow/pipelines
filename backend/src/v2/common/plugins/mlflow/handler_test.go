@@ -136,7 +136,10 @@ func TestNewMLflowTaskHandler_EmptyRuntimeConfig_Failure(t *testing.T) {
 }
 
 func TestNewMLflowTaskHandler_NilRuntimeConfig_Failure(t *testing.T) {
-	handler, err := NewMLflowTaskHandler(nil)
+	var runtimeCfg *commonmlflow.MLflowRuntimeConfig
+	runtimeCfg = nil
+
+	handler, err := NewMLflowTaskHandler(runtimeCfg)
 
 	require.Nil(t, handler)
 	require.Error(t, err)
@@ -176,9 +179,9 @@ func TestOnTaskStart_MissingExperimentID_Failure(t *testing.T) {
 }
 
 func TestOnTaskStart_Success(t *testing.T) {
-	serverURL := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
+	serverUrl := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
 	runtimeCfg := &commonmlflow.MLflowRuntimeConfig{
-		Endpoint:     serverURL,
+		Endpoint:     serverUrl,
 		ParentRunID:  "test-parent-run-id",
 		ExperimentID: "test-exp",
 		AuthType:     "kubernetes",
@@ -218,9 +221,9 @@ func TestOnTaskStart_MLflowFailure_ReturnsEmptyNestedRunID(t *testing.T) {
 }
 
 func TestOnTaskEnd_NestedRunID_Success(t *testing.T) {
-	serverURL := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
+	serverUrl := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
 	runtimeCfg := &commonmlflow.MLflowRuntimeConfig{
-		Endpoint:     serverURL,
+		Endpoint:     serverUrl,
 		ParentRunID:  "test-parent-run-id",
 		ExperimentID: "test-exp",
 		AuthType:     "kubernetes",
@@ -235,9 +238,9 @@ func TestOnTaskEnd_NestedRunID_Success(t *testing.T) {
 }
 
 func TestOnTaskEnd_NestedRunIDFromApplyCustomProperties_Success(t *testing.T) {
-	serverURL := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
+	serverUrl := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
 	runtimeCfg := &commonmlflow.MLflowRuntimeConfig{
-		Endpoint:     serverURL,
+		Endpoint:     serverUrl,
 		ParentRunID:  "test-parent-run-id",
 		ExperimentID: "test-exp",
 		AuthType:     "kubernetes",
@@ -276,9 +279,9 @@ func TestOnTaskEnd_NestedRunIDFromApplyCustomProperties_Success(t *testing.T) {
 }
 
 func TestOnTaskEnd_MissingRunID_Failure(t *testing.T) {
-	serverURL := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
+	serverUrl := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
 	runtimeCfg := &commonmlflow.MLflowRuntimeConfig{
-		Endpoint:     serverURL,
+		Endpoint:     serverUrl,
 		ExperimentID: "test-exp",
 		AuthType:     "kubernetes",
 		Timeout:      "10s",
@@ -291,9 +294,9 @@ func TestOnTaskEnd_MissingRunID_Failure(t *testing.T) {
 }
 
 func TestOnTaskEnd_MissingExperimentID_Failure(t *testing.T) {
-	serverURL := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
+	serverUrl := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
 	runtimeCfg := &commonmlflow.MLflowRuntimeConfig{
-		Endpoint:    serverURL,
+		Endpoint:    serverUrl,
 		ParentRunID: "test-parent-run-id",
 		AuthType:    "kubernetes",
 		Timeout:     "10s",
@@ -308,9 +311,9 @@ func TestOnTaskEnd_MissingExperimentID_Failure(t *testing.T) {
 }
 
 func TestOnTaskEnd_EmptyMetrics_Success(t *testing.T) {
-	serverURL := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
+	serverUrl := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
 	runtimeCfg := &commonmlflow.MLflowRuntimeConfig{
-		Endpoint:     serverURL,
+		Endpoint:     serverUrl,
 		ParentRunID:  "test-parent-run-id",
 		ExperimentID: "test-exp",
 		AuthType:     "kubernetes",
@@ -335,9 +338,9 @@ func TestOnTaskEnd_EmptyMetrics_Success(t *testing.T) {
 }
 
 func TestOnTaskEnd_NilMetrics_Success(t *testing.T) {
-	serverURL := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
+	serverUrl := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
 	runtimeCfg := &commonmlflow.MLflowRuntimeConfig{
-		Endpoint:     serverURL,
+		Endpoint:     serverUrl,
 		ParentRunID:  "test-parent-run-id",
 		ExperimentID: "test-exp",
 		AuthType:     "kubernetes",
@@ -361,9 +364,9 @@ func TestOnTaskEnd_NilMetrics_Success(t *testing.T) {
 }
 
 func TestOnTaskEnd_EmptyParams_Success(t *testing.T) {
-	serverURL := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
+	serverUrl := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
 	runtimeCfg := &commonmlflow.MLflowRuntimeConfig{
-		Endpoint:     serverURL,
+		Endpoint:     serverUrl,
 		ParentRunID:  "test-parent-run-id",
 		ExperimentID: "test-exp",
 		AuthType:     "kubernetes",
@@ -388,9 +391,9 @@ func TestOnTaskEnd_EmptyParams_Success(t *testing.T) {
 }
 
 func TestOnTaskEnd_NilParams_Success(t *testing.T) {
-	serverURL := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
+	serverUrl := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
 	runtimeCfg := &commonmlflow.MLflowRuntimeConfig{
-		Endpoint:     serverURL,
+		Endpoint:     serverUrl,
 		ParentRunID:  "test-parent-run-id",
 		ExperimentID: "test-exp",
 		AuthType:     "kubernetes",
@@ -415,9 +418,9 @@ func TestOnTaskEnd_NilParams_Success(t *testing.T) {
 }
 
 func TestOnTaskEnd_Success(t *testing.T) {
-	serverURL := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
+	serverUrl := setupTestEnvWithServer(t, defaultMLflowHandlerFunc(t))
 	runtimeCfg := &commonmlflow.MLflowRuntimeConfig{
-		Endpoint:     serverURL,
+		Endpoint:     serverUrl,
 		ParentRunID:  "test-parent-run-id",
 		ExperimentID: "test-exp",
 		AuthType:     "kubernetes",

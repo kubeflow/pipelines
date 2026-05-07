@@ -462,6 +462,7 @@ func syncNestedRuns(ctx context.Context, requestCtx *commonmlflow.RequestContext
 			if nestedRunID == "" || nestedRunID == parentRunID || !shouldSyncNestedRun(mode, mlflowRun.Info.Status) {
 				continue
 			}
+			// Recurse into children before updating this run .
 			childErrors := syncNestedRuns(ctx, requestCtx, nestedRunID, experimentID, mode, targetStatus, endTimeMs, depth+1)
 			syncErrors = append(syncErrors, childErrors...)
 			if err := requestCtx.Client.UpdateRun(ctx, nestedRunID, targetStatus, endTimeMs); err != nil {
