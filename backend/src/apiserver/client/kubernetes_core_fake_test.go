@@ -44,8 +44,8 @@ func TestFakeKuberneteCoreClient_PodClientPanicsOnEmptyNamespace(t *testing.T) {
 func TestFakeKuberneteCoreClient_GetClientSet(t *testing.T) {
 	client := NewFakeKuberneteCoresClient()
 	clientSet := client.GetClientSet()
-	if clientSet != nil {
-		t.Error("GetClientSet() expected nil for fake implementation, got non-nil")
+	if clientSet == nil {
+		t.Error("GetClientSet() returned nil, expected a fake clientset")
 	}
 }
 
@@ -60,8 +60,8 @@ func TestFakeKubernetesCoreClientWithBadPodClient_PodClient(t *testing.T) {
 func TestFakeKubernetesCoreClientWithBadPodClient_GetClientSet(t *testing.T) {
 	client := NewFakeKubernetesCoreClientWithBadPodClient()
 	clientSet := client.GetClientSet()
-	if clientSet != nil {
-		t.Error("GetClientSet() expected nil for fake implementation, got non-nil")
+	if clientSet == nil {
+		t.Error("GetClientSet() returned nil, expected a fake clientset")
 	}
 }
 
