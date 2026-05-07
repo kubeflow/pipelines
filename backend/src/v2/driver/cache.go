@@ -77,6 +77,7 @@ func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.Executo
 	return executorOutput, outputArtifacts, nil
 }
 
+
 // getFingerPrint generates a fingerprint for caching. The PVC names are included in the fingerprint since it's assumed
 // PVCs have side effects (e.g. files written for tasks later on in the run) on the execution. If the PVC names are
 // different, the execution shouldn't be reused for the cache.
