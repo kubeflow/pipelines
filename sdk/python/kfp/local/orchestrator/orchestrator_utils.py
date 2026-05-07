@@ -1,12 +1,8 @@
 import copy
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict
 
-from kfp.local import config
-from kfp.local import importer_handler
 from kfp.local import io
-from kfp.local import status
-from kfp.local import task_dispatcher
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 Outputs = Dict[str, Any]
@@ -91,64 +87,6 @@ class OrchestratorUtils:
             return value
 
     @classmethod
-    def execute_single_task(
-        cls,
-        task_name: str,
-        task_spec: pipeline_spec_pb2.PipelineTaskSpec,
-        pipeline_resource_name: str,
-        components: Dict[str, pipeline_spec_pb2.ComponentSpec],
-        executors: Dict[
-            str, pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec],
-        io_store: io.IOStore,
-        pipeline_root: str,
-        runner: config.LocalRunnerType,
-        unique_pipeline_id: str,
-        fail_stack: List[str],
-    ) -> Tuple[Outputs, status.Status]:
-        """Execute a single task (used by parallel executor)."""
-        component_name = task_spec.component_ref.name
-        component_spec = components[component_name]
-        implementation = component_spec.WhichOneof('implementation')
-
-        if implementation == 'executor_label':
-            executor_spec = executors[component_spec.executor_label]
-            task_arguments = cls.make_task_arguments(
-                task_inputs_spec=task_spec.inputs,
-                io_store=io_store,
-            )
-
-            if executor_spec.WhichOneof('spec') == 'importer':
-                return importer_handler.run_importer(
-                    pipeline_resource_name=pipeline_resource_name,
-                    component_name=component_name,
-                    component_spec=component_spec,
-                    executor_spec=executor_spec,
-                    arguments=task_arguments,
-                    pipeline_root=pipeline_root,
-                    unique_pipeline_id=unique_pipeline_id,
-                )
-            elif executor_spec.WhichOneof('spec') == 'container':
-                return task_dispatcher.run_single_task_implementation(
-                    pipeline_resource_name=pipeline_resource_name,
-                    component_name=component_name,
-                    component_spec=component_spec,
-                    executor_spec=executor_spec,
-                    arguments=task_arguments,
-                    pipeline_root=pipeline_root,
-                    runner=runner,
-                    raise_on_error=False,
-                    block_input_artifact=False,
-                    unique_pipeline_id=unique_pipeline_id,
-                )
-            else:
-                raise ValueError(
-                    "Got unknown spec in ExecutorSpec. Only 'dsl.component', 'dsl.container_component', and 'dsl.importer' are supported."
-                )
-        else:
-            raise ValueError(
-                f'Got unknown component implementation: {implementation}')
-
-    @classmethod
     def join_user_inputs_and_defaults(
         cls,
         dag_arguments: Dict[str, Any],
@@ -231,10 +169,28 @@ class OrchestratorUtils:
 
                 task_arguments[input_name] = parent_value
 
-            # TODO: support dsl.ExitHandler
             elif input_spec.HasField('task_final_status'):
-                raise NotImplementedError(
-                    "'dsl.ExitHandler' is not yet support for local execution.")
+                producer_task = input_spec.task_final_status.producer_task
+                try:
+                    task_status_str = io_store.get_task_status(producer_task)
+                except ValueError:
+                    task_status_str = 'SUCCEEDED'
+                error_info = {}
+                if task_status_str == 'FAILED':
+                    error_info = {
+                        'code': 1,
+                        'message': f'Task {producer_task} failed.',
+                    }
+                task_arguments[input_name] = {
+                    'state':
+                        task_status_str,
+                    'pipeline_job_resource_name':
+                        f'local-pipeline-{producer_task}',
+                    'pipeline_task_name':
+                        producer_task,
+                    'error':
+                        error_info,
+                }
 
             else:
                 raise ValueError(f'Missing input for parameter {input_name}.')
@@ -281,8 +237,31 @@ class OrchestratorUtils:
                     value_from_parameter.output_parameter_key,
                 )
             elif kind == 'value_from_oneof':
-                raise NotImplementedError(
-                    "'dsl.OneOf' is not yet supported in local execution.")
+                # Pick the output from whichever conditional branch
+                # actually produced a value
+                oneof_spec = parameter_selector_spec.value_from_oneof
+                found_values = []
+                for selector in oneof_spec.parameter_selectors:
+                    try:
+                        value = io_store.get_task_output(
+                            selector.producer_subtask,
+                            selector.output_parameter_key,
+                        )
+                        found_values.append(value)
+                    except (KeyError, ValueError):
+                        # This branch didn't execute, skip it
+                        continue
+                if len(found_values) == 1:
+                    outputs[root_output_key] = found_values[0]
+                elif len(found_values) == 0:
+                    raise ValueError(
+                        f"No value available for 'dsl.OneOf' output "
+                        f"'{root_output_key}'. None of the conditional "
+                        f"branches produced an output.")
+                else:
+                    raise ValueError(
+                        f"Multiple values available for 'dsl.OneOf' output "
+                        f"'{root_output_key}'. Expected exactly one.")
             else:
                 raise ValueError(
                     f"Got unknown 'parameter_selector_spec' kind: {kind}")

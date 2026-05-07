@@ -1,0 +1,254 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-oneof
+# Inputs:
+#    pick_a: bool [Default: True]
+# Outputs:
+#    Output: str
+components:
+  comp-branch-a:
+    executorLabel: exec-branch-a
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-branch-b:
+    executorLabel: exec-branch-b
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-condition-2:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--branch-a-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: branch-a
+      tasks:
+        branch-a:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-branch-a
+          taskInfo:
+            name: branch-a
+    inputDefinitions:
+      parameters:
+        pipelinechannel--pick_a:
+          parameterType: BOOLEAN
+    outputDefinitions:
+      parameters:
+        pipelinechannel--branch-a-Output:
+          parameterType: STRING
+  comp-condition-3:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--branch-b-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: branch-b
+      tasks:
+        branch-b:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-branch-b
+          taskInfo:
+            name: branch-b
+    inputDefinitions:
+      parameters:
+        pipelinechannel--pick_a:
+          parameterType: BOOLEAN
+    outputDefinitions:
+      parameters:
+        pipelinechannel--branch-b-Output:
+          parameterType: STRING
+  comp-condition-branches-1:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--condition-branches-1-oneof-1:
+            valueFromOneof:
+              parameterSelectors:
+              - outputParameterKey: pipelinechannel--branch-a-Output
+                producerSubtask: condition-2
+              - outputParameterKey: pipelinechannel--branch-b-Output
+                producerSubtask: condition-3
+      tasks:
+        condition-2:
+          componentRef:
+            name: comp-condition-2
+          inputs:
+            parameters:
+              pipelinechannel--pick_a:
+                componentInputParameter: pipelinechannel--pick_a
+          taskInfo:
+            name: condition-2
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--pick_a'] == true
+        condition-3:
+          componentRef:
+            name: comp-condition-3
+          inputs:
+            parameters:
+              pipelinechannel--pick_a:
+                componentInputParameter: pipelinechannel--pick_a
+          taskInfo:
+            name: condition-3
+          triggerPolicy:
+            condition: '!(inputs.parameter_values[''pipelinechannel--pick_a''] ==
+              true)'
+    inputDefinitions:
+      parameters:
+        pipelinechannel--pick_a:
+          parameterType: BOOLEAN
+    outputDefinitions:
+      parameters:
+        pipelinechannel--condition-branches-1-oneof-1:
+          parameterType: STRING
+  comp-tag-selected:
+    executorLabel: exec-tag-selected
+    inputDefinitions:
+      parameters:
+        value:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-branch-a:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - branch_a
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef branch_a() -> str:\n    return 'A'\n\n"
+        image: python:3.11
+    exec-branch-b:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - branch_b
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef branch_b() -> str:\n    return 'B'\n\n"
+        image: python:3.11
+    exec-tag-selected:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - tag_selected
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef tag_selected(value: str) -> str:\n    return f'selected:{value}'\n\
+          \n"
+        image: python:3.11
+pipelineInfo:
+  name: pipeline-with-oneof
+root:
+  dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: Output
+            producerSubtask: tag-selected
+    tasks:
+      condition-branches-1:
+        componentRef:
+          name: comp-condition-branches-1
+        inputs:
+          parameters:
+            pipelinechannel--pick_a:
+              componentInputParameter: pick_a
+        taskInfo:
+          name: condition-branches-1
+      tag-selected:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-tag-selected
+        dependentTasks:
+        - condition-branches-1
+        inputs:
+          parameters:
+            value:
+              taskOutputParameter:
+                outputParameterKey: pipelinechannel--condition-branches-1-oneof-1
+                producerTask: condition-branches-1
+        taskInfo:
+          name: tag-selected
+  inputDefinitions:
+    parameters:
+      pick_a:
+        defaultValue: true
+        isOptional: true
+        parameterType: BOOLEAN
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2
