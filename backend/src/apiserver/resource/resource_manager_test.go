@@ -37,7 +37,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
-	apiservermlflow "github.com/kubeflow/pipelines/backend/src/apiserver/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
 	apiservermlflow "github.com/kubeflow/pipelines/backend/src/apiserver/plugins/mlflow"
@@ -247,7 +246,12 @@ func (d *retryDuringTerminalReportDispatcher) OnRunEnd(ctx context.Context, _ *a
 	return true
 }
 
-func (d *retryDuringTerminalReportDispatcher) OnRunRetry(context.Context, *apiserverPlugins.PersistedRun) {
+func (d *retryDuringTerminalReportDispatcher) OnRunRetry(context.Context, *apiserverPlugins.PersistedRun) error {
+	return nil
+}
+
+func (d *retryDuringTerminalReportDispatcher) PluginsRegistered() bool {
+	return true
 }
 
 type countingTerminalReportDispatcher struct {
@@ -263,7 +267,12 @@ func (d *countingTerminalReportDispatcher) OnRunEnd(context.Context, *apiserverP
 	return true
 }
 
-func (d *countingTerminalReportDispatcher) OnRunRetry(context.Context, *apiserverPlugins.PersistedRun) {
+func (d *countingTerminalReportDispatcher) OnRunRetry(context.Context, *apiserverPlugins.PersistedRun) error {
+	return nil
+}
+
+func (d *countingTerminalReportDispatcher) PluginsRegistered() bool {
+	return true
 }
 
 func TestReadRunLogFromArchiveStreamsObjectStoreFile(t *testing.T) {
@@ -2813,14 +2822,14 @@ func TestCreateRun_WithMLflowPlugin(t *testing.T) {
 	assert.Contains(t, string(*storedRun.PluginsOutputString), "mlflow-exp-1")
 
 	// Parse and verify the plugin output structure.
-	outputs, err := apiservermlflow.DeserializePluginsOutput(storedRun.PluginsOutputString)
+	outputs, err := apiserverPlugins.DeserializePluginsOutput(storedRun.PluginsOutputString)
 	require.NoError(t, err)
-	output := outputs[apiservermlflow.PluginName]
+	output := outputs["mlflow"]
 	require.NotNil(t, output)
 	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, output.State)
-	assert.Equal(t, "mlflow-exp-1", output.Entries[apiservermlflow.EntryExperimentID].Value.GetStringValue())
-	assert.Equal(t, "mlflow-parent-run-1", output.Entries[apiservermlflow.EntryRootRunID].Value.GetStringValue())
-	assert.Contains(t, output.Entries[apiservermlflow.EntryRunURL].Value.GetStringValue(), "mlflow-parent-run-1")
+	assert.Equal(t, "mlflow-exp-1", output.Entries["experiment_id"].Value.GetStringValue())
+	assert.Equal(t, "mlflow-parent-run-1", output.Entries[apiserverPlugins.EntryRootRunID].Value.GetStringValue())
+	assert.Contains(t, output.Entries[apiserverPlugins.EntryRunURL].Value.GetStringValue(), "mlflow-parent-run-1")
 
 }
 
@@ -3162,6 +3171,12 @@ func TestRetryRun_ReopensMLflowParentAndFailedNestedRuns(t *testing.T) {
 	var updateCalls []updateCall
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case "/api/2.0/mlflow/experiments/get-by-name":
+			// Return experiment for initial run creation
+			_, _ = w.Write([]byte(`{"experiment":{"experiment_id":"exp-1","name":"Default"}}`))
+		case "/api/2.0/mlflow/runs/create":
+			// Return a temporary parent run ID for initial run creation
+			_, _ = w.Write([]byte(`{"run":{"info":{"run_id":"temp-parent-run"}}}`))
 		case "/api/2.0/mlflow/runs/update":
 			defer r.Body.Close()
 			var payload struct {
@@ -3200,7 +3215,7 @@ func TestRetryRun_ReopensMLflowParentAndFailedNestedRuns(t *testing.T) {
 	runWithPluginOutput, err := manager.GetRun(runDetail.UUID)
 	require.NoError(t, err)
 	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", server.URL+"/runs/parent-run-1")
-	lt, err := apiservermlflow.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	lt, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
 	require.NoError(t, err)
 	runWithPluginOutput.PluginsOutputString = lt
 	require.NoError(t, manager.runStore.UpdateRun(runWithPluginOutput))
@@ -3215,9 +3230,9 @@ func TestRetryRun_ReopensMLflowParentAndFailedNestedRuns(t *testing.T) {
 
 	updatedRun, err := manager.GetRun(runDetail.UUID)
 	require.NoError(t, err)
-	updatedOutputs, err := apiservermlflow.DeserializePluginsOutput(updatedRun.PluginsOutputString)
+	updatedOutputs, err := apiserverPlugins.DeserializePluginsOutput(updatedRun.PluginsOutputString)
 	require.NoError(t, err)
-	updatedOutput := updatedOutputs[apiservermlflow.PluginName]
+	updatedOutput := updatedOutputs["mlflow"]
 	require.NotNil(t, updatedOutput)
 	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, updatedOutput.State)
 	assert.Equal(t, "", updatedOutput.StateMessage)
@@ -4158,7 +4173,7 @@ func TestReportWorkflowResource_SkipsTerminalPluginSyncWhenReportedWorkflowIsSta
 	runWithPluginOutput, err := manager.GetRun(run.UUID)
 	require.NoError(t, err)
 	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", "https://mlflow.example/runs/parent-run-1")
-	pluginsOutput, err := apiservermlflow.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	pluginsOutput, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
 	require.NoError(t, err)
 	runWithPluginOutput.State = model.RuntimeStateRunning
 	runWithPluginOutput.Conditions = string(model.RuntimeStateRunning.ToV1())
@@ -4245,7 +4260,7 @@ func TestReportWorkflowResource_SkipsPersistedFinalStateLabelWhenRunRetriedDurin
 	runWithPluginOutput, err := manager.GetRun(run.UUID)
 	require.NoError(t, err)
 	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", "https://mlflow.example/runs/parent-run-1")
-	pluginsOutput, err := apiservermlflow.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	pluginsOutput, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
 	require.NoError(t, err)
 	runWithPluginOutput.PluginsOutputString = pluginsOutput
 	require.NoError(t, manager.runStore.UpdateRun(runWithPluginOutput))

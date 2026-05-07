@@ -20,75 +20,17 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/golang/glog"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"google.golang.org/protobuf/encoding/protojson"
-	structpb "google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/structpb"
 )
-
-type pluginsOutputEnvelope struct {
-	MLflow json.RawMessage
-	others map[string]json.RawMessage
-}
-
-func (e *pluginsOutputEnvelope) UnmarshalJSON(data []byte) error {
-	var all map[string]json.RawMessage
-	if err := json.Unmarshal(data, &all); err != nil {
-		return err
-	}
-	e.MLflow = all[PluginName]
-	delete(all, PluginName)
-	if len(all) > 0 {
-		e.others = all
-	}
-	return nil
-}
-
-func (e pluginsOutputEnvelope) MarshalJSON() ([]byte, error) {
-	all := make(map[string]json.RawMessage, len(e.others)+1)
-	for k, v := range e.others {
-		all[k] = v
-	}
-	if len(e.MLflow) > 0 {
-		all[PluginName] = e.MLflow
-	}
-	if len(all) == 0 {
-		return []byte("{}"), nil
-	}
-	return json.Marshal(all)
-}
-
-// set stores a plugin entry by name.
-func (e *pluginsOutputEnvelope) set(name string, data json.RawMessage) {
-	switch name {
-	case PluginName:
-		e.MLflow = data
-	default:
-		if e.others == nil {
-			e.others = make(map[string]json.RawMessage)
-		}
-		e.others[name] = data
-	}
-}
-
-func (e *pluginsOutputEnvelope) forEachEntry(fn func(name string, payload json.RawMessage)) {
-	if len(e.MLflow) > 0 {
-		fn(PluginName, e.MLflow)
-	}
-	for name, payload := range e.others {
-		fn(name, payload)
-	}
-}
 
 const (
 	DefaultExperimentDescription = "Created by Kubeflow Pipelines"
-	PluginName                   = "mlflow"
 	TagKFPRunID                  = "kfp.pipeline_run_id"
 	TagKFPRunURL                 = "kfp.pipeline_run_url"
 	TagKFPPipelineID             = "kfp.pipeline_id"
@@ -104,15 +46,8 @@ type Experiment struct {
 	Name string
 }
 
-type RunSyncMode string
-
-const (
-	RunSyncModeTerminal RunSyncMode = "terminal"
-	RunSyncModeRetry    RunSyncMode = "retry"
-)
-
 // EnsureExperimentExists looks up the MLflow experiment by ID or name, and creates it
-// if it does not already exist.
+// if it does not already exist. ExperimentID will take precedence over ExperimentName.
 func EnsureExperimentExists(ctx context.Context, requestCtx *commonmlflow.RequestContext, experimentID, experimentName string, description *string) (*Experiment, error) {
 	if requestCtx == nil || requestCtx.Client == nil {
 		return nil, util.NewInvalidInputError("MLflow request context is required")
@@ -152,34 +87,6 @@ func CreateExperiment(ctx context.Context, requestCtx *commonmlflow.RequestConte
 	return nil, createErr
 }
 
-// BuildKFPRunURL builds a link from kfpBaseURL to the pipeline run details page.
-func BuildKFPRunURL(runID, namespace, kfpBaseURL, pathTemplate string) string {
-	if runID == "" || kfpBaseURL == "" {
-		glog.V(4).Infof(
-			"BuildKFPRunURL returned empty URL due to missing input(s): runID_empty=%t kfpBaseURL_empty=%t",
-			runID == "",
-			kfpBaseURL == "",
-		)
-		return ""
-	}
-	pathTemplate = strings.TrimSpace(pathTemplate)
-	if pathTemplate == "" {
-		base := strings.TrimRight(kfpBaseURL, "/")
-		return fmt.Sprintf("%s/#/runs/details/%s", base, url.PathEscape(runID))
-	}
-	if namespace == "" && strings.Contains(pathTemplate, "{namespace}") {
-		glog.V(4).Infof("BuildKFPRunURL returned empty URL: namespace required when template contains {namespace}")
-		return ""
-	}
-	base := strings.TrimRight(kfpBaseURL, "/")
-	rendered := strings.ReplaceAll(pathTemplate, "{run_id}", url.PathEscape(runID))
-	rendered = strings.ReplaceAll(rendered, "{namespace}", url.PathEscape(namespace))
-	if !strings.HasPrefix(rendered, "/") && !strings.HasPrefix(rendered, "#") {
-		rendered = "/" + rendered
-	}
-	return path
-}
-
 // BuildKFPTags builds MLflow tags containing KFP metadata for a pipeline run.
 func BuildKFPTags(run *apiserverPlugins.PendingRun, kfpBaseURL, kfpRunURLPathTemplate string) []commonmlflow.Tag {
 	if run == nil {
@@ -187,7 +94,7 @@ func BuildKFPTags(run *apiserverPlugins.PendingRun, kfpBaseURL, kfpRunURLPathTem
 	}
 	tags := []commonmlflow.Tag{
 		{Key: TagKFPRunID, Value: run.RunID},
-		{Key: TagKFPRunURL, Value: BuildKFPRunURL(run.RunID, run.Namespace, kfpBaseURL, kfpRunURLPathTemplate)},
+		{Key: TagKFPRunURL, Value: apiserverPlugins.BuildKFPRunURL(run.RunID, run.Namespace, kfpBaseURL, kfpRunURLPathTemplate)},
 	}
 	if run.PipelineID != "" {
 		tags = append(tags, commonmlflow.Tag{Key: TagKFPPipelineID, Value: run.PipelineID})
@@ -237,13 +144,16 @@ func BuildRunURL(requestCtx *commonmlflow.RequestContext, experimentID, runID st
 		)
 		return ""
 	}
-	u := *requestCtx.BaseURL
-	basePath := stringsTrimRightSlash(u.Path)
-	u.Path = fmt.Sprintf("%s/experiments/%s/runs/%s", basePath, url.PathEscape(experimentID), url.PathEscape(runID))
-	if requestCtx.WorkspacesEnabled && requestCtx.Workspace != "" {
-		q := u.Query()
-		q.Set("workspace", requestCtx.Workspace)
-		u.RawQuery = q.Encode()
+	trackingUIBase := mlflowTrackingUIMountBase(requestCtx, settings)
+	if trackingUIBase == "" {
+		glog.V(4).Infof(
+			"BuildRunURL returned empty URL: no mlflowBaseURL and requestCtx.BaseURL is unavailable",
+		)
+		return ""
+	}
+	uiPathPrefix := ""
+	if settings != nil {
+		uiPathPrefix = normalizeMlflowUIPathPrefix(settings.MLflowUIPathPrefix)
 	}
 
 	trackingMlflowRunPath := fmt.Sprintf(
@@ -252,7 +162,7 @@ func BuildRunURL(requestCtx *commonmlflow.RequestContext, experimentID, runID st
 		url.PathEscape(runID),
 	)
 	if requestCtx != nil && requestCtx.WorkspacesEnabled && requestCtx.Workspace != "" {
-		trackingMlflowRunPath = fmt.Sprintf("%s?workspace=%s", trackingMlflowRunPath, url.QueryEscape(requestCtx.Workspace))
+		trackingMlflowRunPath = fmt.Sprintf("%s?workspace=%s", trackingMlflowRunPath, url.QueryEscape(strings.ToLower(requestCtx.Workspace)))
 	}
 	return trackingUIBase + uiPathPrefix + "/#" + trackingMlflowRunPath
 }
@@ -265,141 +175,13 @@ func FailedPluginOutput(experimentID, experimentName, runID, runURL, stateMessag
 	return buildPluginOutput(experimentID, experimentName, runID, runURL, apiv2beta1.PluginState_PLUGIN_FAILED, stateMessage)
 }
 
-// upsertPluginOutput merges a single plugin's output into an existing
-// plugins_output JSON string, returning the updated JSON.
-func upsertPluginOutput(existing *string, pluginName string, output *apiv2beta1.PluginOutput) (string, error) {
-	marshaledOutput, err := protojson.Marshal(output)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal plugin output for %q: %w", pluginName, err)
-	}
-	var envelope pluginsOutputEnvelope
-	if existing != nil && *existing != "" {
-		if err := json.Unmarshal([]byte(*existing), &envelope); err != nil {
-			return "", fmt.Errorf("failed to unmarshal existing plugins_output: %w", err)
-		}
-	}
-	envelope.set(pluginName, marshaledOutput)
-	marshaledMap, err := json.Marshal(envelope)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal plugins_output map: %w", err)
-	}
-	return string(marshaledMap), nil
-}
-
-// ModelToPersistedRun converts a model.Run to a PersistedRun for the
-// post-run plugin hooks (OnRunEnd, OnRunRetry).
-func ModelToPersistedRun(m *model.Run, namespace string) (*apiserverPlugins.PersistedRun, error) {
-	if m == nil {
-		return nil, fmt.Errorf("model.Run is nil")
-	}
-	pluginsOutput, err := DeserializePluginsOutput(m.PluginsOutputString)
-	if err != nil {
-		return nil, fmt.Errorf("failed to deserialize plugins_output for run %q: %w", m.UUID, err)
-	}
-	pr := &apiserverPlugins.PersistedRun{
-		RunID:         m.UUID,
-		Namespace:     namespace,
-		State:         string(m.RunDetails.State), //nolint:staticcheck // QF1008
-		PluginsOutput: pluginsOutput,
-	}
-	if m.RunDetails.FinishedAtInSec > 0 { //nolint:staticcheck // QF1008
-		t := time.Unix(m.RunDetails.FinishedAtInSec, 0) //nolint:staticcheck // QF1008
-		pr.FinishedAt = &t
-	}
-	return pr, nil
-}
-
-// SetPendingRunPluginOutput serializes the given PluginOutput into PendingRun.PluginsOutput.
-func SetPendingRunPluginOutput(run *apiserverPlugins.PendingRun, pluginName string, output *apiv2beta1.PluginOutput) error {
-	if run == nil || output == nil || pluginName == "" {
-		return nil
-	}
-	result, err := upsertPluginOutput(run.PluginsOutput, pluginName, output)
-	if err != nil {
-		return err
-	}
-	run.PluginsOutput = &result
-	return nil
-}
-
-func DeserializePluginsOutput(raw *model.LargeText) (map[string]*apiv2beta1.PluginOutput, error) {
-	result := make(map[string]*apiv2beta1.PluginOutput)
-	if raw == nil || *raw == "" {
-		return result, nil
-	}
-	var envelope pluginsOutputEnvelope
-	if err := json.Unmarshal([]byte(*raw), &envelope); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal plugins_output: %w", err)
-	}
-	envelope.forEachEntry(func(name string, payload json.RawMessage) {
-		output := &apiv2beta1.PluginOutput{}
-		if err := protojson.Unmarshal(payload, output); err == nil {
-			result[name] = output
-		}
-	})
-	return result, nil
-}
-
-func SerializePluginsOutput(outputs map[string]*apiv2beta1.PluginOutput) (*model.LargeText, error) {
-	if len(outputs) == 0 {
-		return nil, nil
-	}
-	var envelope pluginsOutputEnvelope
-	for key, output := range outputs {
-		marshaledOutput, err := protojson.Marshal(output)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal plugin output for %q: %w", key, err)
-		}
-		envelope.set(key, marshaledOutput)
-	}
-	marshaledMap, err := json.Marshal(envelope)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal plugins_output map: %w", err)
-	}
-	lt := model.LargeText(string(marshaledMap))
-	return &lt, nil
-}
-
-// PersistPluginsOutput serializes the PersistedRun's PluginsOutput and writes
-// it to the database via the given store.
-func PersistPluginsOutput(run *apiserverPlugins.PersistedRun, store apiserverPlugins.RunPluginOutputStore) error {
-	lt, err := SerializePluginsOutput(run.PluginsOutput)
-	if err != nil {
-		return fmt.Errorf("failed to serialize plugins_output for run %q: %w", run.RunID, err)
-	}
-	return store.UpdateRunPluginsOutput(run.RunID, lt)
-}
-
-func GetStringEntry(output *apiv2beta1.PluginOutput, key string) string {
-	if output == nil || output.Entries == nil || key == "" {
-		return ""
-	}
-	entry, ok := output.Entries[key]
-	if !ok || entry == nil || entry.Value == nil {
-		return ""
-	}
-	return entry.Value.GetStringValue()
-}
-
-func GetParentRunID(output *apiv2beta1.PluginOutput) string {
-	return GetStringEntry(output, EntryRootRunID)
-}
-
-func SetPluginOutputState(output *apiv2beta1.PluginOutput, state apiv2beta1.PluginState, stateMessage string) {
-	if output == nil {
-		return
-	}
-	output.State = state
-	output.StateMessage = stateMessage
-}
-
 // maxSearchPages caps SearchRuns pagination to prevent infinite loops.
 const maxSearchPages = 100
 
 // maxNestingDepth caps recursive nested run traversal.
 const maxNestingDepth = 4
 
-func SyncParentAndNestedRuns(ctx context.Context, requestCtx *commonmlflow.RequestContext, parentRunID, experimentID string, mode RunSyncMode, terminalStatus string, endTimeMs *int64) []string {
+func SyncParentAndNestedRuns(ctx context.Context, requestCtx *commonmlflow.RequestContext, parentRunID, experimentID string, mode apiserverPlugins.RunSyncMode, terminalStatus string, endTimeMs *int64) []string {
 	if requestCtx == nil || requestCtx.Client == nil {
 		return []string{"MLflow request context is required"}
 	}
@@ -409,10 +191,10 @@ func SyncParentAndNestedRuns(ctx context.Context, requestCtx *commonmlflow.Reque
 	targetStatus := terminalStatus
 	parentAction := "update parent run status"
 	switch mode {
-	case RunSyncModeRetry:
+	case apiserverPlugins.RunSyncModeRetry:
 		targetStatus = "RUNNING"
 		parentAction = "reopen parent run"
-	case RunSyncModeTerminal:
+	case apiserverPlugins.RunSyncModeTerminal:
 		// keep caller-provided terminal status
 	default:
 		return []string{fmt.Sprintf("unsupported MLflow run sync mode %q", mode)}
@@ -433,12 +215,12 @@ func SyncParentAndNestedRuns(ctx context.Context, requestCtx *commonmlflow.Reque
 // syncNestedRuns searches for MLflow runs tagged with the given parentRunID and
 // updates their status. It recurses into each found run to handle deeper nesting
 // (e.g., parent → loop nested run → iteration nested run).
-func syncNestedRuns(ctx context.Context, requestCtx *commonmlflow.RequestContext, parentRunID, experimentID string, mode RunSyncMode, targetStatus string, endTimeMs *int64, depth int) []string {
+func syncNestedRuns(ctx context.Context, requestCtx *commonmlflow.RequestContext, parentRunID, experimentID string, mode apiserverPlugins.RunSyncMode, targetStatus string, endTimeMs *int64, depth int) []string {
 	if depth >= maxNestingDepth {
 		return []string{fmt.Sprintf("max nesting depth (%d) reached when syncing children of run %s", maxNestingDepth, parentRunID)}
 	}
 	action := "close nested run"
-	if mode == RunSyncModeRetry {
+	if mode == apiserverPlugins.RunSyncModeRetry {
 		action = "reopen nested run"
 	}
 	var syncErrors []string
@@ -501,12 +283,12 @@ func buildPluginOutput(experimentID, experimentName, runID, runURL string, state
 	}
 }
 
-func shouldSyncNestedRun(mode RunSyncMode, status string) bool {
+func shouldSyncNestedRun(mode apiserverPlugins.RunSyncMode, status string) bool {
 	upperStatus := strings.ToUpper(status)
 	switch mode {
-	case RunSyncModeTerminal:
+	case apiserverPlugins.RunSyncModeTerminal:
 		return upperStatus != "FINISHED" && upperStatus != "FAILED" && upperStatus != "KILLED"
-	case RunSyncModeRetry:
+	case apiserverPlugins.RunSyncModeRetry:
 		return upperStatus == "FAILED" || upperStatus == "KILLED"
 	default:
 		return false
