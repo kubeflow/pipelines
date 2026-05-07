@@ -130,7 +130,7 @@ matplotlib-inline==0.1.7
     # via
     #   ipykernel
     #   ipython
-mistune==3.1.4
+mistune==3.2.1
     # via nbconvert
 ml-dtypes==0.3.2
     # via tensorflow
