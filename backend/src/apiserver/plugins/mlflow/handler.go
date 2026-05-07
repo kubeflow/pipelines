@@ -23,7 +23,7 @@ import (
 	"github.com/golang/glog"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
-	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/mlflow"
+	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 )
 
 var _ apiserverPlugins.RunPluginHandler = (*Handler)(nil)
@@ -64,7 +64,7 @@ func (h *Handler) OnBeforeRunCreation(ctx context.Context, run *apiserverPlugins
 	experimentID, experimentName := SelectMLflowExperiment(h.input, settings)
 
 	resolvedCfg := &ResolvedConfig{Config: pluginConfig, Settings: settings}
-	mlflowRequestCtx, err := BuildMLflowRequestContext(ctx, h.namespace, resolvedCfg)
+	mlflowRequestCtx, err := BuildMLflowRunRequestContext(ctx, h.namespace, resolvedCfg)
 	if err != nil {
 		return FailedPluginOutput(experimentID, experimentName, "", "", endpoint, fmt.Sprintf("failed to build MLflow request context: %v", err)), err
 	}
@@ -94,9 +94,15 @@ func (h *Handler) OnBeforeRunCreation(ctx context.Context, run *apiserverPlugins
 	if settings.WorkspacesEnabled != nil && *settings.WorkspacesEnabled {
 		workspace = h.namespace
 	}
+	// TLS.CABundlePath is intentionally omitted: driver/launcher pods do not
+	// have access to the API server's CA bundle file. CA trust for those pods
+	// is configured via cluster-wide trusted CA injection or volume mounts
+	// managed outside the plugin config. Only InsecureSkipVerify is carried
+	// over because it is a boolean flag independent of filesystem context.
 	mlflowRuntimeConfig := commonmlflow.MLflowRuntimeConfig{
 		Endpoint:           mlflowRequestCtx.BaseURL.String(),
 		Workspace:          workspace,
+		WorkspacesEnabled:  settings.WorkspacesEnabled != nil && *settings.WorkspacesEnabled,
 		ParentRunID:        parentRunID,
 		ExperimentID:       mlflowExperiment.ID,
 		AuthType:           commonmlflow.AuthTypeKubernetes,
@@ -135,7 +141,7 @@ func (h *Handler) syncOnRunTerminal(ctx context.Context, run *apiserverPlugins.P
 		endTimeMs = run.FinishedAt.UnixMilli()
 		endTimeRef = &endTimeMs
 	}
-	terminalStatus := commonmlflow.ToMLflowTerminalStatus(run.State)
+	terminalStatus := ToMLflowTerminalStatus(run.State)
 	h.syncMLflowRuns(ctx, run, config, RunSyncModeTerminal, terminalStatus, endTimeRef, "terminal")
 	return nil
 }
@@ -180,7 +186,7 @@ func (h *Handler) syncMLflowRuns(ctx context.Context, run *apiserverPlugins.Pers
 	settings := ApplySettingsDefaults(config.Settings)
 
 	resolvedCfg := &ResolvedConfig{Config: config, Settings: settings}
-	mlflowRequestCtx, err := BuildMLflowRequestContext(ctx, h.namespace, resolvedCfg)
+	mlflowRequestCtx, err := BuildMLflowRunRequestContext(ctx, h.namespace, resolvedCfg)
 	if err != nil {
 		msg := fmt.Sprintf("MLflow %s sync failed: %v", label, err)
 		glog.Warning(msg)
