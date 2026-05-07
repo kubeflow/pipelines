@@ -27,7 +27,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	_ "github.com/kubeflow/pipelines/backend/src/v2/common/plugins/all"
 
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -185,6 +188,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	var execution *metadata.Execution
 	var executorOutput *pipelinespec.ExecutorOutput
 	var outputArtifacts []*metadata.OutputArtifact
+	var dispatcher plugins.TaskPluginDispatcher
 	status := pb.Execution_FAILED
 	defer func() {
 		if execution == nil {
@@ -200,6 +204,19 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 			}
 		}
 		glog.Infof("publish success.")
+
+		if dispatcher != nil {
+			taskPluginInfo := &plugins.TaskInfo{
+				RunStatus:     status.String(),
+				ScalarMetrics: metadata.FormatScalarMetricArtifacts(outputArtifacts),
+				Parameters:    metadata.FormatExecutionParameters(execution),
+			}
+			dispatchErr := dispatcher.OnTaskEnd(ctx, taskPluginInfo)
+			if dispatchErr != nil {
+				glog.Errorf("failed to dispatch task end: %v", dispatchErr)
+			}
+		}
+
 		// At the end of the current task, we check the statuses of all tasks in
 		// the current DAG and update the DAG's status accordingly.
 		dag, err := l.clientManager.MetadataClient().GetDAG(ctx, execution.GetExecution().CustomProperties["parent_dag_id"].GetIntValue())
@@ -216,6 +233,20 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	execution, err = l.prePublish(ctx)
 	if err != nil {
 		return err
+	}
+
+	// Construct the plugin dispatcher after prePublish so we can hydrate
+	// handlers with plugin custom properties from the MLMD execution
+	// (written by the driver during CreateExecution). This reuses the
+	// execution already fetched by prePublish with zero additional queries.
+	dispatcher, dispatchErr := plugins.GetPluginDispatcher()
+	if dispatchErr != nil {
+		glog.Errorf("Failed to get plugin dispatcher: %v", dispatchErr)
+	} else {
+		pluginProps := metadata.ExtractPluginCustomProperties(execution)
+		if pluginProps != nil {
+			dispatcher.ApplyCustomProperties(pluginProps)
+		}
 	}
 	fingerPrint := execution.FingerPrint()
 	storeSessionInfo, err := objectstore.GetSessionInfoFromString(execution.GetPipeline().GetStoreSessionInfo())
