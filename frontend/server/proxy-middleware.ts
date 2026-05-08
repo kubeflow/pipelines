@@ -90,7 +90,6 @@ export function _isBlockedTarget(hostname: string): boolean {
   const mappedHex = h.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
   if (mappedHex) {
     const hi = parseInt(mappedHex[1], 16);
-    const lo = parseInt(mappedHex[2], 16);
     const a = (hi >> 8) & 0xff;
     const b = hi & 0xff;
     return _isPrivateIPv4(a, b);
