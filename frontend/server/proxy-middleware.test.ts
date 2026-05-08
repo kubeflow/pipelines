@@ -44,6 +44,11 @@ describe('_isBlockedTarget', () => {
     it('is case-insensitive for metadata hostnames', () => {
       expect(_isBlockedTarget('Metadata.Google.Internal')).toBe(true);
     });
+
+    it('blocks trailing-dot FQDN forms of metadata hostnames', () => {
+      expect(_isBlockedTarget('metadata.google.internal.')).toBe(true);
+      expect(_isBlockedTarget('metadata.goog.')).toBe(true);
+    });
   });
 
   describe('loopback addresses', () => {
@@ -66,6 +71,11 @@ describe('_isBlockedTarget', () => {
     it('blocks *.localhost subdomains (RFC 6761)', () => {
       expect(_isBlockedTarget('anything.localhost')).toBe(true);
       expect(_isBlockedTarget('foo.bar.localhost')).toBe(true);
+    });
+
+    it('blocks trailing-dot FQDN forms of localhost', () => {
+      expect(_isBlockedTarget('localhost.')).toBe(true);
+      expect(_isBlockedTarget('foo.localhost.')).toBe(true);
     });
 
     it('blocks IPv6 loopback ::1', () => {
@@ -110,6 +120,15 @@ describe('_isBlockedTarget', () => {
 
     it('blocks IPv6 link-local fe80::', () => {
       expect(_isBlockedTarget('fe80::1')).toBe(true);
+    });
+
+    it('blocks IPv6 Unique Local Addresses (fc00::/7)', () => {
+      expect(_isBlockedTarget('fc00::1')).toBe(true);
+      expect(_isBlockedTarget('fd12:3456:789a::1')).toBe(true);
+    });
+
+    it('blocks IPv6 unspecified address ::', () => {
+      expect(_isBlockedTarget('::')).toBe(true);
     });
   });
 

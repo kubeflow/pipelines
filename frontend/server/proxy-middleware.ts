@@ -52,35 +52,42 @@ function _isPrivateIPv4(a: number, b: number): boolean {
  * firewalls) is recommended in addition to this check.
  */
 export function _isBlockedTarget(hostname: string): boolean {
-  if (BLOCKED_HOSTS.has(hostname.toLowerCase())) {
+  // Normalise: strip brackets, lowercase, and remove a single trailing dot
+  // (FQDN form). Resolvers treat "localhost." the same as "localhost", so
+  // without this step an attacker can bypass every string check below.
+  let h = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  if (h.endsWith('.')) {
+    h = h.slice(0, -1);
+  }
+
+  if (BLOCKED_HOSTS.has(h)) {
     return true;
   }
 
   // Block raw IPv4 loopback and private ranges
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) {
-    const parts = hostname.split('.').map(Number);
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h)) {
+    const parts = h.split('.').map(Number);
     if (_isPrivateIPv4(parts[0], parts[1])) {
       return true;
     }
   }
 
-  // Block IPv6 loopback and link-local (covers [::1], [fe80::...], etc.)
-  if (hostname === '::1' || hostname === '[::1]') {
+  // Block IPv6 loopback, link-local, and Unique Local Addresses (ULA)
+  if (h === '::1' || h === '' || h === '::') {
     return true;
   }
-  const bare = hostname.replace(/^\[|\]$/g, '');
-  if (/^fe80:/i.test(bare)) {
+  if (/^fe80:/i.test(h) || /^fc00:/i.test(h) || /^fd[0-9a-f]{2}:/i.test(h)) {
     return true;
   }
 
   // IPv4-mapped IPv6 addresses: Node.js normalises ::ffff:127.0.0.1 to the
   // hex form ::ffff:7f00:1, so we must handle both dotted-decimal and hex.
-  const mappedDotted = bare.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
+  const mappedDotted = h.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
   if (mappedDotted) {
     const parts = mappedDotted[1].split('.').map(Number);
     return _isPrivateIPv4(parts[0], parts[1]);
   }
-  const mappedHex = bare.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+  const mappedHex = h.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
   if (mappedHex) {
     const hi = parseInt(mappedHex[1], 16);
     const lo = parseInt(mappedHex[2], 16);
@@ -90,7 +97,7 @@ export function _isBlockedTarget(hostname: string): boolean {
   }
 
   // Block localhost and *.localhost (RFC 6761)
-  if (/^localhost$/i.test(hostname) || /\.localhost$/i.test(hostname)) {
+  if (h === 'localhost' || h.endsWith('.localhost')) {
     return true;
   }
 
