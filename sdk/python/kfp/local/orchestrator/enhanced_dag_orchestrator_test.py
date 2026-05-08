@@ -18,78 +18,8 @@ import unittest
 from unittest import mock
 
 from kfp.local import io
-from kfp.local import status
 from kfp.local.orchestrator import cel
 from kfp.local.orchestrator import enhanced_dag_orchestrator as edo
-from kfp.pipeline_spec import pipeline_spec_pb2 as ps
-
-
-def _task_with_deps(dep_list):
-    spec = ps.PipelineTaskSpec()
-    spec.dependent_tasks.extend(dep_list)
-    return spec
-
-
-def _task_with_output_parameter(producer, key='Output'):
-    spec = ps.PipelineTaskSpec()
-    input_spec = spec.inputs.parameters['x']
-    input_spec.task_output_parameter.producer_task = producer
-    input_spec.task_output_parameter.output_parameter_key = key
-    return spec
-
-
-def _task_with_output_artifact(producer, key='Output'):
-    spec = ps.PipelineTaskSpec()
-    input_spec = spec.inputs.artifacts['a']
-    input_spec.task_output_artifact.producer_task = producer
-    input_spec.task_output_artifact.output_artifact_key = key
-    return spec
-
-
-class TestBuildFullDependencyMap(unittest.TestCase):
-
-    def test_explicit_dependent_tasks(self):
-        tasks = {
-            'a': _task_with_deps([]),
-            'b': _task_with_deps(['a']),
-            'c': _task_with_deps(['a', 'b']),
-        }
-        deps = edo._build_full_dependency_map(tasks)
-        self.assertEqual(deps['a'], [])
-        self.assertEqual(deps['b'], ['a'])
-        self.assertEqual(deps['c'], ['a', 'b'])
-
-    def test_implicit_output_parameter_edges(self):
-        tasks = {
-            'producer': _task_with_deps([]),
-            'consumer': _task_with_output_parameter('producer'),
-        }
-        deps = edo._build_full_dependency_map(tasks)
-        self.assertEqual(deps['consumer'], ['producer'])
-
-    def test_implicit_output_artifact_edges(self):
-        tasks = {
-            'producer': _task_with_deps([]),
-            'consumer': _task_with_output_artifact('producer'),
-        }
-        deps = edo._build_full_dependency_map(tasks)
-        self.assertEqual(deps['consumer'], ['producer'])
-
-    def test_unknown_producer_is_ignored(self):
-        tasks = {
-            'consumer': _task_with_output_parameter('not-in-dag'),
-        }
-        deps = edo._build_full_dependency_map(tasks)
-        self.assertEqual(deps['consumer'], [])
-
-    def test_parallel_for_iterator_edge(self):
-        producer = _task_with_deps([])
-        loop = ps.PipelineTaskSpec()
-        loop.parameter_iterator.items.input_parameter = (
-            'pipelinechannel--producer-Output-loop-item')
-        tasks = {'producer': producer, 'loop': loop}
-        deps = edo._build_full_dependency_map(tasks)
-        self.assertEqual(deps['loop'], ['producer'])
 
 
 class TestMarkSkipped(unittest.TestCase):

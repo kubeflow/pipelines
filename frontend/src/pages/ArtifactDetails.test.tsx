@@ -181,6 +181,7 @@ describe('ArtifactDetails', () => {
         }),
       );
     });
+    expect(screen.queryByRole('progressbar')).toBeNull();
   });
 
   it('shows page error banner when multiple artifacts found for the given ID', async () => {
@@ -213,6 +214,7 @@ describe('ArtifactDetails', () => {
         }),
       );
     });
+    expect(screen.queryByRole('progressbar')).toBeNull();
   });
 
   it('shows fallback error message when a non-service error with no message is thrown', async () => {
@@ -228,6 +230,7 @@ describe('ArtifactDetails', () => {
         }),
       );
     });
+    expect(screen.queryByRole('progressbar')).toBeNull();
   });
 
   it('shows extracted error message when a non-service error with text() is thrown', async () => {
@@ -243,6 +246,33 @@ describe('ArtifactDetails', () => {
         }),
       );
     });
+  });
+
+  it('shows spinner again when retrying after a failure', async () => {
+    getArtifactsByIDSpy.mockRejectedValueOnce(new Error('transient'));
+
+    renderWithRouter(generateProps());
+
+    let refreshFn: (() => Promise<void>) | undefined;
+    await waitFor(() => {
+      expect(updateBannerSpy).toHaveBeenCalledWith(expect.objectContaining({ mode: 'error' }));
+      const bannerCall = updateBannerSpy.mock.calls.find(
+        (call) => call[0]?.mode === 'error' && typeof call[0]?.refresh === 'function',
+      );
+      expect(bannerCall).toBeDefined();
+      refreshFn = bannerCall![0].refresh;
+    });
+    expect(screen.queryByRole('progressbar')).toBeNull();
+
+    mockSuccessfulLoad();
+    updateBannerSpy.mockClear();
+
+    await refreshFn!();
+
+    await waitFor(() => {
+      expect(screen.getByText('Overview')).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('progressbar')).toBeNull();
   });
 
   it('renders a new ArtifactDetails instance when artifact ID in URL changes', async () => {

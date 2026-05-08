@@ -583,6 +583,40 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         # ParallelFor detection should route to enhanced orchestrator
         # and execute tasks in parallel
 
+    def test_parallel_for_uses_iterator_policy_parallelism_limit(self):
+        local.init(
+            local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def pass_op():
+            pass
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor([1, 2, 3], parallelism=1):
+                pass_op()
+
+        from kfp.local.orchestrator import enhanced_dag_orchestrator
+
+        captured_parallelism_limits = []
+        original_execute_parallel_tasks = (
+            enhanced_dag_orchestrator.ParallelExecutor.execute_parallel_tasks)
+
+        def wrapped_execute_parallel_tasks(self, *args, **kwargs):
+            captured_parallelism_limits.append(
+                kwargs.get('parallelism_limit', 0))
+            return original_execute_parallel_tasks(self, *args, **kwargs)
+
+        with mock.patch.object(
+                enhanced_dag_orchestrator.ParallelExecutor,
+                'execute_parallel_tasks',
+                new=wrapped_execute_parallel_tasks):
+            task = my_pipeline()
+
+        self.assertIsInstance(task, pipeline_task.PipelineTask)
+        self.assertEqual(captured_parallelism_limits, [1])
+
     def test_parallel_for_with_venv(self):
         # Use use_venv=True with pip installation serialization enabled
         # This test demonstrates the fix for pip race conditions

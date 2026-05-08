@@ -1,0 +1,579 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: pipeline-with-oneof-
+spec:
+  arguments:
+    parameters:
+    - name: components-345885ab46892e164e30e51deab5186cad3c95039728a9df2500008fd9195301
+      value: '{"executorLabel":"exec-branch-a","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-345885ab46892e164e30e51deab5186cad3c95039728a9df2500008fd9195301
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","branch_a"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        branch_a() -\u003e str:\n    return ''A''\n\n"],"image":"python:3.11"}'
+    - name: components-comp-condition-2
+      value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--branch-a-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"branch-a"}}}},"tasks":{"branch-a":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-branch-a"},"taskInfo":{"name":"branch-a"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--pick_a":{"parameterType":"BOOLEAN"}}},"outputDefinitions":{"parameters":{"pipelinechannel--branch-a-Output":{"parameterType":"STRING"}}}}'
+    - name: components-c8bc4ed13198308ce9e16ab544906ee6dfacce8e28bacf34f356e9feafc2a1c9
+      value: '{"executorLabel":"exec-branch-b","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-c8bc4ed13198308ce9e16ab544906ee6dfacce8e28bacf34f356e9feafc2a1c9
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","branch_b"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        branch_b() -\u003e str:\n    return ''B''\n\n"],"image":"python:3.11"}'
+    - name: components-comp-condition-3
+      value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--branch-b-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"branch-b"}}}},"tasks":{"branch-b":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-branch-b"},"taskInfo":{"name":"branch-b"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--pick_a":{"parameterType":"BOOLEAN"}}},"outputDefinitions":{"parameters":{"pipelinechannel--branch-b-Output":{"parameterType":"STRING"}}}}'
+    - name: components-comp-condition-branches-1
+      value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--condition-branches-1-oneof-1":{"valueFromOneof":{"parameterSelectors":[{"outputParameterKey":"pipelinechannel--branch-a-Output","producerSubtask":"condition-2"},{"outputParameterKey":"pipelinechannel--branch-b-Output","producerSubtask":"condition-3"}]}}}},"tasks":{"condition-2":{"componentRef":{"name":"comp-condition-2"},"inputs":{"parameters":{"pipelinechannel--pick_a":{"componentInputParameter":"pipelinechannel--pick_a"}}},"taskInfo":{"name":"condition-2"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--pick_a'']
+        == true"}},"condition-3":{"componentRef":{"name":"comp-condition-3"},"inputs":{"parameters":{"pipelinechannel--pick_a":{"componentInputParameter":"pipelinechannel--pick_a"}}},"taskInfo":{"name":"condition-3"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--pick_a'']
+        == true)"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--pick_a":{"parameterType":"BOOLEAN"}}},"outputDefinitions":{"parameters":{"pipelinechannel--condition-branches-1-oneof-1":{"parameterType":"STRING"}}}}'
+    - name: components-0334bab4c0ff504e38be8c2bab8c58c52e6b4e30d2b4db6568e3ff2f6477084f
+      value: '{"executorLabel":"exec-tag-selected","inputDefinitions":{"parameters":{"value":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-0334bab4c0ff504e38be8c2bab8c58c52e6b4e30d2b4db6568e3ff2f6477084f
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","tag_selected"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        tag_selected(value: str) -\u003e str:\n    return f''selected:{value}''\n\n"],"image":"python:3.11"}'
+    - name: components-root
+      value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"tag-selected"}}}},"tasks":{"condition-branches-1":{"componentRef":{"name":"comp-condition-branches-1"},"inputs":{"parameters":{"pipelinechannel--pick_a":{"componentInputParameter":"pick_a"}}},"taskInfo":{"name":"condition-branches-1"}},"tag-selected":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-tag-selected"},"dependentTasks":["condition-branches-1"],"inputs":{"parameters":{"value":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--condition-branches-1-oneof-1","producerTask":"condition-branches-1"}}}},"taskInfo":{"name":"tag-selected"}}}},"inputDefinitions":{"parameters":{"pick_a":{"defaultValue":true,"isOptional":true,"parameterType":"BOOLEAN"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - pipeline-with-oneof
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      command:
+      - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: task-name
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 256Mi
+        requests:
+          cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+    metadata: {}
+    name: system-container-impl
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-345885ab46892e164e30e51deab5186cad3c95039728a9df2500008fd9195301}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-branch-a"},"taskInfo":{"name":"branch-a"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-345885ab46892e164e30e51deab5186cad3c95039728a9df2500008fd9195301}}'
+          - name: task-name
+            value: branch-a
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: branch-a-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.branch-a-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.branch-a-driver.outputs.parameters.cached-decision}}'
+        depends: branch-a-driver.Succeeded
+        name: branch-a
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-2
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-c8bc4ed13198308ce9e16ab544906ee6dfacce8e28bacf34f356e9feafc2a1c9}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-branch-b"},"taskInfo":{"name":"branch-b"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-c8bc4ed13198308ce9e16ab544906ee6dfacce8e28bacf34f356e9feafc2a1c9}}'
+          - name: task-name
+            value: branch-b
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: branch-b-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.branch-b-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.branch-b-driver.outputs.parameters.cached-decision}}'
+        depends: branch-b-driver.Succeeded
+        name: branch-b
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-3
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - pipeline-with-oneof
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+    inputs:
+      parameters:
+      - name: component
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
+      - default: ""
+        name: task-name
+      - default: "0"
+        name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-2}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-2"},"inputs":{"parameters":{"pipelinechannel--pick_a":{"componentInputParameter":"pipelinechannel--pick_a"}}},"taskInfo":{"name":"condition-2"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--pick_a'']
+              == true"}}'
+          - name: task-name
+            value: condition-2
+        name: condition-2-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-2-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-2-driver.outputs.parameters.condition}}'
+        depends: condition-2-driver.Succeeded
+        name: condition-2
+        template: comp-condition-2
+        when: '{{tasks.condition-2-driver.outputs.parameters.condition}} != false'
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-3}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-3"},"inputs":{"parameters":{"pipelinechannel--pick_a":{"componentInputParameter":"pipelinechannel--pick_a"}}},"taskInfo":{"name":"condition-3"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--pick_a'']
+              == true)"}}'
+          - name: task-name
+            value: condition-3
+        name: condition-3-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-3-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-3-driver.outputs.parameters.condition}}'
+        depends: condition-3-driver.Succeeded
+        name: condition-3
+        template: comp-condition-3
+        when: '{{tasks.condition-3-driver.outputs.parameters.condition}} != false'
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-branches-1
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-branches-1}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-branches-1"},"inputs":{"parameters":{"pipelinechannel--pick_a":{"componentInputParameter":"pick_a"}}},"taskInfo":{"name":"condition-branches-1"}}'
+          - name: task-name
+            value: condition-branches-1
+        name: condition-branches-1-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-branches-1-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-branches-1-driver.outputs.parameters.condition}}'
+        depends: condition-branches-1-driver.Succeeded
+        name: condition-branches-1
+        template: comp-condition-branches-1
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-0334bab4c0ff504e38be8c2bab8c58c52e6b4e30d2b4db6568e3ff2f6477084f}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-tag-selected"},"dependentTasks":["condition-branches-1"],"inputs":{"parameters":{"value":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--condition-branches-1-oneof-1","producerTask":"condition-branches-1"}}}},"taskInfo":{"name":"tag-selected"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-0334bab4c0ff504e38be8c2bab8c58c52e6b4e30d2b4db6568e3ff2f6477084f}}'
+          - name: task-name
+            value: tag-selected
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: condition-branches-1.Succeeded
+        name: tag-selected-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.tag-selected-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.tag-selected-driver.outputs.parameters.cached-decision}}'
+        depends: tag-selected-driver.Succeeded
+        name: tag-selected
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
+          - name: runtime-config
+            value: '{"parameterValues":{"pick_a":true}}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null

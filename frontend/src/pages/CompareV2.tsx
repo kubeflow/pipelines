@@ -50,6 +50,7 @@ import {
 import CompareTable, { CompareTableProps } from 'src/components/CompareTable';
 import {
   compareCss,
+  COMPARE_PANEL_COUNT,
   ExecutionArtifact,
   FullArtifactPathMap,
   getScalarTableProps,
@@ -263,9 +264,9 @@ const createSelectedArtifactArray = (count: number): SelectedArtifact[] => {
 };
 
 const createInitialSelectedArtifactsMap = () => ({
-  [MetricsType.CONFUSION_MATRIX]: createSelectedArtifactArray(2),
-  [MetricsType.HTML]: createSelectedArtifactArray(2),
-  [MetricsType.MARKDOWN]: createSelectedArtifactArray(2),
+  [MetricsType.CONFUSION_MATRIX]: createSelectedArtifactArray(COMPARE_PANEL_COUNT),
+  [MetricsType.HTML]: createSelectedArtifactArray(COMPARE_PANEL_COUNT),
+  [MetricsType.MARKDOWN]: createSelectedArtifactArray(COMPARE_PANEL_COUNT),
 });
 
 const createInitialRocCurveSelectionState = (): RocCurveSelectionState => ({
@@ -283,6 +284,7 @@ const areSelectedArtifactsEqual = (
   currentArtifacts.every((currentArtifact, index) => {
     const nextArtifact = nextArtifacts[index];
     return (
+      currentArtifact.selectedItem.runId === nextArtifact.selectedItem.runId &&
       currentArtifact.selectedItem.itemName === nextArtifact.selectedItem.itemName &&
       currentArtifact.selectedItem.subItemName === nextArtifact.selectedItem.subItemName &&
       currentArtifact.linkedArtifact?.artifact.getId() ===
@@ -290,32 +292,31 @@ const areSelectedArtifactsEqual = (
     );
   });
 
-// Ensure that the two-panel selected artifacts are present in the selected valid run list.
-const getVerifiedTwoPanelSelection = (
+const getVerifiedPanelSelection = (
   runArtifacts: RunArtifact[],
   selectedArtifacts: SelectedArtifact[],
-) => {
-  const artifactsPresent: boolean[] = new Array(2).fill(false);
-  for (const runArtifact of runArtifacts) {
-    const runName = runArtifact.run.display_name;
-    if (runName === selectedArtifacts[0].selectedItem.itemName) {
-      artifactsPresent[0] = true;
+): SelectedArtifact[] => {
+  const validRunIds = new Set(
+    runArtifacts.map((r) => r.run.run_id).filter((id): id is string => id !== undefined),
+  );
+  const validRunDisplayNames = new Set(
+    runArtifacts.map((runArtifact) => runArtifact.run.display_name),
+  );
+  return selectedArtifacts.map((selectedArtifact) => {
+    const { runId, itemName } = selectedArtifact.selectedItem;
+    if (runId) {
+      if (validRunIds.has(runId)) {
+        return selectedArtifact;
+      }
+      if (validRunDisplayNames.has(itemName)) {
+        return { selectedItem: { ...selectedArtifact.selectedItem, runId: undefined } };
+      }
+      return { selectedItem: { itemName: '', subItemName: '' } };
     }
-    if (runName === selectedArtifacts[1].selectedItem.itemName) {
-      artifactsPresent[1] = true;
-    }
-  }
-
-  return selectedArtifacts.map((selectedArtifact, index) => {
-    if (artifactsPresent[index]) {
+    if (validRunDisplayNames.has(itemName)) {
       return selectedArtifact;
     }
-    return {
-      selectedItem: {
-        itemName: '',
-        subItemName: '',
-      },
-    };
+    return { selectedItem: { itemName: '', subItemName: '' } };
   });
 };
 
@@ -329,15 +330,15 @@ const reconcileSelectedArtifactsMap = (
 
   const nextSelectedArtifactsMap = {
     ...currentSelectedArtifactsMap,
-    [MetricsType.CONFUSION_MATRIX]: getVerifiedTwoPanelSelection(
+    [MetricsType.CONFUSION_MATRIX]: getVerifiedPanelSelection(
       metricsArtifactData.confusionMatrixRunArtifacts,
       currentSelectedArtifactsMap[MetricsType.CONFUSION_MATRIX],
     ),
-    [MetricsType.HTML]: getVerifiedTwoPanelSelection(
+    [MetricsType.HTML]: getVerifiedPanelSelection(
       metricsArtifactData.htmlRunArtifacts,
       currentSelectedArtifactsMap[MetricsType.HTML],
     ),
-    [MetricsType.MARKDOWN]: getVerifiedTwoPanelSelection(
+    [MetricsType.MARKDOWN]: getVerifiedPanelSelection(
       metricsArtifactData.markdownRunArtifacts,
       currentSelectedArtifactsMap[MetricsType.MARKDOWN],
     ),
