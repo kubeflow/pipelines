@@ -17,6 +17,60 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import { URL, URLSearchParams } from 'url';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts.js';
 
+/**
+ * Returns true when the hostname resolves to a private, loopback, or
+ * link-local IP address, or when the hostname matches a known cloud
+ * metadata endpoint. These destinations must never be reachable through
+ * the proxy.
+ */
+export function _isBlockedTarget(hostname: string): boolean {
+  // Cloud metadata endpoints (AWS, GCP, Azure, DigitalOcean, Oracle, Alibaba)
+  const blockedHosts = [
+    '169.254.169.254',
+    'metadata.google.internal',
+    'metadata.goog',
+    '100.100.100.200',
+  ];
+  if (blockedHosts.includes(hostname.toLowerCase())) {
+    return true;
+  }
+
+  // Block raw IPv4 loopback and private ranges
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) {
+    const parts = hostname.split('.').map(Number);
+    const [a, b] = parts;
+    if (
+      a === 127 || // 127.0.0.0/8 loopback
+      a === 10 || // 10.0.0.0/8
+      (a === 172 && b >= 16 && b <= 31) || // 172.16.0.0/12
+      (a === 192 && b === 168) || // 192.168.0.0/16
+      (a === 169 && b === 254) || // 169.254.0.0/16 link-local
+      a === 0 // 0.0.0.0/8
+    ) {
+      return true;
+    }
+  }
+
+  // Block IPv6 loopback and link-local (covers [::1], [fe80::...], etc.)
+  if (hostname === '::1' || hostname === '[::1]') {
+    return true;
+  }
+  const bare = hostname.replace(/^\[|\]$/g, '');
+  if (
+    /^fe80:/i.test(bare) ||
+    /^::ffff:(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/i.test(bare)
+  ) {
+    return true;
+  }
+
+  // Block localhost variants
+  if (/^localhost$/i.test(hostname)) {
+    return true;
+  }
+
+  return false;
+}
+
 export function _extractUrlFromReferer(proxyPrefix: string, referer = ''): string {
   const index = referer.indexOf(proxyPrefix);
   return index > -1 ? referer.substr(index + proxyPrefix.length) : '';
@@ -63,6 +117,24 @@ export default (app: express.Application, apisPrefix: string) => {
         const proxiedOrigin = new URL(proxiedUrl).origin;
         req.url = proxyPrefix + encodeURIComponent(proxiedOrigin + req.url);
       }
+    }
+    next();
+  });
+
+  // Validate the proxy target before forwarding. Reject requests aimed at
+  // private networks, loopback addresses, or cloud metadata endpoints.
+  app.all(proxyPrefix + '*', (req, res, next) => {
+    try {
+      const target = _routePathWithReferer(proxyPrefix, req.path, req.headers.referer as string);
+      const targetUrl = new URL(target);
+      if (_isBlockedTarget(targetUrl.hostname)) {
+        console.warn(`Blocked proxy request to private/internal target: ${targetUrl.hostname}`);
+        res.status(403).send('Proxy target is not allowed.');
+        return;
+      }
+    } catch {
+      res.status(400).send('Invalid proxy target URL.');
+      return;
     }
     next();
   });
