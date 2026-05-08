@@ -17,36 +17,49 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import { URL, URLSearchParams } from 'url';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts.js';
 
+// Cloud metadata endpoints (AWS, GCP, Azure, DigitalOcean, Oracle, Alibaba).
+const BLOCKED_HOSTS = new Set([
+  '169.254.169.254',
+  'metadata.google.internal',
+  'metadata.goog',
+  '100.100.100.200',
+]);
+
+/**
+ * Returns true when the IPv4 address (as four numeric octets) falls in a
+ * private, loopback, or link-local range.
+ */
+function _isPrivateIPv4(a: number, b: number): boolean {
+  return (
+    a === 127 || // 127.0.0.0/8  loopback
+    a === 10 || // 10.0.0.0/8   private
+    (a === 172 && b >= 16 && b <= 31) || // 172.16.0.0/12 private
+    (a === 192 && b === 168) || // 192.168.0.0/16 private
+    (a === 169 && b === 254) || // 169.254.0.0/16 link-local
+    a === 0 // 0.0.0.0/8
+  );
+}
+
 /**
  * Returns true when the hostname resolves to a private, loopback, or
  * link-local IP address, or when the hostname matches a known cloud
  * metadata endpoint. These destinations must never be reachable through
  * the proxy.
+ *
+ * NOTE: This check is hostname-based and does not perform DNS resolution.
+ * Wildcard DNS services (e.g., 169.254.169.254.nip.io) or DNS rebinding
+ * attacks can bypass it. Defence in depth (network policies, egress
+ * firewalls) is recommended in addition to this check.
  */
 export function _isBlockedTarget(hostname: string): boolean {
-  // Cloud metadata endpoints (AWS, GCP, Azure, DigitalOcean, Oracle, Alibaba)
-  const blockedHosts = [
-    '169.254.169.254',
-    'metadata.google.internal',
-    'metadata.goog',
-    '100.100.100.200',
-  ];
-  if (blockedHosts.includes(hostname.toLowerCase())) {
+  if (BLOCKED_HOSTS.has(hostname.toLowerCase())) {
     return true;
   }
 
   // Block raw IPv4 loopback and private ranges
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) {
     const parts = hostname.split('.').map(Number);
-    const [a, b] = parts;
-    if (
-      a === 127 || // 127.0.0.0/8 loopback
-      a === 10 || // 10.0.0.0/8
-      (a === 172 && b >= 16 && b <= 31) || // 172.16.0.0/12
-      (a === 192 && b === 168) || // 192.168.0.0/16
-      (a === 169 && b === 254) || // 169.254.0.0/16 link-local
-      a === 0 // 0.0.0.0/8
-    ) {
+    if (_isPrivateIPv4(parts[0], parts[1])) {
       return true;
     }
   }
@@ -56,15 +69,28 @@ export function _isBlockedTarget(hostname: string): boolean {
     return true;
   }
   const bare = hostname.replace(/^\[|\]$/g, '');
-  if (
-    /^fe80:/i.test(bare) ||
-    /^::ffff:(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/i.test(bare)
-  ) {
+  if (/^fe80:/i.test(bare)) {
     return true;
   }
 
-  // Block localhost variants
-  if (/^localhost$/i.test(hostname)) {
+  // IPv4-mapped IPv6 addresses: Node.js normalises ::ffff:127.0.0.1 to the
+  // hex form ::ffff:7f00:1, so we must handle both dotted-decimal and hex.
+  const mappedDotted = bare.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
+  if (mappedDotted) {
+    const parts = mappedDotted[1].split('.').map(Number);
+    return _isPrivateIPv4(parts[0], parts[1]);
+  }
+  const mappedHex = bare.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+  if (mappedHex) {
+    const hi = parseInt(mappedHex[1], 16);
+    const lo = parseInt(mappedHex[2], 16);
+    const a = (hi >> 8) & 0xff;
+    const b = hi & 0xff;
+    return _isPrivateIPv4(a, b);
+  }
+
+  // Block localhost and *.localhost (RFC 6761)
+  if (/^localhost$/i.test(hostname) || /\.localhost$/i.test(hostname)) {
     return true;
   }
 

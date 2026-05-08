@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { describe, it, expect } from 'vitest';
+import express from 'express';
+import requests from 'supertest';
 import {
   _isBlockedTarget,
   _extractUrlFromReferer,
@@ -19,6 +21,7 @@ import {
   _routePathWithReferer,
   _rewritePath,
 } from './proxy-middleware.js';
+import proxyMiddleware from './proxy-middleware.js';
 
 describe('_isBlockedTarget', () => {
   describe('cloud metadata endpoints', () => {
@@ -58,6 +61,11 @@ describe('_isBlockedTarget', () => {
 
     it('blocks LOCALHOST (case-insensitive)', () => {
       expect(_isBlockedTarget('LOCALHOST')).toBe(true);
+    });
+
+    it('blocks *.localhost subdomains (RFC 6761)', () => {
+      expect(_isBlockedTarget('anything.localhost')).toBe(true);
+      expect(_isBlockedTarget('foo.bar.localhost')).toBe(true);
     });
 
     it('blocks IPv6 loopback ::1', () => {
@@ -105,7 +113,7 @@ describe('_isBlockedTarget', () => {
     });
   });
 
-  describe('IPv4-mapped IPv6', () => {
+  describe('IPv4-mapped IPv6 (dotted-decimal form)', () => {
     it('blocks ::ffff:127.0.0.1', () => {
       expect(_isBlockedTarget('::ffff:127.0.0.1')).toBe(true);
     });
@@ -116,6 +124,52 @@ describe('_isBlockedTarget', () => {
 
     it('blocks ::ffff:192.168.1.1', () => {
       expect(_isBlockedTarget('::ffff:192.168.1.1')).toBe(true);
+    });
+
+    it('blocks ::ffff:169.254.169.254 (cloud metadata)', () => {
+      expect(_isBlockedTarget('::ffff:169.254.169.254')).toBe(true);
+    });
+
+    it('blocks ::ffff:0.0.0.1', () => {
+      expect(_isBlockedTarget('::ffff:0.0.0.1')).toBe(true);
+    });
+  });
+
+  describe('IPv4-mapped IPv6 (hex form, as normalised by Node.js URL parser)', () => {
+    it('blocks ::ffff:7f00:1 (127.0.0.1 in hex)', () => {
+      expect(_isBlockedTarget('::ffff:7f00:1')).toBe(true);
+    });
+
+    it('blocks the hostname from new URL("http://[::ffff:127.0.0.1]")', () => {
+      const hostname = new URL('http://[::ffff:127.0.0.1]').hostname;
+      expect(_isBlockedTarget(hostname)).toBe(true);
+    });
+
+    it('blocks the hostname from new URL("http://[::ffff:10.0.0.1]")', () => {
+      const hostname = new URL('http://[::ffff:10.0.0.1]').hostname;
+      expect(_isBlockedTarget(hostname)).toBe(true);
+    });
+
+    it('blocks the hostname from new URL("http://[::ffff:192.168.1.1]")', () => {
+      const hostname = new URL('http://[::ffff:192.168.1.1]').hostname;
+      expect(_isBlockedTarget(hostname)).toBe(true);
+    });
+
+    it('blocks the hostname from new URL("http://[::ffff:169.254.169.254]")', () => {
+      const hostname = new URL('http://[::ffff:169.254.169.254]').hostname;
+      expect(_isBlockedTarget(hostname)).toBe(true);
+    });
+
+    it('blocks ::ffff:a00:1 (10.0.0.1 in hex)', () => {
+      expect(_isBlockedTarget('::ffff:a00:1')).toBe(true);
+    });
+
+    it('blocks ::ffff:c0a8:101 (192.168.1.1 in hex)', () => {
+      expect(_isBlockedTarget('::ffff:c0a8:101')).toBe(true);
+    });
+
+    it('does not block ::ffff: with public IP in hex (8.8.8.8 = 808:808)', () => {
+      expect(_isBlockedTarget('::ffff:808:808')).toBe(false);
     });
   });
 
@@ -182,6 +236,52 @@ describe('_routePathWithReferer', () => {
 
   it('prepends http:// when scheme is missing', () => {
     expect(_routePathWithReferer(prefix, prefix + 'example.com%2Fpath')).toBe('http://example.com');
+  });
+});
+
+describe('proxy middleware integration', () => {
+  const apisPrefix = '/apis/v1beta1';
+  const proxyPrefix = apisPrefix + '/_proxy/';
+
+  function createApp(): express.Application {
+    const app = express();
+    proxyMiddleware(app, apisPrefix);
+    return app;
+  }
+
+  it('returns 403 for requests targeting cloud metadata IP', async () => {
+    const app = createApp();
+    await requests(app)
+      .get(proxyPrefix + encodeURIComponent('http://169.254.169.254/latest/meta-data/'))
+      .expect(403, 'Proxy target is not allowed.');
+  });
+
+  it('returns 403 for requests targeting localhost', async () => {
+    const app = createApp();
+    await requests(app)
+      .get(proxyPrefix + encodeURIComponent('http://localhost:8080/secret'))
+      .expect(403, 'Proxy target is not allowed.');
+  });
+
+  it('returns 403 for requests targeting private IP 10.0.0.1', async () => {
+    const app = createApp();
+    await requests(app)
+      .get(proxyPrefix + encodeURIComponent('http://10.0.0.1:8080/'))
+      .expect(403, 'Proxy target is not allowed.');
+  });
+
+  it('returns 403 for IPv4-mapped IPv6 targeting loopback', async () => {
+    const app = createApp();
+    await requests(app)
+      .get(proxyPrefix + encodeURIComponent('http://[::ffff:127.0.0.1]:8080/'))
+      .expect(403, 'Proxy target is not allowed.');
+  });
+
+  it('returns 400 for unparseable proxy target URL', async () => {
+    const app = createApp();
+    await requests(app)
+      .get(proxyPrefix + '://:::invalid')
+      .expect(400, 'Invalid proxy target URL.');
   });
 });
 
