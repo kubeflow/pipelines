@@ -1607,11 +1607,19 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 				"This can be caused by installing two KFP instances that try to manage the same workflows "+
 				"or an unknown bug. If you encounter this, recommend reporting more details in https://github.com/kubeflow/pipelines/issues/6189",
 				execSpec.ExecutionName(), execSpec.ExecutionNamespace(), runId)
-			if err := r.getWorkflowClient(execSpec.ExecutionNamespace()).Delete(ctx, execSpec.ExecutionName(), v1.DeleteOptions{}); err != nil {
-				if util.IsNotFound(err) {
-					return nil, util.NewNotFoundError(err, "Failed to delete the obsolete workflow for run %s", runId)
+			deleteOperation := func() error {
+				err := r.getWorkflowClient(execSpec.ExecutionNamespace()).Delete(ctx, execSpec.ExecutionName(), v1.DeleteOptions{})
+				if err != nil && !util.IsNotFound(err) {
+					return err
 				}
-				return nil, util.NewInternalServerError(err, "Failed to delete the obsolete workflow for run %s", runId)
+				return nil
+			}
+			exponentialBackoff := backoff.NewExponentialBackOff()
+			exponentialBackoff.InitialInterval = 100 * time.Millisecond
+			exponentialBackoff.MaxInterval = 5 * time.Second
+			backoffPolicy := backoff.WithMaxRetries(exponentialBackoff, 10)
+			if err := backoff.Retry(deleteOperation, backoffPolicy); err != nil {
+				return nil, util.NewInternalServerError(err, "Failed to delete the obsolete workflow for run %s after multiple retries", runId)
 			}
 
 			if r.options.CollectMetrics {
