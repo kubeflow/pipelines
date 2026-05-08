@@ -267,6 +267,7 @@ describe('MetricsDropdown', () => {
           itemName: 'run1',
           subItemName: 'execution1',
           subItemSecondaryName: 'artifact1',
+          runId: '1',
         },
       },
       {
@@ -403,7 +404,7 @@ describe('MetricsDropdown', () => {
     });
   });
 
-  it('Dropdown initially loaded with selected artifact', async () => {
+  it('Dropdown initially loaded with selected artifact (display_name fallback, no runId)', async () => {
     const newSelectedArtifacts: SelectedArtifact[] = [
       {
         selectedItem: {
@@ -549,5 +550,65 @@ describe('MetricsDropdown', () => {
     await waitFor(() => {
       expect(getHtmlViewerConfigSpy).toHaveBeenLastCalledWith([freshLinkedArtifact], undefined);
     });
+  });
+
+  it('Dropdown initially loaded with selected artifact resolved via runId', async () => {
+    const getHtmlViewerConfigSpy = vi.spyOn(metricsVisualizations, 'getHtmlViewerConfig');
+    getHtmlViewerConfigSpy.mockResolvedValue([]);
+
+    const artifactFromRunA = newMockLinkedArtifact(10, 'shared-artifact');
+    const artifactFromRunB = newMockLinkedArtifact(20, 'shared-artifact');
+
+    const duplicateNameRunArtifacts: RunArtifact[] = [
+      {
+        run: { run_id: 'run-id-A', display_name: 'duplicate-run' },
+        executionArtifacts: [
+          {
+            execution: newMockExecution(10, 'execution1'),
+            linkedArtifacts: [artifactFromRunA],
+          },
+        ],
+      },
+      {
+        run: { run_id: 'run-id-B', display_name: 'duplicate-run' },
+        executionArtifacts: [
+          {
+            execution: newMockExecution(20, 'execution1'),
+            linkedArtifacts: [artifactFromRunB],
+          },
+        ],
+      },
+    ];
+
+    const selectedArtifactsWithRunId: SelectedArtifact[] = [
+      { selectedItem: { itemName: '', subItemName: '' } },
+      {
+        linkedArtifact: artifactFromRunB,
+        selectedItem: {
+          itemName: 'duplicate-run', // matches both runs' display_name
+          subItemName: 'execution1',
+          subItemSecondaryName: 'shared-artifact',
+          runId: 'run-id-B', // disambiguates to run B
+        },
+      },
+    ];
+
+    render(
+      <CommonTestWrapper>
+        <MetricsDropdown
+          filteredRunArtifacts={duplicateNameRunArtifacts}
+          metricsTab={MetricsType.HTML}
+          selectedArtifacts={selectedArtifactsWithRunId}
+          updateSelectedArtifacts={updateSelectedArtifactsSpy}
+        />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    // Must resolve to run B's artifact (ID 20), not run A's (ID 10).
+    await waitFor(() => {
+      expect(getHtmlViewerConfigSpy).toHaveBeenLastCalledWith([artifactFromRunB], undefined);
+    });
+    expect(getHtmlViewerConfigSpy).not.toHaveBeenCalledWith([artifactFromRunA], undefined);
   });
 });
