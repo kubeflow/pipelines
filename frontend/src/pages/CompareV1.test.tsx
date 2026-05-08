@@ -18,7 +18,7 @@ import * as React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import EnhancedCompareV1, { TEST_ONLY, TaggedViewerConfig } from './CompareV1';
-import TestUtils from 'src/TestUtils';
+import TestUtils, { flushPromisesInAct } from 'src/TestUtils';
 import * as Utils from 'src/lib/Utils';
 import { logger } from 'src/lib/Utils';
 import { Apis } from 'src/lib/Apis';
@@ -122,7 +122,7 @@ describe('CompareV1', () => {
         <TestCompare ref={compareRef} {...propsToUse} />
       </MemoryRouter>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     return propsToUse;
   }
 
@@ -696,7 +696,7 @@ describe('CompareV1', () => {
   });
 
   describe('EnhancedCompareV1', () => {
-    it('redirects to experiments page when namespace changes', () => {
+    it('redirects to experiments page when namespace changes', async () => {
       const history = createMemoryHistory({
         initialEntries: ['/does-not-matter'],
       });
@@ -707,6 +707,7 @@ describe('CompareV1', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await flushPromisesInAct();
       expect(history.location.pathname).not.toEqual('/experiments');
       rerender(
         <Router history={history}>
@@ -715,10 +716,11 @@ describe('CompareV1', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await flushPromisesInAct();
       expect(history.location.pathname).toEqual('/experiments');
     });
 
-    it('does not redirect when namespace stays the same', () => {
+    it('does not redirect when namespace stays the same', async () => {
       const history = createMemoryHistory({
         initialEntries: ['/initial-path'],
       });
@@ -729,6 +731,7 @@ describe('CompareV1', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await flushPromisesInAct();
       expect(history.location.pathname).toEqual('/initial-path');
       rerender(
         <Router history={history}>
@@ -737,10 +740,11 @@ describe('CompareV1', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await flushPromisesInAct();
       expect(history.location.pathname).toEqual('/initial-path');
     });
 
-    it('does not redirect when namespace initializes', () => {
+    it('does not redirect when namespace initializes', async () => {
       const history = createMemoryHistory({
         initialEntries: ['/initial-path'],
       });
@@ -751,6 +755,7 @@ describe('CompareV1', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await flushPromisesInAct();
       expect(history.location.pathname).toEqual('/initial-path');
       rerender(
         <Router history={history}>
@@ -759,6 +764,7 @@ describe('CompareV1', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await flushPromisesInAct();
       expect(history.location.pathname).toEqual('/initial-path');
     });
   });
