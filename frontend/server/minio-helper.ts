@@ -172,6 +172,9 @@ function applyEndpointRewrite(
     }
 
     const from = parseEndpoint(rawFrom);
+    if (!from) {
+      continue;
+    }
     if (
       from.host !== clientConfig.endPoint ||
       (from.port !== undefined && from.port !== clientConfig.port)
@@ -180,6 +183,9 @@ function applyEndpointRewrite(
     }
 
     const to = parseEndpoint(rawTo);
+    if (!to) {
+      continue;
+    }
     clientConfig.endPoint = to.host;
     if (to.port !== undefined) {
       clientConfig.port = to.port;
@@ -193,17 +199,25 @@ function applyEndpointRewrite(
   return clientConfig;
 }
 
-function parseEndpoint(endpoint: string): { host: string; port?: number; useSSL?: boolean } {
-  const url = new URL(endpoint.match(/^https?:\/\//) ? endpoint : `http://${endpoint}`);
-  return {
-    host: url.hostname,
-    port: url.port ? Number(url.port) : undefined,
-    useSSL: endpoint.startsWith('https://')
-      ? true
-      : endpoint.startsWith('http://')
-        ? false
-        : undefined,
-  };
+function parseEndpoint(
+  endpoint: string,
+): { host: string; port?: number; useSSL?: boolean } | undefined {
+  try {
+    const url = new URL(endpoint.match(/^https?:\/\//) ? endpoint : `http://${endpoint}`);
+    return {
+      host: url.hostname,
+      port: url.port ? Number(url.port) : undefined,
+      useSSL: endpoint.startsWith('https://')
+        ? true
+        : endpoint.startsWith('http://')
+          ? false
+          : undefined,
+    };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(`Ignoring invalid MinIO endpoint rewrite endpoint "${endpoint}": ${reason}`);
+    return undefined;
+  }
 }
 
 /**
