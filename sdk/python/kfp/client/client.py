@@ -131,7 +131,8 @@ class Client:
     # Uses .svc suffix instead of hardcoding cluster.local to support
     # clusters with custom DNS domain suffixes.
     # K8s DNS search path auto-completes the rest.
-    _IN_CLUSTER_DNS_NAME = 'ml-pipeline.{}.svc:8888'
+    # Include the URL scheme because this value is used as the API host.
+    _IN_CLUSTER_DNS_NAME = 'http://ml-pipeline.{}.svc:8888'
     _KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
 
     # Auto populated path in pods
