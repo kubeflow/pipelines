@@ -33,6 +33,7 @@ export interface MinioRequestConfig {
 /** MinioClientOptionsWithOptionalSecrets wraps around MinioClientOptions where only endPoint is required (accesskey and secretkey are optional). */
 export interface MinioClientOptionsWithOptionalSecrets extends Partial<MinioClientOptions> {
   endPoint: string;
+  endpointRewrite?: string;
 }
 
 export interface Credentials {
@@ -79,12 +80,14 @@ export async function createMinioClient(
       const creds = await customCredentialProvider();
 
       if (creds && creds.accessKeyId && creds.secretAccessKey) {
-        return new MinioClient({
-          ...config,
-          accessKey: creds.accessKeyId,
-          secretKey: creds.secretAccessKey,
-          sessionToken: creds.sessionToken,
-        });
+        return new MinioClient(
+          applyEndpointRewrite({
+            ...config,
+            accessKey: creds.accessKeyId,
+            secretKey: creds.secretAccessKey,
+            sessionToken: creds.sessionToken,
+          }) as MinioClientOptions,
+        );
       } else {
         console.warn(
           'Custom credential resolver returned incomplete credentials, falling back to default chain',
@@ -124,7 +127,14 @@ export async function createMinioClient(
             secretAccessKey: secretKey,
             sessionToken,
           } = awsCredentials;
-          return new MinioClient({ ...config, accessKey, secretKey, sessionToken });
+          return new MinioClient(
+            applyEndpointRewrite({
+              ...config,
+              accessKey,
+              secretKey,
+              sessionToken,
+            }) as MinioClientOptions,
+          );
         }
       } catch (e) {
         console.error('Unable to get aws instance profile credentials: ', e);
@@ -139,11 +149,61 @@ export async function createMinioClient(
   // If using any AWS or S3 compatible store (e.g. minio, aws s3 when using manual creds, ceph, etc.)
   let mc: MinioClient;
   try {
-    mc = await new MinioClient(config as MinioClientOptions);
+    mc = await new MinioClient(applyEndpointRewrite(config) as MinioClientOptions);
   } catch (err) {
     throw new Error(`Failed to create MinioClient: ${err}`);
   }
   return mc;
+}
+
+function applyEndpointRewrite(
+  config: MinioClientOptionsWithOptionalSecrets,
+): MinioClientOptionsWithOptionalSecrets {
+  const { endpointRewrite, ...clientConfig } = config;
+  const rewriteConfig = endpointRewrite || process.env.MINIO_ENDPOINT_REWRITE || '';
+  if (!rewriteConfig) {
+    return clientConfig;
+  }
+
+  for (const rule of rewriteConfig.split(',')) {
+    const [rawFrom, rawTo] = rule.split('=').map((part) => part.trim());
+    if (!rawFrom || !rawTo) {
+      continue;
+    }
+
+    const from = parseEndpoint(rawFrom);
+    if (
+      from.host !== clientConfig.endPoint ||
+      (from.port !== undefined && from.port !== clientConfig.port)
+    ) {
+      continue;
+    }
+
+    const to = parseEndpoint(rawTo);
+    clientConfig.endPoint = to.host;
+    if (to.port !== undefined) {
+      clientConfig.port = to.port;
+    }
+    if (to.useSSL !== undefined) {
+      clientConfig.useSSL = to.useSSL;
+    }
+    break;
+  }
+
+  return clientConfig;
+}
+
+function parseEndpoint(endpoint: string): { host: string; port?: number; useSSL?: boolean } {
+  const url = new URL(endpoint.match(/^https?:\/\//) ? endpoint : `http://${endpoint}`);
+  return {
+    host: url.hostname,
+    port: url.port ? Number(url.port) : undefined,
+    useSSL: endpoint.startsWith('https://')
+      ? true
+      : endpoint.startsWith('http://')
+        ? false
+        : undefined,
+  };
 }
 
 /**

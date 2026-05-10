@@ -119,6 +119,30 @@ describe('minio-helper', () => {
       });
       expect(MockedMinioClient).toBeCalledTimes(1);
     });
+
+    it('rewrites configured in-cluster endpoints to local proxy endpoints.', async () => {
+      const client = await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: 'seaweedfs.kubeflow.svc',
+          endpointRewrite:
+            'seaweedfs.kubeflow:9000=localhost:9000,seaweedfs.kubeflow.svc:9000=localhost:9000',
+          port: 9000,
+          secretKey: 'secretkey',
+          useSSL: false,
+        },
+        's3',
+      );
+
+      expect(client).toBeInstanceOf(MinioClient);
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'localhost',
+        port: 9000,
+        secretKey: 'secretkey',
+        useSSL: false,
+      });
+    });
   });
 
   describe('isTarball', () => {
