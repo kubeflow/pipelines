@@ -548,5 +548,103 @@ class TestClient(parameterized.TestCase):
             self.assertEqual(result, expected_result)
 
 
+class TestLoadConfigInCluster(unittest.TestCase):
+    """Tests for in-cluster configuration path."""
+
+    @patch('kubernetes.config.load_incluster_config')
+    def test_in_cluster_config_sets_default_host(self, mock_load_incluster):
+        """When running in-cluster with no explicit host, default host should be set."""
+        mock_load_incluster.return_value = None
+        mock_self = MagicMock()
+        mock_self._is_inverse_proxy_host.return_value = False
+        # _get_config_with_default_credentials should return the config as-is
+        mock_self._get_config_with_default_credentials.side_effect = lambda cfg: cfg
+        config = client.Client._load_config(
+            mock_self,
+            host=None,
+            client_id=None,
+            namespace='kubeflow',
+            other_client_id=None,
+            other_client_secret=None,
+            existing_token=None,
+            proxy=None,
+            ssl_ca_cert=None,
+            kube_context=None,
+            credentials=None,
+            verify_ssl=None,
+        )
+        self.assertEqual(config.host, 'ml-pipeline.kubeflow.svc:8888')
+        self.assertNotIn('cluster.local', config.host)
+
+    @patch('kubernetes.config.load_incluster_config', side_effect=Exception('not in cluster'))
+    def test_in_cluster_config_does_not_set_host_when_not_in_cluster(self, mock_load_incluster):
+        """When not in cluster, default host should not be set via in-cluster path."""
+        with patch('kubernetes.config.load_kube_config') as mock_load_kube:
+            mock_load_kube.side_effect = Exception('no kubeconfig')
+            mock_self = MagicMock()
+            mock_self._is_inverse_proxy_host.return_value = False
+            config = client.Client._load_config(
+                mock_self,
+                host=None,
+                client_id=None,
+                namespace='kubeflow',
+                other_client_id=None,
+                other_client_secret=None,
+                existing_token=None,
+                proxy=None,
+                ssl_ca_cert=None,
+                kube_context=None,
+                credentials=None,
+                verify_ssl=None,
+            )
+        self.assertNotEqual(config.host, 'ml-pipeline.kubeflow.svc:8888')
+
+    @patch('kubernetes.config.load_incluster_config')
+    def test_explicit_host_is_preserved(self, mock_load_incluster):
+        """When user provides explicit host, it should not be overridden."""
+        mock_load_incluster.return_value = None
+        mock_self = MagicMock()
+        mock_self._is_inverse_proxy_host.return_value = False
+        config = client.Client._load_config(
+            mock_self,
+            host='my-custom-host:8888',
+            client_id=None,
+            namespace='kubeflow',
+            other_client_id=None,
+            other_client_secret=None,
+            existing_token=None,
+            proxy=None,
+            ssl_ca_cert=None,
+            kube_context=None,
+            credentials=None,
+            verify_ssl=None,
+        )
+        self.assertEqual(config.host, 'https://my-custom-host:8888')
+
+    @patch.dict('os.environ', {'KUBECONFIG': '/custom/kubeconfig'})
+    @patch('kubernetes.config.load_kube_config')
+    @patch('kubernetes.config.load_incluster_config', side_effect=Exception('not in cluster'))
+    def test_kubeconfig_env_is_respected(self, mock_load_incluster, mock_load_kube):
+        """KUBECONFIG env var should be respected when not in cluster."""
+        mock_load_kube.return_value = None
+        mock_self = MagicMock()
+        mock_self._is_inverse_proxy_host.return_value = False
+        config = client.Client._load_config(
+            mock_self,
+            host=None,
+            client_id=None,
+            namespace='kubeflow',
+            other_client_id=None,
+            other_client_secret=None,
+            existing_token=None,
+            proxy=None,
+            ssl_ca_cert=None,
+            kube_context=None,
+            credentials=None,
+            verify_ssl=None,
+        )
+        mock_load_kube.assert_called_once()
+
+
 if __name__ == '__main__':
     unittest.main()
