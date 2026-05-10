@@ -127,9 +127,9 @@ subgraph releaseSDKs["Release SDKs"]
 end
 
 %% entrypoints
-major --> cutmajor["cut release-${MAJOR} branch<br>from master branch in upstream"]
+major --> cutmajor["cut release-${MAJOR}.0 branch<br>from master branch in upstream"]
 minor --> cutminor["cut release-${MAJOR}.${MINOR} branch<br>from master branch in upstream"]
-patch --> cutpatch["cut release-${MAJOR}.${MINOR}.${PATCH}<br>branch from release-${MAJOR}.${MINOR} branch"]
+patch --> cutpatch["cut temporary<br>release-${MAJOR}.${MINOR}.${PATCH} branch<br>from release-${MAJOR}.${MINOR} branch"]
 
 %% cherry-pick patches
 cutpatch --> cherrypick["cherrypick commits from master<br>to release-${MAJOR}.${MINOR}.${PATCH}"]
@@ -314,6 +314,34 @@ The last step updated your version tags and pushed the changes to your fork. Now
 
 Build the release images by running the `Build And Push For Release` workflow.
 
+The following command should automate the process. 
+
+> [!NOTE]
+> I haven't had a chance to validate the new GitHub CLI commands in this doc. Whoever cuts the next release should validate them.
+
+```bash
+BRANCH="release-${MAJOR}.${MINOR}"
+TAG="${MAJOR}.${MINOR}.${PATCH}"
+
+gh workflow run image-builds-release.yml \
+  --ref "$BRANCH" \
+  -f src_branch="$BRANCH" \
+  -f target_tag="$TAG" \
+  -f overwrite_imgs=false \
+  -f set_latest=true \
+  -f add_sha_tag=true \
+  -f dry_run=false
+```
+
+Run the following command to watch progress:
+
+```bash
+RUN_ID="$(gh run list --workflow image-builds-release.yml --branch "$BRANCH" --limit 1 --json databaseId --jq '.[0].databaseId')"
+gh run watch "$RUN_ID"
+```
+
+Alternatively, you can do kick off the workflow manually:
+
 Navigate [here](https://github.com/kubeflow/pipelines/actions/workflows/image-builds-release.yml).
 
 Click `Run workflow`.
@@ -389,7 +417,41 @@ Cut a PR from your fork to the `kubeflow/pipelines` release branch `release-${MA
 
 ### Cut a GitHub release for the SDKs
 
-After the PR has been merged, create a new GitHub release for the SDKs (not the backend) with the tag `sdk-${MAJOR}.${MINOR}.${PATCH}`. [Here's](https://github.com/kubeflow/pipelines/releases/tag/sdk-2.16.1) an example release for reference.
+After the PR has been merged, create a new GitHub release for the SDKs (not the backend).
+
+You can automate release creation with GH CLI:
+
+```bash
+SDK_TAG="sdk-${MAJOR}.${MINOR}.${PATCH}"
+BRANCH="release-${MAJOR}.${MINOR}"
+
+gh release create "$SDK_TAG" \
+  --repo kubeflow/pipelines \
+  --target "$BRANCH" \
+  --title "KFP SDK v${MAJOR}.${MINOR}.${PATCH}" \
+  --notes "$(cat <<'EOF'
+Release of:
+
+- KFP SDK
+- KFP Kubernetes
+- KFP Server API
+- KFP Pipeline Spec
+
+To install the KFP SDK:
+
+```
+pip install kfp-pipeline-spec==${MAJOR}.${MINOR}.${PATCH}
+pip install kfp-server-api==${MAJOR}.${MINOR}.${PATCH}
+pip install kfp==${MAJOR}.${MINOR}.${PATCH}
+pip install kfp-kubernetes==${MAJOR}.${MINOR}.${PATCH}
+```
+
+For changelog, see [release notes](https://github.com/kubeflow/pipelines/blob/sdk-${MAJOR}.${MINOR}.${PATCH}/sdk/RELEASE.md).
+EOF
+)"
+```
+
+Alternatively, you can cut the release manually in the GitHub UI. [Here's](https://github.com/kubeflow/pipelines/releases/tag/sdk-2.16.1) an example release for reference.
 
 Navigate [here](https://github.com/kubeflow/pipelines/releases/new) to begin cutting the release.
 
@@ -429,6 +491,26 @@ Make sure to update ${MAJOR}.${MINOR}.${PATCH} in the body.
 ### Run SDK publication workflow
 
 Next, run the python package publication workflow.
+
+```bash
+BRANCH="release-${MAJOR}.${MINOR}"
+SDK_TAG="sdk-${MAJOR}.${MINOR}.${PATCH}"
+
+gh workflow run publish-packages.yml \
+  --ref "$BRANCH" \
+  -f tag="$SDK_TAG" \
+  -f packages=all \
+  -f dry_run=false
+```
+
+Run the following command to watch progress:
+
+```bash
+RUN_ID="$(gh run list --workflow publish-packages.yml --branch "$BRANCH" --limit 1 --json databaseId --jq '.[0].databaseId')"
+gh run watch "$RUN_ID"
+```
+
+Alternatively, you can trigger the workflow manually in the GitHub UI.
 
 Navigate to the [Publishing Workflow](https://github.com/kubeflow/pipelines/actions/workflows/publish-packages.yml). 
 
@@ -502,7 +584,7 @@ Click the `Search versions` text entry field.
 
 Enter `kfp-kubernetes-${MAJOR}.${MINOR}.${PATCH}`. If the branch you just pushed is not showing up, click `Resync versions` and try again.
 
-Click on the `Versions` tab. You should the corresponding build. Validate that it succeeds before moving on to the next section.
+Click on the `Versions` tab. You should see the corresponding build. Validate that it succeeds before moving on to the next section.
 
 Click on `Settings`.
 
@@ -513,6 +595,31 @@ Click `View Docs` and confirm that the new package version is the default.
 ### Cut a GitHub release for the backend
 
 Ok. We've published new images, cut a GitHub release for the SDKs, published new SDK packages, and updated the SDK documentation. Now it's time to cut a GitHub release for the backend.
+
+Fill out the variables and `What's Changed` fields before executing the following command.
+
+```bash
+TAG="${MAJOR}.${MINOR}.${PATCH}"
+BRANCH="release-${MAJOR}.${MINOR}"
+LAST_RELEASE="<last release version>"
+
+gh release create "$TAG" \
+  --repo kubeflow/pipelines \
+  --target "$BRANCH" \
+  --title "Version ${MAJOR}.${MINOR}.${PATCH}" \
+  --notes "$(cat <<EOF
+## What's Changed
+* <pr1>
+* <pr2>
+* etc.
+
+
+**Full Changelog**: https://github.com/kubeflow/pipelines/compare/${LAST_RELEASE}...${MAJOR}.${MINOR}.${PATCH}
+EOF
+)"
+```
+
+Alternatively, you can author the release manually in the GitHub UI:
 
 Navigate [here](https://github.com/kubeflow/pipelines/releases/new) to begin authoring a new GitHub release.
 
