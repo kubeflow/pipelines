@@ -553,9 +553,12 @@ class TestNamespaceResolution(unittest.TestCase):
 
     @patch('kfp_server_api.ApiClient')
     @patch.dict('os.environ', {'KF_PIPELINES_NAMESPACE': 'my-custom-ns'})
-    @patch('kubernetes.config.load_incluster_config', side_effect=Exception('not in cluster'))
+    @patch(
+        'kubernetes.config.load_incluster_config',
+        side_effect=Exception('not in cluster'))
     @patch('kubernetes.config.load_kube_config')
-    def test_namespace_from_env_variable(self, mock_load_kube, mock_load_incluster, mock_api):
+    def test_namespace_from_env_variable(self, mock_load_kube,
+                                        mock_load_incluster, mock_api):
         """Namespace from KF_PIPELINES_NAMESPACE env var should be used."""
         mock_load_kube.return_value = None
         c = client.Client('http://dummy:8888')
@@ -563,9 +566,12 @@ class TestNamespaceResolution(unittest.TestCase):
 
     @patch('kfp_server_api.ApiClient')
     @patch.dict('os.environ', {'KF_PIPELINES_NAMESPACE': 'env-ns'})
-    @patch('kubernetes.config.load_incluster_config', side_effect=Exception('not in cluster'))
+    @patch(
+        'kubernetes.config.load_incluster_config',
+        side_effect=Exception('not in cluster'))
     @patch('kubernetes.config.load_kube_config')
-    def test_namespace_explicit_overrides_env(self, mock_load_kube, mock_load_incluster, mock_api):
+    def test_namespace_explicit_overrides_env(self, mock_load_kube,
+                                              mock_load_incluster, mock_api):
         """Explicit namespace parameter should override env var."""
         mock_load_kube.return_value = None
         c = client.Client('http://dummy:8888', namespace='explicit-ns')
@@ -573,21 +579,50 @@ class TestNamespaceResolution(unittest.TestCase):
 
     @patch('kfp_server_api.ApiClient')
     @patch.dict('os.environ', {}, clear=False)
-    @patch('kubernetes.config.load_incluster_config', side_effect=Exception('not in cluster'))
+    @patch(
+        'kubernetes.config.load_incluster_config',
+        side_effect=Exception('not in cluster'))
     @patch('kubernetes.config.load_kube_config')
-    def test_namespace_default_when_nothing_set(self, mock_load_kube, mock_load_incluster, mock_api):
+    def test_namespace_default_when_nothing_set(self, mock_load_kube,
+                                               mock_load_incluster,
+                                               mock_api):
         """Default namespace should be kubeflow when nothing is set."""
         mock_load_kube.return_value = None
         os.environ.pop('KF_PIPELINES_NAMESPACE', None)
-        # Patch _load_config to capture what namespace was resolved
         with patch.object(client.Client, '_load_config') as mock_load_config:
             from kfp_server_api import Configuration
             mock_load_config.return_value = Configuration()
             c = client.Client('http://dummy:8888')
-            # _load_config is called with positional args: host, client_id, namespace, ...
-            # namespace is the 3rd positional arg (index 2)
             call_args = mock_load_config.call_args[0]
             self.assertEqual(call_args[2], 'kubeflow')
+
+    @patch('kfp_server_api.ApiClient')
+    @patch.dict('os.environ', {'KF_PIPELINES_NAMESPACE': 'my-ns'})
+    @patch('kubernetes.config.load_incluster_config')
+    def test_in_cluster_dns_uses_env_namespace(self, mock_load_incluster,
+                                               mock_api):
+        """In-cluster DNS name should use namespace from env var."""
+        mock_load_incluster.return_value = None
+        mock_self = MagicMock()
+        mock_self._is_inverse_proxy_host.return_value = False
+        mock_self._get_config_with_default_credentials.side_effect = (
+            lambda cfg: cfg)
+        config = client.Client._load_config(
+            mock_self,
+            host=None,
+            client_id=None,
+            namespace='my-ns',
+            other_client_id=None,
+            other_client_secret=None,
+            existing_token=None,
+            proxy=None,
+            ssl_ca_cert=None,
+            kube_context=None,
+            credentials=None,
+            verify_ssl=None,
+        )
+        self.assertEqual(config.host,
+                         'http://ml-pipeline.my-ns.svc:8888')
 
 
 if __name__ == '__main__':
