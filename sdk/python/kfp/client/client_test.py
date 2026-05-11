@@ -573,7 +573,7 @@ class TestLoadConfigInCluster(unittest.TestCase):
             credentials=None,
             verify_ssl=None,
         )
-        self.assertEqual(config.host, 'ml-pipeline.kubeflow.svc:8888')
+        self.assertEqual(config.host, 'http://ml-pipeline.kubeflow.svc:8888')
         self.assertNotIn('cluster.local', config.host)
 
     @patch('kubernetes.config.load_incluster_config', side_effect=Exception('not in cluster'))
@@ -597,7 +597,8 @@ class TestLoadConfigInCluster(unittest.TestCase):
                 credentials=None,
                 verify_ssl=None,
             )
-        self.assertNotEqual(config.host, 'ml-pipeline.kubeflow.svc:8888')
+        self.assertNotEqual(config.host, 'http://ml-pipeline.kubeflow.svc:8888')
+        self.assertEqual(config.host, 'http://localhost')
 
     @patch('kubernetes.config.load_incluster_config')
     def test_explicit_host_is_preserved(self, mock_load_incluster):
