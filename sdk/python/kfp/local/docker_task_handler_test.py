@@ -66,7 +66,6 @@ class TestRunDockerContainer(DockerMockTestCase):
             stdout=True,
             stderr=True,
             volumes={},
-            auto_remove=True,
         )
 
     def test_cwd_volume(self):
@@ -90,8 +89,56 @@ class TestRunDockerContainer(DockerMockTestCase):
                 'bind': '/localdir',
                 'mode': 'ro'
             }},
-            auto_remove=True,
         )
+
+    def test_nonzero_exit_code_propagated(self):
+        """Container failure exit codes are returned, not swallowed."""
+        mock_container = mock.Mock()
+        mock_container.logs.return_value = [
+            'error output\n'.encode('utf-8'),
+        ]
+        mock_container.wait.return_value = {'StatusCode': 1}
+        self.mocked_docker_client.containers.run.return_value = mock_container
+
+        return_code = docker_task_handler.run_docker_container(
+            client=docker.from_env(),
+            image='alpine',
+            command=['false'],
+            volumes={},
+        )
+
+        self.assertEqual(return_code, 1)
+        mock_container.remove.assert_called_once_with(force=True)
+
+    def test_container_cleanup_on_success(self):
+        """Container is removed even after successful execution."""
+        return_code = docker_task_handler.run_docker_container(
+            client=docker.from_env(),
+            image='alpine',
+            command=['echo', 'ok'],
+            volumes={},
+        )
+
+        self.assertEqual(return_code, 0)
+        mock_container = self.mocked_docker_client.containers.run.return_value
+        mock_container.remove.assert_called_once_with(force=True)
+
+    def test_container_cleanup_on_failure(self):
+        """Container is removed even when the command fails."""
+        mock_container = mock.Mock()
+        mock_container.logs.return_value = ['error'.encode('utf-8')]
+        mock_container.wait.return_value = {'StatusCode': 137}
+        self.mocked_docker_client.containers.run.return_value = mock_container
+
+        return_code = docker_task_handler.run_docker_container(
+            client=docker.from_env(),
+            image='alpine',
+            command=['kill', '-9', '1'],
+            volumes={},
+        )
+
+        self.assertEqual(return_code, 137)
+        mock_container.remove.assert_called_once_with(force=True)
 
 
 class TestDockerTaskHandler(DockerMockTestCase):
@@ -239,7 +286,6 @@ class TestDockerTaskHandler(DockerMockTestCase):
                         'mode': 'rw'
                     }
                 },
-                auto_remove=True,
             )
 
     def test_run_passes_env_vars(self):
