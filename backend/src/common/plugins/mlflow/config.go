@@ -223,6 +223,7 @@ func mergeSettings(global, namespace *MLflowPluginSettings) *MLflowPluginSetting
 	if namespace.KFPBaseURL != "" {
 		merged.KFPBaseURL = namespace.KFPBaseURL
 	}
+	//todo: do we want these checks?
 	if namespace.KFPRunURLPathTemplate != "" {
 		merged.KFPRunURLPathTemplate = namespace.KFPRunURLPathTemplate
 	}
