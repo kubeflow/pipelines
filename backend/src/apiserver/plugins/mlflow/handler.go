@@ -80,7 +80,7 @@ func (h *Handler) OnBeforeRunCreation(ctx context.Context, run *apiserverPlugins
 		return FailedPluginOutput(experimentID, experimentName, "", "", endpoint, err.Error()), err
 	}
 
-	tags := BuildKFPTags(run, settings.KFPBaseURL)
+	tags := BuildKFPTags(run, settings.KFPBaseURL, settings.KFPRunURLPathTemplate)
 	parentRunID, err := mlflowRequestCtx.Client.CreateRun(ctx, mlflowExperiment.ID, run.DisplayName, tags)
 	if err != nil {
 		return FailedPluginOutput(mlflowExperiment.ID, mlflowExperiment.Name, "", "", endpoint, err.Error()), err
@@ -119,7 +119,7 @@ func (h *Handler) OnBeforeRunCreation(ctx context.Context, run *apiserverPlugins
 		commonmlflow.EnvMLflowConfig: string(mlflowConfigJSON),
 	}
 
-	runURL := BuildRunURL(mlflowRequestCtx, mlflowExperiment.ID, parentRunID)
+	runURL := BuildRunURL(mlflowRequestCtx, mlflowExperiment.ID, parentRunID, settings)
 	return SuccessfulPluginOutput(mlflowExperiment.ID, mlflowExperiment.Name, parentRunID, runURL, endpoint), nil
 }
 
