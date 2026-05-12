@@ -16,7 +16,11 @@ import * as express from 'express';
 import { Response } from 'express-serve-static-core';
 import * as fs from 'fs';
 import * as _path from 'path';
-import { ApiExperiment, ApiListExperimentsResponse } from '../src/apis/experiment';
+import {
+  ApiExperiment,
+  ApiExperimentStorageState,
+  ApiListExperimentsResponse,
+} from '../src/apis/experiment';
 import { ApiFilter, PredicateOp } from '../src/apis/filter';
 import { ApiJob, ApiListJobsResponse } from '../src/apis/job';
 import {
@@ -26,7 +30,36 @@ import {
   ApiPipelineVersion,
 } from '../src/apis/pipeline';
 import { ApiListRunsResponse, ApiResourceType, ApiRun, ApiRunStorageState } from '../src/apis/run';
-import { ExperimentSortKeys, PipelineSortKeys, RunSortKeys } from '../src/lib/Apis';
+import {
+  V2beta1Experiment,
+  V2beta1ExperimentStorageState,
+  V2beta1ListExperimentsResponse,
+} from '../src/apisv2beta1/experiment';
+import { V2beta1Filter, V2beta1PredicateOperation } from '../src/apisv2beta1/filter';
+import {
+  V2beta1ListPipelineVersionsResponse,
+  V2beta1ListPipelinesResponse,
+  V2beta1Pipeline,
+  V2beta1PipelineVersion,
+} from '../src/apisv2beta1/pipeline';
+import {
+  V2beta1ListRecurringRunsResponse,
+  V2beta1RecurringRun,
+  V2beta1RecurringRunStatus,
+  V2beta1Trigger,
+} from '../src/apisv2beta1/recurringrun';
+import {
+  V2beta1ListRunsResponse,
+  V2beta1Run,
+  V2beta1RunStorageState,
+  V2beta1RuntimeState,
+} from '../src/apisv2beta1/run';
+import {
+  ExperimentSortKeys,
+  PipelineSortKeys,
+  PipelineVersionSortKeys,
+  RunSortKeys,
+} from '../src/lib/Apis';
 import RunUtils from '../src/lib/RunUtils';
 import {
   data as fixedData,
@@ -50,6 +83,7 @@ const helloWorldHtmlPath = './model-output/hello-world.html';
 const helloWorldBigHtmlPath = './model-output/hello-world-big.html';
 
 const v1beta1Prefix = '/apis/v1beta1';
+const v2beta1Prefix = '/apis/v2beta1';
 
 let tensorboardPod = '';
 
@@ -60,6 +94,13 @@ interface BaseResource {
   description?: string;
   name?: string;
   error?: string;
+}
+
+interface V2FilterableResource {
+  created_at?: Date;
+  display_name?: string;
+  name?: string;
+  storage_state?: string;
 }
 
 function getQueryString(queryParam: unknown): string | undefined {
@@ -120,6 +161,261 @@ function getRequiredDecodedQueryString(
   return decodedQueryString;
 }
 
+function getMockBackendFilePath(relativePath: string): string {
+  return _path.resolve(process.cwd(), 'mock-backend', relativePath);
+}
+
+function sendMockBackendFile(res: Response, relativePath: string): void {
+  res.send(fs.readFileSync(getMockBackendFilePath(relativePath), 'utf-8'));
+}
+
+function getSortKeyAndOrder(
+  defaultSortKey: string,
+  queryParam?: string,
+): { desc: boolean; key: string } {
+  let key = defaultSortKey;
+  let desc = false;
+
+  if (queryParam) {
+    const keyParts = queryParam.split(' ');
+    key = keyParts[0];
+
+    // Check that the key is properly formatted.
+    if (
+      keyParts.length > 2 ||
+      (keyParts.length === 2 && keyParts[1] !== 'asc' && keyParts[1] !== 'desc')
+    ) {
+      throw new Error(`Invalid sort string: ${queryParam}`);
+    }
+
+    desc = keyParts.length === 2 && keyParts[1] === 'desc';
+  }
+  return { desc, key };
+}
+
+function getExperimentId(runOrJob: ApiRun | ApiJob): string | undefined {
+  return RunUtils.getAllExperimentReferences(runOrJob).find((ref) => ref.key?.id)?.key?.id;
+}
+
+function getV2StorageState(storageState?: string): V2beta1RunStorageState {
+  return storageState === ApiRunStorageState.STORAGESTATE_ARCHIVED
+    ? V2beta1RunStorageState.ARCHIVED
+    : V2beta1RunStorageState.AVAILABLE;
+}
+
+function getV2ExperimentStorageState(storageState?: string): V2beta1ExperimentStorageState {
+  return storageState === ApiExperimentStorageState.STORAGESTATE_ARCHIVED
+    ? V2beta1ExperimentStorageState.ARCHIVED
+    : V2beta1ExperimentStorageState.AVAILABLE;
+}
+
+function getV2RuntimeState(status?: string): V2beta1RuntimeState {
+  switch ((status || '').toLowerCase()) {
+    case 'running':
+      return V2beta1RuntimeState.RUNNING;
+    case 'failed':
+      return V2beta1RuntimeState.FAILED;
+    case 'pending':
+      return V2beta1RuntimeState.PENDING;
+    case 'skipped':
+      return V2beta1RuntimeState.SKIPPED;
+    case 'canceled':
+      return V2beta1RuntimeState.CANCELED;
+    case 'canceling':
+      return V2beta1RuntimeState.CANCELING;
+    case 'paused':
+      return V2beta1RuntimeState.PAUSED;
+    case 'succeeded':
+    default:
+      return V2beta1RuntimeState.SUCCEEDED;
+  }
+}
+
+function getV2ResourceValue(resource: V2FilterableResource, key: string): unknown {
+  if (key === 'name') {
+    return resource.name || resource.display_name;
+  }
+  if (key === 'display_name') {
+    return resource.display_name || resource.name;
+  }
+  return (resource as Record<string, unknown>)[key];
+}
+
+function getComparableValue(value: unknown): number | string {
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+  if (typeof value === 'number') {
+    return value;
+  }
+  return String(value || '');
+}
+
+function sortV2Resources<T extends V2FilterableResource>(
+  resources: T[],
+  defaultSortKey: string,
+  queryParam?: string,
+): T[] {
+  const { desc, key } = getSortKeyAndOrder(defaultSortKey, queryParam);
+  return resources.slice().sort((a, b) => {
+    const aValue = getComparableValue(getV2ResourceValue(a, key));
+    const bValue = getComparableValue(getV2ResourceValue(b, key));
+    let result = 0;
+    if (aValue < bValue) {
+      result = -1;
+    }
+    if (aValue > bValue) {
+      result = 1;
+    }
+    return result * (desc ? -1 : 1);
+  });
+}
+
+function filterV2Resources<T extends V2FilterableResource>(
+  resources: T[],
+  filterString?: string,
+): T[] {
+  if (!filterString) {
+    return resources;
+  }
+  const filter: V2beta1Filter = JSON.parse(decodeURIComponent(filterString));
+  return ((filter && filter.predicates) || []).reduce((filteredResources, predicate) => {
+    const key = predicate.key || '';
+    const stringValue = predicate.string_value || '';
+    switch (predicate.operation) {
+      case V2beta1PredicateOperation.EQUALS:
+        return filteredResources.filter(
+          (resource) => String(getV2ResourceValue(resource, key) || '') === stringValue,
+        );
+      case V2beta1PredicateOperation.NOT_EQUALS:
+        return filteredResources.filter(
+          (resource) => String(getV2ResourceValue(resource, key) || '') !== stringValue,
+        );
+      case V2beta1PredicateOperation.IS_SUBSTRING:
+        return filteredResources.filter((resource) =>
+          String(getV2ResourceValue(resource, key) || '')
+            .toLocaleLowerCase()
+            .includes(stringValue.toLocaleLowerCase()),
+        );
+      default:
+        throw new Error(`Operation: ${predicate.operation} is not yet supported by the mock API`);
+    }
+  }, resources);
+}
+
+function getPage<T>(
+  resources: T[],
+  pageTokenQueryParam: unknown,
+  pageSizeQueryParam: unknown,
+): { nextPageToken: string; page: T[] } {
+  const start = getQueryNumber(pageTokenQueryParam) || 0;
+  const end = start + (getQueryNumber(pageSizeQueryParam) || 20);
+  return {
+    nextPageToken: end < resources.length ? end + '' : '',
+    page: resources.slice(start, end),
+  };
+}
+
+function toV2Experiment(experiment: ApiExperiment): V2beta1Experiment {
+  return {
+    created_at: experiment.created_at,
+    description: experiment.description,
+    display_name: experiment.name,
+    experiment_id: experiment.id,
+    storage_state: getV2ExperimentStorageState(experiment.storage_state),
+  };
+}
+
+function toV2Pipeline(pipeline: ApiPipeline): V2beta1Pipeline {
+  return {
+    created_at: pipeline.created_at,
+    description: pipeline.description,
+    display_name: (pipeline as { display_name?: string }).display_name || pipeline.name,
+    name: pipeline.name,
+    pipeline_id: pipeline.id,
+  };
+}
+
+function toV2PipelineVersion(
+  version: ApiPipelineVersion,
+  pipelineId?: string,
+): V2beta1PipelineVersion {
+  return {
+    code_source_url: version.code_source_url,
+    created_at: version.created_at,
+    description: version.description,
+    display_name: (version as { display_name?: string }).display_name || version.name,
+    name: version.name,
+    pipeline_id: pipelineId || version.id,
+    pipeline_version_id: version.id,
+  };
+}
+
+function toV2Run(run: ApiRun): V2beta1Run {
+  const pipelineId = run.pipeline_spec?.pipeline_id;
+  return {
+    created_at: run.created_at,
+    description: run.description,
+    display_name: run.name,
+    experiment_id: getExperimentId(run),
+    finished_at: run.finished_at,
+    pipeline_spec: run.pipeline_spec,
+    pipeline_version_reference: pipelineId
+      ? {
+          pipeline_id: pipelineId,
+          pipeline_version_id: pipelineId,
+        }
+      : undefined,
+    run_id: run.id,
+    scheduled_at: run.scheduled_at,
+    state: getV2RuntimeState(run.status),
+    storage_state: getV2StorageState(run.storage_state),
+  };
+}
+
+function toV2RecurringRun(job: ApiJob): V2beta1RecurringRun {
+  return {
+    created_at: job.created_at,
+    description: job.description,
+    display_name: job.name,
+    experiment_id: getExperimentId(job),
+    max_concurrency: job.max_concurrency,
+    pipeline_spec: job.pipeline_spec,
+    recurring_run_id: job.id,
+    status: job.enabled ? V2beta1RecurringRunStatus.ENABLED : V2beta1RecurringRunStatus.DISABLED,
+    trigger: job.trigger as unknown as V2beta1Trigger,
+    updated_at: job.updated_at,
+  };
+}
+
+function getV2PipelineVersions(pipelineId: string): V2beta1PipelineVersion[] {
+  const versions = PIPELINE_VERSIONS_LIST_MAP.get(pipelineId);
+  if (versions && versions.length > 0) {
+    return versions.map((version) => toV2PipelineVersion(version, pipelineId));
+  }
+
+  const pipeline = fixedData.pipelines.find((candidate) => candidate.id === pipelineId);
+  if (!pipeline) {
+    return [];
+  }
+
+  return [toV2PipelineVersion(pipeline.default_version || pipeline, pipelineId)];
+}
+
+function getV2PipelineVersion(
+  pipelineId: string,
+  pipelineVersionId: string,
+): V2beta1PipelineVersion | undefined {
+  return (
+    getV2PipelineVersions(pipelineId).find(
+      (version) => version.pipeline_version_id === pipelineVersionId,
+    ) ||
+    PIPELINE_VERSIONS_LIST_FULL.map((version) => toV2PipelineVersion(version, pipelineId)).find(
+      (version) => version.pipeline_version_id === pipelineVersionId,
+    )
+  );
+}
+
 // tslint:disable-next-line:no-default-export
 export default (app: express.Application) => {
   app.use((req, _, next) => {
@@ -143,33 +439,171 @@ export default (app: express.Application) => {
     });
   });
 
+  app.get(v2beta1Prefix + '/healthz', (_, res) => {
+    res.header('Content-Type', 'application/json');
+    res.send({
+      apiServerCommitHash: 'd3c4add0a95e930c70a330466d0923827784eb9a',
+      apiServerMultiUser: false,
+      apiServerReady: true,
+      buildDate: 'Wed Jan 9 19:40:24 UTC 2019',
+      frontendCommitHash: '8efb2fcff9f666ba5b101647e909dc9c6889cecb',
+      pipelineStore: 'database',
+    });
+  });
+
+  app.get(v2beta1Prefix + '/experiments', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    const experiments = sortV2Resources(
+      filterV2Resources(
+        fixedData.experiments.map(toV2Experiment),
+        getQueryString(req.query.filter),
+      ),
+      ExperimentSortKeys.NAME,
+      getQueryString(req.query.sort_by),
+    );
+    const page = getPage(experiments, req.query.page_token, req.query.page_size);
+    const response: V2beta1ListExperimentsResponse = {
+      experiments: page.page,
+      next_page_token: page.nextPageToken,
+      total_size: experiments.length,
+    };
+
+    res.json(response);
+  });
+
+  app.get(v2beta1Prefix + '/experiments/:eid', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    const experiment = fixedData.experiments.find((exp) => exp.id === req.params.eid);
+    if (!experiment) {
+      res.status(404).send(`No experiment was found with ID: ${req.params.eid}`);
+      return;
+    }
+    res.json(toV2Experiment(experiment));
+  });
+
+  app.get(v2beta1Prefix + '/pipelines', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    const pipelines = sortV2Resources(
+      filterV2Resources(fixedData.pipelines.map(toV2Pipeline), getQueryString(req.query.filter)),
+      PipelineSortKeys.CREATED_AT,
+      getQueryString(req.query.sort_by),
+    );
+    const page = getPage(pipelines, req.query.page_token, req.query.page_size);
+    const response: V2beta1ListPipelinesResponse = {
+      next_page_token: page.nextPageToken,
+      pipelines: page.page,
+      total_size: pipelines.length,
+    };
+
+    res.json(response);
+  });
+
+  app.get(v2beta1Prefix + '/pipelines/:pid', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    const pipeline = fixedData.pipelines.find((candidate) => candidate.id === req.params.pid);
+    if (!pipeline) {
+      res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
+      return;
+    }
+    res.json(toV2Pipeline(pipeline));
+  });
+
+  app.get(v2beta1Prefix + '/pipelines/:pid/versions', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    const versions = sortV2Resources(
+      filterV2Resources(getV2PipelineVersions(req.params.pid), getQueryString(req.query.filter)),
+      PipelineVersionSortKeys.CREATED_AT,
+      getQueryString(req.query.sort_by),
+    );
+    const page = getPage(versions, req.query.page_token, req.query.page_size);
+    const response: V2beta1ListPipelineVersionsResponse = {
+      next_page_token: page.nextPageToken,
+      pipeline_versions: page.page,
+      total_size: versions.length,
+    };
+
+    res.json(response);
+  });
+
+  app.get(v2beta1Prefix + '/pipelines/:pid/versions/:pvid', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    const version = getV2PipelineVersion(req.params.pid, req.params.pvid);
+    if (!version) {
+      res.status(404).send(`No pipeline version was found with ID: ${req.params.pvid}`);
+      return;
+    }
+    res.json(version);
+  });
+
+  app.get(v2beta1Prefix + '/runs', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    let runs = fixedData.runs.map((runDetail) => toV2Run(runDetail.run!));
+    const experimentId = getQueryString(req.query.experiment_id);
+    if (experimentId) {
+      runs = runs.filter((run) => run.experiment_id === experimentId);
+    }
+    runs = sortV2Resources(
+      filterV2Resources(runs, getQueryString(req.query.filter)),
+      RunSortKeys.CREATED_AT,
+      getQueryString(req.query.sort_by),
+    );
+    const page = getPage(runs, req.query.page_token, req.query.page_size);
+    const response: V2beta1ListRunsResponse = {
+      next_page_token: page.nextPageToken,
+      runs: page.page,
+      total_size: runs.length,
+    };
+
+    res.json(response);
+  });
+
+  app.get(v2beta1Prefix + '/runs/:rid', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    const run = fixedData.runs.find((runDetail) => runDetail.run!.id === req.params.rid);
+    if (!run) {
+      res.status(404).send('Cannot find a run with id: ' + req.params.rid);
+      return;
+    }
+    res.json(toV2Run(run.run!));
+  });
+
+  app.get(v2beta1Prefix + '/recurringruns', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    let recurringRuns = fixedData.jobs.map(toV2RecurringRun);
+    const experimentId = getQueryString(req.query.experiment_id);
+    if (experimentId) {
+      recurringRuns = recurringRuns.filter(
+        (recurringRun) => recurringRun.experiment_id === experimentId,
+      );
+    }
+    recurringRuns = sortV2Resources(
+      filterV2Resources(recurringRuns, getQueryString(req.query.filter)),
+      ExperimentSortKeys.CREATED_AT,
+      getQueryString(req.query.sort_by),
+    );
+    const page = getPage(recurringRuns, req.query.page_token, req.query.page_size);
+    const response: V2beta1ListRecurringRunsResponse = {
+      next_page_token: page.nextPageToken,
+      recurringRuns: page.page,
+      total_size: recurringRuns.length,
+    };
+
+    res.json(response);
+  });
+
+  app.get(v2beta1Prefix + '/recurringruns/:rid', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    const recurringRun = fixedData.jobs.find((job) => job.id === req.params.rid);
+    if (!recurringRun) {
+      res.status(404).send(`No recurring run was found with ID: ${req.params.rid}`);
+      return;
+    }
+    res.json(toV2RecurringRun(recurringRun));
+  });
+
   app.get('/hub/', (_, res) => {
     res.sendStatus(200);
   });
-
-  function getSortKeyAndOrder(
-    defaultSortKey: string,
-    queryParam?: string,
-  ): { desc: boolean; key: string } {
-    let key = defaultSortKey;
-    let desc = false;
-
-    if (queryParam) {
-      const keyParts = queryParam.split(' ');
-      key = keyParts[0];
-
-      // Check that the key is properly formatted.
-      if (
-        keyParts.length > 2 ||
-        (keyParts.length === 2 && keyParts[1] !== 'asc' && keyParts[1] !== 'desc')
-      ) {
-        throw new Error(`Invalid sort string: ${queryParam}`);
-      }
-
-      desc = keyParts.length === 2 && keyParts[1] === 'desc';
-    }
-    return { desc, key };
-  }
 
   app.get(v1beta1Prefix + '/jobs', (req, res) => {
     res.header('Content-Type', 'application/json');
@@ -752,25 +1186,25 @@ export default (app: express.Application) => {
     }
     res.header('Content-Type', 'application/json');
     if (key.endsWith('roc.csv')) {
-      res.sendFile(_path.resolve(__dirname, rocDataPath));
+      sendMockBackendFile(res, rocDataPath);
     } else if (key.endsWith('roc2.csv')) {
-      res.sendFile(_path.resolve(__dirname, rocDataPath2));
+      sendMockBackendFile(res, rocDataPath2);
     } else if (key.endsWith('confusion_matrix.csv')) {
-      res.sendFile(_path.resolve(__dirname, confusionMatrixPath));
+      sendMockBackendFile(res, confusionMatrixPath);
     } else if (key.endsWith('table.csv')) {
-      res.sendFile(_path.resolve(__dirname, tableDataPath));
+      sendMockBackendFile(res, tableDataPath);
     } else if (key.endsWith('hello-world.html')) {
-      res.sendFile(_path.resolve(__dirname, helloWorldHtmlPath));
+      sendMockBackendFile(res, helloWorldHtmlPath);
     } else if (key.endsWith('hello-world-big.html')) {
-      res.sendFile(_path.resolve(__dirname, helloWorldBigHtmlPath));
+      sendMockBackendFile(res, helloWorldBigHtmlPath);
     } else if (key === 'analysis') {
-      res.sendFile(_path.resolve(__dirname, confusionMatrixMetadataJsonPath));
+      sendMockBackendFile(res, confusionMatrixMetadataJsonPath);
     } else if (key === 'analysis2') {
-      res.sendFile(_path.resolve(__dirname, confusionMatrixMetadataJsonPath));
+      sendMockBackendFile(res, confusionMatrixMetadataJsonPath);
     } else if (key === 'model') {
-      res.sendFile(_path.resolve(__dirname, rocMetadataJsonPath));
+      sendMockBackendFile(res, rocMetadataJsonPath);
     } else if (key === 'model2') {
-      res.sendFile(_path.resolve(__dirname, rocMetadataJsonPath2));
+      sendMockBackendFile(res, rocMetadataJsonPath2);
     } else {
       // TODO: what does production return here?
       res.send('dummy file for key: ' + key);
@@ -832,6 +1266,9 @@ export default (app: express.Application) => {
   });
 
   app.all(v1beta1Prefix + '*', (req, res) => {
+    res.status(404).send('Bad request endpoint.');
+  });
+  app.all(v2beta1Prefix + '*', (req, res) => {
     res.status(404).send('Bad request endpoint.');
   });
 };

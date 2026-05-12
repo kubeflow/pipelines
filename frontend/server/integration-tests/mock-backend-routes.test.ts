@@ -56,6 +56,145 @@ describe('mock backend routes', () => {
     it('returns 404 for unknown v1beta1 endpoints', async () => {
       await request.get('/apis/v1beta1/does-not-exist').expect(404, 'Bad request endpoint.');
     });
+
+    it('serves v2 healthz status', async () => {
+      const response = await request.get('/apis/v2beta1/healthz').expect(200);
+
+      expect(response.body).toMatchObject({
+        apiServerReady: true,
+        apiServerMultiUser: false,
+        pipelineStore: 'database',
+      });
+      expect(response.body.frontendCommitHash).toBeDefined();
+    });
+
+    it('returns 404 for unknown v2beta1 endpoints', async () => {
+      await request.get('/apis/v2beta1/does-not-exist').expect(404, 'Bad request endpoint.');
+    });
+  });
+
+  describe('v2 fixture routes', () => {
+    it('lists pipelines with v2 field names, pagination, and total size', async () => {
+      const response = await request
+        .get('/apis/v2beta1/pipelines?page_token=0&page_size=3')
+        .expect(200);
+
+      expect(response.body.next_page_token).toBe('3');
+      expect(response.body.total_size).toBeGreaterThan(3);
+      expect(response.body.pipelines).toHaveLength(3);
+      expect(response.body.pipelines[0]).toMatchObject({
+        pipeline_id: expect.any(String),
+        display_name: expect.any(String),
+      });
+    });
+
+    it('filters v2 pipelines by name', async () => {
+      const filter = JSON.stringify({
+        predicates: [{ key: 'name', operation: 'IS_SUBSTRING', string_value: 'Markdown' }],
+      });
+      const response = await request
+        .get(`/apis/v2beta1/pipelines${buildQuery({ filter })}`)
+        .expect(200);
+
+      expect(response.body.pipelines).toHaveLength(1);
+      expect(response.body.pipelines[0]).toMatchObject({
+        pipeline_id: '8fbe3bd6-a01f-11e8-98d0-529269fb1499',
+        display_name: 'Markdown description',
+      });
+    });
+
+    it('fetches v2 pipeline versions for a pipeline', async () => {
+      const response = await request
+        .get('/apis/v2beta1/pipelines/8fbe3bd6-a01f-11e8-98d0-529269fb1460/versions?page_size=1')
+        .expect(200);
+
+      expect(response.body.next_page_token).toBe('1');
+      expect(response.body.pipeline_versions).toHaveLength(1);
+      expect(response.body.pipeline_versions[0]).toMatchObject({
+        pipeline_id: '8fbe3bd6-a01f-11e8-98d0-529269fb1460',
+        pipeline_version_id: '8fbe3bd6-a01f-11e8-98d0-529269fb1460',
+      });
+    });
+
+    it('fetches a v2 pipeline version by id', async () => {
+      const response = await request
+        .get(
+          '/apis/v2beta1/pipelines/8fbe3bd6-a01f-11e8-98d0-529269fb1460/versions/9fbe3bd6-a01f-11e8-98d0-529269fb1460',
+        )
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        pipeline_id: '8fbe3bd6-a01f-11e8-98d0-529269fb1460',
+        pipeline_version_id: '9fbe3bd6-a01f-11e8-98d0-529269fb1460',
+        display_name: 'revision',
+      });
+    });
+
+    it('lists v2 experiments and applies storage-state filters', async () => {
+      const filter = JSON.stringify({
+        predicates: [{ key: 'storage_state', operation: 'NOT_EQUALS', string_value: 'ARCHIVED' }],
+      });
+      const response = await request
+        .get(`/apis/v2beta1/experiments${buildQuery({ filter, page_size: 2 })}`)
+        .expect(200);
+
+      expect(response.body.next_page_token).toBe('2');
+      expect(response.body.total_size).toBeGreaterThan(2);
+      expect(response.body.experiments[0]).toMatchObject({
+        experiment_id: expect.any(String),
+        display_name: expect.any(String),
+        storage_state: 'AVAILABLE',
+      });
+    });
+
+    it('lists v2 runs filtered by experiment id', async () => {
+      const response = await request
+        .get(
+          `/apis/v2beta1/runs${buildQuery({
+            experiment_id: '275ea11d-ac63-4ce3-bc33-ec81981ed56b',
+            page_size: 3,
+          })}`,
+        )
+        .expect(200);
+
+      expect(response.body.runs).toHaveLength(3);
+      expect(response.body.runs[0]).toMatchObject({
+        run_id: expect.any(String),
+        display_name: expect.any(String),
+        experiment_id: '275ea11d-ac63-4ce3-bc33-ec81981ed56b',
+        storage_state: 'AVAILABLE',
+      });
+    });
+
+    it('fetches a v2 run by id', async () => {
+      const response = await request
+        .get('/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b')
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        run_id: 'e0115ac1-0479-4194-a22d-01e65e09a32b',
+        display_name: 'v2-xgboost-ilbo',
+        state: 'SUCCEEDED',
+      });
+    });
+
+    it('lists v2 recurring runs filtered by experiment id', async () => {
+      const response = await request
+        .get(
+          `/apis/v2beta1/recurringruns${buildQuery({
+            experiment_id: '275ea11d-ac63-4ce3-bc33-ec81981ed56a',
+            page_size: 2,
+          })}`,
+        )
+        .expect(200);
+
+      expect(response.body.recurringRuns).toHaveLength(2);
+      expect(response.body.recurringRuns[0]).toMatchObject({
+        recurring_run_id: expect.any(String),
+        display_name: expect.any(String),
+        experiment_id: '275ea11d-ac63-4ce3-bc33-ec81981ed56a',
+      });
+    });
   });
 
   describe('experiments', () => {

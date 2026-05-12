@@ -105,6 +105,17 @@ Follow this link, it should also take you to the same UI. The difference here is
 
 The local dev bootstrap runs under React Strict Mode. Vitest UI tests are configured to do the same through Testing Library's global `reactStrictMode` setting so direct `render()` calls match dev behavior. Production builds remain outside Strict Mode.
 
+### Mock backend shortcut
+
+For fixture-backed client work that does not need a Kubernetes cluster, run:
+
+```bash
+npm run mock:api
+npm run start
+```
+
+The mock backend serves the primary v2 Pipelines, Experiments, Runs, and Recurring Runs list pages with deterministic fixture data. Use `npm run start:proxy-and-server` against a real KFP deployment when validating MLMD, pod logs, runtime artifacts, auth, or backend behavior beyond those fixtures.
+
 ## Visual Regression Testing
 
 When making UI changes, use the smoke test tool to capture screenshots and generate side-by-side comparisons against a base branch. This catches layout regressions, styling issues, and unintended visual changes before they reach review.
