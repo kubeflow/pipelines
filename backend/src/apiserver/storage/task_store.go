@@ -216,14 +216,27 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list tasks: %v", err)
 	}
 
+	// addReferenceFilter appends the WHERE clause that scopes the query to
+	// the resource-reference key supplied by the caller. NamespaceResourceType
+	// is honored so that a caller asking for a single namespace does not
+	// receive rows from other namespaces.
+	addReferenceFilter := func(b sq.SelectBuilder) sq.SelectBuilder {
+		if filterContext.ReferenceKey == nil {
+			return b
+		}
+		switch filterContext.ReferenceKey.Type {
+		case model.PipelineResourceType:
+			return b.Where(sq.Eq{"PipelineName": filterContext.ReferenceKey.ID})
+		case model.RunResourceType:
+			return b.Where(sq.Eq{"RunUUID": filterContext.ReferenceKey.ID})
+		case model.NamespaceResourceType:
+			return b.Where(sq.Eq{"Namespace": filterContext.ReferenceKey.ID})
+		}
+		return b
+	}
+
 	// SQL for getting the filtered and paginated rows
-	sqlBuilder := sq.Select(taskColumns...).From("tasks")
-	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.PipelineResourceType {
-		sqlBuilder = sqlBuilder.Where(sq.Eq{"PipelineName": filterContext.ReferenceKey.ID})
-	}
-	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.RunResourceType {
-		sqlBuilder = sqlBuilder.Where(sq.Eq{"RunUUID": filterContext.ReferenceKey.ID})
-	}
+	sqlBuilder := addReferenceFilter(sq.Select(taskColumns...).From("tasks"))
 	sqlBuilder = opts.AddFilterToSelect(sqlBuilder)
 
 	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
@@ -233,13 +246,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 
 	// SQL for getting total size. This matches the query to get all the rows above, in order
 	// to do the same filter, but counts instead of scanning the rows.
-	sqlBuilder = sq.Select("count(*)").From("tasks")
-	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.PipelineResourceType {
-		sqlBuilder = sqlBuilder.Where(sq.Eq{"PipelineName": filterContext.ReferenceKey.ID})
-	}
-	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.RunResourceType {
-		sqlBuilder = sqlBuilder.Where(sq.Eq{"RunUUID": filterContext.ReferenceKey.ID})
-	}
+	sqlBuilder = addReferenceFilter(sq.Select("count(*)").From("tasks"))
 	sizeSql, sizeArgs, err := opts.AddFilterToSelect(sqlBuilder).ToSql()
 	if err != nil {
 		return errorF(err)
