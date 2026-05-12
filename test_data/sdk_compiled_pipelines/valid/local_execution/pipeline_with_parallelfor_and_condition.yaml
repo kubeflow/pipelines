@@ -1,0 +1,433 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-parallelfor-and-condition
+# Inputs:
+#    threshold: float [Default: 5.0]
+# Outputs:
+#    Output: str
+components:
+  comp-condition-4:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--label-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: label
+      tasks:
+        label:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-label
+          inputs:
+            parameters:
+              prefix:
+                runtimeValue:
+                  constant: high
+              value:
+                componentInputParameter: pipelinechannel--sum-values-Output
+          taskInfo:
+            name: label
+    inputDefinitions:
+      parameters:
+        pipelinechannel--sum-values-Output:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--threshold:
+          parameterType: NUMBER_DOUBLE
+    outputDefinitions:
+      parameters:
+        pipelinechannel--label-Output:
+          parameterType: STRING
+  comp-condition-5:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--label-2-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: label-2
+      tasks:
+        label-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-label-2
+          inputs:
+            parameters:
+              prefix:
+                runtimeValue:
+                  constant: low
+              value:
+                componentInputParameter: pipelinechannel--sum-values-Output
+          taskInfo:
+            name: label-2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--sum-values-Output:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--threshold:
+          parameterType: NUMBER_DOUBLE
+    outputDefinitions:
+      parameters:
+        pipelinechannel--label-2-Output:
+          parameterType: STRING
+  comp-condition-branches-3:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--condition-branches-3-oneof-1:
+            valueFromOneof:
+              parameterSelectors:
+              - outputParameterKey: pipelinechannel--label-Output
+                producerSubtask: condition-4
+              - outputParameterKey: pipelinechannel--label-2-Output
+                producerSubtask: condition-5
+      tasks:
+        condition-4:
+          componentRef:
+            name: comp-condition-4
+          inputs:
+            parameters:
+              pipelinechannel--sum-values-Output:
+                componentInputParameter: pipelinechannel--sum-values-Output
+              pipelinechannel--threshold:
+                componentInputParameter: pipelinechannel--threshold
+          taskInfo:
+            name: condition-4
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--sum-values-Output']
+              > inputs.parameter_values['pipelinechannel--threshold']
+        condition-5:
+          componentRef:
+            name: comp-condition-5
+          inputs:
+            parameters:
+              pipelinechannel--sum-values-Output:
+                componentInputParameter: pipelinechannel--sum-values-Output
+              pipelinechannel--threshold:
+                componentInputParameter: pipelinechannel--threshold
+          taskInfo:
+            name: condition-5
+          triggerPolicy:
+            condition: '!(inputs.parameter_values[''pipelinechannel--sum-values-Output'']
+              > inputs.parameter_values[''pipelinechannel--threshold''])'
+    inputDefinitions:
+      parameters:
+        pipelinechannel--sum-values-Output:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--threshold:
+          parameterType: NUMBER_DOUBLE
+    outputDefinitions:
+      parameters:
+        pipelinechannel--condition-branches-3-oneof-1:
+          parameterType: STRING
+  comp-double:
+    executorLabel: exec-double
+    inputDefinitions:
+      parameters:
+        num:
+          parameterType: NUMBER_DOUBLE
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_DOUBLE
+  comp-for-loop-2:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--double-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: double
+      tasks:
+        double:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-double
+          inputs:
+            parameters:
+              num:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+          taskInfo:
+            name: double
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: NUMBER_DOUBLE
+    outputDefinitions:
+      parameters:
+        pipelinechannel--double-Output:
+          parameterType: LIST
+  comp-label:
+    executorLabel: exec-label
+    inputDefinitions:
+      parameters:
+        prefix:
+          parameterType: STRING
+        value:
+          parameterType: NUMBER_DOUBLE
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-label-2:
+    executorLabel: exec-label-2
+    inputDefinitions:
+      parameters:
+        prefix:
+          parameterType: STRING
+        value:
+          parameterType: NUMBER_DOUBLE
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-passthrough:
+    executorLabel: exec-passthrough
+    inputDefinitions:
+      parameters:
+        value:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-sum-values:
+    executorLabel: exec-sum-values
+    inputDefinitions:
+      parameters:
+        nums:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_DOUBLE
+deploymentSpec:
+  executors:
+    exec-double:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - double
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef double(num: float) -> float:\n    return num * 2.0\n\n"
+        image: python:3.11
+    exec-label:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - label
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef label(prefix: str, value: float) -> str:\n    # Format as int\
+          \ when the value is whole so the test's exact-match\n    # assertion stays\
+          \ stable across runtime numeric round-trips.\n    rendered = int(value)\
+          \ if float(value).is_integer() else value\n    return f'{prefix}:{rendered}'\n\
+          \n"
+        image: python:3.11
+    exec-label-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - label
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef label(prefix: str, value: float) -> str:\n    # Format as int\
+          \ when the value is whole so the test's exact-match\n    # assertion stays\
+          \ stable across runtime numeric round-trips.\n    rendered = int(value)\
+          \ if float(value).is_integer() else value\n    return f'{prefix}:{rendered}'\n\
+          \n"
+        image: python:3.11
+    exec-passthrough:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - passthrough
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef passthrough(value: str) -> str:\n    return value\n\n"
+        image: python:3.11
+    exec-sum-values:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - sum_values
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef sum_values(nums: List[float]) -> float:\n    return float(sum(nums))\n\
+          \n"
+        image: python:3.11
+pipelineInfo:
+  name: pipeline-with-parallelfor-and-condition
+root:
+  dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: Output
+            producerSubtask: passthrough
+    tasks:
+      condition-branches-3:
+        componentRef:
+          name: comp-condition-branches-3
+        dependentTasks:
+        - sum-values
+        inputs:
+          parameters:
+            pipelinechannel--sum-values-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: sum-values
+            pipelinechannel--threshold:
+              componentInputParameter: threshold
+        taskInfo:
+          name: condition-branches-3
+      for-loop-2:
+        componentRef:
+          name: comp-for-loop-2
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-1
+          items:
+            raw: '[1.0, 2.0, 3.0]'
+        taskInfo:
+          name: for-loop-2
+      passthrough:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-passthrough
+        dependentTasks:
+        - condition-branches-3
+        inputs:
+          parameters:
+            value:
+              taskOutputParameter:
+                outputParameterKey: pipelinechannel--condition-branches-3-oneof-1
+                producerTask: condition-branches-3
+        taskInfo:
+          name: passthrough
+      sum-values:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-sum-values
+        dependentTasks:
+        - for-loop-2
+        inputs:
+          parameters:
+            nums:
+              taskOutputParameter:
+                outputParameterKey: pipelinechannel--double-Output
+                producerTask: for-loop-2
+        taskInfo:
+          name: sum-values
+  inputDefinitions:
+    parameters:
+      threshold:
+        defaultValue: 5.0
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2
