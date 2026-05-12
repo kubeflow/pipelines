@@ -140,6 +140,38 @@ class TestRunDockerContainer(DockerMockTestCase):
         self.assertEqual(return_code, 137)
         mock_container.remove.assert_called_once_with(force=True)
 
+    def test_auto_remove_stripped_from_container_run_args(self):
+        """auto_remove in container_run_args is stripped to prevent race."""
+        docker_task_handler.run_docker_container(
+            client=docker.from_env(),
+            image='alpine',
+            command=['echo', 'ok'],
+            volumes={},
+            auto_remove=True,
+            network_mode='host',
+        )
+
+        call_kwargs = self.mocked_docker_client.containers.run.call_args[1]
+        self.assertNotIn('auto_remove', call_kwargs)
+        self.assertEqual(call_kwargs['network_mode'], 'host')
+
+    def test_remove_exception_does_not_propagate(self):
+        """Exception in container.remove() should not mask the exit code."""
+        mock_container = mock.Mock()
+        mock_container.logs.return_value = [b'output\n']
+        mock_container.wait.return_value = {'StatusCode': 0}
+        mock_container.remove.side_effect = Exception('docker daemon down')
+        self.mocked_docker_client.containers.run.return_value = mock_container
+
+        return_code = docker_task_handler.run_docker_container(
+            client=docker.from_env(),
+            image='alpine',
+            command=['echo', 'ok'],
+            volumes={},
+        )
+
+        self.assertEqual(return_code, 0)
+
 
 class TestDockerTaskHandler(DockerMockTestCase):
 

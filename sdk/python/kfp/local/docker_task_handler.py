@@ -133,6 +133,8 @@ def run_docker_container(client: 'docker.DockerClient', image: str,
         print(f'Pulling image {image!r}')
         client.images.pull(image)
         print('Image pull complete\n')
+    # Strip auto_remove to prevent race condition with container cleanup
+    container_run_args.pop('auto_remove', None)
     container = client.containers.run(
         image=image,
         command=command,
@@ -148,4 +150,7 @@ def run_docker_container(client: 'docker.DockerClient', image: str,
             print(line.decode(), end='')
         return container.wait()['StatusCode']
     finally:
-        container.remove(force=True)
+        try:
+            container.remove(force=True)
+        except Exception:
+            pass
