@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: pipeline-with-retry-
+  generateName: test-pipeline-
 spec:
   arguments:
     parameters:
-    - name: components-b52de15852f3d1e1fc69f3596142f156a05ecf4305fbe662ae3d89f8b71f5ab3
-      value: '{"executorLabel":"exec-flaky","inputDefinitions":{"parameters":{"counter_path":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-b52de15852f3d1e1fc69f3596142f156a05ecf4305fbe662ae3d89f8b71f5ab3
-      value: '{"args":["--executor_input","{{$}}","--function_to_execute","flaky"],"command":["sh","-c","\nif
+    - name: components-df9adcbe603768f30acc82bf916febdb4b094013d76f7f79be0fa9ab14c8fcf3
+      value: '{"executorLabel":"exec-add","inputDefinitions":{"parameters":{"a":{"parameterType":"NUMBER_DOUBLE"},"b":{"parameterType":"NUMBER_DOUBLE"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_DOUBLE"}}}}'
+    - name: implementations-df9adcbe603768f30acc82bf916febdb4b094013d76f7f79be0fa9ab14c8fcf3
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","add"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
         python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
@@ -17,13 +17,9 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        flaky(counter_path: str) -\u003e str:\n    import os\n    count = 0\n    if
-        os.path.exists(counter_path):\n        with open(counter_path) as f:\n            count
-        = int(f.read().strip() or ''0'')\n    count += 1\n    with open(counter_path,
-        ''w'') as f:\n        f.write(str(count))\n    if count \u003c= 1:\n        raise
-        RuntimeError(f''flaky attempt {count}'')\n    return f''attempt={count}''\n\n"],"image":"python:3.11"}'
+        add(a: float, b: float) -\u003e float:\n    return a + b\n\n"],"image":"python:3.11"}'
     - name: components-root
-      value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"flaky"}}}},"tasks":{"flaky":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-flaky"},"inputs":{"parameters":{"counter_path":{"componentInputParameter":"counter_path"}}},"retryPolicy":{"backoffDuration":"0s","backoffFactor":1,"backoffMaxDuration":"3600s","maxRetryCount":3},"taskInfo":{"name":"flaky"}}}},"inputDefinitions":{"parameters":{"counter_path":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+      value: '{"dag":{"tasks":{"add":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"inputs":{"parameters":{"a":{"componentInputParameter":"a"},"b":{"componentInputParameter":"b"}}},"retryPolicy":{"backoffDuration":"0s","backoffFactor":2,"backoffMaxDuration":"3600s","maxRetryCount":3,"policy":"POLICY_ON_ERROR"},"taskInfo":{"name":"add"}}}},"inputDefinitions":{"parameters":{"a":{"defaultValue":1,"isOptional":true,"parameterType":"NUMBER_DOUBLE"},"b":{"defaultValue":7,"isOptional":true,"parameterType":"NUMBER_DOUBLE"}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -41,7 +37,7 @@ spec:
       - --type
       - CONTAINER
       - --pipeline_name
-      - pipeline-with-retry
+      - test-pipeline
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
@@ -170,7 +166,7 @@ spec:
           - name: retry-backoff-max-duration
             value: '{{inputs.parameters.retry-backoff-max-duration}}'
         name: executor
-        template: retry-system-container-impl
+        template: retry-system-container-impl-onerror
         when: '{{inputs.parameters.cached-decision}} != true'
     inputs:
       parameters:
@@ -186,7 +182,7 @@ spec:
       - default: "0"
         name: retry-backoff-max-duration
     metadata: {}
-    name: retry-system-container-executor
+    name: retry-system-container-executor-onerror
     outputs: {}
     retryStrategy:
       limit: 0
@@ -268,7 +264,7 @@ spec:
     metadata:
       annotations:
         pipelines.kubeflow.org/runtime-role: launcher
-    name: retry-system-container-impl
+    name: retry-system-container-impl-onerror
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     retryStrategy:
@@ -277,6 +273,7 @@ spec:
         factor: '{{inputs.parameters.retry-backoff-factor}}'
         maxDuration: '{{inputs.parameters.retry-backoff-max-duration}}'
       limit: '{{inputs.parameters.retry-max-count}}'
+      retryPolicy: OnError
     securityContext:
       seccompProfile:
         type: RuntimeDefault
@@ -300,35 +297,35 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-b52de15852f3d1e1fc69f3596142f156a05ecf4305fbe662ae3d89f8b71f5ab3}}'
+            value: '{{workflow.parameters.components-df9adcbe603768f30acc82bf916febdb4b094013d76f7f79be0fa9ab14c8fcf3}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-flaky"},"inputs":{"parameters":{"counter_path":{"componentInputParameter":"counter_path"}}},"retryPolicy":{"backoffDuration":"0s","backoffFactor":1,"backoffMaxDuration":"3600s","maxRetryCount":3},"taskInfo":{"name":"flaky"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"inputs":{"parameters":{"a":{"componentInputParameter":"a"},"b":{"componentInputParameter":"b"}}},"retryPolicy":{"backoffDuration":"0s","backoffFactor":2,"backoffMaxDuration":"3600s","maxRetryCount":3,"policy":"POLICY_ON_ERROR"},"taskInfo":{"name":"add"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-b52de15852f3d1e1fc69f3596142f156a05ecf4305fbe662ae3d89f8b71f5ab3}}'
+            value: '{{workflow.parameters.implementations-df9adcbe603768f30acc82bf916febdb4b094013d76f7f79be0fa9ab14c8fcf3}}'
           - name: task-name
-            value: flaky
+            value: add
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: flaky-driver
+        name: add-driver
         template: system-container-driver
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.flaky-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{tasks.add-driver.outputs.parameters.pod-spec-patch}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.flaky-driver.outputs.parameters.cached-decision}}'
+            value: '{{tasks.add-driver.outputs.parameters.cached-decision}}'
           - name: retry-max-count
             value: "3"
           - name: retry-backoff-duration
             value: "0"
           - name: retry-backoff-factor
-            value: "1"
+            value: "2"
           - name: retry-backoff-max-duration
             value: "3600"
-        depends: flaky-driver.Succeeded
-        name: flaky
-        template: retry-system-container-executor
+        depends: add-driver.Succeeded
+        name: add
+        template: retry-system-container-executor-onerror
     inputs:
       parameters:
       - name: parent-dag-id
@@ -340,7 +337,7 @@ spec:
       - --type
       - '{{inputs.parameters.driver-type}}'
       - --pipeline_name
-      - pipeline-with-retry
+      - test-pipeline
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
@@ -452,7 +449,7 @@ spec:
           - name: component
             value: '{{workflow.parameters.components-root}}'
           - name: runtime-config
-            value: '{}'
+            value: '{"parameterValues":{"a":1,"b":7}}'
           - name: driver-type
             value: ROOT_DAG
         name: root-driver

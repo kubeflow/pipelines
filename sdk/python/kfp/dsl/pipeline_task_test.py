@@ -447,6 +447,25 @@ class PipelineTaskTest(parameterized.TestCase):
                 r"At least one of 'before' or 'after' must be True"):
             task.set_debug_pause(before=False, after=False)
 
+    def test_set_retry_invalid_policy_raises(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        with self.assertRaisesRegex(ValueError, 'Invalid retry policy'):
+            task.set_retry(num_retries=1, policy='BadValue')
+
+    def test_set_retry_valid_policies(self):
+        for policy in ('Always', 'OnFailure', 'OnError', 'OnTransientError'):
+            task = pipeline_task.PipelineTask(
+                component_spec=structures.ComponentSpec.from_yaml_documents(
+                    V2_YAML),
+                args={'input1': 'value'},
+            )
+            task.set_retry(num_retries=2, policy=policy)
+            self.assertEqual(task._task_spec.retry_policy.policy, policy)
+
     def test_set_display_name(self):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.from_yaml_documents(
@@ -500,7 +519,9 @@ class TestTaskInFinalState(unittest.TestCase):
 
     Many properties and methods will be blocked.
 
-    Also tests that the .output and .outputs behavior behaves as expected when the outputs are values, not placeholders, as will be the case when PipelineTask is in the state FINAL.
+    Also tests that the .output and .outputs behavior behaves as
+    expected when the outputs are values, not placeholders, as will be
+    the case when PipelineTask is in the state FINAL.
     """
 
     def test_output_property(self):
