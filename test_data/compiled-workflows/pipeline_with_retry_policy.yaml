@@ -3,7 +3,7 @@ kind: Workflow
 metadata:
   annotations:
     workflows.argoproj.io/pod-name-format: v1
-  generateName: pipeline-with-retry-
+  generateName: test-pipeline-
 spec:
   arguments: {}
   entrypoint: entrypoint
@@ -23,7 +23,7 @@ spec:
       - --type
       - CONTAINER
       - --pipeline_name
-      - pipeline-with-retry
+      - test-pipeline
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
@@ -164,7 +164,7 @@ spec:
           - name: retry-backoff-max-duration
             value: '{{inputs.parameters.retry-backoff-max-duration}}'
         name: executor
-        template: retry-system-container-impl
+        template: retry-system-container-impl-onerror
         when: '{{inputs.parameters.cached-decision}} != true'
     inputs:
       parameters:
@@ -182,7 +182,7 @@ spec:
       - default: "0"
         name: retry-backoff-max-duration
     metadata: {}
-    name: retry-system-container-executor
+    name: retry-system-container-executor-onerror
     outputs: {}
     retryStrategy:
       limit: 0
@@ -274,10 +274,10 @@ spec:
     metadata:
       annotations:
         pipelines.kubeflow.org/runtime-role: launcher
-        pipelines.kubeflow.org/template-name: retry-system-container-impl
+        pipelines.kubeflow.org/template-name: retry-system-container-impl-onerror
       labels:
         pipelines.kubeflow.org/pod-role: container-executor
-    name: retry-system-container-impl
+    name: retry-system-container-impl-onerror
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     retryStrategy:
@@ -286,6 +286,7 @@ spec:
         factor: '{{inputs.parameters.retry-backoff-factor}}'
         maxDuration: '{{inputs.parameters.retry-backoff-max-duration}}'
       limit: '{{inputs.parameters.retry-max-count}}'
+      retryPolicy: OnError
     securityContext:
       seccompProfile:
         type: RuntimeDefault
@@ -320,29 +321,29 @@ spec:
       - arguments:
           parameters:
           - name: task-name
-            value: flaky
+            value: add
           - name: parent-dag-task-id
             value: '{{inputs.parameters.parent-dag-task-id}}'
-        name: flaky-driver
+        name: add-driver
         template: system-container-driver
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.flaky-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{tasks.add-driver.outputs.parameters.pod-spec-patch}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.flaky-driver.outputs.parameters.cached-decision}}'
+            value: '{{tasks.add-driver.outputs.parameters.cached-decision}}'
           - name: retry-max-count
             value: "3"
           - name: retry-backoff-duration
             value: "0"
           - name: retry-backoff-factor
-            value: "1"
+            value: "2"
           - name: retry-backoff-max-duration
             value: "3600"
-        depends: flaky-driver.Succeeded
-        name: flaky
-        template: retry-system-container-executor
+        depends: add-driver.Succeeded
+        name: add
+        template: retry-system-container-executor-onerror
     inputs:
       parameters:
       - name: parent-dag-task-id
@@ -356,7 +357,7 @@ spec:
       - --type
       - '{{inputs.parameters.driver-type}}'
       - --pipeline_name
-      - pipeline-with-retry
+      - test-pipeline
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
@@ -489,7 +490,7 @@ spec:
       - arguments:
           parameters:
           - name: runtime-config
-            value: '{}'
+            value: '{"parameterValues":{"a":1,"b":7}}'
           - name: driver-type
             value: ROOT_DAG
         name: root-driver
