@@ -20,6 +20,7 @@ import (
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"github.com/stretchr/testify/assert"
@@ -253,6 +254,7 @@ func TestContainer_CreateExecutionGeneralFailure(t *testing.T) {
 			Image:   "python:3.11",
 			Command: []string{"python", "main.py"},
 		},
+		PluginDispatcher: plugins.NoOpDispatcher{},
 	}, mlmdClient, &mockCacheClient{})
 
 	require.NotNil(t, execution)
@@ -309,6 +311,7 @@ func TestContainer_CreateExecutionSuccess(t *testing.T) {
 			Image:   "python:3.11",
 			Command: []string{"python", "main.py"},
 		},
+		PluginDispatcher: plugins.NoOpDispatcher{},
 	}, mlmdClient, &mockCacheClient{})
 
 	require.NotNil(t, execution)
@@ -368,6 +371,7 @@ func TestContainer_CreateExecutionAlreadyExistsLookupReturnsNil(t *testing.T) {
 			Image:   "python:3.11",
 			Command: []string{"python", "main.py"},
 		},
+		PluginDispatcher: plugins.NoOpDispatcher{},
 	}, mlmdClient, &mockCacheClient{})
 
 	require.NotNil(t, execution)
@@ -426,6 +430,7 @@ func TestContainer_CreateExecutionDoesNotExistGenericError(t *testing.T) {
 			Image:   "python:3.11",
 			Command: []string{"python", "main.py"},
 		},
+		PluginDispatcher: plugins.NoOpDispatcher{},
 	}, mlmdClient, &mockCacheClient{})
 
 	// In a successful recovery, we expect NO error to be returned from Container
