@@ -246,11 +246,22 @@ func TestMergePluginConfigAndSettingsDefaults(t *testing.T) {
 	global := commonmlflow.PluginConfig{
 		Endpoint: "https://global-mlflow.example.com",
 		Timeout:  "30s",
-		Settings: &commonmlflow.MLflowPluginSettings{ExperimentDescription: &globalDesc},
+		Settings: &commonmlflow.MLflowPluginSettings{
+			ExperimentDescription: &globalDesc,
+			KFPBaseURL:            "https://global-kfp.example.com",
+			KFPRunURLPathTemplate: "/global/{run_id}",
+			MLflowBaseURL:         "https://global-mlflow-ui.example.com",
+			MLflowUIPathPrefix:    "/global-mlflow",
+		},
 	}
 	namespace := &commonmlflow.PluginConfig{
 		Endpoint: "https://ns-mlflow.example.com",
-		Settings: &commonmlflow.MLflowPluginSettings{WorkspacesEnabled: &wsDisabled},
+		Settings: &commonmlflow.MLflowPluginSettings{
+			WorkspacesEnabled:     &wsDisabled,
+			KFPRunURLPathTemplate: "/ns/{namespace}/runs/{run_id}",
+			MLflowBaseURL:         "https://ns-mlflow-ui.example.com",
+			MLflowUIPathPrefix:    "/ns-mlflow",
+		},
 	}
 
 	merged := commonmlflow.MergePluginConfig(global, namespace)
@@ -263,6 +274,10 @@ func TestMergePluginConfigAndSettingsDefaults(t *testing.T) {
 	assert.False(t, *settings.WorkspacesEnabled)
 	require.NotNil(t, settings.ExperimentDescription)
 	assert.Equal(t, "Global desc", *settings.ExperimentDescription)
+	assert.Equal(t, "https://global-kfp.example.com", settings.KFPBaseURL)
+	assert.Equal(t, "/ns/{namespace}/runs/{run_id}", settings.KFPRunURLPathTemplate)
+	assert.Equal(t, "https://ns-mlflow-ui.example.com", settings.MLflowBaseURL)
+	assert.Equal(t, "/ns-mlflow", settings.MLflowUIPathPrefix)
 }
 
 func TestBuildMLflowRequestContextKubernetesAuth(t *testing.T) {
@@ -344,26 +359,47 @@ func TestEnsureExperimentExists(t *testing.T) {
 func TestBuildKFPTags(t *testing.T) {
 	run := &apiserverPlugins.PendingRun{
 		RunID:             "kfp-run-1",
+		Namespace:         "ns-1",
 		PipelineID:        "pipeline-1",
 		PipelineVersionID: "pipeline-version-1",
 	}
-	tags := BuildKFPTags(run, "")
+	tags := BuildKFPTags(run, "", "")
 	require.Len(t, tags, 4)
 	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPRunID, Value: "kfp-run-1"})
-	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPRunURL, Value: "/#/runs/details/kfp-run-1"})
+	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPRunURL, Value: ""})
 	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPPipelineID, Value: "pipeline-1"})
 	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPPipelineVersionID, Value: "pipeline-version-1"})
 }
 
 func TestBuildKFPTags_WithBaseURL(t *testing.T) {
-	run := &apiserverPlugins.PendingRun{RunID: "run-1"}
-	tags := BuildKFPTags(run, "https://kfp.example.com")
+	run := &apiserverPlugins.PendingRun{
+		RunID:     "run-1",
+		Namespace: "ns-1",
+	}
+	tags := BuildKFPTags(run, "https://kfp.example.com", "")
 	require.Len(t, tags, 2)
-	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPRunURL, Value: "https://kfp.example.com/#/runs/details/run-1"})
+	assert.Contains(t, tags, commonmlflow.Tag{
+		Key:   TagKFPRunURL,
+		Value: "https://kfp.example.com/#/runs/details/run-1",
+	})
+}
+
+func TestBuildKFPTags_WithCustomPathTemplate(t *testing.T) {
+	run := &apiserverPlugins.PendingRun{
+		RunID:     "run-b",
+		Namespace: "proj-1",
+	}
+	tmpl := "/demo/console/pipelines/{namespace}/runs/{run_id}"
+	tags := BuildKFPTags(run, "https://console.example.com", tmpl)
+	require.Len(t, tags, 2)
+	assert.Contains(t, tags, commonmlflow.Tag{
+		Key:   TagKFPRunURL,
+		Value: "https://console.example.com/demo/console/pipelines/proj-1/runs/run-b",
+	})
 }
 
 func TestBuildKFPTags_NilRun(t *testing.T) {
-	assert.Nil(t, BuildKFPTags(nil, ""))
+	assert.Nil(t, BuildKFPTags(nil, "", ""))
 }
 
 func TestCreateRunWithKFPTags(t *testing.T) {
@@ -390,7 +426,7 @@ func TestCreateRunWithKFPTags(t *testing.T) {
 		PipelineID:        "pipeline-1",
 		PipelineVersionID: "pipeline-version-1",
 	}
-	tags := BuildKFPTags(run, "")
+	tags := BuildKFPTags(run, "", "")
 	mlflowRunID, err := mlflowCtx.Client.CreateRun(context.Background(), "exp-1", "sample-run", tags)
 	require.NoError(t, err)
 	assert.Equal(t, "mlflow-parent-run-1", mlflowRunID)

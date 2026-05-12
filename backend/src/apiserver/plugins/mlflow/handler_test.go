@@ -20,6 +20,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -345,10 +346,12 @@ func TestHandleRetry_Success(t *testing.T) {
 
 func TestBuildKFPRunURL(t *testing.T) {
 	tests := []struct {
-		name       string
-		runID      string
-		kfpBaseURL string
-		wantURL    string
+		name         string
+		runID        string
+		namespace    string
+		kfpBaseURL   string
+		pathTemplate string
+		wantURL      string
 	}{
 		{
 			name:    "empty runID returns empty",
@@ -356,29 +359,163 @@ func TestBuildKFPRunURL(t *testing.T) {
 			wantURL: "",
 		},
 		{
-			name:    "no base URL returns relative path",
+			name:    "no base URL returns empty",
 			runID:   "abc",
-			wantURL: "/#/runs/details/abc",
+			wantURL: "",
 		},
 		{
-			name:       "with base URL returns absolute URL",
-			runID:      "abc",
+			name:       "default KFP UI hash route",
+			runID:      "run-xyz",
+			namespace:  "team-a",
 			kfpBaseURL: "https://kfp.example.com",
-			wantURL:    "https://kfp.example.com/#/runs/details/abc",
+			wantURL:    "https://kfp.example.com/#/runs/details/run-xyz",
 		},
 		{
-			name:       "trailing slash on base URL is trimmed",
-			runID:      "abc",
-			kfpBaseURL: "https://kfp.example.com/",
-			wantURL:    "https://kfp.example.com/#/runs/details/abc",
+			name:       "default hash route without namespace segment",
+			runID:      "run-xyz",
+			namespace:  "",
+			kfpBaseURL: "https://kfp.example.com",
+			wantURL:    "https://kfp.example.com/#/runs/details/run-xyz",
+		},
+		{
+			name:         "path template with placeholders",
+			runID:        "run-b",
+			namespace:    "ns-a",
+			kfpBaseURL:   "https://console.example.com",
+			pathTemplate: "/demo/console/pipelines/{namespace}/runs/{run_id}",
+			wantURL:      "https://console.example.com/demo/console/pipelines/ns-a/runs/run-b",
+		},
+		{
+			name:         "path template without leading slash normalized",
+			runID:        "r",
+			namespace:    "n",
+			kfpBaseURL:   "https://x.example",
+			pathTemplate: "clusters/{namespace}/runs/{run_id}",
+			wantURL:      "https://x.example/clusters/n/runs/r",
+		},
+		{
+			name:         "template with namespace placeholder rejects empty ns",
+			runID:        "run-xyz",
+			namespace:    "",
+			kfpBaseURL:   "https://kfp.example.com",
+			pathTemplate: "/demo/console/pipelines/{namespace}/runs/{run_id}",
+			wantURL:      "",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := BuildKFPRunURL(tt.runID, tt.kfpBaseURL)
+			got := BuildKFPRunURL(tt.runID, tt.namespace, tt.kfpBaseURL, tt.pathTemplate)
 			assert.Equal(t, tt.wantURL, got)
 		})
 	}
+}
+
+func TestBuildRunURL(t *testing.T) {
+	mustParseURL := func(raw string) *url.URL {
+		t.Helper()
+		u, err := url.Parse(raw)
+		require.NoError(t, err)
+		return u
+	}
+	tests := []struct {
+		name         string
+		requestCtx   *commonmlflow.RequestContext
+		experimentID string
+		runID        string
+		settings     *commonmlflow.MLflowPluginSettings
+		wantURL      string
+	}{
+		{
+			name:         "endpoint base with default hash route",
+			requestCtx:   &commonmlflow.RequestContext{BaseURL: mustParseURL("https://tracking.example:5000")},
+			experimentID: "5",
+			runID:        "abc123",
+			wantURL:      "https://tracking.example:5000/#/experiments/5/runs/abc123",
+		},
+		{
+			name: "mlflowBaseURL overrides browser entry point",
+			requestCtx: &commonmlflow.RequestContext{
+				BaseURL: mustParseURL("http://mlflow.internal.svc.cluster.local:5000"),
+			},
+			experimentID: "9",
+			runID:        "run-z",
+			settings: &commonmlflow.MLflowPluginSettings{
+				MLflowBaseURL: "https://mlflow.example.com",
+			},
+			wantURL: "https://mlflow.example.com/#/experiments/9/runs/run-z",
+		},
+		{
+			name: "optional path prefix before fragment",
+			requestCtx: &commonmlflow.RequestContext{
+				BaseURL: mustParseURL("https://dashboard.example.com"),
+			},
+			experimentID: "1",
+			runID:        "r1",
+			settings:     &commonmlflow.MLflowPluginSettings{MLflowUIPathPrefix: "/mlflow"},
+			wantURL:      "https://dashboard.example.com/mlflow/#/experiments/1/runs/r1",
+		},
+		{
+			name: "workspace query in hash fragment",
+			requestCtx: &commonmlflow.RequestContext{
+				BaseURL:           mustParseURL("https://tracking.example"),
+				WorkspacesEnabled: true,
+				Workspace:         "mlflow-ws-1",
+			},
+			experimentID: "5",
+			runID:        "abc123",
+			wantURL:      "https://tracking.example/#/experiments/5/runs/abc123?workspace=mlflow-ws-1",
+		},
+		{
+			name:         "mlflowBaseURL without requestCtx.BaseURL",
+			requestCtx:   &commonmlflow.RequestContext{},
+			experimentID: "2",
+			runID:        "run-a",
+			settings: &commonmlflow.MLflowPluginSettings{
+				MLflowBaseURL: "https://ml.example",
+			},
+			wantURL: "https://ml.example/#/experiments/2/runs/run-a",
+		},
+		{
+			name:         "no mount base yields empty",
+			requestCtx:   &commonmlflow.RequestContext{},
+			experimentID: "5",
+			runID:        "x",
+			wantURL:      "",
+		},
+		{
+			name:         "missing experiment id yields empty",
+			requestCtx:   &commonmlflow.RequestContext{BaseURL: mustParseURL("https://x")},
+			experimentID: "",
+			runID:        "y",
+			wantURL:      "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := BuildRunURL(tt.requestCtx, tt.experimentID, tt.runID, tt.settings)
+			assert.Equal(t, tt.wantURL, got)
+		})
+	}
+}
+
+func TestShouldSyncNestedRun(t *testing.T) {
+	t.Run("terminal mode syncs non-terminal statuses", func(t *testing.T) {
+		assert.True(t, shouldSyncNestedRun(RunSyncModeTerminal, "RUNNING"))
+		assert.True(t, shouldSyncNestedRun(RunSyncModeTerminal, "SCHEDULED"))
+		assert.True(t, shouldSyncNestedRun(RunSyncModeTerminal, "PENDING"))
+		assert.True(t, shouldSyncNestedRun(RunSyncModeTerminal, ""))
+		assert.False(t, shouldSyncNestedRun(RunSyncModeTerminal, "FINISHED"))
+		assert.False(t, shouldSyncNestedRun(RunSyncModeTerminal, "FAILED"))
+		assert.False(t, shouldSyncNestedRun(RunSyncModeTerminal, "KILLED"))
+	})
+
+	t.Run("retry mode syncs only failed and killed", func(t *testing.T) {
+		assert.True(t, shouldSyncNestedRun(RunSyncModeRetry, "FAILED"))
+		assert.True(t, shouldSyncNestedRun(RunSyncModeRetry, "KILLED"))
+		assert.False(t, shouldSyncNestedRun(RunSyncModeRetry, "RUNNING"))
+		assert.False(t, shouldSyncNestedRun(RunSyncModeRetry, "FINISHED"))
+	})
 }
 
 // ---- ModelToPersistedRun tests ----
