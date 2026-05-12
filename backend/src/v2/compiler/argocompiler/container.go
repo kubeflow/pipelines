@@ -370,6 +370,13 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 		if task != nil && task.GetDag() == nil {
 			nameContainerExecutor = "retry-" + nameContainerExecutor
 			nameContainerImpl = "retry-" + nameContainerImpl
+			// retryPolicy can't be parameterized (Argo validates it as a strict enum at submission),
+			// so bake it into the template name.
+			if policy := protoRetryPolicyToArgo(taskRetrySpec.GetPolicy()); policy != "" {
+				suffix := "-" + strings.ToLower(policy)
+				nameContainerExecutor += suffix
+				nameContainerImpl += suffix
+			}
 		}
 	}
 	podMetadata := k8sExecCfg.GetPodMetadata()
@@ -582,7 +589,8 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 		executor.RetryStrategy = c.getTaskRetryStrategyFromInput(inputParameter(paramRetryMaxCount),
 			inputParameter(paramRetryBackOffDuration),
 			inputParameter(paramRetryBackOffFactor),
-			inputParameter(paramRetryBackOffMaxDuration))
+			inputParameter(paramRetryBackOffMaxDuration),
+			protoRetryPolicyToArgo(taskRetrySpec.GetPolicy()))
 		executor.Container.Env = append(executor.Container.Env, retryIndexEnv)
 	}
 	// Update pod metadata if it defined in the Kubernetes Spec
@@ -648,9 +656,12 @@ func (c *workflowCompiler) getTaskRetryParametersWithValues(task *pipelinespec.P
 }
 
 func (c *workflowCompiler) addParameterDefault(parameters []wfapi.Parameter, defaultValue string) []wfapi.Parameter {
-	// Set the "Default" field of each parameter in input slice with input defaultValue.
+	// Set the "Default" field of each parameter in input slice with defaultValue,
+	// unless the parameter already has an explicit default set.
 	for i := range parameters {
-		parameters[i].Default = wfapi.AnyStringPtr(defaultValue)
+		if parameters[i].Default == nil {
+			parameters[i].Default = wfapi.AnyStringPtr(defaultValue)
+		}
 	}
 	return parameters
 }
@@ -664,7 +675,7 @@ func (c *workflowCompiler) addParameterInputPath(parameters []wfapi.Parameter) [
 }
 
 func (c *workflowCompiler) getTaskRetryStrategyFromInput(maxCount string, backOffDuration string, backOffFactor string,
-	backOffMaxDuration string) *wfapi.RetryStrategy {
+	backOffMaxDuration string, retryPolicy string) *wfapi.RetryStrategy {
 	backoff := &wfapi.Backoff{
 		Factor: &intstr.IntOrString{
 			Type:   intstr.String,
@@ -679,7 +690,26 @@ func (c *workflowCompiler) getTaskRetryStrategyFromInput(maxCount string, backOf
 			Type:   intstr.String,
 			StrVal: maxCount,
 		},
-		Backoff: backoff,
+		Backoff:     backoff,
+		RetryPolicy: wfapi.RetryPolicy(retryPolicy),
+	}
+}
+
+// protoRetryPolicyToArgo maps a KFP proto RetryPolicy_Policy enum value to the
+// corresponding Argo Workflows RetryPolicy string. An empty string is returned
+// for POLICY_UNSPECIFIED, which causes Argo to use its default (OnFailure).
+func protoRetryPolicyToArgo(policy pipelinespec.PipelineTaskSpec_RetryPolicy_Policy) string {
+	switch policy {
+	case pipelinespec.PipelineTaskSpec_RetryPolicy_POLICY_ALWAYS:
+		return string(wfapi.RetryPolicyAlways)
+	case pipelinespec.PipelineTaskSpec_RetryPolicy_POLICY_ON_FAILURE:
+		return string(wfapi.RetryPolicyOnFailure)
+	case pipelinespec.PipelineTaskSpec_RetryPolicy_POLICY_ON_ERROR:
+		return string(wfapi.RetryPolicyOnError)
+	case pipelinespec.PipelineTaskSpec_RetryPolicy_POLICY_ON_TRANSIENT_ERROR:
+		return string(wfapi.RetryPolicyOnTransientError)
+	default:
+		return "" // POLICY_UNSPECIFIED → Argo uses OnFailure by default
 	}
 }
 
