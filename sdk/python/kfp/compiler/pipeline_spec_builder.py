@@ -57,12 +57,10 @@ def _compute_executor_dedup_key(
 ) -> str:
     """Stable hash of an executor body plus its per-executor platform entries.
 
-    Two executors collapse only if their ExecutorSpec protos are byte-equal
-    AND their per-executor platform-spec entries match. The platform entries
-    must be in the key because PlatformSpec.platforms[*].deployment_spec.
-    executors is keyed by executor_label, so two tasks with identical
-    executor bodies but different node selectors or pod metadata cannot
-    share a label.
+    Two executors collapse only when their ExecutorSpec protos are
+    bytewise identical AND their platform entries match. Identical
+    bodies with different node selectors or pod metadata must not share
+    a label, since platform entries are keyed by executor_label.
     """
     h = hashlib.sha256()
     h.update(executor_spec.SerializeToString(deterministic=True))
@@ -106,8 +104,8 @@ def deduplicate_executors_in_place(
     rename_map: Dict[str, str] = {}
     for label in sorted(deployment_config.executors.keys()):
         executor_spec = deployment_config.executors[label]
-        key = _compute_executor_dedup_key(
-            executor_spec, per_executor_platform_for(label))
+        key = _compute_executor_dedup_key(executor_spec,
+                                          per_executor_platform_for(label))
         canonical = hash_to_canonical.get(key)
         if canonical is None:
             hash_to_canonical[key] = label

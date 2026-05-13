@@ -6681,8 +6681,7 @@ def _compile_and_load(
 
 
 def _executors_dict(
-    pipeline_spec: pipeline_spec_pb2.PipelineSpec
-) -> Dict[str, Any]:
+        pipeline_spec: pipeline_spec_pb2.PipelineSpec) -> Dict[str, Any]:
     deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
     json_format.ParseDict(
         json_format.MessageToDict(pipeline_spec.deployment_spec),
@@ -6698,7 +6697,8 @@ def _assert_refs_valid(test_case: unittest.TestCase,
     executors = _executors_dict(pipeline_spec)
     components = pipeline_spec.components
 
-    def check_component(component_spec: pipeline_spec_pb2.ComponentSpec) -> None:
+    def check_component(
+            component_spec: pipeline_spec_pb2.ComponentSpec) -> None:
         if component_spec.executor_label:
             test_case.assertIn(component_spec.executor_label, executors)
         if component_spec.HasField('dag'):
@@ -6800,11 +6800,9 @@ class TestExecutorDeduplication(unittest.TestCase):
         @dsl.pipeline
         def my_pipeline():
             dsl.importer(
-                artifact_uri='gs://bucket/file.txt',
-                artifact_class=dsl.Dataset)
+                artifact_uri='gs://bucket/file.txt', artifact_class=dsl.Dataset)
             dsl.importer(
-                artifact_uri='gs://bucket/file.txt',
-                artifact_class=dsl.Dataset)
+                artifact_uri='gs://bucket/file.txt', artifact_class=dsl.Dataset)
 
         on_spec, _ = _compile_and_load(my_pipeline, deduplicate_executors=True)
         self.assertEqual(len(_executors_dict(on_spec)), 1)
