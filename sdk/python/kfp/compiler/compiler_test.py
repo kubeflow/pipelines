@@ -6658,5 +6658,266 @@ class TestPipelineSpecAttributeUniqueError(unittest.TestCase):
         self.assertTrue(my_pipeline.pipeline_spec)
 
 
+def _compile_and_load(
+    pipeline: graph_component.GraphComponent,
+    *,
+    deduplicate_executors: bool = False,
+) -> 'tuple[pipeline_spec_pb2.PipelineSpec, pipeline_spec_pb2.PlatformSpec]':
+    with tempfile.TemporaryDirectory() as tempdir:
+        output_yaml = os.path.join(tempdir, 'pipeline.yaml')
+        compiler.Compiler().compile(
+            pipeline_func=pipeline,
+            package_path=output_yaml,
+            deduplicate_executors=deduplicate_executors,
+        )
+        with open(output_yaml) as f:
+            docs = list(yaml.safe_load_all(f))
+    pipeline_spec = json_format.ParseDict(docs[0],
+                                          pipeline_spec_pb2.PipelineSpec())
+    platform_spec = pipeline_spec_pb2.PlatformSpec()
+    if len(docs) >= 2 and docs[1] is not None:
+        json_format.ParseDict(docs[1], platform_spec)
+    return pipeline_spec, platform_spec
+
+
+def _executors_dict(
+    pipeline_spec: pipeline_spec_pb2.PipelineSpec
+) -> Dict[str, Any]:
+    deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
+    json_format.ParseDict(
+        json_format.MessageToDict(pipeline_spec.deployment_spec),
+        deployment_config)
+    return dict(deployment_config.executors)
+
+
+def _assert_refs_valid(test_case: unittest.TestCase,
+                       pipeline_spec: pipeline_spec_pb2.PipelineSpec) -> None:
+    """Every component_ref.name resolves to a components entry, and every
+    executor_label on a ComponentSpec resolves to a deployment_config
+    executor entry."""
+    executors = _executors_dict(pipeline_spec)
+    components = pipeline_spec.components
+
+    def check_component(component_spec: pipeline_spec_pb2.ComponentSpec) -> None:
+        if component_spec.executor_label:
+            test_case.assertIn(component_spec.executor_label, executors)
+        if component_spec.HasField('dag'):
+            for task_spec in component_spec.dag.tasks.values():
+                ref = task_spec.component_ref.name
+                test_case.assertIn(ref, components)
+                check_component(components[ref])
+
+    check_component(pipeline_spec.root)
+
+
+class TestExecutorDeduplication(unittest.TestCase):
+
+    def test_dedup_collapses_identical_invocations(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            for _ in range(10):
+                return_1()
+
+        off_spec, _ = _compile_and_load(my_pipeline)
+        on_spec, _ = _compile_and_load(my_pipeline, deduplicate_executors=True)
+
+        self.assertEqual(len(_executors_dict(off_spec)), 10)
+        off_labels = {
+            comp.executor_label for comp in off_spec.components.values()
+        }
+        self.assertEqual(len(off_labels), 10)
+
+        on_executors = _executors_dict(on_spec)
+        self.assertEqual(len(on_executors), 1)
+        on_labels = {
+            comp.executor_label for comp in on_spec.components.values()
+        }
+        self.assertEqual(len(on_labels), 1)
+        self.assertEqual(next(iter(on_labels)), next(iter(on_executors)))
+        _assert_refs_valid(self, on_spec)
+
+    def test_dedup_distinct_components_unchanged(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            return_1()
+            print_hello()
+            cleanup()
+
+        on_spec, _ = _compile_and_load(my_pipeline, deduplicate_executors=True)
+        self.assertEqual(len(_executors_dict(on_spec)), 3)
+        _assert_refs_valid(self, on_spec)
+
+    def test_dedup_respects_resource_overrides(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            return_1().set_cpu_limit('2')
+            return_1().set_cpu_limit('4')
+
+        on_spec, _ = _compile_and_load(my_pipeline, deduplicate_executors=True)
+        # Different resources -> different container specs -> 2 distinct executors.
+        self.assertEqual(len(_executors_dict(on_spec)), 2)
+        _assert_refs_valid(self, on_spec)
+
+    def test_dedup_respects_platform_config(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task1 = return_1()
+            task1.platform_config['platform_foo'] = {'bar': 'one'}
+            task2 = return_1()
+            task2.platform_config['platform_foo'] = {'bar': 'two'}
+
+        on_spec, on_platform = _compile_and_load(
+            my_pipeline, deduplicate_executors=True)
+        # Different per-executor platform entries -> 2 distinct executors.
+        self.assertEqual(len(_executors_dict(on_spec)), 2)
+        # Both platform entries are retained.
+        platform_executors = on_platform.platforms[
+            'platform_foo'].deployment_spec.executors
+        self.assertEqual(len(platform_executors), 2)
+        _assert_refs_valid(self, on_spec)
+
+    def test_dedup_default_off(self):
+        # Default behavior must be byte-identical to today: a component used
+        # twice produces two executor entries.
+
+        @dsl.pipeline
+        def my_pipeline():
+            hello_world(text='hi')
+            hello_world(text='hi again')
+
+        off_spec, _ = _compile_and_load(my_pipeline)
+        executors = _executors_dict(off_spec)
+        self.assertEqual(len(executors), 2)
+        self.assertIn('exec-hello-world', executors)
+        self.assertIn('exec-hello-world-2', executors)
+
+    def test_dedup_importer_specs(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            dsl.importer(
+                artifact_uri='gs://bucket/file.txt',
+                artifact_class=dsl.Dataset)
+            dsl.importer(
+                artifact_uri='gs://bucket/file.txt',
+                artifact_class=dsl.Dataset)
+
+        on_spec, _ = _compile_and_load(my_pipeline, deduplicate_executors=True)
+        self.assertEqual(len(_executors_dict(on_spec)), 1)
+        _assert_refs_valid(self, on_spec)
+
+    def test_dedup_inside_parallelfor_and_outside(self):
+        # The interesting assertion: the in-loop executor and the outside-loop
+        # executor collapse into a single entry (not the trivial fact that
+        # ParallelFor's body emits one executor on its own).
+
+        @dsl.pipeline
+        def my_pipeline():
+            return_1()  # outside loop
+            with dsl.ParallelFor([1, 2, 3]):
+                return_1()  # inside loop, same component
+
+        off_spec, _ = _compile_and_load(my_pipeline)
+        on_spec, _ = _compile_and_load(my_pipeline, deduplicate_executors=True)
+
+        self.assertEqual(len(_executors_dict(off_spec)), 2)
+        on_executors = _executors_dict(on_spec)
+        self.assertEqual(len(on_executors), 1)
+        canonical = next(iter(on_executors))
+        labels_in_components = {
+            comp.executor_label
+            for comp in on_spec.components.values()
+            if comp.executor_label
+        }
+        self.assertEqual(labels_in_components, {canonical})
+        _assert_refs_valid(self, on_spec)
+
+    def test_dedup_dag_task_and_exit_task_share(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            print_hello()  # regular DAG task
+            exit_task = print_hello()  # same component, used as exit task
+            with dsl.ExitHandler(exit_task):
+                cleanup()
+
+        off_spec, _ = _compile_and_load(my_pipeline)
+        on_spec, _ = _compile_and_load(my_pipeline, deduplicate_executors=True)
+
+        self.assertEqual(len(_executors_dict(off_spec)), 3)
+        on_executors = _executors_dict(on_spec)
+        # Two distinct components: print_hello (shared) + cleanup.
+        self.assertEqual(len(on_executors), 2)
+        # Confirm both print_hello components point to the same executor_label.
+        print_hello_labels = {
+            comp.executor_label
+            for name, comp in on_spec.components.items()
+            if 'print-hello' in name
+        }
+        self.assertEqual(len(print_hello_labels), 1)
+        _assert_refs_valid(self, on_spec)
+
+    def test_dedup_two_exit_handlers_same_component(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            exit_one = cleanup()
+            with dsl.ExitHandler(exit_one):
+                print_hello()
+
+            exit_two = cleanup()
+            with dsl.ExitHandler(exit_two):
+                print_hello()
+
+        on_spec, _ = _compile_and_load(my_pipeline, deduplicate_executors=True)
+        on_executors = _executors_dict(on_spec)
+        # cleanup (shared across both exit tasks) + print_hello (shared across
+        # both handler bodies) = 2.
+        self.assertEqual(len(on_executors), 2)
+        _assert_refs_valid(self, on_spec)
+
+    def test_dedup_across_sub_pipeline_and_parent(self):
+
+        @dsl.pipeline
+        def inner_pipeline():
+            print_hello()
+
+        @dsl.pipeline
+        def outer_pipeline():
+            print_hello()
+            inner_pipeline()
+
+        off_spec, _ = _compile_and_load(outer_pipeline)
+        on_spec, _ = _compile_and_load(
+            outer_pipeline, deduplicate_executors=True)
+
+        self.assertEqual(len(_executors_dict(off_spec)), 2)
+        self.assertEqual(len(_executors_dict(on_spec)), 1)
+        _assert_refs_valid(self, on_spec)
+
+    def test_dedup_nested_pipeline_distinct_platform(self):
+
+        @dsl.pipeline
+        def inner_pipeline():
+            task = print_hello()
+            task.platform_config['platform_foo'] = {'bar': 'inner'}
+
+        @dsl.pipeline
+        def outer_pipeline():
+            print_hello()  # no platform config
+            inner_pipeline()
+
+        on_spec, _ = _compile_and_load(
+            outer_pipeline, deduplicate_executors=True)
+        # One executor has a platform_foo entry, the other doesn't -> they
+        # cannot share a label.
+        self.assertEqual(len(_executors_dict(on_spec)), 2)
+        _assert_refs_valid(self, on_spec)
+
+
 if __name__ == '__main__':
     unittest.main()
