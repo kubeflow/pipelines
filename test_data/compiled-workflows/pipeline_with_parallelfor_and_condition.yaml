@@ -1,0 +1,727 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: pipeline-with-parallelfor-and-condition-
+spec:
+  arguments:
+    parameters:
+    - name: components-1d87982bf51a96db7e0cf497935d4e425c30808bf7990b40ec0c1ff6cf8f3664
+      value: '{"executorLabel":"exec-label","inputDefinitions":{"parameters":{"prefix":{"parameterType":"STRING"},"value":{"parameterType":"NUMBER_DOUBLE"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-1d87982bf51a96db7e0cf497935d4e425c30808bf7990b40ec0c1ff6cf8f3664
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","label"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        label(prefix: str, value: float) -\u003e str:\n    # Format as int when the
+        value is whole so the test''s exact-match\n    # assertion stays stable across
+        runtime numeric round-trips.\n    rendered = int(value) if float(value).is_integer()
+        else value\n    return f''{prefix}:{rendered}''\n\n"],"image":"python:3.11"}'
+    - name: components-comp-condition-4
+      value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--label-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"label"}}}},"tasks":{"label":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-label"},"inputs":{"parameters":{"prefix":{"runtimeValue":{"constant":"high"}},"value":{"componentInputParameter":"pipelinechannel--sum-values-Output"}}},"taskInfo":{"name":"label"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--sum-values-Output":{"parameterType":"NUMBER_DOUBLE"},"pipelinechannel--threshold":{"parameterType":"NUMBER_DOUBLE"}}},"outputDefinitions":{"parameters":{"pipelinechannel--label-Output":{"parameterType":"STRING"}}}}'
+    - name: components-comp-condition-5
+      value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--label-2-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"label-2"}}}},"tasks":{"label-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-label-2"},"inputs":{"parameters":{"prefix":{"runtimeValue":{"constant":"low"}},"value":{"componentInputParameter":"pipelinechannel--sum-values-Output"}}},"taskInfo":{"name":"label-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--sum-values-Output":{"parameterType":"NUMBER_DOUBLE"},"pipelinechannel--threshold":{"parameterType":"NUMBER_DOUBLE"}}},"outputDefinitions":{"parameters":{"pipelinechannel--label-2-Output":{"parameterType":"STRING"}}}}'
+    - name: components-comp-condition-branches-3
+      value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--condition-branches-3-oneof-1":{"valueFromOneof":{"parameterSelectors":[{"outputParameterKey":"pipelinechannel--label-Output","producerSubtask":"condition-4"},{"outputParameterKey":"pipelinechannel--label-2-Output","producerSubtask":"condition-5"}]}}}},"tasks":{"condition-4":{"componentRef":{"name":"comp-condition-4"},"inputs":{"parameters":{"pipelinechannel--sum-values-Output":{"componentInputParameter":"pipelinechannel--sum-values-Output"},"pipelinechannel--threshold":{"componentInputParameter":"pipelinechannel--threshold"}}},"taskInfo":{"name":"condition-4"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--sum-values-Output'']
+        \u003e inputs.parameter_values[''pipelinechannel--threshold'']"}},"condition-5":{"componentRef":{"name":"comp-condition-5"},"inputs":{"parameters":{"pipelinechannel--sum-values-Output":{"componentInputParameter":"pipelinechannel--sum-values-Output"},"pipelinechannel--threshold":{"componentInputParameter":"pipelinechannel--threshold"}}},"taskInfo":{"name":"condition-5"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--sum-values-Output'']
+        \u003e inputs.parameter_values[''pipelinechannel--threshold''])"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--sum-values-Output":{"parameterType":"NUMBER_DOUBLE"},"pipelinechannel--threshold":{"parameterType":"NUMBER_DOUBLE"}}},"outputDefinitions":{"parameters":{"pipelinechannel--condition-branches-3-oneof-1":{"parameterType":"STRING"}}}}'
+    - name: components-cabccfcbf61c96d804cb00cfa60eec876e65a8f8b407c75ce45de07356b9af03
+      value: '{"executorLabel":"exec-double","inputDefinitions":{"parameters":{"num":{"parameterType":"NUMBER_DOUBLE"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_DOUBLE"}}}}'
+    - name: implementations-cabccfcbf61c96d804cb00cfa60eec876e65a8f8b407c75ce45de07356b9af03
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","double"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        double(num: float) -\u003e float:\n    return num * 2.0\n\n"],"image":"python:3.11"}'
+    - name: components-comp-for-loop-2
+      value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--double-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"double"}}}},"tasks":{"double":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-1":{"parameterType":"NUMBER_DOUBLE"}}},"outputDefinitions":{"parameters":{"pipelinechannel--double-Output":{"parameterType":"LIST"}}}}'
+    - name: components-768a5fae5c101446e2e92edf191c3d75dff43233ca3df0bef205d986e8b8695b
+      value: '{"executorLabel":"exec-passthrough","inputDefinitions":{"parameters":{"value":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-768a5fae5c101446e2e92edf191c3d75dff43233ca3df0bef205d986e8b8695b
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","passthrough"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        passthrough(value: str) -\u003e str:\n    return value\n\n"],"image":"python:3.11"}'
+    - name: components-0d5fcf03d89733d2215f289b8e8fea5bb757edf3aa81bec0c28b4a0c3d55d73b
+      value: '{"executorLabel":"exec-sum-values","inputDefinitions":{"parameters":{"nums":{"parameterType":"LIST"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_DOUBLE"}}}}'
+    - name: implementations-0d5fcf03d89733d2215f289b8e8fea5bb757edf3aa81bec0c28b4a0c3d55d73b
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","sum_values"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        sum_values(nums: List[float]) -\u003e float:\n    return float(sum(nums))\n\n"],"image":"python:3.11"}'
+    - name: components-root
+      value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"passthrough"}}}},"tasks":{"condition-branches-3":{"componentRef":{"name":"comp-condition-branches-3"},"dependentTasks":["sum-values"],"inputs":{"parameters":{"pipelinechannel--sum-values-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"sum-values"}},"pipelinechannel--threshold":{"componentInputParameter":"threshold"}}},"taskInfo":{"name":"condition-branches-3"}},"for-loop-2":{"componentRef":{"name":"comp-for-loop-2"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[1.0,
+        2.0, 3.0]"}},"taskInfo":{"name":"for-loop-2"}},"passthrough":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-passthrough"},"dependentTasks":["condition-branches-3"],"inputs":{"parameters":{"value":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--condition-branches-3-oneof-1","producerTask":"condition-branches-3"}}}},"taskInfo":{"name":"passthrough"}},"sum-values":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-sum-values"},"dependentTasks":["for-loop-2"],"inputs":{"parameters":{"nums":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--double-Output","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"sum-values"}}}},"inputDefinitions":{"parameters":{"threshold":{"defaultValue":5,"isOptional":true,"parameterType":"NUMBER_DOUBLE"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - pipeline-with-parallelfor-and-condition
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      command:
+      - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: task-name
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 256Mi
+        requests:
+          cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+    metadata: {}
+    name: system-container-impl
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-1d87982bf51a96db7e0cf497935d4e425c30808bf7990b40ec0c1ff6cf8f3664}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-label"},"inputs":{"parameters":{"prefix":{"runtimeValue":{"constant":"high"}},"value":{"componentInputParameter":"pipelinechannel--sum-values-Output"}}},"taskInfo":{"name":"label"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-1d87982bf51a96db7e0cf497935d4e425c30808bf7990b40ec0c1ff6cf8f3664}}'
+          - name: task-name
+            value: label
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: label-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.label-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.label-driver.outputs.parameters.cached-decision}}'
+        depends: label-driver.Succeeded
+        name: label
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-4
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-1d87982bf51a96db7e0cf497935d4e425c30808bf7990b40ec0c1ff6cf8f3664}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-label-2"},"inputs":{"parameters":{"prefix":{"runtimeValue":{"constant":"low"}},"value":{"componentInputParameter":"pipelinechannel--sum-values-Output"}}},"taskInfo":{"name":"label-2"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-1d87982bf51a96db7e0cf497935d4e425c30808bf7990b40ec0c1ff6cf8f3664}}'
+          - name: task-name
+            value: label-2
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: label-2-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.label-2-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.label-2-driver.outputs.parameters.cached-decision}}'
+        depends: label-2-driver.Succeeded
+        name: label-2
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-5
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - pipeline-with-parallelfor-and-condition
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+    inputs:
+      parameters:
+      - name: component
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
+      - default: ""
+        name: task-name
+      - default: "0"
+        name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-4}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-4"},"inputs":{"parameters":{"pipelinechannel--sum-values-Output":{"componentInputParameter":"pipelinechannel--sum-values-Output"},"pipelinechannel--threshold":{"componentInputParameter":"pipelinechannel--threshold"}}},"taskInfo":{"name":"condition-4"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--sum-values-Output'']
+              \u003e inputs.parameter_values[''pipelinechannel--threshold'']"}}'
+          - name: task-name
+            value: condition-4
+        name: condition-4-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-4-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-4-driver.outputs.parameters.condition}}'
+        depends: condition-4-driver.Succeeded
+        name: condition-4
+        template: comp-condition-4
+        when: '{{tasks.condition-4-driver.outputs.parameters.condition}} != false'
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-5}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-5"},"inputs":{"parameters":{"pipelinechannel--sum-values-Output":{"componentInputParameter":"pipelinechannel--sum-values-Output"},"pipelinechannel--threshold":{"componentInputParameter":"pipelinechannel--threshold"}}},"taskInfo":{"name":"condition-5"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--sum-values-Output'']
+              \u003e inputs.parameter_values[''pipelinechannel--threshold''])"}}'
+          - name: task-name
+            value: condition-5
+        name: condition-5-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-5-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-5-driver.outputs.parameters.condition}}'
+        depends: condition-5-driver.Succeeded
+        name: condition-5
+        template: comp-condition-5
+        when: '{{tasks.condition-5-driver.outputs.parameters.condition}} != false'
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-branches-3
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-cabccfcbf61c96d804cb00cfa60eec876e65a8f8b407c75ce45de07356b9af03}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-cabccfcbf61c96d804cb00cfa60eec876e65a8f8b407c75ce45de07356b9af03}}'
+          - name: task-name
+            value: double
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: double-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.double-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.double-driver.outputs.parameters.cached-decision}}'
+        depends: double-driver.Succeeded
+        name: double
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-for-loop-2
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-for-loop-2}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-for-loop-2"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[1.0,
+              2.0, 3.0]"}},"taskInfo":{"name":"for-loop-2"}}'
+          - name: task-name
+            value: for-loop-2
+        name: iteration-item-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
+        depends: iteration-item-driver.Succeeded
+        name: iteration-item
+        template: comp-for-loop-2
+    inputs:
+      parameters:
+      - name: parent-dag-id
+      - name: iteration-index
+    metadata: {}
+    name: comp-for-loop-2-iteration
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-for-loop-2}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-for-loop-2"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[1.0,
+              2.0, 3.0]"}},"taskInfo":{"name":"for-loop-2"}}'
+          - name: task-name
+            value: for-loop-2
+        name: iteration-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+          - name: iteration-index
+            value: '{{item}}'
+        depends: iteration-driver.Succeeded
+        name: iteration-iterations
+        template: comp-for-loop-2-iteration
+        withSequence:
+          count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-for-loop-2-for-loop-2-iterator
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-branches-3}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-branches-3"},"dependentTasks":["sum-values"],"inputs":{"parameters":{"pipelinechannel--sum-values-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"sum-values"}},"pipelinechannel--threshold":{"componentInputParameter":"threshold"}}},"taskInfo":{"name":"condition-branches-3"}}'
+          - name: task-name
+            value: condition-branches-3
+        depends: sum-values.Succeeded
+        name: condition-branches-3-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-branches-3-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-branches-3-driver.outputs.parameters.condition}}'
+        depends: condition-branches-3-driver.Succeeded
+        name: condition-branches-3
+        template: comp-condition-branches-3
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: for-loop-2
+        template: comp-for-loop-2-for-loop-2-iterator
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-768a5fae5c101446e2e92edf191c3d75dff43233ca3df0bef205d986e8b8695b}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-passthrough"},"dependentTasks":["condition-branches-3"],"inputs":{"parameters":{"value":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--condition-branches-3-oneof-1","producerTask":"condition-branches-3"}}}},"taskInfo":{"name":"passthrough"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-768a5fae5c101446e2e92edf191c3d75dff43233ca3df0bef205d986e8b8695b}}'
+          - name: task-name
+            value: passthrough
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: condition-branches-3.Succeeded
+        name: passthrough-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.passthrough-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.passthrough-driver.outputs.parameters.cached-decision}}'
+        depends: passthrough-driver.Succeeded
+        name: passthrough
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-0d5fcf03d89733d2215f289b8e8fea5bb757edf3aa81bec0c28b4a0c3d55d73b}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-sum-values"},"dependentTasks":["for-loop-2"],"inputs":{"parameters":{"nums":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--double-Output","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"sum-values"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-0d5fcf03d89733d2215f289b8e8fea5bb757edf3aa81bec0c28b4a0c3d55d73b}}'
+          - name: task-name
+            value: sum-values
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: for-loop-2.Succeeded
+        name: sum-values-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.sum-values-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.sum-values-driver.outputs.parameters.cached-decision}}'
+        depends: sum-values-driver.Succeeded
+        name: sum-values
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
+          - name: runtime-config
+            value: '{"parameterValues":{"threshold":5}}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null
