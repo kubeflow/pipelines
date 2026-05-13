@@ -70,7 +70,7 @@ def _compute_executor_dedup_key(
     h.update(
         json.dumps(per_executor_platform_entries,
                    sort_keys=True).encode('utf-8'))
-    return h.hexdigest()[:16]
+    return h.hexdigest()
 
 
 def deduplicate_executors_in_place(
