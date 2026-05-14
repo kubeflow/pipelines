@@ -15,6 +15,7 @@
 package worker
 
 import (
+	"context"
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
@@ -78,7 +79,7 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 
 	// Check for image pull failures on workflows that are still running.
 	if s.imagePullFailureChecker != nil && !wf.ExecutionStatus().IsInFinalState() {
-		if checkErr := s.imagePullFailureChecker.CheckAndTerminate(namespace, name); checkErr != nil {
+		if checkErr := s.imagePullFailureChecker.CheckAndTerminate(context.Background(), namespace, name); checkErr != nil {
 			log.Warnf("Workflow (%v): error checking image pull failures: %v", name, checkErr)
 		}
 	}

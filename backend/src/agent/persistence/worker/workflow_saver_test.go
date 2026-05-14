@@ -15,6 +15,7 @@
 package worker
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -23,6 +24,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
@@ -35,7 +37,7 @@ type fakeImagePullFailureChecker struct {
 	errorToReturn error
 }
 
-func (f *fakeImagePullFailureChecker) CheckAndTerminate(namespace string, workflowName string) error {
+func (f *fakeImagePullFailureChecker) CheckAndTerminate(ctx context.Context, namespace string, workflowName string) error {
 	f.called = true
 	f.namespace = namespace
 	f.workflowName = workflowName
@@ -258,7 +260,7 @@ func TestWorkflow_Save_CheckerCalledForRunningWorkflow(t *testing.T) {
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.True(t, checker.called, "Checker should be called for running workflow")
 	assert.Equal(t, "MY_NAMESPACE", checker.namespace)
 	assert.Equal(t, "MY_NAME", checker.workflowName)
@@ -285,7 +287,7 @@ func TestWorkflow_Save_CheckerCalledForPendingWorkflow(t *testing.T) {
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.True(t, checker.called, "Checker should be called for non-final-state workflow")
 }
 
@@ -313,7 +315,7 @@ func TestWorkflow_Save_CheckerSkippedForCompletedWorkflow(t *testing.T) {
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.False(t, checker.called, "Checker should NOT be called for completed workflow")
 }
 
@@ -340,7 +342,7 @@ func TestWorkflow_Save_CheckerSkippedForFailedWorkflow(t *testing.T) {
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.False(t, checker.called, "Checker should NOT be called for failed workflow")
 }
 
@@ -370,7 +372,7 @@ func TestWorkflow_Save_CheckerErrorDoesNotBlockReporting(t *testing.T) {
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
 	// Checker error should be logged but Save should still succeed.
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.True(t, checker.called)
 	// Verify the workflow was still reported to the pipeline server.
 	assert.NotNil(t, pipelineFake.GetWorkflow("MY_NAMESPACE", "MY_NAME"))
