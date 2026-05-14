@@ -21,6 +21,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -186,7 +187,7 @@ func TestCheckAndTerminate_NoPods(t *testing.T) {
 	podLister := newTestPodLister()
 	checker := NewImagePullFailureChecker(podLister, nil, 5*time.Minute)
 
-	err := checker.CheckAndTerminate("default", "my-workflow")
+	err := checker.CheckAndTerminate(context.Background(), "default", "my-workflow")
 	assert.NoError(t, err)
 }
 
@@ -209,7 +210,7 @@ func TestCheckAndTerminate_HealthyPods(t *testing.T) {
 
 	podLister := newTestPodLister(pod)
 	checker := NewImagePullFailureChecker(podLister, nil, 5*time.Minute)
-	err := checker.CheckAndTerminate("default", "my-workflow")
+	err := checker.CheckAndTerminate(context.Background(), "default", "my-workflow")
 	assert.NoError(t, err)
 }
 
@@ -236,7 +237,7 @@ func TestCheckAndTerminate_ImagePullFailureWithinGracePeriod(t *testing.T) {
 	podLister := newTestPodLister(pod)
 	// Grace period is 1 hour, pod was just created -- should not terminate.
 	checker := NewImagePullFailureChecker(podLister, nil, 1*time.Hour)
-	err := checker.CheckAndTerminate("default", "my-workflow")
+	err := checker.CheckAndTerminate(context.Background(), "default", "my-workflow")
 	assert.NoError(t, err)
 }
 
@@ -264,8 +265,8 @@ func TestCheckAndTerminate_ImagePullFailureExceedsGracePeriod(t *testing.T) {
 	// Grace period is 5 min, pod is 10 min old -- should attempt to terminate.
 	// executionClient is nil so the termination will return an error.
 	checker := NewImagePullFailureChecker(podLister, nil, 5*time.Minute)
-	err := checker.CheckAndTerminate("default", "my-workflow")
-	assert.Error(t, err)
+	err := checker.CheckAndTerminate(context.Background(), "default", "my-workflow")
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "execution client not configured")
 }
 
@@ -311,7 +312,7 @@ func TestCheckAndTerminate_MixedPods(t *testing.T) {
 	podLister := newTestPodLister(healthyPod, newFailingPod)
 	// Grace period is 5 min, only the new failing pod has issues but is within grace -- should not terminate.
 	checker := NewImagePullFailureChecker(podLister, nil, 5*time.Minute)
-	err := checker.CheckAndTerminate("default", "my-workflow")
+	err := checker.CheckAndTerminate(context.Background(), "default", "my-workflow")
 	assert.NoError(t, err)
 }
 
@@ -339,7 +340,7 @@ func TestCheckAndTerminate_OnlyListsPodsForWorkflow(t *testing.T) {
 	podLister := newTestPodLister(otherPod)
 	// Checking "my-workflow" should not see "other-workflow" pods.
 	checker := NewImagePullFailureChecker(podLister, nil, 5*time.Minute)
-	err := checker.CheckAndTerminate("default", "my-workflow")
+	err := checker.CheckAndTerminate(context.Background(), "default", "my-workflow")
 	assert.NoError(t, err)
 }
 
@@ -368,11 +369,13 @@ func TestCheckAndTerminate_SuccessfulTermination(t *testing.T) {
 	fakeExecClient := &fakeExecutionClient{executionInterface: fakeExecInterface}
 
 	checker := NewImagePullFailureChecker(podLister, fakeExecClient, 5*time.Minute)
-	err := checker.CheckAndTerminate("default", "my-workflow")
+	err := checker.CheckAndTerminate(context.Background(), "default", "my-workflow")
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.True(t, fakeExecInterface.patchCalled, "Patch should have been called to terminate the workflow")
 	assert.Equal(t, "my-workflow", fakeExecInterface.patchedName)
 	assert.Equal(t, "default", fakeExecClient.namespace)
 	assert.Contains(t, string(fakeExecInterface.patchData), "activeDeadlineSeconds")
+	assert.Contains(t, string(fakeExecInterface.patchData), "ImagePullFailure")
+	assert.Contains(t, string(fakeExecInterface.patchData), "bad-image:latest")
 }
