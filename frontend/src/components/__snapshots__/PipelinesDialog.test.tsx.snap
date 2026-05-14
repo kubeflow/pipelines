@@ -444,6 +444,7 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
                   </div>
                   <button
                     class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+                    data-testid="prev-page-btn"
                     disabled=""
                     tabindex="-1"
                     type="button"
@@ -462,6 +463,7 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
                   </button>
                   <button
                     class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+                    data-testid="next-page-btn"
                     disabled=""
                     tabindex="-1"
                     type="button"
@@ -976,6 +978,7 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
                   </div>
                   <button
                     class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+                    data-testid="prev-page-btn"
                     disabled=""
                     tabindex="-1"
                     type="button"
@@ -994,6 +997,7 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
                   </button>
                   <button
                     class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+                    data-testid="next-page-btn"
                     disabled=""
                     tabindex="-1"
                     type="button"

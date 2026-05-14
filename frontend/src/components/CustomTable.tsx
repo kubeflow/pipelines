@@ -473,6 +473,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             </TextField>
 
             <IconButton
+              data-testid='prev-page-btn'
               onClick={() => this._pageChanged(-1)}
               disabled={!this.state.currentPage}
               size='large'
@@ -480,6 +481,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
               <ChevronLeft />
             </IconButton>
             <IconButton
+              data-testid='next-page-btn'
               onClick={() => this._pageChanged(1)}
               disabled={this.state.currentPage >= this.state.maxPageIndex}
               size='large'
@@ -710,6 +712,7 @@ function HeaderRowSelectionSection({
       {/* If using checkboxes */}
       {disableSelection !== true && useRadioButtons !== true && (
         <Checkbox
+          data-testid='select-all-checkbox'
           indeterminate={indeterminate}
           color='primary'
           checked={isSelected}

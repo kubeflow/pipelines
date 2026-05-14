@@ -689,7 +689,7 @@ describe('CompareV1', () => {
     await waitForViewersMap(2);
 
     await waitFor(() => {
-      expect(document.querySelectorAll('.plotCard')).toHaveLength(6);
+      expect(screen.getAllByTestId('pop-out-button')).toHaveLength(6);
     });
 
     expect(stableMuiSnapshotFragment(renderResult!.asFragment())).toMatchSnapshot();
