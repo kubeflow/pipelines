@@ -39,7 +39,7 @@ const (
 // ImagePullFailureCheckerInterface checks workflow pods for image pull failures
 // and terminates the workflow if the grace period has elapsed.
 type ImagePullFailureCheckerInterface interface {
-	CheckAndTerminate(namespace string, workflowName string) error
+	CheckAndTerminate(ctx context.Context, namespace string, workflowName string) error
 }
 
 // ImagePullFailureChecker checks pods belonging to a workflow for image pull
@@ -70,7 +70,7 @@ func NewImagePullFailureChecker(
 // CheckAndTerminate lists pods for the given workflow and terminates the workflow
 // if any pod has been stuck in ImagePullBackOff or ErrImagePull longer than the
 // grace period (measured from pod creation time).
-func (c *ImagePullFailureChecker) CheckAndTerminate(namespace string, workflowName string) error {
+func (c *ImagePullFailureChecker) CheckAndTerminate(ctx context.Context, namespace string, workflowName string) error {
 	selector, err := labels.Parse(fmt.Sprintf("%s=%s", ArgoWorkflowLabelKey, workflowName))
 	if err != nil {
 		return fmt.Errorf("failed to parse label selector for workflow %s/%s: %w", namespace, workflowName, err)
@@ -96,7 +96,7 @@ func (c *ImagePullFailureChecker) CheckAndTerminate(namespace string, workflowNa
 
 		log.Infof("Terminating workflow %s/%s: pod %s has image pull failure for %q (age: %v exceeds grace period %v)",
 			namespace, workflowName, pod.Name, failedImage, podAge.Round(time.Second), c.gracePeriod)
-		return c.terminateWorkflow(context.TODO(), namespace, workflowName)
+		return c.terminateWorkflow(ctx, namespace, workflowName, failedImage)
 	}
 
 	return nil
@@ -130,18 +130,35 @@ func imagePullFailureFromStatus(status corev1.ContainerStatus) string {
 	return ""
 }
 
-// terminateWorkflow terminates an Argo workflow by setting activeDeadlineSeconds to 0.
-func (c *ImagePullFailureChecker) terminateWorkflow(ctx context.Context, namespace string, workflowName string) error {
+// terminateWorkflow terminates an Argo workflow by setting activeDeadlineSeconds to 0
+// and annotates it with the failing image so the reason is visible to users.
+func (c *ImagePullFailureChecker) terminateWorkflow(ctx context.Context, namespace, workflowName, failedImage string) error {
 	if c.executionClient == nil {
 		return fmt.Errorf("execution client not configured, cannot terminate workflow %s/%s", namespace, workflowName)
 	}
 
-	patchObj := util.GetTerminatePatch(util.CurrentExecutionType())
-	if patchObj == nil {
+	terminatePatch := util.GetTerminatePatch(util.CurrentExecutionType())
+	if terminatePatch == nil {
 		return fmt.Errorf("unsupported execution type for termination")
 	}
 
-	patchBytes, err := json.Marshal(patchObj)
+	// Build a merged patch that terminates the workflow and annotates it with the
+	// image pull failure reason so users can see it in the workflow manifest.
+	patch := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"annotations": map[string]interface{}{
+				"pipelines.kubeflow.org/termination-reason": "ImagePullFailure",
+				"pipelines.kubeflow.org/failed-image":       failedImage,
+			},
+		},
+	}
+	if specPatch, ok := terminatePatch.(map[string]interface{}); ok {
+		for k, v := range specPatch {
+			patch[k] = v
+		}
+	}
+
+	patchBytes, err := json.Marshal(patch)
 	if err != nil {
 		return fmt.Errorf("failed to marshal termination patch: %w", err)
 	}
