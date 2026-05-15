@@ -29,7 +29,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
-// fakeImagePullFailureChecker is a test double for ImagePullFailureCheckerInterface.
+// fakeImagePullFailureChecker is a test double for ImagePullFailureChecker.
 type fakeImagePullFailureChecker struct {
 	called        bool
 	namespace     string
@@ -401,5 +401,5 @@ func TestWorkflow_Save_NoCheckerSetDoesNotPanic(t *testing.T) {
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
