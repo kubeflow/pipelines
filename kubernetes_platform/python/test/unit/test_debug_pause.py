@@ -90,7 +90,7 @@ class TestEnableDebugPause:
             @dsl.pipeline
             def my_pipeline():
                 task = comp()
-                kubernetes.enable_debug_pause(task, before=True,on_error=True, after=False)
+                kubernetes.enable_debug_pause(task, on_error=True, after=False)
 
     
 def _get_env(pipeline) -> List[Dict[str, Any]]:
