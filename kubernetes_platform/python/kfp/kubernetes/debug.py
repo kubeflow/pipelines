@@ -23,12 +23,12 @@ def enable_debug_pause(
     on_error: bool = False,
 ) -> PipelineTask:
     """
-    Enable debug-pause for a pipeline task, keeping he pod alive so you 
+    Enable debug-pause for a pipeline task, keeping the pod alive so you 
     can ``kubectl exec`` into it interactively.
 
     When enabled, Argo Workflows' executor (the ``wait`` container) detects the
     corresponding ``ARGO_DEBUG_PAUSE_*`` environment variable and pauses the
-    workflow node. Preventing the pod from terminating. The pod anotation
+    workflow node. Preventing the pod from terminating. The pod annotation
     ``workflows.argoproj.io/debug`` is also set to signal Argo Workflows to 
     honor the pause. This is a native Argo Workflows feature - no KFP launcher
     support is required.
@@ -41,18 +41,18 @@ def enable_debug_pause(
         task: Pipeline Task.
         before: If ``True``, pause before the main process starts. Useful for 
             inspecting the environment, installing tools, or modifying inputs
-            befor executino
+            before execution.
         after: If ``True`` (default), pause after the main process completes.
             Modified by ``on_error``.
         on_error: If ``True``, only pause after execution when the 
-        component fails (sets `ARGO_DEBUG_PAUSE_ON_ERROR`` instead of 
-        ``ARGO_DEBUG_PAUSE_AFTER``). Required `` after=True``.
+        component fails (sets ``ARGO_DEBUG_PAUSE_ON_ERROR`` instead of 
+        ``ARGO_DEBUG_PAUSE_AFTER``). Requires ``after=True``.
     
     Returns:
         Task object with debug-pause configured
 
     Raises:
-    ValueError: If ``after=False`` and ``before=True`` (no effect)
+        ValueError: If ``after=False`` and ``before=True`` (no effect)
         ValueError: If ``after=False`` and ``on_error=True`` (contradictory)
     Example:
     ::
