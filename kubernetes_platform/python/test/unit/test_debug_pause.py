@@ -67,18 +67,30 @@ class TestEnableDebugPause:
         assert not _has_env(env, 'ARGO_DEBUG_PAUSE_ON_ERROR')
     
     def test_raises_when_before_and_after_both_false(self):
-        with pytest.raises(ValueError, match='At least one of "before" or "after" must be True'):
+        with pytest.raises(
+            ValueError, 
+            match=(
+                'At least one of "before" or "after" must be True'
+            'Got before=False, after=False - nothing to pause on.'
+            )
+        ):
             @dsl.pipeline
             def my_pipeline():
                 task = comp()
                 kubernetes.enable_debug_pause(task, before=False, after=False)
     
     def test_raises_when_on_error_without_after(self):
-        with pytest.raises(ValueError, match='"on_error" applies to post-execution pause and requires'):
+        with pytest.raises(
+            ValueError, 
+            match=(
+                '"on_error" applies to post-execution pause and requires '
+                'after=True. Got after=False, on_error=True - contradictory configuration.'
+            )
+        ):
             @dsl.pipeline
             def my_pipeline():
                 task = comp()
-                kubernetes.enable_debug_pause(task, on_error=True, after=False)
+                kubernetes.enable_debug_pause(task, before=True,on_error=True, after=False)
 
     
 def _get_env(pipeline) -> List[Dict[str, Any]]:

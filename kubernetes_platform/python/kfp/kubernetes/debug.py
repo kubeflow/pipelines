@@ -77,7 +77,7 @@ def enable_debug_pause(
     
     if not after and on_error:
         raise ValueError(
-            '"on_error" applies to post-execution pause and requires'
+            '"on_error" applies to post-execution pause and requires '
             'after=True. Got after=False, on_error=True - contradictory configuration.')
     
     # Set environment variable
