@@ -130,7 +130,6 @@ def _get_env(pipeline) -> List[Dict[str, Any]]:
         env = _get_env(my_pipeline)
         # [{'name': 'ARGO_DEBUG_PAUSE_AFTER', 'value': 'true'}]
     """
-    # pipeline_spec = pipeline.component_spec.to_dict()
     pipeline_spec = json_format.MessageToDict(pipeline.component_spec.to_pipeline_spec())
     return (pipeline_spec['deploymentSpec']['executors']['exec-comp']['container']['env'])
 
