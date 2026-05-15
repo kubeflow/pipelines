@@ -20,7 +20,7 @@ def enable_debug_pause(
     task: PipelineTask,
     before: bool = False,
     after: bool = True,
-    on_error_only: bool = False,
+    on_error: bool = False,
 ) -> PipelineTask:
     """
     Enable debug-pause for a pipeline task, keeping he pod alive so you 
@@ -43,8 +43,8 @@ def enable_debug_pause(
             inspecting the environment, installing tools, or modifying inputs
             befor executino
         after: If ``True`` (default), pause after the main process completes.
-            Modified by ``on_error_only``.
-        on_error_only: If ``True``, only pause after execution when the 
+            Modified by ``on_error``.
+        on_error: If ``True``, only pause after execution when the 
         component fails (sets `ARGO_DEBUG_PAUSE_ON_ERROR`` instead of 
         ``ARGO_DEBUG_PAUSE_AFTER``). Required `` after=True``.
     
@@ -53,7 +53,7 @@ def enable_debug_pause(
 
     Raises:
     ValueError: If ``after=False`` and ``before=True`` (no effect)
-        ValueError: If ``after=False`` and ``on_error_only=True`` (contradictory)
+        ValueError: If ``after=False`` and ``on_error=True`` (contradictory)
     Example:
     ::
         @dsl.pipeline(name="my-pipeline")
@@ -68,23 +68,23 @@ def enable_debug_pause(
 
             task3 = my_component()
             # Pause after execution only on error
-            kubernetes.enable_debug_pause(task3, on_error_only=True)
+            kubernetes.enable_debug_pause(task3, on_error=True)
     """
     if not before and not after:
         raise ValueError(
             'At least one of "before" or "after" must be True'
             'Got before=False, after=False - nothing to pause on.')
     
-    if not after and on_error_only:
+    if not after and on_error:
         raise ValueError(
-            '"on_error_only" applies to post-execution pause and requires '
-            'after=True. Got after=False, on_error_only=True - contradictory configuration.')
+            '"on_error" applies to post-execution pause and requires'
+            'after=True. Got after=False, on_error=True - contradictory configuration.')
     
     # Set environment variable
     if before:
         task.set_env_variable("ARGO_DEBUG_PAUSE_BEFORE", "true")
     if after:
-        if on_error_only:
+        if on_error:
             task.set_env_variable("ARGO_DEBUG_PAUSE_ON_ERROR", "true")
         else:
             task.set_env_variable("ARGO_DEBUG_PAUSE_AFTER", "true")

@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any, Dict, List, Optional
+
 import pytest
 from kfp import dsl
 from kfp import kubernetes
+from google.protobuf import json_format
 
 
 class TestEnableDebugPause:
@@ -29,11 +32,11 @@ class TestEnableDebugPause:
         assert not _has_env(env, 'ARGO_DEBUG_PAUSE_BEFORE')
         assert not _has_env(env, 'ARGO_DEBUG_PAUSE_ON_ERROR')
     
-    def test_on_error_only_sets_on_error_env_var(self):
+    def test_on_error_sets_on_error_env_var(self):
         @dsl.pipeline
         def my_pipeline():
             task = comp()
-            kuberenetes.enable_debug_pause(task)
+            kubernetes.enable_debug_pause(task, on_error=True)
 
         env = _get_env(my_pipeline)
         assert _has_env(env, 'ARGO_DEBUG_PAUSE_ON_ERROR', 'true')
@@ -45,7 +48,7 @@ class TestEnableDebugPause:
         @dsl.pipeline
         def my_pipeline():
             task = comp()
-            kuberenetes.enable_debug_pause(task, before=True)
+            kubernetes.enable_debug_pause(task, before=True, after=False)
         
         env = _get_env(my_pipeline)
         assert _has_env(env, 'ARGO_DEBUG_PAUSE_BEFORE', 'true')
@@ -56,7 +59,7 @@ class TestEnableDebugPause:
         @dsl.pipeline
         def my_pipeline():
             task = comp()
-            kuberenetes.enable_debug_pause(task, before=True, after=True)
+            kubernetes.enable_debug_pause(task, before=True, after=True)
         
         env = _get_env(my_pipeline)
         assert _has_env(env, 'ARGO_DEBUG_PAUSE_BEFORE', 'true')
@@ -68,17 +71,17 @@ class TestEnableDebugPause:
             @dsl.pipeline
             def my_pipeline():
                 task = comp()
-                kuberenetes.enable_debug_pause(task, before=False, after=False)
+                kubernetes.enable_debug_pause(task, before=False, after=False)
     
-    def test_raises_when_on_error_only_without_after(self):
-        with pytest.raises(ValueError, match='"on_error_only" applies to post-execution pause and requires'):
+    def test_raises_when_on_error_without_after(self):
+        with pytest.raises(ValueError, match='"on_error" applies to post-execution pause and requires'):
             @dsl.pipeline
             def my_pipeline():
                 task = comp()
-                kuberenetes.enable_debug_pause(task, on_error=True, after=False)
+                kubernetes.enable_debug_pause(task, on_error=True, after=False)
 
     
-def _get_env(pipeline):
+def _get_env(pipeline) -> List[Dict[str, Any]]:
     """Returns the container environment variables from a compiled pipeline.
 
     Args:
@@ -101,10 +104,11 @@ def _get_env(pipeline):
         env = _get_env(my_pipeline)
         # [{'name': 'ARGO_DEBUG_PAUSE_AFTER', 'value': 'true'}]
     """
-    pipeline_spec = pipeline.component_spec.to_dict()
+    # pipeline_spec = pipeline.component_spec.to_dict()
+    pipeline_spec = json_format.MessageToDict(pipeline.component_spec.to_pipeline_spec())
     return (pipeline_spec['deploymentSpec']['executors']['exec-comp']['container']['env'])
 
-def _has_env(env, name, value=None):
+def _has_env(env: List[Dict[str, Any]], name: str, value: Optional[str] = None) -> bool:
     """Returns whether an environment variable exists in an env list.
 
     Args:
