@@ -20,7 +20,7 @@ import PipelinesDialog, { PipelinesDialogProps } from './PipelinesDialog';
 import { PageProps } from '../pages/Page';
 import { Apis, PipelineSortKeys } from '../lib/Apis';
 import { ApiListPipelinesResponse, ApiPipeline } from '../apis/pipeline';
-import TestUtils from '../TestUtils';
+import { flushPromisesInAct } from '../TestUtils';
 import { BuildInfoContext } from '../lib/BuildInfo';
 import { NameWithTooltip } from './CustomTableNameColumn';
 
@@ -98,7 +98,7 @@ describe('PipelinesDialog', () => {
         <PipelinesDialog {...generateProps()} />
       </BuildInfoContext.Provider>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(tree).toMatchSnapshot();
   });
 
@@ -108,7 +108,7 @@ describe('PipelinesDialog', () => {
         <PipelinesDialog {...generateProps()} />
       </BuildInfoContext.Provider>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(tree).toMatchSnapshot();
   });
 });
