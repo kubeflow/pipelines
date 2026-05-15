@@ -70,8 +70,8 @@ class TestEnableDebugPause:
         with pytest.raises(
             ValueError, 
             match=(
-                'At least one of "before" or "after" must be True'
-            'Got before=False, after=False - nothing to pause on.'
+                'At least one of "before" or "after" must be True. '
+                'Got before=False, after=False - nothing to pause on.'
             )
         ):
             @dsl.pipeline
