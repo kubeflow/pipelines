@@ -49,7 +49,7 @@ func NewPersistenceAgent(
 	execInformer util.ExecutionInformer,
 	pipelineClient *client.PipelineClient,
 	time util.TimeInterface,
-	imagePullFailureChecker worker.ImagePullFailureCheckerInterface,
+	imagePullFailureChecker worker.ImagePullFailureChecker,
 ) (*PersistenceAgent, error) {
 	// obtain references to shared informers
 	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()

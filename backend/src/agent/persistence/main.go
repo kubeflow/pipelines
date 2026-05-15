@@ -154,7 +154,7 @@ func main() {
 		log.Fatalf("Error creating ML pipeline API Server client: %v", err)
 	}
 
-	var imagePullFailureChecker worker.ImagePullFailureCheckerInterface
+	var imagePullFailureChecker worker.ImagePullFailureChecker
 	if imagePullFailureHandlingEnabled {
 		kubeClient, err := kubernetes.NewForConfig(cfg)
 		if err != nil {
