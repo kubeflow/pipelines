@@ -16,7 +16,7 @@
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { testBestPractices } from 'src/TestUtils';
+import { flushPromisesInAct, invokeAndFlush, testBestPractices } from 'src/TestUtils';
 import { Artifact, Event } from 'src/third_party/mlmd';
 import { LinkedArtifact } from 'src/mlmd/MlmdUtils';
 import { Struct, Value } from 'google-protobuf/google/protobuf/struct_pb';
@@ -27,7 +27,6 @@ import {
 } from './MetricsVisualizations';
 import { FullArtifactPath, FullArtifactPathMap, RocCurveColorMap } from 'src/lib/v2/CompareUtils';
 import { lineColors } from 'src/components/viewers/ROCCurve';
-import TestUtils from 'src/TestUtils';
 import * as rocCurveHelper from './ROCCurveHelper';
 
 testBestPractices();
@@ -209,7 +208,7 @@ describe('ConfidenceMetricsSection', () => {
         <ConfidenceMetricsSection {...generateProps([])} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     screen.getByText('ROC Curve: no artifacts');
   });
 
@@ -219,7 +218,7 @@ describe('ConfidenceMetricsSection', () => {
         <ConfidenceMetricsSection {...generateProps(['1-1'])} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     screen.getByText('ROC Curve: artifact1');
   });
 
@@ -229,7 +228,7 @@ describe('ConfidenceMetricsSection', () => {
         <ConfidenceMetricsSection {...generateProps(['1-1', '1-2'])} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     screen.getByText('ROC Curve: multiple artifacts');
   });
 
@@ -243,7 +242,7 @@ describe('ConfidenceMetricsSection', () => {
         <ConfidenceMetricsSection {...generateProps(['1-1', '1-2'])} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     expect(validateConfidenceMetricsSpy).toHaveBeenCalled();
     screen.getByText(
@@ -257,7 +256,7 @@ describe('ConfidenceMetricsSection', () => {
         <ConfidenceMetricsSection {...generateProps(['1-1', '1-2'])} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     // Only the selected items are checked.
     const selectedCheckboxes = screen
@@ -282,7 +281,7 @@ describe('ConfidenceMetricsSection', () => {
         <ConfidenceMetricsSection {...generateProps(['1-1', '1-2', '2-4'])} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     // Only the selected items are checked.
     const selectedCheckboxes = screen
@@ -314,7 +313,7 @@ describe('ConfidenceMetricsSection', () => {
         />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     // Only the selected items are checked.
     let checkboxes = screen.queryAllByRole('checkbox').filter((r) => r.nodeName === 'INPUT');
@@ -332,7 +331,9 @@ describe('ConfidenceMetricsSection', () => {
     const nextPage = buttons[buttons.length - 1];
 
     // Ensure none of the next page checkboxes are checked.
-    fireEvent.click(nextPage);
+    await invokeAndFlush(() => {
+      fireEvent.click(nextPage);
+    });
     checkboxes = screen.queryAllByRole('checkbox').filter((r) => r.nodeName === 'INPUT');
     selectedCheckboxes = screen
       .queryAllByRole('checkbox', { checked: true })
@@ -341,7 +342,9 @@ describe('ConfidenceMetricsSection', () => {
     expect(selectedCheckboxes).toHaveLength(0);
 
     // Selecting a disabled checkbox has no change.
-    fireEvent.click(checkboxes[1]);
+    await invokeAndFlush(() => {
+      fireEvent.click(checkboxes[1]);
+    });
     expect(setSelectedIdsSpy).toHaveBeenLastCalledWith(rocCurveData.selectedIds);
   });
 
@@ -358,7 +361,7 @@ describe('ConfidenceMetricsSection', () => {
         />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     const buttons = screen.queryAllByRole('button');
     const nextPage = buttons[buttons.length - 1];
@@ -380,7 +383,7 @@ describe('ConfidenceMetricsSection', () => {
         />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() => {
       expect(screen.getByText('execution100 > artifact100')).toBeInTheDocument();
@@ -394,7 +397,7 @@ describe('ConfidenceMetricsSection', () => {
         <ConfidenceMetricsSection {...generateProps([])} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     // Test the header columns and some different rows
     screen.getByText('Execution name > Artifact name');

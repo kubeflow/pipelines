@@ -16,7 +16,7 @@
 
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import TestUtils, { testBestPractices } from 'src/TestUtils';
+import TestUtils, { flushPromisesInAct, testBestPractices } from 'src/TestUtils';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
 import * as metricsVisualizations from 'src/components/viewers/MetricsVisualizations';
 import * as Utils from 'src/lib/Utils';
@@ -156,7 +156,7 @@ describe('MetricsDropdown', () => {
         />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
   });
 
@@ -169,7 +169,7 @@ describe('MetricsDropdown', () => {
         updateSelectedArtifacts={updateSelectedArtifactsSpy}
       />,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     screen.getByText('There are no HTML artifacts available on the selected runs.');
   });
 
@@ -184,7 +184,7 @@ describe('MetricsDropdown', () => {
         />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     screen.getByText('There are no Markdown artifacts available on the selected runs.');
   });
 
@@ -199,7 +199,7 @@ describe('MetricsDropdown', () => {
         />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     screen.getByText('Choose a first Confusion Matrix artifact');
   });
 
@@ -230,7 +230,7 @@ describe('MetricsDropdown', () => {
         />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() => {
       expect(warnSpy).toHaveBeenLastCalledWith(
@@ -254,7 +254,7 @@ describe('MetricsDropdown', () => {
         />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     fireEvent.click(screen.getByText('Choose a first Confusion Matrix artifact'));
     fireEvent.mouseEnter(screen.getByText('run1'));
@@ -294,7 +294,7 @@ describe('MetricsDropdown', () => {
         />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     // Choose the first HTML element.
     fireEvent.click(screen.getByText('Choose a first HTML artifact'));
@@ -339,7 +339,7 @@ describe('MetricsDropdown', () => {
         />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     // Choose the first Markdown element.
     fireEvent.click(screen.getByText('Choose a first Markdown artifact'));
@@ -388,7 +388,7 @@ describe('MetricsDropdown', () => {
         />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     fireEvent.click(screen.getByText('Choose a first HTML artifact'));
     fireEvent.mouseEnter(screen.getByText('run1'));
@@ -432,7 +432,7 @@ describe('MetricsDropdown', () => {
         />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     screen.getByText('Choose a first Confusion Matrix artifact');
     screen.getByLabelText('run1 > execution1 > artifact1');
@@ -449,7 +449,7 @@ describe('MetricsDropdown', () => {
         />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     const nextSelectedArtifacts: SelectedArtifact[] = [
       {
@@ -518,7 +518,7 @@ describe('MetricsDropdown', () => {
         />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     await waitFor(() => {
       expect(getHtmlViewerConfigSpy).toHaveBeenLastCalledWith([staleLinkedArtifact], undefined);
     });
