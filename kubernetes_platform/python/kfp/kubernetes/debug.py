@@ -37,7 +37,7 @@ def enable_debug_pause(
     
     Args:
         task: Pipeline Task.
-        before: If ``True``, pause before the main process starts. Useful for 
+        before: If ``True``, pause before main process starts. Useful for 
             inspecting the environment, installing tools, or modifying inputs
             before execution.
         after: If ``True`` (default), pause after the main process completes.
