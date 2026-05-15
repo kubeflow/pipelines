@@ -50,8 +50,8 @@ def enable_debug_pause(
         Task object with debug-pause configured
 
     Raises:
-        ValueError: If both ``before`` and ``after`` are ``False``
         ValueError: If ``after=False`` and ``on_error=True`` (contradictory)
+        ValueError: If both ``before`` and ``after`` are ``False``
     Example:
     ::
         @dsl.pipeline(name="my-pipeline")
