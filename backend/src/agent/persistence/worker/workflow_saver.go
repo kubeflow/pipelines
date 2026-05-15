@@ -29,7 +29,7 @@ type WorkflowSaver struct {
 	client                        client.WorkflowClientInterface
 	pipelineClient                client.PipelineClientInterface
 	ttlSecondsAfterWorkflowFinish int64
-	imagePullFailureChecker       ImagePullFailureCheckerInterface
+	imagePullFailureChecker       ImagePullFailureChecker
 }
 
 func NewWorkflowSaver(client client.WorkflowClientInterface,
@@ -44,7 +44,7 @@ func NewWorkflowSaver(client client.WorkflowClientInterface,
 // SetImagePullFailureChecker sets the optional image pull failure checker.
 // When set, running workflows will be checked for pods stuck in
 // ImagePullBackOff/ErrImagePull and terminated after the grace period.
-func (s *WorkflowSaver) SetImagePullFailureChecker(checker ImagePullFailureCheckerInterface) {
+func (s *WorkflowSaver) SetImagePullFailureChecker(checker ImagePullFailureChecker) {
 	s.imagePullFailureChecker = checker
 }
 

@@ -36,17 +36,17 @@ const (
 	ArgoWorkflowLabelKey = "workflows.argoproj.io/workflow"
 )
 
-// ImagePullFailureCheckerInterface checks workflow pods for image pull failures
+// ImagePullFailureChecker checks workflow pods for image pull failures
 // and terminates the workflow if the grace period has elapsed.
-type ImagePullFailureCheckerInterface interface {
+type ImagePullFailureChecker interface {
 	CheckAndTerminate(ctx context.Context, namespace string, workflowName string) error
 }
 
-// ImagePullFailureChecker checks pods belonging to a workflow for image pull
+// imagePullFailureChecker checks pods belonging to a workflow for image pull
 // failures and terminates the workflow after a configurable grace period.
 // It uses a pod lister backed by a shared informer to avoid direct API calls
 // to the Kubernetes API server on every check.
-type ImagePullFailureChecker struct {
+type imagePullFailureChecker struct {
 	podLister       corelisters.PodLister
 	executionClient util.ExecutionClient
 	gracePeriod     time.Duration
@@ -59,8 +59,8 @@ func NewImagePullFailureChecker(
 	podLister corelisters.PodLister,
 	executionClient util.ExecutionClient,
 	gracePeriod time.Duration,
-) *ImagePullFailureChecker {
-	return &ImagePullFailureChecker{
+) ImagePullFailureChecker {
+	return &imagePullFailureChecker{
 		podLister:       podLister,
 		executionClient: executionClient,
 		gracePeriod:     gracePeriod,
@@ -70,7 +70,7 @@ func NewImagePullFailureChecker(
 // CheckAndTerminate lists pods for the given workflow and terminates the workflow
 // if any pod has been stuck in ImagePullBackOff or ErrImagePull longer than the
 // grace period (measured from pod creation time).
-func (c *ImagePullFailureChecker) CheckAndTerminate(ctx context.Context, namespace string, workflowName string) error {
+func (c *imagePullFailureChecker) CheckAndTerminate(ctx context.Context, namespace string, workflowName string) error {
 	selector, err := labels.Parse(fmt.Sprintf("%s=%s", ArgoWorkflowLabelKey, workflowName))
 	if err != nil {
 		return fmt.Errorf("failed to parse label selector for workflow %s/%s: %w", namespace, workflowName, err)
@@ -132,7 +132,7 @@ func imagePullFailureFromStatus(status corev1.ContainerStatus) string {
 
 // terminateWorkflow terminates an Argo workflow by setting activeDeadlineSeconds to 0
 // and annotates it with the failing image so the reason is visible to users.
-func (c *ImagePullFailureChecker) terminateWorkflow(ctx context.Context, namespace, workflowName, failedImage string) error {
+func (c *imagePullFailureChecker) terminateWorkflow(ctx context.Context, namespace, workflowName, failedImage string) error {
 	if c.executionClient == nil {
 		return fmt.Errorf("execution client not configured, cannot terminate workflow %s/%s", namespace, workflowName)
 	}

@@ -83,16 +83,14 @@ type ExecutionInterface interface {
 // NewExecutionClientFromConfig creates an ExecutionClient from an existing rest.Config.
 // This ensures the client uses the same configuration as other clients in the process.
 func NewExecutionClientFromConfig(execType ExecutionType, cfg *rest.Config) (ExecutionClient, error) {
-	switch execType {
-	case ArgoWorkflow:
-		argoProjClient, err := argoclient.NewForConfig(cfg)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create Argo client: %w", err)
-		}
-		return &WorkflowClient{client: argoProjClient}, nil
-	default:
+	if execType != ArgoWorkflow {
 		return nil, fmt.Errorf("not supported type of Execution: %s", execType)
 	}
+	argoProjClient, err := argoclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Argo client: %w", err)
+	}
+	return &WorkflowClient{client: argoProjClient}, nil
 }
 
 // Create an ExecutionClient for the specified ExecutionType
