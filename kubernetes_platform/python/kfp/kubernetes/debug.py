@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from google.protobuf import json_format
 from kfp.dsl import PipelineTask
-from kfp.kubernetes import common
 
 def enable_debug_pause(
     task: PipelineTask,
@@ -44,15 +42,15 @@ def enable_debug_pause(
             before execution.
         after: If ``True`` (default), pause after the main process completes.
             Modified by ``on_error``.
-        on_error: If ``True``, only pause after execution when the 
-        component fails (sets ``ARGO_DEBUG_PAUSE_ON_ERROR`` instead of 
-        ``ARGO_DEBUG_PAUSE_AFTER``). Requires ``after=True``.
+        on_error: If ``True``, only pause after execution when the
+            component fails (sets ``ARGO_DEBUG_PAUSE_ON_ERROR`` instead of
+            ``ARGO_DEBUG_PAUSE_AFTER``). Requires ``after=True``.
     
     Returns:
         Task object with debug-pause configured
 
     Raises:
-        ValueError: If ``after=False`` and ``before=True`` (no effect)
+        ValueError: If both ``before`` and ``after`` are ``False``
         ValueError: If ``after=False`` and ``on_error=True`` (contradictory)
     Example:
     ::
@@ -77,7 +75,7 @@ def enable_debug_pause(
     
     if not before and not after:
         raise ValueError(
-            'At least one of "before" or "after" must be True'
+            'At least one of "before" or "after" must be True. '
             'Got before=False, after=False - nothing to pause on.')
     
     # Set environment variable
