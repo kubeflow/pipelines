@@ -91,8 +91,22 @@ class TestEnableDebugPause:
             def my_pipeline():
                 task = comp()
                 kubernetes.enable_debug_pause(task, on_error=True, after=False)
-
     
+    def test_composes_with_other_kubernetes_helpers(self):
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.add_pod_label(task, 'team', 'ml')
+            kubernetes.enable_debug_pause(task)
+        
+        env = _get_env(my_pipeline)
+        assert _has_env(env, 'ARGO_DEBUG_PAUSE_AFTER', 'true')
+        # Other Kubernetes features should still be present
+        platform_spec = json_format.MessageToDict(my_pipeline.platform_spec)
+        labels = (platform_spec['platforms']['kubernetes']['deploymentSpec']['executors']['exec-comp']['podMetadata']['labels'])
+        assert labels == {'team': 'ml'}
+
+
 def _get_env(pipeline) -> List[Dict[str, Any]]:
     """Returns the container environment variables from a compiled pipeline.
 
