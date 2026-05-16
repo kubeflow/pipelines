@@ -46,3 +46,23 @@ patches:
     target:
       kind: Deployment
       name: ml-pipeline-ui
+
+replacements:
+- source:
+    kind: ConfigMap
+    name: pipeline-install-config
+    fieldPath: metadata.namespace
+  targets:
+  - select:
+      kind: Certificate
+      name: kfp-api-tls-cert
+    fieldPaths:
+    - spec.dnsNames.1
+    - spec.dnsNames.2
+    - spec.dnsNames.3
+    - spec.dnsNames.8
+    - spec.dnsNames.9
+    - spec.dnsNames.10
+    options:
+      delimiter: .
+      index: 1

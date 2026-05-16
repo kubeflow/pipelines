@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import ErrorIcon from '@material-ui/icons/Error';
-import PendingIcon from '@material-ui/icons/Schedule';
+import type * as React from 'react';
+import ErrorIcon from '@mui/icons-material/Error';
+import PendingIcon from '@mui/icons-material/Schedule';
 import RunningIcon from '../icons/statusRunning';
-import SkippedIcon from '@material-ui/icons/SkipNext';
-import SuccessIcon from '@material-ui/icons/CheckCircle';
-import BlockIcon from '@material-ui/icons/Block';
+import SkippedIcon from '@mui/icons-material/SkipNext';
+import SuccessIcon from '@mui/icons-material/CheckCircle';
+import BlockIcon from '@mui/icons-material/Block';
 import CachedIcon from '../icons/statusCached';
 import TerminatedIcon from '../icons/statusTerminated';
-import Tooltip from '@material-ui/core/Tooltip';
-import UnknownIcon from '@material-ui/icons/Help';
+import UnknownIcon from '@mui/icons-material/Help';
 import { color } from '../Css';
 import { logger, formatDateString } from '../lib/Utils';
 import { NodePhase, checkIfTerminated } from '../lib/StatusUtils';
 import * as metadataStorePb from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
+import { Tooltip } from '@mui/material';
 
 export function statusToIcon(
   status?: NodePhase,
@@ -36,7 +36,7 @@ export function statusToIcon(
   endDate?: Date | string,
   nodeMessage?: string,
   mlmdState?: metadataStorePb.Execution.State,
-): JSX.Element {
+): React.JSX.Element {
   status = checkIfTerminated(status, nodeMessage);
   // tslint:disable-next-line:variable-name
   let IconComponent: any = UnknownIcon;

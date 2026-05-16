@@ -77,7 +77,12 @@ func ReadPodLogs(client *kubernetes.Clientset, namespace string, podName string,
 			podLogsRequest := client.CoreV1().Pods(namespace).GetLogs(podFromPodName.Name, podLogOptions)
 			podLogs, err := podLogsRequest.Stream(context.Background()) // Pass a context for cancellation
 			if err != nil {
-				logger.Log("Failed to stream pod logs due to %v", err)
+				logger.Log("Failed to stream pod logs for container '%s' due to %v", container.Name, err)
+				continue
+			}
+			if podLogs == nil {
+				logger.Log("Pod log stream is nil for container '%s'", container.Name)
+				continue
 			}
 			defer func(podLogs io.ReadCloser) {
 				err = podLogs.Close()
@@ -87,7 +92,7 @@ func ReadPodLogs(client *kubernetes.Clientset, namespace string, podName string,
 			}(podLogs)
 			_, err = io.Copy(buf, podLogs)
 			if err != nil {
-				logger.Log("Failed to add pod logs to buffer due to: %v", err)
+				logger.Log("Failed to add pod logs to buffer for container '%s' due to: %v", container.Name, err)
 			}
 		}
 	} else {

@@ -1,0 +1,6 @@
+[
+  {
+    "op": "remove",
+    "path": "/spec/template/spec/initContainers/1/securityContext"
+  }
+]

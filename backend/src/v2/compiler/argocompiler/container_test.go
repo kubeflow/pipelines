@@ -17,11 +17,12 @@ package argocompiler
 import (
 	"testing"
 
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAddContainerExecutorTemplate(t *testing.T) {
@@ -67,6 +68,43 @@ func TestAddContainerExecutorTemplate(t *testing.T) {
 		})
 	}
 
+}
+
+func TestContainerDriverTemplate_IncludesKFPPodNameEnv(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	c := &workflowCompiler{
+		templates: make(map[string]*wfapi.Template),
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+		spec: &pipelinespec.PipelineSpec{
+			PipelineInfo: &pipelinespec.PipelineInfo{Name: "test-pipeline"},
+		},
+		job: &pipelinespec.PipelineJob{},
+	}
+
+	name := c.addContainerDriverTemplate()
+	require.Equal(t, "system-container-driver", name)
+
+	tmpl, exists := c.templates[name]
+	require.True(t, exists, "system-container-driver template should exist")
+	require.NotNil(t, tmpl.Container, "template should have a container")
+
+	var foundKFPPodName bool
+	for _, env := range tmpl.Container.Env {
+		if env.Name == "KFP_POD_NAME" {
+			foundKFPPodName = true
+			require.NotNil(t, env.ValueFrom, "KFP_POD_NAME should use ValueFrom")
+			require.NotNil(t, env.ValueFrom.FieldRef, "KFP_POD_NAME should use fieldRef")
+			assert.Equal(t, "metadata.name", env.ValueFrom.FieldRef.FieldPath,
+				"KFP_POD_NAME must reference metadata.name via the downward API")
+			break
+		}
+	}
+	assert.True(t, foundKFPPodName,
+		"system-container-driver template must include KFP_POD_NAME env var to avoid hostname truncation for long pod names")
 }
 
 func Test_extendPodMetadata(t *testing.T) {

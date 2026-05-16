@@ -182,9 +182,7 @@ describe('UIServer apis', () => {
 
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
-      const res = await requests(app.app)
-        .get('/apis/v1beta1/healthz')
-        .expect(200);
+      const res = await requests(app.app).get('/apis/v1beta1/healthz').expect(200);
       expect(res.body).toMatchObject({
         apiServerReady: false,
         frontendCommitHash: commitHash,
@@ -205,9 +203,7 @@ describe('UIServer apis', () => {
 
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
-      const res = await requests(app.app)
-        .get('/apis/v1beta1/healthz')
-        .expect(200);
+      const res = await requests(app.app).get('/apis/v1beta1/healthz').expect(200);
       expect(res.body).toMatchObject({
         apiServerCommitHash: 'commit_sha',
         apiServerTagName: '1.0.0',
@@ -359,7 +355,7 @@ describe('UIServer apis', () => {
     const authPort = 3002;
 
     beforeEach(async () => {
-      authServer = await new Promise<Server>(resolve => {
+      authServer = await new Promise<Server>((resolve) => {
         const server = express()
           .post('/apis/v1beta1/auth', (_, res) => {
             res.status(401).send('Unauthorized');
@@ -378,7 +374,7 @@ describe('UIServer apis', () => {
 
     afterEach(async () => {
       if (authServer) {
-        await new Promise<void>(resolve => authServer.close(() => resolve()));
+        await new Promise<void>((resolve) => authServer.close(() => resolve()));
       }
     });
 
@@ -462,7 +458,7 @@ describe('UIServer apis', () => {
     const authPort = 3003;
 
     beforeEach(async () => {
-      authServer = await new Promise<Server>(resolve => {
+      authServer = await new Promise<Server>((resolve) => {
         const server = express()
           .post('/apis/v1beta1/auth', (_, res) => {
             res.status(401).send('Unauthorized');
@@ -481,7 +477,7 @@ describe('UIServer apis', () => {
 
     afterEach(async () => {
       if (authServer) {
-        await new Promise<void>(resolve => authServer.close(() => resolve()));
+        await new Promise<void>((resolve) => authServer.close(() => resolve()));
       }
     });
 
@@ -510,7 +506,7 @@ describe('UIServer apis', () => {
     const authPort = 3004;
 
     beforeEach(async () => {
-      authServer = await new Promise<Server>(resolve => {
+      authServer = await new Promise<Server>((resolve) => {
         const server = express()
           .post('/apis/v1beta1/auth', (_, res) => {
             res.status(401).send('Unauthorized');
@@ -529,7 +525,7 @@ describe('UIServer apis', () => {
 
     afterEach(async () => {
       if (authServer) {
-        await new Promise<void>(resolve => authServer.close(() => resolve()));
+        await new Promise<void>((resolve) => authServer.close(() => resolve()));
       }
     });
 
@@ -570,7 +566,7 @@ describe('UIServer apis', () => {
 
     afterEach(async () => {
       if (kfpApiServer) {
-        await new Promise<void>(resolve => kfpApiServer.close(() => resolve()));
+        await new Promise<void>((resolve) => kfpApiServer.close(() => resolve()));
       }
     });
 

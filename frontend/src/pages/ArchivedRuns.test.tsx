@@ -28,11 +28,12 @@ const refreshSpy = vi.fn();
 let lastRunListProps: any = null;
 
 vi.mock('./RunList', () => ({
-  default: React.forwardRef((props: any, ref) => {
-    lastRunListProps = props;
+  default: (props: any) => {
+    const { ref, ...runListProps } = props;
+    lastRunListProps = runListProps;
     React.useImperativeHandle(ref, () => ({ refresh: refreshSpy }));
     return <div data-testid='run-list' />;
-  }),
+  },
 }));
 
 describe('ArchivedRuns', () => {
@@ -198,6 +199,6 @@ describe('ArchivedRuns', () => {
     expect(deleteRunSpy).toHaveBeenCalledWith('id1');
     expect(deleteRunSpy).toHaveBeenCalledWith('id2');
     expect(deleteRunSpy).toHaveBeenCalledWith('id3');
-    expect(archivedRunsRef!.current!.state.selectedIds).toEqual(['id1']);
+    expect(lastRunListProps.selectedIds).toEqual(['id1']);
   });
 });

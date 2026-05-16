@@ -135,14 +135,14 @@ func TestUploadPipeline(t *testing.T) {
 				},
 			}
 
-			pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
+			pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts, nil)
 			assert.Nil(t, err)
 			assert.Equal(t, str, "")
 			assert.Equal(t, 1, totalSize)
 			assert.Equal(t, pkgsExpect, pkg)
 
 			opts2, _ := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
-			pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2)
+			pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2, nil)
 			assert.Nil(t, err)
 			assert.Equal(t, str, "")
 			assert.Equal(t, 1, totalSize)
@@ -186,7 +186,7 @@ func TestUploadPipeline(t *testing.T) {
 				},
 			}
 			// Expect 2 versions, one is created by default when creating pipeline and the other is what we manually created
-			versions, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts)
+			versions, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts, nil)
 			assert.Nil(t, err)
 			assert.Equal(t, str, "")
 			assert.Equal(t, 2, totalSize)
@@ -235,19 +235,19 @@ func TestUploadPipelineV2_NameValidation(t *testing.T) {
 			name:    "invalid - capitalized",
 			spec:    []byte(invalidV2specCapitalized),
 			wantErr: true,
-			errMsg:  "Failed to create a pipeline and a pipeline version",
+			errMsg:  "pipeline's name must contain only lowercase",
 		},
 		{
 			name:    "invalid - dot",
 			spec:    []byte(invalidV2specDot),
 			wantErr: true,
-			errMsg:  "Failed to create a pipeline and a pipeline version",
+			errMsg:  "pipeline's name must contain only lowercase",
 		},
 		{
 			name:    "invalid - too long",
 			spec:    []byte(invalidV2specLong),
 			wantErr: true,
-			errMsg:  "Failed to create a pipeline and a pipeline version",
+			errMsg:  "pipeline's name must contain no more than 128 characters",
 		},
 	}
 	for _, test := range tt {
@@ -377,7 +377,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 			Namespace:      "",
 		},
 	}
-	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
+	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
 	assert.Equal(t, 1, totalSize)
@@ -392,11 +392,11 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 			Parameters:     "[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
-			PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"generateName\":\"arguments-parameters-\",\"creationTimestamp\":null},\"spec\":{\"templates\":[{\"name\":\"whalesay\",\"inputs\":{\"parameters\":[{\"name\":\"param1\"},{\"name\":\"param2\"}]},\"outputs\":{},\"metadata\":{},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay:latest\",\"command\":[\"cowsay\"],\"args\":[\"{{inputs.parameters.param1}}-{{inputs.parameters.param2}}\"],\"resources\":{}}}],\"entrypoint\":\"whalesay\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+			PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"generateName\":\"arguments-parameters-\"},\"spec\":{\"templates\":[{\"name\":\"whalesay\",\"inputs\":{\"parameters\":[{\"name\":\"param1\"},{\"name\":\"param2\"}]},\"outputs\":{},\"metadata\":{},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay:latest\",\"command\":[\"cowsay\"],\"args\":[\"{{inputs.parameters.param1}}-{{inputs.parameters.param2}}\"],\"resources\":{}}}],\"entrypoint\":\"whalesay\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		},
 	}
 	opts2, _ := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
-	pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2)
+	pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
 	assert.Equal(t, 1, totalSize)
@@ -425,7 +425,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 			Parameters:     "[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
-			PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"generateName\":\"arguments-parameters-\",\"creationTimestamp\":null},\"spec\":{\"templates\":[{\"name\":\"whalesay\",\"inputs\":{\"parameters\":[{\"name\":\"param1\"},{\"name\":\"param2\"}]},\"outputs\":{},\"metadata\":{},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay:latest\",\"command\":[\"cowsay\"],\"args\":[\"{{inputs.parameters.param1}}-{{inputs.parameters.param2}}\"],\"resources\":{}}}],\"entrypoint\":\"whalesay\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+			PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"generateName\":\"arguments-parameters-\"},\"spec\":{\"templates\":[{\"name\":\"whalesay\",\"inputs\":{\"parameters\":[{\"name\":\"param1\"},{\"name\":\"param2\"}]},\"outputs\":{},\"metadata\":{},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay:latest\",\"command\":[\"cowsay\"],\"args\":[\"{{inputs.parameters.param1}}-{{inputs.parameters.param2}}\"],\"resources\":{}}}],\"entrypoint\":\"whalesay\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		},
 		{
 			UUID:           fakeVersionUUID,
@@ -435,11 +435,11 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 			Parameters:     "[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
-			PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"generateName\":\"arguments-parameters-\",\"creationTimestamp\":null},\"spec\":{\"templates\":[{\"name\":\"whalesay\",\"inputs\":{\"parameters\":[{\"name\":\"param1\"},{\"name\":\"param2\"}]},\"outputs\":{},\"metadata\":{},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay:latest\",\"command\":[\"cowsay\"],\"args\":[\"{{inputs.parameters.param1}}-{{inputs.parameters.param2}}\"],\"resources\":{}}}],\"entrypoint\":\"whalesay\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+			PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"generateName\":\"arguments-parameters-\"},\"spec\":{\"templates\":[{\"name\":\"whalesay\",\"inputs\":{\"parameters\":[{\"name\":\"param1\"},{\"name\":\"param2\"}]},\"outputs\":{},\"metadata\":{},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay:latest\",\"command\":[\"cowsay\"],\"args\":[\"{{inputs.parameters.param1}}-{{inputs.parameters.param2}}\"],\"resources\":{}}}],\"entrypoint\":\"whalesay\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		},
 	}
 	// Expect 2 versions, one is created by default when creating pipeline and the other is what we manually created
-	versions, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts)
+	versions, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
 	assert.Equal(t, 2, totalSize)
@@ -478,7 +478,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 			Namespace:      "",
 		},
 	}
-	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
+	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, str, "")
@@ -495,10 +495,10 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 			Parameters:     "[]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
-			PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"creationTimestamp\":null},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+			PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		},
 	}
-	pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2)
+	pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, str, "")
@@ -529,7 +529,7 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 			Namespace:      "",
 		},
 	}
-	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
+	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, str, "")
@@ -547,10 +547,10 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 			Parameters:     "[]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
-			PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"creationTimestamp\":null},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+			PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		},
 	}
-	pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2)
+	pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, str, "")
@@ -596,6 +596,33 @@ func TestUploadPipelineVersion_NameTooLong(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 	assert.Contains(t, resp.Body.String(), "PipelineVersion.Name length cannot exceed")
+}
+
+func TestUploadPipelineVersion_InvalidName(t *testing.T) {
+	clientManager, server := setupClientManagerAndServer()
+	// First create a valid pipeline
+	bytesBuffer, writer := setupWriter("")
+	setWriterWithBuffer("uploadfile", "hello.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
+	response := uploadPipeline("/apis/v1beta1/pipelines/upload",
+		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
+	assert.Equal(t, 200, response.Code)
+
+	// Set a new UUID to avoid collision with the default version
+	server = updateClientManager(clientManager, util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
+
+	// Upload a version with a v2 spec that has an invalid pipeline name (uppercase)
+	v2Template, _ := template.New([]byte(v2SpecHelloWorldCapitalized), template.TemplateOptions{CacheDisabled: true})
+	invalidSpec := string(v2Template.Bytes())
+
+	bytesBuffer2, writer2 := setupWriter("")
+	setWriterWithBuffer("uploadfile", "hello.yaml", invalidSpec, writer2)
+	endpoint := fmt.Sprintf("/apis/v1beta1/pipelines/upload_version?pipelineid=%s",
+		DefaultFakeUUID)
+	resp := uploadPipeline(endpoint,
+		bytes.NewReader(bytesBuffer2.Bytes()), writer2, server.UploadPipelineVersion)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, resp.Body.String(), "pipeline's name must contain only lowercase")
 }
 
 func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {

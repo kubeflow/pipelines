@@ -6,6 +6,8 @@ kind: Kustomization
 # * this does not include argo server.
 # * this separates cluster-scoped resources to its own folder.
 
+namespace: kubeflow
+
 resources:
 - ../../base
 - https://github.com/argoproj/argo-workflows/manifests/namespace-install/workflow-controller-rbac?ref=v3.7.3

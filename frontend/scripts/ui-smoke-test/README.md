@@ -257,8 +257,12 @@ kubectl -n kubeflow scale deployment/ml-pipeline-ui --replicas=1
 | Page | Route | Wait Condition | Description |
 |------|-------|----------------|-------------|
 | pipelines | `/#/pipelines` | Table rows + pipeline links | Pipeline list |
+| pipeline-details-seeded | `/#/pipelines/details/{seed.pipelineId}` | Root + details content | Seeded pipeline details (default view) |
+| pipeline-details-seeded-sidepanel | `/#/pipelines/details/{seed.pipelineId}` | Side panel close button visible | Seeded pipeline details with side panel open |
 | experiments | `/#/experiments` | Table rows + experiment links | Experiment list |
 | runs | `/#/runs` | Table rows + run links | Run history |
+| run-details-seeded | `/#/runs/details/{seed.runId}` | Root + graph/details content | Seeded run details (default view) |
+| run-details-seeded-sidepanel | `/#/runs/details/{seed.runId}` | Side panel close button visible | Seeded run details with side panel open |
 | recurring-runs | `/#/recurringruns` | Table rows | Scheduled runs |
 | artifacts | `/#/artifacts` | Table rows | ML artifacts |
 | executions | `/#/executions` | Table rows + execution links | Execution history |

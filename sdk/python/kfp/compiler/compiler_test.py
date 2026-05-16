@@ -1866,6 +1866,158 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
             .parameters['message'].runtime_value.constant.string_value,
             'Second exit task.')
 
+    def test_task_after_exit_handler_group(self):
+
+        @dsl.pipeline(name='pipeline-after-exit-handler-group')
+        def my_pipeline():
+            exit_task = print_op(message='Exit task.')
+
+            with dsl.ExitHandler(exit_task) as exit_group:
+                print_op(message='Inside exit handler.')
+
+            print_op(message='After exit handler.').after(exit_group)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        self.assertEqual(
+            list(pipeline_spec.root.dag.tasks['print-op-3'].dependent_tasks),
+            ['exit-handler-1'])
+
+    def test_tasks_after_multiple_exit_handler_groups(self):
+
+        @dsl.pipeline(name='pipeline-after-multiple-exit-handler-groups')
+        def my_pipeline():
+            first_exit_task = print_op(message='First exit task.')
+
+            with dsl.ExitHandler(first_exit_task) as first_exit_group:
+                print_op(message='Inside first exit handler.')
+
+            after_first = print_op(
+                message='After first exit handler.').after(first_exit_group)
+
+            second_exit_task = print_op(message='Second exit task.')
+
+            with dsl.ExitHandler(second_exit_task) as second_exit_group:
+                print_op(
+                    message='Inside second exit handler.').after(after_first)
+
+            print_op(
+                message='After second exit handler.').after(second_exit_group)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        self.assertEqual(
+            list(pipeline_spec.root.dag.tasks['print-op-3'].dependent_tasks),
+            ['exit-handler-1'])
+        self.assertEqual(
+            list(
+                pipeline_spec.root.dag.tasks['exit-handler-2'].dependent_tasks),
+            ['print-op-3'])
+        self.assertEqual(
+            list(pipeline_spec.root.dag.tasks['print-op-6'].dependent_tasks),
+            ['exit-handler-2'])
+
+    def test_task_after_non_exit_handler_group_raises_early(self):
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'"\.after\(\)" on task group "condition-[0-9]+" of type dsl\.If is not supported\. Only dsl\.ExitHandler groups can be used as \.after\(\) dependencies\.'
+        ):
+
+            @dsl.pipeline(name='pipeline-after-if-group')
+            def my_pipeline(flag: str = 'foo'):
+                with dsl.If(flag == 'foo') as if_group:
+                    print_op(message='Inside condition.')
+
+                print_op(message='After condition.').after(if_group)
+
+    def test_task_after_task_inside_exit_handler_is_still_invalid(self):
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.ExitHandler context\.'
+        ):
+
+            @dsl.pipeline(name='pipeline-after-task-inside-exit-handler')
+            def my_pipeline():
+                exit_task = print_op(message='Exit task.')
+
+                with dsl.ExitHandler(exit_task):
+                    inner_task = print_op(message='Inside exit handler.')
+
+                print_op(message='After exit handler.').after(inner_task)
+
+    def test_task_after_exit_handler_group_can_use_task_final_status(self):
+
+        @dsl.component
+        def cancel_handler(status: PipelineTaskFinalStatus):
+            print(status)
+
+        @dsl.pipeline(
+            name='pipeline-after-exit-handler-group-with-task-final-status')
+        def my_pipeline():
+            exit_task = print_op(message='Exit task.')
+
+            with dsl.ExitHandler(exit_task) as exit_group:
+                print_op(message='Inside exit handler.')
+
+            cancel_handler().after(exit_group).ignore_upstream_failure()
+
+        cancel_handler_task = my_pipeline.pipeline_spec.root.dag.tasks[
+            'cancel-handler']
+        self.assertEqual(
+            list(cancel_handler_task.dependent_tasks), ['exit-handler-1'])
+        self.assertEqual(cancel_handler_task.trigger_policy.strategy, 2)
+        self.assertEqual(
+            cancel_handler_task.inputs.parameters['status'].task_final_status
+            .producer_task, 'exit-handler-1')
+
+    def test_task_after_exit_handler_group_raises_on_unknown_dependency(self):
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Dependency "missing-task" does not exist as either a task or a group in the pipeline\.'
+        ):
+
+            @dsl.pipeline(
+                name='pipeline-after-exit-handler-group-with-unknown-dependency'
+            )
+            def my_pipeline():
+                downstream = print_op(message='Downstream task.')
+                # Cover the compiler validation path that public .after()
+                # input validation now prevents.
+                downstream._task_spec.dependent_tasks.append('missing-task')
+
+            my_pipeline.pipeline_spec
+
+    def test_task_after_exit_handler_group_raises_on_ambiguous_name(self):
+
+        @dsl.component
+        def exit_handler_1():
+            pass
+
+        with self.assertRaisesRegex(
+                ValueError, r'Ambiguous dependency name "exit-handler-1"\.'):
+
+            @dsl.pipeline(
+                name='pipeline-after-exit-handler-group-with-ambiguous-name')
+            def my_pipeline():
+                exit_handler_1()
+                exit_task = print_op(message='Exit task.')
+
+                with dsl.ExitHandler(exit_task) as exit_group:
+                    print_op(message='Inside exit handler.')
+
+                print_op(message='After exit handler.').after(exit_group)
+
     def test_nested_unsupported(self):
 
         with self.assertRaisesRegex(
@@ -4434,6 +4586,230 @@ class TestPlatformConfig(unittest.TestCase):
                 pipeline_func=my_pipeline, package_path=output_yaml)
             # Should not raise an error
             self.assertTrue(os.path.exists(output_yaml))
+
+    def test_pipeline_with_ttl_seconds_after_finished(self):
+        """ttl_seconds_after_finished → resource_ttl_on_completion (SecondsAfterCompletion)."""
+
+        @dsl.pipeline(
+            pipeline_config=dsl.PipelineConfig(ttl_seconds_after_finished=300))
+        def my_pipeline():
+            comp()
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {'pipelineConfig': {
+                'resourceTtlOnCompletion': 300
+            }}, expected.platforms['kubernetes'])
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+    def test_pipeline_with_ttl_seconds_after_success(self):
+        """ttl_seconds_after_success → resource_ttl_on_success (SecondsAfterSuccess)."""
+
+        @dsl.pipeline(
+            pipeline_config=dsl.PipelineConfig(ttl_seconds_after_success=600))
+        def my_pipeline():
+            comp()
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict({'pipelineConfig': {
+            'resourceTtlOnSuccess': 600
+        }}, expected.platforms['kubernetes'])
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+    def test_pipeline_with_ttl_seconds_after_failure(self):
+        """ttl_seconds_after_failure → resource_ttl_on_failure (SecondsAfterFailure)."""
+
+        @dsl.pipeline(
+            pipeline_config=dsl.PipelineConfig(ttl_seconds_after_failure=120))
+        def my_pipeline():
+            comp()
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict({'pipelineConfig': {
+            'resourceTtlOnFailure': 120
+        }}, expected.platforms['kubernetes'])
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+    def test_pipeline_with_all_three_ttl_fields(self):
+        """All three TTL fields can be set independently."""
+
+        @dsl.pipeline(
+            pipeline_config=dsl.PipelineConfig(
+                ttl_seconds_after_finished=300,
+                ttl_seconds_after_success=3600,
+                ttl_seconds_after_failure=60,
+            ))
+        def my_pipeline():
+            comp()
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'pipelineConfig': {
+                    'resourceTtlOnCompletion': 300,
+                    'resourceTtlOnSuccess': 3600,
+                    'resourceTtlOnFailure': 60,
+                }
+            }, expected.platforms['kubernetes'])
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+    def test_pipeline_with_ttl_zero(self):
+        """TTL of 0 is accepted but treated as "not set" and not serialized.
+
+        A value of 0 is indistinguishable from the proto3 int32 default, so the
+        serializer skips it.  The resulting platform spec contains no
+        pipelineConfig entry at all, identical to not setting a TTL.
+        """
+
+        @dsl.pipeline(
+            pipeline_config=dsl.PipelineConfig(ttl_seconds_after_finished=0))
+        def my_pipeline():
+            comp()
+
+        # TTL=0 is skipped by the > 0 gate, so the platform spec is empty.
+        expected = pipeline_spec_pb2.PlatformSpec()
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+    def test_pipeline_with_ttl_and_workspace(self):
+        """TTL and workspace can coexist in PipelineConfig."""
+        config = PipelineConfig(
+            workspace=WorkspaceConfig(size='10Gi'),
+            ttl_seconds_after_finished=3600,
+        )
+
+        @dsl.pipeline(pipeline_config=config)
+        def my_pipeline():
+            comp()
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'pipelineConfig': {
+                    'workspace': {
+                        'size': '10Gi',
+                        'kubernetes': {
+                            'pvcSpecPatch': {}
+                        }
+                    },
+                    'resourceTtlOnCompletion': 3600,
+                }
+            }, expected.platforms['kubernetes'])
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+    def test_pipeline_config_ttl_validation_rejects_negative(self):
+        """Any negative TTL value should raise ValueError."""
+        with self.assertRaisesRegex(ValueError, 'non-negative'):
+            dsl.PipelineConfig(ttl_seconds_after_finished=-1)
+        with self.assertRaisesRegex(ValueError, 'non-negative'):
+            dsl.PipelineConfig(ttl_seconds_after_success=-5)
+        with self.assertRaisesRegex(ValueError, 'non-negative'):
+            dsl.PipelineConfig(ttl_seconds_after_failure=-100)
+
+    def test_pipeline_config_ttl_validation_rejects_non_int(self):
+        """Float, str, and bool TTL values should raise TypeError."""
+        with self.assertRaisesRegex(TypeError, 'must be an int'):
+            dsl.PipelineConfig(ttl_seconds_after_finished=3.5)
+        with self.assertRaisesRegex(TypeError, 'must be an int'):
+            dsl.PipelineConfig(ttl_seconds_after_success='300')
+        with self.assertRaisesRegex(TypeError, 'must be an int'):
+            dsl.PipelineConfig(ttl_seconds_after_failure=True)
+
+    def test_pipeline_config_ttl_validation_rejects_int32_overflow(self):
+        """TTL values exceeding int32 max should raise ValueError."""
+        with self.assertRaisesRegex(ValueError, '2147483647'):
+            dsl.PipelineConfig(ttl_seconds_after_finished=2147483648)
+
+    def test_pipeline_with_active_deadline_seconds(self):
+        """active_deadline_seconds → activeDeadlineSeconds in platform spec."""
+
+        @dsl.pipeline(
+            pipeline_config=dsl.PipelineConfig(active_deadline_seconds=3600))
+        def my_pipeline():
+            comp()
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {'pipelineConfig': {
+                'activeDeadlineSeconds': 3600
+            }}, expected.platforms['kubernetes'])
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+    def test_pipeline_with_active_deadline_none_omits_field(self):
+        """active_deadline_seconds=None (default) produces no platform spec entry."""
+
+        @dsl.pipeline(
+            pipeline_config=dsl.PipelineConfig(active_deadline_seconds=None))
+        def my_pipeline():
+            comp()
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+    def test_pipeline_with_active_deadline_and_ttl(self):
+        """active_deadline_seconds and TTL fields coexist."""
+
+        @dsl.pipeline(
+            pipeline_config=dsl.PipelineConfig(
+                ttl_seconds_after_finished=300,
+                active_deadline_seconds=7200,
+            ))
+        def my_pipeline():
+            comp()
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'pipelineConfig': {
+                    'resourceTtlOnCompletion': 300,
+                    'activeDeadlineSeconds': 7200,
+                }
+            }, expected.platforms['kubernetes'])
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+    def test_pipeline_config_active_deadline_validation_rejects_negative(self):
+        """Negative active_deadline_seconds should raise ValueError."""
+        with self.assertRaisesRegex(ValueError, 'non-negative'):
+            dsl.PipelineConfig(active_deadline_seconds=-1)
+
+    def test_pipeline_config_active_deadline_validation_rejects_non_int(self):
+        """Float active_deadline_seconds should raise TypeError."""
+        with self.assertRaisesRegex(TypeError, 'must be an int'):
+            dsl.PipelineConfig(active_deadline_seconds=3.5)
+
+    def test_pipeline_config_default_has_no_active_deadline(self):
+        """Default PipelineConfig should not set active_deadline_seconds."""
+        config = dsl.PipelineConfig()
+        self.assertIsNone(config.active_deadline_seconds)
 
 
 class ExtractInputOutputDescription(unittest.TestCase):

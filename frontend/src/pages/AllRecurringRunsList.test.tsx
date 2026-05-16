@@ -84,13 +84,6 @@ describe('AllRecurringRunsList', () => {
     toolbarProps = null;
   });
 
-  afterEach(() => {
-    renderResult?.unmount();
-    renderResult = null;
-    allRecurringRunsListRef = null;
-    toolbarProps = null;
-  });
-
   it('renders all recurring runs', () => {
     renderAllRecurringRunsList();
     expect(lastRecurringRunListProps).toBeTruthy();

@@ -89,6 +89,26 @@ func Test_handleExecutionRootDAG(t *testing.T) {
 	cleanup(t, executionPaths)
 }
 
+func Test_handleExecutionDAG(t *testing.T) {
+	execution := &driver.Execution{}
+
+	executionPaths := &ExecutionPaths{
+		IterationCount: "iteration_count.txt",
+		Condition:      "condition.txt",
+	}
+
+	err := handleExecution(execution, DAG, executionPaths)
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	verifyFileContent(t, executionPaths.IterationCount, "0")
+	verifyFileContent(t, executionPaths.Condition, "nil")
+
+	cleanup(t, executionPaths)
+}
+
 func cleanup(t *testing.T, executionPaths *ExecutionPaths) {
 	removeIfExists(t, executionPaths.IterationCount)
 	removeIfExists(t, executionPaths.ExecutionID)

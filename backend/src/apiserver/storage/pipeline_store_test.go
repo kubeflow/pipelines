@@ -100,10 +100,10 @@ func TestListPipelinesAndVersions_FilterOutNotReady(t *testing.T) {
 	opts, err := list.NewOptions(&model.Pipeline{}, 10, "id", nil)
 	assert.Nil(t, err)
 
-	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(&model.FilterContext{}, opts)
+	pipelines, totalSize, nextPageToken, err := pipelineStore.ListPipelines(&model.FilterContext{}, opts, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
-	assert.Equal(t, 3, total_size)
+	assert.Equal(t, 3, totalSize)
 	assert.Equal(t, pipelinesExpected, pipelines)
 
 	// Create pipeline versions
@@ -180,22 +180,22 @@ func TestListPipelinesAndVersions_FilterOutNotReady(t *testing.T) {
 	opts2, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
 	assert.Nil(t, err)
 
-	pipelineVersions, total_size, nextPageToken, err := pipelineStore.ListPipelineVersions(_p1.UUID, opts2)
+	pipelineVersions, totalSize, nextPageToken, err := pipelineStore.ListPipelineVersions(_p1.UUID, opts2, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
-	assert.Equal(t, 1, total_size)
+	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, pipelinesVersionsExpected1, pipelineVersions)
 
-	pipelineVersions, total_size, nextPageToken, err = pipelineStore.ListPipelineVersions(_p2.UUID, opts2)
+	pipelineVersions, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(_p2.UUID, opts2, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
-	assert.Equal(t, 1, total_size)
+	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, pipelinesVersionsExpected2, pipelineVersions)
 
-	pipelineVersions, total_size, nextPageToken, err = pipelineStore.ListPipelineVersions(_p3.UUID, opts2)
+	pipelineVersions, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(_p3.UUID, opts2, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, pipelinesVersionsExpected3, pipelineVersions)
 }
 
@@ -1454,11 +1454,11 @@ func TestListPipelineVersion_FilterOutNotReady(t *testing.T) {
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
 	assert.Nil(t, err)
 
-	pipelineVersions, total_size, nextPageToken, err := pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
+	pipelineVersions, totalSize, nextPageToken, err := pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts, nil)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, pipelineVersionsExpected, pipelineVersions)
 }
 
@@ -1525,10 +1525,10 @@ func TestListPipelineVersions_Pagination(t *testing.T) {
 	// and second page containing verion_3 and version_4.
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 2, "name", nil)
 	assert.Nil(t, err)
-	pipelineVersions, total_size, nextPageToken, err := pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
+	pipelineVersions, totalSize, nextPageToken, err := pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts, nil)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
-	assert.Equal(t, 4, total_size)
+	assert.Equal(t, 4, totalSize)
 
 	// First page.
 	assert.Equal(t, pipelineVersions, []*model.PipelineVersion{
@@ -1552,12 +1552,12 @@ func TestListPipelineVersions_Pagination(t *testing.T) {
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
-	pipelineVersions, total_size, nextPageToken, err = pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
+	pipelineVersions, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts, nil)
 	assert.Nil(t, err)
 
 	// Second page.
 	assert.Empty(t, nextPageToken)
-	assert.Equal(t, 4, total_size)
+	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, pipelineVersions, []*model.PipelineVersion{
 		{
 			UUID:           DefaultFakePipelineIdThree,
@@ -1642,10 +1642,10 @@ func TestListPipelineVersions_Pagination_Descend(t *testing.T) {
 	// page "version_2" and "version_1".
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 2, "name desc", nil)
 	assert.Nil(t, err)
-	pipelineVersions, total_size, nextPageToken, err := pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
+	pipelineVersions, totalSize, nextPageToken, err := pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts, nil)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
-	assert.Equal(t, 4, total_size)
+	assert.Equal(t, 4, totalSize)
 
 	// First page.
 	assert.Equal(t, pipelineVersions, []*model.PipelineVersion{
@@ -1669,10 +1669,10 @@ func TestListPipelineVersions_Pagination_Descend(t *testing.T) {
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
-	pipelineVersions, total_size, nextPageToken, err = pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
+	pipelineVersions, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts, nil)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
-	assert.Equal(t, 4, total_size)
+	assert.Equal(t, 4, totalSize)
 
 	// Second Page.
 	assert.Equal(
@@ -1726,10 +1726,10 @@ func TestListPipelineVersions_Pagination_LessThanPageSize(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
 	assert.Nil(t, err)
-	pipelineVersions, total_size, nextPageToken, err := pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
+	pipelineVersions, totalSize, nextPageToken, err := pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
-	assert.Equal(t, 1, total_size)
+	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, pipelineVersions, []*model.PipelineVersion{
 		{
 			UUID:           DefaultFakePipelineIdTwo,
@@ -1806,7 +1806,7 @@ func TestListPipelineVersions_WithFilter(t *testing.T) {
 	// Only return 1 pipeline version with equal filter.
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", equalFilter)
 	assert.Nil(t, err)
-	_, totalSize, nextPageToken, err := pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
+	_, totalSize, nextPageToken, err := pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 1, totalSize)
@@ -1814,7 +1814,7 @@ func TestListPipelineVersions_WithFilter(t *testing.T) {
 	// Return 2 pipeline versions without filter.
 	opts, err = list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
 	assert.Nil(t, err)
-	_, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
+	_, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 2, totalSize)
@@ -1822,7 +1822,7 @@ func TestListPipelineVersions_WithFilter(t *testing.T) {
 	// Return 2 pipeline versions with prefix filter.
 	opts, err = list.NewOptions(&model.PipelineVersion{}, 10, "id", prefixFilter)
 	assert.Nil(t, err)
-	_, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
+	_, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 2, totalSize)
@@ -1840,7 +1840,7 @@ func TestListPipelineVersionsError(t *testing.T) {
 	// Internal error because of closed DB.
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
 	assert.Nil(t, err)
-	_, _, _, err = pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts)
+	_, _, _, err = pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts, nil)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
@@ -1975,3 +1975,133 @@ spec:
         value: "value1"
     container:
       image: docker/whalesay:latest`
+
+func TestUpdatePipelineFields_DisplayNameOnly(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+
+	p := createPipeline("test-pipeline", "desc", "")
+	created, err := pipelineStore.CreatePipeline(p)
+	assert.Nil(t, err)
+
+	// Update only display name, tags should remain nil (unchanged)
+	err = pipelineStore.UpdatePipelineFields(created.UUID, "new-display-name", nil)
+	assert.Nil(t, err)
+
+	retrieved, err := pipelineStore.GetPipeline(created.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, "new-display-name", retrieved.DisplayName)
+}
+
+func TestUpdatePipelineFields_AddTags(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+
+	p := createPipeline("test-pipeline", "desc", "")
+	created, err := pipelineStore.CreatePipeline(p)
+	assert.Nil(t, err)
+
+	tags := map[string]string{"env": "prod", "team": "ml"}
+	err = pipelineStore.UpdatePipelineFields(created.UUID, "", tags)
+	assert.Nil(t, err)
+
+	loadedTags, err := pipelineStore.GetPipelineTags(created.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, tags, loadedTags)
+}
+
+func TestUpdatePipelineFields_ReplaceTags(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+
+	p := createPipeline("test-pipeline", "desc", "")
+	created, err := pipelineStore.CreatePipeline(p)
+	assert.Nil(t, err)
+
+	// Set initial tags
+	err = pipelineStore.UpdatePipelineFields(created.UUID, "", map[string]string{"env": "dev"})
+	assert.Nil(t, err)
+
+	// Replace with new tags
+	newTags := map[string]string{"team": "ml-ops"}
+	err = pipelineStore.UpdatePipelineFields(created.UUID, "", newTags)
+	assert.Nil(t, err)
+
+	loadedTags, err := pipelineStore.GetPipelineTags(created.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, newTags, loadedTags)
+}
+
+func TestUpdatePipelineFields_ClearTags(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+
+	p := createPipeline("test-pipeline", "desc", "")
+	created, err := pipelineStore.CreatePipeline(p)
+	assert.Nil(t, err)
+
+	// Set tags first
+	err = pipelineStore.UpdatePipelineFields(created.UUID, "", map[string]string{"env": "prod"})
+	assert.Nil(t, err)
+
+	// Clear with empty map
+	err = pipelineStore.UpdatePipelineFields(created.UUID, "", map[string]string{})
+	assert.Nil(t, err)
+
+	loadedTags, err := pipelineStore.GetPipelineTags(created.UUID)
+	assert.Nil(t, err)
+	assert.Nil(t, loadedTags, "Tags should be nil after clearing")
+}
+
+func TestUpdatePipelineFields_NilTagsPreservesExisting(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+
+	p := createPipeline("test-pipeline", "desc", "")
+	created, err := pipelineStore.CreatePipeline(p)
+	assert.Nil(t, err)
+
+	// Set tags
+	originalTags := map[string]string{"env": "prod"}
+	err = pipelineStore.UpdatePipelineFields(created.UUID, "", originalTags)
+	assert.Nil(t, err)
+
+	// Update with nil tags should preserve existing tags
+	err = pipelineStore.UpdatePipelineFields(created.UUID, "updated-name", nil)
+	assert.Nil(t, err)
+
+	loadedTags, err := pipelineStore.GetPipelineTags(created.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, originalTags, loadedTags)
+
+	retrieved, err := pipelineStore.GetPipeline(created.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, "updated-name", retrieved.DisplayName)
+}
+
+func TestUpdatePipelineFields_DisplayNameAndTags(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+
+	p := createPipeline("test-pipeline", "desc", "")
+	created, err := pipelineStore.CreatePipeline(p)
+	assert.Nil(t, err)
+
+	tags := map[string]string{"env": "staging"}
+	err = pipelineStore.UpdatePipelineFields(created.UUID, "new-name", tags)
+	assert.Nil(t, err)
+
+	retrieved, err := pipelineStore.GetPipeline(created.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, "new-name", retrieved.DisplayName)
+
+	loadedTags, err := pipelineStore.GetPipelineTags(created.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, tags, loadedTags)
+}

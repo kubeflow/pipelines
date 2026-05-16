@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { Router as ReactRouter } from 'react-router';
 import { MemoryRouter } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
@@ -68,7 +67,9 @@ describe('Router', () => {
       </ReactRouter>,
     );
     expect(screen.getByTestId('page-title')).toHaveTextContent('Apple');
-    history.push('/pear');
+    act(() => {
+      history.push('/pear');
+    });
     await waitFor(() => expect(screen.getByTestId('page-title')).toHaveTextContent(''));
   });
 });

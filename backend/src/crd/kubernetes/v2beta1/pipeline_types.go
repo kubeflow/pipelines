@@ -24,8 +24,9 @@ import (
 
 // PipelineSpec defines the desired state of Pipeline.
 type PipelineSpec struct {
-	DisplayName string `json:"displayName,omitempty"`
-	Description string `json:"description,omitempty"`
+	DisplayName string            `json:"displayName,omitempty"`
+	Description string            `json:"description,omitempty"`
+	Tags        map[string]string `json:"tags,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -57,6 +58,7 @@ func FromPipelineModel(pipeline model.Pipeline) Pipeline {
 		Spec: PipelineSpec{
 			DisplayName: pipeline.DisplayName,
 			Description: string(pipeline.Description),
+			Tags:        pipeline.Tags,
 		},
 	}
 }
@@ -77,6 +79,7 @@ func (p *Pipeline) ToModel() *model.Pipeline {
 		UUID:           string(p.UID),
 		CreatedAtInSec: p.CreationTimestamp.Unix(),
 		Status:         pipelineStatus,
+		Tags:           p.Spec.Tags,
 	}
 }
 

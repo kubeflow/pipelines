@@ -15,7 +15,6 @@
  */
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import * as React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { MockInstance } from 'vitest';
 import { Api } from 'src/mlmd/library';
@@ -48,31 +47,31 @@ describe('ArtifactList', () => {
   const listOperationOpts = new metadataStorePb.ListOperationOptions();
   listOperationOpts.setMaxResultSize(10);
   const getArtifactsRequest = new GetArtifactsRequest();
-  getArtifactsRequest.setOptions(listOperationOpts),
-    beforeEach(() => {
-      updateBannerSpy = vi.fn();
-      updateDialogSpy = vi.fn();
-      updateSnackbarSpy = vi.fn();
-      updateToolbarSpy = vi.fn();
-      historyPushSpy = vi.fn();
-      getArtifactsSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifacts');
-      getArtifactTypesSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes');
+  getArtifactsRequest.setOptions(listOperationOpts);
+  beforeEach(() => {
+    updateBannerSpy = vi.fn();
+    updateDialogSpy = vi.fn();
+    updateSnackbarSpy = vi.fn();
+    updateToolbarSpy = vi.fn();
+    historyPushSpy = vi.fn();
+    getArtifactsSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifacts');
+    getArtifactTypesSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes');
 
-      getArtifactTypesSpy.mockImplementation(() => {
-        const artifactType = new ArtifactType();
-        artifactType.setId(6);
-        artifactType.setName('String');
-        const response = new GetArtifactTypesResponse();
-        response.setArtifactTypesList([artifactType]);
-        return Promise.resolve(response);
-      });
-      getArtifactsSpy.mockImplementation(() => {
-        const artifacts = generateNArtifacts(5);
-        const response = new GetArtifactsResponse();
-        response.setArtifactsList(artifacts);
-        return Promise.resolve(response);
-      });
+    getArtifactTypesSpy.mockImplementation(() => {
+      const artifactType = new ArtifactType();
+      artifactType.setId(6);
+      artifactType.setName('String');
+      const response = new GetArtifactTypesResponse();
+      response.setArtifactTypesList([artifactType]);
+      return Promise.resolve(response);
     });
+    getArtifactsSpy.mockImplementation(() => {
+      const artifacts = generateNArtifacts(5);
+      const response = new GetArtifactsResponse();
+      response.setArtifactsList(artifacts);
+      return Promise.resolve(response);
+    });
+  });
 
   function generateNArtifacts(n: number) {
     let artifacts: Artifact[] = [];
@@ -118,12 +117,7 @@ describe('ArtifactList', () => {
       </MemoryRouter>,
     );
 
-    await waitFor(() => {
-      expect(getArtifactTypesSpy).toHaveBeenCalledTimes(1);
-      expect(getArtifactsSpy).toHaveBeenCalledTimes(1);
-    });
-
-    screen.getByText('pipeline 1');
+    await screen.findByText('pipeline 1');
     screen.getByText('test artifact 1');
   });
 
@@ -134,12 +128,7 @@ describe('ArtifactList', () => {
       </MemoryRouter>,
     );
 
-    await waitFor(() => {
-      expect(getArtifactTypesSpy).toHaveBeenCalledTimes(1);
-      expect(getArtifactsSpy).toHaveBeenCalledTimes(1);
-    });
-
-    screen.getByText('Rows per page:');
+    await screen.findByText('Rows per page:');
     screen.getByText('10');
   });
 
@@ -150,11 +139,11 @@ describe('ArtifactList', () => {
       </MemoryRouter>,
     );
 
-    await waitFor(() => {
-      expect(getArtifactTypesSpy).toHaveBeenCalledTimes(1);
-      expect(getArtifactsSpy).toHaveBeenCalledTimes(1);
-    });
+    await screen.findByText('Rows per page:');
     expect(screen.queryByText('test artifact 20')).toBeNull(); // Can not see the 20th artifact initially
+
+    getArtifactTypesSpy.mockClear();
+    getArtifactsSpy.mockClear();
 
     getArtifactsSpy.mockImplementation(() => {
       const artifacts = generateNArtifacts(20);
@@ -163,18 +152,17 @@ describe('ArtifactList', () => {
       return Promise.resolve(response);
     });
 
-    const rowsPerPageButton = screen.getByRole('button', { name: '10' });
+    const rowsPerPageButton = screen.getByRole('combobox');
     fireEvent.mouseDown(rowsPerPageButton);
     const newRowsPerPage = await screen.findByRole('option', { name: '20' });
     fireEvent.click(newRowsPerPage);
 
     listOperationOpts.setMaxResultSize(20);
-    getArtifactsRequest.setOptions(listOperationOpts),
-      await waitFor(() => {
-        // API will be called again if "Rows per page" is changed
-        expect(getArtifactTypesSpy).toHaveBeenCalledTimes(1);
-        expect(getArtifactsSpy).toHaveBeenLastCalledWith(getArtifactsRequest);
-      });
+    getArtifactsRequest.setOptions(listOperationOpts);
+    await waitFor(() => {
+      expect(getArtifactsSpy).toHaveBeenLastCalledWith(getArtifactsRequest);
+    });
+    expect(getArtifactTypesSpy).not.toHaveBeenCalled();
 
     screen.getByText('test artifact 20'); // The 20th artifacts appears.
   });

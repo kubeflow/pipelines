@@ -18,9 +18,11 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"reflect"
 	"runtime/debug"
 	"sync"
 	"testing"
+	"unsafe"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata/testutils"
 
@@ -29,6 +31,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 )
@@ -335,6 +338,88 @@ func Test_DAG(t *testing.T) {
 	}
 }
 
+func Test_GetExecutionsByTypeAndName(t *testing.T) {
+	t.Run("returns execution with pipeline", func(t *testing.T) {
+		const (
+			executionID   int64 = 123
+			pipelineCtxID int64 = 456
+			runCtxID      int64 = 789
+		)
+
+		client := &metadata.Client{}
+		setMetadataClientService(t, client, &stubMetadataStoreServiceClient{
+			getExecutionByTypeAndName: func(ctx context.Context, req *pb.GetExecutionByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetExecutionByTypeAndNameResponse, error) {
+				if got, want := req.GetTypeName(), string(metadata.DagExecutionTypeName); got != want {
+					t.Fatalf("GetExecutionByTypeAndName() type = %q, want %q", got, want)
+				}
+				if got, want := req.GetExecutionName(), "run/my-run"; got != want {
+					t.Fatalf("GetExecutionByTypeAndName() name = %q, want %q", got, want)
+				}
+				return &pb.GetExecutionByTypeAndNameResponse{
+					Execution: &pb.Execution{Id: proto.Int64(executionID)},
+				}, nil
+			},
+			getContextType: func(ctx context.Context, req *pb.GetContextTypeRequest, opts ...grpc.CallOption) (*pb.GetContextTypeResponse, error) {
+				switch req.GetTypeName() {
+				case "system.Pipeline":
+					return &pb.GetContextTypeResponse{
+						ContextType: &pb.ContextType{Id: proto.Int64(pipelineCtxID)},
+					}, nil
+				case "system.PipelineRun":
+					return &pb.GetContextTypeResponse{
+						ContextType: &pb.ContextType{Id: proto.Int64(runCtxID)},
+					}, nil
+				default:
+					t.Fatalf("unexpected context type lookup: %q", req.GetTypeName())
+					return nil, nil
+				}
+			},
+			getContextsByExecution: func(ctx context.Context, req *pb.GetContextsByExecutionRequest, opts ...grpc.CallOption) (*pb.GetContextsByExecutionResponse, error) {
+				if got, want := req.GetExecutionId(), executionID; got != want {
+					t.Fatalf("GetContextsByExecution() execution ID = %v, want %v", got, want)
+				}
+				return &pb.GetContextsByExecutionResponse{
+					Contexts: []*pb.Context{
+						{Id: proto.Int64(pipelineCtxID), TypeId: proto.Int64(pipelineCtxID)},
+						{Id: proto.Int64(runCtxID), TypeId: proto.Int64(runCtxID)},
+					},
+				}, nil
+			},
+		})
+
+		execution, err := client.GetExecutionByTypeAndName(context.Background(), string(metadata.DagExecutionTypeName), "run/my-run")
+		if err != nil {
+			t.Fatalf("GetExecutionsByTypeAndName() error = %v", err)
+		}
+		if got, want := execution.GetID(), executionID; got != want {
+			t.Fatalf("GetExecutionsByTypeAndName().GetID() = %v, want %v", got, want)
+		}
+		if got, want := execution.GetPipeline().GetCtxID(), pipelineCtxID; got != want {
+			t.Fatalf("GetExecutionsByTypeAndName().GetPipeline().GetCtxID() = %v, want %v", got, want)
+		}
+		if got, want := execution.GetPipeline().GetRunCtxID(), runCtxID; got != want {
+			t.Fatalf("GetExecutionsByTypeAndName().GetPipeline().GetRunCtxID() = %v, want %v", got, want)
+		}
+	})
+
+	t.Run("returns error when execution is missing", func(t *testing.T) {
+		client := &metadata.Client{}
+		setMetadataClientService(t, client, &stubMetadataStoreServiceClient{
+			getExecutionByTypeAndName: func(ctx context.Context, req *pb.GetExecutionByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetExecutionByTypeAndNameResponse, error) {
+				return &pb.GetExecutionByTypeAndNameResponse{}, nil
+			},
+		})
+
+		_, err := client.GetExecutionByTypeAndName(context.Background(), string(metadata.DagExecutionTypeName), "run/missing")
+		if err == nil {
+			t.Fatal("GetExecutionsByTypeAndName() error = nil, want non-nil")
+		}
+		if diff := cmp.Diff(`no execution found for type="system.DAGExecution", name="run/missing"`, err.Error()); diff != "" {
+			t.Fatalf("GetExecutionsByTypeAndName() error mismatch (-want +got):\n%s", diff)
+		}
+	})
+}
+
 func newLocalClientOrFatal(t *testing.T) *metadata.Client {
 	t.Helper()
 	client, err := metadata.NewClient("localhost", "8080", &tls.Config{})
@@ -351,4 +436,33 @@ func newUUIDOrFatal(t *testing.T) string {
 		t.Fatalf("uuid.NewRandom failed: %v", err)
 	}
 	return uuid.String()
+}
+
+type stubMetadataStoreServiceClient struct {
+	pb.MetadataStoreServiceClient
+	getExecutionByTypeAndName func(context.Context, *pb.GetExecutionByTypeAndNameRequest, ...grpc.CallOption) (*pb.GetExecutionByTypeAndNameResponse, error)
+	getContextType            func(context.Context, *pb.GetContextTypeRequest, ...grpc.CallOption) (*pb.GetContextTypeResponse, error)
+	getContextsByExecution    func(context.Context, *pb.GetContextsByExecutionRequest, ...grpc.CallOption) (*pb.GetContextsByExecutionResponse, error)
+}
+
+func (s *stubMetadataStoreServiceClient) GetExecutionByTypeAndName(ctx context.Context, req *pb.GetExecutionByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetExecutionByTypeAndNameResponse, error) {
+	return s.getExecutionByTypeAndName(ctx, req, opts...)
+}
+
+func (s *stubMetadataStoreServiceClient) GetContextType(ctx context.Context, req *pb.GetContextTypeRequest, opts ...grpc.CallOption) (*pb.GetContextTypeResponse, error) {
+	return s.getContextType(ctx, req, opts...)
+}
+
+func (s *stubMetadataStoreServiceClient) GetContextsByExecution(ctx context.Context, req *pb.GetContextsByExecutionRequest, opts ...grpc.CallOption) (*pb.GetContextsByExecutionResponse, error) {
+	return s.getContextsByExecution(ctx, req, opts...)
+}
+
+func setMetadataClientService(t *testing.T, client *metadata.Client, svc pb.MetadataStoreServiceClient) {
+	t.Helper()
+	if client == nil {
+		t.Fatal("setMetadataClientService: client must not be nil")
+	}
+
+	field := reflect.ValueOf(client).Elem().FieldByName("svc")
+	reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Set(reflect.ValueOf(svc))
 }

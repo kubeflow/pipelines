@@ -73,6 +73,12 @@ type UploadPipelineParams struct {
 	// Namespace.
 	Namespace *string
 
+	/* Tags.
+
+	   JSON-encoded map of key-value pairs for pipeline tags.
+	*/
+	Tags *string
+
 	/* Uploadfile.
 
 	   The pipeline to upload. Maximum size of 32MB is supported.
@@ -176,6 +182,17 @@ func (o *UploadPipelineParams) SetNamespace(namespace *string) {
 	o.Namespace = namespace
 }
 
+// WithTags adds the tags to the upload pipeline params
+func (o *UploadPipelineParams) WithTags(tags *string) *UploadPipelineParams {
+	o.SetTags(tags)
+	return o
+}
+
+// SetTags adds the tags to the upload pipeline params
+func (o *UploadPipelineParams) SetTags(tags *string) {
+	o.Tags = tags
+}
+
 // WithUploadfile adds the uploadfile to the upload pipeline params
 func (o *UploadPipelineParams) WithUploadfile(uploadfile runtime.NamedReadCloser) *UploadPipelineParams {
 	o.SetUploadfile(uploadfile)
@@ -258,6 +275,23 @@ func (o *UploadPipelineParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 		if qNamespace != "" {
 
 			if err := r.SetQueryParam("namespace", qNamespace); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.Tags != nil {
+
+		// query param tags
+		var qrTags string
+
+		if o.Tags != nil {
+			qrTags = *o.Tags
+		}
+		qTags := qrTags
+		if qTags != "" {
+
+			if err := r.SetQueryParam("tags", qTags); err != nil {
 				return err
 			}
 		}

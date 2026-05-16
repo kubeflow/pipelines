@@ -19,6 +19,8 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -83,4 +85,55 @@ func TestResolvePipelineJobScheduleTimePlaceholder(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, "2026-01-09T13:00:00Z", val.GetStringValue())
+}
+
+func Test_InferIndexedTaskName(t *testing.T) {
+	tests := []struct {
+		name             string
+		producerTaskName string
+		dag              *metadata.Execution
+		expected         string
+	}{
+		{
+			name:             "DAG with iteration_index returns indexed task name",
+			producerTaskName: "my-task",
+			dag: metadata.NewExecution(&pb.Execution{
+				CustomProperties: map[string]*pb.Value{
+					"iteration_index": {Value: &pb.Value_IntValue{IntValue: 3}},
+				},
+			}),
+			expected: "my-task_idx_3",
+		},
+		{
+			name:             "DAG with iteration_index 0 returns indexed task name",
+			producerTaskName: "my-task",
+			dag: metadata.NewExecution(&pb.Execution{
+				CustomProperties: map[string]*pb.Value{
+					"iteration_index": {Value: &pb.Value_IntValue{IntValue: 0}},
+				},
+			}),
+			expected: "my-task_idx_0",
+		},
+		{
+			name:             "DAG without iteration_index returns original task name",
+			producerTaskName: "my-task",
+			dag: metadata.NewExecution(&pb.Execution{
+				CustomProperties: map[string]*pb.Value{},
+			}),
+			expected: "my-task",
+		},
+		{
+			name:             "DAG with nil custom properties returns original task name",
+			producerTaskName: "my-task",
+			dag:              metadata.NewExecution(&pb.Execution{}),
+			expected:         "my-task",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result := InferIndexedTaskName(test.producerTaskName, test.dag)
+			assert.Equal(t, test.expected, result)
+		})
+	}
 }

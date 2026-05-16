@@ -203,7 +203,7 @@ def make_data():
 @dsl.pipeline
 def my_pipeline():
     task1 = make_data()
-    # note that the created pvc will be autoamatically cleaned up once pod disappeared and cannot be shared between pods
+    # note that the created pvc will be automatically cleaned up once pod disappeared and cannot be shared between pods
     kubernetes.add_ephemeral_volume(
         task1,
         volume_name="my-pvc",
@@ -239,7 +239,7 @@ def my_pipeline():
     )
 ```
 
-### Kubernetes Field: Use Kubernetes Field Path as enviornment variable
+### Kubernetes Field: Use Kubernetes Field Path as environment variable
 ```python
 from kfp import dsl
 from kfp import kubernetes
@@ -289,6 +289,27 @@ def pipeline():
     task = simple_task()
     kubernetes.set_image_pull_policy(task, "Always")
 ```
+
+### SecurityContext: Set security context for the task's container
+```python
+from kfp import dsl
+from kfp import kubernetes
+
+@dsl.component
+def my_task():
+    print("running with custom security context")
+
+@dsl.pipeline
+def pipeline():
+    task = my_task()
+    kubernetes.set_security_context(
+        task,
+        run_as_user=1000,
+        run_as_group=3000,
+    )
+```
+
+**Note:** Cluster administrators can configure default `runAsUser` and `runAsGroup` values for all customer workload containers via the `pipeline-install-config` ConfigMap (`defaultSecurityContextRunAsUser` and `defaultSecurityContextRunAsGroup`). When admin defaults are configured, SDK-specified values for those fields are overridden.
 
 ### ImagePullSecrets: Set secrets to authenticate image pulls
 ```python

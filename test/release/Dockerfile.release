@@ -18,9 +18,12 @@
 ARG BASE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
 FROM ${BASE_IMAGE}
 
-# install nvm & node 12
+# Install nvm and the Node version pinned in frontend/.nvmrc.
+# Pass it in at build time with:
+#   --build-arg NODE_VERSION=$(tr -d 'v' < frontend/.nvmrc)
 # Reference: https://stackoverflow.com/a/28390848
-ENV NODE_VERSION=12.21.0
+ARG NODE_VERSION
+ENV NODE_VERSION=${NODE_VERSION}
 ENV NVM_DIR=/usr/local/nvm
 RUN mkdir -p $NVM_DIR && \
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash && \

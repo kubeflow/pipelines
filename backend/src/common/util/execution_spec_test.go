@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
@@ -173,4 +174,153 @@ func TestExecutionSpec_MarshalParameters(t *testing.T) {
 	paramStr, err := MarshalParameters(ArgoWorkflow, params)
 	assert.Nil(t, err)
 	assert.Equal(t, paramStr, string(expectedStr))
+}
+
+func TestCurrentExecutionType_And_SetExecutionType(t *testing.T) {
+	// Save original and restore after test
+	original := CurrentExecutionType()
+	defer SetExecutionType(original)
+
+	SetExecutionType(ArgoWorkflow)
+	assert.Equal(t, ArgoWorkflow, CurrentExecutionType())
+
+	SetExecutionType(Unknown)
+	assert.Equal(t, Unknown, CurrentExecutionType())
+}
+
+func TestGetTerminatePatch(t *testing.T) {
+	testCases := []struct {
+		name     string
+		execType ExecutionType
+		expected interface{}
+	}{
+		{
+			name:     "ArgoWorkflow returns activeDeadlineSeconds patch",
+			execType: ArgoWorkflow,
+			expected: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"activeDeadlineSeconds": 0,
+				},
+			},
+		},
+		{
+			name:     "Unknown type returns nil",
+			execType: Unknown,
+			expected: nil,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			result := GetTerminatePatch(testCase.execType)
+			assert.Equal(t, testCase.expected, result)
+		})
+	}
+}
+
+func TestNewExecutionSpec_UnknownKind(t *testing.T) {
+	yamlBytes := []byte("apiVersion: v1\nkind: UnknownKind\n")
+	result, err := NewExecutionSpec(yamlBytes)
+	assert.Nil(t, result)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Unknown execution spec")
+}
+
+func TestNewExecutionSpecJSON_UnknownType(t *testing.T) {
+	result, err := NewExecutionSpecJSON(Unknown, []byte(`{"metadata":{"name":"test"}}`))
+	assert.Nil(t, result)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Unknown execution spec")
+}
+
+func TestUnmarshalParameters_UnknownType(t *testing.T) {
+	result, err := UnmarshalParameters(Unknown, "[]")
+	assert.Nil(t, result)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "ExecutionType is not supported")
+}
+
+func TestMarshalParameters_UnknownType(t *testing.T) {
+	result, err := MarshalParameters(Unknown, nil)
+	assert.Empty(t, result)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "ExecutionType is not supported")
+}
+
+func TestMarshalParameters_NilParams(t *testing.T) {
+	result, err := MarshalParameters(ArgoWorkflow, nil)
+	assert.Nil(t, err)
+	assert.Equal(t, "[]", result)
+}
+
+func TestScheduleSpecToExecutionSpec_ArgoWorkflow_StringSpec(t *testing.T) {
+	specJSON := `{"entrypoint":"main","templates":[{"name":"main","container":{"image":"alpine"}}]}`
+	wfr := &swfapi.WorkflowResource{
+		Spec: specJSON,
+	}
+	result, err := ScheduleSpecToExecutionSpec(ArgoWorkflow, wfr)
+	assert.Nil(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "argoproj.io/v1alpha1", result.ExecutionTypeMeta().APIVersion)
+	assert.Equal(t, "Workflow", result.ExecutionTypeMeta().Kind)
+}
+
+func TestScheduleSpecToExecutionSpec_ArgoWorkflow_MapSpec(t *testing.T) {
+	// When Spec is a map (not a string), it should be marshaled back to JSON
+	wfr := &swfapi.WorkflowResource{
+		Spec: map[string]interface{}{
+			"entrypoint": "main",
+			"templates": []interface{}{
+				map[string]interface{}{
+					"name": "main",
+					"container": map[string]interface{}{
+						"image": "alpine",
+					},
+				},
+			},
+		},
+	}
+	result, err := ScheduleSpecToExecutionSpec(ArgoWorkflow, wfr)
+	assert.Nil(t, err)
+	assert.NotNil(t, result)
+}
+
+func TestScheduleSpecToExecutionSpec_UnknownType(t *testing.T) {
+	wfr := &swfapi.WorkflowResource{Spec: "{}"}
+	result, err := ScheduleSpecToExecutionSpec(Unknown, wfr)
+	assert.NotNil(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "ExecutionType is not supported")
+}
+
+func TestScheduleSpecToExecutionSpec_ArgoWorkflow_FullWorkflowJSON(t *testing.T) {
+	// Full workflow JSON with entrypoint at top level
+	fullJSON := `{"apiVersion":"argoproj.io/v1alpha1","kind":"Workflow","metadata":{"name":"test"},"spec":{"entrypoint":"main","templates":[{"name":"main","container":{"image":"alpine"}}]}}`
+	wfr := &swfapi.WorkflowResource{
+		Spec: fullJSON,
+	}
+	result, err := ScheduleSpecToExecutionSpec(ArgoWorkflow, wfr)
+	assert.Nil(t, err)
+	assert.NotNil(t, result)
+}
+
+func TestScheduleSpecToExecutionSpec_ArgoWorkflow_InvalidMapSpec(t *testing.T) {
+	// Spec is a map that marshals fine but contains invalid WorkflowSpec data
+	// This tests the unmarshal error path when the map has invalid types
+	wfr := &swfapi.WorkflowResource{
+		Spec: map[string]interface{}{
+			"entrypoint": 12345,          // Invalid: should be string, but json.Unmarshal tolerates this
+			"templates":  "not-an-array", // Invalid: should be array
+		},
+	}
+	result, err := ScheduleSpecToExecutionSpec(ArgoWorkflow, wfr)
+	assert.NotNil(t, err)
+	assert.Nil(t, result)
+}
+
+func TestNewExecutionSpecFromInterface_UnknownType(t *testing.T) {
+	result, err := NewExecutionSpecFromInterface(Unknown, nil)
+	assert.Nil(t, result)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "ExecutionType is not supported")
 }

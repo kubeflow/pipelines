@@ -74,11 +74,11 @@ func (e *Experiment) GetModelName() string {
 	return "experiments"
 }
 
-func (e *Experiment) GetField(name string) (string, bool) {
+func (e *Experiment) GetField(name string) (string, string, bool) {
 	if field, ok := experimentAPIToModelFieldMap[name]; ok {
-		return field, true
+		return field, field, true
 	}
-	return "", false
+	return "", "", false
 }
 
 func (e *Experiment) GetFieldValue(name string) interface{} {

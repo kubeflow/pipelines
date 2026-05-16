@@ -39,7 +39,8 @@ class V2beta1Pipeline(object):
         'description': 'str',
         'created_at': 'datetime',
         'namespace': 'str',
-        'error': 'GooglerpcStatus'
+        'error': 'GooglerpcStatus',
+        'tags': 'dict(str, str)'
     }
 
     attribute_map = {
@@ -49,10 +50,11 @@ class V2beta1Pipeline(object):
         'description': 'description',
         'created_at': 'created_at',
         'namespace': 'namespace',
-        'error': 'error'
+        'error': 'error',
+        'tags': 'tags'
     }
 
-    def __init__(self, pipeline_id=None, display_name=None, name=None, description=None, created_at=None, namespace=None, error=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, pipeline_id=None, display_name=None, name=None, description=None, created_at=None, namespace=None, error=None, tags=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1Pipeline - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -65,6 +67,7 @@ class V2beta1Pipeline(object):
         self._created_at = None
         self._namespace = None
         self._error = None
+        self._tags = None
         self.discriminator = None
 
         if pipeline_id is not None:
@@ -81,6 +84,8 @@ class V2beta1Pipeline(object):
             self.namespace = namespace
         if error is not None:
             self.error = error
+        if tags is not None:
+            self.tags = tags
 
     @property
     def pipeline_id(self):
@@ -240,6 +245,29 @@ class V2beta1Pipeline(object):
         """
 
         self._error = error
+
+    @property
+    def tags(self):
+        """Gets the tags of this V2beta1Pipeline.  # noqa: E501
+
+        Optional. User-defined tags as key-value pairs associated with the pipeline. Both keys and values are limited to 63 characters.  # noqa: E501
+
+        :return: The tags of this V2beta1Pipeline.  # noqa: E501
+        :rtype: dict(str, str)
+        """
+        return self._tags
+
+    @tags.setter
+    def tags(self, tags):
+        """Sets the tags of this V2beta1Pipeline.
+
+        Optional. User-defined tags as key-value pairs associated with the pipeline. Both keys and values are limited to 63 characters.  # noqa: E501
+
+        :param tags: The tags of this V2beta1Pipeline.  # noqa: E501
+        :type tags: dict(str, str)
+        """
+
+        self._tags = tags
 
     def to_dict(self):
         """Returns the model properties as a dict"""

@@ -87,11 +87,7 @@ async function getPreview(
   data = data.slice(0, maxbytes);
   // check num lines
   if (maxlines) {
-    data = data
-      .split('\n')
-      .slice(0, maxlines)
-      .join('\n')
-      .trim();
+    data = data.split('\n').slice(0, maxlines).join('\n').trim();
   }
   return { data: `${data}\n...`, hasMore: true };
 }
@@ -117,8 +113,8 @@ const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
     let cancelled = false;
     if (source && bucket && key) {
       getPreview({ source, bucket, key }, namespace, maxbytes, maxlines).then(
-        content => !cancelled && setContent(content),
-        error => console.error(error), // TODO error badge on link?
+        (content) => !cancelled && setContent(content),
+        (error) => console.error(error), // TODO error badge on link?
       );
     }
     return () => {

@@ -15,9 +15,8 @@
  */
 
 import React, { DetailedHTMLProps, AnchorHTMLAttributes } from 'react';
-import { stylesheet } from 'typestyle';
+import { classes, stylesheet } from 'typestyle';
 import { color } from '../Css';
-import { classes } from 'typestyle';
 
 const css = stylesheet({
   link: {
@@ -32,18 +31,16 @@ const css = stylesheet({
   },
 });
 
-export const ExternalLink: React.FC<DetailedHTMLProps<
-  AnchorHTMLAttributes<HTMLAnchorElement>,
-  HTMLAnchorElement
->> = props => (
+export const ExternalLink: React.FC<
+  DetailedHTMLProps<AnchorHTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>
+> = (props) => (
   // eslint-disable-next-line jsx-a11y/anchor-has-content
   <a {...props} className={classes(css.link, props.className)} target='_blank' rel='noopener' />
 );
 
-export const AutoLink: React.FC<DetailedHTMLProps<
-  AnchorHTMLAttributes<HTMLAnchorElement>,
-  HTMLAnchorElement
->> = props =>
+export const AutoLink: React.FC<
+  DetailedHTMLProps<AnchorHTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>
+> = (props) =>
   props.href && props.href.startsWith('#') ? (
     // eslint-disable-next-line jsx-a11y/anchor-has-content
     <a {...props} className={classes(css.link, props.className)} />

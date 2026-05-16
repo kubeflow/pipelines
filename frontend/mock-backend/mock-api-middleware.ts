@@ -62,6 +62,64 @@ interface BaseResource {
   error?: string;
 }
 
+function getQueryString(queryParam: unknown): string | undefined {
+  if (typeof queryParam === 'string') {
+    return queryParam;
+  }
+  if (Array.isArray(queryParam)) {
+    return queryParam.find((value): value is string => typeof value === 'string');
+  }
+  return undefined;
+}
+
+function getQueryNumber(queryParam: unknown): number | undefined {
+  const queryString = getQueryString(queryParam);
+  if (queryString === undefined || queryString === '') {
+    return undefined;
+  }
+  const queryNumber = Number(queryString);
+  return Number.isNaN(queryNumber) ? undefined : queryNumber;
+}
+
+function getDecodedQueryString(queryParam: unknown): string | undefined {
+  const queryString = getQueryString(queryParam);
+  if (queryString === undefined) {
+    return undefined;
+  }
+  try {
+    return decodeURIComponent(queryString);
+  } catch {
+    return undefined;
+  }
+}
+
+function getRequiredDecodedQueryString(
+  res: Response,
+  queryParam: unknown,
+  queryParamName: string,
+): string | undefined {
+  const queryString = getQueryString(queryParam);
+  if (queryString === undefined || queryString === '') {
+    res.status(400).send(`${queryParamName} argument is required`);
+    return undefined;
+  }
+
+  let decodedQueryString: string;
+  try {
+    decodedQueryString = decodeURIComponent(queryString);
+  } catch {
+    res.status(400).send(`${queryParamName} argument is invalid`);
+    return undefined;
+  }
+
+  if (decodedQueryString === '') {
+    res.status(400).send(`${queryParamName} argument is required`);
+    return undefined;
+  }
+
+  return decodedQueryString;
+}
+
 // tslint:disable-next-line:no-default-export
 export default (app: express.Application) => {
   app.use((req, _, next) => {
@@ -122,11 +180,15 @@ export default (app: express.Application) => {
     };
 
     let jobs: ApiJob[] = fixedData.jobs;
-    if (req.query.filter) {
-      jobs = filterResources(fixedData.jobs, req.query.filter);
+    const filterQuery = getQueryString(req.query.filter);
+    if (filterQuery) {
+      jobs = filterResources(fixedData.jobs, filterQuery);
     }
 
-    const { desc, key } = getSortKeyAndOrder(ExperimentSortKeys.CREATED_AT, req.query.sort_by);
+    const { desc, key } = getSortKeyAndOrder(
+      ExperimentSortKeys.CREATED_AT,
+      getQueryString(req.query.sort_by),
+    );
 
     jobs.sort((a, b) => {
       let result = 1;
@@ -139,8 +201,8 @@ export default (app: express.Application) => {
       return result * (desc ? -1 : 1);
     });
 
-    const start = req.query.page_token ? +req.query.page_token : 0;
-    const end = start + (+req.query.page_size || 20);
+    const start = getQueryNumber(req.query.page_token) || 0;
+    const end = start + (getQueryNumber(req.query.page_size) || 20);
     response.jobs = jobs.slice(start, end);
 
     if (end < jobs.length) {
@@ -159,11 +221,15 @@ export default (app: express.Application) => {
     };
 
     let experiments: ApiExperiment[] = fixedData.experiments;
-    if (req.query.filter) {
-      experiments = filterResources(fixedData.experiments, req.query.filter);
+    const filterQuery = getQueryString(req.query.filter);
+    if (filterQuery) {
+      experiments = filterResources(fixedData.experiments, filterQuery);
     }
 
-    const { desc, key } = getSortKeyAndOrder(ExperimentSortKeys.NAME, req.query.sortBy);
+    const { desc, key } = getSortKeyAndOrder(
+      ExperimentSortKeys.NAME,
+      getQueryString(req.query.sortBy),
+    );
 
     experiments.sort((a, b) => {
       let result = 1;
@@ -176,8 +242,8 @@ export default (app: express.Application) => {
       return result * (desc ? -1 : 1);
     });
 
-    const start = req.query.pageToken ? +req.query.pageToken : 0;
-    const end = start + (+req.query.pageSize || 20);
+    const start = getQueryNumber(req.query.pageToken) || 0;
+    const end = start + (getQueryNumber(req.query.pageSize) || 20);
     response.experiments = experiments.slice(start, end);
 
     if (end < experiments.length) {
@@ -189,7 +255,9 @@ export default (app: express.Application) => {
 
   app.post(v1beta1Prefix + '/experiments', (req, res) => {
     const experiment: ApiExperiment = req.body;
-    if (fixedData.experiments.find(e => e.name!.toLowerCase() === experiment.name!.toLowerCase())) {
+    if (
+      fixedData.experiments.find((e) => e.name!.toLowerCase() === experiment.name!.toLowerCase())
+    ) {
       res.status(404).send('An experiment with the same name already exists');
       return;
     }
@@ -203,7 +271,7 @@ export default (app: express.Application) => {
 
   app.get(v1beta1Prefix + '/experiments/:eid', (req, res) => {
     res.header('Content-Type', 'application/json');
-    const experiment = fixedData.experiments.find(exp => exp.id === req.params.eid);
+    const experiment = fixedData.experiments.find((exp) => exp.id === req.params.eid);
     if (!experiment) {
       res.status(404).send(`No experiment was found with ID: ${req.params.eid}`);
       return;
@@ -241,7 +309,7 @@ export default (app: express.Application) => {
     res.header('Content-Type', 'application/json');
     switch (req.method) {
       case 'DELETE':
-        const i = fixedData.jobs.findIndex(j => j.id === req.params.jid);
+        const i = fixedData.jobs.findIndex((j) => j.id === req.params.jid);
         if (fixedData.jobs[i].name!.startsWith('Cannot be deleted')) {
           res.status(502).send(`Deletion failed for job: '${fixedData.jobs[i].name}'`);
         } else {
@@ -251,7 +319,7 @@ export default (app: express.Application) => {
         }
         break;
       case 'GET':
-        const job = fixedData.jobs.find(j => j.id === req.params.jid);
+        const job = fixedData.jobs.find((j) => j.id === req.params.jid);
         if (job) {
           res.json(job);
         } else {
@@ -271,23 +339,27 @@ export default (app: express.Application) => {
       runs: [],
     };
 
-    let runs: ApiRun[] = fixedData.runs.map(r => r.run!);
+    let runs: ApiRun[] = fixedData.runs.map((r) => r.run!);
 
-    if (req.query.filter) {
-      runs = filterResources(runs, req.query.filter);
+    const filterQuery = getQueryString(req.query.filter);
+    if (filterQuery) {
+      runs = filterResources(runs, filterQuery);
     }
 
-    if (req.query['resource_reference_key.type'] === ApiResourceType.EXPERIMENT) {
-      runs = runs.filter(r =>
+    const resourceReferenceType = getQueryString(req.query['resource_reference_key.type']);
+    const resourceReferenceId = getQueryString(req.query['resource_reference_key.id']);
+    if (resourceReferenceType === ApiResourceType.EXPERIMENT && resourceReferenceId) {
+      runs = runs.filter((r) =>
         RunUtils.getAllExperimentReferences(r).some(
-          ref =>
-            (ref.key && ref.key.id && ref.key.id === req.query['resource_reference_key.id']) ||
-            false,
+          (ref) => (ref.key && ref.key.id && ref.key.id === resourceReferenceId) || false,
         ),
       );
     }
 
-    const { desc, key } = getSortKeyAndOrder(RunSortKeys.CREATED_AT, req.query.sort_by);
+    const { desc, key } = getSortKeyAndOrder(
+      RunSortKeys.CREATED_AT,
+      getQueryString(req.query.sort_by),
+    );
 
     runs.sort((a, b) => {
       let result = 1;
@@ -300,8 +372,8 @@ export default (app: express.Application) => {
       return result * (desc ? -1 : 1);
     });
 
-    const start = req.query.page_token ? +req.query.page_token : 0;
-    const end = start + (+req.query.page_size || 20);
+    const start = getQueryNumber(req.query.page_token) || 0;
+    const end = start + (getQueryNumber(req.query.page_size) || 20);
     response.runs = runs.slice(start, end);
 
     if (end < runs.length) {
@@ -313,7 +385,7 @@ export default (app: express.Application) => {
 
   app.get(v1beta1Prefix + '/runs/:rid', (req, res) => {
     const rid = req.params.rid;
-    const run = fixedData.runs.find(r => r.run!.id === rid);
+    const run = fixedData.runs.find((r) => r.run!.id === rid);
     if (!run) {
       res.status(404).send('Cannot find a run with id: ' + rid);
       return;
@@ -344,12 +416,12 @@ export default (app: express.Application) => {
     if (req.params.method !== 'archive' && req.params.method !== 'unarchive') {
       res.status(500).send('Bad method');
     }
-    const runDetail = fixedData.runs.find(r => r.run!.id === req.params.rid);
+    const runDetail = fixedData.runs.find((r) => r.run!.id === req.params.rid);
     if (runDetail) {
       runDetail.run!.storage_state =
         req.params.method === 'archive'
-          ? ApiRunStorageState.ARCHIVED
-          : ApiRunStorageState.AVAILABLE;
+          ? ApiRunStorageState.STORAGESTATE_ARCHIVED
+          : ApiRunStorageState.STORAGESTATE_AVAILABLE;
       res.json({});
     } else {
       res.status(500).send('Cannot find a run with id ' + req.params.rid);
@@ -358,7 +430,7 @@ export default (app: express.Application) => {
 
   app.post(v1beta1Prefix + '/jobs/:jid/enable', (req, res) => {
     setTimeout(() => {
-      const job = fixedData.jobs.find(j => j.id === req.params.jid);
+      const job = fixedData.jobs.find((j) => j.id === req.params.jid);
       if (job) {
         job.enabled = true;
         res.json({});
@@ -370,7 +442,7 @@ export default (app: express.Application) => {
 
   app.post(v1beta1Prefix + '/jobs/:jid/disable', (req, res) => {
     setTimeout(() => {
-      const job = fixedData.jobs.find(j => j.id === req.params.jid);
+      const job = fixedData.jobs.find((j) => j.id === req.params.jid);
       if (job) {
         job.enabled = false;
         res.json({});
@@ -385,8 +457,8 @@ export default (app: express.Application) => {
       return resources;
     }
     const filter: ApiFilter = JSON.parse(decodeURIComponent(filterString));
-    ((filter && filter.predicates) || []).forEach(p => {
-      resources = resources.filter(r => {
+    ((filter && filter.predicates) || []).forEach((p) => {
+      resources = resources.filter((r) => {
         switch (p.op) {
           case PredicateOp.EQUALS:
             if (p.key === 'name') {
@@ -401,7 +473,7 @@ export default (app: express.Application) => {
             } else {
               throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
             }
-          case PredicateOp.NOTEQUALS:
+          case PredicateOp.NOT_EQUALS:
             if (p.key === 'name') {
               return (
                 r.name && r.name.toLocaleLowerCase() !== (p.string_value || '').toLocaleLowerCase()
@@ -411,7 +483,7 @@ export default (app: express.Application) => {
             } else {
               throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
             }
-          case PredicateOp.ISSUBSTRING:
+          case PredicateOp.IS_SUBSTRING:
             if (p.key !== 'name') {
               throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
             }
@@ -419,15 +491,13 @@ export default (app: express.Application) => {
               r.name &&
               r.name.toLocaleLowerCase().includes((p.string_value || '').toLocaleLowerCase())
             );
-          case PredicateOp.NOTEQUALS:
+          case PredicateOp.GREATER_THAN:
           // Fall through
-          case PredicateOp.GREATERTHAN:
+          case PredicateOp.GREATER_THAN_EQUALS:
           // Fall through
-          case PredicateOp.GREATERTHANEQUALS:
+          case PredicateOp.LESS_THAN:
           // Fall through
-          case PredicateOp.LESSTHAN:
-          // Fall through
-          case PredicateOp.LESSTHANEQUALS:
+          case PredicateOp.LESS_THAN_EQUALS:
             // Fall through
             throw new Error(`Op: ${p.op} is not yet supported by the mock API server`);
           default:
@@ -446,11 +516,15 @@ export default (app: express.Application) => {
     };
 
     let pipelines: ApiPipeline[] = fixedData.pipelines;
-    if (req.query.filter) {
-      pipelines = filterResources(fixedData.pipelines, req.query.filter);
+    const filterQuery = getQueryString(req.query.filter);
+    if (filterQuery) {
+      pipelines = filterResources(fixedData.pipelines, filterQuery);
     }
 
-    const { desc, key } = getSortKeyAndOrder(PipelineSortKeys.CREATED_AT, req.query.sort_by);
+    const { desc, key } = getSortKeyAndOrder(
+      PipelineSortKeys.CREATED_AT,
+      getQueryString(req.query.sort_by),
+    );
 
     pipelines.sort((a, b) => {
       let result = 1;
@@ -463,8 +537,8 @@ export default (app: express.Application) => {
       return result * (desc ? -1 : 1);
     });
 
-    const start = req.query.page_token ? +req.query.page_token : 0;
-    const end = start + (+req.query.page_size || 20);
+    const start = getQueryNumber(req.query.page_token) || 0;
+    const end = start + (getQueryNumber(req.query.page_size) || 20);
     response.pipelines = pipelines.slice(start, end);
 
     if (end < pipelines.length) {
@@ -476,7 +550,7 @@ export default (app: express.Application) => {
 
   app.delete(v1beta1Prefix + '/pipelines/:pid', (req, res) => {
     res.header('Content-Type', 'application/json');
-    const i = fixedData.pipelines.findIndex(p => p.id === req.params.pid);
+    const i = fixedData.pipelines.findIndex((p) => p.id === req.params.pid);
 
     if (i === -1) {
       res.status(404).send(`No pipelines was found with ID: ${req.params.pid}`);
@@ -494,7 +568,7 @@ export default (app: express.Application) => {
 
   app.get(v1beta1Prefix + '/pipelines/:pid', (req, res) => {
     res.header('Content-Type', 'application/json');
-    const pipeline = fixedData.pipelines.find(p => p.id === req.params.pid);
+    const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
     if (!pipeline) {
       res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
       return;
@@ -504,7 +578,7 @@ export default (app: express.Application) => {
 
   app.get(v1beta1Prefix + '/pipelines/:pid/templates', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
-    const pipeline = fixedData.pipelines.find(p => p.id === req.params.pid);
+    const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
     if (!pipeline) {
       res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
       return;
@@ -539,7 +613,7 @@ export default (app: express.Application) => {
     }
 
     // Default and v1 version list. Return mock template consistently.
-    const version = fixedData.versions.find(p => p.id === req.params.pid);
+    const version = fixedData.versions.find((p) => p.id === req.params.pid);
     if (!version) {
       res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
       return;
@@ -551,7 +625,7 @@ export default (app: express.Application) => {
 
   app.get(v1beta1Prefix + '/pipeline_versions/:pid', (req, res) => {
     res.header('Content-Type', 'application/json');
-    const pipeline = PIPELINE_VERSIONS_LIST_FULL.find(p => p.id === req.params.pid);
+    const pipeline = PIPELINE_VERSIONS_LIST_FULL.find((p) => p.id === req.params.pid);
     if (!pipeline) {
       res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
       return;
@@ -567,21 +641,19 @@ export default (app: express.Application) => {
     //   page_size: '50',
     //   sort_by: 'created_at desc'
     // },
-    if (
-      req.query['resource_key.id'] &&
-      req.query['resource_key.type'] === 'PIPELINE' &&
-      req.query.page_size > 0
-    ) {
+    const resourceKeyId = getQueryString(req.query['resource_key.id']);
+    const resourceKeyType = getQueryString(req.query['resource_key.type']);
+    const pageSize = getQueryNumber(req.query.page_size);
+    if (resourceKeyId && resourceKeyType === 'PIPELINE' && (pageSize || 0) > 0) {
       const response: ApiListPipelineVersionsResponse = {
         next_page_token: '',
         versions: [],
       };
 
-      let versions: ApiPipelineVersion[] =
-        PIPELINE_VERSIONS_LIST_MAP.get(req.query['resource_key.id']) || [];
+      let versions: ApiPipelineVersion[] = PIPELINE_VERSIONS_LIST_MAP.get(resourceKeyId) || [];
 
       if (versions.length === 0) {
-        const pipeline = fixedData.pipelines.find(p => p.id === req.query['resource_key.id']);
+        const pipeline = fixedData.pipelines.find((p) => p.id === resourceKeyId);
 
         if (pipeline == null || !pipeline.default_version) {
           return;
@@ -596,8 +668,8 @@ export default (app: express.Application) => {
         return;
       }
 
-      const start = req.query.page_token ? +req.query.page_token : 0;
-      const end = start + (+req.query.page_size || 20);
+      const start = getQueryNumber(req.query.page_token) || 0;
+      const end = start + (pageSize || 20);
       response.versions = versions.slice(start, end);
 
       if (end < versions.length) {
@@ -615,7 +687,7 @@ export default (app: express.Application) => {
     // TODO: Temporary returning default version only. It requires
     // keeping a record of all pipeline id in order to search non-default version.
     res.header('Content-Type', 'application/json');
-    const pipeline = fixedData.pipelines.find(p => p.id === req.params.pid);
+    const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
     if (!pipeline) {
       res
         .status(404)
@@ -632,7 +704,7 @@ export default (app: express.Application) => {
   function mockCreatePipeline(res: Response, name: string, body?: any): void {
     res.header('Content-Type', 'application/json');
     // Don't allow uploading multiple pipelines with the same name
-    if (fixedData.pipelines.find(p => p.name === name)) {
+    if (fixedData.pipelines.find((p) => p.name === name)) {
       res
         .status(502)
         .send(`A Pipeline named: "${name}" already exists. Please choose a different name.`);
@@ -666,11 +738,18 @@ export default (app: express.Application) => {
   });
 
   app.post(v1beta1Prefix + '/pipelines/upload', (req, res) => {
-    mockCreatePipeline(res, decodeURIComponent(req.query.name), req.body);
+    const pipelineName = getRequiredDecodedQueryString(res, req.query.name, 'name');
+    if (!pipelineName) {
+      return;
+    }
+    mockCreatePipeline(res, pipelineName, req.body);
   });
 
   app.get('/artifacts/get', (req, res) => {
-    const key = decodeURIComponent(req.query.key);
+    const key = getRequiredDecodedQueryString(res, req.query.key, 'key');
+    if (!key) {
+      return;
+    }
     res.header('Content-Type', 'application/json');
     if (key.endsWith('roc.csv')) {
       res.sendFile(_path.resolve(__dirname, rocDataPath));
@@ -710,7 +789,10 @@ export default (app: express.Application) => {
   });
 
   app.get('/k8s/pod/logs', (req, res) => {
-    const podName = decodeURIComponent(req.query.podname);
+    const podName = getRequiredDecodedQueryString(res, req.query.podname, 'podname');
+    if (!podName) {
+      return;
+    }
     if (podName === 'json-12abc') {
       res.status(404).send('pod not found');
       return;

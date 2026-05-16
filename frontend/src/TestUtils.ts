@@ -18,10 +18,9 @@
 // Because this is test utils.
 
 import 'src/build/tailwind.output.css';
-import { format } from 'prettier';
-import { QueryClient } from 'react-query';
+import { act } from '@testing-library/react';
+import { QueryClient } from '@tanstack/react-query';
 import { match } from 'react-router';
-import snapshotDiff from 'snapshot-diff';
 import { beforeEach, expect, MockInstance } from 'vitest';
 import { ToolbarActionConfig } from './components/Toolbar';
 import { Feature } from './features';
@@ -48,8 +47,8 @@ export default class TestUtils {
       await Promise.resolve();
       return;
     }
-    await new Promise(resolve => setTimeout(resolve, 0));
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
   }
 
   /**
@@ -121,57 +120,33 @@ export default class TestUtils {
   }
 }
 
-/**
- * Generate diff text for two HTML strings.
- * Recommend providing base and update annotations to clarify context in the diff directly.
- */
-export function diffHTML({
-  base,
-  update,
-  baseAnnotation,
-  updateAnnotation,
-}: {
-  base: string;
-  baseAnnotation?: string;
-  update: string;
-  updateAnnotation?: string;
-}) {
-  return diff({
-    base: formatHTML(base),
-    update: formatHTML(update),
-    baseAnnotation,
-    updateAnnotation,
-  });
-}
-
-export function diff({
-  base,
-  update,
-  baseAnnotation,
-  updateAnnotation,
-}: {
-  base: string;
-  baseAnnotation?: string;
-  update: string;
-  updateAnnotation?: string;
-}) {
-  return snapshotDiff(base, update, {
-    stablePatchmarks: true, // Avoid line numbers in diff, so that diffs are stable against irrelevant changes
-    aAnnotation: baseAnnotation,
-    bAnnotation: updateAnnotation,
-  });
-}
-
-export function formatHTML(html: string): string {
-  return format(html, { parser: 'html' });
-}
-
 function getTestApi() {
   const testApi = (globalThis as any).vi;
   if (!testApi) {
     throw new Error('Vitest API (vi) not found');
   }
   return testApi;
+}
+
+/**
+ * Wraps {@link TestUtils.flushPromises} inside `act()` so React state
+ * updates triggered by resolved promises are applied without warnings.
+ */
+export async function flushPromisesInAct(): Promise<void> {
+  await act(async () => {
+    await TestUtils.flushPromises();
+  });
+}
+
+/**
+ * Runs `callback` and then flushes pending promises, all inside a
+ * single `act()` boundary.
+ */
+export async function invokeAndFlush(callback: () => void | Promise<void>): Promise<void> {
+  await act(async () => {
+    await callback();
+    await TestUtils.flushPromises();
+  });
 }
 
 export function expectWarnings() {
@@ -248,12 +223,12 @@ export function mockResizeObserver(width = 800, height = 600) {
               contentRect: { width, height } as DOMRectReadOnly,
             } as ResizeObserverEntry,
           ],
-          (this as unknown) as ResizeObserver,
+          this as unknown as ResizeObserver,
         );
       });
       this.unobserve = testApi.fn();
     }
   }
 
-  (window as any).ResizeObserver = (ResizeObserverMock as unknown) as typeof ResizeObserver;
+  (window as any).ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
 }

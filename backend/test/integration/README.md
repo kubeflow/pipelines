@@ -25,7 +25,7 @@ To run this test, you need to first deploy the PostgreSQL images on your Kuberne
 see [instructions here](../../../manifests/kustomize/third-party/postgresql/README.md).
 
 When testing against postgreSQL, all integration tests with MySQL will be disabled. Use an argument `postgres` to run 
-test against a PostgreSQL database:
+tests against a PostgreSQL database:
 ```
 NAMESPACE=<kfp-namespace> ./run_tests_locally.sh postgres
 ```

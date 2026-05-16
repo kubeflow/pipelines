@@ -74,6 +74,10 @@ type ClientService interface {
 
 	PipelineServiceListPipelines(params *PipelineServiceListPipelinesParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceListPipelinesOK, error)
 
+	PipelineServiceUpdatePipeline(params *PipelineServiceUpdatePipelineParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceUpdatePipelineOK, error)
+
+	PipelineServiceUpdatePipelineVersion(params *PipelineServiceUpdatePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceUpdatePipelineVersionOK, error)
+
 	SetTransport(transport runtime.ClientTransport)
 }
 
@@ -454,6 +458,82 @@ func (a *Client) PipelineServiceListPipelines(params *PipelineServiceListPipelin
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*PipelineServiceListPipelinesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+PipelineServiceUpdatePipeline updates a pipeline s mutable fields display name tags
+*/
+func (a *Client) PipelineServiceUpdatePipeline(params *PipelineServiceUpdatePipelineParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceUpdatePipelineOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPipelineServiceUpdatePipelineParams()
+	}
+	op := &runtime.ClientOperation{
+		ID:                 "PipelineService_UpdatePipeline",
+		Method:             "PATCH",
+		PathPattern:        "/apis/v2beta1/pipelines/{pipeline.pipeline_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &PipelineServiceUpdatePipelineReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*PipelineServiceUpdatePipelineOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceUpdatePipelineDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+PipelineServiceUpdatePipelineVersion updates a pipeline version s mutable fields display name tags
+*/
+func (a *Client) PipelineServiceUpdatePipelineVersion(params *PipelineServiceUpdatePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceUpdatePipelineVersionOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPipelineServiceUpdatePipelineVersionParams()
+	}
+	op := &runtime.ClientOperation{
+		ID:                 "PipelineService_UpdatePipelineVersion",
+		Method:             "PATCH",
+		PathPattern:        "/apis/v2beta1/pipelines/{pipeline_version.pipeline_id}/versions/{pipeline_version.pipeline_version_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &PipelineServiceUpdatePipelineVersionReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*PipelineServiceUpdatePipelineVersionOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceUpdatePipelineVersionDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

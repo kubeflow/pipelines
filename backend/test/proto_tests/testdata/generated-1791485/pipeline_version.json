@@ -64,5 +64,6 @@
     "code": 0,
     "message": "This is a successful pipeline version.",
     "details": []
-  }
+  },
+  "tags": {}
 }

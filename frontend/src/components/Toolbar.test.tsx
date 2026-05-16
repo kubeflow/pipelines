@@ -20,8 +20,8 @@ import { MemoryRouter } from 'react-router';
 import { createMemoryHistory } from 'history';
 import { vi } from 'vitest';
 import Toolbar, { ToolbarActionMap } from './Toolbar';
-import HelpIcon from '@material-ui/icons/Help';
-import InfoIcon from '@material-ui/icons/Info';
+import HelpIcon from '@mui/icons-material/Help';
+import InfoIcon from '@mui/icons-material/Info';
 
 const action1 = vi.fn();
 const action2 = vi.fn();

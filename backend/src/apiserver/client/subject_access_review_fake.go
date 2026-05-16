@@ -22,6 +22,13 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Compile-time interface compliance checks.
+var (
+	_ SubjectAccessReviewInterface = FakeSubjectAccessReviewClient{}
+	_ SubjectAccessReviewInterface = FakeSubjectAccessReviewClientUnauthorized{}
+	_ SubjectAccessReviewInterface = FakeSubjectAccessReviewClientError{}
+)
+
 type FakeSubjectAccessReviewClient struct{}
 
 func (FakeSubjectAccessReviewClient) Create(context.Context, *authzv1.SubjectAccessReview, v1.CreateOptions) (*authzv1.SubjectAccessReview, error) {
@@ -54,7 +61,7 @@ func NewFakeSubjectAccessReviewClientUnauthorized() FakeSubjectAccessReviewClien
 
 type FakeSubjectAccessReviewClientError struct{}
 
-func (FakeSubjectAccessReviewClientError) Create(*authzv1.SubjectAccessReview) (*authzv1.SubjectAccessReview, error) {
+func (FakeSubjectAccessReviewClientError) Create(context.Context, *authzv1.SubjectAccessReview, v1.CreateOptions) (*authzv1.SubjectAccessReview, error) {
 	return nil, errors.New("failed to create subject access review")
 }
 

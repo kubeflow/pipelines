@@ -19,8 +19,9 @@ const (
 	KFPLauncherPath       = VolumePathKFPLauncher + "/launch"
 
 	// Env var names
-	EnvPodName = "KFP_POD_NAME"
-	EnvPodUID  = "KFP_POD_UID"
+	EnvPodName    = "KFP_POD_NAME"
+	EnvPodUID     = "KFP_POD_UID"
+	EnvRetryIndex = "KFP_RETRY_INDEX"
 
 	// Env vars in metadata-grpc-configmap
 	EnvMetadataHost = "METADATA_GRPC_SERVICE_HOST"

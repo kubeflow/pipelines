@@ -27,11 +27,12 @@ const refreshSpy = vi.fn();
 let lastExperimentListProps: any = null;
 
 vi.mock('src/components/ExperimentList', () => ({
-  default: React.forwardRef((props: any, ref) => {
-    lastExperimentListProps = props;
+  default: (props: any) => {
+    const { ref, ...experimentListProps } = props;
+    lastExperimentListProps = experimentListProps;
     React.useImperativeHandle(ref, () => ({ refresh: refreshSpy }));
     return <div data-testid='experiment-list' />;
-  }),
+  },
 }));
 
 describe('ArchivedExperiments', () => {
@@ -77,12 +78,6 @@ describe('ArchivedExperiments', () => {
     historyPushSpy = vi.fn();
     refreshSpy.mockClear();
     lastExperimentListProps = null;
-  });
-
-  afterEach(() => {
-    renderResult?.unmount();
-    renderResult = null;
-    archivedExperimentsRef = null;
   });
 
   it('renders archived experiments', () => {

@@ -18,7 +18,26 @@ def _extract_argo_versions_from_e2e(e2e_yaml_text: str) -> List[str]:
     yaml = YAML(typ='safe')
     data = yaml.load(e2e_yaml_text) or {}
     jobs = data.get('jobs') or {}
-    return jobs.get('end-to-end-scenario-tests', {}).get('strategy', {}).get('matrix', {}).get('argo_version',[])
+    matrix = jobs.get('end-to-end-scenario-tests', {}).get('strategy', {}).get('matrix', {})
+
+    versions: List[str] = []
+
+    base_versions = matrix.get('argo_version') or []
+    if isinstance(base_versions, list):
+        versions.extend(
+            version for version in base_versions if isinstance(version, str) and version
+        )
+
+    include_entries = matrix.get('include') or []
+    if isinstance(include_entries, list):
+        for entry in include_entries:
+            if not isinstance(entry, dict):
+                continue
+            version = entry.get('argo_version')
+            if isinstance(version, str) and version:
+                versions.append(version)
+
+    return versions
 
 
 def main() -> int:
@@ -86,5 +105,4 @@ def main() -> int:
 
 if __name__ == '__main__':
     sys.exit(main())
-
 

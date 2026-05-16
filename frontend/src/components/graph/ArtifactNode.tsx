@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import FolderIcon from '@material-ui/icons/Folder';
+import FolderIcon from '@mui/icons-material/Folder';
 import React from 'react';
-import { Handle, Position } from 'react-flow-renderer';
+import { Handle, Position } from '@xyflow/react';
 import { Artifact } from 'src/third_party/mlmd';
 import { ArtifactFlowElementData } from './Constants';
 
@@ -39,7 +39,7 @@ function ArtifactNode({ id, data }: ArtifactNodeProps) {
         <div className='flex items-center justify-between w-60 rounded-lg shadow-lg bg-white'>
           {icon}
           <div className='flex flex-grow justify-center items-center rounded-r-lg overflow-hidden'>
-            <span className='text-sm truncate' id={id}>
+            <span className='text-sm truncate' id={id} data-testid={id}>
               {data.label}
             </span>
           </div>
@@ -65,13 +65,19 @@ export default ArtifactNode;
 
 function getIcon(state: Artifact.State | undefined) {
   if (state === undefined) {
-    return getIconWrapper(<FolderIcon className='text-mui-grey-300-dark' />);
+    return getIconWrapper(
+      <FolderIcon data-testid='artifact-icon-default' className='text-mui-grey-300-dark' />,
+    );
   }
   switch (state) {
     case Artifact.State.LIVE:
-      return getIconWrapper(<FolderIcon className='text-mui-yellow-800' />);
+      return getIconWrapper(
+        <FolderIcon data-testid='artifact-icon-live' className='text-mui-yellow-800' />,
+      );
     default:
-      return getIconWrapper(<FolderIcon className='text-mui-grey-300-dark' />);
+      return getIconWrapper(
+        <FolderIcon data-testid='artifact-icon-default' className='text-mui-grey-300-dark' />,
+      );
   }
 }
 

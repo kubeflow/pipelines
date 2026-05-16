@@ -15,7 +15,6 @@
  */
 
 import { render } from '@testing-library/react';
-import * as React from 'react';
 import MarkdownViewer, { MarkdownViewerConfig } from './MarkdownViewer';
 import { PlotType } from './Viewer';
 

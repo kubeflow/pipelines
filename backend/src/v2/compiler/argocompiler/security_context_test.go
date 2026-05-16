@@ -255,7 +255,7 @@ func TestApplyPodSeccompProfileOnly_ExistingContext(t *testing.T) {
 
 func TestApplySecurityContextToExecutorTemplate_NilTemplate(t *testing.T) {
 	// Should not panic
-	applySecurityContextToExecutorTemplate(nil)
+	applySecurityContextToExecutorTemplate(nil, nil, nil, nil)
 }
 
 func TestApplySecurityContextToExecutorTemplate_WithContainerAndInitContainers(t *testing.T) {
@@ -268,7 +268,7 @@ func TestApplySecurityContextToExecutorTemplate_WithContainerAndInitContainers(t
 			{Container: k8score.Container{Name: "sidecar"}},
 		},
 	}
-	applySecurityContextToExecutorTemplate(template)
+	applySecurityContextToExecutorTemplate(template, nil, nil, nil)
 
 	// Pod security context: SeccompProfile only, no RunAsNonRoot
 	assert.NotNil(t, template.SecurityContext)
@@ -280,6 +280,9 @@ func TestApplySecurityContextToExecutorTemplate_WithContainerAndInitContainers(t
 	assert.Nil(t, template.Container.SecurityContext.RunAsNonRoot)
 	assert.False(t, *template.Container.SecurityContext.AllowPrivilegeEscalation)
 	assert.Equal(t, []k8score.Capability{"ALL"}, template.Container.SecurityContext.Capabilities.Drop)
+	// No admin defaults set, so RunAsUser/RunAsGroup should not be set
+	assert.Nil(t, template.Container.SecurityContext.RunAsUser)
+	assert.Nil(t, template.Container.SecurityContext.RunAsGroup)
 
 	// Init containers (system): full security WITH RunAsNonRoot
 	for _, initContainer := range template.InitContainers {
@@ -296,4 +299,135 @@ func TestApplySecurityContextToExecutorTemplate_WithContainerAndInitContainers(t
 		assert.False(t, *sidecar.SecurityContext.AllowPrivilegeEscalation)
 		assert.Equal(t, []k8score.Capability{"ALL"}, sidecar.SecurityContext.Capabilities.Drop)
 	}
+}
+
+func TestApplySecurityContextToExecutorTemplate_WithAdminDefaults(t *testing.T) {
+	template := &wfapi.Template{
+		Container: &k8score.Container{Name: "user-container"},
+		InitContainers: []wfapi.UserContainer{
+			{Container: k8score.Container{Name: "kfp-launcher"}},
+		},
+		Sidecars: []wfapi.UserContainer{
+			{Container: k8score.Container{Name: "sidecar"}},
+		},
+	}
+	defaultRunAsUser := int64Ptr(1000)
+	defaultRunAsGroup := int64Ptr(100)
+	applySecurityContextToExecutorTemplate(template, defaultRunAsUser, defaultRunAsGroup, nil)
+
+	// Main container should have admin defaults applied
+	assert.NotNil(t, template.Container.SecurityContext)
+	assert.Equal(t, int64(1000), *template.Container.SecurityContext.RunAsUser)
+	assert.Equal(t, int64(100), *template.Container.SecurityContext.RunAsGroup)
+	// Other security defaults should still be applied
+	assert.False(t, *template.Container.SecurityContext.AllowPrivilegeEscalation)
+	assert.Equal(t, []k8score.Capability{"ALL"}, template.Container.SecurityContext.Capabilities.Drop)
+
+	// Init containers must NOT have admin defaults
+	for _, initContainer := range template.InitContainers {
+		assert.Nil(t, initContainer.SecurityContext.RunAsUser)
+		assert.Nil(t, initContainer.SecurityContext.RunAsGroup)
+		// But should have full system security context
+		assert.True(t, *initContainer.SecurityContext.RunAsNonRoot)
+	}
+
+	// Sidecars must NOT have admin defaults
+	for _, sidecar := range template.Sidecars {
+		assert.Nil(t, sidecar.SecurityContext.RunAsUser)
+		assert.Nil(t, sidecar.SecurityContext.RunAsGroup)
+	}
+}
+
+func TestApplySecurityContextToExecutorTemplate_AdminDefaultsOnlyUser(t *testing.T) {
+	// Test that only runAsUser is set when only that admin default is configured
+	template := &wfapi.Template{
+		Container: &k8score.Container{Name: "user-container"},
+	}
+	defaultRunAsUser := int64Ptr(1000)
+	applySecurityContextToExecutorTemplate(template, defaultRunAsUser, nil, nil)
+
+	assert.Equal(t, int64(1000), *template.Container.SecurityContext.RunAsUser)
+	assert.Nil(t, template.Container.SecurityContext.RunAsGroup)
+}
+
+func TestApplySecurityContextToExecutorTemplate_AdminDefaultsOnlyGroup(t *testing.T) {
+	// Test that only runAsGroup is set when only that admin default is configured
+	template := &wfapi.Template{
+		Container: &k8score.Container{Name: "user-container"},
+	}
+	defaultRunAsGroup := int64Ptr(100)
+	applySecurityContextToExecutorTemplate(template, nil, defaultRunAsGroup, nil)
+
+	assert.Nil(t, template.Container.SecurityContext.RunAsUser)
+	assert.Equal(t, int64(100), *template.Container.SecurityContext.RunAsGroup)
+}
+
+func TestApplySecurityContextToExecutorTemplate_AdminDefaultsOverrideSDK(t *testing.T) {
+	// When admin defaults are set, they override any SDK-specified values
+	template := &wfapi.Template{
+		Container: &k8score.Container{
+			Name: "user-container",
+			SecurityContext: &k8score.SecurityContext{
+				RunAsUser:  int64Ptr(2000),
+				RunAsGroup: int64Ptr(200),
+			},
+		},
+	}
+	defaultRunAsUser := int64Ptr(1000)
+	defaultRunAsGroup := int64Ptr(100)
+	applySecurityContextToExecutorTemplate(template, defaultRunAsUser, defaultRunAsGroup, nil)
+
+	// Admin defaults should override SDK-specified values
+	assert.Equal(t, int64(1000), *template.Container.SecurityContext.RunAsUser)
+	assert.Equal(t, int64(100), *template.Container.SecurityContext.RunAsGroup)
+}
+
+func TestApplySecurityContextToExecutorTemplate_AdminDefaultRunAsNonRoot(t *testing.T) {
+	template := &wfapi.Template{
+		Container: &k8score.Container{Name: "user-container"},
+		InitContainers: []wfapi.UserContainer{
+			{Container: k8score.Container{Name: "kfp-launcher"}},
+		},
+	}
+	defaultRunAsNonRoot := boolPtr(true)
+	applySecurityContextToExecutorTemplate(template, nil, nil, defaultRunAsNonRoot)
+
+	// Main container should have RunAsNonRoot set by admin default
+	assert.NotNil(t, template.Container.SecurityContext)
+	assert.NotNil(t, template.Container.SecurityContext.RunAsNonRoot)
+	assert.True(t, *template.Container.SecurityContext.RunAsNonRoot)
+	// RunAsUser/RunAsGroup should not be set since no admin defaults were given
+	assert.Nil(t, template.Container.SecurityContext.RunAsUser)
+	assert.Nil(t, template.Container.SecurityContext.RunAsGroup)
+
+	// Init containers should NOT have admin RunAsNonRoot (they get system defaults)
+	for _, initContainer := range template.InitContainers {
+		assert.True(t, *initContainer.SecurityContext.RunAsNonRoot, "init container gets system RunAsNonRoot=true")
+	}
+}
+
+func TestApplySecurityContextToExecutorTemplate_AdminDefaultRunAsNonRootFalse(t *testing.T) {
+	template := &wfapi.Template{
+		Container: &k8score.Container{Name: "user-container"},
+	}
+	defaultRunAsNonRoot := boolPtr(false)
+	applySecurityContextToExecutorTemplate(template, nil, nil, defaultRunAsNonRoot)
+
+	// Admin explicitly set RunAsNonRoot=false
+	assert.NotNil(t, template.Container.SecurityContext.RunAsNonRoot)
+	assert.False(t, *template.Container.SecurityContext.RunAsNonRoot)
+}
+
+func TestApplySecurityContextToExecutorTemplate_AllAdminDefaults(t *testing.T) {
+	template := &wfapi.Template{
+		Container: &k8score.Container{Name: "user-container"},
+	}
+	defaultRunAsUser := int64Ptr(1000)
+	defaultRunAsGroup := int64Ptr(100)
+	defaultRunAsNonRoot := boolPtr(true)
+	applySecurityContextToExecutorTemplate(template, defaultRunAsUser, defaultRunAsGroup, defaultRunAsNonRoot)
+
+	assert.Equal(t, int64(1000), *template.Container.SecurityContext.RunAsUser)
+	assert.Equal(t, int64(100), *template.Container.SecurityContext.RunAsGroup)
+	assert.True(t, *template.Container.SecurityContext.RunAsNonRoot)
 }

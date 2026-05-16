@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import InputAdornment from '@material-ui/core/InputAdornment';
-import Radio from '@material-ui/core/Radio';
-import { TextFieldProps } from '@material-ui/core/TextField';
+import { TextFieldProps } from '@mui/material/TextField';
 import * as React from 'react';
-import Dropzone from 'react-dropzone';
-import { DocumentationCompilePipeline } from 'src/components/UploadPipelineDialog';
+import DropzoneArea, { DropzoneAreaHandle } from 'src/atoms/DropzoneArea';
+import {
+  DocumentationCompilePipeline,
+  PIPELINE_PACKAGE_ACCEPT,
+  PIPELINE_PACKAGE_REJECT_MESSAGE,
+  pipelinePackageValidator,
+} from 'src/components/UploadPipelineDialog';
 import { classes, stylesheet } from 'typestyle';
 import BusyButton from 'src/atoms/BusyButton';
 import Input from 'src/atoms/Input';
@@ -40,6 +41,8 @@ import { BuildInfoContext } from 'src/lib/BuildInfo';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import PipelinesDialogV2 from 'src/components/PipelinesDialogV2';
 import { NameWithTooltip } from 'src/components/CustomTableNameColumn';
+
+import { Button, FormControlLabel, InputAdornment, Radio } from '@mui/material';
 
 interface NewPipelineVersionState {
   validationError: string;
@@ -113,12 +116,12 @@ const css = stylesheet({
 
 const getK8sNameRegex = () => /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;
 
-const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props => {
+const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (props) => {
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
 export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelineVersionState> {
-  private _dropzoneRef = React.createRef<Dropzone & HTMLDivElement>();
+  private _dropzoneRef = React.createRef<DropzoneAreaHandle>();
   private _pipelineVersionNameRef = React.createRef<HTMLInputElement>();
   private _pipelineVersionDisplayNameRef = React.createRef<HTMLInputElement>();
   private _pipelineNameRef = React.createRef<HTMLInputElement>();
@@ -178,7 +181,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const {
       packageUrl,
       pipelineName,
@@ -244,7 +247,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
 
           {newPipeline === true && this.props.buildInfo?.apiServerMultiUser && (
             <PrivateSharedSelector
-              onChange={val => {
+              onChange={(val) => {
                 this.setState({
                   isPrivate: val,
                 });
@@ -278,7 +281,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                   variant='outlined'
                   inputRef={this._pipelineDisplayNameRef}
                   onChange={this.handleChange('pipelineDisplayName')}
-                  autoFocus={true}
                 />
               )}
               <Input
@@ -289,7 +291,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                 variant='outlined'
                 inputRef={this._pipelineDescriptionRef}
                 onChange={this.handleChange('pipelineDescription')}
-                autoFocus={true}
               />
               {/* Choose a local file for package or specify a url for package */}
             </>
@@ -308,7 +309,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                 variant='outlined'
                 inputRef={this._pipelineNameRef}
                 onChange={this.handleChange('pipelineName')}
-                autoFocus={true}
                 InputProps={{
                   classes: { disabled: css.nonEditableInput },
                   endAdornment: (
@@ -362,7 +362,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                   required={false}
                   onChange={this.handleChange('pipelineVersionDisplayName')}
                   value={pipelineVersionDisplayName}
-                  autoFocus={true}
                   variant='outlined'
                 />
               )}
@@ -373,7 +372,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                 label='Pipeline Version Description'
                 variant='outlined'
                 onChange={this.handleChange('pipelineVersionDescription')}
-                autoFocus={true}
               />
             </>
           )}
@@ -406,17 +404,18 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
               control={<Radio color='primary' />}
               onChange={() => this.setState({ importMethod: ImportMethod.LOCAL })}
             />
-            <Dropzone
+            <DropzoneArea
               id='dropZone'
-              disableClick={true}
               onDrop={this._onDrop.bind(this)}
+              onDropRejected={this._onDropRejected.bind(this)}
               onDragEnter={this._onDropzoneDragEnter.bind(this)}
               onDragLeave={this._onDropzoneDragLeave.bind(this)}
+              accept={PIPELINE_PACKAGE_ACCEPT}
+              validator={pipelinePackageValidator}
+              disabled={importMethod === ImportMethod.URL}
               style={{ position: 'relative' }}
               ref={this._dropzoneRef}
               inputProps={{ tabIndex: -1 }}
-              accept='.yaml,.yml,.zip,.tar.gz'
-              disabled={importMethod === ImportMethod.URL}
             >
               {dropzoneActive && <div className={css.dropOverlay}>Drop files..</div>}
               <Input
@@ -448,7 +447,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                   },
                 }}
               />
-            </Dropzone>
+            </DropzoneArea>
           </div>
           <div className={classes(commonCss.flex, padding(10, 'b'))}>
             <FormControlLabel
@@ -513,29 +512,29 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
   }
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     const urlParser = new URLParser(this.props);
     const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
     if (pipelineId) {
       const pipelineResponse = await Apis.pipelineServiceApiV2.getPipeline(pipelineId);
-      this.setState({
-        pipelineId,
-        pipelineName: pipelineResponse.display_name,
-        pipeline: pipelineResponse,
-      });
-      // Suggest a version name based on pipeline name
       const currDate = new Date();
-      this.setState({
-        pipelineVersionName:
-          pipelineResponse.display_name +
-          '-version-at-' +
-          currDate
-            .toISOString()
-            .toLowerCase()
-            .replace(/:/g, '-'),
-      });
+      this.setStateSafe(
+        {
+          pipelineId,
+          pipelineName: pipelineResponse.display_name,
+          pipeline: pipelineResponse,
+          pipelineVersionName:
+            pipelineResponse.display_name +
+            '-version-at-' +
+            currDate.toISOString().toLowerCase().replace(/:/g, '-'),
+        },
+        () => {
+          this._validate();
+        },
+      );
+    } else {
+      this._validate();
     }
-
-    this._validate();
   }
 
   public handleChange = (name: string) => (event: any) => {
@@ -549,12 +548,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
       this.setState(
         {
           pipelineVersionName:
-            value +
-            '-version-at-' +
-            currDate
-              .toISOString()
-              .toLowerCase()
-              .replace(/:/g, '-'),
+            value + '-version-at-' + currDate.toISOString().toLowerCase().replace(/:/g, '-'),
         },
         this._validate.bind(this),
       );
@@ -580,19 +574,17 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
           (pipeline &&
             pipeline.name +
               '-version-at-' +
-              currDate
-                .toISOString()
-                .toLowerCase()
-                .replace(/:/g, '-')) ||
+              currDate.toISOString().toLowerCase().replace(/:/g, '-')) ||
           '',
       },
       () => this._validate(),
     );
   }
 
-  // To call _onDrop from test, so make a protected method
   protected _onDropForTest(files: File[]): void {
-    this._onDrop(files);
+    if (files.length) {
+      this._onDrop(files);
+    }
   }
 
   private async _create(): Promise<void> {
@@ -635,9 +627,8 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
             name: this.state.pipelineName,
             namespace,
           };
-          const createPipelineResponse = await Apis.pipelineServiceApiV2.createPipeline(
-            newPipeline,
-          );
+          const createPipelineResponse =
+            await Apis.pipelineServiceApiV2.createPipeline(newPipeline);
           this.setState({ pipelineId: createPipelineResponse.pipeline_id });
           pipelineVersionResponse = await this._createPipelineVersion();
         } else {
@@ -699,14 +690,8 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
     // (1) new pipeline (and a default version) from local file
     // (2) new pipeline (and a default version) from url
     // (3) new pipeline version (under an existing pipeline) from url
-    const {
-      fileName,
-      pipeline,
-      pipelineVersionName,
-      packageUrl,
-      newPipeline,
-      pipelineName,
-    } = this.state;
+    const { fileName, pipeline, pipelineVersionName, packageUrl, newPipeline, pipelineName } =
+      this.state;
     try {
       if (newPipeline) {
         if (!packageUrl && !fileName) {
@@ -773,9 +758,20 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
       },
     );
   }
+
+  private _onDropRejected(): void {
+    this.setStateSafe({ dropzoneActive: false, file: null, fileName: '' }, () => {
+      this._validate();
+    });
+    this.props.updateSnackbar({
+      autoHideDuration: 5000,
+      message: PIPELINE_PACKAGE_REJECT_MESSAGE,
+      open: true,
+    });
+  }
 }
 
-const EnhancedNewPipelineVersion: React.FC<PageProps> = props => {
+const EnhancedNewPipelineVersion: React.FC<PageProps> = (props) => {
   const buildInfo = React.useContext(BuildInfoContext);
   const namespace = React.useContext(NamespaceContext);
 

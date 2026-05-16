@@ -10,6 +10,7 @@ Name | Type | Description | Notes
 **created_at** | **datetime** | Output. Creation time of the pipeline. | [optional] 
 **namespace** | **str** | Input. A namespace this pipeline belongs to. Causes error if user is not authorized to access the specified namespace. If not specified in CreatePipeline, default namespace is used. | [optional] 
 **error** | [**GooglerpcStatus**](GooglerpcStatus.md) |  | [optional] 
+**tags** | **dict(str, str)** | Optional. User-defined tags as key-value pairs associated with the pipeline. Both keys and values are limited to 63 characters. | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

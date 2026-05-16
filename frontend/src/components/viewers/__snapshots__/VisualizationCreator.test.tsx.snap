@@ -6,33 +6,36 @@ exports[`VisualizationCreator > renders an Editor component if a visualization t
     style="width: 600px;"
   >
     <div
-      class="MuiFormControl-root"
+      class="MuiFormControl-root css-1nrlq1o-MuiFormControl-root"
       style="width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-standard MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-standard css-1c2i806-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="true"
         for="visualization-type-selector"
       >
         Type
       </label>
       <div
-        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
+        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl css-n70jm4-MuiInputBase-root-MuiInput-root-MuiSelect-root"
         style="min-height: 60px; width: 100%;"
       >
         <div
+          aria-controls="_r_a_"
+          aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+          class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
           id="mui-component-select-Visualization Type"
-          role="button"
+          role="combobox"
           tabindex="0"
         >
           ROC_CURVE
         </div>
         <input
           aria-hidden="true"
-          class="MuiSelect-nativeInput"
+          aria-invalid="false"
+          class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
           id="visualization-type-selector"
           name="Visualization Type"
           tabindex="-1"
@@ -40,7 +43,8 @@ exports[`VisualizationCreator > renders an Editor component if a visualization t
         />
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+          data-testid="ArrowDropDownIcon"
           focusable="false"
           viewBox="0 0 24 24"
         >
@@ -51,32 +55,35 @@ exports[`VisualizationCreator > renders an Editor component if a visualization t
       </div>
     </div>
     <div
-      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
       spellcheck="false"
       style="height: 40px; max-width: 600px; width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-outlined"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
+        for="_r_b_"
+        id="_r_b_-label"
       >
         Source
       </label>
       <div
-        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <input
           aria-invalid="false"
-          class="MuiInputBase-input MuiOutlinedInput-input"
+          class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+          id="_r_b_"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
         />
         <fieldset
           aria-hidden="true"
-          class="PrivateNotchedOutline-root-21 MuiOutlinedInput-notchedOutline"
+          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
         >
           <legend
-            class="PrivateNotchedOutline-legendLabelled-23"
+            class="css-njhac4-MuiNotchedOutlined-root"
           >
             <span>
               Source
@@ -87,7 +94,7 @@ exports[`VisualizationCreator > renders an Editor component if a visualization t
     </div>
     <div>
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-animated"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-animated MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-animated css-9npbnl-MuiFormLabel-root-MuiInputLabel-root"
       >
         Arguments (Optional)
       </label>
@@ -97,17 +104,13 @@ exports[`VisualizationCreator > renders an Editor component if a visualization t
       />
     </div>
     <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
       disabled=""
       tabindex="-1"
       type="button"
     >
-      <span
-        class="MuiButton-label"
-      >
-        <span>
-          Generate Visualization
-        </span>
+      <span>
+        Generate Visualization
       </span>
     </button>
   </div>
@@ -120,35 +123,40 @@ exports[`VisualizationCreator > renders component when all parameters in config 
     style="width: 600px;"
   >
     <div
-      class="MuiFormControl-root"
+      class="MuiFormControl-root css-1nrlq1o-MuiFormControl-root"
       style="width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-standard MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-standard css-aqpgxn-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
         for="visualization-type-selector"
       >
         Type
       </label>
       <div
-        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
+        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl css-n70jm4-MuiInputBase-root-MuiInput-root-MuiSelect-root"
         style="min-height: 60px; width: 100%;"
       >
         <div
+          aria-controls="_r_6_"
+          aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+          class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
           id="mui-component-select-Visualization Type"
-          role="button"
+          role="combobox"
           tabindex="0"
         >
-          <span>
+          <span
+            class="notranslate"
+          >
             ​
           </span>
         </div>
         <input
           aria-hidden="true"
-          class="MuiSelect-nativeInput"
+          aria-invalid="false"
+          class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
           id="visualization-type-selector"
           name="Visualization Type"
           tabindex="-1"
@@ -156,7 +164,8 @@ exports[`VisualizationCreator > renders component when all parameters in config 
         />
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+          data-testid="ArrowDropDownIcon"
           focusable="false"
           viewBox="0 0 24 24"
         >
@@ -167,32 +176,35 @@ exports[`VisualizationCreator > renders component when all parameters in config 
       </div>
     </div>
     <div
-      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
       spellcheck="false"
       style="height: 40px; max-width: 600px; width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-outlined"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
+        for="_r_7_"
+        id="_r_7_-label"
       >
         Source
       </label>
       <div
-        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <input
           aria-invalid="false"
-          class="MuiInputBase-input MuiOutlinedInput-input"
+          class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+          id="_r_7_"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
         />
         <fieldset
           aria-hidden="true"
-          class="PrivateNotchedOutline-root-13 MuiOutlinedInput-notchedOutline"
+          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
         >
           <legend
-            class="PrivateNotchedOutline-legendLabelled-15"
+            class="css-njhac4-MuiNotchedOutlined-root"
           >
             <span>
               Source
@@ -202,17 +214,13 @@ exports[`VisualizationCreator > renders component when all parameters in config 
       </div>
     </div>
     <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
       disabled=""
       tabindex="-1"
       type="button"
     >
-      <span
-        class="MuiButton-label"
-      >
-        <span>
-          Generate Visualization
-        </span>
+      <span>
+        Generate Visualization
       </span>
     </button>
   </div>
@@ -225,35 +233,40 @@ exports[`VisualizationCreator > renders component when empty config is provided 
     style="width: 600px;"
   >
     <div
-      class="MuiFormControl-root"
+      class="MuiFormControl-root css-1nrlq1o-MuiFormControl-root"
       style="width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-standard MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-standard css-aqpgxn-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
         for="visualization-type-selector"
       >
         Type
       </label>
       <div
-        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
+        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl css-n70jm4-MuiInputBase-root-MuiInput-root-MuiSelect-root"
         style="min-height: 60px; width: 100%;"
       >
         <div
+          aria-controls="_r_0_"
+          aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+          class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
           id="mui-component-select-Visualization Type"
-          role="button"
+          role="combobox"
           tabindex="0"
         >
-          <span>
+          <span
+            class="notranslate"
+          >
             ​
           </span>
         </div>
         <input
           aria-hidden="true"
-          class="MuiSelect-nativeInput"
+          aria-invalid="false"
+          class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
           id="visualization-type-selector"
           name="Visualization Type"
           tabindex="-1"
@@ -261,7 +274,8 @@ exports[`VisualizationCreator > renders component when empty config is provided 
         />
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+          data-testid="ArrowDropDownIcon"
           focusable="false"
           viewBox="0 0 24 24"
         >
@@ -272,32 +286,35 @@ exports[`VisualizationCreator > renders component when empty config is provided 
       </div>
     </div>
     <div
-      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
       spellcheck="false"
       style="height: 40px; max-width: 600px; width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-outlined"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
+        for="_r_1_"
+        id="_r_1_-label"
       >
         Source
       </label>
       <div
-        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <input
           aria-invalid="false"
-          class="MuiInputBase-input MuiOutlinedInput-input"
+          class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+          id="_r_1_"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
         />
         <fieldset
           aria-hidden="true"
-          class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline"
+          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
         >
           <legend
-            class="PrivateNotchedOutline-legendLabelled-3"
+            class="css-njhac4-MuiNotchedOutlined-root"
           >
             <span>
               Source
@@ -307,17 +324,13 @@ exports[`VisualizationCreator > renders component when empty config is provided 
       </div>
     </div>
     <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
       disabled=""
       tabindex="-1"
       type="button"
     >
-      <span
-        class="MuiButton-label"
-      >
-        <span>
-          Generate Visualization
-        </span>
+      <span>
+        Generate Visualization
       </span>
     </button>
   </div>
@@ -330,35 +343,40 @@ exports[`VisualizationCreator > renders component when isBusy is not provided 1`
     style="width: 600px;"
   >
     <div
-      class="MuiFormControl-root"
+      class="MuiFormControl-root css-1nrlq1o-MuiFormControl-root"
       style="width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-standard MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-standard css-aqpgxn-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
         for="visualization-type-selector"
       >
         Type
       </label>
       <div
-        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
+        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl css-n70jm4-MuiInputBase-root-MuiInput-root-MuiSelect-root"
         style="min-height: 60px; width: 100%;"
       >
         <div
+          aria-controls="_r_2_"
+          aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+          class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
           id="mui-component-select-Visualization Type"
-          role="button"
+          role="combobox"
           tabindex="0"
         >
-          <span>
+          <span
+            class="notranslate"
+          >
             ​
           </span>
         </div>
         <input
           aria-hidden="true"
-          class="MuiSelect-nativeInput"
+          aria-invalid="false"
+          class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
           id="visualization-type-selector"
           name="Visualization Type"
           tabindex="-1"
@@ -366,7 +384,8 @@ exports[`VisualizationCreator > renders component when isBusy is not provided 1`
         />
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+          data-testid="ArrowDropDownIcon"
           focusable="false"
           viewBox="0 0 24 24"
         >
@@ -377,32 +396,35 @@ exports[`VisualizationCreator > renders component when isBusy is not provided 1`
       </div>
     </div>
     <div
-      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
       spellcheck="false"
       style="height: 40px; max-width: 600px; width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-outlined"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
+        for="_r_3_"
+        id="_r_3_-label"
       >
         Source
       </label>
       <div
-        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <input
           aria-invalid="false"
-          class="MuiInputBase-input MuiOutlinedInput-input"
+          class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+          id="_r_3_"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
         />
         <fieldset
           aria-hidden="true"
-          class="PrivateNotchedOutline-root-5 MuiOutlinedInput-notchedOutline"
+          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
         >
           <legend
-            class="PrivateNotchedOutline-legendLabelled-7"
+            class="css-njhac4-MuiNotchedOutlined-root"
           >
             <span>
               Source
@@ -412,17 +434,13 @@ exports[`VisualizationCreator > renders component when isBusy is not provided 1`
       </div>
     </div>
     <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
       disabled=""
       tabindex="-1"
       type="button"
     >
-      <span
-        class="MuiButton-label"
-      >
-        <span>
-          Generate Visualization
-        </span>
+      <span>
+        Generate Visualization
       </span>
     </button>
   </div>
@@ -435,35 +453,40 @@ exports[`VisualizationCreator > renders component when onGenerate is not provide
     style="width: 600px;"
   >
     <div
-      class="MuiFormControl-root"
+      class="MuiFormControl-root css-1nrlq1o-MuiFormControl-root"
       style="width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-standard MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-standard css-aqpgxn-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
         for="visualization-type-selector"
       >
         Type
       </label>
       <div
-        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
+        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl css-n70jm4-MuiInputBase-root-MuiInput-root-MuiSelect-root"
         style="min-height: 60px; width: 100%;"
       >
         <div
+          aria-controls="_r_4_"
+          aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+          class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
           id="mui-component-select-Visualization Type"
-          role="button"
+          role="combobox"
           tabindex="0"
         >
-          <span>
+          <span
+            class="notranslate"
+          >
             ​
           </span>
         </div>
         <input
           aria-hidden="true"
-          class="MuiSelect-nativeInput"
+          aria-invalid="false"
+          class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
           id="visualization-type-selector"
           name="Visualization Type"
           tabindex="-1"
@@ -471,7 +494,8 @@ exports[`VisualizationCreator > renders component when onGenerate is not provide
         />
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+          data-testid="ArrowDropDownIcon"
           focusable="false"
           viewBox="0 0 24 24"
         >
@@ -482,32 +506,35 @@ exports[`VisualizationCreator > renders component when onGenerate is not provide
       </div>
     </div>
     <div
-      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
       spellcheck="false"
       style="height: 40px; max-width: 600px; width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-outlined"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
+        for="_r_5_"
+        id="_r_5_-label"
       >
         Source
       </label>
       <div
-        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <input
           aria-invalid="false"
-          class="MuiInputBase-input MuiOutlinedInput-input"
+          class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+          id="_r_5_"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
         />
         <fieldset
           aria-hidden="true"
-          class="PrivateNotchedOutline-root-9 MuiOutlinedInput-notchedOutline"
+          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
         >
           <legend
-            class="PrivateNotchedOutline-legendLabelled-11"
+            class="css-njhac4-MuiNotchedOutlined-root"
           >
             <span>
               Source
@@ -517,17 +544,13 @@ exports[`VisualizationCreator > renders component when onGenerate is not provide
       </div>
     </div>
     <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
       disabled=""
       tabindex="-1"
       type="button"
     >
-      <span
-        class="MuiButton-label"
-      >
-        <span>
-          Generate Visualization
-        </span>
+      <span>
+        Generate Visualization
       </span>
     </button>
   </div>
@@ -540,35 +563,40 @@ exports[`VisualizationCreator > renders the custom type when it is allowed 1`] =
     style="width: 600px;"
   >
     <div
-      class="MuiFormControl-root"
+      class="MuiFormControl-root css-1nrlq1o-MuiFormControl-root"
       style="width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-standard MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-standard css-aqpgxn-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
         for="visualization-type-selector"
       >
         Type
       </label>
       <div
-        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
+        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl css-n70jm4-MuiInputBase-root-MuiInput-root-MuiSelect-root"
         style="min-height: 60px; width: 100%;"
       >
         <div
+          aria-controls="_r_12_"
+          aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+          class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
           id="mui-component-select-Visualization Type"
-          role="button"
+          role="combobox"
           tabindex="0"
         >
-          <span>
+          <span
+            class="notranslate"
+          >
             ​
           </span>
         </div>
         <input
           aria-hidden="true"
-          class="MuiSelect-nativeInput"
+          aria-invalid="false"
+          class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
           id="visualization-type-selector"
           name="Visualization Type"
           tabindex="-1"
@@ -576,7 +604,8 @@ exports[`VisualizationCreator > renders the custom type when it is allowed 1`] =
         />
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+          data-testid="ArrowDropDownIcon"
           focusable="false"
           viewBox="0 0 24 24"
         >
@@ -587,32 +616,35 @@ exports[`VisualizationCreator > renders the custom type when it is allowed 1`] =
       </div>
     </div>
     <div
-      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
       spellcheck="false"
       style="height: 40px; max-width: 600px; width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-outlined"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
+        for="_r_13_"
+        id="_r_13_-label"
       >
         Source
       </label>
       <div
-        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <input
           aria-invalid="false"
-          class="MuiInputBase-input MuiOutlinedInput-input"
+          class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+          id="_r_13_"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
         />
         <fieldset
           aria-hidden="true"
-          class="PrivateNotchedOutline-root-69 MuiOutlinedInput-notchedOutline"
+          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
         >
           <legend
-            class="PrivateNotchedOutline-legendLabelled-71"
+            class="css-njhac4-MuiNotchedOutlined-root"
           >
             <span>
               Source
@@ -622,17 +654,13 @@ exports[`VisualizationCreator > renders the custom type when it is allowed 1`] =
       </div>
     </div>
     <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
       disabled=""
       tabindex="-1"
       type="button"
     >
-      <span
-        class="MuiButton-label"
-      >
-        <span>
-          Generate Visualization
-        </span>
+      <span>
+        Generate Visualization
       </span>
     </button>
   </div>
@@ -645,33 +673,36 @@ exports[`VisualizationCreator > renders the provided arguments 1`] = `
     style="width: 600px;"
   >
     <div
-      class="MuiFormControl-root"
+      class="MuiFormControl-root css-1nrlq1o-MuiFormControl-root"
       style="width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-standard MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-standard css-1c2i806-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="true"
         for="visualization-type-selector"
       >
         Type
       </label>
       <div
-        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
+        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl css-n70jm4-MuiInputBase-root-MuiInput-root-MuiSelect-root"
         style="min-height: 60px; width: 100%;"
       >
         <div
+          aria-controls="_r_s_"
+          aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+          class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
           id="mui-component-select-Visualization Type"
-          role="button"
+          role="combobox"
           tabindex="0"
         >
           ROC_CURVE
         </div>
         <input
           aria-hidden="true"
-          class="MuiSelect-nativeInput"
+          aria-invalid="false"
+          class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
           id="visualization-type-selector"
           name="Visualization Type"
           tabindex="-1"
@@ -679,7 +710,8 @@ exports[`VisualizationCreator > renders the provided arguments 1`] = `
         />
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+          data-testid="ArrowDropDownIcon"
           focusable="false"
           viewBox="0 0 24 24"
         >
@@ -690,32 +722,35 @@ exports[`VisualizationCreator > renders the provided arguments 1`] = `
       </div>
     </div>
     <div
-      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
       spellcheck="false"
       style="height: 40px; max-width: 600px; width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-outlined"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
+        for="_r_t_"
+        id="_r_t_-label"
       >
         Source
       </label>
       <div
-        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <input
           aria-invalid="false"
-          class="MuiInputBase-input MuiOutlinedInput-input"
+          class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+          id="_r_t_"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
         />
         <fieldset
           aria-hidden="true"
-          class="PrivateNotchedOutline-root-57 MuiOutlinedInput-notchedOutline"
+          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
         >
           <legend
-            class="PrivateNotchedOutline-legendLabelled-59"
+            class="css-njhac4-MuiNotchedOutlined-root"
           >
             <span>
               Source
@@ -726,7 +761,7 @@ exports[`VisualizationCreator > renders the provided arguments 1`] = `
     </div>
     <div>
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-animated"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-animated MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-animated css-9npbnl-MuiFormLabel-root-MuiInputLabel-root"
       >
         Arguments (Optional)
       </label>
@@ -736,17 +771,13 @@ exports[`VisualizationCreator > renders the provided arguments 1`] = `
       />
     </div>
     <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
       disabled=""
       tabindex="-1"
       type="button"
     >
-      <span
-        class="MuiButton-label"
-      >
-        <span>
-          Generate Visualization
-        </span>
+      <span>
+        Generate Visualization
       </span>
     </button>
   </div>
@@ -759,33 +790,36 @@ exports[`VisualizationCreator > renders the selected visualization type 1`] = `
     style="width: 600px;"
   >
     <div
-      class="MuiFormControl-root"
+      class="MuiFormControl-root css-1nrlq1o-MuiFormControl-root"
       style="width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-standard MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-standard css-1c2i806-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="true"
         for="visualization-type-selector"
       >
         Type
       </label>
       <div
-        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
+        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl css-n70jm4-MuiInputBase-root-MuiInput-root-MuiSelect-root"
         style="min-height: 60px; width: 100%;"
       >
         <div
+          aria-controls="_r_10_"
+          aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+          class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
           id="mui-component-select-Visualization Type"
-          role="button"
+          role="combobox"
           tabindex="0"
         >
           ROC_CURVE
         </div>
         <input
           aria-hidden="true"
-          class="MuiSelect-nativeInput"
+          aria-invalid="false"
+          class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
           id="visualization-type-selector"
           name="Visualization Type"
           tabindex="-1"
@@ -793,7 +827,8 @@ exports[`VisualizationCreator > renders the selected visualization type 1`] = `
         />
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+          data-testid="ArrowDropDownIcon"
           focusable="false"
           viewBox="0 0 24 24"
         >
@@ -804,32 +839,35 @@ exports[`VisualizationCreator > renders the selected visualization type 1`] = `
       </div>
     </div>
     <div
-      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
       spellcheck="false"
       style="height: 40px; max-width: 600px; width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-outlined"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
+        for="_r_11_"
+        id="_r_11_-label"
       >
         Source
       </label>
       <div
-        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <input
           aria-invalid="false"
-          class="MuiInputBase-input MuiOutlinedInput-input"
+          class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+          id="_r_11_"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
         />
         <fieldset
           aria-hidden="true"
-          class="PrivateNotchedOutline-root-65 MuiOutlinedInput-notchedOutline"
+          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
         >
           <legend
-            class="PrivateNotchedOutline-legendLabelled-67"
+            class="css-njhac4-MuiNotchedOutlined-root"
           >
             <span>
               Source
@@ -840,7 +878,7 @@ exports[`VisualizationCreator > renders the selected visualization type 1`] = `
     </div>
     <div>
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-animated"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-animated MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-animated css-9npbnl-MuiFormLabel-root-MuiInputLabel-root"
       >
         Arguments (Optional)
       </label>
@@ -850,17 +888,13 @@ exports[`VisualizationCreator > renders the selected visualization type 1`] = `
       />
     </div>
     <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
       disabled=""
       tabindex="-1"
       type="button"
     >
-      <span
-        class="MuiButton-label"
-      >
-        <span>
-          Generate Visualization
-        </span>
+      <span>
+        Generate Visualization
       </span>
     </button>
   </div>
@@ -873,35 +907,40 @@ exports[`VisualizationCreator > renders two Editor components if the CUSTOM visu
     style="width: 600px;"
   >
     <div
-      class="MuiFormControl-root"
+      class="MuiFormControl-root css-1nrlq1o-MuiFormControl-root"
       style="width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-standard MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-standard css-1c2i806-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="true"
         for="visualization-type-selector"
       >
         Type
       </label>
       <div
-        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
+        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl css-n70jm4-MuiInputBase-root-MuiInput-root-MuiSelect-root"
         style="min-height: 60px; width: 100%;"
       >
         <div
+          aria-controls="_r_c_"
+          aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+          class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
           id="mui-component-select-Visualization Type"
-          role="button"
+          role="combobox"
           tabindex="0"
         >
-          <span>
+          <span
+            class="notranslate"
+          >
             ​
           </span>
         </div>
         <input
           aria-hidden="true"
-          class="MuiSelect-nativeInput"
+          aria-invalid="false"
+          class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
           id="visualization-type-selector"
           name="Visualization Type"
           tabindex="-1"
@@ -909,7 +948,8 @@ exports[`VisualizationCreator > renders two Editor components if the CUSTOM visu
         />
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+          data-testid="ArrowDropDownIcon"
           focusable="false"
           viewBox="0 0 24 24"
         >
@@ -920,32 +960,35 @@ exports[`VisualizationCreator > renders two Editor components if the CUSTOM visu
       </div>
     </div>
     <div
-      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
       spellcheck="false"
       style="height: 40px; max-width: 600px; width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-outlined"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
+        for="_r_d_"
+        id="_r_d_-label"
       >
         Source
       </label>
       <div
-        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <input
           aria-invalid="false"
-          class="MuiInputBase-input MuiOutlinedInput-input"
+          class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+          id="_r_d_"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
         />
         <fieldset
           aria-hidden="true"
-          class="PrivateNotchedOutline-root-25 MuiOutlinedInput-notchedOutline"
+          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
         >
           <legend
-            class="PrivateNotchedOutline-legendLabelled-27"
+            class="css-njhac4-MuiNotchedOutlined-root"
           >
             <span>
               Source
@@ -956,7 +999,7 @@ exports[`VisualizationCreator > renders two Editor components if the CUSTOM visu
     </div>
     <div>
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-animated"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-animated MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-animated css-9npbnl-MuiFormLabel-root-MuiInputLabel-root"
       >
         Custom Visualization Code
       </label>
@@ -967,7 +1010,7 @@ exports[`VisualizationCreator > renders two Editor components if the CUSTOM visu
     </div>
     <div>
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-animated"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-animated MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-animated css-9npbnl-MuiFormLabel-root-MuiInputLabel-root"
       >
         Arguments (Optional)
       </label>
@@ -977,17 +1020,13 @@ exports[`VisualizationCreator > renders two Editor components if the CUSTOM visu
       />
     </div>
     <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
       disabled=""
       tabindex="-1"
       type="button"
     >
-      <span
-        class="MuiButton-label"
-      >
-        <span>
-          Generate Visualization
-        </span>
+      <span>
+        Generate Visualization
       </span>
     </button>
   </div>

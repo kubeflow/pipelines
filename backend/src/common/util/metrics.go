@@ -25,7 +25,7 @@ type MetricsChan chan prometheus.Metric
 // GetMetricValue get metric value from registered Collector
 func GetMetricValue(collector prometheus.Collector) float64 {
 	var total float64
-	collectValue(collector, func(m dto.Metric) {
+	collectValue(collector, func(m *dto.Metric) {
 		// retrieves data if current collector is a gauge
 		// if not then retrieves from a counter
 		if gauge := m.GetGauge(); gauge != nil {
@@ -42,7 +42,7 @@ func GetMetricValue(collector prometheus.Collector) float64 {
 	return total
 }
 
-func collectValue(collector prometheus.Collector, do func(dto.Metric)) {
+func collectValue(collector prometheus.Collector, do func(*dto.Metric)) {
 	c := make(MetricsChan)
 
 	// collect calls the function for each metric associated with the Collector
@@ -53,8 +53,8 @@ func collectValue(collector prometheus.Collector, do func(dto.Metric)) {
 
 	// range across distinct label vector values
 	for x := range c {
-		m := dto.Metric{}
-		_ = x.Write(&m)
+		m := &dto.Metric{}
+		_ = x.Write(m)
 		do(m)
 	}
 }

@@ -53,6 +53,10 @@ spec:
                 type: string
               platformSpec:
                 x-kubernetes-preserve-unknown-fields: true
+              tags:
+                additionalProperties:
+                  type: string
+                type: object
             required:
             - pipelineSpec
             type: object

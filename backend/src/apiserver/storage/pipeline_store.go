@@ -95,8 +95,9 @@ type PipelineStoreInterface interface {
 	GetPipelineWithStatus(pipelineId string, status model.PipelineStatus) (*model.Pipeline, error)
 	GetPipeline(pipelineId string) (*model.Pipeline, error)
 	GetPipelineByNameAndNamespace(name string, namespace string) (*model.Pipeline, error)
-	ListPipelines(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error)
+	ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters map[string]string) ([]*model.Pipeline, int, string, error)
 	UpdatePipelineStatus(pipelineId string, status model.PipelineStatus) error
+	UpdatePipelineFields(pipelineID string, displayName string, tags map[string]string) error
 	DeletePipeline(pipelineId string) error
 	UpdatePipelineDefaultVersion(pipelineId string, versionId string) error
 
@@ -106,9 +107,22 @@ type PipelineStoreInterface interface {
 	GetPipelineVersion(pipelineVersionId string) (*model.PipelineVersion, error)
 	GetPipelineVersionByName(name string) (*model.PipelineVersion, error)
 	GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error)
-	ListPipelineVersions(pipelineId string, opts *list.Options) ([]*model.PipelineVersion, int, string, error)
+	ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters map[string]string) ([]*model.PipelineVersion, int, string, error)
 	UpdatePipelineVersionStatus(pipelineVersionId string, status model.PipelineVersionStatus) error
+	UpdatePipelineVersionFields(pipelineVersionID string, displayName string, tags map[string]string) error
 	DeletePipelineVersion(pipelineVersionId string) error
+
+	// `pipeline_tags`
+	CreateOrUpdatePipelineTags(pipelineID string, tags map[string]string) error
+	GetPipelineTags(pipelineID string) (map[string]string, error)
+	GetPipelineTagsForPipelines(pipelineIds []string) (map[string]map[string]string, error)
+	DeletePipelineTags(pipelineID string) error
+
+	// `pipeline_version_tags`
+	CreateOrUpdatePipelineVersionTags(pipelineVersionID string, tags map[string]string) error
+	GetPipelineVersionTags(pipelineVersionID string) (map[string]string, error)
+	GetPipelineVersionTagsForVersions(pipelineVersionIds []string) (map[string]map[string]string, error)
+	DeletePipelineVersionTags(pipelineVersionID string) error
 }
 
 type PipelineStore struct {
@@ -155,7 +169,7 @@ func (s *PipelineStore) GetPipelineByNameAndNamespaceV1(name string, namespace s
 	return pipelines[0], pipelineVersions[0], nil
 }
 
-// Returns the latest pipeline specified by name and namespace.
+// GetPipelineByNameAndNamespace returns the latest pipeline specified by name and namespace, including its tags.
 // Performance depends on the index (name, namespace) in `pipelines` table.
 func (s *PipelineStore) GetPipelineByNameAndNamespace(name string, namespace string) (*model.Pipeline, error) {
 	sqlTemp := sq.
@@ -191,7 +205,13 @@ func (s *PipelineStore) GetPipelineByNameAndNamespace(name string, namespace str
 	if len(pipelines) == 0 {
 		return nil, util.NewResourceNotFoundError("Namespace/Pipeline", fmt.Sprintf("%v/%v", namespace, name))
 	}
-	return pipelines[0], nil
+	pipeline := pipelines[0]
+	tags, err := s.GetPipelineTags(pipeline.UUID)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to load tags for pipeline %v", pipeline.UUID)
+	}
+	pipeline.Tags = tags
+	return pipeline, nil
 }
 
 // TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.
@@ -295,8 +315,9 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 // Runs two SQL queries in a transaction to return a list of matching pipelines, as well as their
 // total_size. The total_size does not reflect the page size.
 // This will not join with `pipeline_versions` table, hence, total_size is the size of pipelines, not pipeline_versions.
-func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error) {
-	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
+// tagFilters is an optional map of tag key->value pairs to filter pipelines by. If nil or empty, no tag filtering is applied.
+func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters map[string]string) ([]*model.Pipeline, int, string, error) {
+	buildQuery := func(sqlBuilder sq.SelectBuilder) (sq.SelectBuilder, error) {
 		query := opts.AddFilterToSelect(sqlBuilder).From("pipelines")
 		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
 			query = query.Where(
@@ -308,11 +329,26 @@ func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *
 		query = query.Where(
 			sq.Eq{"pipelines.Status": model.PipelineReady},
 		)
-		return query
+		// Apply tag filters: for each tag, add a subquery ensuring the pipeline has that tag.
+		for key, value := range tagFilters {
+			subQuery := sq.Select("PipelineId").From("pipeline_tags").Where(sq.And{
+				sq.Eq{"TagKey": key},
+				sq.Eq{"TagValue": value},
+			})
+			subSQL, subArgs, subErr := subQuery.ToSql()
+			if subErr != nil {
+				return query, util.NewInternalServerError(subErr, "Failed to build tag filter subquery for tag key %q", key)
+			}
+			query = query.Where("pipelines.UUID IN ("+subSQL+")", subArgs...)
+		}
+		return query, nil
 	}
 
 	// SQL for row list
-	sqlSelect := buildQuery(sq.Select(pipelineColumns...))
+	sqlSelect, err := buildQuery(sq.Select(pipelineColumns...))
+	if err != nil {
+		return nil, 0, "", err
+	}
 	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlSelect).ToSql()
 	if err != nil {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to prepare a query to list pipelines")
@@ -320,7 +356,11 @@ func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *
 
 	// SQL for getting total size. This matches the query to get all the rows above, in order
 	// to do the same filter, but counts instead of scanning the rows.
-	sizeSql, sizeArgs, err := buildQuery(sq.Select("count(*)")).ToSql()
+	sizeSelect, err := buildQuery(sq.Select("count(*)"))
+	if err != nil {
+		return nil, 0, "", err
+	}
+	sizeSQL, sizeArgs, err := sizeSelect.ToSql()
 	if err != nil {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to prepare a query to count pipelines")
 	}
@@ -347,10 +387,10 @@ func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *
 		tx.Rollback()
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to parse results of listing pipelines")
 	}
-	defer rows.Close()
+	rows.Close()
 
 	// Count pipelines
-	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
+	sizeRow, err := tx.Query(sizeSQL, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to count pipelines")
@@ -364,7 +404,25 @@ func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *
 		tx.Rollback()
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to parse results of counting pipelines")
 	}
-	defer sizeRow.Close()
+	sizeRow.Close()
+
+	// Load tags for the returned pipelines (inside the transaction for consistency)
+	if len(pipelines) > 0 {
+		pipelineIds := make([]string, len(pipelines))
+		for i, p := range pipelines {
+			pipelineIds[i] = p.UUID
+		}
+		tagsMap, err := queryTagsForEntities(tx, "pipeline_tags", "PipelineId", pipelineIds)
+		if err != nil {
+			tx.Rollback()
+			return nil, 0, "", util.NewInternalServerError(err, "Failed to load tags for listed pipelines")
+		}
+		for _, p := range pipelines {
+			if tags, ok := tagsMap[p.UUID]; ok {
+				p.Tags = tags
+			}
+		}
+	}
 
 	// Commit transaction
 	err = tx.Commit()
@@ -482,9 +540,18 @@ func (s *PipelineStore) scanPipelinesRows(rows *sql.Rows) ([]*model.Pipeline, er
 	return pipelines, nil
 }
 
-// Returns a pipeline wit status = PipelineReady.
+// GetPipeline returns a pipeline with status = PipelineReady, including its tags.
 func (s *PipelineStore) GetPipeline(id string) (*model.Pipeline, error) {
-	return s.GetPipelineWithStatus(id, model.PipelineReady)
+	pipeline, err := s.GetPipelineWithStatus(id, model.PipelineReady)
+	if err != nil {
+		return nil, err
+	}
+	tags, err := s.GetPipelineTags(id)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to load tags for pipeline %v", id)
+	}
+	pipeline.Tags = tags
+	return pipeline, nil
 }
 
 // Returns a pipeline with a specified status.
@@ -621,9 +688,22 @@ func (s *PipelineStore) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv *
 		return nil, nil, util.NewInternalServerError(err, "Failed to insert a new pipeline version")
 	}
 
+	// Insert pipeline tags if provided
+	if err := insertTagsInTx(tx, "pipeline_tags", "PipelineId", newPipeline.UUID, newPipeline.Tags); err != nil {
+		tx.Rollback()
+		return nil, nil, err
+	}
+
+	// Insert pipeline version tags if provided
+	if err := insertTagsInTx(tx, "pipeline_version_tags", "PipelineVersionId", newPipelineVersion.UUID, newPipelineVersion.Tags); err != nil {
+		tx.Rollback()
+		return nil, nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, nil, util.NewInternalServerError(err, "Failed to update pipelines and pipeline_versions in a transaction")
 	}
+	newPipelineVersion.Tags = pv.Tags
 	return &newPipeline, &newPipelineVersion, nil
 }
 
@@ -679,6 +759,13 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 		tx.Rollback()
 		return nil, util.NewInternalServerError(err, "Failed to add pipeline to pipeline table")
 	}
+
+	// Insert tags if provided
+	if err := insertTagsInTx(tx, "pipeline_tags", "PipelineId", newPipeline.UUID, newPipeline.Tags); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		tx.Rollback()
 		return nil, util.NewInternalServerError(err, "Failed to commit pipeline creation in a SQL transaction")
@@ -698,6 +785,113 @@ func (s *PipelineStore) UpdatePipelineStatus(id string, status model.PipelineSta
 		return util.NewInternalServerError(err, "Failed to create query to update status to %v of pipeline %v", string(status), id)
 	}
 	return s.ExecuteSQL(sql, args, "update", "pipeline status")
+}
+
+// insertTagsInTx inserts tags into the specified tag table within the given transaction
+// using a single batch INSERT statement. Returns an error if the insert fails; the
+// caller is responsible for rolling back.
+func insertTagsInTx(tx *sql.Tx, tableName, idColumn, entityID string, tags map[string]string) error {
+	if len(tags) == 0 {
+		return nil
+	}
+	builder := sq.Insert(tableName).Columns(idColumn, "TagKey", "TagValue")
+	for key, value := range tags {
+		builder = builder.Values(entityID, key, value)
+	}
+	tagSQL, tagArgs, err := builder.ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to insert tags for %v %v", tableName, entityID)
+	}
+	if _, err := tx.Exec(tagSQL, tagArgs...); err != nil {
+		return util.NewInternalServerError(err, "Failed to insert tags for %v %v", tableName, entityID)
+	}
+	return nil
+}
+
+// upsertTagsInTx upserts tags using INSERT ... ON DUPLICATE KEY UPDATE (MySQL)
+// or INSERT ... ON CONFLICT DO UPDATE SET (SQLite) via the db.Upsert() abstraction.
+// This updates TagValue in-place for existing keys without deleting and re-inserting
+// the row, avoiding unnecessary row churn in replication binlogs and trigger side effects.
+// The tag tables have a composite primary key on (idColumn, TagKey).
+func (s *PipelineStore) upsertTagsInTx(tx *sql.Tx, tableName, idColumn, entityID string, tags map[string]string) error {
+	for key, value := range tags {
+		insertBuilder := sq.Insert(tableName).
+			Columns(idColumn, "TagKey", "TagValue").
+			Values(entityID, key, value)
+		insertSQL, args, err := insertBuilder.ToSql()
+		if err != nil {
+			return util.NewInternalServerError(err, "Failed to build upsert query for tag %q in %v %v", key, tableName, entityID)
+		}
+		upsertSQL := s.db.Upsert(insertSQL, fmt.Sprintf("%s, TagKey", idColumn), true, "TagValue")
+		if _, err := tx.Exec(upsertSQL, args...); err != nil {
+			return util.NewInternalServerError(err, "Failed to upsert tag %q for %v %v", key, tableName, entityID)
+		}
+	}
+	return nil
+}
+
+// updateEntityFields updates mutable fields (DisplayName) and tags for a pipeline
+// or pipeline version in a single transaction.
+// Tags are upserted using INSERT ... ON DUPLICATE KEY UPDATE (MySQL) or
+// INSERT ... ON CONFLICT DO UPDATE SET (SQLite) for new/changed tags, followed
+// by a DELETE of any stale keys whose keys are no longer in the provided set.
+func (s *PipelineStore) updateEntityFields(entityTable, tagTable, idColumn, id, displayName string, tags map[string]string) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to start transaction to update %v %v", entityTable, id)
+	}
+	if displayName != "" {
+		sqlStr, args, err := sq.Update(entityTable).SetMap(sq.Eq{"DisplayName": displayName}).Where(sq.Eq{"UUID": id}).ToSql()
+		if err != nil {
+			tx.Rollback()
+			return util.NewInternalServerError(err, "Failed to create query to update %v %v", entityTable, id)
+		}
+		if _, err := tx.Exec(sqlStr, args...); err != nil {
+			tx.Rollback()
+			return util.NewInternalServerError(err, "Failed to update fields for %v %v", entityTable, id)
+		}
+	}
+	// Only modify tags when explicitly provided (non-nil).
+	// A nil tags value means "no change"; an empty map means "clear all tags".
+	if tags != nil {
+		// Upsert provided tags (insert new keys, update existing values).
+		if err := s.upsertTagsInTx(tx, tagTable, idColumn, id, tags); err != nil {
+			tx.Rollback()
+			return err
+		}
+		// Delete stale tags whose keys are no longer in the provided set.
+		deleteStaleQuery := sq.Delete(tagTable).Where(sq.Eq{idColumn: id})
+		if len(tags) > 0 {
+			tagKeys := make([]string, 0, len(tags))
+			for key := range tags {
+				tagKeys = append(tagKeys, key)
+			}
+			deleteStaleQuery = deleteStaleQuery.Where(sq.NotEq{"TagKey": tagKeys})
+		}
+		delSQL, delArgs, err := deleteStaleQuery.ToSql()
+		if err != nil {
+			tx.Rollback()
+			return util.NewInternalServerError(err, "Failed to create delete-stale query for %v tags %v", entityTable, id)
+		}
+		if _, err := tx.Exec(delSQL, delArgs...); err != nil {
+			tx.Rollback()
+			return util.NewInternalServerError(err, "Failed to delete stale tags for %v %v", entityTable, id)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return util.NewInternalServerError(err, "Failed to commit update for %v %v", entityTable, id)
+	}
+	return nil
+}
+
+// UpdatePipelineFields updates mutable fields (DisplayName) and tags for a pipeline.
+func (s *PipelineStore) UpdatePipelineFields(id string, displayName string, tags map[string]string) error {
+	return s.updateEntityFields("pipelines", "pipeline_tags", "PipelineId", id, displayName, tags)
+}
+
+// UpdatePipelineVersionFields updates mutable fields (DisplayName) and tags for a pipeline version.
+func (s *PipelineStore) UpdatePipelineVersionFields(id string, displayName string, tags map[string]string) error {
+	return s.updateEntityFields("pipeline_versions", "pipeline_version_tags", "PipelineVersionId", id, displayName, tags)
 }
 
 // Updates status of a pipeline version.
@@ -773,10 +967,19 @@ func (s *PipelineStore) CreatePipelineVersion(pv *model.PipelineVersion) (*model
 		}
 		return nil, util.NewInternalServerError(err, "Failed to add a pipeline version")
 	}
+
+	// Insert tags within the same transaction to prevent deadlocks caused by
+	// opening a second transaction on foreign-key-related tables.
+	if err := insertTagsInTx(tx, "pipeline_version_tags", "PipelineVersionId", newPipelineVersion.UUID, pv.Tags); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		tx.Rollback()
 		return nil, util.NewInternalServerError(err, "Failed to create a new pipeline version")
 	}
+	newPipelineVersion.Tags = pv.Tags
 	return &newPipelineVersion, nil
 }
 
@@ -829,16 +1032,40 @@ func (s *PipelineStore) GetLatestPipelineVersion(pipelineId string) (*model.Pipe
 	if len(versions) == 0 {
 		return nil, util.NewResourceNotFoundError("PipelineVersion", pipelineId)
 	}
-	return versions[0], nil
+	version := versions[0]
+	tags, err := s.GetPipelineVersionTags(version.UUID)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to load tags for latest pipeline version %v", version.UUID)
+	}
+	version.Tags = tags
+	return version, nil
 }
 
-// Returns a pipeline version with status PipelineVersionReady.
+// GetPipelineVersion returns a pipeline version with status PipelineVersionReady, including its tags.
 func (s *PipelineStore) GetPipelineVersion(versionId string) (*model.PipelineVersion, error) {
-	return s.GetPipelineVersionWithStatus(versionId, model.PipelineVersionReady)
+	version, err := s.GetPipelineVersionWithStatus(versionId, model.PipelineVersionReady)
+	if err != nil {
+		return nil, err
+	}
+	tags, err := s.GetPipelineVersionTags(versionId)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to load tags for pipeline version %v", versionId)
+	}
+	version.Tags = tags
+	return version, nil
 }
 
 func (s *PipelineStore) GetPipelineVersionByName(name string) (*model.PipelineVersion, error) {
-	return s.getPipelineVersionByCol("Name", name, model.PipelineVersionReady)
+	version, err := s.getPipelineVersionByCol("Name", name, model.PipelineVersionReady)
+	if err != nil {
+		return nil, err
+	}
+	tags, err := s.GetPipelineVersionTags(version.UUID)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to load tags for pipeline version %v", version.UUID)
+	}
+	version.Tags = tags
+	return version, nil
 }
 
 // Returns a pipeline version with specified status.
@@ -924,86 +1151,125 @@ func (s *PipelineStore) scanPipelineVersionsRows(rows *sql.Rows) ([]*model.Pipel
 }
 
 // Fetches pipeline versions for a specified pipeline id.
-func (s *PipelineStore) ListPipelineVersions(pipelineId string, opts *list.Options) (versions []*model.PipelineVersion, totalSize int, nextPageToken string, err error) {
-	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
-		return opts.AddFilterToSelect(sqlBuilder).
+// tagFilters is an optional map of tag key->value pairs to filter pipeline versions by. If nil or empty, no tag filtering is applied.
+func (s *PipelineStore) ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters map[string]string) (versions []*model.PipelineVersion, totalSize int, nextPageToken string, err error) {
+	buildQuery := func(sqlBuilder sq.SelectBuilder) (sq.SelectBuilder, error) {
+		query := opts.AddFilterToSelect(sqlBuilder).
 			From("pipeline_versions").
 			Where(
 				sq.And{
-					sq.Eq{"pipeline_versions.PipelineId": pipelineId},
+					sq.Eq{"pipeline_versions.PipelineId": pipelineID},
 					sq.Eq{"pipeline_versions.Status": model.PipelineVersionReady},
 				},
 			)
+		// Apply tag filters: for each tag, add a subquery ensuring the pipeline version has that tag.
+		for key, value := range tagFilters {
+			subQuery := sq.Select("PipelineVersionId").From("pipeline_version_tags").Where(sq.And{
+				sq.Eq{"TagKey": key},
+				sq.Eq{"TagValue": value},
+			})
+			subSQL, subArgs, subErr := subQuery.ToSql()
+			if subErr != nil {
+				return query, util.NewInternalServerError(subErr, "Failed to build tag filter subquery for tag key %q", key)
+			}
+			query = query.Where("pipeline_versions.UUID IN ("+subSQL+")", subArgs...)
+		}
+		return query, nil
 	}
 
 	// Prepare a SQL query
-	sqlSelect := buildQuery(sq.Select(pipelineVersionColumns...))
-	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlSelect).ToSql()
+	sqlSelect, err := buildQuery(sq.Select(pipelineVersionColumns...))
 	if err != nil {
-		return nil, 0, "", util.NewInternalServerError(err, "Failed to prepare a query for listing pipeline versions for pipeline %v", pipelineId)
+		return nil, 0, "", err
+	}
+	rowsSQL, rowsArgs, err := opts.AddPaginationToSelect(sqlSelect).ToSql()
+	if err != nil {
+		return nil, 0, "", util.NewInternalServerError(err, "Failed to prepare a query for listing pipeline versions for pipeline %v", pipelineID)
 	}
 
 	// Query for getting total size. This matches the query to get all the rows above, in order
 	// to do the same filter, but counts instead of scanning the rows.
-	sizeSql, sizeArgs, err := buildQuery(sq.Select("count(*)")).ToSql()
+	sizeSelect, err := buildQuery(sq.Select("count(*)"))
 	if err != nil {
-		return nil, 0, "", util.NewInternalServerError(err, "Failed to prepare a query to count pipeline versions for pipeline %v", pipelineId)
+		return nil, 0, "", err
+	}
+	sizeSQL, sizeArgs, err := sizeSelect.ToSql()
+	if err != nil {
+		return nil, 0, "", util.NewInternalServerError(err, "Failed to prepare a query to count pipeline versions for pipeline %v", pipelineID)
 	}
 
 	// Use a transaction to make sure we're returning the total_size of the same rows queried
 	tx, err := s.db.Begin()
 	if err != nil {
 		glog.Errorf("Failed to begin SQL query listing pipeline versions")
-		return nil, 0, "", util.NewInternalServerError(err, "Failed to begin SQL query listing pipeline versions for pipeline %v", pipelineId)
+		return nil, 0, "", util.NewInternalServerError(err, "Failed to begin SQL query listing pipeline versions for pipeline %v", pipelineID)
 	}
 
 	// Fetch the rows
-	rows, err := tx.Query(rowsSql, rowsArgs...)
+	rows, err := tx.Query(rowsSQL, rowsArgs...)
 	if err != nil {
 		tx.Rollback()
-		return nil, 0, "", util.NewInternalServerError(err, "Failed to list pipeline versions for pipeline %v", pipelineId)
+		return nil, 0, "", util.NewInternalServerError(err, "Failed to list pipeline versions for pipeline %v", pipelineID)
 	}
 	if err := rows.Err(); err != nil {
 		tx.Rollback()
-		return nil, 0, "", util.NewInternalServerError(err, "Failed to list pipeline versions for pipeline %v", pipelineId)
+		return nil, 0, "", util.NewInternalServerError(err, "Failed to list pipeline versions for pipeline %v", pipelineID)
 	}
 	pipelineVersions, err := s.scanPipelineVersionsRows(rows)
 	if err != nil {
 		tx.Rollback()
-		return nil, 0, "", util.NewInternalServerError(err, "Failed to parse results of listing pipeline versions for pipeline %v", pipelineId)
+		return nil, 0, "", util.NewInternalServerError(err, "Failed to parse results of listing pipeline versions for pipeline %v", pipelineID)
 	}
-	defer rows.Close()
+	rows.Close()
 
 	// Count pipelines
-	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
+	sizeRow, err := tx.Query(sizeSQL, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
-		return nil, 0, "", util.NewInternalServerError(err, "Failed to count pipeline versions for pipeline %v", pipelineId)
+		return nil, 0, "", util.NewInternalServerError(err, "Failed to count pipeline versions for pipeline %v", pipelineID)
 	}
 	if err := sizeRow.Err(); err != nil {
 		tx.Rollback()
-		return nil, 0, "", util.NewInternalServerError(err, "Failed to count pipeline versions for pipeline %v", pipelineId)
+		return nil, 0, "", util.NewInternalServerError(err, "Failed to count pipeline versions for pipeline %v", pipelineID)
 	}
-	total_size, err := list.ScanRowToTotalSize(sizeRow)
+	totalSizeCount, err := list.ScanRowToTotalSize(sizeRow)
 	if err != nil {
 		tx.Rollback()
-		return nil, 0, "", util.NewInternalServerError(err, "Failed to parse results of counting pipeline versions for pipeline %v", pipelineId)
+		return nil, 0, "", util.NewInternalServerError(err, "Failed to parse results of counting pipeline versions for pipeline %v", pipelineID)
 	}
-	defer sizeRow.Close()
+	sizeRow.Close()
+
+	// Load tags for the returned pipeline versions (inside the transaction for consistency)
+	if len(pipelineVersions) > 0 {
+		versionIDs := make([]string, len(pipelineVersions))
+		for i, pv := range pipelineVersions {
+			versionIDs[i] = pv.UUID
+		}
+		allTags, err := queryTagsForEntities(tx, "pipeline_version_tags", "PipelineVersionId", versionIDs)
+		if err != nil {
+			tx.Rollback()
+			return nil, 0, "", util.NewInternalServerError(err, "Failed to load tags for listed pipeline versions")
+		}
+		for _, pv := range pipelineVersions {
+			if tags, ok := allTags[pv.UUID]; ok {
+				pv.Tags = tags
+			}
+		}
+	}
 
 	// Commit the transaction
 	err = tx.Commit()
 	if err != nil {
 		glog.Errorf("Failed to commit transaction to list pipeline versions")
-		return nil, 0, "", util.NewInternalServerError(err, "Failed to commit transaction to list pipeline versions for pipeline %v", pipelineId)
+		return nil, 0, "", util.NewInternalServerError(err, "Failed to commit transaction to list pipeline versions for pipeline %v", pipelineID)
 	}
 
 	// Split results on multiple pages if needed
 	if len(pipelineVersions) <= opts.PageSize {
-		return pipelineVersions, total_size, "", nil
+		return pipelineVersions, totalSizeCount, "", nil
 	}
 	npt, err := opts.NextPageToken(pipelineVersions[opts.PageSize])
-	return pipelineVersions[:opts.PageSize], total_size, npt, err
+	return pipelineVersions[:opts.PageSize], totalSizeCount, npt, err
 }
 
 // Deletes a pipeline version.
@@ -1040,4 +1306,122 @@ func (s *PipelineStore) ExecuteSQL(sql string, args []interface{}, op string, ob
 		)
 	}
 	return nil
+}
+
+// getTags returns all tags for a given entity from the specified table.
+// Returns nil if no tags are found.
+func (s *PipelineStore) getTags(tableName, idColumn, entityID string) (map[string]string, error) {
+	sqlStr, args, err := sq.Select("TagKey", "TagValue").
+		From(tableName).
+		Where(sq.Eq{idColumn: entityID}).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to get tags for %v %v", tableName, entityID)
+	}
+	rows, err := s.db.Query(sqlStr, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get tags for %v %v", tableName, entityID)
+	}
+	defer rows.Close()
+
+	var tags map[string]string
+	for rows.Next() {
+		var key, value string
+		if err := rows.Scan(&key, &value); err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to scan tag row for %v %v", tableName, entityID)
+		}
+		if tags == nil {
+			tags = make(map[string]string)
+		}
+		tags[key] = value
+	}
+	return tags, nil
+}
+
+// sqlQuerier is satisfied by both *sql.DB and *sql.Tx, allowing tag queries
+// to run either standalone or inside an existing transaction.
+type sqlQuerier interface {
+	Query(query string, args ...any) (*sql.Rows, error)
+}
+
+// getTagsForEntities returns tags for multiple entities as a nested map: entityId -> {key: value}.
+func (s *PipelineStore) getTagsForEntities(tableName, idColumn string, entityIds []string) (map[string]map[string]string, error) {
+	return queryTagsForEntities(s.db, tableName, idColumn, entityIds)
+}
+
+// queryTagsForEntities loads tags using the provided sqlQuerier (either *sql.DB or *sql.Tx).
+func queryTagsForEntities(q sqlQuerier, tableName, idColumn string, entityIds []string) (map[string]map[string]string, error) {
+	if len(entityIds) == 0 {
+		return make(map[string]map[string]string), nil
+	}
+	sqlStr, args, err := sq.Select(idColumn, "TagKey", "TagValue").
+		From(tableName).
+		Where(sq.Eq{idColumn: entityIds}).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to get tags for %v", tableName)
+	}
+	rows, err := q.Query(sqlStr, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get tags for %v", tableName)
+	}
+	defer rows.Close()
+
+	result := make(map[string]map[string]string)
+	for rows.Next() {
+		var entityID, key, value string
+		if err := rows.Scan(&entityID, &key, &value); err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to scan tag row for %v", tableName)
+		}
+		if _, ok := result[entityID]; !ok {
+			result[entityID] = make(map[string]string)
+		}
+		result[entityID][key] = value
+	}
+	return result, nil
+}
+
+// deleteTags removes all tags for a given entity from the specified table.
+func (s *PipelineStore) deleteTags(tableName, idColumn, entityID string) error {
+	sqlStr, args, err := sq.Delete(tableName).Where(sq.Eq{idColumn: entityID}).ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to delete tags for %v %v", tableName, entityID)
+	}
+	return s.ExecuteSQL(sqlStr, args, "delete", tableName)
+}
+
+// Pipeline tag methods delegate to the generic helpers.
+
+func (s *PipelineStore) CreateOrUpdatePipelineTags(pipelineID string, tags map[string]string) error {
+	return s.updateEntityFields("pipelines", "pipeline_tags", "PipelineId", pipelineID, "", tags)
+}
+
+func (s *PipelineStore) GetPipelineTags(pipelineID string) (map[string]string, error) {
+	return s.getTags("pipeline_tags", "PipelineId", pipelineID)
+}
+
+func (s *PipelineStore) GetPipelineTagsForPipelines(pipelineIds []string) (map[string]map[string]string, error) {
+	return s.getTagsForEntities("pipeline_tags", "PipelineId", pipelineIds)
+}
+
+func (s *PipelineStore) DeletePipelineTags(pipelineID string) error {
+	return s.deleteTags("pipeline_tags", "PipelineId", pipelineID)
+}
+
+// Pipeline version tag methods delegate to the generic helpers.
+
+func (s *PipelineStore) CreateOrUpdatePipelineVersionTags(pipelineVersionID string, tags map[string]string) error {
+	return s.updateEntityFields("pipeline_versions", "pipeline_version_tags", "PipelineVersionId", pipelineVersionID, "", tags)
+}
+
+func (s *PipelineStore) GetPipelineVersionTags(pipelineVersionID string) (map[string]string, error) {
+	return s.getTags("pipeline_version_tags", "PipelineVersionId", pipelineVersionID)
+}
+
+func (s *PipelineStore) GetPipelineVersionTagsForVersions(pipelineVersionIds []string) (map[string]map[string]string, error) {
+	return s.getTagsForEntities("pipeline_version_tags", "PipelineVersionId", pipelineVersionIds)
+}
+
+func (s *PipelineStore) DeletePipelineVersionTags(pipelineVersionID string) error {
+	return s.deleteTags("pipeline_version_tags", "PipelineVersionId", pipelineVersionID)
 }

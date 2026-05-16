@@ -193,8 +193,7 @@ describe('workflow-helper', () => {
                 bucket: 'bucket',
                 endpoint: 'seaweedfs.kubeflow',
                 insecure: true,
-                key:
-                  'prefix/workflow-name/workflow-name-system-container-impl-abc/some-artifact.csv',
+                key: 'prefix/workflow-name/workflow-name-system-container-impl-abc/some-artifact.csv',
                 secretKeySecret: { key: 'secretKey', name: 'secretKeyName' },
               },
             },

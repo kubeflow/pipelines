@@ -175,6 +175,6 @@ def prepare_data_for_train(
 
 prepare_data_for_train_implementation = prepare_data_for_train
 
-prepare_data_for_train = dsl.component(base_image='python:3.8')(
+prepare_data_for_train = dsl.component(base_image='python:3.8-slim')(
     prepare_data_for_train
 )

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Node } from 'react-flow-renderer';
+import { Node } from '@xyflow/react';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
@@ -89,11 +89,11 @@ describe('DynamicFlow', () => {
         ARTIFACT_MODEL,
       ];
 
-      updateFlowElementsState(['root'], graph, executions, events, artifacts);
-      for (let element of graph) {
-        graph
-          .filter(e => e.id === element.id)
-          .forEach(e => {
+      const runtimeGraph = updateFlowElementsState(['root'], graph, executions, events, artifacts);
+      for (let element of runtimeGraph) {
+        runtimeGraph
+          .filter((e) => e.id === element.id)
+          .forEach((e) => {
             if (e.id === 'task.preprocess') {
               expect(e.data.state).toEqual(EXECUTION_PREPROCESS.getLastKnownState());
             } else if (e.id === 'task.train') {
@@ -107,6 +107,41 @@ describe('DynamicFlow', () => {
             }
           });
       }
+    });
+
+    it('does not preserve React Flow hidden flags when applying MLMD state', () => {
+      const rootExecution = new Execution().setId(2).setLastKnownState(Execution.State.COMPLETE);
+      rootExecution.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue(''));
+
+      const preprocessExecution = new Execution()
+        .setId(3)
+        .setLastKnownState(Execution.State.COMPLETE);
+      preprocessExecution
+        .getCustomPropertiesMap()
+        .set(TASK_NAME_KEY, new Value().setStringValue('preprocess'))
+        .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2));
+
+      const yamlObject = jsyaml.safeLoad(v2YamlTemplateString);
+      const pipelineSpec = PipelineSpec.fromJSON(yamlObject);
+      const graph = convertFlowElements(pipelineSpec);
+      const preprocessNode = graph.find((element) => element.id === 'task.preprocess') as Node;
+      (preprocessNode as Node & { hidden?: boolean }).hidden = true;
+      preprocessNode.measured = { width: 123, height: 45 };
+
+      const runtimeGraph = updateFlowElementsState(
+        ['root'],
+        graph,
+        [rootExecution, preprocessExecution],
+        [],
+        [],
+      );
+      const updatedPreprocessNode = runtimeGraph.find(
+        (element) => element.id === 'task.preprocess',
+      ) as Node & { hidden?: boolean };
+
+      expect(updatedPreprocessNode.hidden).toBeUndefined();
+      expect(updatedPreprocessNode.measured).toEqual({ width: 123, height: 45 });
+      expect(updatedPreprocessNode.data?.state).toEqual(preprocessExecution.getLastKnownState());
     });
   });
 

@@ -17,7 +17,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import produce from 'immer';
 import RunListsRouter, { RunListsRouterProps } from './RunListsRouter';
-import React from 'react';
 import { RouteParams } from 'src/components/Router';
 import { V2beta1Run, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { ApiExperiment } from 'src/apis/experiment';
@@ -80,9 +79,9 @@ describe('RunListsRouter', () => {
   }
 
   beforeEach(() => {
-    getRunSpy.mockImplementation(id =>
+    getRunSpy.mockImplementation((id) =>
       Promise.resolve(
-        produce({} as Partial<V2beta1Run>, draft => {
+        produce({} as Partial<V2beta1Run>, (draft) => {
           draft = draft || {};
           draft.run_id = id;
           draft.display_name = 'run with id: ' + id;

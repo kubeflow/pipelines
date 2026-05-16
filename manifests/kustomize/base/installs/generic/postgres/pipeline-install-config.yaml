@@ -102,3 +102,16 @@ data:
   ## Valid values are 'true' and 'false'. Defaults to 'false'.
   ## For more information see: https://github.com/kubeflow/pipelines/issues/11987
   ARTIFACTS_PROXY_ENABLED: "false"
+  ## Default security context for customer workload containers.
+  ## Leave empty to disable (default). When set, SDK-specified values
+  ## for the corresponding field are ignored.
+  ## Does NOT affect executor, driver, or sidecar containers.
+  defaultSecurityContextRunAsUser: ""
+  defaultSecurityContextRunAsGroup: ""
+  defaultSecurityContextRunAsNonRoot: ""
+  ## BLOCK_V1_PIPELINES: Controls whether v1 pipelines are allowed to be created and run.
+  ## Valid values are 'true' and 'false'. Defaults to 'false'.
+  BLOCK_V1_PIPELINES: "false"
+  ## V1_ALLOWED_NAMESPACES: Comma-separated list of namespaces that are allowed to use v1 pipelines
+  ## when BLOCK_V1_PIPELINES is set to true. This is only evaluated if BLOCK_V1_PIPELINES is set to true.
+  V1_ALLOWED_NAMESPACES: ""

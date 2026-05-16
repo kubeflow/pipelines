@@ -15,7 +15,7 @@ import { vi, describe, it, expect, afterAll, beforeEach, Mock } from 'vitest';
 import { awsInstanceProfileCredentials, isAWSS3Endpoint } from './aws-helper.js';
 
 function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 const mockedFetch = vi.fn();

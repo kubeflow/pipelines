@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import NewRunParameters, { NewRunParametersProps } from './NewRunParameters';
@@ -53,7 +52,7 @@ describe('NewRunParameters', () => {
 
     expect(handleParamChange).toHaveBeenCalledTimes(1);
     expect(handleParamChange).toHaveBeenLastCalledWith(0, '{\n  "test": "value"\n}');
-    expect(document.querySelector('.ace_editor')).toBeInTheDocument();
+    expect(screen.getByTestId('json-editor-newRunPipelineParam0')).toBeInTheDocument();
   });
 
   it('fires handleParamChange callback on change', () => {

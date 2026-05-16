@@ -80,7 +80,7 @@ NAME                AGE
 every-minute-cron   1m
 ```
 
-To see the current status of the ScheduledWorklfow named 'every-minute-cron', execute:
+To see the current status of the ScheduledWorkflow named 'every-minute-cron', execute:
 
 ```
 kubectl describe swf every-minute-cron

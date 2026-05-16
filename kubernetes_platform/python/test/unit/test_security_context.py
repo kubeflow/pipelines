@@ -127,6 +127,115 @@ class TestSecurityContext:
             }
         }
 
+    def test_security_context_bool_run_as_user(self):
+        with pytest.raises(
+            TypeError,
+            match=r'Argument for "run_as_user" must be an int, not bool',
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                task = print_greeting()
+                kubernetes.set_security_context(task, run_as_user=True)
+
+    def test_security_context_bool_run_as_group(self):
+        with pytest.raises(
+            TypeError,
+            match=r'Argument for "run_as_group" must be an int, not bool',
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                task = print_greeting()
+                kubernetes.set_security_context(task, run_as_group=True)
+
+    def test_security_context_run_as_non_root_true(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = print_greeting()
+            kubernetes.set_security_context(task, run_as_non_root=True)
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-print-greeting': {
+                                'securityContext': {
+                                    'runAsNonRoot': True,
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_security_context_run_as_non_root_false(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = print_greeting()
+            kubernetes.set_security_context(task, run_as_non_root=False)
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-print-greeting': {
+                                'securityContext': {
+                                    'runAsNonRoot': False,
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_security_context_all_fields_with_non_root(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = print_greeting()
+            kubernetes.set_security_context(
+                task,
+                run_as_user=65534,
+                run_as_group=0,
+                run_as_non_root=True,
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-print-greeting': {
+                                'securityContext': {
+                                    'runAsUser': '65534',
+                                    'runAsGroup': '0',
+                                    'runAsNonRoot': True,
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_security_context_run_as_non_root_wrong_type(self):
+        with pytest.raises(
+            TypeError,
+            match=r'Argument for "run_as_non_root" must be a bool',
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                task = print_greeting()
+                kubernetes.set_security_context(task, run_as_non_root=1)
+
     def test_security_context_run_as_user_zero(self):
 
         @dsl.pipeline

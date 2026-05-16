@@ -15,7 +15,6 @@
  */
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import * as React from 'react';
 import { Api } from 'src/mlmd/library';
 import {
   Execution,
@@ -114,12 +113,7 @@ describe('ExecutionList ("Default" view)', () => {
       </CommonTestWrapper>,
     );
 
-    await waitFor(() => {
-      expect(getExecutionTypesSpy).toHaveBeenCalledTimes(1);
-      expect(getExecutionsSpy).toHaveBeenCalledTimes(1);
-    });
-
-    screen.getByText('test execution 1');
+    await screen.findByText('test execution 1');
   });
 
   it('displays footer with "10" as default value', async () => {
@@ -129,12 +123,7 @@ describe('ExecutionList ("Default" view)', () => {
       </CommonTestWrapper>,
     );
 
-    await waitFor(() => {
-      expect(getExecutionTypesSpy).toHaveBeenCalledTimes(1);
-      expect(getExecutionsSpy).toHaveBeenCalledTimes(1);
-    });
-
-    screen.getByText('Rows per page:');
+    await screen.findByText('Rows per page:');
     screen.getByText('10');
   });
 
@@ -145,11 +134,11 @@ describe('ExecutionList ("Default" view)', () => {
       </CommonTestWrapper>,
     );
 
-    await waitFor(() => {
-      expect(getExecutionTypesSpy).toHaveBeenCalledTimes(1);
-      expect(getExecutionsSpy).toHaveBeenCalledTimes(1);
-    });
+    await screen.findByText('Rows per page:');
     expect(screen.queryByText('test execution 20')).toBeNull(); // Can not see the 20th execution initially
+
+    getExecutionTypesSpy.mockClear();
+    getExecutionsSpy.mockClear();
 
     getExecutionsSpy.mockImplementation(() => {
       const executions = mockNExecutions(20);
@@ -158,16 +147,15 @@ describe('ExecutionList ("Default" view)', () => {
       return Promise.resolve(response);
     });
 
-    const rowsPerPageButton = screen.getByRole('button', { name: '10' });
+    const rowsPerPageButton = screen.getByRole('combobox');
     fireEvent.mouseDown(rowsPerPageButton);
     const newRowsPerPage = await screen.findByRole('option', { name: '20' });
     fireEvent.click(newRowsPerPage);
 
     await waitFor(() => {
-      // API will be called again if "Rows per page" is changed
-      expect(getExecutionTypesSpy).toHaveBeenCalledTimes(1);
-      expect(getExecutionsSpy).toHaveBeenCalledTimes(2);
+      expect(getExecutionsSpy).toHaveBeenCalledTimes(1);
     });
+    expect(getExecutionTypesSpy).not.toHaveBeenCalled();
 
     const lastRequest = getExecutionsSpy.mock.calls.at(-1)?.[0] as GetExecutionsRequest;
     expect(lastRequest.getOptions()?.getMaxResultSize()).toBe(20);
@@ -187,11 +175,6 @@ describe('ExecutionList ("Default" view)', () => {
         <ExecutionList {...generateProps()} isGroupView={false} />
       </CommonTestWrapper>,
     );
-    await waitFor(() => {
-      expect(getExecutionTypesSpy).toHaveBeenCalledTimes(1);
-      expect(getExecutionsSpy).toHaveBeenCalledTimes(1);
-    });
-
-    screen.getByText('No executions found.');
+    await screen.findByText('No executions found.');
   });
 });

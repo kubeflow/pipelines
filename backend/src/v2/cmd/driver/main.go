@@ -93,6 +93,9 @@ var (
 	mlPipelineTLSEnabled = flag.Bool("ml_pipeline_tls_enabled", false, "Set to true if mlpipeline API server serves over TLS.")
 	metadataTLSEnabled   = flag.Bool("metadata_tls_enabled", false, "Set to true if MLMD serves over TLS.")
 	caCertPath           = flag.String("ca_cert_path", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
+	defaultRunAsUser     = flag.Int64("default_run_as_user", -1, "Admin-configured default runAsUser for user containers. -1 means not set.")
+	defaultRunAsGroup    = flag.Int64("default_run_as_group", -1, "Admin-configured default runAsGroup for user containers. -1 means not set.")
+	defaultRunAsNonRoot  = flag.String("default_run_as_non_root", "", "Admin-configured default runAsNonRoot for user containers. Empty means not set.")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
@@ -243,6 +246,19 @@ func drive() (err error) {
 	case CONTAINER:
 		options.Container = containerSpec
 		options.KubernetesExecutorConfig = k8sExecCfg
+		// Set admin defaults only when explicitly configured (non-negative).
+		if *defaultRunAsUser >= 0 {
+			options.DefaultRunAsUser = defaultRunAsUser
+		}
+		if *defaultRunAsGroup >= 0 {
+			options.DefaultRunAsGroup = defaultRunAsGroup
+		}
+		if *defaultRunAsNonRoot != "" {
+			v, err := strconv.ParseBool(*defaultRunAsNonRoot)
+			if err == nil {
+				options.DefaultRunAsNonRoot = &v
+			}
+		}
 		execution, driverErr = driver.Container(ctx, options, client, cacheClient)
 	default:
 		err = fmt.Errorf("unknown driverType %s", *driverType)
@@ -296,7 +312,7 @@ func handleExecution(execution *driver.Execution, driverType string, executionPa
 			return fmt.Errorf("failed to write iteration count to file: %w", err)
 		}
 	} else {
-		if driverType == ROOT_DAG {
+		if driverType == ROOT_DAG || driverType == DAG {
 			if err := writeFile(executionPaths.IterationCount, []byte("0")); err != nil {
 				return fmt.Errorf("failed to write iteration count to file: %w", err)
 			}
@@ -313,7 +329,7 @@ func handleExecution(execution *driver.Execution, driverType string, executionPa
 		}
 	} else {
 		// nil is a valid value for Condition
-		if driverType == ROOT_DAG || driverType == CONTAINER {
+		if driverType == ROOT_DAG || driverType == DAG || driverType == CONTAINER {
 			if err := writeFile(executionPaths.Condition, []byte("nil")); err != nil {
 				return fmt.Errorf("failed to write condition to file: %w", err)
 			}

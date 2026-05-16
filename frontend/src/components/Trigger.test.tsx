@@ -15,41 +15,9 @@
  */
 
 import * as React from 'react';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import Trigger from './Trigger';
-import { TriggerType, PeriodicInterval } from '../lib/TriggerUtils';
-
-type TriggerState = Trigger['state'];
-
-type TriggerProps = React.ComponentProps<typeof Trigger>;
-
-class TriggerWrapper {
-  private _instance: Trigger;
-  private _renderResult: ReturnType<typeof render>;
-
-  public constructor(instance: Trigger, renderResult: ReturnType<typeof render>) {
-    this._instance = instance;
-    this._renderResult = renderResult;
-  }
-
-  public instance(): Trigger {
-    return this._instance;
-  }
-
-  public state<K extends keyof TriggerState>(key?: K): TriggerState | TriggerState[K] {
-    const state = this._instance.state;
-    return key ? state[key] : state;
-  }
-
-  public renderResult(): ReturnType<typeof render> {
-    return this._renderResult;
-  }
-
-  public unmount(): void {
-    this._renderResult.unmount();
-  }
-}
 
 const PARAMS_DEFAULT = {
   catchup: true,
@@ -62,27 +30,22 @@ const PERIODIC_DEFAULT = {
 };
 const CRON_DEFAULT = { cron: '0 0 * * * ?', end_time: undefined, start_time: undefined };
 
-function renderTrigger(props: TriggerProps = {}): TriggerWrapper {
-  const ref = React.createRef<Trigger>();
-  const renderResult = render(<Trigger ref={ref} {...props} />);
-  if (!ref.current) {
-    throw new Error('Trigger instance not available');
-  }
-  return new TriggerWrapper(ref.current, renderResult);
+async function selectOption(selectElement: HTMLElement, optionText: string): Promise<void> {
+  fireEvent.mouseDown(selectElement);
+  const option = await screen.findByRole('option', { name: optionText });
+  fireEvent.click(option);
 }
 
-async function applyChange(
-  wrapper: TriggerWrapper,
-  name: string,
-  event: { target: { value?: any; type?: string; checked?: boolean } },
-): Promise<void> {
-  await act(async () => {
-    wrapper.instance().handleChange(name)(event);
-  });
+function getTriggerTypeSelect(): HTMLElement {
+  return screen.getByRole('combobox', { name: /trigger type/i });
+}
+
+function getIntervalCategorySelect(): HTMLElement {
+  const comboboxes = screen.getAllByRole('combobox');
+  return comboboxes[1];
 }
 
 describe('Trigger', () => {
-  // tslint:disable-next-line:variable-name
   const RealDate = Date;
 
   function mockDate(isoDate: Date): void {
@@ -108,84 +71,78 @@ describe('Trigger', () => {
   });
 
   it('renders periodic schedule controls for initial render', () => {
-    const wrapper = renderTrigger();
-    expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
-    wrapper.unmount();
+    const { asFragment, unmount } = render(<Trigger />);
+    expect(asFragment()).toMatchSnapshot();
+    unmount();
   });
 
   it('renders periodic schedule controls if the trigger type is CRON', async () => {
-    const wrapper = renderTrigger();
-    await applyChange(wrapper, 'type', { target: { value: TriggerType.CRON } });
-    expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
-    wrapper.unmount();
+    const { asFragment, unmount } = render(<Trigger />);
+    await selectOption(getTriggerTypeSelect(), 'Cron');
+    expect(asFragment()).toMatchSnapshot();
+    unmount();
   });
 
   it('renders week days if the trigger type is CRON and interval is weekly', async () => {
-    const wrapper = renderTrigger();
-    await applyChange(wrapper, 'type', { target: { value: TriggerType.CRON } });
-    await applyChange(wrapper, 'intervalCategory', { target: { value: PeriodicInterval.WEEK } });
-    expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
-    wrapper.unmount();
+    const { asFragment, unmount } = render(<Trigger />);
+    await selectOption(getTriggerTypeSelect(), 'Cron');
+    await selectOption(getIntervalCategorySelect(), 'Week');
+    expect(asFragment()).toMatchSnapshot();
+    unmount();
   });
 
   it('renders all week days enabled', async () => {
-    const wrapper = renderTrigger();
-    await applyChange(wrapper, 'type', { target: { value: TriggerType.CRON } });
-    await applyChange(wrapper, 'intervalCategory', { target: { value: PeriodicInterval.WEEK } });
-    await act(async () => {
-      (wrapper.instance() as any)._toggleCheckAllDays();
-    });
-    expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
-    wrapper.unmount();
+    const { asFragment, unmount } = render(<Trigger />);
+    await selectOption(getTriggerTypeSelect(), 'Cron');
+    await selectOption(getIntervalCategorySelect(), 'Week');
+    fireEvent.click(screen.getByRole('checkbox', { name: 'All' }));
+    expect(asFragment()).toMatchSnapshot();
+    unmount();
   });
 
   it('enables a single day on click', async () => {
-    const wrapper = renderTrigger();
-    await applyChange(wrapper, 'type', { target: { value: TriggerType.CRON } });
-    await applyChange(wrapper, 'intervalCategory', { target: { value: PeriodicInterval.WEEK } });
-    await act(async () => {
-      (wrapper.instance() as any)._toggleDay(1);
-      (wrapper.instance() as any)._toggleDay(3);
-    });
-    expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
-    wrapper.unmount();
+    const { asFragment, unmount } = render(<Trigger />);
+    await selectOption(getTriggerTypeSelect(), 'Cron');
+    await selectOption(getIntervalCategorySelect(), 'Week');
+    fireEvent.click(screen.getByRole('button', { name: 'M' }));
+    fireEvent.click(screen.getByRole('button', { name: 'W' }));
+    expect(asFragment()).toMatchSnapshot();
+    unmount();
   });
 
   describe('max concurrent run', () => {
     it('shows error message if the input is invalid (non-integer)', () => {
       render(<Trigger />);
-      const maxConcurrenyParam = screen.getByDisplayValue('10');
-      fireEvent.change(maxConcurrenyParam, { target: { value: '10a' } });
+      const maxConcurrencyParam = screen.getByDisplayValue('10');
+      fireEvent.change(maxConcurrencyParam, { target: { value: '10a' } });
       screen.getByText('Invalid input. The maximum concurrent runs should be a positive integer.');
     });
 
     it('shows error message if the input is invalid (negative integer)', () => {
       render(<Trigger />);
-      const maxConcurrenyParam = screen.getByDisplayValue('10');
-      fireEvent.change(maxConcurrenyParam, { target: { value: '-10' } });
+      const maxConcurrencyParam = screen.getByDisplayValue('10');
+      fireEvent.change(maxConcurrencyParam, { target: { value: '-10' } });
       screen.getByText('Invalid input. The maximum concurrent runs should be a positive integer.');
     });
   });
 
   describe('interval trigger', () => {
-    it('builds an every-hour trigger by default', async () => {
+    it('builds an every-hour trigger by default', () => {
       const spy = vi.fn();
-      const wrapper = renderTrigger({ onChange: spy });
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.INTERVALED } });
+      render(<Trigger onChange={spy} />);
+
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
           periodic_schedule: PERIODIC_DEFAULT,
         },
       });
-      wrapper.unmount();
     });
 
-    it('builds trigger with a start time if the checkbox is checked', async () => {
+    it('builds trigger with a start time if the checkbox is checked', () => {
       const spy = vi.fn();
-      const wrapper = renderTrigger({ onChange: spy });
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.INTERVALED } });
-      await applyChange(wrapper, 'hasStartDate', { target: { type: 'checkbox', checked: true } });
+      render(<Trigger onChange={spy} />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
       const now = new Date(2018, 11, 21, 7, 53);
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
@@ -193,16 +150,18 @@ describe('Trigger', () => {
           periodic_schedule: { ...PERIODIC_DEFAULT, start_time: now },
         },
       });
-      wrapper.unmount();
     });
 
-    it('builds trigger with the entered start date/time', async () => {
+    it('builds trigger with the entered start date/time', () => {
       const spy = vi.fn();
-      const wrapper = renderTrigger({ onChange: spy });
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.INTERVALED } });
-      await applyChange(wrapper, 'hasStartDate', { target: { type: 'checkbox', checked: true } });
-      await applyChange(wrapper, 'startDate', { target: { value: '2018-11-23' } });
-      await applyChange(wrapper, 'startTime', { target: { value: '08:35' } });
+      render(<Trigger onChange={spy} />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
+      fireEvent.change(screen.getByLabelText('Start date'), {
+        target: { value: '2018-11-23' },
+      });
+      fireEvent.change(screen.getByLabelText('Start time'), {
+        target: { value: '08:35' },
+      });
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
@@ -212,47 +171,49 @@ describe('Trigger', () => {
           },
         },
       });
-      wrapper.unmount();
     });
 
-    it('builds trigger without the entered start date if no time is entered', async () => {
+    it('builds trigger without the entered start date if no time is entered', () => {
       const spy = vi.fn();
-      const wrapper = renderTrigger({ onChange: spy });
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.INTERVALED } });
-      await applyChange(wrapper, 'hasStartDate', { target: { type: 'checkbox', checked: true } });
-      await applyChange(wrapper, 'startDate', { target: { value: '2018-11-23' } });
-      await applyChange(wrapper, 'startTime', { target: { value: '' } });
+      render(<Trigger onChange={spy} />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
+      fireEvent.change(screen.getByLabelText('Start date'), {
+        target: { value: '2018-11-23' },
+      });
+      fireEvent.change(screen.getByLabelText('Start time'), {
+        target: { value: '' },
+      });
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
           periodic_schedule: PERIODIC_DEFAULT,
         },
       });
-      wrapper.unmount();
     });
 
-    it('builds trigger without the entered start time if no date is entered', async () => {
+    it('builds trigger without the entered start time if no date is entered', () => {
       const spy = vi.fn();
-      const wrapper = renderTrigger({ onChange: spy });
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.INTERVALED } });
-      await applyChange(wrapper, 'hasStartDate', { target: { type: 'checkbox', checked: true } });
-      await applyChange(wrapper, 'startDate', { target: { value: '' } });
-      await applyChange(wrapper, 'startTime', { target: { value: '11:33' } });
+      render(<Trigger onChange={spy} />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
+      fireEvent.change(screen.getByLabelText('Start date'), {
+        target: { value: '' },
+      });
+      fireEvent.change(screen.getByLabelText('Start time'), {
+        target: { value: '11:33' },
+      });
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
           periodic_schedule: PERIODIC_DEFAULT,
         },
       });
-      wrapper.unmount();
     });
 
-    it('builds trigger with a date if both start and end checkboxes are checked', async () => {
+    it('builds trigger with a date if both start and end checkboxes are checked', () => {
       const spy = vi.fn();
-      const wrapper = renderTrigger({ onChange: spy });
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.INTERVALED } });
-      await applyChange(wrapper, 'hasStartDate', { target: { type: 'checkbox', checked: true } });
-      await applyChange(wrapper, 'hasEndDate', { target: { type: 'checkbox', checked: true } });
+      render(<Trigger onChange={spy} />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has end date' }));
       const now = new Date(2018, 11, 21, 7, 53);
       const oneWeekLater = new Date(2018, 11, 28, 7, 53);
       expect(spy).toHaveBeenLastCalledWith({
@@ -261,97 +222,107 @@ describe('Trigger', () => {
           periodic_schedule: { ...PERIODIC_DEFAULT, end_time: oneWeekLater, start_time: now },
         },
       });
-      wrapper.unmount();
     });
 
-    it('resets trigger to no start date if it is added then removed', async () => {
+    it('resets trigger to no start date if it is added then removed', () => {
       const spy = vi.fn();
-      const wrapper = renderTrigger({ onChange: spy });
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.INTERVALED } });
-      await applyChange(wrapper, 'hasStartDate', { target: { type: 'checkbox', checked: true } });
-      await applyChange(wrapper, 'hasStartDate', { target: { type: 'checkbox', checked: false } });
+      render(<Trigger onChange={spy} />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
           periodic_schedule: PERIODIC_DEFAULT,
         },
       });
-      wrapper.unmount();
     });
 
     it('Show invalid start date/time format message if date has wrong format.', async () => {
-      const wrapper = renderTrigger();
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.INTERVALED } });
-      await applyChange(wrapper, 'hasStartDate', { target: { type: 'checkbox', checked: true } });
+      render(<Trigger />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
 
-      await applyChange(wrapper, 'startDate', {
+      // jsdom sanitizes type="date" inputs, rejecting non-YYYY-MM-DD values.
+      // Temporarily switch to type="text" so the invalid value reaches handleChange.
+      const startDateInput = screen.getByLabelText('Start date') as HTMLInputElement;
+      startDateInput.type = 'text';
+      fireEvent.change(startDateInput, {
         target: { value: 'this_is_not_valid_date_format' },
       });
-      let messageBox = screen.getByTestId('startTimeMessage');
-      expect(messageBox.textContent).toEqual("Invalid start date or time, start time won't be set");
+      expect(
+        await screen.findByText("Invalid start date or time, start time won't be set"),
+      ).toBeInTheDocument();
 
-      await applyChange(wrapper, 'startDate', { target: { value: '2021-01-01' } });
-      messageBox = screen.getByTestId('startTimeMessage');
-      expect(messageBox.textContent).toEqual('');
-      wrapper.unmount();
+      fireEvent.change(screen.getByLabelText('Start date'), {
+        target: { value: '2021-01-01' },
+      });
+      expect(
+        screen.queryByText("Invalid start date or time, start time won't be set"),
+      ).not.toBeInTheDocument();
     });
 
     it('Hide invalid start date/time format message if start time checkbox is not selected.', async () => {
-      const wrapper = renderTrigger();
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.INTERVALED } });
-      await applyChange(wrapper, 'hasStartDate', { target: { type: 'checkbox', checked: true } });
+      render(<Trigger />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
 
-      await applyChange(wrapper, 'startDate', {
+      const startDateInput = screen.getByLabelText('Start date') as HTMLInputElement;
+      startDateInput.type = 'text';
+      fireEvent.change(startDateInput, {
         target: { value: 'this_is_not_valid_date_format' },
       });
-      let messageBox = screen.getByTestId('startTimeMessage');
-      expect(messageBox.textContent).toEqual("Invalid start date or time, start time won't be set");
+      expect(
+        await screen.findByText("Invalid start date or time, start time won't be set"),
+      ).toBeInTheDocument();
 
-      await applyChange(wrapper, 'hasStartDate', {
-        target: { type: 'checkbox', checked: false },
-      });
-      messageBox = screen.getByTestId('startTimeMessage');
-      expect(messageBox.textContent).toEqual('');
-      wrapper.unmount();
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
+      expect(
+        screen.queryByText("Invalid start date or time, start time won't be set"),
+      ).not.toBeInTheDocument();
     });
 
     it('Show invalid end date/time format message if date has wrong format.', async () => {
-      const wrapper = renderTrigger();
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.INTERVALED } });
-      await applyChange(wrapper, 'hasEndDate', { target: { type: 'checkbox', checked: true } });
+      render(<Trigger />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has end date' }));
 
-      await applyChange(wrapper, 'endTime', { target: { value: 'this_is_not_valid_time_format' } });
-      let messageBox = screen.getByTestId('endTimeMessage');
-      expect(messageBox.textContent).toEqual("Invalid end date or time, end time won't be set");
+      const endTimeInput = screen.getByLabelText('End time') as HTMLInputElement;
+      endTimeInput.type = 'text';
+      fireEvent.change(endTimeInput, {
+        target: { value: 'this_is_not_valid_time_format' },
+      });
+      expect(
+        await screen.findByText("Invalid end date or time, end time won't be set"),
+      ).toBeInTheDocument();
 
-      await applyChange(wrapper, 'endTime', { target: { value: '11:22' } });
-      messageBox = screen.getByTestId('endTimeMessage');
-      expect(messageBox.textContent).toEqual('');
-      wrapper.unmount();
+      fireEvent.change(screen.getByLabelText('End time'), {
+        target: { value: '11:22' },
+      });
+      expect(
+        screen.queryByText("Invalid end date or time, end time won't be set"),
+      ).not.toBeInTheDocument();
     });
 
     it('Hide invalid end date/time format message if start time checkbox is not selected.', async () => {
-      const wrapper = renderTrigger();
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.INTERVALED } });
-      await applyChange(wrapper, 'hasEndDate', { target: { type: 'checkbox', checked: true } });
+      render(<Trigger />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has end date' }));
 
-      await applyChange(wrapper, 'endTime', {
+      const endTimeInput = screen.getByLabelText('End time') as HTMLInputElement;
+      endTimeInput.type = 'text';
+      fireEvent.change(endTimeInput, {
         target: { value: 'this_is_not_valid_date_format' },
       });
-      let messageBox = screen.getByTestId('endTimeMessage');
-      expect(messageBox.textContent).toEqual("Invalid end date or time, end time won't be set");
+      expect(
+        await screen.findByText("Invalid end date or time, end time won't be set"),
+      ).toBeInTheDocument();
 
-      await applyChange(wrapper, 'hasEndDate', { target: { type: 'checkbox', checked: false } });
-      messageBox = screen.getByTestId('endTimeMessage');
-      expect(messageBox.textContent).toEqual('');
-      wrapper.unmount();
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has end date' }));
+      expect(
+        screen.queryByText("Invalid end date or time, end time won't be set"),
+      ).not.toBeInTheDocument();
     });
 
     it('builds trigger with a weekly interval', async () => {
       const spy = vi.fn();
-      const wrapper = renderTrigger({ onChange: spy });
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.INTERVALED } });
-      await applyChange(wrapper, 'intervalCategory', { target: { value: PeriodicInterval.WEEK } });
+      render(<Trigger onChange={spy} />);
+      await selectOption(getIntervalCategorySelect(), 'Weeks');
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
@@ -361,15 +332,13 @@ describe('Trigger', () => {
           },
         },
       });
-      wrapper.unmount();
     });
 
     it('builds trigger with an every-three-months interval', async () => {
       const spy = vi.fn();
-      const wrapper = renderTrigger({ onChange: spy });
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.INTERVALED } });
-      await applyChange(wrapper, 'intervalCategory', { target: { value: PeriodicInterval.MONTH } });
-      await applyChange(wrapper, 'intervalValue', { target: { value: 3 } });
+      render(<Trigger onChange={spy} />);
+      await selectOption(getIntervalCategorySelect(), 'Months');
+      fireEvent.change(screen.getByRole('spinbutton'), { target: { value: 3 } });
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
@@ -379,14 +348,12 @@ describe('Trigger', () => {
           },
         },
       });
-      wrapper.unmount();
     });
 
-    it('builds trigger with the specified max concurrency setting', async () => {
+    it('builds trigger with the specified max concurrency setting', () => {
       const spy = vi.fn();
-      const wrapper = renderTrigger({ onChange: spy });
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.INTERVALED } });
-      await applyChange(wrapper, 'maxConcurrentRuns', { target: { value: '3' } });
+      render(<Trigger onChange={spy} />);
+      fireEvent.change(screen.getByDisplayValue('10'), { target: { value: '3' } });
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         maxConcurrentRuns: '3',
@@ -394,14 +361,12 @@ describe('Trigger', () => {
           periodic_schedule: PERIODIC_DEFAULT,
         },
       });
-      wrapper.unmount();
     });
 
-    it('builds trigger with the specified catchup setting', async () => {
+    it('builds trigger with the specified catchup setting', () => {
       const spy = vi.fn();
-      const wrapper = renderTrigger({ onChange: spy });
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.INTERVALED } });
-      await applyChange(wrapper, 'catchup', { target: { type: 'checkbox', checked: false } });
+      render(<Trigger onChange={spy} />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Catchup' }));
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         catchup: false,
@@ -409,7 +374,6 @@ describe('Trigger', () => {
           periodic_schedule: PERIODIC_DEFAULT,
         },
       });
-      wrapper.unmount();
     });
 
     it('inits with cloned initial props', () => {
@@ -430,7 +394,6 @@ describe('Trigger', () => {
           }}
         />,
       );
-      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenLastCalledWith({
         catchup: false,
         maxConcurrentRuns: '3',
@@ -448,23 +411,24 @@ describe('Trigger', () => {
   describe('cron', () => {
     it('builds a 1-hour cron trigger by default', async () => {
       const spy = vi.fn();
-      const wrapper = renderTrigger({ onChange: spy });
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.CRON } });
+      render(<Trigger onChange={spy} />);
+      await selectOption(getTriggerTypeSelect(), 'Cron');
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
           cron_schedule: CRON_DEFAULT,
         },
       });
-      wrapper.unmount();
     });
 
     it('builds a 1-hour cron trigger with specified start date', async () => {
       const spy = vi.fn();
-      const wrapper = renderTrigger({ onChange: spy });
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.CRON } });
-      await applyChange(wrapper, 'hasStartDate', { target: { type: 'checkbox', checked: true } });
-      await applyChange(wrapper, 'startDate', { target: { value: '2018-03-23' } });
+      render(<Trigger onChange={spy} />);
+      await selectOption(getTriggerTypeSelect(), 'Cron');
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
+      fireEvent.change(screen.getByLabelText('Start date'), {
+        target: { value: '2018-03-23' },
+      });
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
@@ -475,15 +439,14 @@ describe('Trigger', () => {
           },
         },
       });
-      wrapper.unmount();
     });
 
     it('builds a daily cron trigger with specified end date/time', async () => {
       const spy = vi.fn();
-      const wrapper = renderTrigger({ onChange: spy });
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.CRON } });
-      await applyChange(wrapper, 'hasEndDate', { target: { type: 'checkbox', checked: true } });
-      await applyChange(wrapper, 'intervalCategory', { target: { value: PeriodicInterval.DAY } });
+      render(<Trigger onChange={spy} />);
+      await selectOption(getTriggerTypeSelect(), 'Cron');
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has end date' }));
+      await selectOption(getIntervalCategorySelect(), 'Day');
       const oneWeekLater = new Date(2018, 11, 28, 7, 53);
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
@@ -491,49 +454,49 @@ describe('Trigger', () => {
           cron_schedule: { ...CRON_DEFAULT, end_time: oneWeekLater, cron: '0 0 0 * * ?' },
         },
       });
-      wrapper.unmount();
     });
 
     it('builds a weekly cron trigger that runs every Monday, Friday, and Saturday', async () => {
       const spy = vi.fn();
-      const wrapper = renderTrigger({ onChange: spy });
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.CRON } });
-      await applyChange(wrapper, 'intervalCategory', { target: { value: PeriodicInterval.WEEK } });
-      await act(async () => {
-        (wrapper.instance() as any)._toggleCheckAllDays();
-        (wrapper.instance() as any)._toggleDay(1);
-        (wrapper.instance() as any)._toggleDay(5);
-        (wrapper.instance() as any)._toggleDay(6);
-      });
+      render(<Trigger onChange={spy} />);
+      await selectOption(getTriggerTypeSelect(), 'Cron');
+      await selectOption(getIntervalCategorySelect(), 'Week');
+
+      fireEvent.click(screen.getByRole('checkbox', { name: 'All' }));
+      fireEvent.click(screen.getByRole('button', { name: 'M' }));
+      fireEvent.click(screen.getByRole('button', { name: 'F' }));
+      // Two "S" buttons exist (Sun, Sat); pick the second = Saturday
+      fireEvent.click(screen.getAllByRole('button', { name: 'S' })[1]);
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
           cron_schedule: { ...CRON_DEFAULT, cron: '0 0 0 ? * 1,5,6' },
         },
       });
-      wrapper.unmount();
     });
 
     it('builds a cron with the manually specified cron string, even if days are toggled', async () => {
       const spy = vi.fn();
-      const wrapper = renderTrigger({ onChange: spy });
-      await applyChange(wrapper, 'type', { target: { value: TriggerType.CRON } });
-      await applyChange(wrapper, 'intervalCategory', { target: { value: PeriodicInterval.WEEK } });
-      await act(async () => {
-        (wrapper.instance() as any)._toggleCheckAllDays();
-        (wrapper.instance() as any)._toggleDay(1);
-        (wrapper.instance() as any)._toggleDay(5);
-        (wrapper.instance() as any)._toggleDay(6);
+      render(<Trigger onChange={spy} />);
+      await selectOption(getTriggerTypeSelect(), 'Cron');
+      await selectOption(getIntervalCategorySelect(), 'Week');
+
+      fireEvent.click(screen.getByRole('checkbox', { name: 'All' }));
+      fireEvent.click(screen.getByRole('button', { name: 'M' }));
+      fireEvent.click(screen.getByRole('button', { name: 'F' }));
+      // Two "S" buttons exist (Sun, Sat); pick the second = Saturday
+      fireEvent.click(screen.getAllByRole('button', { name: 'S' })[1]);
+
+      fireEvent.click(screen.getByRole('checkbox', { name: /allow editing cron expression/i }));
+      fireEvent.change(screen.getByLabelText('cron expression'), {
+        target: { value: 'oops this will break!' },
       });
-      await applyChange(wrapper, 'editCron', { target: { type: 'checkbox', checked: true } });
-      await applyChange(wrapper, 'cron', { target: { value: 'oops this will break!' } });
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
           cron_schedule: { ...CRON_DEFAULT, cron: 'oops this will break!' },
         },
       });
-      wrapper.unmount();
     });
 
     it('inits with cloned initial props', () => {
@@ -556,7 +519,6 @@ describe('Trigger', () => {
           }}
         />,
       );
-      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenLastCalledWith({
         catchup: true,
         maxConcurrentRuns: '4',

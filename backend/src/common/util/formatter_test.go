@@ -346,6 +346,20 @@ func TestFormatEmptyWorkflow(t *testing.T) {
 	assert.Equal(t, expected, workflow)
 }
 
+func TestFormatNameError(t *testing.T) {
+	uuid := NewFakeUUIDGeneratorOrFatal(defaultUUID, errors.New("UUID generation failed"))
+	formatter := NewWorkflowFormatter(uuid,
+		getDefaultScheduledAtSec(),
+		getDefaultCreatedAtSec())
+
+	workflow := &v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-[[uuid]]-name"},
+	}
+
+	err := formatter.Format(workflow)
+	assert.Contains(t, err.Error(), "UUID generation failed")
+}
+
 func TestFormatError(t *testing.T) {
 	uuid := NewFakeUUIDGeneratorOrFatal(defaultUUID, errors.New("UUID generation failed"))
 	formatter := NewWorkflowFormatter(uuid,

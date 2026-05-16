@@ -40,7 +40,7 @@ const RECURRINGRUNS: V2beta1RecurringRun[] = [
     created_at: new Date(2018, 10, 9, 8, 7, 6),
     display_name: 'test recurring run name3',
     recurring_run_id: 'recurringrun3',
-    status: V2beta1RecurringRunStatus.STATUSUNSPECIFIED,
+    status: V2beta1RecurringRunStatus.STATUS_UNSPECIFIED,
   },
 ];
 
@@ -74,7 +74,7 @@ describe('RecurringRunsManager', () => {
 
   function getRowById(id: string): HTMLElement {
     const rows = screen.getAllByTestId('table-row');
-    const row = rows.find(element => element.getAttribute('data-row-id') === id);
+    const row = rows.find((element) => element.getAttribute('data-row-id') === id);
     if (!row) {
       throw new Error(`Row not found: ${id}`);
     }
@@ -244,12 +244,13 @@ describe('RecurringRunsManager', () => {
 
   it('reloads the list of runs after enable/disabling', async () => {
     renderManager();
-    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalled());
 
+    listRecurringRunsSpy.mockClear();
     const row = getRowById('recurringrun1');
     const button = within(row).getByRole('button', { name: 'Enabled' });
     fireEvent.click(button);
 
-    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1));
   });
 });

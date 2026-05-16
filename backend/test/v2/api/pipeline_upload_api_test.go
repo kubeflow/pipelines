@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"time"
 
+	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
 	uploadparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	"github.com/kubeflow/pipelines/backend/test/config"
@@ -90,6 +91,51 @@ var _ = Describe("Verify Pipeline Upload >", Label(constants.POSITIVE, constants
 	})
 })
 
+var _ = Describe("Verify Pipeline Upload with Tags >", Label(constants.POSITIVE, constants.PipelineUpload, constants.APIServerTests, constants.FullRegression), func() {
+
+	Context("Upload a valid pipeline with tags and verify tags are stored >", func() {
+		var pipelineDir = "valid"
+
+		It(fmt.Sprintf("Upload %s pipeline with tags and verify tags are returned", helloWorldPipelineFileName), func() {
+			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
+			tags := map[string]string{"team": "ml-ops", "env": "prod"}
+			tagsJSON, err := testutil.TagsMapToJSONStringPtr(tags)
+			Expect(err).NotTo(HaveOccurred())
+			testContext.Pipeline.UploadParams.Tags = tagsJSON
+			testContext.Pipeline.ExpectedPipeline.Tags = tags
+			uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+		})
+
+		It(fmt.Sprintf("Upload %s pipeline with empty tags map", helloWorldPipelineFileName), func() {
+			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
+			emptyTags := map[string]string{}
+			tagsJSON, err := testutil.TagsMapToJSONStringPtr(emptyTags)
+			Expect(err).NotTo(HaveOccurred())
+			testContext.Pipeline.UploadParams.Tags = tagsJSON
+			uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+		})
+
+		It(fmt.Sprintf("Upload %s pipeline without tags and verify no tags are returned", helloWorldPipelineFileName), func() {
+			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
+			uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+		})
+
+		It(fmt.Sprintf("Upload %s pipeline with tags and verify tags via GetPipeline", helloWorldPipelineFileName), func() {
+			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
+			tags := map[string]string{"project": "kfp", "owner": "test"}
+			tagsJSON, err := testutil.TagsMapToJSONStringPtr(tags)
+			Expect(err).NotTo(HaveOccurred())
+			testContext.Pipeline.UploadParams.Tags = tagsJSON
+			testContext.Pipeline.ExpectedPipeline.Tags = tags
+			createdPipeline := uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+
+			// Verify tags are returned via GetPipeline endpoint
+			retrievedPipeline := testutil.GetPipeline(pipelineClient, createdPipeline.PipelineID)
+			Expect(retrievedPipeline.Tags).To(Equal(tags), "Tags should be returned via GetPipeline")
+		})
+	})
+})
+
 var _ = Describe("Verify Pipeline Upload Version >", Label(constants.POSITIVE, "PipelineUpload", constants.APIServerTests, constants.FullRegression), func() {
 	var pipelineDir = "valid"
 	helloWorldPipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
@@ -106,7 +152,194 @@ var _ = Describe("Verify Pipeline Upload Version >", Label(constants.POSITIVE, "
 	})
 })
 
+var _ = Describe("Verify Pipeline Upload Version with Tags >", Label(constants.POSITIVE, "PipelineUpload", constants.APIServerTests, constants.FullRegression), func() {
+	var pipelineDir = "valid"
+	helloWorldPipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
+
+	Context("Upload a pipeline version with tags and verify tags are stored >", func() {
+		It("Upload a pipeline version with tags and verify tags are returned in the response", func() {
+			createdPipeline := uploadPipelineAndVerify(helloWorldPipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+
+			parameters := uploadparams.NewUploadPipelineVersionParams()
+			expectedPipelineVersion := new(model.V2beta1PipelineVersion)
+			versionName := createdPipeline.DisplayName + "-v2-tagged"
+			parameters.Pipelineid = &(createdPipeline.PipelineID)
+			parameters.SetName(&versionName)
+
+			tags := map[string]string{"team": "ml-ops", "env": "prod"}
+			tagsJSON, err := testutil.TagsMapToJSONStringPtr(tags)
+			Expect(err).NotTo(HaveOccurred())
+			parameters.Tags = tagsJSON
+
+			inputFileContent := testutil.ParseFileToSpecs(helloWorldPipelineSpecFilePath, true, nil)
+			expectedPipelineVersion.DisplayName = versionName
+			expectedPipelineVersion.PipelineSpec = inputFileContent
+
+			createdVersion := uploadPipelineVersionAndVerify(helloWorldPipelineSpecFilePath, parameters, expectedPipelineVersion)
+			Expect(createdVersion.Tags).To(Equal(tags), "Tags should be returned in the upload response")
+		})
+
+		It("Upload a pipeline version with tags and verify tags via GetPipelineVersion endpoint", func() {
+			createdPipeline := uploadPipelineAndVerify(helloWorldPipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+
+			parameters := uploadparams.NewUploadPipelineVersionParams()
+			expectedPipelineVersion := new(model.V2beta1PipelineVersion)
+			versionName := createdPipeline.DisplayName + "-v2-tagged-get"
+			parameters.Pipelineid = &(createdPipeline.PipelineID)
+			parameters.SetName(&versionName)
+
+			tags := map[string]string{"project": "kfp", "owner": "test"}
+			tagsJSON, err := testutil.TagsMapToJSONStringPtr(tags)
+			Expect(err).NotTo(HaveOccurred())
+			parameters.Tags = tagsJSON
+
+			inputFileContent := testutil.ParseFileToSpecs(helloWorldPipelineSpecFilePath, true, nil)
+			expectedPipelineVersion.DisplayName = versionName
+			expectedPipelineVersion.PipelineSpec = inputFileContent
+
+			createdVersion := uploadPipelineVersionAndVerify(helloWorldPipelineSpecFilePath, parameters, expectedPipelineVersion)
+
+			// Verify tags via GetPipelineVersion endpoint
+			retrievedVersion, err := pipelineClient.GetPipelineVersion(&pipeline_params.PipelineServiceGetPipelineVersionParams{
+				PipelineID:        createdPipeline.PipelineID,
+				PipelineVersionID: createdVersion.PipelineVersionID,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(retrievedVersion.Tags).To(Equal(tags), "Tags should be returned via GetPipelineVersion endpoint")
+		})
+
+		It("Upload a pipeline version with tags and verify tags via ListPipelineVersions", func() {
+			createdPipeline := uploadPipelineAndVerify(helloWorldPipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+
+			parameters := uploadparams.NewUploadPipelineVersionParams()
+			expectedPipelineVersion := new(model.V2beta1PipelineVersion)
+			versionName := createdPipeline.DisplayName + "-v2-tagged-list"
+			parameters.Pipelineid = &(createdPipeline.PipelineID)
+			parameters.SetName(&versionName)
+
+			tags := map[string]string{"stage": "beta", "release": "v1"}
+			tagsJSON, err := testutil.TagsMapToJSONStringPtr(tags)
+			Expect(err).NotTo(HaveOccurred())
+			parameters.Tags = tagsJSON
+
+			inputFileContent := testutil.ParseFileToSpecs(helloWorldPipelineSpecFilePath, true, nil)
+			expectedPipelineVersion.DisplayName = versionName
+			expectedPipelineVersion.PipelineSpec = inputFileContent
+
+			uploadPipelineVersionAndVerify(helloWorldPipelineSpecFilePath, parameters, expectedPipelineVersion)
+
+			// Verify tags via ListPipelineVersions
+			versions := testutil.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			Expect(len(versions)).To(BeNumerically(">=", 2))
+
+			var foundTaggedVersion bool
+			for _, v := range versions {
+				if v.DisplayName == versionName {
+					Expect(v.Tags).To(Equal(tags), "Tagged version should include tags in list response")
+					foundTaggedVersion = true
+					break
+				}
+			}
+			Expect(foundTaggedVersion).To(BeTrue(), "Should find the tagged version in the list")
+		})
+
+		It("Upload a pipeline version without tags and verify no tags are returned", func() {
+			createdPipeline := uploadPipelineAndVerify(helloWorldPipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+
+			parameters := uploadparams.NewUploadPipelineVersionParams()
+			expectedPipelineVersion := new(model.V2beta1PipelineVersion)
+			versionName := createdPipeline.DisplayName + "-v2-no-tags"
+			parameters.Pipelineid = &(createdPipeline.PipelineID)
+			parameters.SetName(&versionName)
+
+			inputFileContent := testutil.ParseFileToSpecs(helloWorldPipelineSpecFilePath, true, nil)
+			expectedPipelineVersion.DisplayName = versionName
+			expectedPipelineVersion.PipelineSpec = inputFileContent
+
+			createdVersion := uploadPipelineVersionAndVerify(helloWorldPipelineSpecFilePath, parameters, expectedPipelineVersion)
+			Expect(createdVersion.Tags).To(BeEmpty(), "Version uploaded without tags should have empty tags")
+		})
+
+		It("Upload a pipeline version with empty tags map", func() {
+			createdPipeline := uploadPipelineAndVerify(helloWorldPipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+
+			parameters := uploadparams.NewUploadPipelineVersionParams()
+			expectedPipelineVersion := new(model.V2beta1PipelineVersion)
+			versionName := createdPipeline.DisplayName + "-v2-empty-tags"
+			parameters.Pipelineid = &(createdPipeline.PipelineID)
+			parameters.SetName(&versionName)
+
+			emptyTags := map[string]string{}
+			tagsJSON, err := testutil.TagsMapToJSONStringPtr(emptyTags)
+			Expect(err).NotTo(HaveOccurred())
+			parameters.Tags = tagsJSON
+
+			inputFileContent := testutil.ParseFileToSpecs(helloWorldPipelineSpecFilePath, true, nil)
+			expectedPipelineVersion.DisplayName = versionName
+			expectedPipelineVersion.PipelineSpec = inputFileContent
+
+			createdVersion := uploadPipelineVersionAndVerify(helloWorldPipelineSpecFilePath, parameters, expectedPipelineVersion)
+			Expect(createdVersion.Tags).To(BeEmpty(), "Version uploaded with empty tags should have empty tags")
+		})
+	})
+})
+
 // ################## NEGATIVE TESTS ##################
+
+var _ = Describe("Verify Pipeline Upload Version with Tags Failure >", Label("Negative", "PipelineUpload", constants.APIServerTests, constants.FullRegression), func() {
+	var pipelineDir = "valid"
+	pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
+
+	Context("Upload a pipeline version with invalid tags >", func() {
+		It("Upload a pipeline version with tag key exceeding 63 characters", func() {
+			createdPipeline := uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+
+			parameters := uploadparams.NewUploadPipelineVersionParams()
+			versionName := createdPipeline.DisplayName + "-v2-long-key"
+			parameters.Pipelineid = &(createdPipeline.PipelineID)
+			parameters.SetName(&versionName)
+
+			longKey := "this-key-is-way-too-long-for-tags-and-exceeds-the-sixty-three-char-limit"
+			tags := map[string]string{longKey: "value"}
+			tagsJSON, err := testutil.TagsMapToJSONStringPtr(tags)
+			Expect(err).NotTo(HaveOccurred())
+			parameters.Tags = tagsJSON
+
+			uploadPipelineVersionAndVerifyFailure(pipelineSpecFilePath, parameters, "Failed to upload pipeline version")
+		})
+
+		It("Upload a pipeline version with tag value exceeding 63 characters", func() {
+			createdPipeline := uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+
+			parameters := uploadparams.NewUploadPipelineVersionParams()
+			versionName := createdPipeline.DisplayName + "-v2-long-value"
+			parameters.Pipelineid = &(createdPipeline.PipelineID)
+			parameters.SetName(&versionName)
+
+			longValue := "this-value-is-way-too-long-for-tags-and-exceeds-the-sixty-three-char-limit"
+			tags := map[string]string{"key": longValue}
+			tagsJSON, err := testutil.TagsMapToJSONStringPtr(tags)
+			Expect(err).NotTo(HaveOccurred())
+			parameters.Tags = tagsJSON
+
+			uploadPipelineVersionAndVerifyFailure(pipelineSpecFilePath, parameters, "Failed to upload pipeline version")
+		})
+
+		It("Upload a pipeline version with invalid tags JSON format", func() {
+			createdPipeline := uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+
+			parameters := uploadparams.NewUploadPipelineVersionParams()
+			versionName := createdPipeline.DisplayName + "-v2-bad-json"
+			parameters.Pipelineid = &(createdPipeline.PipelineID)
+			parameters.SetName(&versionName)
+
+			invalidJSON := "not-valid-json"
+			parameters.SetTags(&invalidJSON)
+
+			uploadPipelineVersionAndVerifyFailure(pipelineSpecFilePath, parameters, "Failed to upload pipeline version")
+		})
+	})
+})
 
 var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative", "PipelineUpload", constants.APIServerTests, constants.FullRegression), func() {
 	var pipelineDir = "invalid"
@@ -198,6 +431,11 @@ func uploadPipeline(pipelineFilePath string, pipelineName *string, pipelineDispl
 		testContext.Pipeline.UploadParams.SetDisplayName(pipelineDisplayName)
 	} else {
 		testContext.Pipeline.ExpectedPipeline.DisplayName = *pipelineName
+	}
+	// Set namespace so the pipeline is created in the correct namespace (required for multi-user mode)
+	namespace := testutil.GetNamespace()
+	if namespace != "" {
+		testContext.Pipeline.UploadParams.SetNamespace(&namespace)
 	}
 	logger.Log("Uploading pipeline with name=%s, from file %s", *pipelineName, pipelineFilePath)
 	return pipelineUploadClient.UploadFile(pipelineFilePath, testContext.Pipeline.UploadParams)

@@ -4,28 +4,25 @@ exports[`CollapseButton > initial render 1`] = `
 <DocumentFragment>
   <div>
     <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-text collapseBtn_flpzte2"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary collapseBtn_flpzte2 css-1e6y48t-MuiButtonBase-root-MuiButton-root"
       tabindex="0"
       title="Expand/Collapse this section"
       type="button"
     >
-      <span
-        class="MuiButton-label"
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f12h700d css-i4bv87-MuiSvgIcon-root"
+        data-testid="ArrowDropUpIcon"
+        focusable="false"
+        viewBox="0 0 24 24"
       >
-        <svg
-          aria-hidden="true"
-          class="MuiSvgIcon-root icon_f12h700d"
-          focusable="false"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M7 14l5-5 5 5z"
-          />
-        </svg>
-        testSection
-      </span>
+        <path
+          d="m7 14 5-5 5 5z"
+        />
+      </svg>
+      testSection
       <span
-        class="MuiTouchRipple-root"
+        class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
       />
     </button>
   </div>
@@ -36,28 +33,25 @@ exports[`CollapseButton > renders the button collapsed if in collapsedSections 1
 <DocumentFragment>
   <div>
     <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-text collapseBtn_flpzte2"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary collapseBtn_flpzte2 css-1e6y48t-MuiButtonBase-root-MuiButton-root"
       tabindex="0"
       title="Expand/Collapse this section"
       type="button"
     >
-      <span
-        class="MuiButton-label"
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f12h700d collapsed_f18a0vkk css-i4bv87-MuiSvgIcon-root"
+        data-testid="ArrowDropUpIcon"
+        focusable="false"
+        viewBox="0 0 24 24"
       >
-        <svg
-          aria-hidden="true"
-          class="MuiSvgIcon-root icon_f12h700d collapsed_f18a0vkk"
-          focusable="false"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M7 14l5-5 5 5z"
-          />
-        </svg>
-        testSection
-      </span>
+        <path
+          d="m7 14 5-5 5 5z"
+        />
+      </svg>
+      testSection
       <span
-        class="MuiTouchRipple-root"
+        class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
       />
     </button>
   </div>

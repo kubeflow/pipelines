@@ -22,4 +22,8 @@ export const CARD_TITLE_BASE_HEIGHT = 40;
 export const CARD_TITLE_BORDER_BOTTOM_HEIGHT = 1;
 export const CARD_TITLE_HEIGHT = CARD_TITLE_BASE_HEIGHT + CARD_TITLE_BORDER_BOTTOM_HEIGHT;
 export const CARD_SPACER_HEIGHT = 24;
-export const CARD_ROW_HEIGHT = 67;
+// Keep in sync with .cardRow height in LineageCardRow.tsx.
+export const CARD_ROW_HEIGHT = 54;
+export const CARD_ROW_CENTER_Y = CARD_ROW_HEIGHT / 2;
+export const EDGE_PORT_SIZE = 8;
+export const EDGE_PORT_HALF = EDGE_PORT_SIZE / 2;

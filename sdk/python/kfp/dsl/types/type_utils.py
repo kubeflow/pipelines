@@ -526,7 +526,7 @@ def get_canonical_name_for_outer_generic(type_name: Any) -> str:
         return type_name
 
     if type_name.startswith('typing.'):
-        type_name = type_name.lstrip('typing.')
+        type_name = type_name.removeprefix('typing.')
 
     if type_name.lower().startswith('list') or type_name.lower().startswith(
             'dict'):

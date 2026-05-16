@@ -18,6 +18,7 @@ package testutil
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -46,6 +47,20 @@ func ParsePointersToString(s *string) string {
 	} else {
 		return *s
 	}
+}
+
+// TagsMapToJSONStringPtr serializes a map[string]string to a JSON string pointer.
+// Returns (nil, nil) if the map is nil.
+func TagsMapToJSONStringPtr(m map[string]string) (*string, error) {
+	if m == nil {
+		return nil, nil
+	}
+	data, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	s := string(data)
+	return &s, nil
 }
 
 // GetRandomString - Get a random string of length x
