@@ -668,6 +668,7 @@ class Client:
         Returns:
             ``V2beta1ListPipelinesResponse`` object.
         """
+        namespace = namespace or self.get_user_namespace()
         return self._pipelines_api.pipeline_service_list_pipelines(
             namespace=namespace,
             page_token=page_token,
@@ -1302,6 +1303,7 @@ class Client:
         Returns:
             ``V2beta1ListRecurringRunsResponse`` object.
         """
+        namespace = namespace or self.get_user_namespace()
         if experiment_id is not None:
             return self._recurring_run_api.recurring_run_service_list_recurring_runs(
                 page_token=page_token,
@@ -1420,12 +1422,15 @@ class Client:
             pipeline_name: Name of the pipeline to be shown in the UI.
             description: Description of the pipeline to be shown in the UI.
             namespace: Optional. Kubernetes namespace where the pipeline should
-                be uploaded. For single user deployment, leave it as None; For
-                multi user, input a namespace where the user is authorized.
+                be uploaded. Defaults to the namespace configured on the client
+                (e.g. via ``Client(namespace=...)`` or
+                ``set_user_namespace()``). For single-user deployments, leave
+                it as ``None``.
 
         Returns:
             ``V2beta1Pipeline`` object.
         """
+        namespace = namespace or self.get_user_namespace()
         if pipeline_name is None:
             pipeline_doc = _extract_pipeline_yaml(pipeline_package_path)
             pipeline_name = pipeline_doc.pipeline_spec.pipeline_info.name
