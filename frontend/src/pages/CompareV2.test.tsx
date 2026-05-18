@@ -17,7 +17,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { useEffect, useState } from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import TestUtils, { expectErrors, testBestPractices } from 'src/TestUtils';
+import TestUtils, { expectErrors, flushPromisesInAct, testBestPractices } from 'src/TestUtils';
 import { Artifact, Context, Event, Execution } from 'src/third_party/mlmd';
 import { Apis } from 'src/lib/Apis';
 import { ButtonKeys } from 'src/lib/Buttons';
@@ -708,7 +708,7 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     // Wait for runs to render (indicates all queries resolved) before banner clears
     await waitForRunCheckboxes(3);
@@ -761,7 +761,7 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     await waitForRunCheckboxes(3);
 
     await waitFor(
@@ -874,7 +874,7 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     screen.getByLabelText('Filter runs');
     screen.getByText('There are no Parameters available on the selected runs.');
@@ -914,7 +914,7 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitForRunCheckboxes(3);
     const headerCheckbox = getHeaderCheckbox();
@@ -935,11 +935,11 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitForRunCheckboxes(3);
     fireEvent.click(getRunRow(MOCK_RUN_2_ID));
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitForRunCheckboxes(2);
     expect(getHeaderCheckbox()).not.toBeChecked();
@@ -955,7 +955,7 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() => {
       expect(updateToolbarSpy).toHaveBeenCalled();
@@ -963,7 +963,7 @@ describe('CompareV2', () => {
     await waitForRunCheckboxes(3);
 
     fireEvent.click(getRunRow(MOCK_RUN_2_ID));
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     await waitForRunCheckboxes(2);
     expect(getRunRow(MOCK_RUN_2_ID)).toHaveAttribute('aria-checked', 'false');
 
@@ -972,7 +972,7 @@ describe('CompareV2', () => {
     await act(async () => {
       await refreshAction();
     });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitForRunCheckboxes(2);
     expect(getRunRow(MOCK_RUN_1_ID)).toHaveAttribute('aria-checked', 'true');
@@ -1000,7 +1000,7 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() => {
       expect(updateToolbarSpy).toHaveBeenCalled();
@@ -1008,7 +1008,7 @@ describe('CompareV2', () => {
     await waitForRunCheckboxes(3);
 
     fireEvent.click(getRunRow(MOCK_RUN_2_ID));
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     await waitForRunCheckboxes(2);
 
     refreshedRunIds.add(MOCK_RUN_3_ID);
@@ -1017,7 +1017,7 @@ describe('CompareV2', () => {
     await act(async () => {
       await refreshAction();
     });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitForRunCheckboxes(1);
     expect(getRunRow(MOCK_RUN_1_ID)).toHaveAttribute('aria-checked', 'true');
@@ -1036,11 +1036,11 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitForRunCheckboxes(3);
     fireEvent.click(getRunRow(MOCK_RUN_2_ID));
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     await waitForRunCheckboxes(2);
 
     const nextProps = generateProps();
@@ -1050,7 +1050,7 @@ describe('CompareV2', () => {
         <CompareV2 {...nextProps} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitForRunCheckboxes(2);
     expect(getRunRow(MOCK_RUN_2_ID)).toHaveAttribute('aria-checked', 'true');
@@ -1145,7 +1145,7 @@ describe('CompareV2', () => {
       </CommonTestWrapper>,
     );
 
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     await waitFor(() => {
       const lastCall = getHtmlViewerConfigSpy.mock.lastCall;
       expect(lastCall?.[0]?.[0]?.artifact.getId()).toBe(updatedArtifact.getId());
