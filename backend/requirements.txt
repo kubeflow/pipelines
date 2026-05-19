@@ -45,7 +45,7 @@ google-resumable-media==2.7.2
     # via google-cloud-storage
 googleapis-common-protos==1.70.0
     # via google-api-core
-idna==3.10
+idna==3.15
     # via requests
 kfp==2.16.0
     # via -r requirements.in
