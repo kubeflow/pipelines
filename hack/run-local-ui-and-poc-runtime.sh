@@ -18,6 +18,8 @@ API_SERVER_RPC_PORT="${API_SERVER_RPC_PORT:-3003}"
 TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/kfp-local-ui.XXXXXX")"
 SQLITE_DB_PATH="${SQLITE_DB_PATH:-${TMP_ROOT}/metadata.sqlite}"
 ARTIFACT_BUCKET_ROOT="${ARTIFACT_BUCKET_ROOT:-${TMP_ROOT}/artifacts}"
+SDK_WHEEL_DIR="${TMP_ROOT}/sdk-wheel"
+SDK_BUILD_ROOT="${TMP_ROOT}/sdk-build"
 LOG_DIR="${TMP_ROOT}/logs"
 KUBECONFIG_PATH="${TMP_ROOT}/kubeconfig"
 GO_CACHE_DIR="${TMP_ROOT}/go-cache"
@@ -61,7 +63,7 @@ fi
 
 mkdir -p "${LOG_DIR}"
 mkdir -p "${GO_CACHE_DIR}" "${GO_TMP_DIR}"
-mkdir -p "$(dirname "${SQLITE_DB_PATH}")" "${ARTIFACT_BUCKET_ROOT}"
+mkdir -p "$(dirname "${SQLITE_DB_PATH}")" "${ARTIFACT_BUCKET_ROOT}" "${SDK_WHEEL_DIR}" "${SDK_BUILD_ROOT}"
 
 require_command() {
   local command_name="$1"
@@ -250,6 +252,21 @@ users:
     token: dummy
 EOF
 
+echo "Building local KFP SDK wheel"
+(
+  cd "${REPO_ROOT}"
+  cp -a "${REPO_ROOT}/sdk/python/." "${SDK_BUILD_ROOT}/"
+  python3 -m pip wheel --no-deps --wheel-dir "${SDK_WHEEL_DIR}" "${SDK_BUILD_ROOT}" >/dev/null
+)
+
+SDK_WHEEL_PATH="$(ls "${SDK_WHEEL_DIR}"/kfp-*.whl | sed -n '1p')"
+if [[ -z "${SDK_WHEEL_PATH}" ]]; then
+  echo "Failed to build local kfp wheel" >&2
+  exit 1
+fi
+
+LOCAL_API_SERVER_SDK_PACKAGE_PATH="/kfp-local-sdk/$(basename "${SDK_WHEEL_PATH}")"
+
 echo "Installing frontend dependencies in ${REPO_ROOT}/frontend"
 (
   cd "${REPO_ROOT}/frontend"
@@ -278,6 +295,7 @@ GOCACHE=\"${GO_CACHE_DIR}\" \
 GOTMPDIR=\"${GO_TMP_DIR}\" \
 POD_NAMESPACE=kubeflow \
 INITCONNECTIONTIMEOUT=60s \
+KFP_V2_LOCAL_SDK_ROOT=\"${SDK_WHEEL_DIR}\" \
 DBDRIVERNAME=sqlite \
 DBCONFIG_SQLITECONFIG_DATASOURCENAME=\"file:${SQLITE_DB_PATH}?_busy_timeout=5000&_journal_mode=WAL\" \
 OBJECTSTORECONFIG_BUCKETURL=\"file://${ARTIFACT_BUCKET_ROOT}\" \
@@ -287,6 +305,7 @@ ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT=8889 \
 KFP_V2_RUNTIME_MODE=coordinator-poc \
 KFP_V2_RUNTIME_EXECUTOR=docker \
 LOCAL_API_SERVER=true \
+LOCAL_API_SERVER_SDK_PACKAGE_PATH=\"${LOCAL_API_SERVER_SDK_PACKAGE_PATH}\" \
 KFP_V2_LOCAL_API_SERVER_ADDRESS=\"${HOST_GATEWAY}\" \
 KFP_V2_LOCAL_API_SERVER_PORT=\"${API_SERVER_RPC_PORT}\" \
 go run ./backend/src/apiserver --config ./backend/src/apiserver/config -logtostderr=true --rpcPortFlag=\":${API_SERVER_RPC_PORT}\" --httpPortFlag=\":${API_SERVER_HTTP_PORT}\""
@@ -313,6 +332,7 @@ API server is ready at:  http://127.0.0.1:${API_SERVER_HTTP_PORT}
 Repo checkout:           ${REPO_ROOT}
 SQLite DB:               ${SQLITE_DB_PATH}
 Artifact root:           ${ARTIFACT_BUCKET_ROOT}
+Local SDK wheel:         ${SDK_WHEEL_PATH}
 Logs:                    ${LOG_DIR}
 
 Press Ctrl+C or close this terminal to stop the UI and API server.

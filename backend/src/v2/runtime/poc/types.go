@@ -29,6 +29,7 @@ import (
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"gocloud.dev/blob"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -244,7 +245,7 @@ func (dockerExecutor) ExecuteTask(ctx context.Context, request *TaskExecutionReq
 			return err
 		}
 		if command != "" {
-			compiledCommand, compiledArgs, err := component.CompileCommandAndArgs(request.ExecutorInput, []string{command}, args)
+			compiledCommand, compiledArgs, err := compileDockerCommandAndArgs(request.ExecutorInput, []string{command}, args)
 			if err != nil {
 				return err
 			}
@@ -810,6 +811,69 @@ func normalizeOutputArtifactPathsForDocker(
 			artifact.CustomPath = &localPath
 		}
 	}
+}
+
+func compileDockerCommandAndArgs(
+	executorInput *pipelinespec.ExecutorInput,
+	command []string,
+	args []string,
+) ([]string, []string, error) {
+	compiledCommand, compiledArgs, err := component.CompileCommandAndArgs(executorInput, command, args)
+	if err != nil || executorInput == nil {
+		return compiledCommand, compiledArgs, err
+	}
+
+	localizedExecutorInput := localizeDockerExecutorInputOutputs(executorInput)
+	if localizedExecutorInput == nil {
+		return compiledCommand, compiledArgs, nil
+	}
+
+	originalJSON, err := protojson.Marshal(executorInput)
+	if err != nil {
+		return nil, nil, err
+	}
+	localizedJSON, err := protojson.Marshal(localizedExecutorInput)
+	if err != nil {
+		return nil, nil, err
+	}
+	if bytes.Equal(originalJSON, localizedJSON) {
+		return compiledCommand, compiledArgs, nil
+	}
+
+	originalJSONString := string(originalJSON)
+	localizedJSONString := string(localizedJSON)
+	if len(compiledCommand) > 0 {
+		compiledCommand[0] = strings.ReplaceAll(compiledCommand[0], originalJSONString, localizedJSONString)
+	}
+	for index, arg := range compiledArgs {
+		compiledArgs[index] = strings.ReplaceAll(arg, originalJSONString, localizedJSONString)
+	}
+	return compiledCommand, compiledArgs, nil
+}
+
+func localizeDockerExecutorInputOutputs(executorInput *pipelinespec.ExecutorInput) *pipelinespec.ExecutorInput {
+	if executorInput == nil || executorInput.GetOutputs() == nil {
+		return nil
+	}
+	clonedExecutorInput, ok := proto.Clone(executorInput).(*pipelinespec.ExecutorInput)
+	if !ok || clonedExecutorInput.GetOutputs() == nil {
+		return nil
+	}
+
+	localizedAnyArtifact := false
+	for _, artifactList := range clonedExecutorInput.GetOutputs().GetArtifacts() {
+		for _, artifact := range artifactList.Artifacts {
+			if artifact == nil || artifact.GetCustomPath() == "" {
+				continue
+			}
+			artifact.Uri = artifact.GetCustomPath()
+			localizedAnyArtifact = true
+		}
+	}
+	if !localizedAnyArtifact {
+		return nil
+	}
+	return clonedExecutorInput
 }
 
 func prepareOutputArtifactFolders(executorInput *pipelinespec.ExecutorInput) error {

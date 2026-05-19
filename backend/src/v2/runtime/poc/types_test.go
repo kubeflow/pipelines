@@ -14,6 +14,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/encoding/protojson"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -301,6 +302,43 @@ func TestNormalizeOutputArtifactPathsForDockerSetsCustomPathFromURI(t *testing.T
 		filepath.Join(artifactRoot, "file", "tmp", "kfp-artifacts", "path", "to", "artifact"),
 		artifact.GetCustomPath(),
 	)
+}
+
+func TestCompileDockerCommandAndArgsLocalizesExecutorInputJSONOnly(t *testing.T) {
+	artifactRoot := filepath.Join(t.TempDir(), "artifact-root")
+	customPath := filepath.Join(artifactRoot, "file", "tmp", "kfp-artifacts", "path", "to", "artifact")
+	executorInput := &pipelinespec.ExecutorInput{
+		Outputs: &pipelinespec.ExecutorInput_Outputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"out_dataset": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{{
+						Uri:        "file:///tmp/kfp-artifacts/path/to/artifact",
+						CustomPath: ptr(customPath),
+					}},
+				},
+			},
+		},
+	}
+
+	compiledCommand, compiledArgs, err := compileDockerCommandAndArgs(
+		executorInput,
+		[]string{"python"},
+		[]string{"--executor_input", "{{$}}", "--output-uri", "{{$.outputs.artifacts['out_dataset'].uri}}"},
+	)
+	require.NoError(t, err)
+	require.Equal(t, []string{"python"}, compiledCommand)
+	require.Len(t, compiledArgs, 4)
+	assert.Equal(t, "file:///tmp/kfp-artifacts/path/to/artifact", compiledArgs[3])
+
+	localizedExecutorInput := &pipelinespec.ExecutorInput{}
+	require.NoError(t, protojson.Unmarshal([]byte(compiledArgs[1]), localizedExecutorInput))
+	outputArtifact := localizedExecutorInput.GetOutputs().GetArtifacts()["out_dataset"].Artifacts[0]
+	assert.Equal(t, customPath, outputArtifact.GetUri())
+	assert.Equal(t, customPath, outputArtifact.GetCustomPath())
+
+	originalArtifact := executorInput.GetOutputs().GetArtifacts()["out_dataset"].Artifacts[0]
+	assert.Equal(t, "file:///tmp/kfp-artifacts/path/to/artifact", originalArtifact.GetUri())
+	assert.Equal(t, customPath, originalArtifact.GetCustomPath())
 }
 
 func TestArtifactLocalRootFromOutputFile(t *testing.T) {
