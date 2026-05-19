@@ -19,7 +19,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { NewExperiment } from './NewExperiment';
-import TestUtils from 'src/TestUtils';
+import TestUtils, { flushPromisesInAct } from 'src/TestUtils';
 import { PageProps } from './Page';
 import { Apis } from 'src/lib/Apis';
 import { RoutePage, QUERY_PARAMS } from 'src/components/Router';
@@ -54,7 +54,7 @@ describe('NewExperiment', () => {
   ): Promise<void> {
     const props = { ...generateProps(), ...propsPatch } as PageProps;
     renderResult = render(<NewExperiment {...props} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
   }
 
   function fillExperimentName(value: string) {
@@ -159,7 +159,7 @@ describe('NewExperiment', () => {
     await waitFor(() => expect(getNextButton()).not.toBeDisabled());
 
     await userEvent.click(getNextButton());
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     expect(getNextButton()).toBeDisabled();
   });
@@ -171,7 +171,7 @@ describe('NewExperiment', () => {
     fillDescription('experiment description');
 
     await userEvent.click(getNextButton());
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     expect(createExperimentSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -186,7 +186,7 @@ describe('NewExperiment', () => {
 
     fillExperimentName('a-random-experiment-name-DO-NOT-VERIFY-THIS');
     await userEvent.click(getNextButton());
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     expect(createExperimentSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -202,7 +202,7 @@ describe('NewExperiment', () => {
 
     fillExperimentName('experiment-name');
     await userEvent.click(getNextButton());
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     expect(historyPushSpy).toHaveBeenCalledWith(
       RoutePage.NEW_RUN + `?experimentId=${experimentId}` + `&firstRunInExperiment=1`,
@@ -223,11 +223,11 @@ describe('NewExperiment', () => {
     props.location.search = `?${QUERY_PARAMS.pipelineId}=${pipelineId}`;
     await renderNewExperiment(props as any);
 
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     fillExperimentName('experiment-name');
     await userEvent.click(getNextButton());
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     expect(historyPushSpy).toHaveBeenCalledWith(
       RoutePage.NEW_RUN +
@@ -243,7 +243,7 @@ describe('NewExperiment', () => {
 
     fillExperimentName('experiment-name');
     await userEvent.click(getNextButton());
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
       autoHideDuration: 10000,
@@ -260,7 +260,7 @@ describe('NewExperiment', () => {
 
     TestUtils.makeErrorResponseOnce(createExperimentSpy as any, 'test error!');
     await userEvent.click(getNextButton());
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() => expect(getNextButton()).not.toBeDisabled());
     expect(loggerErrorSpy).toHaveBeenCalled();
@@ -274,7 +274,7 @@ describe('NewExperiment', () => {
 
     TestUtils.makeErrorResponseOnce(createExperimentSpy as any, 'test error!');
     await userEvent.click(getNextButton());
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     const call = updateDialogSpy.mock.calls[0][0];
     expect(call).toHaveProperty('title', 'Experiment creation failed');
@@ -285,7 +285,7 @@ describe('NewExperiment', () => {
   it('navigates to experiment list page upon cancellation', async () => {
     await renderNewExperiment();
     await userEvent.click(getCancelButton());
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     expect(historyPushSpy).toHaveBeenCalledWith(RoutePage.EXPERIMENTS);
   });
