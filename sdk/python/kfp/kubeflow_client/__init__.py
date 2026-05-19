@@ -13,8 +13,9 @@
 # limitations under the License.
 """Kubeflow PipelinesClient — simplified, name-first KFP interface.
 
-Can be used directly via ``from kfp.kubeflow_client import PipelinesClient``
-or through the Kubeflow SDK re-export at ``kubeflow.pipelines``.
+Can be used directly via ``from kfp.kubeflow_client import
+PipelinesClient`` or through the Kubeflow SDK re-export at
+``kubeflow.pipelines``.
 """
 
 from kfp.kubeflow_client import constants

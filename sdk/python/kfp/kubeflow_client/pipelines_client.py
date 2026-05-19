@@ -85,14 +85,12 @@ class PipelinesBackendConfig:
 
     def __repr__(self) -> str:
         token_display = '***' if self.user_token else None
-        return (
-            f'PipelinesBackendConfig('
-            f'base_url={self.base_url!r}, '
-            f'user_token={token_display!r}, '
-            f'is_secure={self.is_secure!r}, '
-            f'custom_ca={self.custom_ca!r}, '
-            f'namespace={self.namespace!r})'
-        )
+        return (f'PipelinesBackendConfig('
+                f'base_url={self.base_url!r}, '
+                f'user_token={token_display!r}, '
+                f'is_secure={self.is_secure!r}, '
+                f'custom_ca={self.custom_ca!r}, '
+                f'namespace={self.namespace!r})')
 
 
 class PipelinesClient:
@@ -205,9 +203,8 @@ class PipelinesClient:
         """
         pipeline_id = self._get_pipeline_id_by_name(name)
         if pipeline_id is None:
-            raise ValueError(
-                f'Pipeline not found: {name!r}. '
-                'Use list_pipelines() to see available pipelines.')
+            raise ValueError(f'Pipeline not found: {name!r}. '
+                             'Use list_pipelines() to see available pipelines.')
         return self._pipelines_api.pipeline_service_get_pipeline(
             pipeline_id=pipeline_id)
 
@@ -229,12 +226,10 @@ class PipelinesClient:
             ValueError: If the pipeline or version is not found.
         """
         pipeline = self.get_pipeline(name)
-        version_id = self._get_version_id_by_name(
-            pipeline.pipeline_id, version)
+        version_id = self._get_version_id_by_name(pipeline.pipeline_id, version)
         if version_id is None:
-            raise ValueError(
-                f'Pipeline version not found: {version!r} '
-                f'for pipeline {name!r}.')
+            raise ValueError(f'Pipeline version not found: {version!r} '
+                             f'for pipeline {name!r}.')
         return self._pipelines_api.pipeline_service_get_pipeline_version(
             pipeline_id=pipeline.pipeline_id,
             pipeline_version_id=version_id,
@@ -282,9 +277,8 @@ class PipelinesClient:
         """
         pipeline_id = self._get_pipeline_id_by_name(name)
         if pipeline_id is None:
-            raise ValueError(
-                f'Pipeline not found: {name!r}. '
-                'Use list_pipelines() to see available pipelines.')
+            raise ValueError(f'Pipeline not found: {name!r}. '
+                             'Use list_pipelines() to see available pipelines.')
         return self._pipelines_api.pipeline_service_list_pipeline_versions(
             pipeline_id=pipeline_id,
             page_token=page_token,
@@ -313,16 +307,14 @@ class PipelinesClient:
         """
         pipeline_id = self._get_pipeline_id_by_name(name)
         if pipeline_id is None:
-            raise ValueError(
-                f'Pipeline not found: {name!r}. '
-                'Use list_pipelines() to see available pipelines.')
+            raise ValueError(f'Pipeline not found: {name!r}. '
+                             'Use list_pipelines() to see available pipelines.')
 
         if version is not None:
             version_id = self._get_version_id_by_name(pipeline_id, version)
             if version_id is None:
-                raise ValueError(
-                    f'Pipeline version not found: {version!r} '
-                    f'for pipeline {name!r}.')
+                raise ValueError(f'Pipeline version not found: {version!r} '
+                                 f'for pipeline {name!r}.')
             self._pipelines_api.pipeline_service_delete_pipeline_version(
                 pipeline_id=pipeline_id,
                 pipeline_version_id=version_id,
@@ -393,14 +385,14 @@ class PipelinesClient:
         run_name = name or self._generate_run_name(pipeline)
 
         version_is_usable = (
-            isinstance(pipeline, str) and not self._is_yaml_path(pipeline)
-            and not self._is_archive_path(pipeline))
+            isinstance(pipeline, str) and not self._is_yaml_path(pipeline) and
+            not self._is_archive_path(pipeline))
         if version is not None and not version_is_usable:
             logger.warning(
                 'The version parameter is ignored when pipeline is not a '
                 'name string (got %s).',
-                type(pipeline).__name__ if not isinstance(pipeline, str)
-                else repr(pipeline))
+                type(pipeline).__name__
+                if not isinstance(pipeline, str) else repr(pipeline))
 
         if isinstance(pipeline, PipelineVersion):
             return self._run_from_version_reference(
@@ -454,10 +446,9 @@ class PipelinesClient:
                 experiment_id=experiment_id,
             )
 
-        raise ValueError(
-            f'Unsupported pipeline type: {type(pipeline)!r}. '
-            'Expected a pipeline name, file path, callable, '
-            'Pipeline, or PipelineVersion.')
+        raise ValueError(f'Unsupported pipeline type: {type(pipeline)!r}. '
+                         'Expected a pipeline name, file path, callable, '
+                         'Pipeline, or PipelineVersion.')
 
     def get_run(self, run_id: str) -> Run:
         """Get a run by ID.
@@ -510,9 +501,8 @@ class PipelinesClient:
         if experiment is not None:
             experiment_id = self._get_experiment_id_by_name(experiment)
             if experiment_id is None:
-                raise ValueError(
-                    f'Experiment not found: {experiment!r}. '
-                    'Use create_experiment() first.')
+                raise ValueError(f'Experiment not found: {experiment!r}. '
+                                 'Use create_experiment() first.')
 
         filter_predicates = []
         if status is not None:
@@ -591,17 +581,16 @@ class PipelinesClient:
 
         while True:
             try:
-                run_response = self._run_api.run_service_get_run(
-                    run_id=run_id)
+                run_response = self._run_api.run_service_get_run(run_id=run_id)
                 first_poll_succeeded = True
                 auth_retries = 0
             except kfp_server_api.ApiException as api_error:
-                if (first_poll_succeeded and api_error.status == 401
-                        and auth_retries < max_auth_retries):
+                if (first_poll_succeeded and api_error.status == 401 and
+                        auth_retries < max_auth_retries):
                     auth_retries += 1
-                    logger.info('Access token expired, refreshing '
-                                '(attempt %d/%d)...',
-                                auth_retries, max_auth_retries)
+                    logger.info(
+                        'Access token expired, refreshing '
+                        '(attempt %d/%d)...', auth_retries, max_auth_retries)
                     self._refresh_credentials()
                     continue
                 raise
@@ -624,10 +613,9 @@ class PipelinesClient:
                 elapsed = time.monotonic() - start_time
                 if elapsed >= timeout:
                     self._invoke_callbacks(callbacks, run_response)
-                    raise TimeoutError(
-                        f'Run {run_id} did not reach state '
-                        f'{target_states} within {timeout}s. '
-                        f'Current state: {current_state!r}.')
+                    raise TimeoutError(f'Run {run_id} did not reach state '
+                                       f'{target_states} within {timeout}s. '
+                                       f'Current state: {current_state!r}.')
 
             time.sleep(polling_interval)
 
@@ -683,9 +671,8 @@ class PipelinesClient:
         """
         experiment_id = self._get_experiment_id_by_name(name)
         if experiment_id is None:
-            raise ValueError(
-                f'Experiment not found: {name!r}. '
-                'Use create_experiment() to create one.')
+            raise ValueError(f'Experiment not found: {name!r}. '
+                             'Use create_experiment() to create one.')
         return self._experiment_api.experiment_service_get_experiment(
             experiment_id=experiment_id)
 
@@ -722,8 +709,7 @@ class PipelinesClient:
         """
         experiment_id = self._get_experiment_id_by_name(name)
         if experiment_id is None:
-            raise ValueError(
-                f'Experiment not found: {name!r}.')
+            raise ValueError(f'Experiment not found: {name!r}.')
         self._experiment_api.experiment_service_delete_experiment(
             experiment_id=experiment_id)
 
@@ -735,8 +721,8 @@ class PipelinesClient:
     def kfp_client(self) -> Client:
         """Access the underlying ``kfp.Client`` for advanced operations.
 
-        Lazily constructed on first access, sharing connection parameters
-        from ``PipelinesBackendConfig``.
+        Lazily constructed on first access, sharing connection
+        parameters from ``PipelinesBackendConfig``.
         """
         if self._kfp_client_instance is None:
             from kfp.client import Client
@@ -771,9 +757,8 @@ class PipelinesClient:
         if config.base_url:
             host = config.base_url
             if not (host.startswith('http://') or host.startswith('https://')):
-                logger.warning(
-                    'No scheme in base_url %r, defaulting to https.',
-                    config.base_url)
+                logger.warning('No scheme in base_url %r, defaulting to https.',
+                               config.base_url)
                 host = 'https://' + host
             api_config.host = host.rstrip('/')
         else:
@@ -816,8 +801,7 @@ class PipelinesClient:
             k8s.config.load_incluster_config()
             return _IN_CLUSTER_DNS_NAME.format(namespace)
         except (k8s.config.ConfigException, FileNotFoundError):
-            logger.debug(
-                'In-cluster config not available.', exc_info=True)
+            logger.debug('In-cluster config not available.', exc_info=True)
 
         # Only the host URL is extracted from kubeconfig; kubeconfig auth
         # credentials are not applied to the API configuration. This matches
@@ -829,8 +813,7 @@ class PipelinesClient:
                 return (k8s_config.host.rstrip('/') + '/' +
                         _KUBE_PROXY_PATH.format(namespace))
         except (k8s.config.ConfigException, FileNotFoundError):
-            logger.debug(
-                'Kubeconfig not available.', exc_info=True)
+            logger.debug('Kubeconfig not available.', exc_info=True)
 
         fallback = _IN_CLUSTER_DNS_NAME.format(namespace)
         logger.warning(
@@ -855,11 +838,9 @@ class PipelinesClient:
                 token_path = _kfp_sa_token_path
             elif os.path.exists(_k8s_sa_token_path):
                 token_path = _k8s_sa_token_path
-                os.environ[_token_path_env] = token_path
                 logger.debug(
                     'Kubeflow pipelines token path missing; using Kubernetes '
-                    'service account token at %s for API auth.',
-                    token_path)
+                    'service account token at %s for API auth.', token_path)
 
         if not token_path:
             logger.debug(
@@ -867,16 +848,14 @@ class PipelinesClient:
             return
 
         try:
-            from kfp.client.set_volume_credentials import (
-                ServiceAccountTokenVolumeCredentials,
-            )
+            from kfp.client.set_volume_credentials import \
+                ServiceAccountTokenVolumeCredentials
         except ImportError:
             logger.debug(
-                'In-cluster credential module not available.',
-                exc_info=True)
+                'In-cluster credential module not available.', exc_info=True)
             return
         try:
-            credentials = ServiceAccountTokenVolumeCredentials()
+            credentials = ServiceAccountTokenVolumeCredentials(path=token_path)
             credentials.refresh_api_key_hook(api_config)
             api_config.api_key_prefix['authorization'] = 'Bearer'
             api_config.refresh_api_key_hook = credentials.refresh_api_key_hook
@@ -892,9 +871,8 @@ class PipelinesClient:
                 self._api_config.refresh_api_key_hook):
             self._api_config.refresh_api_key_hook(self._api_config)
         else:
-            logger.warning(
-                'Token expired but no refresh hook is configured. '
-                'Re-create the client with a fresh token.')
+            logger.warning('Token expired but no refresh hook is configured. '
+                           'Re-create the client with a fresh token.')
 
     def _get_namespace(self) -> str:
         """Return the configured namespace, auto-detecting if needed.
@@ -922,9 +900,8 @@ class PipelinesClient:
             namespace = active_context.get('context', {}).get('namespace')
             if namespace:
                 self._namespace = namespace
-                logger.debug(
-                    'Namespace resolved from kubeconfig context: %r.',
-                    namespace)
+                logger.debug('Namespace resolved from kubeconfig context: %r.',
+                             namespace)
                 return self._namespace
         except (k8s.config.ConfigException, FileNotFoundError):
             logger.debug(
@@ -981,9 +958,8 @@ class PipelinesClient:
         if len(versions) == 1:
             return versions[0].pipeline_version_id
         version_ids = [v.pipeline_version_id for v in versions]
-        raise ValueError(
-            f'Multiple versions found with name {version_name!r}: '
-            f'{version_ids}.')
+        raise ValueError(f'Multiple versions found with name {version_name!r}: '
+                         f'{version_ids}.')
 
     def _get_latest_version_id(self, pipeline_id: str) -> str:
         """Get the latest (most recently created) version ID for a pipeline."""
@@ -994,8 +970,7 @@ class PipelinesClient:
         )
         versions = result.pipeline_versions or []
         if not versions:
-            raise ValueError(
-                f'Pipeline {pipeline_id!r} has no versions.')
+            raise ValueError(f'Pipeline {pipeline_id!r} has no versions.')
         return versions[0].pipeline_version_id
 
     def _get_experiment_id_by_name(self, name: str) -> str | None:
@@ -1010,9 +985,8 @@ class PipelinesClient:
         if len(experiments) == 1:
             return experiments[0].experiment_id
         experiment_ids = [e.experiment_id for e in experiments]
-        raise ValueError(
-            f'Multiple experiments found with name {name!r}: '
-            f'{experiment_ids}.')
+        raise ValueError(f'Multiple experiments found with name {name!r}: '
+                         f'{experiment_ids}.')
 
     # ------------------------------------------------------------------
     # Private helpers — pipeline compilation and upload
@@ -1046,14 +1020,12 @@ class PipelinesClient:
             return package_path, temp_dir
         if isinstance(pipeline, str):
             if not os.path.isfile(pipeline):
-                raise ValueError(
-                    f'Pipeline file not found: {pipeline!r}.')
-            if not any(pipeline.endswith(ext)
-                       for ext in _VALID_UPLOAD_EXTENSIONS):
-                raise ValueError(
-                    f'Unsupported file type: {pipeline!r}. '
-                    f'Expected one of: '
-                    f'{", ".join(_VALID_UPLOAD_EXTENSIONS)}')
+                raise ValueError(f'Pipeline file not found: {pipeline!r}.')
+            if not any(
+                    pipeline.endswith(ext) for ext in _VALID_UPLOAD_EXTENSIONS):
+                raise ValueError(f'Unsupported file type: {pipeline!r}. '
+                                 f'Expected one of: '
+                                 f'{", ".join(_VALID_UPLOAD_EXTENSIONS)}')
             return pipeline, None
         raise ValueError(
             f'Expected a callable or file path, got {type(pipeline)!r}.')
@@ -1065,12 +1037,14 @@ class PipelinesClient:
     ) -> str:
         """Infer a pipeline name from the source.
 
-        Resolution order: callable's .name attribute, callable's __name__,
-        pipeline name from compiled YAML, filename stem, or 'pipeline'.
+        Resolution order: callable's .name attribute, callable's
+        __name__, pipeline name from compiled YAML, filename stem, or
+        'pipeline'.
         """
         if callable(pipeline) and hasattr(pipeline, 'name') and pipeline.name:
             return pipeline.name
-        if callable(pipeline) and hasattr(pipeline, '__name__') and pipeline.__name__:
+        if callable(pipeline) and hasattr(pipeline,
+                                          '__name__') and pipeline.__name__:
             return pipeline.__name__.replace('_', '-')
 
         name_from_spec = self._read_pipeline_name_from_yaml(package_path)
@@ -1091,9 +1065,7 @@ class PipelinesClient:
                 'or contain only whitespace.')
 
     @staticmethod
-    def _read_pipeline_name_from_yaml(
-        package_path: str,
-    ) -> str | None:
+    def _read_pipeline_name_from_yaml(package_path: str,) -> str | None:
         """Try to extract the pipeline name from a compiled YAML file."""
         try:
             if not package_path.endswith(('.yaml', '.yml')):
@@ -1107,7 +1079,8 @@ class PipelinesClient:
                     return name
         except Exception:
             logger.debug(
-                'Could not read pipeline name from %s.', package_path,
+                'Could not read pipeline name from %s.',
+                package_path,
                 exc_info=True)
         return None
 
@@ -1163,8 +1136,7 @@ class PipelinesClient:
                     'Could not rename the first pipeline version to %r. '
                     'The upload API does not accept a version name for the '
                     'initial version; subsequent versions will use the '
-                    'provided name.',
-                    version_name)
+                    'provided name.', version_name)
 
         return first_version
 
@@ -1178,8 +1150,9 @@ class PipelinesClient:
     ) -> PipelineVersion:
         """Upload a new version to an existing pipeline."""
         if not version_name:
-            version_name = (datetime.datetime.now().astimezone()
-                           .strftime('%Y-%m-%d %H-%M-%S'))
+            version_name = (
+                datetime.datetime.now().astimezone().strftime(
+                    '%Y-%m-%d %H-%M-%S'))
         upload_kwargs: dict[str, Any] = {
             'pipelineid': pipeline_id,
             'name': version_name,
@@ -1187,8 +1160,8 @@ class PipelinesClient:
         if description:
             upload_kwargs['description'] = description
 
-        return self._upload_api.upload_pipeline_version(
-            package_path, **upload_kwargs)
+        return self._upload_api.upload_pipeline_version(package_path,
+                                                        **upload_kwargs)
 
     # ------------------------------------------------------------------
     # Private helpers — run creation
@@ -1207,9 +1180,8 @@ class PipelinesClient:
             return default_id
         experiment_id = self._get_experiment_id_by_name(experiment)
         if experiment_id is None:
-            raise ValueError(
-                f'Experiment not found: {experiment!r}. '
-                'Use create_experiment() first.')
+            raise ValueError(f'Experiment not found: {experiment!r}. '
+                             'Use create_experiment() first.')
         return experiment_id
 
     def _run_by_name(
@@ -1223,13 +1195,11 @@ class PipelinesClient:
         """Run an uploaded pipeline by name."""
         pipeline_id = self._get_pipeline_id_by_name(pipeline_name)
         if pipeline_id is None:
-            raise ValueError(
-                f'Pipeline not found: {pipeline_name!r}. '
-                'Upload it first with upload_pipeline().')
+            raise ValueError(f'Pipeline not found: {pipeline_name!r}. '
+                             'Upload it first with upload_pipeline().')
 
         if version_name:
-            version_id = self._get_version_id_by_name(
-                pipeline_id, version_name)
+            version_id = self._get_version_id_by_name(pipeline_id, version_name)
             if version_id is None:
                 raise ValueError(
                     f'Pipeline version not found: {version_name!r} '
@@ -1255,8 +1225,7 @@ class PipelinesClient:
     ) -> Run:
         """Create a run from a pipeline version reference (ID-based)."""
         runtime_config = kfp_server_api.V2beta1RuntimeConfig(
-            parameters=params or {},
-        )
+            parameters=params or {},)
         pipeline_version_reference = (
             kfp_server_api.V2beta1PipelineVersionReference(
                 pipeline_id=pipeline_id,
@@ -1303,8 +1272,7 @@ class PipelinesClient:
             raise ValueError(f'Pipeline file not found: {file_path}')
         pipeline_spec_dict = self._load_pipeline_spec(file_path)
         runtime_config = kfp_server_api.V2beta1RuntimeConfig(
-            parameters=params or {},
-        )
+            parameters=params or {},)
         run_body = kfp_server_api.V2beta1Run(
             display_name=run_name,
             experiment_id=experiment_id,
@@ -1329,10 +1297,12 @@ class PipelinesClient:
                 platform_spec_dict.update(doc)
 
         pipeline_spec = json_format.ParseDict(
-            pipeline_spec_dict, pipeline_spec_pb2.PipelineSpec(),
+            pipeline_spec_dict,
+            pipeline_spec_pb2.PipelineSpec(),
             ignore_unknown_fields=True)
         platform_spec = json_format.ParseDict(
-            platform_spec_dict, pipeline_spec_pb2.PlatformSpec(),
+            platform_spec_dict,
+            pipeline_spec_pb2.PlatformSpec(),
             ignore_unknown_fields=True)
 
         # The API expects different shapes depending on whether a platform spec
@@ -1369,11 +1339,10 @@ class PipelinesClient:
 
     @staticmethod
     def _generate_run_name(
-        pipeline: str | Callable | Pipeline | PipelineVersion,
-    ) -> str:
+        pipeline: str | Callable | Pipeline | PipelineVersion,) -> str:
         """Generate a default run display name."""
-        timestamp = (datetime.datetime.now().astimezone()
-                     .strftime('%Y-%m-%d %H-%M-%S'))
+        timestamp = (
+            datetime.datetime.now().astimezone().strftime('%Y-%m-%d %H-%M-%S'))
         if callable(pipeline):
             base_name = getattr(pipeline, 'name', None)
             if base_name is None:
