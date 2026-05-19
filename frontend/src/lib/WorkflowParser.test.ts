@@ -1273,6 +1273,22 @@ describe('WorkflowParser', () => {
       });
     });
 
+    it('handles file path without key', () => {
+      expect(WorkflowParser.parseStoragePath('file:///tmp')).toEqual({
+        bucket: 'tmp',
+        key: '',
+        source: StorageService.FILE,
+      });
+    });
+
+    it('handles file path with nested key', () => {
+      expect(WorkflowParser.parseStoragePath('file:///tmp/kfp-artifacts/test/key/path')).toEqual({
+        bucket: 'tmp',
+        key: 'kfp-artifacts/test/key/path',
+        source: StorageService.FILE,
+      });
+    });
+
     it('handles HTTP URL without path', () => {
       expect(WorkflowParser.parseStoragePath('http://host:port')).toEqual({
         bucket: 'host:port',

@@ -71,8 +71,8 @@ func (k *PipelineStoreKubernetes) ListPipelines(filterContext *model.FilterConte
 
 	listOptions := []ctrlclient.ListOption{ctrlclient.UnsafeDisableDeepCopy}
 
-	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
-		listOptions = append(listOptions, ctrlclient.InNamespace(filterContext.ReferenceKey.ID))
+	if filterContext.ReferenceKey != nil && filterContext.Type == model.NamespaceResourceType {
+		listOptions = append(listOptions, ctrlclient.InNamespace(filterContext.ID))
 	}
 
 	// Be careful, the deep copy is disabled here to reduce memory allocations
@@ -346,7 +346,7 @@ func (k *PipelineStoreKubernetes) GetLatestPipelineVersion(pipelineId string) (*
 	var latestK8sPipelineVersion *v2beta1.PipelineVersion
 
 	for _, k8sPipelineVersion := range k8sPipelineVersions.Items {
-		if latestK8sPipelineVersion == nil || k8sPipelineVersion.CreationTimestamp.Time.After(latestK8sPipelineVersion.CreationTimestamp.Time) {
+		if latestK8sPipelineVersion == nil || k8sPipelineVersion.CreationTimestamp.After(latestK8sPipelineVersion.CreationTimestamp.Time) {
 			latestK8sPipelineVersion = &k8sPipelineVersion
 		}
 	}
@@ -625,8 +625,9 @@ func (k *PipelineStoreKubernetes) getK8sPipelineVersions(
 		return nil, util.NewInternalServerError(err, "%s", errMsg)
 	}
 
-	// If there is no pipeline version ID filter, then just return the results
-	if pipelineVersionId == "" {
+	// For pipeline-scoped listing, the cache can lag immediately after creating a version CR.
+	// Fall back to the non-cached client if the cached list is empty.
+	if pipelineVersionId == "" && (pipelineId == "" || len(pipelineVersions.Items) > 0) {
 		return &pipelineVersions, nil
 	}
 

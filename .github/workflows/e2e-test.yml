@@ -7,6 +7,7 @@ env:
   PYTHON_VERSION: "3.9"
   USER_NAMESPACE: "kubeflow-user-example-com"
   CA_CERT_PATH: ""
+  COORDINATOR_RUNTIME_MODE: "coordinator-poc"
 
 on:
   push:
@@ -163,6 +164,126 @@ jobs:
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
 
+  end-to-end-coordinator-runtime-scenario-tests:
+    runs-on: ubuntu-latest
+    needs: build
+    env:
+      KFP_USE_COORDINATOR_RUNTIME: "true"
+    strategy:
+      matrix:
+        k8s_version: ["v1.34.0"]
+        cache_enabled: ["true", "false"]
+        argo_version: [ "v3.7.3" ]
+        proxy: [ "false" ]
+        test_label: [ "E2ECritical", "E2EEssential", "E2EParallelNested" ]
+        pod_to_pod_tls_enabled: [ "false" ]
+        include:
+          - k8s_version: "v1.34.0"
+            cache_enabled: "false"
+            argo_version: "v3.7.3"
+            proxy: "true"
+            pod_to_pod_tls_enabled: "false"
+            test_label: "E2EProxy"
+          - k8s_version: "v1.34.0"
+            cache_enabled: "false"
+            argo_version: "v3.7.3"
+            proxy: "false"
+            pod_to_pod_tls_enabled: "false"
+            test_label: "E2EFailure"
+          - k8s_version: "v1.34.0"
+            cache_enabled: "true"
+            argo_version: "v3.7.3"
+            proxy: "false"
+            pod_to_pod_tls_enabled: "true"
+            test_label: "E2ECritical"
+          - k8s_version: "v1.34.0"
+            cache_enabled: "true"
+            argo_version: "v3.7.3"
+            proxy: "false"
+            pod_to_pod_tls_enabled: "false"
+            test_label: "CoordinatorRuntime"
+      fail-fast: false
+    name: End to End Coordinator Runtime ${{ matrix.test_label }} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} proxy=${{ matrix.proxy}} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Create cluster
+        uses: ./.github/actions/create-cluster
+        id: create-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          cluster_name: ${{ env.CLUSTER_NAME }}
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy
+        if: ${{ steps.create-cluster.outcome == 'success' }}
+        id: deploy
+        with:
+          cache_enabled: ${{ matrix.cache_enabled }}
+          proxy: ${{ matrix.proxy }}
+          argo_version: ${{ matrix.argo_version }}
+          pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+          runtime_mode: ${{ env.COORDINATOR_RUNTIME_MODE }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+
+      - name: Configure Cluster CA Cert for TLS-Enabled Tests
+        shell: bash
+        if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
+        run: |
+          kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
+          echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
+
+      - name: Configure Input Variables
+        shell: bash
+        id: configure
+        if: ${{ steps.deploy.outcome == 'success' }}
+        run: |
+          NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
+          TEST_LABEL=${{ matrix.test_label }}
+          NAMESPACE=${{ env.NAMESPACE }}
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
+            TEST_LABEL=${{ inputs.test_label }}
+            NAMESPACE=${{ inputs.namespace }}
+          fi
+
+          if [ "$TEST_LABEL" == "E2EParallelNested" ]; then
+            NUMBER_OF_NODES=3
+          fi
+
+          {
+            echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"
+            echo "TEST_LABEL=$TEST_LABEL"
+            echo "NAMESPACE=$NAMESPACE"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and upload the sample Modelcar image to Kind
+        id: build-sample-modelcar-image
+        if: ${{ steps.deploy.outcome == 'success' }}
+        run: |
+          docker build -f ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
+          kind --name kfp load docker-image registry.domain.local/modelcar:test
+        continue-on-error: true
+
+      - name: Run Tests
+        uses: ./.github/actions/test-and-report
+        id: test-run
+        if: ${{ steps.configure.outcome == 'success' }}
+        with:
+          proxy: ${{ matrix.proxy }}
+          cache_enabled: ${{ matrix.cache_enabled }}
+          test_directory: ${{ env.E2E_TESTS_DIR }}
+          test_label: ${{ steps.configure.outputs.TEST_LABEL }}
+          num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
+          default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          report_name: "CoordinatorRuntime_${{ matrix.test_label}}Tests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_proxy=${{ matrix.proxy }}"
+          tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+          ca_cert_path: ${{ env.CA_CERT_PATH }}
+
   end-to-end-critical-scenario-multi-user-tests:
     runs-on: ubuntu-latest
     needs: build
@@ -256,3 +377,100 @@ jobs:
           python_version: ${{ env.PYTHON_VERSION }}
           user_namespace: ${{ env.USER_NAMESPACE }}
           report_name: "E2EMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"
+
+  end-to-end-coordinator-runtime-critical-scenario-multi-user-tests:
+    runs-on: ubuntu-latest
+    needs: build
+    env:
+      KFP_USE_COORDINATOR_RUNTIME: "true"
+    strategy:
+      matrix:
+        k8s_version: ["v1.34.0"]
+        cache_enabled: ["true", "false"]
+        multi_user: [ "true" ]
+        test_label: [ "E2ECritical" ]
+        include:
+        - multi_user: "true"
+          artifact_proxy: "true"
+          k8s_version: "v1.34.0"
+          cache_enabled: "true"
+          test_label: "E2ECritical"
+      fail-fast: false
+    name: End to End Coordinator Runtime Critical Scenario Multi User Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.artifact_proxy }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Create cluster
+        uses: ./.github/actions/create-cluster
+        id: create-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          cluster_name: ${{ env.CLUSTER_NAME }}
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy
+        if: ${{ steps.create-cluster.outcome == 'success' }}
+        id: deploy
+        with:
+          cache_enabled: ${{ matrix.cache_enabled }}
+          multi_user: "true"
+          artifact_proxy: ${{ matrix.artifact_proxy }}
+          runtime_mode: ${{ env.COORDINATOR_RUNTIME_MODE }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+
+      - name: Configure Input Variables
+        shell: bash
+        id: configure
+        if: ${{ steps.deploy.outcome == 'success' }}
+        run: |
+          NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
+          TEST_LABEL=${{ matrix.test_label }}
+          NAMESPACE=${{ env.NAMESPACE }}
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
+            TEST_LABEL=${{ inputs.test_label }}
+            NAMESPACE=${{ inputs.namespace }}
+          fi
+          {
+            echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"
+            echo "TEST_LABEL=$TEST_LABEL"
+            echo "NAMESPACE=$NAMESPACE"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and upload the sample Modelcar image to Kind
+        id: build-sample-modelcar-image
+        if: ${{ steps.deploy.outcome == 'success' }}
+        run: |
+          docker build -f ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
+          kind --name kfp load docker-image registry.domain.local/modelcar:test
+        continue-on-error: true
+
+      - name: Test Artifact Proxy
+        id: test-artifact-proxy
+        if: ${{ steps.deploy.outcome == 'success' && matrix.artifact_proxy == 'true' }}
+        shell: bash
+        env:
+          USER_NAMESPACE: ${{ env.USER_NAMESPACE }}
+        run: |
+          ./test/artifact-proxy/test-artifact-proxy.sh "$USER_NAMESPACE"
+
+      - name: Run Tests
+        uses: ./.github/actions/test-and-report
+        if: ${{ steps.configure.outcome == 'success' }}
+        id: test-run
+        env:
+          LOCAL_API_SERVER: "true"
+          MULTI_USER: ${{ matrix.multi_user }}
+        with:
+          multi_user: ${{ matrix.multi_user }}
+          cache_enabled: ${{ matrix.cache_enabled }}
+          test_directory: ${{ env.E2E_TESTS_DIR }}
+          test_label: ${{ steps.configure.outputs.TEST_LABEL }}
+          num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
+          default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          user_namespace: ${{ env.USER_NAMESPACE }}
+          report_name: "CoordinatorRuntimeE2EMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"

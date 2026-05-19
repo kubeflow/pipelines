@@ -31,8 +31,11 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
+	pocruntime "github.com/kubeflow/pipelines/backend/src/v2/runtime/poc"
+	"github.com/spf13/viper"
 )
 
 // getTestSQLite returns an isolated in-memory sqlite DB for each test.
@@ -108,7 +111,7 @@ func TestRunPreflightLengthChecks_PassWhenOK(t *testing.T) {
 func TestFieldMeta_TaskRunId(t *testing.T) {
 	// FieldMeta only inspects schema; sqlite driver is sufficient.
 	db := getTestSQLite(t)
-	table, dbCol, err := FieldMeta(db, &model.Task{}, "RunID")
+	table, dbCol, err := FieldMeta(db, &model.Task{}, "RunUUID")
 	require.NoError(t, err)
 	assert.Equal(t, "tasks", table)
 	assert.Equal(t, "RunUUID", dbCol)
@@ -121,6 +124,7 @@ func TestValidateRequiredConfig(t *testing.T) {
 		host        string
 		accessKey   string
 		secretKey   string
+		bucketURL   string
 		wantErr     bool
 		errContains string
 	}{
@@ -176,11 +180,28 @@ func TestValidateRequiredConfig(t *testing.T) {
 			wantErr:     true,
 			errContains: "must both be set or both be empty",
 		},
+		{
+			name:      "file bucket url is valid",
+			bucketURL: "file:///tmp/kfp-artifacts",
+			wantErr:   false,
+		},
+		{
+			name:        "non-file bucket url is rejected",
+			bucketURL:   "s3://my-bucket",
+			wantErr:     true,
+			errContains: "only supports file:// URLs",
+		},
+		{
+			name:        "file bucket url requires path",
+			bucketURL:   "file://",
+			wantErr:     true,
+			errContains: "must include a directory path",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateRequiredConfig(tt.bucketName, tt.host, tt.accessKey, tt.secretKey)
+			err := validateRequiredConfig(tt.bucketName, tt.host, tt.accessKey, tt.secretKey, tt.bucketURL)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errContains)
@@ -189,6 +210,40 @@ func TestValidateRequiredConfig(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestInitDBDriver_SQLite(t *testing.T) {
+	originalDriverName := viper.GetString("DBDriverName")
+	originalDSN := viper.GetString(sqliteDSN)
+	t.Cleanup(func() {
+		viper.Set("DBDriverName", originalDriverName)
+		viper.Set(sqliteDSN, originalDSN)
+	})
+
+	expectedDSN := fmt.Sprintf("file:%s/local.db?cache=shared", t.TempDir())
+	viper.Set("DBDriverName", "sqlite")
+	viper.Set(sqliteDSN, expectedDSN)
+
+	assert.Equal(t, expectedDSN, initDBDriver("sqlite", 0))
+}
+
+func TestInitDBClient_SQLiteUsesSQLiteDialect(t *testing.T) {
+	originalDriverName := viper.GetString("DBDriverName")
+	originalDSN := viper.GetString(sqliteDSN)
+	t.Cleanup(func() {
+		viper.Set("DBDriverName", originalDriverName)
+		viper.Set(sqliteDSN, originalDSN)
+	})
+
+	viper.Set("DBDriverName", "sqlite")
+	viper.Set(sqliteDSN, fmt.Sprintf("file:%s/runtime.db?cache=shared", t.TempDir()))
+
+	db := InitDBClient(0)
+	t.Cleanup(func() {
+		require.NoError(t, db.Close())
+	})
+
+	assert.Equal(t, `GROUP_CONCAT(Name, ",")`, db.GroupConcat("Name", ","))
 }
 
 type fakeS3Client struct {
@@ -224,6 +279,69 @@ func TestEnsureBucketExistsWithClient_BucketAlreadyExists(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 1, client.headCalls)
 	assert.Equal(t, 0, client.createCalls)
+}
+
+func TestShouldInitKubernetesClients(t *testing.T) {
+	originalRuntimeMode := viper.GetString(common.V2RuntimeMode)
+	originalRuntimeExecutor := viper.GetString(common.V2RuntimeExecutor)
+	t.Cleanup(func() {
+		viper.Set(common.V2RuntimeMode, originalRuntimeMode)
+		viper.Set(common.V2RuntimeExecutor, originalRuntimeExecutor)
+	})
+
+	tests := []struct {
+		name    string
+		options *Options
+		mode    string
+		exec    string
+		want    bool
+	}{
+		{
+			name:    "defaults to enabled",
+			options: &Options{},
+			want:    true,
+		},
+		{
+			name:    "disables kubernetes clients for coordinator docker runtime",
+			options: &Options{},
+			mode:    pocruntime.RuntimeModeCoordinator,
+			exec:    pocruntime.ExecutorDocker,
+			want:    false,
+		},
+		{
+			name:    "keeps kubernetes clients for coordinator kubernetes runtime",
+			options: &Options{},
+			mode:    pocruntime.RuntimeModeCoordinator,
+			exec:    pocruntime.ExecutorKubernetes,
+			want:    true,
+		},
+		{
+			name: "keeps kubernetes clients for kubernetes pipeline storage",
+			options: &Options{
+				UsePipelineKubernetesStorage: true,
+			},
+			mode: pocruntime.RuntimeModeCoordinator,
+			exec: pocruntime.ExecutorDocker,
+			want: true,
+		},
+		{
+			name: "keeps kubernetes clients for global webhook mode",
+			options: &Options{
+				GlobalKubernetesWebhookMode: true,
+			},
+			mode: pocruntime.RuntimeModeCoordinator,
+			exec: pocruntime.ExecutorDocker,
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			viper.Set(common.V2RuntimeMode, tt.mode)
+			viper.Set(common.V2RuntimeExecutor, tt.exec)
+			assert.Equal(t, tt.want, shouldInitKubernetesClients(tt.options))
+		})
+	}
 }
 
 func TestEnsureBucketExistsWithClient_CreatesBucket(t *testing.T) {
@@ -399,6 +517,27 @@ func TestEnsureBucketExists_IntegrationBucketAlreadyExists(t *testing.T) {
 	log := server.requestLog()
 	require.Len(t, log, 1)
 	assert.Equal(t, "HEAD:existing-bucket", log[0])
+}
+
+func TestEnsureBucketExists_FileBucketURLIsNoop(t *testing.T) {
+	err := ensureBucketExists(context.Background(), &blobStorageConfig{
+		bucketURL: "file:///tmp/kfp-artifacts",
+	})
+	require.NoError(t, err)
+}
+
+func TestOpenBucketWithRetry_FileBucketURL(t *testing.T) {
+	bucketDir := t.TempDir()
+	bucket, err := openBucketWithRetry(context.Background(), &blobStorageConfig{
+		bucketURL: "file://" + bucketDir,
+	}, 0)
+	require.NoError(t, err)
+	defer bucket.Close()
+
+	require.NoError(t, bucket.WriteAll(context.Background(), "nested/file.txt", []byte("local blob"), nil))
+	content, err := bucket.ReadAll(context.Background(), "nested/file.txt")
+	require.NoError(t, err)
+	assert.Equal(t, "local blob", string(content))
 }
 
 func TestLoadAWSConfig_EmptyCredentials(t *testing.T) {

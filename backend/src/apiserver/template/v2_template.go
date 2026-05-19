@@ -307,19 +307,19 @@ func (t *V2Spec) ParametersJSON() (string, error) {
 	return "[]", nil
 }
 
-func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (util.ExecutionSpec, error) {
+func (t *V2Spec) BuildPipelineJob(modelRun *model.Run, options RunWorkflowOptions) (*pipelinespec.PipelineJob, *pipelinespec.SinglePlatformSpec, error) {
 	bytes, err := protojson.Marshal(t.spec)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to marshal pipeline spec to json")
+		return nil, nil, util.NewInternalServerError(err, "Failed to marshal pipeline spec to json")
 	}
 	spec := &structpb.Struct{}
 	if err := protojson.Unmarshal(bytes, spec); err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to parse pipeline spec")
+		return nil, nil, util.NewInternalServerError(err, "Failed to parse pipeline spec")
 	}
 	job := &pipelinespec.PipelineJob{PipelineSpec: spec, DisplayName: modelRun.DisplayName}
 	jobRuntimeConfig, err := modelToPipelineJobRuntimeConfig(&modelRun.RuntimeConfig)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to convert to PipelineJob RuntimeConfig")
+		return nil, nil, util.NewInternalServerError(err, "Failed to convert to PipelineJob RuntimeConfig")
 	}
 	job.RuntimeConfig = jobRuntimeConfig
 
@@ -354,7 +354,7 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 		}
 	}
 	if err = t.validatePipelineJobInputs(job); err != nil {
-		return nil, util.Wrap(err, "invalid pipeline job inputs")
+		return nil, nil, util.Wrap(err, "invalid pipeline job inputs")
 	}
 	// Pick out Kubernetes platform configs
 	var kubernetesSpec *pipelinespec.SinglePlatformSpec
@@ -362,6 +362,14 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 		if _, ok := t.platformSpec.Platforms["kubernetes"]; ok {
 			kubernetesSpec = t.platformSpec.Platforms["kubernetes"]
 		}
+	}
+	return job, kubernetesSpec, nil
+}
+
+func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (util.ExecutionSpec, error) {
+	job, kubernetesSpec, err := t.BuildPipelineJob(modelRun, options)
+	if err != nil {
+		return nil, err
 	}
 
 	var obj interface{}

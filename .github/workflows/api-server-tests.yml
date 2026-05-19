@@ -2,13 +2,16 @@
 name: API Server Tests
 env:
   API_TESTS_DIR: "./backend/test/v2/api"
-  TESTS_LABEL: "ApiServerTests"
+  TESTS_LABEL: "ApiServerTests && !CoordinatorRuntime"
+  COORDINATOR_TESTS_LABEL: "ApiServerTests"
+  COORDINATOR_FOCUSED_TESTS_LABEL: "CoordinatorRuntime"
   NUMBER_OF_PARALLEL_NODES: 15
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
   USER_NAMESPACE: "kubeflow-user-example-com"
   PYTHON_VERSION: "3.9"
   CA_CERT_PATH: ""
+  COORDINATOR_RUNTIME_MODE: "coordinator-poc"
 
 on:
   push:
@@ -43,7 +46,6 @@ on:
       - '.github/resources/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
-      - 'backend/metadata_writer/**'
       - 'backend/test/v2/api/**'
       - 'manifests/kustomize/**'
       - 'test_data/sdk_compiled_pipelines/**'
@@ -124,11 +126,11 @@ jobs:
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
           NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
-          TEST_LABEL=${{ env.TESTS_LABEL }}
+          TEST_LABEL='${{ env.TESTS_LABEL }}'
           NAMESPACE=${{ env.NAMESPACE }}
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
-            TEST_LABEL=${{ inputs.test_label }}
+            TEST_LABEL='${{ inputs.test_label }}'
             NAMESPACE=${{ inputs.namespace }}
           fi
 
@@ -270,3 +272,248 @@ jobs:
           user_namespace: ${{ env.USER_NAMESPACE }}
           multi_user: ${{ matrix.multi_user }}
           report_name: "MultiUser_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"
+
+  api-test-coordinator-runtime-standalone:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      KFP_USE_COORDINATOR_RUNTIME: "true"
+    strategy:
+      matrix:
+        k8s_version: [ "v1.34.0" ]
+        cache_enabled: [ "true", "false" ]
+        proxy: [ "true", "false" ]
+        argo_version: [ "v3.7.3" ]
+        pipeline_store: [ "database" ]
+        pod_to_pod_tls_enabled: [ "false" ]
+        include:
+          - k8s_version: "v1.34.0"
+            cache_enabled: "true"
+            proxy: "false"
+            argo_version: "v3.7.3"
+            pipeline_store: "database"
+            pod_to_pod_tls_enabled: "true"
+      fail-fast: false
+    name: KFP API Server tests Coordinator Runtime Standalone - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} proxyEnabled=${{ matrix.proxy }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Create cluster
+        uses: ./.github/actions/create-cluster
+        id: create-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          cluster_name: ${{ env.CLUSTER_NAME }}
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy
+        id: deploy
+        if: ${{ steps.create-cluster.outcome == 'success' }}
+        with:
+          pipeline_store: ${{ matrix.pipeline_store }}
+          cache_enabled: ${{ matrix.cache_enabled }}
+          proxy: ${{ matrix.proxy }}
+          argo_version: ${{ matrix.argo_version }}
+          pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+          runtime_mode: ${{ env.COORDINATOR_RUNTIME_MODE }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+
+      - name: Configure Cluster CA Cert for TLS-Enabled Tests
+        shell: bash
+        if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
+        run: |
+          kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
+          echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
+
+      - name: Run Tests
+        uses: ./.github/actions/test-and-report
+        if: ${{ steps.deploy.outcome == 'success' }}
+        id: test-run
+        with:
+          pipeline_store: ${{ matrix.pipeline_store }}
+          cache_enabled: ${{ matrix.cache_enabled }}
+          proxy: ${{ matrix.proxy }}
+          test_directory: ${{ env.API_TESTS_DIR }}
+          test_label: ${{ env.COORDINATOR_TESTS_LABEL }}
+          num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
+          default_namespace: ${{ env.NAMESPACE }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          report_name: "CoordinatorRuntimeStandalone_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_proxyEnabled=${{ matrix.proxy }}"
+          tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+          ca_cert_path: ${{ env.CA_CERT_PATH }}
+
+  api-test-coordinator-runtime-k8s-native:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      KFP_USE_COORDINATOR_RUNTIME: "true"
+    strategy:
+      matrix:
+        k8s_version: [ "v1.34.0" ]
+        cache_enabled: [ "true" ]
+        uploadPipelinesWithKubernetesClient: [ "true", "false" ]
+        argo_version: [ "v3.7.3" ]
+        pipeline_store: [ "kubernetes" ]
+        pod_to_pod_tls_enabled: [ "false" ]
+        include:
+          - k8s_version: "v1.34.0"
+            cache_enabled: "true"
+            argo_version: "v3.7.3"
+            pipeline_store: "database"
+            pod_to_pod_tls_enabled: "true"
+            uploadPipelinesWithKubernetesClient: "false"
+      fail-fast: false
+    name: KFP API Server tests Coordinator Runtime K8s Native API - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Create cluster
+        uses: ./.github/actions/create-cluster
+        id: create-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          cluster_name: ${{ env.CLUSTER_NAME }}
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy
+        id: deploy
+        if: ${{ steps.create-cluster.outcome == 'success' }}
+        with:
+          pipeline_store: ${{ matrix.pipeline_store }}
+          cache_enabled: ${{ matrix.cache_enabled }}
+          argo_version: ${{ matrix.argo_version }}
+          pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+          runtime_mode: ${{ env.COORDINATOR_RUNTIME_MODE }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+
+      - name: Configure Cluster CA Cert for TLS-Enabled Tests
+        shell: bash
+        if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
+        run: |
+          kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
+          echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
+
+      - name: Run Tests
+        uses: ./.github/actions/test-and-report
+        if: ${{ steps.deploy.outcome == 'success' }}
+        id: test-run
+        with:
+          pipeline_store: ${{ matrix.pipeline_store }}
+          cache_enabled: ${{ matrix.cache_enabled }}
+          test_directory: ${{ env.API_TESTS_DIR }}
+          test_label: ${{ env.COORDINATOR_TESTS_LABEL }}
+          num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
+          default_namespace: ${{ env.NAMESPACE }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          upload_pipelines_with_kubernetes_client: ${{ matrix.uploadPipelinesWithKubernetesClient }}
+          report_name: "CoordinatorRuntimeK8Native_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}"
+          tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+          ca_cert_path: ${{ env.CA_CERT_PATH }}
+
+  api-test-coordinator-runtime-multi-user:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      KFP_USE_COORDINATOR_RUNTIME: "true"
+    strategy:
+      matrix:
+        k8s_version: [ "v1.34.0"]
+        cache_enabled: [ "true", "false" ]
+        multi_user: [ "true" ]
+      fail-fast: false
+    name: KFP API Server Coordinator Runtime Multi User Tests - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Create cluster
+        uses: ./.github/actions/create-cluster
+        id: create-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          cluster_name: ${{ env.CLUSTER_NAME }}
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy
+        id: deploy
+        if: ${{ steps.create-cluster.outcome == 'success' }}
+        with:
+          cache_enabled: ${{ matrix.cache_enabled }}
+          multi_user: ${{ matrix.multi_user }}
+          runtime_mode: ${{ env.COORDINATOR_RUNTIME_MODE }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+
+      - name: Run Tests
+        uses: ./.github/actions/test-and-report
+        id: test-run
+        if: ${{ steps.deploy.outcome == 'success' }}
+        env:
+          LOCAL_API_SERVER: "true"
+        with:
+          cache_enabled: ${{ matrix.cache_enabled }}
+          test_directory: ${{ env.API_TESTS_DIR }}
+          test_label: ${{ env.COORDINATOR_TESTS_LABEL }}
+          num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
+          default_namespace: ${{ env.NAMESPACE }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          user_namespace: ${{ env.USER_NAMESPACE }}
+          multi_user: ${{ matrix.multi_user }}
+          report_name: "CoordinatorRuntimeMultiUser_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"
+
+  api-test-coordinator-runtime-focused:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      KFP_USE_COORDINATOR_RUNTIME: "true"
+    strategy:
+      matrix:
+        k8s_version: [ "v1.34.0" ]
+        cache_enabled: [ "true" ]
+      fail-fast: false
+    name: KFP API Server Coordinator Runtime Focused Tests - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Create cluster
+        uses: ./.github/actions/create-cluster
+        id: create-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          cluster_name: ${{ env.CLUSTER_NAME }}
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy
+        id: deploy
+        if: ${{ steps.create-cluster.outcome == 'success' }}
+        with:
+          cache_enabled: ${{ matrix.cache_enabled }}
+          runtime_mode: ${{ env.COORDINATOR_RUNTIME_MODE }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+
+      - name: Run Tests
+        uses: ./.github/actions/test-and-report
+        if: ${{ steps.deploy.outcome == 'success' }}
+        id: test-run
+        with:
+          cache_enabled: ${{ matrix.cache_enabled }}
+          test_directory: ${{ env.API_TESTS_DIR }}
+          test_label: ${{ env.COORDINATOR_FOCUSED_TESTS_LABEL }}
+          num_parallel_nodes: "2"
+          default_namespace: ${{ env.NAMESPACE }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          report_name: "CoordinatorRuntimeFocused_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}"

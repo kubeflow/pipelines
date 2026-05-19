@@ -30,6 +30,7 @@ import { isV2Pipeline } from './v2/WorkflowUtils';
 import { ExecutionHelpers } from 'src/mlmd/MlmdUtils';
 
 export enum StorageService {
+  FILE = 'file',
   GCS = 'gcs',
   HTTP = 'http',
   HTTPS = 'https',
@@ -384,6 +385,13 @@ export default class WorkflowParser {
         bucket: pathParts[0],
         key: pathParts.slice(1).join('/'),
         source: StorageService.S3,
+      };
+    } else if (strPath.startsWith('file:///')) {
+      const pathParts = strPath.substr('file:///'.length).split('/');
+      return {
+        bucket: pathParts[0],
+        key: pathParts.slice(1).join('/'),
+        source: StorageService.FILE,
       };
     } else if (strPath.startsWith('http://')) {
       const pathParts = strPath.substr('http://'.length).split('/');

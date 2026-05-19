@@ -52,6 +52,32 @@ func Test_getDefaultMinioSessionInfo(t *testing.T) {
 	assert.Equal(t, expectedDefaultSession, actualDefaultSession)
 }
 
+func TestDefaultPipelineRootPrefersEnvOverride(t *testing.T) {
+	t.Setenv(defaultPipelineRootEnvVar, "file:///tmp/kfp-artifacts/v2/artifacts")
+
+	config := &Config{}
+	assert.Equal(t, "file:///tmp/kfp-artifacts/v2/artifacts", config.DefaultPipelineRoot())
+}
+
+func Test_getDefaultMinioSessionInfo_LocalAPIServerUsesEnvCredentials(t *testing.T) {
+	t.Setenv("LOCAL_API_SERVER", "true")
+
+	actualDefaultSession, err := getDefaultMinioSessionInfo()
+	require.NoError(t, err)
+
+	expectedDefaultSession := objectstore.SessionInfo{
+		Provider: "minio",
+		Params: map[string]string{
+			"region":     "minio",
+			"endpoint":   "seaweedfs.kubeflow:9000",
+			"disableSSL": "true",
+			"fromEnv":    "true",
+			"maxRetries": "5",
+		},
+	}
+	assert.Equal(t, expectedDefaultSession, actualDefaultSession)
+}
+
 func TestGetBucketSessionInfo(t *testing.T) {
 
 	providersDataFile, err := os.ReadFile("testdata/provider_cases.yaml")
@@ -80,6 +106,13 @@ func TestGetBucketSessionInfo(t *testing.T) {
 			expectedSessionInfo: objectstore.SessionInfo{},
 			shouldError:         true,
 			errorMsg:            "unsupported Cloud bucket",
+		},
+		{
+			msg:          "valid - file pipeline root does not require provider config",
+			pipelineroot: "file:///tmp/kfp-artifacts/v2/artifacts",
+			expectedSessionInfo: objectstore.SessionInfo{
+				Provider: "file",
+			},
 		},
 		{
 			msg:          "valid - only s3 pipelineroot no provider config",

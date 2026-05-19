@@ -21,6 +21,7 @@ import warnings
 from kfp.dsl.constants import WORKSPACE_MOUNT_PATH
 
 _GCS_LOCAL_MOUNT_PREFIX = '/gcs/'
+_FILE_LOCAL_MOUNT_PREFIX = '/file/'
 _MINIO_LOCAL_MOUNT_PREFIX = '/minio/'
 _S3_LOCAL_MOUNT_PREFIX = '/s3/'
 _OCI_LOCAL_MOUNT_PREFIX = '/oci/'
@@ -28,6 +29,7 @@ _OCI_LOCAL_MOUNT_PREFIX = '/oci/'
 
 class RemotePrefix(enum.Enum):
     GCS = 'gs://'
+    FILE = 'file:///'
     MINIO = 'minio://'
     S3 = 's3://'
     OCI = 'oci://'
@@ -103,6 +105,9 @@ class Artifact:
         elif self.uri.startswith(RemotePrefix.GCS.value):
             local_path = _GCS_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.GCS
                                                                 .value):]
+        elif self.uri.startswith(RemotePrefix.FILE.value):
+            local_path = _FILE_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix
+                                                                 .FILE.value):]
         elif self.uri.startswith(RemotePrefix.MINIO.value):
             local_path = _MINIO_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.
                                                                   MINIO.value):]
@@ -147,6 +152,8 @@ class Artifact:
 def convert_local_path_to_remote_path(path: str) -> str:
     if path.startswith(_GCS_LOCAL_MOUNT_PREFIX):
         return RemotePrefix.GCS.value + path[len(_GCS_LOCAL_MOUNT_PREFIX):]
+    elif path.startswith(_FILE_LOCAL_MOUNT_PREFIX):
+        return RemotePrefix.FILE.value + path[len(_FILE_LOCAL_MOUNT_PREFIX):]
     elif path.startswith(_MINIO_LOCAL_MOUNT_PREFIX):
         return RemotePrefix.MINIO.value + path[len(_MINIO_LOCAL_MOUNT_PREFIX):]
     elif path.startswith(_S3_LOCAL_MOUNT_PREFIX):

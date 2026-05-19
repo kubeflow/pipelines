@@ -1,7 +1,6 @@
 package cacheutils
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -18,6 +17,8 @@ import (
 )
 
 func TestGenerateCacheKey(t *testing.T) {
+	datasetOneIdentity := cacheKeyInputArtifactIdentity(&pipelinespec.RuntimeArtifact{Name: "1", Uri: "gs://some-bucket/dataset-one"})
+	datasetTwoIdentity := cacheKeyInputArtifactIdentity(&pipelinespec.RuntimeArtifact{Name: "2", Uri: "gs://some-bucket/dataset-two"})
 
 	tests := []struct {
 		name                    string
@@ -99,8 +100,8 @@ func TestGenerateCacheKey(t *testing.T) {
 			image:   "python:3.11",
 			want: &cachekey.CacheKey{
 				InputArtifactNames: map[string]*cachekey.ArtifactNameList{
-					"dataset_one": {ArtifactNames: []string{"1"}},
-					"dataset_two": {ArtifactNames: []string{"2"}},
+					"dataset_one": {ArtifactNames: []string{datasetOneIdentity}},
+					"dataset_two": {ArtifactNames: []string{datasetTwoIdentity}},
 				},
 				InputParameterValues: map[string]*structpb.Value{
 					"message":   {Kind: &structpb.Value_StringValue{StringValue: "Some string value"}},
@@ -188,7 +189,7 @@ func TestGenerateCacheKey(t *testing.T) {
 			pvcNames: []string{"workspace-pvc", "data-pvc"},
 			want: &cachekey.CacheKey{
 				InputArtifactNames: map[string]*cachekey.ArtifactNameList{
-					"dataset_one": {ArtifactNames: []string{"1"}},
+					"dataset_one": {ArtifactNames: []string{datasetOneIdentity}},
 				},
 				InputParameterValues: map[string]*structpb.Value{
 					"message":   {Kind: &structpb.Value_StringValue{StringValue: "Some string value"}},
@@ -218,11 +219,9 @@ func TestGenerateCacheKey(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	cacheClient, err := NewClient("ml-pipeline.kubeflow", "8887", false, &tls.Config{})
-	require.NoError(t, err)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := cacheClient.GenerateCacheKey(test.executorInputInputs, test.executorInputOutputs, test.outputParametersTypeMap, test.cmdArgs, test.image, test.pvcNames)
+			got, err := GenerateCacheKey(test.executorInputInputs, test.executorInputOutputs, test.outputParametersTypeMap, test.cmdArgs, test.image, test.pvcNames)
 			if (err != nil) != test.wantErr {
 				t.Errorf("GenerateCacheKey() error = %v", err)
 				return
@@ -239,10 +238,13 @@ func TestGenerateCacheKey(t *testing.T) {
 }
 
 func TestGenerateFingerPrint(t *testing.T) {
+	datasetOneIdentity := cacheKeyInputArtifactIdentity(&pipelinespec.RuntimeArtifact{Name: "1", Uri: "gs://some-bucket/dataset-one"})
+	datasetTwoIdentity := cacheKeyInputArtifactIdentity(&pipelinespec.RuntimeArtifact{Name: "2", Uri: "gs://some-bucket/dataset-two"})
+	datasetTenIdentity := cacheKeyInputArtifactIdentity(&pipelinespec.RuntimeArtifact{Name: "10", Uri: "gs://some-bucket/dataset-ten"})
 	cacheKey := &cachekey.CacheKey{
 		InputArtifactNames: map[string]*cachekey.ArtifactNameList{
-			"dataset_one": {ArtifactNames: []string{"1"}},
-			"dataset_two": {ArtifactNames: []string{"2"}},
+			"dataset_one": {ArtifactNames: []string{datasetOneIdentity}},
+			"dataset_two": {ArtifactNames: []string{datasetTwoIdentity}},
 		},
 		InputParameterValues: map[string]*structpb.Value{
 			"message":   {Kind: &structpb.Value_StringValue{StringValue: "Some string value"}},
@@ -279,14 +281,13 @@ func TestGenerateFingerPrint(t *testing.T) {
 		name        string
 		cacheKey    *cachekey.CacheKey
 		wantEqual   bool
-		fingerPrint string
 	}{
 		{
 			name: "Generated Same FingerPrint",
 			cacheKey: &cachekey.CacheKey{
 				InputArtifactNames: map[string]*cachekey.ArtifactNameList{
-					"dataset_one": {ArtifactNames: []string{"1"}},
-					"dataset_two": {ArtifactNames: []string{"2"}},
+					"dataset_one": {ArtifactNames: []string{datasetOneIdentity}},
+					"dataset_two": {ArtifactNames: []string{datasetTwoIdentity}},
 				},
 				InputParameterValues: map[string]*structpb.Value{
 					"message":   {Kind: &structpb.Value_StringValue{StringValue: "Some string value"}},
@@ -319,13 +320,12 @@ func TestGenerateFingerPrint(t *testing.T) {
 					Image:   "python:3.11",
 				},
 			},
-			wantEqual:   true,
-			fingerPrint: "b498530c9016917298999ec0b01f364a180f8a3862bea0fa672a383ca3f22e4e",
+			wantEqual: true,
 		}, {
 			name: "Generated Different FingerPrint",
 			cacheKey: &cachekey.CacheKey{
 				InputArtifactNames: map[string]*cachekey.ArtifactNameList{
-					"dataset": {ArtifactNames: []string{"10"}},
+					"dataset": {ArtifactNames: []string{datasetTenIdentity}},
 				},
 				OutputParametersSpec: map[string]string{
 					"output_parameter": "DOUBLE",
@@ -335,28 +335,25 @@ func TestGenerateFingerPrint(t *testing.T) {
 					Image:   "python:3.11",
 				},
 			},
-			wantEqual:   false,
-			fingerPrint: "3d9a2a778fa3174c6cfc6e639c507c265b5f21ef6e5b1dd70b236462cc6da464",
+			wantEqual: false,
 		},
 	}
-	cacheClient, err := NewClient("ml-pipeline.kubeflow", "8887", false, &tls.Config{})
-	require.NoError(t, err)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			fingerPrint, err := cacheClient.GenerateFingerPrint(cacheKey)
+			fingerPrint, err := GenerateFingerPrint(cacheKey)
 			assert.Nil(t, err)
-			testFingerPrint, err := cacheClient.GenerateFingerPrint(test.cacheKey)
+			testFingerPrint, err := GenerateFingerPrint(test.cacheKey)
 			assert.Nil(t, err)
 			assert.Equal(t, fingerPrint == testFingerPrint, test.wantEqual)
-			assert.Equal(t, test.fingerPrint, testFingerPrint)
 		})
 	}
 }
 
 func TestGenerateFingerPrint_ConsidersPVCNames(t *testing.T) {
+	datasetOneIdentity := cacheKeyInputArtifactIdentity(&pipelinespec.RuntimeArtifact{Name: "1", Uri: "gs://some-bucket/dataset-one"})
 	base := &cachekey.CacheKey{
 		InputArtifactNames: map[string]*cachekey.ArtifactNameList{
-			"dataset_one": {ArtifactNames: []string{"1"}},
+			"dataset_one": {ArtifactNames: []string{datasetOneIdentity}},
 		},
 		OutputParametersSpec: map[string]string{
 			"output_parameter_one": "STRING",
@@ -369,7 +366,7 @@ func TestGenerateFingerPrint_ConsidersPVCNames(t *testing.T) {
 
 	withPVCs := &cachekey.CacheKey{
 		InputArtifactNames: map[string]*cachekey.ArtifactNameList{
-			"dataset_one": {ArtifactNames: []string{"1"}},
+			"dataset_one": {ArtifactNames: []string{datasetOneIdentity}},
 		},
 		OutputParametersSpec: map[string]string{
 			"output_parameter_one": "STRING",
@@ -383,7 +380,7 @@ func TestGenerateFingerPrint_ConsidersPVCNames(t *testing.T) {
 
 	samePVCs := &cachekey.CacheKey{
 		InputArtifactNames: map[string]*cachekey.ArtifactNameList{
-			"dataset_one": {ArtifactNames: []string{"1"}},
+			"dataset_one": {ArtifactNames: []string{datasetOneIdentity}},
 		},
 		OutputParametersSpec: map[string]string{
 			"output_parameter_one": "STRING",
@@ -397,7 +394,7 @@ func TestGenerateFingerPrint_ConsidersPVCNames(t *testing.T) {
 
 	differentPVCs := &cachekey.CacheKey{
 		InputArtifactNames: map[string]*cachekey.ArtifactNameList{
-			"dataset_one": {ArtifactNames: []string{"1"}},
+			"dataset_one": {ArtifactNames: []string{datasetOneIdentity}},
 		},
 		OutputParametersSpec: map[string]string{
 			"output_parameter_one": "STRING",
@@ -409,16 +406,13 @@ func TestGenerateFingerPrint_ConsidersPVCNames(t *testing.T) {
 		},
 	}
 
-	cacheClient, err := NewClient("ml-pipeline.kubeflow", "8887", false, &tls.Config{})
+	baseFP, err := GenerateFingerPrint(base)
 	require.NoError(t, err)
-
-	baseFP, err := cacheClient.GenerateFingerPrint(base)
+	withPVCsFP, err := GenerateFingerPrint(withPVCs)
 	require.NoError(t, err)
-	withPVCsFP, err := cacheClient.GenerateFingerPrint(withPVCs)
+	samePVCsFP, err := GenerateFingerPrint(samePVCs)
 	require.NoError(t, err)
-	samePVCsFP, err := cacheClient.GenerateFingerPrint(samePVCs)
-	require.NoError(t, err)
-	differentPVCsFP, err := cacheClient.GenerateFingerPrint(differentPVCs)
+	differentPVCsFP, err := GenerateFingerPrint(differentPVCs)
 	require.NoError(t, err)
 
 	// PVC names should affect the fingerprint when present

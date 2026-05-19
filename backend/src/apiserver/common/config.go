@@ -32,7 +32,6 @@ const (
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
-	MetadataTLSEnabled                      string = "METADATA_TLS_ENABLED"
 	CaBundleSecretName                      string = "CABUNDLE_SECRET_NAME"
 	CaBundleConfigMapName                   string = "CABUNDLE_CONFIGMAP_NAME"
 	CaBundleKeyName                         string = "CABUNDLE_KEY_NAME"
@@ -46,6 +45,10 @@ const (
 	DefaultSecurityContextRunAsNonRoot      string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT"
 	BlockV1Pipelines                        string = "BLOCK_V1_PIPELINES"
 	V1NamespaceWhitelist                    string = "V1_ALLOWED_NAMESPACES"
+	V2RuntimeMode                           string = "KFP_V2_RUNTIME_MODE"
+	V2RuntimeExecutor                       string = "KFP_V2_RUNTIME_EXECUTOR"
+	V2RuntimeWorkspaceRoot                  string = "KFP_V2_RUNTIME_WORKSPACE_ROOT"
+	V2RuntimeAutoExecute                    string = "KFP_V2_RUNTIME_AUTO_EXECUTE"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -156,10 +159,6 @@ func GetKubeflowUserIDPrefix() string {
 
 func GetTokenReviewAudience() string {
 	return GetStringConfigWithDefault(TokenReviewAudience, DefaultTokenReviewAudience)
-}
-
-func GetMetadataTLSEnabled() bool {
-	return GetBoolConfigWithDefault(MetadataTLSEnabled, DefaultMetadataTLSEnabled)
 }
 
 func GetCaBundleSecretName() string {

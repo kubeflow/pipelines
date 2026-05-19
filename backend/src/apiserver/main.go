@@ -242,8 +242,14 @@ func main() {
 		}
 	}
 
-	wg.Add(1)
-	go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
+	if clientManager.SwfClient() != nil {
+		wg.Add(1)
+		go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
+	}
+	if resourceManager.CoordinatorRuntimeEnabled() {
+		wg.Add(1)
+		go reconcileCoordinatorRuns(resourceManager, backgroundCtx, &wg)
+	}
 	go startRPCServer(resourceManager, tlsCfg)
 	// This is blocking
 	startHTTPProxy(resourceManager, *usePipelinesKubernetesStorage, tlsCfg)
@@ -256,6 +262,13 @@ func reconcileSwfCrs(resourceManager *resource.ResourceManager, ctx context.Cont
 	err := resourceManager.ReconcileSwfCrs(ctx)
 	if err != nil {
 		log.Errorf("Could not reconcile the ScheduledWorkflow Kubernetes resources: %v", err)
+	}
+}
+
+func reconcileCoordinatorRuns(resourceManager *resource.ResourceManager, ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
+	if err := resourceManager.ReconcileManagedRuns(ctx); err != nil {
+		log.Errorf("Could not reconcile coordinator-managed runs: %v", err)
 	}
 }
 
@@ -356,13 +369,13 @@ func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Confi
 	ReportServerV1 := server.NewReportServerV1(resourceManager)
 	ReportServer := server.NewReportServer(resourceManager)
 
+	ArtifactServer := server.NewArtifactServer(resourceManager)
+
 	apiv1beta1.RegisterExperimentServiceServer(s, ExperimentServerV1)
 	apiv1beta1.RegisterPipelineServiceServer(s, PipelineServerV1)
 	apiv1beta1.RegisterJobServiceServer(s, JobServerV1)
 	apiv1beta1.RegisterRunServiceServer(s, RunServerV1)
-	apiv1beta1.RegisterTaskServiceServer(s, server.NewTaskServer(resourceManager))
 	apiv1beta1.RegisterReportServiceServer(s, ReportServerV1)
-
 	apiv1beta1.RegisterVisualizationServiceServer(
 		s,
 		server.NewVisualizationServer(
@@ -371,12 +384,12 @@ func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Confi
 			common.GetStringConfig(cm.VisualizationServicePort),
 		))
 	apiv1beta1.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
-
 	apiv2beta1.RegisterExperimentServiceServer(s, ExperimentServer)
 	apiv2beta1.RegisterPipelineServiceServer(s, PipelineServer)
 	apiv2beta1.RegisterRecurringRunServiceServer(s, JobServer)
 	apiv2beta1.RegisterRunServiceServer(s, RunServer)
 	apiv2beta1.RegisterReportServiceServer(s, ReportServer)
+	apiv2beta1.RegisterArtifactServiceServer(s, ArtifactServer)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
@@ -424,6 +437,7 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	register(apiv2beta1.RegisterRecurringRunServiceHandlerFromEndpoint, "RecurringRunService")
 	register(apiv2beta1.RegisterRunServiceHandlerFromEndpoint, "RunService")
 	register(apiv2beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService")
+	register(apiv2beta1.RegisterArtifactServiceHandlerFromEndpoint, "ArtifactService")
 
 	sharedPipelineUploadServer := server.NewPipelineUploadServer(resourceManager, &server.PipelineUploadServerOptions{CollectMetrics: *collectMetricsFlag})
 	runLogServer := server.NewRunLogServer(resourceManager)

@@ -647,6 +647,63 @@ describe('/artifacts', () => {
       });
     });
 
+    it('responds with a file artifact if source=file', async () => {
+      const artifactContent = 'hello world from file';
+      const artifactRoot = mkTempDir();
+      const tempPath = path.join(artifactRoot, 'content.txt');
+      fs.writeFileSync(tempPath, artifactContent);
+      const filePathParts = tempPath.split(path.sep).filter(Boolean);
+      const bucket = filePathParts[0]!;
+      const key = filePathParts.slice(1).join('/');
+
+      const configs = loadConfigs(argv, { ARTIFACTS_LOCAL_ROOT: artifactRoot });
+      app = new UIServer(configs);
+
+      const request = requests(app.app);
+      await request
+        .get(`/artifacts/get?source=file&bucket=${bucket}&key=${encodeURIComponent(key)}`)
+        .expect(200, artifactContent);
+    });
+
+    it('responds with a partial file artifact if peek=5 is set', async () => {
+      const artifactContent = 'hello world from file';
+      const artifactRoot = mkTempDir();
+      const tempPath = path.join(artifactRoot, 'content.txt');
+      fs.writeFileSync(tempPath, artifactContent);
+      const filePathParts = tempPath.split(path.sep).filter(Boolean);
+      const bucket = filePathParts[0]!;
+      const key = filePathParts.slice(1).join('/');
+
+      const configs = loadConfigs(argv, { ARTIFACTS_LOCAL_ROOT: artifactRoot });
+      app = new UIServer(configs);
+
+      const request = requests(app.app);
+      await request
+        .get(`/artifacts/get?source=file&bucket=${bucket}&key=${encodeURIComponent(key)}&peek=5`)
+        .expect(200, artifactContent.slice(0, 5));
+    });
+
+    it('rejects file artifact requests outside the configured root', async () => {
+      const artifactRoot = mkTempDir();
+      const configs = loadConfigs(argv, { ARTIFACTS_LOCAL_ROOT: artifactRoot });
+      app = new UIServer(configs);
+
+      const request = requests(app.app);
+      await request
+        .get('/artifacts/get?source=file&bucket=etc&key=passwd')
+        .expect(403, 'File artifact path is outside the configured local artifact root.');
+    });
+
+    it('rejects file artifact requests when local root is not configured', async () => {
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      const request = requests(app.app);
+      await request
+        .get('/artifacts/get?source=file&bucket=tmp&key=content.txt')
+        .expect(500, 'File artifacts are not enabled on this server.');
+    });
+
     it('responds with concatenated gcs artifacts for wildcard keys and reuses one auth client', async () => {
       const mockedGetGCSClient: Mock = getGCSClient as any;
       const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
@@ -929,6 +986,22 @@ describe('/artifacts', () => {
       await request
         .get('/artifacts/minio/ml-pipeline/hello/world.txt') // url
         .expect(200, artifactContent);
+    });
+
+    it('downloads a file artifact', async () => {
+      const artifactContent = 'hello world from file';
+      const artifactRoot = mkTempDir();
+      const tempPath = path.join(artifactRoot, 'content.txt');
+      fs.writeFileSync(tempPath, artifactContent);
+      const filePathParts = tempPath.split(path.sep).filter(Boolean);
+      const bucket = filePathParts[0]!;
+      const key = filePathParts.slice(1).join('/');
+
+      const configs = loadConfigs(argv, { ARTIFACTS_LOCAL_ROOT: artifactRoot });
+      app = new UIServer(configs);
+
+      const request = requests(app.app);
+      await request.get(`/artifacts/file/${bucket}/${key}`).expect(200, artifactContent);
     });
 
     it('downloads a tar gzipped artifact as is', async () => {

@@ -16,12 +16,14 @@
 package testutil
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"sigs.k8s.io/yaml"
@@ -70,7 +72,7 @@ func GetValidPipelineFilesDir() string {
 	return filepath.Join(GetPipelineFilesDir(), testconstants.ValidPipelineFilesDir)
 }
 
-// GetCompiledWorkflowsFilesDir Get the directory location of the main list of pipeline files
+// GetCompiledWorkflowsFilesDir gets the directory location of compiled workflow goldens.
 func GetCompiledWorkflowsFilesDir() string {
 	return filepath.Join(GetTestDataDir(), testconstants.CompiledPipelineFilesDir)
 }
@@ -150,6 +152,33 @@ func ParseFileToSpecs(pipelineFilePath string, cacheDisabled bool, defaultWorksp
 	specs, templateErr := template.NewV2SpecTemplate(pipelineSpecBytes, templateOptions)
 	gomega.Expect(templateErr).To(gomega.BeNil(), "Failed to parse spec bytes into a spec object")
 	return specs
+}
+
+// LoadPipelineSpecsFromIR unmarshals a compiled pipeline IR into a PipelineJob and optional kubernetes platform spec.
+func LoadPipelineSpecsFromIR(
+	pipelineIRFilePath string,
+	cacheDisabled bool,
+	defaultWorkspace *v1.PersistentVolumeClaimSpec,
+) (*pipelinespec.PipelineJob, *pipelinespec.SinglePlatformSpec) {
+	pipelineSpecsFromFile := ParseFileToSpecs(pipelineIRFilePath, cacheDisabled, defaultWorkspace)
+	platformSpec := pipelineSpecsFromFile.PlatformSpec()
+	var singlePlatformSpec *pipelinespec.SinglePlatformSpec
+	if platformSpec != nil {
+		singlePlatformSpec = platformSpec.Platforms["kubernetes"]
+	}
+	pipelineSpecMap := make(map[string]interface{})
+	pipelineSpecBytes, marshallingError := protojson.Marshal(pipelineSpecsFromFile.PipelineSpec())
+	gomega.Expect(marshallingError).NotTo(gomega.HaveOccurred(), "Failed to marshall pipeline spec")
+	err := json.Unmarshal(pipelineSpecBytes, &pipelineSpecMap)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to unmarshal pipeline spec into map")
+	pipelineSpecMapNew := make(map[string]interface{})
+	pipelineSpecMapNew["pipelineSpec"] = pipelineSpecMap
+	pipelineSpecBytes, marshallingError = json.Marshal(pipelineSpecMapNew)
+	gomega.Expect(marshallingError).NotTo(gomega.HaveOccurred(), "Failed to marshall pipeline spec map")
+	pipelineJob := &pipelinespec.PipelineJob{}
+	err = protojson.Unmarshal(pipelineSpecBytes, pipelineJob)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Failed to unmarshal pipeline spec\n %s", string(pipelineSpecBytes)))
+	return pipelineJob, singlePlatformSpec
 }
 
 func CreateFile(filePath string, fileContents [][]byte) *os.File {

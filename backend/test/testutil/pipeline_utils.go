@@ -49,8 +49,16 @@ func UploadPipeline(pipelineUploadClient api_server.PipelineUploadInterface, pip
 	if pipelineDisplayName != nil {
 		uploadParams.SetDisplayName(pipelineDisplayName)
 	}
-	logger.Log("Creating temp pipeline file with overridden SDK Version")
-	overriddenPipelineFileWithSDKVersion := ReplaceSDKInPipelineSpec(pipelineFilePath)
+	overriddenPipelineFileWithSDKVersion := func() []byte {
+		if os.Getenv("LOCAL_API_SERVER") == "true" && os.Getenv("LOCAL_API_SERVER_KEEP_PINNED_SDK") == "true" {
+			logger.Log("Creating temp pipeline file without overriding SDK version for local API server mode")
+			bytes, err := os.ReadFile(pipelineFilePath)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to read pipeline file: "+pipelineFilePath)
+			return bytes
+		}
+		logger.Log("Creating temp pipeline file with overridden SDK version")
+		return ReplaceSDKInPipelineSpec(pipelineFilePath)
+	}()
 	tempPipelineFile := CreateTempFile(overriddenPipelineFileWithSDKVersion)
 	if *test_config.BaseImage != "" {
 		overridenBaseImageFile := ReplaceBaseImageInPipelineSpec(tempPipelineFile.Name())

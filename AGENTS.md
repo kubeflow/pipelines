@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-04-25
+- Last updated: 2026-05-19
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -58,7 +58,8 @@
   - The pipeline spec schema is defined via Protobufs under `api/`.
   - Can execute pipelines locally via Subprocess or Docker runner modes.
 - **API Server**:
-  - On run creation, compiles the pipeline spec to Argo Workflows `Workflow` objects.
+  - By default, compiles pipeline specs into Argo Workflows and submits them to Kubernetes.
+  - An optional coordinator-managed runtime can also execute supported IR pipelines directly when explicitly enabled.
   - Uploads and runs pipelines remotely on a Kubernetes cluster.
 - **Driver**:
   - Resolves input parameters.
@@ -217,7 +218,6 @@ Notes:
 - Compiler tests:
 
 ```bash
-# Run compiler tests
 ginkgo -v ./backend/test/compiler
 
 # Update compiled workflow goldens when intended
@@ -526,12 +526,14 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - Pipeline store variants (v2 engine): tests run with `database` and `kubernetes` stores, and a dedicated job compiles pipelines to Kubernetes-native manifests.
   - Example: `e2e-test.yml` job "API integration tests v2 - K8s with ${pipeline_store}" and "compile pipelines with Kubernetes".
 - Argo Workflows version matrix for compatibility (where relevant): `e2e-test.yml` exercises `v3.5.14`, `v3.7.3`, and `v4.0.4` across the standard cache/test-label matrix, while `api-server-tests.yml` covers standalone and Kubernetes-native Argo compatibility across the standard matrices (with standalone low-Kubernetes spot lanes per supported Argo version).
+- Coordinator-managed runtime CI now mirrors the main API/E2E suites on a focused single-Kubernetes-version matrix in both `api-server-tests.yml` and `e2e-test.yml` by setting `KFP_USE_COORDINATOR_RUNTIME=true` alongside `runtime_mode=coordinator-poc`.
+- Local-executor coordinator coverage lives in `e2e-test-coordinator-local-docker.yml`, which now exercises a backend matrix over SQLite plus a local Go CDK `file://` blob store, starts the API server from source with `KFP_V2_RUNTIME_EXECUTOR=docker`, and runs the clusterless `backend/test/local_docker_e2e` suite against `apiUrl=http://127.0.0.1:<port>`. The sqlite/file lane now uses a capped default `NUM_NODES=3` worker count and a longer SQLite busy timeout in `run_local_docker_e2e.sh` to reduce `database is locked` flakes under parallel local execution.
 - Proxy / cache toggles: dedicated jobs run with HTTP proxy enabled and with execution cache disabled to validate those modes.
 - Artifacts: failing logs and test outputs are uploaded as workflow artifacts for debugging.
 
 ### CI cluster setup and helpers
 
-- Kind-based clusters are provisioned via the `kfp-cluster` composite action, parameterized by `k8s_version`, `pipeline_store`, `proxy`, `cache_enabled`, and optional `argo_version`.
+- Kind-based clusters are provisioned via the `kfp-cluster` composite action, parameterized by `k8s_version`, `pipeline_store`, `proxy`, `cache_enabled`, and optional `argo_version` or `runtime_mode`.
 - The `create-cluster` and `deploy` actions are used by newer suites; `kfp-k8s` installs SDK components from source inside jobs that execute Python-based tests.
 - The `protobuf` composite action prepares `protoc` and related dependencies when compiling Python protobufs.
 - The `create-cluster` action caches Kind node images by Kubernetes version to reduce Docker Hub pulls.
@@ -645,6 +647,10 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - Run compiler tests: `ginkgo -v ./backend/test/compiler`
 - Run API tests: `ginkgo -v --label-filter="Smoke" ./backend/test/v2/api`
 - Run E2E tests: `ginkgo -v ./backend/test/end2end -- -namespace=kubeflow`
+- Run clusterless coordinator Docker E2E tests locally:
+  `TEST_LABEL=E2EEssential ./backend/test/local_docker_e2e/run_local_docker_e2e.sh`
+- Run the built UI plus a local coordinator Docker runtime API server from commit `2182efbaf472788f427218aa98fbea75c962b89f`:
+  `./hack/run-local-ui-and-poc-runtime.sh`
 - Check formatting:
   `yapf --recursive --diff sdk/python/ && pycln --check sdk/python && isort --check --profile google sdk/python`
 - Frontend dev server: `cd frontend && npm start`
@@ -659,6 +665,7 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - `_KFP_RUNTIME=true`: Disables SDK imports during task execution
 - `VITE_NAMESPACE=...`: Sets the target namespace for the frontend in multi-user mode
 - `LOCAL_API_SERVER=true`: Enables local API server testing mode when running integration tests on a Kind cluster
+- `KFP_USE_COORDINATOR_RUNTIME=true`: Marks shared API/E2E helpers as running against the coordinator runtime so they can apply coordinator-specific assertions and compatibility skips
 
 ## Troubleshooting and pitfalls
 

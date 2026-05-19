@@ -2,352 +2,403 @@ package component
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"net/url"
+	"path"
 	"strings"
 
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-
+	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
-
-	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
+	"gocloud.dev/blob"
+	"google.golang.org/protobuf/types/known/timestamppb"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
-	"google.golang.org/protobuf/encoding/protojson"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
-type ImporterLauncherOptions struct {
-	// required, pipeline context name
-	PipelineName string
-	// required, KFP run ID
-	RunID string
-	// required, parent DAG execution ID
-	ParentDagID int64
-}
-
-func (o *ImporterLauncherOptions) validate() error {
-	if o == nil {
-		return fmt.Errorf("empty importer launcher options")
-	}
-	if o.PipelineName == "" {
-		return fmt.Errorf("importer launcher options: pipeline name is empty")
-	}
-	if o.RunID == "" {
-		return fmt.Errorf("importer launcher options: Run ID is empty")
-	}
-	if o.ParentDagID == 0 {
-		return fmt.Errorf("importer launcher options: Parent DAG ID is not provided")
-	}
-	return nil
-}
-
 type ImportLauncher struct {
-	component               *pipelinespec.ComponentSpec
-	importer                *pipelinespec.PipelineDeploymentConfig_ImporterSpec
-	task                    *pipelinespec.PipelineTaskSpec
-	launcherV2Options       LauncherV2Options
-	importerLauncherOptions ImporterLauncherOptions
-
-	// clients
-	metadataClient *metadata.Client
-	k8sClient      *kubernetes.Clientset
+	opts              LauncherV2Options
+	clientManager     client_manager.ClientManagerInterface
+	objectStore       ObjectStoreClientInterface
+	openedBucketCache map[string]*blob.Bucket
+	launcherConfig    *config.Config
 }
 
-func NewImporterLauncher(ctx context.Context, componentSpecJSON, importerSpecJSON, taskSpecJSON string, launcherV2Opts *LauncherV2Options, importerLauncherOpts *ImporterLauncherOptions) (l *ImportLauncher, err error) {
+func NewImporterLauncher(
+	launcherV2Opts *LauncherV2Options,
+	clientManager client_manager.ClientManagerInterface,
+) (l *ImportLauncher, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to create importer launcher: %w", err)
 		}
 	}()
-	component := &pipelinespec.ComponentSpec{}
-	err = protojson.Unmarshal([]byte(componentSpecJSON), component)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal component spec: %w", err)
-	}
-	importer := &pipelinespec.PipelineDeploymentConfig_ImporterSpec{}
-	err = protojson.Unmarshal([]byte(importerSpecJSON), importer)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal importer spec: %w", err)
-	}
-	task := &pipelinespec.PipelineTaskSpec{}
-	err = protojson.Unmarshal([]byte(taskSpecJSON), task)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal task spec: %w", err)
-	}
 	err = launcherV2Opts.validate()
 	if err != nil {
 		return nil, err
 	}
-	err = importerLauncherOpts.validate()
-	if err != nil {
-		return nil, err
+	launcher := &ImportLauncher{
+		opts:              *launcherV2Opts,
+		clientManager:     clientManager,
+		openedBucketCache: make(map[string]*blob.Bucket),
 	}
-	restConfig, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize kubernetes client: %w", err)
-	}
-	k8sClient, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
-	}
-	tlsCfg, err := util.GetTLSConfig(launcherV2Opts.CaCertPath)
-	if err != nil {
-		return nil, err
-	}
-	metadataClient, err := metadata.NewClient(launcherV2Opts.MLMDServerAddress, launcherV2Opts.MLMDServerPort, tlsCfg)
-	if err != nil {
-		return nil, err
-	}
-	return &ImportLauncher{
-		component:               component,
-		importer:                importer,
-		task:                    task,
-		launcherV2Options:       *launcherV2Opts,
-		importerLauncherOptions: *importerLauncherOpts,
-		metadataClient:          metadataClient,
-		k8sClient:               k8sClient,
-	}, nil
+	launcher.objectStore = NewObjectStoreClient(launcher)
+	return launcher, nil
 }
 
-func (l *ImportLauncher) Execute(ctx context.Context) (err error) {
+func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 	defer func() {
-		if err != nil {
-			err = fmt.Errorf("failed to execute importer component: %w", err)
+		if executionErr != nil {
+			executionErr = fmt.Errorf("failed to execute importer component: %w", executionErr)
 		}
 	}()
-	// TODO(Bobgy): there's no need to pass any parameters, because pipeline
-	// and pipeline run context have been created by root DAG driver.
-	pipeline, err := l.metadataClient.GetPipeline(ctx, l.importerLauncherOptions.PipelineName, l.importerLauncherOptions.RunID, "", "", "", "")
-	if err != nil {
-		return err
+
+	// Close any open buckets in the cache
+	defer func() {
+		for _, bucket := range l.openedBucketCache {
+			_ = bucket.Close()
+		}
+	}()
+
+	// Fetch Launcher config
+	launcherConfig, executionErr := config.FetchLauncherConfigMap(ctx, l.clientManager.K8sClient(), l.opts.Namespace)
+	if executionErr != nil {
+		return fmt.Errorf("failed to get launcher configmap: %w", executionErr)
 	}
-	// Determine execution type
-	executionType := metadata.ExecutionType(metadata.ImporterExecutionTypeName)
-	if l.importer.GetDownloadToWorkspace() {
-		executionType = metadata.ExecutionType(metadata.ImporterWorkspaceExecutionTypeName)
+	l.launcherConfig = launcherConfig
+
+	kfpAPI := l.clientManager.KFPAPIClient()
+
+	downloadToWorkspace := false
+	if l.opts.ImporterSpec.GetDownloadToWorkspace() {
+		downloadToWorkspace = true
 	}
 
-	ecfg := &metadata.ExecutionConfig{
-		TaskName:      l.task.GetTaskInfo().GetName(),
-		PodName:       l.launcherV2Options.PodName,
-		PodUID:        l.launcherV2Options.PodUID,
-		Namespace:     l.launcherV2Options.Namespace,
-		ExecutionType: executionType,
-		ParentDagID:   l.importerLauncherOptions.ParentDagID,
+	// Create the task, we will continue to update this as needed.
+	parentTaskID := l.opts.ParentTask.GetTaskId()
+	createdTask, executionErr := kfpAPI.CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
+		Task: &apiV2beta1.PipelineTaskDetail{
+			Name:         l.opts.TaskSpec.GetTaskInfo().GetName(),
+			DisplayName:  l.opts.TaskSpec.GetTaskInfo().GetName(),
+			RunId:        l.opts.Run.RunId,
+			ParentTaskId: &parentTaskID,
+			Type:         apiV2beta1.PipelineTaskDetail_IMPORTER,
+			State:        apiV2beta1.PipelineTaskDetail_RUNNING,
+			ScopePath:    l.opts.ScopePath.DotNotation(),
+			CreateTime:   timestamppb.Now(),
+			TypeAttributes: &apiV2beta1.PipelineTaskDetail_TypeAttributes{
+				DownloadToWorkspace: util.BoolPointer(downloadToWorkspace),
+			},
+			Pods: []*apiV2beta1.PipelineTaskDetail_TaskPod{
+				{
+					Name: l.opts.PodName,
+					Uid:  l.opts.PodUID,
+					Type: apiV2beta1.PipelineTaskDetail_EXECUTOR,
+				},
+			},
+		},
+	})
+	if executionErr != nil {
+		return executionErr
 	}
-	createdExecution, err := l.metadataClient.CreateExecution(ctx, pipeline, ecfg)
-	if err != nil {
-		return err
+
+	// The defer statement is used to ensure we propagate any errors
+	// encountered in this task execution.
+	defer func() {
+		if executionErr != nil {
+			createdTask.State = apiV2beta1.PipelineTaskDetail_FAILED
+		} else {
+			createdTask.State = apiV2beta1.PipelineTaskDetail_SUCCEEDED
+		}
+		createdTask.EndTime = timestamppb.Now()
+		_, updateErr := kfpAPI.UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
+			TaskId: createdTask.TaskId,
+			Task:   createdTask,
+		})
+		if updateErr != nil {
+			glog.Errorf("failed to update task: %v", updateErr)
+			return
+		}
+		// Propagate any statuses up the DAG.
+		updateStatusErr := l.clientManager.KFPAPIClient().UpdateStatuses(ctx, l.opts.Run, l.opts.PipelineSpec, l.opts.Task)
+		if updateStatusErr != nil {
+			glog.Errorf("failed to update statuses: %v", updateStatusErr)
+			return
+		}
+	}()
+
+	if createdTask == nil {
+		return fmt.Errorf("failed to create task for importer execution")
 	}
-	artifact, err := l.findOrNewArtifactToImport(ctx, createdExecution)
-	if err != nil {
-		return err
+	l.opts.Task = createdTask
+
+	if createdTask.Outputs == nil {
+		createdTask.Outputs = &apiV2beta1.PipelineTaskDetail_InputOutputs{
+			Artifacts: make([]*apiV2beta1.PipelineTaskDetail_InputOutputs_IOArtifact, 0),
+		}
+	} else if createdTask.Outputs.Artifacts == nil {
+		createdTask.Outputs.Artifacts = make([]*apiV2beta1.PipelineTaskDetail_InputOutputs_IOArtifact, 0)
 	}
-	outputArtifactName, err := l.getOutPutArtifactName()
-	if err != nil {
-		return err
+
+	// Handle artifact creation and links to Importer Task
+	artifactToImport, executionErr := l.ImportSpecToArtifact()
+	if executionErr != nil {
+		return executionErr
 	}
-	outputArtifact := &metadata.OutputArtifact{
-		Name:     outputArtifactName,
-		Artifact: artifact,
-		Schema:   l.component.OutputDefinitions.Artifacts[outputArtifactName].GetArtifactType().GetInstanceSchema(),
+
+	// Determine if the Artifact already exists.
+	preExistingArtifact, executionErr := l.findMatchedArtifact(ctx, artifactToImport)
+	if executionErr != nil {
+		return executionErr
 	}
-	outputArtifacts := []*metadata.OutputArtifact{outputArtifact}
-	if err := l.metadataClient.PublishExecution(ctx, createdExecution, nil, outputArtifacts, pb.Execution_COMPLETE); err != nil {
-		return fmt.Errorf("failed to publish results of importer execution to ML Metadata: %w", err)
+
+	// Get the output artifact name from the component spec.
+	artifactOutputKey, executionErr := l.getArtifactOutputKey()
+	if executionErr != nil {
+		return executionErr
+	}
+
+	// If reimport is true or the artifact does not already exist we create a new artifact
+	if l.opts.ImporterSpec.Reimport || preExistingArtifact == nil {
+		glog.Infof("Creating new artifact for importer task %s", l.opts.TaskSpec.GetTaskInfo().GetName())
+		_, executionErr = kfpAPI.CreateArtifact(ctx, &apiV2beta1.CreateArtifactRequest{
+			Artifact:    artifactToImport,
+			RunId:       l.opts.Run.RunId,
+			TaskId:      createdTask.TaskId,
+			ProducerKey: artifactOutputKey,
+			Type:        apiV2beta1.IOType_OUTPUT,
+		})
+		if executionErr != nil {
+			return executionErr
+		}
+	} else {
+		glog.Infof("Reusing existing artifact %s for importer task %s", preExistingArtifact.GetArtifactId(), l.opts.TaskSpec.GetTaskInfo().GetName())
+		// If reimporting then we just need to create a new link to this Importer task via
+		// and ArtifactTask entry.
+		_, executionErr = kfpAPI.CreateArtifactTask(ctx, &apiV2beta1.CreateArtifactTaskRequest{
+			ArtifactTask: &apiV2beta1.ArtifactTask{
+				ArtifactId: preExistingArtifact.GetArtifactId(),
+				TaskId:     createdTask.TaskId,
+				RunId:      l.opts.Run.RunId,
+				Key:        artifactOutputKey,
+				Type:       apiV2beta1.IOType_OUTPUT,
+				Producer: &apiV2beta1.IOProducer{
+					TaskName: l.opts.TaskSpec.GetTaskInfo().GetName(),
+				},
+			},
+		})
+		if executionErr != nil {
+			return executionErr
+		}
 	}
 
 	return nil
 }
 
-func (l *ImportLauncher) findOrNewArtifactToImport(ctx context.Context, execution *metadata.Execution) (artifact *pb.Artifact, err error) {
-	// TODO consider moving logic to package metadata so that *pb.Artifact won't get exposed outside of package metadata
-	artifactToImport, err := l.ImportSpecToMLMDArtifact(ctx)
+func (l *ImportLauncher) findMatchedArtifact(ctx context.Context, artifactToMatch *apiV2beta1.Artifact) (matchedArtifact *apiV2beta1.Artifact, err error) {
+	artifacts, err := l.clientManager.KFPAPIClient().ListArtifactsByURI(ctx, artifactToMatch.GetUri(), l.opts.Namespace)
 	if err != nil {
 		return nil, err
 	}
-	if l.importer.Reimport {
-		return artifactToImport, nil
+	for _, artifact := range artifacts {
+		if artifact.GetUri() == artifactToMatch.GetUri() {
+			return artifact, nil
+		}
 	}
-	matchedArtifact, err := l.metadataClient.FindMatchedArtifact(ctx, artifactToImport, execution.GetPipeline().GetCtxID())
-	if err != nil {
-		return nil, err
+	for _, candidateArtifact := range artifacts {
+		if artifactsAreEqual(artifactToMatch, candidateArtifact) {
+			return candidateArtifact, nil
+		}
 	}
-	if matchedArtifact != nil {
-		return matchedArtifact, nil
-	}
-	return artifactToImport, nil
+	// No match found
+	return nil, nil
 }
 
-func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact *pb.Artifact, err error) {
+func artifactsAreEqual(artifact1, artifact2 *apiV2beta1.Artifact) bool {
+	if artifact1.GetType() != artifact2.GetType() {
+		return false
+	}
+	if artifact1.GetUri() != artifact2.GetUri() {
+		return false
+	}
+	if artifact1.GetName() != artifact2.GetName() {
+		return false
+	}
+	if artifact1.GetDescription() != artifact2.GetDescription() {
+		return false
+	}
+	// Compare metadata fields
+	metadata1 := artifact1.GetMetadata()
+	metadata2 := artifact2.GetMetadata()
+	if len(metadata1) != len(metadata2) {
+		return false
+	}
+	for k, v1 := range metadata1 {
+		if v2, exists := metadata2[k]; !exists || v1 != v2 {
+			return false
+		}
+	}
+	return true
+}
+
+func (l *ImportLauncher) ImportSpecToArtifact() (artifact *apiV2beta1.Artifact, err error) {
 	defer func() {
 		if err != nil {
-			err = fmt.Errorf("failed to create MLMD artifact from ImporterSpec: %w", err)
+			err = fmt.Errorf("failed to create Artifact from ImporterSpec: %w", err)
 		}
 	}()
 
-	schema, err := getArtifactSchema(l.importer.TypeSchema)
+	importerSpec := l.opts.ImporterSpec
+	artifactType, err := inferArtifactType(importerSpec.GetTypeSchema())
 	if err != nil {
-		return nil, fmt.Errorf("failed to get schema from importer spec: %w", err)
+		return nil, fmt.Errorf("failed to get schemaType from importer spec: %w", err)
 	}
-	artifactTypeId, err := l.metadataClient.GetOrInsertArtifactType(ctx, schema)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get or insert artifact type with schema %s: %w", schema, err)
-	}
-
 	// Resolve artifact URI. Can be one of two sources:
 	// 1) Constant
 	// 2) Runtime Parameter
+	// TODO(Humair): The logic here is very similar to how InputParameters are resolved in the driver's resolver package.
+	// We should consolidate this logic.
 	var artifactUri string
-	if l.importer.GetArtifactUri().GetConstant() != nil {
-		glog.Infof("Artifact URI as constant: %+v", l.importer.GetArtifactUri().GetConstant())
-		artifactUri = l.importer.GetArtifactUri().GetConstant().GetStringValue()
+	switch {
+	case importerSpec.GetArtifactUri().GetConstant() != nil:
+		glog.Infof("Artifact URI as constant: %+v", importerSpec.GetArtifactUri().GetConstant())
+		artifactUri = importerSpec.GetArtifactUri().GetConstant().GetStringValue()
 		if artifactUri == "" {
 			return nil, fmt.Errorf("empty Artifact URI constant value")
 		}
-	} else if l.importer.GetArtifactUri().GetRuntimeParameter() != "" {
-		// When URI is provided using Runtime Parameter, need to retrieve it from dag execution in MLMD
-		paramName := l.importer.GetArtifactUri().GetRuntimeParameter()
-		taskInput, ok := l.task.GetInputs().GetParameters()[paramName]
+	case importerSpec.GetArtifactUri().GetRuntimeParameter() != "":
+		paramName := importerSpec.GetArtifactUri().GetRuntimeParameter()
+		taskInput, ok := l.opts.TaskSpec.GetInputs().GetParameters()[paramName]
 		if !ok {
 			return nil, fmt.Errorf("cannot find parameter %s in task input to fetch artifact uri", paramName)
 		}
 		componentInput := taskInput.GetComponentInputParameter()
-		dag, err := l.metadataClient.GetDAG(ctx, l.importerLauncherOptions.ParentDagID)
-		if err != nil {
-			return nil, fmt.Errorf("error retrieving dag execution for parameter %s: %w", paramName, err)
+		var ioParam *apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter
+		for _, inputParam := range l.opts.ParentTask.GetInputs().GetParameters() {
+			if inputParam.ParameterKey == componentInput {
+				ioParam = inputParam
+				break
+			}
 		}
-		glog.Infof("parent DAG: %+v", dag.Execution)
-		inputParams, _, err := dag.Execution.GetParameters()
-		if err != nil {
-			return nil, fmt.Errorf("error retrieving input parameters from dag execution for parameter %s: %w", paramName, err)
+		if ioParam == nil {
+			return nil, fmt.Errorf("cannot find parameter %s in parent task input to fetch artifact uri", componentInput)
 		}
-		v, ok := inputParams[componentInput]
-		if !ok {
-			return nil, fmt.Errorf("error resolving artifact URI: parent DAG does not have input parameter %s", componentInput)
-		}
-		artifactUri = v.GetStringValue()
-		glog.Infof("Artifact URI from runtime parameter: %s", artifactUri)
+		artifactUri = ioParam.GetValue().GetStringValue()
 		if artifactUri == "" {
 			return nil, fmt.Errorf("empty artifact URI runtime value for parameter %s", paramName)
 		}
-	} else {
+	default:
 		return nil, fmt.Errorf("artifact uri not provided")
 	}
 
-	state := pb.Artifact_LIVE
-
-	artifact = &pb.Artifact{
-		TypeId:           &artifactTypeId,
-		State:            &state,
-		Uri:              &artifactUri,
-		Properties:       make(map[string]*pb.Value),
-		CustomProperties: make(map[string]*pb.Value),
+	// TODO(HumairAK): Allow user to specify a canonical artifact Name & Description when importing
+	// For now we infer the name from the URI object name.
+	artifactName, err := inferArtifactName(artifactUri)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract filename from artifact uri: %w", err)
 	}
-	if l.importer.Metadata != nil {
-		for k, v := range l.importer.Metadata.Fields {
-			value, err := metadata.StructValueToMLMDValue(v)
-			if err != nil {
-				return nil, fmt.Errorf("failed to convert structValue : %w", err)
-			}
-			artifact.CustomProperties[k] = value
-		}
+	artifact = &apiV2beta1.Artifact{
+		Name:        artifactName,
+		Description: "",
+		Type:        artifactType,
+		Uri:         &artifactUri,
+		CreatedAt:   timestamppb.Now(),
+		Namespace:   l.opts.Namespace,
 	}
-
+	if importerSpec.Metadata != nil {
+		artifact.Metadata = importerSpec.Metadata.GetFields()
+	}
 	if strings.HasPrefix(artifactUri, "oci://") {
 		// OCI artifacts are not supported when workspace is used
-		if l.importer.GetDownloadToWorkspace() {
+		if l.opts.ImporterSpec.GetDownloadToWorkspace() {
 			return nil, fmt.Errorf("importer workspace download does not support OCI registries")
 		}
-		artifactType, err := metadata.SchemaToArtifactType(schema)
-		if err != nil {
-			return nil, fmt.Errorf("converting schema to artifact type failed: %w", err)
-		}
-		if *artifactType.Name != "system.Model" {
-			return nil, fmt.Errorf("the %s artifact type does not support OCI registries", *artifactType.Name)
+
+		if artifactType != apiV2beta1.Artifact_Model {
+			return nil, fmt.Errorf("the %s artifact type does not support OCI registries", apiV2beta1.Artifact_Model)
 		}
 		return artifact, nil
 	}
 
-	provider, err := objectstore.ParseProviderFromPath(artifactUri)
-	if err != nil {
-		return nil, fmt.Errorf("no provider scheme found in artifact URI: %s", artifactUri)
-	}
-
-	// Assume all imported artifacts will rely on execution environment for store provider session info
-	storeSessionInfo := objectstore.SessionInfo{
-		Provider: provider,
-		Params: map[string]string{
-			"fromEnv": "true",
-		},
-	}
-	storeSessionInfoJSON, err := json.Marshal(storeSessionInfo)
-	if err != nil {
-		return nil, err
-	}
-	storeSessionInfoStr := string(storeSessionInfoJSON)
-	artifact.CustomProperties["store_session_info"] = metadata.StringValue(storeSessionInfoStr)
-
 	// Download the artifact into the workspace
-	if l.importer.GetDownloadToWorkspace() {
-		bucketConfig, err := l.resolveBucketConfigForURI(ctx, artifactUri)
-		if err != nil {
-			return nil, err
-		}
+	if l.opts.ImporterSpec.GetDownloadToWorkspace() {
 		localPath, err := LocalWorkspacePathForURI(artifactUri)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get local path for uri %q: %w", artifactUri, err)
 		}
-		blobKey, err := bucketConfig.KeyFromURI(artifactUri)
+		// Get the artifact output key from the component spec
+		artifactKey, err := l.getArtifactOutputKey()
 		if err != nil {
-			return nil, fmt.Errorf("failed to derive blob key from uri %q while downloading artifact into workspace: %w", artifactUri, err)
+			return nil, fmt.Errorf("failed to get artifact output key: %w", err)
 		}
-		bucket, err := objectstore.OpenBucket(ctx, l.k8sClient, l.launcherV2Options.Namespace, bucketConfig)
+		ctx := context.Background()
+		glog.Infof("Downloading artifact %q (artifact key %q) to workspace path %q", artifactUri, artifactKey, localPath)
+		err = l.objectStore.DownloadArtifact(ctx, artifactUri, localPath, artifactKey)
 		if err != nil {
-			return nil, fmt.Errorf("failed to open bucket for uri %q: %w", artifactUri, err)
-		}
-		defer bucket.Close()
-		glog.Infof("Downloading artifact %q (blob key %q) to workspace path %q", artifactUri, blobKey, localPath)
-		if err := objectstore.DownloadBlob(ctx, bucket, localPath, blobKey); err != nil {
 			return nil, fmt.Errorf("failed to download artifact to workspace: %w", err)
 		}
 	}
 	return artifact, nil
 }
 
-// resolveBucketConfigForURI parses bucket configuration for a given artifact URI and
-// attaches session information from the kfp-launcher ConfigMap when available.
-func (l *ImportLauncher) resolveBucketConfigForURI(ctx context.Context, uri string) (*objectstore.Config, error) {
-	bucketConfig, err := objectstore.ParseBucketConfigForArtifactURI(uri)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse bucket config while resolving uri %q: %w", uri, err)
+func (l *ImportLauncher) getArtifactOutputKey() (string, error) {
+	outputNames := make([]string, 0, len(l.opts.ComponentSpec.GetOutputDefinitions().GetArtifacts()))
+	for name := range l.opts.ComponentSpec.GetOutputDefinitions().GetArtifacts() {
+		outputNames = append(outputNames, name)
 	}
-	// Resolve and attach session info from kfp-launcher config for the artifact provider
-	if cfg, err := config.FromConfigMap(ctx, l.k8sClient, l.launcherV2Options.Namespace); err != nil {
-		glog.Warningf("failed to load launcher config while resolving bucket config: %v", err)
-	} else if cfg != nil {
-		if sess, err := cfg.GetStoreSessionInfo(uri); err != nil {
-			glog.Warningf("failed to resolve store session info for %q: %v", uri, err)
-		} else {
-			bucketConfig.SessionInfo = &sess
-		}
-	}
-	return bucketConfig, nil
-}
-
-func (l *ImportLauncher) getOutPutArtifactName() (string, error) {
-	outPutNames := make([]string, 0, len(l.component.GetOutputDefinitions().GetArtifacts()))
-	for name := range l.component.GetOutputDefinitions().GetArtifacts() {
-		outPutNames = append(outPutNames, name)
-	}
-	if len(outPutNames) != 1 {
+	if len(outputNames) != 1 {
 		return "", fmt.Errorf("failed to extract output artifact name from componentOutputSpec")
 	}
-	return outPutNames[0], nil
+	return outputNames[0], nil
+}
 
+func inferArtifactType(typeSchema *pipelinespec.ArtifactTypeSchema) (apiV2beta1.Artifact_ArtifactType, error) {
+	schemaType, err := getArtifactSchemaType(typeSchema)
+	if err != nil {
+		return apiV2beta1.Artifact_TYPE_UNSPECIFIED, fmt.Errorf("failed to get schemaType from importer spec: %w", err)
+	}
+	return artifactTypeSchemaToArtifactType(schemaType)
+}
+
+func inferArtifactName(uri string) (string, error) {
+	parsed, err := url.Parse(uri)
+	if err != nil {
+		return "", fmt.Errorf("invalid URI: %w", err)
+	}
+	// For cases like "s3://bucket/path/to/file.txt"
+	if parsed.Scheme != "" && parsed.Host != "" {
+		return path.Base(parsed.Path), nil
+	}
+	// For "https://minio.local/bucket/path/to/file.txt"
+	if parsed.Scheme != "" && parsed.Host == "" {
+		return path.Base(parsed.Path), nil
+	}
+	// For URLs without a scheme, e.g. "bucket/path/to/file.txt"
+	cleaned := strings.TrimSuffix(uri, "/")
+	return path.Base(cleaned), nil
+}
+
+// ObjectStoreDependencies interface implementation for ImportLauncher
+
+func (l *ImportLauncher) GetOpenedBucketCache() map[string]*blob.Bucket {
+	return l.openedBucketCache
+}
+
+func (l *ImportLauncher) SetOpenedBucket(key string, bucket *blob.Bucket) {
+	l.openedBucketCache[key] = bucket
+}
+
+func (l *ImportLauncher) GetLauncherConfig() *config.Config {
+	return l.launcherConfig
+}
+
+func (l *ImportLauncher) GetK8sClient() kubernetes.Interface {
+	return l.clientManager.K8sClient()
+}
+
+func (l *ImportLauncher) GetNamespace() string {
+	return l.opts.Namespace
 }

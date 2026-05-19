@@ -367,6 +367,8 @@ export class Apis {
     let platform: string = source;
     if (source === StorageService.GCS) {
       platform = 'gs'; // GCS link starts with gs://
+    } else if (source === StorageService.FILE) {
+      return `file:///${bucket}/${key}`;
     }
     return `${platform}://${bucket}/${key}`;
   }

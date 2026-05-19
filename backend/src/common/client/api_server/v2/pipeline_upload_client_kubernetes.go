@@ -17,11 +17,14 @@ package api_server_v2
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
@@ -37,6 +40,12 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	maxTagKeyLength   = 63
+	maxTagValueLength = 63
+	maxTagsPerEntity  = 20
 )
 
 var scheme *k8sruntime.Scheme
@@ -76,6 +85,34 @@ func deriveNameDisplayAndDescription(providedName, providedDisplayName, provided
 	return name, displayName, description
 }
 
+func parseAndValidateTags(rawTags *string) (map[string]string, error) {
+	if rawTags == nil || *rawTags == "" {
+		return nil, nil
+	}
+	var tags map[string]string
+	if err := json.Unmarshal([]byte(*rawTags), &tags); err != nil {
+		return nil, errors.New("failed to parse tags query parameter. Expected JSON object with string keys and values")
+	}
+	if len(tags) > maxTagsPerEntity {
+		return nil, fmt.Errorf("number of tags (%d) exceeds maximum of %d per entity", len(tags), maxTagsPerEntity)
+	}
+	for key, value := range tags {
+		if key == "" {
+			return nil, errors.New("tag key cannot be empty")
+		}
+		if strings.Contains(key, ".") {
+			return nil, fmt.Errorf("tag key %q must not contain '.' character", key)
+		}
+		if utf8.RuneCountInString(key) > maxTagKeyLength {
+			return nil, fmt.Errorf("tag key %q exceeds maximum length of %d characters", key, maxTagKeyLength)
+		}
+		if utf8.RuneCountInString(value) > maxTagValueLength {
+			return nil, fmt.Errorf("tag value %q for key %q exceeds maximum length of %d characters", value, key, maxTagValueLength)
+		}
+	}
+	return tags, nil
+}
+
 func NewPipelineUploadClientKubernetes(clientConfig clientcmd.ClientConfig, namespace string) (
 	PipelineUploadInterface, error,
 ) {
@@ -107,7 +144,9 @@ func (c *PipelineUploadClientKubernetes) UploadFile(filePath string, parameters 
 
 	processedFile, err := server.ReadPipelineFile(path.Base(filePath), file, common.MaxFileLength)
 	if err != nil {
-		return nil, util.NewUserErrorWithSingleMessage(err, "Failed to read pipeline spec file")
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to upload pipeline. Params: '%v'", parameters),
+			"Failed to upload pipeline")
 	}
 
 	parameters.Uploadfile = runtime.NamedReader(path.Base(filePath), io.NopCloser(bytes.NewReader(processedFile)))
@@ -143,6 +182,13 @@ func (c *PipelineUploadClientKubernetes) Upload(parameters *params.UploadPipelin
 		DisplayName: displayName,
 		Description: apimodel.LargeText(description),
 	}
+	tags, err := parseAndValidateTags(parameters.Tags)
+	if err != nil {
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to upload pipeline. Params: '%v'", parameters),
+			"Failed to upload pipeline")
+	}
+	pipelineModel.Tags = tags
 	pipeline := k8sapi.FromPipelineModel(pipelineModel)
 
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -154,19 +200,21 @@ func (c *PipelineUploadClientKubernetes) Upload(parameters *params.UploadPipelin
 			fmt.Sprintf("Failed to upload pipeline. Params: '%v'", parameters),
 			"Failed to upload pipeline")
 	}
+	createdPipelineModel := pipeline.ToModel()
 
 	pipelineVersionModel := apimodel.PipelineVersion{
 		Name:         name,
 		DisplayName:  displayName,
 		Description:  apimodel.LargeText(description),
 		PipelineSpec: apimodel.LargeText(piplineSpec),
+		Tags:         tags,
 	}
 
-	pipelineVersion, err := k8sapi.FromPipelineVersionModel(pipelineModel, pipelineVersionModel)
+	pipelineVersion, err := k8sapi.FromPipelineVersionModel(*createdPipelineModel, pipelineVersionModel)
 	if err != nil {
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to parse pipeline version. Params: '%v'", parameters),
-			"Failed to parse pipeline version")
+			fmt.Sprintf("Failed to upload pipeline. Params: '%v'", parameters),
+			"Failed to upload pipeline")
 	}
 
 	err = c.ctrlClient.Create(ctx, pipelineVersion)
@@ -177,12 +225,13 @@ func (c *PipelineUploadClientKubernetes) Upload(parameters *params.UploadPipelin
 	}
 
 	rv := &model.V2beta1Pipeline{
-		CreatedAt:   strfmt.DateTime(pipeline.CreationTimestamp.Time),
+		CreatedAt:   strfmt.DateTime(pipeline.CreationTimestamp.Time.UTC()),
 		Description: pipeline.Spec.Description,
 		DisplayName: pipeline.Spec.DisplayName,
 		Name:        pipeline.Name,
-		PipelineID:  string(pipeline.ObjectMeta.UID),
+		PipelineID:  string(pipeline.UID),
 		Namespace:   pipeline.Namespace,
+		Tags:        pipeline.Spec.Tags,
 	}
 
 	return rv, nil
@@ -207,7 +256,9 @@ func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, 
 
 	processedFile, err := server.ReadPipelineFile(path.Base(filePath), file, common.MaxFileLength)
 	if err != nil {
-		return nil, util.NewUserErrorWithSingleMessage(err, "Failed to read pipeline spec file")
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to upload pipeline version. Params: '%v'", parameters),
+			"Failed to upload pipeline version")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -226,7 +277,7 @@ func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, 
 	var pipeline *k8sapi.Pipeline
 
 	for _, listedPipeline := range pipelineList.Items {
-		if string(listedPipeline.ObjectMeta.UID) == *parameters.Pipelineid {
+		if string(listedPipeline.UID) == *parameters.Pipelineid {
 			pipeline = &listedPipeline
 			break
 		}
@@ -234,8 +285,8 @@ func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, 
 
 	if pipeline == nil {
 		return nil, util.NewUserError(errors.New("pipeline not found"),
-			fmt.Sprintf("Pipeline with id %s not found", *parameters.Pipelineid),
-			"Pipeline not found")
+			fmt.Sprintf("Failed to upload pipeline version. Params: '%v'", parameters),
+			"Failed to upload pipeline version")
 	}
 
 	modelPipeline := pipeline.ToModel()
@@ -254,12 +305,19 @@ func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, 
 		Description:  apimodel.LargeText(description),
 		PipelineId:   modelPipeline.UUID,
 	}
+	versionTags, err := parseAndValidateTags(parameters.Tags)
+	if err != nil {
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to upload pipeline version. Params: '%v'", parameters),
+			"Failed to upload pipeline version")
+	}
+	modelPipelineVersion.Tags = versionTags
 
 	pipelineVersion, err := k8sapi.FromPipelineVersionModel(*modelPipeline, modelPipelineVersion)
 	if err != nil {
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to parse pipeline version. Params: '%v'", parameters),
-			"Failed to parse pipeline version")
+			fmt.Sprintf("Failed to upload pipeline version. Params: '%v'", parameters),
+			"Failed to upload pipeline version")
 	}
 
 	err = c.ctrlClient.Create(ctx, pipelineVersion)
@@ -277,7 +335,7 @@ func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, 
 	}
 
 	rv := &model.V2beta1PipelineVersion{
-		CreatedAt:         strfmt.DateTime(pipelineVersion.CreationTimestamp.Time),
+		CreatedAt:         strfmt.DateTime(pipelineVersion.CreationTimestamp.Time.UTC()),
 		Description:       string(pipelineVersionModel.Description),
 		DisplayName:       pipelineVersionModel.DisplayName,
 		Name:              pipelineVersionModel.Name,
@@ -285,6 +343,7 @@ func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, 
 		PipelineVersionID: pipelineVersionModel.UUID,
 		PipelineSpec:      nil,
 		CodeSourceURL:     pipelineVersionModel.CodeSourceUrl,
+		Tags:              pipelineVersion.Spec.Tags,
 	}
 
 	// Handles the case where there is a platform spec in the pipeline spec.
@@ -292,8 +351,8 @@ func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, 
 		rv.PipelineSpec = spec.AsMap()
 	} else if err != nil {
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to parse pipeline version. Params: '%v'", parameters),
-			"Failed to parse pipeline version")
+			fmt.Sprintf("Failed to upload pipeline version. Params: '%v'", parameters),
+			"Failed to upload pipeline version")
 	}
 
 	return rv, nil

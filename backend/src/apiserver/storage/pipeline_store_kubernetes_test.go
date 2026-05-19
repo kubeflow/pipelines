@@ -152,6 +152,7 @@ func TestListK8sPipelines_Pagination_Descend(t *testing.T) {
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
 	options, err1 = list.NewOptionsFromToken(npt, 1)
+	require.NoError(t, err1)
 	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options, nil)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
 	require.Equalf(t, pipelines[0].Name, "test-pipeline-3", "Pagination failed")
@@ -189,6 +190,7 @@ func TestListK8sPipelinesV1_Pagination_NameAsc(t *testing.T) {
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
 	options, err1 = list.NewOptionsFromToken(npt, 1)
+	require.NoError(t, err1)
 	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options, nil)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
 	require.Equalf(t, pipelines[0].Name, "test-pipeline-1", "Pagination failed")
@@ -472,6 +474,62 @@ func TestListK8sPipelineVersions_WithFilter(t *testing.T) {
 	pipelineVersions, _, _, err2 := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options, nil)
 	require.Nil(t, err2, "Failed to list pipeline versions: %v", err)
 	require.Equalf(t, len(pipelineVersions), 1, "List size should not be zero")
+}
+
+func TestListK8sPipelineVersions_FallsBackToNoCacheWhenCacheIsStale(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	scheme := runtime.NewScheme()
+	err := v2beta1.AddToScheme(scheme)
+	require.NoError(t, err)
+
+	pipeline := &v2beta1.Pipeline{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-pipeline",
+			Namespace: "Test",
+			UID:       DefaultFakePipelineIdTwo,
+		},
+	}
+	pipelineVersion := &v2beta1.PipelineVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-pipeline-version-stale",
+			Namespace: "Test",
+			UID:       DefaultFakePipelineIdThree,
+			Labels: map[string]string{
+				"pipelines.kubeflow.org/pipeline-id": DefaultFakePipelineIdTwo,
+			},
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: v2beta1.GroupVersion.String(),
+				Kind:       "Pipeline",
+				UID:        DefaultFakePipelineIdTwo,
+				Name:       "test-pipeline",
+			}},
+		},
+		Spec: v2beta1.PipelineVersionSpec{
+			DisplayName:  "test-pipeline-version-stale",
+			Description:  "stale-cache version",
+			PipelineSpec: getBasicPipelineSpec(),
+		},
+	}
+
+	cacheClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(pipeline).
+		Build()
+	noCacheClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(pipeline, pipelineVersion).
+		Build()
+
+	store := NewPipelineStoreKubernetes(cacheClient, noCacheClient)
+	options := list.EmptyOptions()
+
+	pipelineVersions, _, _, err := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options, nil)
+	require.NoError(t, err)
+	require.Len(t, pipelineVersions, 1)
+	assert.Equal(t, "test-pipeline-version-stale", pipelineVersions[0].Name)
 }
 
 func TestCreatePipelineAndPipelineVersion(t *testing.T) {

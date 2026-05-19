@@ -1312,6 +1312,53 @@ class ExecutorTest(parameterized.TestCase):
 
         self.assertDictEqual(output_metadata, {})
 
+    def test_input_list_artifacts_python_component_without_runtime_type(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "artifacts": {
+          "input_datasets": {
+            "artifacts": [
+              {
+                "metadata": {
+                  "rows": 10
+                },
+                "name": "datasets/0",
+                "uri": "gs://some-bucket/output/input_dataset_0"
+              },
+              {
+                "metadata": {
+                  "rows": 20
+                },
+                "name": "datasets/1",
+                "uri": "gs://some-bucket/output/input_dataset_1"
+              }
+            ]
+          }
+        }
+      },
+      "outputs": {
+        "outputFile": "%(test_dir)s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(input_datasets: Input[List[Dataset]]):
+            self.assertIsInstance(input_datasets, list)
+            self.assertLen(input_datasets, 2)
+            for index, artifact in enumerate(input_datasets):
+                self.assertIsInstance(artifact, Dataset)
+                self.assertEqual(artifact.name, f'datasets/{index}')
+                self.assertEqual(
+                    artifact.uri,
+                    f'gs://some-bucket/output/input_dataset_{index}')
+                self.assertEqual(artifact.metadata['rows'], (index + 1) * 10)
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
+        self.assertDictEqual(output_metadata, {})
+
     def test_single_artifact_input_pythonic(self):
         executor_input = """\
     {
@@ -1867,6 +1914,32 @@ class TestDictToArtifact(parameterized.TestCase):
         # without artifact_cls
         self.assertIsInstance(
             executor.create_artifact_instance(runtime_artifact), expected_type)
+
+    def test_create_artifact_instance_preserves_custom_path(self):
+        runtime_artifact = {
+            'name': 'artifact',
+            'uri': 'minio://mlpipeline/path/to/artifact',
+            'metadata': {},
+            'custom_path': '/tmp/out_dataset',
+        }
+
+        artifact_instance = executor.create_artifact_instance(runtime_artifact)
+
+        self.assertEqual(artifact_instance.custom_path, '/tmp/out_dataset')
+        self.assertEqual(artifact_instance.path, '/tmp/out_dataset')
+
+    def test_create_artifact_instance_preserves_custom_path_camel_case(self):
+        runtime_artifact = {
+            'name': 'artifact',
+            'uri': 'minio://mlpipeline/path/to/artifact',
+            'metadata': {},
+            'customPath': '/tmp/out_dataset',
+        }
+
+        artifact_instance = executor.create_artifact_instance(runtime_artifact)
+
+        self.assertEqual(artifact_instance.custom_path, '/tmp/out_dataset')
+        self.assertEqual(artifact_instance.path, '/tmp/out_dataset')
 
 
 @contextlib.contextmanager

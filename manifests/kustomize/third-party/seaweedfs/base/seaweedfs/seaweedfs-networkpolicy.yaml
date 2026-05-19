@@ -13,6 +13,7 @@ spec:
           - kubeflow-profile
     ports:
     - port: 8333
+    - port: 9000
   - from:
     - namespaceSelector:
         matchExpressions:
@@ -24,6 +25,7 @@ spec:
     - podSelector: {}
     ports:
     - port: 8333
+    - port: 9000
   podSelector:
     matchExpressions:
     - key: app

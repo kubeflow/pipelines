@@ -15,11 +15,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	apiServer "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata/testutils"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/v2"
-	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 
 	"github.com/golang/glog"
 	"github.com/stretchr/testify/require"
@@ -38,18 +35,10 @@ type CacheTestSuite struct {
 	pipelineUploadClient apiServer.PipelineUploadInterface
 	runClient            *apiServer.RunClient
 	recurringRunClient   *apiServer.RecurringRunClient
-	mlmdClient           pb.MetadataStoreServiceClient
 }
 
 func TestCache(t *testing.T) {
 	suite.Run(t, new(CacheTestSuite))
-}
-
-func (s *CacheTestSuite) SetupSuite() {
-	var err error
-	s.mlmdClient, err = testutils.NewTestMlmdClient("127.0.0.1", metadata.GetMetadataConfig().Port, *config.TLSEnabled, *config.CaCertPath)
-	require.NoError(s.T(), err)
-	require.NotNil(s.T(), s.mlmdClient)
 }
 
 func (s *CacheTestSuite) SetupTest() {
@@ -180,11 +169,13 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 		return false
 	}, 4*time.Minute, 5*time.Second)
 
-	state := s.getContainerExecutionState(t, allRuns[1].RunID)
+	task := s.getTask(t, allRuns[1].RunID, "comp")
 	if *cacheEnabled {
-		require.Equal(t, pb.Execution_CACHED, state)
+		require.Equal(t, run_model.PipelineTaskDetailTaskStateCACHED, *task.State)
+		// Verify no executor pod exists for cached task
+		s.verifyNoExecutorPod(t, task)
 	} else {
-		require.Equal(t, pb.Execution_COMPLETE, state)
+		require.Equal(t, run_model.PipelineTaskDetailTaskStateSUCCEEDED, *task.State)
 	}
 }
 
@@ -193,19 +184,21 @@ func (s *CacheTestSuite) TestCacheSingleRun() {
 
 	pipelineVersion := s.preparePipeline()
 
-	pipelineRunDetail, err := s.createRun(pipelineVersion)
+	_, err := s.createRun(pipelineVersion)
 	require.NoError(t, err)
 
 	// Create the second run
-	pipelineRunDetail, err = s.createRun(pipelineVersion)
+	pipelineRunDetail, err := s.createRun(pipelineVersion)
 	require.NoError(t, err)
 	require.NotNil(t, pipelineRunDetail)
 
-	state := s.getContainerExecutionState(t, pipelineRunDetail.RunID)
+	task := s.getTask(t, pipelineRunDetail.RunID, "comp")
 	if *cacheEnabled {
-		require.Equal(t, pb.Execution_CACHED, state)
+		require.Equal(t, run_model.PipelineTaskDetailTaskStateCACHED, *task.State)
+		// Verify no executor pod exists for cached task
+		s.verifyNoExecutorPod(t, task)
 	} else {
-		require.Equal(t, pb.Execution_COMPLETE, state)
+		require.Equal(t, run_model.PipelineTaskDetailTaskStateSUCCEEDED, *task.State)
 	}
 }
 
@@ -274,8 +267,15 @@ func (s *CacheTestSuite) TestCacheSingleRunWithPVC_SameName_Caches() {
 	require.NoError(t, err)
 	require.NotNil(t, run2)
 
-	state := s.getContainerExecutionState(t, run2.RunID)
-	require.Equal(t, pb.Execution_CACHED, state)
+	// Check producer task is cached
+	producerTask := s.getTask(t, run2.RunID, "producer")
+	require.Equal(t, run_model.PipelineTaskDetailTaskStateCACHED, *producerTask.State)
+	s.verifyNoExecutorPod(t, producerTask)
+
+	// Check consumer task is also cached
+	consumerTask := s.getTask(t, run2.RunID, "consumer")
+	require.Equal(t, run_model.PipelineTaskDetailTaskStateCACHED, *consumerTask.State)
+	s.verifyNoExecutorPod(t, consumerTask)
 
 	// Third run with a different PVC name should not hit cache.
 	otherPVCName := fmt.Sprintf("%s-alt", pvcName)
@@ -298,9 +298,12 @@ func (s *CacheTestSuite) TestCacheSingleRunWithPVC_SameName_Caches() {
 	require.NoError(t, err)
 	require.NotNil(t, run3)
 
-	state = s.getContainerExecutionState(t, run3.RunID)
 	// With a different PVC, do not expect cache hit
-	require.Equal(t, pb.Execution_COMPLETE, state)
+	producerTask = s.getTask(t, run3.RunID, "producer")
+	require.Equal(t, run_model.PipelineTaskDetailTaskStateSUCCEEDED, *producerTask.State)
+
+	consumerTask = s.getTask(t, run3.RunID, "consumer")
+	require.Equal(t, run_model.PipelineTaskDetailTaskStateSUCCEEDED, *consumerTask.State)
 }
 
 func (s *CacheTestSuite) createRun(pipelineVersion *pipeline_upload_model.V2beta1PipelineVersion) (*run_model.V2beta1Run, error) {
@@ -392,30 +395,40 @@ func (s *CacheTestSuite) cleanUp() {
 	test.DeleteAllPipelines(s.pipelineClient, s.T())
 }
 
-// getContainerExecutionState fetches the container execution state for a given run ID.
-func (s *CacheTestSuite) getContainerExecutionState(t *testing.T, runID string) pb.Execution_State {
-	contextsFilterQuery := fmt.Sprintf("name = '%s'", runID)
-
-	contexts, err := s.mlmdClient.GetContexts(context.Background(), &pb.GetContextsRequest{
-		Options: &pb.ListOperationOptions{
-			FilterQuery: &contextsFilterQuery,
-		},
+// getTask fetches the task details for a given run ID and task name.
+func (s *CacheTestSuite) getTask(t *testing.T, runID string, taskName string) *run_model.V2beta1PipelineTaskDetail {
+	// Get run with FULL view to populate tasks
+	fullView := string(run_model.V2beta1GetRunRequestViewModeFULL)
+	run, err := s.runClient.Get(&runParams.RunServiceGetRunParams{
+		RunID: runID,
+		View:  &fullView,
 	})
 	require.NoError(t, err)
-	require.NotNil(t, contexts)
+	require.NotNil(t, run)
+	require.NotNil(t, run.Tasks, "Tasks should be populated with FULL view")
 
-	executionsByContext, err := s.mlmdClient.GetExecutionsByContext(context.Background(), &pb.GetExecutionsByContextRequest{
-		ContextId: contexts.Contexts[0].Id,
-	})
-	require.NoError(t, err)
-	require.NotNil(t, executionsByContext)
-	require.NotEmpty(t, executionsByContext.Executions)
-
-	for _, execution := range executionsByContext.Executions {
-		if metadata.ExecutionType(execution.GetType()) == metadata.ContainerExecutionTypeName {
-			return execution.GetLastKnownState()
+	// Find the task by name
+	for _, task := range run.Tasks {
+		if task.Name == taskName {
+			require.NotNil(t, task.State, "Task state should not be nil")
+			return task
 		}
 	}
-	t.Fatalf("no container execution found for run %s", runID)
-	return pb.Execution_UNKNOWN
+
+	t.Fatalf("task %s not found in run %s", taskName, runID)
+	return nil
+}
+
+// verifyNoExecutorPod verifies that there is no executor pod for a cached task.
+// When a task is cached, the driver pod should not create an executor pod.
+func (s *CacheTestSuite) verifyNoExecutorPod(t *testing.T, task *run_model.V2beta1PipelineTaskDetail) {
+	require.NotNil(t, task)
+
+	// Check the task's pods field for executor pods
+	for _, pod := range task.Pods {
+		if pod.Type != nil && *pod.Type == run_model.PipelineTaskDetailTaskPodTypeEXECUTOR {
+			t.Fatalf("Found executor pod %s (type=%s) for cached task %s, but cached tasks should not have executor pods",
+				pod.Name, *pod.Type, task.DisplayName)
+		}
+	}
 }

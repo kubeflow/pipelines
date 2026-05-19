@@ -15,7 +15,6 @@
 package proto_tests
 
 import (
-	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -23,12 +22,8 @@ import (
 	pb "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 )
 
-// This is the commit that contains the proto generated files
-// that were used to generate the test data.
-const commit = "1791485"
-
 func generatePath(path string) string {
-	return filepath.Join(fmt.Sprintf("generated-%s", commit), path)
+	return filepath.Join("generated", path)
 }
 
 func TestRuns(t *testing.T) {

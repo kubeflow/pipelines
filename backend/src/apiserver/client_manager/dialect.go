@@ -47,7 +47,7 @@ func GetDialect(name string) SQLDialect {
 			ExistDatabaseErrHint: "already exists",
 		}
 	case "sqlite":
-		// Only for test
+		// Used by tests and local containerless runtime flows.
 		return SQLDialect{
 			Name:                 "sqlite",
 			QuoteIdentifier:      func(id string) string { return `"` + id + `"` },
