@@ -276,6 +276,49 @@ func TestLauncherV2_ArtifactHandling(t *testing.T) {
 	assert.Equal(t, "s3://bucket/output/model.pkl", modelUploads[0].RemoteURI)
 }
 
+func TestUploadOutputArtifacts_IgnoresExecutorLogsUploadFailure(t *testing.T) {
+	mockAPI := kfpapi.NewMockAPI()
+	clientManager := client_manager.NewFakeClientManager(fake.NewClientset(), mockAPI)
+	mockObjStore := NewMockObjectStoreClient()
+	mockObjStore.UploadError = errors.New("seaweedfs timeout")
+
+	launcher := &LauncherV2{
+		clientManager: clientManager,
+		objectStore:   mockObjStore,
+		batchUpdater:  NewBatchUpdater(),
+		options: LauncherV2Options{
+			Namespace: "kubeflow",
+			Run: &apiv2beta1.Run{
+				RunId: "run-1",
+			},
+			Task: &apiv2beta1.PipelineTaskDetail{
+				TaskId: "task-1",
+			},
+		},
+		executorInput: &pipelinespec.ExecutorInput{
+			Outputs: &pipelinespec.ExecutorInput_Outputs{
+				Artifacts: map[string]*pipelinespec.ArtifactList{
+					"executor-logs": {
+						Artifacts: []*pipelinespec.RuntimeArtifact{{
+							Name: "executor-logs",
+							Type: &pipelinespec.ArtifactTypeSchema{
+								Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Artifact"},
+							},
+							Uri: "minio://mlpipeline/run/task/executor-logs",
+						}},
+					},
+				},
+			},
+		},
+	}
+
+	err := launcher.uploadOutputArtifacts(context.Background(), &pipelinespec.ExecutorOutput{
+		Artifacts: map[string]*pipelinespec.ArtifactList{},
+	})
+	require.NoError(t, err)
+	require.Len(t, mockObjStore.UploadCalls, 1)
+}
+
 // TestLauncherV2_CommandExecution demonstrates testing command execution
 func TestLauncherV2_CommandExecution(t *testing.T) {
 	mockCmd := NewMockCommandExecutor()

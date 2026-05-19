@@ -776,6 +776,14 @@ func (l *LauncherV2) uploadOutputArtifacts(
 					}
 					err = l.objectStore.UploadArtifact(ctx, localPath, outputArtifact.Uri, artifactKey)
 					if err != nil {
+						if artifactKey == "executor-logs" {
+							glog.Warningf(
+								"Failed to upload executor logs artifact to remote storage URI %q: %v. Continuing without recording executor logs artifact.",
+								outputArtifact.Uri,
+								err,
+							)
+							continue
+						}
 						return fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", artifactKey, outputArtifact.Uri, err)
 					}
 					artifact.Uri = util.StringPointer(outputArtifact.Uri)
