@@ -23,7 +23,7 @@ import { ApiRunDetail } from 'src/apis/run';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import Compare from './Compare';
 import * as features from 'src/features';
-import TestUtils, { expectErrors, testBestPractices } from 'src/TestUtils';
+import TestUtils, { expectErrors, flushPromisesInAct, testBestPractices } from 'src/TestUtils';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';
 import { Context } from 'src/third_party/mlmd';
 
@@ -164,7 +164,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() => expect(screen.queryByText('Scalar Metrics')).toBeNull());
   });
@@ -191,7 +191,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() =>
       expect(updateBannerSpy).toHaveBeenLastCalledWith({
@@ -225,7 +225,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...props} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() =>
       expect(updateBannerSpy).toHaveBeenLastCalledWith({
@@ -270,7 +270,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...props} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() =>
       expect(updateBannerSpy).toHaveBeenLastCalledWith({
@@ -300,7 +300,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() => expect(screen.queryByText('Scalar Metrics')).toBeNull());
   });
@@ -320,7 +320,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...props} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() => expect(screen.queryByText('Scalar Metrics')).toBeNull());
   });
@@ -347,7 +347,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() => screen.getByText('Scalar Metrics'));
   });
@@ -369,7 +369,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() => expect(screen.queryByText('Scalar Metrics')).toBeNull());
   });
@@ -391,7 +391,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() => expect(screen.queryByText('Scalar Metrics')).toBeNull());
   });
