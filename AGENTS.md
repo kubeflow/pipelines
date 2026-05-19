@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-05-17
+- Last updated: 2026-05-19
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -527,7 +527,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
   - Example: `e2e-test.yml` job "API integration tests v2 - K8s with ${pipeline_store}" and "compile pipelines with Kubernetes".
 - Argo Workflows version matrix for compatibility (where relevant): `e2e-test.yml` exercises `v3.5.14`, `v3.7.3`, and `v4.0.4` across the standard cache/test-label matrix, while `api-server-tests.yml` covers standalone and Kubernetes-native Argo compatibility across the standard matrices (with standalone low-Kubernetes spot lanes per supported Argo version).
 - Coordinator-managed runtime CI now mirrors the main API/E2E suites on a focused single-Kubernetes-version matrix in both `api-server-tests.yml` and `e2e-test.yml` by setting `KFP_USE_COORDINATOR_RUNTIME=true` alongside `runtime_mode=coordinator-poc`.
-- Local-executor coordinator coverage lives in `e2e-test-coordinator-local-docker.yml`, which now exercises a backend matrix over SQLite plus a local Go CDK `file://` blob store, starts the API server from source with `KFP_V2_RUNTIME_EXECUTOR=docker`, and runs the clusterless `backend/test/local_docker_e2e` suite against `apiUrl=http://127.0.0.1:<port>`.
+- Local-executor coordinator coverage lives in `e2e-test-coordinator-local-docker.yml`, which now exercises a backend matrix over SQLite plus a local Go CDK `file://` blob store, starts the API server from source with `KFP_V2_RUNTIME_EXECUTOR=docker`, and runs the clusterless `backend/test/local_docker_e2e` suite against `apiUrl=http://127.0.0.1:<port>`. The sqlite/file lane now uses a capped default `NUM_NODES=3` worker count and a longer SQLite busy timeout in `run_local_docker_e2e.sh` to reduce `database is locked` flakes under parallel local execution.
 - Proxy / cache toggles: dedicated jobs run with HTTP proxy enabled and with execution cache disabled to validate those modes.
 - Artifacts: failing logs and test outputs are uploaded as workflow artifacts for debugging.
 

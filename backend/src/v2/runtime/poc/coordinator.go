@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/google/uuid"
@@ -66,6 +67,10 @@ type queuedRun struct {
 }
 
 const runtimeArtifactCustomPathMetadataKey = "_kfp_custom_path"
+
+var sqliteLockRetryDelay = 200 * time.Millisecond
+
+const sqliteLockRetryAttempts = 10
 
 type activeRunExecution struct {
 	cancel context.CancelFunc
@@ -189,7 +194,7 @@ func (c *Coordinator) SubmitRun(
 		return fmt.Errorf("failed to marshal runtime manifest: %w", err)
 	}
 	run.PipelineRuntimeManifest = model.LargeText(manifestJSON)
-	if err := c.runStore.UpdateRun(run); err != nil {
+	if err := c.updateRun(run); err != nil {
 		return fmt.Errorf("failed to persist runtime manifest: %w", err)
 	}
 	if err := c.enqueueRun(ctx, &queuedRun{
@@ -600,7 +605,7 @@ func (c *Coordinator) executeRuntimeTask(
 		return err
 	}
 	if fingerprint != "" {
-		_, _ = c.taskStore.UpdateTask(&model.Task{UUID: runtimeTask.TaskID, Fingerprint: fingerprint})
+		_, _ = c.updateTask(&model.Task{UUID: runtimeTask.TaskID, Fingerprint: fingerprint})
 		taskModel.Fingerprint = fingerprint
 	}
 	if cachedTask != nil {
@@ -647,7 +652,7 @@ func (c *Coordinator) executeRuntimeTask(
 			if metadata != nil {
 				update.StatusMetadata = mergeJSONData(taskModel.StatusMetadata, metadata)
 			}
-			_, recorderErr := c.taskStore.UpdateTask(update)
+			_, recorderErr := c.updateTask(update)
 			return recorderErr
 		},
 	})
@@ -926,7 +931,7 @@ func (c *Coordinator) updateRunState(runID string, state model.RuntimeState, fin
 	run.State = state
 	run.Conditions = string(state.ToV1())
 	run.FinishedAtInSec = finishedAt
-	return c.runStore.UpdateRun(run)
+	return c.updateRun(run)
 }
 
 func (c *Coordinator) setActiveRunExecution(runID string, cancel context.CancelFunc, done chan struct{}) {
@@ -1034,7 +1039,43 @@ func (c *Coordinator) updateTaskState(
 	if state == apiv2beta1.PipelineTaskDetail_SUCCEEDED || state == apiv2beta1.PipelineTaskDetail_FAILED || state == apiv2beta1.PipelineTaskDetail_SKIPPED {
 		update.FinishedInSec = c.time.Now().Unix()
 	}
-	return c.taskStore.UpdateTask(update)
+	return c.updateTask(update)
+}
+
+func (c *Coordinator) updateRun(run *model.Run) error {
+	return retrySQLiteLockedError(func() error {
+		return c.runStore.UpdateRun(run)
+	})
+}
+
+func (c *Coordinator) updateTask(task *model.Task) (*model.Task, error) {
+	var updatedTask *model.Task
+	err := retrySQLiteLockedError(func() error {
+		var updateErr error
+		updatedTask, updateErr = c.taskStore.UpdateTask(task)
+		return updateErr
+	})
+	return updatedTask, err
+}
+
+func retrySQLiteLockedError(operation func() error) error {
+	var lastErr error
+	for attempt := 0; attempt < sqliteLockRetryAttempts; attempt++ {
+		lastErr = operation()
+		if lastErr == nil || !isSQLiteLockedError(lastErr) {
+			return lastErr
+		}
+		time.Sleep(sqliteLockRetryDelay)
+	}
+	return lastErr
+}
+
+func isSQLiteLockedError(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "database is locked") || strings.Contains(message, "database table is locked")
 }
 
 func (c *Coordinator) ReconcileManagedRuns(ctx context.Context) error {
@@ -2052,7 +2093,7 @@ func (c *Coordinator) propagateDagOutputs(
 		parameterOutputs = append(parameterOutputs, jsonValue...)
 	}
 	if len(parameterOutputs) > 0 {
-		if _, err := c.taskStore.UpdateTask(&model.Task{
+		if _, err := c.updateTask(&model.Task{
 			UUID:             runtimeTask.TaskID,
 			OutputParameters: parameterOutputs,
 		}); err != nil {
@@ -2342,6 +2383,7 @@ func modelArtifactToRuntimeArtifact(artifact *model.Artifact) *pipelinespec.Runt
 	if artifact.URI != nil {
 		runtimeArtifact.Uri = *artifact.URI
 	}
+	runtimeArtifact.Type = artifactTypeSchemaFromModelArtifactType(artifact.Type)
 	if artifact.Metadata != nil {
 		fields := map[string]*structpb.Value{}
 		if customPathValue, ok := artifact.Metadata[runtimeArtifactCustomPathMetadataKey]; ok {
@@ -2361,6 +2403,53 @@ func modelArtifactToRuntimeArtifact(artifact *model.Artifact) *pipelinespec.Runt
 		runtimeArtifact.Metadata = &structpb.Struct{Fields: fields}
 	}
 	return runtimeArtifact
+}
+
+func artifactTypeSchemaFromModelArtifactType(artifactType model.ArtifactType) *pipelinespec.ArtifactTypeSchema {
+	switch apiv2beta1.Artifact_ArtifactType(artifactType) {
+	case apiv2beta1.Artifact_Dataset:
+		return &pipelinespec.ArtifactTypeSchema{
+			Kind:          &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Dataset"},
+			SchemaVersion: "0.0.1",
+		}
+	case apiv2beta1.Artifact_Model:
+		return &pipelinespec.ArtifactTypeSchema{
+			Kind:          &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Model"},
+			SchemaVersion: "0.0.1",
+		}
+	case apiv2beta1.Artifact_Metric:
+		return &pipelinespec.ArtifactTypeSchema{
+			Kind:          &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Metrics"},
+			SchemaVersion: "0.0.1",
+		}
+	case apiv2beta1.Artifact_ClassificationMetric:
+		return &pipelinespec.ArtifactTypeSchema{
+			Kind:          &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.ClassificationMetrics"},
+			SchemaVersion: "0.0.1",
+		}
+	case apiv2beta1.Artifact_SlicedClassificationMetric:
+		return &pipelinespec.ArtifactTypeSchema{
+			Kind:          &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.SlicedClassificationMetrics"},
+			SchemaVersion: "0.0.1",
+		}
+	case apiv2beta1.Artifact_HTML:
+		return &pipelinespec.ArtifactTypeSchema{
+			Kind:          &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.HTML"},
+			SchemaVersion: "0.0.1",
+		}
+	case apiv2beta1.Artifact_Markdown:
+		return &pipelinespec.ArtifactTypeSchema{
+			Kind:          &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Markdown"},
+			SchemaVersion: "0.0.1",
+		}
+	case apiv2beta1.Artifact_Artifact, apiv2beta1.Artifact_TYPE_UNSPECIFIED:
+		fallthrough
+	default:
+		return &pipelinespec.ArtifactTypeSchema{
+			Kind:          &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Artifact"},
+			SchemaVersion: "0.0.1",
+		}
+	}
 }
 
 func outputParametersToJSON(values map[string]*structpb.Value, taskSpec *pipelinespec.PipelineTaskSpec) model.JSONSlice {

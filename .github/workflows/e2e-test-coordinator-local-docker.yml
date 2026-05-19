@@ -56,7 +56,7 @@ jobs:
         shell: bash
         env:
           TEST_LABEL: ${{ matrix.test_label }}
-          NUM_NODES: ${{ matrix.num_nodes || '6' }}
+          NUM_NODES: ${{ matrix.num_nodes || '3' }}
           RUN_PROXY_TESTS: ${{ matrix.run_proxy_tests || 'false' }}
           DB_BACKEND: ${{ matrix.db_backend }}
           OBJECT_STORE_BACKEND: ${{ matrix.object_store_backend }}

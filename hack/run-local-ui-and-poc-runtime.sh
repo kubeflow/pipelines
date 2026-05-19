@@ -117,8 +117,27 @@ stop_managed_listener() {
     fi
 
     echo "Stopping stale ${port_name} listener on port ${port} (pid ${pid})"
-    kill -"${signal}" "${pid}" >/dev/null 2>&1 || true
+    stop_managed_process "${pid}" "${signal}"
   done < <(listener_pids_for_port "${port}")
+}
+
+process_group_for_pid() {
+  local pid="$1"
+  ps -p "${pid}" -o pgid= 2>/dev/null | tr -d '[:space:]'
+}
+
+stop_managed_process() {
+  local pid="$1"
+  local signal="${2:-TERM}"
+
+  [[ -z "${pid}" ]] && return 0
+
+  local pgid
+  pgid="$(process_group_for_pid "${pid}")"
+  if [[ -n "${pgid}" ]]; then
+    kill -"${signal}" -- "-${pgid}" >/dev/null 2>&1 || true
+  fi
+  kill -"${signal}" "${pid}" >/dev/null 2>&1 || true
 }
 
 cleanup_previous_run_artifacts() {
@@ -195,10 +214,16 @@ cleanup() {
   fi
 
   for pid in "${PROCESS_GROUPS[@]}"; do
-    if kill -0 "${pid}" >/dev/null 2>&1; then
-      kill -TERM -- "-${pid}" >/dev/null 2>&1 || kill -TERM "${pid}" >/dev/null 2>&1 || true
-    fi
+    stop_managed_process "${pid}" TERM
   done
+
+  cleanup_previous_run_artifacts
+
+  for pid in "${PROCESS_GROUPS[@]}"; do
+    stop_managed_process "${pid}" KILL
+  done
+
+  cleanup_previous_run_artifacts
 
   for pid in "${PROCESS_GROUPS[@]}"; do
     wait "${pid}" >/dev/null 2>&1 || true

@@ -818,62 +818,28 @@ func compileDockerCommandAndArgs(
 	command []string,
 	args []string,
 ) ([]string, []string, error) {
-	compiledCommand, compiledArgs, err := component.CompileCommandAndArgs(executorInput, command, args)
-	if err != nil || executorInput == nil {
-		return compiledCommand, compiledArgs, err
-	}
-
-	localizedExecutorInput := localizeDockerExecutorInputOutputs(executorInput)
-	if localizedExecutorInput == nil {
-		return compiledCommand, compiledArgs, nil
-	}
-
-	originalJSON, err := protojson.Marshal(executorInput)
-	if err != nil {
-		return nil, nil, err
-	}
-	localizedJSON, err := protojson.Marshal(localizedExecutorInput)
-	if err != nil {
-		return nil, nil, err
-	}
-	if bytes.Equal(originalJSON, localizedJSON) {
-		return compiledCommand, compiledArgs, nil
-	}
-
-	originalJSONString := string(originalJSON)
-	localizedJSONString := string(localizedJSON)
-	if len(compiledCommand) > 0 {
-		compiledCommand[0] = strings.ReplaceAll(compiledCommand[0], originalJSONString, localizedJSONString)
-	}
-	for index, arg := range compiledArgs {
-		compiledArgs[index] = strings.ReplaceAll(arg, originalJSONString, localizedJSONString)
-	}
-	return compiledCommand, compiledArgs, nil
-}
-
-func localizeDockerExecutorInputOutputs(executorInput *pipelinespec.ExecutorInput) *pipelinespec.ExecutorInput {
-	if executorInput == nil || executorInput.GetOutputs() == nil {
-		return nil
+	if executorInput == nil {
+		return component.CompileCommandAndArgs(executorInput, command, args)
 	}
 	clonedExecutorInput, ok := proto.Clone(executorInput).(*pipelinespec.ExecutorInput)
-	if !ok || clonedExecutorInput.GetOutputs() == nil {
-		return nil
+	if !ok {
+		return component.CompileCommandAndArgs(executorInput, command, args)
 	}
-
-	localizedAnyArtifact := false
+	normalizeInputArtifactPathsForDocker(clonedExecutorInput)
+	normalizeOutputArtifactPathsForDocker(
+		clonedExecutorInput,
+		artifactLocalRootFromOutputFile(clonedExecutorInput.GetOutputs().GetOutputFile()),
+		dockerTempMountSourceForArtifactRoot(artifactLocalRootFromOutputFile(clonedExecutorInput.GetOutputs().GetOutputFile())),
+	)
 	for _, artifactList := range clonedExecutorInput.GetOutputs().GetArtifacts() {
 		for _, artifact := range artifactList.Artifacts {
 			if artifact == nil || artifact.GetCustomPath() == "" {
 				continue
 			}
 			artifact.Uri = artifact.GetCustomPath()
-			localizedAnyArtifact = true
 		}
 	}
-	if !localizedAnyArtifact {
-		return nil
-	}
-	return clonedExecutorInput
+	return component.CompileCommandAndArgs(clonedExecutorInput, command, args)
 }
 
 func prepareOutputArtifactFolders(executorInput *pipelinespec.ExecutorInput) error {

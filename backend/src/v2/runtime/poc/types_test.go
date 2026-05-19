@@ -304,7 +304,7 @@ func TestNormalizeOutputArtifactPathsForDockerSetsCustomPathFromURI(t *testing.T
 	)
 }
 
-func TestCompileDockerCommandAndArgsLocalizesExecutorInputJSONOnly(t *testing.T) {
+func TestCompileDockerCommandAndArgsLocalizesArtifactURIsForDocker(t *testing.T) {
 	artifactRoot := filepath.Join(t.TempDir(), "artifact-root")
 	customPath := filepath.Join(artifactRoot, "file", "tmp", "kfp-artifacts", "path", "to", "artifact")
 	executorInput := &pipelinespec.ExecutorInput{
@@ -328,7 +328,7 @@ func TestCompileDockerCommandAndArgsLocalizesExecutorInputJSONOnly(t *testing.T)
 	require.NoError(t, err)
 	require.Equal(t, []string{"python"}, compiledCommand)
 	require.Len(t, compiledArgs, 4)
-	assert.Equal(t, "file:///tmp/kfp-artifacts/path/to/artifact", compiledArgs[3])
+	assert.Equal(t, customPath, compiledArgs[3])
 
 	localizedExecutorInput := &pipelinespec.ExecutorInput{}
 	require.NoError(t, protojson.Unmarshal([]byte(compiledArgs[1]), localizedExecutorInput))

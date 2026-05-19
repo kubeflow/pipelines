@@ -528,6 +528,43 @@ func Test_getPlaceholders_CustomArtifactPath(t *testing.T) {
 	}
 }
 
+func Test_getPlaceholders_InputArtifactListJSON(t *testing.T) {
+	customPath := "/tmp/kfp-v2-runtime/run-123/artifact-local/file/tmp/artifact.txt"
+	execIn := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"data": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							Name:       "artifact-1",
+							Uri:        "file:///tmp/artifact.txt",
+							CustomPath: &customPath,
+							Type: &pipelinespec.ArtifactTypeSchema{
+								Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
+									SchemaTitle: "system.Dataset",
+								},
+								SchemaVersion: "0.0.1",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ph, err := getPlaceholders(execIn)
+	if err != nil {
+		t.Fatalf("getPlaceholders error: %v", err)
+	}
+
+	var actual []map[string]any
+	err = json.Unmarshal([]byte(ph["{{$.inputs.artifacts['data']}}"]), &actual)
+	assert.NoError(t, err)
+	require.Len(t, actual, 1)
+	assert.Equal(t, "artifact-1", actual[0]["name"])
+	assert.Equal(t, "file:///tmp/artifact.txt", actual[0]["uri"])
+	assert.Equal(t, customPath, actual[0]["customPath"])
+}
+
 func Test_executorInput_compileCmdAndArgs(t *testing.T) {
 	executorInputJSON := `{
 		"inputs": {

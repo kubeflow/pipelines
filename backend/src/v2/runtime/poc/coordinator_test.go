@@ -2,6 +2,7 @@ package poc
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -102,6 +103,36 @@ func (f *fakeDockerExecutor) ExecuteTask(_ context.Context, request *TaskExecuti
 		result.OutputParameters["output_int"] = structpb.NewNumberValue(100)
 	}
 	return result, nil
+}
+
+func TestRetrySQLiteLockedErrorRetriesTransientLocks(t *testing.T) {
+	originalDelay := sqliteLockRetryDelay
+	sqliteLockRetryDelay = 0
+	t.Cleanup(func() {
+		sqliteLockRetryDelay = originalDelay
+	})
+
+	attempts := 0
+	err := retrySQLiteLockedError(func() error {
+		attempts++
+		if attempts < 3 {
+			return fmt.Errorf("database is locked")
+		}
+		return nil
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 3, attempts)
+}
+
+func TestRetrySQLiteLockedErrorReturnsNonLockErrorsImmediately(t *testing.T) {
+	attempts := 0
+	expectedErr := fmt.Errorf("boom")
+	err := retrySQLiteLockedError(func() error {
+		attempts++
+		return expectedErr
+	})
+	require.ErrorIs(t, err, expectedErr)
+	assert.Equal(t, 1, attempts)
 }
 
 type fakeArtifactExecutor struct {
@@ -1365,6 +1396,20 @@ func TestCoordinatorPublishesCustomPathArtifacts(t *testing.T) {
 	require.NotNil(t, runtimeArtifact)
 	require.NotNil(t, runtimeArtifact.CustomPath)
 	assert.Equal(t, customPath, runtimeArtifact.GetCustomPath())
+}
+
+func TestModelArtifactToRuntimeArtifactPreservesDatasetType(t *testing.T) {
+	artifact := &model.Artifact{
+		Name: "dataset",
+		Type: model.ArtifactType(apiv2beta1.Artifact_Dataset),
+		URI:  util.StringPointer("file:///tmp/artifact"),
+	}
+
+	runtimeArtifact := modelArtifactToRuntimeArtifact(artifact)
+	require.NotNil(t, runtimeArtifact)
+	require.NotNil(t, runtimeArtifact.Type)
+	assert.Equal(t, "system.Dataset", runtimeArtifact.GetType().GetSchemaTitle())
+	assert.Equal(t, "0.0.1", runtimeArtifact.GetType().GetSchemaVersion())
 }
 
 func TestMergeRuntimeArtifactsPreservesRemoteURIForLocalExecutorPath(t *testing.T) {

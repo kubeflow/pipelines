@@ -1401,6 +1401,9 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 		if len(artifactList.Artifacts) == 0 {
 			continue
 		}
+		if artifactListJSON, err := marshalInputArtifactListPlaceholder(artifactList); err == nil {
+			placeholders[fmt.Sprintf(`{{$.inputs.artifacts['%s']}}`, name)] = artifactListJSON
+		}
 		inputArtifact := artifactList.Artifacts[0]
 
 		// Prepare input uri placeholder.
@@ -1440,7 +1443,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 		outputArtifact := artifactList.Artifacts[0]
 		placeholders[fmt.Sprintf(`{{$.outputs.artifacts['%s'].uri}}`, name)] = outputArtifact.Uri
 
-		localPath, err := LocalPathForURI(outputArtifact.Uri)
+		localPath, err := retrieveArtifactPath(outputArtifact)
 		if err != nil {
 			return nil, fmt.Errorf("resolve output artifact %q's local path: %w", name, err)
 		}
@@ -1481,6 +1484,28 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 	}
 
 	return placeholders, nil
+}
+
+func marshalInputArtifactListPlaceholder(artifactList *pipelinespec.ArtifactList) (string, error) {
+	if artifactList == nil || len(artifactList.Artifacts) == 0 {
+		return "[]", nil
+	}
+	artifacts := make([]json.RawMessage, 0, len(artifactList.Artifacts))
+	for _, artifact := range artifactList.Artifacts {
+		if artifact == nil {
+			continue
+		}
+		artifactJSON, err := protojson.Marshal(artifact)
+		if err != nil {
+			return "", err
+		}
+		artifacts = append(artifacts, json.RawMessage(artifactJSON))
+	}
+	listJSON, err := json.Marshal(artifacts)
+	if err != nil {
+		return "", err
+	}
+	return string(listJSON), nil
 }
 
 func getArtifactSchemaType(schema *pipelinespec.ArtifactTypeSchema) (string, error) {

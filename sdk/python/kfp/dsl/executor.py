@@ -158,6 +158,10 @@ class Executor:
                 raise TypeError(
                     f'Invalid type argument to {type_annotations.InputPath.__name__}: {annotation.type}'
                 )
+        elif type_annotations.is_Input_Output_artifact_annotation(annotation):
+            artifact_cls = type_annotations.get_io_artifact_class(annotation)
+            if artifact_cls is None:
+                artifact_cls = dsl.Artifact
         else:
             artifact_cls = annotation
         return create_artifact_instance(
