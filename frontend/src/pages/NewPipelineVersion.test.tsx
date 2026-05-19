@@ -19,7 +19,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { NewPipelineVersion } from './NewPipelineVersion';
-import TestUtils from 'src/TestUtils';
+import { flushPromisesInAct, invokeAndFlush } from 'src/TestUtils';
 import { PageProps } from './Page';
 import { Apis } from 'src/lib/Apis';
 import { RoutePage, QUERY_PARAMS } from 'src/components/Router';
@@ -94,9 +94,7 @@ describe('NewPipelineVersion', () => {
     } else {
       renderResult = render(<NewPipelineVersion {...props} />);
     }
-    await act(async () => {
-      await TestUtils.flushPromises();
-    });
+    await flushPromisesInAct();
   }
 
   /**
@@ -108,9 +106,8 @@ describe('NewPipelineVersion', () => {
     if (!componentRef?.current) {
       throw new Error('componentRef not available — did you forget { withRef: true }?');
     }
-    await act(async () => {
+    await invokeAndFlush(() => {
       componentRef!.current!.simulateDrop(files);
-      await TestUtils.flushPromises();
     });
   }
 
@@ -257,9 +254,8 @@ describe('NewPipelineVersion', () => {
       await waitFor(() => expect(versionNameInput).toHaveValue('my-custom-version-name'));
 
       // Simulate a rejected drop (JSDOM workaround — same as file drop tests)
-      await act(async () => {
+      await invokeAndFlush(() => {
         componentRef!.current!.simulateDropRejected();
-        await TestUtils.flushPromises();
       });
 
       // Version name must NOT be cleared
