@@ -31,6 +31,7 @@ import (
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -245,6 +246,40 @@ func TestScheduledWorkflow(t *testing.T) {
 	// It is also tested in compiler.
 	actualScheduledWorkflow.Spec.Workflow.Spec = ""
 	assert.Equal(t, &expectedScheduledWorkflow, actualScheduledWorkflow)
+}
+
+func TestScheduledWorkflow_CustomServiceAccount(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+
+	v2SpecHelloWorldYAML := loadYaml(t, "testdata/hello_world.yaml")
+	v2Template, _ := New([]byte(v2SpecHelloWorldYAML), TemplateOptions{CacheDisabled: true, DefaultWorkspace: defaultPVC})
+
+	modelJob := &model.Job{
+		K8SName:        "name1",
+		Enabled:        true,
+		MaxConcurrency: 1,
+		NoCatchup:      true,
+		ServiceAccount: "custom-sa",
+		Trigger: model.Trigger{
+			CronSchedule: model.CronSchedule{
+				CronScheduleStartTimeInSec: util.Int64Pointer(1),
+				CronScheduleEndTimeInSec:   util.Int64Pointer(10),
+				Cron:                       util.StringPointer("1 * * * *"),
+			},
+		},
+		PipelineSpec: model.PipelineSpec{
+			PipelineId:           "1",
+			PipelineName:         "pipeline name",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorldYAML),
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"y\":\"world\"}",
+			},
+		},
+	}
+
+	actualScheduledWorkflow, err := v2Template.ScheduledWorkflow(modelJob)
+	require.Nil(t, err)
+	assert.Equal(t, "custom-sa", actualScheduledWorkflow.Spec.ServiceAccount)
 }
 
 func TestModelToCRDTrigger_Cron(t *testing.T) {
