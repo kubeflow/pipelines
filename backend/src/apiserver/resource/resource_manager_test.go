@@ -2588,14 +2588,14 @@ func TestRetryRun_PreservesRunFields(t *testing.T) {
 	defer store.Close()
 
 	originalRun, err := manager.GetRun(runDetail.UUID)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, string(v1alpha1.WorkflowFailed), string(originalRun.Conditions))
 
 	err = manager.RetryRun(context.Background(), runDetail.UUID)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	retriedRun, err := manager.GetRun(runDetail.UUID)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	// Core identifying fields must be preserved after retry
 	assert.Equal(t, originalRun.UUID, retriedRun.UUID)
@@ -2611,7 +2611,7 @@ func TestRetryRun_PreservesRunFields(t *testing.T) {
 	// to a single entry; passing the full run object preserves history.
 	originalHistoryLen := len(originalRun.StateHistory)
 	assert.Greater(t, originalHistoryLen, 0)
-	assert.Greater(t, len(retriedRun.StateHistory), originalHistoryLen)
+	require.Greater(t, len(retriedRun.StateHistory), originalHistoryLen)
 	lastEntry := retriedRun.StateHistory[len(retriedRun.StateHistory)-1]
 	assert.Equal(t, model.RuntimeStateRunning, lastEntry.State)
 }
