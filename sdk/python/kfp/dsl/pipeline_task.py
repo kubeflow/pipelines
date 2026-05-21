@@ -756,13 +756,13 @@ class PipelineTask:
         if not after and on_error:
             raise ValueError(
                 "'on_error' applies to post-execution pause and requires "
-                "after=True. Got after=False, on_error=True - contradictory "
-                "configuration.")
+                'after=True. Got after=False, on_error=True - contradictory '
+                'configuration.')
 
         if not before and not after:
             raise ValueError(
                 "At least one of 'before' or 'after' must be True. "
-                "Got before=False, after=False - nothing to pause on.")
+                'Got before=False, after=False - nothing to pause on.')
 
         if before:
             self.set_env_variable('ARGO_DEBUG_PAUSE_BEFORE', 'true')
