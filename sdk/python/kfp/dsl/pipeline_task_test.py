@@ -382,50 +382,50 @@ class PipelineTaskTest(parameterized.TestCase):
         task.set_env_variable('env_name', 'env_value')
         self.assertEqual({'env_name': 'env_value'}, task.container_spec.env)
 
-    def test_enable_debug_pause_default(self):
+    def test_set_debug_pause_default(self):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
             args={'input1': 'value'},
         )
-        task.enable_debug_pause()
+        task.set_debug_pause()
         self.assertEqual({'ARGO_DEBUG_PAUSE_AFTER': 'true'},
                          task.container_spec.env)
 
-    def test_enable_debug_pause_before_only(self):
+    def test_set_debug_pause_before_only(self):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
             args={'input1': 'value'},
         )
-        task.enable_debug_pause(before=True, after=False)
+        task.set_debug_pause(before=True, after=False)
         self.assertEqual({'ARGO_DEBUG_PAUSE_BEFORE': 'true'},
                          task.container_spec.env)
 
-    def test_enable_debug_pause_before_and_after(self):
+    def test_set_debug_pause_before_and_after(self):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
             args={'input1': 'value'},
         )
-        task.enable_debug_pause(before=True, after=True)
+        task.set_debug_pause(before=True, after=True)
         self.assertEqual(
             {
                 'ARGO_DEBUG_PAUSE_BEFORE': 'true',
                 'ARGO_DEBUG_PAUSE_AFTER': 'true',
             }, task.container_spec.env)
 
-    def test_enable_debug_pause_on_error(self):
+    def test_set_debug_pause_on_error(self):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
             args={'input1': 'value'},
         )
-        task.enable_debug_pause(on_error=True)
+        task.set_debug_pause(on_error=True)
         self.assertEqual({'ARGO_DEBUG_PAUSE_ON_ERROR': 'true'},
                          task.container_spec.env)
 
-    def test_enable_debug_pause_raises_on_error_without_after(self):
+    def test_set_debug_pause_raises_on_error_without_after(self):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
@@ -434,9 +434,9 @@ class PipelineTaskTest(parameterized.TestCase):
         with self.assertRaisesRegex(
                 ValueError,
                 r"'on_error' applies to post-execution pause and requires"):
-            task.enable_debug_pause(on_error=True, after=False)
+            task.set_debug_pause(on_error=True, after=False)
 
-    def test_enable_debug_pause_raises_when_both_false(self):
+    def test_set_debug_pause_raises_when_both_false(self):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
@@ -445,7 +445,7 @@ class PipelineTaskTest(parameterized.TestCase):
         with self.assertRaisesRegex(
                 ValueError,
                 r"At least one of 'before' or 'after' must be True"):
-            task.enable_debug_pause(before=False, after=False)
+            task.set_debug_pause(before=False, after=False)
 
     def test_set_display_name(self):
         task = pipeline_task.PipelineTask(

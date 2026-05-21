@@ -706,7 +706,7 @@ class PipelineTask:
         return self
 
     @block_if_final()
-    def enable_debug_pause(
+    def set_debug_pause(
         self,
         before: bool = False,
         after: bool = True,
@@ -747,13 +747,13 @@ class PipelineTask:
             @dsl.pipeline
             def my_pipeline():
                 task = my_component()
-                task.enable_debug_pause()
+                task.set_debug_pause()
 
                 task2 = my_component()
-                task2.enable_debug_pause(before=True, after=False)
+                task2.set_debug_pause(before=True, after=False)
 
                 task3 = my_component()
-                task3.enable_debug_pause(on_error=True)
+                task3.set_debug_pause(on_error=True)
         """
         if not after and on_error:
             raise ValueError(
