@@ -433,7 +433,7 @@ class PipelineTaskTest(parameterized.TestCase):
         )
         with self.assertRaisesRegex(
                 ValueError,
-                r'"on_error" applies to post-execution pause and requires'):
+                r"'on_error' applies to post-execution pause and requires"):
             task.enable_debug_pause(on_error=True, after=False)
 
     def test_enable_debug_pause_raises_when_both_false(self):
@@ -444,7 +444,7 @@ class PipelineTaskTest(parameterized.TestCase):
         )
         with self.assertRaisesRegex(
                 ValueError,
-                r'At least one of "before" or "after" must be True'):
+                r"At least one of 'before' or 'after' must be True"):
             task.enable_debug_pause(before=False, after=False)
 
     def test_set_display_name(self):
