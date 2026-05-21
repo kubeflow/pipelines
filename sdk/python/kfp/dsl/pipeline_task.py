@@ -715,8 +715,10 @@ class PipelineTask:
         after: bool = True,
         on_error: bool = False,
     ) -> 'PipelineTask':
-        """Enable debug-pause for the task, keeping the pod alive so you
-        can ``kubectl exec`` into it interactively.
+        """Enable interactive debug-pause for the pipeline task.
+
+        Keeps the pod alive so you can ``kubectl exec`` into it 
+        interactively.
 
         When enabled, Argo Workflows' executor (the ``wait`` container)
         detects the corresponding ``ARGO_DEBUG_PAUSE_*`` environment variable
