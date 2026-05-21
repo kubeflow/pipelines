@@ -706,6 +706,75 @@ class PipelineTask:
         return self
 
     @block_if_final()
+    def enable_debug_pause(
+        self,
+        before: bool = False,
+        after: bool = True,
+        on_error: bool = False,
+    ) -> 'PipelineTask':
+        """Enable debug-pause for the task, keeping the pod alive so you
+        can ``kubectl exec`` into it interactively.
+
+        When enabled, Argo Workflows' executor (the ``wait`` container)
+        detects the corresponding ``ARGO_DEBUG_PAUSE_*`` environment variable
+        and pauses the workflow node, preventing the pod from terminating.
+
+        This requires Argo Workflows 3.5.0 or later.
+
+        Args:
+            before: If ``True``, pause before the main process starts.
+                Useful for inspecting the environment, installing tools, or
+                modifying inputs before execution.
+            after: If ``True`` (default), pause after the main process
+                completes. Modified by ``on_error``.
+            on_error: If ``True``, only pause after execution when the
+                component fails (sets ``ARGO_DEBUG_PAUSE_ON_ERROR`` instead
+                of ``ARGO_DEBUG_PAUSE_AFTER``). Requires ``after=True``.
+
+        Returns:
+            Self return to allow chained setting calls.
+
+        Raises:
+            ValueError: If ``after=False`` and ``on_error=True``
+                (contradictory).
+            ValueError: If both ``before`` and ``after`` are ``False``.
+
+        Example:
+          ::
+
+            @dsl.pipeline
+            def my_pipeline():
+                task = my_component()
+                task.enable_debug_pause()
+
+                task2 = my_component()
+                task2.enable_debug_pause(before=True, after=False)
+
+                task3 = my_component()
+                task3.enable_debug_pause(on_error=True)
+        """
+        if not after and on_error:
+            raise ValueError(
+                '"on_error" applies to post-execution pause and requires '
+                'after=True. Got after=False, on_error=True - contradictory '
+                'configuration.')
+
+        if not before and not after:
+            raise ValueError(
+                'At least one of "before" or "after" must be True. '
+                'Got before=False, after=False - nothing to pause on.')
+
+        if before:
+            self.set_env_variable('ARGO_DEBUG_PAUSE_BEFORE', 'true')
+        if after:
+            if on_error:
+                self.set_env_variable('ARGO_DEBUG_PAUSE_ON_ERROR', 'true')
+            else:
+                self.set_env_variable('ARGO_DEBUG_PAUSE_AFTER', 'true')
+
+        return self
+
+    @block_if_final()
     def set_container_image(
             self,
             name: Union[str,
