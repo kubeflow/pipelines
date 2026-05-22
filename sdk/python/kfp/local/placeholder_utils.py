@@ -45,6 +45,8 @@ def replace_placeholders(
     task.
     """
     unique_task_id = make_random_id()
+    utc_timestamp = datetime.datetime.now(
+        datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
     executor_input_dict = resolve_self_references_in_executor_input(
         executor_input_dict=executor_input_dict,
         pipeline_resource_name=pipeline_resource_name,
@@ -52,6 +54,7 @@ def replace_placeholders(
         pipeline_root=pipeline_root,
         pipeline_job_id=unique_pipeline_id,
         pipeline_task_id=unique_task_id,
+        utc_timestamp=utc_timestamp,
     )
     provided_inputs = get_provided_inputs(executor_input_dict)
     full_command = [
@@ -71,6 +74,7 @@ def replace_placeholders(
             pipeline_root=pipeline_root,
             pipeline_job_id=unique_pipeline_id,
             pipeline_task_id=unique_task_id,
+            utc_timestamp=utc_timestamp,
         )
         if resolved_el is None:
             continue
@@ -92,6 +96,7 @@ def resolve_self_references_in_executor_input(
     pipeline_root: str,
     pipeline_job_id: str,
     pipeline_task_id: str,
+    utc_timestamp: str = '',
 ) -> Dict[str, Any]:
     """Resolve parameter placeholders that point to other parameter
     placeholders in the same ExecutorInput message.
@@ -120,6 +125,7 @@ def resolve_self_references_in_executor_input(
                     pipeline_root=pipeline_root,
                     pipeline_job_id=pipeline_job_id,
                     pipeline_task_id=pipeline_task_id,
+                    utc_timestamp=utc_timestamp,
                 )
     return executor_input_dict
 
@@ -132,6 +138,7 @@ def recursively_resolve_json_dict_placeholders(
     pipeline_root: str,
     pipeline_job_id: str,
     pipeline_task_id: str,
+    utc_timestamp: str = '',
 ) -> Any:
     """Recursively resolves any placeholders in a dictionary representation of
     a JSON object.
@@ -148,6 +155,7 @@ def recursively_resolve_json_dict_placeholders(
         pipeline_root=pipeline_root,
         pipeline_job_id=pipeline_job_id,
         pipeline_task_id=pipeline_task_id,
+        utc_timestamp=utc_timestamp,
     )
     if isinstance(obj, list):
         return [inner_fn(item) for item in obj]
@@ -162,6 +170,7 @@ def recursively_resolve_json_dict_placeholders(
             pipeline_root=pipeline_root,
             pipeline_job_id=pipeline_job_id,
             pipeline_task_id=pipeline_task_id,
+            utc_timestamp=utc_timestamp,
         )
     else:
         return obj
@@ -338,6 +347,7 @@ def resolve_individual_placeholder(
     pipeline_root: str,
     pipeline_job_id: str,
     pipeline_task_id: str,
+    utc_timestamp: str = '',
 ) -> str:
     """Replaces placeholders for a single element."""
 
@@ -361,10 +371,6 @@ def resolve_individual_placeholder(
                                   workspace_value)
 
     # match on literal for constant placeholders
-    # Generate UTC timestamp in ISO 8601 format for create and schedule times.
-    utc_timestamp = datetime.datetime.now(
-        datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-
     PLACEHOLDERS = {
         r'{{$.outputs.output_file}}':
             executor_input_dict['outputs']['outputFile'],

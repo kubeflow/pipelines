@@ -13,8 +13,10 @@
 # limitations under the License.
 """Tests for placeholder_utils.py."""
 
+import datetime
 import json
 import os
+import re
 import tempfile
 from typing import List, Optional
 import unittest
@@ -299,22 +301,29 @@ class TestResolveIndividualPlaceholder(parameterized.TestCase):
 
     def test_pipeline_job_create_time_utc_placeholder(self):
         """Test that PIPELINE_JOB_CREATE_TIME_UTC_PLACEHOLDER is replaced with a valid UTC timestamp."""
-        actual = placeholder_utils.resolve_individual_placeholder(
-            element='{{$.pipeline_job_create_time_utc}}',
+        utc_timestamp = datetime.datetime.now(
+            datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        iso8601_pattern = r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$'
+        kwargs = dict(
             executor_input_dict=EXECUTOR_INPUT_DICT,
             pipeline_resource_name='my-pipeline-2023-10-10-13-32-59-420710',
             task_resource_name='comp',
             pipeline_root='/foo/bar/my-pipeline-2023-10-10-13-32-59-420710',
             pipeline_job_id='123456789',
             pipeline_task_id='987654321',
+            utc_timestamp=utc_timestamp,
         )
-        # Verify that the result is a non-empty string in ISO 8601 format (YYYY-MM-DDTHH:MM:SS.sssZ)
-        import re
-        iso8601_pattern = r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z'
-        self.assertRegex(actual, iso8601_pattern)
+        actual_create = placeholder_utils.resolve_individual_placeholder(
+            element='{{$.pipeline_job_create_time_utc}}', **kwargs)
+        actual_schedule = placeholder_utils.resolve_individual_placeholder(
+            element='{{$.pipeline_job_schedule_time_utc}}', **kwargs)
+        self.assertRegex(actual_create, iso8601_pattern)
+        self.assertEqual(actual_create, actual_schedule)
 
     def test_pipeline_job_schedule_time_utc_placeholder(self):
         """Test that PIPELINE_JOB_SCHEDULE_TIME_UTC_PLACEHOLDER is replaced with a valid UTC timestamp."""
+        utc_timestamp = datetime.datetime.now(
+            datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         actual = placeholder_utils.resolve_individual_placeholder(
             element='{{$.pipeline_job_schedule_time_utc}}',
             executor_input_dict=EXECUTOR_INPUT_DICT,
@@ -323,10 +332,9 @@ class TestResolveIndividualPlaceholder(parameterized.TestCase):
             pipeline_root='/foo/bar/my-pipeline-2023-10-10-13-32-59-420710',
             pipeline_job_id='123456789',
             pipeline_task_id='987654321',
+            utc_timestamp=utc_timestamp,
         )
-        # Verify that the result is a non-empty string in ISO 8601 format (YYYY-MM-DDTHH:MM:SS.sssZ)
-        import re
-        iso8601_pattern = r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z'
+        iso8601_pattern = r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$'
         self.assertRegex(actual, iso8601_pattern)
 
 
