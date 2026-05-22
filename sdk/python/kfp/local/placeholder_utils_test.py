@@ -145,6 +145,10 @@ class TestResolveIndividualPlaceholder(parameterized.TestCase):
             'my-pipeline-2023-10-10-13-32-59-420710',
         ),
         (
+            '{{$.pipeline_job_resource_name}}',
+            'my-pipeline-2023-10-10-13-32-59-420710',
+        ),
+        (
             '{{$.pipeline_job_uuid}}',
             '123456789',
         ),
@@ -292,6 +296,38 @@ class TestResolveIndividualPlaceholder(parameterized.TestCase):
             pipeline_task_id='987654321',
         )
         self.assertEqual(actual, expected)
+
+    def test_pipeline_job_create_time_utc_placeholder(self):
+        """Test that PIPELINE_JOB_CREATE_TIME_UTC_PLACEHOLDER is replaced with a valid UTC timestamp."""
+        actual = placeholder_utils.resolve_individual_placeholder(
+            element='{{$.pipeline_job_create_time_utc}}',
+            executor_input_dict=EXECUTOR_INPUT_DICT,
+            pipeline_resource_name='my-pipeline-2023-10-10-13-32-59-420710',
+            task_resource_name='comp',
+            pipeline_root='/foo/bar/my-pipeline-2023-10-10-13-32-59-420710',
+            pipeline_job_id='123456789',
+            pipeline_task_id='987654321',
+        )
+        # Verify that the result is a non-empty string in ISO 8601 format (YYYY-MM-DDTHH:MM:SS.sssZ)
+        import re
+        iso8601_pattern = r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z'
+        self.assertRegex(actual, iso8601_pattern)
+
+    def test_pipeline_job_schedule_time_utc_placeholder(self):
+        """Test that PIPELINE_JOB_SCHEDULE_TIME_UTC_PLACEHOLDER is replaced with a valid UTC timestamp."""
+        actual = placeholder_utils.resolve_individual_placeholder(
+            element='{{$.pipeline_job_schedule_time_utc}}',
+            executor_input_dict=EXECUTOR_INPUT_DICT,
+            pipeline_resource_name='my-pipeline-2023-10-10-13-32-59-420710',
+            task_resource_name='comp',
+            pipeline_root='/foo/bar/my-pipeline-2023-10-10-13-32-59-420710',
+            pipeline_job_id='123456789',
+            pipeline_task_id='987654321',
+        )
+        # Verify that the result is a non-empty string in ISO 8601 format (YYYY-MM-DDTHH:MM:SS.sssZ)
+        import re
+        iso8601_pattern = r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z'
+        self.assertRegex(actual, iso8601_pattern)
 
 
 class TestGetValueUsingPath(unittest.TestCase):

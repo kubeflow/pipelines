@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities for working with placeholders."""
+import datetime
 import functools
 import json
 import random
@@ -360,6 +361,10 @@ def resolve_individual_placeholder(
                                   workspace_value)
 
     # match on literal for constant placeholders
+    # Generate UTC timestamp in ISO 8601 format for create and schedule times.
+    utc_timestamp = datetime.datetime.now(
+        datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+
     PLACEHOLDERS = {
         r'{{$.outputs.output_file}}':
             executor_input_dict['outputs']['outputFile'],
@@ -369,8 +374,14 @@ def resolve_individual_placeholder(
             json.dumps(executor_input_dict),
         dsl.PIPELINE_JOB_NAME_PLACEHOLDER:
             pipeline_resource_name,
+        dsl.PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER:
+            pipeline_resource_name,
         dsl.PIPELINE_JOB_ID_PLACEHOLDER:
             pipeline_job_id,
+        dsl.PIPELINE_JOB_CREATE_TIME_UTC_PLACEHOLDER:
+            utc_timestamp,
+        dsl.PIPELINE_JOB_SCHEDULE_TIME_UTC_PLACEHOLDER:
+            utc_timestamp,
         dsl.PIPELINE_TASK_NAME_PLACEHOLDER:
             task_resource_name,
         dsl.PIPELINE_TASK_ID_PLACEHOLDER:
