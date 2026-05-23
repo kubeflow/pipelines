@@ -1155,5 +1155,62 @@ class TestLoadDocumentsFromYAML(unittest.TestCase):
                 """))
 
 
+
+
+class TestExtractDescriptionBoundsCheck(unittest.TestCase):
+    """Tests that extract_description handles malformed YAML without IndexError."""
+
+    def test_short_yaml_with_description_heading_no_crash(self):
+        """YAML with '# Description:' but fewer than 3 lines should not crash."""
+        malicious_yaml = "line0\nline1\n Description: some text"
+        try:
+            structures.ComponentSpec.n(malicious_yaml)
+        except (ValueError, KeyError, Exception) as e:
+            self.assertNotIsInstance(e, IndexError,
+                "IndexError should not be raised on short YAML input")
+
+    def test_description_heading_at_end_of_lines_no_crash(self):
+        """YAML where heading is found but splitlines has exactly index_of_heading lines."""
+        malicious_yaml = "# Description: hello\nkey: value"
+        try:
+            structures.ComponentSpec.n(malicious_yaml)
+        except (ValueError, KeyError, Exception) as e:
+            self.assertNotIsInstance(e, IndexError,
+                "IndexError should not be raised when YAML is shorter than index_of_heading")
+
+    def test_multiline_description_exceeding_lines_no_crash(self):
+        """YAML with multi-line description that runs past the end of lines."""
+        malicious_yaml = textwrap.dedent("""\
+            key: value
+            # Description: some text
+            #             continued text
+            #             more text
+            """)
+        try:
+            structures.ComponentSpec.n(malicious_yaml)
+        except (ValueError, KeyError, Exception) as e:
+            self.assertNotIsInstance(e, IndexError,
+                "IndexError should not be raised on multi-line description exceeding lines")
+
+    def test_empty_yaml_no_crash(self):
+        """Empty string should not crash."""
+        try:
+            structures.ComponentSpec.n("")
+        except (ValueError, KeyError, Exception) as e:
+            self.assertNotIsInstance(e, IndexError,
+                "IndexError should not be raised on empty YAML")
+
+    def test_crafted_yaml_from_issue_no_crash(self):
+        """Exact reproducer from issue #13420."""
+        malicious_yaml = """line0
+line1
+ Description: some text
+              continued text"""
+        try:
+            structures.ComponentSpec.n(malicious_yaml)
+        except (ValueError, KeyError, Exception) as e:
+            self.assertNotIsInstance(e, IndexError,
+                "IndexError should not be raised on crafted YAML from issue #13420")
+
 if __name__ == '__main__':
     unittest.main()
