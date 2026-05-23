@@ -866,8 +866,7 @@ class ComponentSpec:
                 # Multi line
                 index = index_of_heading + 1
                 while (index < len(lines)
-                       and lines[index][:len(multi_line_description_prefix)
-                                        ] == multi_line_description_prefix):
+                       and lines[index].startswith(multi_line_description_prefix)):
                     description += '\n' + lines[index][
                         len(multi_line_description_prefix) + 1:]
                     index += 1
