@@ -18,7 +18,7 @@ import * as React from 'react';
 import * as Utils from 'src/lib/Utils';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import RunList, { RunListProps } from './RunList';
-import TestUtils from 'src/TestUtils';
+import TestUtils, { flushPromisesInAct } from 'src/TestUtils';
 import produce from 'immer';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { V2beta1Run, V2beta1RunStorageState, V2beta1RuntimeState } from 'src/apisv2beta1/run';
@@ -75,28 +75,28 @@ describe('RunList', () => {
         <RunListTest ref={runListRef} {...(props || generateProps())} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
   }
 
   async function waitForRunListLoad(): Promise<void> {
     await waitFor(() => {
       expect(listRunsSpy).toHaveBeenCalled();
     });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
   }
 
   async function waitForRunMaskLoadForIds(runIds: string[]): Promise<void> {
     await waitFor(() => {
       runIds.forEach((id) => expect(getRunSpy).toHaveBeenCalledWith(id));
     });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
   }
 
   async function callLoadRuns(request: ListRequest): Promise<void> {
     await act(async () => {
       await getRunListInstance()._loadRuns(request);
     });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
   }
 
   function mockNRuns(n: number, runTemplate: Partial<V2beta1Run>): void {
