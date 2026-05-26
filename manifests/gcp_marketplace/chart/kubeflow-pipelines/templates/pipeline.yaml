@@ -323,6 +323,23 @@ rules:
       - update
       - patch
       - delete
+  - apiGroups:
+      - mlflow.kubeflow.org
+    resources:
+      - experiments
+    verbs:
+      - get
+      - list
+      - create
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    resourceNames:
+      - kfp-launcher
+    verbs:
+      - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -400,6 +417,15 @@ rules:
       - jobs
     verbs:
       - '*'
+  - apiGroups:
+      - mlflow.kubeflow.org
+    resources:
+      - experiments
+    verbs:
+      - get
+      - list
+      - create
+      - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
