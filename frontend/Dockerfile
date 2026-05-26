@@ -37,6 +37,9 @@ RUN npm install --global "$(node -p 'require("/tmp/frontend-package.json").packa
 
 COPY --from=build ./src/frontend/server /server
 COPY --from=build ./src/frontend/build /client
+# MLMD proto bundle for the runtime validator; marker forces CJS under type: module.
+COPY --from=build ./src/frontend/src/third_party/mlmd/generated /server/src/third_party/mlmd/generated
+RUN printf '{"type":"commonjs"}\n' > /server/src/third_party/mlmd/generated/package.json
 
 WORKDIR /server
 
