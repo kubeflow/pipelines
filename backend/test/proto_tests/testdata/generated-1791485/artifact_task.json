@@ -1,0 +1,11 @@
+{
+  "id":  "artifact-task-123",
+  "artifact_id":  "artifact-123",
+  "run_id":  "run-456",
+  "task_id":  "task-123",
+  "type":  "OUTPUT",
+  "producer":  {
+    "task_name":  "trainer-task"
+  },
+  "key":  "model"
+}
