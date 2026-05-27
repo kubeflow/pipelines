@@ -302,6 +302,7 @@ func (s *RunStore) hydrateTasksForRuns(runs []*model.Run) error {
 		Select(taskColumns...).
 		From("tasks").
 		Where(sq.Eq{"RunUUID": ids}).
+		OrderBy("RunUUID ASC", "CreatedAtInSec ASC", "UUID ASC").
 		ToSql()
 	if err != nil {
 		return err
@@ -352,16 +353,24 @@ func (s *RunStore) populateTaskCountsForRuns(runs []*model.Run) error {
 		return nil
 	}
 
+	runIDs := make([]string, 0, len(runs))
 	for _, run := range runs {
 		if run == nil || run.UUID == "" {
 			continue
 		}
+		runIDs = append(runIDs, run.UUID)
+	}
 
-		count, err := s.taskStore.GetTaskCountForRun(run.UUID)
-		if err != nil {
-			return err
+	countsByRunID, err := s.taskStore.GetTaskCountsForRuns(runIDs)
+	if err != nil {
+		return err
+	}
+
+	for _, run := range runs {
+		if run == nil || run.UUID == "" {
+			continue
 		}
-		run.TaskCount = count
+		run.TaskCount = countsByRunID[run.UUID]
 	}
 
 	return nil

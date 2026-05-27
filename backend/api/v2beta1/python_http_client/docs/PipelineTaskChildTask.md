@@ -1,10 +1,11 @@
-# V2beta1ArtifactList
+# PipelineTaskChildTask
 
-A list of artifact metadata.
+A dependent task that requires this one to succeed. Represented by task_id.
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**artifact_ids** | **list[str]** | A list of artifact metadata ids. | [optional] 
+**task_id** | **str** | System-generated ID of a task. | [optional] 
+**name** | **str** |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

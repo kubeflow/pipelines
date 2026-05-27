@@ -63,6 +63,12 @@ UpdateTaskParams contains all the parameters to send to the API endpoint
 */
 type UpdateTaskParams struct {
 
+	/* RunID.
+
+	   Required. Parent run ID. This is typically provided by the URL path.
+	*/
+	RunID string
+
 	// Task.
 	Task *run_model.V2beta1PipelineTask
 
@@ -122,6 +128,17 @@ func (o *UpdateTaskParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithRunID adds the runID to the update task params
+func (o *UpdateTaskParams) WithRunID(runID string) *UpdateTaskParams {
+	o.SetRunID(runID)
+	return o
+}
+
+// SetRunID adds the runId to the update task params
+func (o *UpdateTaskParams) SetRunID(runID string) {
+	o.RunID = runID
+}
+
 // WithTask adds the task to the update task params
 func (o *UpdateTaskParams) WithTask(task *run_model.V2beta1PipelineTask) *UpdateTaskParams {
 	o.SetTask(task)
@@ -151,6 +168,11 @@ func (o *UpdateTaskParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 		return err
 	}
 	var res []error
+
+	// path param run_id
+	if err := r.SetPathParam("run_id", o.RunID); err != nil {
+		return err
+	}
 	if o.Task != nil {
 		if err := r.SetBodyParam(o.Task); err != nil {
 			return err

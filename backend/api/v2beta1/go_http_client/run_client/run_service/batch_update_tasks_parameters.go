@@ -64,7 +64,13 @@ BatchUpdateTasksParams contains all the parameters to send to the API endpoint
 type BatchUpdateTasksParams struct {
 
 	// Body.
-	Body *run_model.V2beta1UpdateTasksBulkRequest
+	Body *run_model.RunServiceUpdateTasksBulkBody
+
+	/* RunID.
+
+	   Required. Parent run ID. This is typically provided by the URL path.
+	*/
+	RunID string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -120,14 +126,25 @@ func (o *BatchUpdateTasksParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the batch update tasks params
-func (o *BatchUpdateTasksParams) WithBody(body *run_model.V2beta1UpdateTasksBulkRequest) *BatchUpdateTasksParams {
+func (o *BatchUpdateTasksParams) WithBody(body *run_model.RunServiceUpdateTasksBulkBody) *BatchUpdateTasksParams {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the batch update tasks params
-func (o *BatchUpdateTasksParams) SetBody(body *run_model.V2beta1UpdateTasksBulkRequest) {
+func (o *BatchUpdateTasksParams) SetBody(body *run_model.RunServiceUpdateTasksBulkBody) {
 	o.Body = body
+}
+
+// WithRunID adds the runID to the batch update tasks params
+func (o *BatchUpdateTasksParams) WithRunID(runID string) *BatchUpdateTasksParams {
+	o.SetRunID(runID)
+	return o
+}
+
+// SetRunID adds the runId to the batch update tasks params
+func (o *BatchUpdateTasksParams) SetRunID(runID string) {
+	o.RunID = runID
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -141,6 +158,11 @@ func (o *BatchUpdateTasksParams) WriteToRequest(r runtime.ClientRequest, reg str
 		if err := r.SetBodyParam(o.Body); err != nil {
 			return err
 		}
+	}
+
+	// path param run_id
+	if err := r.SetPathParam("run_id", o.RunID); err != nil {
+		return err
 	}
 
 	if len(res) > 0 {

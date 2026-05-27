@@ -3233,7 +3233,6 @@ func TestToModelRun(t *testing.T) {
 				RunDetails: &apiv2beta1.RunDetails{
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
-					TaskDetails:          []*apiv2beta1.PipelineTaskDetail{},
 				},
 				RecurringRunId: "job1",
 				StateHistory: []*apiv2beta1.RuntimeStatus{

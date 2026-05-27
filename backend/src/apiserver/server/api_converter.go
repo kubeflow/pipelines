@@ -17,6 +17,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"time"
 
 	"google.golang.org/protobuf/encoding/protojson"
@@ -1487,10 +1488,8 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 	apiRd := &apiv2beta1.RunDetails{
 		PipelineContextId:    r.RunDetails.PipelineContextId,
 		PipelineRunContextId: r.RunDetails.PipelineRunContextId,
-		// Intentionally leave task_details empty: the legacy PipelineTaskDetail
-		// message is deprecated and new task data is exposed via Run.tasks instead.
 	}
-	if apiRd.PipelineContextId == 0 && apiRd.PipelineRunContextId == 0 && apiRd.TaskDetails == nil {
+	if apiRd.PipelineContextId == 0 && apiRd.PipelineRunContextId == 0 {
 		apiRd = nil
 	}
 	// Populate task count from either the TaskCount field or the length of Tasks
@@ -2382,8 +2381,9 @@ func toModelArtifactTask(apiAT *apiv2beta1.ArtifactTask) (*model.ArtifactTask, e
 
 // Converts API PipelineTask to its internal representation.
 // Supports v2beta1 API.
-// Note that InputArtifactsHydrated and OutputArtifactsHydrated are not converted as these
-// are not stored in DB, and to fill them out would require additional DB queries to fetch Artifacts values.
+// Note that InputArtifactsHydrated and OutputArtifactsHydrated are not converted.
+// Those fields are transient hydration-only views, are not stored in DB, and
+// callers must use the artifact APIs if they need to create or mutate artifact links.
 func toModelTask(apiTask *apiv2beta1.PipelineTask) (*model.Task, error) {
 	if apiTask == nil {
 		return nil, util.NewInvalidInputError("Task cannot be nil")
@@ -2437,7 +2437,8 @@ func toModelTask(apiTask *apiv2beta1.PipelineTask) (*model.Task, error) {
 		task.StateHistory = sh
 	}
 
-	// Convert inputs: store full InputOutputs in InputParameters and artifacts subset in InputArtifacts
+	// Convert inputs: only parameter payloads are persisted here. Artifact links are
+	// intentionally managed through artifact/artifact-task APIs.
 	if apiTask.GetInputs() != nil {
 		if apiTask.GetInputs().GetParameters() != nil {
 			parameters, err := model.ProtoSliceToJSONSlice(apiTask.GetInputs().GetParameters())
@@ -2448,14 +2449,15 @@ func toModelTask(apiTask *apiv2beta1.PipelineTask) (*model.Task, error) {
 		}
 	}
 
-	// Convert outputs: store full InputOutputs in OutputParameters and artifacts subset in OutputArtifacts
+	// Convert outputs: only parameter payloads are persisted here. Artifact links are
+	// intentionally managed through artifact/artifact-task APIs.
 	if apiTask.GetOutputs() != nil {
 		if apiTask.GetOutputs().GetParameters() != nil {
-			artifacts, err := model.ProtoSliceToJSONSlice(apiTask.GetOutputs().GetParameters())
+			parameters, err := model.ProtoSliceToJSONSlice(apiTask.GetOutputs().GetParameters())
 			if err != nil {
 				return nil, err
 			}
-			task.OutputParameters = artifacts
+			task.OutputParameters = parameters
 		}
 	}
 
@@ -2478,7 +2480,9 @@ func toModelTask(apiTask *apiv2beta1.PipelineTask) (*model.Task, error) {
 // Converts internal task representation to its API counterpart.
 // Supports v2beta1 API.
 // Note that child tasks are not stored in the tasks table so
-// they must be provided as an argument.
+// they must be provided as an argument. Artifact payloads are exported only from
+// InputArtifactsHydrated/OutputArtifactsHydrated, so callers that need
+// Inputs.Artifacts or Outputs.Artifacts populated must hydrate artifact links first.
 func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.PipelineTask, error) {
 	if modelTask == nil {
 		return nil, util.NewInvalidInputError("Task cannot be nil")
@@ -2610,9 +2614,32 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 			grouped[key] = append(grouped[key], h)
 		}
 
+		keys := make([]groupKey, 0, len(grouped))
+		for key := range grouped {
+			keys = append(keys, key)
+		}
+		sort.Slice(keys, func(i, j int) bool {
+			left := keys[i]
+			right := keys[j]
+			if left.artifactKey != right.artifactKey {
+				return left.artifactKey < right.artifactKey
+			}
+			if left.ioType != right.ioType {
+				return left.ioType < right.ioType
+			}
+			if left.producerTask != right.producerTask {
+				return left.producerTask < right.producerTask
+			}
+			if left.hasIteration != right.hasIteration {
+				return !left.hasIteration && right.hasIteration
+			}
+			return left.iterationVal < right.iterationVal
+		})
+
 		// Convert grouped artifacts to IOArtifacts
 		out := make([]*apiv2beta1.PipelineTask_InputOutputs_IOArtifact, 0, len(grouped))
-		for _, hydratedGroup := range grouped {
+		for _, key := range keys {
+			hydratedGroup := grouped[key]
 			// Check if all artifacts in this group are metrics
 			allMetrics := true
 			for _, h := range hydratedGroup {

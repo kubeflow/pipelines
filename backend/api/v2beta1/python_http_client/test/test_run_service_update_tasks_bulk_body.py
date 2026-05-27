@@ -16,11 +16,11 @@ import unittest
 import datetime
 
 import kfp_server_api
-from kfp_server_api.models.v2beta1_update_tasks_bulk_request import V2beta1UpdateTasksBulkRequest  # noqa: E501
+from kfp_server_api.models.run_service_update_tasks_bulk_body import RunServiceUpdateTasksBulkBody  # noqa: E501
 from kfp_server_api.rest import ApiException
 
-class TestV2beta1UpdateTasksBulkRequest(unittest.TestCase):
-    """V2beta1UpdateTasksBulkRequest unit test stubs"""
+class TestRunServiceUpdateTasksBulkBody(unittest.TestCase):
+    """RunServiceUpdateTasksBulkBody unit test stubs"""
 
     def setUp(self):
         pass
@@ -29,13 +29,13 @@ class TestV2beta1UpdateTasksBulkRequest(unittest.TestCase):
         pass
 
     def make_instance(self, include_optional):
-        """Test V2beta1UpdateTasksBulkRequest
+        """Test RunServiceUpdateTasksBulkBody
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api.models.v2beta1_update_tasks_bulk_request.V2beta1UpdateTasksBulkRequest()  # noqa: E501
+        # model = kfp_server_api.models.run_service_update_tasks_bulk_body.RunServiceUpdateTasksBulkBody()  # noqa: E501
         if include_optional :
-            return V2beta1UpdateTasksBulkRequest(
+            return RunServiceUpdateTasksBulkBody(
                 tasks = {
                     'key' : kfp_server_api.models.v2beta1_pipeline_task.v2beta1PipelineTask(
                         name = '0', 
@@ -69,14 +69,14 @@ class TestV2beta1UpdateTasksBulkRequest(unittest.TestCase):
                                             }
                                         ], ), )
                             ], 
-                        type = 'ROOT', 
+                        type = 'TASK_TYPE_UNSPECIFIED', 
                         type_attributes = kfp_server_api.models.pipeline_task_type_attributes.PipelineTaskTypeAttributes(
                             iteration_index = '0', 
                             iteration_count = '0', 
                             download_to_workspace = True, ), 
                         parent_task_id = '0', 
                         child_tasks = [
-                            kfp_server_api.models.v2beta1_pipeline_task_child_task.v2beta1PipelineTaskChildTask(
+                            kfp_server_api.models.pipeline_task_child_task.PipelineTaskChildTask(
                                 task_id = '0', 
                                 name = '0', )
                             ], 
@@ -103,11 +103,11 @@ class TestV2beta1UpdateTasksBulkRequest(unittest.TestCase):
                     }
             )
         else :
-            return V2beta1UpdateTasksBulkRequest(
+            return RunServiceUpdateTasksBulkBody(
         )
 
-    def testV2beta1UpdateTasksBulkRequest(self):
-        """Test V2beta1UpdateTasksBulkRequest"""
+    def testRunServiceUpdateTasksBulkBody(self):
+        """Test RunServiceUpdateTasksBulkBody"""
         inst_req_only = self.make_instance(include_optional=False)
         inst_req_and_optional = self.make_instance(include_optional=True)
 

@@ -14,18 +14,18 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// V2beta1UpdateTasksBulkRequest v2beta1 update tasks bulk request
+// RunServiceUpdateTasksBulkBody run service update tasks bulk body
 //
-// swagger:model v2beta1UpdateTasksBulkRequest
-type V2beta1UpdateTasksBulkRequest struct {
+// swagger:model RunServiceUpdateTasksBulkBody
+type RunServiceUpdateTasksBulkBody struct {
 
 	// Required. Map of task ID to task detail for bulk update.
 	// Key: task_id, Value: PipelineTask to update
 	Tasks map[string]V2beta1PipelineTask `json:"tasks,omitempty"`
 }
 
-// Validate validates this v2beta1 update tasks bulk request
-func (m *V2beta1UpdateTasksBulkRequest) Validate(formats strfmt.Registry) error {
+// Validate validates this run service update tasks bulk body
+func (m *RunServiceUpdateTasksBulkBody) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateTasks(formats); err != nil {
@@ -38,7 +38,7 @@ func (m *V2beta1UpdateTasksBulkRequest) Validate(formats strfmt.Registry) error 
 	return nil
 }
 
-func (m *V2beta1UpdateTasksBulkRequest) validateTasks(formats strfmt.Registry) error {
+func (m *RunServiceUpdateTasksBulkBody) validateTasks(formats strfmt.Registry) error {
 	if swag.IsZero(m.Tasks) { // not required
 		return nil
 	}
@@ -64,8 +64,8 @@ func (m *V2beta1UpdateTasksBulkRequest) validateTasks(formats strfmt.Registry) e
 	return nil
 }
 
-// ContextValidate validate this v2beta1 update tasks bulk request based on the context it is used
-func (m *V2beta1UpdateTasksBulkRequest) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+// ContextValidate validate this run service update tasks bulk body based on the context it is used
+func (m *RunServiceUpdateTasksBulkBody) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.contextValidateTasks(ctx, formats); err != nil {
@@ -78,7 +78,7 @@ func (m *V2beta1UpdateTasksBulkRequest) ContextValidate(ctx context.Context, for
 	return nil
 }
 
-func (m *V2beta1UpdateTasksBulkRequest) contextValidateTasks(ctx context.Context, formats strfmt.Registry) error {
+func (m *RunServiceUpdateTasksBulkBody) contextValidateTasks(ctx context.Context, formats strfmt.Registry) error {
 
 	for k := range m.Tasks {
 
@@ -94,7 +94,7 @@ func (m *V2beta1UpdateTasksBulkRequest) contextValidateTasks(ctx context.Context
 }
 
 // MarshalBinary interface implementation
-func (m *V2beta1UpdateTasksBulkRequest) MarshalBinary() ([]byte, error) {
+func (m *RunServiceUpdateTasksBulkBody) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -102,8 +102,8 @@ func (m *V2beta1UpdateTasksBulkRequest) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *V2beta1UpdateTasksBulkRequest) UnmarshalBinary(b []byte) error {
-	var res V2beta1UpdateTasksBulkRequest
+func (m *RunServiceUpdateTasksBulkBody) UnmarshalBinary(b []byte) error {
+	var res RunServiceUpdateTasksBulkBody
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

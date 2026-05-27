@@ -1,0 +1,12 @@
+{
+  "artifact_id":  "artifact-123",
+  "name":  "model-artifact",
+  "description":  "Trained model artifact",
+  "type":  "Model",
+  "uri":  "gs://bucket/models/model-artifact",
+  "metadata":  {
+    "framework":  "xgboost"
+  },
+  "created_at":  "2024-01-01T12:00:00Z",
+  "namespace":  "namespace1"
+}

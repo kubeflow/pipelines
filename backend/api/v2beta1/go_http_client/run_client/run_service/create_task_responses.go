@@ -88,12 +88,12 @@ func (o *CreateTaskOK) Code() int {
 
 func (o *CreateTaskOK) Error() string {
 	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /apis/v2beta1/tasks][%d] createTaskOK %s", 200, payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/runs/{run_id}/tasks][%d] createTaskOK %s", 200, payload)
 }
 
 func (o *CreateTaskOK) String() string {
 	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /apis/v2beta1/tasks][%d] createTaskOK %s", 200, payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/runs/{run_id}/tasks][%d] createTaskOK %s", 200, payload)
 }
 
 func (o *CreateTaskOK) GetPayload() *run_model.V2beta1PipelineTask {
@@ -162,12 +162,12 @@ func (o *CreateTaskDefault) Code() int {
 
 func (o *CreateTaskDefault) Error() string {
 	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /apis/v2beta1/tasks][%d] create_task default %s", o._statusCode, payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/runs/{run_id}/tasks][%d] create_task default %s", o._statusCode, payload)
 }
 
 func (o *CreateTaskDefault) String() string {
 	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /apis/v2beta1/tasks][%d] create_task default %s", o._statusCode, payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/runs/{run_id}/tasks][%d] create_task default %s", o._statusCode, payload)
 }
 
 func (o *CreateTaskDefault) GetPayload() *run_model.GooglerpcStatus {

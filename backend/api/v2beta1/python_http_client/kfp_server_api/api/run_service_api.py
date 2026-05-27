@@ -36,17 +36,19 @@ class RunServiceApi(object):
             api_client = ApiClient()
         self.api_client = api_client
 
-    def batch_update_tasks(self, body, **kwargs):  # noqa: E501
+    def batch_update_tasks(self, run_id, body, **kwargs):  # noqa: E501
         """Updates multiple tasks in bulk.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.batch_update_tasks(body, async_req=True)
+        >>> thread = api.batch_update_tasks(run_id, body, async_req=True)
         >>> result = thread.get()
 
+        :param run_id: Required. Parent run ID. This is typically provided by the URL path. (required)
+        :type run_id: str
         :param body: (required)
-        :type body: V2beta1UpdateTasksBulkRequest
+        :type body: RunServiceUpdateTasksBulkBody
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -62,19 +64,21 @@ class RunServiceApi(object):
         :rtype: V2beta1UpdateTasksBulkResponse
         """
         kwargs['_return_http_data_only'] = True
-        return self.batch_update_tasks_with_http_info(body, **kwargs)  # noqa: E501
+        return self.batch_update_tasks_with_http_info(run_id, body, **kwargs)  # noqa: E501
 
-    def batch_update_tasks_with_http_info(self, body, **kwargs):  # noqa: E501
+    def batch_update_tasks_with_http_info(self, run_id, body, **kwargs):  # noqa: E501
         """Updates multiple tasks in bulk.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.batch_update_tasks_with_http_info(body, async_req=True)
+        >>> thread = api.batch_update_tasks_with_http_info(run_id, body, async_req=True)
         >>> result = thread.get()
 
+        :param run_id: Required. Parent run ID. This is typically provided by the URL path. (required)
+        :type run_id: str
         :param body: (required)
-        :type body: V2beta1UpdateTasksBulkRequest
+        :type body: RunServiceUpdateTasksBulkBody
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -97,6 +101,7 @@ class RunServiceApi(object):
         local_var_params = locals()
 
         all_params = [
+            'run_id',
             'body'
         ]
         all_params.extend(
@@ -116,6 +121,10 @@ class RunServiceApi(object):
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
+        # verify the required parameter 'run_id' is set
+        if self.api_client.client_side_validation and ('run_id' not in local_var_params or  # noqa: E501
+                                                        local_var_params['run_id'] is None):  # noqa: E501
+            raise ApiValueError("Missing the required parameter `run_id` when calling `batch_update_tasks`")  # noqa: E501
         # verify the required parameter 'body' is set
         if self.api_client.client_side_validation and ('body' not in local_var_params or  # noqa: E501
                                                         local_var_params['body'] is None):  # noqa: E501
@@ -124,6 +133,8 @@ class RunServiceApi(object):
         collection_formats = {}
 
         path_params = {}
+        if 'run_id' in local_var_params:
+            path_params['run_id'] = local_var_params['run_id']  # noqa: E501
 
         query_params = []
 
@@ -147,7 +158,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/tasks:batchUpdate', 'POST',
+            '/apis/v2beta1/runs/{run_id}/tasks:batchUpdate', 'POST',
             path_params,
             query_params,
             header_params,
@@ -162,15 +173,17 @@ class RunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def create_task(self, task, **kwargs):  # noqa: E501
+    def create_task(self, run_id, task, **kwargs):  # noqa: E501
         """Creates a new task.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_task(task, async_req=True)
+        >>> thread = api.create_task(run_id, task, async_req=True)
         >>> result = thread.get()
 
+        :param run_id: Required. Parent run ID. This is typically provided by the URL path. (required)
+        :type run_id: str
         :param task: (required)
         :type task: V2beta1PipelineTask
         :param async_req: Whether to execute the request asynchronously.
@@ -188,17 +201,19 @@ class RunServiceApi(object):
         :rtype: V2beta1PipelineTask
         """
         kwargs['_return_http_data_only'] = True
-        return self.create_task_with_http_info(task, **kwargs)  # noqa: E501
+        return self.create_task_with_http_info(run_id, task, **kwargs)  # noqa: E501
 
-    def create_task_with_http_info(self, task, **kwargs):  # noqa: E501
+    def create_task_with_http_info(self, run_id, task, **kwargs):  # noqa: E501
         """Creates a new task.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_task_with_http_info(task, async_req=True)
+        >>> thread = api.create_task_with_http_info(run_id, task, async_req=True)
         >>> result = thread.get()
 
+        :param run_id: Required. Parent run ID. This is typically provided by the URL path. (required)
+        :type run_id: str
         :param task: (required)
         :type task: V2beta1PipelineTask
         :param async_req: Whether to execute the request asynchronously.
@@ -223,6 +238,7 @@ class RunServiceApi(object):
         local_var_params = locals()
 
         all_params = [
+            'run_id',
             'task'
         ]
         all_params.extend(
@@ -242,6 +258,10 @@ class RunServiceApi(object):
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
+        # verify the required parameter 'run_id' is set
+        if self.api_client.client_side_validation and ('run_id' not in local_var_params or  # noqa: E501
+                                                        local_var_params['run_id'] is None):  # noqa: E501
+            raise ApiValueError("Missing the required parameter `run_id` when calling `create_task`")  # noqa: E501
         # verify the required parameter 'task' is set
         if self.api_client.client_side_validation and ('task' not in local_var_params or  # noqa: E501
                                                         local_var_params['task'] is None):  # noqa: E501
@@ -250,6 +270,8 @@ class RunServiceApi(object):
         collection_formats = {}
 
         path_params = {}
+        if 'run_id' in local_var_params:
+            path_params['run_id'] = local_var_params['run_id']  # noqa: E501
 
         query_params = []
 
@@ -273,7 +295,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/tasks', 'POST',
+            '/apis/v2beta1/runs/{run_id}/tasks', 'POST',
             path_params,
             query_params,
             header_params,
@@ -288,15 +310,17 @@ class RunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def get_task(self, task_id, **kwargs):  # noqa: E501
+    def get_task(self, run_id, task_id, **kwargs):  # noqa: E501
         """Gets a specific task by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.get_task(task_id, async_req=True)
+        >>> thread = api.get_task(run_id, task_id, async_req=True)
         >>> result = thread.get()
 
+        :param run_id: Required. Parent run ID. This is typically provided by the URL path. (required)
+        :type run_id: str
         :param task_id: (required)
         :type task_id: str
         :param async_req: Whether to execute the request asynchronously.
@@ -314,17 +338,19 @@ class RunServiceApi(object):
         :rtype: V2beta1PipelineTask
         """
         kwargs['_return_http_data_only'] = True
-        return self.get_task_with_http_info(task_id, **kwargs)  # noqa: E501
+        return self.get_task_with_http_info(run_id, task_id, **kwargs)  # noqa: E501
 
-    def get_task_with_http_info(self, task_id, **kwargs):  # noqa: E501
+    def get_task_with_http_info(self, run_id, task_id, **kwargs):  # noqa: E501
         """Gets a specific task by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.get_task_with_http_info(task_id, async_req=True)
+        >>> thread = api.get_task_with_http_info(run_id, task_id, async_req=True)
         >>> result = thread.get()
 
+        :param run_id: Required. Parent run ID. This is typically provided by the URL path. (required)
+        :type run_id: str
         :param task_id: (required)
         :type task_id: str
         :param async_req: Whether to execute the request asynchronously.
@@ -349,6 +375,7 @@ class RunServiceApi(object):
         local_var_params = locals()
 
         all_params = [
+            'run_id',
             'task_id'
         ]
         all_params.extend(
@@ -368,6 +395,10 @@ class RunServiceApi(object):
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
+        # verify the required parameter 'run_id' is set
+        if self.api_client.client_side_validation and ('run_id' not in local_var_params or  # noqa: E501
+                                                        local_var_params['run_id'] is None):  # noqa: E501
+            raise ApiValueError("Missing the required parameter `run_id` when calling `get_task`")  # noqa: E501
         # verify the required parameter 'task_id' is set
         if self.api_client.client_side_validation and ('task_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['task_id'] is None):  # noqa: E501
@@ -376,6 +407,8 @@ class RunServiceApi(object):
         collection_formats = {}
 
         path_params = {}
+        if 'run_id' in local_var_params:
+            path_params['run_id'] = local_var_params['run_id']  # noqa: E501
         if 'task_id' in local_var_params:
             path_params['task_id'] = local_var_params['task_id']  # noqa: E501
 
@@ -395,7 +428,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/tasks/{task_id}', 'GET',
+            '/apis/v2beta1/runs/{run_id}/tasks/{task_id}', 'GET',
             path_params,
             query_params,
             header_params,
@@ -410,21 +443,19 @@ class RunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def list_tasks(self, **kwargs):  # noqa: E501
+    def list_tasks(self, run_id, **kwargs):  # noqa: E501
         """Lists tasks with optional filtering.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.list_tasks(async_req=True)
+        >>> thread = api.list_tasks(run_id, async_req=True)
         >>> result = thread.get()
 
+        :param run_id: Required. Parent run ID. This is typically provided by the URL path. (required)
+        :type run_id: str
         :param parent_id: List all tasks with this parent task.
         :type parent_id: str
-        :param run_id: List all tasks for this run.
-        :type run_id: str
-        :param namespace: List all tasks in this namespace. The primary use case for this filter is to detect cache hits.
-        :type namespace: str
         :param page_size:
         :type page_size: int
         :param page_token:
@@ -448,23 +479,21 @@ class RunServiceApi(object):
         :rtype: V2beta1ListTasksResponse
         """
         kwargs['_return_http_data_only'] = True
-        return self.list_tasks_with_http_info(**kwargs)  # noqa: E501
+        return self.list_tasks_with_http_info(run_id, **kwargs)  # noqa: E501
 
-    def list_tasks_with_http_info(self, **kwargs):  # noqa: E501
+    def list_tasks_with_http_info(self, run_id, **kwargs):  # noqa: E501
         """Lists tasks with optional filtering.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.list_tasks_with_http_info(async_req=True)
+        >>> thread = api.list_tasks_with_http_info(run_id, async_req=True)
         >>> result = thread.get()
 
+        :param run_id: Required. Parent run ID. This is typically provided by the URL path. (required)
+        :type run_id: str
         :param parent_id: List all tasks with this parent task.
         :type parent_id: str
-        :param run_id: List all tasks for this run.
-        :type run_id: str
-        :param namespace: List all tasks in this namespace. The primary use case for this filter is to detect cache hits.
-        :type namespace: str
         :param page_size:
         :type page_size: int
         :param page_token:
@@ -495,9 +524,8 @@ class RunServiceApi(object):
         local_var_params = locals()
 
         all_params = [
-            'parent_id',
             'run_id',
-            'namespace',
+            'parent_id',
             'page_size',
             'page_token',
             'filter',
@@ -520,18 +548,20 @@ class RunServiceApi(object):
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
+        # verify the required parameter 'run_id' is set
+        if self.api_client.client_side_validation and ('run_id' not in local_var_params or  # noqa: E501
+                                                        local_var_params['run_id'] is None):  # noqa: E501
+            raise ApiValueError("Missing the required parameter `run_id` when calling `list_tasks`")  # noqa: E501
 
         collection_formats = {}
 
         path_params = {}
+        if 'run_id' in local_var_params:
+            path_params['run_id'] = local_var_params['run_id']  # noqa: E501
 
         query_params = []
         if 'parent_id' in local_var_params and local_var_params['parent_id'] is not None:  # noqa: E501
             query_params.append(('parent_id', local_var_params['parent_id']))  # noqa: E501
-        if 'run_id' in local_var_params and local_var_params['run_id'] is not None:  # noqa: E501
-            query_params.append(('run_id', local_var_params['run_id']))  # noqa: E501
-        if 'namespace' in local_var_params and local_var_params['namespace'] is not None:  # noqa: E501
-            query_params.append(('namespace', local_var_params['namespace']))  # noqa: E501
         if 'page_size' in local_var_params and local_var_params['page_size'] is not None:  # noqa: E501
             query_params.append(('page_size', local_var_params['page_size']))  # noqa: E501
         if 'page_token' in local_var_params and local_var_params['page_token'] is not None:  # noqa: E501
@@ -555,7 +585,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/tasks', 'GET',
+            '/apis/v2beta1/runs/{run_id}/tasks', 'GET',
             path_params,
             query_params,
             header_params,
@@ -1112,7 +1142,7 @@ class RunServiceApi(object):
         :type experiment_id: str
         :param page_token: A page token to request the next page of results. The token is acquired from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page.
         :type page_token: str
-        :param page_size: The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+        :param page_size: The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page. If omitted, the server uses its standard default page size. When `view = FULL`, the server may enforce a lower maximum page size to limit task hydration cost. By default FULL requests are capped at 100 runs, and operators can override that cap with `LIST_RUNS_FULL_VIEW_MAX_PAGE_SIZE`.
         :type page_size: int
         :param sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\" (Example, \"name asc\" or \"id desc\"). Ascending by default.
         :type sort_by: str
@@ -1152,7 +1182,7 @@ class RunServiceApi(object):
         :type experiment_id: str
         :param page_token: A page token to request the next page of results. The token is acquired from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page.
         :type page_token: str
-        :param page_size: The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+        :param page_size: The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page. If omitted, the server uses its standard default page size. When `view = FULL`, the server may enforce a lower maximum page size to limit task hydration cost. By default FULL requests are capped at 100 runs, and operators can override that cap with `LIST_RUNS_FULL_VIEW_MAX_PAGE_SIZE`.
         :type page_size: int
         :param sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\" (Example, \"name asc\" or \"id desc\"). Ascending by default.
         :type sort_by: str
@@ -1644,15 +1674,17 @@ class RunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def update_task(self, task_id, task, **kwargs):  # noqa: E501
+    def update_task(self, run_id, task_id, task, **kwargs):  # noqa: E501
         """Updates an existing task.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.update_task(task_id, task, async_req=True)
+        >>> thread = api.update_task(run_id, task_id, task, async_req=True)
         >>> result = thread.get()
 
+        :param run_id: Required. Parent run ID. This is typically provided by the URL path. (required)
+        :type run_id: str
         :param task_id: (required)
         :type task_id: str
         :param task: (required)
@@ -1672,17 +1704,19 @@ class RunServiceApi(object):
         :rtype: V2beta1PipelineTask
         """
         kwargs['_return_http_data_only'] = True
-        return self.update_task_with_http_info(task_id, task, **kwargs)  # noqa: E501
+        return self.update_task_with_http_info(run_id, task_id, task, **kwargs)  # noqa: E501
 
-    def update_task_with_http_info(self, task_id, task, **kwargs):  # noqa: E501
+    def update_task_with_http_info(self, run_id, task_id, task, **kwargs):  # noqa: E501
         """Updates an existing task.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.update_task_with_http_info(task_id, task, async_req=True)
+        >>> thread = api.update_task_with_http_info(run_id, task_id, task, async_req=True)
         >>> result = thread.get()
 
+        :param run_id: Required. Parent run ID. This is typically provided by the URL path. (required)
+        :type run_id: str
         :param task_id: (required)
         :type task_id: str
         :param task: (required)
@@ -1709,6 +1743,7 @@ class RunServiceApi(object):
         local_var_params = locals()
 
         all_params = [
+            'run_id',
             'task_id',
             'task'
         ]
@@ -1729,6 +1764,10 @@ class RunServiceApi(object):
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
+        # verify the required parameter 'run_id' is set
+        if self.api_client.client_side_validation and ('run_id' not in local_var_params or  # noqa: E501
+                                                        local_var_params['run_id'] is None):  # noqa: E501
+            raise ApiValueError("Missing the required parameter `run_id` when calling `update_task`")  # noqa: E501
         # verify the required parameter 'task_id' is set
         if self.api_client.client_side_validation and ('task_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['task_id'] is None):  # noqa: E501
@@ -1741,6 +1780,8 @@ class RunServiceApi(object):
         collection_formats = {}
 
         path_params = {}
+        if 'run_id' in local_var_params:
+            path_params['run_id'] = local_var_params['run_id']  # noqa: E501
         if 'task_id' in local_var_params:
             path_params['task_id'] = local_var_params['task_id']  # noqa: E501
 
@@ -1766,7 +1807,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/tasks/{task_id}', 'PATCH',
+            '/apis/v2beta1/runs/{run_id}/tasks/{task_id}', 'PATCH',
             path_params,
             query_params,
             header_params,
