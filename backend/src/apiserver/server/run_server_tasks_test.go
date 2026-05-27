@@ -38,10 +38,12 @@ func seedOneRun(t *testing.T) (*resource.FakeClientManager, *resource.ResourceMa
 
 type recordingSubjectAccessReviewClient struct {
 	lastReview *authzv1.SubjectAccessReview
+	reviews    []*authzv1.SubjectAccessReview
 }
 
 func (c *recordingSubjectAccessReviewClient) Create(_ context.Context, sar *authzv1.SubjectAccessReview, _ metav1.CreateOptions) (*authzv1.SubjectAccessReview, error) {
 	c.lastReview = sar
+	c.reviews = append(c.reviews, sar)
 	return &authzv1.SubjectAccessReview{
 		Status: authzv1.SubjectAccessReviewStatus{
 			Allowed: true,
@@ -73,8 +75,7 @@ func TestTask_Create_Update_Get_List(t *testing.T) {
 			ParameterKey: "op1",
 		},
 	}
-	createReq := &apiv2beta1.CreateTaskRequest{Task: &apiv2beta1.PipelineTask{
-		RunId:   runID,
+	createReq := &apiv2beta1.CreateTaskRequest{RunId: runID, Task: &apiv2beta1.PipelineTask{
 		Name:    "trainer",
 		State:   apiv2beta1.PipelineTask_RUNNING,
 		Type:    apiv2beta1.PipelineTask_RUNTIME,
@@ -93,9 +94,8 @@ func TestTask_Create_Update_Get_List(t *testing.T) {
 	assert.Equal(t, "op1", created.GetOutputs().GetParameters()[0].GetParameterKey())
 
 	// Update task: change status and outputs
-	updReq := &apiv2beta1.UpdateTaskRequest{TaskId: created.GetTaskId(), Task: &apiv2beta1.PipelineTask{
+	updReq := &apiv2beta1.UpdateTaskRequest{RunId: runID, TaskId: created.GetTaskId(), Task: &apiv2beta1.PipelineTask{
 		TaskId: created.GetTaskId(),
-		RunId:  runID,
 		Name:   "trainer",
 		State:  apiv2beta1.PipelineTask_SUCCEEDED,
 		Outputs: &apiv2beta1.PipelineTask_InputOutputs{Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
@@ -116,13 +116,13 @@ func TestTask_Create_Update_Get_List(t *testing.T) {
 	assert.Equal(t, "done", params[1].GetValue().AsInterface())
 
 	// GetTask
-	got, err := runSrv.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: created.GetTaskId()})
+	got, err := runSrv.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{RunId: runID, TaskId: created.GetTaskId()})
 	assert.NoError(t, err)
 	assert.Equal(t, created.GetTaskId(), got.GetTaskId())
 	assert.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, got.GetState())
 
 	// ListTasks by run ID
-	listResp, err := runSrv.ListTasks(context.Background(), &apiv2beta1.ListTasksRequest{ParentFilter: &apiv2beta1.ListTasksRequest_RunId{RunId: runID}, PageSize: 50})
+	listResp, err := runSrv.ListTasks(context.Background(), &apiv2beta1.ListTasksRequest{RunId: runID, PageSize: 50})
 	assert.NoError(t, err)
 	assert.GreaterOrEqual(t, int(listResp.GetTotalSize()), 1)
 	found := false
@@ -148,6 +148,7 @@ func TestTask_Create_PersistsDisplayNameAndStatusMetadata(t *testing.T) {
 	}
 
 	created, err := runSrv.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: runID,
 		Task: &apiv2beta1.PipelineTask{
 			RunId:          runID,
 			Name:           "trainer",
@@ -160,7 +161,7 @@ func TestTask_Create_PersistsDisplayNameAndStatusMetadata(t *testing.T) {
 	assert.Equal(t, "Trainer Display", created.GetDisplayName())
 	assert.Equal(t, "task failed", created.GetStatusMetadata().GetMessage())
 
-	got, err := runSrv.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: created.GetTaskId()})
+	got, err := runSrv.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{RunId: runID, TaskId: created.GetTaskId()})
 	assert.NoError(t, err)
 	assert.Equal(t, "Trainer Display", got.GetDisplayName())
 	assert.Equal(t, "task failed", got.GetStatusMetadata().GetMessage())
@@ -180,6 +181,7 @@ func TestTask_RunHydration_WithInputsOutputs_ArtifactsAndMetrics(t *testing.T) {
 
 	// Create a task with IO
 	create := &apiv2beta1.CreateTaskRequest{
+		RunId: run.UUID,
 		Task: &apiv2beta1.PipelineTask{
 			RunId: run.UUID,
 			Name:  "preprocess",
@@ -227,6 +229,7 @@ func TestTask_RunHydration_WithInputsOutputs_ArtifactsAndMetrics(t *testing.T) {
 	// Update task outputs to include an artifact reference in OutputArtifacts
 	_, err = runSrv.UpdateTask(ctxWithUser(),
 		&apiv2beta1.UpdateTaskRequest{
+			RunId:  run.UUID,
 			TaskId: created.GetTaskId(),
 			Task: &apiv2beta1.PipelineTask{
 				TaskId:  created.GetTaskId(),
@@ -282,6 +285,7 @@ func TestListTasks_ByParent(t *testing.T) {
 	// Create parent task
 	parent, err := server.CreateTask(context.Background(),
 		&apiv2beta1.CreateTaskRequest{
+			RunId: runID,
 			Task: &apiv2beta1.PipelineTask{
 				RunId: runID,
 				Name:  "parent",
@@ -293,6 +297,7 @@ func TestListTasks_ByParent(t *testing.T) {
 	// Create child task with ParentTaskId
 	child, err := server.CreateTask(context.Background(),
 		&apiv2beta1.CreateTaskRequest{
+			RunId: runID,
 			Task: &apiv2beta1.PipelineTask{
 				RunId:        runID,
 				Name:         "child",
@@ -306,6 +311,7 @@ func TestListTasks_ByParent(t *testing.T) {
 	// List by parent ID
 	resp, err := server.ListTasks(context.Background(),
 		&apiv2beta1.ListTasksRequest{
+			RunId: runID,
 			ParentFilter: &apiv2beta1.ListTasksRequest_ParentId{
 				ParentId: parent.GetTaskId(),
 			},
@@ -323,6 +329,7 @@ func TestListTasks_ByRunIncludesChildTasks(t *testing.T) {
 	server := createRunServer(rm)
 
 	parent, err := server.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: runID,
 		Task: &apiv2beta1.PipelineTask{
 			RunId: runID,
 			Name:  "parent",
@@ -331,6 +338,7 @@ func TestListTasks_ByRunIncludesChildTasks(t *testing.T) {
 	assert.NoError(t, err)
 
 	child, err := server.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: runID,
 		Task: &apiv2beta1.PipelineTask{
 			RunId:        runID,
 			Name:         "child",
@@ -340,8 +348,8 @@ func TestListTasks_ByRunIncludesChildTasks(t *testing.T) {
 	assert.NoError(t, err)
 
 	resp, err := server.ListTasks(context.Background(), &apiv2beta1.ListTasksRequest{
-		ParentFilter: &apiv2beta1.ListTasksRequest_RunId{RunId: runID},
-		PageSize:     50,
+		RunId:    runID,
+		PageSize: 50,
 	})
 	assert.NoError(t, err)
 
@@ -374,6 +382,7 @@ func TestCreateTask_RejectsParentFromDifferentRun(t *testing.T) {
 
 	runSrv := createRunServer(manager)
 	parent, err := runSrv.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: run1ID,
 		Task: &apiv2beta1.PipelineTask{
 			RunId: run1ID,
 			Name:  "parent",
@@ -382,6 +391,7 @@ func TestCreateTask_RejectsParentFromDifferentRun(t *testing.T) {
 	assert.NoError(t, err)
 
 	_, err = runSrv.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: run2.UUID,
 		Task: &apiv2beta1.PipelineTask{
 			RunId:        run2.UUID,
 			Name:         "child",
@@ -406,6 +416,7 @@ func TestUpdateTask_RejectsParentFromDifferentRun(t *testing.T) {
 
 	runSrv := createRunServer(manager)
 	parent, err := runSrv.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: run1ID,
 		Task: &apiv2beta1.PipelineTask{
 			RunId: run1ID,
 			Name:  "parent",
@@ -413,6 +424,7 @@ func TestUpdateTask_RejectsParentFromDifferentRun(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	child, err := runSrv.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: run2.UUID,
 		Task: &apiv2beta1.PipelineTask{
 			RunId: run2.UUID,
 			Name:  "child",
@@ -421,6 +433,7 @@ func TestUpdateTask_RejectsParentFromDifferentRun(t *testing.T) {
 	assert.NoError(t, err)
 
 	_, err = runSrv.UpdateTask(context.Background(), &apiv2beta1.UpdateTaskRequest{
+		RunId:  run2.UUID,
 		TaskId: child.GetTaskId(),
 		Task: &apiv2beta1.PipelineTask{
 			TaskId:       child.GetTaskId(),
@@ -447,6 +460,7 @@ func TestParentScopedReadsIgnoreChildrenFromOtherRuns(t *testing.T) {
 
 	runSrv := createRunServer(manager)
 	parent, err := runSrv.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: run1ID,
 		Task: &apiv2beta1.PipelineTask{
 			RunId: run1ID,
 			Name:  "parent",
@@ -464,6 +478,7 @@ func TestParentScopedReadsIgnoreChildrenFromOtherRuns(t *testing.T) {
 	assert.NoError(t, err)
 
 	resp, err := runSrv.ListTasks(context.Background(), &apiv2beta1.ListTasksRequest{
+		RunId:        run1ID,
 		ParentFilter: &apiv2beta1.ListTasksRequest_ParentId{ParentId: parent.GetTaskId()},
 		PageSize:     50,
 	})
@@ -471,7 +486,7 @@ func TestParentScopedReadsIgnoreChildrenFromOtherRuns(t *testing.T) {
 	assert.Equal(t, int32(0), resp.GetTotalSize())
 	assert.Len(t, resp.GetTasks(), 0)
 
-	gotParent, err := runSrv.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: parent.GetTaskId()})
+	gotParent, err := runSrv.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{RunId: run1ID, TaskId: parent.GetTaskId()})
 	assert.NoError(t, err)
 	assert.Len(t, gotParent.GetChildTasks(), 0)
 }
@@ -489,6 +504,7 @@ func TestUpdateTasksBulk_Success(t *testing.T) {
 	v3, _ := structpb.NewValue("initial3")
 
 	task1, err := runSrv.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: runID,
 		Task: &apiv2beta1.PipelineTask{
 			RunId: runID,
 			Name:  "task1",
@@ -503,6 +519,7 @@ func TestUpdateTasksBulk_Success(t *testing.T) {
 	assert.NoError(t, err)
 
 	task2, err := runSrv.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: runID,
 		Task: &apiv2beta1.PipelineTask{
 			RunId: runID,
 			Name:  "task2",
@@ -517,6 +534,7 @@ func TestUpdateTasksBulk_Success(t *testing.T) {
 	assert.NoError(t, err)
 
 	task3, err := runSrv.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: runID,
 		Task: &apiv2beta1.PipelineTask{
 			RunId: runID,
 			Name:  "task3",
@@ -536,10 +554,10 @@ func TestUpdateTasksBulk_Success(t *testing.T) {
 	updatedV3, _ := structpb.NewValue("updated3")
 
 	bulkReq := &apiv2beta1.UpdateTasksBulkRequest{
+		RunId: runID,
 		Tasks: map[string]*apiv2beta1.PipelineTask{
 			task1.GetTaskId(): {
 				TaskId: task1.GetTaskId(),
-				RunId:  runID,
 				Name:   "task1",
 				State:  apiv2beta1.PipelineTask_SUCCEEDED,
 				Outputs: &apiv2beta1.PipelineTask_InputOutputs{
@@ -550,7 +568,6 @@ func TestUpdateTasksBulk_Success(t *testing.T) {
 			},
 			task2.GetTaskId(): {
 				TaskId: task2.GetTaskId(),
-				RunId:  runID,
 				Name:   "task2",
 				State:  apiv2beta1.PipelineTask_FAILED,
 				Outputs: &apiv2beta1.PipelineTask_InputOutputs{
@@ -561,7 +578,6 @@ func TestUpdateTasksBulk_Success(t *testing.T) {
 			},
 			task3.GetTaskId(): {
 				TaskId: task3.GetTaskId(),
-				RunId:  runID,
 				Name:   "task3",
 				State:  apiv2beta1.PipelineTask_SKIPPED,
 				Outputs: &apiv2beta1.PipelineTask_InputOutputs{
@@ -604,15 +620,15 @@ func TestUpdateTasksBulk_Success(t *testing.T) {
 	assert.Equal(t, "updated3", params[1].GetValue().AsInterface())
 
 	// Verify updates persisted by fetching individually
-	fetched1, err := runSrv.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: task1.GetTaskId()})
+	fetched1, err := runSrv.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{RunId: runID, TaskId: task1.GetTaskId()})
 	assert.NoError(t, err)
 	assert.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, fetched1.GetState())
 
-	fetched2, err := runSrv.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: task2.GetTaskId()})
+	fetched2, err := runSrv.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{RunId: runID, TaskId: task2.GetTaskId()})
 	assert.NoError(t, err)
 	assert.Equal(t, apiv2beta1.PipelineTask_FAILED, fetched2.GetState())
 
-	fetched3, err := runSrv.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: task3.GetTaskId()})
+	fetched3, err := runSrv.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{RunId: runID, TaskId: task3.GetTaskId()})
 	assert.NoError(t, err)
 	assert.Equal(t, apiv2beta1.PipelineTask_SKIPPED, fetched3.GetState())
 }
@@ -651,6 +667,7 @@ func TestUpdateTasksBulk_ValidationErrors(t *testing.T) {
 
 	// Create a task first
 	task, err := runSrv.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: runID,
 		Task: &apiv2beta1.PipelineTask{
 			RunId: runID,
 			Name:  "test-task",
@@ -661,6 +678,7 @@ func TestUpdateTasksBulk_ValidationErrors(t *testing.T) {
 
 	// Test with mismatched task IDs
 	_, err = runSrv.UpdateTasksBulk(context.Background(), &apiv2beta1.UpdateTasksBulkRequest{
+		RunId: runID,
 		Tasks: map[string]*apiv2beta1.PipelineTask{
 			task.GetTaskId(): {
 				TaskId: "different-id", // Mismatch!
@@ -674,6 +692,7 @@ func TestUpdateTasksBulk_ValidationErrors(t *testing.T) {
 
 	// Test that run_id cannot be reassigned on single-task updates.
 	_, err = runSrv.UpdateTask(context.Background(), &apiv2beta1.UpdateTaskRequest{
+		RunId:  runID,
 		TaskId: task.GetTaskId(),
 		Task: &apiv2beta1.PipelineTask{
 			TaskId: task.GetTaskId(),
@@ -682,10 +701,11 @@ func TestUpdateTasksBulk_ValidationErrors(t *testing.T) {
 		},
 	})
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "run_id is immutable")
+	assert.Contains(t, err.Error(), "request body does not match run_id in path parameter")
 
 	// Test that run_id cannot be reassigned on bulk updates.
 	_, err = runSrv.UpdateTasksBulk(context.Background(), &apiv2beta1.UpdateTasksBulkRequest{
+		RunId: runID,
 		Tasks: map[string]*apiv2beta1.PipelineTask{
 			task.GetTaskId(): {
 				TaskId: task.GetTaskId(),
@@ -695,10 +715,11 @@ func TestUpdateTasksBulk_ValidationErrors(t *testing.T) {
 		},
 	})
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "run_id is immutable")
+	assert.Contains(t, err.Error(), "request body does not match run_id in path parameter")
 
 	// Test with artifact updates
 	tasksResp, err := runSrv.UpdateTasksBulk(context.Background(), &apiv2beta1.UpdateTasksBulkRequest{
+		RunId: runID,
 		Tasks: map[string]*apiv2beta1.PipelineTask{
 			task.GetTaskId(): {
 				TaskId: task.GetTaskId(),
@@ -718,6 +739,7 @@ func TestUpdateTasksBulk_ValidationErrors(t *testing.T) {
 
 	// Test with non-existent task
 	_, err = runSrv.UpdateTasksBulk(context.Background(), &apiv2beta1.UpdateTasksBulkRequest{
+		RunId: runID,
 		Tasks: map[string]*apiv2beta1.PipelineTask{
 			"non-existent-task-id": {
 				TaskId: "non-existent-task-id",
@@ -728,106 +750,175 @@ func TestUpdateTasksBulk_ValidationErrors(t *testing.T) {
 	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Failed to get existing task")
-}
 
-func TestListTasks_ByNamespace(t *testing.T) {
-	// Enable multi-user mode to ensure runs have namespaces
-	viper.Set(common.MultiUserMode, "true")
-	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+	clients2, manager2, firstRunID := seedOneRun(t)
+	defer clients2.Close()
+	runSrv2 := createRunServer(manager2)
+	secondRun, err := manager2.CreateRun(context.Background(), &model.Run{
+		DisplayName: "second-run",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+		},
+	})
+	assert.NoError(t, err)
 
-	// Use initWithOneTimeRunV2 which creates a run with unique UUIDs
-	clients, manager, run := initWithOneTimeRunV2(t)
-	defer clients.Close()
-
-	runSrv := createRunServer(manager)
-	runID := run.UUID
-	originalNamespace := run.Namespace
-
-	// Verify namespace is set
-	assert.NotEmpty(t, originalNamespace, "Run namespace should not be empty in multi-user mode")
-
-	// Create tasks in the default namespace (use ctxWithUser for multi-user mode)
-	task1, err := runSrv.CreateTask(ctxWithUser(), &apiv2beta1.CreateTaskRequest{
+	firstTask, err := runSrv2.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: firstRunID,
 		Task: &apiv2beta1.PipelineTask{
-			RunId: runID,
-			Name:  "task-1",
+			RunId: firstRunID,
+			Name:  "first-run-task",
+			State: apiv2beta1.PipelineTask_RUNNING,
+		},
+	})
+	assert.NoError(t, err)
+	secondTask, err := runSrv2.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: secondRun.UUID,
+		Task: &apiv2beta1.PipelineTask{
+			RunId: secondRun.UUID,
+			Name:  "second-run-task",
 			State: apiv2beta1.PipelineTask_RUNNING,
 		},
 	})
 	assert.NoError(t, err)
 
-	task2, err := runSrv.CreateTask(ctxWithUser(), &apiv2beta1.CreateTaskRequest{
-		Task: &apiv2beta1.PipelineTask{
-			RunId: runID,
-			Name:  "task-2",
-			State: apiv2beta1.PipelineTask_SUCCEEDED,
+	_, err = runSrv2.UpdateTasksBulk(context.Background(), &apiv2beta1.UpdateTasksBulkRequest{
+		RunId: firstRunID,
+		Tasks: map[string]*apiv2beta1.PipelineTask{
+			firstTask.GetTaskId(): {
+				TaskId: firstTask.GetTaskId(),
+				State:  apiv2beta1.PipelineTask_SUCCEEDED,
+			},
+			secondTask.GetTaskId(): {
+				TaskId: secondTask.GetTaskId(),
+				State:  apiv2beta1.PipelineTask_SUCCEEDED,
+			},
 		},
 	})
-	assert.NoError(t, err)
-
-	// List tasks by the default namespace - should return both tasks
-	resp1, err := runSrv.ListTasks(ctxWithUser(), &apiv2beta1.ListTasksRequest{
-		ParentFilter: &apiv2beta1.ListTasksRequest_Namespace{
-			Namespace: originalNamespace,
-		},
-		PageSize: 50,
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, int32(2), resp1.GetTotalSize())
-	assert.Equal(t, 2, len(resp1.GetTasks()))
-
-	// Verify the returned tasks are from the default namespace
-	taskIDs := map[string]bool{
-		task1.GetTaskId(): false,
-		task2.GetTaskId(): false,
-	}
-	for _, task := range resp1.GetTasks() {
-		if _, exists := taskIDs[task.GetTaskId()]; exists {
-			taskIDs[task.GetTaskId()] = true
-		}
-	}
-	for taskID, found := range taskIDs {
-		assert.True(t, found, "Task %s from namespace not found in response", taskID)
-	}
-
-	// List tasks by a non-existent namespace - should return 0 tasks
-	resp2, err := runSrv.ListTasks(ctxWithUser(), &apiv2beta1.ListTasksRequest{
-		ParentFilter: &apiv2beta1.ListTasksRequest_Namespace{
-			Namespace: "non-existent-namespace",
-		},
-		PageSize: 50,
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, int32(0), resp2.GetTotalSize())
-	assert.Equal(t, 0, len(resp2.GetTasks()))
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "does not belong to run")
 }
 
-func TestListTasks_ByNamespaceUsesListVerb(t *testing.T) {
+func TestUpdateTasksBulk_RejectsCrossRunScopeBeforeForeignAuth(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	clients, manager, firstRun := initWithOneTimeRunV2(t)
+	defer clients.Close()
+	ctx := ctxWithUser()
+
+	secondRun, err := manager.CreateRun(ctx, &model.Run{
+		DisplayName:  "second-run",
+		ExperimentId: firstRun.ExperimentId,
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+		},
+	})
+	assert.NoError(t, err)
+
+	runSrv := createRunServer(manager)
+	firstTask, err := runSrv.CreateTask(ctx, &apiv2beta1.CreateTaskRequest{
+		RunId: firstRun.UUID,
+		Task: &apiv2beta1.PipelineTask{
+			RunId: firstRun.UUID,
+			Name:  "first-run-task",
+			State: apiv2beta1.PipelineTask_RUNNING,
+		},
+	})
+	assert.NoError(t, err)
+	secondTask, err := runSrv.CreateTask(ctx, &apiv2beta1.CreateTaskRequest{
+		RunId: secondRun.UUID,
+		Task: &apiv2beta1.PipelineTask{
+			RunId: secondRun.UUID,
+			Name:  "second-run-task",
+			State: apiv2beta1.PipelineTask_RUNNING,
+		},
+	})
+	assert.NoError(t, err)
+
+	recorder := &recordingSubjectAccessReviewClient{}
+	clients.SubjectAccessReviewClientFake = recorder
+	manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+	runSrv = createRunServer(manager)
+
+	_, err = runSrv.UpdateTasksBulk(ctx, &apiv2beta1.UpdateTasksBulkRequest{
+		RunId: firstRun.UUID,
+		Tasks: map[string]*apiv2beta1.PipelineTask{
+			firstTask.GetTaskId(): {
+				TaskId: firstTask.GetTaskId(),
+				State:  apiv2beta1.PipelineTask_SUCCEEDED,
+			},
+			secondTask.GetTaskId(): {
+				TaskId: secondTask.GetTaskId(),
+				State:  apiv2beta1.PipelineTask_SUCCEEDED,
+			},
+		},
+	})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "does not belong to run")
+	assert.NotContains(t, err.Error(), "Failed to authorize task update")
+	assert.Len(t, recorder.reviews, 1)
+}
+
+func TestListTasks_ByRunAndParentUseGetVerb(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
 
 	clients, manager, run := initWithOneTimeRunV2(t)
 	defer clients.Close()
 
-	recorder := &recordingSubjectAccessReviewClient{}
-	clients.SubjectAccessReviewClientFake = recorder
-	manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
-	runSrv := createRunServer(manager)
-
-	_, err := runSrv.ListTasks(ctxWithUser(), &apiv2beta1.ListTasksRequest{
-		ParentFilter: &apiv2beta1.ListTasksRequest_Namespace{
-			Namespace: run.Namespace,
-		},
-		PageSize: 50,
+	taskStore := clients.TaskStore()
+	parentTask, err := taskStore.CreateTask(&model.Task{
+		Namespace: run.Namespace,
+		RunUUID:   run.UUID,
+		Name:      "parent-task",
+		State:     model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
 	})
 	assert.NoError(t, err)
-	if assert.NotNil(t, recorder.lastReview) {
-		assert.Equal(t, common.RbacResourceVerbList, recorder.lastReview.Spec.ResourceAttributes.Verb)
+
+	tests := []struct {
+		name         string
+		buildRequest func() *apiv2beta1.ListTasksRequest
+	}{
+		{
+			name: "run-id filter",
+			buildRequest: func() *apiv2beta1.ListTasksRequest {
+				return &apiv2beta1.ListTasksRequest{
+					RunId:    run.UUID,
+					PageSize: 50,
+				}
+			},
+		},
+		{
+			name: "parent-id filter",
+			buildRequest: func() *apiv2beta1.ListTasksRequest {
+				return &apiv2beta1.ListTasksRequest{
+					RunId: run.UUID,
+					ParentFilter: &apiv2beta1.ListTasksRequest_ParentId{
+						ParentId: parentTask.UUID,
+					},
+					PageSize: 50,
+				}
+			},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			recorder := &recordingSubjectAccessReviewClient{}
+			clients.SubjectAccessReviewClientFake = recorder
+			manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+			runSrv := createRunServer(manager)
+
+			_, err := runSrv.ListTasks(ctxWithUser(), testCase.buildRequest())
+			assert.NoError(t, err)
+			if assert.NotNil(t, recorder.lastReview) {
+				assert.Equal(t, common.RbacResourceVerbGet, recorder.lastReview.Spec.ResourceAttributes.Verb)
+			}
+		})
 	}
 }
 
 func TestListTasks_MutualExclusivity(t *testing.T) {
-	// Test in single-user mode first
 	viper.Set(common.MultiUserMode, "false")
 	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
 
@@ -838,6 +929,7 @@ func TestListTasks_MutualExclusivity(t *testing.T) {
 
 	// Create a parent task
 	parent, err := runSrv.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: runID,
 		Task: &apiv2beta1.PipelineTask{
 			RunId: runID,
 			Name:  "parent",
@@ -845,23 +937,33 @@ func TestListTasks_MutualExclusivity(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	// Test: No filter provided - should succeed in single-user mode (lists all tasks)
+	// Test: No run_id provided - should fail.
 	_, err = runSrv.ListTasks(context.Background(), &apiv2beta1.ListTasksRequest{
 		PageSize: 50,
 	})
-	assert.NoError(t, err)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Run ID is required")
 
 	// Test: Providing run_id succeeds
 	_, err = runSrv.ListTasks(context.Background(), &apiv2beta1.ListTasksRequest{
-		ParentFilter: &apiv2beta1.ListTasksRequest_RunId{
-			RunId: runID,
-		},
+		RunId:    runID,
 		PageSize: 50,
 	})
 	assert.NoError(t, err)
 
-	// Test: Providing parent_id succeeds
+	// Test: Providing parent_id without run_id fails
 	_, err = runSrv.ListTasks(context.Background(), &apiv2beta1.ListTasksRequest{
+		ParentFilter: &apiv2beta1.ListTasksRequest_ParentId{
+			ParentId: parent.GetTaskId(),
+		},
+		PageSize: 50,
+	})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "parent_id filter requires run_id")
+
+	// Test: Providing parent_id with run_id succeeds
+	_, err = runSrv.ListTasks(context.Background(), &apiv2beta1.ListTasksRequest{
+		RunId: runID,
 		ParentFilter: &apiv2beta1.ListTasksRequest_ParentId{
 			ParentId: parent.GetTaskId(),
 		},
@@ -869,76 +971,4 @@ func TestListTasks_MutualExclusivity(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	// Test: Providing namespace succeeds
-	_, err = runSrv.ListTasks(context.Background(), &apiv2beta1.ListTasksRequest{
-		ParentFilter: &apiv2beta1.ListTasksRequest_Namespace{
-			Namespace: "some-namespace",
-		},
-		PageSize: 50,
-	})
-	assert.NoError(t, err)
-
-	// Now test multi-user mode
-	viper.Set(common.MultiUserMode, "true")
-
-	// Test: No filter provided - should fail in multi-user mode
-	_, err = runSrv.ListTasks(ctxWithUser(), &apiv2beta1.ListTasksRequest{
-		PageSize: 50,
-	})
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Either run_id, parent_id, or namespace is required")
-}
-
-func TestListTasks_EmptyNamespaceSingleUserMode(t *testing.T) {
-	// Ensure we're in single-user mode
-	viper.Set(common.MultiUserMode, "false")
-	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
-
-	clients, manager, runID := seedOneRun(t)
-	defer clients.Close()
-
-	runSrv := createRunServer(manager)
-
-	// Create some tasks
-	task1, err := runSrv.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
-		Task: &apiv2beta1.PipelineTask{
-			RunId: runID,
-			Name:  "task-1",
-			State: apiv2beta1.PipelineTask_RUNNING,
-		},
-	})
-	assert.NoError(t, err)
-
-	task2, err := runSrv.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
-		Task: &apiv2beta1.PipelineTask{
-			RunId: runID,
-			Name:  "task-2",
-			State: apiv2beta1.PipelineTask_SUCCEEDED,
-		},
-	})
-	assert.NoError(t, err)
-
-	// Test: In single-user mode, empty namespace should list all tasks
-	resp, err := runSrv.ListTasks(context.Background(), &apiv2beta1.ListTasksRequest{
-		ParentFilter: &apiv2beta1.ListTasksRequest_Namespace{
-			Namespace: "", // Empty namespace in single-user mode
-		},
-		PageSize: 50,
-	})
-	assert.NoError(t, err)
-	assert.GreaterOrEqual(t, int(resp.GetTotalSize()), 2, "Should return at least the 2 tasks we created")
-
-	// Verify our tasks are in the response
-	taskIDs := map[string]bool{
-		task1.GetTaskId(): false,
-		task2.GetTaskId(): false,
-	}
-	for _, task := range resp.GetTasks() {
-		if _, exists := taskIDs[task.GetTaskId()]; exists {
-			taskIDs[task.GetTaskId()] = true
-		}
-	}
-	for taskID, found := range taskIDs {
-		assert.True(t, found, "Task %s should be found when filtering by empty namespace in single-user mode", taskID)
-	}
 }

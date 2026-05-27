@@ -86,6 +86,11 @@ type RunServiceListRunsParams struct {
 	     The number of runs to be listed per page. If there are more runs than this
 	number, the response message will contain a nextPageToken field you can use
 	to fetch the next page.
+	If omitted, the server uses its standard default page size.
+	When `view = FULL`, the server may enforce a lower maximum page size to
+	limit task hydration cost. By default FULL requests are capped at 100 runs,
+	and operators can override that cap with
+	`LIST_RUNS_FULL_VIEW_MAX_PAGE_SIZE`.
 
 	     Format: int32
 	*/

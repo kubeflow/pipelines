@@ -4,10 +4,10 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**batch_update_tasks**](RunServiceApi.md#batch_update_tasks) | **POST** /apis/v2beta1/tasks:batchUpdate | Updates multiple tasks in bulk.
-[**create_task**](RunServiceApi.md#create_task) | **POST** /apis/v2beta1/tasks | Creates a new task.
-[**get_task**](RunServiceApi.md#get_task) | **GET** /apis/v2beta1/tasks/{task_id} | Gets a specific task by ID.
-[**list_tasks**](RunServiceApi.md#list_tasks) | **GET** /apis/v2beta1/tasks | Lists tasks with optional filtering.
+[**batch_update_tasks**](RunServiceApi.md#batch_update_tasks) | **POST** /apis/v2beta1/runs/{run_id}/tasks:batchUpdate | Updates multiple tasks in bulk.
+[**create_task**](RunServiceApi.md#create_task) | **POST** /apis/v2beta1/runs/{run_id}/tasks | Creates a new task.
+[**get_task**](RunServiceApi.md#get_task) | **GET** /apis/v2beta1/runs/{run_id}/tasks/{task_id} | Gets a specific task by ID.
+[**list_tasks**](RunServiceApi.md#list_tasks) | **GET** /apis/v2beta1/runs/{run_id}/tasks | Lists tasks with optional filtering.
 [**run_service_archive_run**](RunServiceApi.md#run_service_archive_run) | **POST** /apis/v2beta1/runs/{run_id}:archive | Archives a run in an experiment given by run ID and experiment ID.
 [**run_service_create_run**](RunServiceApi.md#run_service_create_run) | **POST** /apis/v2beta1/runs | Creates a new run in an experiment specified by experiment ID. If experiment ID is not specified, the run is created in the default experiment.
 [**run_service_delete_run**](RunServiceApi.md#run_service_delete_run) | **DELETE** /apis/v2beta1/runs/{run_id} | Deletes a run in an experiment given by run ID and experiment ID.
@@ -16,11 +16,11 @@ Method | HTTP request | Description
 [**run_service_retry_run**](RunServiceApi.md#run_service_retry_run) | **POST** /apis/v2beta1/runs/{run_id}:retry | Re-initiates a failed or terminated run.
 [**run_service_terminate_run**](RunServiceApi.md#run_service_terminate_run) | **POST** /apis/v2beta1/runs/{run_id}:terminate | Terminates an active run.
 [**run_service_unarchive_run**](RunServiceApi.md#run_service_unarchive_run) | **POST** /apis/v2beta1/runs/{run_id}:unarchive | Restores an archived run in an experiment given by run ID and experiment ID.
-[**update_task**](RunServiceApi.md#update_task) | **PATCH** /apis/v2beta1/tasks/{task_id} | Updates an existing task.
+[**update_task**](RunServiceApi.md#update_task) | **PATCH** /apis/v2beta1/runs/{run_id}/tasks/{task_id} | Updates an existing task.
 
 
 # **batch_update_tasks**
-> V2beta1UpdateTasksBulkResponse batch_update_tasks(body)
+> V2beta1UpdateTasksBulkResponse batch_update_tasks(run_id, body)
 
 Updates multiple tasks in bulk.
 
@@ -58,11 +58,12 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RunServiceApi(api_client)
-    body = kfp_server_api.V2beta1UpdateTasksBulkRequest() # V2beta1UpdateTasksBulkRequest | 
+    run_id = 'run_id_example' # str | Required. Parent run ID. This is typically provided by the URL path.
+body = kfp_server_api.RunServiceUpdateTasksBulkBody() # RunServiceUpdateTasksBulkBody | 
 
     try:
         # Updates multiple tasks in bulk.
-        api_response = api_instance.batch_update_tasks(body)
+        api_response = api_instance.batch_update_tasks(run_id, body)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling RunServiceApi->batch_update_tasks: %s\n" % e)
@@ -72,7 +73,8 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **body** | [**V2beta1UpdateTasksBulkRequest**](V2beta1UpdateTasksBulkRequest.md)|  | 
+ **run_id** | **str**| Required. Parent run ID. This is typically provided by the URL path. | 
+ **body** | [**RunServiceUpdateTasksBulkBody**](RunServiceUpdateTasksBulkBody.md)|  | 
 
 ### Return type
 
@@ -96,7 +98,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **create_task**
-> V2beta1PipelineTask create_task(task)
+> V2beta1PipelineTask create_task(run_id, task)
 
 Creates a new task.
 
@@ -134,11 +136,12 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RunServiceApi(api_client)
-    task = kfp_server_api.V2beta1PipelineTask() # V2beta1PipelineTask | 
+    run_id = 'run_id_example' # str | Required. Parent run ID. This is typically provided by the URL path.
+task = kfp_server_api.V2beta1PipelineTask() # V2beta1PipelineTask | 
 
     try:
         # Creates a new task.
-        api_response = api_instance.create_task(task)
+        api_response = api_instance.create_task(run_id, task)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling RunServiceApi->create_task: %s\n" % e)
@@ -148,6 +151,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
+ **run_id** | **str**| Required. Parent run ID. This is typically provided by the URL path. | 
  **task** | [**V2beta1PipelineTask**](V2beta1PipelineTask.md)|  | 
 
 ### Return type
@@ -172,7 +176,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **get_task**
-> V2beta1PipelineTask get_task(task_id)
+> V2beta1PipelineTask get_task(run_id, task_id)
 
 Gets a specific task by ID.
 
@@ -210,11 +214,12 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RunServiceApi(api_client)
-    task_id = 'task_id_example' # str | 
+    run_id = 'run_id_example' # str | Required. Parent run ID. This is typically provided by the URL path.
+task_id = 'task_id_example' # str | 
 
     try:
         # Gets a specific task by ID.
-        api_response = api_instance.get_task(task_id)
+        api_response = api_instance.get_task(run_id, task_id)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling RunServiceApi->get_task: %s\n" % e)
@@ -224,6 +229,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
+ **run_id** | **str**| Required. Parent run ID. This is typically provided by the URL path. | 
  **task_id** | **str**|  | 
 
 ### Return type
@@ -248,7 +254,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **list_tasks**
-> V2beta1ListTasksResponse list_tasks(parent_id=parent_id, run_id=run_id, namespace=namespace, page_size=page_size, page_token=page_token, filter=filter, order_by=order_by)
+> V2beta1ListTasksResponse list_tasks(run_id, parent_id=parent_id, page_size=page_size, page_token=page_token, filter=filter, order_by=order_by)
 
 Lists tasks with optional filtering.
 
@@ -286,9 +292,8 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RunServiceApi(api_client)
-    parent_id = 'parent_id_example' # str | List all tasks with this parent task. (optional)
-run_id = 'run_id_example' # str | List all tasks for this run. (optional)
-namespace = 'namespace_example' # str | List all tasks in this namespace. The primary use case for this filter is to detect cache hits. (optional)
+    run_id = 'run_id_example' # str | Required. Parent run ID. This is typically provided by the URL path.
+parent_id = 'parent_id_example' # str | List all tasks with this parent task. (optional)
 page_size = 56 # int |  (optional)
 page_token = 'page_token_example' # str |  (optional)
 filter = 'filter_example' # str |  (optional)
@@ -296,7 +301,7 @@ order_by = 'order_by_example' # str |  (optional)
 
     try:
         # Lists tasks with optional filtering.
-        api_response = api_instance.list_tasks(parent_id=parent_id, run_id=run_id, namespace=namespace, page_size=page_size, page_token=page_token, filter=filter, order_by=order_by)
+        api_response = api_instance.list_tasks(run_id, parent_id=parent_id, page_size=page_size, page_token=page_token, filter=filter, order_by=order_by)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling RunServiceApi->list_tasks: %s\n" % e)
@@ -306,9 +311,8 @@ order_by = 'order_by_example' # str |  (optional)
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
+ **run_id** | **str**| Required. Parent run ID. This is typically provided by the URL path. | 
  **parent_id** | **str**| List all tasks with this parent task. | [optional] 
- **run_id** | **str**| List all tasks for this run. | [optional] 
- **namespace** | **str**| List all tasks in this namespace. The primary use case for this filter is to detect cache hits. | [optional] 
  **page_size** | **int**|  | [optional] 
  **page_token** | **str**|  | [optional] 
  **filter** | **str**|  | [optional] 
@@ -691,7 +695,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     namespace = 'namespace_example' # str | Optional input field. Filters based on the namespace. (optional)
 experiment_id = 'experiment_id_example' # str | The ID of the parent experiment. If empty, response includes runs across all experiments. (optional)
 page_token = 'page_token_example' # str | A page token to request the next page of results. The token is acquired from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page. (optional)
-page_size = 56 # int | The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page. (optional)
+page_size = 56 # int | The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page. If omitted, the server uses its standard default page size. When `view = FULL`, the server may enforce a lower maximum page size to limit task hydration cost. By default FULL requests are capped at 100 runs, and operators can override that cap with `LIST_RUNS_FULL_VIEW_MAX_PAGE_SIZE`. (optional)
 sort_by = 'sort_by_example' # str | Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\" (Example, \"name asc\" or \"id desc\"). Ascending by default. (optional)
 filter = 'filter_example' # str | A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)). (optional)
 view = 'DEFAULT' # str | Optional view mode. This field can be used to adjust how detailed the Run object that is returned will be.   - DEFAULT: By default `tasks` field is omitted. This provides a faster and leaner run object.  - FULL: This view mode displays all the tasks for this run with all its fields populated. (optional) (default to 'DEFAULT')
@@ -711,7 +715,7 @@ Name | Type | Description  | Notes
  **namespace** | **str**| Optional input field. Filters based on the namespace. | [optional] 
  **experiment_id** | **str**| The ID of the parent experiment. If empty, response includes runs across all experiments. | [optional] 
  **page_token** | **str**| A page token to request the next page of results. The token is acquired from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page. | [optional] 
- **page_size** | **int**| The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page. | [optional] 
+ **page_size** | **int**| The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page. If omitted, the server uses its standard default page size. When &#x60;view &#x3D; FULL&#x60;, the server may enforce a lower maximum page size to limit task hydration cost. By default FULL requests are capped at 100 runs, and operators can override that cap with &#x60;LIST_RUNS_FULL_VIEW_MAX_PAGE_SIZE&#x60;. | [optional] 
  **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; (Example, \&quot;name asc\&quot; or \&quot;id desc\&quot;). Ascending by default. | [optional] 
  **filter** | **str**| A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)). | [optional] 
  **view** | **str**| Optional view mode. This field can be used to adjust how detailed the Run object that is returned will be.   - DEFAULT: By default &#x60;tasks&#x60; field is omitted. This provides a faster and leaner run object.  - FULL: This view mode displays all the tasks for this run with all its fields populated. | [optional] [default to &#39;DEFAULT&#39;]
@@ -972,7 +976,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **update_task**
-> V2beta1PipelineTask update_task(task_id, task)
+> V2beta1PipelineTask update_task(run_id, task_id, task)
 
 Updates an existing task.
 
@@ -1010,12 +1014,13 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RunServiceApi(api_client)
-    task_id = 'task_id_example' # str | 
+    run_id = 'run_id_example' # str | Required. Parent run ID. This is typically provided by the URL path.
+task_id = 'task_id_example' # str | 
 task = kfp_server_api.V2beta1PipelineTask() # V2beta1PipelineTask | 
 
     try:
         # Updates an existing task.
-        api_response = api_instance.update_task(task_id, task)
+        api_response = api_instance.update_task(run_id, task_id, task)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling RunServiceApi->update_task: %s\n" % e)
@@ -1025,6 +1030,7 @@ task = kfp_server_api.V2beta1PipelineTask() # V2beta1PipelineTask |
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
+ **run_id** | **str**| Required. Parent run ID. This is typically provided by the URL path. | 
  **task_id** | **str**|  | 
  **task** | [**V2beta1PipelineTask**](V2beta1PipelineTask.md)|  | 
 

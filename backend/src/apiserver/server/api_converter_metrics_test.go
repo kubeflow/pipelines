@@ -287,3 +287,67 @@ func TestToApiTask_NonMetrics(t *testing.T) {
 		assert.Equal(t, 1, len(ioArtifact.Artifacts), "Each IOArtifact should have one artifact")
 	}
 }
+
+func TestToApiTask_ArtifactsRemainEmptyWithoutHydration(t *testing.T) {
+	modelTask := &model.Task{
+		UUID:             "task-123",
+		RunUUID:          "run-456",
+		Name:             "task-with-parameters",
+		Namespace:        "ns1",
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+	}
+
+	apiTask, err := toAPITask(modelTask, nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, apiTask)
+	assert.Empty(t, apiTask.GetInputs().GetArtifacts())
+	assert.Empty(t, apiTask.GetOutputs().GetArtifacts())
+}
+
+func TestToApiTask_ArtifactGroupsAreSortedDeterministically(t *testing.T) {
+	datasetURI := "s3://bucket/dataset"
+	metricValue := 0.95
+
+	modelTask := &model.Task{
+		UUID:      "task-123",
+		RunUUID:   "run-456",
+		Name:      "ordered-task",
+		Namespace: "ns1",
+		OutputArtifactsHydrated: []model.TaskArtifactHydrated{
+			{
+				Key:  "z-metrics",
+				Type: apiv2beta1.IOType_OUTPUT,
+				Value: &model.Artifact{
+					UUID:        "artifact-2",
+					Name:        "metric",
+					Type:        model.ArtifactType(apiv2beta1.Artifact_Metric),
+					NumberValue: &metricValue,
+				},
+				Producer: &model.IOProducer{
+					TaskName: "producer-b",
+				},
+			},
+			{
+				Key:  "a-dataset",
+				Type: apiv2beta1.IOType_OUTPUT,
+				Value: &model.Artifact{
+					UUID: "artifact-1",
+					Name: "dataset",
+					Type: model.ArtifactType(apiv2beta1.Artifact_Dataset),
+					URI:  &datasetURI,
+				},
+				Producer: &model.IOProducer{
+					TaskName: "producer-a",
+				},
+			},
+		},
+	}
+
+	apiTask, err := toAPITask(modelTask, nil)
+	assert.NoError(t, err)
+	if assert.Len(t, apiTask.GetOutputs().GetArtifacts(), 2) {
+		assert.Equal(t, "a-dataset", apiTask.GetOutputs().GetArtifacts()[0].GetArtifactKey())
+		assert.Equal(t, "z-metrics", apiTask.GetOutputs().GetArtifacts()[1].GetArtifactKey())
+	}
+}

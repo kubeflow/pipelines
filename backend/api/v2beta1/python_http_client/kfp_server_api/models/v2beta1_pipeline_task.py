@@ -47,7 +47,7 @@ class V2beta1PipelineTask(object):
         'type': 'PipelineTaskTaskType',
         'type_attributes': 'PipelineTaskTypeAttributes',
         'parent_task_id': 'str',
-        'child_tasks': 'list[V2beta1PipelineTaskChildTask]',
+        'child_tasks': 'list[PipelineTaskChildTask]',
         'inputs': 'PipelineTaskInputOutputs',
         'outputs': 'PipelineTaskInputOutputs',
         'scope_path': 'str'
@@ -452,7 +452,7 @@ class V2beta1PipelineTask(object):
         Sequence of dependent tasks.  # noqa: E501
 
         :return: The child_tasks of this V2beta1PipelineTask.  # noqa: E501
-        :rtype: list[V2beta1PipelineTaskChildTask]
+        :rtype: list[PipelineTaskChildTask]
         """
         return self._child_tasks
 
@@ -463,7 +463,7 @@ class V2beta1PipelineTask(object):
         Sequence of dependent tasks.  # noqa: E501
 
         :param child_tasks: The child_tasks of this V2beta1PipelineTask.  # noqa: E501
-        :type child_tasks: list[V2beta1PipelineTaskChildTask]
+        :type child_tasks: list[PipelineTaskChildTask]
         """
 
         self._child_tasks = child_tasks

@@ -14,7 +14,9 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// PipelineTaskTaskType  - ROOT: Root task is the top ancestor task to all tasks in the pipeline run
+// PipelineTaskTaskType  - TASK_TYPE_UNSPECIFIED: Default value. This value is not used.
+//   - ROOT: Root task is the top ancestor task to all tasks in the pipeline run
+//
 // It is the only task with no parent task in a Pipeline Run.
 //   - RUNTIME: All child tasks in the Run DAG are Runtime tasks. With the exception
 //
@@ -46,6 +48,9 @@ func (m PipelineTaskTaskType) Pointer() *PipelineTaskTaskType {
 
 const (
 
+	// PipelineTaskTaskTypeTASKTYPEUNSPECIFIED captures enum value "TASK_TYPE_UNSPECIFIED"
+	PipelineTaskTaskTypeTASKTYPEUNSPECIFIED PipelineTaskTaskType = "TASK_TYPE_UNSPECIFIED"
+
 	// PipelineTaskTaskTypeROOT captures enum value "ROOT"
 	PipelineTaskTaskTypeROOT PipelineTaskTaskType = "ROOT"
 
@@ -76,7 +81,7 @@ var pipelineTaskTaskTypeEnum []interface{}
 
 func init() {
 	var res []PipelineTaskTaskType
-	if err := json.Unmarshal([]byte(`["ROOT","RUNTIME","CONDITION_BRANCH","CONDITION","LOOP","EXIT_HANDLER","IMPORTER","DAG"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["TASK_TYPE_UNSPECIFIED","ROOT","RUNTIME","CONDITION_BRANCH","CONDITION","LOOP","EXIT_HANDLER","IMPORTER","DAG"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

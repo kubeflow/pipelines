@@ -63,6 +63,12 @@ CreateTaskParams contains all the parameters to send to the API endpoint
 */
 type CreateTaskParams struct {
 
+	/* RunID.
+
+	   Required. Parent run ID. This is typically provided by the URL path.
+	*/
+	RunID string
+
 	// Task.
 	Task *run_model.V2beta1PipelineTask
 
@@ -119,6 +125,17 @@ func (o *CreateTaskParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithRunID adds the runID to the create task params
+func (o *CreateTaskParams) WithRunID(runID string) *CreateTaskParams {
+	o.SetRunID(runID)
+	return o
+}
+
+// SetRunID adds the runId to the create task params
+func (o *CreateTaskParams) SetRunID(runID string) {
+	o.RunID = runID
+}
+
 // WithTask adds the task to the create task params
 func (o *CreateTaskParams) WithTask(task *run_model.V2beta1PipelineTask) *CreateTaskParams {
 	o.SetTask(task)
@@ -137,6 +154,11 @@ func (o *CreateTaskParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 		return err
 	}
 	var res []error
+
+	// path param run_id
+	if err := r.SetPathParam("run_id", o.RunID); err != nil {
+		return err
+	}
 	if o.Task != nil {
 		if err := r.SetBodyParam(o.Task); err != nil {
 			return err
