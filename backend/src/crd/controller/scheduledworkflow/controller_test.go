@@ -431,7 +431,7 @@ func (f *fakeExecutionInformer) HasSynced() func() bool {
 }
 
 func (f *fakeExecutionInformer) Get(namespace string, name string) (commonutil.ExecutionSpec, bool, error) {
-	return nil, false, errors.New("not found")
+	return nil, true, errors.New("not found")
 }
 
 func (f *fakeExecutionInformer) List(labels *labels.Selector) (commonutil.ExecutionSpecList, error) {
