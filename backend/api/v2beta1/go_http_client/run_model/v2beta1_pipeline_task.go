@@ -24,7 +24,7 @@ type V2beta1PipelineTask struct {
 	CacheFingerprint string `json:"cache_fingerprint,omitempty"`
 
 	// Sequence of dependent tasks.
-	ChildTasks []*V2beta1PipelineTaskChildTask `json:"child_tasks"`
+	ChildTasks []*PipelineTaskChildTask `json:"child_tasks"`
 
 	// Creation time of a task.
 	// Format: date-time

@@ -28,6 +28,7 @@ class PipelineTaskTaskType(object):
     """
     allowed enum values
     """
+    TASK_TYPE_UNSPECIFIED = "TASK_TYPE_UNSPECIFIED"
     ROOT = "ROOT"
     RUNTIME = "RUNTIME"
     CONDITION_BRANCH = "CONDITION_BRANCH"
@@ -37,7 +38,7 @@ class PipelineTaskTaskType(object):
     IMPORTER = "IMPORTER"
     DAG = "DAG"
 
-    allowable_values = [ROOT, RUNTIME, CONDITION_BRANCH, CONDITION, LOOP, EXIT_HANDLER, IMPORTER, DAG]  # noqa: E501
+    allowable_values = [TASK_TYPE_UNSPECIFIED, ROOT, RUNTIME, CONDITION_BRANCH, CONDITION, LOOP, EXIT_HANDLER, IMPORTER, DAG]  # noqa: E501
 
     """
     Attributes:

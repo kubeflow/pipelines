@@ -54,9 +54,12 @@ func (s *ArtifactServer) CreateArtifact(ctx context.Context, request *apiv2beta1
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
-	task, err := s.validateArtifactOwnership(ctx, request.GetRunId(), request.GetTaskId(), namespace)
+	task, err := s.validateArtifactOwnershipNoAuth(request.GetRunId(), request.GetTaskId(), namespace)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to validate artifact ownership")
+	}
+	if err := s.canAccessRun(ctx, task.RunUUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUpdate}); err != nil {
+		return nil, util.Wrap(err, "Failed to authorize access to the task run")
 	}
 
 	modelArtifact, err := toModelArtifact(request.GetArtifact())
@@ -104,30 +107,63 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 		return nil, util.NewInvalidInputError("CreateArtifactsBulkRequest must contain at least one artifact")
 	}
 
-	modelArtifacts := make([]*model.Artifact, 0, len(request.GetArtifacts()))
-	modelArtifactTasks := make([]*model.ArtifactTask, 0, len(request.GetArtifacts()))
-
-	// Validate and create each artifact
+	bulkNamespace := ""
 	for i, artifactReq := range request.GetArtifacts() {
 		err := s.validateCreateArtifactRequest(artifactReq)
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to create artifact %d due to validation error", i)
 		}
 
+		namespace := s.resourceManager.ReplaceNamespace(artifactReq.GetArtifact().GetNamespace())
+		if bulkNamespace == "" {
+			bulkNamespace = namespace
+			continue
+		}
+		if namespace != bulkNamespace {
+			return nil, util.NewInvalidInputError(
+				"CreateArtifactsBulkRequest must use a single namespace: expected %s, got %s",
+				bulkNamespace,
+				namespace,
+			)
+		}
+	}
+
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: bulkNamespace,
+		Verb:      common.RbacResourceVerbCreate,
+	}
+	if err := s.canAccessArtifacts(ctx, "", resourceAttributes); err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+
+	modelArtifacts := make([]*model.Artifact, 0, len(request.GetArtifacts()))
+	modelArtifactTasks := make([]*model.ArtifactTask, 0, len(request.GetArtifacts()))
+	authorizedRunIDs := make(map[string]struct{})
+
+	authorizeRunUpdate := func(runID string) error {
+		if runID == "" {
+			return nil
+		}
+		if _, ok := authorizedRunIDs[runID]; ok {
+			return nil
+		}
+		if err := s.canAccessRun(ctx, runID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUpdate}); err != nil {
+			return util.Wrap(err, "Failed to authorize access to the task run")
+		}
+		authorizedRunIDs[runID] = struct{}{}
+		return nil
+	}
+
+	// Validate and create each artifact
+	for i, artifactReq := range request.GetArtifacts() {
 		// Extract namespace for authorization
 		namespace := s.resourceManager.ReplaceNamespace(artifactReq.GetArtifact().GetNamespace())
 
-		// Check authorization - artifacts are accessible if user can access runs in the namespace
-		resourceAttributes := &authorizationv1.ResourceAttributes{
-			Namespace: namespace,
-			Verb:      common.RbacResourceVerbCreate,
-		}
-		if err = s.canAccessArtifacts(ctx, "", resourceAttributes); err != nil {
-			return nil, util.Wrapf(err, "Failed to authorize artifact %d creation", i)
-		}
-
-		task, err := s.validateArtifactOwnership(ctx, artifactReq.GetRunId(), artifactReq.GetTaskId(), namespace)
+		task, err := s.validateArtifactOwnershipNoAuth(artifactReq.GetRunId(), artifactReq.GetTaskId(), namespace)
 		if err != nil {
+			return nil, util.Wrapf(err, "Failed to validate ownership for artifact %d", i)
+		}
+		if err := authorizeRunUpdate(task.RunUUID); err != nil {
 			return nil, util.Wrapf(err, "Failed to validate ownership for artifact %d", i)
 		}
 
@@ -184,16 +220,13 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 	return response, nil
 }
 
-func (s *ArtifactServer) validateArtifactOwnership(ctx context.Context, runID, taskID, artifactNamespace string) (*model.Task, error) {
+func (s *ArtifactServer) validateArtifactOwnershipNoAuth(runID, taskID, artifactNamespace string) (*model.Task, error) {
 	task, err := s.resourceManager.GetTask(taskID)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to get task")
 	}
 	if task.RunUUID != runID {
 		return nil, util.NewInvalidInputError("Task ID does not belong to this Run ID")
-	}
-	if err := s.canAccessRun(ctx, task.RunUUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUpdate}); err != nil {
-		return nil, util.Wrap(err, "Failed to authorize access to the task run")
 	}
 	if !common.IsMultiUserMode() {
 		return task, nil
@@ -396,6 +429,8 @@ func (s *ArtifactServer) CreateArtifactTasksBulk(ctx context.Context, request *a
 
 	// Validate all artifact tasks and check authorization
 	modelArtifactTasks := make([]*model.ArtifactTask, 0, len(request.GetArtifactTasks()))
+	bulkRunID := ""
+	bulkNamespace := ""
 	for _, apiAT := range request.GetArtifactTasks() {
 		if apiAT.GetArtifactId() == "" {
 			return nil, util.NewInvalidInputError("artifact_task.artifact_id is required")
@@ -419,19 +454,23 @@ func (s *ArtifactServer) CreateArtifactTasksBulk(ctx context.Context, request *a
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to fetch artifact for CreateArtifactTasksBulk")
 		}
+		if task.RunUUID != apiAT.GetRunId() {
+			return nil, util.NewInvalidInputError("artifact_task.run_id must match the task's run_id")
+		}
+		if bulkRunID == "" {
+			bulkRunID = task.RunUUID
+		} else if task.RunUUID != bulkRunID {
+			return nil, util.NewInvalidInputError("CreateArtifactTasksBulkRequest must use a single run_id")
+		}
 
 		// Optional: enforce same-namespace linkage
 		if common.IsMultiUserMode() && task.Namespace != "" && artifact.Namespace != "" && task.Namespace != artifact.Namespace {
 			return nil, util.NewInvalidInputError("artifact and task must be in the same namespace: artifact=%s task=%s", artifact.Namespace, task.Namespace)
 		}
-
-		// Authorize create in the task's namespace
-		resourceAttributes := &authorizationv1.ResourceAttributes{
-			Namespace: task.Namespace,
-			Verb:      common.RbacResourceVerbCreate,
-		}
-		if err = s.canAccessArtifacts(ctx, "", resourceAttributes); err != nil {
-			return nil, util.Wrap(err, "Failed to authorize the request")
+		if bulkNamespace == "" {
+			bulkNamespace = task.Namespace
+		} else if task.Namespace != bulkNamespace {
+			return nil, util.NewInvalidInputError("CreateArtifactTasksBulkRequest must use a single namespace")
 		}
 
 		modelAT, err := toModelArtifactTask(apiAT)
@@ -440,6 +479,14 @@ func (s *ArtifactServer) CreateArtifactTasksBulk(ctx context.Context, request *a
 		}
 		modelAT.RunUUID = task.RunUUID
 		modelArtifactTasks = append(modelArtifactTasks, modelAT)
+	}
+
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: bulkNamespace,
+		Verb:      common.RbacResourceVerbCreate,
+	}
+	if err := s.canAccessArtifacts(ctx, "", resourceAttributes); err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
 	// Create all artifact tasks in bulk
@@ -531,12 +578,47 @@ func (s *ArtifactServer) canAccessArtifacts(ctx context.Context, artifactID stri
 // TODO(HumairAK): Make this more efficient by doing bulk calls to the database,
 // and aggregating namespaces down to unique namespace calls
 func (s *ArtifactServer) authorizeArtifactTaskAccess(ctx context.Context, taskIDs, runIDs, artifactIDs []string) error {
-	// Check authorization for run IDs (direct access)
-	for _, runID := range runIDs {
+	authorizedRunIDs := make(map[string]struct{})
+	authorizedNamespaces := make(map[string]struct{})
+
+	authorizeRunID := func(runID string) error {
+		if runID == "" {
+			return nil
+		}
+		if _, ok := authorizedRunIDs[runID]; ok {
+			return nil
+		}
 		resourceAttributes := &authorizationv1.ResourceAttributes{
 			Verb: common.RbacResourceVerbGet,
 		}
 		if err := s.canAccessRun(ctx, runID, resourceAttributes); err != nil {
+			return err
+		}
+		authorizedRunIDs[runID] = struct{}{}
+		return nil
+	}
+
+	authorizeNamespace := func(namespace string) error {
+		if namespace == "" {
+			return nil
+		}
+		if _, ok := authorizedNamespaces[namespace]; ok {
+			return nil
+		}
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      common.RbacResourceVerbGet,
+		}
+		if err := s.canAccessRun(ctx, "", resourceAttributes); err != nil {
+			return err
+		}
+		authorizedNamespaces[namespace] = struct{}{}
+		return nil
+	}
+
+	// Check authorization for run IDs (direct access)
+	for _, runID := range runIDs {
+		if err := authorizeRunID(runID); err != nil {
 			return err
 		}
 	}
@@ -547,11 +629,7 @@ func (s *ArtifactServer) authorizeArtifactTaskAccess(ctx context.Context, taskID
 		if err != nil {
 			return util.Wrap(err, "Failed to get task for authorization")
 		}
-		resourceAttributes := &authorizationv1.ResourceAttributes{
-			Namespace: task.Namespace,
-			Verb:      common.RbacResourceVerbGet,
-		}
-		if err = s.canAccessRun(ctx, "", resourceAttributes); err != nil {
+		if err = authorizeRunID(task.RunUUID); err != nil {
 			return err
 		}
 	}
@@ -562,11 +640,7 @@ func (s *ArtifactServer) authorizeArtifactTaskAccess(ctx context.Context, taskID
 		if err != nil {
 			return util.Wrap(err, "Failed to get artifact for authorization")
 		}
-		resourceAttributes := &authorizationv1.ResourceAttributes{
-			Namespace: artifact.Namespace,
-			Verb:      common.RbacResourceVerbGet,
-		}
-		if err = s.canAccessRun(ctx, "", resourceAttributes); err != nil {
+		if err = authorizeNamespace(artifact.Namespace); err != nil {
 			return err
 		}
 	}

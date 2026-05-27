@@ -398,7 +398,7 @@ func (a *Client) BatchUpdateTasks(params *BatchUpdateTasksParams, authInfo runti
 	op := &runtime.ClientOperation{
 		ID:                 "batch_update_tasks",
 		Method:             "POST",
-		PathPattern:        "/apis/v2beta1/tasks:batchUpdate",
+		PathPattern:        "/apis/v2beta1/runs/{run_id}/tasks:batchUpdate",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -436,7 +436,7 @@ func (a *Client) CreateTask(params *CreateTaskParams, authInfo runtime.ClientAut
 	op := &runtime.ClientOperation{
 		ID:                 "create_task",
 		Method:             "POST",
-		PathPattern:        "/apis/v2beta1/tasks",
+		PathPattern:        "/apis/v2beta1/runs/{run_id}/tasks",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -474,7 +474,7 @@ func (a *Client) GetTask(params *GetTaskParams, authInfo runtime.ClientAuthInfoW
 	op := &runtime.ClientOperation{
 		ID:                 "get_task",
 		Method:             "GET",
-		PathPattern:        "/apis/v2beta1/tasks/{task_id}",
+		PathPattern:        "/apis/v2beta1/runs/{run_id}/tasks/{task_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -512,7 +512,7 @@ func (a *Client) ListTasks(params *ListTasksParams, authInfo runtime.ClientAuthI
 	op := &runtime.ClientOperation{
 		ID:                 "list_tasks",
 		Method:             "GET",
-		PathPattern:        "/apis/v2beta1/tasks",
+		PathPattern:        "/apis/v2beta1/runs/{run_id}/tasks",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -550,7 +550,7 @@ func (a *Client) UpdateTask(params *UpdateTaskParams, authInfo runtime.ClientAut
 	op := &runtime.ClientOperation{
 		ID:                 "update_task",
 		Method:             "PATCH",
-		PathPattern:        "/apis/v2beta1/tasks/{task_id}",
+		PathPattern:        "/apis/v2beta1/runs/{run_id}/tasks/{task_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},

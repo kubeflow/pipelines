@@ -28,6 +28,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	authzv1 "k8s.io/api/authorization/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -51,6 +53,19 @@ func ctxWithUser() context.Context {
 
 func strPTR(s string) *string {
 	return &s
+}
+
+type countingSubjectAccessReviewClient struct {
+	count int
+}
+
+func (c *countingSubjectAccessReviewClient) Create(_ context.Context, _ *authzv1.SubjectAccessReview, _ metav1.CreateOptions) (*authzv1.SubjectAccessReview, error) {
+	c.count++
+	return &authzv1.SubjectAccessReview{
+		Status: authzv1.SubjectAccessReviewStatus{
+			Allowed: true,
+		},
+	}, nil
 }
 
 func TestArtifactServer_CreateArtifact_MultiUserCreateAndGet_Succeeds(t *testing.T) {
@@ -714,6 +729,38 @@ func TestArtifactServer_CreateArtifactTasksBulk_RejectsRunIDMismatch(t *testing.
 	assert.Contains(t, err.Error(), "run_id must match")
 }
 
+func TestArtifactServer_CreateArtifactTasksBulk_RejectsMixedRuns(t *testing.T) {
+	s, clientManager, t1, t2, art1, art2 := seedArtifactTasks(t)
+	defer clientManager.Close()
+
+	_, err := s.CreateArtifactTasksBulk(ctxWithUser(), &apiv2beta1.CreateArtifactTasksBulkRequest{
+		ArtifactTasks: []*apiv2beta1.ArtifactTask{
+			{
+				ArtifactId: art1.UUID,
+				TaskId:     t1.UUID,
+				RunId:      serverRunID1,
+				Type:       apiv2beta1.IOType_COMPONENT_INPUT,
+				Producer: &apiv2beta1.IOProducer{
+					TaskName: "t1",
+				},
+				Key: "same-request-run-1",
+			},
+			{
+				ArtifactId: art2.UUID,
+				TaskId:     t2.UUID,
+				RunId:      serverRunID2,
+				Type:       apiv2beta1.IOType_COMPONENT_INPUT,
+				Producer: &apiv2beta1.IOProducer{
+					TaskName: "t2",
+				},
+				Key: "same-request-run-2",
+			},
+		},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "must use a single run_id")
+}
+
 func TestArtifactServer_CreateArtifactTasksBulk_EmptyRequest(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
@@ -892,6 +939,75 @@ func TestArtifactServer_CreateArtifactsBulk_Success(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.GreaterOrEqual(t, int(listResp.GetTotalSize()), 3)
+}
+
+func TestArtifactServer_CreateArtifactsBulk_DeduplicatesRunAuthorization(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	clientManager := resource.NewFakeClientManagerOrFatalV2()
+	recorder := &countingSubjectAccessReviewClient{}
+	clientManager.SubjectAccessReviewClientFake = recorder
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	s := createArtifactServer(resourceManager)
+
+	_, err := clientManager.RunStore().CreateRun(&model.Run{
+		UUID:         runid1,
+		K8SName:      "bulk-run-auth",
+		DisplayName:  "bulk-run-auth",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			State:            model.RuntimeStateRunning,
+		},
+	})
+	assert.NoError(t, err)
+
+	task1, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   runid1,
+		Name:      "task1",
+		State:     1,
+	})
+	assert.NoError(t, err)
+	task2, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   runid1,
+		Name:      "task2",
+		State:     1,
+	})
+	assert.NoError(t, err)
+
+	req := &apiv2beta1.CreateArtifactsBulkRequest{
+		Artifacts: []*apiv2beta1.CreateArtifactRequest{
+			{
+				RunId:       runid1,
+				TaskId:      task1.UUID,
+				ProducerKey: "output1",
+				Artifact: &apiv2beta1.Artifact{
+					Namespace: "ns1",
+					Type:      apiv2beta1.Artifact_Model,
+					Name:      "model1",
+				},
+			},
+			{
+				RunId:       runid1,
+				TaskId:      task2.UUID,
+				ProducerKey: "output2",
+				Artifact: &apiv2beta1.Artifact{
+					Namespace: "ns1",
+					Type:      apiv2beta1.Artifact_Dataset,
+					Name:      "dataset1",
+				},
+			},
+		},
+	}
+
+	_, err = s.CreateArtifactsBulk(ctxWithUser(), req)
+	assert.NoError(t, err)
+	// One SAR for artifact create on the namespace, one SAR for run update authorization.
+	assert.Equal(t, 2, recorder.count)
 }
 
 func TestArtifactServer_CreateArtifactsBulk_WithIterationIndex(t *testing.T) {
@@ -1107,4 +1223,61 @@ func TestArtifactServer_CreateArtifactsBulk_ValidationErrors(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "does not belong to this Run ID")
+}
+
+func TestArtifactServer_CreateArtifactsBulk_RejectsMixedNamespaces(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	clientManager := resource.NewFakeClientManagerOrFatalV2()
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	s := createArtifactServer(resourceManager)
+
+	_, err := clientManager.RunStore().CreateRun(&model.Run{
+		UUID:         runid1,
+		K8SName:      "mixed-ns-run",
+		DisplayName:  "mixed-ns-run",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			State:            model.RuntimeStateRunning,
+		},
+	})
+	assert.NoError(t, err)
+
+	task, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   runid1,
+		Name:      "mixed-ns-task",
+		State:     1,
+	})
+	assert.NoError(t, err)
+
+	_, err = s.CreateArtifactsBulk(ctxWithUser(), &apiv2beta1.CreateArtifactsBulkRequest{
+		Artifacts: []*apiv2beta1.CreateArtifactRequest{
+			{
+				RunId:       runid1,
+				TaskId:      task.UUID,
+				ProducerKey: "output1",
+				Artifact: &apiv2beta1.Artifact{
+					Namespace: "ns1",
+					Type:      apiv2beta1.Artifact_Model,
+					Name:      "model1",
+				},
+			},
+			{
+				RunId:       runid1,
+				TaskId:      task.UUID,
+				ProducerKey: "output2",
+				Artifact: &apiv2beta1.Artifact{
+					Namespace: "ns2",
+					Type:      apiv2beta1.Artifact_Model,
+					Name:      "model2",
+				},
+			},
+		},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "must use a single namespace")
 }
