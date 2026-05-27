@@ -727,8 +727,8 @@ func isV1PipelineBlocked(namespace string) bool {
 	return true
 }
 
-// shouldEnforceV1Block checks if the V1 pipeline block should be enforced for the given ScheduledWorkflow.
-// v2 ScheduledWorkflows can also have embedded workflow spec, but should not be blocked with this feature flag.
+// shouldEnforceV1Block Returns true allowing V2 workflows when key V2 component or pipeline labels
+// are present on the pod metadata. Returns false if the workflow is v1.
 func shouldEnforceV1Block(swf *util.ScheduledWorkflow) bool {
 	if swf == nil || !isV1PipelineBlocked(swf.Namespace) {
 		return false
@@ -746,14 +746,14 @@ func shouldEnforceV1Block(swf *util.ScheduledWorkflow) bool {
 		var err error
 		raw, err = json.Marshal(v)
 		if err != nil {
-			log.WithError(err).Warnf("Failed to marshal SWF spec to JSON: %v", err)
+			log.Warnf("Failed to marshal SWF spec to JSON: %v", err)
 			return true
 		}
 	}
 
 	var wf workflowapi.Workflow
 	if err := json.Unmarshal(raw, &wf); err != nil {
-		log.WithError(err).Warnf("Failed to unmarshal SWF spec to JSON: %v", err)
+		log.Warnf("Failed to unmarshal SWF spec to JSON: %v", err)
 		return true
 	}
 
@@ -769,7 +769,7 @@ func shouldEnforceV1Block(swf *util.ScheduledWorkflow) bool {
 	// the top-level Workflow wrapper.
 	var workflowSpec workflowapi.WorkflowSpec
 	if err := json.Unmarshal(raw, &workflowSpec); err != nil {
-		log.WithError(err).Warnf("Failed to unmarshal SWF spec to JSON: %v", err)
+		log.Warnf("Failed to unmarshal SWF spec to JSON: %v", err)
 		return true
 	}
 

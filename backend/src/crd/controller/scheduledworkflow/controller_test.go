@@ -124,7 +124,7 @@ func TestShouldEnforceV1Block(t *testing.T) {
 	v2WorkflowSpec := map[string]interface{}{
 		"podMetadata": map[string]interface{}{
 			"labels": map[string]interface{}{
-				"pipelines.kubeflow.org/v2_component": "true",
+				util.V2Key: "true",
 			},
 		},
 		"entrypoint": "main",
@@ -431,7 +431,7 @@ func (f *fakeExecutionInformer) HasSynced() func() bool {
 }
 
 func (f *fakeExecutionInformer) Get(namespace string, name string) (commonutil.ExecutionSpec, bool, error) {
-	return nil, true, errors.New("not found")
+	return nil, false, errors.New("not found")
 }
 
 func (f *fakeExecutionInformer) List(labels *labels.Selector) (commonutil.ExecutionSpecList, error) {
