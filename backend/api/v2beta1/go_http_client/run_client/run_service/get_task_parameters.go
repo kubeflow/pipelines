@@ -61,6 +61,12 @@ GetTaskParams contains all the parameters to send to the API endpoint
 */
 type GetTaskParams struct {
 
+	/* RunID.
+
+	   Required. Parent run ID. This is typically provided by the URL path.
+	*/
+	RunID string
+
 	// TaskID.
 	TaskID string
 
@@ -117,6 +123,17 @@ func (o *GetTaskParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithRunID adds the runID to the get task params
+func (o *GetTaskParams) WithRunID(runID string) *GetTaskParams {
+	o.SetRunID(runID)
+	return o
+}
+
+// SetRunID adds the runId to the get task params
+func (o *GetTaskParams) SetRunID(runID string) {
+	o.RunID = runID
+}
+
 // WithTaskID adds the taskID to the get task params
 func (o *GetTaskParams) WithTaskID(taskID string) *GetTaskParams {
 	o.SetTaskID(taskID)
@@ -135,6 +152,11 @@ func (o *GetTaskParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regis
 		return err
 	}
 	var res []error
+
+	// path param run_id
+	if err := r.SetPathParam("run_id", o.RunID); err != nil {
+		return err
+	}
 
 	// path param task_id
 	if err := r.SetPathParam("task_id", o.TaskID); err != nil {

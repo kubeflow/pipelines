@@ -49,6 +49,12 @@ func TestRuns(t *testing.T) {
 		expectedPBPath:   generatePath("run_failed.pb"),
 		expectedJSONPath: generatePath("run_failed.json"),
 	})
+
+	testOBJ(t, caseOpts[*pb.PipelineTask]{
+		message:          pipelineTask,
+		expectedPBPath:   generatePath("pipeline_task.pb"),
+		expectedJSONPath: generatePath("pipeline_task.json"),
+	})
 }
 
 func TestPipelines(t *testing.T) {
@@ -101,5 +107,19 @@ func TestPlatformSpec(t *testing.T) {
 		message:          platformSpec,
 		expectedPBPath:   generatePath("platform_spec.pb"),
 		expectedJSONPath: generatePath("platform_spec.json"),
+	})
+}
+
+func TestArtifacts(t *testing.T) {
+	testOBJ(t, caseOpts[*pb.Artifact]{
+		message:          artifact,
+		expectedPBPath:   generatePath("artifact.pb"),
+		expectedJSONPath: generatePath("artifact.json"),
+	})
+
+	testOBJ(t, caseOpts[*pb.ArtifactTask]{
+		message:          artifactTask,
+		expectedPBPath:   generatePath("artifact_task.pb"),
+		expectedJSONPath: generatePath("artifact_task.json"),
 	})
 }

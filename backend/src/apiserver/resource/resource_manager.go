@@ -284,11 +284,11 @@ func (r *ResourceManager) ListPipelines(filterContext *model.FilterContext, opts
 	if len(tagFilters) > 0 {
 		resolvedTagFilters = tagFilters[0]
 	}
-	pipelines, total_size, nextPageToken, err := r.pipelineStore.ListPipelines(filterContext, opts, resolvedTagFilters)
+	pipelines, totalSize, nextPageToken, err := r.pipelineStore.ListPipelines(filterContext, opts, resolvedTagFilters)
 	if err != nil {
 		err = util.Wrapf(err, "Failed to list pipelines with context %v, options %v", filterContext, opts)
 	}
-	return pipelines, total_size, nextPageToken, err
+	return pipelines, totalSize, nextPageToken, err
 }
 
 // TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.
@@ -415,9 +415,11 @@ func (r *ResourceManager) UpdatePipeline(pipelineID string, displayName string, 
 	if err := model.ValidateTags(tags); err != nil {
 		return nil, err
 	}
+	// Update fields and tags in a single transaction to prevent deadlocks.
 	if err := r.pipelineStore.UpdatePipelineFields(pipelineID, displayName, tags); err != nil {
 		return nil, util.Wrap(err, "Failed to update pipeline")
 	}
+	// Return the updated pipeline.
 	return r.pipelineStore.GetPipeline(pipelineID)
 }
 
@@ -430,9 +432,11 @@ func (r *ResourceManager) UpdatePipelineVersion(pipelineVersionID string, displa
 	if err := model.ValidateTags(tags); err != nil {
 		return nil, err
 	}
+	// Update fields and tags in a single transaction to prevent deadlocks.
 	if err := r.pipelineStore.UpdatePipelineVersionFields(pipelineVersionID, displayName, tags); err != nil {
 		return nil, util.Wrap(err, "Failed to update pipeline version")
 	}
+	// Return the updated pipeline version.
 	return r.pipelineStore.GetPipelineVersion(pipelineVersionID)
 }
 
@@ -477,6 +481,7 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 	if err := model.ValidateTags(pv.Tags); err != nil {
 		return nil, nil, err
 	}
+
 	// Fetch pipeline spec, verify it, and parse parameters
 	pipelineSpecBytes, pipelineSpecURI, err := r.fetchTemplateFromPipelineVersion(pv)
 	if err != nil {
@@ -568,6 +573,7 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to update status of a new pipeline version after creation")
 	}
+
 	return newPipeline, newVersion, nil
 }
 
@@ -1020,7 +1026,7 @@ func (r *ResourceManager) ListTasks(runID, parentID, namespace string, opts *lis
 
 	switch {
 	case runID != "" && parentID != "":
-		tasks, totalSize, nextPageToken, err := r.taskStore.ListTasksForParentRun(parentID, runID, opts)
+		tasks, totalSize, nextPageToken, err := r.taskStore.ListChildTasksByParentAndRun(parentID, runID, opts)
 		if err != nil {
 			return nil, 0, "", util.Wrap(err, "Failed to list tasks")
 		}
@@ -2334,11 +2340,11 @@ func (r *ResourceManager) ListPipelineVersions(pipelineId string, opts *list.Opt
 	if len(tagFilters) > 0 {
 		resolvedTagFilters = tagFilters[0]
 	}
-	pipelineVersions, total_size, nextPageToken, err := r.pipelineStore.ListPipelineVersions(pipelineId, opts, resolvedTagFilters)
+	pipelineVersions, totalSize, nextPageToken, err := r.pipelineStore.ListPipelineVersions(pipelineId, opts, resolvedTagFilters)
 	if err != nil {
 		err = util.Wrapf(err, "Failed to list pipeline versions with pipeline id %v, options %v", pipelineId, opts)
 	}
-	return pipelineVersions, total_size, nextPageToken, err
+	return pipelineVersions, totalSize, nextPageToken, err
 }
 
 // Deletes a pipeline version and the corresponding PipelineSpec.
@@ -2614,6 +2620,15 @@ func (r *ResourceManager) GetTask(taskId string) (*model.Task, error) {
 		return nil, util.Wrapf(err, "Failed to fetch task %v", taskId)
 	}
 	return task, nil
+}
+
+// GetTasksByIDs fetches tasks keyed by task ID without hydrating artifacts.
+func (r *ResourceManager) GetTasksByIDs(taskIDs []string) (map[string]*model.Task, error) {
+	tasksByID, err := r.taskStore.GetTasksByIDs(taskIDs)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to fetch task batch")
+	}
+	return tasksByID, nil
 }
 
 // GetTaskChildren fetches all immediate child tasks of the given task UUID.
