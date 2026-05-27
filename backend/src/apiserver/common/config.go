@@ -37,6 +37,7 @@ const (
 	CaBundleConfigMapName                   string = "CABUNDLE_CONFIGMAP_NAME"
 	CaBundleKeyName                         string = "CABUNDLE_KEY_NAME"
 	RequireNamespaceForPipelines            string = "REQUIRE_NAMESPACE_FOR_PIPELINES"
+	ListRunsFullViewMaxPageSize             string = "LIST_RUNS_FULL_VIEW_MAX_PAGE_SIZE"
 	CompiledPipelineSpecPatch               string = "COMPILED_PIPELINE_SPEC_PATCH"
 	MLPipelineServiceName                   string = "ML_PIPELINE_SERVICE_NAME"
 	MetadataServiceName                     string = "METADATA_SERVICE_NAME"

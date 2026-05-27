@@ -133,10 +133,10 @@ Class | Method | HTTP request | Description
 *RecurringRunServiceApi* | [**recurring_run_service_list_recurring_runs**](docs/RecurringRunServiceApi.md#recurring_run_service_list_recurring_runs) | **GET** /apis/v2beta1/recurringruns | Finds all recurring runs given experiment and namespace. If experiment ID is not specified, find all recurring runs across all experiments.
 *ReportServiceApi* | [**report_service_report_scheduled_workflow**](docs/ReportServiceApi.md#report_service_report_scheduled_workflow) | **POST** /apis/v2beta1/scheduledworkflows | 
 *ReportServiceApi* | [**report_service_report_workflow**](docs/ReportServiceApi.md#report_service_report_workflow) | **POST** /apis/v2beta1/workflows | 
-*RunServiceApi* | [**batch_update_tasks**](docs/RunServiceApi.md#batch_update_tasks) | **POST** /apis/v2beta1/tasks:batchUpdate | Updates multiple tasks in bulk.
-*RunServiceApi* | [**create_task**](docs/RunServiceApi.md#create_task) | **POST** /apis/v2beta1/tasks | Creates a new task.
-*RunServiceApi* | [**get_task**](docs/RunServiceApi.md#get_task) | **GET** /apis/v2beta1/tasks/{task_id} | Gets a specific task by ID.
-*RunServiceApi* | [**list_tasks**](docs/RunServiceApi.md#list_tasks) | **GET** /apis/v2beta1/tasks | Lists tasks with optional filtering.
+*RunServiceApi* | [**batch_update_tasks**](docs/RunServiceApi.md#batch_update_tasks) | **POST** /apis/v2beta1/runs/{run_id}/tasks:batchUpdate | Updates multiple tasks in bulk.
+*RunServiceApi* | [**create_task**](docs/RunServiceApi.md#create_task) | **POST** /apis/v2beta1/runs/{run_id}/tasks | Creates a new task.
+*RunServiceApi* | [**get_task**](docs/RunServiceApi.md#get_task) | **GET** /apis/v2beta1/runs/{run_id}/tasks/{task_id} | Gets a specific task by ID.
+*RunServiceApi* | [**list_tasks**](docs/RunServiceApi.md#list_tasks) | **GET** /apis/v2beta1/runs/{run_id}/tasks | Lists tasks with optional filtering.
 *RunServiceApi* | [**run_service_archive_run**](docs/RunServiceApi.md#run_service_archive_run) | **POST** /apis/v2beta1/runs/{run_id}:archive | Archives a run in an experiment given by run ID and experiment ID.
 *RunServiceApi* | [**run_service_create_run**](docs/RunServiceApi.md#run_service_create_run) | **POST** /apis/v2beta1/runs | Creates a new run in an experiment specified by experiment ID. If experiment ID is not specified, the run is created in the default experiment.
 *RunServiceApi* | [**run_service_delete_run**](docs/RunServiceApi.md#run_service_delete_run) | **DELETE** /apis/v2beta1/runs/{run_id} | Deletes a run in an experiment given by run ID and experiment ID.
@@ -145,7 +145,7 @@ Class | Method | HTTP request | Description
 *RunServiceApi* | [**run_service_retry_run**](docs/RunServiceApi.md#run_service_retry_run) | **POST** /apis/v2beta1/runs/{run_id}:retry | Re-initiates a failed or terminated run.
 *RunServiceApi* | [**run_service_terminate_run**](docs/RunServiceApi.md#run_service_terminate_run) | **POST** /apis/v2beta1/runs/{run_id}:terminate | Terminates an active run.
 *RunServiceApi* | [**run_service_unarchive_run**](docs/RunServiceApi.md#run_service_unarchive_run) | **POST** /apis/v2beta1/runs/{run_id}:unarchive | Restores an archived run in an experiment given by run ID and experiment ID.
-*RunServiceApi* | [**update_task**](docs/RunServiceApi.md#update_task) | **PATCH** /apis/v2beta1/tasks/{task_id} | Updates an existing task.
+*RunServiceApi* | [**update_task**](docs/RunServiceApi.md#update_task) | **PATCH** /apis/v2beta1/runs/{run_id}/tasks/{task_id} | Updates an existing task.
 *VisualizationServiceApi* | [**visualization_service_create_visualization_v1**](docs/VisualizationServiceApi.md#visualization_service_create_visualization_v1) | **POST** /apis/v2beta1/visualizations/{namespace} | 
 
 
@@ -157,6 +157,7 @@ Class | Method | HTTP request | Description
  - [GooglerpcStatus](docs/GooglerpcStatus.md)
  - [InputOutputsIOArtifact](docs/InputOutputsIOArtifact.md)
  - [InputOutputsIOParameter](docs/InputOutputsIOParameter.md)
+ - [PipelineTaskChildTask](docs/PipelineTaskChildTask.md)
  - [PipelineTaskInputOutputs](docs/PipelineTaskInputOutputs.md)
  - [PipelineTaskStatusMetadata](docs/PipelineTaskStatusMetadata.md)
  - [PipelineTaskTaskPod](docs/PipelineTaskTaskPod.md)
@@ -173,8 +174,8 @@ Class | Method | HTTP request | Description
  - [RecurringRunMode](docs/RecurringRunMode.md)
  - [RequiredInputPipelineObjectWithUpdatedFieldsPipelineIdIsRequiredToIdentifyThePipelineMutableFieldsDisplayNameTags](docs/RequiredInputPipelineObjectWithUpdatedFieldsPipelineIdIsRequiredToIdentifyThePipelineMutableFieldsDisplayNameTags.md)
  - [RequiredInputPipelineVersionObjectWithUpdatedFieldsPipelineIdAndPipelineVersionIdAreRequiredToIdentifyTheVersionMutableFieldsDisplayNameTags](docs/RequiredInputPipelineVersionObjectWithUpdatedFieldsPipelineIdAndPipelineVersionIdAreRequiredToIdentifyTheVersionMutableFieldsDisplayNameTags.md)
+ - [RunServiceUpdateTasksBulkBody](docs/RunServiceUpdateTasksBulkBody.md)
  - [V2beta1Artifact](docs/V2beta1Artifact.md)
- - [V2beta1ArtifactList](docs/V2beta1ArtifactList.md)
  - [V2beta1ArtifactTask](docs/V2beta1ArtifactTask.md)
  - [V2beta1CreateArtifactRequest](docs/V2beta1CreateArtifactRequest.md)
  - [V2beta1CreateArtifactTaskRequest](docs/V2beta1CreateArtifactTaskRequest.md)
@@ -204,10 +205,6 @@ Class | Method | HTTP request | Description
  - [V2beta1PeriodicSchedule](docs/V2beta1PeriodicSchedule.md)
  - [V2beta1Pipeline](docs/V2beta1Pipeline.md)
  - [V2beta1PipelineTask](docs/V2beta1PipelineTask.md)
- - [V2beta1PipelineTaskChildTask](docs/V2beta1PipelineTaskChildTask.md)
- - [V2beta1PipelineTaskDetail](docs/V2beta1PipelineTaskDetail.md)
- - [V2beta1PipelineTaskDetailChildTask](docs/V2beta1PipelineTaskDetailChildTask.md)
- - [V2beta1PipelineTaskExecutorDetail](docs/V2beta1PipelineTaskExecutorDetail.md)
  - [V2beta1PipelineVersion](docs/V2beta1PipelineVersion.md)
  - [V2beta1PipelineVersionReference](docs/V2beta1PipelineVersionReference.md)
  - [V2beta1Predicate](docs/V2beta1Predicate.md)
@@ -221,7 +218,6 @@ Class | Method | HTTP request | Description
  - [V2beta1RuntimeState](docs/V2beta1RuntimeState.md)
  - [V2beta1RuntimeStatus](docs/V2beta1RuntimeStatus.md)
  - [V2beta1Trigger](docs/V2beta1Trigger.md)
- - [V2beta1UpdateTasksBulkRequest](docs/V2beta1UpdateTasksBulkRequest.md)
  - [V2beta1UpdateTasksBulkResponse](docs/V2beta1UpdateTasksBulkResponse.md)
  - [V2beta1Url](docs/V2beta1Url.md)
  - [V2beta1Visualization](docs/V2beta1Visualization.md)

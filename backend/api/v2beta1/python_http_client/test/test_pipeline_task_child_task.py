@@ -16,11 +16,11 @@ import unittest
 import datetime
 
 import kfp_server_api
-from kfp_server_api.models.v2beta1_pipeline_task_child_task import V2beta1PipelineTaskChildTask  # noqa: E501
+from kfp_server_api.models.pipeline_task_child_task import PipelineTaskChildTask  # noqa: E501
 from kfp_server_api.rest import ApiException
 
-class TestV2beta1PipelineTaskChildTask(unittest.TestCase):
-    """V2beta1PipelineTaskChildTask unit test stubs"""
+class TestPipelineTaskChildTask(unittest.TestCase):
+    """PipelineTaskChildTask unit test stubs"""
 
     def setUp(self):
         pass
@@ -29,22 +29,22 @@ class TestV2beta1PipelineTaskChildTask(unittest.TestCase):
         pass
 
     def make_instance(self, include_optional):
-        """Test V2beta1PipelineTaskChildTask
+        """Test PipelineTaskChildTask
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api.models.v2beta1_pipeline_task_child_task.V2beta1PipelineTaskChildTask()  # noqa: E501
+        # model = kfp_server_api.models.pipeline_task_child_task.PipelineTaskChildTask()  # noqa: E501
         if include_optional :
-            return V2beta1PipelineTaskChildTask(
+            return PipelineTaskChildTask(
                 task_id = '0', 
                 name = '0'
             )
         else :
-            return V2beta1PipelineTaskChildTask(
+            return PipelineTaskChildTask(
         )
 
-    def testV2beta1PipelineTaskChildTask(self):
-        """Test V2beta1PipelineTaskChildTask"""
+    def testPipelineTaskChildTask(self):
+        """Test PipelineTaskChildTask"""
         inst_req_only = self.make_instance(include_optional=False)
         inst_req_and_optional = self.make_instance(include_optional=True)
 

@@ -62,7 +62,7 @@
           },
           {
             "name": "page_size",
-            "description": "The number of runs to be listed per page. If there are more runs than this\nnumber, the response message will contain a nextPageToken field you can use\nto fetch the next page.",
+            "description": "The number of runs to be listed per page. If there are more runs than this\nnumber, the response message will contain a nextPageToken field you can use\nto fetch the next page.\nIf omitted, the server uses its standard default page size.\nWhen `view = FULL`, the server may enforce a lower maximum page size to\nlimit task hydration cost. By default FULL requests are capped at 100 runs,\nand operators can override that cap with\n`LIST_RUNS_FULL_VIEW_MAX_PAGE_SIZE`.",
             "in": "query",
             "required": false,
             "type": "integer",
@@ -221,6 +221,230 @@
             "in": "query",
             "required": false,
             "type": "string"
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      }
+    },
+    "/apis/v2beta1/runs/{run_id}/tasks": {
+      "get": {
+        "summary": "Lists tasks with optional filtering.",
+        "operationId": "list_tasks",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1ListTasksResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "run_id",
+            "description": "Required. Parent run ID. This is typically provided by the URL path.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "parent_id",
+            "description": "List all tasks with this parent task.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "page_token",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      },
+      "post": {
+        "summary": "Creates a new task.",
+        "operationId": "create_task",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1PipelineTask"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "run_id",
+            "description": "Required. Parent run ID. This is typically provided by the URL path.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "task",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2beta1PipelineTask"
+            }
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      }
+    },
+    "/apis/v2beta1/runs/{run_id}/tasks/{task_id}": {
+      "get": {
+        "summary": "Gets a specific task by ID.",
+        "operationId": "get_task",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1PipelineTask"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "run_id",
+            "description": "Required. Parent run ID. This is typically provided by the URL path.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      },
+      "patch": {
+        "summary": "Updates an existing task.",
+        "operationId": "update_task",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1PipelineTask"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "run_id",
+            "description": "Required. Parent run ID. This is typically provided by the URL path.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "task",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2beta1PipelineTask"
+            }
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      }
+    },
+    "/apis/v2beta1/runs/{run_id}/tasks:batchUpdate": {
+      "post": {
+        "summary": "Updates multiple tasks in bulk.",
+        "operationId": "batch_update_tasks",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1UpdateTasksBulkResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "run_id",
+            "description": "Required. Parent run ID. This is typically provided by the URL path.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RunServiceUpdateTasksBulkBody"
+            }
           }
         ],
         "tags": [
@@ -387,209 +611,6 @@
           "RunService"
         ]
       }
-    },
-    "/apis/v2beta1/tasks": {
-      "get": {
-        "summary": "Lists tasks with optional filtering.",
-        "operationId": "list_tasks",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v2beta1ListTasksResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "parent_id",
-            "description": "List all tasks with this parent task.",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "run_id",
-            "description": "List all tasks for this run.",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "namespace",
-            "description": "List all tasks in this namespace.\nThe primary use case for this filter is to detect cache hits.",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "page_size",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          },
-          {
-            "name": "page_token",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "filter",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "order_by",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "RunService"
-        ]
-      },
-      "post": {
-        "summary": "Creates a new task.",
-        "operationId": "create_task",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v2beta1PipelineTask"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "task",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v2beta1PipelineTask"
-            }
-          }
-        ],
-        "tags": [
-          "RunService"
-        ]
-      }
-    },
-    "/apis/v2beta1/tasks/{task_id}": {
-      "get": {
-        "summary": "Gets a specific task by ID.",
-        "operationId": "get_task",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v2beta1PipelineTask"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "task_id",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "RunService"
-        ]
-      },
-      "patch": {
-        "summary": "Updates an existing task.",
-        "operationId": "update_task",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v2beta1PipelineTask"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "task_id",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "task",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v2beta1PipelineTask"
-            }
-          }
-        ],
-        "tags": [
-          "RunService"
-        ]
-      }
-    },
-    "/apis/v2beta1/tasks:batchUpdate": {
-      "post": {
-        "summary": "Updates multiple tasks in bulk.",
-        "operationId": "batch_update_tasks",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v2beta1UpdateTasksBulkResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v2beta1UpdateTasksBulkRequest"
-            }
-          }
-        ],
-        "tags": [
-          "RunService"
-        ]
-      }
     }
   },
   "definitions": {
@@ -646,6 +667,19 @@
           "description": "This field is optional because in the case of\nInput RuntimeValues, ComponentDefaultInputs,\nand Raw Iterator Input there are no producers."
         }
       }
+    },
+    "PipelineTaskChildTask": {
+      "type": "object",
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "description": "System-generated ID of a task."
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "description": "A dependent task that requires this one to succeed.\nRepresented by task_id."
     },
     "PipelineTaskInputOutputs": {
       "type": "object",
@@ -738,6 +772,7 @@
     "PipelineTaskTaskType": {
       "type": "string",
       "enum": [
+        "TASK_TYPE_UNSPECIFIED",
         "ROOT",
         "RUNTIME",
         "CONDITION_BRANCH",
@@ -747,8 +782,8 @@
         "IMPORTER",
         "DAG"
       ],
-      "default": "ROOT",
-      "description": " - ROOT: Root task is the top ancestor task to all tasks in the pipeline run\nIt is the only task with no parent task in a Pipeline Run.\n - RUNTIME: All child tasks in the Run DAG are Runtime tasks. With the exception\nof K8S driver pods.\nThese tasks are the only tasks that have Executor Pods.\n - CONDITION_BRANCH: Condition Branch is the wrapper task of an If block\n - CONDITION: Condition is an individual \"if\" branch, and is\na child to a CONDITION_BRANCH task.\n - LOOP: Task Group for CONDITION_BRANCH\nTask Group for RUNTIME Loop Iterations\n - DAG: Generic DAG task type for types like Nested Pipelines\nwhere there is no declarative way to detect this within\na driver."
+      "default": "TASK_TYPE_UNSPECIFIED",
+      "description": " - TASK_TYPE_UNSPECIFIED: Default value. This value is not used.\n - ROOT: Root task is the top ancestor task to all tasks in the pipeline run\nIt is the only task with no parent task in a Pipeline Run.\n - RUNTIME: All child tasks in the Run DAG are Runtime tasks. With the exception\nof K8S driver pods.\nThese tasks are the only tasks that have Executor Pods.\n - CONDITION_BRANCH: Condition Branch is the wrapper task of an If block\n - CONDITION: Condition is an individual \"if\" branch, and is\na child to a CONDITION_BRANCH task.\n - LOOP: Task Group for CONDITION_BRANCH\nTask Group for RUNTIME Loop Iterations\n - DAG: Generic DAG task type for types like Nested Pipelines\nwhere there is no declarative way to detect this within\na driver."
     },
     "PipelineTaskTypeAttributes": {
       "type": "object",
@@ -766,6 +801,18 @@
         "download_to_workspace": {
           "type": "boolean",
           "title": "Optional. Applies to type IMPORTER"
+        }
+      }
+    },
+    "RunServiceUpdateTasksBulkBody": {
+      "type": "object",
+      "properties": {
+        "tasks": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/v2beta1PipelineTask"
+          },
+          "title": "Required. Map of task ID to task detail for bulk update.\nKey: task_id, Value: PipelineTask to update"
         }
       }
     },
@@ -855,20 +902,6 @@
         }
       },
       "title": "Not to be confused with RuntimeArtifact in PipelineSpec"
-    },
-    "v2beta1ArtifactList": {
-      "type": "object",
-      "properties": {
-        "artifact_ids": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "int64"
-          },
-          "description": "A list of artifact metadata ids."
-        }
-      },
-      "description": "A list of artifact metadata."
     },
     "v2beta1GetRunRequestViewMode": {
       "type": "string",
@@ -1027,7 +1060,7 @@
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/v2beta1PipelineTaskChildTask"
+            "$ref": "#/definitions/PipelineTaskChildTask"
           },
           "description": "Sequence of dependent tasks."
         },
@@ -1043,149 +1076,6 @@
         }
       },
       "description": "Runtime information of a task execution used by task APIs and Run.tasks."
-    },
-    "v2beta1PipelineTaskChildTask": {
-      "type": "object",
-      "properties": {
-        "task_id": {
-          "type": "string",
-          "description": "System-generated ID of a task."
-        },
-        "name": {
-          "type": "string"
-        }
-      },
-      "description": "A dependent task that requires this one to succeed.\nRepresented by task_id."
-    },
-    "v2beta1PipelineTaskDetail": {
-      "type": "object",
-      "properties": {
-        "run_id": {
-          "type": "string",
-          "description": "ID of the parent run."
-        },
-        "task_id": {
-          "type": "string",
-          "description": "System-generated ID of a task."
-        },
-        "display_name": {
-          "type": "string",
-          "description": "User specified name of a task that is defined in\n[Pipeline.spec][]."
-        },
-        "create_time": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation time of a task."
-        },
-        "start_time": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Starting time of a task."
-        },
-        "end_time": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Completion time of a task."
-        },
-        "executor_detail": {
-          "$ref": "#/definitions/v2beta1PipelineTaskExecutorDetail",
-          "description": "Execution information of a task."
-        },
-        "state": {
-          "$ref": "#/definitions/v2beta1RuntimeState",
-          "description": "Runtime state of a task."
-        },
-        "execution_id": {
-          "type": "string",
-          "format": "int64",
-          "description": "Execution id of the corresponding entry in ML metadata store."
-        },
-        "error": {
-          "$ref": "#/definitions/googlerpcStatus",
-          "description": "The error that occurred during task execution.\nOnly populated when the task is in FAILED or CANCELED state."
-        },
-        "inputs": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/v2beta1ArtifactList"
-          },
-          "description": "Input artifacts of the task."
-        },
-        "outputs": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/v2beta1ArtifactList"
-          },
-          "description": "Output artifacts of the task."
-        },
-        "parent_task_id": {
-          "type": "string",
-          "description": "ID of the parent task if the task is within a component scope.\nEmpty if the task is at the root level."
-        },
-        "state_history": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/v2beta1RuntimeStatus"
-          },
-          "description": "A sequence of task statuses. This field keeps a record\nof state transitions."
-        },
-        "pod_name": {
-          "type": "string",
-          "description": "Name of the corresponding pod assigned by the orchestration engine.\nAlso known as node_id."
-        },
-        "child_tasks": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/v2beta1PipelineTaskDetailChildTask"
-          },
-          "description": "Sequence of dependent tasks."
-        }
-      },
-      "description": "Deprecated: use PipelineTask instead.\nThis legacy message remains only for backward compatibility with\nRunDetails.task_details and will be removed in the next major API version."
-    },
-    "v2beta1PipelineTaskDetailChildTask": {
-      "type": "object",
-      "properties": {
-        "task_id": {
-          "type": "string",
-          "description": "System-generated ID of a task."
-        },
-        "pod_name": {
-          "type": "string",
-          "description": "Name of the corresponding pod assigned by the orchestration engine.\nAlso known as node_id."
-        }
-      },
-      "description": "A dependent task that requires this one to succeed.\nRepresented by either task_id or pod_name."
-    },
-    "v2beta1PipelineTaskExecutorDetail": {
-      "type": "object",
-      "properties": {
-        "main_job": {
-          "type": "string",
-          "description": "The name of the job for the main container execution."
-        },
-        "pre_caching_check_job": {
-          "type": "string",
-          "description": "The name of the job for the pre-caching-check container\nexecution. This job will be available if the\nRun.pipeline_spec specifies the `pre_caching_check` hook in\nthe lifecycle events."
-        },
-        "failed_main_jobs": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "The names of the previously failed job for the main container\nexecutions. The list includes the all attempts in chronological order."
-        },
-        "failed_pre_caching_check_jobs": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "The names of the previously failed job for the\npre-caching-check container executions. This job will be available if the\nRun.pipeline_spec specifies the `pre_caching_check` hook in\nthe lifecycle events.\nThe list includes the all attempts in chronological order."
-        }
-      },
-      "description": "Runtime information of a pipeline task executor."
     },
     "v2beta1PipelineVersionReference": {
       "type": "object",
@@ -1313,14 +1203,6 @@
           "type": "string",
           "format": "int64",
           "description": "Pipeline run context ID of a run."
-        },
-        "task_details": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/v2beta1PipelineTaskDetail"
-          },
-          "description": "Deprecated: use top-level task APIs and Run.tasks instead.\nThis legacy field remains in the schema for backward wire compatibility\nonly. As part of the next major release, the backend intentionally stops\npopulating this field and returns task data only through the top-level\ntask APIs and Run.tasks. It will be removed in the next major API version."
         }
       },
       "description": "Runtime details of a run."
@@ -1384,18 +1266,6 @@
         }
       },
       "description": "Timestamped representation of a runtime state with an optional error."
-    },
-    "v2beta1UpdateTasksBulkRequest": {
-      "type": "object",
-      "properties": {
-        "tasks": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/v2beta1PipelineTask"
-          },
-          "title": "Required. Map of task ID to task detail for bulk update.\nKey: task_id, Value: PipelineTask to update"
-        }
-      }
     },
     "v2beta1UpdateTasksBulkResponse": {
       "type": "object",

@@ -88,12 +88,12 @@ func (o *ListTasksOK) Code() int {
 
 func (o *ListTasksOK) Error() string {
 	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /apis/v2beta1/tasks][%d] listTasksOK %s", 200, payload)
+	return fmt.Sprintf("[GET /apis/v2beta1/runs/{run_id}/tasks][%d] listTasksOK %s", 200, payload)
 }
 
 func (o *ListTasksOK) String() string {
 	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /apis/v2beta1/tasks][%d] listTasksOK %s", 200, payload)
+	return fmt.Sprintf("[GET /apis/v2beta1/runs/{run_id}/tasks][%d] listTasksOK %s", 200, payload)
 }
 
 func (o *ListTasksOK) GetPayload() *run_model.V2beta1ListTasksResponse {
@@ -162,12 +162,12 @@ func (o *ListTasksDefault) Code() int {
 
 func (o *ListTasksDefault) Error() string {
 	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /apis/v2beta1/tasks][%d] list_tasks default %s", o._statusCode, payload)
+	return fmt.Sprintf("[GET /apis/v2beta1/runs/{run_id}/tasks][%d] list_tasks default %s", o._statusCode, payload)
 }
 
 func (o *ListTasksDefault) String() string {
 	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /apis/v2beta1/tasks][%d] list_tasks default %s", o._statusCode, payload)
+	return fmt.Sprintf("[GET /apis/v2beta1/runs/{run_id}/tasks][%d] list_tasks default %s", o._statusCode, payload)
 }
 
 func (o *ListTasksDefault) GetPayload() *run_model.GooglerpcStatus {

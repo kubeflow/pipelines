@@ -1,4 +1,4 @@
-# V2beta1UpdateTasksBulkRequest
+# RunServiceUpdateTasksBulkBody
 
 ## Properties
 Name | Type | Description | Notes

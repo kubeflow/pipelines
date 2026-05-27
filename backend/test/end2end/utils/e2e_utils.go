@@ -70,7 +70,7 @@ func CreatePipelineRunAndWaitForItToFinish(runClient *apiserver.RunClient, testC
 func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kubernetes.Clientset, testContext *apitests.TestContext, runID string, compiledWorkflow *v1alpha1.Workflow) {
 	logger.Log("Fetching updated pipeline run details for run with id=%s", runID)
 	updatedRun := testutil.GetPipelineRun(runClient, &runID)
-	actualTaskDetails := updatedRun.RunDetails.TaskDetails
+	actualTasks := updatedRun.Tasks
 	logger.Log("Updated pipeline run details")
 	expectedTaskDetails := GetTasksFromWorkflow(compiledWorkflow)
 	if *updatedRun.State == run_model.V2beta1RuntimeStateRUNNING {
@@ -83,47 +83,43 @@ func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kuberne
 	} else {
 		if *updatedRun.State != run_model.V2beta1RuntimeStateSUCCEEDED {
 			logger.Log("Looks like the run %s FAILED, so capture pod logs for the failed task", runID)
-			CapturePodLogsForUnsuccessfulTasks(k8Client, testContext, actualTaskDetails)
+			CapturePodLogsForUnsuccessfulTasks(k8Client, testContext, actualTasks)
 			ginkgo.Fail("Failing test because the pipeline run was not SUCCESSFUL")
 		} else {
 			logger.Log("Pipeline run succeeded, checking if the number of tasks are what is expected")
-			gomega.Expect(len(actualTaskDetails)).To(gomega.BeNumerically(">=", len(expectedTaskDetails)), "Number of created DAG tasks should be >= number of expected tasks")
+			gomega.Expect(len(actualTasks)).To(gomega.BeNumerically(">=", len(expectedTaskDetails)), "Number of created DAG tasks should be >= number of expected tasks")
 		}
 	}
 
 }
 
 // CapturePodLogsForUnsuccessfulTasks - Capture pod logs of a failed component
-func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testContext *apitests.TestContext, taskDetails []*run_model.V2beta1PipelineTaskDetail) {
+func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testContext *apitests.TestContext, tasks []*run_model.V2beta1PipelineTask) {
 	failedTasks := make(map[string]string)
-	sort.Slice(taskDetails, func(i, j int) bool {
-		return time.Time(taskDetails[i].EndTime).After(time.Time(taskDetails[j].EndTime)) // Sort Tasks by End Time in descending order
+	sort.Slice(tasks, func(i, j int) bool {
+		return time.Time(tasks[i].EndTime).After(time.Time(tasks[j].EndTime)) // Sort tasks by end time in descending order.
 	})
-	for _, task := range taskDetails {
+	for _, task := range tasks {
 		if task.State != nil {
 			switch *task.State {
-			case run_model.V2beta1RuntimeStateSUCCEEDED:
+			case run_model.PipelineTaskTaskStateSUCCEEDED:
 				{
 					logger.Log("SUCCEEDED - Task %s for run %s has finished successfully", task.DisplayName, task.RunID)
 				}
-			case run_model.V2beta1RuntimeStateRUNNING:
+			case run_model.PipelineTaskTaskStateRUNNING:
 				{
 					logger.Log("RUNNING - Task %s for Run %s is running", task.DisplayName, task.RunID)
 
 				}
-			case run_model.V2beta1RuntimeStateSKIPPED:
+			case run_model.PipelineTaskTaskStateSKIPPED:
 				{
 					logger.Log("SKIPPED - Task %s for Run %s skipped", task.DisplayName, task.RunID)
 				}
-			case run_model.V2beta1RuntimeStateCANCELED:
-				{
-					logger.Log("CANCELED - Task %s for Run %s canceled", task.DisplayName, task.RunID)
-				}
-			case run_model.V2beta1RuntimeStateFAILED:
+			case run_model.PipelineTaskTaskStateFAILED:
 				{
 					logger.Log("%s - Task %s for Run %s did not complete successfully", *task.State, task.DisplayName, task.RunID)
-					for _, childTask := range task.ChildTasks {
-						podName := childTask.PodName
+					for _, pod := range task.Pods {
+						podName := pod.Name
 						if podName != "" {
 							logger.Log("Capturing pod logs for task %s, with pod name %s", task.DisplayName, podName)
 							podLog := testutil.ReadPodLogs(k8Client, *config.Namespace, podName, nil, &testContext.TestStartTimeUTC, config.PodLogLimit)

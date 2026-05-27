@@ -88,12 +88,12 @@ func (o *UpdateTaskOK) Code() int {
 
 func (o *UpdateTaskOK) Error() string {
 	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /apis/v2beta1/tasks/{task_id}][%d] updateTaskOK %s", 200, payload)
+	return fmt.Sprintf("[PATCH /apis/v2beta1/runs/{run_id}/tasks/{task_id}][%d] updateTaskOK %s", 200, payload)
 }
 
 func (o *UpdateTaskOK) String() string {
 	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /apis/v2beta1/tasks/{task_id}][%d] updateTaskOK %s", 200, payload)
+	return fmt.Sprintf("[PATCH /apis/v2beta1/runs/{run_id}/tasks/{task_id}][%d] updateTaskOK %s", 200, payload)
 }
 
 func (o *UpdateTaskOK) GetPayload() *run_model.V2beta1PipelineTask {
@@ -162,12 +162,12 @@ func (o *UpdateTaskDefault) Code() int {
 
 func (o *UpdateTaskDefault) Error() string {
 	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /apis/v2beta1/tasks/{task_id}][%d] update_task default %s", o._statusCode, payload)
+	return fmt.Sprintf("[PATCH /apis/v2beta1/runs/{run_id}/tasks/{task_id}][%d] update_task default %s", o._statusCode, payload)
 }
 
 func (o *UpdateTaskDefault) String() string {
 	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /apis/v2beta1/tasks/{task_id}][%d] update_task default %s", o._statusCode, payload)
+	return fmt.Sprintf("[PATCH /apis/v2beta1/runs/{run_id}/tasks/{task_id}][%d] update_task default %s", o._statusCode, payload)
 }
 
 func (o *UpdateTaskDefault) GetPayload() *run_model.GooglerpcStatus {

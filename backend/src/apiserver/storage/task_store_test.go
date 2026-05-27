@@ -752,6 +752,139 @@ func TestHydrateArtifactsForTask_GetAndList(t *testing.T) {
 	}
 }
 
+func TestHydrateArtifactsForTasks_ClearsExistingSlicesAndOrdersByKey(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
+	task, err := taskStore.CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          "run-1",
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Fingerprint:      "fp-art-order",
+		State:            1,
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+		Type:             0,
+		TypeAttrs:        model.JSONData{},
+	})
+	assert.NoError(t, err)
+
+	artifactStore := NewArtifactStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID2, nil))
+	artifactA, err := artifactStore.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      0,
+		URI:       strPTR("s3://bucket/a"),
+		Name:      "artifact-a",
+	})
+	assert.NoError(t, err)
+	artifactStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID3, nil)
+	artifactB, err := artifactStore.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      0,
+		URI:       strPTR("s3://bucket/b"),
+		Name:      "artifact-b",
+	})
+	assert.NoError(t, err)
+
+	artifactTaskStore := NewArtifactTaskStore(db, util.NewFakeUUIDGeneratorOrFatal("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1", nil))
+	_, err = artifactTaskStore.CreateArtifactTask(&model.ArtifactTask{
+		ArtifactID:  artifactB.UUID,
+		TaskID:      task.UUID,
+		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		RunUUID:     task.RunUUID,
+		ArtifactKey: "z-key",
+	})
+	assert.NoError(t, err)
+	artifactTaskStore.uuid = util.NewFakeUUIDGeneratorOrFatal("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2", nil)
+	_, err = artifactTaskStore.CreateArtifactTask(&model.ArtifactTask{
+		ArtifactID:  artifactA.UUID,
+		TaskID:      task.UUID,
+		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		RunUUID:     task.RunUUID,
+		ArtifactKey: "a-key",
+	})
+	assert.NoError(t, err)
+
+	unhydratedTasks, err := taskStore.GetTasksByIDs([]string{task.UUID})
+	assert.NoError(t, err)
+	hydratedTask := unhydratedTasks[task.UUID]
+	if assert.NotNil(t, hydratedTask) {
+		hydratedTask.OutputArtifactsHydrated = []model.TaskArtifactHydrated{{
+			Key: "stale",
+		}}
+
+		err = hydrateArtifactsForTasks(db, []*model.Task{hydratedTask})
+		assert.NoError(t, err)
+		if assert.Equal(t, 2, len(hydratedTask.OutputArtifactsHydrated)) {
+			assert.Equal(t, "a-key", hydratedTask.OutputArtifactsHydrated[0].Key)
+			assert.Equal(t, "z-key", hydratedTask.OutputArtifactsHydrated[1].Key)
+		}
+
+		err = hydrateArtifactsForTasks(db, []*model.Task{hydratedTask})
+		assert.NoError(t, err)
+		if assert.Equal(t, 2, len(hydratedTask.OutputArtifactsHydrated)) {
+			assert.Equal(t, "a-key", hydratedTask.OutputArtifactsHydrated[0].Key)
+			assert.Equal(t, "z-key", hydratedTask.OutputArtifactsHydrated[1].Key)
+		}
+	}
+}
+
+func TestGetTaskCountsForRuns(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
+	_, err := taskStore.CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          "run-1",
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Fingerprint:      "fp-1",
+		State:            1,
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+		Type:             0,
+		TypeAttrs:        model.JSONData{},
+	})
+	assert.NoError(t, err)
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID2, nil)
+	_, err = taskStore.CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          "run-1",
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p2", "uid2", apiv2beta1.PipelineTask_EXECUTOR)),
+		Fingerprint:      "fp-2",
+		State:            1,
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+		Type:             0,
+		TypeAttrs:        model.JSONData{},
+	})
+	assert.NoError(t, err)
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID3, nil)
+	_, err = taskStore.CreateTask(&model.Task{
+		Namespace:        "ns2",
+		RunUUID:          "run-2",
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p3", "uid3", apiv2beta1.PipelineTask_EXECUTOR)),
+		Fingerprint:      "fp-3",
+		State:            1,
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+		Type:             0,
+		TypeAttrs:        model.JSONData{},
+	})
+	assert.NoError(t, err)
+
+	counts, err := taskStore.GetTaskCountsForRuns([]string{"run-1", "run-2", "run-3", "run-1"})
+	assert.NoError(t, err)
+	assert.Equal(t, 2, counts["run-1"])
+	assert.Equal(t, 1, counts["run-2"])
+	assert.Equal(t, 0, counts["run-3"])
+}
+
 func int64PTR(i int64) *int64 { return &i }
 
 func TestMergeParameters_EmptySlices(t *testing.T) {

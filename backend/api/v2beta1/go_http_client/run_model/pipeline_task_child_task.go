@@ -12,11 +12,11 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// V2beta1PipelineTaskChildTask A dependent task that requires this one to succeed.
+// PipelineTaskChildTask A dependent task that requires this one to succeed.
 // Represented by task_id.
 //
-// swagger:model v2beta1PipelineTaskChildTask
-type V2beta1PipelineTaskChildTask struct {
+// swagger:model PipelineTaskChildTask
+type PipelineTaskChildTask struct {
 
 	// name
 	Name string `json:"name,omitempty"`
@@ -25,18 +25,18 @@ type V2beta1PipelineTaskChildTask struct {
 	TaskID string `json:"task_id,omitempty"`
 }
 
-// Validate validates this v2beta1 pipeline task child task
-func (m *V2beta1PipelineTaskChildTask) Validate(formats strfmt.Registry) error {
+// Validate validates this pipeline task child task
+func (m *PipelineTaskChildTask) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-// ContextValidate validates this v2beta1 pipeline task child task based on context it is used
-func (m *V2beta1PipelineTaskChildTask) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+// ContextValidate validates this pipeline task child task based on context it is used
+func (m *PipelineTaskChildTask) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *V2beta1PipelineTaskChildTask) MarshalBinary() ([]byte, error) {
+func (m *PipelineTaskChildTask) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -44,8 +44,8 @@ func (m *V2beta1PipelineTaskChildTask) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *V2beta1PipelineTaskChildTask) UnmarshalBinary(b []byte) error {
-	var res V2beta1PipelineTaskChildTask
+func (m *PipelineTaskChildTask) UnmarshalBinary(b []byte) error {
+	var res PipelineTaskChildTask
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

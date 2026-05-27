@@ -18,7 +18,7 @@ Name | Type | Description | Notes
 **type** | [**PipelineTaskTaskType**](PipelineTaskTaskType.md) |  | [optional] 
 **type_attributes** | [**PipelineTaskTypeAttributes**](PipelineTaskTypeAttributes.md) |  | [optional] 
 **parent_task_id** | **str** | ID of the parent task if the task is within a component scope. Empty if the task is at the root level. | [optional] 
-**child_tasks** | [**list[V2beta1PipelineTaskChildTask]**](V2beta1PipelineTaskChildTask.md) | Sequence of dependent tasks. | [optional] 
+**child_tasks** | [**list[PipelineTaskChildTask]**](PipelineTaskChildTask.md) | Sequence of dependent tasks. | [optional] 
 **inputs** | [**PipelineTaskInputOutputs**](PipelineTaskInputOutputs.md) |  | [optional] 
 **outputs** | [**PipelineTaskInputOutputs**](PipelineTaskInputOutputs.md) |  | [optional] 
 **scope_path** | **str** |  | [optional] 
