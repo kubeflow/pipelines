@@ -2,14 +2,10 @@
 /* eslint-disable */
 export * from './GoogleRpcStatus';
 export * from './MetadataValueRenderType';
-export * from './PipelineTaskDetailChildTask';
 export * from './ProtobufAny';
 export * from './ProtobufNullValue';
-export * from './V2beta1ArtifactList';
 export * from './V2beta1ListRunsResponse';
 export * from './V2beta1MetadataValue';
-export * from './V2beta1PipelineTaskDetail';
-export * from './V2beta1PipelineTaskExecutorDetail';
 export * from './V2beta1PipelineVersionReference';
 export * from './V2beta1PluginOutput';
 export * from './V2beta1PluginState';

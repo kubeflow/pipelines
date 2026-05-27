@@ -68,46 +68,7 @@ class TestV2beta1ListRunsResponse(unittest.TestCase):
                                 ], ), 
                         run_details = kfp_server_api.models.v2beta1_run_details.v2beta1RunDetails(
                             pipeline_context_id = '0', 
-                            pipeline_run_context_id = '0', 
-                            task_details = [
-                                kfp_server_api.models.v2beta1_pipeline_task_detail.v2beta1PipelineTaskDetail(
-                                    run_id = '0', 
-                                    task_id = '0', 
-                                    display_name = '0', 
-                                    create_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
-                                    start_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
-                                    end_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
-                                    executor_detail = kfp_server_api.models.v2beta1_pipeline_task_executor_detail.v2beta1PipelineTaskExecutorDetail(
-                                        main_job = '0', 
-                                        pre_caching_check_job = '0', 
-                                        failed_main_jobs = [
-                                            '0'
-                                            ], 
-                                        failed_pre_caching_check_jobs = [
-                                            '0'
-                                            ], ), 
-                                    execution_id = '0', 
-                                    inputs = {
-                                        'key' : kfp_server_api.models.v2beta1_artifact_list.v2beta1ArtifactList(
-                                            artifact_ids = [
-                                                '0'
-                                                ], )
-                                        }, 
-                                    outputs = {
-                                        'key' : kfp_server_api.models.v2beta1_artifact_list.v2beta1ArtifactList()
-                                        }, 
-                                    parent_task_id = '0', 
-                                    state_history = [
-                                        kfp_server_api.models.v2beta1_runtime_status.v2beta1RuntimeStatus(
-                                            update_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), )
-                                        ], 
-                                    pod_name = '0', 
-                                    child_tasks = [
-                                        kfp_server_api.models.v2beta1_pipeline_task_detail_child_task.v2beta1PipelineTaskDetailChildTask(
-                                            task_id = '0', 
-                                            pod_name = '0', )
-                                        ], )
-                                ], ), 
+                            pipeline_run_context_id = '0', ), 
                         recurring_run_id = '0', 
                         state_history = [
                             kfp_server_api.models.v2beta1_runtime_status.v2beta1RuntimeStatus(
@@ -137,12 +98,26 @@ class TestV2beta1ListRunsResponse(unittest.TestCase):
                                     custom_properties = {
                                         'key' : None
                                         }, ), 
-                                type = 'ROOT', 
+                                type = 'TASK_TYPE_UNSPECIFIED', 
                                 type_attributes = kfp_server_api.models.pipeline_task_type_attributes.PipelineTaskTypeAttributes(
                                     iteration_index = '0', 
                                     iteration_count = '0', 
                                     download_to_workspace = True, ), 
                                 parent_task_id = '0', 
+                                child_tasks = [
+                                    kfp_server_api.models.pipeline_task_child_task.PipelineTaskChildTask(
+                                        task_id = '0', 
+                                        name = '0', )
+                                    ], 
+                                inputs = kfp_server_api.models.pipeline_task_input_outputs.PipelineTaskInputOutputs(
+                                    artifacts = [
+                                        kfp_server_api.models.align_structure_with_executor_input.Align structure with Executor Input(
+                                            artifact_key = '0', 
+                                            producer = kfp_server_api.models.v2beta1_io_producer.v2beta1IOProducer(
+                                                task_name = '0', 
+                                                iteration = '0', ), )
+                                        ], ), 
+                                outputs = kfp_server_api.models.pipeline_task_input_outputs.PipelineTaskInputOutputs(), 
                                 scope_path = '0', )
                             ], )
                     ], 

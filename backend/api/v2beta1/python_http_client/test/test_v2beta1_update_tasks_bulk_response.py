@@ -69,14 +69,14 @@ class TestV2beta1UpdateTasksBulkResponse(unittest.TestCase):
                                             }
                                         ], ), )
                             ], 
-                        type = 'ROOT', 
+                        type = 'TASK_TYPE_UNSPECIFIED', 
                         type_attributes = kfp_server_api.models.pipeline_task_type_attributes.PipelineTaskTypeAttributes(
                             iteration_index = '0', 
                             iteration_count = '0', 
                             download_to_workspace = True, ), 
                         parent_task_id = '0', 
                         child_tasks = [
-                            kfp_server_api.models.v2beta1_pipeline_task_child_task.v2beta1PipelineTaskChildTask(
+                            kfp_server_api.models.pipeline_task_child_task.PipelineTaskChildTask(
                                 task_id = '0', 
                                 name = '0', )
                             ], 

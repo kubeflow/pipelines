@@ -65,13 +65,6 @@ type ListTasksParams struct {
 	// Filter.
 	Filter *string
 
-	/* Namespace.
-
-	     List all tasks in this namespace.
-	The primary use case for this filter is to detect cache hits.
-	*/
-	Namespace *string
-
 	// OrderBy.
 	OrderBy *string
 
@@ -91,9 +84,9 @@ type ListTasksParams struct {
 
 	/* RunID.
 
-	   List all tasks for this run.
+	   Required. Parent run ID. This is typically provided by the URL path.
 	*/
-	RunID *string
+	RunID string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -159,17 +152,6 @@ func (o *ListTasksParams) SetFilter(filter *string) {
 	o.Filter = filter
 }
 
-// WithNamespace adds the namespace to the list tasks params
-func (o *ListTasksParams) WithNamespace(namespace *string) *ListTasksParams {
-	o.SetNamespace(namespace)
-	return o
-}
-
-// SetNamespace adds the namespace to the list tasks params
-func (o *ListTasksParams) SetNamespace(namespace *string) {
-	o.Namespace = namespace
-}
-
 // WithOrderBy adds the orderBy to the list tasks params
 func (o *ListTasksParams) WithOrderBy(orderBy *string) *ListTasksParams {
 	o.SetOrderBy(orderBy)
@@ -215,13 +197,13 @@ func (o *ListTasksParams) SetParentID(parentID *string) {
 }
 
 // WithRunID adds the runID to the list tasks params
-func (o *ListTasksParams) WithRunID(runID *string) *ListTasksParams {
+func (o *ListTasksParams) WithRunID(runID string) *ListTasksParams {
 	o.SetRunID(runID)
 	return o
 }
 
 // SetRunID adds the runId to the list tasks params
-func (o *ListTasksParams) SetRunID(runID *string) {
+func (o *ListTasksParams) SetRunID(runID string) {
 	o.RunID = runID
 }
 
@@ -245,23 +227,6 @@ func (o *ListTasksParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Reg
 		if qFilter != "" {
 
 			if err := r.SetQueryParam("filter", qFilter); err != nil {
-				return err
-			}
-		}
-	}
-
-	if o.Namespace != nil {
-
-		// query param namespace
-		var qrNamespace string
-
-		if o.Namespace != nil {
-			qrNamespace = *o.Namespace
-		}
-		qNamespace := qrNamespace
-		if qNamespace != "" {
-
-			if err := r.SetQueryParam("namespace", qNamespace); err != nil {
 				return err
 			}
 		}
@@ -335,21 +300,9 @@ func (o *ListTasksParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Reg
 		}
 	}
 
-	if o.RunID != nil {
-
-		// query param run_id
-		var qrRunID string
-
-		if o.RunID != nil {
-			qrRunID = *o.RunID
-		}
-		qRunID := qrRunID
-		if qRunID != "" {
-
-			if err := r.SetQueryParam("run_id", qRunID); err != nil {
-				return err
-			}
-		}
+	// path param run_id
+	if err := r.SetPathParam("run_id", o.RunID); err != nil {
+		return err
 	}
 
 	if len(res) > 0 {

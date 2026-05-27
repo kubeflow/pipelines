@@ -34,17 +34,15 @@ class V2beta1RunDetails(object):
     """
     openapi_types = {
         'pipeline_context_id': 'str',
-        'pipeline_run_context_id': 'str',
-        'task_details': 'list[V2beta1PipelineTaskDetail]'
+        'pipeline_run_context_id': 'str'
     }
 
     attribute_map = {
         'pipeline_context_id': 'pipeline_context_id',
-        'pipeline_run_context_id': 'pipeline_run_context_id',
-        'task_details': 'task_details'
+        'pipeline_run_context_id': 'pipeline_run_context_id'
     }
 
-    def __init__(self, pipeline_context_id=None, pipeline_run_context_id=None, task_details=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, pipeline_context_id=None, pipeline_run_context_id=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1RunDetails - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -52,15 +50,12 @@ class V2beta1RunDetails(object):
 
         self._pipeline_context_id = None
         self._pipeline_run_context_id = None
-        self._task_details = None
         self.discriminator = None
 
         if pipeline_context_id is not None:
             self.pipeline_context_id = pipeline_context_id
         if pipeline_run_context_id is not None:
             self.pipeline_run_context_id = pipeline_run_context_id
-        if task_details is not None:
-            self.task_details = task_details
 
     @property
     def pipeline_context_id(self):
@@ -107,29 +102,6 @@ class V2beta1RunDetails(object):
         """
 
         self._pipeline_run_context_id = pipeline_run_context_id
-
-    @property
-    def task_details(self):
-        """Gets the task_details of this V2beta1RunDetails.  # noqa: E501
-
-        Deprecated: use top-level task APIs and Run.tasks instead. This legacy field remains in the schema for backward wire compatibility only. As part of the next major release, the backend intentionally stops populating this field and returns task data only through the top-level task APIs and Run.tasks. It will be removed in the next major API version.  # noqa: E501
-
-        :return: The task_details of this V2beta1RunDetails.  # noqa: E501
-        :rtype: list[V2beta1PipelineTaskDetail]
-        """
-        return self._task_details
-
-    @task_details.setter
-    def task_details(self, task_details):
-        """Sets the task_details of this V2beta1RunDetails.
-
-        Deprecated: use top-level task APIs and Run.tasks instead. This legacy field remains in the schema for backward wire compatibility only. As part of the next major release, the backend intentionally stops populating this field and returns task data only through the top-level task APIs and Run.tasks. It will be removed in the next major API version.  # noqa: E501
-
-        :param task_details: The task_details of this V2beta1RunDetails.  # noqa: E501
-        :type task_details: list[V2beta1PipelineTaskDetail]
-        """
-
-        self._task_details = task_details
 
     def to_dict(self):
         """Returns the model properties as a dict"""

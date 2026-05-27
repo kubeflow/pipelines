@@ -70,8 +70,8 @@ type TaskStoreInterface interface {
 	// ListTasks Fetches tasks for given filtering and listing options.
 	ListTasks(filterContext *model.FilterContext, opts *list.Options) ([]*model.Task, int, string, error)
 
-	// ListTasksForParentRun fetches tasks for a specific parent task scoped to a run.
-	ListTasksForParentRun(parentTaskID, runID string, opts *list.Options) ([]*model.Task, int, string, error)
+	// ListChildTasksByParentAndRun fetches child tasks for a specific parent task scoped to a run.
+	ListChildTasksByParentAndRun(parentTaskID, runID string, opts *list.Options) ([]*model.Task, int, string, error)
 
 	// UpdateTask Updates an existing task entry in the database.
 	UpdateTask(new *model.Task) (*model.Task, error)
@@ -81,6 +81,12 @@ type TaskStoreInterface interface {
 
 	// GetChildTasksByParentIDs fetches child task summaries for a batch of parent task IDs.
 	GetChildTasksByParentIDs(parentTaskIDs []string) (map[string][]*model.Task, error)
+
+	// GetTasksByIDs fetches a batch of tasks keyed by task ID without hydrating artifacts.
+	GetTasksByIDs(taskIDs []string) (map[string]*model.Task, error)
+
+	// GetTaskCountsForRuns fetches task counts keyed by run ID.
+	GetTaskCountsForRuns(runIDs []string) (map[string]int, error)
 }
 
 type TaskStore struct {
@@ -196,6 +202,7 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 
 // hydrateArtifactsForTasks fills InputArtifactsHydrated and OutputArtifactsHydrated for provided tasks by
 // querying artifact_tasks joined with artifacts. It uses TaskID IN (...) to limit scope.
+// The helper clears previously hydrated transient slices first so repeated hydration is idempotent.
 func hydrateArtifactsForTasks(db *DB, tasks []*model.Task) error {
 	if len(tasks) == 0 {
 		return nil
@@ -211,6 +218,8 @@ func hydrateArtifactsForTasks(db *DB, tasks []*model.Task) error {
 			taskByID[t.UUID] = t
 			taskIDs = append(taskIDs, t.UUID)
 		}
+		t.InputArtifactsHydrated = nil
+		t.OutputArtifactsHydrated = nil
 	}
 	if len(taskIDs) == 0 {
 		return nil
@@ -236,6 +245,12 @@ func hydrateArtifactsForTasks(db *DB, tasks []*model.Task) error {
 		From("artifact_tasks").
 		Join("artifacts ON artifact_tasks.ArtifactID = artifacts.UUID").
 		Where(sq.Eq{"artifact_tasks.TaskID": taskIDs}).
+		OrderBy(
+			"artifact_tasks.TaskID ASC",
+			"artifact_tasks.Type ASC",
+			"artifact_tasks.ArtifactKey ASC",
+			"artifact_tasks.ArtifactID ASC",
+		).
 		ToSql()
 	if err != nil {
 		return err
@@ -585,7 +600,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 	return page, total_size, npt, err
 }
 
-func (s *TaskStore) ListTasksForParentRun(parentTaskID, runID string, opts *list.Options) ([]*model.Task, int, string, error) {
+func (s *TaskStore) ListChildTasksByParentAndRun(parentTaskID, runID string, opts *list.Options) ([]*model.Task, int, string, error) {
 	errorF := func(err error) ([]*model.Task, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list tasks: %v", err)
 	}
@@ -694,6 +709,54 @@ func (s *TaskStore) GetTask(id string) (*model.Task, error) {
 		return nil, util.NewInternalServerError(err, "Failed to hydrate task artifacts")
 	}
 	return tasks[0], nil
+}
+
+func (s *TaskStore) GetTasksByIDs(taskIDs []string) (map[string]*model.Task, error) {
+	tasksByID := make(map[string]*model.Task)
+	if len(taskIDs) == 0 {
+		return tasksByID, nil
+	}
+
+	dedupedTaskIDs := make([]string, 0, len(taskIDs))
+	seenTaskIDs := make(map[string]struct{}, len(taskIDs))
+	for _, taskID := range taskIDs {
+		if taskID == "" {
+			continue
+		}
+		if _, seen := seenTaskIDs[taskID]; seen {
+			continue
+		}
+		seenTaskIDs[taskID] = struct{}{}
+		dedupedTaskIDs = append(dedupedTaskIDs, taskID)
+	}
+	if len(dedupedTaskIDs) == 0 {
+		return tasksByID, nil
+	}
+
+	rowsSQL, rowsArgs, err := sq.
+		Select(taskColumns...).
+		From("tasks").
+		Where(sq.Eq{"UUID": dedupedTaskIDs}).
+		OrderBy("RunUUID ASC", "CreatedAtInSec ASC", "UUID ASC").
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to get tasks by IDs: %v", err.Error())
+	}
+
+	rows, err := s.db.Query(rowsSQL, rowsArgs...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get tasks by IDs: %v", err.Error())
+	}
+	defer rows.Close()
+
+	tasks, err := s.scanRows(rows)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to scan tasks by IDs: %v", err.Error())
+	}
+	for _, task := range tasks {
+		tasksByID[task.UUID] = task
+	}
+	return tasksByID, nil
 }
 
 // getTaskForUpdate retrieves a task with a row-level lock (SELECT ... FOR UPDATE).
@@ -926,7 +989,11 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 	return s.GetTask(new.UUID)
 }
 
-// mergeParameters merges the new parameters with the old parameters.
+// mergeParameters merges new parameter updates into the stored parameter set.
+// For normal updates, the later entry wins for the same logical key. Iterator-
+// propagated values are a special case: some updates intentionally do not carry
+// an iteration identifier, so the value hash remains part of the key to avoid
+// collapsing distinct propagated values into one entry.
 func mergeParameters(old, new model.JSONSlice) (model.JSONSlice, error) {
 	typeFunc := func() *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
 		return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{}
@@ -989,6 +1056,7 @@ func (s *TaskStore) GetChildTasks(taskID string) ([]*model.Task, error) {
 		Select(taskColumns...).
 		From("tasks").
 		Where(sq.Eq{"ParentTaskUUID": taskID}).
+		OrderBy("CreatedAtInSec ASC", "UUID ASC").
 		ToSql()
 
 	if err != nil {
@@ -1030,6 +1098,7 @@ func (s *TaskStore) GetChildTasksByParentIDs(parentTaskIDs []string) (map[string
 		Select("UUID", "RunUUID", "Name", "ParentTaskUUID").
 		From("tasks").
 		Where(sq.Eq{"ParentTaskUUID": dedupedParentTaskIDs}).
+		OrderBy("ParentTaskUUID ASC", "CreatedAtInSec ASC", "UUID ASC").
 		ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to get child task summaries: %v", err.Error())
@@ -1088,6 +1157,60 @@ func (s *TaskStore) GetTaskCountForRun(runID string) (int, error) {
 	}
 
 	return total, nil
+}
+
+// GetTaskCountsForRuns returns task counts keyed by run ID for the provided run IDs.
+func (s *TaskStore) GetTaskCountsForRuns(runIDs []string) (map[string]int, error) {
+	countsByRunID := make(map[string]int)
+	if len(runIDs) == 0 {
+		return countsByRunID, nil
+	}
+
+	dedupedRunIDs := make([]string, 0, len(runIDs))
+	seenRunIDs := make(map[string]struct{}, len(runIDs))
+	for _, runID := range runIDs {
+		if runID == "" {
+			continue
+		}
+		if _, seen := seenRunIDs[runID]; seen {
+			continue
+		}
+		seenRunIDs[runID] = struct{}{}
+		dedupedRunIDs = append(dedupedRunIDs, runID)
+		countsByRunID[runID] = 0
+	}
+	if len(dedupedRunIDs) == 0 {
+		return countsByRunID, nil
+	}
+
+	rowsSQL, rowsArgs, err := sq.
+		Select("RunUUID", "count(*)").
+		From("tasks").
+		Where(sq.Eq{"RunUUID": dedupedRunIDs}).
+		GroupBy("RunUUID").
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create grouped task count query: %v", err.Error())
+	}
+
+	rows, err := s.db.Query(rowsSQL, rowsArgs...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get grouped task counts: %v", err.Error())
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var runID string
+		var count int
+		if err := rows.Scan(&runID, &count); err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to scan grouped task count: %v", err.Error())
+		}
+		countsByRunID[runID] = count
+	}
+	if err := rows.Err(); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to iterate grouped task counts: %v", err.Error())
+	}
+	return countsByRunID, nil
 }
 
 func hashProtoValue(v *structpb.Value) (string, error) {
