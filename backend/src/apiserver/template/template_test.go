@@ -1021,3 +1021,56 @@ func TestNewGenericScheduledWorkflow(t *testing.T) {
 	assert.NotNil(t, swf.Spec.PeriodicSchedule)
 	assert.Equal(t, int64(120), swf.Spec.PeriodicSchedule.IntervalSecond)
 }
+
+func TestValidateJobInputs(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	v2SpecHelloWorldYAML := loadYaml(t, "testdata/hello_world.yaml")
+	v2Template, err := New([]byte(v2SpecHelloWorldYAML), TemplateOptions{})
+	require.Nil(t, err)
+	v2Spec := v2Template.(*V2Spec)
+
+	tests := []struct {
+		name      string
+		params    string
+		wantErr   bool
+		errSubstr string
+	}{
+		{
+			name:    "valid params",
+			params:  `{"y": "world"}`,
+			wantErr: false,
+		},
+		{
+			name:      "missing required param y",
+			params:    "",
+			wantErr:   true,
+			errSubstr: "y",
+		},
+		{
+			name:      "invalid json in runtime config",
+			params:    "not valid json",
+			wantErr:   true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			modelJob := &model.Job{
+				PipelineSpec: model.PipelineSpec{
+					PipelineSpecManifest: model.LargeText(v2SpecHelloWorldYAML),
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters: model.LargeText(tt.params),
+					},
+				},
+			}
+			err := v2Spec.ValidateJobInputs(modelJob)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				if tt.errSubstr != "" {
+					assert.Contains(t, err.Error(), tt.errSubstr)
+				}
+			} else {
+				assert.Nil(t, err)
+			}
+		})
+	}
+}

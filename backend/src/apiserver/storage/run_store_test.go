@@ -1492,3 +1492,60 @@ func TestRunAPIFieldMap(t *testing.T) {
 		assert.Contains(t, runColumns, modelField)
 	}
 }
+
+func TestGetRunByRecurringRunIdAndDisplayName(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	// Create the run without RecurringRunId to avoid the resource-reference FK
+	// check, then patch JobUUID directly so the column is set as the query expects.
+	runWithRecurring := &model.Run{
+		UUID:         "recurring-run-uuid",
+		DisplayName:  "scheduled-run-trigger-1",
+		K8SName:      "scheduled-run-k8s",
+		Namespace:    "n1",
+		StorageState: model.StorageStateAvailable,
+		ExperimentId: defaultFakeExpId,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec: 10,
+			State:          model.RuntimeStatePending,
+		},
+	}
+	_, err := runStore.CreateRun(runWithRecurring)
+	assert.Nil(t, err)
+	_, err = db.Exec(`UPDATE run_details SET JobUUID = ? WHERE UUID = ?`, "job-uuid-1", "recurring-run-uuid")
+	assert.Nil(t, err)
+
+	tests := []struct {
+		name            string
+		recurringRunId  string
+		displayName     string
+		wantUUID        string
+	}{
+		{
+			name:           "found with matching recurring run id and display name",
+			recurringRunId: "job-uuid-1",
+			displayName:    "scheduled-run-trigger-1",
+			wantUUID:       "recurring-run-uuid",
+		},
+		{
+			name:           "not found when recurring run id does not match",
+			recurringRunId: "different-job-uuid",
+			displayName:    "scheduled-run-trigger-1",
+			wantUUID:       "",
+		},
+		{
+			name:           "not found when display name does not match",
+			recurringRunId: "job-uuid-1",
+			displayName:    "different-display-name",
+			wantUUID:       "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			uuid, err := runStore.GetRunByRecurringRunIdAndDisplayName(tt.recurringRunId, tt.displayName)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.wantUUID, uuid)
+		})
+	}
+}

@@ -639,6 +639,17 @@ func isNamespaceAllowed(namespace string, allowedNamespaces string) bool {
 // Manifest's namespace gets overwritten with the run.Namespace.
 // Creating a run from recurring run prioritizes recurring run's pipeline spec over the run's one.
 func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model.Run, error) {
+	// Guard against duplicate runs from concurrent recurring-run controller replicas.
+	if run.RecurringRunId != "" && run.DisplayName != "" {
+		existingRunId, err := r.runStore.GetRunByRecurringRunIdAndDisplayName(run.RecurringRunId, run.DisplayName)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to check for existing run")
+		}
+		if existingRunId != "" {
+			return r.runStore.GetRun(existingRunId)
+		}
+	}
+
 	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
 	// Update the run.PipelineSpec if an existing pipeline version is used.
 	tmpl, manifest, err := r.fetchTemplateFromPipelineSpec(&run.PipelineSpec)
@@ -690,7 +701,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 
 	executionSpec.SetExecutionNamespace(k8sNamespace)
 
-	// assign OwnerReference to scheduledworkflow
+	// assign OwnerReference and canonical labels to scheduledworkflow
 	if run.RecurringRunId != "" {
 		job, err := r.jobStore.GetJob(run.RecurringRunId)
 		if err != nil {
@@ -701,6 +712,12 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 			return nil, util.NewInternalServerError(util.NewInvalidInputError("ScheduledWorkflow doesn't exist: %s", job.K8SName), "Failed to create a run due to invalid name")
 		}
 		executionSpec.SetOwnerReferences(swf)
+		// canonical labels required for SWF controller label-based workflow tracking
+		nextIndex := int64(1)
+		if swf.Status.Trigger.LastIndex != nil {
+			nextIndex = *swf.Status.Trigger.LastIndex + 1
+		}
+		executionSpec.SetCannonicalLabels(swf.Name, run.RunDetails.CreatedAtInSec, nextIndex)
 	}
 
 	newExecSpec, err := r.getWorkflowClient(k8sNamespace).Create(ctx, executionSpec, v1.CreateOptions{})
@@ -1281,7 +1298,11 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			return nil, util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 		}
 
-		_, err = tmpl.ScheduledWorkflow(job)
+		if v2Tmpl, ok := tmpl.(*template.V2Spec); ok {
+			err = v2Tmpl.ValidateJobInputs(job)
+		} else {
+			_, err = tmpl.ScheduledWorkflow(job)
+		}
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
 		}
@@ -1301,7 +1322,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		}
 	}
 
-	if common.GetBoolConfigWithDefault(common.BlockV1Pipelines, false) && tmpl.GetTemplateType() == template.V1 {
+	if tmpl != nil && common.GetBoolConfigWithDefault(common.BlockV1Pipelines, false) && tmpl.GetTemplateType() == template.V1 {
 		allowedNamespaces := common.GetStringConfigWithDefault(common.V1NamespaceWhitelist, "")
 		if !isNamespaceAllowed(k8sNamespace, allowedNamespaces) {
 			return nil, util.NewInvalidInputError("Namespace %s is not allowed to run v1 pipelines. Please migrate to using KFP V2 pipelines.", k8sNamespace)

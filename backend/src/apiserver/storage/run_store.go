@@ -95,6 +95,10 @@ type RunStoreInterface interface {
 
 	// Terminates a run.
 	TerminateRun(runId string) error
+
+	// Checks if a run already exists for a given recurring run and display name.
+	// Returns the existing run UUID if found, or empty string if not.
+	GetRunByRecurringRunIdAndDisplayName(recurringRunId, displayName string) (string, error)
 }
 
 type RunStore struct {
@@ -548,6 +552,31 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 		return nil, util.NewInternalServerError(err, "Failed to store run %v and its resource references to table", r.DisplayName)
 	}
 	return r, nil
+}
+
+func (s *RunStore) GetRunByRecurringRunIdAndDisplayName(recurringRunId, displayName string) (string, error) {
+	query, args, err := sq.
+		Select("UUID").
+		From("run_details").
+		Where(sq.Eq{"JobUUID": recurringRunId, "DisplayName": displayName}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return "", util.NewInternalServerError(err, "Failed to build query for idempotency check")
+	}
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return "", util.NewInternalServerError(err, "Failed to check for existing run")
+	}
+	defer rows.Close()
+	if rows.Next() {
+		var uuid string
+		if err := rows.Scan(&uuid); err != nil {
+			return "", util.NewInternalServerError(err, "Failed to scan existing run UUID")
+		}
+		return uuid, nil
+	}
+	return "", nil
 }
 
 func (s *RunStore) UpdateRun(run *model.Run) error {
