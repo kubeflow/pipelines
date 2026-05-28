@@ -16,12 +16,14 @@ package driver
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -136,4 +138,321 @@ func Test_InferIndexedTaskName(t *testing.T) {
 			assert.Equal(t, test.expected, result)
 		})
 	}
+}
+
+func TestGetProducerTask_SelectsSuccessfulArtifactOneOfBranch(t *testing.T) {
+	outputArtifacts := map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec{
+		"pipelinechannel--condition-branches-1-oneof-1": {
+			ArtifactSelectors: []*pipelinespec.DagOutputsSpec_ArtifactSelectorSpec{
+				{
+					ProducerSubtask:   "condition-2",
+					OutputArtifactKey: "pipelinechannel--param-to-artifact-a",
+				},
+				{
+					ProducerSubtask:   "condition-3",
+					OutputArtifactKey: "pipelinechannel--param-to-artifact-2-a",
+				},
+			},
+		},
+	}
+	serializedOutputArtifacts, err := json.Marshal(outputArtifacts)
+	require.NoError(t, err)
+
+	parentDagID := int64(515)
+	parentTask := metadata.NewExecution(&pb.Execution{
+		Id: &parentDagID,
+		CustomProperties: map[string]*pb.Value{
+			"task_name": {
+				Value: &pb.Value_StringValue{
+					StringValue: "condition-branches-1",
+				},
+			},
+			"artifact_producer_task": {
+				Value: &pb.Value_StringValue{
+					StringValue: string(serializedOutputArtifacts),
+				},
+			},
+		},
+	})
+
+	tasks := map[string]*metadata.Execution{
+		metadata.GetTaskNameWithDagID("condition-2", parentDagID): metadata.NewExecution(&pb.Execution{
+			LastKnownState: pb.Execution_COMPLETE.Enum(),
+		}),
+		metadata.GetTaskNameWithDagID("condition-3", parentDagID): metadata.NewExecution(&pb.Execution{
+			LastKnownState: pb.Execution_CANCELED.Enum(),
+		}),
+	}
+
+	producerTaskName, outputArtifactKey, err := GetProducerTask(
+		parentTask,
+		tasks,
+		"condition-branches-1",
+		"pipelinechannel--condition-branches-1-oneof-1",
+		true,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, metadata.GetTaskNameWithDagID("condition-2", parentDagID), producerTaskName)
+	assert.Equal(t, "pipelinechannel--param-to-artifact-a", outputArtifactKey)
+}
+
+func TestGetProducerTask_SelectsLaterSuccessfulArtifactOneOfBranch(t *testing.T) {
+	outputArtifacts := map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec{
+		"pipelinechannel--condition-branches-1-oneof-1": {
+			ArtifactSelectors: []*pipelinespec.DagOutputsSpec_ArtifactSelectorSpec{
+				{
+					ProducerSubtask:   "condition-2",
+					OutputArtifactKey: "pipelinechannel--param-to-artifact-a",
+				},
+				{
+					ProducerSubtask:   "condition-3",
+					OutputArtifactKey: "pipelinechannel--param-to-artifact-2-a",
+				},
+			},
+		},
+	}
+	serializedOutputArtifacts, err := json.Marshal(outputArtifacts)
+	require.NoError(t, err)
+
+	parentDagID := int64(515)
+	parentTask := metadata.NewExecution(&pb.Execution{
+		Id: &parentDagID,
+		CustomProperties: map[string]*pb.Value{
+			"task_name": {
+				Value: &pb.Value_StringValue{
+					StringValue: "condition-branches-1",
+				},
+			},
+			"artifact_producer_task": {
+				Value: &pb.Value_StringValue{
+					StringValue: string(serializedOutputArtifacts),
+				},
+			},
+		},
+	})
+
+	tasks := map[string]*metadata.Execution{
+		metadata.GetTaskNameWithDagID("condition-2", parentDagID): metadata.NewExecution(&pb.Execution{
+			LastKnownState: pb.Execution_CANCELED.Enum(),
+		}),
+		metadata.GetTaskNameWithDagID("condition-3", parentDagID): metadata.NewExecution(&pb.Execution{
+			LastKnownState: pb.Execution_COMPLETE.Enum(),
+		}),
+	}
+
+	producerTaskName, outputArtifactKey, err := GetProducerTask(
+		parentTask,
+		tasks,
+		"condition-branches-1",
+		"pipelinechannel--condition-branches-1-oneof-1",
+		true,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, metadata.GetTaskNameWithDagID("condition-3", parentDagID), producerTaskName)
+	assert.Equal(t, "pipelinechannel--param-to-artifact-2-a", outputArtifactKey)
+}
+
+func TestGetProducerTask_ArtifactOneOfReturnsErrorWhenNoBranchSucceeds(t *testing.T) {
+	outputArtifacts := map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec{
+		"pipelinechannel--condition-branches-1-oneof-1": {
+			ArtifactSelectors: []*pipelinespec.DagOutputsSpec_ArtifactSelectorSpec{
+				{
+					ProducerSubtask:   "condition-2",
+					OutputArtifactKey: "pipelinechannel--param-to-artifact-a",
+				},
+				{
+					ProducerSubtask:   "condition-3",
+					OutputArtifactKey: "pipelinechannel--param-to-artifact-2-a",
+				},
+			},
+		},
+	}
+	serializedOutputArtifacts, err := json.Marshal(outputArtifacts)
+	require.NoError(t, err)
+
+	parentDagID := int64(515)
+	parentTask := metadata.NewExecution(&pb.Execution{
+		Id: &parentDagID,
+		CustomProperties: map[string]*pb.Value{
+			"task_name": {
+				Value: &pb.Value_StringValue{
+					StringValue: "condition-branches-1",
+				},
+			},
+			"artifact_producer_task": {
+				Value: &pb.Value_StringValue{
+					StringValue: string(serializedOutputArtifacts),
+				},
+			},
+		},
+	})
+
+	tasks := map[string]*metadata.Execution{
+		metadata.GetTaskNameWithDagID("condition-2", parentDagID): metadata.NewExecution(&pb.Execution{
+			LastKnownState: pb.Execution_CANCELED.Enum(),
+		}),
+		metadata.GetTaskNameWithDagID("condition-3", parentDagID): metadata.NewExecution(&pb.Execution{
+			LastKnownState: pb.Execution_FAILED.Enum(),
+		}),
+	}
+
+	_, _, err = GetProducerTask(
+		parentTask,
+		tasks,
+		"condition-branches-1",
+		"pipelinechannel--condition-branches-1-oneof-1",
+		true,
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "processing OneOf: No successful task found")
+	assert.Contains(t, err.Error(), "pipelinechannel--condition-branches-1-oneof-1")
+	assert.Contains(t, err.Error(), "condition-branches-1")
+}
+
+func TestGetProducerTask_SelectsCachedArtifactOneOfBranch(t *testing.T) {
+	outputArtifacts := map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec{
+		"pipelinechannel--condition-branches-1-oneof-1": {
+			ArtifactSelectors: []*pipelinespec.DagOutputsSpec_ArtifactSelectorSpec{
+				{
+					ProducerSubtask:   "condition-2",
+					OutputArtifactKey: "pipelinechannel--param-to-artifact-a",
+				},
+				{
+					ProducerSubtask:   "condition-3",
+					OutputArtifactKey: "pipelinechannel--param-to-artifact-2-a",
+				},
+			},
+		},
+	}
+	serializedOutputArtifacts, err := json.Marshal(outputArtifacts)
+	require.NoError(t, err)
+
+	parentDagID := int64(515)
+	parentTask := metadata.NewExecution(&pb.Execution{
+		Id: &parentDagID,
+		CustomProperties: map[string]*pb.Value{
+			"task_name": {
+				Value: &pb.Value_StringValue{
+					StringValue: "condition-branches-1",
+				},
+			},
+			"artifact_producer_task": {
+				Value: &pb.Value_StringValue{
+					StringValue: string(serializedOutputArtifacts),
+				},
+			},
+		},
+	})
+
+	tasks := map[string]*metadata.Execution{
+		metadata.GetTaskNameWithDagID("condition-2", parentDagID): metadata.NewExecution(&pb.Execution{
+			LastKnownState: pb.Execution_CACHED.Enum(),
+		}),
+		metadata.GetTaskNameWithDagID("condition-3", parentDagID): metadata.NewExecution(&pb.Execution{
+			LastKnownState: pb.Execution_CANCELED.Enum(),
+		}),
+	}
+
+	producerTaskName, outputArtifactKey, err := GetProducerTask(
+		parentTask,
+		tasks,
+		"condition-branches-1",
+		"pipelinechannel--condition-branches-1-oneof-1",
+		true,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, metadata.GetTaskNameWithDagID("condition-2", parentDagID), producerTaskName)
+	assert.Equal(t, "pipelinechannel--param-to-artifact-a", outputArtifactKey)
+}
+
+func TestGetProducerTask_ArtifactOneOfReturnsErrorWhenSubtasksAreMissing(t *testing.T) {
+	outputArtifacts := map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec{
+		"pipelinechannel--condition-branches-1-oneof-1": {
+			ArtifactSelectors: []*pipelinespec.DagOutputsSpec_ArtifactSelectorSpec{
+				{
+					ProducerSubtask:   "condition-2",
+					OutputArtifactKey: "pipelinechannel--param-to-artifact-a",
+				},
+				{
+					ProducerSubtask:   "condition-3",
+					OutputArtifactKey: "pipelinechannel--param-to-artifact-2-a",
+				},
+			},
+		},
+	}
+	serializedOutputArtifacts, err := json.Marshal(outputArtifacts)
+	require.NoError(t, err)
+
+	parentDagID := int64(515)
+	parentTask := metadata.NewExecution(&pb.Execution{
+		Id: &parentDagID,
+		CustomProperties: map[string]*pb.Value{
+			"task_name": {
+				Value: &pb.Value_StringValue{
+					StringValue: "condition-branches-1",
+				},
+			},
+			"artifact_producer_task": {
+				Value: &pb.Value_StringValue{
+					StringValue: string(serializedOutputArtifacts),
+				},
+			},
+		},
+	})
+
+	tasks := map[string]*metadata.Execution{}
+
+	_, _, err = GetProducerTask(
+		parentTask,
+		tasks,
+		"condition-branches-1",
+		"pipelinechannel--condition-branches-1-oneof-1",
+		true,
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "processing OneOf: No successful task found")
+}
+
+func TestGetProducerTask_ArtifactOutputKeyMissingReturnsError(t *testing.T) {
+	outputArtifacts := map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec{
+		"some-other-output-key": {
+			ArtifactSelectors: []*pipelinespec.DagOutputsSpec_ArtifactSelectorSpec{
+				{
+					ProducerSubtask:   "condition-2",
+					OutputArtifactKey: "pipelinechannel--param-to-artifact-a",
+				},
+			},
+		},
+	}
+	serializedOutputArtifacts, err := json.Marshal(outputArtifacts)
+	require.NoError(t, err)
+
+	parentDagID := int64(515)
+	parentTask := metadata.NewExecution(&pb.Execution{
+		Id: &parentDagID,
+		CustomProperties: map[string]*pb.Value{
+			"task_name": {
+				Value: &pb.Value_StringValue{
+					StringValue: "condition-branches-1",
+				},
+			},
+			"artifact_producer_task": {
+				Value: &pb.Value_StringValue{
+					StringValue: string(serializedOutputArtifacts),
+				},
+			},
+		},
+	})
+
+	_, _, err = GetProducerTask(
+		parentTask,
+		map[string]*metadata.Execution{},
+		"condition-branches-1",
+		"pipelinechannel--condition-branches-1-oneof-1",
+		true,
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "artifact output key")
+	assert.Contains(t, err.Error(), "pipelinechannel--condition-branches-1-oneof-1")
+	assert.Contains(t, err.Error(), "condition-branches-1")
 }
