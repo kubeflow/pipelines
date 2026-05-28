@@ -53,7 +53,7 @@ type TaskPluginDispatcherImpl struct {
 }
 
 func NewTaskPluginDispatcherImpl(handlers []TaskPluginHandler) (*TaskPluginDispatcherImpl, error) {
-	if handlers == nil || len(handlers) == 0 {
+	if len(handlers) == 0 {
 		return nil, fmt.Errorf("NewTaskPluginDispatcherImpl requires non-nil slice containing minimum one handler")
 	}
 	sorted := make([]TaskPluginHandler, len(handlers))
