@@ -559,6 +559,7 @@ func (s *RunStore) GetRunByRecurringRunIdAndDisplayName(recurringRunId, displayN
 		Select("UUID").
 		From("run_details").
 		Where(sq.Eq{"JobUUID": recurringRunId, "DisplayName": displayName}).
+		OrderBy("CreatedAtInSec DESC", "UUID DESC").
 		Limit(1).
 		ToSql()
 	if err != nil {
