@@ -88,3 +88,26 @@ const (
 // empty map from nil, so this header preserves the intent across the
 // HTTP→gRPC proxy roundtrip.
 const ClearTagsMetadataKey = "x-clear-tags"
+// Pod lifecycle failure timeout configuration.
+// These environment variables allow operators to configure how long KFP
+// waits before marking a run as FAILED when a pod is stuck in a
+// lifecycle failure state. Each category maps to the three failure types
+// described in issue #12843.
+const (
+	// Provisioning timeout covers failures like ImagePullBackOff,
+	// ErrImagePull and Unschedulable where the pod cannot be scheduled
+	// or its container image cannot be pulled.
+	PodLifecycleProvisioningTimeoutEnvVar = "KFP_POD_LIFECYCLE_PROVISIONING_TIMEOUT_SECONDS"
+
+	// Runtime timeout covers failures like OOMKilled and CrashLoopBackOff
+	// where the pod starts but fails during execution.
+	PodLifecycleRuntimeTimeoutEnvVar = "KFP_POD_LIFECYCLE_RUNTIME_TIMEOUT_SECONDS"
+
+	// Node timeout covers infrastructure failures like NodeLost,
+	// Preempted and Evicted where the underlying node fails.
+	PodLifecycleNodeTimeoutEnvVar = "KFP_POD_LIFECYCLE_NODE_TIMEOUT_SECONDS"
+
+	// Default timeout of 1 hour for all pod lifecycle failure categories
+	// if no environment variable is set.
+	DefaultPodLifecycleTimeoutSeconds = 3600
+)
