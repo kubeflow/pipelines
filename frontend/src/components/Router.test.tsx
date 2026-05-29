@@ -18,7 +18,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { Router as ReactRouter } from 'react-router';
 import { MemoryRouter } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
-import Router, { RouteConfig } from './Router';
+import Router, { getSafeReturnPath, RouteConfig, RoutePage } from './Router';
 import { Page } from '../pages/Page';
 import { ToolbarProps } from './Toolbar';
 
@@ -71,5 +71,12 @@ describe('Router', () => {
       history.push('/pear');
     });
     await waitFor(() => expect(screen.getByTestId('page-title')).toHaveTextContent(''));
+  });
+
+  it('only accepts same-app return paths', () => {
+    expect(getSafeReturnPath(RoutePage.RECURRING_RUNS)).toBe(RoutePage.RECURRING_RUNS);
+    expect(getSafeReturnPath('https://example.com')).toBeUndefined();
+    expect(getSafeReturnPath('//example.com')).toBeUndefined();
+    expect(getSafeReturnPath(null)).toBeUndefined();
   });
 });

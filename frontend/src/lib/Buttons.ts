@@ -705,6 +705,9 @@ export default class Buttons {
     const searchString = this._urlParser.build({
       [QUERY_PARAMS.experimentId]: experimentId || '',
       ...(isRecurring ? { [QUERY_PARAMS.isRecurring]: '1' } : {}),
+      ...(isRecurring && this._props.location.pathname === RoutePage.RECURRING_RUNS
+        ? { [QUERY_PARAMS.returnTo]: RoutePage.RECURRING_RUNS }
+        : {}),
     });
     this._props.history.push(RoutePage.NEW_RUN + searchString);
   }
