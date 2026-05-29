@@ -536,6 +536,17 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	_, err = tx.Exec(runSql, runArgs...)
 	if err != nil {
 		tx.Rollback()
+		// A concurrent recurring-run trigger may have already created this run. Such runs
+		// use a deterministic UUID derived from (RecurringRunId, DisplayName), so the
+		// duplicate insert collides on the primary key. Resolve it idempotently by
+		// returning the already-persisted run instead of surfacing an error.
+		if r.RecurringRunId != "" && s.db.IsDuplicateError(err) {
+			existingRun, getErr := s.GetRun(r.UUID)
+			if getErr != nil {
+				return nil, util.NewInternalServerError(err, "Failed to fetch existing run %v after duplicate key conflict", r.UUID)
+			}
+			return existingRun, nil
+		}
 		return nil, util.NewInternalServerError(err, "Failed to store run %v to table", r.DisplayName)
 	}
 

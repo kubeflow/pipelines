@@ -4969,3 +4969,22 @@ func TestCreateRun_IdempotentFromRecurringRun(t *testing.T) {
 	assert.Equal(t, "pre-existing-run-uuid", returned.UUID, "should return existing run, not create a new one")
 	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowCount(), "no new Argo Workflow should be submitted")
 }
+
+func TestCreateRun_DeterministicUUIDFromRecurringRun(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+
+	run := &model.Run{
+		DisplayName:    "scheduled-run-trigger-1",
+		RecurringRunId: job.UUID,
+		ExperimentId:   job.ExperimentId,
+		PipelineSpec:   job.PipelineSpec,
+	}
+	created, err := manager.CreateRun(context.Background(), run)
+	require.Nil(t, err)
+
+	// The run ID is derived deterministically from the recurring run ID and display
+	// name, so concurrent triggers converge on the same primary key.
+	wantUUID := util.NewDeterministicUUID(job.UUID + "/scheduled-run-trigger-1")
+	assert.Equal(t, wantUUID, created.UUID)
+}

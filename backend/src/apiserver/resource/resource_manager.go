@@ -664,11 +664,19 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	// 3. Update a record in the DB with scheduled timestamp, state, etc.
 	// 4. Persistence agent will call apiserver to update the records later.
 	if run.UUID == "" {
-		uuid, err := r.uuid.NewRandom()
-		if err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to generate run ID")
+		// For runs created from a recurring run, derive a deterministic run ID from the
+		// recurring run ID and display name. Concurrent triggers (e.g. multiple controller
+		// replicas) then converge on the same primary key, so the second insert collides
+		// and is resolved idempotently by the run store instead of creating a duplicate.
+		if run.RecurringRunId != "" && run.DisplayName != "" {
+			run.UUID = util.NewDeterministicUUID(run.RecurringRunId + "/" + run.DisplayName)
+		} else {
+			uuid, err := r.uuid.NewRandom()
+			if err != nil {
+				return nil, util.NewInternalServerError(err, "Failed to generate run ID")
+			}
+			run.UUID = uuid.String()
 		}
-		run.UUID = uuid.String()
 	}
 	run.RunDetails.CreatedAtInSec = r.time.Now().Unix()
 	runWorkflowOptions := template.RunWorkflowOptions{
