@@ -40,7 +40,7 @@ import { CustomRendererProps } from 'src/components/CustomTable';
 import { NameWithTooltip } from 'src/components/CustomTableNameColumn';
 import { Description } from 'src/components/Description';
 import NewRunParametersV2 from 'src/components/NewRunParametersV2';
-import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
+import { getSafeReturnPath, QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
 import Trigger from 'src/components/Trigger';
 import { color, commonCss, padding } from 'src/Css';
 import { Apis, ExperimentSortKeys, PipelineSortKeys, PipelineVersionSortKeys } from 'src/lib/Apis';
@@ -252,6 +252,7 @@ function NewRunV2(props: NewRunV2Props) {
   } = props;
   const cloneOrigin = getCloneOrigin(existingRun, existingRecurringRun);
   const urlParser = new URLParser(props);
+  const returnPath = getSafeReturnPath(urlParser.get(QUERY_PARAMS.returnTo));
   const [customRunName, setCustomRunName] = useState<string | null>(null);
   const [runDescription, setRunDescription] = useState('');
   const [serviceAccount, setServiceAccount] = useState('');
@@ -749,8 +750,7 @@ function NewRunV2(props: NewRunV2Props) {
           <Button
             id='exitNewRunPageBtn'
             onClick={() => {
-              // TODO(zijianjoy): Return to previous page instead of defaulting to RUNS page.
-              props.history.push(RoutePage.RUNS);
+              props.history.push(returnPath || RoutePage.RUNS);
             }}
           >
             {'Cancel'}
