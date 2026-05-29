@@ -38,7 +38,7 @@ import { CustomRendererProps } from '../components/CustomTable';
 import { NameWithTooltip } from '../components/CustomTableNameColumn';
 import { Description } from '../components/Description';
 import NewRunParameters from '../components/NewRunParameters';
-import { QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
+import { getSafeReturnPath, QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import Trigger from '../components/Trigger';
 import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
@@ -190,7 +190,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const {
       workflowFromRun,
       description,
@@ -603,14 +603,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
             <Button
               id='exitNewRunPageBtn'
               onClick={() => {
-                this.props.history.push(
-                  this.state.experiment
-                    ? RoutePage.EXPERIMENT_DETAILS.replace(
-                        ':' + RouteParams.experimentId,
-                        this.state.experiment.id!,
-                      )
-                    : RoutePage.RUNS,
-                );
+                this.props.history.push(this._getCancelRoute());
               }}
             >
               {isFirstRunInExperiment ? 'Skip this step' : 'Cancel'}
@@ -1157,6 +1150,20 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       }
     }
     return 'Parameters will appear after you select a pipeline';
+  }
+
+  private _getCancelRoute(): string {
+    const returnPath = getSafeReturnPath(new URLParser(this.props).get(QUERY_PARAMS.returnTo));
+    if (returnPath) {
+      return returnPath;
+    }
+
+    return this.state.experiment
+      ? RoutePage.EXPERIMENT_DETAILS.replace(
+          ':' + RouteParams.experimentId,
+          this.state.experiment.id!,
+        )
+      : RoutePage.RUNS;
   }
 
   private _start(): void {

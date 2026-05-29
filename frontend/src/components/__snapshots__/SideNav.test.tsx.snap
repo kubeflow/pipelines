@@ -4,6 +4,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
 <DocumentFragment>
   <div
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
+    data-testid="sideNav"
     id="sideNav"
   >
     <div
@@ -440,6 +441,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
       />
       <button
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+        data-testid="chevron-toggle"
         tabindex="0"
         type="button"
       >
@@ -519,6 +521,7 @@ exports[`SideNav > populates the display build information using the default pro
 <DocumentFragment>
   <div
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
+    data-testid="sideNav"
     id="sideNav"
   >
     <div
@@ -955,6 +958,7 @@ exports[`SideNav > populates the display build information using the default pro
       />
       <button
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+        data-testid="chevron-toggle"
         tabindex="0"
         type="button"
       >
@@ -1017,6 +1021,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
 <DocumentFragment>
   <div
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
+    data-testid="sideNav"
     id="sideNav"
   >
     <div
@@ -1453,6 +1458,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
       />
       <button
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+        data-testid="chevron-toggle"
         tabindex="0"
         type="button"
       >
@@ -1515,6 +1521,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
 <DocumentFragment>
   <div
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
+    data-testid="sideNav"
     id="sideNav"
   >
     <div
@@ -1951,6 +1958,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
       />
       <button
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+        data-testid="chevron-toggle"
         tabindex="0"
         type="button"
       >
@@ -2013,6 +2021,7 @@ exports[`SideNav > renders collapsed state 1`] = `
 <DocumentFragment>
   <div
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c collapsedRoot_fq9pe1f"
+    data-testid="sideNav"
     id="sideNav"
   >
     <div
@@ -2449,6 +2458,7 @@ exports[`SideNav > renders collapsed state 1`] = `
       />
       <button
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj collapsedChevron_f18a0vkk css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+        data-testid="chevron-toggle"
         tabindex="0"
         type="button"
       >
@@ -2511,6 +2521,7 @@ exports[`SideNav > renders expanded state 1`] = `
 <DocumentFragment>
   <div
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
+    data-testid="sideNav"
     id="sideNav"
   >
     <div
@@ -2947,6 +2958,7 @@ exports[`SideNav > renders expanded state 1`] = `
       />
       <button
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+        data-testid="chevron-toggle"
         tabindex="0"
         type="button"
       >
@@ -3009,6 +3021,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
 <DocumentFragment>
   <div
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
+    data-testid="sideNav"
     id="sideNav"
   >
     <div
@@ -3445,6 +3458,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
       />
       <button
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+        data-testid="chevron-toggle"
         tabindex="0"
         type="button"
       >
@@ -3507,6 +3521,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
 <DocumentFragment>
   <div
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
+    data-testid="sideNav"
     id="sideNav"
   >
     <div
@@ -3943,6 +3958,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
       />
       <button
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+        data-testid="chevron-toggle"
         tabindex="0"
         type="button"
       >
@@ -4005,6 +4021,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
 <DocumentFragment>
   <div
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
+    data-testid="sideNav"
     id="sideNav"
   >
     <div
@@ -4441,6 +4458,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
       />
       <button
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+        data-testid="chevron-toggle"
         tabindex="0"
         type="button"
       >
@@ -4503,6 +4521,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
 <DocumentFragment>
   <div
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
+    data-testid="sideNav"
     id="sideNav"
   >
     <div
@@ -4939,6 +4958,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
       />
       <button
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+        data-testid="chevron-toggle"
         tabindex="0"
         type="button"
       >
@@ -5001,6 +5021,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
 <DocumentFragment>
   <div
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
+    data-testid="sideNav"
     id="sideNav"
   >
     <div
@@ -5437,6 +5458,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
       />
       <button
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+        data-testid="chevron-toggle"
         tabindex="0"
         type="button"
       >
@@ -5499,6 +5521,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
 <DocumentFragment>
   <div
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
+    data-testid="sideNav"
     id="sideNav"
   >
     <div
@@ -5935,6 +5958,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
       />
       <button
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+        data-testid="chevron-toggle"
         tabindex="0"
         type="button"
       >
@@ -5997,6 +6021,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
 <DocumentFragment>
   <div
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
+    data-testid="sideNav"
     id="sideNav"
   >
     <div
@@ -6433,6 +6458,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
       />
       <button
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+        data-testid="chevron-toggle"
         tabindex="0"
         type="button"
       >
@@ -6495,6 +6521,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
 <DocumentFragment>
   <div
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
+    data-testid="sideNav"
     id="sideNav"
   >
     <div
@@ -6931,6 +6958,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
       />
       <button
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+        data-testid="chevron-toggle"
         tabindex="0"
         type="button"
       >
@@ -6993,6 +7021,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
 <DocumentFragment>
   <div
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
+    data-testid="sideNav"
     id="sideNav"
   >
     <div
@@ -7429,6 +7458,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
       />
       <button
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+        data-testid="chevron-toggle"
         tabindex="0"
         type="button"
       >
@@ -7491,6 +7521,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
 <DocumentFragment>
   <div
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
+    data-testid="sideNav"
     id="sideNav"
   >
     <div
@@ -7927,6 +7958,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
       />
       <button
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+        data-testid="chevron-toggle"
         tabindex="0"
         type="button"
       >
@@ -7989,6 +8021,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
 <DocumentFragment>
   <div
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
+    data-testid="sideNav"
     id="sideNav"
   >
     <div
@@ -8476,6 +8509,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
       />
       <button
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+        data-testid="chevron-toggle"
         tabindex="0"
         type="button"
       >

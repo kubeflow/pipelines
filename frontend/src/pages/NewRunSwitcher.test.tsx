@@ -284,6 +284,7 @@ describe('NewRunSwitcher', () => {
         </CommonTestWrapper>,
       );
 
+      expect(screen.getByRole('progressbar')).toBeInTheDocument();
       expect(screen.getByText('Currently loading pipeline information')).toBeInTheDocument();
     });
 

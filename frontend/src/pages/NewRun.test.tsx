@@ -17,7 +17,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { NewRun } from 'src/pages/NewRun';
-import TestUtils from 'src/TestUtils';
+import TestUtils, { flushPromisesInAct, invokeAndFlush } from 'src/TestUtils';
 import { PageProps } from 'src/pages/Page';
 import { Apis } from 'src/lib/Apis';
 import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
@@ -183,19 +183,6 @@ async function renderNewRunElement(
     throw new Error('NewRun instance is not available');
   }
   return new NewRunWrapper(newRunRef.current, result);
-}
-
-async function flushPromisesInAct(): Promise<void> {
-  await act(async () => {
-    await TestUtils.flushPromises();
-  });
-}
-
-async function invokeAndFlush(callback: () => void): Promise<void> {
-  await act(async () => {
-    callback();
-    await TestUtils.flushPromises();
-  });
 }
 
 async function clickAndFlush(element: HTMLElement): Promise<void> {
@@ -2307,5 +2294,16 @@ describe('NewRun', () => {
         'For triggered runs, maximum concurrent runs must be a positive number',
       );
     });
+  });
+
+  it('exits to a safe return path when one is present in the query params', async () => {
+    const props = generateProps();
+    props.location.search = `?${QUERY_PARAMS.returnTo}=${RoutePage.RECURRING_RUNS}`;
+
+    tree = await renderNewRunElement(<TestNewRun {...props} />);
+    await flushPromisesInAct();
+    tree.find('#exitNewRunPageBtn').simulate('click');
+
+    expect(historyPushSpy).toHaveBeenCalledWith(RoutePage.RECURRING_RUNS);
   });
 });

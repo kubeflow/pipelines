@@ -16,7 +16,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -33,6 +36,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/structpb"
 	corev1 "k8s.io/api/core/v1"
@@ -577,6 +581,12 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 
 	// If the workflow is not found, we need to create it.
 	if swf.Spec.Workflow != nil && swf.Spec.Workflow.Spec != nil {
+		// V1 recurring runs bypass the API server by embedding the workflow spec directly in the ScheduledWorkflow CRD,
+		// so the V1 pipeline block needs to be enforced at the controller level as well.
+		if shouldEnforceV1Block(swf) {
+			return false, "", fmt.Errorf(
+				"namespace %s is not allowed to run v1 pipelines; please migrate to KFP v2 pipelines", swf.Namespace)
+		}
 		newWorkflow, err := swf.NewWorkflow(nextScheduledEpoch, nowEpoch)
 		if err != nil {
 			return false, "", err
@@ -688,4 +698,96 @@ func (c *Controller) updateStatus(
 		return err
 	}
 	return nil
+}
+
+// isV1PipelineBlocked checks if the given namespace is blocked from running V1 pipelines
+// based on the BLOCK_V1_PIPELINES and V1_ALLOWED_NAMESPACES environment variables.
+func isV1PipelineBlocked(namespace string) bool {
+	blockV1Value := viper.GetString(util.BlockV1Pipelines)
+	blockV1, err := strconv.ParseBool(blockV1Value)
+	if err != nil {
+		log.WithError(err).Warnf("Invalid BLOCK_V1_PIPELINES value %q; V1 pipelines are not blocked", blockV1Value)
+		blockV1 = false
+	}
+	if !blockV1 {
+		return false
+	}
+
+	allowedNamespaces := viper.GetString(util.AllowedNamespaces)
+	if allowedNamespaces == "" {
+		return true
+	}
+
+	targetNamespace := strings.ToLower(strings.TrimSpace(namespace))
+	for _, n := range strings.Split(allowedNamespaces, ",") {
+		if strings.ToLower(strings.TrimSpace(n)) == targetNamespace {
+			return false
+		}
+	}
+	return true
+}
+
+// shouldEnforceV1Block Returns true allowing V2 workflows when key V2 component or pipeline labels
+// are present on the pod metadata. Returns false if the workflow is v1.
+func shouldEnforceV1Block(swf *util.ScheduledWorkflow) bool {
+	if swf == nil || !isV1PipelineBlocked(swf.Namespace) {
+		return false
+	}
+
+	if swf.Spec.Workflow == nil || swf.Spec.Workflow.Spec == nil {
+		return false
+	}
+
+	var raw []byte
+	switch v := swf.Spec.Workflow.Spec.(type) {
+	case string:
+		raw = []byte(v)
+	default:
+		var err error
+		raw, err = json.Marshal(v)
+		if err != nil {
+			log.Warnf("Failed to marshal SWF spec to JSON: %v", err)
+			return true
+		}
+	}
+
+	var wf workflowapi.Workflow
+	if err := json.Unmarshal(raw, &wf); err != nil {
+		log.Warnf("Failed to unmarshal SWF spec to JSON: %v", err)
+		return true
+	}
+
+	if hasV2PipelineMarker(wf.GetLabels(), wf.GetAnnotations()) {
+		return false
+	}
+
+	if hasV2ComponentMarker(wf.Spec.PodMetadata) {
+		return false
+	}
+
+	// Fall back because older ScheduledWorkflow specs may embed a WorkflowSpec without
+	// the top-level Workflow wrapper.
+	var workflowSpec workflowapi.WorkflowSpec
+	if err := json.Unmarshal(raw, &workflowSpec); err != nil {
+		log.Warnf("Failed to unmarshal SWF spec to JSON: %v", err)
+		return true
+	}
+
+	if hasV2ComponentMarker(workflowSpec.PodMetadata) {
+		return false
+	}
+
+	return true
+}
+
+func hasV2ComponentMarker(podMetadata *workflowapi.Metadata) bool {
+	if podMetadata == nil {
+		return false
+	}
+
+	return podMetadata.Labels[util.V2Key] == "true" || podMetadata.Annotations[util.V2Key] == "true"
+}
+
+func hasV2PipelineMarker(labels, annotations map[string]string) bool {
+	return labels[util.V2PipelineKey] == "true" || annotations[util.V2PipelineKey] == "true"
 }

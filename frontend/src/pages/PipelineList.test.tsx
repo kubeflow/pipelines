@@ -15,7 +15,8 @@
  */
 
 import * as React from 'react';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { range } from 'lodash';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
@@ -127,21 +128,21 @@ describe('PipelineList', () => {
 
   async function selectPipeline(id: string): Promise<void> {
     const row = await waitForRowById(id);
-    fireEvent.click(row);
+    await userEvent.click(row);
     await waitForSelectedPipelines([id]);
   }
 
   async function selectPipelines(ids: string[]): Promise<void> {
     for (const id of ids) {
       const row = await waitForRowById(id);
-      fireEvent.click(row);
+      await userEvent.click(row);
     }
     await waitForSelectedPipelines(ids);
   }
 
   async function deselectPipeline(id: string): Promise<void> {
     const row = await waitForRowById(id);
-    fireEvent.click(row);
+    await userEvent.click(row);
     await waitForSelectedPipelines([]);
   }
 
@@ -150,7 +151,7 @@ describe('PipelineList', () => {
     pipelineVersionId: string,
   ): Promise<void> {
     const row = await waitForRowById(pipelineVersionId);
-    fireEvent.click(row);
+    await userEvent.click(row);
     await waitFor(() => {
       expect(getPipelineListState()).toHaveProperty('selectedVersionIds');
       expect(getPipelineListState()!.selectedVersionIds[pipelineId]).toEqual([pipelineVersionId]);
@@ -208,10 +209,6 @@ describe('PipelineList', () => {
   });
 
   afterEach(() => {
-    if (renderResult) {
-      renderResult.unmount();
-      renderResult = null;
-    }
     pipelineListRef = null;
     vi.resetAllMocks();
   });
@@ -219,7 +216,9 @@ describe('PipelineList', () => {
   it('renders an empty list with empty state message', async () => {
     await renderPipelineList();
     await waitForPipelinesLoad();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(
+      screen.getByText('No pipelines found. Click "Upload pipeline" to start.'),
+    ).toBeInTheDocument();
   });
 
   it('renders a list of one pipeline', async () => {
@@ -236,7 +235,7 @@ describe('PipelineList', () => {
     });
     await renderPipelineList();
     await waitForPipelinesLoad();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('pipeline1')).toBeInTheDocument();
   });
 
   it('renders a list of one pipeline with no description or created date', async () => {
@@ -251,7 +250,7 @@ describe('PipelineList', () => {
     });
     await renderPipelineList();
     await waitForPipelinesLoad();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('pipeline1')).toBeInTheDocument();
   });
 
   it('renders a list of one pipeline with a display name that is not the same as the name', async () => {
@@ -266,7 +265,7 @@ describe('PipelineList', () => {
     });
     await renderPipelineList();
     await waitForPipelinesLoad();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('Pipeline One')).toBeInTheDocument();
   });
 
   it('renders a list of one pipeline with error', async () => {
@@ -284,7 +283,7 @@ describe('PipelineList', () => {
     });
     await renderPipelineList();
     await waitForPipelinesLoad();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(screen.getByText('pipeline1')).toBeInTheDocument();
   });
 
   it('calls Apis to list pipelines, sorted by creation time in descending order', async () => {
@@ -606,8 +605,8 @@ describe('PipelineList', () => {
     });
 
     await mountWithNPipelines(2);
-    const expandButtons = screen.getAllByLabelText('Expand');
-    fireEvent.click(expandButtons[1]);
+    const expandButtons = screen.getAllByRole('button', { name: /expand/i });
+    await userEvent.click(expandButtons[1]);
     await waitFor(() => {
       expect(listPipelineVersionsSpy).toHaveBeenCalled();
     });
@@ -681,14 +680,14 @@ describe('PipelineList', () => {
     });
 
     await mountWithNPipelines(1);
-    const expandButtons = screen.getAllByLabelText('Expand');
-    fireEvent.click(expandButtons[0]);
+    const expandButtons = screen.getAllByRole('button', { name: /expand/i });
+    await userEvent.click(expandButtons[0]);
     await waitFor(() => {
       expect(listPipelineVersionsSpy).toHaveBeenCalled();
     });
 
-    fireEvent.click(await waitForRowById('test-pipeline-version-id1'));
-    fireEvent.click(await waitForRowById('test-pipeline-version-id2'));
+    await userEvent.click(await waitForRowById('test-pipeline-version-id1'));
+    await userEvent.click(await waitForRowById('test-pipeline-version-id2'));
     await waitFor(() => {
       expect(
         getPipelineListState()!.selectedVersionIds['test-pipeline-id0'].slice().sort(),

@@ -28,6 +28,7 @@ import (
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -37,7 +38,14 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
+
+func TestMain(m *testing.M) {
+	// Disable URL validation for tests (allows mock server URLs)
+	viper.Set(common.PipelineURLValidationEnabled, "false")
+	os.Exit(m.Run())
+}
 
 func createPipelineServerV1(resourceManager *resource.ResourceManager, httpClient *http.Client) *PipelineServerV1 {
 	return &PipelineServerV1{
@@ -1103,4 +1111,223 @@ func TestExtractTagFiltersFromFilterSpec(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCanAccessPipeline_SharedPipeline_ReadAllowed(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	initEnvVars()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	defer clientManager.Close()
+
+	// Create a shared pipeline (empty namespace)
+	pipeline, err := resourceManager.CreatePipeline(&model.Pipeline{
+		Name:      "shared-pipeline",
+		Namespace: "",
+	})
+	assert.Nil(t, err)
+
+	pipelineServer := createPipelineServer(resourceManager, nil)
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	// GET on shared pipeline should be allowed
+	err = pipelineServer.canAccessPipeline(ctx, pipeline.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	assert.Nil(t, err)
+
+	// LIST on shared pipeline should be allowed
+	err = pipelineServer.canAccessPipeline(ctx, "", &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbList})
+	assert.Nil(t, err)
+}
+
+func TestCanAccessPipeline_SharedPipeline_WriteUnauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	initEnvVars()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	defer clientManager.Close()
+
+	// Create a shared pipeline (empty namespace)
+	pipeline, err := resourceManager.CreatePipeline(&model.Pipeline{
+		Name:      "shared-pipeline",
+		Namespace: "",
+	})
+	assert.Nil(t, err)
+
+	pipelineServer := createPipelineServer(resourceManager, nil)
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	// DELETE on shared pipeline should be rejected for unauthorized user
+	err = pipelineServer.canAccessPipeline(ctx, pipeline.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to access shared pipeline")
+
+	// UPDATE on shared pipeline should be rejected for unauthorized user
+	err = pipelineServer.canAccessPipeline(ctx, pipeline.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUpdate})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to access shared pipeline")
+
+	// CREATE on shared pipeline should be rejected for unauthorized user
+	err = pipelineServer.canAccessPipeline(ctx, "", &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbCreate})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to access shared pipeline")
+}
+
+func TestCanAccessPipeline_SharedPipeline_WriteAuthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	initEnvVars()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	defer clientManager.Close()
+
+	// Create a shared pipeline (empty namespace)
+	pipeline, err := resourceManager.CreatePipeline(&model.Pipeline{
+		Name:      "shared-pipeline",
+		Namespace: "",
+	})
+	assert.Nil(t, err)
+
+	pipelineServer := createPipelineServer(resourceManager, nil)
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	// DELETE on shared pipeline should succeed for authorized user
+	err = pipelineServer.canAccessPipeline(ctx, pipeline.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
+	assert.Nil(t, err)
+
+	// UPDATE on shared pipeline should succeed for authorized user
+	err = pipelineServer.canAccessPipeline(ctx, pipeline.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUpdate})
+	assert.Nil(t, err)
+}
+
+func TestCanAccessPipeline_SharedPipeline_ReadAllowed_EvenWhenUnauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	initEnvVars()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	defer clientManager.Close()
+
+	// Create a shared pipeline (empty namespace)
+	pipeline, err := resourceManager.CreatePipeline(&model.Pipeline{
+		Name:      "shared-pipeline",
+		Namespace: "",
+	})
+	assert.Nil(t, err)
+
+	pipelineServer := createPipelineServer(resourceManager, nil)
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	// GET on shared pipeline should still be allowed even for unauthorized user
+	err = pipelineServer.canAccessPipeline(ctx, pipeline.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	assert.Nil(t, err)
+
+	// LIST on shared pipeline should still be allowed even for unauthorized user
+	err = pipelineServer.canAccessPipeline(ctx, "", &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbList})
+	assert.Nil(t, err)
+}
+
+func TestCreatePipelineV1_URLValidation_BlocksDisallowedDomain(t *testing.T) {
+	// Enable URL validation for this test (overrides TestMain's global disable)
+	viper.Set(common.PipelineURLValidationEnabled, "true")
+	defer viper.Set(common.PipelineURLValidationEnabled, "false")
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+
+	pipelineServer := createPipelineServerV1(resourceManager, http.DefaultClient)
+	_, err := pipelineServer.CreatePipelineV1(
+		context.Background(), &api.CreatePipelineRequest{
+			Pipeline: &api.Pipeline{
+				Url:  &api.Url{PipelineUrl: "https://evil.com/malicious.yaml"},
+				Name: "test-blocked-domain",
+			},
+		},
+	)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Pipeline URL validation failed")
+}
+
+func TestCreatePipelineV1_URLValidation_BlocksHTTPByDefault(t *testing.T) {
+	viper.Set(common.PipelineURLValidationEnabled, "true")
+	defer viper.Set(common.PipelineURLValidationEnabled, "false")
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+
+	pipelineServer := createPipelineServerV1(resourceManager, http.DefaultClient)
+	_, err := pipelineServer.CreatePipelineV1(
+		context.Background(), &api.CreatePipelineRequest{
+			Pipeline: &api.Pipeline{
+				Url:  &api.Url{PipelineUrl: "http://storage.googleapis.com/bucket/file.yaml"},
+				Name: "test-http-blocked",
+			},
+		},
+	)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Pipeline URL validation failed")
+}
+
+func TestCreatePipelineV1_URLValidation_BlocksFileScheme(t *testing.T) {
+	viper.Set(common.PipelineURLValidationEnabled, "true")
+	defer viper.Set(common.PipelineURLValidationEnabled, "false")
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+
+	pipelineServer := createPipelineServerV1(resourceManager, http.DefaultClient)
+	_, err := pipelineServer.CreatePipelineV1(
+		context.Background(), &api.CreatePipelineRequest{
+			Pipeline: &api.Pipeline{
+				Url:  &api.Url{PipelineUrl: "file:///etc/passwd"},
+				Name: "test-file-blocked",
+			},
+		},
+	)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Pipeline URL validation failed")
+}
+
+type errorRoundTripper struct {
+	err error
+}
+
+func (rt errorRoundTripper) RoundTrip(*http.Request) (*http.Response, error) {
+	return nil, rt.err
+}
+
+func TestCreatePipelineV1_URLValidation_MapsTransportValidationErrorToInvalidInput(t *testing.T) {
+	viper.Set(common.PipelineURLValidationEnabled, "false")
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+
+	pipelineServer := createPipelineServerV1(resourceManager, &http.Client{
+		Transport: errorRoundTripper{err: util.NewInvalidInputError("connection to blocked IP range denied")},
+	})
+	_, err := pipelineServer.CreatePipelineV1(
+		context.Background(), &api.CreatePipelineRequest{
+			Pipeline: &api.Pipeline{
+				Url:  &api.Url{PipelineUrl: "https://storage.googleapis.com/bucket/file.yaml"},
+				Name: "test-transport-validation-error",
+			},
+		},
+	)
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 }

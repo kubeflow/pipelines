@@ -27,11 +27,17 @@ images:
   newName: postgres
   newTag: 14.7-alpine3.17
 
-vars:
-- fieldref:
-    fieldPath: metadata.name
-  name: MLMD_DB_HOST
-  objref:
-    apiVersion: v1
+replacements:
+- source:
     kind: Service
     name: metadata-postgres-db
+    fieldPath: metadata.name
+  targets:
+  - select:
+      kind: Deployment
+      name: metadata-grpc-deployment
+    fieldPaths:
+    - spec.template.spec.containers.0.args.2
+    options:
+      delimiter: =
+      index: 1

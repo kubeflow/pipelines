@@ -124,23 +124,21 @@ describe('LineageCard', () => {
   it('renders one LineageCardRow per element in rows', () => {
     const rows = [buildArtifactRow('row-1'), buildArtifactRow('row-2'), buildArtifactRow('row-3')];
 
-    const { container } = renderLineageCard({
+    renderLineageCard({
       title: 'Multi Row',
       type: 'artifact',
       rows,
       addSpacer: false,
     });
 
-    const cardBody = container.querySelector('.cardBody');
-    expect(cardBody).not.toBeNull();
-    expect(cardBody?.children.length).toBe(3);
+    expect(screen.getAllByTestId('card-row')).toHaveLength(3);
   });
 
   it('passes setLineageViewTarget down to each row', () => {
     const setLineageViewTarget = vi.fn();
     const rows = [buildArtifactRow('clickable-row')];
 
-    const { container } = renderLineageCard({
+    renderLineageCard({
       title: 'Clickable Card',
       type: 'artifact',
       rows,
@@ -148,9 +146,7 @@ describe('LineageCard', () => {
       setLineageViewTarget,
     });
 
-    const cardRow = container.querySelector('.cardRow');
-    expect(cardRow).not.toBeNull();
-    fireEvent.click(cardRow!);
+    fireEvent.click(screen.getByTestId('card-row'));
     expect(setLineageViewTarget).toHaveBeenCalledTimes(1);
   });
 });

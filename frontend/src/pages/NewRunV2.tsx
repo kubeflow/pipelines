@@ -24,7 +24,7 @@ import {
   Radio,
   Checkbox,
 } from '@mui/material';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -40,11 +40,16 @@ import { CustomRendererProps } from 'src/components/CustomTable';
 import { NameWithTooltip } from 'src/components/CustomTableNameColumn';
 import { Description } from 'src/components/Description';
 import NewRunParametersV2 from 'src/components/NewRunParametersV2';
-import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
+import { getSafeReturnPath, QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
 import Trigger from 'src/components/Trigger';
 import { color, commonCss, padding } from 'src/Css';
-import { ComponentInputsSpec_ParameterSpec } from 'src/generated/pipeline_spec/pipeline_spec';
 import { Apis, ExperimentSortKeys, PipelineSortKeys, PipelineVersionSortKeys } from 'src/lib/Apis';
+import { useKeyedState } from 'src/hooks/useKeyedState';
+import {
+  getInitialParameterState,
+  type RuntimeParameters,
+  type SpecParameters,
+} from 'src/lib/NewRunParametersUtils';
 import { URLParser } from 'src/lib/URLParser';
 import { errorToMessage, generateRandomString, logger } from 'src/lib/Utils';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
@@ -93,9 +98,7 @@ interface RunV2Props {
 
 type NewRunV2Props = RunV2Props & PageProps;
 
-export type SpecParameters = { [key: string]: ComponentInputsSpec_ParameterSpec };
-export type RuntimeParameters = { [key: string]: any };
-type KeyedState<T> = { key: string; value: T };
+export type { RuntimeParameters, SpecParameters } from 'src/lib/NewRunParametersUtils';
 
 const hashString64 = (value: string): string => {
   let first = 0x9e3779b1;
@@ -138,14 +141,6 @@ const getTemplateData = (templateString?: string) => {
     return getEmptyTemplateData();
   }
 };
-
-function useKeyedState<T>(key: string, initialValue: T) {
-  const [state, setState] = useState<KeyedState<T>>({ key: '', value: initialValue });
-  const value = state.key === key ? state.value : initialValue;
-  const setValue = useCallback((value: T) => setState({ key, value }), [key]);
-
-  return [value, setValue] as const;
-}
 
 type CloneOrigin = {
   isClone: boolean;
@@ -257,6 +252,7 @@ function NewRunV2(props: NewRunV2Props) {
   } = props;
   const cloneOrigin = getCloneOrigin(existingRun, existingRecurringRun);
   const urlParser = new URLParser(props);
+  const returnPath = getSafeReturnPath(urlParser.get(QUERY_PARAMS.returnTo));
   const [customRunName, setCustomRunName] = useState<string | null>(null);
   const [runDescription, setRunDescription] = useState('');
   const [serviceAccount, setServiceAccount] = useState('');
@@ -330,10 +326,14 @@ function NewRunV2(props: NewRunV2Props) {
       )}:${clonedRuntimeConfigKey.length}:${hashString64(clonedRuntimeConfigKey)}`,
     [clonedRuntimeConfigKey, templateString],
   );
+  const initialParameterState = useMemo(
+    () => getInitialParameterState(specParameters, clonedRuntimeConfig),
+    [clonedRuntimeConfig, specParameters],
+  );
   const initialPipelineRoot = clonedRuntimeConfig?.pipeline_root ?? defaultPipelineRoot;
   const [runtimeParameters, handleParameterChange] = useKeyedState<RuntimeParameters>(
     parameterStateKey,
-    {},
+    initialParameterState.runtimeParameters,
   );
   const [pipelineRoot, handlePipelineRootChange] = useKeyedState<string | undefined>(
     parameterStateKey,
@@ -341,7 +341,7 @@ function NewRunV2(props: NewRunV2Props) {
   );
   const [isParameterValid, handleParameterValidityChange] = useKeyedState<boolean>(
     parameterStateKey,
-    false,
+    initialParameterState.isValid,
   );
   const labelTextAdjective = isRecurringRun ? 'recurring ' : '';
   const usePipelineFromRunLabel = `Using pipeline from existing ${labelTextAdjective} run.`;
@@ -722,6 +722,7 @@ function NewRunV2(props: NewRunV2Props) {
         <NewRunParametersV2
           key={parameterStateKey}
           pipelineRoot={pipelineRoot}
+          initialParameterState={initialParameterState}
           handlePipelineRootChange={handlePipelineRootChange}
           titleMessage={
             existingPipeline || cloneOrigin.isClone
@@ -749,8 +750,7 @@ function NewRunV2(props: NewRunV2Props) {
           <Button
             id='exitNewRunPageBtn'
             onClick={() => {
-              // TODO(zijianjoy): Return to previous page instead of defaulting to RUNS page.
-              props.history.push(RoutePage.RUNS);
+              props.history.push(returnPath || RoutePage.RUNS);
             }}
           >
             {'Cancel'}

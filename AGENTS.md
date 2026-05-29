@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-04-07
+- Last updated: 2026-04-25
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -45,6 +45,7 @@
 
 - Always sign off on commits with `git commit -s` (adds a `Signed-off-by:` trailer).
 - Never include AI agents (e.g. Claude Code, Copilot, or similar tools) as co-authors on commits. The human author is responsible for the work.
+- See `CONTRIBUTING.md` at the repo root for DCO sign-off requirements and general PR conventions.
 
 ## Baseline architecture
 
@@ -175,6 +176,8 @@ KFP supports two main deployment modes:
 - Includes user isolation, namespace-based access control, and Istio integration
 - Suitable for production environments with multiple users/teams
 
+See `manifests/kustomize/README.md` for full installation options and environment-specific instructions.
+
 ## Local testing
 
 - Python (SDK):
@@ -207,6 +210,7 @@ Notes:
 
 - API Server tests under `backend/test/v2/api` are integration tests run with Ginkgo; they require a running cluster and are not part of unit tests.
 - Compiler tests live under `backend/test/compiler` and E2E tests under `backend/test/end2end`; both are Ginkgo-based and excluded from unit presubmits.
+- See `test/README.md` for integration/E2E test infrastructure details (Kind clusters, GitHub Actions setup).
 
 ### Backend Ginkgo test suites
 
@@ -289,7 +293,8 @@ Notes:
 
 ## Regenerate protobufs after schema changes
 
-- Pipeline spec Protobufs live under `api/`.
+- Pipeline spec Protobufs live under `api/` (see `api/README.md` for proto code generation details).
+- Backend API generation tools and prerequisites are documented in `backend/api/README.md`.
 - Run both Python and Go generations:
 
 ```bash
@@ -328,11 +333,11 @@ The following files are generated; edit their sources and regenerate:
 - DSL core: `sdk/python/kfp/dsl/` (e.g., `component_factory.py`, `pipeline_task.py`, `pipeline_context.py`)
 - Executor entrypoint: `sdk/python/kfp/dsl/executor_main.py`
 - Platform integration (Python): `kubernetes_platform/python/kfp/`
-- Platform spec proto: `kubernetes_platform/proto/`
+- Platform spec proto: `kubernetes_platform/proto/` (see `kubernetes_platform/README.md` for proto generation and library setup)
 - API definitions (Protobufs): `api/`
 - Backend (API server, driver, launcher, etc.): `backend/` (see `backend/README.md` for build, test, and local development setup)
 - Backend test suites: `backend/test/compiler`, `backend/test/v2/api`, `backend/test/end2end`
-- Frontend: `frontend/` (React TypeScript, see `frontend/CONTRIBUTING.md`)
+- Frontend: `frontend/` (React TypeScript, see `frontend/README.md` for quick start and `frontend/CONTRIBUTING.md` for detailed guidelines)
 - Manifests (Kustomize bases/overlays for deployments): `manifests/`
 - CI manifests and overlays used by workflows: `.github/resources/manifests/{kubernetes-native,multiuser,standalone}`
 - Test data (inputs/goldens): `test_data/pipeline_files/valid/`, `test_data/compiled-workflows/`
@@ -520,7 +525,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
   - Examples: `e2e-test.yml`, `sdk-execution.yml`, `upgrade-test.yml`, `kfp-kubernetes-execution-tests.yml`, `kfp-webhooks.yml`, `api-server-tests.yml`, `compiler-tests.yml`, `legacy-v2-api-integration-tests.yml`, `integration-tests-v1.yml`, and frontend integration in `e2e-test-frontend.yml`.
 - Pipeline store variants (v2 engine): tests run with `database` and `kubernetes` stores, and a dedicated job compiles pipelines to Kubernetes-native manifests.
   - Example: `e2e-test.yml` job "API integration tests v2 - K8s with ${pipeline_store}" and "compile pipelines with Kubernetes".
-- Argo Workflows version matrix for compatibility (where relevant): e.g., `e2e-test.yml` includes an Argo job (e.g., `v3.5.14`).
+- Argo Workflows version matrix for compatibility (where relevant): `e2e-test.yml` exercises `v3.5.14`, `v3.7.3`, and `v4.0.4` across the standard cache/test-label matrix, while `api-server-tests.yml` covers standalone and Kubernetes-native Argo compatibility across the standard matrices (with standalone low-Kubernetes spot lanes per supported Argo version).
 - Proxy / cache toggles: dedicated jobs run with HTTP proxy enabled and with execution cache disabled to validate those modes.
 - Artifacts: failing logs and test outputs are uploaded as workflow artifacts for debugging.
 

@@ -72,7 +72,7 @@ class MarkdownViewer extends Viewer<MarkdownViewerProps, any> {
     return 'Markdown';
   }
 
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     if (!this.props.configs[0]) {
       return null;
     }

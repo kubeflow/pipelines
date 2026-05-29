@@ -264,28 +264,16 @@ describe('RunDetailsRouter', () => {
       },
     };
     getRunSpy.mockResolvedValue(v2Run);
-    getPipelineVersionSpy.mockResolvedValue({
-      pipeline_id: TEST_PIPELINE_ID,
-      pipeline_version_id: TEST_PIPELINE_VERSION_ID,
-      pipeline_spec: {
-        apiVersion: 'argoproj.io/v1alpha1',
-        kind: 'Workflow',
-        metadata: { name: 'from-version' },
-        spec: { arguments: { parameters: [{ name: 'output' }] } },
-      },
-    } as V2beta1PipelineVersion);
+
     render(
       <CommonTestWrapper>
         <RunDetailsRouter {...generateProps()} />
       </CommonTestWrapper>,
     );
     await waitFor(() => {
-      expect(getPipelineVersionSpy).toHaveBeenCalledWith(
-        TEST_PIPELINE_ID,
-        TEST_PIPELINE_VERSION_ID,
-      );
       expect(screen.getByTestId('run-details-v2')).toBeInTheDocument();
     });
+    expect(getPipelineVersionSpy).not.toHaveBeenCalled();
   });
 
   it('renders EnhancedRunDetails when getRun fails', async () => {
@@ -306,6 +294,59 @@ describe('RunDetailsRouter', () => {
       expect(element).toBeInTheDocument();
       expect(element.dataset.isLoading).toBe('false');
     });
+  });
+
+  it('shows error banner when pipeline version template fetch fails', async () => {
+    const runWithVersionRef: V2beta1Run = {
+      run_id: TEST_RUN_ID,
+      pipeline_version_reference: {
+        pipeline_id: TEST_PIPELINE_ID,
+        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
+      },
+    };
+    getRunSpy.mockResolvedValue(runWithVersionRef);
+    getPipelineVersionSpy.mockRejectedValue(new Error('Version not found'));
+
+    const props = generateProps();
+    render(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...props} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(props.updateBanner).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining('failed to retrieve pipeline version template'),
+          mode: 'error',
+        }),
+      );
+    });
+  });
+
+  it('does not show error banner when inline pipeline_spec is present and getPipelineVersion rejects', async () => {
+    const v2Run: V2beta1Run = {
+      run_id: TEST_RUN_ID,
+      pipeline_spec: v2PipelineSpec,
+      pipeline_version_reference: {
+        pipeline_id: TEST_PIPELINE_ID,
+        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
+      },
+    };
+    getRunSpy.mockResolvedValue(v2Run);
+    getPipelineVersionSpy.mockRejectedValue(new Error('Version not found'));
+
+    const props = generateProps();
+    render(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...props} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('run-details-v2')).toBeInTheDocument();
+    });
+    expect(props.updateBanner).not.toHaveBeenCalled();
   });
 
   it('fetches template from pipeline version when run has no inline spec', async () => {

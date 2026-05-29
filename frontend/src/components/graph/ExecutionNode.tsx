@@ -82,9 +82,9 @@ export default ExecutionNode;
 
 export function getExecutionIcon(state: Execution.State | undefined) {
   if (state === undefined) {
-    return <ListAltIcon className='text-mui-grey-500' />;
+    return <ListAltIcon data-testid='execution-icon-default' className='text-mui-grey-500' />;
   }
-  return <ListAltIcon className='text-mui-blue-600' />;
+  return <ListAltIcon data-testid='execution-icon-active' className='text-mui-blue-600' />;
 }
 
 export function getIcon(state: Execution.State | undefined) {
@@ -119,7 +119,7 @@ export function getIcon(state: Execution.State | undefined) {
       );
     case Execution.State.COMPLETE:
       return getStateIconWrapper(
-        <CheckCircleIcon className='text-mui-green-600 bla' />,
+        <CheckCircleIcon className='text-mui-green-600' />,
         'bg-mui-green-50',
       );
     default:

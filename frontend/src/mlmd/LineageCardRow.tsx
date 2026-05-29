@@ -186,14 +186,14 @@ export class LineageCardRow extends React.Component<LineageCardRowProps> {
     this.handleClick = this.handleClick.bind(this);
   }
 
-  public checkEdgeAffordances(): JSX.Element[] {
+  public checkEdgeAffordances(): React.JSX.Element[] {
     const affItems = [];
     this.props.leftAffordance && affItems.push(<div className='edgeLeft' key={'edgeLeft'} />);
     this.props.rightAffordance && affItems.push(<div className='edgeRight' key={'edgeRight'} />);
     return affItems;
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { isLastRow } = this.props;
     const cardRowClasses = classes(
       'cardRow',
@@ -202,7 +202,12 @@ export class LineageCardRow extends React.Component<LineageCardRowProps> {
     );
 
     return (
-      <div className={cardRowClasses} ref={this.rowContainerRef} onClick={this.handleClick}>
+      <div
+        className={cardRowClasses}
+        ref={this.rowContainerRef}
+        onClick={this.handleClick}
+        data-testid='card-row'
+      >
         {this.checkRadio()}
         <footer>
           <Link
@@ -220,7 +225,7 @@ export class LineageCardRow extends React.Component<LineageCardRowProps> {
     );
   }
 
-  private checkRadio(): JSX.Element {
+  private checkRadio(): React.JSX.Element {
     if (this.props.hideRadio) {
       return <div className='noRadio' />;
     }

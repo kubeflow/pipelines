@@ -28,11 +28,17 @@ images:
   newName: mysql
   newTag: 8.0.3
 
-vars:
-- fieldref:
-    fieldPath: metadata.name
-  name: MLMD_DB_HOST
-  objref:
-    apiVersion: v1
+replacements:
+- source:
     kind: Service
     name: metadata-db
+    fieldPath: metadata.name
+  targets:
+  - select:
+      kind: Deployment
+      name: metadata-grpc-deployment
+    fieldPaths:
+    - spec.template.spec.containers.0.args.1
+    options:
+      delimiter: =
+      index: 1

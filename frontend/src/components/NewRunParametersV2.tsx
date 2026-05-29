@@ -26,11 +26,20 @@ import {
   TextField,
 } from '@mui/material';
 import * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { PipelineSpecRuntimeConfig } from 'src/apis/run';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
-import { RuntimeParameters, SpecParameters } from 'src/pages/NewRunV2';
+import {
+  convertInput,
+  generateInputValidationErrMsg,
+  getInitialParameterState,
+  protoMap,
+  type InitialParameterState,
+  type ParameterErrorMessages,
+  type RuntimeParameters,
+  type SpecParameters,
+} from 'src/lib/NewRunParametersUtils';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, spacing, padding } from '../Css';
 import Editor from './Editor';
@@ -65,124 +74,17 @@ interface NewRunParametersProps {
   // ComponentInputsSpec_ParameterSpec
   specParameters: SpecParameters;
   clonedRuntimeConfig?: PipelineSpecRuntimeConfig;
+  initialParameterState?: InitialParameterState;
   handlePipelineRootChange?: (pipelineRoot?: string) => void;
   handleParameterChange?: (parameters: RuntimeParameters) => void;
   setIsValidInput?: (isValid: boolean) => void;
-}
-
-const protoMap = new Map<string, string>([
-  ['NUMBER_DOUBLE', 'double'],
-  ['NUMBER_INTEGER', 'integer'],
-  ['STRING', 'string'],
-  ['BOOLEAN', 'boolean'],
-  ['LIST', 'list'],
-  ['STRUCT', 'dict'],
-]);
-
-function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEnum): any {
-  if (paramStr === '' && paramType !== ParameterType_ParameterTypeEnum.STRING) {
-    return undefined;
-  }
-  switch (paramType) {
-    case ParameterType_ParameterTypeEnum.BOOLEAN:
-      if (paramStr === 'true' || paramStr === 'false') {
-        return paramStr === 'true';
-      }
-      return null;
-    case ParameterType_ParameterTypeEnum.STRING:
-      return paramStr;
-    case ParameterType_ParameterTypeEnum.NUMBER_INTEGER:
-      if (Number.isInteger(Number(paramStr))) {
-        return Number(paramStr);
-      }
-      return null;
-    case ParameterType_ParameterTypeEnum.NUMBER_DOUBLE:
-      if (!Number.isNaN(Number(paramStr))) {
-        return Number(paramStr);
-      }
-      return null;
-    case ParameterType_ParameterTypeEnum.LIST:
-      if (!paramStr.trim().startsWith('[')) {
-        return null;
-      }
-      try {
-        return JSON.parse(paramStr);
-      } catch (err) {
-        return null;
-      }
-    case ParameterType_ParameterTypeEnum.STRUCT:
-      if (!paramStr.trim().startsWith('{')) {
-        return null;
-      }
-      try {
-        return JSON.parse(paramStr);
-      } catch (err) {
-        return null;
-      }
-    default:
-      // TODO: (jlyaoyuli) Validate if the type of parameters matches the value
-      // If it doesn't throw an error message next to the TextField.
-      console.log('Unknown paramter type: ' + paramType);
-      return null;
-  }
-}
-
-function generateInputValidationErrMsg(
-  parametersInRealType: any,
-  paramType: ParameterType_ParameterTypeEnum,
-  isOptional: boolean = false,
-) {
-  // If the parameter is optional then don't report error on undefined.
-  if (parametersInRealType === undefined && isOptional) {
-    return null;
-  }
-  let errorMessage;
-  switch (parametersInRealType) {
-    case undefined:
-      errorMessage = 'Missing parameter.';
-      break;
-    // TODO(jlyaoyuli): tell the error difference between mismatch type or invalid JSON form.
-    case null:
-      errorMessage =
-        'Invalid input. This parameter should be in ' +
-        protoMap.get(ParameterType_ParameterTypeEnum[paramType]) +
-        ' type';
-      break;
-    default:
-      errorMessage = null;
-  }
-  return errorMessage;
-}
-
-function convertNonUserInputParamToString(
-  specParameters: SpecParameters,
-  key: string,
-  value: any,
-): string {
-  let paramStr;
-  if (!specParameters[key]) {
-    return '';
-  }
-  switch (specParameters[key].parameterType) {
-    case ParameterType_ParameterTypeEnum.STRUCT:
-    case ParameterType_ParameterTypeEnum.LIST:
-      paramStr = JSON.stringify(value);
-      break;
-    case ParameterType_ParameterTypeEnum.BOOLEAN:
-    case ParameterType_ParameterTypeEnum.NUMBER_INTEGER:
-    case ParameterType_ParameterTypeEnum.NUMBER_DOUBLE:
-      paramStr = value.toString();
-      break;
-    default:
-      paramStr = value;
-  }
-  return paramStr;
 }
 
 function NewRunParametersV2(props: NewRunParametersProps) {
   const {
     specParameters,
     clonedRuntimeConfig,
+    initialParameterState: providedInitialParameterState,
     handlePipelineRootChange,
     handleParameterChange,
     setIsValidInput,
@@ -192,67 +94,18 @@ function NewRunParametersV2(props: NewRunParametersProps) {
   const [customPipelineRoot, setCustomPipelineRoot] = useState(
     clonedPipelineRoot ?? props.pipelineRoot,
   );
-  const [errorMessages, setErrorMessages] = useState<string[]>([]);
-
-  const [updatedParameters, setUpdatedParameters] = useState({});
-  useEffect(() => {
-    if (clonedRuntimeConfig && clonedRuntimeConfig.parameters) {
-      const clonedRuntimeParametersStr: RuntimeParameters = {};
-      // Convert cloned parameter to string type first to avoid error from convertInput
-      Object.entries(clonedRuntimeConfig.parameters).forEach((entry) => {
-        clonedRuntimeParametersStr[entry[0]] = convertNonUserInputParamToString(
-          specParameters,
-          entry[0],
-          entry[1],
-        );
-      });
-      setUpdatedParameters(clonedRuntimeParametersStr);
-      // Directly using cloned paramters guarantees input is valid and no error message
-      setErrorMessages([]);
-      if (setIsValidInput) {
-        setIsValidInput(true);
-      }
-
-      if (clonedRuntimeConfig && handleParameterChange) {
-        handleParameterChange(clonedRuntimeConfig.parameters);
-      }
-      return;
-    }
-    // TODO(jlyaoyuli): If we have parameters from run, put original default value next to the paramKey
-    const runtimeParametersWithDefault: RuntimeParameters = {};
-    const runtimeParametersInRealType: RuntimeParameters = {};
-    let allParamtersWithDefault = true;
-    let errMsg: string[] = [];
-    Object.keys(specParameters).forEach((key) => {
-      if (specParameters[key].defaultValue !== undefined) {
-        // TODO(zijianjoy): Make sure to consider all types of parameters.
-        // Convert default value to string type first to avoid error from convertInput
-        runtimeParametersWithDefault[key] = convertNonUserInputParamToString(
-          specParameters,
-          key,
-          specParameters[key].defaultValue,
-        );
-        // Convert to real type for handleParameterChange
-        runtimeParametersInRealType[key] = convertInput(
-          runtimeParametersWithDefault[key],
-          specParameters[key].parameterType,
-        );
-      } else {
-        allParamtersWithDefault = false;
-        errMsg[key] = 'Missing parameter.';
-      }
-    });
-    setUpdatedParameters(runtimeParametersWithDefault);
-    setErrorMessages(errMsg);
-    if (setIsValidInput) {
-      setIsValidInput(allParamtersWithDefault);
-    }
-    // Propagate default parameter values to parent component so they are included in runtime_config
-    // This ensures default parameters are visible in Compare Runs feature
-    if (handleParameterChange) {
-      handleParameterChange(runtimeParametersInRealType);
-    }
-  }, [clonedRuntimeConfig, specParameters, handleParameterChange, setIsValidInput]);
+  const initialParameterState = React.useMemo(
+    () =>
+      providedInitialParameterState ??
+      getInitialParameterState(specParameters, clonedRuntimeConfig),
+    [clonedRuntimeConfig, providedInitialParameterState, specParameters],
+  );
+  const [errorMessages, setErrorMessages] = useState<ParameterErrorMessages>(
+    initialParameterState.errorMessages,
+  );
+  const [updatedParameters, setUpdatedParameters] = useState<RuntimeParameters>(
+    initialParameterState.updatedParameters,
+  );
 
   return (
     <div>
@@ -320,13 +173,12 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                 <ParamEditor
                   id={k}
                   onChange={(value) => {
-                    let allInputsValid: boolean = true;
-                    let parametersInRealType: RuntimeParameters = {};
-                    const nextUpdatedParameters: RuntimeParameters = {};
-
-                    Object.assign(nextUpdatedParameters, updatedParameters);
-                    nextUpdatedParameters[k] = value;
+                    const nextUpdatedParameters: RuntimeParameters = {
+                      ...updatedParameters,
+                      [k]: value,
+                    };
                     setUpdatedParameters(nextUpdatedParameters);
+                    const parametersInRealType: RuntimeParameters = {};
                     Object.entries(nextUpdatedParameters).forEach(([k1, paramStr]) => {
                       parametersInRealType[k1] = convertInput(
                         paramStr,
@@ -337,19 +189,22 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                       handleParameterChange(parametersInRealType);
                     }
 
-                    errorMessages[k] = generateInputValidationErrMsg(
-                      parametersInRealType[k],
-                      specParameters[k].parameterType,
-                      specParameters[k].isOptional,
-                    );
-                    setErrorMessages(errorMessages);
-
-                    Object.values(errorMessages).forEach((errorMessage) => {
-                      allInputsValid = allInputsValid && errorMessage === null;
-                    });
+                    const nextErrorMessages: ParameterErrorMessages = {
+                      ...errorMessages,
+                      [k]: generateInputValidationErrMsg(
+                        parametersInRealType[k],
+                        specParameters[k].parameterType,
+                        specParameters[k].isOptional,
+                      ),
+                    };
+                    setErrorMessages(nextErrorMessages);
 
                     if (setIsValidInput) {
-                      setIsValidInput(allInputsValid);
+                      setIsValidInput(
+                        Object.values(nextErrorMessages).every(
+                          (errorMessage) => errorMessage === null,
+                        ),
+                      );
                     }
                   }}
                   param={param}
@@ -372,7 +227,7 @@ interface Param {
   key: string;
   value: any;
   type: ParameterType_ParameterTypeEnum;
-  errorMsg: string;
+  errorMsg: string | null;
   literals?: (string | number | boolean)[];
 }
 
@@ -423,7 +278,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
     isJsonField: false,
   };
 
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const { id, onChange, param } = this.props;
 
     if (param.literals?.length) {

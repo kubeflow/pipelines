@@ -17,7 +17,7 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
 import { vi } from 'vitest';
-import { RoutePage } from 'src/components/Router';
+import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { ButtonKeys } from 'src/lib/Buttons';
 import { AllRecurringRunsList } from './AllRecurringRunsList';
 import { PageProps } from './Page';
@@ -45,7 +45,7 @@ describe('AllRecurringRunsList', () => {
   function baseProps(): PageProps {
     return {
       history: { push: historyPushSpy } as any,
-      location: '' as any,
+      location: { pathname: RoutePage.RECURRING_RUNS, search: '' } as any,
       match: '' as any,
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy,
@@ -84,13 +84,6 @@ describe('AllRecurringRunsList', () => {
     toolbarProps = null;
   });
 
-  afterEach(() => {
-    renderResult?.unmount();
-    renderResult = null;
-    allRecurringRunsListRef = null;
-    toolbarProps = null;
-  });
-
   it('renders all recurring runs', () => {
     renderAllRecurringRunsList();
     expect(lastRecurringRunListProps).toBeTruthy();
@@ -114,7 +107,7 @@ describe('AllRecurringRunsList', () => {
     renderAllRecurringRunsList();
     toolbarProps!.actions[ButtonKeys.NEW_RECURRING_RUN].action();
     expect(historyPushSpy).toHaveBeenLastCalledWith(
-      RoutePage.NEW_RUN + '?experimentId=&recurring=1',
+      `${RoutePage.NEW_RUN}?${QUERY_PARAMS.experimentId}=&${QUERY_PARAMS.isRecurring}=1&${QUERY_PARAMS.returnTo}=${RoutePage.RECURRING_RUNS}`,
     );
   });
 });

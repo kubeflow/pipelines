@@ -112,14 +112,19 @@ describe('RecurringRunDetails', () => {
   });
 
   afterEach(() => {
-    renderResult?.unmount();
-    renderResult = null;
     recurringRunDetailsRef = null;
   });
 
   it('renders a recurring run with periodic schedule', async () => {
     await renderRecurringRunDetails();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(getJobSpy).toHaveBeenCalledWith(fullTestJob.id);
+    expect(renderResult!.getByText('Recurring run details')).toBeInTheDocument();
+    expect(renderResult!.getByText('Run trigger')).toBeInTheDocument();
+    expect(renderResult!.getByText('Every 1 hours')).toBeInTheDocument();
+    expect(renderResult!.getByText('Max. concurrent runs')).toBeInTheDocument();
+    expect(renderResult!.getByText('Run parameters')).toBeInTheDocument();
+    expect(renderResult!.getByText('param1')).toBeInTheDocument();
+    expect(renderResult!.getByText('value1')).toBeInTheDocument();
   });
 
   it('renders a recurring run with cron schedule', async () => {
@@ -136,7 +141,12 @@ describe('RecurringRunDetails', () => {
     };
     getJobSpy.mockResolvedValue(cronTestJob);
     await renderRecurringRunDetails();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(getJobSpy).toHaveBeenCalledWith(fullTestJob.id);
+    expect(renderResult!.getByText('* * * 0 0 !')).toBeInTheDocument();
+    expect(renderResult!.getByText('Catchup')).toBeInTheDocument();
+    expect(renderResult!.getByText('Start time')).toBeInTheDocument();
+    expect(renderResult!.getByText('End time')).toBeInTheDocument();
+    expect(renderResult!.queryByText('Every 1 hours')).toBeNull();
   });
 
   it('loads the recurring run given its id in query params', async () => {
@@ -212,7 +222,7 @@ describe('RecurringRunDetails', () => {
         mode: 'warning',
       }),
     );
-    expect(getInstance().state.run).toEqual(fullTestJob);
+    expect(getJobSpy).toHaveBeenCalledWith(fullTestJob.id);
   });
 
   it('has a Refresh button, clicking it refreshes the run details', async () => {

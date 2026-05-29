@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import type * as React from 'react';
 import ErrorIcon from '@mui/icons-material/Error';
 import PendingIcon from '@mui/icons-material/Schedule';
 import RunningIcon from 'src/icons/statusRunning';
@@ -35,7 +36,7 @@ export function statusToIcon(
   endDate?: Date | string,
   nodeMessage?: string,
   mlmdState?: metadataStorePb.Execution.State,
-): JSX.Element {
+): React.JSX.Element {
   state = checkIfTerminatedV2(state, nodeMessage);
   // tslint:disable-next-line:variable-name
   let IconComponent: any = UnknownIcon;

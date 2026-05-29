@@ -18,6 +18,7 @@
 // Because this is test utils.
 
 import 'src/build/tailwind.output.css';
+import { act } from '@testing-library/react';
 import { QueryClient } from '@tanstack/react-query';
 import { match } from 'react-router';
 import { beforeEach, expect, MockInstance } from 'vitest';
@@ -125,6 +126,27 @@ function getTestApi() {
     throw new Error('Vitest API (vi) not found');
   }
   return testApi;
+}
+
+/**
+ * Wraps {@link TestUtils.flushPromises} inside `act()` so React state
+ * updates triggered by resolved promises are applied without warnings.
+ */
+export async function flushPromisesInAct(): Promise<void> {
+  await act(async () => {
+    await TestUtils.flushPromises();
+  });
+}
+
+/**
+ * Runs `callback` and then flushes pending promises, all inside a
+ * single `act()` boundary.
+ */
+export async function invokeAndFlush(callback: () => void | Promise<void>): Promise<void> {
+  await act(async () => {
+    await callback();
+    await TestUtils.flushPromises();
+  });
 }
 
 export function expectWarnings() {

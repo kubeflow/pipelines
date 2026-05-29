@@ -44,13 +44,13 @@ export interface PipelinesDialogProps extends PageProps {
   toolbarActionMap?: ToolbarActionMap;
 }
 
-const PipelinesDialog: React.FC<PipelinesDialogProps> = (props): JSX.Element | null => {
+const PipelinesDialog: React.FC<PipelinesDialogProps> = (props): React.JSX.Element | null => {
   const buildInfo = React.useContext(BuildInfoContext);
   const [view, setView] = React.useState(NamespacedAndSharedTab.NAMESPACED);
   const [unconfirmedSelectedPipeline, setUnconfirmedSelectedPipeline] =
     React.useState<ApiPipeline>();
 
-  function getPipelinesList(): JSX.Element {
+  function getPipelinesList(): React.JSX.Element {
     return (
       <ResourceSelector
         {...props}
@@ -77,7 +77,7 @@ const PipelinesDialog: React.FC<PipelinesDialogProps> = (props): JSX.Element | n
     );
   }
 
-  function getTabs(): JSX.Element | null {
+  function getTabs(): React.JSX.Element | null {
     if (!buildInfo?.apiServerMultiUser) {
       return null;
     }
@@ -111,7 +111,7 @@ const PipelinesDialog: React.FC<PipelinesDialogProps> = (props): JSX.Element | n
     setView(NamespacedAndSharedTab.NAMESPACED);
   }
 
-  const getToolbar = (): JSX.Element => {
+  const getToolbar = (): React.JSX.Element => {
     let actions = new Buttons(props, () => {}).getToolbarActionMap();
     if (props.toolbarActionMap) {
       actions = props.toolbarActionMap;

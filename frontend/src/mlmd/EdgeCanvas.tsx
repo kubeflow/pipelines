@@ -76,7 +76,7 @@ export interface EdgeCanvasProps {
  * is set to true.
  */
 export class EdgeCanvas extends React.Component<EdgeCanvasProps> {
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const { cards, reverseEdges, edgeWidth } = this.props;
 
     let viewHeight = 1;
@@ -84,7 +84,7 @@ export class EdgeCanvas extends React.Component<EdgeCanvasProps> {
     const lastNode = reverseEdges ? 'y1' : 'y4';
     const lastNodePositions = { y1: 0, y4: 0 };
 
-    const edgeLines: JSX.Element[] = [];
+    const edgeLines: React.JSX.Element[] = [];
     cards.forEach((card) => {
       card.elements.forEach((element) => {
         if (!element.next) {

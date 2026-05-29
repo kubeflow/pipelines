@@ -143,7 +143,7 @@ export class LineageView extends React.Component<LineageViewProps, LineageViewSt
     window.removeEventListener('resize', this.setColumnWidth);
   }
 
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     if (!this.artifactTypes || !this.state.columnWidth) {
       return (
         // Return an empty page to allow componentDidMount() to measure the flex container.

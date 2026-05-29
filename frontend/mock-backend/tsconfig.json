@@ -24,6 +24,6 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
   },
-  "include": [".", "../src/react19-compat.d.ts"],
+  "include": ["."],
   "exclude": ["dist", "coverage"],
 }

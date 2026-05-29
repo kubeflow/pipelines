@@ -23,7 +23,7 @@ import { ApiRunDetail } from 'src/apis/run';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import Compare from './Compare';
 import * as features from 'src/features';
-import TestUtils, { expectErrors, testBestPractices } from 'src/TestUtils';
+import TestUtils, { expectErrors, flushPromisesInAct, testBestPractices } from 'src/TestUtils';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';
 import { Context } from 'src/third_party/mlmd';
 
@@ -82,6 +82,38 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     vi.spyOn(Apis.runServiceApiV2, 'getRun').mockImplementation((id: string) => newMockV2Run(id));
   });
 
+  it('shows a loading spinner while runs are being fetched', () => {
+    vi.spyOn(Apis.runServiceApi, 'getRun').mockReturnValue(new Promise(() => {}));
+
+    render(
+      <CommonTestWrapper>
+        <Compare {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('does not show a loading spinner after runs fail to load', async () => {
+    vi.spyOn(Apis.runServiceApi, 'getRun').mockRejectedValue(new Error('fail'));
+
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+    );
+
+    render(
+      <CommonTestWrapper>
+        <Compare {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(updateBannerSpy).toHaveBeenCalledWith(expect.objectContaining({ mode: 'error' }));
+    });
+
+    expect(screen.queryByRole('progressbar')).toBeNull();
+  });
+
   it('getRun is called with query param IDs', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApi, 'getRun');
     runs = [
@@ -132,7 +164,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() => expect(screen.queryByText('Scalar Metrics')).toBeNull());
   });
@@ -159,7 +191,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() =>
       expect(updateBannerSpy).toHaveBeenLastCalledWith({
@@ -193,7 +225,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...props} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() =>
       expect(updateBannerSpy).toHaveBeenLastCalledWith({
@@ -238,7 +270,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...props} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() =>
       expect(updateBannerSpy).toHaveBeenLastCalledWith({
@@ -268,7 +300,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() => expect(screen.queryByText('Scalar Metrics')).toBeNull());
   });
@@ -288,7 +320,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...props} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() => expect(screen.queryByText('Scalar Metrics')).toBeNull());
   });
@@ -315,7 +347,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() => screen.getByText('Scalar Metrics'));
   });
@@ -337,7 +369,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() => expect(screen.queryByText('Scalar Metrics')).toBeNull());
   });
@@ -359,7 +391,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     await waitFor(() => expect(screen.queryByText('Scalar Metrics')).toBeNull());
   });

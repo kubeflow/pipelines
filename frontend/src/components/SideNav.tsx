@@ -255,7 +255,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
     window.removeEventListener('resize', this._boundMaybeResize);
   }
 
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const page = this.props.page;
     const displayBuildInfo: DisplayBuildInfo = this._getBuildInfo();
     const { collapsed } = this.state;
@@ -272,6 +272,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
     return (
       <div
         id='sideNav'
+        data-testid='sideNav'
         className={classes(
           css.root,
           commonCss.flexColumn,
@@ -543,6 +544,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           <IconButton
             className={classes(css.chevron, collapsed && css.collapsedChevron)}
             onClick={this._toggleNavClicked.bind(this)}
+            data-testid='chevron-toggle'
             size='large'
           >
             <ChevronLeftIcon />

@@ -315,3 +315,113 @@ export async function getObjectStream({
   const stream = await client.getObject(bucket, key);
   return tryExtract ? stream.pipe(gunzip()).pipe(maybeTarball()) : stream.pipe(new PassThrough());
 }
+
+/**
+ * Returns a minio/s3 error as a NoSuchKey error if applicable. Different
+ * providers surface the "object not found" condition slightly differently
+ * (code, Code, or message). This normalizes the check.
+ */
+export function isNoSuchKeyError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') {
+    return false;
+  }
+  const e = err as { code?: string; Code?: string; message?: string };
+  const code = e.code || e.Code;
+  if (code === 'NoSuchKey' || code === 'NotFound') {
+    return true;
+  }
+  return typeof e.message === 'string' && e.message.includes('NoSuchKey');
+}
+
+type ListObjectsV2QueryResult = {
+  objects: Array<{ name?: string; size?: number }>;
+  isTruncated: boolean;
+  nextContinuationToken: string;
+};
+
+type ListObjectsV2Query = (
+  bucket: string,
+  prefix: string,
+  continuationToken: string,
+  delimiter: string,
+  maxKeys: number,
+  startAfter: string,
+) => Promise<ListObjectsV2QueryResult>;
+
+// `listObjectsV2Query` is an internal helper on the minio client and is not
+// declared in its public type definitions. We narrow to it via a runtime
+// check so a future minio upgrade that removes the method fails fast with a
+// clear message instead of throwing `undefined is not a function` deep inside
+// the listing loop.
+function getListObjectsV2Query(client: MinioClient): ListObjectsV2Query {
+  const candidate = (client as unknown as { listObjectsV2Query?: unknown }).listObjectsV2Query;
+  if (typeof candidate !== 'function') {
+    throw new Error(
+      'Minio client does not expose listObjectsV2Query; the bundled minio version may be incompatible with listObjectsUnderPrefix',
+    );
+  }
+  return (candidate as ListObjectsV2Query).bind(client);
+}
+
+/**
+ * Yields all objects under a given prefix in an s3-compatible bucket,
+ * recursively, along with their sizes. Implemented as an async generator so
+ * callers can begin streaming the first object before the full listing
+ * completes — important for large directory artifacts where buffering all
+ * keys would delay the first byte and inflate memory use.
+ *
+ * Pages via the lower-level `listObjectsV2Query` instead of the public
+ * `listObjectsV2` streaming API. The public API hard-codes maxKeys=1000 per
+ * page, and minio's bundled fast-xml-parser caps entity expansions at 1000;
+ * each Contents entry has ~2 `&quot;` entities in its ETag, so a full page
+ * trips "Entity expansion limit exceeded" once a directory holds more than
+ * ~500 objects. A smaller page size keeps each XML parse under the cap.
+ */
+export async function* listObjectsUnderPrefix(
+  client: MinioClient,
+  bucket: string,
+  prefix: string,
+): AsyncGenerator<{ name: string; size: number }> {
+  const PAGE_SIZE = 300;
+  const listObjectsV2Query = getListObjectsV2Query(client);
+  let continuationToken = '';
+  let isTruncated = true;
+
+  while (isTruncated) {
+    const page = await listObjectsV2Query(bucket, prefix, continuationToken, '', PAGE_SIZE, '');
+
+    for (const item of page.objects) {
+      if (item.name) {
+        yield { name: item.name, size: item.size ?? 0 };
+      }
+    }
+
+    isTruncated = page.isTruncated;
+    continuationToken = page.nextContinuationToken;
+  }
+}
+
+/**
+ * Returns a bounded summary of a prefix using a single capped
+ * `listObjectsV2Query` call — does not paginate. Designed for preview-style
+ * requests where the caller just needs to know "is there anything here, and
+ * roughly how many files?" without paying for a full listing of a
+ * potentially huge directory.
+ *
+ * Resolves to `null` for an empty prefix so callers can answer with a 404.
+ * `truncated: true` means the directory has more than `maxKeys` files; the
+ * caller should treat `count` as a lower bound.
+ */
+export async function summarizeDirectoryUnderPrefix(
+  client: MinioClient,
+  bucket: string,
+  prefix: string,
+  maxKeys: number = 50,
+): Promise<{ count: number; truncated: boolean } | null> {
+  const listObjectsV2Query = getListObjectsV2Query(client);
+  const page = await listObjectsV2Query(bucket, prefix, '', '', maxKeys, '');
+  if (page.objects.length === 0) {
+    return null;
+  }
+  return { count: page.objects.length, truncated: page.isTruncated };
+}

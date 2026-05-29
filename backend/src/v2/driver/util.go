@@ -21,6 +21,8 @@ import (
 	"strings"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -46,6 +48,18 @@ func isInputParameterChannel(inputChannel string) bool {
 	re := regexp.MustCompile(inputPipelineChannelPattern)
 	match := re.FindStringSubmatch(inputChannel)
 	return len(match) == 2
+}
+
+// isAlreadyExistsErr checks whether the error is a gRPC AlreadyExists error, or whether
+// the error message contains "AlreadyExists" or "Duplicate entry" as a fallback.
+func isAlreadyExistsErr(err error) bool {
+	if s, ok := status.FromError(err); ok && s.Code() == codes.AlreadyExists {
+		return true
+	}
+
+	// MLMD sometimes wraps the AlreadyExists error in an internal error, so also check the
+	// error message string for known duplicate-entry markers as a fallback.
+	return strings.Contains(err.Error(), "AlreadyExists") || strings.Contains(err.Error(), "Duplicate entry")
 }
 
 // extractInputParameterFromChannel takes an inputChannel that adheres to

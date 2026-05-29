@@ -115,7 +115,7 @@ const SubDagLayer: React.FC<SubDagLayerProps> = ({ layers, onLayersUpdate: setLa
     path += '/' + layer;
   }
 
-  const breadcrumbs: JSX.Element[] = [
+  const breadcrumbs: React.JSX.Element[] = [
     <span className={classes(actionBarCss.workspace)} key='workspace'>
       {'Layers'}
     </span>,

@@ -242,6 +242,62 @@ class TestDockerTaskHandler(DockerMockTestCase):
                 auto_remove=True,
             )
 
+    def test_run_passes_env_vars(self):
+        """Env vars supplied to the handler are forwarded to containers.run as
+        `environment=`."""
+        with mock.patch('kfp.local.config.LocalExecutionConfig.instance', None):
+            handler = docker_task_handler.DockerTaskHandler(
+                image='alpine',
+                full_command=['echo', 'foo'],
+                pipeline_root=os.path.abspath('my_root'),
+                runner=local.DockerRunner(),
+                env_vars={
+                    'FOO': 'bar',
+                    'BAZ': 'qux'
+                },
+            )
+            handler.run()
+            kwargs = self.mocked_docker_client.containers.run.call_args[1]
+            self.assertEqual(
+                kwargs.get('environment'), {
+                    'FOO': 'bar',
+                    'BAZ': 'qux',
+                })
+
+    def test_run_no_env_vars_omits_environment(self):
+        """With no env vars and no user-supplied `environment` in
+        container_run_args, `environment` is not passed to containers.run."""
+        with mock.patch('kfp.local.config.LocalExecutionConfig.instance', None):
+            handler = docker_task_handler.DockerTaskHandler(
+                image='alpine',
+                full_command=['echo', 'foo'],
+                pipeline_root=os.path.abspath('my_root'),
+                runner=local.DockerRunner(),
+            )
+            handler.run()
+            kwargs = self.mocked_docker_client.containers.run.call_args[1]
+            self.assertNotIn('environment', kwargs)
+
+    def test_run_passes_runner_environment_without_merging(self):
+        """DockerTaskHandler forwards preconfigured runner environment as-is.
+
+        Env precedence is decided by task_dispatcher before handler
+        creation.
+        """
+        with mock.patch('kfp.local.config.LocalExecutionConfig.instance', None):
+            handler = docker_task_handler.DockerTaskHandler(
+                image='alpine',
+                full_command=['echo', 'foo'],
+                pipeline_root=os.path.abspath('my_root'),
+                runner=local.DockerRunner(environment={'FOO': 'user-override'}),
+            )
+            handler.run()
+            kwargs = self.mocked_docker_client.containers.run.call_args[1]
+            self.assertEqual(
+                kwargs.get('environment'), {
+                    'FOO': 'user-override',
+                })
+
     def test_pipeline_root_relpath(self):
         # Mock LocalExecutionConfig.instance to be None (no workspace configured)
         with mock.patch('kfp.local.config.LocalExecutionConfig.instance', None):

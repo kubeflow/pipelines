@@ -15,7 +15,7 @@
  */
 
 import { render, screen } from '@testing-library/react';
-import TestUtils from 'src/TestUtils';
+import TestUtils, { flushPromisesInAct } from 'src/TestUtils';
 import { Apis } from 'src/lib/Apis';
 import { V2beta1ListPipelinesResponse } from 'src/apisv2beta1/pipeline';
 import { GettingStarted } from './GettingStarted';
@@ -63,9 +63,10 @@ describe('GettingStarted page', () => {
     pipelineListSpy.mockImplementation(() => Promise.resolve(empty));
   });
 
-  it('initially renders documentation', () => {
+  it('initially renders documentation', async () => {
     const { container } = render(<GettingStarted {...generateProps()} />);
     expect(container).toMatchSnapshot();
+    await flushPromisesInAct();
   });
 
   it('renders documentation with pipeline deep link after querying demo pipelines', async () => {
@@ -86,7 +87,7 @@ describe('GettingStarted page', () => {
       return Promise.resolve({ pipelines: [], total_size: 0 });
     });
     render(<GettingStarted {...generateProps()} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(pipelineListSpy.mock.calls).toMatchSnapshot();
     expect(screen.getByRole('link', { name: 'Data passing in Python components' })).toHaveAttribute(
       'href',
@@ -113,7 +114,7 @@ describe('GettingStarted page', () => {
       return Promise.resolve({ pipelines: [], total_size: 0 });
     });
     render(<GettingStarted {...generateProps()} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(screen.getByRole('link', { name: 'Data passing in Python components' })).toHaveAttribute(
       'href',
       '#/pipelines',

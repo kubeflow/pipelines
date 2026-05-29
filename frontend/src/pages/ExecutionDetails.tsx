@@ -52,6 +52,7 @@ interface ExecutionDetailsState {
   executionType?: ExecutionType;
   events?: Record<Event.Type, Event[]>;
   artifactTypeMap?: Map<number, ArtifactType>;
+  hasError?: boolean;
 }
 
 export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
@@ -61,7 +62,7 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
     return parseInt(this.props.match.params[RouteParams.ID], 10);
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <ExecutionDetailsContent
@@ -110,9 +111,12 @@ export class ExecutionDetailsContent extends Component<
     return this.load();
   }
 
-  public render(): JSX.Element {
-    if (!this.state.execution || !this.state.events) {
+  public render(): React.JSX.Element {
+    if ((!this.state.execution || !this.state.events) && !this.state.hasError) {
       return <CircularProgress />;
+    }
+    if (!this.state.execution || !this.state.events) {
+      return <div />;
     }
 
     return (
@@ -160,6 +164,7 @@ export class ExecutionDetailsContent extends Component<
   };
 
   private load = async (): Promise<void> => {
+    this.setState({ hasError: false });
     const metadataStoreServiceClient = Api.getInstance().metadataStoreService;
 
     // this runs parallelly because it's not a critical resource
@@ -176,6 +181,7 @@ export class ExecutionDetailsContent extends Component<
     const numberId = this.props.id;
     if (isNaN(numberId) || numberId < 0) {
       const error = new Error(`Invalid execution id: ${this.props.id}`);
+      this.setState({ hasError: true });
       this.props.onError(error.message, error, 'error', this.refresh);
       return;
     }
@@ -192,6 +198,7 @@ export class ExecutionDetailsContent extends Component<
       ]);
 
       if (!executionResponse.getExecutionsList().length) {
+        this.setState({ hasError: true });
         this.props.onError(
           `No execution identified by id: ${this.props.id}`,
           undefined,
@@ -202,6 +209,7 @@ export class ExecutionDetailsContent extends Component<
       }
 
       if (executionResponse.getExecutionsList().length > 1) {
+        this.setState({ hasError: true });
         this.props.onError(
           `Found multiple executions with ID: ${this.props.id}`,
           undefined,
@@ -220,6 +228,7 @@ export class ExecutionDetailsContent extends Component<
       const types = typeResponse.getExecutionTypesList();
       let executionType: ExecutionType | undefined;
       if (!types || types.length === 0) {
+        this.setState({ hasError: true });
         this.props.onError(
           `Cannot find execution type with id: ${execution.getTypeId()}`,
           undefined,
@@ -228,6 +237,7 @@ export class ExecutionDetailsContent extends Component<
         );
         return;
       } else if (types.length > 1) {
+        this.setState({ hasError: true });
         this.props.onError(
           `More than one execution type found with id: ${execution.getTypeId()}`,
           undefined,
@@ -247,6 +257,7 @@ export class ExecutionDetailsContent extends Component<
         executionType,
       });
     } catch (err) {
+      this.setState({ hasError: true });
       if (isServiceError(err)) {
         this.props.onError(
           serviceErrorToString(err),
@@ -312,7 +323,7 @@ interface SectionIOProps {
 }
 class SectionIO extends Component<
   SectionIOProps,
-  { artifactDataMap: { [id: number]: ArtifactInfo } }
+  { artifactDataMap: { [id: number]: ArtifactInfo }; loadError?: boolean }
 > {
   constructor(props: any) {
     super(props);
@@ -344,11 +355,12 @@ class SectionIO extends Component<
         artifactDataMap,
       });
     } catch (err) {
-      return;
+      logger.error(`Failed to load linked artifacts for "${this.props.title}":`, err);
+      this.setState({ loadError: true });
     }
   }
 
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const { title, events } = this.props;
     if (events.length === 0) {
       return null;
@@ -357,6 +369,11 @@ class SectionIO extends Component<
     return (
       <section>
         <h2 className={commonCss.header2}>{title}</h2>
+        {this.state.loadError && (
+          <p style={{ color: color.warningText }}>
+            Failed to load artifact details for this section.
+          </p>
+        )}
         <table>
           <thead>
             <tr>

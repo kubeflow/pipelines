@@ -19,7 +19,7 @@ import { createMemoryHistory } from 'history';
 import { PageProps } from './Page';
 import { Apis } from 'src/lib/Apis';
 import { V2beta1Pipeline, V2beta1ListPipelinesResponse } from 'src/apisv2beta1/pipeline';
-import TestUtils from 'src/TestUtils';
+import { flushPromisesInAct } from 'src/TestUtils';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 import PrivateAndSharedPipelines, {
   PrivateAndSharedProps,
@@ -93,7 +93,7 @@ describe('PrivateAndSharedPipelines', () => {
         </BuildInfoContext.Provider>
       </Router>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(tree).toMatchSnapshot();
   });
 
@@ -107,7 +107,7 @@ describe('PrivateAndSharedPipelines', () => {
         </BuildInfoContext.Provider>
       </Router>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(tree).toMatchSnapshot();
   });
 });

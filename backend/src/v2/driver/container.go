@@ -180,7 +180,17 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
-		return execution, err
+		if isAlreadyExistsErr(err) {
+			glog.Infof("Execution %q already exists, looking up existing execution", ecfg.Name)
+			existing, lookupErr := mlmd.GetExecutionByTypeAndName(ctx, string(metadata.ContainerExecutionTypeName), ecfg.Name)
+			if lookupErr != nil {
+				return execution, fmt.Errorf("failed to lookup existing execution: %w", lookupErr)
+			}
+			glog.Infof("Found existing execution: %s", existing)
+			createdExecution = existing
+		} else {
+			return execution, err
+		}
 	}
 	glog.Infof("Created execution: %s", createdExecution)
 	execution.ID = createdExecution.GetID()
@@ -188,7 +198,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, nil
 	}
 
-	// Use cache and skip launcher if all contions met:
+	// Use cache and skip launcher if all conditions met:
 	// (1) Cache is enabled globally
 	// (2) Cache is enabled for the task
 	// (3) CachedMLMDExecutionID is non-empty, which means a cache entry exists

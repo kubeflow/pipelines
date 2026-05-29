@@ -70,7 +70,7 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { rows, selectedIds, toolbarActionMap } = this.state;
     const { columns, title, filterLabel, emptyMessage, initialSortColumn } = this.props;
 

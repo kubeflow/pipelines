@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import type * as React from 'react';
 import {
   Api,
   ArtifactProperties,
@@ -64,6 +65,7 @@ const TAB_NAMES = [ArtifactDetailsTab.OVERVIEW, ArtifactDetailsTab.LINEAGE_EXPLO
 interface ArtifactDetailsState {
   artifact?: Artifact;
   artifactType?: ArtifactType;
+  hasError?: boolean;
 }
 
 class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
@@ -106,13 +108,16 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     return this.load();
   }
 
-  public render(): JSX.Element {
-    if (!this.state.artifact) {
+  public render(): React.JSX.Element {
+    if (!this.state.artifact && !this.state.hasError) {
       return (
         <div className={commonCss.page}>
           <CircularProgress className={commonCss.absoluteCenter} />
         </div>
       );
+    }
+    if (!this.state.artifact) {
+      return <div className={commonCss.page} />;
     }
     return (
       <div className={classes(commonCss.page)}>
@@ -172,16 +177,19 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   }
 
   private load = async (): Promise<void> => {
+    this.setStateSafe({ hasError: false });
     const request = new GetArtifactsByIDRequest();
     request.setArtifactIdsList([Number(this.id)]);
 
     try {
       const response = await this.api.metadataStoreService.getArtifactsByID(request);
       if (response.getArtifactsList().length === 0) {
+        this.setStateSafe({ hasError: true });
         this.showPageError(`No artifact identified by id: ${this.id}`);
         return;
       }
       if (response.getArtifactsList().length > 1) {
+        this.setStateSafe({ hasError: true });
         this.showPageError(`Found multiple artifacts with ID: ${this.id}`);
         return;
       }
@@ -205,6 +213,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
       });
       this.setStateSafe({ artifact, artifactType });
     } catch (err) {
+      this.setStateSafe({ hasError: true });
       if (isServiceError(err)) {
         this.showPageError(serviceErrorToString(err));
       } else {

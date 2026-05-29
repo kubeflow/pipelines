@@ -300,7 +300,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     this._debouncedFilterRequest.cancel();
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { filterString, pageSize, sortBy, sortOrder } = this.state;
     const numSelected = (this.props.selectedIds || []).length;
     const totalFlex = this.props.columns.reduce((total, c) => (total += c.flex || 1), 0);
@@ -473,6 +473,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             </TextField>
 
             <IconButton
+              data-testid='prev-page-btn'
               onClick={() => this._pageChanged(-1)}
               disabled={!this.state.currentPage}
               size='large'
@@ -480,6 +481,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
               <ChevronLeft />
             </IconButton>
             <IconButton
+              data-testid='next-page-btn'
               onClick={() => this._pageChanged(1)}
               disabled={this.state.currentPage >= this.state.maxPageIndex}
               size='large'
@@ -699,7 +701,7 @@ function HeaderRowSelectionSection({
   showExpandButton,
   useRadioButtons,
   disableAdditionalSelection,
-}: HeaderRowSelectionSectionProps): JSX.Element | null {
+}: HeaderRowSelectionSectionProps): React.JSX.Element | null {
   const nonEmpty = disableSelection !== true || showExpandButton;
   if (!nonEmpty) {
     return null;
@@ -710,6 +712,7 @@ function HeaderRowSelectionSection({
       {/* If using checkboxes */}
       {disableSelection !== true && useRadioButtons !== true && (
         <Checkbox
+          data-testid='select-all-checkbox'
           indeterminate={indeterminate}
           color='primary'
           checked={isSelected}
@@ -740,7 +743,7 @@ function BodyRowSelectionSection({
   showExpandButton,
   useRadioButtons,
   disableAdditionalSelection,
-}: BodyRowSelectionSectionProps): JSX.Element {
+}: BodyRowSelectionSectionProps): React.JSX.Element {
   return (
     <>
       {/* Expansion toggle button */}

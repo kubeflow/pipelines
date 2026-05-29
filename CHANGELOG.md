@@ -1,13 +1,21 @@
 Changelog
 
-## 2.16.0 (2026-02-25)
+## 2.16.1 (2026-05-03)
 
-### Documentation
+### Bug Fixes
 
-- **frontend** add React 18/19 upgrade plan and checklist ([#12882](https://github.com/kubeflow/pipelines/pull/12882))
-### Other
+- **backend** ensure log artifact index handling ([#13334](https://github.com/kubeflow/pipelines/pull/13334)) ([#13340](https://github.com/kubeflow/pipelines/pull/13340))
+- **metadata** cast DEBUG_FILES_SIZE and handle cleanup races ([#13300](https://github.com/kubeflow/pipelines/pull/13300))
+- **backend** resolve use_secret_as_env pipeline params in ParallelFor ([#13128](https://github.com/kubeflow/pipelines/pull/13128))
+- **backend** isolate executor-logs per retry pod ([#13175](https://github.com/kubeflow/pipelines/pull/13175))
+- **backend** Fix duplicate entry in MLMD with Kubeflow driver ([#13276](https://github.com/kubeflow/pipelines/pull/13276))
+- **backend** Add retry logic to launcher artifact upload if component fails ([#13324](https://github.com/kubeflow/pipelines/pull/13324))
+- **backend** use proto.String instead of new ([#13329](https://github.com/kubeflow/pipelines/pull/13329))
+- **backend** enforce pipeline authorization ([#13288](https://github.com/kubeflow/pipelines/pull/13288))
 
-- upgrading go to 1.25.7 as it has many security fixes ([#12905](https://github.com/kubeflow/pipelines/pull/12905))
+### Features
+
+- **backend** Selectively block v1 pipeline runs by namespace ([#13068](https://github.com/kubeflow/pipelines/pull/13068))
 
 ## 2.16.0 (2026-02-24)
 
@@ -43,7 +51,7 @@ Changelog
 - resolve 6 CVEs in frontend server via ESM + k8s client upgrade ([#12756](https://github.com/kubeflow/pipelines/pull/12756))
 - **frontend** require podnamespace for pod logs when authz is enabled ([#12778](https://github.com/kubeflow/pipelines/pull/12778))
 - support non-default cluster domain for metadata service ([#12701](https://github.com/kubeflow/pipelines/pull/12701))
-- argument list too long error for large DAGs. Fixes #12453 ([#12737](https://github.com/kubeflow/pipelines/pull/12737))
+- argument list to long error for large DAGs. Fixes #12453 ([#12737](https://github.com/kubeflow/pipelines/pull/12737))
 - **multi-user** sync frontend images on namespace deployments ([#12783](https://github.com/kubeflow/pipelines/pull/12783))
 - **frontend** Patch Artifact Storage Key XSS Vulnerability. Fixes #12670 ([#12671](https://github.com/kubeflow/pipelines/pull/12671))
 - **ci** pass build-args to Docker builds to fix unknown ref in tutorial links ([#12795](https://github.com/kubeflow/pipelines/pull/12795))
@@ -167,7 +175,7 @@ Changelog
 - **docs** Fix local development after the SeaweedFS migration ([#12160](https://github.com/kubeflow/pipelines/pull/12160))
 - **backend** Fix mutating webhook when pipeline name label value is too long ([#12162](https://github.com/kubeflow/pipelines/pull/12162))
 - **docs** Fix driver remote debugging instructions ([#12177](https://github.com/kubeflow/pipelines/pull/12177))
-- **backend** Used bitnami legacy Docker images instead of bitnami ones which will cease to work on Thursday, August 28, 2025. Fixes #12170 ([#12171](https://github.com/kubeflow/pipelines/pull/12171))
+- **backend** Used bitnamilegacy Docker images instead of bitnami ones which will cease to work on Thursday, August 28, 2025. Fixes #12170 ([#12171](https://github.com/kubeflow/pipelines/pull/12171))
 - **CI** Fix the CI failures due to disk space ([#12179](https://github.com/kubeflow/pipelines/pull/12179))
 - **doc** Add a release note for the additional_funcs component option ([#12182](https://github.com/kubeflow/pipelines/pull/12182))
 - **CI** Fix a variable reference typo in the GitHub workflow ([#12181](https://github.com/kubeflow/pipelines/pull/12181))
@@ -330,12 +338,12 @@ Changelog
 ### [cherry-pick]
 
 - chore: update release notes and scripts ([#12470](https://github.com/kubeflow/pipelines/pull/12470)) ([#12471](https://github.com/kubeflow/pipelines/pull/12471))
-### Chore
+### Chrore
 
 - adding myself as a reviewer ([#12325](https://github.com/kubeflow/pipelines/pull/12325))
 ### Ci
 
-- first interaction ([#12209](https://github.com/kubeflow/pipelines/pull/12209))#
+- first interaction ([#12209](https://github.com/kubeflow/pipelines/pull/12209))# 
 
 ### [2.14.3](https://github.com/kubeflow/pipelines/compare/2.14.0...2.14.3) (2025-08-28)
 
@@ -396,7 +404,7 @@ Changelog
 * **backend:** Fix boolean flag syntax for `--cache_disabled` and update test to cover pipelines with outputs ([\#12001](https://github.com/kubeflow/pipelines/issues/12001)) ([f240685](https://github.com/kubeflow/pipelines/commit/f240685bf3169251ca343fc985bbb5607be3f727))
 * **backend:** Fix the pipeline samples ([\#11967](https://github.com/kubeflow/pipelines/issues/11967)) ([b477269](https://github.com/kubeflow/pipelines/commit/b4772693ae0f7d90425f604ebdafbda1a1c4a5f3))
 * **backend:** increase max_metadata_size for ml-metadata grpc server ([\#12062](https://github.com/kubeflow/pipelines/issues/12062)) ([09ced38](https://github.com/kubeflow/pipelines/commit/09ced38500725c5e8542ce4885eee8d3cee58f02))
-* **backend:** Stop logging the stack trace on benign user errors ([\#11883](https://github.com/kubeflow/pipelines/issues/11883)) ([56da004](https://github.com/kubeflow/pipelines/commit/56da004d91d8db9b46b57544d1ad6699ddb4de4c))
+* **backend:** Stop logging the strack trace on benign user errors ([\#11883](https://github.com/kubeflow/pipelines/issues/11883)) ([56da004](https://github.com/kubeflow/pipelines/commit/56da004d91d8db9b46b57544d1ad6699ddb4de4c))
 * **backend/sdk:** update proto packages ([\#12067](https://github.com/kubeflow/pipelines/issues/12067)) ([cc35187](https://github.com/kubeflow/pipelines/commit/cc35187dff270008c6bef505c828f442773ec97d))
 * **cache:** Optimize cache expiration query solves [\#11614](https://github.com/kubeflow/pipelines/issues/11614) ([\#11920](https://github.com/kubeflow/pipelines/issues/11920)) ([faa2c8c](https://github.com/kubeflow/pipelines/commit/faa2c8cd16bd5dddec2c30dd456f6d8f55f12471))
 * **components:** Changed method_whitelist. Fixes [\#11880](https://github.com/kubeflow/pipelines/issues/11880) ([\#11961](https://github.com/kubeflow/pipelines/issues/11961)) ([a123d53](https://github.com/kubeflow/pipelines/commit/a123d53be0158b961e8527999392358a4403d191))

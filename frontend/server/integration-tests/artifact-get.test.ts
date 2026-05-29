@@ -16,6 +16,8 @@ import { vi, describe, it, expect, afterAll, afterEach, beforeEach, Mock } from 
 import * as fs from 'fs';
 import * as minio from 'minio';
 import * as path from 'path';
+import * as tar from 'tar-stream';
+import * as zlib from 'zlib';
 import { PassThrough, Readable } from 'stream';
 import requests from 'supertest';
 import { UIServer } from '../app.js';
@@ -917,6 +919,300 @@ describe('/artifacts', () => {
             'a'.repeat(1025),
         )
         .expect(500, 'Object key too long');
+    });
+
+    // KFP v2 stores some output artifacts as object-store directories
+    // (prefixes) instead of single objects. When the user clicks download on
+    // one, getObject fails with NoSuchKey and the handler falls back to
+    // packaging the contents of the prefix as a .tar.gz. See
+    // https://github.com/kubeflow/pipelines/issues/7809.
+    describe('directory artifact fallback', () => {
+      const minioConfigEnv = {
+        MINIO_ACCESS_KEY: 'minio',
+        MINIO_HOST: 'seaweedfs',
+        MINIO_NAMESPACE: 'kubeflow',
+        MINIO_PORT: '9000',
+        MINIO_SECRET_KEY: 'minio123',
+        MINIO_SSL: 'false',
+      };
+
+      function makeNoSuchKeyError(): Error {
+        return Object.assign(new Error('The specified key does not exist.'), {
+          code: 'NoSuchKey',
+        });
+      }
+
+      function mockMinioForDirectory(fileContents: Record<string, string>) {
+        const mockedMinioClient = minio.Client as any;
+        // The production code uses `new MinioClient(...)`, so the mock must
+        // be constructable. Use a `function` expression rather than an arrow
+        // — vitest warns otherwise and the constructed instance ends up
+        // missing the methods we attach below.
+        mockedMinioClient.mockImplementation(function () {
+          return {
+            getObject: async (bucket: string, key: string) => {
+              if (bucket !== 'ml-pipeline') {
+                throw new Error(`unexpected bucket ${bucket}`);
+              }
+              if (key in fileContents) {
+                const objStream = new PassThrough();
+                objStream.end(fileContents[key]);
+                return objStream;
+              }
+              throw makeNoSuchKeyError();
+            },
+            // minio@8.x exposes listObjectsV2Query as an async method that
+            // resolves to the parsed page; mirror that here so the mock
+            // matches the real client's runtime shape.
+            listObjectsV2Query: async (_bucket: string, prefix: string) => ({
+              objects: Object.entries(fileContents)
+                .filter(([key]) => key.startsWith(prefix))
+                .map(([name, content]) => ({ name, size: content.length })),
+              isTruncated: false,
+              nextContinuationToken: '',
+            }),
+          };
+        });
+      }
+
+      async function readTarGzEntries(buffer: Buffer): Promise<Map<string, Buffer>> {
+        const extract = tar.extract();
+        const entries = new Map<string, Buffer>();
+        return new Promise((resolve, reject) => {
+          extract.on('entry', (header, stream, next) => {
+            const chunks: Uint8Array[] = [];
+            stream.on('data', (chunk: Uint8Array) => chunks.push(chunk));
+            stream.on('end', () => {
+              entries.set(header.name, Buffer.concat(chunks));
+              next();
+            });
+            stream.on('error', reject);
+            stream.resume();
+          });
+          extract.on('finish', () => resolve(entries));
+          extract.on('error', reject);
+          // Write the gunzipped tar bytes directly into the extract stream
+          // rather than piping through a PassThrough — newer @types/node and
+          // older @types/tar-stream disagree on the WritableStream shape, and
+          // pipe() trips that mismatch.
+          extract.end(zlib.gunzipSync(buffer));
+        });
+      }
+
+      function captureBinaryResponse(req: requests.Test): requests.Test {
+        return req.buffer(true).parse((response: any, callback: any) => {
+          const chunks: Uint8Array[] = [];
+          response.on('data', (chunk: Uint8Array) => chunks.push(chunk));
+          response.on('end', () => callback(null, Buffer.concat(chunks)));
+          response.on('error', callback);
+        });
+      }
+
+      it('packages the prefix as a tar.gz when getObject returns NoSuchKey', async () => {
+        mockMinioForDirectory({
+          'directory/file1.txt': 'first file contents',
+          'directory/sub/file2.txt': 'second file contents',
+        });
+
+        const configs = loadConfigs(argv, minioConfigEnv);
+        app = new UIServer(configs);
+
+        const request = requests(app.app);
+        const res = await captureBinaryResponse(
+          request.get('/artifacts/get?source=minio&bucket=ml-pipeline&key=directory'),
+        ).expect(200);
+
+        expect(res.headers['content-type']).toBe('application/gzip');
+        expect(res.headers['content-disposition']).toContain('filename="directory.tar.gz"');
+
+        const entries = await readTarGzEntries(res.body as Buffer);
+        expect(Array.from(entries.keys()).sort()).toEqual(['file1.txt', 'sub/file2.txt']);
+        expect(entries.get('file1.txt')!.toString()).toBe('first file contents');
+        expect(entries.get('sub/file2.txt')!.toString()).toBe('second file contents');
+      });
+
+      it('returns a small text summary for preview requests instead of streaming the archive', async () => {
+        // The run details panel calls Apis.readFile with peek=N to render a
+        // small inline preview. Falling through to the tar fallback would
+        // list every object under the prefix and stream the whole gzip just
+        // to render a few KB. The preview path must instead answer with a
+        // bounded summary: exactly one capped listObjectsV2Query call (no
+        // pagination), no per-child getObject fetches, small text body.
+        const listObjectsV2Query = vi.fn(
+          async (
+            _bucket: string,
+            _prefix: string,
+            _continuationToken: string,
+            _delimiter: string,
+            _maxKeys: number,
+          ) => ({
+            objects: Array.from({ length: 5 }, (_, i) => ({
+              name: `some-directory/file-${i}.txt`,
+              size: 10,
+            })),
+            isTruncated: false,
+            nextContinuationToken: '',
+          }),
+        );
+        const getObject = vi.fn(async (bucket: string, key: string) => {
+          if (bucket === 'ml-pipeline' && key === 'some-directory') {
+            throw makeNoSuchKeyError();
+          }
+          throw new Error(`unexpected getObject(${bucket}, ${key})`);
+        });
+        const mockedMinioClient = minio.Client as any;
+        mockedMinioClient.mockImplementation(function () {
+          return { getObject, listObjectsV2Query };
+        });
+
+        const configs = loadConfigs(argv, minioConfigEnv);
+        app = new UIServer(configs);
+
+        const request = requests(app.app);
+        const res = await request
+          .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=some-directory&peek=256')
+          .expect(200);
+
+        // Response is small text, not a gzip archive.
+        expect(res.headers['content-type']).toMatch(/^text\/plain/);
+        expect(res.headers['content-type']).not.toMatch(/gzip/);
+        expect(res.text.length).toBeLessThan(512);
+        expect(res.text).toContain('Directory artifact');
+        expect(res.text).toContain('some-directory');
+        expect(res.text).toContain('5');
+
+        // Exactly one listing call; no pagination loop.
+        expect(listObjectsV2Query).toHaveBeenCalledTimes(1);
+        // Only the original single-object lookup was attempted; no per-file
+        // fetches under the prefix.
+        expect(getObject).toHaveBeenCalledTimes(1);
+        expect(getObject).toHaveBeenCalledWith('ml-pipeline', 'some-directory');
+      });
+
+      it('marks the file count as truncated when minio reports more pages exist', async () => {
+        // For very large directories the single capped list call only sees
+        // the first page; surface that to the user as "N+" rather than a
+        // misleading exact count.
+        const listObjectsV2Query = vi.fn(async () => ({
+          objects: Array.from({ length: 50 }, (_, i) => ({
+            name: `huge-dir/file-${i}.txt`,
+            size: 1,
+          })),
+          isTruncated: true,
+          nextContinuationToken: 'next-page-token',
+        }));
+        const getObject = vi.fn(async () => {
+          throw makeNoSuchKeyError();
+        });
+        const mockedMinioClient = minio.Client as any;
+        mockedMinioClient.mockImplementation(function () {
+          return { getObject, listObjectsV2Query };
+        });
+
+        const configs = loadConfigs(argv, minioConfigEnv);
+        app = new UIServer(configs);
+
+        const request = requests(app.app);
+        const res = await request
+          .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=huge-dir&peek=256')
+          .expect(200);
+
+        expect(res.text).toContain('50+');
+        // Did not paginate even though more pages exist.
+        expect(listObjectsV2Query).toHaveBeenCalledTimes(1);
+      });
+
+      it('returns 404 for preview requests on an empty prefix', async () => {
+        const listObjectsV2Query = vi.fn(async () => ({
+          objects: [],
+          isTruncated: false,
+          nextContinuationToken: '',
+        }));
+        const getObject = vi.fn(async () => {
+          throw makeNoSuchKeyError();
+        });
+        const mockedMinioClient = minio.Client as any;
+        mockedMinioClient.mockImplementation(function () {
+          return { getObject, listObjectsV2Query };
+        });
+
+        const configs = loadConfigs(argv, minioConfigEnv);
+        app = new UIServer(configs);
+
+        const request = requests(app.app);
+        await request
+          .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=missing-dir&peek=256')
+          .expect(404);
+      });
+
+      it('returns 404 when the prefix has no objects', async () => {
+        mockMinioForDirectory({});
+
+        const configs = loadConfigs(argv, minioConfigEnv);
+        app = new UIServer(configs);
+
+        const request = requests(app.app);
+        await request
+          .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=missing-directory')
+          .expect(404);
+      });
+
+      it('produces a safe Content-Disposition for keys with non-ASCII or quoting characters', async () => {
+        const trickyKey = 'weird name "with quotes" 中文';
+        mockMinioForDirectory({
+          [`${trickyKey}/file.txt`]: 'payload',
+        });
+
+        const configs = loadConfigs(argv, minioConfigEnv);
+        app = new UIServer(configs);
+
+        const request = requests(app.app);
+        const res = await captureBinaryResponse(
+          request.get(
+            `/artifacts/get?source=minio&bucket=ml-pipeline&key=${encodeURIComponent(trickyKey)}`,
+          ),
+        ).expect(200);
+
+        const disposition = res.headers['content-disposition'] as string;
+        expect(disposition).toMatch(/^attachment;/);
+
+        // The legacy `filename=` parameter must be ASCII-only and quote-safe.
+        const fallback = disposition.match(/filename="([^"]+)"/);
+        expect(fallback).not.toBeNull();
+        expect(fallback![1]).toMatch(/^[A-Za-z0-9._-]+$/);
+
+        // The `filename*` parameter carries the real name via RFC 5987.
+        expect(disposition).toContain("filename*=UTF-8''");
+        // Spaces, quotes, and the Chinese characters must all be percent-encoded.
+        expect(disposition).toContain(encodeURIComponent(`${trickyKey}.tar.gz`));
+      });
+
+      it('strips path-traversal segments from tar entry names (tar-slip protection)', async () => {
+        // listObjectsV2Query under prefix "directory/" returning a key whose
+        // relative path begins with ".." would, without sanitization, write
+        // outside the user's extraction target.
+        mockMinioForDirectory({
+          'directory/../etc/passwd': 'malicious payload',
+          'directory/legit.txt': 'real payload',
+        });
+
+        const configs = loadConfigs(argv, minioConfigEnv);
+        app = new UIServer(configs);
+
+        const request = requests(app.app);
+        const res = await captureBinaryResponse(
+          request.get('/artifacts/get?source=minio&bucket=ml-pipeline&key=directory'),
+        ).expect(200);
+
+        const entries = await readTarGzEntries(res.body as Buffer);
+        const names = Array.from(entries.keys());
+        expect(names).toContain('legit.txt');
+        // No entry whose path traverses out of the extraction root.
+        for (const name of names) {
+          expect(name.startsWith('/')).toBe(false);
+          expect(name.split('/')).not.toContain('..');
+        }
+      });
     });
   });
 
