@@ -1047,9 +1047,9 @@ func TestValidateJobInputs(t *testing.T) {
 			errSubstr: "y",
 		},
 		{
-			name:      "invalid json in runtime config",
-			params:    "not valid json",
-			wantErr:   true,
+			name:    "invalid json in runtime config",
+			params:  "not valid json",
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

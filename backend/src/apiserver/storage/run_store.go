@@ -98,7 +98,7 @@ type RunStoreInterface interface {
 
 	// Checks if a run already exists for a given recurring run and display name.
 	// Returns the existing run UUID if found, or empty string if not.
-	GetRunByRecurringRunIdAndDisplayName(recurringRunId, displayName string) (string, error)
+	GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayName string) (string, error)
 }
 
 type RunStore struct {
@@ -554,11 +554,11 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	return r, nil
 }
 
-func (s *RunStore) GetRunByRecurringRunIdAndDisplayName(recurringRunId, displayName string) (string, error) {
+func (s *RunStore) GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayName string) (string, error) {
 	query, args, err := sq.
 		Select("UUID").
 		From("run_details").
-		Where(sq.Eq{"JobUUID": recurringRunId, "DisplayName": displayName}).
+		Where(sq.Eq{"JobUUID": recurringRunID, "DisplayName": displayName}).
 		OrderBy("CreatedAtInSec DESC", "UUID DESC").
 		Limit(1).
 		ToSql()

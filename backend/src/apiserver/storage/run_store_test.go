@@ -1517,33 +1517,33 @@ func TestGetRunByRecurringRunIdAndDisplayName(t *testing.T) {
 	assert.Nil(t, err)
 
 	tests := []struct {
-		name            string
-		recurringRunId  string
-		displayName     string
-		wantUUID        string
+		name           string
+		recurringRunID string
+		displayName    string
+		wantUUID       string
 	}{
 		{
 			name:           "found with matching recurring run id and display name",
-			recurringRunId: "job-uuid-1",
+			recurringRunID: "job-uuid-1",
 			displayName:    "scheduled-run-trigger-1",
 			wantUUID:       "recurring-run-uuid",
 		},
 		{
 			name:           "not found when recurring run id does not match",
-			recurringRunId: "different-job-uuid",
+			recurringRunID: "different-job-uuid",
 			displayName:    "scheduled-run-trigger-1",
 			wantUUID:       "",
 		},
 		{
 			name:           "not found when display name does not match",
-			recurringRunId: "job-uuid-1",
+			recurringRunID: "job-uuid-1",
 			displayName:    "different-display-name",
 			wantUUID:       "",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			uuid, err := runStore.GetRunByRecurringRunIdAndDisplayName(tt.recurringRunId, tt.displayName)
+			uuid, err := runStore.GetRunByRecurringRunIDAndDisplayName(tt.recurringRunID, tt.displayName)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.wantUUID, uuid)
 		})

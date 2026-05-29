@@ -641,12 +641,12 @@ func isNamespaceAllowed(namespace string, allowedNamespaces string) bool {
 func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model.Run, error) {
 	// Guard against duplicate runs from concurrent recurring-run controller replicas.
 	if run.RecurringRunId != "" && run.DisplayName != "" {
-		existingRunId, err := r.runStore.GetRunByRecurringRunIdAndDisplayName(run.RecurringRunId, run.DisplayName)
+		existingRunID, err := r.runStore.GetRunByRecurringRunIDAndDisplayName(run.RecurringRunId, run.DisplayName)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to check for existing run")
 		}
-		if existingRunId != "" {
-			return r.runStore.GetRun(existingRunId)
+		if existingRunID != "" {
+			return r.runStore.GetRun(existingRunID)
 		}
 	}
 
@@ -717,7 +717,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		if swf.Status.Trigger.LastIndex != nil {
 			nextIndex = *swf.Status.Trigger.LastIndex + 1
 		}
-		executionSpec.SetCannonicalLabels(swf.Name, run.RunDetails.CreatedAtInSec, nextIndex)
+		executionSpec.SetCannonicalLabels(swf.Name, run.CreatedAtInSec, nextIndex)
 	}
 
 	newExecSpec, err := r.getWorkflowClient(k8sNamespace).Create(ctx, executionSpec, v1.CreateOptions{})
