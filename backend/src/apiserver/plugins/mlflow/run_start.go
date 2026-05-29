@@ -1,3 +1,17 @@
+// Copyright 2026 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package mlflow
 
 import (
@@ -161,7 +175,7 @@ func BuildKFPRunURL(runID, namespace, kfpBaseURL, pathTemplate string) string {
 	base := strings.TrimRight(kfpBaseURL, "/")
 	rendered := strings.ReplaceAll(pathTemplate, "{run_id}", url.PathEscape(runID))
 	rendered = strings.ReplaceAll(rendered, "{namespace}", url.PathEscape(namespace))
-	if !(strings.HasPrefix(rendered, "/") || strings.HasPrefix(rendered, "#")) {
+	if !strings.HasPrefix(rendered, "/") && !strings.HasPrefix(rendered, "#") {
 		rendered = "/" + rendered
 	}
 	return base + rendered
@@ -284,11 +298,11 @@ func ModelToPersistedRun(m *model.Run, namespace string) (*apiserverPlugins.Pers
 	pr := &apiserverPlugins.PersistedRun{
 		RunID:         m.UUID,
 		Namespace:     namespace,
-		State:         string(m.RunDetails.State),
+		State:         string(m.RunDetails.State), //nolint:staticcheck // QF1008
 		PluginsOutput: pluginsOutput,
 	}
-	if m.RunDetails.FinishedAtInSec > 0 {
-		t := time.Unix(m.RunDetails.FinishedAtInSec, 0)
+	if m.RunDetails.FinishedAtInSec > 0 { //nolint:staticcheck // QF1008
+		t := time.Unix(m.RunDetails.FinishedAtInSec, 0) //nolint:staticcheck // QF1008
 		pr.FinishedAt = &t
 	}
 	return pr, nil

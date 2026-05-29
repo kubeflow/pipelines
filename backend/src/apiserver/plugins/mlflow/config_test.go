@@ -506,7 +506,7 @@ func TestResolveMLflowRequestConfig_NamespaceOnlyIsDisabled(t *testing.T) {
 	require.False(t, hasGlobal, "global config should be absent for this test")
 
 	// Create a fake namespace ConfigMap with MLflow config.
-	clientSet := k8sfake.NewSimpleClientset(
+	clientSet := k8sfake.NewClientset(
 		&corev1.ConfigMap{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      LauncherConfigMapName,
@@ -537,7 +537,7 @@ func TestResolveMLflowRequestConfig_NeitherGlobalNorNamespace(t *testing.T) {
 		viper.Set("plugins", originalPlugins)
 	})
 
-	clientSet := k8sfake.NewSimpleClientset() // no ConfigMap
+	clientSet := k8sfake.NewClientset() // no ConfigMap
 	kubeClients := &fakeKubeClientProvider{clientSet: clientSet}
 
 	resolved, err := ResolveMLflowRequestConfig(context.Background(), kubeClients, "empty-ns")

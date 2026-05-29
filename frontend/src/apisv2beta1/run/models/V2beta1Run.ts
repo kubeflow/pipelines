@@ -48,6 +48,13 @@ import {
   V2beta1RuntimeStatusToJSON,
   V2beta1RuntimeStatusToJSONTyped,
 } from './V2beta1RuntimeStatus';
+import type { V2beta1PluginOutput } from './V2beta1PluginOutput';
+import {
+  V2beta1PluginOutputFromJSON,
+  V2beta1PluginOutputFromJSONTyped,
+  V2beta1PluginOutputToJSON,
+  V2beta1PluginOutputToJSONTyped,
+} from './V2beta1PluginOutput';
 import type { V2beta1RuntimeState } from './V2beta1RuntimeState';
 import {
   V2beta1RuntimeStateFromJSON,
@@ -182,6 +189,20 @@ export interface V2beta1Run {
    * @memberof V2beta1Run
    */
   state_history?: Array<V2beta1RuntimeStatus>;
+  /**
+   * Optional input. Plugin-specific inputs provided by the user at run creation.
+   * Each key is a plugin name (e.g., "mlflow") and the value is arbitrary JSON config.
+   * @type {{ [key: string]: object; }}
+   * @memberof V2beta1Run
+   */
+  plugins_input?: { [key: string]: object };
+  /**
+   * Output. Plugin-specific outputs populated by backend components.
+   * Each key is a plugin name and the value contains the plugin's output entries and state.
+   * @type {{ [key: string]: V2beta1PluginOutput; }}
+   * @memberof V2beta1Run
+   */
+  plugins_output?: { [key: string]: V2beta1PluginOutput };
 }
 
 /**
@@ -232,6 +253,11 @@ export function V2beta1RunFromJSONTyped(json: any, ignoreDiscriminator: boolean)
       json['state_history'] == null
         ? undefined
         : (json['state_history'] as Array<any>).map(V2beta1RuntimeStatusFromJSON),
+    plugins_input: json['plugins_input'] == null ? undefined : json['plugins_input'],
+    plugins_output:
+      json['plugins_output'] == null
+        ? undefined
+        : mapValues(json['plugins_output'], V2beta1PluginOutputFromJSON),
   };
 }
 
@@ -274,5 +300,10 @@ export function V2beta1RunToJSONTyped(
       value['state_history'] == null
         ? undefined
         : (value['state_history'] as Array<any>).map(V2beta1RuntimeStatusToJSON),
+    plugins_input: value['plugins_input'],
+    plugins_output:
+      value['plugins_output'] == null
+        ? undefined
+        : mapValues(value['plugins_output'], V2beta1PluginOutputToJSON),
   };
 }

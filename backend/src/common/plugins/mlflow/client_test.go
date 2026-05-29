@@ -538,7 +538,7 @@ func newTestClientWithFastRetry(t *testing.T, endpoint string) *Client {
 }
 
 // TestMLflowRuntimeConfig_JSONFieldAlignment verifies that the JSON keys produced by
-// marshalling MLflowRuntimeConfig.
+// marshaling MLflowRuntimeConfig.
 func TestMLflowRuntimeConfig_JSONFieldAlignment(t *testing.T) {
 	cfg := MLflowRuntimeConfig{
 		Endpoint:           "http://mlflow:5000",
@@ -602,7 +602,7 @@ func TestMLflowRuntimeConfig_OmitEmptyFields(t *testing.T) {
 	assert.Contains(t, raw, "authType")
 }
 
-// TestMLflowRuntimeConfig_RoundTrip verifies that marshalling and unmarshalling
+// TestMLflowRuntimeConfig_RoundTrip verifies that marshaling and unmarshaling
 // MLflowRuntimeConfig produces an identical struct.
 func TestMLflowRuntimeConfig_RoundTrip(t *testing.T) {
 	original := MLflowRuntimeConfig{
