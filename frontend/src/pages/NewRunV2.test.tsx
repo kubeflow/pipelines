@@ -359,6 +359,22 @@ describe('NewRunV2', () => {
     );
   });
 
+  it('exits to a safe return path when one is present in the query params', async () => {
+    renderNewRunV2({
+      location: {
+        pathname: RoutePage.NEW_RUN,
+        search:
+          `?${QUERY_PARAMS.pipelineId}=${ORIGINAL_TEST_PIPELINE_ID}` +
+          `&${QUERY_PARAMS.pipelineVersionId}=${ORIGINAL_TEST_PIPELINE_VERSION_ID}` +
+          `&${QUERY_PARAMS.returnTo}=${RoutePage.RECURRING_RUNS}`,
+      } as any,
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+
+    expect(historyPushSpy).toHaveBeenCalledWith(RoutePage.RECURRING_RUNS);
+  });
+
   it('Submit run ', async () => {
     const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
     getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);

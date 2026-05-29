@@ -2295,4 +2295,15 @@ describe('NewRun', () => {
       );
     });
   });
+
+  it('exits to a safe return path when one is present in the query params', async () => {
+    const props = generateProps();
+    props.location.search = `?${QUERY_PARAMS.returnTo}=${RoutePage.RECURRING_RUNS}`;
+
+    tree = await renderNewRunElement(<TestNewRun {...props} />);
+    await flushPromisesInAct();
+    tree.find('#exitNewRunPageBtn').simulate('click');
+
+    expect(historyPushSpy).toHaveBeenCalledWith(RoutePage.RECURRING_RUNS);
+  });
 });
