@@ -174,6 +174,13 @@ export interface V2beta1RecurringRun {
    * @memberof V2beta1RecurringRun
    */
   experiment_id?: string;
+  /**
+   * Optional input. Plugin inputs to propagate to each triggered run.
+   * Each triggered run will inherit these values in its plugins_input field.
+   * @type {{ [key: string]: object; }}
+   * @memberof V2beta1RecurringRun
+   */
+  plugins_input?: { [key: string]: object };
 }
 
 /**
@@ -220,6 +227,7 @@ export function V2beta1RecurringRunFromJSONTyped(
     no_catchup: json['no_catchup'] == null ? undefined : json['no_catchup'],
     namespace: json['namespace'] == null ? undefined : json['namespace'],
     experiment_id: json['experiment_id'] == null ? undefined : json['experiment_id'],
+    plugins_input: json['plugins_input'] == null ? undefined : json['plugins_input'],
   };
 }
 
@@ -257,5 +265,6 @@ export function V2beta1RecurringRunToJSONTyped(
     error: GooglerpcStatusToJSON(value['error']),
     no_catchup: value['no_catchup'],
     experiment_id: value['experiment_id'],
+    plugins_input: value['plugins_input'],
   };
 }

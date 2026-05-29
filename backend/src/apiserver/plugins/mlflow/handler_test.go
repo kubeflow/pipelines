@@ -531,9 +531,9 @@ func TestModelToPersistedRun_BasicFields(t *testing.T) {
 	m := &model.Run{
 		UUID: "run-123",
 	}
-	m.RunDetails.State = "SUCCEEDED"
-	m.RunDetails.FinishedAtInSec = 1700000000
-	m.RunDetails.PluginsOutputString = &lt
+	m.RunDetails.State = "SUCCEEDED"          //nolint:staticcheck // QF1008
+	m.RunDetails.FinishedAtInSec = 1700000000 //nolint:staticcheck // QF1008
+	m.RunDetails.PluginsOutputString = &lt    //nolint:staticcheck // QF1008
 
 	pr, err := ModelToPersistedRun(m, "ns1")
 	require.NoError(t, err)
