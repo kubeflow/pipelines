@@ -2815,7 +2815,7 @@ func Test_toModelRuntimeStatus(t *testing.T) {
 			&model.RuntimeStatus{
 				UpdateTimeInSec: 0,
 				State:           model.RuntimeStateUnspecified,
-				Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value"))),
+				Error:           model.NewRuntimeError(util.NewInvalidInputError("Invalid input: %s", "sample value")),
 			},
 			false,
 			"",
@@ -2856,7 +2856,7 @@ func Test_toModelRuntimeStatus(t *testing.T) {
 			&model.RuntimeStatus{
 				UpdateTimeInSec: 100,
 				State:           model.RuntimeStateCancelling,
-				Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value"))),
+				Error:           model.NewRuntimeError(util.NewInvalidInputError("Invalid input: %s", "sample value")),
 			},
 			false,
 			"",
@@ -2910,7 +2910,7 @@ func Test_toModelRuntimeStatuses(t *testing.T) {
 		{
 			UpdateTimeInSec: 0,
 			State:           model.RuntimeStateUnspecified,
-			Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value"))),
+			Error:           model.NewRuntimeError(util.NewInvalidInputError("Invalid input: %s", "sample value")),
 		},
 		{
 			UpdateTimeInSec: 100,
@@ -2925,7 +2925,7 @@ func Test_toModelRuntimeStatuses(t *testing.T) {
 		{
 			UpdateTimeInSec: 100,
 			State:           model.RuntimeStateCancelling,
-			Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value"))),
+			Error:           model.NewRuntimeError(util.NewInvalidInputError("Invalid input: %s", "sample value")),
 		},
 	}
 	got, err := toModelRuntimeStatuses(arg)
@@ -2949,7 +2949,7 @@ func Test_toApiRuntimeStatus(t *testing.T) {
 			&model.RuntimeStatus{
 				UpdateTimeInSec: 100,
 				State:           model.RuntimeStateCancelling,
-				Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+				Error:           model.NewRuntimeError(util.NewInvalidInputError("Invalid input: %s", "sample value")),
 			},
 			&apiv2beta1.RuntimeStatus{
 				UpdateTime: &timestamppb.Timestamp{Seconds: 100},
@@ -2969,7 +2969,7 @@ func Test_toApiRuntimeStatus(t *testing.T) {
 		{
 			"error",
 			&model.RuntimeStatus{
-				Error: util.NewInvalidInputError("Invalid input: %s", "sample value"),
+				Error: model.NewRuntimeError(util.NewInvalidInputError("Invalid input: %s", "sample value")),
 			},
 			&apiv2beta1.RuntimeStatus{
 				Error: util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
@@ -2989,7 +2989,7 @@ func Test_toApiRuntimeStatus(t *testing.T) {
 			&model.RuntimeStatus{
 				UpdateTimeInSec: 100,
 				State:           model.RuntimeStateErrorV1,
-				Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+				Error:           model.NewRuntimeError(util.NewInvalidInputError("Invalid input: %s", "sample value")),
 			},
 			&apiv2beta1.RuntimeStatus{
 				UpdateTime: &timestamppb.Timestamp{Seconds: 100},
@@ -3002,7 +3002,7 @@ func Test_toApiRuntimeStatus(t *testing.T) {
 			&model.RuntimeStatus{
 				UpdateTimeInSec: 100,
 				State:           model.RuntimeStateUnknownV1,
-				Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+				Error:           model.NewRuntimeError(util.NewInvalidInputError("Invalid input: %s", "sample value")),
 			},
 			&apiv2beta1.RuntimeStatus{
 				UpdateTime: &timestamppb.Timestamp{Seconds: 100},
@@ -3015,7 +3015,7 @@ func Test_toApiRuntimeStatus(t *testing.T) {
 			&model.RuntimeStatus{
 				UpdateTimeInSec: 100,
 				State:           model.RuntimeState("WRONG STATE"),
-				Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+				Error:           model.NewRuntimeError(util.NewInvalidInputError("Invalid input: %s", "sample value")),
 			},
 			&apiv2beta1.RuntimeStatus{
 				UpdateTime: &timestamppb.Timestamp{Seconds: 100},
@@ -3028,7 +3028,7 @@ func Test_toApiRuntimeStatus(t *testing.T) {
 			&model.RuntimeStatus{
 				UpdateTimeInSec: 100,
 				State:           model.RuntimeState(""),
-				Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+				Error:           model.NewRuntimeError(util.NewInvalidInputError("Invalid input: %s", "sample value")),
 			},
 			&apiv2beta1.RuntimeStatus{
 				UpdateTime: &timestamppb.Timestamp{Seconds: 100},
@@ -3036,7 +3036,21 @@ func Test_toApiRuntimeStatus(t *testing.T) {
 				Error:      util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
 			},
 		},
+		{
+			"internal error",
+			&model.RuntimeStatus{
+				Error: model.NewRuntimeError(
+					util.NewInternalServerError(errors.New("boom"), "internal failure"),
+				),
+			},
+			&apiv2beta1.RuntimeStatus{
+				Error: util.ToRpcStatus(
+					util.NewInternalServerError(errors.New("boom"), "internal failure"),
+				),
+			},
+		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := toApiRuntimeStatus(tt.modelStatus)
@@ -3051,27 +3065,27 @@ func Test_toApiRuntimeStatuses(t *testing.T) {
 		{
 			UpdateTimeInSec: 100,
 			State:           model.RuntimeStateCancelling,
-			Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+			Error:           model.NewRuntimeError(util.NewInvalidInputError("Invalid input: %s", "sample value")),
 		},
 		{
 			UpdateTimeInSec: 100,
 			State:           model.RuntimeStateErrorV1,
-			Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+			Error:           model.NewRuntimeError(util.NewInvalidInputError("Invalid input: %s", "sample value")),
 		},
 		{
 			UpdateTimeInSec: 100,
 			State:           model.RuntimeStateUnknownV1,
-			Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+			Error:           model.NewRuntimeError(util.NewInvalidInputError("Invalid input: %s", "sample value")),
 		},
 		{
 			UpdateTimeInSec: 100,
 			State:           model.RuntimeState("WRONG STATE"),
-			Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+			Error:           model.NewRuntimeError(util.NewInvalidInputError("Invalid input: %s", "sample value")),
 		},
 		{
 			UpdateTimeInSec: 100,
 			State:           model.RuntimeState(""),
-			Error:           util.NewInvalidInputError("Invalid input: %s", "sample value"),
+			Error:           model.NewRuntimeError(util.NewInvalidInputError("Invalid input: %s", "sample value")),
 		},
 	}
 	expected := []*apiv2beta1.RuntimeStatus{
@@ -3313,7 +3327,7 @@ func Test_toModelTasks_v2(t *testing.T) {
 				{
 					UpdateTimeInSec: 9,
 					State:           model.RuntimeStateFailed,
-					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid"))),
+					Error:           model.NewRuntimeError(util.NewInvalidInputError("Input argument is invalid")),
 				},
 			},
 			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
@@ -3416,7 +3430,7 @@ func Test_toApiTaskV1(t *testing.T) {
 					{
 						UpdateTimeInSec: 9,
 						State:           model.RuntimeStatePaused,
-						Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+						Error:           model.NewRuntimeError(util.NewInvalidInputError("Sample error2")),
 					},
 				},
 				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
@@ -3480,7 +3494,7 @@ func Test_toApiTasksV1(t *testing.T) {
 				{
 					UpdateTimeInSec: 9,
 					State:           model.RuntimeStatePaused,
-					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+					Error:           model.NewRuntimeError(util.NewInvalidInputError("Sample error2")),
 				},
 			},
 			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
@@ -3568,7 +3582,7 @@ func Test_toApiPipelineTaskDetail(t *testing.T) {
 					{
 						UpdateTimeInSec: 9,
 						State:           model.RuntimeStatePaused,
-						Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+						Error:           model.NewRuntimeError(util.NewInvalidInputError("Sample error2")),
 					},
 				},
 				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
@@ -3633,7 +3647,7 @@ func Test_toApiPipelineTaskDetail(t *testing.T) {
 					{
 						UpdateTimeInSec: 9,
 						State:           model.RuntimeStatePaused,
-						Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+						Error:           model.NewRuntimeError(util.NewInvalidInputError("Sample error2")),
 					},
 				},
 				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}`,
@@ -3666,7 +3680,7 @@ func Test_toApiPipelineTaskDetail(t *testing.T) {
 					{
 						UpdateTimeInSec: 9,
 						State:           model.RuntimeStatePaused,
-						Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+						Error:           model.NewRuntimeError(util.NewInvalidInputError("Sample error2")),
 					},
 				},
 				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
@@ -3726,7 +3740,7 @@ func Test_toApiPipelineTaskDetails(t *testing.T) {
 				{
 					UpdateTimeInSec: 9,
 					State:           model.RuntimeStatePaused,
-					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+					Error:           model.NewRuntimeError(util.NewInvalidInputError("Sample error2")),
 				},
 			},
 			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
@@ -3803,7 +3817,7 @@ func Test_toApiPipelineTaskDetails(t *testing.T) {
 				{
 					UpdateTimeInSec: 9,
 					State:           model.RuntimeStatePaused,
-					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+					Error:           model.NewRuntimeError(util.NewInvalidInputError("Sample error2")),
 				},
 			},
 			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}`,
@@ -3827,7 +3841,7 @@ func Test_toApiPipelineTaskDetails(t *testing.T) {
 				{
 					UpdateTimeInSec: 9,
 					State:           model.RuntimeStatePaused,
-					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
+					Error:           model.NewRuntimeError(util.NewInvalidInputError("Sample error2")),
 				},
 			},
 			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
@@ -3971,7 +3985,7 @@ func TestToModelRun(t *testing.T) {
 						{
 							UpdateTimeInSec: 9,
 							State:           model.RuntimeStateFailed,
-							Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid"))),
+							Error:           model.NewRuntimeError(util.NewInvalidInputError("Input argument is invalid")),
 						},
 					},
 					CreatedAtInSec:       1,
@@ -3998,7 +4012,7 @@ func TestToModelRun(t *testing.T) {
 								{
 									UpdateTimeInSec: 15,
 									State:           model.RuntimeStateFailed,
-									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid"))),
+									Error:           model.NewRuntimeError(util.NewInvalidInputError("Input argument is invalid")),
 								},
 							},
 							ChildrenPods: []string{"task2"},
@@ -4438,7 +4452,7 @@ func Test_toApiRun(t *testing.T) {
 						{
 							UpdateTimeInSec: 9,
 							State:           model.RuntimeStateFailed,
-							Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid"))),
+							Error:           model.NewRuntimeError(util.NewInvalidInputError("Input argument is invalid")),
 						},
 					},
 					CreatedAtInSec:       1,
@@ -4465,7 +4479,7 @@ func Test_toApiRun(t *testing.T) {
 								{
 									UpdateTimeInSec: 15,
 									State:           model.RuntimeStateFailed,
-									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid"))),
+									Error:           model.NewRuntimeError(util.NewInvalidInputError("Input argument is invalid")),
 								},
 							},
 						},
