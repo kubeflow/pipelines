@@ -945,6 +945,14 @@ func (r *ResourceManager) UnarchiveRun(runId string) error {
 	return nil
 }
 
+// newStandardBackoffPolicy returns a configured backoff policy for retrying operations.
+func newStandardBackoffPolicy() backoff.BackOff {
+	exponentialBackoff := backoff.NewExponentialBackOff()
+	exponentialBackoff.InitialInterval = 100 * time.Millisecond
+	exponentialBackoff.MaxInterval = 5 * time.Second
+	return backoff.WithMaxRetries(exponentialBackoff, 10)
+}
+
 // Deletes a run entry with a given id.
 func (r *ResourceManager) DeleteRun(ctx context.Context, runId string) error {
 	run, err := r.GetRun(runId)
@@ -1050,11 +1058,7 @@ func TerminateWorkflow(ctx context.Context, wfClient util.ExecutionInterface, na
 		_, err = wfClient.Patch(ctx, name, types.MergePatchType, patch, v1.PatchOptions{})
 		return util.Wrapf(err, "Failed to terminate workflow %s due to patching error", name)
 	}
-	exponentialBackoff := backoff.NewExponentialBackOff()
-	exponentialBackoff.InitialInterval = 100 * time.Millisecond
-	exponentialBackoff.MaxInterval = 5 * time.Second
-	backoffPolicy := backoff.WithMaxRetries(exponentialBackoff, 10)
-	err = backoff.Retry(operation, backoffPolicy)
+	err = backoff.Retry(operation, newStandardBackoffPolicy())
 	if err != nil {
 		return util.Wrapf(err, "Failed to terminate workflow %s due to patching error after multiple retries", name)
 	}
@@ -1614,11 +1618,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 				}
 				return nil
 			}
-			exponentialBackoff := backoff.NewExponentialBackOff()
-			exponentialBackoff.InitialInterval = 100 * time.Millisecond
-			exponentialBackoff.MaxInterval = 5 * time.Second
-			backoffPolicy := backoff.WithMaxRetries(exponentialBackoff, 10)
-			if err := backoff.Retry(deleteOperation, backoffPolicy); err != nil {
+			if err := backoff.Retry(deleteOperation, newStandardBackoffPolicy()); err != nil {
 				return nil, util.NewInternalServerError(err, "Failed to delete the obsolete workflow for run %s after multiple retries", runId)
 			}
 
@@ -1771,11 +1771,7 @@ func addWorkflowLabel(ctx context.Context, wfClient util.ExecutionInterface, nam
 		_, err = wfClient.Patch(ctx, name, types.MergePatchType, patch, v1.PatchOptions{})
 		return err
 	}
-	exponentialBackoff := backoff.NewExponentialBackOff()
-	exponentialBackoff.InitialInterval = 100 * time.Millisecond
-	exponentialBackoff.MaxInterval = 5 * time.Second
-	backoffPolicy := backoff.WithMaxRetries(exponentialBackoff, 10)
-	err = backoff.Retry(operation, backoffPolicy)
+	err = backoff.Retry(operation, newStandardBackoffPolicy())
 	return err
 }
 

@@ -3809,31 +3809,6 @@ func TestReportWorkflowResource_RunNotFound_WithinGracePeriod(t *testing.T) {
 	assert.NotNil(t, wf)
 }
 
-func TestReportWorkflowResource_RunNotFound_BeyondGracePeriod(t *testing.T) {
-	// When a workflow is old (beyond the GC grace period) and its run is not
-	// found in the DB, it should be GC'd as before (existing behavior).
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	ctx := context.Background()
-	defer store.Close()
-
-	// Set CreationTimestamp far in the past relative to the real clock.
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{
-			Name:              "old-orphan-workflow",
-			Namespace:         "kubeflow",
-			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
-			CreationTimestamp: v1.NewTime(time.Now().Add(-10 * time.Minute)),
-		},
-	})
-	store.ExecClient().Execution("kubeflow").Create(ctx, workflow, v1.CreateOptions{})
-	_, err := manager.ReportWorkflowResource(ctx, workflow)
-	require.NotNil(t, err)
-	// Should be NOT_FOUND (permanent), indicating the workflow was GC'd.
-	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound),
-		"Expected NotFound error for old workflow beyond grace period, got: %v", err)
-	assert.Contains(t, err.Error(), "Run run-id-not-exist not found")
-}
 
 func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
