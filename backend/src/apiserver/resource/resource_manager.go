@@ -1589,7 +1589,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			// See https://github.com/kubeflow/pipelines/issues/13342.
 			gracePeriodSeconds := common.GetWorkflowGCGracePeriodSeconds()
 			gracePeriod := time.Duration(gracePeriodSeconds) * time.Second
-			workflowAge := time.Since(objMeta.CreationTimestamp.Time)
+			workflowAge := r.time.Now().Sub(objMeta.CreationTimestamp.Time)
 			if workflowAge < gracePeriod {
 				glog.Warningf(
 					"Workflow name=%q namespace=%q runId=%q not found in run store, "+

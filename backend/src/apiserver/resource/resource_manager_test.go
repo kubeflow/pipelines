@@ -3761,12 +3761,13 @@ func TestReportWorkflowResource_RunNotFound(t *testing.T) {
 	ctx := context.Background()
 	defer store.Close()
 	// Set CreationTimestamp far in the past so the workflow is beyond the GC grace period.
+	// Use the injected fake time to ensure consistency with manager's time.
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			Name:              "obsolete",
 			Namespace:         "kubeflow",
 			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
-			CreationTimestamp: v1.NewTime(time.Now().Add(-10 * time.Minute)),
+			CreationTimestamp: v1.NewTime(store.Time().Now().Add(-10 * time.Minute)),
 		},
 	})
 	store.ExecClient().Execution("kubeflow").Create(ctx, workflow, v1.CreateOptions{})
@@ -3787,12 +3788,13 @@ func TestReportWorkflowResource_RunNotFound_WithinGracePeriod(t *testing.T) {
 	defer store.Close()
 
 	// Set CreationTimestamp to a recent time so the workflow is within the grace period.
+	// Use the injected fake time to ensure consistency with manager's time.
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			Name:              "young-workflow",
 			Namespace:         "kubeflow",
 			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
-			CreationTimestamp: v1.NewTime(time.Now().Add(-10 * time.Second)),
+			CreationTimestamp: v1.NewTime(store.Time().Now().Add(-10 * time.Second)),
 		},
 	})
 	store.ExecClient().Execution("kubeflow").Create(ctx, workflow, v1.CreateOptions{})
@@ -3808,7 +3810,6 @@ func TestReportWorkflowResource_RunNotFound_WithinGracePeriod(t *testing.T) {
 	assert.Nil(t, getErr, "Workflow should still exist after grace period skip")
 	assert.NotNil(t, wf)
 }
-
 
 func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
