@@ -1490,16 +1490,14 @@ func FormatExecutionParameters(execution *Execution) map[string]interface{} {
 
 func FormatScalarMetricArtifacts(outputArtifacts []*OutputArtifact) map[string]float64 {
 	metrics := map[string]float64{}
-	if outputArtifacts != nil {
-		for _, artifact := range outputArtifacts {
-			if artifact.Artifact != nil && artifact.Artifact.GetType() == "system.Metrics" {
-				for customKey, customValue := range artifact.Artifact.CustomProperties {
-					// retrieve scalar metric artifact values. do not retrieve display_name or store_session_info.
-					if customKey == "display_name" || customKey == "store_session_info" {
-						continue
-					}
-					metrics[customKey] = customValue.GetDoubleValue()
+	for _, artifact := range outputArtifacts {
+		if artifact.Artifact != nil && artifact.Artifact.GetType() == "system.Metrics" {
+			for customKey, customValue := range artifact.Artifact.CustomProperties {
+				// retrieve scalar metric artifact values. do not retrieve display_name or store_session_info.
+				if customKey == "display_name" || customKey == "store_session_info" {
+					continue
 				}
+				metrics[customKey] = customValue.GetDoubleValue()
 			}
 		}
 	}

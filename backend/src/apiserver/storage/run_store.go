@@ -527,7 +527,7 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			"Conditions":              r.RunDetails.Conditions,
 			"WorkflowRuntimeManifest": r.RunDetails.WorkflowRuntimeManifest,
 			"PipelineRuntimeManifest": r.RunDetails.PipelineRuntimeManifest,
-			"PipelineId":              r.PipelineSpec.PipelineId,
+			"PipelineId":              r.PipelineSpec.PipelineId, //nolint:staticcheck // QF1008
 			"PipelineName":            r.PipelineSpec.PipelineName,
 			"PipelineSpecManifest":    r.PipelineSpec.PipelineSpecManifest,
 			"WorkflowSpecManifest":    r.PipelineSpec.WorkflowSpecManifest,
@@ -692,7 +692,7 @@ func (s *RunStore) UpdateRunPluginsOutput(runID string, pluginsOutput *model.Lar
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create query to update plugins output for run %s", runID)
 	}
-	result, err := s.db.DB.Exec(sql, args...)
+	result, err := s.db.DB.Exec(sql, args...) //nolint:staticcheck // QF1008
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to update plugins output for run %s", runID)
 	}

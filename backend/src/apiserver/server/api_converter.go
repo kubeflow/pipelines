@@ -2817,7 +2817,7 @@ func validateSinglePluginOutputLimit(
 
 func structDepth(s *structpb.Struct) (int, error) {
 	if s == nil {
-		return 0, fmt.Errorf(pluginErrStructValueNil)
+		return 0, errors.New(pluginErrStructValueNil)
 	}
 	maxDepth := 1
 	for fieldKey, fieldValue := range s.Fields {
@@ -2838,7 +2838,7 @@ func structDepth(s *structpb.Struct) (int, error) {
 
 func valueDepth(v *structpb.Value) (int, error) {
 	if v == nil {
-		return 0, fmt.Errorf(pluginErrValueNil)
+		return 0, errors.New(pluginErrValueNil)
 	}
 	switch kind := v.Kind.(type) {
 	case *structpb.Value_StructValue:
@@ -2859,7 +2859,7 @@ func valueDepth(v *structpb.Value) (int, error) {
 	case *structpb.Value_NullValue, *structpb.Value_NumberValue, *structpb.Value_StringValue, *structpb.Value_BoolValue:
 		return 0, nil
 	default:
-		return 0, fmt.Errorf(pluginErrValueKindUnset)
+		return 0, errors.New(pluginErrValueKindUnset)
 	}
 }
 

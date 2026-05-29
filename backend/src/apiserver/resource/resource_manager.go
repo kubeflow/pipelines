@@ -741,8 +741,8 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		RunID:             run.UUID,
 		DisplayName:       run.DisplayName,
 		Namespace:         k8sNamespace,
-		PipelineID:        run.PipelineSpec.PipelineId,
-		PipelineVersionID: run.PipelineSpec.PipelineVersionId,
+		PipelineID:        run.PipelineSpec.PipelineId,        //nolint:staticcheck // QF1008
+		PipelineVersionID: run.PipelineSpec.PipelineVersionId, //nolint:staticcheck // QF1008
 		PluginsInput:      (*string)(run.PluginsInputString),
 	}
 	if err := r.pluginDispatcher.OnBeforeRunCreation(ctx, pendingRun, executionSpec); err != nil {
