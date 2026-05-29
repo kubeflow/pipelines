@@ -46,11 +46,14 @@ const testPluginsURLBase = "https://example.com/"
 
 func setPluginLimitsConfigForTest(t *testing.T, values map[string]string) {
 	t.Helper()
-	t.Cleanup(viper.Reset)
-	viper.Reset()
-	for k, v := range values {
-		viper.Set(k, v)
+	for key, value := range values {
+		viper.Set(key, value)
 	}
+	t.Cleanup(func() {
+		viper.Reset()
+		// Restore package TestMain default; viper.Reset() clears all viper state.
+		viper.Set(common.PipelineURLValidationEnabled, "false")
+	})
 }
 
 func strPtr(s string) *string {

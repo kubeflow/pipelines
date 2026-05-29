@@ -1,3 +1,4 @@
+// Package plugins defines the v2 task plugin handler interface.
 package plugins
 
 import (
