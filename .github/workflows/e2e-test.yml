@@ -123,14 +123,23 @@ jobs:
           NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
+          MATRIX_CACHE_ENABLED=${{ matrix.cache_enabled }}
+          MATRIX_ARGO_VERSION=${{ matrix.argo_version }}
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
             TEST_LABEL=${{ inputs.test_label }}
             NAMESPACE=${{ inputs.namespace }}
+            MATRIX_CACHE_ENABLED=""
+            MATRIX_ARGO_VERSION=""
           fi
 
           if [ "$TEST_LABEL" == "E2EParallelNested" ]; then
             NUMBER_OF_NODES=3
+          fi
+          if [[ "$TEST_LABEL" == "E2EParallelNested" &&
+                "$MATRIX_CACHE_ENABLED" == "false" &&
+                "$MATRIX_ARGO_VERSION" == "v4.0.4" ]]; then
+            NUMBER_OF_NODES=1
           fi
 
           {
