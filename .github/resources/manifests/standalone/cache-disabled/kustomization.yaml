@@ -46,7 +46,7 @@ patches:
     target:
       kind: Deployment
       name: ml-pipeline
-  - path: seaweedfs-resources.yaml
+  - path: ../../base/seaweedfs-resources.yaml
     target:
       kind: Deployment
       name: seaweedfs

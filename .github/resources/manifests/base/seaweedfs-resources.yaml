@@ -9,7 +9,5 @@ spec:
         - name: seaweedfs
           resources:
             requests:
-              cpu: 500m
-              memory: 512Mi
-            limits:
-              memory: 1Gi
+              cpu: 250m
+              memory: 256Mi
