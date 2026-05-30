@@ -31,11 +31,17 @@ import { KeyValue } from 'src/lib/StaticGraphParser';
 import { hasFinishedV2, statusProtoMap } from 'src/lib/StatusUtils';
 import { formatDateString, getRunDurationV2 } from 'src/lib/Utils';
 import {
+  applyTaskFailureStates,
   convertSubDagToRuntimeFlowElements,
   getNodeMlmdInfo,
   updateFlowElementsState,
 } from 'src/lib/v2/DynamicFlow';
-import { convertFlowElements, getNodeName, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+import {
+  convertFlowElements,
+  getNodeName,
+  PipelineFlowElement,
+  getTaskKeyFromNodeKey,
+} from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import {
   getArtifactsFromContext,
@@ -156,19 +162,29 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   );
 
   const dynamicFlowElements = useMemo(() => {
-    if (!isSuccess || !data) {
-      return flowElements;
+    let elements = flowElements;
+
+    if (isSuccess && data) {
+      // Keep React Flow node references stable between unrelated rerenders after MLMD data arrives.
+      elements = updateFlowElementsState(
+        layers,
+        flowElements,
+        data.executions,
+        data.events,
+        data.artifacts,
+        run?.run_details?.task_details,
+      );
     }
 
-    // Keep React Flow node references stable between unrelated rerenders after MLMD data arrives.
-    return updateFlowElementsState(
-      layers,
-      flowElements,
-      data.executions,
-      data.events,
-      data.artifacts,
-    );
-  }, [data, flowElements, isSuccess, layers]);
+    // Always apply task failure states from the API as a final pass.
+    // This is resilient to MLMD query failures or missing executions
+    // (e.g. ImagePullBackOff where MLMD records are never created).
+    if (run?.run_details?.task_details) {
+      elements = applyTaskFailureStates(elements, run.run_details.task_details);
+    }
+
+    return elements;
+  }, [data, flowElements, isSuccess, layers, run?.run_details?.task_details]);
 
   const onElementSelection = (event: ReactMouseEvent, element: PipelineFlowElement) => {
     setSelectedNode(element);
@@ -233,6 +249,13 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
                   element={selectedNode}
                   elementMlmdInfo={selectedNodeMlmdInfo}
                   namespace={namespace}
+                  taskDetail={
+                    selectedNode?.id && selectedNode.id.startsWith('task.')
+                      ? run?.run_details?.task_details?.find(
+                          (td) => td.display_name === getTaskKeyFromNodeKey(selectedNode.id),
+                        )
+                      : undefined
+                  }
                 ></RuntimeNodeDetailsV2>
               </SidePanel>
             </div>

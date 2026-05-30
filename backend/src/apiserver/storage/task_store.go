@@ -46,6 +46,8 @@ var taskColumns = []string{
 	"MLMDInputs",
 	"MLMDOutputs",
 	"ChildrenPods",
+	"LifecycleFailureReason",
+	"LifecycleFailureMessage",
 }
 
 var taskColumnsWithPayload = append(taskColumns, "Payload")
@@ -132,8 +134,10 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 				"StateHistory":      stateHistoryString,
 				"MLMDInputs":        newTask.MLMDInputs,
 				"MLMDOutputs":       newTask.MLMDOutputs,
-				"ChildrenPods":      childrenPodsString,
-				"Payload":           newTask.ToString(),
+				"ChildrenPods":            childrenPodsString,
+				"LifecycleFailureReason":  newTask.LifecycleFailureReason,
+				"LifecycleFailureMessage": newTask.LifecycleFailureMessage,
+				"Payload":                 newTask.ToString(),
 			},
 		).
 		ToSql()
@@ -154,6 +158,7 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 	for rows.Next() {
 		var uuid, namespace, pipelineName, runUUID, podName, mlmdExecutionID, fingerprint string
 		var name, parentTaskId, state, stateHistory, inputs, outputs, children sql.NullString
+		var lifecycleFailureReason, lifecycleFailureMessage sql.NullString
 		var createdTimestamp, startedTimestamp, finishedTimestamp sql.NullInt64
 		err := rows.Scan(
 			&uuid,
@@ -173,6 +178,8 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 			&inputs,
 			&outputs,
 			&children,
+			&lifecycleFailureReason,
+			&lifecycleFailureMessage,
 		)
 		if err != nil {
 			fmt.Printf("scan error is %v", err)
@@ -187,22 +194,24 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 			json.Unmarshal([]byte(children.String), &childrenPods)
 		}
 		task := &model.Task{
-			UUID:              uuid,
-			Namespace:         namespace,
-			PipelineName:      pipelineName,
-			RunID:             runUUID,
-			PodName:           podName,
-			MLMDExecutionID:   mlmdExecutionID,
-			CreatedTimestamp:  createdTimestamp.Int64,
-			StartedTimestamp:  startedTimestamp.Int64,
-			FinishedTimestamp: finishedTimestamp.Int64,
-			Fingerprint:       fingerprint,
-			Name:              name.String,
-			ParentTaskId:      parentTaskId.String,
-			StateHistory:      stateHistoryNew,
-			MLMDInputs:        model.LargeText(inputs.String),
-			MLMDOutputs:       model.LargeText(outputs.String),
-			ChildrenPods:      childrenPods,
+			UUID:                    uuid,
+			Namespace:               namespace,
+			PipelineName:            pipelineName,
+			RunID:                   runUUID,
+			PodName:                 podName,
+			MLMDExecutionID:         mlmdExecutionID,
+			CreatedTimestamp:        createdTimestamp.Int64,
+			StartedTimestamp:        startedTimestamp.Int64,
+			FinishedTimestamp:       finishedTimestamp.Int64,
+			Fingerprint:             fingerprint,
+			Name:                    name.String,
+			ParentTaskId:            parentTaskId.String,
+			StateHistory:            stateHistoryNew,
+			MLMDInputs:              model.LargeText(inputs.String),
+			MLMDOutputs:             model.LargeText(outputs.String),
+			ChildrenPods:            childrenPods,
+			LifecycleFailureReason:  lifecycleFailureReason.String,
+			LifecycleFailureMessage: lifecycleFailureMessage.String,
 		}
 		tasks = append(tasks, task)
 	}
@@ -397,6 +406,8 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task, runID string) ([]*m
 				t.MLMDInputs,
 				t.MLMDOutputs,
 				childrenPodsString,
+				t.LifecycleFailureReason,
+				t.LifecycleFailureMessage,
 				t.ToString(),
 			)
 		}
@@ -490,4 +501,8 @@ func patchTask(original *model.Task, patch *model.Task) {
 	if len(original.ChildrenPods) == 0 {
 		original.ChildrenPods = patch.ChildrenPods
 	}
+	// LifecycleFailureReason and LifecycleFailureMessage are always derived
+	// from the current Argo node message. Do not restore stale values from
+	// the DB — a node that recovered (e.g., PodInitializing → Succeeded)
+	// should not keep its old transient message.
 }
