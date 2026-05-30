@@ -107,6 +107,22 @@ func TestContainerDriverTemplate_IncludesKFPPodNameEnv(t *testing.T) {
 		"system-container-driver template must include KFP_POD_NAME env var to avoid hostname truncation for long pod names")
 }
 
+func TestGetTaskRetryStrategyFromInput_RetriesFailuresAndErrors(t *testing.T) {
+	c := &workflowCompiler{}
+
+	retryStrategy := c.getTaskRetryStrategyFromInput(
+		"{{inputs.parameters.retry-max-count}}",
+		"{{inputs.parameters.retry-backoff-duration}}",
+		"{{inputs.parameters.retry-backoff-factor}}",
+		"{{inputs.parameters.retry-backoff-max-duration}}",
+	)
+
+	require.NotNil(t, retryStrategy)
+	assert.Equal(t, wfapi.RetryPolicyAlways, retryStrategy.RetryPolicy)
+	assert.Equal(t, "(lastRetry.status == \"Error\" || lastRetry.status == \"Failed\") && !(lastRetry.message matches 'OOMKilled')", retryStrategy.Expression)
+	assert.Equal(t, "{{inputs.parameters.retry-max-count}}", retryStrategy.Limit.StrVal)
+}
+
 func Test_extendPodMetadata(t *testing.T) {
 	tests := []struct {
 		name                     string

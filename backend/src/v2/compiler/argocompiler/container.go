@@ -669,6 +669,15 @@ func (c *workflowCompiler) getTaskRetryStrategyFromInput(maxCount string, backOf
 	}
 
 	return &wfapi.RetryStrategy{
+		// https://argo-workflows.readthedocs.io/en/latest/retries
+		// Argo evaluates retries as: retry = retryPolicy && expression.
+		// Use Always so the expression is the actual condition:
+		// lastRetry.status == "Failed" means an error in the main container.
+		// lastRetry.status == "Error" means an error in other containers
+		// (init/wait/WF controller).
+		// OOM errors are ignored.
+		RetryPolicy: wfapi.RetryPolicyAlways,
+		Expression:  "(lastRetry.status == \"Error\" || lastRetry.status == \"Failed\") && !(lastRetry.message matches 'OOMKilled')",
 		Limit: &intstr.IntOrString{
 			Type:   intstr.String,
 			StrVal: maxCount,

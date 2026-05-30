@@ -255,7 +255,10 @@ spec:
         duration: '{{inputs.parameters.retry-backoff-duration}}'
         factor: '{{inputs.parameters.retry-backoff-factor}}'
         maxDuration: '{{inputs.parameters.retry-backoff-max-duration}}'
+      expression: (lastRetry.status == "Error" || lastRetry.status == "Failed") &&
+        !(lastRetry.message matches 'OOMKilled')
       limit: '{{inputs.parameters.retry-max-count}}'
+      retryPolicy: Always
     securityContext:
       seccompProfile:
         type: RuntimeDefault
