@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/structpb"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
