@@ -223,8 +223,18 @@ func (b *BatchUpdater) Flush(ctx context.Context, client kfpapi.API) error {
 
 	// Step 3: Create artifact-tasks using existing bulk API
 	if len(b.artifactTasks) > 0 {
+		dedupedArtifactTasks := make([]*apiV2beta1.ArtifactTask, 0, len(b.artifactTasks))
+		seenArtifactTasks := make(map[string]struct{}, len(b.artifactTasks))
+		for _, artifactTask := range b.artifactTasks {
+			dedupeKey := fmt.Sprintf("%s|%s|%s", artifactTask.GetArtifactId(), artifactTask.GetTaskId(), artifactTask.GetKey())
+			if _, exists := seenArtifactTasks[dedupeKey]; exists {
+				continue
+			}
+			seenArtifactTasks[dedupeKey] = struct{}{}
+			dedupedArtifactTasks = append(dedupedArtifactTasks, artifactTask)
+		}
 		_, err := client.CreateArtifactTasks(ctx, &apiV2beta1.CreateArtifactTasksBulkRequest{
-			ArtifactTasks: b.artifactTasks,
+			ArtifactTasks: dedupedArtifactTasks,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create artifact-tasks in bulk: %w", err)
