@@ -128,7 +128,10 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 		return execution, err
 	}
 	glog.Infof("Creating task: %+v", taskToCreate)
-	createdTask, err := clientManager.KFPAPIClient().CreateTask(ctx, &gc.CreateTaskRequest{Task: taskToCreate})
+	createdTask, err := clientManager.KFPAPIClient().CreateTask(ctx, &gc.CreateTaskRequest{
+		Task:  taskToCreate,
+		RunId: taskToCreate.GetRunId(),
+	})
 	if err != nil {
 		return execution, err
 	}

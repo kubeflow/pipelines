@@ -223,7 +223,11 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 		if flushErr := l.batchUpdater.Flush(ctx, l.clientManager.KFPAPIClient()); flushErr != nil {
 			l.options.Task.State = apiV2beta1.PipelineTask_FAILED
 			glog.Errorf("failed to flush batch updates: %v", flushErr)
-			_, updateTaskErr := l.clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{TaskId: l.options.Task.GetTaskId(), Task: l.options.Task})
+			_, updateTaskErr := l.clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
+				TaskId: l.options.Task.GetTaskId(),
+				Task:   l.options.Task,
+				RunId:  l.options.Task.GetRunId(),
+			})
 			if updateTaskErr != nil {
 				glog.Errorf("failed to update task status: %v", updateTaskErr)
 				// Return here, if we can't update this Task's status, then there's no point in proceeding.

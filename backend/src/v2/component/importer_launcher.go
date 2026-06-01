@@ -81,6 +81,7 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 	// Create the task, we will continue to update this as needed.
 	parentTaskID := l.opts.ParentTask.GetTaskId()
 	createdTask, executionErr := kfpAPI.CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
+		RunId: l.opts.Run.RunId,
 		Task: &apiV2beta1.PipelineTask{
 			Name:         l.opts.TaskSpec.GetTaskInfo().GetName(),
 			DisplayName:  l.opts.TaskSpec.GetTaskInfo().GetName(),
@@ -118,6 +119,7 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 		_, updateErr := kfpAPI.UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
 			TaskId: createdTask.TaskId,
 			Task:   createdTask,
+			RunId:  createdTask.GetRunId(),
 		})
 		if updateErr != nil {
 			glog.Errorf("failed to update task: %v", updateErr)

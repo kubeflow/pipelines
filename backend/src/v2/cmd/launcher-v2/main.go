@@ -104,7 +104,10 @@ func run() error {
 	if parentTaskID == nil || *parentTaskID == "" {
 		return fmt.Errorf("parent task id is nil or empty")
 	}
-	parentTask, err := kfpAPI.GetTask(ctx, &go_client.GetTaskRequest{TaskId: *parentTaskID})
+	parentTask, err := kfpAPI.GetTask(ctx, &go_client.GetTaskRequest{
+		TaskId: *parentTaskID,
+		RunId:  *runID,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to get parent task: %w", err)
 	}
@@ -174,7 +177,10 @@ func run() error {
 	case "container":
 		// Container task should have a pre-existing task created by the Driver
 		if taskID != nil && *taskID != "" {
-			task, err := kfpAPI.GetTask(ctx, &go_client.GetTaskRequest{TaskId: *taskID})
+			task, err := kfpAPI.GetTask(ctx, &go_client.GetTaskRequest{
+				TaskId: *taskID,
+				RunId:  *runID,
+			})
 			if err != nil {
 				return fmt.Errorf("failed to get task: %w", err)
 			}

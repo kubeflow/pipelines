@@ -209,7 +209,10 @@ func drive() (err error) {
 
 	var parentTask *go_client.PipelineTask
 	if parentTaskID != nil && *parentTaskID != "" {
-		parentTask, err = clientManager.KFPAPIClient().GetTask(ctx, &go_client.GetTaskRequest{TaskId: *parentTaskID})
+		parentTask, err = clientManager.KFPAPIClient().GetTask(ctx, &go_client.GetTaskRequest{
+			TaskId: *parentTaskID,
+			RunId:  *runID,
+		})
 		if err != nil {
 			return err
 		}

@@ -69,7 +69,10 @@ func RootDAG(ctx context.Context, opts common.Options, clientManager client_mana
 			},
 		},
 	}
-	task, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{Task: pd})
+	task, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
+		Task:  pd,
+		RunId: pd.GetRunId(),
+	})
 	if err != nil {
 		return nil, err
 	}

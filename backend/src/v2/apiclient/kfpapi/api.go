@@ -351,6 +351,7 @@ func evaluateAndUpdateParentStatus(
 	_, err := kfpAPIClient.UpdateTask(ctx, &gc.UpdateTaskRequest{
 		TaskId: parentTask.GetTaskId(),
 		Task:   parentTask,
+		RunId:  parentTask.GetRunId(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to update parent task %s status to %s: %w", parentTask.GetTaskId(), newStatus, err)

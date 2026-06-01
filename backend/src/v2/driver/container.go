@@ -68,7 +68,10 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 		return nil, driverErr
 	}
 
-	parentTask, driverErr := clientManager.KFPAPIClient().GetTask(ctx, &apiV2beta1.GetTaskRequest{TaskId: opts.ParentTask.GetTaskId()})
+	parentTask, driverErr := clientManager.KFPAPIClient().GetTask(ctx, &apiV2beta1.GetTaskRequest{
+		TaskId: opts.ParentTask.GetTaskId(),
+		RunId:  opts.Run.GetRunId(),
+	})
 	if driverErr != nil {
 		return nil, driverErr
 	}
@@ -102,12 +105,18 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 			}
 			// We encountered an error in driver before we got the chance to create the task.
 			if taskToCreate.TaskId == "" {
-				_, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{Task: taskToCreate})
+				_, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
+					Task:  taskToCreate,
+					RunId: taskToCreate.GetRunId(),
+				})
 				if err != nil {
 					glog.Errorf("Failed to Create task %s: %v", taskToCreate.Name, err)
 				}
 			} else {
-				_, err := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{Task: taskToCreate})
+				_, err := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
+					Task:  taskToCreate,
+					RunId: taskToCreate.GetRunId(),
+				})
 				if err != nil {
 					glog.Errorf("Failed to update task %s: %v", taskToCreate.Name, err)
 				}
@@ -232,7 +241,8 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 			taskToCreate.Outputs = cachedTask.Outputs
 			*execution.Cached = true
 			createdTask, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
-				Task: taskToCreate,
+				Task:  taskToCreate,
+				RunId: taskToCreate.GetRunId(),
 			})
 			if createErr != nil {
 				return execution, fmt.Errorf("failed to update task: %w", createErr)
@@ -276,7 +286,10 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	}
 
 	glog.Infof("Creating task %s in pod %s", opts.TaskName, opts.Namespace)
-	createdTask, driverErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{Task: taskToCreate})
+	createdTask, driverErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
+		Task:  taskToCreate,
+		RunId: taskToCreate.GetRunId(),
+	})
 	if driverErr != nil {
 		return execution, driverErr
 	}

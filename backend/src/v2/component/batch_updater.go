@@ -193,8 +193,16 @@ func (b *BatchUpdater) Flush(ctx context.Context, client kfpapi.API) error {
 
 	// Step 2: Update tasks using bulk API
 	if len(b.taskUpdates) > 0 {
+		var runID string
+		for _, task := range b.taskUpdates {
+			runID = task.GetRunId()
+			if runID != "" {
+				break
+			}
+		}
 		_, err := client.UpdateTasksBulk(ctx, &apiV2beta1.UpdateTasksBulkRequest{
 			Tasks: b.taskUpdates,
+			RunId: runID,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to update tasks in bulk: %w", err)

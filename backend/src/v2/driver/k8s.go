@@ -749,13 +749,15 @@ func createPVCTask(
 			_, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
 				TaskId: execution.TaskID,
 				Task:   taskToCreate,
+				RunId:  taskToCreate.GetRunId(),
 			})
 			if updateErr != nil {
 				err = errors.Join(err, fmt.Errorf("failed to update task: %w", updateErr))
 			}
 		} else {
 			_, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
-				Task: taskToCreate,
+				Task:  taskToCreate,
+				RunId: taskToCreate.GetRunId(),
 			})
 			if createErr != nil {
 				err = errors.Join(err, fmt.Errorf("failed to create task: %w", createErr))
@@ -864,7 +866,8 @@ func createPVCTask(
 	// anything fails, or the task successfully completes.
 	taskToCreate.State = apiV2beta1.PipelineTask_RUNNING
 	task, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
-		Task: taskToCreate,
+		Task:  taskToCreate,
+		RunId: taskToCreate.GetRunId(),
 	})
 	if err != nil {
 		err = fmt.Errorf("failed to create task: %w", err)
@@ -972,13 +975,15 @@ func deletePVCTask(
 			_, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
 				TaskId: execution.TaskID,
 				Task:   taskToCreate,
+				RunId:  taskToCreate.GetRunId(),
 			})
 			if updateErr != nil {
 				err = errors.Join(err, fmt.Errorf("failed to update task: %w", updateErr))
 			}
 		} else {
 			_, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
-				Task: taskToCreate,
+				Task:  taskToCreate,
+				RunId: taskToCreate.GetRunId(),
 			})
 			if createErr != nil {
 				err = errors.Join(err, fmt.Errorf("failed to create task: %w", createErr))
@@ -1002,7 +1007,8 @@ func deletePVCTask(
 	// anything fails, or the task successfully completes.
 	taskToCreate.State = apiV2beta1.PipelineTask_RUNNING
 	task, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
-		Task: taskToCreate,
+		Task:  taskToCreate,
+		RunId: taskToCreate.GetRunId(),
 	})
 	if err != nil {
 		err = fmt.Errorf("failed to create task: %w", err)

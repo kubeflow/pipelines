@@ -171,11 +171,11 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 
 	task := s.getTask(t, allRuns[1].RunID, "comp")
 	if *cacheEnabled {
-		require.Equal(t, run_model.PipelineTaskDetailTaskStateCACHED, *task.State)
+		require.Equal(t, run_model.PipelineTaskTaskStateCACHED, *task.State)
 		// Verify no executor pod exists for cached task
 		s.verifyNoExecutorPod(t, task)
 	} else {
-		require.Equal(t, run_model.PipelineTaskDetailTaskStateSUCCEEDED, *task.State)
+		require.Equal(t, run_model.PipelineTaskTaskStateSUCCEEDED, *task.State)
 	}
 }
 
@@ -194,11 +194,11 @@ func (s *CacheTestSuite) TestCacheSingleRun() {
 
 	task := s.getTask(t, pipelineRunDetail.RunID, "comp")
 	if *cacheEnabled {
-		require.Equal(t, run_model.PipelineTaskDetailTaskStateCACHED, *task.State)
+		require.Equal(t, run_model.PipelineTaskTaskStateCACHED, *task.State)
 		// Verify no executor pod exists for cached task
 		s.verifyNoExecutorPod(t, task)
 	} else {
-		require.Equal(t, run_model.PipelineTaskDetailTaskStateSUCCEEDED, *task.State)
+		require.Equal(t, run_model.PipelineTaskTaskStateSUCCEEDED, *task.State)
 	}
 }
 
@@ -269,12 +269,12 @@ func (s *CacheTestSuite) TestCacheSingleRunWithPVC_SameName_Caches() {
 
 	// Check producer task is cached
 	producerTask := s.getTask(t, run2.RunID, "producer")
-	require.Equal(t, run_model.PipelineTaskDetailTaskStateCACHED, *producerTask.State)
+	require.Equal(t, run_model.PipelineTaskTaskStateCACHED, *producerTask.State)
 	s.verifyNoExecutorPod(t, producerTask)
 
 	// Check consumer task is also cached
 	consumerTask := s.getTask(t, run2.RunID, "consumer")
-	require.Equal(t, run_model.PipelineTaskDetailTaskStateCACHED, *consumerTask.State)
+	require.Equal(t, run_model.PipelineTaskTaskStateCACHED, *consumerTask.State)
 	s.verifyNoExecutorPod(t, consumerTask)
 
 	// Third run with a different PVC name should not hit cache.
@@ -300,10 +300,10 @@ func (s *CacheTestSuite) TestCacheSingleRunWithPVC_SameName_Caches() {
 
 	// With a different PVC, do not expect cache hit
 	producerTask = s.getTask(t, run3.RunID, "producer")
-	require.Equal(t, run_model.PipelineTaskDetailTaskStateSUCCEEDED, *producerTask.State)
+	require.Equal(t, run_model.PipelineTaskTaskStateSUCCEEDED, *producerTask.State)
 
 	consumerTask = s.getTask(t, run3.RunID, "consumer")
-	require.Equal(t, run_model.PipelineTaskDetailTaskStateSUCCEEDED, *consumerTask.State)
+	require.Equal(t, run_model.PipelineTaskTaskStateSUCCEEDED, *consumerTask.State)
 }
 
 func (s *CacheTestSuite) createRun(pipelineVersion *pipeline_upload_model.V2beta1PipelineVersion) (*run_model.V2beta1Run, error) {
@@ -396,7 +396,7 @@ func (s *CacheTestSuite) cleanUp() {
 }
 
 // getTask fetches the task details for a given run ID and task name.
-func (s *CacheTestSuite) getTask(t *testing.T, runID string, taskName string) *run_model.V2beta1PipelineTaskDetail {
+func (s *CacheTestSuite) getTask(t *testing.T, runID string, taskName string) *run_model.V2beta1PipelineTask {
 	// Get run with FULL view to populate tasks
 	fullView := string(run_model.V2beta1GetRunRequestViewModeFULL)
 	run, err := s.runClient.Get(&runParams.RunServiceGetRunParams{
@@ -421,12 +421,12 @@ func (s *CacheTestSuite) getTask(t *testing.T, runID string, taskName string) *r
 
 // verifyNoExecutorPod verifies that there is no executor pod for a cached task.
 // When a task is cached, the driver pod should not create an executor pod.
-func (s *CacheTestSuite) verifyNoExecutorPod(t *testing.T, task *run_model.V2beta1PipelineTaskDetail) {
+func (s *CacheTestSuite) verifyNoExecutorPod(t *testing.T, task *run_model.V2beta1PipelineTask) {
 	require.NotNil(t, task)
 
 	// Check the task's pods field for executor pods
 	for _, pod := range task.Pods {
-		if pod.Type != nil && *pod.Type == run_model.PipelineTaskDetailTaskPodTypeEXECUTOR {
+		if pod.Type != nil && *pod.Type == run_model.PipelineTaskTaskPodTypeEXECUTOR {
 			t.Fatalf("Found executor pod %s (type=%s) for cached task %s, but cached tasks should not have executor pods",
 				pod.Name, *pod.Type, task.DisplayName)
 		}
