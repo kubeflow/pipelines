@@ -11,3 +11,10 @@ spec:
         - name: NAMESPACE
           value: '' # Empty namespace let viewer controller watch all namespaces
           valueFrom: null # HACK: https://github.com/kubernetes-sigs/kustomize/issues/2606
+        - name: NAMESPACE_SELF
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        args:
+        - --userIdentityHeader=kubeflow-userid
+        - --userIdentityValue=system:serviceaccount:$(NAMESPACE_SELF):ml-pipeline-scheduledworkflow

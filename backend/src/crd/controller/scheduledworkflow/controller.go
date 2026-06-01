@@ -113,6 +113,11 @@ type Controller struct {
 	// tokenSrc provides a way to get the latest refreshed token when authentication to the REST API server is enabled.
 	// This will be nil when authentication is not enabled.
 	tokenSrc transport.ResettableTokenSource
+
+	// userIdentityHeader is the header name for user identity in multi-user mode (e.g. "kubeflow-userid").
+	userIdentityHeader string
+	// userIdentityValue is the value to set for the user identity header.
+	userIdentityValue string
 }
 
 // NewController returns a new sample controller
@@ -126,6 +131,8 @@ func NewController(
 	time commonutil.TimeInterface,
 	location *time.Location,
 	tokenSrc transport.ResettableTokenSource,
+	userIdentityHeader string,
+	userIdentityValue string,
 ) (*Controller, error) {
 	// obtain references to shared informers
 	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()
@@ -148,9 +155,11 @@ func NewController(
 		workflowClient: client.NewWorkflowClient(workflowClientSet, executionInformer),
 		workqueue: workqueue.NewNamedRateLimitingQueue(
 			workqueue.NewItemExponentialFailureRateLimiter(DefaultJobBackOff, MaxJobBackOff), swfregister.Kind),
-		time:     time,
-		location: location,
-		tokenSrc: tokenSrc,
+		time:               time,
+		location:           location,
+		tokenSrc:           tokenSrc,
+		userIdentityHeader: userIdentityHeader,
+		userIdentityValue:  userIdentityValue,
 	}
 
 	log.Info("Setting up event handlers")
@@ -608,6 +617,11 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 		}
 
 		ctx = metadata.AppendToOutgoingContext(ctx, "Authorization", "Bearer "+token.AccessToken)
+	}
+
+	// Inject user identity header for multi-user mode authorization.
+	if c.userIdentityHeader != "" && c.userIdentityValue != "" {
+		ctx = metadata.AppendToOutgoingContext(ctx, c.userIdentityHeader, c.userIdentityValue)
 	}
 
 	var runtimeConfig *api.RuntimeConfig
