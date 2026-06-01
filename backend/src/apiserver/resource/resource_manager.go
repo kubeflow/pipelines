@@ -639,6 +639,17 @@ func isNamespaceAllowed(namespace string, allowedNamespaces string) bool {
 // Manifest's namespace gets overwritten with the run.Namespace.
 // Creating a run from recurring run prioritizes recurring run's pipeline spec over the run's one.
 func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model.Run, error) {
+	// Guard against duplicate runs from concurrent recurring-run controller replicas.
+	if run.RecurringRunId != "" && run.DisplayName != "" {
+		existingRunID, err := r.runStore.GetRunByRecurringRunIDAndDisplayName(run.RecurringRunId, run.DisplayName)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to check for existing run")
+		}
+		if existingRunID != "" {
+			return r.runStore.GetRun(existingRunID)
+		}
+	}
+
 	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
 	// Update the run.PipelineSpec if an existing pipeline version is used.
 	tmpl, manifest, err := r.fetchTemplateFromPipelineSpec(&run.PipelineSpec)
@@ -653,11 +664,19 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	// 3. Update a record in the DB with scheduled timestamp, state, etc.
 	// 4. Persistence agent will call apiserver to update the records later.
 	if run.UUID == "" {
-		uuid, err := r.uuid.NewRandom()
-		if err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to generate run ID")
+		// For runs created from a recurring run, derive a deterministic run ID from the
+		// recurring run ID and display name. Concurrent triggers (e.g. multiple controller
+		// replicas) then converge on the same primary key, so the second insert collides
+		// and is resolved idempotently by the run store instead of creating a duplicate.
+		if run.RecurringRunId != "" && run.DisplayName != "" {
+			run.UUID = util.NewDeterministicUUID(run.RecurringRunId + "/" + run.DisplayName)
+		} else {
+			uuid, err := r.uuid.NewRandom()
+			if err != nil {
+				return nil, util.NewInternalServerError(err, "Failed to generate run ID")
+			}
+			run.UUID = uuid.String()
 		}
-		run.UUID = uuid.String()
 	}
 	run.RunDetails.CreatedAtInSec = r.time.Now().Unix()
 	runWorkflowOptions := template.RunWorkflowOptions{
@@ -690,7 +709,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 
 	executionSpec.SetExecutionNamespace(k8sNamespace)
 
-	// assign OwnerReference to scheduledworkflow
+	// assign OwnerReference and canonical labels to scheduledworkflow
 	if run.RecurringRunId != "" {
 		job, err := r.jobStore.GetJob(run.RecurringRunId)
 		if err != nil {
@@ -701,6 +720,12 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 			return nil, util.NewInternalServerError(util.NewInvalidInputError("ScheduledWorkflow doesn't exist: %s", job.K8SName), "Failed to create a run due to invalid name")
 		}
 		executionSpec.SetOwnerReferences(swf)
+		// canonical labels required for SWF controller label-based workflow tracking
+		nextIndex := int64(1)
+		if swf.Status.Trigger.LastIndex != nil {
+			nextIndex = *swf.Status.Trigger.LastIndex + 1
+		}
+		executionSpec.SetCannonicalLabels(swf.Name, run.CreatedAtInSec, nextIndex)
 	}
 
 	newExecSpec, err := r.getWorkflowClient(k8sNamespace).Create(ctx, executionSpec, v1.CreateOptions{})
@@ -1281,7 +1306,11 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			return nil, util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 		}
 
-		_, err = tmpl.ScheduledWorkflow(job)
+		if v2Tmpl, ok := tmpl.(*template.V2Spec); ok {
+			err = v2Tmpl.ValidateJobInputs(job)
+		} else {
+			_, err = tmpl.ScheduledWorkflow(job)
+		}
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
 		}
@@ -1301,7 +1330,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		}
 	}
 
-	if common.GetBoolConfigWithDefault(common.BlockV1Pipelines, false) && tmpl.GetTemplateType() == template.V1 {
+	if tmpl != nil && common.GetBoolConfigWithDefault(common.BlockV1Pipelines, false) && tmpl.GetTemplateType() == template.V1 {
 		allowedNamespaces := common.GetStringConfigWithDefault(common.V1NamespaceWhitelist, "")
 		if !isNamespaceAllowed(k8sNamespace, allowedNamespaces) {
 			return nil, util.NewInvalidInputError("Namespace %s is not allowed to run v1 pipelines. Please migrate to using KFP V2 pipelines.", k8sNamespace)
