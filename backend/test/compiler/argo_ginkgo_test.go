@@ -22,6 +22,7 @@ import (
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	matcher "github.com/kubeflow/pipelines/backend/test/compiler/matchers"
 	workflowutils "github.com/kubeflow/pipelines/backend/test/compiler/utils"
@@ -119,6 +120,8 @@ var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, Workfl
 					testutil.CheckIfSkipping(pipelineSpecFileName)
 					pipelineSpecs, platformSpec := workflowutils.LoadPipelineSpecsFromIR(pipelineSpecFilePath, param.compilerOptions.CacheDisabled, nil)
 					compiledWorkflow := workflowutils.GetCompiledArgoWorkflow(pipelineSpecs, platformSpec, &param.compilerOptions)
+					err := util.NewWorkflow(compiledWorkflow.DeepCopy()).Validate(true, false)
+					Expect(err).NotTo(HaveOccurred(), "Compiled workflow failed Argo validation")
 					if *createMissingGoldenFiles || *updateGoldenFiles {
 						var configuredWorkflow *v1alpha1.Workflow
 						if param.compilerOptions.CacheDisabled {
