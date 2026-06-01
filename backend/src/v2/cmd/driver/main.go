@@ -207,7 +207,7 @@ func drive() (err error) {
 		return err
 	}
 
-	var parentTask *go_client.PipelineTaskDetail
+	var parentTask *go_client.PipelineTask
 	if parentTaskID != nil && *parentTaskID != "" {
 		parentTask, err = clientManager.KFPAPIClient().GetTask(ctx, &go_client.GetTaskRequest{TaskId: *parentTaskID})
 		if err != nil {
@@ -405,7 +405,7 @@ func writeFile(path string, data []byte) (err error) {
 func buildScopePath(
 	ctx context.Context,
 	run *go_client.Run,
-	parentTask *go_client.PipelineTaskDetail,
+	parentTask *go_client.PipelineTask,
 	taskName string,
 	kfpAPI kfpapi.API) (*util.ScopePath, error) {
 	pipelineSpecStruct, err := kfpAPI.FetchPipelineSpecFromRun(ctx, run)

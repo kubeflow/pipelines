@@ -29,7 +29,7 @@ import (
 type BatchUpdater struct {
 	// Map of task ID to the latest task update
 	// Using a map automatically deduplicates multiple updates to the same task
-	taskUpdates map[string]*apiV2beta1.PipelineTaskDetail
+	taskUpdates map[string]*apiV2beta1.PipelineTask
 
 	// Artifact-task relationships to create
 	// We can use the existing bulk API for these
@@ -57,7 +57,7 @@ type createArtifactRequest struct {
 // NewBatchUpdater creates a new BatchUpdater
 func NewBatchUpdater() *BatchUpdater {
 	return &BatchUpdater{
-		taskUpdates:   make(map[string]*apiV2beta1.PipelineTaskDetail),
+		taskUpdates:   make(map[string]*apiV2beta1.PipelineTask),
 		artifactTasks: make([]*apiV2beta1.ArtifactTask, 0),
 		artifacts:     make([]*createArtifactRequest, 0),
 	}
@@ -65,7 +65,7 @@ func NewBatchUpdater() *BatchUpdater {
 
 // QueueTaskUpdate queues a task update. If the same task is updated multiple times,
 // the updates are merged (parameters and artifacts are accumulated, status is taken from latest).
-func (b *BatchUpdater) QueueTaskUpdate(task *apiV2beta1.PipelineTaskDetail) {
+func (b *BatchUpdater) QueueTaskUpdate(task *apiV2beta1.PipelineTask) {
 	if task == nil || task.TaskId == "" {
 		glog.Warning("Attempted to queue nil task or task with empty ID")
 		return
@@ -80,7 +80,7 @@ func (b *BatchUpdater) QueueTaskUpdate(task *apiV2beta1.PipelineTaskDetail) {
 		// 1. Accumulate output parameters (append new ones)
 		if task.Outputs != nil && len(task.Outputs.Parameters) > 0 {
 			if existingTask.Outputs == nil {
-				existingTask.Outputs = &apiV2beta1.PipelineTaskDetail_InputOutputs{}
+				existingTask.Outputs = &apiV2beta1.PipelineTask_InputOutputs{}
 			}
 			existingTask.Outputs.Parameters = append(existingTask.Outputs.Parameters, task.Outputs.Parameters...)
 		}
@@ -88,7 +88,7 @@ func (b *BatchUpdater) QueueTaskUpdate(task *apiV2beta1.PipelineTaskDetail) {
 		// 2. Accumulate output artifacts (append new ones)
 		if task.Outputs != nil && len(task.Outputs.Artifacts) > 0 {
 			if existingTask.Outputs == nil {
-				existingTask.Outputs = &apiV2beta1.PipelineTaskDetail_InputOutputs{}
+				existingTask.Outputs = &apiV2beta1.PipelineTask_InputOutputs{}
 			}
 			existingTask.Outputs.Artifacts = append(existingTask.Outputs.Artifacts, task.Outputs.Artifacts...)
 		}
@@ -96,7 +96,7 @@ func (b *BatchUpdater) QueueTaskUpdate(task *apiV2beta1.PipelineTaskDetail) {
 		// 3. Accumulate input parameters (append new ones)
 		if task.Inputs != nil && len(task.Inputs.Parameters) > 0 {
 			if existingTask.Inputs == nil {
-				existingTask.Inputs = &apiV2beta1.PipelineTaskDetail_InputOutputs{}
+				existingTask.Inputs = &apiV2beta1.PipelineTask_InputOutputs{}
 			}
 			existingTask.Inputs.Parameters = append(existingTask.Inputs.Parameters, task.Inputs.Parameters...)
 		}
@@ -104,13 +104,13 @@ func (b *BatchUpdater) QueueTaskUpdate(task *apiV2beta1.PipelineTaskDetail) {
 		// 4. Accumulate input artifacts (append new ones)
 		if task.Inputs != nil && len(task.Inputs.Artifacts) > 0 {
 			if existingTask.Inputs == nil {
-				existingTask.Inputs = &apiV2beta1.PipelineTaskDetail_InputOutputs{}
+				existingTask.Inputs = &apiV2beta1.PipelineTask_InputOutputs{}
 			}
 			existingTask.Inputs.Artifacts = append(existingTask.Inputs.Artifacts, task.Inputs.Artifacts...)
 		}
 
 		// 5. Take the latest status and timestamps
-		if task.State != apiV2beta1.PipelineTaskDetail_RUNTIME_STATE_UNSPECIFIED {
+		if task.State != apiV2beta1.PipelineTask_RUNTIME_STATE_UNSPECIFIED {
 			existingTask.State = task.State
 		}
 		if task.EndTime != nil {
@@ -228,7 +228,7 @@ func (b *BatchUpdater) Flush(ctx context.Context, client kfpapi.API) error {
 
 // reset clears all queued updates (called after flush)
 func (b *BatchUpdater) reset() {
-	b.taskUpdates = make(map[string]*apiV2beta1.PipelineTaskDetail)
+	b.taskUpdates = make(map[string]*apiV2beta1.PipelineTask)
 	b.artifactTasks = make([]*apiV2beta1.ArtifactTask, 0)
 	b.artifacts = make([]*createArtifactRequest, 0)
 

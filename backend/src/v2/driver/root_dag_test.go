@@ -102,7 +102,7 @@ func Test_validateRootDAG(t *testing.T) {
 			name: "parent task without id returns error",
 			opts: func() common.Options {
 				opts := validOpts()
-				opts.ParentTask = &apiv2beta1.PipelineTaskDetail{}
+				opts.ParentTask = &apiv2beta1.PipelineTask{}
 				return opts
 			}(),
 			wantErr: true,

@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -216,4 +217,22 @@ func GetMLPipelineServerConfig() *ServerConfig {
 		Address: common.GetMLPipelineServiceName() + "." + common.GetPodNamespace() + ".svc." + common.GetClusterDomain(),
 		Port:    mlPipelineGrpcServicePort,
 	}
+}
+
+func InPodName() (string, error) {
+	if podName := os.Getenv("KFP_POD_NAME"); podName != "" {
+		return podName, nil
+	}
+
+	hostnameBytes, err := os.ReadFile("/etc/hostname")
+	if err != nil {
+		return "", fmt.Errorf("failed to get pod name in Pod: %w", err)
+	}
+
+	podName := strings.TrimSpace(string(hostnameBytes))
+	if podName == "" {
+		return "", fmt.Errorf("failed to get pod name in Pod: empty hostname")
+	}
+
+	return podName, nil
 }

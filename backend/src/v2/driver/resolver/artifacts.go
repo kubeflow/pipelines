@@ -41,7 +41,7 @@ func resolveArtifacts(opts common.Options) ([]ArtifactMetadata, error) {
 		am := ArtifactMetadata{
 			Key:               key,
 			InputArtifactSpec: artifactSpec,
-			ArtifactIO: &apiv2beta1.PipelineTaskDetail_InputOutputs_IOArtifact{
+			ArtifactIO: &apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
 				Artifacts:   v.Artifacts,
 				Type:        ioType,
 				ArtifactKey: key,
@@ -54,7 +54,7 @@ func resolveArtifacts(opts common.Options) ([]ArtifactMetadata, error) {
 
 		// If the artifact is produced by an importer, then we need to register this into the run time artifact's
 		// metadata which is later passed as executor input to the executor.
-		artifactProducedByImporter := producerTask != nil && producerTask.Type == apiv2beta1.PipelineTaskDetail_IMPORTER
+		artifactProducedByImporter := producerTask != nil && producerTask.Type == apiv2beta1.PipelineTask_IMPORTER
 		if artifactProducedByImporter && producerTask.TypeAttributes.GetDownloadToWorkspace() {
 			am.DownloadedToWorkSpace = producerTask.TypeAttributes.GetDownloadToWorkspace()
 		}
@@ -68,16 +68,16 @@ func resolveArtifacts(opts common.Options) ([]ArtifactMetadata, error) {
 // The function handles artifacts specified as component inputs or task output artifacts and supports error handling.
 //
 // Returns:
-//   - *PipelineTaskDetail: The producer task details, or nil if artifact is a component input
-//   - *PipelineTaskDetail_InputOutputs_IOArtifact: The resolved input/output artifact information
+//   - *PipelineTask: The producer task details, or nil if artifact is a component input
+//   - *PipelineTask_InputOutputs_IOArtifact: The resolved input/output artifact information
 //   - IOType: The type of I/O (component input, task output, etc)
 //   - error: Error if resolution fails
 func resolveInputArtifact(
 	opts common.Options,
 	name string,
 	artifactSpec *pipelinespec.TaskInputsSpec_InputArtifactSpec,
-	inputArtifacts []*apiv2beta1.PipelineTaskDetail_InputOutputs_IOArtifact,
-) (*apiv2beta1.PipelineTaskDetail, *apiv2beta1.PipelineTaskDetail_InputOutputs_IOArtifact, apiv2beta1.IOType, error) {
+	inputArtifacts []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact,
+) (*apiv2beta1.PipelineTask, *apiv2beta1.PipelineTask_InputOutputs_IOArtifact, apiv2beta1.IOType, error) {
 	artifactError := func(err error) error {
 		return fmt.Errorf("failed to resolve input artifact %s with spec %s: %w", name, artifactSpec, err)
 	}
@@ -106,8 +106,8 @@ func resolveInputArtifact(
 func resolveArtifactComponentInputParameter(
 	opts common.Options,
 	artifactSpec *pipelinespec.TaskInputsSpec_InputArtifactSpec,
-	inputArtifactsIO []*apiv2beta1.PipelineTaskDetail_InputOutputs_IOArtifact,
-) (*apiv2beta1.PipelineTaskDetail_InputOutputs_IOArtifact, error) {
+	inputArtifactsIO []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact,
+) (*apiv2beta1.PipelineTask_InputOutputs_IOArtifact, error) {
 	key := artifactSpec.GetComponentInputArtifact()
 	if key == "" {
 		return nil, fmt.Errorf("empty component input")
@@ -133,8 +133,8 @@ func resolveTaskOutputArtifact(
 	opts common.Options,
 	spec *pipelinespec.TaskInputsSpec_InputArtifactSpec,
 ) (
-	*apiv2beta1.PipelineTaskDetail,
-	*apiv2beta1.PipelineTaskDetail_InputOutputs_IOArtifact,
+	*apiv2beta1.PipelineTask,
+	*apiv2beta1.PipelineTask_InputOutputs_IOArtifact,
 	error,
 ) {
 	tasks, err := getSubTasks(opts.ParentTask, opts.Run.Tasks, nil)
@@ -191,7 +191,7 @@ func resolveArtifactIterator(
 	for i, artifact := range artifactIO.Artifacts {
 		am := ArtifactMetadata{
 			Key: iteratorInputDefinitionKey,
-			ArtifactIO: &apiv2beta1.PipelineTaskDetail_InputOutputs_IOArtifact{
+			ArtifactIO: &apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
 				// Iteration over artifact lists is not supported yet.
 				Artifacts:   []*apiv2beta1.Artifact{artifact},
 				Type:        apiv2beta1.IOType_ITERATOR_INPUT,
@@ -211,7 +211,7 @@ func resolveArtifactIterator(
 }
 
 // generateUniqueTaskName generates a unique task name for a given task.
-func generateUniqueTaskName(task, parentTask *apiv2beta1.PipelineTaskDetail) (string, error) {
+func generateUniqueTaskName(task, parentTask *apiv2beta1.PipelineTask) (string, error) {
 	if task == nil || task.Name == "" || parentTask == nil {
 		return "", fmt.Errorf("parenttask and task can't be nil and task name cannot be empty")
 	}
@@ -231,13 +231,13 @@ func generateUniqueTaskName(task, parentTask *apiv2beta1.PipelineTaskDetail) (st
 }
 
 func getChildTasks(
-	tasks []*apiv2beta1.PipelineTaskDetail,
-	parentTask *apiv2beta1.PipelineTaskDetail,
-) (map[string]*apiv2beta1.PipelineTaskDetail, error) {
+	tasks []*apiv2beta1.PipelineTask,
+	parentTask *apiv2beta1.PipelineTask,
+) (map[string]*apiv2beta1.PipelineTask, error) {
 	if parentTask == nil {
 		return nil, fmt.Errorf("parent task cannot be nil")
 	}
-	var taskMap = make(map[string]*apiv2beta1.PipelineTaskDetail)
+	var taskMap = make(map[string]*apiv2beta1.PipelineTask)
 	for _, task := range tasks {
 		if task.GetParentTaskId() == parentTask.GetTaskId() {
 			taskName, err := generateUniqueTaskName(task, parentTask)
@@ -271,12 +271,12 @@ func getChildTasks(
 //	  },
 //	},
 func getSubTasks(
-	currentTask *apiv2beta1.PipelineTaskDetail,
-	allRuntasks []*apiv2beta1.PipelineTaskDetail,
-	flattenedTasks map[string]*apiv2beta1.PipelineTaskDetail,
-) (map[string]*apiv2beta1.PipelineTaskDetail, error) {
+	currentTask *apiv2beta1.PipelineTask,
+	allRuntasks []*apiv2beta1.PipelineTask,
+	flattenedTasks map[string]*apiv2beta1.PipelineTask,
+) (map[string]*apiv2beta1.PipelineTask, error) {
 	if flattenedTasks == nil {
-		flattenedTasks = make(map[string]*apiv2beta1.PipelineTaskDetail)
+		flattenedTasks = make(map[string]*apiv2beta1.PipelineTask)
 	}
 	taskChildren, err := getChildTasks(allRuntasks, currentTask)
 	if err != nil {
@@ -286,7 +286,7 @@ func getSubTasks(
 		flattenedTasks[taskName] = task
 	}
 	for _, task := range taskChildren {
-		if task.Type != apiv2beta1.PipelineTaskDetail_RUNTIME {
+		if task.Type != apiv2beta1.PipelineTask_RUNTIME {
 			flattenedTasks, err = getSubTasks(task, allRuntasks, flattenedTasks)
 			if err != nil {
 				return nil, err
@@ -306,9 +306,9 @@ func getTaskNameWithTaskID(taskName, taskID string) string {
 
 func findArtifactByProducerKeyInList(
 	producerKey, producerTaskName string,
-	artifactsIO []*apiv2beta1.PipelineTaskDetail_InputOutputs_IOArtifact,
-) (*apiv2beta1.PipelineTaskDetail_InputOutputs_IOArtifact, error) {
-	var artifactIOList []*apiv2beta1.PipelineTaskDetail_InputOutputs_IOArtifact
+	artifactsIO []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact,
+) (*apiv2beta1.PipelineTask_InputOutputs_IOArtifact, error) {
+	var artifactIOList []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact
 	for _, artifactIO := range artifactsIO {
 		if artifactIO.GetArtifactKey() == producerKey {
 			artifactIOList = append(artifactIOList, artifactIO)
@@ -332,7 +332,7 @@ func findArtifactByProducerKeyInList(
 			artifacts = append(artifacts, artifactIO.Artifacts[0])
 		}
 		ioType := apiv2beta1.IOType_COLLECTED_INPUTS
-		newArtifactIO := &apiv2beta1.PipelineTaskDetail_InputOutputs_IOArtifact{
+		newArtifactIO := &apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
 			Artifacts:   artifacts,
 			Type:        ioType,
 			ArtifactKey: producerKey,

@@ -87,7 +87,7 @@ func TestLoopArtifactPassing(t *testing.T) {
 	// Run Dag on the First Task
 	secondaryPipelineExecution, secondaryPipelineTask := tc.RunDagDriver("secondary-pipeline", parentTask)
 	require.Nil(t, secondaryPipelineExecution.ExecutorInput.Outputs)
-	require.Equal(t, apiv2beta1.PipelineTaskDetail_RUNNING, secondaryPipelineTask.State)
+	require.Equal(t, apiv2beta1.PipelineTask_RUNNING, secondaryPipelineTask.State)
 
 	// Refresh Parent Task - The parent task should be the secondary pipeline task for "create-dataset"
 	parentTask = secondaryPipelineTask
@@ -566,14 +566,14 @@ func TestWithCaching(t *testing.T) {
 	processDatasetLauncher := tc.RunLauncher(processDatasetExecution, map[string][]byte{"/tmp/kfp_outputs/output_metadata.json": []byte("{}")}, true)
 	require.NotNil(t, processDatasetExecution.Cached)
 	require.False(t, *processDatasetExecution.Cached)
-	require.Equal(t, apiv2beta1.PipelineTaskDetail_SUCCEEDED, processDatasetLauncher.Task.GetState())
+	require.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, processDatasetLauncher.Task.GetState())
 	require.NotEmpty(t, processDatasetExecution.PodSpecPatch)
 
 	// Second run of process-dataset - should be cached
 	processDatasetExecution2, processDatasetTask2 := tc.RunContainerDriver("process-dataset", parentTask, nil, true)
 	require.NotNil(t, processDatasetExecution2.Cached)
 	require.True(t, *processDatasetExecution2.Cached)
-	require.Equal(t, apiv2beta1.PipelineTaskDetail_CACHED, processDatasetTask2.GetState())
+	require.Equal(t, apiv2beta1.PipelineTask_CACHED, processDatasetTask2.GetState())
 	require.Empty(t, processDatasetExecution2.PodSpecPatch)
 }
 
@@ -1091,7 +1091,7 @@ func TestNestedPipelineOptionalInputChildLevel(t *testing.T) {
 	nestedPipelineExecution, nestedPipelineTask := tc.RunDagDriver("nested-pipeline", parentTask)
 	require.NotNil(t, nestedPipelineExecution)
 	require.NotNil(t, nestedPipelineTask)
-	require.Equal(t, apiv2beta1.PipelineTaskDetail_RUNNING, nestedPipelineTask.State)
+	require.Equal(t, apiv2beta1.PipelineTask_RUNNING, nestedPipelineTask.State)
 
 	// The nested pipeline task should have ALL 6 inputs (3 from parent + 3 defaults)
 	require.NotNil(t, nestedPipelineTask.Inputs)

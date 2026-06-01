@@ -45,7 +45,7 @@ type TestContext struct {
 	util.ScopePath
 	T             *testing.T
 	PipelineSpec  *pipelinespec.PipelineSpec
-	RootTask      *apiv2beta1.PipelineTaskDetail
+	RootTask      *apiv2beta1.PipelineTask
 	PlatformSpec  *pipelinespec.PlatformSpec
 	ClientManager clientmanager.ClientManagerInterface
 	MockAPI       *kfpapi.MockAPI
@@ -139,29 +139,29 @@ func (tc *TestContext) CreateTestTask(
 	t *testing.T,
 	runID,
 	taskName string,
-	taskType apiv2beta1.PipelineTaskDetail_TaskType,
-	inputParams, outputParams []*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter,
-) *apiv2beta1.PipelineTaskDetail {
+	taskType apiv2beta1.PipelineTask_TaskType,
+	inputParams, outputParams []*apiv2beta1.PipelineTask_InputOutputs_IOParameter,
+) *apiv2beta1.PipelineTask {
 	t.Helper()
 
 	podUUID, _ := uuid.NewRandom()
-	task := &apiv2beta1.PipelineTaskDetail{
+	task := &apiv2beta1.PipelineTask{
 		Name:        taskName,
 		DisplayName: taskName,
 		RunId:       runID,
 		Type:        taskType,
-		State:       apiv2beta1.PipelineTaskDetail_RUNNING,
-		Pods: []*apiv2beta1.PipelineTaskDetail_TaskPod{
+		State:       apiv2beta1.PipelineTask_RUNNING,
+		Pods: []*apiv2beta1.PipelineTask_TaskPod{
 			{
 				Name: fmt.Sprintf("%s-pod", taskName),
 				Uid:  podUUID.String(),
-				Type: apiv2beta1.PipelineTaskDetail_DRIVER,
+				Type: apiv2beta1.PipelineTask_DRIVER,
 			},
 		},
-		Inputs: &apiv2beta1.PipelineTaskDetail_InputOutputs{
+		Inputs: &apiv2beta1.PipelineTask_InputOutputs{
 			Parameters: inputParams,
 		},
-		Outputs: &apiv2beta1.PipelineTaskDetail_InputOutputs{
+		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
 			Parameters: outputParams,
 		},
 	}
@@ -220,9 +220,9 @@ func (tc *TestContext) CreateTestArtifactTask(t *testing.T, artifactID, taskID, 
 
 // CreateParameter creates a test parameter with the given name and value
 func CreateParameter(value, key string,
-	producer *apiv2beta1.IOProducer) *apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter {
+	producer *apiv2beta1.IOProducer) *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
 	val, _ := structpb.NewValue(value)
-	param := &apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+	param := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
 		Value:        val,
 		ParameterKey: key,
 		Producer:     producer,
@@ -247,15 +247,15 @@ func TestTestContext(t *testing.T) {
 	task1 := testSetup.CreateTestTask(t,
 		run.RunId,
 		"producer-task",
-		apiv2beta1.PipelineTaskDetail_RUNTIME,
-		[]*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+		apiv2beta1.PipelineTask_RUNTIME,
+		[]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
 			CreateParameter(
 				"input1",
 				"pipelinechannel--args-generator-op-Output",
 				&apiv2beta1.IOProducer{TaskName: "some-task"},
 			),
 		},
-		[]*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+		[]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
 			CreateParameter(
 				"output1",
 				"msg",
@@ -267,15 +267,15 @@ func TestTestContext(t *testing.T) {
 				nil,
 			),
 		})
-	task2 := testSetup.CreateTestTask(t, run.RunId, "consumer-task", apiv2beta1.PipelineTaskDetail_RUNTIME,
-		[]*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+	task2 := testSetup.CreateTestTask(t, run.RunId, "consumer-task", apiv2beta1.PipelineTask_RUNTIME,
+		[]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
 			CreateParameter(
 				"input4",
 				"input4key",
 				nil,
 			),
 		},
-		[]*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+		[]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
 			CreateParameter(
 				"output3",
 				"pipelinechannel--split-ids-Output",
@@ -322,7 +322,7 @@ func TestTestContext(t *testing.T) {
 	assert.Len(t, populatedRun.Tasks, 2)
 
 	// Verify task1 has correct artifacts (1 output)
-	var producerTask *apiv2beta1.PipelineTaskDetail
+	var producerTask *apiv2beta1.PipelineTask
 	for _, task := range populatedRun.Tasks {
 		if task.Name == "producer-task" {
 			producerTask = task
@@ -334,7 +334,7 @@ func TestTestContext(t *testing.T) {
 	assert.Len(t, producerTask.Outputs.Artifacts, 1) // 1 output artifact
 
 	// Verify task2 has correct artifacts (1 input, 1 output)
-	var consumerTask *apiv2beta1.PipelineTaskDetail
+	var consumerTask *apiv2beta1.PipelineTask
 	for _, task := range populatedRun.Tasks {
 		if task.Name == "consumer-task" {
 			consumerTask = task
@@ -351,7 +351,7 @@ func TestTestContext(t *testing.T) {
 	assert.Equal(t, "pipelinechannel--loop_parameter-loop-item-2", inputArtifact.GetArtifactKey())
 }
 
-func (tc *TestContext) RunRootDag(testSetup *TestContext, run *apiv2beta1.Run, runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig) (*Execution, *apiv2beta1.PipelineTaskDetail) {
+func (tc *TestContext) RunRootDag(testSetup *TestContext, run *apiv2beta1.Run, runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig) (*Execution, *apiv2beta1.PipelineTask) {
 	tc.RefreshRun()
 	defer tc.RefreshRun()
 	err := tc.Push("root")
@@ -392,7 +392,7 @@ func (tc *TestContext) RunRootDag(testSetup *TestContext, run *apiv2beta1.Run, r
 
 func (tc *TestContext) RunDagDriver(
 	taskName string,
-	parentTask *apiv2beta1.PipelineTaskDetail) (*Execution, *apiv2beta1.PipelineTaskDetail) {
+	parentTask *apiv2beta1.PipelineTask) (*Execution, *apiv2beta1.PipelineTask) {
 	t := tc.T
 	tc.RefreshRun()
 	defer tc.RefreshRun()
@@ -421,10 +421,10 @@ func (tc *TestContext) RunDagDriver(
 // be popped after the container is completed.
 func (tc *TestContext) RunContainerDriver(
 	taskName string,
-	parentTask *apiv2beta1.PipelineTaskDetail,
+	parentTask *apiv2beta1.PipelineTask,
 	iterationIndex *int64,
 	autoUpdateScope bool,
-) (*Execution, *apiv2beta1.PipelineTaskDetail) {
+) (*Execution, *apiv2beta1.PipelineTask) {
 	tc.RefreshRun()
 	defer tc.RefreshRun()
 
@@ -458,14 +458,14 @@ func (tc *TestContext) RunContainerDriver(
 	require.NotNil(tc.T, task)
 	require.Equal(tc.T, execution.TaskID, task.TaskId)
 	require.Equal(tc.T, taskName, task.GetName())
-	if task.State != apiv2beta1.PipelineTaskDetail_CACHED {
+	if task.State != apiv2beta1.PipelineTask_CACHED {
 		// In the case of k8s ops like createpvc/deletepvc
 		// There are no launchers, so we mark them success
 		// within driver.
 		require.True(
 			tc.T,
-			task.State == apiv2beta1.PipelineTaskDetail_RUNNING ||
-				task.State == apiv2beta1.PipelineTaskDetail_SUCCEEDED,
+			task.State == apiv2beta1.PipelineTask_RUNNING ||
+				task.State == apiv2beta1.PipelineTask_SUCCEEDED,
 			"expected task.Status to be RUNNING or SUCCEEDED, got %v",
 			task.State,
 		)
@@ -500,7 +500,7 @@ func (tc *TestContext) MockLauncherOutputParameterCreate(
 	require.NoError(tc.T, err)
 	require.NotNil(tc.T, task)
 
-	newParameter := &apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+	newParameter := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
 		Value:        value,
 		Type:         outputType,
 		ParameterKey: parameterKey,
@@ -527,7 +527,7 @@ func (tc *TestContext) MockLauncherOutputParameterCreate(
 
 // This helper will update a Runtime Tasks inputs with optional values if
 // no upstream input was provided.
-func (tc *TestContext) MockLauncherDefaultInputParametersUpdate(taskID string, componentSpec *pipelinespec.ComponentSpec) *apiv2beta1.PipelineTaskDetail {
+func (tc *TestContext) MockLauncherDefaultInputParametersUpdate(taskID string, componentSpec *pipelinespec.ComponentSpec) *apiv2beta1.PipelineTask {
 	defer func() { tc.RefreshRun() }()
 
 	// Get Task
@@ -548,7 +548,7 @@ func (tc *TestContext) MockLauncherDefaultInputParametersUpdate(taskID string, c
 				continue
 			}
 			require.NotNil(tc.T, value)
-			parameterIO := &apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+			parameterIO := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
 				Value:        value,
 				Type:         apiv2beta1.IOType_COMPONENT_DEFAULT_INPUT,
 				ParameterKey: key,
@@ -566,7 +566,7 @@ func (tc *TestContext) MockLauncherDefaultInputParametersUpdate(taskID string, c
 	return task
 }
 
-func parameterExistsWithKey(parameters []*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter, key string) bool {
+func parameterExistsWithKey(parameters []*apiv2beta1.PipelineTask_InputOutputs_IOParameter, key string) bool {
 	for _, parameter := range parameters {
 		if parameter.ParameterKey == key {
 			return true
@@ -660,7 +660,7 @@ type LauncherExecution struct {
 	MockCmd      *component.MockCommandExecutor
 	MockObjStore *component.MockObjectStoreClient
 	// The task that was executed
-	Task *apiv2beta1.PipelineTaskDetail
+	Task *apiv2beta1.PipelineTask
 }
 
 // RunLauncher executes a launcher for the given execution with mocked dependencies.
@@ -706,7 +706,7 @@ func (tc *TestContext) RunLauncher(execution *Execution, outputFiles map[string]
 
 	// Create launcher options
 	var iterPtr *int64
-	var parentTaskForLauncher *apiv2beta1.PipelineTaskDetail
+	var parentTaskForLauncher *apiv2beta1.PipelineTask
 	if task.ParentTaskId != nil && *task.ParentTaskId != "" {
 		// Get the parent task
 		parentTask, err := tc.ClientManager.KFPAPIClient().GetTask(ctx, &apiv2beta1.GetTaskRequest{TaskId: *task.ParentTaskId})
@@ -819,7 +819,7 @@ func (tc *TestContext) RunLauncher(execution *Execution, outputFiles map[string]
 }
 
 func (tc *TestContext) setupDagOptions(
-	parentTask *apiv2beta1.PipelineTaskDetail,
+	parentTask *apiv2beta1.PipelineTask,
 	taskSpec *pipelinespec.PipelineTaskSpec,
 	kubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig,
 ) common.Options {
@@ -867,7 +867,7 @@ func (tc *TestContext) setupDagOptions(
 }
 
 func (tc *TestContext) setupContainerOptions(
-	parentTask *apiv2beta1.PipelineTaskDetail,
+	parentTask *apiv2beta1.PipelineTask,
 	taskSpec *pipelinespec.PipelineTaskSpec,
 	kubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig,
 ) common.Options {
@@ -912,7 +912,7 @@ func (tc *TestContext) setupContainerOptions(
 	}
 }
 
-func (tc *TestContext) fetchParameter(key string, params []*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter) *apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter {
+func (tc *TestContext) fetchParameter(key string, params []*apiv2beta1.PipelineTask_InputOutputs_IOParameter) *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
 	for _, p := range params {
 		if key == p.ParameterKey {
 			return p

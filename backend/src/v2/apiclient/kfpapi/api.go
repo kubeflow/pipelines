@@ -39,12 +39,13 @@ import (
 type API interface {
 	// Run operations
 	GetRun(ctx context.Context, req *gc.GetRunRequest) (*gc.Run, error)
+	ListRuns(ctx context.Context, req *gc.ListRunsRequest) (*gc.ListRunsResponse, error)
 
 	// Task operations
-	CreateTask(ctx context.Context, req *gc.CreateTaskRequest) (*gc.PipelineTaskDetail, error)
-	UpdateTask(ctx context.Context, req *gc.UpdateTaskRequest) (*gc.PipelineTaskDetail, error)
+	CreateTask(ctx context.Context, req *gc.CreateTaskRequest) (*gc.PipelineTask, error)
+	UpdateTask(ctx context.Context, req *gc.UpdateTaskRequest) (*gc.PipelineTask, error)
 	UpdateTasksBulk(ctx context.Context, req *gc.UpdateTasksBulkRequest) (*gc.UpdateTasksBulkResponse, error)
-	GetTask(ctx context.Context, req *gc.GetTaskRequest) (*gc.PipelineTaskDetail, error)
+	GetTask(ctx context.Context, req *gc.GetTaskRequest) (*gc.PipelineTask, error)
 	ListTasks(ctx context.Context, req *gc.ListTasksRequest) (*gc.ListTasksResponse, error)
 
 	// Artifact operations
@@ -60,7 +61,7 @@ type API interface {
 	FetchPipelineSpecFromRun(ctx context.Context, run *gc.Run) (*structpb.Struct, error)
 
 	// Propagate status updates up the DAG
-	UpdateStatuses(ctx context.Context, run *gc.Run, pipelineSpec *structpb.Struct, currentTask *gc.PipelineTaskDetail) error
+	UpdateStatuses(ctx context.Context, run *gc.Run, pipelineSpec *structpb.Struct, currentTask *gc.PipelineTask) error
 }
 
 // clientAdapter adapts apiclient.Client to API.
@@ -81,11 +82,15 @@ func (k *clientAdapter) GetRun(ctx context.Context, req *gc.GetRunRequest) (*gc.
 	return k.c.Run.GetRun(ctx, req)
 }
 
-func (k *clientAdapter) CreateTask(ctx context.Context, req *gc.CreateTaskRequest) (*gc.PipelineTaskDetail, error) {
+func (k *clientAdapter) ListRuns(ctx context.Context, req *gc.ListRunsRequest) (*gc.ListRunsResponse, error) {
+	return k.c.Run.ListRuns(ctx, req)
+}
+
+func (k *clientAdapter) CreateTask(ctx context.Context, req *gc.CreateTaskRequest) (*gc.PipelineTask, error) {
 	return k.c.Run.CreateTask(ctx, req)
 }
 
-func (k *clientAdapter) UpdateTask(ctx context.Context, req *gc.UpdateTaskRequest) (*gc.PipelineTaskDetail, error) {
+func (k *clientAdapter) UpdateTask(ctx context.Context, req *gc.UpdateTaskRequest) (*gc.PipelineTask, error) {
 	return k.c.Run.UpdateTask(ctx, req)
 }
 
@@ -93,7 +98,7 @@ func (k *clientAdapter) UpdateTasksBulk(ctx context.Context, req *gc.UpdateTasks
 	return k.c.Run.UpdateTasksBulk(ctx, req)
 }
 
-func (k *clientAdapter) GetTask(ctx context.Context, req *gc.GetTaskRequest) (*gc.PipelineTaskDetail, error) {
+func (k *clientAdapter) GetTask(ctx context.Context, req *gc.GetTaskRequest) (*gc.PipelineTask, error) {
 	return k.c.Run.GetTask(ctx, req)
 }
 
@@ -200,16 +205,16 @@ func (k *clientAdapter) FetchPipelineSpecFromRun(ctx context.Context, run *gc.Ru
 //   - In any other case the state is SUCCEEDED
 //
 // TODO(HumairAK): Let's have API Server handle this call instead of doing it here.
-func (k *clientAdapter) UpdateStatuses(ctx context.Context, run *gc.Run, pipelineSpec *structpb.Struct, currentTask *gc.PipelineTaskDetail) error {
+func (k *clientAdapter) UpdateStatuses(ctx context.Context, run *gc.Run, pipelineSpec *structpb.Struct, currentTask *gc.PipelineTask) error {
 	return updateStatuses(ctx, run, k, pipelineSpec, currentTask)
 }
 
 // updateStatuses traverses up the dag until we find a parent task that still has other children with "RUNNING" status
 // or when we have reached Root.
 // This function is separated from UpdateStatuses so that it can be used by the mock api client in tests.
-func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipelineSpec *structpb.Struct, currentTask *gc.PipelineTaskDetail) error {
+func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipelineSpec *structpb.Struct, currentTask *gc.PipelineTask) error {
 	// Create a map of task IDs to tasks for quick lookup
-	taskMap := make(map[string]*gc.PipelineTaskDetail)
+	taskMap := make(map[string]*gc.PipelineTask)
 	for _, task := range run.GetTasks() {
 		taskMap[task.GetTaskId()] = task
 	}
@@ -248,7 +253,7 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 		// Before we proceed to update this parent task's status, we need to ensure that all child tasks have been
 		// created (irrespective of their status).
 		var expectedTotalChildTasks int
-		if parentTask.GetType() == gc.PipelineTaskDetail_LOOP {
+		if parentTask.GetType() == gc.PipelineTask_LOOP {
 			typeAttrs := parentTask.GetTypeAttributes()
 			if typeAttrs == nil || typeAttrs.IterationCount == nil {
 				return fmt.Errorf("loop task %s is missing iteration_count attribute", parentTask.GetTaskId())
@@ -261,7 +266,7 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 		var childCount int
 		for _, task := range run.GetTasks() {
 			if task.ParentTaskId != nil && *task.ParentTaskId == parentTask.GetTaskId() {
-				if task.GetState() == gc.PipelineTaskDetail_RUNNING {
+				if task.GetState() == gc.PipelineTask_RUNNING {
 					return nil
 				}
 				childCount++
@@ -288,11 +293,11 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 func evaluateAndUpdateParentStatus(
 	ctx context.Context,
 	run *gc.Run,
-	parentTask *gc.PipelineTaskDetail,
+	parentTask *gc.PipelineTask,
 	kfpAPIClient API,
 ) error {
 	// Collect all direct children of this parent
-	var children []*gc.PipelineTaskDetail
+	var children []*gc.PipelineTask
 	for _, task := range run.GetTasks() {
 		if task.ParentTaskId != nil && *task.ParentTaskId == parentTask.GetTaskId() {
 			children = append(children, task)
@@ -313,31 +318,31 @@ func evaluateAndUpdateParentStatus(
 		status := child.GetState()
 
 		// Check for FAILED
-		if status == gc.PipelineTaskDetail_FAILED {
+		if status == gc.PipelineTask_FAILED {
 			anyFailed = true
 		}
 
 		// Check if all are CACHED
-		if status != gc.PipelineTaskDetail_CACHED {
+		if status != gc.PipelineTask_CACHED {
 			allCached = false
 		}
 
 		// Check if all are SKIPPED
-		if status != gc.PipelineTaskDetail_SKIPPED {
+		if status != gc.PipelineTask_SKIPPED {
 			allSkipped = false
 		}
 	}
 
 	// Determine the new status for the parent
-	var newStatus gc.PipelineTaskDetail_TaskState
+	var newStatus gc.PipelineTask_TaskState
 	if anyFailed {
-		newStatus = gc.PipelineTaskDetail_FAILED
+		newStatus = gc.PipelineTask_FAILED
 	} else if allCached {
-		newStatus = gc.PipelineTaskDetail_CACHED
+		newStatus = gc.PipelineTask_CACHED
 	} else if allSkipped {
-		newStatus = gc.PipelineTaskDetail_SKIPPED
+		newStatus = gc.PipelineTask_SKIPPED
 	} else {
-		newStatus = gc.PipelineTaskDetail_SUCCEEDED
+		newStatus = gc.PipelineTask_SUCCEEDED
 	}
 
 	// Update the parent task status

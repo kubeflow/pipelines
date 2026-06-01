@@ -40,7 +40,7 @@ type Options struct {
 	// required, Component spec
 	Component *pipelinespec.ComponentSpec
 	// required
-	ParentTask *apiv2beta1.PipelineTaskDetail
+	ParentTask *apiv2beta1.PipelineTask
 	// required
 	ScopePath util.ScopePath
 
@@ -120,8 +120,8 @@ func IsLoopArgument(name string) bool {
 	return strings.HasSuffix(nameWithoutPrefix, "loop-item") || strings.HasPrefix(nameWithoutPrefix, "loop-item")
 }
 
-func IsRuntimeIterationTask(task *apiv2beta1.PipelineTaskDetail) bool {
-	return task.Type == apiv2beta1.PipelineTaskDetail_RUNTIME && task.TypeAttributes != nil && task.TypeAttributes.IterationIndex != nil
+func IsRuntimeIterationTask(task *apiv2beta1.PipelineTask) bool {
+	return task.Type == apiv2beta1.PipelineTask_RUNTIME && task.TypeAttributes != nil && task.TypeAttributes.IterationIndex != nil
 }
 
 // inputPipelineChannelPattern define a regex pattern to match the content within single quotes

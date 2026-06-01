@@ -33,14 +33,14 @@ func RootDAG(ctx context.Context, opts common.Options, clientManager client_mana
 		return nil, fmt.Errorf("api client is nil")
 	}
 
-	// Build minimal PipelineTaskDetail for root DAG task under the run.
+	// Build minimal PipelineTask for root DAG task under the run.
 	// Inputs: pass runtime parameters into task inputs for record.
-	var inputs *apiV2beta1.PipelineTaskDetail_InputOutputs
+	var inputs *apiV2beta1.PipelineTask_InputOutputs
 	if opts.RuntimeConfig != nil && opts.RuntimeConfig.GetParameterValues() != nil {
-		params := make([]*apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter, 0, len(opts.RuntimeConfig.GetParameterValues()))
+		params := make([]*apiV2beta1.PipelineTask_InputOutputs_IOParameter, 0, len(opts.RuntimeConfig.GetParameterValues()))
 		for name, val := range opts.RuntimeConfig.GetParameterValues() {
 			n := name
-			params = append(params, &apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+			params = append(params, &apiV2beta1.PipelineTask_InputOutputs_IOParameter{
 				ParameterKey: n,
 				Value:        val,
 				Type:         apiV2beta1.IOType_RUNTIME_VALUE_INPUT,
@@ -49,23 +49,23 @@ func RootDAG(ctx context.Context, opts common.Options, clientManager client_mana
 				},
 			})
 		}
-		inputs = &apiV2beta1.PipelineTaskDetail_InputOutputs{Parameters: params}
+		inputs = &apiV2beta1.PipelineTask_InputOutputs{Parameters: params}
 	}
-	pd := &apiV2beta1.PipelineTaskDetail{
+	pd := &apiV2beta1.PipelineTask{
 		Name:           "ROOT",
 		DisplayName:    opts.RunDisplayName,
 		RunId:          opts.Run.GetRunId(),
-		Type:           apiV2beta1.PipelineTaskDetail_ROOT,
+		Type:           apiV2beta1.PipelineTask_ROOT,
 		Inputs:         inputs,
-		TypeAttributes: &apiV2beta1.PipelineTaskDetail_TypeAttributes{},
-		State:          apiV2beta1.PipelineTaskDetail_RUNNING,
+		TypeAttributes: &apiV2beta1.PipelineTask_TypeAttributes{},
+		State:          apiV2beta1.PipelineTask_RUNNING,
 		ScopePath:      opts.ScopePath.DotNotation(),
 		CreateTime:     timestamppb.Now(),
-		Pods: []*apiV2beta1.PipelineTaskDetail_TaskPod{
+		Pods: []*apiV2beta1.PipelineTask_TaskPod{
 			{
 				Name: opts.PodName,
 				Uid:  opts.PodUID,
-				Type: apiV2beta1.PipelineTaskDetail_DRIVER,
+				Type: apiV2beta1.PipelineTask_DRIVER,
 			},
 		},
 	}

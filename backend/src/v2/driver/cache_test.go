@@ -162,11 +162,15 @@ func (f *fakeCacheLookupAPI) GetRun(context.Context, *apiv2beta1.GetRunRequest) 
 	return nil, nil
 }
 
-func (f *fakeCacheLookupAPI) CreateTask(context.Context, *apiv2beta1.CreateTaskRequest) (*apiv2beta1.PipelineTaskDetail, error) {
+func (f *fakeCacheLookupAPI) ListRuns(context.Context, *apiv2beta1.ListRunsRequest) (*apiv2beta1.ListRunsResponse, error) {
+	return &apiv2beta1.ListRunsResponse{}, nil
+}
+
+func (f *fakeCacheLookupAPI) CreateTask(context.Context, *apiv2beta1.CreateTaskRequest) (*apiv2beta1.PipelineTask, error) {
 	return nil, nil
 }
 
-func (f *fakeCacheLookupAPI) UpdateTask(context.Context, *apiv2beta1.UpdateTaskRequest) (*apiv2beta1.PipelineTaskDetail, error) {
+func (f *fakeCacheLookupAPI) UpdateTask(context.Context, *apiv2beta1.UpdateTaskRequest) (*apiv2beta1.PipelineTask, error) {
 	return nil, nil
 }
 
@@ -174,7 +178,7 @@ func (f *fakeCacheLookupAPI) UpdateTasksBulk(context.Context, *apiv2beta1.Update
 	return nil, nil
 }
 
-func (f *fakeCacheLookupAPI) GetTask(context.Context, *apiv2beta1.GetTaskRequest) (*apiv2beta1.PipelineTaskDetail, error) {
+func (f *fakeCacheLookupAPI) GetTask(context.Context, *apiv2beta1.GetTaskRequest) (*apiv2beta1.PipelineTask, error) {
 	return nil, nil
 }
 
@@ -214,6 +218,6 @@ func (f *fakeCacheLookupAPI) FetchPipelineSpecFromRun(context.Context, *apiv2bet
 	return nil, nil
 }
 
-func (f *fakeCacheLookupAPI) UpdateStatuses(context.Context, *apiv2beta1.Run, *structpb.Struct, *apiv2beta1.PipelineTaskDetail) error {
+func (f *fakeCacheLookupAPI) UpdateStatuses(context.Context, *apiv2beta1.Run, *structpb.Struct, *apiv2beta1.PipelineTask) error {
 	return nil
 }

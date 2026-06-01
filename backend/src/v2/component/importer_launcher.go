@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -80,23 +81,23 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 	// Create the task, we will continue to update this as needed.
 	parentTaskID := l.opts.ParentTask.GetTaskId()
 	createdTask, executionErr := kfpAPI.CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
-		Task: &apiV2beta1.PipelineTaskDetail{
+		Task: &apiV2beta1.PipelineTask{
 			Name:         l.opts.TaskSpec.GetTaskInfo().GetName(),
 			DisplayName:  l.opts.TaskSpec.GetTaskInfo().GetName(),
 			RunId:        l.opts.Run.RunId,
 			ParentTaskId: &parentTaskID,
-			Type:         apiV2beta1.PipelineTaskDetail_IMPORTER,
-			State:        apiV2beta1.PipelineTaskDetail_RUNNING,
+			Type:         apiV2beta1.PipelineTask_IMPORTER,
+			State:        apiV2beta1.PipelineTask_RUNNING,
 			ScopePath:    l.opts.ScopePath.DotNotation(),
 			CreateTime:   timestamppb.Now(),
-			TypeAttributes: &apiV2beta1.PipelineTaskDetail_TypeAttributes{
+			TypeAttributes: &apiV2beta1.PipelineTask_TypeAttributes{
 				DownloadToWorkspace: util.BoolPointer(downloadToWorkspace),
 			},
-			Pods: []*apiV2beta1.PipelineTaskDetail_TaskPod{
+			Pods: []*apiV2beta1.PipelineTask_TaskPod{
 				{
 					Name: l.opts.PodName,
 					Uid:  l.opts.PodUID,
-					Type: apiV2beta1.PipelineTaskDetail_EXECUTOR,
+					Type: apiV2beta1.PipelineTask_EXECUTOR,
 				},
 			},
 		},
@@ -109,9 +110,9 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 	// encountered in this task execution.
 	defer func() {
 		if executionErr != nil {
-			createdTask.State = apiV2beta1.PipelineTaskDetail_FAILED
+			createdTask.State = apiV2beta1.PipelineTask_FAILED
 		} else {
-			createdTask.State = apiV2beta1.PipelineTaskDetail_SUCCEEDED
+			createdTask.State = apiV2beta1.PipelineTask_SUCCEEDED
 		}
 		createdTask.EndTime = timestamppb.Now()
 		_, updateErr := kfpAPI.UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
@@ -136,11 +137,11 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 	l.opts.Task = createdTask
 
 	if createdTask.Outputs == nil {
-		createdTask.Outputs = &apiV2beta1.PipelineTaskDetail_InputOutputs{
-			Artifacts: make([]*apiV2beta1.PipelineTaskDetail_InputOutputs_IOArtifact, 0),
+		createdTask.Outputs = &apiV2beta1.PipelineTask_InputOutputs{
+			Artifacts: make([]*apiV2beta1.PipelineTask_InputOutputs_IOArtifact, 0),
 		}
 	} else if createdTask.Outputs.Artifacts == nil {
-		createdTask.Outputs.Artifacts = make([]*apiV2beta1.PipelineTaskDetail_InputOutputs_IOArtifact, 0)
+		createdTask.Outputs.Artifacts = make([]*apiV2beta1.PipelineTask_InputOutputs_IOArtifact, 0)
 	}
 
 	// Handle artifact creation and links to Importer Task
@@ -164,12 +165,29 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 	// If reimport is true or the artifact does not already exist we create a new artifact
 	if l.opts.ImporterSpec.Reimport || preExistingArtifact == nil {
 		glog.Infof("Creating new artifact for importer task %s", l.opts.TaskSpec.GetTaskInfo().GetName())
-		_, executionErr = kfpAPI.CreateArtifact(ctx, &apiV2beta1.CreateArtifactRequest{
+		if artifactToImport.GetArtifactId() == "" {
+			artifactToImport.ArtifactId = uuid.NewString()
+		}
+		createdArtifact, executionErr := kfpAPI.CreateArtifact(ctx, &apiV2beta1.CreateArtifactRequest{
 			Artifact:    artifactToImport,
 			RunId:       l.opts.Run.RunId,
 			TaskId:      createdTask.TaskId,
 			ProducerKey: artifactOutputKey,
-			Type:        apiV2beta1.IOType_OUTPUT,
+		})
+		if executionErr != nil {
+			return executionErr
+		}
+		_, executionErr = kfpAPI.CreateArtifactTask(ctx, &apiV2beta1.CreateArtifactTaskRequest{
+			ArtifactTask: &apiV2beta1.ArtifactTask{
+				ArtifactId: createdArtifact.GetArtifactId(),
+				TaskId:     createdTask.TaskId,
+				RunId:      l.opts.Run.RunId,
+				Key:        artifactOutputKey,
+				Type:       apiV2beta1.IOType_OUTPUT,
+				Producer: &apiV2beta1.IOProducer{
+					TaskName: l.opts.TaskSpec.GetTaskInfo().GetName(),
+				},
+			},
 		})
 		if executionErr != nil {
 			return executionErr
@@ -276,7 +294,7 @@ func (l *ImportLauncher) ImportSpecToArtifact() (artifact *apiV2beta1.Artifact, 
 			return nil, fmt.Errorf("cannot find parameter %s in task input to fetch artifact uri", paramName)
 		}
 		componentInput := taskInput.GetComponentInputParameter()
-		var ioParam *apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter
+		var ioParam *apiV2beta1.PipelineTask_InputOutputs_IOParameter
 		for _, inputParam := range l.opts.ParentTask.GetInputs().GetParameters() {
 			if inputParam.ParameterKey == componentInput {
 				ioParam = inputParam

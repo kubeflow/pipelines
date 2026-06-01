@@ -81,20 +81,20 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 		execution.Condition = &willTrigger
 	}
 
-	taskToCreate := &gc.PipelineTaskDetail{
+	taskToCreate := &gc.PipelineTask{
 		Name:        opts.TaskName,
 		DisplayName: opts.Task.GetTaskInfo().GetName(),
 		RunId:       opts.Run.GetRunId(),
 		// Default to DAG
-		Type:       gc.PipelineTaskDetail_DAG,
-		State:      gc.PipelineTaskDetail_RUNNING,
+		Type:       gc.PipelineTask_DAG,
+		State:      gc.PipelineTask_RUNNING,
 		ScopePath:  opts.ScopePath.DotNotation(),
 		CreateTime: timestamppb.Now(),
-		Pods: []*gc.PipelineTaskDetail_TaskPod{
+		Pods: []*gc.PipelineTask_TaskPod{
 			{
 				Name: opts.PodName,
 				Uid:  opts.PodUID,
-				Type: gc.PipelineTaskDetail_DRIVER,
+				Type: gc.PipelineTask_DRIVER,
 			},
 		},
 	}
@@ -106,18 +106,18 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 	switch {
 	case iterationCount != nil:
 		count := int64(*iterationCount)
-		taskToCreate.TypeAttributes = &gc.PipelineTaskDetail_TypeAttributes{IterationCount: &count}
-		taskToCreate.Type = gc.PipelineTaskDetail_LOOP
+		taskToCreate.TypeAttributes = &gc.PipelineTask_TypeAttributes{IterationCount: &count}
+		taskToCreate.Type = gc.PipelineTask_LOOP
 		taskToCreate.DisplayName = "Loop"
 		execution.IterationCount = util.IntPointer(int(count))
 	case condition != "":
-		taskToCreate.Type = gc.PipelineTaskDetail_CONDITION_BRANCH
+		taskToCreate.Type = gc.PipelineTask_CONDITION_BRANCH
 		taskToCreate.DisplayName = "Condition Branch"
 	case strings.HasPrefix(opts.TaskName, "condition") && !strings.HasPrefix(opts.TaskName, "condition-branch"):
-		taskToCreate.Type = gc.PipelineTaskDetail_CONDITION
+		taskToCreate.Type = gc.PipelineTask_CONDITION
 		taskToCreate.DisplayName = "Condition"
 	default:
-		taskToCreate.Type = gc.PipelineTaskDetail_DAG
+		taskToCreate.Type = gc.PipelineTask_DAG
 	}
 
 	if opts.ParentTask.GetTaskId() != "" {

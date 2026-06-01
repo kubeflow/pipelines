@@ -26,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -55,8 +56,8 @@ type LauncherV2Options struct {
 	TaskSpec          *pipelinespec.PipelineTaskSpec
 	ScopePath         util.ScopePath
 	Run               *apiV2beta1.Run
-	ParentTask        *apiV2beta1.PipelineTaskDetail
-	Task              *apiV2beta1.PipelineTaskDetail
+	ParentTask        *apiV2beta1.PipelineTask
+	Task              *apiV2beta1.PipelineTask
 	// Set to true if apiserver is serving over TLS
 	MLPipelineTLSEnabled bool
 	MLPipelineServerAddress,
@@ -195,17 +196,17 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 		}
 	}()
 
-	l.options.Task.Pods = append(l.options.Task.Pods, &apiV2beta1.PipelineTaskDetail_TaskPod{
+	l.options.Task.Pods = append(l.options.Task.Pods, &apiV2beta1.PipelineTask_TaskPod{
 		Name: l.options.PodName,
 		Uid:  l.options.PodUID,
-		Type: apiV2beta1.PipelineTaskDetail_EXECUTOR,
+		Type: apiV2beta1.PipelineTask_EXECUTOR,
 	})
 
 	// Defer the final task status update to ensure we handle and propagate errors.
 	defer func() {
 		if executionErr != nil {
-			l.options.Task.State = apiV2beta1.PipelineTaskDetail_FAILED
-			l.options.Task.StatusMetadata = &apiV2beta1.PipelineTaskDetail_StatusMetadata{
+			l.options.Task.State = apiV2beta1.PipelineTask_FAILED
+			l.options.Task.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
 				Message: executionErr.Error(),
 			}
 		}
@@ -220,7 +221,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 		// - propagateOutputsUpDAG (artifact-task creation, parent task parameter updates)
 		// - this final SUCCEEDED status update
 		if flushErr := l.batchUpdater.Flush(ctx, l.clientManager.KFPAPIClient()); flushErr != nil {
-			l.options.Task.State = apiV2beta1.PipelineTaskDetail_FAILED
+			l.options.Task.State = apiV2beta1.PipelineTask_FAILED
 			glog.Errorf("failed to flush batch updates: %v", flushErr)
 			_, updateTaskErr := l.clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{TaskId: l.options.Task.GetTaskId(), Task: l.options.Task})
 			if updateTaskErr != nil {
@@ -270,7 +271,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 	if executionErr != nil {
 		return fmt.Errorf("failed to execute component: %w", executionErr)
 	}
-	l.options.Task.State = apiV2beta1.PipelineTaskDetail_SUCCEEDED
+	l.options.Task.State = apiV2beta1.PipelineTask_SUCCEEDED
 	return nil
 }
 
@@ -336,9 +337,9 @@ func (l *LauncherV2) executeV2(ctx context.Context) (*pipelinespec.ExecutorOutpu
 
 	// Update task outputs for parameters before propagation
 	if executorOutput != nil && len(executorOutput.GetParameterValues()) > 0 {
-		params := make([]*apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter, 0, len(executorOutput.GetParameterValues()))
+		params := make([]*apiV2beta1.PipelineTask_InputOutputs_IOParameter, 0, len(executorOutput.GetParameterValues()))
 		for key, val := range executorOutput.GetParameterValues() {
-			param := &apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+			param := &apiV2beta1.PipelineTask_InputOutputs_IOParameter{
 				ParameterKey: key,
 				Type:         apiV2beta1.IOType_OUTPUT,
 				Value:        val,
@@ -352,7 +353,7 @@ func (l *LauncherV2) executeV2(ctx context.Context) (*pipelinespec.ExecutorOutpu
 			params = append(params, param)
 		}
 
-		l.options.Task.Outputs = &apiV2beta1.PipelineTaskDetail_InputOutputs{Parameters: params}
+		l.options.Task.Outputs = &apiV2beta1.PipelineTask_InputOutputs{Parameters: params}
 		// Queue task update instead of executing immediately
 		l.batchUpdater.QueueTaskUpdate(l.options.Task)
 	}
@@ -789,18 +790,32 @@ func (l *LauncherV2) uploadOutputArtifacts(
 	// Queue artifact creation requests (will be flushed in batch)
 	for artifactKey, artifacts := range artifactsMap {
 		for _, artifact := range artifacts {
+			if artifact.GetArtifactId() == "" {
+				artifact.ArtifactId = uuid.NewString()
+			}
+			ioType := apiV2beta1.IOType_OUTPUT
 			request := &apiV2beta1.CreateArtifactRequest{
 				RunId:       l.options.Run.GetRunId(),
 				TaskId:      l.options.Task.GetTaskId(),
 				ProducerKey: artifactKey,
 				Artifact:    artifact,
-				Type:        apiV2beta1.IOType_OUTPUT,
 			}
 			if l.options.IterationIndex != nil {
 				request.IterationIndex = l.options.IterationIndex
-				request.Type = apiV2beta1.IOType_ITERATOR_OUTPUT
+				ioType = apiV2beta1.IOType_ITERATOR_OUTPUT
 			}
 			l.batchUpdater.QueueArtifact(request)
+			l.batchUpdater.QueueArtifactTask(&apiV2beta1.ArtifactTask{
+				ArtifactId: artifact.GetArtifactId(),
+				TaskId:     l.options.Task.GetTaskId(),
+				RunId:      l.options.Run.GetRunId(),
+				Key:        artifactKey,
+				Type:       ioType,
+				Producer: &apiV2beta1.IOProducer{
+					TaskName: l.options.TaskSpec.GetTaskInfo().GetName(),
+					Iteration: l.options.IterationIndex,
+				},
+			})
 		}
 	}
 	return nil
@@ -811,7 +826,7 @@ func (l *LauncherV2) uploadOutputArtifacts(
 func determineIOType(
 	isFirstLevel bool,
 	currentIOType apiV2beta1.IOType,
-	parentTask *apiV2beta1.PipelineTaskDetail,
+	parentTask *apiV2beta1.PipelineTask,
 	parentOutputKey string,
 	parentOutputDefs *pipelinespec.ComponentOutputsSpec,
 	isParameter bool,
@@ -822,13 +837,13 @@ func determineIOType(
 	}
 
 	// First level: determine type based on parent context
-	if parentTask.GetType() == apiV2beta1.PipelineTaskDetail_LOOP {
+	if parentTask.GetType() == apiV2beta1.PipelineTask_LOOP {
 		// For loop iterations, use ITERATOR_OUTPUT
 		return apiV2beta1.IOType_ITERATOR_OUTPUT
 	}
 
 	// Check if this is a ONE_OF output for condition branches
-	if parentTask.GetType() == apiV2beta1.PipelineTaskDetail_CONDITION_BRANCH {
+	if parentTask.GetType() == apiV2beta1.PipelineTask_CONDITION_BRANCH {
 		if isParameter {
 			// For parameters, check if it's in output definitions and not a list
 			if paramDef, exists := parentOutputDefs.GetParameters()[parentOutputKey]; exists {
@@ -869,7 +884,7 @@ func (l *LauncherV2) propagateOutputsUpDAG(ctx context.Context) error {
 	}
 
 	// Build a map of TaskID -> TaskDetail for fast lookups
-	taskMap := make(map[string]*apiV2beta1.PipelineTaskDetail)
+	taskMap := make(map[string]*apiV2beta1.PipelineTask)
 	for _, task := range refreshedRun.GetTasks() {
 		taskMap[task.GetTaskId()] = task
 	}
@@ -1005,7 +1020,7 @@ func (l *LauncherV2) propagateOutputsUpDAG(ctx context.Context) error {
 
 		// Initialize outputs if needed
 		if currentParentTask.Outputs == nil {
-			currentParentTask.Outputs = &apiV2beta1.PipelineTaskDetail_InputOutputs{}
+			currentParentTask.Outputs = &apiV2beta1.PipelineTask_InputOutputs{}
 		}
 
 		for _, paramIO := range currentTaskOutputs.GetParameters() {
@@ -1043,7 +1058,7 @@ func (l *LauncherV2) propagateOutputsUpDAG(ctx context.Context) error {
 				paramProducer.Iteration = paramIO.Producer.Iteration
 			}
 
-			newParam := &apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+			newParam := &apiV2beta1.PipelineTask_InputOutputs_IOParameter{
 				ParameterKey: matchingParentKey,
 				Value:        paramIO.GetValue(),
 				Type:         ioType,
@@ -1081,9 +1096,9 @@ func (l *LauncherV2) propagateOutputsUpDAG(ctx context.Context) error {
 
 		// For the next level, we only want to propagate the outputs we just added to this parent
 		// Build a new currentTaskOutputs with only the newly propagated outputs
-		newTaskOutputs := &apiV2beta1.PipelineTaskDetail_InputOutputs{
-			Artifacts:  []*apiV2beta1.PipelineTaskDetail_InputOutputs_IOArtifact{},
-			Parameters: []*apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter{},
+		newTaskOutputs := &apiV2beta1.PipelineTask_InputOutputs{
+			Artifacts:  []*apiV2beta1.PipelineTask_InputOutputs_IOArtifact{},
+			Parameters: []*apiV2beta1.PipelineTask_InputOutputs_IOParameter{},
 		}
 
 		// Build artifact outputs for next level
@@ -1103,7 +1118,7 @@ func (l *LauncherV2) propagateOutputsUpDAG(ctx context.Context) error {
 			}
 
 			if foundArtifact != nil {
-				IOArtifact := &apiV2beta1.PipelineTaskDetail_InputOutputs_IOArtifact{
+				IOArtifact := &apiV2beta1.PipelineTask_InputOutputs_IOArtifact{
 					ArtifactKey: info.key,
 					Artifacts:   []*apiV2beta1.Artifact{foundArtifact},
 					Type:        info.ioType,
@@ -1116,7 +1131,7 @@ func (l *LauncherV2) propagateOutputsUpDAG(ctx context.Context) error {
 		// Build parameter outputs for next level
 		for paramIdentifier, info := range newPropagatedParameters {
 			// Find the parameter object by matching key and value
-			var foundParam *apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter
+			var foundParam *apiV2beta1.PipelineTask_InputOutputs_IOParameter
 			for _, paramIO := range currentTaskOutputs.GetParameters() {
 				identifier := fmt.Sprintf("%s:%s", paramIO.GetParameterKey(), paramIO.GetValue().String())
 				if identifier == paramIdentifier {
@@ -1126,7 +1141,7 @@ func (l *LauncherV2) propagateOutputsUpDAG(ctx context.Context) error {
 			}
 
 			if foundParam != nil {
-				newTaskOutputs.Parameters = append(newTaskOutputs.Parameters, &apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+				newTaskOutputs.Parameters = append(newTaskOutputs.Parameters, &apiV2beta1.PipelineTask_InputOutputs_IOParameter{
 					ParameterKey: info.key,
 					Value:        foundParam.GetValue(),
 					Type:         info.ioType,

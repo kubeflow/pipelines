@@ -34,7 +34,7 @@ var (
 	copy                    = flag.String("copy", "", "copy this binary to specified destination path")
 	pipelineName            = flag.String("pipeline_name", "", "pipeline context name")
 	runID                   = flag.String("run_id", "", "pipeline run uid")
-	taskID                  = flag.String("task_id", "", "pipeline task id (PipelineTaskDetail.task_id)")
+	taskID                  = flag.String("task_id", "", "pipeline task id (PipelineTask.task_id)")
 	parentTaskID            = flag.String("parent_task_id", "", "Parent PipelineTask ID")
 	executorType            = flag.String("executor_type", "container", "The type of the ExecutorSpec")
 	executorInputJSON       = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")

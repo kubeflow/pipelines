@@ -31,7 +31,7 @@ import (
 // MockAPI provides a mock implementation of API for testing
 type MockAPI struct {
 	runs             map[string]*apiv2beta1.Run
-	tasks            map[string]*apiv2beta1.PipelineTaskDetail
+	tasks            map[string]*apiv2beta1.PipelineTask
 	artifacts        map[string]*apiv2beta1.Artifact
 	artifactTasks    map[string]*apiv2beta1.ArtifactTask
 	pipelineVersions map[string]*apiv2beta1.PipelineVersion
@@ -41,7 +41,7 @@ type MockAPI struct {
 func NewMockAPI() *MockAPI {
 	return &MockAPI{
 		runs:             make(map[string]*apiv2beta1.Run),
-		tasks:            make(map[string]*apiv2beta1.PipelineTaskDetail),
+		tasks:            make(map[string]*apiv2beta1.PipelineTask),
 		artifacts:        make(map[string]*apiv2beta1.Artifact),
 		artifactTasks:    make(map[string]*apiv2beta1.ArtifactTask),
 		pipelineVersions: make(map[string]*apiv2beta1.PipelineVersion),
@@ -57,7 +57,7 @@ func (m *MockAPI) GetRun(_ context.Context, req *apiv2beta1.GetRunRequest) (*api
 			PipelineSource: &apiv2beta1.Run_PipelineSpec{PipelineSpec: run.GetPipelineSpec()},
 			RuntimeConfig:  run.RuntimeConfig,
 			State:          run.State,
-			Tasks:          []*apiv2beta1.PipelineTaskDetail{},
+			Tasks:          []*apiv2beta1.PipelineTask{},
 		}
 
 		// Find all tasks for this run
@@ -73,11 +73,26 @@ func (m *MockAPI) GetRun(_ context.Context, req *apiv2beta1.GetRunRequest) (*api
 	return nil, fmt.Errorf("run not found: %s", req.RunId)
 }
 
-func (m *MockAPI) hydrateTask(task *apiv2beta1.PipelineTaskDetail) *apiv2beta1.PipelineTaskDetail {
+func (m *MockAPI) ListRuns(_ context.Context, req *apiv2beta1.ListRunsRequest) (*apiv2beta1.ListRunsResponse, error) {
+	runs := make([]*apiv2beta1.Run, 0, len(m.runs))
+	for _, run := range m.runs {
+		populatedRun, err := m.GetRun(context.Background(), &apiv2beta1.GetRunRequest{RunId: run.GetRunId()})
+		if err != nil {
+			return nil, err
+		}
+		runs = append(runs, populatedRun)
+	}
+	return &apiv2beta1.ListRunsResponse{
+		Runs:      runs,
+		TotalSize: int32(len(runs)),
+	}, nil
+}
+
+func (m *MockAPI) hydrateTask(task *apiv2beta1.PipelineTask) *apiv2beta1.PipelineTask {
 	// Create a copy of the task to populate with artifacts
-	populatedTask := proto.Clone(task).(*apiv2beta1.PipelineTaskDetail)
-	populatedTask.Inputs = &apiv2beta1.PipelineTaskDetail_InputOutputs{}
-	populatedTask.Outputs = &apiv2beta1.PipelineTaskDetail_InputOutputs{}
+	populatedTask := proto.Clone(task).(*apiv2beta1.PipelineTask)
+	populatedTask.Inputs = &apiv2beta1.PipelineTask_InputOutputs{}
+	populatedTask.Outputs = &apiv2beta1.PipelineTask_InputOutputs{}
 
 	// Copy existing parameters if they exist
 	if task.Inputs != nil {
@@ -88,14 +103,14 @@ func (m *MockAPI) hydrateTask(task *apiv2beta1.PipelineTaskDetail) *apiv2beta1.P
 	}
 
 	// Find artifacts associated with this task
-	var inputArtifacts []*apiv2beta1.PipelineTaskDetail_InputOutputs_IOArtifact
-	var outputArtifacts []*apiv2beta1.PipelineTaskDetail_InputOutputs_IOArtifact
+	var inputArtifacts []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact
+	var outputArtifacts []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact
 
 	for _, artifactTask := range m.artifactTasks {
 		if artifactTask.TaskId == task.TaskId {
 			// Get the associated artifact
 			if artifact, exists := m.artifacts[artifactTask.ArtifactId]; exists {
-				ioArtifact := &apiv2beta1.PipelineTaskDetail_InputOutputs_IOArtifact{
+				ioArtifact := &apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
 					Artifacts: []*apiv2beta1.Artifact{artifact},
 					Type:      artifactTask.Type,
 				}
@@ -130,7 +145,7 @@ func (m *MockAPI) hydrateTask(task *apiv2beta1.PipelineTaskDetail) *apiv2beta1.P
 	return populatedTask
 }
 
-func (m *MockAPI) CreateTask(_ context.Context, req *apiv2beta1.CreateTaskRequest) (*apiv2beta1.PipelineTaskDetail, error) {
+func (m *MockAPI) CreateTask(_ context.Context, req *apiv2beta1.CreateTaskRequest) (*apiv2beta1.PipelineTask, error) {
 	task := req.Task
 	if task.TaskId == "" {
 		uuid, _ := uuid.NewRandom()
@@ -140,7 +155,7 @@ func (m *MockAPI) CreateTask(_ context.Context, req *apiv2beta1.CreateTaskReques
 	return task, nil
 }
 
-func (m *MockAPI) UpdateTask(_ context.Context, req *apiv2beta1.UpdateTaskRequest) (*apiv2beta1.PipelineTaskDetail, error) {
+func (m *MockAPI) UpdateTask(_ context.Context, req *apiv2beta1.UpdateTaskRequest) (*apiv2beta1.PipelineTask, error) {
 	if _, exists := m.tasks[req.TaskId]; !exists {
 		return nil, fmt.Errorf("task not found: %s", req.TaskId)
 	}
@@ -153,7 +168,7 @@ func (m *MockAPI) UpdateTask(_ context.Context, req *apiv2beta1.UpdateTaskReques
 
 func (m *MockAPI) UpdateTasksBulk(_ context.Context, req *apiv2beta1.UpdateTasksBulkRequest) (*apiv2beta1.UpdateTasksBulkResponse, error) {
 	response := &apiv2beta1.UpdateTasksBulkResponse{
-		Tasks: make(map[string]*apiv2beta1.PipelineTaskDetail),
+		Tasks: make(map[string]*apiv2beta1.PipelineTask),
 	}
 
 	for taskID, task := range req.Tasks {
@@ -169,7 +184,7 @@ func (m *MockAPI) UpdateTasksBulk(_ context.Context, req *apiv2beta1.UpdateTasks
 	return response, nil
 }
 
-func (m *MockAPI) GetTask(_ context.Context, req *apiv2beta1.GetTaskRequest) (*apiv2beta1.PipelineTaskDetail, error) {
+func (m *MockAPI) GetTask(_ context.Context, req *apiv2beta1.GetTaskRequest) (*apiv2beta1.PipelineTask, error) {
 	if _, exists := m.tasks[req.TaskId]; exists {
 		task := m.hydrateTask(m.tasks[req.TaskId])
 		return task, nil
@@ -179,7 +194,7 @@ func (m *MockAPI) GetTask(_ context.Context, req *apiv2beta1.GetTaskRequest) (*a
 }
 
 func (m *MockAPI) ListTasks(_ context.Context, req *apiv2beta1.ListTasksRequest) (*apiv2beta1.ListTasksResponse, error) {
-	var tasks []*apiv2beta1.PipelineTaskDetail
+	var tasks []*apiv2beta1.PipelineTask
 
 	var predicates []*apiv2beta1.Predicate
 	if req.GetFilter() != "" {
@@ -236,7 +251,7 @@ func (m *MockAPI) ListTasks(_ context.Context, req *apiv2beta1.ListTasksRequest)
 			return nil, fmt.Errorf("only cache filter supported in mock library: %s", req.GetFilter())
 		}
 
-		var filtered []*apiv2beta1.PipelineTaskDetail
+		var filtered []*apiv2beta1.PipelineTask
 		status := statusPredicate.GetIntValue()
 		fingerprint := fingerprintPredicate.GetStringValue()
 		for _, t := range tasks {
@@ -248,7 +263,7 @@ func (m *MockAPI) ListTasks(_ context.Context, req *apiv2beta1.ListTasksRequest)
 		tasks = filtered
 	}
 
-	var hydratedTasks []*apiv2beta1.PipelineTaskDetail
+	var hydratedTasks []*apiv2beta1.PipelineTask
 	for _, task := range tasks {
 		hydratedTasks = append(hydratedTasks, m.hydrateTask(task))
 	}
@@ -267,35 +282,6 @@ func (m *MockAPI) CreateArtifact(_ context.Context, req *apiv2beta1.CreateArtifa
 	}
 	m.artifacts[artifact.ArtifactId] = artifact
 
-	task := m.tasks[req.TaskId]
-	// Also create the artifact-task relationship
-	// This mimics what the real API server does
-
-	// Get the task name if the task exists, otherwise use empty string
-	taskName := ""
-	if task != nil {
-		taskName = task.Name
-	}
-
-	artifactTask := &apiv2beta1.ArtifactTask{
-		ArtifactId: artifact.ArtifactId,
-		TaskId:     req.TaskId,
-		RunId:      req.RunId,
-		Key:        req.ProducerKey,
-		Type:       req.Type,
-		Producer: &apiv2beta1.IOProducer{
-			TaskName: taskName,
-		},
-	}
-	if req.IterationIndex != nil {
-		artifactTask.Producer.Iteration = req.IterationIndex
-	}
-
-	// Generate ID for artifact task
-	atUUID, _ := uuid.NewRandom()
-	artifactTask.Id = atUUID.String()
-	m.artifactTasks[artifactTask.Id] = artifactTask
-
 	return artifact, nil
 }
 
@@ -311,33 +297,6 @@ func (m *MockAPI) CreateArtifactsBulk(_ context.Context, req *apiv2beta1.CreateA
 			artifact.ArtifactId = uuid.String()
 		}
 		m.artifacts[artifact.ArtifactId] = artifact
-
-		// Get the task name if the task exists, otherwise use empty string
-		task := m.tasks[artifactReq.TaskId]
-		taskName := ""
-		if task != nil {
-			taskName = task.Name
-		}
-
-		// Also create the artifact-task relationship
-		artifactTask := &apiv2beta1.ArtifactTask{
-			ArtifactId: artifact.ArtifactId,
-			TaskId:     artifactReq.TaskId,
-			RunId:      artifactReq.RunId,
-			Key:        artifactReq.ProducerKey,
-			Type:       artifactReq.Type,
-			Producer: &apiv2beta1.IOProducer{
-				TaskName: taskName,
-			},
-		}
-		if artifactReq.IterationIndex != nil {
-			artifactTask.Producer.Iteration = artifactReq.IterationIndex
-		}
-
-		// Generate ID for artifact task
-		atUUID, _ := uuid.NewRandom()
-		artifactTask.Id = atUUID.String()
-		m.artifactTasks[artifactTask.Id] = artifactTask
 
 		response.Artifacts = append(response.Artifacts, artifact)
 	}
@@ -438,6 +397,6 @@ func (m *MockAPI) AddPipelineVersion(pipelineID, versionID string, version *apiv
 	m.pipelineVersions[key] = version
 }
 
-func (m *MockAPI) UpdateStatuses(ctx context.Context, run *apiv2beta1.Run, pipelineSpec *structpb.Struct, currentTask *apiv2beta1.PipelineTaskDetail) error {
+func (m *MockAPI) UpdateStatuses(ctx context.Context, run *apiv2beta1.Run, pipelineSpec *structpb.Struct, currentTask *apiv2beta1.PipelineTask) error {
 	return updateStatuses(ctx, run, m, pipelineSpec, currentTask)
 }

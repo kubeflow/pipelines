@@ -1564,7 +1564,7 @@ func Test_validateNonRoot(t *testing.T) {
 			Run:          &apiv2beta1.Run{RunId: "run-1"},
 			Component:    &pipelinespec.ComponentSpec{},
 			Task:         &pipelinespec.PipelineTaskSpec{TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "task-1"}},
-			ParentTask:   &apiv2beta1.PipelineTaskDetail{TaskId: "parent-task", ScopePath: "root"},
+			ParentTask:   &apiv2beta1.PipelineTask{TaskId: "parent-task", ScopePath: "root"},
 		}
 	}
 	tests := []struct {
@@ -1632,7 +1632,7 @@ func Test_validateNonRoot(t *testing.T) {
 				Run:          &apiv2beta1.Run{RunId: "run-1"},
 				Component:    &pipelinespec.ComponentSpec{},
 				Task:         &pipelinespec.PipelineTaskSpec{TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "task-1"}},
-				ParentTask:   &apiv2beta1.PipelineTaskDetail{ScopePath: "root"},
+				ParentTask:   &apiv2beta1.PipelineTask{ScopePath: "root"},
 			},
 			wantErr: true,
 			errMsg:  "parent task is required",

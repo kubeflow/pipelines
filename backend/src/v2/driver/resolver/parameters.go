@@ -56,7 +56,7 @@ func resolveParameters(opts common.Options) ([]ParameterMetadata, error) {
 					pm := ParameterMetadata{
 						Key:                key,
 						InputParameterSpec: paramSpec,
-						ParameterIO: &apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+						ParameterIO: &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
 							Value:        componentParam.GetDefaultValue(),
 							Type:         apiv2beta1.IOType_COMPONENT_DEFAULT_INPUT,
 							ParameterKey: key,
@@ -85,7 +85,7 @@ func resolveParameters(opts common.Options) ([]ParameterMetadata, error) {
 		pm := ParameterMetadata{
 			Key:                key,
 			InputParameterSpec: paramSpec,
-			ParameterIO: &apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+			ParameterIO: &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
 				Value:        v.GetValue(),
 				Type:         ioType,
 				ParameterKey: key,
@@ -127,7 +127,7 @@ func resolveParameters(opts common.Options) ([]ParameterMetadata, error) {
 			// Add parameter with default value
 			pm := ParameterMetadata{
 				Key: name,
-				ParameterIO: &apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+				ParameterIO: &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
 					Value:        paramSpec.GetDefaultValue(),
 					Type:         apiv2beta1.IOType_COMPONENT_DEFAULT_INPUT,
 					ParameterKey: name,
@@ -149,8 +149,8 @@ func resolveParameters(opts common.Options) ([]ParameterMetadata, error) {
 func ResolveInputParameter(
 	opts common.Options,
 	paramSpec *pipelinespec.TaskInputsSpec_InputParameterSpec,
-	inputParams []*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter,
-) (*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter, apiv2beta1.IOType, error) {
+	inputParams []*apiv2beta1.PipelineTask_InputOutputs_IOParameter,
+) (*apiv2beta1.PipelineTask_InputOutputs_IOParameter, apiv2beta1.IOType, error) {
 	switch t := paramSpec.Kind.(type) {
 	case *pipelinespec.TaskInputsSpec_InputParameterSpec_ComponentInputParameter:
 		glog.V(4).Infof("resolving component input parameter %s", paramSpec.GetComponentInputParameter())
@@ -179,7 +179,7 @@ func ResolveInputParameter(
 			var v *structpb.Value
 			if strings.Contains(valStr, "{{$.workspace_path}}") {
 				v = structpb.NewStringValue(strings.ReplaceAll(valStr, "{{$.workspace_path}}", component.WorkspaceMountPath))
-				ioParameter := &apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+				ioParameter := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
 					ParameterKey: "",
 					Value:        v,
 					Producer: &apiv2beta1.IOProducer{
@@ -220,7 +220,7 @@ func ResolveInputParameter(
 				return ResolveInputParameter(opts, channelParamSpec, inputParams)
 			}
 
-			ioParameter := &apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+			ioParameter := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
 				ParameterKey: "",
 				Value:        v,
 				Producer: &apiv2beta1.IOProducer{
@@ -236,7 +236,7 @@ func ResolveInputParameter(
 		if err != nil {
 			return nil, apiv2beta1.IOType_TASK_FINAL_STATUS_OUTPUT, err
 		}
-		return &apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+		return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
 			ParameterKey: "status",
 			Value:        value,
 			Producer: &apiv2beta1.IOProducer{
@@ -251,7 +251,7 @@ func ResolveInputParameter(
 func resolveTaskOutputParameter(
 	opts common.Options,
 	spec *pipelinespec.TaskInputsSpec_InputParameterSpec,
-) (*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter, error) {
+) (*apiv2beta1.PipelineTask_InputOutputs_IOParameter, error) {
 	tasks, err := getSubTasks(opts.ParentTask, opts.Run.Tasks, nil)
 	if err != nil {
 		return nil, err
@@ -288,8 +288,8 @@ func resolveTaskOutputParameter(
 func resolveParameterComponentInputParameter(
 	opts common.Options,
 	paramSpec *pipelinespec.TaskInputsSpec_InputParameterSpec,
-	inputParams []*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter,
-) (*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter, error) {
+	inputParams []*apiv2beta1.PipelineTask_InputOutputs_IOParameter,
+) (*apiv2beta1.PipelineTask_InputOutputs_IOParameter, error) {
 	paramName := paramSpec.GetComponentInputParameter()
 	if paramName == "" {
 		return nil, paramError(paramSpec, fmt.Errorf("empty component input"))
@@ -370,7 +370,7 @@ func resolveParameterIterator(
 	for i, item := range items {
 		pm := ParameterMetadata{
 			Key: iteratorInputDefinitionKey,
-			ParameterIO: &apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+			ParameterIO: &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
 				Value:        item,
 				Type:         apiv2beta1.IOType_ITERATOR_INPUT,
 				ParameterKey: iteratorInputDefinitionKey,
@@ -485,7 +485,7 @@ func ResolveParameterOrPipelineChannel(parameterValueOrPipelineChannel string, e
 func ResolveK8sJSONParameter[k8sResource any](
 	opts common.Options,
 	parameter *pipelinespec.TaskInputsSpec_InputParameterSpec,
-	params []*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter,
+	params []*apiv2beta1.PipelineTask_InputOutputs_IOParameter,
 	res *k8sResource,
 ) error {
 
@@ -513,7 +513,7 @@ func ResolveK8sJSONParameter[k8sResource any](
 func ResolveInputParameterStr(
 	opts common.Options,
 	parameter *pipelinespec.TaskInputsSpec_InputParameterSpec,
-	params []*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter) (*structpb.Value, error) {
+	params []*apiv2beta1.PipelineTask_InputOutputs_IOParameter) (*structpb.Value, error) {
 
 	val, _, err := ResolveInputParameter(opts, parameter, params)
 	if err != nil || val == nil || val.GetValue() == nil {
@@ -536,9 +536,9 @@ func ResolveInputParameterStr(
 
 func findParameterByProducerKeyInList(
 	producerKey, producerTaskName string,
-	parametersIO []*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter,
-) (*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter, error) {
-	var parameterIOList []*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter
+	parametersIO []*apiv2beta1.PipelineTask_InputOutputs_IOParameter,
+) (*apiv2beta1.PipelineTask_InputOutputs_IOParameter, error) {
+	var parameterIOList []*apiv2beta1.PipelineTask_InputOutputs_IOParameter
 	for _, parameterIO := range parametersIO {
 		if parameterIO.GetParameterKey() == producerKey {
 			parameterIOList = append(parameterIOList, parameterIO)
@@ -562,7 +562,7 @@ func findParameterByProducerKeyInList(
 			parameterValues = append(parameterValues, parameterIO.GetValue())
 		}
 		ioType := apiv2beta1.IOType_COLLECTED_INPUTS
-		newParameterIO := &apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+		newParameterIO := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
 			Value:        ToListValue(parameterValues),
 			Type:         ioType,
 			ParameterKey: producerKey,

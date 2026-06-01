@@ -39,7 +39,7 @@ func TestResolvePipelineJobCreateTimePlaceholder(t *testing.T) {
 
 	opts := common.Options{
 		PipelineJobCreateTimeUTC: "2026-01-09T12:34:56Z",
-		ParentTask:               &apiv2beta1.PipelineTaskDetail{Name: "parent"},
+		ParentTask:               &apiv2beta1.PipelineTask{Name: "parent"},
 		Task:                     &pipelinespec.PipelineTaskSpec{Inputs: &pipelinespec.TaskInputsSpec{}},
 	}
 
@@ -61,7 +61,7 @@ func TestResolvePipelineJobScheduleTimePlaceholder(t *testing.T) {
 
 	opts := common.Options{
 		PipelineJobScheduleTimeUTC: "2026-01-09T13:00:00Z",
-		ParentTask:                 &apiv2beta1.PipelineTaskDetail{Name: "parent"},
+		ParentTask:                 &apiv2beta1.PipelineTask{Name: "parent"},
 		Task:                       &pipelinespec.PipelineTaskSpec{Inputs: &pipelinespec.TaskInputsSpec{}},
 	}
 

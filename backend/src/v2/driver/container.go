@@ -74,20 +74,20 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	}
 	opts.ParentTask = parentTask
 
-	taskToCreate := &apiV2beta1.PipelineTaskDetail{
+	taskToCreate := &apiV2beta1.PipelineTask{
 		Name:         opts.TaskName,
 		DisplayName:  opts.Task.GetTaskInfo().GetName(),
 		RunId:        opts.Run.GetRunId(),
-		Type:         apiV2beta1.PipelineTaskDetail_RUNTIME,
-		State:        apiV2beta1.PipelineTaskDetail_RUNNING,
+		Type:         apiV2beta1.PipelineTask_RUNTIME,
+		State:        apiV2beta1.PipelineTask_RUNNING,
 		ParentTaskId: util.StringPointer(opts.ParentTask.TaskId),
 		ScopePath:    opts.ScopePath.DotNotation(),
 		CreateTime:   timestamppb.Now(),
-		Pods: []*apiV2beta1.PipelineTaskDetail_TaskPod{
+		Pods: []*apiV2beta1.PipelineTask_TaskPod{
 			{
 				Name: opts.PodName,
 				Uid:  opts.PodUID,
-				Type: apiV2beta1.PipelineTaskDetail_DRIVER,
+				Type: apiV2beta1.PipelineTask_DRIVER,
 			},
 		},
 	}
@@ -95,9 +95,9 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	// Ensure we capture and propagate any errors.
 	defer func() {
 		if driverErr != nil {
-			taskToCreate.State = apiV2beta1.PipelineTaskDetail_FAILED
+			taskToCreate.State = apiV2beta1.PipelineTask_FAILED
 			taskToCreate.EndTime = timestamppb.Now()
-			taskToCreate.StatusMetadata = &apiV2beta1.PipelineTaskDetail_StatusMetadata{
+			taskToCreate.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
 				Message: driverErr.Error(),
 			}
 			// We encountered an error in driver before we got the chance to create the task.
@@ -170,7 +170,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 
 	// If this is an iteration runtime task, set the iteration index.
 	if iterationIndex != nil {
-		taskToCreate.TypeAttributes = &apiV2beta1.PipelineTaskDetail_TypeAttributes{IterationIndex: util.Int64Pointer(int64(*iterationIndex))}
+		taskToCreate.TypeAttributes = &apiV2beta1.PipelineTask_TypeAttributes{IterationIndex: util.Int64Pointer(int64(*iterationIndex))}
 	}
 
 	// Handle Kubernetes-specific tasks such as pvc-creation or pvc-deletion
@@ -178,7 +178,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 		return execution, kubernetesPlatformOps(ctx, clientManager, execution, taskToCreate, &opts)
 	}
 
-	var inputParams []*apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter
+	var inputParams []*apiV2beta1.PipelineTask_InputOutputs_IOParameter
 	if opts.KubernetesExecutorConfig != nil {
 		inputParams = parentTask.GetInputs().GetParameters()
 		if driverErr != nil {
@@ -188,7 +188,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 
 	// Generate a fingerprint and check if we have a cache hit.
 	var fingerPrint string
-	var cachedTask *apiV2beta1.PipelineTaskDetail
+	var cachedTask *apiV2beta1.PipelineTask
 	if !opts.CacheDisabled {
 		// Generate fingerprint
 		// Start by getting the names of the PVCs that need to be mounted.
@@ -228,7 +228,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	execution.Cached = util.BoolPointer(false)
 	if !opts.CacheDisabled {
 		if opts.Task.GetCachingOptions().GetEnableCache() && cachedTask != nil {
-			taskToCreate.State = apiV2beta1.PipelineTaskDetail_CACHED
+			taskToCreate.State = apiV2beta1.PipelineTask_CACHED
 			taskToCreate.Outputs = cachedTask.Outputs
 			*execution.Cached = true
 			createdTask, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
@@ -272,7 +272,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	}
 
 	if !execution.WillTrigger() {
-		taskToCreate.State = apiV2beta1.PipelineTaskDetail_SKIPPED
+		taskToCreate.State = apiV2beta1.PipelineTask_SKIPPED
 	}
 
 	glog.Infof("Creating task %s in pod %s", opts.TaskName, opts.Namespace)

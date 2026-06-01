@@ -51,7 +51,7 @@ var dummyImages = map[string]string{
 // kubernetesPlatformOps() carries out the Kubernetes-specific operations, such as create PVC,
 // delete PVC, etc. In these operations we skip the launcher due to there being no user container.
 // It also prepublishes and publishes the execution, which are usually done in the launcher.
-func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.ClientManagerInterface, execution *Execution, taskToCreate *apiV2beta1.PipelineTaskDetail, opts *common.Options) (err error) {
+func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.ClientManagerInterface, execution *Execution, taskToCreate *apiV2beta1.PipelineTask, opts *common.Options) (err error) {
 	switch opts.Container.Image {
 	case "argostub/createpvc":
 		err = createPVCTask(ctx, clientManager, execution, opts, taskToCreate)
@@ -81,7 +81,7 @@ func extendPodSpecPatch(
 	ctx context.Context,
 	podSpec *k8score.PodSpec,
 	opts common.Options,
-	inputParams []*apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter,
+	inputParams []*apiV2beta1.PipelineTask_InputOutputs_IOParameter,
 	taskConfig *TaskConfig,
 ) error {
 	kubernetesExecutorConfig := opts.KubernetesExecutorConfig
@@ -730,20 +730,20 @@ func createPVCTask(
 	clientManager client_manager.ClientManagerInterface,
 	execution *Execution,
 	opts *common.Options,
-	taskToCreate *apiV2beta1.PipelineTaskDetail,
+	taskToCreate *apiV2beta1.PipelineTask,
 ) (err error) {
 	taskCreated := false
 
 	// Ensure that we update the final task state after creation, or if we fail the procedure
 	defer func() {
 		if err != nil {
-			taskToCreate.State = apiV2beta1.PipelineTaskDetail_FAILED
-			taskToCreate.StatusMetadata = &apiV2beta1.PipelineTaskDetail_StatusMetadata{
+			taskToCreate.State = apiV2beta1.PipelineTask_FAILED
+			taskToCreate.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
 				Message: err.Error(),
 			}
 		} else {
 			// K8s ops drivers do not have executors, we can mark them completed at the driver stage.
-			taskToCreate.State = apiV2beta1.PipelineTaskDetail_SUCCEEDED
+			taskToCreate.State = apiV2beta1.PipelineTask_SUCCEEDED
 		}
 		if taskCreated {
 			_, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
@@ -801,16 +801,16 @@ func createPVCTask(
 	}
 
 	if taskToCreate.Outputs == nil {
-		taskToCreate.Outputs = &apiV2beta1.PipelineTaskDetail_InputOutputs{
-			Parameters: make([]*apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter, 0),
+		taskToCreate.Outputs = &apiV2beta1.PipelineTask_InputOutputs{
+			Parameters: make([]*apiV2beta1.PipelineTask_InputOutputs_IOParameter, 0),
 		}
 	}
 	if taskToCreate.Outputs.Parameters == nil {
-		taskToCreate.Outputs.Parameters = make([]*apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter, 0)
+		taskToCreate.Outputs.Parameters = make([]*apiV2beta1.PipelineTask_InputOutputs_IOParameter, 0)
 	}
 	taskToCreate.Outputs.Parameters = append(
 		taskToCreate.Outputs.Parameters,
-		&apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+		&apiV2beta1.PipelineTask_InputOutputs_IOParameter{
 			Value:        execution.ExecutorInput.Inputs.ParameterValues[pvcName],
 			ParameterKey: "name", // create-pvc output parameter is always "name"
 			Type:         apiV2beta1.IOType_OUTPUT,
@@ -862,7 +862,7 @@ func createPVCTask(
 
 	// Create Initial Task. We will update the status later if
 	// anything fails, or the task successfully completes.
-	taskToCreate.State = apiV2beta1.PipelineTaskDetail_RUNNING
+	taskToCreate.State = apiV2beta1.PipelineTask_RUNNING
 	task, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
 		Task: taskToCreate,
 	})
@@ -874,7 +874,7 @@ func createPVCTask(
 	taskCreated = true
 	execution.TaskID = task.TaskId
 	if !execution.WillTrigger() {
-		taskToCreate.State = apiV2beta1.PipelineTaskDetail_SKIPPED
+		taskToCreate.State = apiV2beta1.PipelineTask_SKIPPED
 		glog.Infof("Condition not met, skipping task %s", task.TaskId)
 		return nil
 	}
@@ -890,7 +890,7 @@ func createPVCTask(
 	taskToCreate.CacheFingerprint = fingerPrint
 	execution.Cached = util.BoolPointer(false)
 	if !opts.CacheDisabled && opts.Task.GetCachingOptions().GetEnableCache() && cachedTask != nil {
-		taskToCreate.State = apiV2beta1.PipelineTaskDetail_CACHED
+		taskToCreate.State = apiV2beta1.PipelineTask_CACHED
 		taskToCreate.Outputs = cachedTask.Outputs
 		*execution.Cached = true
 		return nil
@@ -922,7 +922,7 @@ func createPVCTask(
 		return err
 	}
 	glog.Infof("Created PVC %s\n", createdPVC.Name)
-	taskToCreate.State = apiV2beta1.PipelineTaskDetail_SUCCEEDED
+	taskToCreate.State = apiV2beta1.PipelineTask_SUCCEEDED
 	return nil
 }
 
@@ -953,20 +953,20 @@ func deletePVCTask(
 	clientManager client_manager.ClientManagerInterface,
 	execution *Execution,
 	opts *common.Options,
-	taskToCreate *apiV2beta1.PipelineTaskDetail,
+	taskToCreate *apiV2beta1.PipelineTask,
 ) (err error) {
 	taskCreated := false
 
 	// Ensure that we update the final task state after creation, or if we fail the procedure
 	defer func() {
 		if err != nil {
-			taskToCreate.State = apiV2beta1.PipelineTaskDetail_FAILED
-			taskToCreate.StatusMetadata = &apiV2beta1.PipelineTaskDetail_StatusMetadata{
+			taskToCreate.State = apiV2beta1.PipelineTask_FAILED
+			taskToCreate.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
 				Message: err.Error(),
 			}
 		} else {
 			// K8s ops drivers do not have executors, we can mark them completed at the driver stage.
-			taskToCreate.State = apiV2beta1.PipelineTaskDetail_SUCCEEDED
+			taskToCreate.State = apiV2beta1.PipelineTask_SUCCEEDED
 		}
 		if taskCreated {
 			_, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
@@ -1000,7 +1000,7 @@ func deletePVCTask(
 
 	// Create Initial Task. We will update the status later if
 	// anything fails, or the task successfully completes.
-	taskToCreate.State = apiV2beta1.PipelineTaskDetail_RUNNING
+	taskToCreate.State = apiV2beta1.PipelineTask_RUNNING
 	task, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
 		Task: taskToCreate,
 	})
@@ -1012,7 +1012,7 @@ func deletePVCTask(
 	taskCreated = true
 	execution.TaskID = task.TaskId
 	if !execution.WillTrigger() {
-		taskToCreate.State = apiV2beta1.PipelineTaskDetail_SKIPPED
+		taskToCreate.State = apiV2beta1.PipelineTask_SKIPPED
 		glog.Infof("Condition not met, skipping task %s", task.TaskId)
 		return nil
 	}
@@ -1028,7 +1028,7 @@ func deletePVCTask(
 	taskToCreate.CacheFingerprint = fingerPrint
 	execution.Cached = util.BoolPointer(false)
 	if !opts.CacheDisabled && opts.Task.GetCachingOptions().GetEnableCache() && cachedTask != nil {
-		taskToCreate.State = apiV2beta1.PipelineTaskDetail_CACHED
+		taskToCreate.State = apiV2beta1.PipelineTask_CACHED
 		taskToCreate.Outputs = cachedTask.Outputs
 		*execution.Cached = true
 		return nil
@@ -1054,7 +1054,7 @@ func deletePVCTask(
 func makeVolumeMountPatch(
 	opts common.Options,
 	pvcMounts []*kubernetesplatform.PvcMount,
-	inputParams []*apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter,
+	inputParams []*apiV2beta1.PipelineTask_InputOutputs_IOParameter,
 ) ([]k8score.VolumeMount, []k8score.Volume, error) {
 	if pvcMounts == nil {
 		return nil, nil, nil

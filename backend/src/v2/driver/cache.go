@@ -25,7 +25,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // getFingerPrint generates a fingerprint for caching. The PVC names are included in the fingerprint since it's assumed
@@ -72,7 +71,7 @@ func getFingerPrintsAndID(
 	execution *Execution,
 	kfpAPI kfpapi.API,
 	opts *common.Options,
-	pvcNames []string) (fingerprint string, task *apiv2beta1.PipelineTaskDetail, err error) {
+	pvcNames []string) (fingerprint string, task *apiv2beta1.PipelineTask, err error) {
 
 	if opts.CacheDisabled || !execution.WillTrigger() || !opts.Task.GetCachingOptions().GetEnableCache() {
 		return "", nil, nil
@@ -84,47 +83,43 @@ func getFingerPrintsAndID(
 		return "", nil, fmt.Errorf("failure while getting fingerPrint: %w", err)
 	}
 
-	predicates := []*apiv2beta1.Predicate{
-		{
-			Operation: apiv2beta1.Predicate_EQUALS,
-			Key:       "cache_fingerprint",
-			Value:     &apiv2beta1.Predicate_StringValue{StringValue: fingerPrint},
-		},
-		{
-			Operation: apiv2beta1.Predicate_EQUALS,
-			Key:       "status",
-			Value:     &apiv2beta1.Predicate_IntValue{IntValue: int32(apiv2beta1.PipelineTaskDetail_SUCCEEDED)},
-		},
+	fullView := apiv2beta1.ListRunsRequest_FULL
+	pageToken := ""
+	var matchedTasks []*apiv2beta1.PipelineTask
+
+	for {
+		runs, err := kfpAPI.ListRuns(ctx, &apiv2beta1.ListRunsRequest{
+			Namespace: opts.Namespace,
+			PageSize:  50,
+			PageToken: pageToken,
+			View:      &fullView,
+		})
+		if err != nil {
+			return "", nil, fmt.Errorf("failure while listing runs for cache lookup: %w", err)
+		}
+
+		for _, run := range runs.GetRuns() {
+			for _, candidateTask := range run.GetTasks() {
+				if candidateTask.GetCacheFingerprint() == fingerPrint &&
+					candidateTask.GetState() == apiv2beta1.PipelineTask_SUCCEEDED {
+					matchedTasks = append(matchedTasks, candidateTask)
+				}
+			}
+		}
+
+		pageToken = runs.GetNextPageToken()
+		if pageToken == "" {
+			break
+		}
 	}
 
-	filter := &apiv2beta1.Filter{
-		Predicates: predicates,
-	}
-	mo := protojson.MarshalOptions{
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	filterJSON, err := mo.Marshal(filter)
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to marshal filter: %v", err)
-	}
-
-	glog.V(4).Infof("Looking for cached tasks with: filter=%s, namespace=%s", filterJSON, opts.Namespace)
-	tasks, err := kfpAPI.ListTasks(ctx, &apiv2beta1.ListTasksRequest{
-		ParentFilter: &apiv2beta1.ListTasksRequest_Namespace{Namespace: opts.Namespace},
-		Filter:       string(filterJSON),
-	})
-	if err != nil {
-		return "", nil, fmt.Errorf("failure while listing tasks: %w", err)
-	}
-
-	if len(tasks.Tasks) == 0 {
+	if len(matchedTasks) == 0 {
 		glog.Infof("No cached tasks found for task {%s}", opts.Task.GetTaskInfo().GetName())
 		return fingerPrint, nil, nil
-	} else if len(tasks.Tasks) > 1 {
-		glog.Infof("Found multiple cached tasks for task %s with fingerprint %s, the first one found will be used.", opts.Task.GetTaskInfo().GetName(), fingerprint)
+	} else if len(matchedTasks) > 1 {
+		glog.Infof("Found multiple cached tasks for task %s with fingerprint %s, the first one found will be used.", opts.Task.GetTaskInfo().GetName(), fingerPrint)
 	}
 
 	glog.V(4).Infof("Got a cache hit for task {%s}", opts.Task.GetTaskInfo().GetName())
-	return fingerPrint, tasks.Tasks[0], nil
+	return fingerPrint, matchedTasks[0], nil
 }

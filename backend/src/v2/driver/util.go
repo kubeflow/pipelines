@@ -240,21 +240,21 @@ func validateNonRoot(opts common.Options) error {
 	return nil
 }
 
-// handleInputTaskParametersCreation creates a new PipelineTaskDetail_InputOutputs_IOParameter
+// handleInputTaskParametersCreation creates a new PipelineTask_InputOutputs_IOParameter
 // for each parameter in the executor input.
 func handleInputTaskParametersCreation(
 	parameterMetadata []resolver.ParameterMetadata,
-	task *apiV2beta1.PipelineTaskDetail,
-) (*apiV2beta1.PipelineTaskDetail, error) {
+	task *apiV2beta1.PipelineTask,
+) (*apiV2beta1.PipelineTask, error) {
 	if task == nil {
 		return nil, fmt.Errorf("task is nil")
 	}
 	if task.Inputs == nil {
-		task.Inputs = &apiV2beta1.PipelineTaskDetail_InputOutputs{
-			Parameters: []*apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter{},
+		task.Inputs = &apiV2beta1.PipelineTask_InputOutputs{
+			Parameters: []*apiV2beta1.PipelineTask_InputOutputs_IOParameter{},
 		}
 	} else if task.Inputs.Parameters == nil {
-		task.Inputs.Parameters = []*apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter{}
+		task.Inputs.Parameters = []*apiV2beta1.PipelineTask_InputOutputs_IOParameter{}
 	}
 
 	for _, pm := range parameterMetadata {
@@ -271,7 +271,7 @@ func handleInputTaskArtifactsCreation(
 	ctx context.Context,
 	opts common.Options,
 	artifactMetadata []resolver.ArtifactMetadata,
-	task *apiV2beta1.PipelineTaskDetail,
+	task *apiV2beta1.PipelineTask,
 	kfpAPI kfpapi.API,
 ) error {
 	var artifactTasks []*apiV2beta1.ArtifactTask

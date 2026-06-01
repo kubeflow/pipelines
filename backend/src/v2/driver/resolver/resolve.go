@@ -33,7 +33,7 @@ var ErrResolvedParameterNull = errors.New("the resolved input is null")
 type ParameterMetadata struct {
 	// This is the key of the parameter in this task's inputs.
 	Key                string
-	ParameterIO        *apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter
+	ParameterIO        *apiV2beta1.PipelineTask_InputOutputs_IOParameter
 	InputParameterSpec *pipelinespec.TaskInputsSpec_InputParameterSpec
 	ParameterIterator  *pipelinespec.ParameterIteratorSpec
 }
@@ -44,7 +44,7 @@ type ArtifactMetadata struct {
 	// InputArtifactSpec is mutually exclusive with ArtifactIterator
 	InputArtifactSpec *pipelinespec.TaskInputsSpec_InputArtifactSpec
 	ArtifactIterator  *pipelinespec.ArtifactIteratorSpec
-	ArtifactIO        *apiV2beta1.PipelineTaskDetail_InputOutputs_IOArtifact
+	ArtifactIO        *apiV2beta1.PipelineTask_InputOutputs_IOArtifact
 }
 
 // InputMetadata collects artifacts and parameters as arrays because

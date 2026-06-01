@@ -17,13 +17,13 @@ import (
 )
 
 // mapToIOParameters converts a map of parameter values to a slice of IOParameter
-func mapToIOParameters(params map[string]*structpb.Value) []*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter {
+func mapToIOParameters(params map[string]*structpb.Value) []*apiv2beta1.PipelineTask_InputOutputs_IOParameter {
 	if params == nil {
 		return nil
 	}
-	result := make([]*apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter, 0, len(params))
+	result := make([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter, 0, len(params))
 	for key, value := range params {
-		result = append(result, &apiv2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+		result = append(result, &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
 			ParameterKey: key,
 			Value:        value,
 		})

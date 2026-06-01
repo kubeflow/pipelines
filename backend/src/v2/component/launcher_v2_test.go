@@ -68,18 +68,18 @@ func TestExample_launcherV2WithMocks(t *testing.T) {
 		PipelineSource: &apiv2beta1.Run_PipelineSpec{
 			PipelineSpec: &structpb.Struct{},
 		},
-		Tasks: []*apiv2beta1.PipelineTaskDetail{},
+		Tasks: []*apiv2beta1.PipelineTask{},
 	}
 	mockAPI.AddRun(run)
 
-	task := &apiv2beta1.PipelineTaskDetail{
+	task := &apiv2beta1.PipelineTask{
 		TaskId:  taskID,
 		RunId:   runID,
 		Name:    "test-task",
-		State:   apiv2beta1.PipelineTaskDetail_RUNNING,
-		Type:    apiv2beta1.PipelineTaskDetail_RUNTIME,
-		Inputs:  &apiv2beta1.PipelineTaskDetail_InputOutputs{},
-		Outputs: &apiv2beta1.PipelineTaskDetail_InputOutputs{},
+		State:   apiv2beta1.PipelineTask_RUNNING,
+		Type:    apiv2beta1.PipelineTask_RUNTIME,
+		Inputs:  &apiv2beta1.PipelineTask_InputOutputs{},
+		Outputs: &apiv2beta1.PipelineTask_InputOutputs{},
 	}
 
 	// Step 3: Create executor input with inputs and outputs
@@ -319,17 +319,17 @@ func TestLauncherV2_TaskStatusUpdates(t *testing.T) {
 	mockAPI.AddRun(run)
 
 	// Create test task
-	task := &apiv2beta1.PipelineTaskDetail{
+	task := &apiv2beta1.PipelineTask{
 		TaskId: "task-456",
 		RunId:  "run-123",
 		Name:   "test-task",
-		State:  apiv2beta1.PipelineTaskDetail_RUNNING,
+		State:  apiv2beta1.PipelineTask_RUNNING,
 	}
 	_, err := mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{Task: task})
 	require.NoError(t, err)
 
 	// Update task status
-	task.State = apiv2beta1.PipelineTaskDetail_SUCCEEDED
+	task.State = apiv2beta1.PipelineTask_SUCCEEDED
 	_, err = mockAPI.UpdateTask(context.Background(), &apiv2beta1.UpdateTaskRequest{
 		TaskId: "task-456",
 		Task:   task,
@@ -339,7 +339,7 @@ func TestLauncherV2_TaskStatusUpdates(t *testing.T) {
 	// Verify task was updated
 	updatedTask, err := mockAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: "task-456"})
 	require.NoError(t, err)
-	assert.Equal(t, apiv2beta1.PipelineTaskDetail_SUCCEEDED, updatedTask.State)
+	assert.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, updatedTask.State)
 }
 
 // Tests that launcher correctly executes the user component and successfully writes output parameters to file.
@@ -398,13 +398,13 @@ func Test_execute_Parameters(t *testing.T) {
 			}
 			mockAPI.AddRun(run)
 
-			task := &apiv2beta1.PipelineTaskDetail{
+			task := &apiv2beta1.PipelineTask{
 				TaskId:  "test-task",
 				RunId:   "test-run",
 				Name:    "test-task",
-				State:   apiv2beta1.PipelineTaskDetail_RUNNING,
-				Inputs:  &apiv2beta1.PipelineTaskDetail_InputOutputs{},
-				Outputs: &apiv2beta1.PipelineTaskDetail_InputOutputs{},
+				State:   apiv2beta1.PipelineTask_RUNNING,
+				Inputs:  &apiv2beta1.PipelineTask_InputOutputs{},
+				Outputs: &apiv2beta1.PipelineTask_InputOutputs{},
 			}
 
 			// Create launcher options
@@ -629,19 +629,19 @@ func Test_executeV2(t *testing.T) {
 		PipelineSource: &apiv2beta1.Run_PipelineSpec{
 			PipelineSpec: &structpb.Struct{},
 		},
-		Tasks: []*apiv2beta1.PipelineTaskDetail{},
+		Tasks: []*apiv2beta1.PipelineTask{},
 	}
 	mockAPI.AddRun(run)
 
 	// Create test task
-	task := &apiv2beta1.PipelineTaskDetail{
+	task := &apiv2beta1.PipelineTask{
 		TaskId:  "test-task-456",
 		RunId:   "test-run-123",
 		Name:    "train-model",
-		State:   apiv2beta1.PipelineTaskDetail_RUNNING,
-		Type:    apiv2beta1.PipelineTaskDetail_RUNTIME,
-		Inputs:  &apiv2beta1.PipelineTaskDetail_InputOutputs{},
-		Outputs: &apiv2beta1.PipelineTaskDetail_InputOutputs{},
+		State:   apiv2beta1.PipelineTask_RUNNING,
+		Type:    apiv2beta1.PipelineTask_RUNTIME,
+		Inputs:  &apiv2beta1.PipelineTask_InputOutputs{},
+		Outputs: &apiv2beta1.PipelineTask_InputOutputs{},
 	}
 
 	// Add task to mock API so it can be updated during execution
