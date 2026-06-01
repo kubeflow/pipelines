@@ -17,6 +17,10 @@ spec:
             - workflow-controller-configmap
             - --executor-image
             - quay.io/argoproj/argoexec:v3.7.14
+          env:
+          - name: TRANSIENT_ERROR_PATTERN
+            value: >-
+              (?i)(imminent node shutdown|node is shutting down|preempt|evict|spot|pod deleted)
           securityContext:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
