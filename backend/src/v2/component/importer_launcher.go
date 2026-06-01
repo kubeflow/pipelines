@@ -7,7 +7,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -167,9 +166,6 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 	// If reimport is true or the artifact does not already exist we create a new artifact
 	if l.opts.ImporterSpec.Reimport || preExistingArtifact == nil {
 		glog.Infof("Creating new artifact for importer task %s", l.opts.TaskSpec.GetTaskInfo().GetName())
-		if artifactToImport.GetArtifactId() == "" {
-			artifactToImport.ArtifactId = uuid.NewString()
-		}
 		createdArtifact, executionErr := kfpAPI.CreateArtifact(ctx, &apiV2beta1.CreateArtifactRequest{
 			Artifact:    artifactToImport,
 			RunId:       l.opts.Run.RunId,

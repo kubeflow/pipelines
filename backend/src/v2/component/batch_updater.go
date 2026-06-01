@@ -184,9 +184,20 @@ func (b *BatchUpdater) Flush(ctx context.Context, client kfpapi.API) error {
 		for _, artifactReq := range b.artifacts {
 			bulkReq.Artifacts = append(bulkReq.Artifacts, artifactReq.request)
 		}
-		_, err := client.CreateArtifactsBulk(ctx, bulkReq)
+		createdArtifacts, err := client.CreateArtifactsBulk(ctx, bulkReq)
 		if err != nil {
 			return fmt.Errorf("failed to create artifacts in bulk: %w", err)
+		}
+		createdArtifactIndex := 0
+		for _, artifactTask := range b.artifactTasks {
+			if artifactTask.GetArtifactId() != "" {
+				continue
+			}
+			if createdArtifactIndex >= len(createdArtifacts.GetArtifacts()) {
+				return fmt.Errorf("failed to map created artifacts back to artifact-tasks")
+			}
+			artifactTask.ArtifactId = createdArtifacts.GetArtifacts()[createdArtifactIndex].GetArtifactId()
+			createdArtifactIndex++
 		}
 		b.actualArtifactCalls = 1 // Bulk call counts as 1
 	}

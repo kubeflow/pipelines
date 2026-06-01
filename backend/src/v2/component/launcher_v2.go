@@ -26,7 +26,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -794,9 +793,6 @@ func (l *LauncherV2) uploadOutputArtifacts(
 	// Queue artifact creation requests (will be flushed in batch)
 	for artifactKey, artifacts := range artifactsMap {
 		for _, artifact := range artifacts {
-			if artifact.GetArtifactId() == "" {
-				artifact.ArtifactId = uuid.NewString()
-			}
 			ioType := apiV2beta1.IOType_OUTPUT
 			request := &apiV2beta1.CreateArtifactRequest{
 				RunId:       l.options.Run.GetRunId(),
@@ -810,7 +806,6 @@ func (l *LauncherV2) uploadOutputArtifacts(
 			}
 			l.batchUpdater.QueueArtifact(request)
 			l.batchUpdater.QueueArtifactTask(&apiV2beta1.ArtifactTask{
-				ArtifactId: artifact.GetArtifactId(),
 				TaskId:     l.options.Task.GetTaskId(),
 				RunId:      l.options.Run.GetRunId(),
 				Key:        artifactKey,

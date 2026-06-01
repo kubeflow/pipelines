@@ -325,7 +325,7 @@ func TestLauncherV2_TaskStatusUpdates(t *testing.T) {
 		Name:   "test-task",
 		State:  apiv2beta1.PipelineTask_RUNNING,
 	}
-	_, err := mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{Task: task})
+	_, err := mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{Task: task, RunId: task.GetRunId()})
 	require.NoError(t, err)
 
 	// Update task status
@@ -645,7 +645,7 @@ func Test_executeV2(t *testing.T) {
 	}
 
 	// Add task to mock API so it can be updated during execution
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{Task: task})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{Task: task, RunId: task.GetRunId()})
 	assert.NoError(t, err)
 
 	// Create task spec
