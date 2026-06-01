@@ -3,10 +3,13 @@ version: 2
 sphinx:
   configuration: docs/conf.py
   fail_on_warning: true
-python:
-  install:
-    - requirements: docs/requirements.txt
 build:
   os: ubuntu-24.04
   tools:
     python: "3.12"
+    uv: "latest"
+  commands:
+    - uv sync --frozen --extra docs
+    - make -C api python
+    - make -C kubernetes_platform python
+    - uv run sphinx-build -W --keep-going -b html docs $READTHEDOCS_OUTPUT/html

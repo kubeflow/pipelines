@@ -15,27 +15,33 @@
 
 set -ex
 
-python3 -m pip install --upgrade pip
+# This test verifies that upgrading from the latest PyPI release to HEAD works correctly.
+# We intentionally use pip (not uv) for the initial install and final upgrade to simulate
+# the real-world upgrade path that users would experience. uv is only used for building
+# the packages from source.
 
+# Install the latest released version of KFP from PyPI
+python3 -m pip install --upgrade pip
 python3 -m pip install kfp
 LATEST_KFP_SDK_RELEASE=$(python3 -m pip show kfp | grep "Version:" | awk '{print $2}' | awk '{$1=$1};1')
 echo "Installed latest KFP SDK version: $LATEST_KFP_SDK_RELEASE"
 
-# Before installing KFP we need to install our kfp dependencies from source since
-# these packages are patch version aligned, and during releases they may be
-# unreleased in PyPi.
-
-# Build (to generate proto code) and install kfp-pipeline-spec
+# Build and install workspace packages from source using uv
+# Generate proto files (requires Docker)
 pushd api
 make python
-python3 -m pip install v2alpha1/python
 popd
 
-# Install kfp-server-api
-python3 -m pip install backend/api/v2beta1/python_http_client
+# Build all workspace packages
+uv build --package kfp-pipeline-spec
+uv build --package kfp-server-api
+uv build --package kfp
 
-# install in normal mode, not editable mode, to emulate typical user upgrade behavior
-python3 -m pip install sdk/python
+# Install the built packages (simulates upgrade from PyPI to HEAD)
+python3 -m pip install dist/kfp_pipeline_spec-*.whl --force-reinstall
+python3 -m pip install dist/kfp_server_api-*.whl --force-reinstall
+python3 -m pip install dist/kfp-*.whl --force-reinstall
+
 # HEAD will only be different than latest for a release PR
 HEAD_KFP_SDK_VERSION=$(python3 -m pip show kfp | grep "Version:" | awk '{print $2}')
 echo "Successfully upgraded to KFP SDK version @ HEAD: $HEAD_KFP_SDK_VERSION"

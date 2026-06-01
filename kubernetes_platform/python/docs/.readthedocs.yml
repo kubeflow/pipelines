@@ -8,6 +8,9 @@ build:
     python: "3.9"
 python:
   install:
-    - requirements: kubernetes_platform/python/docs/requirements.txt
+    - method: pip
+      path: .
+      extra_requirements:
+        - docs
     - method: pip
       path: kubernetes_platform/python/
