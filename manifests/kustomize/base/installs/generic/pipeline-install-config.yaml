@@ -114,6 +114,10 @@ data:
   defaultSecurityContextRunAsUser: ""
   defaultSecurityContextRunAsGroup: ""
   defaultSecurityContextRunAsNonRoot: ""
+  ## Default pod-level setting (PodSpec.hostUsers) controlling Linux user
+  ## namespace isolation for customer workloads. When "false", UID 0 inside
+  ## the pod maps to an unprivileged host UID. Set "" to disable.
+  defaultSecurityContextHostUsers: "false"
   ## BLOCK_V1_PIPELINES: Controls whether v1 pipelines are allowed to be created and run.
   ## Valid values are 'true' and 'false'. Defaults to 'false'.
   BLOCK_V1_PIPELINES: "false"

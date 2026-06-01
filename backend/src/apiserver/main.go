@@ -228,6 +228,7 @@ func main() {
 			DefaultRunAsUser:     parseOptionalInt64(common.GetDefaultSecurityContextRunAsUser()),
 			DefaultRunAsGroup:    parseOptionalInt64(common.GetDefaultSecurityContextRunAsGroup()),
 			DefaultRunAsNonRoot:  parseOptionalBool(common.GetDefaultSecurityContextRunAsNonRoot()),
+			DefaultHostUsers:     parseOptionalBool(common.GetDefaultSecurityContextHostUsers()),
 		},
 	)
 	err = config.LoadSamples(resourceManager, *sampleConfigPath)
