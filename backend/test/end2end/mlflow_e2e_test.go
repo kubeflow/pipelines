@@ -518,7 +518,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 				"Retried pipeline run should still be FAILED (fail_v2 always fails)")
 
 			// Verify the MLflow parent run reflects the retry
-			err = e2e_utils.VerifyMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FAILED")
+			err = e2e_utils.WaitForMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FAILED", &timeout)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify plugins_output is still populated after retry
