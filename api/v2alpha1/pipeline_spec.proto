@@ -592,8 +592,7 @@ message PipelineTaskSpec {
     double backoff_factor = 3;
 
     // The maximum duration during which the task will be retried according to
-    // the backoff strategy. Max allowed is 1 hour - higher value will be capped
-    // to this limit. If unspecified, will set to 1 hour.
+    // the backoff strategy. If unspecified, will set to 1 hour.
     google.protobuf.Duration backoff_max_duration = 4;
   }
 

@@ -4321,8 +4321,7 @@ type PipelineTaskSpec_RetryPolicy struct {
 	// unspecified, will default to 2.
 	BackoffFactor float64 `protobuf:"fixed64,3,opt,name=backoff_factor,json=backoffFactor,proto3" json:"backoff_factor,omitempty"`
 	// The maximum duration during which the task will be retried according to
-	// the backoff strategy. Max allowed is 1 hour - higher value will be capped
-	// to this limit. If unspecified, will set to 1 hour.
+	// the backoff strategy. If unspecified, will set to 1 hour.
 	BackoffMaxDuration *durationpb.Duration `protobuf:"bytes,4,opt,name=backoff_max_duration,json=backoffMaxDuration,proto3" json:"backoff_max_duration,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
