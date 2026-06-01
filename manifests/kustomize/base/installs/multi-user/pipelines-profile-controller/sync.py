@@ -391,20 +391,34 @@ def server_factory(frontend_image,
                     PolicyDocument=json.dumps(
                         {
                             "Version": "2012-10-17",
-                            "Statement": [{
-                                "Effect": "Allow",
-                                "Action": [
-                                    "s3:Put*",
-                                    "s3:Get*",
-                                    "s3:List*"
-                                ],
-                                "Resource": [
-                                    f"arn:aws:s3:::{S3_BUCKET_NAME}/artifacts/*",
-                                    f"arn:aws:s3:::{S3_BUCKET_NAME}/private-artifacts/{namespace}/*",
-                                    f"arn:aws:s3:::{S3_BUCKET_NAME}/private/{namespace}/*",
-                                    f"arn:aws:s3:::{S3_BUCKET_NAME}/shared/*",
-                                ]
-                            }]
+                            "Statement": [
+                                {
+                                    # Bucket-level: allows HeadBucket (used by KServe storage-initializer
+                                    # and other S3 clients before downloading model artifacts).
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "s3:ListBucket"
+                                    ],
+                                    "Resource": [
+                                        f"arn:aws:s3:::{S3_BUCKET_NAME}"
+                                    ]
+                                },
+                                {
+                                    # Object-level: prefix-scoped to this namespace only.
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "s3:Put*",
+                                        "s3:Get*",
+                                        "s3:List*"
+                                    ],
+                                    "Resource": [
+                                        f"arn:aws:s3:::{S3_BUCKET_NAME}/artifacts/*",
+                                        f"arn:aws:s3:::{S3_BUCKET_NAME}/private-artifacts/{namespace}/*",
+                                        f"arn:aws:s3:::{S3_BUCKET_NAME}/private/{namespace}/*",
+                                        f"arn:aws:s3:::{S3_BUCKET_NAME}/shared/*",
+                                    ]
+                                }
+                            ]
                         })
                 )
 
