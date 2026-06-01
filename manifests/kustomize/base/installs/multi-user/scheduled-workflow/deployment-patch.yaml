@@ -15,6 +15,11 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        args:
-        - --userIdentityHeader=kubeflow-userid
-        - --userIdentityValue=system:serviceaccount:$(NAMESPACE_SELF):ml-pipeline-scheduledworkflow
+        # Inject the controller's own service-account identity as the user identity
+        # header so CreateRun calls pass the API server's multi-user authorization.
+        # The controller maps these env vars to its --userIdentityHeader/--userIdentityValue
+        # flags (see backend/Dockerfile.scheduledworkflow).
+        - name: USER_IDENTITY_HEADER
+          value: kubeflow-userid
+        - name: USER_IDENTITY_VALUE
+          value: system:serviceaccount:$(NAMESPACE_SELF):ml-pipeline-scheduledworkflow
