@@ -30,7 +30,7 @@ spec:
         envFrom:
         - secretRef:
             name: mlpipeline-minio-artifact
-        image: "ghcr.io/seaweedfs/seaweedfs:4.18.0"
+        image: "ghcr.io/seaweedfs/seaweedfs:4.29.0"
         args:
         - "server"
         - "-dir=/data"
