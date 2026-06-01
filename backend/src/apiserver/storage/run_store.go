@@ -95,6 +95,10 @@ type RunStoreInterface interface {
 
 	// Terminates a run.
 	TerminateRun(runId string) error
+
+	// Checks if a run already exists for a given recurring run and display name.
+	// Returns the existing run UUID if found, or empty string if not.
+	GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayName string) (string, error)
 }
 
 type RunStore struct {
@@ -532,6 +536,17 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	_, err = tx.Exec(runSql, runArgs...)
 	if err != nil {
 		tx.Rollback()
+		// A concurrent recurring-run trigger may have already created this run. Such runs
+		// use a deterministic UUID derived from (RecurringRunId, DisplayName), so the
+		// duplicate insert collides on the primary key. Resolve it idempotently by
+		// returning the already-persisted run instead of surfacing an error.
+		if r.RecurringRunId != "" && s.db.IsDuplicateError(err) {
+			existingRun, getErr := s.GetRun(r.UUID)
+			if getErr != nil {
+				return nil, util.NewInternalServerError(err, "Failed to fetch existing run %v after duplicate key conflict", r.UUID)
+			}
+			return existingRun, nil
+		}
 		return nil, util.NewInternalServerError(err, "Failed to store run %v to table", r.DisplayName)
 	}
 
@@ -548,6 +563,32 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 		return nil, util.NewInternalServerError(err, "Failed to store run %v and its resource references to table", r.DisplayName)
 	}
 	return r, nil
+}
+
+func (s *RunStore) GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayName string) (string, error) {
+	query, args, err := sq.
+		Select("UUID").
+		From("run_details").
+		Where(sq.Eq{"JobUUID": recurringRunID, "DisplayName": displayName}).
+		OrderBy("CreatedAtInSec DESC", "UUID DESC").
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return "", util.NewInternalServerError(err, "Failed to build query for idempotency check")
+	}
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return "", util.NewInternalServerError(err, "Failed to check for existing run")
+	}
+	defer rows.Close()
+	if rows.Next() {
+		var uuid string
+		if err := rows.Scan(&uuid); err != nil {
+			return "", util.NewInternalServerError(err, "Failed to scan existing run UUID")
+		}
+		return uuid, nil
+	}
+	return "", nil
 }
 
 func (s *RunStore) UpdateRun(run *model.Run) error {

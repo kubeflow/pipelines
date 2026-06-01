@@ -24,7 +24,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.34.0" ]
+        k8s_version: [ "v1.31.14", "v1.35.0" ]
     name: KFP Webhooks - K8s ${{ matrix.k8s_version }}
 
     steps:

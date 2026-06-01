@@ -2583,6 +2583,39 @@ func TestRetryRun(t *testing.T) {
 	assert.Equal(t, actualRunDetail.RunDetails.State, model.RuntimeStateRunning)
 }
 
+func TestRetryRun_PreservesRunFields(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	originalRun, err := manager.GetRun(runDetail.UUID)
+	require.Nil(t, err)
+	assert.Equal(t, string(v1alpha1.WorkflowFailed), string(originalRun.Conditions))
+
+	err = manager.RetryRun(context.Background(), runDetail.UUID)
+	require.Nil(t, err)
+
+	retriedRun, err := manager.GetRun(runDetail.UUID)
+	require.Nil(t, err)
+
+	// Core identifying fields must be preserved after retry
+	assert.Equal(t, originalRun.UUID, retriedRun.UUID)
+	assert.Equal(t, originalRun.DisplayName, retriedRun.DisplayName)
+	assert.Equal(t, originalRun.ExperimentId, retriedRun.ExperimentId)
+	// FinishedAtInSec must be reset to 0 on retry
+	assert.Equal(t, int64(0), retriedRun.FinishedAtInSec)
+	// State must be updated to Running
+	assert.Equal(t, model.RuntimeStateRunning, retriedRun.State)
+
+	// StateHistory must preserve pre-retry entries and append a new RUNNING entry.
+	// With the old sparse-struct UpdateRun call, StateHistory would be overwritten
+	// to a single entry; passing the full run object preserves history.
+	originalHistoryLen := len(originalRun.StateHistory)
+	assert.Greater(t, originalHistoryLen, 0)
+	require.Greater(t, len(retriedRun.StateHistory), originalHistoryLen)
+	lastEntry := retriedRun.StateHistory[len(retriedRun.StateHistory)-1]
+	assert.Equal(t, model.RuntimeStateRunning, lastEntry.State)
+}
+
 func TestRetryRun_RunNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
@@ -4898,4 +4931,60 @@ func TestValidateTags(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCreateRun_IdempotentFromRecurringRun(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+
+	// Pre-create a run as if it was already submitted for this recurring run trigger.
+	// This simulates a race where one replica already persisted the run.
+	preExistingRun := &model.Run{
+		UUID:           "pre-existing-run-uuid",
+		DisplayName:    "scheduled-run-trigger-1",
+		RecurringRunId: job.UUID,
+		ExperimentId:   job.ExperimentId,
+		K8SName:        "pre-existing-k8s-name",
+		StorageState:   model.StorageStateAvailable,
+		PipelineSpec:   job.PipelineSpec,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			State:                   model.RuntimeStatePending,
+			WorkflowRuntimeManifest: model.LargeText(testWorkflow.ToStringForStore()),
+		},
+	}
+	_, err := manager.runStore.CreateRun(preExistingRun)
+	require.Nil(t, err)
+
+	// A second CreateRun with the same RecurringRunId + DisplayName should return
+	// the existing run without submitting any new Argo Workflow.
+	duplicateRun := &model.Run{
+		DisplayName:    "scheduled-run-trigger-1",
+		RecurringRunId: job.UUID,
+		ExperimentId:   job.ExperimentId,
+		PipelineSpec:   job.PipelineSpec,
+	}
+	returned, err := manager.CreateRun(context.Background(), duplicateRun)
+	assert.Nil(t, err)
+	assert.Equal(t, "pre-existing-run-uuid", returned.UUID, "should return existing run, not create a new one")
+	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowCount(), "no new Argo Workflow should be submitted")
+}
+
+func TestCreateRun_DeterministicUUIDFromRecurringRun(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+
+	run := &model.Run{
+		DisplayName:    "scheduled-run-trigger-1",
+		RecurringRunId: job.UUID,
+		ExperimentId:   job.ExperimentId,
+		PipelineSpec:   job.PipelineSpec,
+	}
+	created, err := manager.CreateRun(context.Background(), run)
+	require.Nil(t, err)
+
+	// The run ID is derived deterministically from the recurring run ID and display
+	// name, so concurrent triggers converge on the same primary key.
+	wantUUID := util.NewDeterministicUUID(job.UUID + "/scheduled-run-trigger-1")
+	assert.Equal(t, wantUUID, created.UUID)
 }
