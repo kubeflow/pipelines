@@ -228,3 +228,56 @@ func TestUserIdentityHeader_CoexistsWithBearerToken(t *testing.T) {
 	assert.Equal(t, []string{"system:serviceaccount:kubeflow:ml-pipeline-scheduledworkflow"},
 		md.Get("kubeflow-userid"))
 }
+
+// TestNormalizeAndValidateMetadataKey verifies that gRPC metadata keys are
+// lowercased and validated, so the controller can fail fast at startup on a
+// malformed --userIdentityHeader instead of failing requests at runtime.
+func TestNormalizeAndValidateMetadataKey(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     string
+		want      string
+		expectErr bool
+	}{
+		{name: "already valid", input: "kubeflow-userid", want: "kubeflow-userid"},
+		{name: "uppercase normalized to lowercase", input: "Kubeflow-UserID", want: "kubeflow-userid"},
+		{name: "digits, dot, underscore allowed", input: "x-user_id.v2", want: "x-user_id.v2"},
+		{name: "space is invalid", input: "kubeflow userid", expectErr: true},
+		{name: "colon is invalid", input: "kubeflow:userid", expectErr: true},
+		{name: "empty is invalid", input: "", expectErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := normalizeAndValidateMetadataKey(tt.input)
+			if tt.expectErr {
+				require.Error(t, err)
+				assert.Empty(t, got)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// TestNewController_InvalidUserIdentityHeader verifies that NewController fails
+// fast when the configured user identity metadata key is malformed. Validation
+// happens before any client or informer is used, so nil dependencies are fine.
+func TestNewController_InvalidUserIdentityHeader(t *testing.T) {
+	_, err := NewController(
+		nil, // kubeClientSet
+		nil, // swfClientSet
+		nil, // workflowClientSet
+		nil, // runClient
+		nil, // swfInformerFactory
+		nil, // executionInformer
+		nil, // time
+		nil, // location
+		nil, // tokenSrc
+		"invalid header",
+		"some-value",
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid userIdentityHeader")
+}

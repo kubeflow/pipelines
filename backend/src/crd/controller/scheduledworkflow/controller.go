@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -114,10 +115,30 @@ type Controller struct {
 	// This will be nil when authentication is not enabled.
 	tokenSrc transport.ResettableTokenSource
 
-	// userIdentityHeader is the header name for user identity in multi-user mode (e.g. "kubeflow-userid").
+	// userIdentityHeader is the outgoing gRPC metadata key for user identity in multi-user mode
+	// (e.g. "kubeflow-userid"). It is normalized to lowercase and validated when the controller is created.
 	userIdentityHeader string
-	// userIdentityValue is the value to set for the user identity header.
+	// userIdentityValue is the value to set for the user identity gRPC metadata key.
 	userIdentityValue string
+}
+
+// gRPC metadata keys are limited to lowercase ASCII letters, digits, and the
+// characters '-', '_', and '.'. See google.golang.org/grpc/metadata and the
+// HTTP/2 header field rules. Keys outside this set can cause outgoing requests
+// to fail at the transport layer, so we validate the configured key up front.
+var validGRPCMetadataKey = regexp.MustCompile(`^[a-z0-9._-]+$`)
+
+// normalizeAndValidateMetadataKey lowercases the given gRPC metadata key (matching
+// grpc-go's own normalization) and verifies it only contains characters allowed in
+// a gRPC metadata key. It returns the normalized key or an error describing why the
+// key is invalid, allowing callers to fail fast at startup instead of risking failed
+// requests during reconciliation.
+func normalizeAndValidateMetadataKey(key string) (string, error) {
+	normalized := strings.ToLower(key)
+	if !validGRPCMetadataKey.MatchString(normalized) {
+		return "", fmt.Errorf("must match %s (lowercase letters, digits, '-', '_', '.')", validGRPCMetadataKey.String())
+	}
+	return normalized, nil
 }
 
 // NewController returns a new sample controller
@@ -134,6 +155,17 @@ func NewController(
 	userIdentityHeader string,
 	userIdentityValue string,
 ) (*Controller, error) {
+	// Normalize and validate the user identity metadata key up front so the
+	// controller fails fast at startup rather than risking failed requests
+	// during reconciliation when an invalid key reaches the gRPC transport.
+	if userIdentityHeader != "" {
+		normalizedHeader, err := normalizeAndValidateMetadataKey(userIdentityHeader)
+		if err != nil {
+			return nil, fmt.Errorf("invalid userIdentityHeader %q: %w", userIdentityHeader, err)
+		}
+		userIdentityHeader = normalizedHeader
+	}
+
 	// obtain references to shared informers
 	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()
 
