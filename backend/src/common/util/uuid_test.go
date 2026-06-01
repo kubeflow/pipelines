@@ -53,3 +53,19 @@ func TestFakeUUIDGeneratorWithError(t *testing.T) {
 	assert.Equal(t, expectedError, err)
 	assert.Equal(t, expectedUUID, generatedUUID.String())
 }
+
+func TestNewDeterministicUUID(t *testing.T) {
+	// The same name always produces the same UUID.
+	first := NewDeterministicUUID("job-1/scheduled-run-trigger-1")
+	second := NewDeterministicUUID("job-1/scheduled-run-trigger-1")
+	assert.Equal(t, first, second)
+
+	// Different names produce different UUIDs.
+	assert.NotEqual(t, first, NewDeterministicUUID("job-1/scheduled-run-trigger-2"))
+	assert.NotEqual(t, first, NewDeterministicUUID("job-2/scheduled-run-trigger-1"))
+
+	// The result is a valid UUID.
+	parsed, err := uuid.Parse(first)
+	assert.NoError(t, err)
+	assert.NotEqual(t, uuid.Nil, parsed)
+}

@@ -85,6 +85,17 @@ func (t *V2Spec) PlatformSpec() *pipelinespec.PlatformSpec {
 	return t.platformSpec
 }
 
+// ValidateJobInputs validates job runtime parameters without a full Argo workflow compilation.
+func (t *V2Spec) ValidateJobInputs(modelJob *model.Job) error {
+	job := &pipelinespec.PipelineJob{}
+	jobRuntimeConfig, err := modelToPipelineJobRuntimeConfig(&modelJob.RuntimeConfig)
+	if err != nil {
+		return util.Wrap(err, "Failed to convert runtime config")
+	}
+	job.RuntimeConfig = jobRuntimeConfig
+	return t.validatePipelineJobInputs(job)
+}
+
 // Converts modelJob to ScheduledWorkflow.
 func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	job := &pipelinespec.PipelineJob{}
