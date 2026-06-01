@@ -380,9 +380,8 @@ class RetryPolicy:
         backoff_factor = self.backoff_factor or 2.0
         backoff_max_duration = self.backoff_max_duration or '3600s'
 
-        # include max duration seconds cap so that IR is more reflective of runtime behavior
         backoff_duration_seconds = f'{convert_duration_to_seconds(backoff_duration)}s'
-        backoff_max_duration_seconds = f'{min(convert_duration_to_seconds(backoff_max_duration), 3600)}s'
+        backoff_max_duration_seconds = f'{convert_duration_to_seconds(backoff_max_duration)}s'
 
         return json_format.ParseDict(
             {
