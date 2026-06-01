@@ -47,4 +47,13 @@ const (
 
 	UpgradePreparation  string = "UpgradePreparation"
 	UpgradeVerification string = "UpgradeVerification"
+
+	// MLflow - quality gate tag for MLflow integration testing
+	MLflow string = "MLflow"
+	// MLflowCore — primary MLflow E2E paths
+	MLflowCore string = "MLflowCore"
+	// MLflowParallelLoop — parallel-for pipeline and multi-level nested MLflow run assertions.
+	MLflowParallelLoop string = "MLflowParallelLoop"
+	// MLflowFailure — failed pipelines and RetryRun semantics with MLflow tracking.
+	MLflowFailure string = "MLflowFailure"
 )
