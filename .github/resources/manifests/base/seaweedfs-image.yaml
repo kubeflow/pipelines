@@ -1,0 +1,11 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs
+spec:
+  template:
+    spec:
+      containers:
+        # Use upstream GHCR in CI to reduce Docker Hub pull-rate pressure.
+        - name: seaweedfs
+          image: ghcr.io/chrislusf/seaweedfs:4.18

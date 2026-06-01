@@ -42,6 +42,10 @@ patches:
     target:
       kind: Deployment
       name: ml-pipeline
+  - path: ../../base/seaweedfs-image.yaml
+    target:
+      kind: Deployment
+      name: seaweedfs
   - path: ../../base/grpc-specs.yaml
     target:
       kind: Deployment
