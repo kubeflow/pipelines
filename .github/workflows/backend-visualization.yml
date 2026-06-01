@@ -6,6 +6,8 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - '.github/workflows/backend-visualization.yml'
       - 'backend/src/apiserver/visualization/**'
       - 'test/presubmit-backend-visualization.sh'

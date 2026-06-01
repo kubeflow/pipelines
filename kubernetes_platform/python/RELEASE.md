@@ -23,7 +23,7 @@ Some steps require elevated permissions to push branches, publish the package, a
     By the end, you
     should have pushed a modified `__init__.py`, `conf.py` (from Step 1), and `.gitignore`, `kubernetes_executor_config_pb2.py` and two modified `.readthedocs.yml` files (from Step 2) to the release branch.
 
-1.  [Requires credentials] From the `kubernetes_platform/python` directory with
+1.  [Requires credentials] Ensure you have run `uv sync --extra ci` (or `pip install build`) first, then from the `kubernetes_platform/python` directory with
     `KFP_KUBERNETES_VERSION` set, run:
 
     ```

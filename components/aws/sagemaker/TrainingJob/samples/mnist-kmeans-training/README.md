@@ -13,7 +13,7 @@ To train a model with SageMaker, we need an S3 bucket to store the dataset and a
     ```
 1. Run the following commands to install the script dependencies and upload the processed dataset to your S3 bucket:
     ```
-    pip install -r requirements.txt
+    pip install numpy==1.23.1 boto3==1.14.12 sagemaker==2.237.3 kfp==1.8.13
     python s3-sample-data-creator.py
     ```
 

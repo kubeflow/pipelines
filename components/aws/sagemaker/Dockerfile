@@ -22,8 +22,14 @@ RUN yum update -y \
     wget \
     unzip
 
-COPY requirements.txt .
-RUN pip3 install -r requirements.txt
+RUN pip3 install uv \
+    && uv pip install --system \
+      "boto3==1.14.12" \
+      "sagemaker==2.237.3" \
+      "pathlib2==2.3.5" \
+      "pyyaml==5.4" \
+      "mypy-extensions==0.4.3" \
+      "protobuf==3.20.*"
 
 WORKDIR /app
 

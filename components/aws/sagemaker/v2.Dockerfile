@@ -20,8 +20,13 @@ RUN yum update -y \
     ca-certificates \
     python3 
 
-COPY requirements_v2.txt .
-RUN pip3 install -r requirements_v2.txt
+RUN pip3 install uv \
+ && uv pip install --system \
+    "pathlib2==2.3.5" \
+    "pyyaml==5.4.1" \
+    "mypy-extensions==0.4.3" \
+    "kubernetes==12.0.1" \
+    "urllib3==2.6.3"
 
 WORKDIR /app
 

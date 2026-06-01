@@ -14,30 +14,7 @@
 # limitations under the License.
 
 source_root=$(pwd)
-SETUP_ENV="${SETUP_ENV:-true}"
 JUNIT_XML="${JUNIT_XML:-sdk-unit.xml}"
-
-if [ "${SETUP_ENV}" = "true" ]; then
-  # Create a virtual environment and activate it
-  python3 -m venv venv
-  source venv/bin/activate
-
-  python3 -m pip install --upgrade pip
-  python3 -m pip install -r sdk/python/requirements.txt
-  python3 -m pip install -r sdk/python/requirements-dev.txt
-  python3 -m pip install setuptools
-  python3 -m pip install wheel==0.42.0
-  python3 -m pip install pytest-cov
-  python3 -m pip install --upgrade protobuf
-  python3 -m pip install sdk/python
-
-  # regenerate the kfp-pipeline-spec
-  cd api/
-  make clean python
-  cd ..
-  # install the local kfp-pipeline-spec
-  python3 -m pip install -I api/v2alpha1/python
-fi
 
 if [[ -z "${PULL_NUMBER}" ]]; then
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}#egg=kfp&subdirectory=sdk/python"
@@ -45,9 +22,4 @@ else
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@refs/pull/${PULL_NUMBER}/merge#egg=kfp&subdirectory=sdk/python"
 fi
 
-pytest -v -s sdk/python/kfp --cov=kfp --junitxml="${JUNIT_XML}"
-
-if [ "${SETUP_ENV}" = "true" ]; then
-  # Deactivate the virtual environment
-  deactivate
-fi
+uv run pytest -v -s sdk/python/kfp --cov=kfp --junitxml="${JUNIT_XML}"
