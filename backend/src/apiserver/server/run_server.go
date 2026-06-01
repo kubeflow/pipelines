@@ -16,6 +16,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 
 	"google.golang.org/protobuf/types/known/emptypb"
 
@@ -513,6 +514,14 @@ func (s *RunServerV1) RetryRunV1(ctx context.Context, request *apiv1beta1.RetryR
 func (s *RunServer) CreateRun(ctx context.Context, request *apiv2beta1.CreateRunRequest) (*apiv2beta1.Run, error) {
 	if s.options.CollectMetrics {
 		createRunRequests.Inc()
+	}
+
+	// plugins_output is server-owned; reject requests that attempt to set it.
+	if request.GetRun() != nil && request.GetRun().PluginsOutput != nil {
+		return nil, util.NewBadRequestError(
+			fmt.Errorf("plugins_output must not be set by the client"),
+			"plugins_output is server-owned and populated exclusively via plugin lifecycle hooks",
+		)
 	}
 
 	modelRun, err := toModelRun(request.GetRun())

@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"maps"
 	"reflect"
 	"runtime/debug"
 	"sync"
@@ -25,6 +26,7 @@ import (
 	"unsafe"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata/testutils"
+	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -418,6 +420,75 @@ func Test_GetExecutionsByTypeAndName(t *testing.T) {
 			t.Fatalf("GetExecutionsByTypeAndName() error mismatch (-want +got):\n%s", diff)
 		}
 	})
+}
+
+func TestFormatOutputArtifacts(t *testing.T) {
+	var outputArtifacts = []*metadata.OutputArtifact{
+		{
+			Name: "accuracy_metrics",
+			Artifact: &pb.Artifact{
+				Type: proto.String("system.Metrics"),
+				CustomProperties: map[string]*pb.Value{
+					"accuracy":           {Value: &pb.Value_DoubleValue{DoubleValue: 0.95}},
+					"display_name":       {Value: &pb.Value_StringValue{StringValue: "accuracy_metrics"}},
+					"store_session_info": {Value: &pb.Value_StringValue{StringValue: "session-abc-123"}},
+				},
+			},
+			Schema: "title: kfp.Metrics\ntype: object",
+		},
+		{
+			Name: "loss_metrics",
+			Artifact: &pb.Artifact{
+				Type: proto.String("system.Metrics"),
+				CustomProperties: map[string]*pb.Value{
+					"loss":               {Value: &pb.Value_DoubleValue{DoubleValue: 0.05}},
+					"display_name":       {Value: &pb.Value_StringValue{StringValue: "loss_metrics"}},
+					"store_session_info": {Value: &pb.Value_StringValue{StringValue: "session-abc-123"}},
+				},
+			},
+			Schema: "title: kfp.Metrics\ntype: object",
+		},
+	}
+
+	expectedResult := map[string]float64{
+		"accuracy": 0.95,
+		"loss":     0.05,
+	}
+
+	result := metadata.FormatScalarMetricArtifacts(outputArtifacts)
+
+	if !maps.Equal(expectedResult, result) {
+		t.Errorf("result differs from expected result. Expected: %v, Actual: %v", expectedResult, result)
+	}
+}
+
+func TestFormatExecutionParameters(t *testing.T) {
+	var execution = metadata.NewExecution(&pb.Execution{
+		LastKnownState:           pb.Execution_COMPLETE.Enum(),
+		LastUpdateTimeSinceEpoch: proto.Int64(1714400000000),
+		CustomProperties: map[string]*pb.Value{
+			"inputs": {Value: &pb.Value_StructValue{
+				StructValue: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"param_one": structpb.NewStringValue("hello"),
+						"param_two": structpb.NewNumberValue(42),
+					},
+				},
+			}},
+		},
+	})
+
+	expectedResult := map[string]interface{}{
+		"param_one": "hello",
+		"param_two": float64(42),
+	}
+
+	result := metadata.FormatExecutionParameters(execution)
+
+	if diff := cmp.Diff(expectedResult, result); diff != "" {
+		t.Errorf("result differs from expected (-want +got):\n%s", diff)
+	}
+
 }
 
 func newLocalClientOrFatal(t *testing.T) *metadata.Client {
