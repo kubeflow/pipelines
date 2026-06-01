@@ -317,9 +317,40 @@ func VerifyMLflowRunStatus(endpoint, runID, experimentID, expectedStatus string)
 		return err
 	}
 	if mlflowRun.Info.Status != expectedStatus {
-		return fmt.Errorf("MLflow run %s should have status %s", runID, expectedStatus)
+		return fmt.Errorf("MLflow run %s should have status %s, got %s", runID, expectedStatus, mlflowRun.Info.Status)
 	}
 	return nil
+}
+
+// WaitForMLflowRunStatus polls until the MLflow run reaches expectedStatus or timeout expires.
+func WaitForMLflowRunStatus(endpoint, runID, experimentID, expectedStatus string, timeout *time.Duration) error {
+	ginkgo.GinkgoHelper()
+	logger.Log("Waiting for MLflow run %s to reach status %s", runID, expectedStatus)
+	maxTimeToWait := time.Duration(300)
+	pollTime := time.Duration(5)
+	if timeout != nil {
+		maxTimeToWait = *timeout
+	}
+	deadline := time.Now().Add(maxTimeToWait * time.Second)
+	ticker := time.NewTicker(pollTime * time.Second)
+	defer ticker.Stop()
+	for {
+		err := VerifyMLflowRunStatus(endpoint, runID, experimentID, expectedStatus)
+		if err == nil {
+			logger.Log("MLflow run %s reached expected status %s", runID, expectedStatus)
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return err
+		}
+		mlflowRun, queryErr := QueryMLflowRunByID(endpoint, runID, experimentID)
+		if queryErr == nil {
+			logger.Log("MLflow run %s is in %s status, waiting for %s...", runID, mlflowRun.Info.Status, expectedStatus)
+		} else {
+			logger.Log("MLflow run %s status check failed, retrying: %v", runID, queryErr)
+		}
+		<-ticker.C
+	}
 }
 
 func VerifyMLflowRunTags(endpoint, runID, experimentID string, expectedTags map[string]string) error {
