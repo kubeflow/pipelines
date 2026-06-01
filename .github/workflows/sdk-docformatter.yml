@@ -6,6 +6,8 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - 'sdk/python/**'
       - 'test/presubmit-docformatter-sdk.sh'
       - '.github/workflows/sdk-docformatter.yml'
@@ -25,12 +27,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: ./.github/actions/setup-python-pip-cache
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python
         with:
-          python-version: 3.9
-          cache-scope: sdk-docformatter
-          cache-dependency-hash: ${{ hashFiles('sdk/python/requirements-dev.txt') }}
+          python-version: '3.9'
 
       - name: Run docformatter tests
         run: ./test/presubmit-docformatter-sdk.sh

@@ -15,7 +15,5 @@
 
 source_root=$(pwd)
 
-python3 -m pip install --upgrade pip
-python3 -m pip install $(grep 'docformatter==' sdk/python/requirements-dev.txt)
-
-docformatter --check --recursive "${source_root}/sdk/python/" --exclude "compiler_test.py"
+# Dependencies are already installed via 'uv sync' in CI
+uv run docformatter --check --recursive "${source_root}/sdk/python/" --exclude "compiler_test.py"

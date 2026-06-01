@@ -15,12 +15,12 @@
 FROM python:3.11-slim
 
 WORKDIR /workdir
-COPY backend/src/v2/test/requirements.txt backend/src/v2/test/
+RUN pip install uv
+COPY pyproject.toml uv.lock ./
 COPY sdk/python sdk/python
-COPY samples/test/utils samples/test/utils
-# relative path in requirements.txt are relative to workdir, so we need to
-# cd to that folder first
-RUN cd backend/src/v2/test && pip3 install --no-cache-dir -r requirements.txt
+RUN uv sync --frozen --no-install-workspace --no-install-project --extra backend-v2-test \
+	&& uv pip install -e ./sdk/python
+ENV PATH="/workdir/.venv/bin:$PATH"
 
 # copy all other code
 COPY . .

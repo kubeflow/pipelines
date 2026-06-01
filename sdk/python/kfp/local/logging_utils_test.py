@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for logging_utils.py."""
 
+import builtins
 import io
 import unittest
 from unittest import mock
@@ -34,6 +35,22 @@ class TestIndentedPrint(unittest.TestCase):
             actual,
             expected,
         )
+
+    def test_interleaved_contexts_restore_print(self):
+        original_print = builtins.print
+        context_one = logging_utils.indented_print(num_spaces=2)
+        context_two = logging_utils.indented_print(num_spaces=4)
+
+        try:
+            context_one.__enter__()
+            context_two.__enter__()
+
+            context_one.__exit__(None, None, None)
+            context_two.__exit__(None, None, None)
+
+            self.assertIs(builtins.print, original_print)
+        finally:
+            builtins.print = original_print
 
 
 class TestColorText(unittest.TestCase):

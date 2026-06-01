@@ -1,0 +1,35 @@
+name: Check uv.lock and requirements.txt sync
+
+on:
+  pull_request:
+    paths:
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'requirements.txt'
+      - '**/pyproject.toml'
+      - '**/requirements.txt'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
+      - uses: hbelmiro/uv-lock-check@814bb91b9521353fce69abced9210c8b42467d6d  # v0.2.0
+        with:
+          command: 'uv export --frozen --no-dev --format requirements-txt -o requirements.txt'
+          requirements-path: 'requirements.txt'
+      - uses: hbelmiro/uv-lock-check@814bb91b9521353fce69abced9210c8b42467d6d  # v0.2.0
+        with:
+          pyproject-path: 'sdk/python/pyproject.toml'
+          command: 'uv export --frozen --no-dev --package kfp --format requirements-txt -o sdk/python/requirements.txt'
+          requirements-path: 'sdk/python/requirements.txt'
+      - uses: hbelmiro/uv-lock-check@814bb91b9521353fce69abced9210c8b42467d6d  # v0.2.0
+        with:
+          pyproject-path: 'kubernetes_platform/python/pyproject.toml'
+          command: 'uv export --frozen --no-dev --package kfp-kubernetes --format requirements-txt -o kubernetes_platform/python/requirements.txt'
+          requirements-path: 'kubernetes_platform/python/requirements.txt'
+      - uses: hbelmiro/uv-lock-check@814bb91b9521353fce69abced9210c8b42467d6d  # v0.2.0
+        with:
+          pyproject-path: 'api/v2alpha1/python/pyproject.toml'
+          command: 'uv export --frozen --no-dev --package kfp-pipeline-spec --format requirements-txt -o api/v2alpha1/python/requirements.txt'
+          requirements-path: 'api/v2alpha1/python/requirements.txt'
