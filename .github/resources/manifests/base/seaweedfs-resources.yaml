@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs
+spec:
+  template:
+    spec:
+      containers:
+        - name: seaweedfs
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
