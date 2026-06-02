@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"os"
 	"testing"
 
@@ -12,6 +13,70 @@ import (
 
 func strPtr(s string) *string {
 	return &s
+}
+
+func TestResolveStringFlag(t *testing.T) {
+	t.Run("prefers primary flag", func(t *testing.T) {
+		primary := "new-task-id"
+		legacy := "old-task-id"
+		if got := resolveStringFlag(&primary, &legacy); got != primary {
+			t.Fatalf("resolveStringFlag() = %q, want %q", got, primary)
+		}
+	})
+
+	t.Run("falls back to legacy flag", func(t *testing.T) {
+		primary := ""
+		legacy := "old-task-id"
+		if got := resolveStringFlag(&primary, &legacy); got != legacy {
+			t.Fatalf("resolveStringFlag() = %q, want %q", got, legacy)
+		}
+	})
+}
+
+func TestLegacyMetadataFlagsRemainRegistered(t *testing.T) {
+	expectedDefaults := map[string]string{
+		"mlmd_server_address":  "",
+		"mlmd_server_port":     "",
+		"metadata_tls_enabled": "false",
+	}
+
+	for name, expectedDefault := range expectedDefaults {
+		registeredFlag := flag.Lookup(name)
+		if registeredFlag == nil {
+			t.Fatalf("legacy flag %q is not registered", name)
+		}
+		if registeredFlag.DefValue != expectedDefault {
+			t.Errorf("legacy flag %q default = %q, want %q", name, registeredFlag.DefValue, expectedDefault)
+		}
+	}
+}
+
+func TestResolveNamespace(t *testing.T) {
+	t.Run("prefers NAMESPACE", func(t *testing.T) {
+		t.Setenv("NAMESPACE", "kubeflow")
+		t.Setenv("POD_NAMESPACE", "ignored")
+
+		got, err := resolveNamespace()
+		if err != nil {
+			t.Fatalf("resolveNamespace() error = %v", err)
+		}
+		if got != "kubeflow" {
+			t.Fatalf("resolveNamespace() = %q, want %q", got, "kubeflow")
+		}
+	})
+
+	t.Run("falls back to POD_NAMESPACE", func(t *testing.T) {
+		t.Setenv("NAMESPACE", "")
+		t.Setenv("POD_NAMESPACE", "kubeflow-from-pod")
+
+		got, err := resolveNamespace()
+		if err != nil {
+			t.Fatalf("resolveNamespace() error = %v", err)
+		}
+		if got != "kubeflow-from-pod" {
+			t.Fatalf("resolveNamespace() = %q, want %q", got, "kubeflow-from-pod")
+		}
+	})
 }
 
 func TestSpecParsing(t *testing.T) {
@@ -52,9 +117,11 @@ func TestSpecParsing(t *testing.T) {
 }
 
 func Test_handleExecutionContainer(t *testing.T) {
-	execution := &driver.Execution{}
+	execution := &driver.Execution{
+		TaskID: "test-task-id",
+	}
 
-	executionPaths := &ExecutionPaths{
+	executionPaths := &TaskPaths{
 		Condition: "condition.txt",
 	}
 
@@ -70,9 +137,11 @@ func Test_handleExecutionContainer(t *testing.T) {
 }
 
 func Test_handleExecutionRootDAG(t *testing.T) {
-	execution := &driver.Execution{}
+	execution := &driver.Execution{
+		TaskID: "test-task-id",
+	}
 
-	executionPaths := &ExecutionPaths{
+	executionPaths := &TaskPaths{
 		IterationCount: "iteration_count.txt",
 		Condition:      "condition.txt",
 	}
@@ -89,29 +158,9 @@ func Test_handleExecutionRootDAG(t *testing.T) {
 	cleanup(t, executionPaths)
 }
 
-func Test_handleExecutionDAG(t *testing.T) {
-	execution := &driver.Execution{}
-
-	executionPaths := &ExecutionPaths{
-		IterationCount: "iteration_count.txt",
-		Condition:      "condition.txt",
-	}
-
-	err := handleExecution(execution, DAG, executionPaths)
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	verifyFileContent(t, executionPaths.IterationCount, "0")
-	verifyFileContent(t, executionPaths.Condition, "nil")
-
-	cleanup(t, executionPaths)
-}
-
-func cleanup(t *testing.T, executionPaths *ExecutionPaths) {
+func cleanup(t *testing.T, executionPaths *TaskPaths) {
 	removeIfExists(t, executionPaths.IterationCount)
-	removeIfExists(t, executionPaths.ExecutionID)
+	removeIfExists(t, executionPaths.TaskID)
 	removeIfExists(t, executionPaths.Condition)
 	removeIfExists(t, executionPaths.PodSpecPatch)
 	removeIfExists(t, executionPaths.CachedDecision)

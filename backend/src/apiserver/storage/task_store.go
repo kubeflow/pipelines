@@ -15,12 +15,15 @@
 package storage
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -55,6 +58,7 @@ var taskColumns = []string{
 	"Type",
 	"TypeAttrs",
 	"ScopePath",
+	"LogicalKey",
 }
 
 // Ensure TaskStore implements TaskStoreInterface
@@ -63,6 +67,10 @@ var _ TaskStoreInterface = (*TaskStore)(nil)
 type TaskStoreInterface interface {
 	// CreateTask Create a task entry in the database.
 	CreateTask(task *model.Task) (*model.Task, error)
+
+	// FindTaskByLogicalIdentity returns an existing runtime task for the same
+	// logical pipeline node when one already exists.
+	FindTaskByLogicalIdentity(task *model.Task) (*model.Task, error)
 
 	// GetTask Fetches a task with a given id.
 	GetTask(id string) (*model.Task, error)
@@ -76,6 +84,10 @@ type TaskStoreInterface interface {
 	// UpdateTask Updates an existing task entry in the database.
 	UpdateTask(new *model.Task) (*model.Task, error)
 
+	// ResetTasksForRetry clears attempt-local state so retried tasks can resume
+	// from a clean RUNNING attempt while preserving task history.
+	ResetTasksForRetry(taskIDs []string) error
+
 	// GetChildTasks Fetches all child tasks for a given task UUID.
 	GetChildTasks(taskID string) ([]*model.Task, error)
 
@@ -87,6 +99,9 @@ type TaskStoreInterface interface {
 
 	// GetTaskCountsForRuns fetches task counts keyed by run ID.
 	GetTaskCountsForRuns(runIDs []string) (map[string]int, error)
+
+	// FindLatestCachedTask returns the newest succeeded task for a fingerprint.
+	FindLatestCachedTask(namespace, fingerprint string) (*model.Task, error)
 }
 
 type TaskStore struct {
@@ -107,7 +122,7 @@ func NewTaskStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterf
 // scanTaskRow scans a single row into a model.Task. It expects the column order to match taskColumns.
 func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, error) {
 	var uuid, namespace, runUUID, fingerprint string
-	var name, displayName, parentTaskID, pods, statusMetadata, stateHistory, inputParams, outputParams, typeAttrs, scopePath sql.NullString
+	var name, displayName, parentTaskID, pods, statusMetadata, stateHistory, inputParams, outputParams, typeAttrs, scopePath, logicalKey sql.NullString
 	var createdAtInSec, startedInSec, finishedInSec sql.NullInt64
 	var taskState, taskType int32
 	if err := rowscanner.Scan(
@@ -130,6 +145,7 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		&taskType,
 		&typeAttrs,
 		&scopePath,
+		&logicalKey,
 	); err != nil {
 		return nil, err
 	}
@@ -177,6 +193,10 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 	if parentTaskID.Valid {
 		parentTaskIDNew = &parentTaskID.String
 	}
+	var logicalKeyNew *string
+	if logicalKey.Valid {
+		logicalKeyNew = &logicalKey.String
+	}
 	return &model.Task{
 		UUID:             uuid,
 		Namespace:        namespace,
@@ -197,6 +217,7 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		Type:             model.TaskType(taskType),
 		TypeAttrs:        typeAttrsData,
 		ScopePath:        scopePathStr,
+		LogicalKey:       logicalKeyNew,
 	}, nil
 }
 
@@ -373,9 +394,207 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 	return tasks, nil
 }
 
+func taskIterationIndex(typeAttrs model.JSONData) (*int64, error) {
+	if typeAttrs == nil {
+		return nil, nil
+	}
+	rawValue, ok := typeAttrs["iterationIndex"]
+	if !ok || rawValue == nil {
+		return nil, nil
+	}
+	switch value := rawValue.(type) {
+	case float64:
+		iterationIndex := int64(value)
+		return &iterationIndex, nil
+	case int64:
+		iterationIndex := value
+		return &iterationIndex, nil
+	case int:
+		iterationIndex := int64(value)
+		return &iterationIndex, nil
+	case string:
+		parsedIterationIndex, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		return &parsedIterationIndex, nil
+	default:
+		return nil, fmt.Errorf("unexpected iterationIndex type %T", value)
+	}
+}
+
+func sameLogicalTaskIdentity(existingTask, candidateTask *model.Task) (bool, error) {
+	if existingTask == nil || candidateTask == nil {
+		return false, nil
+	}
+	if existingTask.RunUUID != candidateTask.RunUUID ||
+		normalizedParentTaskUUID(existingTask.ParentTaskUUID) != normalizedParentTaskUUID(candidateTask.ParentTaskUUID) ||
+		existingTask.ScopePath != candidateTask.ScopePath ||
+		existingTask.Name != candidateTask.Name ||
+		existingTask.Type != candidateTask.Type {
+		return false, nil
+	}
+	existingIterationIndex, err := taskIterationIndex(existingTask.TypeAttrs)
+	if err != nil {
+		return false, err
+	}
+	candidateIterationIndex, err := taskIterationIndex(candidateTask.TypeAttrs)
+	if err != nil {
+		return false, err
+	}
+	if existingIterationIndex == nil && candidateIterationIndex == nil {
+		return true, nil
+	}
+	if existingIterationIndex == nil || candidateIterationIndex == nil {
+		return false, nil
+	}
+	return *existingIterationIndex == *candidateIterationIndex, nil
+}
+
+func normalizedParentTaskUUID(parentTaskUUID *string) string {
+	if parentTaskUUID == nil {
+		return ""
+	}
+	return *parentTaskUUID
+}
+
+func taskLogicalKey(task *model.Task) (*string, error) {
+	if task == nil || task.RunUUID == "" || task.ScopePath == "" || task.Name == "" || task.Type == 0 {
+		return nil, nil
+	}
+	iterationIndex, err := taskIterationIndex(task.TypeAttrs)
+	if err != nil {
+		return nil, err
+	}
+	var logicalIdentity bytes.Buffer
+	for _, value := range []string{
+		task.RunUUID,
+		normalizedParentTaskUUID(task.ParentTaskUUID),
+		task.ScopePath,
+		task.Name,
+	} {
+		if err := writeLengthPrefixedString(&logicalIdentity, value); err != nil {
+			return nil, err
+		}
+	}
+	if err := binary.Write(&logicalIdentity, binary.BigEndian, int32(task.Type)); err != nil {
+		return nil, err
+	}
+	if err := writeOptionalInt64(&logicalIdentity, iterationIndex); err != nil {
+		return nil, err
+	}
+	digest := sha256.Sum256(logicalIdentity.Bytes())
+	logicalKey := hex.EncodeToString(digest[:])
+	return &logicalKey, nil
+}
+
+func writeLengthPrefixedString(buffer *bytes.Buffer, value string) error {
+	if err := binary.Write(buffer, binary.BigEndian, uint32(len(value))); err != nil {
+		return err
+	}
+	_, err := buffer.WriteString(value)
+	return err
+}
+
+func writeOptionalInt64(buffer *bytes.Buffer, value *int64) error {
+	if value == nil {
+		return buffer.WriteByte(0)
+	}
+	if err := buffer.WriteByte(1); err != nil {
+		return err
+	}
+	return binary.Write(buffer, binary.BigEndian, *value)
+}
+
+func (s *TaskStore) findTaskByLogicalKey(logicalKey string) (*model.Task, error) {
+	rowSQL, rowArgs, err := sq.
+		Select(taskColumns...).
+		From(tableName).
+		Where(sq.Eq{"LogicalKey": logicalKey}).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create logical task key query: %v", err.Error())
+	}
+	task, err := scanTaskRow(s.db.QueryRow(rowSQL, rowArgs...))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to scan logical task key result: %v", err.Error())
+	}
+	return task, nil
+}
+
+func (s *TaskStore) FindTaskByLogicalIdentity(task *model.Task) (*model.Task, error) {
+	logicalKey, err := taskLogicalKey(task)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to build logical task identity")
+	}
+	if logicalKey == nil {
+		return nil, nil
+	}
+	existingTask, err := s.findTaskByLogicalKey(*logicalKey)
+	if err != nil || existingTask != nil {
+		return existingTask, err
+	}
+
+	// TODO: Remove this legacy LogicalKey fallback once the planned migration
+	// backfill has populated existing task rows. This bridge is only needed for
+	// pre-backfill tasks that still have NULL LogicalKey values during rollout.
+	rowsSQL, rowsArgs, err := sq.
+		Select(taskColumns...).
+		From(tableName).
+		Where(sq.Eq{
+			"RunUUID":   task.RunUUID,
+			"ScopePath": task.ScopePath,
+			"Name":      task.Name,
+			"Type":      task.Type,
+		}).
+		Where("LogicalKey IS NULL").
+		OrderBy("CreatedAtInSec DESC", "UUID DESC").
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create logical task identity query: %v", err.Error())
+	}
+
+	rows, err := s.db.Query(rowsSQL, rowsArgs...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to look up logical task identity: %v", err.Error())
+	}
+	defer rows.Close()
+
+	tasks, err := s.scanRows(rows)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to scan logical task identity results: %v", err.Error())
+	}
+
+	for _, existingTask := range tasks {
+		match, err := sameLogicalTaskIdentity(existingTask, task)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to compare logical task identity")
+		}
+		if match {
+			return existingTask, nil
+		}
+	}
+	return nil, nil
+}
+
 func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
+	existingTask, err := s.FindTaskByLogicalIdentity(task)
+	if err != nil {
+		return nil, err
+	}
+	if existingTask != nil {
+		return existingTask, nil
+	}
+
 	// Set up UUID for task.
 	newTask := *task
+	newTask.LogicalKey, err = taskLogicalKey(task)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to build logical task identity")
+	}
 	id, err := s.uuid.NewRandom()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create an task id")
@@ -475,6 +694,7 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 				"OutputParameters": outputParamsString,
 				"Type":             newTask.Type,
 				"TypeAttrs":        typeAttrsString,
+				"LogicalKey":       newTask.LogicalKey,
 			},
 		).
 		ToSql()
@@ -484,6 +704,12 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 	}
 	_, err = s.db.Exec(sql, args...)
 	if err != nil {
+		if newTask.LogicalKey != nil {
+			existingTask, findErr := s.findTaskByLogicalKey(*newTask.LogicalKey)
+			if findErr == nil && existingTask != nil {
+				return existingTask, nil
+			}
+		}
 		return nil, util.NewInternalServerError(err, "Failed to add task to task table: %v",
 			err.Error())
 	}
@@ -707,6 +933,45 @@ func (s *TaskStore) GetTask(id string) (*model.Task, error) {
 	// Hydrate artifacts for this task
 	if err := hydrateArtifactsForTasks(s.db, []*model.Task{tasks[0]}); err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to hydrate task artifacts")
+	}
+	return tasks[0], nil
+}
+
+func (s *TaskStore) FindLatestCachedTask(namespace, fingerprint string) (*model.Task, error) {
+	sqlBuilder := sq.
+		Select(taskColumns...).
+		From("tasks").
+		Where(sq.Eq{
+			"Fingerprint": fingerprint,
+			"State":       model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		})
+	if namespace != "" {
+		sqlBuilder = sqlBuilder.Where(sq.Eq{"Namespace": namespace})
+	}
+
+	sqlStr, args, err := sqlBuilder.
+		OrderBy("CreatedAtInSec DESC", "UUID DESC").
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to find latest cached task: %v", err.Error())
+	}
+
+	rows, err := s.db.Query(sqlStr, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to find latest cached task: %v", err.Error())
+	}
+	defer rows.Close()
+
+	tasks, err := s.scanRows(rows)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to scan latest cached task: %v", err.Error())
+	}
+	if len(tasks) == 0 {
+		return nil, nil
+	}
+	if err := hydrateArtifactsForTasks(s.db, []*model.Task{tasks[0]}); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to hydrate latest cached task artifacts")
 	}
 	return tasks[0], nil
 }
@@ -987,6 +1252,98 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 
 	glog.Infof("Successfully updated task %s with row-level locking", new.UUID)
 	return s.GetTask(new.UUID)
+}
+
+func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
+	if len(taskIDs) == 0 {
+		return nil
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to start transaction for retry task reset")
+	}
+	defer func() {
+		if rbErr := tx.Rollback(); rbErr != nil && !errors.Is(rbErr, sql.ErrTxDone) {
+			glog.Warningf("Failed to rollback retry task reset transaction: %v", rbErr)
+		}
+	}()
+
+	sqlStr, args, err := sq.
+		Select(taskColumns...).
+		From(tableName).
+		Where(sq.Eq{"UUID": taskIDs}).
+		OrderBy("CreatedAtInSec ASC", "UUID ASC").
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to read retry tasks: %v", err.Error())
+	}
+	sqlStr = s.db.SelectForUpdate(sqlStr)
+	rows, err := tx.Query(sqlStr, args...)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to load retry tasks for reset: %v", err.Error())
+	}
+	defer rows.Close()
+
+	tasks := make([]*model.Task, 0, len(taskIDs))
+	for rows.Next() {
+		task, err := scanTaskRow(rows)
+		if err != nil {
+			return util.NewInternalServerError(err, "Failed to scan retry task for reset: %v", err.Error())
+		}
+		tasks = append(tasks, task)
+	}
+	if err := rows.Err(); err != nil {
+		return util.NewInternalServerError(err, "Failed while reading retry tasks for reset: %v", err.Error())
+	}
+
+	retryStartedAt := s.time.Now().Unix()
+	emptyJSONArray := "[]"
+	for _, task := range tasks {
+		mergedHistory := task.StateHistory
+		if len(mergedHistory) == 0 || getLastTaskState(mergedHistory) != model.TaskStatus(apiv2beta1.PipelineTask_RUNNING) {
+			taskStatus := &apiv2beta1.PipelineTask_TaskStatus{
+				UpdateTime: &timestamppb.Timestamp{Seconds: retryStartedAt},
+				State:      apiv2beta1.PipelineTask_RUNNING,
+			}
+			newEntry, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskStatus{taskStatus})
+			if err != nil {
+				return util.NewInternalServerError(err, "Failed to build retry state history entry")
+			}
+			if len(newEntry) > 0 {
+				mergedHistory = append(mergedHistory, newEntry[0])
+			}
+		}
+		historyBytes, err := json.Marshal(mergedHistory)
+		if err != nil {
+			return util.NewInternalServerError(err, "Failed to marshal retry task state history")
+		}
+
+		updateSQL, updateArgs, err := sq.
+			Update(tableName).
+			SetMap(sq.Eq{
+				"State":            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+				"StartedInSec":     retryStartedAt,
+				"FinishedInSec":    0,
+				"StatusMetadata":   nil,
+				"Pods":             emptyJSONArray,
+				"OutputParameters": emptyJSONArray,
+				"StateHistory":     string(historyBytes),
+			}).
+			Where(sq.Eq{"UUID": task.UUID}).
+			ToSql()
+		if err != nil {
+			return util.NewInternalServerError(err, "Failed to create query to reset retry task %s: %v", task.UUID, err.Error())
+		}
+		if _, err := tx.Exec(updateSQL, updateArgs...); err != nil {
+			return util.NewInternalServerError(err, "Failed to reset retry task %s: %v", task.UUID, err.Error())
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return util.NewInternalServerError(err, "Failed to commit retry task reset transaction")
+	}
+	return nil
 }
 
 // mergeParameters merges new parameter updates into the stored parameter set.

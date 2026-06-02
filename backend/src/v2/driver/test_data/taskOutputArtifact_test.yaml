@@ -1,0 +1,175 @@
+# PIPELINE DEFINITION
+# Name: primary-pipeline
+components:
+  comp-analyze-artifact:
+    executorLabel: exec-analyze-artifact
+    inputDefinitions:
+      artifacts:
+        data_input:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        output_artifact:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-create-dataset:
+    executorLabel: exec-create-dataset
+    outputDefinitions:
+      artifacts:
+        output_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-process-dataset:
+    executorLabel: exec-process-dataset
+    inputDefinitions:
+      artifacts:
+        input_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        output_artifact:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-analyze-artifact:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - analyze_artifact
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef analyze_artifact(data_input: Input[Artifact], output_artifact:\
+          \ Output[Artifact]):\n    with open(data_input.path, \"r\") as f:\n    \
+          \    data = f.read()\n    assert data == \"very_bad\"\n    with open(output_artifact.path,\
+          \ \"w\") as f:\n        f.write(f'done_analyzing')\n\n"
+        image: python:3.11
+    exec-create-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - create_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef create_dataset(output_dataset: Output[Dataset]):\n    with open(output_dataset.path,\
+          \ \"w\") as f:\n        f.write('hurricane')\n    output_dataset.metadata[\"\
+          category\"] = 5\n    output_dataset.metadata[\"description\"] = \"A simple\
+          \ dataset\"\n\n"
+        image: python:3.11
+    exec-process-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - process_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef process_dataset(input_dataset: Input[Dataset], output_artifact:\
+          \ Output[Artifact]):\n    with open(input_dataset.path, \"r\") as f:\n \
+          \       data = f.read()\n    assert data == \"hurricane\"\n    with open(output_artifact.path,\
+          \ \"w\") as f:\n        f.write(f'very_bad')\n\n"
+        image: python:3.11
+pipelineInfo:
+  name: primary-pipeline
+root:
+  dag:
+    tasks:
+      analyze-artifact:
+        cachingOptions: {}
+        componentRef:
+          name: comp-analyze-artifact
+        dependentTasks:
+        - process-dataset
+        inputs:
+          artifacts:
+            data_input:
+              taskOutputArtifact:
+                outputArtifactKey: output_artifact
+                producerTask: process-dataset
+        taskInfo:
+          name: analyze-artifact
+      create-dataset:
+        cachingOptions: {}
+        componentRef:
+          name: comp-create-dataset
+        taskInfo:
+          name: create-dataset
+      process-dataset:
+        cachingOptions: {}
+        componentRef:
+          name: comp-process-dataset
+        dependentTasks:
+        - create-dataset
+        inputs:
+          artifacts:
+            input_dataset:
+              taskOutputArtifact:
+                outputArtifactKey: output_dataset
+                producerTask: create-dataset
+        taskInfo:
+          name: process-dataset
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.6

@@ -42,6 +42,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/structpb"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -2581,6 +2582,124 @@ func TestRetryRun(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Contains(t, string(actualRunDetail.WorkflowRuntimeManifest), "Running")
 	assert.Equal(t, actualRunDetail.RunDetails.State, model.RuntimeStateRunning)
+}
+
+func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *testing.T) {
+	initEnvVars()
+	store := NewFakeClientManagerOrFatalV2()
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	experiment, err := manager.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
+	require.NoError(t, err)
+	runDetail, err := manager.CreateRun(context.Background(), &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ExperimentId: experiment.UUID,
+	})
+	require.NoError(t, err)
+	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
+	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
+	updatedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{
+		"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed},
+	}
+	_, err = manager.ReportWorkflowResource(context.Background(), updatedWorkflow)
+	require.NoError(t, err)
+
+	failedPods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
+		Name: "old-pod", Uid: "old-uid", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+	failedOutputs, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+		ParameterKey: "result",
+		Value:        structpb.NewStringValue("stale"),
+		Type:         apiv2beta1.IOType_OUTPUT,
+	}})
+	require.NoError(t, err)
+	failedTask, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          runDetail.UUID,
+		Name:             "failed-task",
+		ScopePath:        "root.failed-task",
+		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+		State:            model.TaskStatus(apiv2beta1.PipelineTask_FAILED),
+		Fingerprint:      "fp-failed-task",
+		Pods:             failedPods,
+		StatusMetadata:   model.JSONData{"message": "old failure"},
+		OutputParameters: failedOutputs,
+		TypeAttrs:        model.JSONData{},
+		FinishedInSec:    10,
+	})
+	require.NoError(t, err)
+
+	artifact, err := store.ArtifactStore().CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2beta1.Artifact_Artifact),
+		URI:       util.StringPointer("s3://bucket/stale-artifact"),
+		Name:      "stale-artifact",
+	})
+	require.NoError(t, err)
+	producer, err := model.ProtoMessageToJSONData(&apiv2beta1.IOProducer{TaskName: failedTask.Name})
+	require.NoError(t, err)
+	_, err = store.ArtifactTaskStore().CreateArtifactTask(&model.ArtifactTask{
+		ArtifactID:  artifact.UUID,
+		TaskID:      failedTask.UUID,
+		RunUUID:     runDetail.UUID,
+		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		Producer:    producer,
+		ArtifactKey: "result",
+	})
+	require.NoError(t, err)
+
+	succeededOutputs, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+		ParameterKey: "result",
+		Value:        structpb.NewStringValue("stable"),
+		Type:         apiv2beta1.IOType_OUTPUT,
+	}})
+	require.NoError(t, err)
+	succeededTask, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          runDetail.UUID,
+		Name:             "succeeded-task",
+		ScopePath:        "root.succeeded-task",
+		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+		State:            model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		Fingerprint:      "fp-succeeded-task",
+		OutputParameters: succeededOutputs,
+		TypeAttrs:        model.JSONData{},
+		FinishedInSec:    9,
+	})
+	require.NoError(t, err)
+
+	err = manager.RetryRun(context.Background(), runDetail.UUID)
+	require.NoError(t, err)
+
+	actualRunDetail, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+
+	tasksByName := map[string]*model.Task{}
+	for _, task := range actualRunDetail.Tasks {
+		tasksByName[task.Name] = task
+	}
+
+	retriedFailedTask := tasksByName[failedTask.Name]
+	require.NotNil(t, retriedFailedTask)
+	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), retriedFailedTask.State)
+	assert.Equal(t, int64(0), retriedFailedTask.FinishedInSec)
+	assert.Nil(t, retriedFailedTask.StatusMetadata)
+	assert.Empty(t, retriedFailedTask.Pods)
+	assert.Empty(t, retriedFailedTask.OutputParameters)
+	assert.Empty(t, retriedFailedTask.OutputArtifactsHydrated)
+	require.NotEmpty(t, retriedFailedTask.StateHistory)
+
+	preservedSucceededTask := tasksByName[succeededTask.Name]
+	require.NotNil(t, preservedSucceededTask)
+	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED), preservedSucceededTask.State)
+	assert.NotEmpty(t, preservedSucceededTask.OutputParameters)
 }
 
 func TestRetryRun_RunNotExist(t *testing.T) {

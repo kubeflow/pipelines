@@ -34,7 +34,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -137,7 +137,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -170,7 +170,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -203,7 +203,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -262,7 +262,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -295,7 +295,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -327,7 +327,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -364,7 +364,7 @@
       "default": "TYPE_UNSPECIFIED",
       "description": " - TYPE_UNSPECIFIED: default; treated as \"not set\"\nreject if unset."
     },
-    "googlerpcStatus": {
+    "googleRpcStatus": {
       "type": "object",
       "properties": {
         "code": {

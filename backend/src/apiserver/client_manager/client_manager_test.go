@@ -114,6 +114,14 @@ func TestFieldMeta_TaskRunId(t *testing.T) {
 	assert.Equal(t, "RunUUID", dbCol)
 }
 
+func TestAutoMigrateCreatesTaskLogicalKeyUniqueIndex(t *testing.T) {
+	db := getTestSQLite(t)
+
+	require.NoError(t, autoMigrate(db))
+	assert.True(t, db.Migrator().HasColumn(&model.Task{}, "LogicalKey"))
+	assert.True(t, db.Migrator().HasIndex(&model.Task{}, "idx_tasks_logical_key"))
+}
+
 func TestValidateRequiredConfig(t *testing.T) {
 	tests := []struct {
 		name        string

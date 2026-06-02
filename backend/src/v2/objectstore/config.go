@@ -12,19 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This package contains helper methods for using object stores.
+// Package objectstore contains helper methods for using object stores.
 package objectstore
 
 import (
-	"encoding/json"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"net/url"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
-// The endpoint uses Kubernetes service DNS name with namespace:
+// DefaultMinioEndpointInMultiUserMode uses Kubernetes service DNS name with namespace:
 // https://kubernetes.io/docs/concepts/services-networking/service/#dns
 const DefaultEndpointInMultiUserMode = "seaweedfs.kubeflow:9000"
 
@@ -33,7 +35,6 @@ type Config struct {
 	BucketName  string
 	Prefix      string
 	QueryString string
-	SessionInfo *SessionInfo
 }
 
 type SessionInfo struct {
@@ -73,44 +74,48 @@ func (b *Config) bucketURL() string {
 		}
 	}
 
-	u = u + q
+	u += q
 	return u
+}
+
+func (b *Config) BucketURL() string {
+	return b.bucketURL()
+}
+
+// SessionInfoPath preserves the object prefix in the path portion so provider
+// lookup can distinguish real bucket query parameters from the synthetic
+// ?prefix=... query added for blob.OpenBucket.
+func (b *Config) SessionInfoPath() string {
+	sessionInfoPath := b.PrefixedBucket()
+	if len(b.QueryString) > 0 {
+		sessionInfoPath += b.QueryString
+	}
+	return sessionInfoPath
 }
 
 func (b *Config) PrefixedBucket() string {
 	return b.Scheme + path.Join(b.BucketName, b.Prefix)
 }
 
-func (b *Config) KeyFromURI(uri string) (string, error) {
-	prefixedBucket := b.PrefixedBucket()
-	if !strings.HasPrefix(uri, prefixedBucket) {
-		return "", fmt.Errorf("URI %q does not have expected bucket prefix %q", uri, prefixedBucket)
-	}
-
-	key := strings.TrimLeft(strings.TrimPrefix(uri, prefixedBucket), "/")
-	if len(key) == 0 {
-		return "", fmt.Errorf("URI %q has empty key given prefixed bucket %q", uri, prefixedBucket)
-	}
-	return key, nil
-}
-
-func (b *Config) UriFromKey(blobKey string) string {
-	return b.Scheme + path.Join(b.BucketName, b.Prefix, blobKey)
+func (b *Config) Hash() string {
+	h := sha256.New()
+	h.Write([]byte(fmt.Sprintf(
+		"%d:%s|%d:%s|%d:%s|%d:%s",
+		len(b.Scheme), b.Scheme,
+		len(b.BucketName), b.BucketName,
+		len(b.Prefix), b.Prefix,
+		len(b.QueryString), b.QueryString,
+	)))
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 var bucketPattern = regexp.MustCompile(`(^[a-z][a-z0-9]+:///?)([^/?]+)(/[^?]*)?(\?.+)?$`)
 
-func ParseBucketConfig(path string, sess *SessionInfo) (*Config, error) {
-	config, err := ParseBucketPathToConfig(path)
-	if err != nil {
-		return nil, err
-	}
-	config.SessionInfo = sess
-
-	return config, nil
-}
-
 func ParseBucketPathToConfig(path string) (*Config, error) {
+	parsedPath, err := url.Parse(path)
+	if err == nil && hasEscapedQueryDelimiter(parsedPath.EscapedPath()) {
+		return nil, fmt.Errorf("parse bucket config failed: encoded query delimiters are not allowed in object paths: %q", path)
+	}
 	ms := bucketPattern.FindStringSubmatch(path)
 	if ms == nil || len(ms) != 5 {
 		return nil, fmt.Errorf("parse bucket config failed: unrecognized pipeline root format: %q", path)
@@ -123,7 +128,7 @@ func ParseBucketPathToConfig(path string) (*Config, error) {
 
 	prefix := strings.TrimPrefix(ms[3], "/")
 	if len(prefix) > 0 && !strings.HasSuffix(prefix, "/") {
-		prefix = prefix + "/"
+		prefix += "/"
 	}
 
 	return &Config{
@@ -134,21 +139,44 @@ func ParseBucketPathToConfig(path string) (*Config, error) {
 	}, nil
 }
 
-func ParseBucketConfigForArtifactURI(uri string) (*Config, error) {
-	ms := bucketPattern.FindStringSubmatch(uri)
-	if ms == nil || len(ms) != 5 {
-		return nil, fmt.Errorf("parse bucket config failed: unrecognized uri format: %q", uri)
+func IsWithinBucketRoot(rootConfig, candidateConfig *Config) bool {
+	if rootConfig == nil || candidateConfig == nil {
+		return false
+	}
+	return rootConfig.Scheme == candidateConfig.Scheme &&
+		rootConfig.BucketName == candidateConfig.BucketName &&
+		strings.HasPrefix(candidateConfig.Prefix, rootConfig.Prefix)
+}
+
+func SplitObjectURI(uri string) (prefix, base string, err error) {
+	u, err := url.Parse(uri)
+	if err != nil {
+		return "", "", fmt.Errorf("invalid URI: %w", err)
+	}
+	if hasEscapedQueryDelimiter(u.EscapedPath()) {
+		return "", "", fmt.Errorf("invalid URI: encoded query delimiters are not allowed in object paths")
 	}
 
-	// TODO: Verify/add support for file:///.
-	if ms[1] != "gs://" && ms[1] != "s3://" && ms[1] != "minio://" && ms[1] != "mem://" {
-		return nil, fmt.Errorf("parse bucket config failed: unsupported Cloud bucket: %q", uri)
-	}
+	// Trim trailing slash (if any)
+	cleanPath := strings.TrimSuffix(u.Path, "/")
 
-	return &Config{
-		Scheme:     ms[1],
-		BucketName: ms[2],
-	}, nil
+	// Get base name and dir prefix
+	base = path.Base(cleanPath)
+	dir := path.Dir(cleanPath)
+
+	// Reconstruct prefix (scheme + host + dir)
+	prefix = fmt.Sprintf("%s://%s", u.Scheme, u.Host)
+	if dir != "." && dir != "/" {
+		prefix += dir
+	}
+	return prefix, base, nil
+}
+
+func hasEscapedQueryDelimiter(escapedPath string) bool {
+	lowerPath := strings.ToLower(escapedPath)
+	return strings.Contains(lowerPath, "%3f") ||
+		strings.Contains(lowerPath, "%26") ||
+		strings.Contains(lowerPath, "%23")
 }
 
 // ParseProviderFromPath prases the uri and returns the scheme, which is
@@ -159,18 +187,6 @@ func ParseProviderFromPath(uri string) (string, error) {
 		return "", err
 	}
 	return strings.TrimSuffix(bucketConfig.Scheme, "://"), nil
-}
-
-func GetSessionInfoFromString(sessionInfoJSON string) (*SessionInfo, error) {
-	sessionInfo := &SessionInfo{}
-	if sessionInfoJSON == "" {
-		return nil, nil
-	}
-	err := json.Unmarshal([]byte(sessionInfoJSON), sessionInfo)
-	if err != nil {
-		return nil, fmt.Errorf("Encountered error when attempting to unmarshall bucket session info properties: %w", err)
-	}
-	return sessionInfo, nil
 }
 
 func StructuredS3Params(p map[string]string) (*S3Params, error) {

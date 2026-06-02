@@ -88,5 +88,5 @@ API generator image is defined in [Dockerfile](`./Dockerfile`). If you need to u
    * Replace `<PAT>` with a GitHub Personal Access Token (PAT) with the write:packages and `read:packages` scopes, as well as `delete:packages` if needed. 
 1. Update the [Dockerfile](`./Dockerfile`) and build the image by running `docker build -t ghcr.io/kubeflow/kfp-api-generator:$BRANCH .`
 1. Push the new container by running `docker push ghcr.io/kubeflow/kfp-api-generator:$BRANCH`.
-1. Update the `PREBUILT_REMOTE_IMAGE` variable in the [Makefile](./Makefile) to point to your new image.
+1. Update the `PREBUILT_REMOTE_IMAGE` variable in the [Makefile](./Makefile) to point to your new image, preferably using an immutable digest.
 1. Similarly, push a new version of the release tools image to `ghcr.io/kubeflow/kfp-release:$BRANCH` and run `make push` in [test/release/Makefile](../../test/release/Makefile).

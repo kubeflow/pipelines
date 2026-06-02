@@ -364,6 +364,9 @@ func (s *ArtifactServer) CreateArtifactTask(ctx context.Context, request *apiv2b
 	if err = s.canAccessArtifacts(ctx, "", resourceAttributes); err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
+	if err = s.canAccessRun(ctx, at.GetRunId(), &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUpdate}); err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
 
 	modelAT, err := toModelArtifactTask(at)
 	if err != nil {
@@ -441,6 +444,15 @@ func (s *ArtifactServer) CreateArtifactTasksBulk(ctx context.Context, request *a
 		if apiAT.GetRunId() == "" {
 			return nil, util.NewInvalidInputError("artifact_task.run_id is required")
 		}
+		if apiAT.GetType() == apiv2beta1.IOType_UNSPECIFIED {
+			return nil, util.NewInvalidInputError("artifact_task.type is required")
+		}
+		if apiAT.GetProducer() == nil {
+			return nil, util.NewInvalidInputError("artifact_task.producer is required")
+		}
+		if apiAT.GetKey() == "" {
+			return nil, util.NewInvalidInputError("artifact_task.key is required")
+		}
 
 		// Fetch task and artifact for validation and authorization
 		task, err := s.resourceManager.GetTask(apiAT.GetTaskId())
@@ -486,6 +498,9 @@ func (s *ArtifactServer) CreateArtifactTasksBulk(ctx context.Context, request *a
 		Verb:      common.RbacResourceVerbCreate,
 	}
 	if err := s.canAccessArtifacts(ctx, "", resourceAttributes); err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+	if err := s.canAccessRun(ctx, bulkRunID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUpdate}); err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 

@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package metadata contains types to record/retrieve metadata stored in MLMD
-// for individual pipeline steps.
 package config
 
 import (
@@ -23,7 +21,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"sigs.k8s.io/yaml"
 
@@ -68,51 +68,17 @@ type ServerConfig struct {
 	Port    string
 }
 
-// FromConfigMap loads config from a kfp-launcher Kubernetes config map.
-func FromConfigMap(ctx context.Context, clientSet kubernetes.Interface, namespace string) (*Config, error) {
-	config, err := clientSet.CoreV1().ConfigMaps(namespace).Get(ctx, configMapName, metav1.GetOptions{})
-	if err != nil {
-		if k8errors.IsNotFound(err) {
-			glog.Infof("cannot find launcher configmap: name=%q namespace=%q, will use default config", configMapName, namespace)
-			// LauncherConfig is optional, so ignore not found error.
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &Config{data: config.Data}, nil
-}
-
 // DefaultPipelineRoot gets the configured default pipeline root.
 func (c *Config) DefaultPipelineRoot() string {
 	// The key defaultPipelineRoot is optional in launcher config.
-	if c == nil || c.data[configKeyDefaultPipelineRoot] == "" {
+	if c == nil || c.data == nil {
+		return defaultPipelineRoot
+	}
+	// Check if key exists and has non-empty value
+	if val, exists := c.data[configKeyDefaultPipelineRoot]; !exists || val == "" {
 		return defaultPipelineRoot
 	}
 	return c.data[configKeyDefaultPipelineRoot]
-}
-
-// InPodNamespace gets current namespace from inside a Kubernetes Pod.
-func InPodNamespace() (string, error) {
-	// The path is available in Pods.
-	// https://kubernetes.io/docs/tasks/run-application/access-api-from-pod/#directly-accessing-the-rest-api
-	ns, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-	if err != nil {
-		return "", fmt.Errorf("failed to get namespace in Pod: %w", err)
-	}
-	return string(ns), nil
-}
-
-// InPodName gets the pod name from inside a Kubernetes Pod.
-func InPodName() (string, error) {
-	if podName, exists := os.LookupEnv("KFP_POD_NAME"); exists && podName != "" {
-		return podName, nil
-	}
-	podName, err := os.ReadFile("/etc/hostname")
-	if err != nil {
-		return "", fmt.Errorf("failed to get pod name in Pod: %w", err)
-	}
-	name := string(podName)
-	return strings.TrimSuffix(name, "\n"), nil
 }
 
 func (c *Config) GetStoreSessionInfo(path string) (objectstore.SessionInfo, error) {
@@ -160,6 +126,52 @@ func (c *Config) GetStoreSessionInfo(path string) (objectstore.SessionInfo, erro
 	return sess, nil
 }
 
+func (c *Config) HasExplicitBucketOverride(path string) (bool, error) {
+	provider, err := objectstore.ParseProviderFromPath(path)
+	if err != nil {
+		return false, err
+	}
+	bucketProviders, err := c.getBucketProviders()
+	if err != nil {
+		return false, err
+	}
+	if bucketProviders == nil {
+		return false, nil
+	}
+
+	switch provider {
+	case "minio":
+		if bucketProviders.Minio == nil {
+			return false, nil
+		}
+		return bucketProviders.Minio.HasExplicitOverride(path)
+	case "s3":
+		if bucketProviders.S3 == nil {
+			return false, nil
+		}
+		return bucketProviders.S3.HasExplicitOverride(path)
+	case "gs":
+		if bucketProviders.GCS == nil {
+			return false, nil
+		}
+		return bucketProviders.GCS.HasExplicitOverride(path)
+	default:
+		return false, fmt.Errorf("Encountered unsupported provider in provider config %s", provider)
+	}
+}
+
+func (c *Config) IsPathUnderDefaultPipelineRoot(path string) (bool, error) {
+	rootConfig, err := objectstore.ParseBucketPathToConfig(c.DefaultPipelineRoot())
+	if err != nil {
+		return false, err
+	}
+	pathConfig, err := objectstore.ParseBucketPathToConfig(path)
+	if err != nil {
+		return false, err
+	}
+	return objectstore.IsWithinBucketRoot(rootConfig, pathConfig), nil
+}
+
 // getBucketProviders gets the provider configuration
 func (c *Config) getBucketProviders() (*BucketProviders, error) {
 	if c == nil || c.data[configBucketProviders] == "" {
@@ -174,12 +186,50 @@ func (c *Config) getBucketProviders() (*BucketProviders, error) {
 	return bucketProviders, nil
 }
 
+// FetchLauncherConfigMap loads config from a kfp-launcher Kubernetes config map.
+func FetchLauncherConfigMap(ctx context.Context, clientSet kubernetes.Interface, namespace string) (*Config, error) {
+	config, err := clientSet.CoreV1().ConfigMaps(namespace).Get(ctx, configMapName, metav1.GetOptions{})
+	if err != nil {
+		if k8errors.IsNotFound(err) {
+			glog.Infof("cannot find launcher configmap: name=%q namespace=%q, will use default config", configMapName, namespace)
+			// LauncherConfig is optional, so ignore not found error.
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &Config{data: config.Data}, nil
+}
+
+// GetPipelineRootWithPipelineRunContext gets the pipeline root for a run.
+// The returned Pipeline Root appends the pipeline name and run id.
+func GetPipelineRootWithPipelineRunContext(
+	ctx context.Context,
+	pipelineName, namespace string,
+	k8sClient kubernetes.Interface,
+	run *go_client.Run) (string, error) {
+	var pipelineRoot string
+	if run.RuntimeConfig != nil && run.RuntimeConfig.PipelineRoot != "" {
+		pipelineRoot = run.RuntimeConfig.PipelineRoot
+		glog.Infof("PipelineRoot=%q from runtime config will be used.", pipelineRoot)
+	} else {
+		cfg, err := FetchLauncherConfigMap(ctx, k8sClient, namespace)
+		if err != nil {
+			return "", fmt.Errorf("failed to fetch launcher configmap: %w", err)
+		}
+		pipelineRoot = cfg.DefaultPipelineRoot()
+		glog.Infof("PipelineRoot=%q from default config", pipelineRoot)
+	}
+
+	pipelineRootAppended := util.GenerateOutputURI(pipelineRoot, []string{pipelineName, run.RunId}, true)
+	return pipelineRootAppended, nil
+}
+
 func getDefaultMinioSessionInfo() (objectstore.SessionInfo, error) {
 	sess := objectstore.SessionInfo{
 		Provider: "minio",
 		Params: map[string]string{
 			"region":     "minio",
-			"endpoint":   objectstore.DefaultEndpointInMultiUserMode,
+			"endpoint":   getDefaultMinioHost(),
 			"disableSSL": strconv.FormatBool(true),
 			"fromEnv":    strconv.FormatBool(false),
 			"maxRetries": strconv.FormatInt(int64(5), 10),
@@ -192,9 +242,43 @@ func getDefaultMinioSessionInfo() (objectstore.SessionInfo, error) {
 	return sess, nil
 }
 
+func getDefaultMinioHost() string {
+	endpoint := objectstore.DefaultEndpointInMultiUserMode
+	var host, port string
+	if os.Getenv("OBJECT_STORE_HOST") != "" {
+		host = os.Getenv("OBJECT_STORE_HOST")
+	}
+	if os.Getenv("OBJECT_STORE_PORT") != "" {
+		port = os.Getenv("OBJECT_STORE_PORT")
+	}
+	if host != "" && port != "" {
+		return fmt.Sprintf("%s:%s", host, port)
+	} else {
+		return endpoint
+	}
+}
+
 func GetMLPipelineServerConfig() *ServerConfig {
 	return &ServerConfig{
 		Address: common.GetMLPipelineServiceName() + "." + common.GetPodNamespace() + ".svc." + common.GetClusterDomain(),
 		Port:    mlPipelineGrpcServicePort,
 	}
+}
+
+func InPodName() (string, error) {
+	if podName := os.Getenv("KFP_POD_NAME"); podName != "" {
+		return podName, nil
+	}
+
+	hostnameBytes, err := os.ReadFile("/etc/hostname")
+	if err != nil {
+		return "", fmt.Errorf("failed to get pod name in Pod: %w", err)
+	}
+
+	podName := strings.TrimSpace(string(hostnameBytes))
+	if podName == "" {
+		return "", fmt.Errorf("failed to get pod name in Pod: empty hostname")
+	}
+
+	return podName, nil
 }
