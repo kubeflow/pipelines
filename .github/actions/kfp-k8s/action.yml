@@ -1,5 +1,5 @@
-name: "Install kfp & kfp-kubernetes"
-description: "Install kfp & kfp-kubernetes"
+name: "Install kfp-server-api, kfp & kfp-kubernetes"
+description: "Install kfp-server-api, kfp & kfp-kubernetes from source"
 inputs:
   build_version:
     required: true
@@ -27,6 +27,13 @@ runs:
         python -m build .
         pip install dist/*.whl
 
+    - name: Build kfp-server-api dist
+      id: build-kfp-server-api
+      shell: bash
+      working-directory: backend/api/v2beta1/python_http_client
+      run: |
+        python -m build .
+
     - name: Build kfp dist
       id: install-kfp
       shell: bash
@@ -50,15 +57,15 @@ runs:
       working-directory: ./kubernetes_platform
       run: make golang
 
-    # kfp is installed transitively
-    # --find-links ensures pip first looks in the sdk/python/dist folder
-    # outputted from generate-kfp-kubernetes-proto-files step before looking at pypi
+    # kfp and kfp-server-api are installed transitively
+    # --find-links ensures pip first looks in the dist folders before looking at pypi
+    # for kfp-server-api and kfp packages
     - name: Install kfp & kfp-kubernetes from source
       id: install-kfp-kubernetes
       shell: bash
       if: ${{ steps.generate-kfp-kubernetes-proto-files.outcome == 'success' }}
       run: |
-        pip install -e ./kubernetes_platform/python[dev] --find-links=sdk/python/dist
+        pip install -e ./kubernetes_platform/python[dev] --find-links=backend/api/v2beta1/python_http_client/dist --find-links=sdk/python/dist
 
     # testing reinstalling kfp package from source with no deps
     - name: Reinstall kfp from source with no deps

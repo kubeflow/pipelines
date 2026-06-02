@@ -51,9 +51,10 @@ const (
 	AuthorizationBearerTokenPrefix string = "Bearer "
 )
 
-const DefaultTokenReviewAudience string = "pipelines.kubeflow.org"
-
-const DefaultMetadataTLSEnabled = false
+const (
+	DefaultTokenReviewAudience string = "pipelines.kubeflow.org"
+	DefaultMetadataTLSEnabled  bool   = false
+)
 
 const (
 	DefaultPipelineRunnerServiceAccount = "pipeline-runner"

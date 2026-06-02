@@ -18,69 +18,19 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"strconv"
-	"time"
-
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 )
-
-func collectOutputArtifactMetadataFromCache(ctx context.Context, executorInput *pipelinespec.ExecutorInput, cachedMLMDExecutionID int64, mlmd *metadata.Client) ([]*metadata.OutputArtifact, error) {
-	outputArtifacts, err := mlmd.GetOutputArtifactsByExecutionId(ctx, cachedMLMDExecutionID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get MLMDOutputArtifactsByName by executionId %v: %w", cachedMLMDExecutionID, err)
-	}
-
-	// Register artifacts with MLMD.
-	registeredMLMDArtifacts := make([]*metadata.OutputArtifact, 0, len(executorInput.GetOutputs().GetArtifacts()))
-	for name, artifactList := range executorInput.GetOutputs().GetArtifacts() {
-		if len(artifactList.Artifacts) == 0 {
-			continue
-		}
-		artifact := artifactList.Artifacts[0]
-		outputArtifact, ok := outputArtifacts[name]
-		if !ok {
-			return nil, fmt.Errorf("unable to find artifact with name %v in mlmd output artifacts", name)
-		}
-		outputArtifact.Schema = artifact.GetType().GetInstanceSchema()
-		registeredMLMDArtifacts = append(registeredMLMDArtifacts, outputArtifact)
-	}
-	return registeredMLMDArtifacts, nil
-}
-
-func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.ExecutorInput, mlmd *metadata.Client, cachedMLMDExecutionID string) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
-	cachedMLMDExecutionIDInt64, err := strconv.ParseInt(cachedMLMDExecutionID, 10, 64)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failure while transferring cachedMLMDExecutionID %s from string to int64: %w", cachedMLMDExecutionID, err)
-	}
-	execution, err := mlmd.GetExecution(ctx, cachedMLMDExecutionIDInt64)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failure while getting execution of cachedMLMDExecutionID %v: %w", cachedMLMDExecutionIDInt64, err)
-	}
-	executorOutput := &pipelinespec.ExecutorOutput{
-		Artifacts: map[string]*pipelinespec.ArtifactList{},
-	}
-	_, outputs, err := execution.GetParameters()
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to collect output parameters from cache: %w", err)
-	}
-	executorOutput.ParameterValues = outputs
-	outputArtifacts, err := collectOutputArtifactMetadataFromCache(ctx, executorInput, cachedMLMDExecutionIDInt64, mlmd)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed collect output artifact metadata from cache: %w", err)
-	}
-	return executorOutput, outputArtifacts, nil
-}
 
 // getFingerPrint generates a fingerprint for caching. The PVC names are included in the fingerprint since it's assumed
 // PVCs have side effects (e.g. files written for tasks later on in the run) on the execution. If the PVC names are
 // different, the execution shouldn't be reused for the cache.
-func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput, cacheClient cacheutils.Client, pvcNames []string) (string, error) {
+func getFingerPrint(opts common.Options, executorInput *pipelinespec.ExecutorInput, pvcNames []string) (string, error) {
 	outputParametersTypeMap := make(map[string]string)
 	for outputParamName, outputParamSpec := range opts.Component.GetOutputDefinitions().GetParameters() {
 		outputParametersTypeMap[outputParamName] = outputParamSpec.GetParameterType().String()
@@ -101,7 +51,7 @@ func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput, cac
 	}
 	sort.Strings(sortedPVCNames)
 
-	cacheKey, err := cacheClient.GenerateCacheKey(
+	cacheKey, err := cacheutils.GenerateCacheKey(
 		executorInput.GetInputs(),
 		executorInput.GetOutputs(),
 		outputParametersTypeMap,
@@ -112,53 +62,64 @@ func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput, cac
 	if err != nil {
 		return "", fmt.Errorf("failure while generating CacheKey: %w", err)
 	}
-	fingerPrint, err := cacheClient.GenerateFingerPrint(cacheKey)
+	fingerPrint, err := cacheutils.GenerateFingerPrint(cacheKey)
 	return fingerPrint, err
 }
 
-func getFingerPrintsAndID(execution *Execution, opts *Options, cacheClient cacheutils.Client, pvcNames []string) (string, string, error) {
-	if !opts.CacheDisabled && execution.WillTrigger() && opts.Task.GetCachingOptions().GetEnableCache() {
-		glog.Infof("Task {%s} enables cache", opts.Task.GetTaskInfo().GetName())
-		fingerPrint, err := getFingerPrint(*opts, execution.ExecutorInput, cacheClient, pvcNames)
-		if err != nil {
-			return "", "", fmt.Errorf("failure while getting fingerPrint: %w", err)
-		}
-		cachedMLMDExecutionID, err := cacheClient.GetExecutionCache(fingerPrint, "pipeline/"+opts.PipelineName, opts.Namespace)
-		if err != nil {
-			return "", "", fmt.Errorf("failure while getting executionCache: %w", err)
-		}
-		return fingerPrint, cachedMLMDExecutionID, nil
-	} else {
-		return "", "", nil
-	}
-}
-
-func createCache(
+func getFingerPrintsAndID(
 	ctx context.Context,
-	execution *metadata.Execution,
-	opts *Options,
-	taskStartedTime int64,
-	fingerPrint string,
-	cacheClient cacheutils.Client,
-) error {
-	id := execution.GetID()
-	if id == 0 {
-		return fmt.Errorf("failed to get id from createdExecution")
+	execution *Execution,
+	kfpAPI kfpapi.API,
+	opts *common.Options,
+	pvcNames []string) (fingerprint string, task *apiv2beta1.PipelineTask, err error) {
+
+	if opts.CacheDisabled || !execution.WillTrigger() || !opts.Task.GetCachingOptions().GetEnableCache() {
+		return "", nil, nil
 	}
-	task := &api.Task{
-		// TODO how to differentiate between shared pipeline and namespaced pipeline
-		PipelineName:    "pipeline/" + opts.PipelineName,
-		Namespace:       opts.Namespace,
-		RunId:           opts.RunID,
-		MlmdExecutionID: strconv.FormatInt(id, 10),
-		CreatedAt:       timestamppb.New(time.Unix(taskStartedTime, 0)),
-		FinishedAt:      timestamppb.New(time.Unix(time.Now().Unix(), 0)),
-		Fingerprint:     fingerPrint,
-	}
-	err := cacheClient.CreateExecutionCache(ctx, task)
+
+	glog.Infof("Task {%s} enables cache", opts.Task.GetTaskInfo().GetName())
+	fingerPrint, err := getFingerPrint(*opts, execution.ExecutorInput, pvcNames)
 	if err != nil {
-		return err
+		return "", nil, fmt.Errorf("failure while getting fingerPrint: %w", err)
 	}
-	glog.Infof("Created cache entry.")
-	return nil
+
+	fullView := apiv2beta1.ListRunsRequest_FULL
+	pageToken := ""
+	var matchedTasks []*apiv2beta1.PipelineTask
+
+	for {
+		runs, err := kfpAPI.ListRuns(ctx, &apiv2beta1.ListRunsRequest{
+			Namespace: opts.Namespace,
+			PageSize:  50,
+			PageToken: pageToken,
+			View:      &fullView,
+		})
+		if err != nil {
+			return "", nil, fmt.Errorf("failure while listing runs for cache lookup: %w", err)
+		}
+
+		for _, run := range runs.GetRuns() {
+			for _, candidateTask := range run.GetTasks() {
+				if candidateTask.GetCacheFingerprint() == fingerPrint &&
+					candidateTask.GetState() == apiv2beta1.PipelineTask_SUCCEEDED {
+					matchedTasks = append(matchedTasks, candidateTask)
+				}
+			}
+		}
+
+		pageToken = runs.GetNextPageToken()
+		if pageToken == "" {
+			break
+		}
+	}
+
+	if len(matchedTasks) == 0 {
+		glog.Infof("No cached tasks found for task {%s}", opts.Task.GetTaskInfo().GetName())
+		return fingerPrint, nil, nil
+	} else if len(matchedTasks) > 1 {
+		glog.Infof("Found multiple cached tasks for task %s with fingerprint %s, the first one found will be used.", opts.Task.GetTaskInfo().GetName(), fingerPrint)
+	}
+
+	glog.V(4).Infof("Got a cache hit for task {%s}", opts.Task.GetTaskInfo().GetName())
+	return fingerPrint, matchedTasks[0], nil
 }

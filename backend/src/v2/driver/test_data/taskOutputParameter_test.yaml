@@ -1,0 +1,162 @@
+# PIPELINE DEFINITION
+# Name: primary-pipeline
+components:
+  comp-analyze-artifact:
+    executorLabel: exec-analyze-artifact
+    inputDefinitions:
+      parameters:
+        data_input:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        output_opinion:
+          parameterType: BOOLEAN
+  comp-create-dataset:
+    executorLabel: exec-create-dataset
+    outputDefinitions:
+      parameters:
+        output_parameter_path:
+          parameterType: STRING
+  comp-process-dataset:
+    executorLabel: exec-process-dataset
+    inputDefinitions:
+      parameters:
+        input_dataset:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        output_int:
+          parameterType: NUMBER_INTEGER
+deploymentSpec:
+  executors:
+    exec-analyze-artifact:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - analyze_artifact
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef analyze_artifact(data_input: int, output_opinion: OutputPath(bool)):\n\
+          \    assert data_input == 100\n    with open(output_opinion, \"w\") as f:\n\
+          \        f.write(str(True))\n\n"
+        image: python:3.11
+    exec-create-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - create_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef create_dataset(output_parameter_path: OutputPath(str)):\n   \
+          \ with open(output_parameter_path, \"w\") as f:\n        f.write('hurricane')\n\
+          \n"
+        image: python:3.11
+    exec-process-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - process_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef process_dataset(input_dataset: str, output_int: OutputPath(int)):\n\
+          \    assert input_dataset == \"hurricane\"\n    with open(output_int, \"\
+          w\") as f:\n        f.write(\"100\")\n\n"
+        image: python:3.11
+pipelineInfo:
+  name: primary-pipeline
+root:
+  dag:
+    tasks:
+      analyze-artifact:
+        cachingOptions: {}
+        componentRef:
+          name: comp-analyze-artifact
+        dependentTasks:
+        - process-dataset
+        inputs:
+          parameters:
+            data_input:
+              taskOutputParameter:
+                outputParameterKey: output_int
+                producerTask: process-dataset
+        taskInfo:
+          name: analyze-artifact
+      create-dataset:
+        cachingOptions: {}
+        componentRef:
+          name: comp-create-dataset
+        taskInfo:
+          name: create-dataset
+      process-dataset:
+        cachingOptions: {}
+        componentRef:
+          name: comp-process-dataset
+        dependentTasks:
+        - create-dataset
+        inputs:
+          parameters:
+            input_dataset:
+              taskOutputParameter:
+                outputParameterKey: output_parameter_path
+                producerTask: create-dataset
+        taskInfo:
+          name: process-dataset
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.6

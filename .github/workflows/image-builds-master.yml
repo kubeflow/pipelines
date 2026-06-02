@@ -39,12 +39,6 @@ jobs:
           - name: kfp-cache-server
             dockerfile: backend/Dockerfile.cacheserver
             context: .
-          - name: kfp-metadata-envoy
-            dockerfile: third_party/metadata_envoy/Dockerfile
-            context: .
-          - name: kfp-metadata-writer
-            dockerfile: backend/metadata_writer/Dockerfile
-            context: .
           - name: kfp-inverse-proxy-agent
             dockerfile: proxy/Dockerfile
             context: ./proxy
@@ -58,9 +52,6 @@ jobs:
             platform: linux/arm64
 
         exclude:
-          - image: { name: kfp-metadata-writer }
-            arch: { arch_name: arm64 }
-
           - image: { name: kfp-inverse-proxy-agent }
             arch: { arch_name: arm64 }
 
@@ -96,8 +87,6 @@ jobs:
           - image: kfp-driver
           - image: kfp-cache-deployer
           - image: kfp-cache-server
-          - image: kfp-metadata-writer
-          - image: kfp-metadata-envoy
           - image: kfp-inverse-proxy-agent
     uses: ./.github/workflows/create-manifest.yml
     secrets: inherit

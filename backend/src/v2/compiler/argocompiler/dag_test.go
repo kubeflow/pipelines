@@ -53,10 +53,10 @@ func TestDagDriverTask_WithTaskName(t *testing.T) {
 		{
 			name: "With custom taskName",
 			inputs: dagDriverInputs{
-				component:   "component-placeholder",
-				parentDagID: "parent-1",
-				task:        `{"taskInfo": {"name": "task-1"}}`,
-				taskName:    "simple-loop",
+				component:    "component-placeholder",
+				parentTaskID: "parent-1",
+				task:         `{"taskInfo": {"name": "task-1"}}`,
+				taskName:     "simple-loop",
 			},
 			expectedTask: "simple-loop",
 			checkParam:   true,
@@ -64,10 +64,10 @@ func TestDagDriverTask_WithTaskName(t *testing.T) {
 		{
 			name: "Without taskName",
 			inputs: dagDriverInputs{
-				component:   "component-placeholder",
-				parentDagID: "parent-1",
-				task:        `{"taskInfo": {"name": "test-task"}}`,
-				taskName:    "",
+				component:    "component-placeholder",
+				parentTaskID: "parent-1",
+				task:         `{"taskInfo": {"name": "test-task"}}`,
+				taskName:     "",
 			},
 			expectedTask: "",
 			checkParam:   false,
@@ -128,10 +128,10 @@ func TestDagDriverTask_TaskNameIncludedInArguments(t *testing.T) {
 	}
 
 	inputs := dagDriverInputs{
-		component:   "component-spec-json",
-		parentDagID: "parent-dag-123",
-		task:        `{"taskInfo": {"name": "for-loop-task"}}`,
-		taskName:    "simple-loop",
+		component:    "component-spec-json",
+		parentTaskID: "parent-dag-123",
+		task:         `{"taskInfo": {"name": "for-loop-task"}}`,
+		taskName:     "simple-loop",
 	}
 
 	driverTask, _, err := c.dagDriverTask("iteration-driver", inputs)
@@ -148,6 +148,6 @@ func TestDagDriverTask_TaskNameIncludedInArguments(t *testing.T) {
 	require.Contains(t, paramMap, paramTaskName, "Driver task must include task-name parameter")
 	assert.Equal(t, "simple-loop", paramMap[paramTaskName], "task-name parameter should match provided taskName")
 	assert.Equal(t, "component-spec-json", paramMap[paramComponent])
-	assert.Equal(t, "parent-dag-123", paramMap[paramParentDagID])
+	assert.Equal(t, "parent-dag-123", paramMap[paramParentDagTaskID])
 	assert.Equal(t, `{"taskInfo": {"name": "for-loop-task"}}`, paramMap[paramTask])
 }

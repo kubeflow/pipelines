@@ -821,22 +821,11 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         }
       }
 
-      let mlmdRunContext: Context | undefined;
-      let mlmdExecutions: Execution[] | undefined;
-      // Get data about this workflow from MLMD
-      try {
-        mlmdRunContext = await getRunContext(workflow, runId);
-        mlmdExecutions = await getExecutionsFromContext(mlmdRunContext);
-      } catch (err) {
-        // Data in MLMD may not exist depending on this pipeline is a TFX pipeline.
-        // So we only log the error in console.
-        logger.warn(err);
-      }
-
-      // Build runtime graph
-      const graph =
+      // Build runtime graph from the workflow payload first so the page can render even if
+      // MLMD is temporarily unavailable or misconfigured.
+      let graph =
         workflow && workflow.status && workflow.status.nodes
-          ? WorkflowParser.createRuntimeGraph(workflow, mlmdExecutions)
+          ? WorkflowParser.createRuntimeGraph(workflow, undefined)
           : undefined;
       let reducedGraph = graph
         ? // copy graph before removing edges
@@ -904,10 +893,35 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         runFinished,
         runMetadata,
         workflow,
-        mlmdRunContext,
-        mlmdExecutions,
         namespace,
       });
+
+      let mlmdRunContext: Context | undefined;
+      let mlmdExecutions: Execution[] | undefined;
+      // Get data about this workflow from MLMD after the page is already populated with the
+      // run payload. This avoids blocking the run-details UI on auxiliary metadata fetches.
+      try {
+        mlmdRunContext = await getRunContext(workflow, runId);
+        mlmdExecutions = await getExecutionsFromContext(mlmdRunContext);
+        graph =
+          workflow && workflow.status && workflow.status.nodes
+            ? WorkflowParser.createRuntimeGraph(workflow, mlmdExecutions)
+            : undefined;
+        reducedGraph = graph ? transitiveReduction(graph) : undefined;
+        if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
+          reducedGraph = undefined;
+        }
+        this.setStateSafe({
+          graph,
+          reducedGraph,
+          mlmdRunContext,
+          mlmdExecutions,
+        });
+      } catch (err) {
+        // Data in MLMD may not exist depending on whether this pipeline emitted MLMD metadata.
+        // Keep the primary run-details view rendered and only log the enrichment failure.
+        logger.warn(err);
+      }
 
       // Read optional exeuction id from query parameter. If valid, shows detail of selected node.
       const paramExecutionId = this.props.match.params[RouteParams.executionId];
