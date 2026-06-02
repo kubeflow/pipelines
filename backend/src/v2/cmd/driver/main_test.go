@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
@@ -129,6 +130,70 @@ func TestResolvePipelineJobTimes(t *testing.T) {
 			}
 			assert.Equal(t, tc.expectedCreateTimeUTC, actualCreateTimeUTC)
 			assert.Equal(t, tc.expectedScheduleTimeUTC, actualScheduleTimeUTC)
+		})
+	}
+}
+
+func TestGetWorkflowMetadataForPipelineJobTimes(t *testing.T) {
+	workflowMeta := &metav1.ObjectMeta{Name: "workflow-name"}
+	lookupErr := assert.AnError
+
+	tests := []struct {
+		name                     string
+		createTimeUTC            string
+		scheduleTimeEpochSeconds string
+		getterResult             *metav1.ObjectMeta
+		getterErr                error
+		wantMetadata             *metav1.ObjectMeta
+		wantErr                  bool
+		wantGetterCalls          int
+	}{
+		{
+			name:                     "skips lookup when both values are already provided",
+			createTimeUTC:            "2026-01-02T03:04:05Z",
+			scheduleTimeEpochSeconds: "1767225600",
+			wantGetterCalls:          0,
+		},
+		{
+			name:            "returns workflow metadata when schedule time needs lookup",
+			createTimeUTC:   "2026-01-02T03:04:05Z",
+			getterResult:    workflowMeta,
+			wantMetadata:    workflowMeta,
+			wantGetterCalls: 1,
+		},
+		{
+			name:            "falls back when schedule-time lookup fails",
+			createTimeUTC:   "2026-01-02T03:04:05Z",
+			getterErr:       lookupErr,
+			wantGetterCalls: 1,
+		},
+		{
+			name:            "fails when create time also requires lookup",
+			getterErr:       lookupErr,
+			wantErr:         true,
+			wantGetterCalls: 1,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			getterCalls := 0
+			actualMetadata, err := getWorkflowMetadataForPipelineJobTimes(
+				context.Background(),
+				"kubeflow",
+				"workflow-name",
+				tc.createTimeUTC,
+				tc.scheduleTimeEpochSeconds,
+				func(ctx context.Context, namespace string, workflowName string) (*metav1.ObjectMeta, error) {
+					getterCalls++
+					assert.Equal(t, "kubeflow", namespace)
+					assert.Equal(t, "workflow-name", workflowName)
+					return tc.getterResult, tc.getterErr
+				},
+			)
+			assert.Equal(t, tc.wantErr, err != nil)
+			assert.Equal(t, tc.wantGetterCalls, getterCalls)
+			assert.Same(t, tc.wantMetadata, actualMetadata)
 		})
 	}
 }

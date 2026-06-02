@@ -23,11 +23,9 @@ import (
 	"time"
 
 	argoclient "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
-	workflowcommon "github.com/argoproj/argo-workflows/v3/workflow/common"
 	"github.com/spf13/viper"
 	"google.golang.org/protobuf/encoding/protojson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -151,35 +149,24 @@ func validate() error {
 	return nil
 }
 
-// getCurrentWorkflowMetadata returns the owning Argo Workflow metadata for the
-// current driver pod.
+// getCurrentWorkflowMetadata returns metadata for the Argo Workflow backing the
+// current run.
 //
 // The compiler can safely pass workflow creation time directly via
 // {{workflow.creationTimestamp}}, but recurring-run schedule time is stored in
 // the workflowEpoch label and that label is absent for ad hoc runs. Referencing
 // the label directly from the compiled template causes Argo to reject manual
 // runs before the driver starts, so the driver resolves the label at runtime
-// from the Workflow object instead.
-func getCurrentWorkflowMetadata(ctx context.Context, namespace string) (*metav1.ObjectMeta, error) {
+// from the Workflow object instead. The driver already receives --run_name as
+// {{workflow.name}}, so it can read the Workflow directly without first looking
+// up its own Pod.
+func getCurrentWorkflowMetadata(ctx context.Context, namespace string, workflowName string) (*metav1.ObjectMeta, error) {
+	if workflowName == "" {
+		return nil, fmt.Errorf("workflow name is empty")
+	}
 	restConfig, err := util.GetKubernetesConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize kubernetes config for workflow metadata: %w", err)
-	}
-	k8sClient, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize kubernetes client for workflow metadata: %w", err)
-	}
-	podName, err := config.InPodName()
-	if err != nil {
-		return nil, fmt.Errorf("failed to determine driver pod name: %w", err)
-	}
-	pod, err := k8sClient.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve driver pod %q: %w", podName, err)
-	}
-	workflowName := pod.Labels[workflowcommon.LabelKeyWorkflow]
-	if workflowName == "" {
-		return nil, nil
 	}
 	argoClient, err := argoclient.NewForConfig(restConfig)
 	if err != nil {
@@ -190,6 +177,38 @@ func getCurrentWorkflowMetadata(ctx context.Context, namespace string) (*metav1.
 		return nil, fmt.Errorf("failed to retrieve workflow %q: %w", workflowName, err)
 	}
 	return &workflow.ObjectMeta, nil
+}
+
+type workflowMetadataGetter func(ctx context.Context, namespace string, workflowName string) (*metav1.ObjectMeta, error)
+
+// getWorkflowMetadataForPipelineJobTimes loads Workflow metadata only when a
+// placeholder still needs runtime metadata. If create time is already available,
+// schedule-time lookup is best-effort so clusters without Workflow read RBAC
+// still resolve placeholders by falling back to create time.
+func getWorkflowMetadataForPipelineJobTimes(
+	ctx context.Context,
+	namespace string,
+	workflowName string,
+	createTimeUTC string,
+	scheduleTimeEpochSeconds string,
+	getMetadata workflowMetadataGetter,
+) (*metav1.ObjectMeta, error) {
+	if createTimeUTC != "" && scheduleTimeEpochSeconds != "" {
+		return nil, nil
+	}
+	workflowMeta, err := getMetadata(ctx, namespace, workflowName)
+	if err != nil {
+		if createTimeUTC != "" && scheduleTimeEpochSeconds == "" {
+			glog.Warningf(
+				"Failed to retrieve workflow metadata for pipeline job schedule time for workflow %q, falling back to create time: %v",
+				workflowName,
+				err,
+			)
+			return nil, nil
+		}
+		return nil, err
+	}
+	return workflowMeta, nil
 }
 
 // resolvePipelineJobScheduleTimeUTCFromWorkflow returns the exact recurring-run
@@ -317,12 +336,16 @@ func drive() (err error) {
 	if err != nil {
 		glog.Errorf("Failed to initialize plugin dispatcher: %v", err)
 	}
-	var workflowMeta *metav1.ObjectMeta
-	if *pipelineJobCreateTimeUTCArg == "" || *pipelineJobScheduleTimeEpochArg == "" {
-		workflowMeta, err = getCurrentWorkflowMetadata(ctx, namespace)
-		if err != nil {
-			return err
-		}
+	workflowMeta, err := getWorkflowMetadataForPipelineJobTimes(
+		ctx,
+		namespace,
+		*runName,
+		*pipelineJobCreateTimeUTCArg,
+		*pipelineJobScheduleTimeEpochArg,
+		getCurrentWorkflowMetadata,
+	)
+	if err != nil {
+		return err
 	}
 	resolvedPipelineJobCreateTimeUTC, resolvedPipelineJobScheduleTimeUTC, err := resolvePipelineJobTimes(
 		*pipelineJobCreateTimeUTCArg,
