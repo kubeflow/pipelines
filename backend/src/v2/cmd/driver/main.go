@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/spf13/viper"
 	argoclient "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
 	workflowcommon "github.com/argoproj/argo-workflows/v3/workflow/common"
+	"github.com/spf13/viper"
 	"google.golang.org/protobuf/encoding/protojson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -313,39 +313,14 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
-<<<<<<< HEAD
 	// pluginDispatcher executes task-level plugin lifecycle hooks
 	pluginDispatcher, err := plugins.GetPluginDispatcher()
 	if err != nil {
 		glog.Errorf("Failed to initialize plugin dispatcher: %v", err)
 	}
-	options := driver.Options{
-		PipelineName:            *pipelineName,
-		RunID:                   *runID,
-		RunName:                 *runName,
-		RunDisplayName:          *runDisplayName,
-		Namespace:               namespace,
-		Component:               componentSpec,
-		Task:                    taskSpec,
-		DAGExecutionID:          *dagExecutionID,
-		IterationIndex:          *iterationIndex,
-		PipelineLogLevel:        *logLevel,
-		PublishLogs:             *publishLogs,
-		CacheDisabled:           *cacheDisabledFlag,
-		DriverType:              *driverType,
-		TaskName:                *taskName,
-		MLPipelineServerAddress: *mlPipelineServerAddress,
-		MLPipelineServerPort:    *mlPipelineServerPort,
-		MLMDServerAddress:       *mlmdServerAddress,
-		MLMDServerPort:          *mlmdServerPort,
-		MLPipelineTLSEnabled:    *mlPipelineTLSEnabled,
-		MLMDTLSEnabled:          *metadataTLSEnabled,
-		CaCertPath:              *caCertPath,
-		PluginDispatcher:        pluginDispatcher,
-=======
 	var workflowMeta *metav1.ObjectMeta
 	if *pipelineJobCreateTimeUTCArg == "" || *pipelineJobScheduleTimeEpochArg == "" {
-		workflowMeta, err = getCurrentWorkflowMetadata(context.Background(), namespace)
+		workflowMeta, err = getCurrentWorkflowMetadata(ctx, namespace)
 		if err != nil {
 			return err
 		}
@@ -382,7 +357,7 @@ func drive() (err error) {
 		MLPipelineTLSEnabled:       *mlPipelineTLSEnabled,
 		MLMDTLSEnabled:             *metadataTLSEnabled,
 		CaCertPath:                 *caCertPath,
->>>>>>> 647b51dba (feat(backend): enable create and schedule time placeholders)
+		PluginDispatcher:           pluginDispatcher,
 	}
 	var execution *driver.Execution
 	var driverErr error
