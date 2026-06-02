@@ -20,9 +20,14 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"time"
 
 	"github.com/spf13/viper"
+	argoclient "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
+	workflowcommon "github.com/argoproj/argo-workflows/v3/workflow/common"
 	"google.golang.org/protobuf/encoding/protojson"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -57,16 +62,18 @@ const (
 
 var (
 	// inputs
-	driverType        = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, DAG, CONTAINER")
-	pipelineName      = flag.String("pipeline_name", "", "pipeline context name")
-	runID             = flag.String("run_id", "", "pipeline run uid")
-	runName           = flag.String("run_name", "", "pipeline run name (Kubernetes object name)")
-	runDisplayName    = flag.String("run_display_name", "", "pipeline run display name")
-	componentSpecJson = flag.String("component", "{}", "component spec")
-	taskSpecJson      = flag.String("task", "", "task spec")
-	runtimeConfigJson = flag.String("runtime_config", "", "jobruntime config")
-	iterationIndex    = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
-	taskName          = flag.String("task_name", "", "original task name, used for proper input resolution in the container/dag driver")
+	driverType                      = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, DAG, CONTAINER")
+	pipelineName                    = flag.String("pipeline_name", "", "pipeline context name")
+	runID                           = flag.String("run_id", "", "pipeline run uid")
+	runName                         = flag.String("run_name", "", "pipeline run name (Kubernetes object name)")
+	runDisplayName                  = flag.String("run_display_name", "", "pipeline run display name")
+	pipelineJobCreateTimeUTCArg     = flag.String("pipeline_job_create_time_utc", "", "pipeline job creation time in UTC")
+	pipelineJobScheduleTimeEpochArg = flag.String("pipeline_job_schedule_time_epoch_seconds", "", "pipeline job scheduled time as Unix epoch seconds")
+	componentSpecJSON               = flag.String("component", "{}", "component spec")
+	taskSpecJSON                    = flag.String("task", "", "task spec")
+	runtimeConfigJSON               = flag.String("runtime_config", "", "jobruntime config")
+	iterationIndex                  = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
+	taskName                        = flag.String("task_name", "", "original task name, used for proper input resolution in the container/dag driver")
 
 	// container inputs
 	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
@@ -145,6 +152,94 @@ func validate() error {
 	return nil
 }
 
+// getCurrentWorkflowMetadata returns the owning Argo Workflow metadata for the
+// current driver pod.
+//
+// The compiler can safely pass workflow creation time directly via
+// {{workflow.creationTimestamp}}, but recurring-run schedule time is stored in
+// the workflowEpoch label and that label is absent for ad hoc runs. Referencing
+// the label directly from the compiled template causes Argo to reject manual
+// runs before the driver starts, so the driver resolves the label at runtime
+// from the Workflow object instead.
+func getCurrentWorkflowMetadata(ctx context.Context, namespace string) (*metav1.ObjectMeta, error) {
+	restConfig, err := util.GetKubernetesConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize kubernetes config for workflow metadata: %w", err)
+	}
+	k8sClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize kubernetes client for workflow metadata: %w", err)
+	}
+	podName, err := config.InPodName()
+	if err != nil {
+		return nil, fmt.Errorf("failed to determine driver pod name: %w", err)
+	}
+	pod, err := k8sClient.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve driver pod %q: %w", podName, err)
+	}
+	workflowName := pod.Labels[workflowcommon.LabelKeyWorkflow]
+	if workflowName == "" {
+		return nil, nil
+	}
+	argoClient, err := argoclient.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize argo client for workflow metadata: %w", err)
+	}
+	workflow, err := argoClient.ArgoprojV1alpha1().Workflows(namespace).Get(ctx, workflowName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve workflow %q: %w", workflowName, err)
+	}
+	return &workflow.ObjectMeta, nil
+}
+
+// resolvePipelineJobScheduleTimeUTCFromWorkflow returns the exact recurring-run
+// schedule time when workflowEpoch is present and otherwise falls back to the
+// workflow creation time for manual runs.
+func resolvePipelineJobScheduleTimeUTCFromWorkflow(
+	workflowMeta *metav1.ObjectMeta,
+	fallbackCreateTimeUTC string,
+) string {
+	if workflowMeta == nil {
+		return fallbackCreateTimeUTC
+	}
+	createTimeUTC := fallbackCreateTimeUTC
+	if createTimeUTC == "" {
+		createTimeUTC = workflowMeta.CreationTimestamp.Time.UTC().Format(time.RFC3339)
+	}
+	value, ok := workflowMeta.Labels[util.LabelKeyWorkflowEpoch]
+	if !ok {
+		return createTimeUTC
+	}
+	scheduledEpochSeconds, err := util.RetrieveInt64FromLabel(value)
+	if err != nil {
+		return createTimeUTC
+	}
+	return time.Unix(scheduledEpochSeconds, 0).UTC().Format(time.RFC3339)
+}
+
+// resolvePipelineJobTimes normalizes the placeholder inputs into the UTC values
+// consumed by driver.Options. Schedule time may come from the compiled flag
+// when explicitly provided, or from workflow metadata when manual runs would
+// otherwise have no workflowEpoch label to resolve.
+func resolvePipelineJobTimes(
+	createTimeUTC string,
+	scheduleTimeEpochSeconds string,
+	workflowMeta *metav1.ObjectMeta,
+) (string, string, error) {
+	if createTimeUTC == "" && workflowMeta != nil {
+		createTimeUTC = workflowMeta.CreationTimestamp.Time.UTC().Format(time.RFC3339)
+	}
+	if scheduleTimeEpochSeconds == "" {
+		return createTimeUTC, resolvePipelineJobScheduleTimeUTCFromWorkflow(workflowMeta, createTimeUTC), nil
+	}
+	scheduleTimeEpoch, err := strconv.ParseInt(scheduleTimeEpochSeconds, 10, 64)
+	if err != nil {
+		return "", "", fmt.Errorf("invalid pipeline job schedule time epoch seconds %q: %w", scheduleTimeEpochSeconds, err)
+	}
+	return createTimeUTC, time.Unix(scheduleTimeEpoch, 0).UTC().Format(time.RFC3339), nil
+}
+
 func drive() (err error) {
 	defer func() {
 		if err != nil {
@@ -158,28 +253,28 @@ func drive() (err error) {
 
 	// Support reading component spec from a file if value starts with @
 	// This bypasses exec() argument size limits for large workflows
-	if strings.HasPrefix(*componentSpecJson, "@") {
-		filePath := (*componentSpecJson)[1:] // Remove the "@" prefix
+	if strings.HasPrefix(*componentSpecJSON, "@") {
+		filePath := (*componentSpecJSON)[1:] // Remove the "@" prefix
 		data, err := os.ReadFile(filePath)
 		if err != nil {
 			return fmt.Errorf("failed to read component spec from file %s: %w", filePath, err)
 		}
-		*componentSpecJson = string(data)
+		*componentSpecJSON = string(data)
 		glog.Infof("Read component spec from file: %s (%d bytes)", filePath, len(data))
 	}
 
 	proxy.InitializeConfig(*httpProxy, *httpsProxy, *noProxy)
-	glog.Infof("input ComponentSpec:%s\n", prettyPrint(*componentSpecJson))
+	glog.Infof("input ComponentSpec:%s\n", prettyPrint(*componentSpecJSON))
 	componentSpec := &pipelinespec.ComponentSpec{}
-	if err := util.UnmarshalString(*componentSpecJson, componentSpec); err != nil {
-		return fmt.Errorf("failed to unmarshal component spec, error: %w\ncomponentSpec: %v", err, prettyPrint(*componentSpecJson))
+	if err := util.UnmarshalString(*componentSpecJSON, componentSpec); err != nil {
+		return fmt.Errorf("failed to unmarshal component spec, error: %w\ncomponentSpec: %v", err, prettyPrint(*componentSpecJSON))
 	}
 	var taskSpec *pipelinespec.PipelineTaskSpec
-	if *taskSpecJson != "" {
-		glog.Infof("input TaskSpec:%s\n", prettyPrint(*taskSpecJson))
+	if *taskSpecJSON != "" {
+		glog.Infof("input TaskSpec:%s\n", prettyPrint(*taskSpecJSON))
 		taskSpec = &pipelinespec.PipelineTaskSpec{}
-		if err := util.UnmarshalString(*taskSpecJson, taskSpec); err != nil {
-			return fmt.Errorf("failed to unmarshal task spec, error: %w\ntask: %v", err, taskSpecJson)
+		if err := util.UnmarshalString(*taskSpecJSON, taskSpec); err != nil {
+			return fmt.Errorf("failed to unmarshal task spec, error: %w\ntask: %v", err, taskSpecJSON)
 		}
 	}
 	glog.Infof("input ContainerSpec:%s\n", prettyPrint(*containerSpecJson))
@@ -188,11 +283,11 @@ func drive() (err error) {
 		return fmt.Errorf("failed to unmarshal container spec, error: %w\ncontainerSpec: %v", err, containerSpecJson)
 	}
 	var runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig
-	if *runtimeConfigJson != "" {
-		glog.Infof("input RuntimeConfig:%s\n", prettyPrint(*runtimeConfigJson))
+	if *runtimeConfigJSON != "" {
+		glog.Infof("input RuntimeConfig:%s\n", prettyPrint(*runtimeConfigJSON))
 		runtimeConfig = &pipelinespec.PipelineJob_RuntimeConfig{}
-		if err := util.UnmarshalString(*runtimeConfigJson, runtimeConfig); err != nil {
-			return fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, runtimeConfigJson)
+		if err := util.UnmarshalString(*runtimeConfigJSON, runtimeConfig); err != nil {
+			return fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, runtimeConfigJSON)
 		}
 	}
 	k8sExecCfg, err := parseExecConfigJson(k8sExecConfigJson)
@@ -218,6 +313,7 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
+<<<<<<< HEAD
 	// pluginDispatcher executes task-level plugin lifecycle hooks
 	pluginDispatcher, err := plugins.GetPluginDispatcher()
 	if err != nil {
@@ -246,6 +342,47 @@ func drive() (err error) {
 		MLMDTLSEnabled:          *metadataTLSEnabled,
 		CaCertPath:              *caCertPath,
 		PluginDispatcher:        pluginDispatcher,
+=======
+	var workflowMeta *metav1.ObjectMeta
+	if *pipelineJobCreateTimeUTCArg == "" || *pipelineJobScheduleTimeEpochArg == "" {
+		workflowMeta, err = getCurrentWorkflowMetadata(context.Background(), namespace)
+		if err != nil {
+			return err
+		}
+	}
+	resolvedPipelineJobCreateTimeUTC, resolvedPipelineJobScheduleTimeUTC, err := resolvePipelineJobTimes(
+		*pipelineJobCreateTimeUTCArg,
+		*pipelineJobScheduleTimeEpochArg,
+		workflowMeta,
+	)
+	if err != nil {
+		return err
+	}
+	options := driver.Options{
+		PipelineName:               *pipelineName,
+		RunID:                      *runID,
+		RunName:                    *runName,
+		RunDisplayName:             *runDisplayName,
+		PipelineJobCreateTimeUTC:   resolvedPipelineJobCreateTimeUTC,
+		PipelineJobScheduleTimeUTC: resolvedPipelineJobScheduleTimeUTC,
+		Namespace:                  namespace,
+		Component:                  componentSpec,
+		Task:                       taskSpec,
+		DAGExecutionID:             *dagExecutionID,
+		IterationIndex:             *iterationIndex,
+		PipelineLogLevel:           *logLevel,
+		PublishLogs:                *publishLogs,
+		CacheDisabled:              *cacheDisabledFlag,
+		DriverType:                 *driverType,
+		TaskName:                   *taskName,
+		MLPipelineServerAddress:    *mlPipelineServerAddress,
+		MLPipelineServerPort:       *mlPipelineServerPort,
+		MLMDServerAddress:          *mlmdServerAddress,
+		MLMDServerPort:             *mlmdServerPort,
+		MLPipelineTLSEnabled:       *mlPipelineTLSEnabled,
+		MLMDTLSEnabled:             *metadataTLSEnabled,
+		CaCertPath:                 *caCertPath,
+>>>>>>> 647b51dba (feat(backend): enable create and schedule time placeholders)
 	}
 	var execution *driver.Execution
 	var driverErr error
