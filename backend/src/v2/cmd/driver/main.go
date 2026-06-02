@@ -48,14 +48,16 @@ import (
 )
 
 const (
-	driverTypeArg      = "type"
-	httpProxyArg       = "http_proxy"
-	httpsProxyArg      = "https_proxy"
-	noProxyArg         = "no_proxy"
-	unsetProxyArgValue = "unset"
-	ROOT_DAG           = "ROOT_DAG"
-	DAG                = "DAG"
-	CONTAINER          = "CONTAINER"
+	driverTypeArg                         = "type"
+	httpProxyArg                          = "http_proxy"
+	httpsProxyArg                         = "https_proxy"
+	noProxyArg                            = "no_proxy"
+	unsetProxyArgValue                    = "unset"
+	ROOT_DAG                              = "ROOT_DAG" //nolint
+	DAG                                   = "DAG"
+	CONTAINER                             = "CONTAINER"
+	pipelineJobCreateTimeUTCPlaceholder   = "{{$.pipeline_job_create_time_utc}}"
+	pipelineJobScheduleTimeUTCPlaceholder = "{{$.pipeline_job_schedule_time_utc}}"
 )
 
 var (
@@ -181,24 +183,69 @@ func getCurrentWorkflowMetadata(ctx context.Context, namespace string, workflowN
 
 type workflowMetadataGetter func(ctx context.Context, namespace string, workflowName string) (*metav1.ObjectMeta, error)
 
-// getWorkflowMetadataForPipelineJobTimes loads Workflow metadata only when a
-// placeholder still needs runtime metadata. If create time is already available,
-// schedule-time lookup is best-effort so clusters without Workflow read RBAC
-// still resolve placeholders by falling back to create time.
+type pipelineJobTimePlaceholderUsage struct {
+	needsCreateTime   bool
+	needsScheduleTime bool
+}
+
+// getPipelineJobTimePlaceholderUsage reports whether the current driver can
+// resolve pipeline job time placeholders from task input runtime values.
+//
+// Only DAG and CONTAINER drivers call resolveInputs for the current task, and
+// the resolver substitutes pipeline job time placeholders only when a task
+// input parameter is a runtime-value constant matching the placeholder.
+func getPipelineJobTimePlaceholderUsage(
+	driverType string,
+	taskSpec *pipelinespec.PipelineTaskSpec,
+) pipelineJobTimePlaceholderUsage {
+	usage := pipelineJobTimePlaceholderUsage{}
+	if driverType == ROOT_DAG || taskSpec == nil {
+		return usage
+	}
+	for _, inputParamSpec := range taskSpec.GetInputs().GetParameters() {
+		runtimeValue := inputParamSpec.GetRuntimeValue()
+		if runtimeValue == nil {
+			continue
+		}
+		constant := runtimeValue.GetConstant()
+		if constant == nil {
+			continue
+		}
+		switch constant.GetStringValue() {
+		case pipelineJobCreateTimeUTCPlaceholder:
+			usage.needsCreateTime = true
+		case pipelineJobScheduleTimeUTCPlaceholder:
+			usage.needsScheduleTime = true
+		}
+		if usage.needsCreateTime && usage.needsScheduleTime {
+			return usage
+		}
+	}
+	return usage
+}
+
+// getWorkflowMetadataForPipelineJobTimes loads Workflow metadata only when the
+// current driver still needs unresolved pipeline job time placeholders. If
+// create time is already available and only schedule time still needs runtime
+// metadata, lookup is best-effort so clusters without Workflow read RBAC still
+// resolve schedule time by falling back to create time.
 func getWorkflowMetadataForPipelineJobTimes(
 	ctx context.Context,
 	namespace string,
 	workflowName string,
+	placeholderUsage pipelineJobTimePlaceholderUsage,
 	createTimeUTC string,
 	scheduleTimeEpochSeconds string,
 	getMetadata workflowMetadataGetter,
 ) (*metav1.ObjectMeta, error) {
-	if createTimeUTC != "" && scheduleTimeEpochSeconds != "" {
+	needsCreateTimeMetadata := placeholderUsage.needsCreateTime && createTimeUTC == ""
+	needsScheduleTimeMetadata := placeholderUsage.needsScheduleTime && scheduleTimeEpochSeconds == ""
+	if !needsCreateTimeMetadata && !needsScheduleTimeMetadata {
 		return nil, nil
 	}
 	workflowMeta, err := getMetadata(ctx, namespace, workflowName)
 	if err != nil {
-		if createTimeUTC != "" && scheduleTimeEpochSeconds == "" {
+		if !needsCreateTimeMetadata && needsScheduleTimeMetadata && createTimeUTC != "" {
 			glog.Warningf(
 				"Failed to retrieve workflow metadata for pipeline job schedule time for workflow %q, falling back to create time: %v",
 				workflowName,
@@ -292,7 +339,7 @@ func drive() (err error) {
 		glog.Infof("input TaskSpec:%s\n", prettyPrint(*taskSpecJSON))
 		taskSpec = &pipelinespec.PipelineTaskSpec{}
 		if err := util.UnmarshalString(*taskSpecJSON, taskSpec); err != nil {
-			return fmt.Errorf("failed to unmarshal task spec, error: %w\ntask: %v", err, taskSpecJSON)
+			return fmt.Errorf("failed to unmarshal task spec, error: %w\ntask: %v", err, prettyPrint(*taskSpecJSON))
 		}
 	}
 	glog.Infof("input ContainerSpec:%s\n", prettyPrint(*containerSpecJson))
@@ -336,10 +383,12 @@ func drive() (err error) {
 	if err != nil {
 		glog.Errorf("Failed to initialize plugin dispatcher: %v", err)
 	}
+	placeholderUsage := getPipelineJobTimePlaceholderUsage(*driverType, taskSpec)
 	workflowMeta, err := getWorkflowMetadataForPipelineJobTimes(
 		ctx,
 		namespace,
 		*runName,
+		placeholderUsage,
 		*pipelineJobCreateTimeUTCArg,
 		*pipelineJobScheduleTimeEpochArg,
 		getCurrentWorkflowMetadata,

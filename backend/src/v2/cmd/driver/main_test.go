@@ -6,16 +6,30 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func strPtr(s string) *string {
 	return &s
+}
+
+func runtimeValueConstant(value string) *pipelinespec.TaskInputsSpec_InputParameterSpec {
+	return &pipelinespec.TaskInputsSpec_InputParameterSpec{
+		Kind: &pipelinespec.TaskInputsSpec_InputParameterSpec_RuntimeValue{
+			RuntimeValue: &pipelinespec.ValueOrRuntimeParameter{
+				Value: &pipelinespec.ValueOrRuntimeParameter_Constant{
+					Constant: structpb.NewStringValue(value),
+				},
+			},
+		},
+	}
 }
 
 func TestSpecParsing(t *testing.T) {
@@ -52,6 +66,66 @@ func TestSpecParsing(t *testing.T) {
 		cfg, err := parseExecConfigJson(tc.input)
 		assert.Equal(t, tc.wantErr, err != nil)
 		assert.True(t, proto.Equal(tc.expected, cfg))
+	}
+}
+
+func TestGetPipelineJobTimePlaceholderUsage(t *testing.T) {
+	tests := []struct {
+		name       string
+		driverType string
+		taskSpec   *pipelinespec.PipelineTaskSpec
+		want       pipelineJobTimePlaceholderUsage
+	}{
+		{
+			name:       "root dag skips placeholder lookup",
+			driverType: ROOT_DAG,
+			taskSpec: &pipelinespec.PipelineTaskSpec{
+				Inputs: &pipelinespec.TaskInputsSpec{
+					Parameters: map[string]*pipelinespec.TaskInputsSpec_InputParameterSpec{
+						"create_time": runtimeValueConstant(pipelineJobCreateTimeUTCPlaceholder),
+						"schedule_time": runtimeValueConstant(
+							pipelineJobScheduleTimeUTCPlaceholder,
+						),
+					},
+				},
+			},
+		},
+		{
+			name:       "nil task spec has no placeholder usage",
+			driverType: DAG,
+		},
+		{
+			name:       "tracks create and schedule placeholder usage from task inputs",
+			driverType: CONTAINER,
+			taskSpec: &pipelinespec.PipelineTaskSpec{
+				Inputs: &pipelinespec.TaskInputsSpec{
+					Parameters: map[string]*pipelinespec.TaskInputsSpec_InputParameterSpec{
+						"create_time":   runtimeValueConstant(pipelineJobCreateTimeUTCPlaceholder),
+						"schedule_time": runtimeValueConstant(pipelineJobScheduleTimeUTCPlaceholder),
+						"literal":       runtimeValueConstant("literal-value"),
+						"component_input": {
+							Kind: &pipelinespec.TaskInputsSpec_InputParameterSpec_ComponentInputParameter{
+								ComponentInputParameter: "pipeline-input",
+							},
+						},
+					},
+				},
+			},
+			want: pipelineJobTimePlaceholderUsage{
+				needsCreateTime:   true,
+				needsScheduleTime: true,
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(
+				t,
+				tc.want,
+				getPipelineJobTimePlaceholderUsage(tc.driverType, tc.taskSpec),
+			)
+		})
 	}
 }
 
@@ -140,6 +214,7 @@ func TestGetWorkflowMetadataForPipelineJobTimes(t *testing.T) {
 
 	tests := []struct {
 		name                     string
+		placeholderUsage         pipelineJobTimePlaceholderUsage
 		createTimeUTC            string
 		scheduleTimeEpochSeconds string
 		getterResult             *metav1.ObjectMeta
@@ -149,29 +224,49 @@ func TestGetWorkflowMetadataForPipelineJobTimes(t *testing.T) {
 		wantGetterCalls          int
 	}{
 		{
-			name:                     "skips lookup when both values are already provided",
-			createTimeUTC:            "2026-01-02T03:04:05Z",
+			name:            "skips lookup when current task does not use placeholders",
+			wantGetterCalls: 0,
+		},
+		{
+			name:             "skips lookup when create placeholder already has compiled value",
+			placeholderUsage: pipelineJobTimePlaceholderUsage{needsCreateTime: true},
+			createTimeUTC:    "2026-01-02T03:04:05Z",
+			wantGetterCalls:  0,
+		},
+		{
+			name:                     "skips lookup when schedule placeholder already has compiled value",
+			placeholderUsage:         pipelineJobTimePlaceholderUsage{needsScheduleTime: true},
 			scheduleTimeEpochSeconds: "1767225600",
 			wantGetterCalls:          0,
 		},
 		{
-			name:            "returns workflow metadata when schedule time needs lookup",
-			createTimeUTC:   "2026-01-02T03:04:05Z",
-			getterResult:    workflowMeta,
-			wantMetadata:    workflowMeta,
-			wantGetterCalls: 1,
+			name:             "returns workflow metadata when schedule time needs lookup",
+			placeholderUsage: pipelineJobTimePlaceholderUsage{needsScheduleTime: true},
+			createTimeUTC:    "2026-01-02T03:04:05Z",
+			getterResult:     workflowMeta,
+			wantMetadata:     workflowMeta,
+			wantGetterCalls:  1,
 		},
 		{
-			name:            "falls back when schedule-time lookup fails",
-			createTimeUTC:   "2026-01-02T03:04:05Z",
-			getterErr:       lookupErr,
-			wantGetterCalls: 1,
+			name:             "falls back when only schedule-time lookup fails",
+			placeholderUsage: pipelineJobTimePlaceholderUsage{needsScheduleTime: true},
+			createTimeUTC:    "2026-01-02T03:04:05Z",
+			getterErr:        lookupErr,
+			wantGetterCalls:  1,
 		},
 		{
-			name:            "fails when create time also requires lookup",
-			getterErr:       lookupErr,
-			wantErr:         true,
-			wantGetterCalls: 1,
+			name:             "fails when create time still needs lookup",
+			placeholderUsage: pipelineJobTimePlaceholderUsage{needsCreateTime: true},
+			getterErr:        lookupErr,
+			wantErr:          true,
+			wantGetterCalls:  1,
+		},
+		{
+			name:             "fails when schedule time needs lookup without create time fallback",
+			placeholderUsage: pipelineJobTimePlaceholderUsage{needsScheduleTime: true},
+			getterErr:        lookupErr,
+			wantErr:          true,
+			wantGetterCalls:  1,
 		},
 	}
 
@@ -182,6 +277,7 @@ func TestGetWorkflowMetadataForPipelineJobTimes(t *testing.T) {
 				context.Background(),
 				"kubeflow",
 				"workflow-name",
+				tc.placeholderUsage,
 				tc.createTimeUTC,
 				tc.scheduleTimeEpochSeconds,
 				func(ctx context.Context, namespace string, workflowName string) (*metav1.ObjectMeta, error) {
