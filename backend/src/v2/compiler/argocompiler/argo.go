@@ -510,6 +510,10 @@ func runResourceName() string {
 	return "{{workflow.name}}"
 }
 
+func runCreationTimeUTC() string {
+	return "{{workflow.creationTimestamp}}"
+}
+
 func workflowParameter(name string) string {
 	return fmt.Sprintf("{{workflow.parameters.%s}}", name)
 }
