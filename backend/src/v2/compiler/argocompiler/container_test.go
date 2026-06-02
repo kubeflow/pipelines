@@ -128,7 +128,6 @@ func TestContainerDriverTemplate_IncludesPipelineJobCreateTimeArg(t *testing.T) 
 	require.NotNil(t, tmpl.Container, "template should have a container")
 	assert.Contains(t, tmpl.Container.Args, "--pipeline_job_create_time_utc")
 	assert.Contains(t, tmpl.Container.Args, runCreationTimeUTC())
-	assert.Contains(t, tmpl.Container.Args, runCreationTimeUTC())
 	assert.NotContains(t, tmpl.Container.Args, "--pipeline_job_schedule_time_epoch_seconds")
 }
 
