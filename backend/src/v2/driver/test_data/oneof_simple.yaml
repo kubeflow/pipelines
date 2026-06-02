@@ -1,0 +1,614 @@
+# PIPELINE DEFINITION
+# Name: primary-pipeline
+components:
+  comp-analyze-animal:
+    executorLabel: exec-analyze-animal
+    inputDefinitions:
+      artifacts:
+        animal_artifact:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        analysis_output:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-analyze-animal-2:
+    executorLabel: exec-analyze-animal-2
+    inputDefinitions:
+      artifacts:
+        animal_artifact:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        analysis_output:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-check-animal:
+    executorLabel: exec-check-animal
+    inputDefinitions:
+      artifacts:
+        animal_input:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-condition-2:
+    dag:
+      outputs:
+        artifacts:
+          pipelinechannel--give-animal-output_animal:
+            artifactSelectors:
+            - outputArtifactKey: output_animal
+              producerSubtask: give-animal
+      tasks:
+        give-animal:
+          cachingOptions: {}
+          componentRef:
+            name: comp-give-animal
+          inputs:
+            artifacts:
+              input_dataset:
+                componentInputArtifact: pipelinechannel--create-dataset-output_dataset
+            parameters:
+              want_animal:
+                runtimeValue:
+                  constant: cat
+          taskInfo:
+            name: give-animal
+    inputDefinitions:
+      artifacts:
+        pipelinechannel--create-dataset-output_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        pipelinechannel--create-dataset-condition_out:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        pipelinechannel--give-animal-output_animal:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-condition-3:
+    dag:
+      outputs:
+        artifacts:
+          pipelinechannel--give-animal-2-output_animal:
+            artifactSelectors:
+            - outputArtifactKey: output_animal
+              producerSubtask: give-animal-2
+      tasks:
+        analyze-animal:
+          cachingOptions: {}
+          componentRef:
+            name: comp-analyze-animal
+          dependentTasks:
+          - give-animal-2
+          inputs:
+            artifacts:
+              animal_artifact:
+                taskOutputArtifact:
+                  outputArtifactKey: output_animal
+                  producerTask: give-animal-2
+          taskInfo:
+            name: analyze-animal
+        give-animal-2:
+          cachingOptions: {}
+          componentRef:
+            name: comp-give-animal-2
+          inputs:
+            artifacts:
+              input_dataset:
+                componentInputArtifact: pipelinechannel--create-dataset-output_dataset
+            parameters:
+              want_animal:
+                runtimeValue:
+                  constant: dog
+          taskInfo:
+            name: give-animal-2
+    inputDefinitions:
+      artifacts:
+        pipelinechannel--create-dataset-output_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        pipelinechannel--create-dataset-condition_out:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        pipelinechannel--give-animal-2-output_animal:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-condition-4:
+    dag:
+      outputs:
+        artifacts:
+          pipelinechannel--give-animal-3-output_animal:
+            artifactSelectors:
+            - outputArtifactKey: output_animal
+              producerSubtask: give-animal-3
+      tasks:
+        analyze-animal-2:
+          cachingOptions: {}
+          componentRef:
+            name: comp-analyze-animal-2
+          dependentTasks:
+          - give-animal-3
+          inputs:
+            artifacts:
+              animal_artifact:
+                taskOutputArtifact:
+                  outputArtifactKey: output_animal
+                  producerTask: give-animal-3
+          taskInfo:
+            name: analyze-animal-2
+        give-animal-3:
+          cachingOptions: {}
+          componentRef:
+            name: comp-give-animal-3
+          inputs:
+            artifacts:
+              input_dataset:
+                componentInputArtifact: pipelinechannel--create-dataset-output_dataset
+            parameters:
+              want_animal:
+                runtimeValue:
+                  constant: mouse
+          taskInfo:
+            name: give-animal-3
+    inputDefinitions:
+      artifacts:
+        pipelinechannel--create-dataset-output_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        pipelinechannel--create-dataset-condition_out:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        pipelinechannel--give-animal-3-output_animal:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-condition-branches-1:
+    dag:
+      outputs:
+        artifacts:
+          pipelinechannel--condition-branches-1-oneof-2:
+            artifactSelectors:
+            - outputArtifactKey: pipelinechannel--give-animal-output_animal
+              producerSubtask: condition-2
+            - outputArtifactKey: pipelinechannel--give-animal-2-output_animal
+              producerSubtask: condition-3
+            - outputArtifactKey: pipelinechannel--give-animal-3-output_animal
+              producerSubtask: condition-4
+      tasks:
+        condition-2:
+          componentRef:
+            name: comp-condition-2
+          inputs:
+            artifacts:
+              pipelinechannel--create-dataset-output_dataset:
+                componentInputArtifact: pipelinechannel--create-dataset-output_dataset
+            parameters:
+              pipelinechannel--create-dataset-condition_out:
+                componentInputParameter: pipelinechannel--create-dataset-condition_out
+          taskInfo:
+            name: condition-2
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--create-dataset-condition_out']
+              == 'first'
+        condition-3:
+          componentRef:
+            name: comp-condition-3
+          inputs:
+            artifacts:
+              pipelinechannel--create-dataset-output_dataset:
+                componentInputArtifact: pipelinechannel--create-dataset-output_dataset
+            parameters:
+              pipelinechannel--create-dataset-condition_out:
+                componentInputParameter: pipelinechannel--create-dataset-condition_out
+          taskInfo:
+            name: condition-3
+          triggerPolicy:
+            condition: '!(inputs.parameter_values[''pipelinechannel--create-dataset-condition_out'']
+              == ''first'') && inputs.parameter_values[''pipelinechannel--create-dataset-condition_out'']
+              == ''second'''
+        condition-4:
+          componentRef:
+            name: comp-condition-4
+          inputs:
+            artifacts:
+              pipelinechannel--create-dataset-output_dataset:
+                componentInputArtifact: pipelinechannel--create-dataset-output_dataset
+            parameters:
+              pipelinechannel--create-dataset-condition_out:
+                componentInputParameter: pipelinechannel--create-dataset-condition_out
+          taskInfo:
+            name: condition-4
+          triggerPolicy:
+            condition: '!(inputs.parameter_values[''pipelinechannel--create-dataset-condition_out'']
+              == ''first'') && !(inputs.parameter_values[''pipelinechannel--create-dataset-condition_out'']
+              == ''second'')'
+    inputDefinitions:
+      artifacts:
+        pipelinechannel--create-dataset-output_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        pipelinechannel--create-dataset-condition_out:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        pipelinechannel--condition-branches-1-oneof-2:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-create-dataset:
+    executorLabel: exec-create-dataset
+    inputDefinitions:
+      parameters:
+        condition_to_activate:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        output_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        condition_out:
+          parameterType: STRING
+  comp-give-animal:
+    executorLabel: exec-give-animal
+    inputDefinitions:
+      artifacts:
+        input_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        want_animal:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        output_animal:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-give-animal-2:
+    executorLabel: exec-give-animal-2
+    inputDefinitions:
+      artifacts:
+        input_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        want_animal:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        output_animal:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-give-animal-3:
+    executorLabel: exec-give-animal-3
+    inputDefinitions:
+      artifacts:
+        input_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        want_animal:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        output_animal:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-secondary-pipeline:
+    dag:
+      outputs:
+        artifacts:
+          Output:
+            artifactSelectors:
+            - outputArtifactKey: pipelinechannel--condition-branches-1-oneof-2
+              producerSubtask: condition-branches-1
+      tasks:
+        condition-branches-1:
+          componentRef:
+            name: comp-condition-branches-1
+          dependentTasks:
+          - create-dataset
+          inputs:
+            artifacts:
+              pipelinechannel--create-dataset-output_dataset:
+                taskOutputArtifact:
+                  outputArtifactKey: output_dataset
+                  producerTask: create-dataset
+            parameters:
+              pipelinechannel--create-dataset-condition_out:
+                taskOutputParameter:
+                  outputParameterKey: condition_out
+                  producerTask: create-dataset
+          taskInfo:
+            name: condition-branches-1
+        create-dataset:
+          cachingOptions: {}
+          componentRef:
+            name: comp-create-dataset
+          inputs:
+            parameters:
+              condition_to_activate:
+                runtimeValue:
+                  constant: second
+          taskInfo:
+            name: create-dataset
+    outputDefinitions:
+      artifacts:
+        Output:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-analyze-animal:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - analyze_animal
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef analyze_animal(animal_artifact: Input[Artifact], analysis_output:\
+          \ Output[Artifact]):\n    with open(animal_artifact.path, \"r\") as f:\n\
+          \        data = f.read()\n    assert data == \"dog\"\n    with open(analysis_output.path,\
+          \ \"w\") as f:\n        f.write(f'done_analyzing')\n\n"
+        image: python:3.11
+    exec-analyze-animal-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - analyze_animal
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef analyze_animal(animal_artifact: Input[Artifact], analysis_output:\
+          \ Output[Artifact]):\n    with open(animal_artifact.path, \"r\") as f:\n\
+          \        data = f.read()\n    assert data == \"dog\"\n    with open(analysis_output.path,\
+          \ \"w\") as f:\n        f.write(f'done_analyzing')\n\n"
+        image: python:3.11
+    exec-check-animal:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - check_animal
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef check_animal(animal_input: Input[Artifact]):\n    with open(animal_input.path,\
+          \ \"r\") as f:\n        data = f.read()\n    assert data == \"dog\"\n\n"
+        image: python:3.11
+    exec-create-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - create_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef create_dataset(\n        condition_to_activate: str,\n      \
+          \  output_dataset: Output[Dataset],\n        condition_out: dsl.OutputPath(str)):\n\
+          \    with open(output_dataset.path, \"w\") as f:\n        f.write(condition_to_activate)\n\
+          \    with open(condition_out, 'w') as f:\n        f.write(condition_to_activate)\n\
+          \n"
+        image: python:3.11
+    exec-give-animal:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - give_animal
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef give_animal(want_animal: str, input_dataset: Input[Dataset],\
+          \ output_animal: Output[Artifact]):\n    with open(input_dataset.path, \"\
+          r\") as f:\n        data = f.read()\n    assert data == \"second\"\n   \
+          \ with open(output_animal.path, \"w\") as f:\n        f.write(want_animal)\n\
+          \n"
+        image: python:3.11
+    exec-give-animal-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - give_animal
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef give_animal(want_animal: str, input_dataset: Input[Dataset],\
+          \ output_animal: Output[Artifact]):\n    with open(input_dataset.path, \"\
+          r\") as f:\n        data = f.read()\n    assert data == \"second\"\n   \
+          \ with open(output_animal.path, \"w\") as f:\n        f.write(want_animal)\n\
+          \n"
+        image: python:3.11
+    exec-give-animal-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - give_animal
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef give_animal(want_animal: str, input_dataset: Input[Dataset],\
+          \ output_animal: Output[Artifact]):\n    with open(input_dataset.path, \"\
+          r\") as f:\n        data = f.read()\n    assert data == \"second\"\n   \
+          \ with open(output_animal.path, \"w\") as f:\n        f.write(want_animal)\n\
+          \n"
+        image: python:3.11
+pipelineInfo:
+  name: primary-pipeline
+root:
+  dag:
+    tasks:
+      check-animal:
+        cachingOptions: {}
+        componentRef:
+          name: comp-check-animal
+        dependentTasks:
+        - secondary-pipeline
+        inputs:
+          artifacts:
+            animal_input:
+              taskOutputArtifact:
+                outputArtifactKey: Output
+                producerTask: secondary-pipeline
+        taskInfo:
+          name: check-animal
+      secondary-pipeline:
+        cachingOptions: {}
+        componentRef:
+          name: comp-secondary-pipeline
+        taskInfo:
+          name: secondary-pipeline
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.6

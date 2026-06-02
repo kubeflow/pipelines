@@ -47,6 +47,7 @@ const (
 	RunService_UpdateTasksBulk_FullMethodName = "/kubeflow.pipelines.backend.api.v2beta1.RunService/UpdateTasksBulk"
 	RunService_GetTask_FullMethodName         = "/kubeflow.pipelines.backend.api.v2beta1.RunService/GetTask"
 	RunService_ListTasks_FullMethodName       = "/kubeflow.pipelines.backend.api.v2beta1.RunService/ListTasks"
+	RunService_FindCachedTask_FullMethodName  = "/kubeflow.pipelines.backend.api.v2beta1.RunService/FindCachedTask"
 )
 
 // RunServiceClient is the client API for RunService service.
@@ -82,6 +83,9 @@ type RunServiceClient interface {
 	UpdateTasksBulk(ctx context.Context, in *UpdateTasksBulkRequest, opts ...grpc.CallOption) (*UpdateTasksBulkResponse, error)
 	GetTask(ctx context.Context, in *GetTaskRequest, opts ...grpc.CallOption) (*PipelineTask, error)
 	ListTasks(ctx context.Context, in *ListTasksRequest, opts ...grpc.CallOption) (*ListTasksResponse, error)
+	// Finds the latest successful task for a namespace/fingerprint pair using an
+	// efficient server-side lookup, so runtime cache checks do not need to scan runs.
+	FindCachedTask(ctx context.Context, in *FindCachedTaskRequest, opts ...grpc.CallOption) (*FindCachedTaskResponse, error)
 }
 
 type runServiceClient struct {
@@ -222,6 +226,16 @@ func (c *runServiceClient) ListTasks(ctx context.Context, in *ListTasksRequest, 
 	return out, nil
 }
 
+func (c *runServiceClient) FindCachedTask(ctx context.Context, in *FindCachedTaskRequest, opts ...grpc.CallOption) (*FindCachedTaskResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FindCachedTaskResponse)
+	err := c.cc.Invoke(ctx, RunService_FindCachedTask_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RunServiceServer is the server API for RunService service.
 // All implementations must embed UnimplementedRunServiceServer
 // for forward compatibility.
@@ -255,6 +269,9 @@ type RunServiceServer interface {
 	UpdateTasksBulk(context.Context, *UpdateTasksBulkRequest) (*UpdateTasksBulkResponse, error)
 	GetTask(context.Context, *GetTaskRequest) (*PipelineTask, error)
 	ListTasks(context.Context, *ListTasksRequest) (*ListTasksResponse, error)
+	// Finds the latest successful task for a namespace/fingerprint pair using an
+	// efficient server-side lookup, so runtime cache checks do not need to scan runs.
+	FindCachedTask(context.Context, *FindCachedTaskRequest) (*FindCachedTaskResponse, error)
 	mustEmbedUnimplementedRunServiceServer()
 }
 
@@ -303,6 +320,9 @@ func (UnimplementedRunServiceServer) GetTask(context.Context, *GetTaskRequest) (
 }
 func (UnimplementedRunServiceServer) ListTasks(context.Context, *ListTasksRequest) (*ListTasksResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListTasks not implemented")
+}
+func (UnimplementedRunServiceServer) FindCachedTask(context.Context, *FindCachedTaskRequest) (*FindCachedTaskResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FindCachedTask not implemented")
 }
 func (UnimplementedRunServiceServer) mustEmbedUnimplementedRunServiceServer() {}
 func (UnimplementedRunServiceServer) testEmbeddedByValue()                    {}
@@ -559,6 +579,24 @@ func _RunService_ListTasks_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RunService_FindCachedTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FindCachedTaskRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunServiceServer).FindCachedTask(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RunService_FindCachedTask_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunServiceServer).FindCachedTask(ctx, req.(*FindCachedTaskRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RunService_ServiceDesc is the grpc.ServiceDesc for RunService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -617,6 +655,10 @@ var RunService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListTasks",
 			Handler:    _RunService_ListTasks_Handler,
+		},
+		{
+			MethodName: "FindCachedTask",
+			Handler:    _RunService_FindCachedTask_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

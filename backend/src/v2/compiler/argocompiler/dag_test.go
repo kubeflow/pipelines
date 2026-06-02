@@ -19,7 +19,10 @@ import (
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	backendcommon "github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -53,10 +56,8 @@ func TestDagDriverTask_WithTaskName(t *testing.T) {
 		{
 			name: "With custom taskName",
 			inputs: dagDriverInputs{
-				component:   "component-placeholder",
-				parentDagID: "parent-1",
-				task:        `{"taskInfo": {"name": "task-1"}}`,
-				taskName:    "simple-loop",
+				parentTaskID: "parent-1",
+				taskName:     "simple-loop",
 			},
 			expectedTask: "simple-loop",
 			checkParam:   true,
@@ -64,10 +65,8 @@ func TestDagDriverTask_WithTaskName(t *testing.T) {
 		{
 			name: "Without taskName",
 			inputs: dagDriverInputs{
-				component:   "component-placeholder",
-				parentDagID: "parent-1",
-				task:        `{"taskInfo": {"name": "test-task"}}`,
-				taskName:    "",
+				parentTaskID: "parent-1",
+				taskName:     "",
 			},
 			expectedTask: "",
 			checkParam:   false,
@@ -128,10 +127,8 @@ func TestDagDriverTask_TaskNameIncludedInArguments(t *testing.T) {
 	}
 
 	inputs := dagDriverInputs{
-		component:   "component-spec-json",
-		parentDagID: "parent-dag-123",
-		task:        `{"taskInfo": {"name": "for-loop-task"}}`,
-		taskName:    "simple-loop",
+		parentTaskID: "parent-dag-123",
+		taskName:     "simple-loop",
 	}
 
 	driverTask, _, err := c.dagDriverTask("iteration-driver", inputs)
@@ -147,7 +144,148 @@ func TestDagDriverTask_TaskNameIncludedInArguments(t *testing.T) {
 
 	require.Contains(t, paramMap, paramTaskName, "Driver task must include task-name parameter")
 	assert.Equal(t, "simple-loop", paramMap[paramTaskName], "task-name parameter should match provided taskName")
-	assert.Equal(t, "component-spec-json", paramMap[paramComponent])
-	assert.Equal(t, "parent-dag-123", paramMap[paramParentDagID])
-	assert.Equal(t, `{"taskInfo": {"name": "for-loop-task"}}`, paramMap[paramTask])
+	assert.Equal(t, "parent-dag-123", paramMap[paramParentDagTaskID])
+	assert.NotContains(t, paramMap, paramTask)
+}
+
+func TestAddDAGDriverTemplate_IncludesDebugMetadata(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+
+	c := &workflowCompiler{
+		templates: make(map[string]*wfapi.Template),
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+		spec: &pipelinespec.PipelineSpec{
+			PipelineInfo: &pipelinespec.PipelineInfo{
+				Name: "test-pipeline",
+			},
+		},
+		job: &pipelinespec.PipelineJob{
+			DisplayName: "test-pipeline-run",
+		},
+	}
+
+	name := c.addDAGDriverTemplate()
+	require.Equal(t, "system-dag-driver", name)
+
+	tmpl, exists := c.templates[name]
+	require.True(t, exists, "system-dag-driver template should exist")
+	assert.Equal(t, "dag-driver", tmpl.Metadata.Labels[systemPodRoleLabelKey])
+	assert.Equal(t, "system-dag-driver", tmpl.Metadata.Annotations[systemTemplateNameAnnotationKey])
+}
+
+func TestAddDAGDriverTemplate_PropagatesGRPCBackoffEnv(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+	viper.Set(backendcommon.MLPipelineGRPCBackoffBaseDelay, "2s")
+
+	c := &workflowCompiler{
+		templates: make(map[string]*wfapi.Template),
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+		spec: &pipelinespec.PipelineSpec{
+			PipelineInfo: &pipelinespec.PipelineInfo{Name: "test-pipeline"},
+		},
+		job: &pipelinespec.PipelineJob{DisplayName: "test-pipeline-run"},
+	}
+
+	name := c.addDAGDriverTemplate()
+	tmpl := c.templates[name]
+	require.NotNil(t, tmpl)
+	require.NotNil(t, tmpl.Container)
+
+	found := false
+	for _, env := range tmpl.Container.Env {
+		if env.Name == apiclient.KFPAPIGRPCBackoffBaseDelayEnvVar && env.Value == "2s" {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "expected DAG driver to include configured gRPC backoff env")
+}
+
+func TestPropagateIterationIndexToNestedDAGTemplates(t *testing.T) {
+	c := &workflowCompiler{
+		templates: make(map[string]*wfapi.Template),
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+		spec: &pipelinespec.PipelineSpec{
+			PipelineInfo: &pipelinespec.PipelineInfo{Name: "test-pipeline"},
+		},
+		job: &pipelinespec.PipelineJob{DisplayName: "test-pipeline-run"},
+	}
+
+	driverTemplate := c.addDAGDriverTemplate()
+	containerDriverTemplate := c.addContainerDriverTemplate()
+
+	inner := &wfapi.Template{
+		Name: "comp-inner",
+		Inputs: wfapi.Inputs{
+			Parameters: []wfapi.Parameter{{Name: paramParentDagTaskID}},
+		},
+		DAG: &wfapi.DAGTemplate{
+			Tasks: []wfapi.DAGTask{
+				{
+					Name:     "inner-driver",
+					Template: driverTemplate,
+					Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{
+						{Name: paramParentDagTaskID, Value: wfapi.AnyStringPtr(inputParameter(paramParentDagTaskID))},
+					}},
+				},
+				{
+					Name:     "inner-container-driver",
+					Template: containerDriverTemplate,
+					Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{
+						{Name: paramParentDagTaskID, Value: wfapi.AnyStringPtr(inputParameter(paramParentDagTaskID))},
+					}},
+				},
+			},
+		},
+	}
+	outer := &wfapi.Template{
+		Name: "comp-outer",
+		Inputs: wfapi.Inputs{
+			Parameters: []wfapi.Parameter{{Name: paramParentDagTaskID}},
+		},
+		DAG: &wfapi.DAGTemplate{
+			Tasks: []wfapi.DAGTask{
+				{
+					Name:     "nested",
+					Template: "comp-inner",
+					Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{
+						{Name: paramParentDagTaskID, Value: wfapi.AnyStringPtr(inputParameter(paramParentDagTaskID))},
+					}},
+				},
+			},
+		},
+	}
+	c.templates[inner.Name] = inner
+	c.templates[outer.Name] = outer
+	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *inner, *outer)
+
+	require.NoError(t, c.propagateIterationIndexToNestedDAGTemplates("comp-outer", map[string]bool{}))
+
+	require.Contains(t, parameterNames(c.templates["comp-outer"].Inputs.Parameters), paramIterationIndex)
+	require.Contains(t, parameterNames(c.templates["comp-inner"].Inputs.Parameters), paramIterationIndex)
+	require.Contains(t, parameterNames(c.templates["comp-outer"].DAG.Tasks[0].Arguments.Parameters), paramIterationIndex)
+	require.Contains(t, parameterNames(c.templates["comp-inner"].DAG.Tasks[0].Arguments.Parameters), paramIterationIndex)
+	require.Contains(t, parameterNames(c.templates["comp-inner"].DAG.Tasks[1].Arguments.Parameters), paramIterationIndex)
+}
+
+func parameterNames(parameters []wfapi.Parameter) []string {
+	names := make([]string, 0, len(parameters))
+	for _, parameter := range parameters {
+		names = append(names, parameter.Name)
+	}
+	return names
 }

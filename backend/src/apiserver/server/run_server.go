@@ -20,6 +20,7 @@ import (
 
 	"github.com/golang/glog"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -957,6 +958,65 @@ func (s *RunServer) ListTasks(ctx context.Context, request *apiv2beta1.ListTasks
 		NextPageToken: nextPageToken,
 		TotalSize:     int32(totalSize),
 	}, nil
+}
+
+func (s *RunServer) FindCachedTask(ctx context.Context, request *apiv2beta1.FindCachedTaskRequest) (*apiv2beta1.FindCachedTaskResponse, error) {
+	if request == nil {
+		return nil, util.NewInvalidInputError("FindCachedTaskRequest is required")
+	}
+	if request.GetCacheFingerprint() == "" {
+		return nil, util.NewInvalidInputError("cache_fingerprint is required")
+	}
+
+	namespace := s.resourceManager.ReplaceNamespace(request.GetNamespace())
+	if common.IsMultiUserMode() && namespace == "" {
+		return nil, util.NewInvalidInputError("namespace is required in multi-user mode")
+	}
+
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      common.RbacResourceVerbList,
+	}
+	if err := s.canAccessRun(ctx, "", resourceAttributes); err != nil {
+		return nil, util.Wrap(err, "Failed to authorize cached task lookup")
+	}
+
+	filterSpec, err := protojson.Marshal(&apiv2beta1.Filter{
+		Predicates: []*apiv2beta1.Predicate{
+			{
+				Key:       "cache_fingerprint",
+				Operation: apiv2beta1.Predicate_EQUALS,
+				Value:     &apiv2beta1.Predicate_StringValue{StringValue: request.GetCacheFingerprint()},
+			},
+			{
+				Key:       "status",
+				Operation: apiv2beta1.Predicate_EQUALS,
+				Value:     &apiv2beta1.Predicate_IntValue{IntValue: int32(apiv2beta1.PipelineTask_SUCCEEDED)},
+			},
+		},
+	})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to construct cached task filter")
+	}
+
+	opts, err := validatedListOptions(&model.Task{}, "", 1, "create_time desc", string(filterSpec), "v2beta1")
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to build cached task query")
+	}
+
+	tasks, _, _, err := s.resourceManager.ListTasks("", "", namespace, opts)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to find cached task")
+	}
+	if len(tasks) == 0 {
+		return &apiv2beta1.FindCachedTaskResponse{}, nil
+	}
+
+	apiTask, err := toAPITask(tasks[0], nil)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to convert cached task to API")
+	}
+	return &apiv2beta1.FindCachedTaskResponse{Task: apiTask}, nil
 }
 
 func (s *RunServer) validateParentTaskOwnership(parentTaskID *string, runID string) error {

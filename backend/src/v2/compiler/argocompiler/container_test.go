@@ -19,11 +19,39 @@ import (
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	backendcommon "github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestContainerDoesNotSaveSpecOrImplementationToWorkflowArguments(t *testing.T) {
+	c := &workflowCompiler{
+		templates: make(map[string]*wfapi.Template),
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{}},
+				Templates: []wfapi.Template{},
+			},
+		},
+	}
+
+	componentSpec := &pipelinespec.ComponentSpec{
+		Implementation: &pipelinespec.ComponentSpec_ExecutorLabel{ExecutorLabel: "exec-test"},
+	}
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+		Image:   "python:3.11",
+		Command: []string{"python"},
+		Args:    []string{"-c", "print('hello')"},
+	}
+
+	require.NoError(t, c.Container("comp-test", componentSpec, containerSpec))
+
+	assert.Empty(t, c.wf.Spec.Arguments.Parameters, "container tasks should not store spec or implementation workflow arguments")
+}
 
 func TestAddContainerExecutorTemplate(t *testing.T) {
 	tests := []struct {
@@ -105,6 +133,95 @@ func TestContainerDriverTemplate_IncludesKFPPodNameEnv(t *testing.T) {
 	}
 	assert.True(t, foundKFPPodName,
 		"system-container-driver template must include KFP_POD_NAME env var to avoid hostname truncation for long pod names")
+	assert.Equal(t, "container-driver", tmpl.Metadata.Labels[systemPodRoleLabelKey])
+	assert.Equal(t, "system-container-driver", tmpl.Metadata.Annotations[systemTemplateNameAnnotationKey])
+}
+
+func TestAddContainerExecutorTemplate_IncludesDebugMetadata(t *testing.T) {
+	c := &workflowCompiler{
+		templates: make(map[string]*wfapi.Template),
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+	}
+
+	name := c.addContainerExecutorTemplate(
+		&pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test-ref"}},
+		&kubernetesplatform.KubernetesExecutorConfig{},
+	)
+	require.Equal(t, "system-container-executor", name)
+
+	tmpl, exists := c.templates["system-container-impl"]
+	require.True(t, exists, "system-container-impl template should exist")
+	assert.Equal(t, "container-executor", tmpl.Metadata.Labels[systemPodRoleLabelKey])
+	assert.Equal(t, "system-container-impl", tmpl.Metadata.Annotations[systemTemplateNameAnnotationKey])
+}
+
+func TestAddContainerExecutorTemplate_DefaultsIterationIndex(t *testing.T) {
+	c := &workflowCompiler{
+		templates: make(map[string]*wfapi.Template),
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+	}
+
+	name := c.addContainerExecutorTemplate(
+		&pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test-ref"}},
+		&kubernetesplatform.KubernetesExecutorConfig{},
+	)
+	require.Equal(t, "system-container-executor", name)
+
+	tmpl, exists := c.templates[name]
+	require.True(t, exists, "system-container-executor template should exist")
+
+	var iterationIndex *wfapi.Parameter
+	for i := range tmpl.Inputs.Parameters {
+		if tmpl.Inputs.Parameters[i].Name == paramIterationIndex {
+			iterationIndex = &tmpl.Inputs.Parameters[i]
+			break
+		}
+	}
+
+	require.NotNil(t, iterationIndex, "system-container-executor must accept iteration-index")
+	require.NotNil(t, iterationIndex.Default, "iteration-index should default for non-loop callers")
+	assert.Equal(t, "-1", iterationIndex.Default.String())
+}
+
+func TestAddContainerExecutorTemplate_PropagatesGRPCBackoffEnv(t *testing.T) {
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+	viper.Set(backendcommon.MLPipelineGRPCMinConnectTimeout, "30s")
+
+	c := &workflowCompiler{
+		templates: make(map[string]*wfapi.Template),
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+	}
+
+	c.addContainerExecutorTemplate(
+		&pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test-ref"}},
+		&kubernetesplatform.KubernetesExecutorConfig{},
+	)
+
+	tmpl := c.templates["system-container-impl"]
+	require.NotNil(t, tmpl)
+	require.NotNil(t, tmpl.Container)
+
+	found := false
+	for _, env := range tmpl.Container.Env {
+		if env.Name == apiclient.KFPAPIGRPCMinConnectTimeoutEnvVar && env.Value == "30s" {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "expected container executor to include configured gRPC backoff env")
 }
 
 func Test_extendPodMetadata(t *testing.T) {
