@@ -23,8 +23,10 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	authzv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -166,6 +168,147 @@ func TestTask_Create_PersistsDisplayNameAndStatusMetadata(t *testing.T) {
 	assert.Equal(t, "Trainer Display", got.GetDisplayName())
 	assert.Equal(t, "task failed", got.GetStatusMetadata().GetMessage())
 	assert.Equal(t, "oom", got.GetStatusMetadata().GetCustomProperties()["reason"].GetStringValue())
+}
+
+func TestCreateTask_ReusesExistingLogicalIdentity(t *testing.T) {
+	clients, manager, run := initWithOneTimeRunV2(t)
+	defer clients.Close()
+
+	runSrv := createRunServer(manager)
+	request := &apiv2beta1.CreateTaskRequest{
+		RunId: run.UUID,
+		Task: &apiv2beta1.PipelineTask{
+			RunId:     run.UUID,
+			Name:      "trainer",
+			State:     apiv2beta1.PipelineTask_RUNNING,
+			Type:      apiv2beta1.PipelineTask_RUNTIME,
+			ScopePath: "root.pipeline.trainer",
+		},
+	}
+
+	firstTask, err := runSrv.CreateTask(context.Background(), request)
+	assert.NoError(t, err)
+
+	secondTask, err := runSrv.CreateTask(context.Background(), request)
+	assert.NoError(t, err)
+	assert.Equal(t, firstTask.GetTaskId(), secondTask.GetTaskId())
+}
+
+func TestCreateTask_DifferentIterationIndexCreatesDistinctTasks(t *testing.T) {
+	clients, manager, run := initWithOneTimeRunV2(t)
+	defer clients.Close()
+
+	runSrv := createRunServer(manager)
+	baseTask := &apiv2beta1.PipelineTask{
+		RunId:     run.UUID,
+		Name:      "trainer",
+		State:     apiv2beta1.PipelineTask_RUNNING,
+		Type:      apiv2beta1.PipelineTask_RUNTIME,
+		ScopePath: "root.pipeline.trainer",
+	}
+
+	firstTask, err := runSrv.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: run.UUID,
+		Task: func() *apiv2beta1.PipelineTask {
+			task := proto.Clone(baseTask).(*apiv2beta1.PipelineTask)
+			task.TypeAttributes = &apiv2beta1.PipelineTask_TypeAttributes{IterationIndex: util.Int64Pointer(0)}
+			return task
+		}(),
+	})
+	assert.NoError(t, err)
+
+	secondTask, err := runSrv.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: run.UUID,
+		Task: func() *apiv2beta1.PipelineTask {
+			task := proto.Clone(baseTask).(*apiv2beta1.PipelineTask)
+			task.TypeAttributes = &apiv2beta1.PipelineTask_TypeAttributes{IterationIndex: util.Int64Pointer(1)}
+			return task
+		}(),
+	})
+	assert.NoError(t, err)
+	assert.NotEqual(t, firstTask.GetTaskId(), secondTask.GetTaskId())
+}
+
+func TestFindCachedTask_ReturnsLatestSucceededMatch(t *testing.T) {
+	clients, manager, run := initWithOneTimeRunV2(t)
+	defer clients.Close()
+
+	runSrv := createRunServer(manager)
+	taskStore := clients.TaskStore()
+
+	olderMatch, err := taskStore.CreateTask(&model.Task{
+		Namespace:      run.Namespace,
+		RunUUID:        run.UUID,
+		Name:           "older-match",
+		Fingerprint:    "cache-fp",
+		State:          model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		CreatedAtInSec: 100,
+	})
+	assert.NoError(t, err)
+
+	_, err = taskStore.CreateTask(&model.Task{
+		Namespace:      run.Namespace,
+		RunUUID:        run.UUID,
+		Name:           "failed-match",
+		Fingerprint:    "cache-fp",
+		State:          model.TaskStatus(apiv2beta1.PipelineTask_FAILED),
+		CreatedAtInSec: 150,
+	})
+	assert.NoError(t, err)
+
+	latestMatch, err := taskStore.CreateTask(&model.Task{
+		Namespace:      run.Namespace,
+		RunUUID:        run.UUID,
+		Name:           "latest-match",
+		Fingerprint:    "cache-fp",
+		State:          model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		CreatedAtInSec: 200,
+	})
+	assert.NoError(t, err)
+
+	response, err := runSrv.FindCachedTask(context.Background(), &apiv2beta1.FindCachedTaskRequest{
+		Namespace:        run.Namespace,
+		CacheFingerprint: "cache-fp",
+	})
+	assert.NoError(t, err)
+	if assert.NotNil(t, response.GetTask()) {
+		assert.Equal(t, latestMatch.UUID, response.GetTask().GetTaskId())
+		assert.NotEqual(t, olderMatch.UUID, response.GetTask().GetTaskId())
+		assert.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, response.GetTask().GetState())
+	}
+}
+
+func TestFindCachedTask_UsesListVerb(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	clients, manager, run := initWithOneTimeRunV2(t)
+	defer clients.Close()
+
+	_, err := clients.TaskStore().CreateTask(&model.Task{
+		Namespace:      run.Namespace,
+		RunUUID:        run.UUID,
+		Name:           "cached-task",
+		Fingerprint:    "cache-fp",
+		State:          model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		CreatedAtInSec: 100,
+	})
+	assert.NoError(t, err)
+
+	recorder := &recordingSubjectAccessReviewClient{}
+	clients.SubjectAccessReviewClientFake = recorder
+	manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+	runSrv := createRunServer(manager)
+
+	_, err = runSrv.FindCachedTask(ctxWithUser(), &apiv2beta1.FindCachedTaskRequest{
+		Namespace:        run.Namespace,
+		CacheFingerprint: "cache-fp",
+	})
+	assert.NoError(t, err)
+	if assert.NotNil(t, recorder.lastReview) {
+		assert.Equal(t, common.RbacResourceVerbList, recorder.lastReview.Spec.ResourceAttributes.Verb)
+		assert.Equal(t, run.Namespace, recorder.lastReview.Spec.ResourceAttributes.Namespace)
+	}
 }
 
 func TestTask_RunHydration_WithInputsOutputs_ArtifactsAndMetrics(t *testing.T) {

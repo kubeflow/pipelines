@@ -185,6 +185,20 @@ service RunService {
       tags: "RunService"
     };
   }
+
+  // Finds the latest successful task for a namespace/fingerprint pair using an
+  // efficient server-side lookup, so runtime cache checks do not need to scan runs.
+  rpc FindCachedTask(FindCachedTaskRequest) returns (FindCachedTaskResponse) {
+    option (google.api.http) = {
+      post: "/apis/v2beta1/tasks:findCached"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "find_cached_task"
+      summary: "Finds a cached successful task by namespace and fingerprint."
+      tags: "RunService"
+    };
+  }
 }
 
 message Run {
@@ -692,4 +706,13 @@ message ListTasksResponse {
   repeated PipelineTask tasks = 1;
   string next_page_token = 2;
   int32 total_size = 3;
+}
+
+message FindCachedTaskRequest {
+  string namespace = 1;
+  string cache_fingerprint = 2;
+}
+
+message FindCachedTaskResponse {
+  PipelineTask task = 1;
 }

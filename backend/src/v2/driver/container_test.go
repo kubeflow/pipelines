@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//	https://www.apache.org/licenses/LICENSE-2.0
+// https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,421 +15,266 @@
 package driver
 
 import (
-	"context"
 	"testing"
 
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
-	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
+	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func Test_validateContainer(t *testing.T) {
-	tests := []struct {
-		name    string
-		opts    Options
-		wantErr bool
-		errMsg  string
-	}{
+// TestConvertArtifactsToArtifactList_MultipleMetrics tests that multiple metric
+// artifacts are merged into a single RuntimeArtifact with combined metadata
+func TestConvertArtifactsToArtifactList_MultipleMetrics(t *testing.T) {
+	accuracy := 0.95
+	precision := 0.87
+	recall := 0.91
+
+	artifacts := []*apiV2beta1.Artifact{
 		{
-			name: "nil container spec returns error",
-			opts: Options{
-				Container: nil,
+			ArtifactId:  "artifact-1",
+			Name:        "accuracy",
+			Type:        apiV2beta1.Artifact_Metric,
+			NumberValue: &accuracy,
+			Metadata: map[string]*structpb.Value{
+				"accuracy": structpb.NewNumberValue(accuracy),
 			},
-			wantErr: true,
-			errMsg:  "container spec is required",
-		},
-		{
-			name: "missing pipeline name returns error",
-			opts: Options{
-				Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image: "test-image",
-				},
-				PipelineName: "",
-			},
-			wantErr: true,
-			errMsg:  "pipeline name is required",
 		},
 		{
-			name: "missing run ID returns error",
-			opts: Options{
-				Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image: "test-image",
-				},
-				PipelineName: "pipeline-1",
-				RunID:        "",
+			ArtifactId:  "artifact-2",
+			Name:        "precision",
+			Type:        apiV2beta1.Artifact_Metric,
+			NumberValue: &precision,
+			Metadata: map[string]*structpb.Value{
+				"precision": structpb.NewNumberValue(precision),
 			},
-			wantErr: true,
-			errMsg:  "KFP run ID is required",
 		},
 		{
-			name: "missing component spec returns error",
-			opts: Options{
-				Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image: "test-image",
-				},
-				PipelineName: "pipeline-1",
-				RunID:        "run-1",
-				Component:    nil,
+			ArtifactId:  "artifact-3",
+			Name:        "recall",
+			Type:        apiV2beta1.Artifact_Metric,
+			NumberValue: &recall,
+			Metadata: map[string]*structpb.Value{
+				"recall": structpb.NewNumberValue(recall),
 			},
-			wantErr: true,
-			errMsg:  "component spec is required",
+		},
+	}
+
+	artifactList, err := convertArtifactsToArtifactList(artifacts, false)
+	assert.NoError(t, err)
+	assert.NotNil(t, artifactList)
+
+	// Should have ONE RuntimeArtifact with merged metadata
+	assert.Equal(t, 1, len(artifactList.Artifacts), "Should merge multiple metrics into one RuntimeArtifact")
+
+	runtimeArtifact := artifactList.Artifacts[0]
+	assert.NotNil(t, runtimeArtifact.Metadata, "Merged artifact should have metadata")
+
+	// Verify all metrics are in the metadata
+	metadata := runtimeArtifact.Metadata.Fields
+	assert.Equal(t, 3, len(metadata), "Metadata should contain all three metrics")
+
+	// Verify each metric value
+	assert.NotNil(t, metadata["accuracy"])
+	assert.Equal(t, accuracy, metadata["accuracy"].GetNumberValue())
+
+	assert.NotNil(t, metadata["precision"])
+	assert.Equal(t, precision, metadata["precision"].GetNumberValue())
+
+	assert.NotNil(t, metadata["recall"])
+	assert.Equal(t, recall, metadata["recall"].GetNumberValue())
+}
+
+// TestConvertArtifactsToArtifactList_SingleMetric tests that a single metric
+// artifact is converted without merging (normal behavior)
+func TestConvertArtifactsToArtifactList_SingleMetric(t *testing.T) {
+	accuracy := 0.95
+
+	artifacts := []*apiV2beta1.Artifact{
+		{
+			ArtifactId:  "artifact-1",
+			Name:        "accuracy",
+			Type:        apiV2beta1.Artifact_Metric,
+			NumberValue: &accuracy,
+			Metadata: map[string]*structpb.Value{
+				"accuracy": structpb.NewNumberValue(accuracy),
+			},
+		},
+	}
+
+	artifactList, err := convertArtifactsToArtifactList(artifacts, false)
+	assert.NoError(t, err)
+	assert.NotNil(t, artifactList)
+
+	// Single metric should NOT be merged (normal conversion)
+	assert.Equal(t, 1, len(artifactList.Artifacts), "Should have one RuntimeArtifact")
+
+	runtimeArtifact := artifactList.Artifacts[0]
+	assert.Equal(t, "accuracy", runtimeArtifact.Name)
+	assert.Equal(t, "Metric", runtimeArtifact.Type.GetSchemaTitle())
+}
+
+// TestConvertArtifactsToArtifactList_NonMetrics tests that non-metric artifacts
+// are not merged and follow normal conversion
+func TestConvertArtifactsToArtifactList_NonMetrics(t *testing.T) {
+	uri1 := "s3://bucket/dataset1"
+	uri2 := "s3://bucket/dataset2"
+
+	artifacts := []*apiV2beta1.Artifact{
+		{
+			ArtifactId: "artifact-1",
+			Name:       "dataset1",
+			Type:       apiV2beta1.Artifact_Dataset,
+			Uri:        &uri1,
 		},
 		{
-			name: "valid container options pass validation",
-			opts: Options{
-				Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image: "test-image",
-				},
-				PipelineName:   "pipeline-1",
-				RunID:          "run-1",
-				Component:      &pipelinespec.ComponentSpec{},
-				Task:           &pipelinespec.PipelineTaskSpec{TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "task-1"}},
-				DAGExecutionID: 1,
-			},
-			wantErr: false,
+			ArtifactId: "artifact-2",
+			Name:       "dataset2",
+			Type:       apiV2beta1.Artifact_Dataset,
+			Uri:        &uri2,
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			err := validateContainer(test.opts)
-			if test.wantErr {
-				assert.Error(t, err)
-				assert.Contains(t, err.Error(), test.errMsg)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
+	artifactList, err := convertArtifactsToArtifactList(artifacts, false)
+	assert.NoError(t, err)
+	assert.NotNil(t, artifactList)
+
+	// Non-metrics should NOT be merged - each gets its own RuntimeArtifact
+	assert.Equal(t, 2, len(artifactList.Artifacts), "Non-metrics should not be merged")
+
+	// Verify each artifact independently
+	names := make(map[string]bool)
+	for _, artifact := range artifactList.Artifacts {
+		names[artifact.Name] = true
+		assert.Equal(t, "Dataset", artifact.Type.GetSchemaTitle())
 	}
+
+	assert.True(t, names["dataset1"], "Should have dataset1")
+	assert.True(t, names["dataset2"], "Should have dataset2")
 }
 
-// MockMetadataClient manually mocks the gRPC service.
-type MockMetadataClient struct {
-	pb.MetadataStoreServiceClient
+// TestConvertArtifactsToArtifactList_MixedTypes tests that when artifacts
+// contain mixed types (not all metrics), they are not merged
+func TestConvertArtifactsToArtifactList_MixedTypes(t *testing.T) {
+	accuracy := 0.95
+	uri := "s3://bucket/model"
 
-	GetArtifactsByIDFunc           func(ctx context.Context, in *pb.GetArtifactsByIDRequest, opts ...grpc.CallOption) (*pb.GetArtifactsByIDResponse, error)
-	GetEventsByExecutionIDsFunc    func(ctx context.Context, in *pb.GetEventsByExecutionIDsRequest, opts ...grpc.CallOption) (*pb.GetEventsByExecutionIDsResponse, error)
-	GetContextsByExecutionFunc     func(ctx context.Context, in *pb.GetContextsByExecutionRequest, opts ...grpc.CallOption) (*pb.GetContextsByExecutionResponse, error)
-	GetContextTypeFunc             func(ctx context.Context, in *pb.GetContextTypeRequest, opts ...grpc.CallOption) (*pb.GetContextTypeResponse, error)
-	PutParentContextsFunc          func(ctx context.Context, in *pb.PutParentContextsRequest, opts ...grpc.CallOption) (*pb.PutParentContextsResponse, error)
-	GetParentContextsByContextFunc func(ctx context.Context, in *pb.GetParentContextsByContextRequest, opts ...grpc.CallOption) (*pb.GetParentContextsByContextResponse, error)
-	GetContextByTypeAndNameFunc    func(ctx context.Context, in *pb.GetContextByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetContextByTypeAndNameResponse, error)
-	GetExecutionsByIDFunc          func(ctx context.Context, in *pb.GetExecutionsByIDRequest, opts ...grpc.CallOption) (*pb.GetExecutionsByIDResponse, error)
-	PutExecutionFunc               func(ctx context.Context, in *pb.PutExecutionRequest, opts ...grpc.CallOption) (*pb.PutExecutionResponse, error)
-	PutExecutionTypeFunc           func(ctx context.Context, in *pb.PutExecutionTypeRequest, opts ...grpc.CallOption) (*pb.PutExecutionTypeResponse, error)
-	GetExecutionsByTypeAndNameFunc func(ctx context.Context, in *pb.GetExecutionByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetExecutionByTypeAndNameResponse, error)
-	GetExecutionByTypeAndNameFunc  func(ctx context.Context, in *pb.GetExecutionByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetExecutionByTypeAndNameResponse, error)
-}
-
-func (m *MockMetadataClient) GetArtifactsByID(ctx context.Context, in *pb.GetArtifactsByIDRequest, opts ...grpc.CallOption) (*pb.GetArtifactsByIDResponse, error) {
-	if m.GetArtifactsByIDFunc != nil {
-		return m.GetArtifactsByIDFunc(ctx, in, opts...)
-	}
-	return &pb.GetArtifactsByIDResponse{}, nil
-}
-
-func (m *MockMetadataClient) GetExecutionByTypeAndName(ctx context.Context, in *pb.GetExecutionByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetExecutionByTypeAndNameResponse, error) {
-	if m.GetExecutionByTypeAndNameFunc != nil {
-		return m.GetExecutionByTypeAndNameFunc(ctx, in, opts...)
-	}
-	return &pb.GetExecutionByTypeAndNameResponse{}, nil
-}
-
-func (m *MockMetadataClient) PutExecutionType(ctx context.Context, in *pb.PutExecutionTypeRequest, opts ...grpc.CallOption) (*pb.PutExecutionTypeResponse, error) {
-	if m.PutExecutionTypeFunc != nil {
-		return m.PutExecutionTypeFunc(ctx, in, opts...)
-	}
-	return &pb.PutExecutionTypeResponse{}, nil
-}
-
-func (m *MockMetadataClient) GetEventsByExecutionIDs(ctx context.Context, in *pb.GetEventsByExecutionIDsRequest, opts ...grpc.CallOption) (*pb.GetEventsByExecutionIDsResponse, error) {
-	if m.GetEventsByExecutionIDsFunc != nil {
-		return m.GetEventsByExecutionIDsFunc(ctx, in, opts...)
-	}
-	return &pb.GetEventsByExecutionIDsResponse{}, nil
-}
-
-func (m *MockMetadataClient) GetContextsByExecution(ctx context.Context, in *pb.GetContextsByExecutionRequest, opts ...grpc.CallOption) (*pb.GetContextsByExecutionResponse, error) {
-	if m.GetContextsByExecutionFunc != nil {
-		return m.GetContextsByExecutionFunc(ctx, in, opts...)
-	}
-	return &pb.GetContextsByExecutionResponse{}, nil
-}
-
-func (m *MockMetadataClient) GetContextType(ctx context.Context, in *pb.GetContextTypeRequest, opts ...grpc.CallOption) (*pb.GetContextTypeResponse, error) {
-	if m.GetContextTypeFunc != nil {
-		return m.GetContextTypeFunc(ctx, in, opts...)
-	}
-	return &pb.GetContextTypeResponse{}, nil
-}
-
-func (m *MockMetadataClient) PutParentContexts(ctx context.Context, in *pb.PutParentContextsRequest, opts ...grpc.CallOption) (*pb.PutParentContextsResponse, error) {
-	if m.PutParentContextsFunc != nil {
-		return m.PutParentContextsFunc(ctx, in, opts...)
-	}
-	return &pb.PutParentContextsResponse{}, nil
-}
-
-func (m *MockMetadataClient) GetParentContextsByContext(ctx context.Context, in *pb.GetParentContextsByContextRequest, opts ...grpc.CallOption) (*pb.GetParentContextsByContextResponse, error) {
-	if m.GetParentContextsByContextFunc != nil {
-		return m.GetParentContextsByContextFunc(ctx, in, opts...)
-	}
-	return &pb.GetParentContextsByContextResponse{}, nil
-}
-
-func (m *MockMetadataClient) GetContextByTypeAndName(ctx context.Context, in *pb.GetContextByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetContextByTypeAndNameResponse, error) {
-	if m.GetContextByTypeAndNameFunc != nil {
-		return m.GetContextByTypeAndNameFunc(ctx, in, opts...)
-	}
-	// Return a safe default to prevent nil pointer panics in your real GetPipeline method
-	return &pb.GetContextByTypeAndNameResponse{}, nil
-}
-
-func (m *MockMetadataClient) GetExecutionsByID(ctx context.Context, in *pb.GetExecutionsByIDRequest, opts ...grpc.CallOption) (*pb.GetExecutionsByIDResponse, error) {
-	if m.GetExecutionsByIDFunc != nil {
-		return m.GetExecutionsByIDFunc(ctx, in, opts...)
-	}
-	return &pb.GetExecutionsByIDResponse{}, nil
-}
-
-func (m *MockMetadataClient) PutExecution(ctx context.Context, in *pb.PutExecutionRequest, opts ...grpc.CallOption) (*pb.PutExecutionResponse, error) {
-	if m.PutExecutionFunc != nil {
-		return m.PutExecutionFunc(ctx, in, opts...)
-	}
-	return &pb.PutExecutionResponse{}, nil
-}
-
-func (m *MockMetadataClient) GetExecutionsByTypeAndName(ctx context.Context, in *pb.GetExecutionByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetExecutionByTypeAndNameResponse, error) {
-	if m.GetExecutionsByTypeAndNameFunc != nil {
-		return m.GetExecutionsByTypeAndNameFunc(ctx, in, opts...)
-	}
-	return &pb.GetExecutionByTypeAndNameResponse{}, nil
-}
-
-func TestContainer_CreateExecutionGeneralFailure(t *testing.T) {
-	mockSvc := &MockMetadataClient{
-		GetParentContextsByContextFunc: func(ctx context.Context, in *pb.GetParentContextsByContextRequest, opts ...grpc.CallOption) (*pb.GetParentContextsByContextResponse, error) {
-			return &pb.GetParentContextsByContextResponse{}, nil
+	artifacts := []*apiV2beta1.Artifact{
+		{
+			ArtifactId:  "artifact-1",
+			Name:        "accuracy",
+			Type:        apiV2beta1.Artifact_Metric,
+			NumberValue: &accuracy,
 		},
-		GetContextByTypeAndNameFunc: func(ctx context.Context, in *pb.GetContextByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetContextByTypeAndNameResponse, error) {
-			return &pb.GetContextByTypeAndNameResponse{Context: &pb.Context{Id: new(int64(1234))}}, nil
-		},
-		GetExecutionsByIDFunc: func(ctx context.Context, in *pb.GetExecutionsByIDRequest, opts ...grpc.CallOption) (*pb.GetExecutionsByIDResponse, error) {
-			return &pb.GetExecutionsByIDResponse{Executions: []*pb.Execution{{Id: func() *int64 { i := int64(55); return &i }()}}}, nil
-		},
-
-		// Trigger a general error (e.g., Internal)
-		PutExecutionFunc: func(ctx context.Context, in *pb.PutExecutionRequest, opts ...grpc.CallOption) (*pb.PutExecutionResponse, error) {
-			return nil, status.Error(codes.Internal, "database connection failed")
+		{
+			ArtifactId: "artifact-2",
+			Name:       "model",
+			Type:       apiV2beta1.Artifact_Model,
+			Uri:        &uri,
 		},
 	}
 
-	mlmdClient := metadata.NewTestClient(mockSvc)
+	artifactList, err := convertArtifactsToArtifactList(artifacts, false)
+	assert.NoError(t, err)
+	assert.NotNil(t, artifactList)
 
-	execution, err := Container(context.Background(), Options{
-		IterationIndex: -1,
-		PipelineName:   "pipeline-1",
-		RunID:          "run-1",
-		TaskName:       "task-1",
-		Component: &pipelinespec.ComponentSpec{
-			Implementation:   &pipelinespec.ComponentSpec_ExecutorLabel{ExecutorLabel: "executor"},
-			InputDefinitions: &pipelinespec.ComponentInputsSpec{Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{}},
-			OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
-				Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{"output": {ParameterType: pipelinespec.ParameterType_STRING}},
+	// Mixed types should NOT be merged
+	assert.Equal(t, 2, len(artifactList.Artifacts), "Mixed types should not be merged")
+}
+
+// TestConvertArtifactsToArtifactList_EmptyList tests that empty artifact list
+// is handled correctly
+func TestConvertArtifactsToArtifactList_EmptyList(t *testing.T) {
+	artifacts := []*apiV2beta1.Artifact{}
+
+	artifactList, err := convertArtifactsToArtifactList(artifacts, false)
+	assert.NoError(t, err)
+	assert.NotNil(t, artifactList)
+	assert.Equal(t, 0, len(artifactList.Artifacts), "Empty list should return empty ArtifactList")
+}
+
+// TestConvertArtifactsToArtifactList_MetricsWithURIAndMetadata tests that
+// merged metrics preserve URI from first artifact
+func TestConvertArtifactsToArtifactList_MetricsWithURIAndMetadata(t *testing.T) {
+	accuracy := 0.95
+	precision := 0.87
+	uri := "s3://bucket/metrics.json"
+
+	artifacts := []*apiV2beta1.Artifact{
+		{
+			ArtifactId:  "artifact-1",
+			Name:        "accuracy",
+			Type:        apiV2beta1.Artifact_Metric,
+			Uri:         &uri,
+			NumberValue: &accuracy,
+			Metadata: map[string]*structpb.Value{
+				"accuracy": structpb.NewNumberValue(accuracy),
 			},
 		},
-		DAGExecutionID: 55,
-		Task: &pipelinespec.PipelineTaskSpec{
-			TaskInfo:       &pipelinespec.PipelineTaskInfo{Name: "task-1"},
-			CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{EnableCache: true},
-		},
-		Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-			Image:   "python:3.11",
-			Command: []string{"python", "main.py"},
-		},
-	}, mlmdClient, &mockCacheClient{})
-
-	require.NotNil(t, execution)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "database connection failed")
-	assert.NotContains(t, err.Error(), "failed to lookup existing execution")
-}
-
-func TestContainer_CreateExecutionSuccess(t *testing.T) {
-	proxy.InitializeConfigWithEmptyForTests()
-
-	mockSvc := &MockMetadataClient{
-		GetParentContextsByContextFunc: func(ctx context.Context, in *pb.GetParentContextsByContextRequest, opts ...grpc.CallOption) (*pb.GetParentContextsByContextResponse, error) {
-			return &pb.GetParentContextsByContextResponse{}, nil
-		},
-		GetContextByTypeAndNameFunc: func(ctx context.Context, in *pb.GetContextByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetContextByTypeAndNameResponse, error) {
-			return &pb.GetContextByTypeAndNameResponse{Context: &pb.Context{Id: new(int64(1234))}}, nil
-		},
-		GetExecutionsByIDFunc: func(ctx context.Context, in *pb.GetExecutionsByIDRequest, opts ...grpc.CallOption) (*pb.GetExecutionsByIDResponse, error) {
-			return &pb.GetExecutionsByIDResponse{Executions: []*pb.Execution{{Id: func() *int64 { i := int64(55); return &i }()}}}, nil
-		},
-		PutExecutionFunc: func(ctx context.Context, in *pb.PutExecutionRequest, opts ...grpc.CallOption) (*pb.PutExecutionResponse, error) {
-			return nil, status.Error(codes.AlreadyExists, "execution already exists")
-		},
-		GetExecutionByTypeAndNameFunc: func(ctx context.Context, in *pb.GetExecutionByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetExecutionByTypeAndNameResponse, error) {
-			return &pb.GetExecutionByTypeAndNameResponse{
-				Execution: &pb.Execution{
-					Id: new(int64(1234)),
-				},
-			}, nil
+		{
+			ArtifactId:  "artifact-2",
+			Name:        "precision",
+			Type:        apiV2beta1.Artifact_Metric,
+			NumberValue: &precision,
+			Metadata: map[string]*structpb.Value{
+				"precision": structpb.NewNumberValue(precision),
+			},
 		},
 	}
 
-	mlmdClient := metadata.NewTestClient(mockSvc)
+	artifactList, err := convertArtifactsToArtifactList(artifacts, false)
+	assert.NoError(t, err)
+	assert.NotNil(t, artifactList)
 
-	execution, err := Container(context.Background(), Options{
-		IterationIndex: -1,
-		PipelineName:   "pipeline-1",
-		RunID:          "run-1",
-		TaskName:       "task-1",
-		Component: &pipelinespec.ComponentSpec{
-			Implementation:   &pipelinespec.ComponentSpec_ExecutorLabel{ExecutorLabel: "executor"},
-			InputDefinitions: &pipelinespec.ComponentInputsSpec{Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{}},
-			OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
-				Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{"output": {ParameterType: pipelinespec.ParameterType_STRING}},
-			},
-		},
-		DAGExecutionID: 55,
-		Task: &pipelinespec.PipelineTaskSpec{
-			TaskInfo:       &pipelinespec.PipelineTaskInfo{Name: "task-1"},
-			CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{EnableCache: true},
-		},
-		Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-			Image:   "python:3.11",
-			Command: []string{"python", "main.py"},
-		},
-	}, mlmdClient, &mockCacheClient{})
+	// Verify merged artifact has URI from first artifact
+	assert.Equal(t, 1, len(artifactList.Artifacts))
+	mergedArtifact := artifactList.Artifacts[0]
+	assert.Equal(t, uri, mergedArtifact.Uri, "Should preserve URI from first artifact")
 
-	require.NotNil(t, execution)
-	require.NoError(t, err)
-	require.NotNil(t, execution)
-	require.NoError(t, err)
-	assert.Equal(t, int64(1234), execution.ID)
-	require.NotNil(t, execution.Cached)
-	assert.False(t, *execution.Cached)
-	assert.NotEmpty(t, execution.PodSpecPatch)
+	// Verify metadata contains both metrics
+	metadata := mergedArtifact.Metadata.Fields
+	assert.Equal(t, 2, len(metadata))
+	assert.NotNil(t, metadata["accuracy"])
+	assert.NotNil(t, metadata["precision"])
 }
 
-func TestContainer_CreateExecutionAlreadyExistsLookupReturnsNil(t *testing.T) {
-	proxy.InitializeConfigWithEmptyForTests()
-	mockSvc := &MockMetadataClient{
-		GetParentContextsByContextFunc: func(ctx context.Context, in *pb.GetParentContextsByContextRequest, opts ...grpc.CallOption) (*pb.GetParentContextsByContextResponse, error) {
-			return &pb.GetParentContextsByContextResponse{}, nil
-		},
-		GetContextByTypeAndNameFunc: func(ctx context.Context, in *pb.GetContextByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetContextByTypeAndNameResponse, error) {
-			return &pb.GetContextByTypeAndNameResponse{Context: &pb.Context{Id: new(int64(1234))}}, nil
-		},
-		GetExecutionsByIDFunc: func(ctx context.Context, in *pb.GetExecutionsByIDRequest, opts ...grpc.CallOption) (*pb.GetExecutionsByIDResponse, error) {
-			return &pb.GetExecutionsByIDResponse{Executions: []*pb.Execution{{Id: func() *int64 { i := int64(55); return &i }()}}}, nil
-		},
+// TestConvertArtifactsToArtifactList_MetricsNumberValueInMetadata tests that
+// NumberValue is properly included in merged metadata for multiple metrics
+func TestConvertArtifactsToArtifactList_MetricsNumberValueInMetadata(t *testing.T) {
+	accuracy := 0.95
+	precision := 0.87
 
-		// Trigger the AlreadyExists path
-		PutExecutionFunc: func(ctx context.Context, in *pb.PutExecutionRequest, opts ...grpc.CallOption) (*pb.PutExecutionResponse, error) {
-			return nil, status.Error(codes.AlreadyExists, "execution already exists")
+	// Test with multiple metrics where one has no metadata field
+	artifacts := []*apiV2beta1.Artifact{
+		{
+			ArtifactId:  "artifact-1",
+			Name:        "accuracy",
+			Type:        apiV2beta1.Artifact_Metric,
+			NumberValue: &accuracy,
+			// No metadata field - NumberValue should still be included in merged metadata
 		},
-
-		// Return a successful lookup, but with NO executions (translates to nil existing execution)
-		GetExecutionByTypeAndNameFunc: func(ctx context.Context, in *pb.GetExecutionByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetExecutionByTypeAndNameResponse, error) {
-			return nil, status.Error(codes.Internal, "simulated gRPC lookup failure")
+		{
+			ArtifactId:  "artifact-2",
+			Name:        "precision",
+			Type:        apiV2beta1.Artifact_Metric,
+			NumberValue: &precision,
+			Metadata: map[string]*structpb.Value{
+				"precision": structpb.NewNumberValue(precision),
+			},
 		},
 	}
 
-	mlmdClient := metadata.NewTestClient(mockSvc)
+	artifactList, err := convertArtifactsToArtifactList(artifacts, false)
+	assert.NoError(t, err)
+	assert.NotNil(t, artifactList)
 
-	execution, err := Container(context.Background(), Options{
-		IterationIndex: -1,
-		PipelineName:   "pipeline-1",
-		RunID:          "run-1",
-		TaskName:       "task-1",
-		Component: &pipelinespec.ComponentSpec{
-			Implementation:   &pipelinespec.ComponentSpec_ExecutorLabel{ExecutorLabel: "executor"},
-			InputDefinitions: &pipelinespec.ComponentInputsSpec{Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{}},
-			OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
-				Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{"output": {ParameterType: pipelinespec.ParameterType_STRING}},
-			},
-		},
-		DAGExecutionID: 55,
-		Task: &pipelinespec.PipelineTaskSpec{
-			TaskInfo:       &pipelinespec.PipelineTaskInfo{Name: "task-1"},
-			CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{EnableCache: true},
-		},
-		Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-			Image:   "python:3.11",
-			Command: []string{"python", "main.py"},
-		},
-	}, mlmdClient, &mockCacheClient{})
+	// Should merge into one RuntimeArtifact
+	assert.Equal(t, 1, len(artifactList.Artifacts))
+	runtimeArtifact := artifactList.Artifacts[0]
+	assert.NotNil(t, runtimeArtifact.Metadata)
 
-	require.NotNil(t, execution)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to lookup existing execution")
-	assert.Contains(t, err.Error(), "simulated gRPC lookup failure")
-}
-
-func TestContainer_CreateExecutionDoesNotExistGenericError(t *testing.T) {
-	mockSvc := &MockMetadataClient{
-		GetParentContextsByContextFunc: func(ctx context.Context, in *pb.GetParentContextsByContextRequest, opts ...grpc.CallOption) (*pb.GetParentContextsByContextResponse, error) {
-			return &pb.GetParentContextsByContextResponse{}, nil
-		},
-		GetContextByTypeAndNameFunc: func(ctx context.Context, in *pb.GetContextByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetContextByTypeAndNameResponse, error) {
-			return &pb.GetContextByTypeAndNameResponse{Context: &pb.Context{Id: new(int64(1234))}}, nil
-		},
-		GetExecutionsByIDFunc: func(ctx context.Context, in *pb.GetExecutionsByIDRequest, opts ...grpc.CallOption) (*pb.GetExecutionsByIDResponse, error) {
-			return &pb.GetExecutionsByIDResponse{Executions: []*pb.Execution{{Id: func() *int64 { i := int64(55); return &i }()}}}, nil
-		},
-
-		// Trigger an error that is NOT AlreadyExists
-		PutExecutionFunc: func(ctx context.Context, in *pb.PutExecutionRequest, opts ...grpc.CallOption) (*pb.PutExecutionResponse, error) {
-			return nil, status.Error(codes.Unavailable, "unavailable")
-		},
-
-		// Return a valid execution to simulate finding it successfully
-		GetExecutionByTypeAndNameFunc: func(ctx context.Context, in *pb.GetExecutionByTypeAndNameRequest, opts ...grpc.CallOption) (*pb.GetExecutionByTypeAndNameResponse, error) {
-			return &pb.GetExecutionByTypeAndNameResponse{
-				Execution: &pb.Execution{
-					Id: new(int64(999)),
-				},
-			}, nil
-		},
-	}
-
-	mlmdClient := metadata.NewTestClient(mockSvc)
-
-	execution, err := Container(context.Background(), Options{
-		IterationIndex: -1,
-		PipelineName:   "pipeline-1",
-		RunID:          "run-1",
-		TaskName:       "task-1",
-		Component: &pipelinespec.ComponentSpec{
-			Implementation:   &pipelinespec.ComponentSpec_ExecutorLabel{ExecutorLabel: "executor"},
-			InputDefinitions: &pipelinespec.ComponentInputsSpec{Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{}},
-			OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
-				Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{"output": {ParameterType: pipelinespec.ParameterType_STRING}},
-			},
-		},
-		DAGExecutionID: 55,
-		Task: &pipelinespec.PipelineTaskSpec{
-			TaskInfo:       &pipelinespec.PipelineTaskInfo{Name: "task-1"},
-			CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{EnableCache: true},
-		},
-		Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-			Image:   "python:3.11",
-			Command: []string{"python", "main.py"},
-		},
-	}, mlmdClient, &mockCacheClient{})
-
-	// In a successful recovery, we expect NO error to be returned from Container
-	require.Error(t, err)
-	require.NotNil(t, execution)
-	assert.Contains(t, err.Error(), "unavailable")
+	// Verify both metrics are in metadata (including the one without explicit metadata field)
+	metadata := runtimeArtifact.Metadata.Fields
+	assert.Equal(t, 2, len(metadata), "Should have both metrics in metadata")
+	assert.NotNil(t, metadata["accuracy"], "Should have accuracy from NumberValue")
+	assert.NotNil(t, metadata["precision"], "Should have precision from metadata")
 }

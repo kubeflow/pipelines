@@ -127,7 +127,7 @@ An unexpected error response.
 type RecurringRunServiceCreateRecurringRunDefault struct {
 	_statusCode int
 
-	Payload *recurring_run_model.GooglerpcStatus
+	Payload *recurring_run_model.GoogleRPCStatus
 }
 
 // IsSuccess returns true when this recurring run service create recurring run default response has a 2xx status code
@@ -170,13 +170,13 @@ func (o *RecurringRunServiceCreateRecurringRunDefault) String() string {
 	return fmt.Sprintf("[POST /apis/v2beta1/recurringruns][%d] RecurringRunService_CreateRecurringRun default %s", o._statusCode, payload)
 }
 
-func (o *RecurringRunServiceCreateRecurringRunDefault) GetPayload() *recurring_run_model.GooglerpcStatus {
+func (o *RecurringRunServiceCreateRecurringRunDefault) GetPayload() *recurring_run_model.GoogleRPCStatus {
 	return o.Payload
 }
 
 func (o *RecurringRunServiceCreateRecurringRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(recurring_run_model.GooglerpcStatus)
+	o.Payload = new(recurring_run_model.GoogleRPCStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

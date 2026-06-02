@@ -34,7 +34,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -93,7 +93,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -127,7 +127,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -160,7 +160,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -199,7 +199,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -241,7 +241,7 @@
                   "description": "Input. A namespace this pipeline belongs to.\nCauses error if user is not authorized to access the specified namespace.\nIf not specified in CreatePipeline, default namespace is used."
                 },
                 "error": {
-                  "$ref": "#/definitions/googlerpcStatus",
+                  "$ref": "#/definitions/googleRpcStatus",
                   "description": "In case any error happens retrieving a pipeline field, only pipeline ID,\nand the error message is returned. Client has the flexibility of choosing\nhow to handle the error. This is especially useful during listing call."
                 },
                 "tags": {
@@ -252,7 +252,7 @@
                   "description": "Optional. User-defined tags as key-value pairs associated with the pipeline.\nTags can be used to label and categorize pipelines.\nConstraints:\n  - Maximum 20 tags per pipeline.\n  - Both key and value are limited to 63 characters.\n  - Keys cannot be empty and must not contain the '.' character.\nTags can be filtered on when listing pipelines using the filter parameter\nwith keys prefixed by \"tags.\"\n(e.g., filter predicate key \"tags.team\" with string_value \"ml-ops\")."
                 }
               },
-              "title": "Required input. Pipeline object with updated fields.\npipeline_id is required to identify the pipeline.\nMutable fields: display_name, tags."
+              "description": "Required input. Pipeline object with updated fields.\npipeline_id is required to identify the pipeline.\nMutable fields: display_name, tags."
             }
           }
         ],
@@ -275,7 +275,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -306,7 +306,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -345,7 +345,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -404,7 +404,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -445,7 +445,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -483,7 +483,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -522,7 +522,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -579,7 +579,7 @@
                   "description": "Output. The pipeline spec for the pipeline version."
                 },
                 "error": {
-                  "$ref": "#/definitions/googlerpcStatus",
+                  "$ref": "#/definitions/googleRpcStatus",
                   "description": "In case any error happens retrieving a pipeline version field, only\npipeline ID, pipeline version ID, and the error message are returned.\nClient has the flexibility of choosing how to handle the error.\nThis is especially useful during List() calls."
                 },
                 "tags": {
@@ -590,7 +590,7 @@
                   "description": "Optional input field. User-defined tags (key-value pairs) for the pipeline version.\nConstraints:\n  - Maximum 20 tags per pipeline version.\n  - Both keys and values are limited to 63 characters.\n  - Keys cannot be empty and must not contain the '.' character.\nTags are stored in a separate table and can be retrieved via Get and List APIs."
                 }
               },
-              "title": "Required input. Pipeline version object with updated fields.\npipeline_id and pipeline_version_id are required to identify the version.\nMutable fields: display_name, tags."
+              "description": "Required input. Pipeline version object with updated fields.\npipeline_id and pipeline_version_id are required to identify the version.\nMutable fields: display_name, tags."
             }
           }
         ],
@@ -601,7 +601,7 @@
     }
   },
   "definitions": {
-    "googlerpcStatus": {
+    "googleRpcStatus": {
       "type": "object",
       "properties": {
         "code": {
@@ -729,7 +729,7 @@
           "description": "Input. A namespace this pipeline belongs to.\nCauses error if user is not authorized to access the specified namespace.\nIf not specified in CreatePipeline, default namespace is used."
         },
         "error": {
-          "$ref": "#/definitions/googlerpcStatus",
+          "$ref": "#/definitions/googleRpcStatus",
           "description": "In case any error happens retrieving a pipeline field, only pipeline ID,\nand the error message is returned. Client has the flexibility of choosing\nhow to handle the error. This is especially useful during listing call."
         },
         "tags": {
@@ -782,7 +782,7 @@
           "description": "Output. The pipeline spec for the pipeline version."
         },
         "error": {
-          "$ref": "#/definitions/googlerpcStatus",
+          "$ref": "#/definitions/googleRpcStatus",
           "description": "In case any error happens retrieving a pipeline version field, only\npipeline ID, pipeline version ID, and the error message are returned.\nClient has the flexibility of choosing how to handle the error.\nThis is especially useful during List() calls."
         },
         "tags": {

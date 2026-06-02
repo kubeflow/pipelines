@@ -347,6 +347,31 @@ func TestConfigWrapperDefaults(t *testing.T) {
 			expected: DefaultTokenReviewAudience,
 		},
 		{
+			name:     "GetMLPipelineGRPCBackoffBaseDelay defaults to empty string",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffBaseDelay() },
+			expected: "",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffMultiplier defaults to empty string",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffMultiplier() },
+			expected: "",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffJitter defaults to empty string",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffJitter() },
+			expected: "",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffMaxDelay defaults to empty string",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffMaxDelay() },
+			expected: "",
+		},
+		{
+			name:     "GetMLPipelineGRPCMinConnectTimeout defaults to empty string",
+			getter:   func() interface{} { return GetMLPipelineGRPCMinConnectTimeout() },
+			expected: "",
+		},
+		{
 			name:     "GetMetadataTLSEnabled defaults to false",
 			getter:   func() interface{} { return GetMetadataTLSEnabled() },
 			expected: false,
@@ -469,6 +494,41 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 			envValue: "custom.audience.org",
 			getter:   func() interface{} { return GetTokenReviewAudience() },
 			expected: "custom.audience.org",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffBaseDelay with custom value",
+			envKey:   MLPipelineGRPCBackoffBaseDelay,
+			envValue: "2s",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffBaseDelay() },
+			expected: "2s",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffMultiplier with custom value",
+			envKey:   MLPipelineGRPCBackoffMultiplier,
+			envValue: "1.8",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffMultiplier() },
+			expected: "1.8",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffJitter with custom value",
+			envKey:   MLPipelineGRPCBackoffJitter,
+			envValue: "0.3",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffJitter() },
+			expected: "0.3",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffMaxDelay with custom value",
+			envKey:   MLPipelineGRPCBackoffMaxDelay,
+			envValue: "30s",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffMaxDelay() },
+			expected: "30s",
+		},
+		{
+			name:     "GetMLPipelineGRPCMinConnectTimeout with custom value",
+			envKey:   MLPipelineGRPCMinConnectTimeout,
+			envValue: "15s",
+			getter:   func() interface{} { return GetMLPipelineGRPCMinConnectTimeout() },
+			expected: "15s",
 		},
 		{
 			name:     "GetMetadataTLSEnabled with custom true",

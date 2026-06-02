@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -55,6 +56,7 @@ var taskColumns = []string{
 	"Type",
 	"TypeAttrs",
 	"ScopePath",
+	"LogicalKey",
 }
 
 // Ensure TaskStore implements TaskStoreInterface
@@ -63,6 +65,10 @@ var _ TaskStoreInterface = (*TaskStore)(nil)
 type TaskStoreInterface interface {
 	// CreateTask Create a task entry in the database.
 	CreateTask(task *model.Task) (*model.Task, error)
+
+	// FindTaskByLogicalIdentity returns an existing runtime task for the same
+	// logical pipeline node when one already exists.
+	FindTaskByLogicalIdentity(task *model.Task) (*model.Task, error)
 
 	// GetTask Fetches a task with a given id.
 	GetTask(id string) (*model.Task, error)
@@ -87,6 +93,9 @@ type TaskStoreInterface interface {
 
 	// GetTaskCountsForRuns fetches task counts keyed by run ID.
 	GetTaskCountsForRuns(runIDs []string) (map[string]int, error)
+
+	// FindLatestCachedTask returns the newest succeeded task for a fingerprint.
+	FindLatestCachedTask(namespace, fingerprint string) (*model.Task, error)
 }
 
 type TaskStore struct {
@@ -107,7 +116,7 @@ func NewTaskStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterf
 // scanTaskRow scans a single row into a model.Task. It expects the column order to match taskColumns.
 func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, error) {
 	var uuid, namespace, runUUID, fingerprint string
-	var name, displayName, parentTaskID, pods, statusMetadata, stateHistory, inputParams, outputParams, typeAttrs, scopePath sql.NullString
+	var name, displayName, parentTaskID, pods, statusMetadata, stateHistory, inputParams, outputParams, typeAttrs, scopePath, logicalKey sql.NullString
 	var createdAtInSec, startedInSec, finishedInSec sql.NullInt64
 	var taskState, taskType int32
 	if err := rowscanner.Scan(
@@ -130,6 +139,7 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		&taskType,
 		&typeAttrs,
 		&scopePath,
+		&logicalKey,
 	); err != nil {
 		return nil, err
 	}
@@ -177,6 +187,10 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 	if parentTaskID.Valid {
 		parentTaskIDNew = &parentTaskID.String
 	}
+	var logicalKeyNew *string
+	if logicalKey.Valid {
+		logicalKeyNew = &logicalKey.String
+	}
 	return &model.Task{
 		UUID:             uuid,
 		Namespace:        namespace,
@@ -197,6 +211,7 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		Type:             model.TaskType(taskType),
 		TypeAttrs:        typeAttrsData,
 		ScopePath:        scopePathStr,
+		LogicalKey:       logicalKeyNew,
 	}, nil
 }
 
@@ -373,9 +388,188 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 	return tasks, nil
 }
 
+func taskIterationIndex(typeAttrs model.JSONData) (*int64, error) {
+	if typeAttrs == nil {
+		return nil, nil
+	}
+	rawValue, ok := typeAttrs["iterationIndex"]
+	if !ok || rawValue == nil {
+		return nil, nil
+	}
+	switch value := rawValue.(type) {
+	case float64:
+		iterationIndex := int64(value)
+		return &iterationIndex, nil
+	case int64:
+		iterationIndex := value
+		return &iterationIndex, nil
+	case int:
+		iterationIndex := int64(value)
+		return &iterationIndex, nil
+	case string:
+		parsedIterationIndex, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		return &parsedIterationIndex, nil
+	default:
+		return nil, fmt.Errorf("unexpected iterationIndex type %T", value)
+	}
+}
+
+func sameLogicalTaskIdentity(existingTask, candidateTask *model.Task) (bool, error) {
+	if existingTask == nil || candidateTask == nil {
+		return false, nil
+	}
+	if existingTask.RunUUID != candidateTask.RunUUID ||
+		normalizedParentTaskUUID(existingTask.ParentTaskUUID) != normalizedParentTaskUUID(candidateTask.ParentTaskUUID) ||
+		existingTask.ScopePath != candidateTask.ScopePath ||
+		existingTask.Name != candidateTask.Name ||
+		existingTask.Type != candidateTask.Type {
+		return false, nil
+	}
+	existingIterationIndex, err := taskIterationIndex(existingTask.TypeAttrs)
+	if err != nil {
+		return false, err
+	}
+	candidateIterationIndex, err := taskIterationIndex(candidateTask.TypeAttrs)
+	if err != nil {
+		return false, err
+	}
+	if existingIterationIndex == nil && candidateIterationIndex == nil {
+		return true, nil
+	}
+	if existingIterationIndex == nil || candidateIterationIndex == nil {
+		return false, nil
+	}
+	return *existingIterationIndex == *candidateIterationIndex, nil
+}
+
+func normalizedParentTaskUUID(parentTaskUUID *string) string {
+	if parentTaskUUID == nil {
+		return ""
+	}
+	return *parentTaskUUID
+}
+
+func taskLogicalKey(task *model.Task) (*string, error) {
+	if task == nil || task.RunUUID == "" || task.ScopePath == "" || task.Name == "" || task.Type == 0 {
+		return nil, nil
+	}
+	iterationIndex, err := taskIterationIndex(task.TypeAttrs)
+	if err != nil {
+		return nil, err
+	}
+	logicalIdentity := struct {
+		RunUUID        string
+		ParentTaskUUID string
+		ScopePath      string
+		Name           string
+		Type           model.TaskType
+		IterationIndex *int64
+	}{
+		RunUUID:        task.RunUUID,
+		ParentTaskUUID: normalizedParentTaskUUID(task.ParentTaskUUID),
+		ScopePath:      task.ScopePath,
+		Name:           task.Name,
+		Type:           task.Type,
+		IterationIndex: iterationIndex,
+	}
+	serializedIdentity, err := json.Marshal(logicalIdentity)
+	if err != nil {
+		return nil, err
+	}
+	digest := sha256.Sum256(serializedIdentity)
+	logicalKey := hex.EncodeToString(digest[:])
+	return &logicalKey, nil
+}
+
+func (s *TaskStore) findTaskByLogicalKey(logicalKey string) (*model.Task, error) {
+	rowSQL, rowArgs, err := sq.
+		Select(taskColumns...).
+		From(tableName).
+		Where(sq.Eq{"LogicalKey": logicalKey}).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create logical task key query: %v", err.Error())
+	}
+	task, err := scanTaskRow(s.db.QueryRow(rowSQL, rowArgs...))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to scan logical task key result: %v", err.Error())
+	}
+	return task, nil
+}
+
+func (s *TaskStore) FindTaskByLogicalIdentity(task *model.Task) (*model.Task, error) {
+	logicalKey, err := taskLogicalKey(task)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to build logical task identity")
+	}
+	if logicalKey == nil {
+		return nil, nil
+	}
+	existingTask, err := s.findTaskByLogicalKey(*logicalKey)
+	if err != nil || existingTask != nil {
+		return existingTask, err
+	}
+
+	rowsSQL, rowsArgs, err := sq.
+		Select(taskColumns...).
+		From(tableName).
+		Where(sq.Eq{
+			"RunUUID":   task.RunUUID,
+			"ScopePath": task.ScopePath,
+			"Name":      task.Name,
+			"Type":      task.Type,
+		}).
+		Where("LogicalKey IS NULL").
+		OrderBy("CreatedAtInSec DESC", "UUID DESC").
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create logical task identity query: %v", err.Error())
+	}
+
+	rows, err := s.db.Query(rowsSQL, rowsArgs...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to look up logical task identity: %v", err.Error())
+	}
+	defer rows.Close()
+
+	tasks, err := s.scanRows(rows)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to scan logical task identity results: %v", err.Error())
+	}
+
+	for _, existingTask := range tasks {
+		match, err := sameLogicalTaskIdentity(existingTask, task)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to compare logical task identity")
+		}
+		if match {
+			return existingTask, nil
+		}
+	}
+	return nil, nil
+}
+
 func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
+	existingTask, err := s.FindTaskByLogicalIdentity(task)
+	if err != nil {
+		return nil, err
+	}
+	if existingTask != nil {
+		return existingTask, nil
+	}
+
 	// Set up UUID for task.
 	newTask := *task
+	newTask.LogicalKey, err = taskLogicalKey(task)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to build logical task identity")
+	}
 	id, err := s.uuid.NewRandom()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create an task id")
@@ -475,6 +669,7 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 				"OutputParameters": outputParamsString,
 				"Type":             newTask.Type,
 				"TypeAttrs":        typeAttrsString,
+				"LogicalKey":       newTask.LogicalKey,
 			},
 		).
 		ToSql()
@@ -484,6 +679,12 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 	}
 	_, err = s.db.Exec(sql, args...)
 	if err != nil {
+		if newTask.LogicalKey != nil {
+			existingTask, findErr := s.findTaskByLogicalKey(*newTask.LogicalKey)
+			if findErr == nil && existingTask != nil {
+				return existingTask, nil
+			}
+		}
 		return nil, util.NewInternalServerError(err, "Failed to add task to task table: %v",
 			err.Error())
 	}
@@ -707,6 +908,45 @@ func (s *TaskStore) GetTask(id string) (*model.Task, error) {
 	// Hydrate artifacts for this task
 	if err := hydrateArtifactsForTasks(s.db, []*model.Task{tasks[0]}); err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to hydrate task artifacts")
+	}
+	return tasks[0], nil
+}
+
+func (s *TaskStore) FindLatestCachedTask(namespace, fingerprint string) (*model.Task, error) {
+	sqlBuilder := sq.
+		Select(taskColumns...).
+		From("tasks").
+		Where(sq.Eq{
+			"Fingerprint": fingerprint,
+			"State":       model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		})
+	if namespace != "" {
+		sqlBuilder = sqlBuilder.Where(sq.Eq{"Namespace": namespace})
+	}
+
+	sqlStr, args, err := sqlBuilder.
+		OrderBy("CreatedAtInSec DESC", "UUID DESC").
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to find latest cached task: %v", err.Error())
+	}
+
+	rows, err := s.db.Query(sqlStr, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to find latest cached task: %v", err.Error())
+	}
+	defer rows.Close()
+
+	tasks, err := s.scanRows(rows)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to scan latest cached task: %v", err.Error())
+	}
+	if len(tasks) == 0 {
+		return nil, nil
+	}
+	if err := hydrateArtifactsForTasks(s.db, []*model.Task{tasks[0]}); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to hydrate latest cached task artifacts")
 	}
 	return tasks[0], nil
 }

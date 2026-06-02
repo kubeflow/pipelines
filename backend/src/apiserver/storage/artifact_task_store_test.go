@@ -115,6 +115,67 @@ func TestCreateArtifactTask_Success(t *testing.T) {
 	assert.Equal(t, link.Type, got.Type)
 }
 
+func TestCreateArtifactTask_AllowsSameArtifactReuseAcrossDifferentKeys(t *testing.T) {
+	db, artifactStore, taskStore, _, linkStore := initializeArtifactTaskDeps()
+	defer db.Close()
+
+	artifactStore.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactID1, nil)
+	art, err := artifactStore.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      1,
+		URI:       strPTR("s3://b/shared"),
+		Name:      "shared-artifact",
+		Metadata:  map[string]interface{}{},
+	})
+	assert.NoError(t, err)
+
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(taskID1, nil)
+	task, err := taskStore.CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          runID1,
+		Name:             "consumer",
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Fingerprint:      "fp-shared",
+		State:            1,
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+		Type:             0,
+		TypeAttrs:        map[string]interface{}{},
+	})
+	assert.NoError(t, err)
+
+	linkStore.uuid = util.NewFakeUUIDGeneratorOrFatal(linkUUID1, nil)
+	_, err = linkStore.CreateArtifactTask(&model.ArtifactTask{
+		ArtifactID:  art.UUID,
+		TaskID:      task.UUID,
+		RunUUID:     runID1,
+		Type:        model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		ArtifactKey: "input-a",
+	})
+	assert.NoError(t, err)
+
+	linkStore.uuid = util.NewFakeUUIDGeneratorOrFatal(linkUUID2, nil)
+	_, err = linkStore.CreateArtifactTask(&model.ArtifactTask{
+		ArtifactID:  art.UUID,
+		TaskID:      task.UUID,
+		RunUUID:     runID1,
+		Type:        model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		ArtifactKey: "input-b",
+	})
+	assert.NoError(t, err)
+
+	opts, _ := list.NewOptions(&model.ArtifactTask{}, 20, "", nil)
+	rows, total, _, err := linkStore.ListArtifactTasks(
+		[]*model.FilterContext{{ReferenceKey: &model.ReferenceKey{Type: model.TaskResourceType, ID: task.UUID}}},
+		nil,
+		opts,
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, total)
+	assert.Len(t, rows, 2)
+}
+
 func TestListArtifactTasks_Filters(t *testing.T) {
 	db, artifactStore, taskStore, _, linkStore := initializeArtifactTaskDeps()
 	defer db.Close()

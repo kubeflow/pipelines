@@ -27,7 +27,7 @@ type ArtifactTask struct {
 	Type        IOType   `gorm:"column:Type; not null; uniqueIndex:UniqueLink,priority:3;"`
 	RunUUID     string   `gorm:"column:RunUUID; not null; type:varchar(191); index:idx_link_run_id;"`
 	Producer    JSONData `gorm:"column:Producer; type:json; default:null;"`
-	ArtifactKey string   `gorm:"column:ArtifactKey; not null; type:varchar(191); default:'';"`
+	ArtifactKey string   `gorm:"column:ArtifactKey; not null; type:varchar(191); default:''; uniqueIndex:UniqueLink,priority:4;"`
 
 	// Relationships
 	Artifact Artifact `gorm:"foreignKey:ArtifactID;references:UUID;constraint:fk_artifact_tasks_artifacts,OnDelete:CASCADE,OnUpdate:CASCADE;"`

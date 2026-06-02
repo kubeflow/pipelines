@@ -68,6 +68,22 @@ func (c *countingSubjectAccessReviewClient) Create(_ context.Context, _ *authzv1
 	}, nil
 }
 
+type selectiveSubjectAccessReviewClient struct{}
+
+func (c *selectiveSubjectAccessReviewClient) Create(_ context.Context, review *authzv1.SubjectAccessReview, _ metav1.CreateOptions) (*authzv1.SubjectAccessReview, error) {
+	allowed := true
+	if review.Spec.ResourceAttributes != nil &&
+		review.Spec.ResourceAttributes.Resource == common.RbacResourceTypeRuns &&
+		review.Spec.ResourceAttributes.Verb == common.RbacResourceVerbUpdate {
+		allowed = false
+	}
+	return &authzv1.SubjectAccessReview{
+		Status: authzv1.SubjectAccessReviewStatus{
+			Allowed: allowed,
+		},
+	}, nil
+}
+
 func TestArtifactServer_CreateArtifact_MultiUserCreateAndGet_Succeeds(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
@@ -590,6 +606,57 @@ func TestArtifactServer_CreateArtifactTask_RejectsRunIDMismatch(t *testing.T) {
 	assert.Contains(t, err.Error(), "run_id must match")
 }
 
+func TestArtifactServer_CreateArtifactTask_RequiresRunUpdateAuthorization(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	clientManager.SubjectAccessReviewClientFake = &selectiveSubjectAccessReviewClient{}
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	s := createArtifactServer(resourceManager)
+
+	_, err := clientManager.RunStore().CreateRun(&model.Run{
+		UUID:         runid1,
+		K8SName:      "authz-run",
+		DisplayName:  "authz-run",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			State:            model.RuntimeStateRunning,
+		},
+	})
+	require.NoError(t, err)
+
+	task, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   runid1,
+		Name:      "authz-task",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	artifact, err := clientManager.ArtifactStore().CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+		Name:      "authz-artifact",
+	})
+	require.NoError(t, err)
+
+	_, err = s.CreateArtifactTask(ctxWithUser(), &apiv2beta1.CreateArtifactTaskRequest{
+		ArtifactTask: &apiv2beta1.ArtifactTask{
+			ArtifactId: artifact.UUID,
+			TaskId:     task.UUID,
+			RunId:      runid1,
+			Type:       apiv2beta1.IOType_OUTPUT,
+			Producer:   &apiv2beta1.IOProducer{TaskName: task.Name},
+			Key:        "model",
+		},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Failed to authorize the request")
+}
+
 func TestArtifactServer_CreateArtifactTasksBulk_Success(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
@@ -759,6 +826,59 @@ func TestArtifactServer_CreateArtifactTasksBulk_RejectsMixedRuns(t *testing.T) {
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "must use a single run_id")
+}
+
+func TestArtifactServer_CreateArtifactTasksBulk_RequiresRunUpdateAuthorization(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	clientManager.SubjectAccessReviewClientFake = &selectiveSubjectAccessReviewClient{}
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	s := createArtifactServer(resourceManager)
+
+	_, err := clientManager.RunStore().CreateRun(&model.Run{
+		UUID:         runid1,
+		K8SName:      "bulk-authz-run",
+		DisplayName:  "bulk-authz-run",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			State:            model.RuntimeStateRunning,
+		},
+	})
+	require.NoError(t, err)
+
+	task, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   runid1,
+		Name:      "bulk-authz-task",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	artifact, err := clientManager.ArtifactStore().CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+		Name:      "bulk-authz-artifact",
+	})
+	require.NoError(t, err)
+
+	_, err = s.CreateArtifactTasksBulk(ctxWithUser(), &apiv2beta1.CreateArtifactTasksBulkRequest{
+		ArtifactTasks: []*apiv2beta1.ArtifactTask{
+			{
+				ArtifactId: artifact.UUID,
+				TaskId:     task.UUID,
+				RunId:      runid1,
+				Type:       apiv2beta1.IOType_OUTPUT,
+				Producer:   &apiv2beta1.IOProducer{TaskName: task.Name},
+				Key:        "model",
+			},
+		},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Failed to authorize the request")
 }
 
 func TestArtifactServer_CreateArtifactTasksBulk_EmptyRequest(t *testing.T) {

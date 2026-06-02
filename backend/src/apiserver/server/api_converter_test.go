@@ -3519,7 +3519,53 @@ func Test_toApiRun(t *testing.T) {
 				Namespace:          "",
 				K8SName:            "",
 			},
-			nil,
+			&apiv2beta1.Run{
+				RunId:          "run1",
+				ExperimentId:   "exp1",
+				DisplayName:    "name1",
+				Description:    "this is a run",
+				ServiceAccount: "sa1",
+				RecurringRunId: "job1",
+				StorageState:   apiv2beta1.Run_ARCHIVED,
+				State:          apiv2beta1.RuntimeState_CANCELING,
+				StateHistory: []*apiv2beta1.RuntimeStatus{
+					{
+						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
+						State:      apiv2beta1.RuntimeState_CANCELING,
+					},
+				},
+				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
+				ScheduledAt: &timestamppb.Timestamp{Seconds: 2},
+				FinishedAt:  &timestamppb.Timestamp{Seconds: 3},
+				RunDetails: &apiv2beta1.RunDetails{
+					PipelineContextId:    10,
+					PipelineRunContextId: 11,
+				},
+				PipelineSource: &apiv2beta1.Run_PipelineSpec{
+					PipelineSpec: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"Boolean": structpb.NewBoolValue(false),
+							"Number":  structpb.NewNumberValue(19.1),
+							"String":  structpb.NewStringValue("pv2"),
+							"Struct": structpb.NewStructValue(
+								&structpb.Struct{
+									Fields: map[string]*structpb.Value{
+										"InnerNull": structpb.NewNullValue(),
+										"InnerList": structpb.NewListValue(
+											&structpb.ListValue{
+												Values: []*structpb.Value{
+													structpb.NewStringValue("a"),
+													structpb.NewStringValue("b"),
+												},
+											},
+										),
+									},
+								},
+							),
+						},
+					},
+				},
+			},
 			true,
 			"Failed to parse runtime config",
 		},
@@ -3558,7 +3604,34 @@ func Test_toApiRun(t *testing.T) {
 				Namespace:          "",
 				K8SName:            "",
 			},
-			nil,
+			&apiv2beta1.Run{
+				RunId:          "run1",
+				ExperimentId:   "exp1",
+				DisplayName:    "name1",
+				Description:    "this is a run",
+				ServiceAccount: "sa1",
+				RecurringRunId: "job1",
+				StorageState:   apiv2beta1.Run_ARCHIVED,
+				State:          apiv2beta1.RuntimeState_PAUSED,
+				StateHistory: []*apiv2beta1.RuntimeStatus{
+					{
+						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
+						State:      apiv2beta1.RuntimeState_PAUSED,
+					},
+				},
+				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
+				ScheduledAt: &timestamppb.Timestamp{Seconds: 2},
+				FinishedAt:  &timestamppb.Timestamp{Seconds: 3},
+				RunDetails: &apiv2beta1.RunDetails{
+					PipelineContextId:    10,
+					PipelineRunContextId: 11,
+				},
+				RuntimeConfig: &apiv2beta1.RuntimeConfig{
+					Parameters: map[string]*structpb.Value{
+						"param2": structpb.NewStringValue("world"),
+					},
+				},
+			},
 			true,
 			"Failed to convert internal run representation to its API counterpart due to missing pipeline source",
 		},
@@ -3568,7 +3641,28 @@ func Test_toApiRun(t *testing.T) {
 			got := toApiRun(tt.arg)
 			if tt.wantErr {
 				assert.Contains(t, got.Error.Message, tt.errMsg)
-				assert.Equal(t, &apiv2beta1.Run{RunId: "run1", ExperimentId: "exp1", Error: got.GetError()}, got)
+				if tt.want.GetRuntimeConfig() != nil && got.GetRuntimeConfig() != nil {
+					wp := tt.want.GetRuntimeConfig().GetParameters()
+					gp := got.GetRuntimeConfig().GetParameters()
+					for k := range wp {
+						wp1, err := wp[k].MarshalJSON()
+						assert.Nil(t, err)
+						gp1, err := gp[k].MarshalJSON()
+						assert.Nil(t, err)
+						assert.Equal(t, wp1, gp1)
+					}
+					tt.want.RuntimeConfig.Parameters = got.RuntimeConfig.Parameters
+				}
+				if tt.want.GetPipelineSpec() != nil && got.GetPipelineSpec() != nil {
+					w, err := tt.want.GetPipelineSpec().MarshalJSON()
+					assert.Nil(t, err)
+					g, err := got.GetPipelineSpec().MarshalJSON()
+					assert.Nil(t, err)
+					assert.Equal(t, w, g)
+					tt.want.PipelineSource = got.GetPipelineSource()
+				}
+				tt.want.Error = got.GetError()
+				assert.Equal(t, tt.want, got)
 			} else {
 				if tt.want.GetPipelineSpec() != nil {
 					w, err := tt.want.GetPipelineSpec().MarshalJSON()
@@ -3600,6 +3694,54 @@ func Test_toApiRun(t *testing.T) {
 				assert.Equal(t, tt.want, got)
 			}
 		})
+	}
+}
+
+func Test_toApiRun_PreservesTopLevelStateOnTaskConversionError(t *testing.T) {
+	run := &model.Run{
+		UUID:           "run-task-error",
+		ExperimentId:   "exp-task-error",
+		DisplayName:    "run with bad task",
+		StorageState:   model.StorageStateArchived,
+		RecurringRunId: "job-1",
+		ServiceAccount: "pipeline-runner",
+		TaskCount:      1,
+		RunDetails: model.RunDetails{
+			State:            model.RuntimeStatePending,
+			CreatedAtInSec:   10,
+			ScheduledAtInSec: 11,
+			FinishedAtInSec:  12,
+		},
+		PipelineSpec: model.PipelineSpec{
+			PipelineId:        "pipeline-1",
+			PipelineVersionId: "pipeline-version-1",
+		},
+		Tasks: []*model.Task{
+			{
+				UUID:             "task-1",
+				RunUUID:          "run-task-error",
+				Name:             "bad-task",
+				DisplayName:      "bad-task",
+				Namespace:        "kubeflow",
+				CreatedAtInSec:   9,
+				State:            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+				Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+				OutputParameters: model.JSONSlice{"not-a-valid-task-output-parameter"},
+			},
+		},
+	}
+
+	got := toApiRun(run)
+	if assert.NotNil(t, got) {
+		assert.Equal(t, run.UUID, got.GetRunId())
+		assert.Equal(t, run.ExperimentId, got.GetExperimentId())
+		assert.Equal(t, apiv2beta1.RuntimeState_PENDING, got.GetState())
+		assert.Equal(t, apiv2beta1.Run_ARCHIVED, got.GetStorageState())
+		assert.Equal(t, int32(1), got.GetTaskCount())
+		assert.Nil(t, got.GetTasks())
+		if assert.NotNil(t, got.GetError()) {
+			assert.Contains(t, got.GetError().GetMessage(), "Failed to convert task to API format")
+		}
 	}
 }
 

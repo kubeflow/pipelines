@@ -1,7 +1,6 @@
 package cacheutils
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -218,11 +217,9 @@ func TestGenerateCacheKey(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	cacheClient, err := NewClient("ml-pipeline.kubeflow", "8887", false, &tls.Config{})
-	require.NoError(t, err)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := cacheClient.GenerateCacheKey(test.executorInputInputs, test.executorInputOutputs, test.outputParametersTypeMap, test.cmdArgs, test.image, test.pvcNames)
+			got, err := GenerateCacheKey(test.executorInputInputs, test.executorInputOutputs, test.outputParametersTypeMap, test.cmdArgs, test.image, test.pvcNames)
 			if (err != nil) != test.wantErr {
 				t.Errorf("GenerateCacheKey() error = %v", err)
 				return
@@ -339,13 +336,11 @@ func TestGenerateFingerPrint(t *testing.T) {
 			fingerPrint: "3d9a2a778fa3174c6cfc6e639c507c265b5f21ef6e5b1dd70b236462cc6da464",
 		},
 	}
-	cacheClient, err := NewClient("ml-pipeline.kubeflow", "8887", false, &tls.Config{})
-	require.NoError(t, err)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			fingerPrint, err := cacheClient.GenerateFingerPrint(cacheKey)
+			fingerPrint, err := GenerateFingerPrint(cacheKey)
 			assert.Nil(t, err)
-			testFingerPrint, err := cacheClient.GenerateFingerPrint(test.cacheKey)
+			testFingerPrint, err := GenerateFingerPrint(test.cacheKey)
 			assert.Nil(t, err)
 			assert.Equal(t, fingerPrint == testFingerPrint, test.wantEqual)
 			assert.Equal(t, test.fingerPrint, testFingerPrint)
@@ -409,16 +404,13 @@ func TestGenerateFingerPrint_ConsidersPVCNames(t *testing.T) {
 		},
 	}
 
-	cacheClient, err := NewClient("ml-pipeline.kubeflow", "8887", false, &tls.Config{})
+	baseFP, err := GenerateFingerPrint(base)
 	require.NoError(t, err)
-
-	baseFP, err := cacheClient.GenerateFingerPrint(base)
+	withPVCsFP, err := GenerateFingerPrint(withPVCs)
 	require.NoError(t, err)
-	withPVCsFP, err := cacheClient.GenerateFingerPrint(withPVCs)
+	samePVCsFP, err := GenerateFingerPrint(samePVCs)
 	require.NoError(t, err)
-	samePVCsFP, err := cacheClient.GenerateFingerPrint(samePVCs)
-	require.NoError(t, err)
-	differentPVCsFP, err := cacheClient.GenerateFingerPrint(differentPVCs)
+	differentPVCsFP, err := GenerateFingerPrint(differentPVCs)
 	require.NoError(t, err)
 
 	// PVC names should affect the fingerprint when present

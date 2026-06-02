@@ -1,0 +1,66 @@
+# PIPELINE DEFINITION
+# Name: nested-k8s-pvc-outputs
+components:
+  comp-createpvc:
+    executorLabel: exec-createpvc
+    inputDefinitions:
+      parameters:
+        access_modes:
+          parameterType: LIST
+        pvc_name:
+          parameterType: STRING
+        size:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        name:
+          parameterType: STRING
+  comp-nested:
+    dag:
+      outputs:
+        parameters:
+          pvc_name:
+            valueFromParameter:
+              outputParameterKey: name
+              producerSubtask: createpvc
+      tasks:
+        createpvc:
+          cachingOptions: {}
+          componentRef:
+            name: comp-createpvc
+          inputs:
+            parameters:
+              access_modes:
+                runtimeValue:
+                  constant:
+                  - ReadWriteOnce
+              pvc_name:
+                runtimeValue:
+                  constant: nested-pvc
+              size:
+                runtimeValue:
+                  constant: 5Mi
+          taskInfo:
+            name: createpvc
+    outputDefinitions:
+      parameters:
+        pvc_name:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-createpvc:
+      container:
+        image: argostub/createpvc
+pipelineInfo:
+  name: nested-k8s-pvc-outputs
+root:
+  dag:
+    tasks:
+      nested:
+        cachingOptions: {}
+        componentRef:
+          name: comp-nested
+        taskInfo:
+          name: nested
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.6
