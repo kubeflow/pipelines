@@ -3,11 +3,14 @@ package main
 import (
 	"os"
 	"testing"
+	"time"
 
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/proto"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func strPtr(s string) *string {
@@ -48,6 +51,85 @@ func TestSpecParsing(t *testing.T) {
 		cfg, err := parseExecConfigJson(tc.input)
 		assert.Equal(t, tc.wantErr, err != nil)
 		assert.True(t, proto.Equal(tc.expected, cfg))
+	}
+}
+
+func TestResolvePipelineJobTimes(t *testing.T) {
+	workflowCreationTime := metav1.NewTime(time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC))
+	tt := []struct {
+		name                     string
+		createTimeUTC            string
+		scheduleTimeEpochSeconds string
+		workflowMeta             *metav1.ObjectMeta
+		expectedCreateTimeUTC    string
+		expectedScheduleTimeUTC  string
+		wantErr                  bool
+	}{
+		{
+			name:                    "falls back to create time when schedule label is absent",
+			createTimeUTC:           "2026-01-02T03:04:05Z",
+			expectedCreateTimeUTC:   "2026-01-02T03:04:05Z",
+			expectedScheduleTimeUTC: "2026-01-02T03:04:05Z",
+		},
+		{
+			name:                    "uses workflow creation time when create time arg is absent",
+			workflowMeta:            &metav1.ObjectMeta{CreationTimestamp: workflowCreationTime},
+			expectedCreateTimeUTC:   "2026-01-02T03:04:05Z",
+			expectedScheduleTimeUTC: "2026-01-02T03:04:05Z",
+		},
+		{
+			name:          "uses workflow epoch label for schedule time when present",
+			createTimeUTC: "2026-01-02T03:04:05Z",
+			workflowMeta: &metav1.ObjectMeta{
+				CreationTimestamp: workflowCreationTime,
+				Labels: map[string]string{
+					util.LabelKeyWorkflowEpoch: util.FormatInt64ForLabel(1767225600),
+				},
+			},
+			expectedCreateTimeUTC:   "2026-01-02T03:04:05Z",
+			expectedScheduleTimeUTC: "2026-01-01T00:00:00Z",
+		},
+		{
+			name:          "falls back to workflow creation time when workflow epoch label is invalid",
+			createTimeUTC: "2026-01-02T03:04:05Z",
+			workflowMeta: &metav1.ObjectMeta{
+				CreationTimestamp: workflowCreationTime,
+				Labels: map[string]string{
+					util.LabelKeyWorkflowEpoch: "invalid",
+				},
+			},
+			expectedCreateTimeUTC:   "2026-01-02T03:04:05Z",
+			expectedScheduleTimeUTC: "2026-01-02T03:04:05Z",
+		},
+		{
+			name:                     "converts schedule epoch seconds to UTC",
+			createTimeUTC:            "2026-01-02T03:04:05Z",
+			scheduleTimeEpochSeconds: "1767225600",
+			expectedCreateTimeUTC:    "2026-01-02T03:04:05Z",
+			expectedScheduleTimeUTC:  "2026-01-01T00:00:00Z",
+		},
+		{
+			name:                     "rejects invalid schedule epoch seconds",
+			createTimeUTC:            "2026-01-02T03:04:05Z",
+			scheduleTimeEpochSeconds: "not-an-int",
+			wantErr:                  true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			actualCreateTimeUTC, actualScheduleTimeUTC, err := resolvePipelineJobTimes(
+				tc.createTimeUTC,
+				tc.scheduleTimeEpochSeconds,
+				tc.workflowMeta,
+			)
+			assert.Equal(t, tc.wantErr, err != nil)
+			if tc.wantErr {
+				return
+			}
+			assert.Equal(t, tc.expectedCreateTimeUTC, actualCreateTimeUTC)
+			assert.Equal(t, tc.expectedScheduleTimeUTC, actualScheduleTimeUTC)
+		})
 	}
 }
 
