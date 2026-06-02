@@ -282,6 +282,29 @@ func (m *MockAPI) CreateArtifact(_ context.Context, req *apiv2beta1.CreateArtifa
 	}
 	m.artifacts[artifact.ArtifactId] = artifact
 
+	taskName := ""
+	if task, exists := m.tasks[req.TaskId]; exists && task != nil {
+		taskName = task.Name
+	}
+	artifactTask := &apiv2beta1.ArtifactTask{
+		ArtifactId: artifact.ArtifactId,
+		TaskId:     req.TaskId,
+		RunId:      req.RunId,
+		Type:       apiv2beta1.IOType_OUTPUT,
+		Key:        req.ProducerKey,
+		Producer: &apiv2beta1.IOProducer{
+			TaskName: taskName,
+		},
+	}
+	if req.IterationIndex != nil {
+		artifactTask.Producer.Iteration = req.IterationIndex
+	}
+	if artifactTask.Id == "" {
+		uuid, _ := uuid.NewRandom()
+		artifactTask.Id = uuid.String()
+	}
+	m.artifactTasks[artifactTask.Id] = artifactTask
+
 	return artifact, nil
 }
 
@@ -297,6 +320,29 @@ func (m *MockAPI) CreateArtifactsBulk(_ context.Context, req *apiv2beta1.CreateA
 			artifact.ArtifactId = uuid.String()
 		}
 		m.artifacts[artifact.ArtifactId] = artifact
+
+		taskName := ""
+		if task, exists := m.tasks[artifactReq.TaskId]; exists && task != nil {
+			taskName = task.Name
+		}
+		artifactTask := &apiv2beta1.ArtifactTask{
+			ArtifactId: artifact.ArtifactId,
+			TaskId:     artifactReq.TaskId,
+			RunId:      artifactReq.RunId,
+			Type:       apiv2beta1.IOType_OUTPUT,
+			Key:        artifactReq.ProducerKey,
+			Producer: &apiv2beta1.IOProducer{
+				TaskName: taskName,
+			},
+		}
+		if artifactReq.IterationIndex != nil {
+			artifactTask.Producer.Iteration = artifactReq.IterationIndex
+		}
+		if artifactTask.Id == "" {
+			uuid, _ := uuid.NewRandom()
+			artifactTask.Id = uuid.String()
+		}
+		m.artifactTasks[artifactTask.Id] = artifactTask
 
 		response.Artifacts = append(response.Artifacts, artifact)
 	}

@@ -793,7 +793,6 @@ func (l *LauncherV2) uploadOutputArtifacts(
 	// Queue artifact creation requests (will be flushed in batch)
 	for artifactKey, artifacts := range artifactsMap {
 		for _, artifact := range artifacts {
-			ioType := apiV2beta1.IOType_OUTPUT
 			request := &apiV2beta1.CreateArtifactRequest{
 				RunId:       l.options.Run.GetRunId(),
 				TaskId:      l.options.Task.GetTaskId(),
@@ -802,19 +801,8 @@ func (l *LauncherV2) uploadOutputArtifacts(
 			}
 			if l.options.IterationIndex != nil {
 				request.IterationIndex = l.options.IterationIndex
-				ioType = apiV2beta1.IOType_ITERATOR_OUTPUT
 			}
 			l.batchUpdater.QueueArtifact(request)
-			l.batchUpdater.QueueArtifactTask(&apiV2beta1.ArtifactTask{
-				TaskId:     l.options.Task.GetTaskId(),
-				RunId:      l.options.Run.GetRunId(),
-				Key:        artifactKey,
-				Type:       ioType,
-				Producer: &apiV2beta1.IOProducer{
-					TaskName: l.options.TaskSpec.GetTaskInfo().GetName(),
-					Iteration: l.options.IterationIndex,
-				},
-			})
 		}
 	}
 	return nil
