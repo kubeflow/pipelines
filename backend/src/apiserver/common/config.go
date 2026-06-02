@@ -46,6 +46,7 @@ const (
 	DefaultSecurityContextRunAsUser         string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_USER"
 	DefaultSecurityContextRunAsGroup        string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_GROUP"
 	DefaultSecurityContextRunAsNonRoot      string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT"
+	DefaultSecurityContextHostUsers         string = "DEFAULT_SECURITY_CONTEXT_HOST_USERS"
 	BlockV1Pipelines                        string = "BLOCK_V1_PIPELINES"
 	V1NamespaceWhitelist                    string = "V1_ALLOWED_NAMESPACES"
 	PipelineURLAllowedDomains               string = "PIPELINE_URL_ALLOWED_DOMAINS"
@@ -226,6 +227,10 @@ func GetDefaultSecurityContextRunAsGroup() string {
 
 func GetDefaultSecurityContextRunAsNonRoot() string {
 	return GetStringConfigWithDefault(DefaultSecurityContextRunAsNonRoot, "")
+}
+
+func GetDefaultSecurityContextHostUsers() string {
+	return GetStringConfigWithDefault(DefaultSecurityContextHostUsers, "")
 }
 
 func GetPluginLimitsConfig() (PluginLimitsConfig, error) {

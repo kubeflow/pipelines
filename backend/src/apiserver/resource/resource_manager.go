@@ -127,6 +127,7 @@ type ResourceManagerOptions struct {
 	DefaultRunAsUser     *int64                            `json:"default_run_as_user,omitempty"`
 	DefaultRunAsGroup    *int64                            `json:"default_run_as_group,omitempty"`
 	DefaultRunAsNonRoot  *bool                             `json:"default_run_as_non_root,omitempty"`
+	DefaultHostUsers     *bool                             `json:"default_host_users,omitempty"`
 }
 
 type ResourceManager struct {
@@ -521,6 +522,7 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 		DefaultRunAsUser:     r.options.DefaultRunAsUser,
 		DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
 		DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
+		DefaultHostUsers:     r.options.DefaultHostUsers,
 	}
 	tmpl, err := template.New(pipelineSpecBytes, templateOptions)
 	if err != nil {
@@ -1358,6 +1360,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			DefaultRunAsUser:     r.options.DefaultRunAsUser,
 			DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
 			DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
+			DefaultHostUsers:     r.options.DefaultHostUsers,
 		}
 		tmpl, err := template.New(manifest, templateOptions)
 		if err != nil {
@@ -1786,6 +1789,7 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 		DefaultRunAsUser:     r.options.DefaultRunAsUser,
 		DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
 		DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
+		DefaultHostUsers:     r.options.DefaultHostUsers,
 	}
 	tmpl, err := template.New([]byte(manifest), templateOptions)
 	if err != nil {
@@ -1977,6 +1981,7 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 		DefaultRunAsUser:     r.options.DefaultRunAsUser,
 		DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
 		DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
+		DefaultHostUsers:     r.options.DefaultHostUsers,
 	}
 	tmpl, err := template.New(pipelineSpecBytes, templateOptions)
 	if err != nil {

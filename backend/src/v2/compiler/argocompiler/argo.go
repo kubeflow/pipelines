@@ -57,6 +57,11 @@ type Options struct {
 	// Optional: admin-configured default runAsNonRoot for customer containers.
 	// Nil means not set (feature disabled).
 	DefaultRunAsNonRoot *bool
+	// Optional: administrator-configured default hostUsers for customer workload pods.
+	// Nil means not set (feature disabled). Setting this to false places the pod
+	// in a dedicated Linux user namespace: UID 0 inside the pod maps to an
+	// unprivileged host UID, so root processes in the container are not root on the host.
+	DefaultHostUsers *bool
 }
 
 const (
@@ -213,6 +218,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		c.defaultRunAsUser = opts.DefaultRunAsUser
 		c.defaultRunAsGroup = opts.DefaultRunAsGroup
 		c.defaultRunAsNonRoot = opts.DefaultRunAsNonRoot
+		c.defaultHostUsers = opts.DefaultHostUsers
 		if opts.DriverImage != "" {
 			c.driverImage = opts.DriverImage
 		}
@@ -318,6 +324,7 @@ type workflowCompiler struct {
 	defaultRunAsUser     *int64
 	defaultRunAsGroup    *int64
 	defaultRunAsNonRoot  *bool
+	defaultHostUsers     *bool
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {
