@@ -430,15 +430,15 @@ func TestDownloadBlobSkipsZeroByteDirectoryMarkers(t *testing.T) {
 
 	localDir := t.TempDir()
 	require.NoError(t, DownloadBlob(ctx, bucket, localDir, blobDir))
-	localDirInfo, err := os.Stat(localDir)
+	localDirInfoNoSlash, err := os.Stat(localDir)
 	require.NoError(t, err)
-	assert.True(t, localDirInfo.IsDir(), "marker without slash")
+	assert.True(t, localDirInfoNoSlash.IsDir(), "marker without slash")
 
-	localDir2 := t.TempDir()
-	require.NoError(t, DownloadBlob(ctx, bucket, localDir2, blobDirWithTrailingSlash))
-	localDirInfo2, err := os.Stat(localDir2)
+	localDir = t.TempDir()
+	require.NoError(t, DownloadBlob(ctx, bucket, localDir, blobDirWithTrailingSlash))
+	localDirInfoWithSlash, err := os.Stat(localDir)
 	require.NoError(t, err)
-	assert.True(t, localDirInfo2.IsDir(), "marker with slash")
+	assert.True(t, localDirInfoWithSlash.IsDir(), "marker with slash")
 }
 
 func TestIsBlobKeyUnderPrefix(t *testing.T) {
