@@ -39,10 +39,23 @@ def replace_placeholders(
 ) -> List[str]:
     """Iterates over each element in the command and replaces placeholders.
 
-    This should only be called once per each task, since the task's
-    random ID is created within the scope of the function. Multiple
-    calls on the same task will result in multiple random IDs per single
-    task.
+    Args:
+        full_command: List of command elements to process.
+        executor_input_dict: The executor input dictionary.
+        pipeline_resource_name: Pipeline display name or resource identifier.
+            Used for both {{$.pipeline_job_name}} and
+            {{$.pipeline_job_resource_name}} in local execution.
+        task_resource_name: Task display name.
+        pipeline_root: Root directory for pipeline artifacts.
+        unique_pipeline_id: Unique identifier for the pipeline run.
+
+    Returns:
+        List of command elements with all placeholders resolved.
+
+    Note:
+        This function should only be called once per task, as it generates
+        a unique task ID and UTC timestamp internally. Multiple calls on
+        the same task will result in different random IDs and timestamps.
     """
     unique_task_id = make_random_id()
     utc_timestamp = datetime.datetime.now(
@@ -349,7 +362,27 @@ def resolve_individual_placeholder(
     pipeline_task_id: str,
     utc_timestamp: str = '',
 ) -> str:
-    """Replaces placeholders for a single element."""
+    """Replaces placeholders for a single element.
+
+    Args:
+        element: The command element containing placeholders to resolve.
+        executor_input_dict: The executor input dictionary.
+        pipeline_resource_name: Pipeline display name or resource identifier.
+        task_resource_name: Task display name.
+        pipeline_root: Root directory for pipeline artifacts.
+        pipeline_job_id: Unique identifier for the pipeline run.
+        pipeline_task_id: Unique identifier for the task.
+        utc_timestamp: ISO8601-formatted UTC timestamp string. If not provided
+            (defaults to empty string), timestamp placeholders
+            ({{$.pipeline_job_create_time_utc}} and
+            {{$.pipeline_job_schedule_time_utc}}) will be replaced with
+            an empty string. This parameter should be provided by
+            replace_placeholders(), which generates a timestamp for all
+            placeholders in a command.
+
+    Returns:
+        The element with all placeholders resolved.
+    """
 
     if dsl.WORKSPACE_PATH_PLACEHOLDER in element or dsl_constants.WORKSPACE_MOUNT_PATH in element:
         # Ensure local config and workspace are available
@@ -371,6 +404,12 @@ def resolve_individual_placeholder(
                                   workspace_value)
 
     # match on literal for constant placeholders
+    # Note: In local execution, PIPELINE_JOB_NAME_PLACEHOLDER and
+    # PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER both resolve to
+    # pipeline_resource_name, which serves as both the job display name
+    # and resource identifier. This differs from remote execution where
+    # these may have different values, but local execution uses them
+    # interchangeably.
     PLACEHOLDERS = {
         r'{{$.outputs.output_file}}':
             executor_input_dict['outputs']['outputFile'],
