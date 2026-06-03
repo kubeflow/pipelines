@@ -417,6 +417,33 @@ func TestDownloadBlobRejectsTraversalKey(t *testing.T) {
 	assert.Contains(t, err.Error(), "path traversal detected")
 }
 
+func TestDownloadBlobSkipsZeroByteDirectoryMarkers(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer func() { require.NoError(t, bucket.Close()) }()
+
+	// Simulate zero-byte blob directory marker.
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/model", "")
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/model/saved_model.pb", "saved model data")
+
+	localDir := t.TempDir()
+
+	err := DownloadBlob(ctx, bucket, localDir, "artifacts/model")
+	require.NoError(t, err)
+
+	// File containing content should still be downloaded
+	content, err := os.ReadFile(filepath.Join(localDir, "saved_model.pb"))
+	require.NoError(t, err)
+	assert.Equal(t, "saved model data", string(content))
+
+	// The zero-byte prefix-match marker "artifacts/model" resolves to localDir
+	// itself. If downloaded, it would make localDir a zero-byte file.
+	// Verify localDir was not overwritten and is still a directory.
+	localDirInfo, err := os.Stat(localDir)
+	require.NoError(t, err)
+	assert.True(t, localDirInfo.IsDir(), "prefix-match marker should not have clobbered localDir into a file")
+}
+
 func TestIsBlobKeyUnderPrefix(t *testing.T) {
 	tests := []struct {
 		name    string

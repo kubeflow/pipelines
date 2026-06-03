@@ -155,6 +155,10 @@ func isBlobKeyUnderPrefix(objKey, blobDir string) bool {
 	return objKey == blobDir || strings.HasPrefix(objKey, blobDir+"/")
 }
 
+func isDirectoryMarkerBlob(obj *blob.ListObject, blobDir string) bool {
+	return obj.Size == 0 && (obj.Key == blobDir || strings.HasSuffix(obj.Key, "/"))
+}
+
 func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir string) error {
 	iter := bucket.List(&blob.ListOptions{Prefix: blobDir})
 	for {
@@ -165,13 +169,16 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 			}
 			return fmt.Errorf("failed to list objects in remote storage %q: %w", blobDir, err)
 		}
-		if obj.IsDir {
-			// TODO: is this branch possible?
 
+		// Skip directories including marker blobs.
+		// GCS clients (including TensorFlow's gfile) create markers as placeholders
+		if obj.IsDir || isDirectoryMarkerBlob(obj, blobDir) {
 			// Object stores list all files with the same prefix,
 			// there is no need to recursively list each folder.
 			continue
-		} else if isBlobKeyUnderPrefix(obj.Key, blobDir) {
+		}
+
+		if isBlobKeyUnderPrefix(obj.Key, blobDir) {
 			localPath, err := sanitizeDownloadPath(localDir, blobDir, obj.Key)
 			if err != nil {
 				return err
