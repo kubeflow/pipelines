@@ -21,7 +21,7 @@ import { range } from 'lodash';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { ButtonKeys } from 'src/lib/Buttons';
-import TestUtils from 'src/TestUtils';
+import TestUtils, { flushPromisesInAct } from 'src/TestUtils';
 import { PageProps } from './Page';
 import PipelineList from './PipelineList';
 import { CommonTestWrapper } from 'src/TestWrapper';
@@ -180,7 +180,7 @@ describe('PipelineList', () => {
         <PipelineList ref={pipelineListRef} {...props} namespace={options?.namespace} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     await waitForPipelinesLoad();
   }
 
@@ -188,7 +188,7 @@ describe('PipelineList', () => {
     await waitFor(() => {
       expect(listPipelinesSpy).toHaveBeenCalled();
     });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
   }
 
   async function mountWithNPipelines(n: number, options?: { namespace?: string }) {
@@ -706,7 +706,7 @@ describe('PipelineList', () => {
     await waitFor(() => {
       expect(deletePipelineVersionSpy).toHaveBeenCalledTimes(2);
     });
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     expect(updateSnackbarSpy).not.toHaveBeenCalled();
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
