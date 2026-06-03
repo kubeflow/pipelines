@@ -1,6 +1,0 @@
-PipelineDefinition: resources/definition/robomaker_delete_simulation_app_pipeline.py
-TestName: robomaker-delete-simulation-app-test
-Timeout: 300
-Arguments:
-  region: ((REGION))
-  arn: ""
