@@ -156,7 +156,7 @@ func isBlobKeyUnderPrefix(objKey, blobDir string) bool {
 }
 
 func isDirectoryMarkerBlob(obj *blob.ListObject, blobDir string) bool {
-	return obj.Size == 0 && (obj.Key == blobDir || strings.HasSuffix(obj.Key, "/"))
+	return obj.Size == 0 && (obj.Key == strings.TrimRight(blobDir, "/") || strings.HasSuffix(obj.Key, "/"))
 }
 
 func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir string) error {
@@ -171,7 +171,7 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 		}
 
 		// Skip directories including marker blobs.
-		// GCS clients (including TensorFlow's gfile) create markers as placeholders
+		// Some cloud storage clients create markers as placeholders
 		if obj.IsDir || isDirectoryMarkerBlob(obj, blobDir) {
 			// Object stores list all files with the same prefix,
 			// there is no need to recursively list each folder.

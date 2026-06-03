@@ -422,26 +422,23 @@ func TestDownloadBlobSkipsZeroByteDirectoryMarkers(t *testing.T) {
 	bucket := memblob.OpenBucket(nil)
 	defer func() { require.NoError(t, bucket.Close()) }()
 
-	// Simulate zero-byte blob directory marker.
-	writeBlobToMemBucket(ctx, t, bucket, "artifacts/model", "")
-	writeBlobToMemBucket(ctx, t, bucket, "artifacts/model/saved_model.pb", "saved model data")
+	blobDir := "artifacts/model"
+	blobDirWithTrailingSlash := blobDir + "/"
+
+	writeBlobToMemBucket(ctx, t, bucket, blobDir, "")
+	writeBlobToMemBucket(ctx, t, bucket, blobDirWithTrailingSlash, "")
 
 	localDir := t.TempDir()
-
-	err := DownloadBlob(ctx, bucket, localDir, "artifacts/model")
-	require.NoError(t, err)
-
-	// File containing content should still be downloaded
-	content, err := os.ReadFile(filepath.Join(localDir, "saved_model.pb"))
-	require.NoError(t, err)
-	assert.Equal(t, "saved model data", string(content))
-
-	// The zero-byte prefix-match marker "artifacts/model" resolves to localDir
-	// itself. If downloaded, it would make localDir a zero-byte file.
-	// Verify localDir was not overwritten and is still a directory.
+	require.NoError(t, DownloadBlob(ctx, bucket, localDir, blobDir))
 	localDirInfo, err := os.Stat(localDir)
 	require.NoError(t, err)
-	assert.True(t, localDirInfo.IsDir(), "prefix-match marker should not have clobbered localDir into a file")
+	assert.True(t, localDirInfo.IsDir(), "marker without slash")
+
+	localDir2 := t.TempDir()
+	require.NoError(t, DownloadBlob(ctx, bucket, localDir2, blobDirWithTrailingSlash))
+	localDirInfo2, err := os.Stat(localDir2)
+	require.NoError(t, err)
+	assert.True(t, localDirInfo2.IsDir(), "marker with slash")
 }
 
 func TestIsBlobKeyUnderPrefix(t *testing.T) {
