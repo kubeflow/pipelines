@@ -507,6 +507,78 @@ describe('RunDetailsV2', () => {
       expect(screen.getAllByText('-').length).toEqual(2); // finish time and duration are empty.
     });
 
+    it('shows actual retry start time from state_history when RUNNING entry has update_time', async () => {
+      const retryTime = new Date(2018, 8, 8, 4, 3, 2);
+      const runWithHistory: V2beta1Run = {
+        ...TEST_RUN,
+        scheduled_at: new Date(2018, 8, 6, 4, 3, 2),
+        state_history: [
+          { state: V2beta1RuntimeState.RUNNING, update_time: new Date(2018, 8, 6, 4, 3, 2) },
+          { state: V2beta1RuntimeState.FAILED, update_time: new Date(2018, 8, 6, 5, 0, 0) },
+          { state: V2beta1RuntimeState.RUNNING, update_time: retryTime },
+        ],
+      };
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={v2YamlTemplateString}
+            run={runWithHistory}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
+
+      await userEvent.click(screen.getByText('Detail'));
+
+      screen.getByText(retryTime.toLocaleString());
+      screen.getByText('Scheduled at');
+    });
+
+    it('falls back to scheduled_at when RUNNING entry has no update_time', async () => {
+      const scheduledTime = new Date(2018, 8, 6, 4, 3, 2);
+      const runWithNoUpdateTime: V2beta1Run = {
+        ...TEST_RUN,
+        scheduled_at: scheduledTime,
+        state_history: [{ state: V2beta1RuntimeState.RUNNING, update_time: undefined }],
+      };
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={v2YamlTemplateString}
+            run={runWithNoUpdateTime}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
+
+      await userEvent.click(screen.getByText('Detail'));
+
+      screen.getByText(scheduledTime.toLocaleString());
+      expect(screen.queryByText('Scheduled at')).toBeNull();
+    });
+
+    it('does not show Scheduled at row when actual start equals scheduled_at', async () => {
+      const sameTime = new Date(2018, 8, 6, 4, 3, 2);
+      const runSameTime: V2beta1Run = {
+        ...TEST_RUN,
+        scheduled_at: sameTime,
+        state_history: [{ state: V2beta1RuntimeState.RUNNING, update_time: sameTime }],
+      };
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={v2YamlTemplateString}
+            run={runSameTime}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
+
+      await userEvent.click(screen.getByText('Detail'));
+
+      expect(screen.queryByText('Scheduled at')).toBeNull();
+    });
+
     it('shows run parameters', async () => {
       render(
         <CommonTestWrapper>

@@ -5,13 +5,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-548a24cf68d38c6b9cd5ffa0cf3bff0ebc8c28e453df033e43d174b1b0799e44
+    - name: components-2bb5ac77b07f3fadd781fc58499d6ec76b40c7985ed2d203292699a053ce4cad
       value: '{"executorLabel":"exec-param-to-artifact","inputDefinitions":{"parameters":{"val":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"a":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-548a24cf68d38c6b9cd5ffa0cf3bff0ebc8c28e453df033e43d174b1b0799e44
+    - name: implementations-2bb5ac77b07f3fadd781fc58499d6ec76b40c7985ed2d203292699a053ce4cad
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","param_to_artifact"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -27,27 +27,26 @@ spec:
       value: '{"dag":{"outputs":{"artifacts":{"pipelinechannel--condition-branches-1-oneof-1":{"artifactSelectors":[{"outputArtifactKey":"pipelinechannel--param-to-artifact-a","producerSubtask":"condition-2"},{"outputArtifactKey":"pipelinechannel--param-to-artifact-2-a","producerSubtask":"condition-3"}]}}},"tasks":{"condition-2":{"componentRef":{"name":"comp-condition-2"},"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"}}},"taskInfo":{"name":"condition-2"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
         == ''heads''"}},"condition-3":{"componentRef":{"name":"comp-condition-3"},"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"}}},"taskInfo":{"name":"condition-3"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
         == ''heads'')"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-coin-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"pipelinechannel--condition-branches-1-oneof-1":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
-    - name: components-b7bc282093d4c682a88eee9264eed07197d2e4dc5276c37ed07b353ff7e961aa
+    - name: components-6310593d7e48e9c2650a219013a8dec3ce82af607b3fc9c4a0e2f1b6cb5a9b8d
       value: '{"executorLabel":"exec-flip-coin","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-b7bc282093d4c682a88eee9264eed07197d2e4dc5276c37ed07b353ff7e961aa
+    - name: implementations-6310593d7e48e9c2650a219013a8dec3ce82af607b3fc9c4a0e2f1b6cb5a9b8d
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","flip_coin"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        flip_coin() -\u003e str:\n    import random\n    return ''heads'' if random.randint(0,
-        1) == 0 else ''tails''\n\n"],"image":"python:3.11"}'
-    - name: components-f4e8ee10b02bd6b6b90fdf2bb11d355cbb8b814138f9ef2935d245797f7bf430
+        flip_coin() -\u003e str:\n    return ''heads''\n\n"],"image":"python:3.11"}'
+    - name: components-aca6f9a435959863e97b7935190c55742391eaa0e01dd70ac7186de09c943f3b
       value: '{"executorLabel":"exec-print-artifact","inputDefinitions":{"artifacts":{"a":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-f4e8ee10b02bd6b6b90fdf2bb11d355cbb8b814138f9ef2935d245797f7bf430
+    - name: implementations-aca6f9a435959863e97b7935190c55742391eaa0e01dd70ac7186de09c943f3b
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_artifact"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -155,7 +154,9 @@ spec:
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/runtime-role: driver
     name: system-container-driver
     outputs:
       parameters:
@@ -262,7 +263,9 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/runtime-role: launcher
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -289,11 +292,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-548a24cf68d38c6b9cd5ffa0cf3bff0ebc8c28e453df033e43d174b1b0799e44}}'
+            value: '{{workflow.parameters.components-2bb5ac77b07f3fadd781fc58499d6ec76b40c7985ed2d203292699a053ce4cad}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-param-to-artifact"},"inputs":{"parameters":{"val":{"componentInputParameter":"pipelinechannel--flip-coin-Output"}}},"taskInfo":{"name":"param-to-artifact"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-548a24cf68d38c6b9cd5ffa0cf3bff0ebc8c28e453df033e43d174b1b0799e44}}'
+            value: '{{workflow.parameters.implementations-2bb5ac77b07f3fadd781fc58499d6ec76b40c7985ed2d203292699a053ce4cad}}'
           - name: task-name
             value: param-to-artifact
           - name: parent-dag-id
@@ -321,11 +324,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-548a24cf68d38c6b9cd5ffa0cf3bff0ebc8c28e453df033e43d174b1b0799e44}}'
+            value: '{{workflow.parameters.components-2bb5ac77b07f3fadd781fc58499d6ec76b40c7985ed2d203292699a053ce4cad}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-param-to-artifact-2"},"inputs":{"parameters":{"val":{"componentInputParameter":"pipelinechannel--flip-coin-Output"}}},"taskInfo":{"name":"param-to-artifact-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-548a24cf68d38c6b9cd5ffa0cf3bff0ebc8c28e453df033e43d174b1b0799e44}}'
+            value: '{{workflow.parameters.implementations-2bb5ac77b07f3fadd781fc58499d6ec76b40c7985ed2d203292699a053ce4cad}}'
           - name: task-name
             value: param-to-artifact-2
           - name: parent-dag-id
@@ -426,7 +429,9 @@ spec:
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/runtime-role: driver
     name: system-dag-driver
     outputs:
       parameters:
@@ -526,11 +531,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-b7bc282093d4c682a88eee9264eed07197d2e4dc5276c37ed07b353ff7e961aa}}'
+            value: '{{workflow.parameters.components-6310593d7e48e9c2650a219013a8dec3ce82af607b3fc9c4a0e2f1b6cb5a9b8d}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-flip-coin"},"taskInfo":{"name":"flip-coin"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-b7bc282093d4c682a88eee9264eed07197d2e4dc5276c37ed07b353ff7e961aa}}'
+            value: '{{workflow.parameters.implementations-6310593d7e48e9c2650a219013a8dec3ce82af607b3fc9c4a0e2f1b6cb5a9b8d}}'
           - name: task-name
             value: flip-coin
           - name: parent-dag-id
@@ -550,11 +555,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-f4e8ee10b02bd6b6b90fdf2bb11d355cbb8b814138f9ef2935d245797f7bf430}}'
+            value: '{{workflow.parameters.components-aca6f9a435959863e97b7935190c55742391eaa0e01dd70ac7186de09c943f3b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-artifact"},"dependentTasks":["condition-branches-1"],"inputs":{"artifacts":{"a":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--condition-branches-1-oneof-1","producerTask":"condition-branches-1"}}}},"taskInfo":{"name":"print-artifact"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-f4e8ee10b02bd6b6b90fdf2bb11d355cbb8b814138f9ef2935d245797f7bf430}}'
+            value: '{{workflow.parameters.implementations-aca6f9a435959863e97b7935190c55742391eaa0e01dd70ac7186de09c943f3b}}'
           - name: task-name
             value: print-artifact
           - name: parent-dag-id
@@ -604,11 +609,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-f4e8ee10b02bd6b6b90fdf2bb11d355cbb8b814138f9ef2935d245797f7bf430}}'
+            value: '{{workflow.parameters.components-aca6f9a435959863e97b7935190c55742391eaa0e01dd70ac7186de09c943f3b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-artifact-2"},"dependentTasks":["flip-coin-pipeline"],"inputs":{"artifacts":{"a":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"flip-coin-pipeline"}}}},"taskInfo":{"name":"print-artifact"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-f4e8ee10b02bd6b6b90fdf2bb11d355cbb8b814138f9ef2935d245797f7bf430}}'
+            value: '{{workflow.parameters.implementations-aca6f9a435959863e97b7935190c55742391eaa0e01dd70ac7186de09c943f3b}}'
           - name: task-name
             value: print-artifact
           - name: parent-dag-id

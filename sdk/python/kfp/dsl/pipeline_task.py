@@ -617,7 +617,7 @@ class PipelineTask:
             num_retries : Number of times to retry on failure.
             backoff_duration: Number of seconds to wait before triggering a retry. Defaults to ``'0s'`` (immediate retry).
             backoff_factor: Exponential backoff factor applied to ``backoff_duration``. For example, if ``backoff_duration="60"`` (60 seconds) and ``backoff_factor=2``, the first retry will happen after 60 seconds, then again after 120, 240, and so on. Defaults to ``2.0``.
-            backoff_max_duration: Maximum duration during which the task will be retried. Maximum duration is 1 hour (3600s). Defaults to ``'3600s'``.
+            backoff_max_duration: Maximum duration during which the task will be retried. Defaults to ``'3600s'``.
 
         Returns:
             Self return to allow chained setting calls.
@@ -703,6 +703,77 @@ class PipelineTask:
             self.container_spec.env[name] = value
         else:
             self.container_spec.env = {name: value}
+        return self
+
+    @block_if_final()
+    def set_debug_pause(
+        self,
+        before: bool = False,
+        after: bool = True,
+        on_error: bool = False,
+    ) -> 'PipelineTask':
+        """Enable interactive debug-pause for the pipeline task.
+
+        Keeps the pod alive so you can ``kubectl exec`` into it
+        interactively.
+
+        When enabled, Argo Workflows' executor (the ``wait`` container)
+        detects the corresponding ``ARGO_DEBUG_PAUSE_*`` environment variable
+        and pauses the workflow node, preventing the pod from terminating.
+
+        This requires Argo Workflows 3.5.0 or later.
+
+        Args:
+            before: If ``True``, pause before the main process starts.
+                Useful for inspecting the environment, installing tools, or
+                modifying inputs before execution.
+            after: If ``True`` (default), pause after the main process
+                completes. Modified by ``on_error``.
+            on_error: If ``True``, only pause after execution when the
+                component fails (sets ``ARGO_DEBUG_PAUSE_ON_ERROR`` instead
+                of ``ARGO_DEBUG_PAUSE_AFTER``). Requires ``after=True``.
+
+        Returns:
+            Self return to allow chained setting calls.
+
+        Raises:
+            ValueError: If ``after=False`` and ``on_error=True``
+                (contradictory).
+            ValueError: If both ``before`` and ``after`` are ``False``.
+
+        Example:
+          ::
+
+            @dsl.pipeline
+            def my_pipeline():
+                task = my_component()
+                task.set_debug_pause()
+
+                task2 = my_component()
+                task2.set_debug_pause(before=True, after=False)
+
+                task3 = my_component()
+                task3.set_debug_pause(on_error=True)
+        """
+        if not after and on_error:
+            raise ValueError(
+                "'on_error' applies to post-execution pause and requires "
+                'after=True. Got after=False, on_error=True - contradictory '
+                'configuration.')
+
+        if not before and not after:
+            raise ValueError(
+                "At least one of 'before' or 'after' must be True. "
+                'Got before=False, after=False - nothing to pause on.')
+
+        if before:
+            self.set_env_variable('ARGO_DEBUG_PAUSE_BEFORE', 'true')
+        if after:
+            if on_error:
+                self.set_env_variable('ARGO_DEBUG_PAUSE_ON_ERROR', 'true')
+            else:
+                self.set_env_variable('ARGO_DEBUG_PAUSE_AFTER', 'true')
+
         return self
 
     @block_if_final()
@@ -836,7 +907,6 @@ def check_primitive_placeholder_is_used_for_correct_io_type(
         outputs_dict: The existing output names.
         arg: The command line element, which may be a placeholder.
     """
-
     if isinstance(arg, placeholders.InputValuePlaceholder):
         input_name = arg.input_name
         if not type_utils.is_parameter_type(inputs_dict[input_name].type):

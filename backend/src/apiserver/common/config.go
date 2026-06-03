@@ -15,7 +15,9 @@
 package common
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -44,13 +46,25 @@ const (
 	DefaultSecurityContextRunAsUser         string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_USER"
 	DefaultSecurityContextRunAsGroup        string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_GROUP"
 	DefaultSecurityContextRunAsNonRoot      string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT"
+	DefaultSecurityContextHostUsers         string = "DEFAULT_SECURITY_CONTEXT_HOST_USERS"
 	BlockV1Pipelines                        string = "BLOCK_V1_PIPELINES"
 	V1NamespaceWhitelist                    string = "V1_ALLOWED_NAMESPACES"
 	PipelineURLAllowedDomains               string = "PIPELINE_URL_ALLOWED_DOMAINS"
 	PipelineURLAllowHTTP                    string = "PIPELINE_URL_ALLOW_HTTP"
 	PipelineURLTimeout                      string = "PIPELINE_URL_TIMEOUT"
 	PipelineURLValidationEnabled            string = "PIPELINE_URL_VALIDATION_ENABLED"
+	PluginMaxKeys                           string = "PLUGIN_MAX_KEYS"
+	PluginMaxPayloadBytes                   string = "PLUGIN_MAX_PAYLOAD_BYTES"
+	PluginMaxTotalPayloadBytes              string = "PLUGIN_MAX_TOTAL_PAYLOAD_BYTES"
+	PluginMaxNestingDepth                   string = "PLUGIN_MAX_NESTING_DEPTH"
 )
+
+type PluginLimitsConfig struct {
+	MaxKeys              int
+	MaxPayloadBytes      int
+	MaxTotalPayloadBytes int
+	MaxNestingDepth      int
+}
 
 func IsPipelineVersionUpdatedByDefault() bool {
 	return GetBoolConfigWithDefault(UpdatePipelineVersionByDefault, true)
@@ -105,6 +119,27 @@ func GetIntConfigWithDefault(configName string, value int) int {
 		return value
 	}
 	return viper.GetInt(configName)
+}
+
+func getPositiveIntConfigWithDefault(configName string, value int) (int, error) {
+	if !viper.IsSet(configName) {
+		return value, nil
+	}
+
+	raw := strings.TrimSpace(viper.GetString(configName))
+	if raw == "" {
+		return 0, fmt.Errorf("invalid value for %s: must be a positive integer", configName)
+	}
+
+	parsed, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, fmt.Errorf("invalid value for %s: %w", configName, err)
+	}
+	if parsed <= 0 {
+		return 0, fmt.Errorf("invalid value for %s: must be > 0", configName)
+	}
+
+	return parsed, nil
 }
 
 func GetDurationConfig(configName string) time.Duration {
@@ -192,4 +227,44 @@ func GetDefaultSecurityContextRunAsGroup() string {
 
 func GetDefaultSecurityContextRunAsNonRoot() string {
 	return GetStringConfigWithDefault(DefaultSecurityContextRunAsNonRoot, "")
+}
+
+func GetDefaultSecurityContextHostUsers() string {
+	return GetStringConfigWithDefault(DefaultSecurityContextHostUsers, "")
+}
+
+func GetPluginLimitsConfig() (PluginLimitsConfig, error) {
+	maxKeys, err := getPositiveIntConfigWithDefault(PluginMaxKeys, DefaultPluginMaxKeys)
+	if err != nil {
+		return PluginLimitsConfig{}, err
+	}
+	maxPayloadBytes, err := getPositiveIntConfigWithDefault(PluginMaxPayloadBytes, DefaultPluginMaxPayloadBytes)
+	if err != nil {
+		return PluginLimitsConfig{}, err
+	}
+	maxTotalPayloadBytes, err := getPositiveIntConfigWithDefault(PluginMaxTotalPayloadBytes, DefaultPluginMaxTotalPayloadBytes)
+	if err != nil {
+		return PluginLimitsConfig{}, err
+	}
+	maxNestingDepth, err := getPositiveIntConfigWithDefault(PluginMaxNestingDepth, DefaultPluginMaxNestingDepth)
+	if err != nil {
+		return PluginLimitsConfig{}, err
+	}
+
+	if maxTotalPayloadBytes < maxPayloadBytes {
+		return PluginLimitsConfig{}, fmt.Errorf(
+			"invalid plugin limits: %s (%d) must be >= %s (%d)",
+			PluginMaxTotalPayloadBytes,
+			maxTotalPayloadBytes,
+			PluginMaxPayloadBytes,
+			maxPayloadBytes,
+		)
+	}
+
+	return PluginLimitsConfig{
+		MaxKeys:              maxKeys,
+		MaxPayloadBytes:      maxPayloadBytes,
+		MaxTotalPayloadBytes: maxTotalPayloadBytes,
+		MaxNestingDepth:      maxNestingDepth,
+	}, nil
 }

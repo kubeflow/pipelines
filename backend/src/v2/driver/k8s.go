@@ -26,6 +26,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
@@ -76,6 +77,7 @@ func kubernetesPlatformOps(
 	var createdExecution *metadata.Execution
 	status := pb.Execution_FAILED
 	var pvcName string
+	taskPluginInfo := &plugins.TaskInfo{Name: opts.TaskName}
 	defer func() {
 		// We publish the execution, no matter this operartion succeeds or not
 		perr := publishDriverExecution(k8sClient, mlmd, ctx, createdExecution, outputParameters, nil, status)
@@ -84,8 +86,20 @@ func kubernetesPlatformOps(
 		} else if perr != nil {
 			err = fmt.Errorf("failed to publish driver execution: %w", perr)
 		}
+		taskPluginInfo.UpdateTaskInfoWithMetadata(status.String(), nil, nil)
+		dispatchErr := opts.PluginDispatcher.OnTaskEnd(ctx, taskPluginInfo)
+		if dispatchErr != nil {
+			glog.Errorf("failed to dispatch task end: %v", dispatchErr)
+		}
+
 	}()
 
+	pluginStartResult, dispatchErr := opts.PluginDispatcher.OnTaskStart(ctx, taskPluginInfo)
+	if dispatchErr != nil {
+		glog.Errorf("Failed to dispatch task start: %v", dispatchErr)
+	} else if pluginStartResult != nil {
+		ecfg.PluginCustomProperties = pluginStartResult.CustomProperties
+	}
 	switch opts.Container.Image {
 	case "argostub/createpvc":
 		pvcName, createdExecution, status, err = createPVC(ctx, k8sClient, *execution, opts, cacheClient, mlmd, ecfg)
@@ -716,6 +730,17 @@ func extendPodSpecPatch(
 		}
 	}
 
+	// Pre-populate the administrator-configured hostUsers default at the pod level
+	// only when no value is already present. Setting hostUsers to false places the
+	// pod in a dedicated Linux user namespace: UID 0 inside the pod maps to an
+	// unprivileged host UID, so root processes in the container are not root on
+	// the host. We set only when nil so that the post-processing guard below can
+	// detect and warn about user-supplied overrides.
+	if opts.DefaultHostUsers != nil && podSpec.HostUsers == nil {
+		v := *opts.DefaultHostUsers
+		podSpec.HostUsers = &v
+	}
+
 	// Apply container security context (PSS baseline compliant).
 	// User-specified identity fields (runAsUser, runAsGroup) are only applied
 	// when they are not already set by the platform/admin. If the compiler or
@@ -758,6 +783,19 @@ func extendPodSpecPatch(
 		podSpec.Containers[0].SecurityContext.Capabilities = &k8score.Capabilities{
 			Drop: []k8score.Capability{"ALL"},
 		}
+	}
+
+	// Post-processing: enforce administrator hostUsers regardless of any
+	// user override. hostUsers is a pod-level field controlling Linux user
+	// namespace isolation; allowing users to silently flip it to true would
+	// defeat the administrator's security policy.
+	if opts.DefaultHostUsers != nil {
+		if podSpec.HostUsers != nil && *podSpec.HostUsers != *opts.DefaultHostUsers {
+			glog.Warningf("Ignoring user-specified hostUsers=%t: administrator default hostUsers=%t takes precedence",
+				*podSpec.HostUsers, *opts.DefaultHostUsers)
+		}
+		v := *opts.DefaultHostUsers
+		podSpec.HostUsers = &v
 	}
 
 	return nil

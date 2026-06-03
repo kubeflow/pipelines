@@ -10,7 +10,7 @@ namespace: kubeflow
 
 resources:
 - ../../base
-- https://github.com/argoproj/argo-workflows/manifests/namespace-install/workflow-controller-rbac?ref=v3.7.3
+- https://github.com/argoproj/argo-workflows/manifests/namespace-install/workflow-controller-rbac?ref=v3.7.14
 patches:
 - path: workflow-controller-deployment-patch.json
   target:
