@@ -26,11 +26,11 @@
     "@types/supertest": "^2.0.8",
     "@types/tar": "^4.0.3",
     "@types/tar-stream": "^1.6.1",
-    "@vitest/coverage-v8": "^4.0.18",
+    "@vitest/coverage-v8": "^4.1.8",
     "prettier": "^3.8.1",
     "supertest": "^4.0.2",
     "typescript": "^4.9.5",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.8"
   },
   "overrides": {
     "path-to-regexp": "0.1.12",
