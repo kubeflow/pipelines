@@ -7,10 +7,9 @@ metadata:
   name: workflow-controller-configmap
 data:
   # References:
-  # * https://github.com/argoproj/argo-workflows/blob/v3.7.3/config/config.go
-  # * https://github.com/argoproj/argo-workflows/blob/v3.7.3/docs/workflow-controller-configmap.md
-  # * https://github.com/argoproj/argo-workflows/blob/v3.7.3/docs/workflow-controller-configmap.yaml
-
+  # * https://github.com/argoproj/argo-workflows/blob/v3.7.14/config/config.go
+  # * https://github.com/argoproj/argo-workflows/blob/v3.7.14/docs/workflow-controller-configmap.md
+  # * https://github.com/argoproj/argo-workflows/blob/v3.7.14/docs/workflow-controller-configmap.yaml
 
   # In artifactRepository.s3.endpoint, $(kfp-namespace) is needed, because in multi-user mode, pipelines may run in other namespaces.
   artifactRepository: |
@@ -48,3 +47,39 @@ data:
           - ALL
       seccompProfile:
         type: RuntimeDefault
+  workflowDefaults: |
+    spec:
+      ttlStrategy:
+        secondsAfterCompletion: 3600
+        secondsAfterSuccess: 3600
+        secondsAfterFailure: 3600
+      metrics:
+        prometheus:
+        - counter:
+            value: '1'
+          help: Kubeflow pipeline status
+          labels:
+          - key: namespace
+            value: '{{workflow.namespace}}'
+          - key: status
+            value: '{{workflow.status}}'
+          - key: pipeline
+            value: '{{=jsonpath(workflow.annotations.pipelines.kubeflow[''org/pipeline_spec''], ''$.name'')}}'
+          name: pipeline_info
+      templateDefaults:
+        retryStrategy:
+          limit: '2'
+          retryPolicy: OnError
+        metrics:
+          prometheus:
+          - gauge:
+              value: '1'
+            help: Kubeflow pipelines pod information
+            labels:
+            - key: namespace
+              value: '{{workflow.namespace}}'
+            - key: pipeline
+              value: '{{=jsonpath(workflow.annotations.pipelines.kubeflow[''org/pipeline_spec''], ''$.name'')}}'
+            - key: run
+              value: '{{workflow.annotations.pipelines.kubeflow.org/run_name}}'
+            name: pipeline_pod_info
