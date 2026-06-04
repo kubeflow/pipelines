@@ -30,6 +30,31 @@ import {
 import { V2beta1ListExperimentsResponse } from 'src/apisv2beta1/experiment';
 import { Tooltip } from '@mui/material';
 
+// Extracts start_time and end_time from the trigger's cron or periodic schedule.
+export function getScheduleTimes(trigger?: V2beta1Trigger): { startTime?: Date; endTime?: Date } {
+  const schedule = trigger?.cron_schedule || trigger?.periodic_schedule;
+  return {
+    startTime: schedule?.start_time,
+    endTime: schedule?.end_time,
+  };
+}
+
+// Derives schedule status (Active, Scheduled, Expired, Disabled) from run state and trigger times.
+export function getScheduleStatus(recurringRun: V2beta1RecurringRun): string {
+  if (recurringRun.status === V2beta1RecurringRunStatus.DISABLED) {
+    return 'Disabled';
+  }
+  const { startTime, endTime } = getScheduleTimes(recurringRun.trigger);
+  const now = new Date();
+  if (startTime && now < startTime) {
+    return 'Scheduled';
+  }
+  if (endTime && now > endTime) {
+    return 'Expired';
+  }
+  return 'Active';
+}
+
 interface DisplayRecurringRun {
   experiment?: ExperimentInfo;
   recurringRun: V2beta1RecurringRun;
@@ -88,11 +113,14 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
       },
       { customRenderer: this._statusCustomRenderer, label: 'Status', flex: 0.5 },
       { customRenderer: this._triggerCustomRenderer, label: 'Trigger', flex: 1 },
+      { label: 'Start Time', flex: 1 },
+      { label: 'End Time', flex: 1 },
+      { customRenderer: this._scheduleStatusCustomRenderer, label: 'Schedule Status', flex: 0.85 },
       { label: 'Created at', flex: 1, sortKey: JobSortKeys.CREATED_AT },
     ];
 
     if (!this.props.hideExperimentColumn) {
-      columns.splice(3, 0, {
+      columns.splice(6, 0, {
         customRenderer: this._experimentCustomRenderer,
         flex: 1,
         label: 'Experiment',
@@ -100,6 +128,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     }
 
     const rows: Row[] = this.state.recurringRuns.map((j) => {
+      const { startTime, endTime } = getScheduleTimes(j.recurringRun.trigger);
       const row = {
         error: j.error,
         id: j.recurringRun.recurring_run_id!,
@@ -107,11 +136,14 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
           j.recurringRun!.display_name,
           j.recurringRun.status,
           j.recurringRun.trigger,
+          formatDateString(startTime),
+          formatDateString(endTime),
+          getScheduleStatus(j.recurringRun),
           formatDateString(j.recurringRun.created_at),
         ] as any,
       };
       if (!this.props.hideExperimentColumn) {
-        row.otherFields.splice(3, 0, j.experiment);
+        row.otherFields.splice(6, 0, j.experiment);
       }
 
       return row;
@@ -224,6 +256,32 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
         : props.value === V2beta1RecurringRunStatus.DISABLED
           ? color.inactive
           : color.errorText;
+    return <div style={{ color: textColor }}>{props.value}</div>;
+  };
+
+  public _scheduleStatusCustomRenderer: React.FC<CustomRendererProps<string>> = (
+    props: CustomRendererProps<string>,
+  ) => {
+    if (!props.value) {
+      return <div>-</div>;
+    }
+    let textColor: string;
+    switch (props.value) {
+      case 'Active':
+        textColor = color.success;
+        break;
+      case 'Scheduled':
+        textColor = color.theme;
+        break;
+      case 'Expired':
+        textColor = color.warningText;
+        break;
+      case 'Disabled':
+        textColor = color.inactive;
+        break;
+      default:
+        textColor = color.inactive;
+    }
     return <div style={{ color: textColor }}>{props.value}</div>;
   };
 

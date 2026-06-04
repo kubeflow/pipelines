@@ -23,7 +23,11 @@ import { range } from 'lodash';
 import * as Utils from 'src/lib/Utils';
 import TestUtils from 'src/TestUtils';
 import { Apis, JobSortKeys, ListRequest } from 'src/lib/Apis';
-import RecurringRunList, { RecurringRunListProps } from './RecurringRunList';
+import RecurringRunList, {
+  RecurringRunListProps,
+  getScheduleTimes,
+  getScheduleStatus,
+} from './RecurringRunList';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { color } from 'src/Css';
 
@@ -166,6 +170,9 @@ describe('RecurringRunList', () => {
           'recurring run with id: testrecurringrun1',
           undefined,
           undefined,
+          '-',
+          '-',
+          'Active',
           undefined,
           '-',
         ],
@@ -322,7 +329,7 @@ describe('RecurringRunList', () => {
     await loadRecurringRuns({});
 
     expect(props.onError).not.toHaveBeenCalled();
-    expect(lastCustomTableProps.rows[0].otherFields[3]).toEqual({
+    expect(lastCustomTableProps.rows[0].otherFields[6]).toEqual({
       displayName: 'test experiment',
       id: 'test-experiment-id',
     });
@@ -349,7 +356,7 @@ describe('RecurringRunList', () => {
     expect(lastCustomTableProps.columns.map((column: any) => column.label)).not.toContain(
       'Experiment',
     );
-    expect(lastCustomTableProps.rows[0].otherFields).toHaveLength(4);
+    expect(lastCustomTableProps.rows[0].otherFields).toHaveLength(7);
   });
 
   it('renders recurring run trigger in seconds', () => {
@@ -438,5 +445,178 @@ describe('RecurringRunList', () => {
       }),
     );
     expect(getByText('Unknown Status')).toHaveStyle({ color: color.errorText });
+  });
+
+  it('shows start time and end time when configured (periodic)', async () => {
+    const startTime = new Date('2025-01-01T00:00:00Z');
+    const endTime = new Date('2025-12-31T23:59:59Z');
+    mockNRecurringRuns(1, {
+      trigger: {
+        periodic_schedule: {
+          interval_second: '3600',
+          start_time: startTime,
+          end_time: endTime,
+        },
+      },
+    });
+    renderRecurringRunList();
+    await loadRecurringRuns({});
+
+    expect(lastCustomTableProps.rows[0].otherFields[3]).toBe('1/2/2019, 12:34:56 PM');
+    expect(lastCustomTableProps.rows[0].otherFields[4]).toBe('1/2/2019, 12:34:56 PM');
+  });
+
+  it('shows start time and end time when configured (cron)', async () => {
+    const startTime = new Date('2025-01-01T00:00:00Z');
+    const endTime = new Date('2025-12-31T23:59:59Z');
+    mockNRecurringRuns(1, {
+      trigger: {
+        cron_schedule: {
+          cron: '0 * * * * ?',
+          start_time: startTime,
+          end_time: endTime,
+        },
+      },
+    });
+    renderRecurringRunList();
+    await loadRecurringRuns({});
+
+    expect(lastCustomTableProps.rows[0].otherFields[3]).toBe('1/2/2019, 12:34:56 PM');
+    expect(lastCustomTableProps.rows[0].otherFields[4]).toBe('1/2/2019, 12:34:56 PM');
+  });
+
+  it('shows dash for missing start time and end time', async () => {
+    mockNRecurringRuns(1, {
+      trigger: { periodic_schedule: { interval_second: '3600' } },
+    });
+    renderRecurringRunList();
+    await loadRecurringRuns({});
+
+    expect(lastCustomTableProps.rows[0].otherFields[3]).toBe('-');
+    expect(lastCustomTableProps.rows[0].otherFields[4]).toBe('-');
+  });
+
+  it('getScheduleTimes extracts from cron_schedule', () => {
+    const startTime = new Date('2025-01-01T00:00:00Z');
+    const endTime = new Date('2025-12-31T23:59:59Z');
+    const result = getScheduleTimes({
+      cron_schedule: { cron: '0 * * * *', start_time: startTime, end_time: endTime },
+    });
+    expect(result).toEqual({ startTime, endTime });
+  });
+
+  it('getScheduleTimes extracts from periodic_schedule', () => {
+    const startTime = new Date('2025-06-01T00:00:00Z');
+    const result = getScheduleTimes({
+      periodic_schedule: { interval_second: '60', start_time: startTime },
+    });
+    expect(result).toEqual({ startTime, endTime: undefined });
+  });
+
+  it('getScheduleTimes returns undefined for no trigger', () => {
+    expect(getScheduleTimes(undefined)).toEqual({ startTime: undefined, endTime: undefined });
+  });
+
+  it('getScheduleStatus returns Disabled for disabled runs', () => {
+    expect(
+      getScheduleStatus({
+        status: V2beta1RecurringRunStatus.DISABLED,
+        trigger: { periodic_schedule: { start_time: new Date('2020-01-01') } },
+      }),
+    ).toBe('Disabled');
+  });
+
+  it('getScheduleStatus returns Active for enabled run with no schedule times', () => {
+    expect(
+      getScheduleStatus({
+        status: V2beta1RecurringRunStatus.ENABLED,
+      }),
+    ).toBe('Active');
+  });
+
+  it('getScheduleStatus returns Active for enabled run within schedule window', () => {
+    expect(
+      getScheduleStatus({
+        status: V2beta1RecurringRunStatus.ENABLED,
+        trigger: {
+          periodic_schedule: {
+            start_time: new Date('2020-01-01'),
+            end_time: new Date('2099-12-31'),
+          },
+        },
+      }),
+    ).toBe('Active');
+  });
+
+  it('getScheduleStatus returns Scheduled for enabled run with future start_time', () => {
+    expect(
+      getScheduleStatus({
+        status: V2beta1RecurringRunStatus.ENABLED,
+        trigger: {
+          cron_schedule: {
+            cron: '0 * * * *',
+            start_time: new Date('2099-01-01'),
+          },
+        },
+      }),
+    ).toBe('Scheduled');
+  });
+
+  it('getScheduleStatus returns Expired for enabled run with past end_time', () => {
+    expect(
+      getScheduleStatus({
+        status: V2beta1RecurringRunStatus.ENABLED,
+        trigger: {
+          periodic_schedule: {
+            start_time: new Date('2020-01-01'),
+            end_time: new Date('2020-12-31'),
+          },
+        },
+      }),
+    ).toBe('Expired');
+  });
+
+  it('renders schedule status Active', () => {
+    renderRecurringRunList();
+    const { getByText } = render(
+      getInstance()._scheduleStatusCustomRenderer({
+        value: 'Active',
+        id: 'recurring run-id',
+      }),
+    );
+    expect(getByText('Active')).toHaveStyle({ color: color.success });
+  });
+
+  it('renders schedule status Scheduled', () => {
+    renderRecurringRunList();
+    const { getByText } = render(
+      getInstance()._scheduleStatusCustomRenderer({
+        value: 'Scheduled',
+        id: 'recurring run-id',
+      }),
+    );
+    expect(getByText('Scheduled')).toHaveStyle({ color: color.theme });
+  });
+
+  it('renders schedule status Expired', () => {
+    renderRecurringRunList();
+    const { getByText } = render(
+      getInstance()._scheduleStatusCustomRenderer({
+        value: 'Expired',
+        id: 'recurring run-id',
+      }),
+    );
+    expect(getByText('Expired')).toHaveStyle({ color: color.warningText });
+  });
+
+  it('renders schedule status Disabled', () => {
+    renderRecurringRunList();
+    const { getByText } = render(
+      getInstance()._scheduleStatusCustomRenderer({
+        value: 'Disabled',
+        id: 'recurring run-id',
+      }),
+    );
+    expect(getByText('Disabled')).toHaveStyle({ color: color.inactive });
   });
 });
