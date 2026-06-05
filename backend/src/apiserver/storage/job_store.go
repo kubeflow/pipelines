@@ -56,7 +56,6 @@ var jobColumns = []string{
 	"ExperimentUUID",
 	"PipelineVersionId",
 	"PluginsInput",
-	"PluginsInput",
 }
 
 type JobStoreInterface interface {
