@@ -19,7 +19,19 @@ spec:
         # header so CreateRun calls pass the API server's multi-user authorization.
         # The controller maps these env vars to its --userIdentityHeader/--userIdentityValue
         # flags (see backend/Dockerfile.scheduledworkflow).
+        # USER_IDENTITY_HEADER is sourced from the shared ConfigMap so it stays in
+        # sync with the API server's KUBEFLOW_USERID_HEADER; operators patch the
+        # ConfigMap once to update both deployments.
         - name: USER_IDENTITY_HEADER
-          value: kubeflow-userid
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-multi-user-params
+              key: KUBEFLOW_USERID_HEADER
+        # SERVICE_ACCOUNT_NAME is resolved at runtime via the downward API so
+        # renamed service accounts are handled automatically.
+        - name: SERVICE_ACCOUNT_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
         - name: USER_IDENTITY_VALUE
-          value: system:serviceaccount:$(NAMESPACE_SELF):ml-pipeline-scheduledworkflow
+          value: system:serviceaccount:$(NAMESPACE_SELF):$(SERVICE_ACCOUNT_NAME)
