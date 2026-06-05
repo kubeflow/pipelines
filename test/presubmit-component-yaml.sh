@@ -15,17 +15,5 @@
 
 source_root=$(pwd)
 
-if [ "${SETUP_ENV}" = "true" ]; then
-  python3 -m pip install pytest
-  python3 -m pip install pytest-asyncio-cooperative==0.37.0
-  python3 -m pip install --upgrade pip
-  python3 -m pip install sdk/python
-  apt-get update && apt-get install -y protobuf-compiler
-  pushd api
-  make clean python
-  popd
-  python3 -m pip install api/v2alpha1/python
-fi
-
 # Test loading all component.yaml definitions
 "$source_root/components/test_load_all_components.sh"

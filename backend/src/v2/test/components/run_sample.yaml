@@ -41,8 +41,15 @@ implementation:
       chmod +x "$backend_compiler_path"
       cp "$backend_compiler_path" /usr/local/bin/kfp-v2-compiler
       # run test sample
-      # TODO: remove deprecated dependency
-      pip install -r sdk/python/requirements-deprecated.txt
+      pip install \
+        "absl-py>=0.9,<2" \
+        "cloudpickle>=2.0.0,<3" \
+        "Deprecated>=1.2.7,<2" \
+        "fire>=0.3.1,<1" \
+        "jsonschema>=3.0.1,<4" \
+        "strip-hints>=0.1.8,<1" \
+        "uritemplate>=3.0.1,<4" \
+        "typer>=0.3.2,<1.0"
       python3 \
         -u \
         -m "$sample_path" \

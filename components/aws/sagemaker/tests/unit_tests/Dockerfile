@@ -6,12 +6,19 @@ RUN yum update -y \
     && yum install -y -q \
     python3
 
-# requirements.txt is copied separately to preserve cache
-COPY ./components/aws/sagemaker/requirements.txt .
-RUN pip3 install -r requirements.txt
-
-COPY ./components/aws/sagemaker/dev_requirements.txt .
-RUN pip3 install -r dev_requirements.txt
+RUN pip3 install uv
+RUN uv pip install --system \
+    "boto3==1.14.12" \
+    "sagemaker==2.237.3" \
+    "pathlib2==2.3.5" \
+    "pyyaml==5.4" \
+    "mypy-extensions==0.4.3" \
+    "protobuf==3.20.*" \
+    "kfp==1.7.0" \
+    "docformatter==1.3.1" \
+    "black==19.10b0" \
+    "coverage==5.1" \
+    "pytest==5.4.1"
 
 COPY . /app/
 

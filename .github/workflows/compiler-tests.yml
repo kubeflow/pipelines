@@ -29,6 +29,8 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - '.github/workflows/compiler-tests.yml'
       - 'backend/src/v2/compiler/**'
       - 'test_data/**'
