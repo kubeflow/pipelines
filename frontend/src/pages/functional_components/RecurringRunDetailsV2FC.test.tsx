@@ -97,6 +97,9 @@ describe('RecurringRunDetailsV2FC', () => {
     // mock both v2_alpha and functional feature keys are enable.
     vi.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
 
+    // mockReset clears the mockOnce queue that vi.clearAllMocks leaves behind,
+    // preventing unconsumed one-time mocks from leaking between tests.
+    getRecurringRunSpy.mockReset();
     getRecurringRunSpy.mockImplementation(() => fullTestV2RecurringRun);
     getPipelineVersionSpy.mockImplementation(() => testPipelineVersion);
 
@@ -110,6 +113,28 @@ describe('RecurringRunDetailsV2FC', () => {
       display_name: 'test-experiment',
       experiment_id: 'test-experiment-id',
     });
+  });
+
+  it('shows a loading spinner while the recurring run is being fetched', async () => {
+    // First call from the Router succeeds so V2FC can mount;
+    // second call from V2FC hangs to show the loading spinner.
+    getRecurringRunSpy
+      .mockImplementationOnce(() => fullTestV2RecurringRun)
+      .mockReturnValueOnce(new Promise(() => {}));
+
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    // Wait for Router to resolve past its own loading state before
+    // asserting V2FC's spinner — the Router also renders a CircularProgress
+    // while loading, so we must confirm it has finished first.
+    await waitFor(() => {
+      expect(screen.queryByText('Currently loading recurring run information')).toBeNull();
+    });
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('renders a recurring run with periodic schedule', async () => {

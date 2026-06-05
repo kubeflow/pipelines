@@ -34,6 +34,7 @@ def run_dag(
     runner: config.LocalRunnerType,
     unique_pipeline_id: str,
     fail_stack: List[str],
+    parent_io_store: 'io.IOStore' = None,
 ) -> Tuple[Outputs, status.Status]:
     """Runs a DAGSpec.
 
@@ -54,6 +55,7 @@ def run_dag(
     """
 
     # Original DAG execution logic for simple pipelines
+    from . import task_executor
     from .orchestrator_utils import OrchestratorUtils
 
     dag_arguments_with_defaults = OrchestratorUtils.join_user_inputs_and_defaults(
@@ -61,8 +63,9 @@ def run_dag(
         dag_inputs_spec=dag_component_spec.input_definitions,
     )
 
-    # prepare IOStore for DAG
-    io_store = io.IOStore()
+    # prepare IOStore for DAG, chained to the enclosing scope (if any) so
+    # nested references can walk up on miss
+    io_store = io.IOStore(parent=parent_io_store)
     for k, v in dag_arguments_with_defaults.items():
         io_store.put_parent_input(k, v)
 
@@ -90,10 +93,10 @@ def run_dag(
                 runner=runner,
                 unique_pipeline_id=unique_pipeline_id,
                 fail_stack=fail_stack,
+                parent_io_store=io_store,
             )
         else:
-            # Use consolidated task execution logic from OrchestratorUtils
-            outputs, task_status = OrchestratorUtils.execute_single_task(
+            outputs, task_status = task_executor.execute_single_task(
                 task_name=task_name,
                 task_spec=task_spec,
                 pipeline_resource_name=pipeline_resource_name,

@@ -39,38 +39,23 @@ describe('PlotCard', () => {
   });
 
   it('opens the fullscreen dialog', () => {
-    const { container } = render(<PlotCard title='' configs={[config]} maxDimension={100} />);
-    const popOutButton = container.querySelector('.popOutButton');
-    if (!popOutButton) {
-      throw new Error('Pop out button not found');
-    }
-    fireEvent.click(popOutButton);
+    render(<PlotCard title='' configs={[config]} maxDimension={100} />);
+    fireEvent.click(screen.getByTestId('pop-out-button'));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText('Confusion matrix')).toBeInTheDocument();
   });
 
   it('closes the fullscreen dialog with the close button', async () => {
-    const { container } = render(<PlotCard title='' configs={[config]} maxDimension={100} />);
-    const popOutButton = container.querySelector('.popOutButton');
-    if (!popOutButton) {
-      throw new Error('Pop out button not found');
-    }
-    fireEvent.click(popOutButton);
-    const closeButton = document.querySelector('.fullscreenCloseButton');
-    if (!closeButton) {
-      throw new Error('Close button not found');
-    }
-    fireEvent.click(closeButton);
+    render(<PlotCard title='' configs={[config]} maxDimension={100} />);
+    fireEvent.click(screen.getByTestId('pop-out-button'));
+    fireEvent.click(screen.getByTestId('fullscreen-close-button'));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
   it('closes the fullscreen dialog when the backdrop is clicked', async () => {
-    const { container } = render(<PlotCard title='' configs={[config]} maxDimension={100} />);
-    const popOutButton = container.querySelector('.popOutButton');
-    if (!popOutButton) {
-      throw new Error('Pop out button not found');
-    }
-    fireEvent.click(popOutButton);
+    render(<PlotCard title='' configs={[config]} maxDimension={100} />);
+    fireEvent.click(screen.getByTestId('pop-out-button'));
+    // MUI backdrop is third-party internal DOM — querySelector retained
     const backdrop = document.querySelector('[class*="MuiBackdrop-root"]');
     if (!backdrop) {
       throw new Error('Backdrop not found');

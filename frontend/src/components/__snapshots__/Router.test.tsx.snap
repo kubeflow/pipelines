@@ -10,6 +10,7 @@ exports[`Router > initial render 1`] = `
     >
       <div
         class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
+        data-testid="sideNav"
         id="sideNav"
       >
         <div
@@ -446,6 +447,7 @@ exports[`Router > initial render 1`] = `
           />
           <button
             class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+            data-testid="chevron-toggle"
             tabindex="0"
             type="button"
           >

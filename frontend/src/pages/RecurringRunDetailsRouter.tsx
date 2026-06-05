@@ -17,6 +17,7 @@
 import { useEffect } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useQuery } from '@tanstack/react-query';
+import { CircularProgress } from '@mui/material';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
 import { errorToMessage } from 'src/lib/Utils';
 import { RouteParams } from 'src/components/Router';
@@ -38,7 +39,7 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
 
   const {
     isSuccess: getRecurringRunSuccess,
-    isFetching: recurringRunIsFetching,
+    isLoading: recurringRunIsLoading,
     isError: getRecurringRunError,
     error: recurringRunError,
     data: v2RecurringRun,
@@ -61,8 +62,15 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
   const pipelineId = v2RecurringRun?.pipeline_version_reference?.pipeline_id;
   const pipelineVersionId = v2RecurringRun?.pipeline_version_reference?.pipeline_version_id;
 
-  const { isFetching: templateStrIsFetching, data: templateStrFromPipelineVersion } =
-    usePipelineVersionTemplate(pipelineId, pipelineVersionId);
+  const {
+    isLoading: templateStrIsLoading,
+    isError: templateStrIsError,
+    error: templateStrError,
+    data: templateStrFromPipelineVersion,
+  } = usePipelineVersionTemplate(
+    pipelineManifest ? undefined : pipelineId,
+    pipelineManifest ? undefined : pipelineVersionId,
+  );
 
   const templateString = pipelineManifest ?? templateStrFromPipelineVersion;
 
@@ -85,6 +93,26 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
     return undefined;
   }, [getRecurringRunError, recurringRunError, recurringRunId, updateBanner]);
 
+  useEffect(() => {
+    if (templateStrIsError && templateStrError && !getRecurringRunError) {
+      let cancelled = false;
+      errorToMessage(templateStrError).then((msg) => {
+        if (!cancelled) {
+          updateBanner({
+            message:
+              'Error: failed to retrieve pipeline version template. Click Details for more information.',
+            mode: 'error',
+            additionalInfo: msg,
+          });
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    return undefined;
+  }, [templateStrIsError, templateStrError, getRecurringRunError, updateBanner]);
+
   if (getRecurringRunSuccess && v2RecurringRun && templateString) {
     const isV2Pipeline = WorkflowUtils.isPipelineSpec(templateString);
     if (isV2Pipeline) {
@@ -96,8 +124,13 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
     }
   }
 
-  if (recurringRunIsFetching || templateStrIsFetching) {
-    return <div>Currently loading recurring run information</div>;
+  if (recurringRunIsLoading || templateStrIsLoading) {
+    return (
+      <div style={{ textAlign: 'center', paddingTop: 40 }}>
+        <CircularProgress />
+        <div>Currently loading recurring run information</div>
+      </div>
+    );
   }
 
   if (getRecurringRunError) {

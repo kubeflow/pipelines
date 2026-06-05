@@ -160,13 +160,13 @@ This is a **breaking architectural change** that affects:
 - **Python Version**: 3.9+
 - **Database**: MySQL 8.0 or compatible
 - **Container Runtime**: Docker or Podman
-- **Kubernetes**: Kind cluster (v1.29.2 or v1.31.0)
+- **Kubernetes**: Kind cluster (v1.31.14 or v1.35.0)
 
 ### Test Cluster Configurations
 
 #### 1. Local Development Cluster
 ```yaml
-Kubernetes: Kind v1.29.2
+Kubernetes: Kind v1.31.14
 KFP Mode: Standalone
 Database: MySQL 8.0
 Storage: MinIO (local S3-compatible)
@@ -176,7 +176,7 @@ Purpose: Unit test validation, quick smoke tests
 
 #### 2. Standard KFP Cluster
 ```yaml
-Kubernetes: Kind v1.31.0
+Kubernetes: Kind v1.35.0
 KFP Mode: Standalone with RBAC
 Database: MySQL 8.0
 Storage: MinIO
@@ -187,7 +187,7 @@ Purpose: Main integration testing, regression tests
 
 #### 3. Multi-Tenant Cluster
 ```yaml
-Kubernetes: Kind v1.31.0
+Kubernetes: Kind v1.35.0
 KFP Mode: Multi-tenant
 Database: MySQL 8.0
 Storage: MinIO with namespace isolation
@@ -198,7 +198,7 @@ Purpose: Security testing, RBAC validation
 
 #### 4. Performance Testing Cluster
 ```yaml
-Kubernetes: Kind v1.31.0 (or GKE/EKS for realistic perf)
+Kubernetes: Kind v1.35.0 (or GKE/EKS for realistic perf)
 KFP Mode: Standalone
 Database: MySQL 8.0 (optimized)
 Storage: MinIO (or cloud storage)

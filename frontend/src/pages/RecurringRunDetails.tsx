@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import type * as React from 'react';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import DetailsTable from 'src/components/DetailsTable';
 import RunUtils from 'src/lib/RunUtils';
@@ -62,7 +63,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { run } = this.state;
     let runDetails: Array<KeyValue<string>> = [];
     let inputParameters: Array<KeyValue<string>> = [];
@@ -127,6 +128,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
   }
 
   public componentDidMount(): Promise<void> {
+    this._isMounted = true;
     return this.load();
   }
 
@@ -185,9 +187,13 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
     toolbarActions[ButtonKeys.ENABLE_RECURRING_RUN].disabled = !!run.enabled;
     toolbarActions[ButtonKeys.DISABLE_RECURRING_RUN].disabled = !run.enabled;
 
+    if (!this._isMounted) {
+      return;
+    }
+
     this.props.updateToolbar({ actions: toolbarActions, breadcrumbs, pageTitle });
 
-    this.setState({ run });
+    this.setStateSafe({ run });
   }
 
   private _deleteCallback(_: string[], success: boolean): void {

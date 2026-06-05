@@ -148,6 +148,7 @@ type TemplateOptions struct {
 	DefaultRunAsUser     *int64
 	DefaultRunAsGroup    *int64
 	DefaultRunAsNonRoot  *bool
+	DefaultHostUsers     *bool
 }
 
 func New(bytes []byte, opts TemplateOptions) (Template, error) {

@@ -171,6 +171,10 @@ export const css = stylesheet({
     fontWeight: 'bold',
     paddingLeft: 20,
   },
+  loadingMessage: {
+    textAlign: 'center',
+    paddingTop: 40,
+  },
 });
 
 class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
@@ -237,9 +241,14 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     if (this.props.isLoading) {
-      return <div>Currently loading run information</div>;
+      return (
+        <div className={css.loadingMessage}>
+          <CircularProgress />
+          <div>Currently loading run information.</div>
+        </div>
+      );
     }
 
     const {
@@ -708,6 +717,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   }
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     window.addEventListener('focus', this.onFocusHandler);
     window.addEventListener('blur', this.onBlurHandler);
     await this._startAutoRefresh();

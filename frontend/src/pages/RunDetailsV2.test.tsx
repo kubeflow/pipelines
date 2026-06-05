@@ -184,7 +184,89 @@ describe('RunDetailsV2', () => {
     );
   });
 
+  it('Shows experiment warning banner when experiment fetch fails and MLMD succeeds', async () => {
+    vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockRejectedValue(
+      new Error('Experiment not found'),
+    );
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={TEST_RUN}
+          {...generateProps()}
+        ></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          additionalInfo: 'Experiment not found',
+          message: 'Error: failed to retrieve experiment details.',
+          mode: 'warning',
+        }),
+      ),
+    );
+  });
+
+  it('Shows MLMD error banner even when experiment also fails (MLMD takes precedence)', async () => {
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName').mockRejectedValue(
+      new Error('Not connected to MLMD'),
+    );
+    vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockRejectedValue(
+      new Error('Experiment not found'),
+    );
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={TEST_RUN}
+          {...generateProps()}
+        ></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          message: 'Cannot get MLMD objects from Metadata store.',
+          mode: 'error',
+        }),
+      ),
+    );
+  });
+
+  it('Does not clear experiment warning when MLMD succeeds after experiment fails', async () => {
+    vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockRejectedValue(
+      new Error('Experiment not found'),
+    );
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={TEST_RUN}
+          {...generateProps()}
+        ></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+
+    // Wait for both queries to settle — the last banner call should be the experiment warning,
+    // NOT a clear ({}) from the MLMD success path.
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          message: 'Error: failed to retrieve experiment details.',
+          mode: 'warning',
+        }),
+      ),
+    );
+  });
+
   it('Shows no banner when connected from MLMD', async () => {
+    vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockResolvedValue(TEST_EXPERIMENT);
     vi.spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName').mockImplementation(
       (request: GetContextByTypeAndNameRequest) => {
         const response = new GetContextByTypeAndNameResponse();
@@ -423,6 +505,78 @@ describe('RunDetailsV2', () => {
       await userEvent.click(screen.getByText('Detail'));
 
       expect(screen.getAllByText('-').length).toEqual(2); // finish time and duration are empty.
+    });
+
+    it('shows actual retry start time from state_history when RUNNING entry has update_time', async () => {
+      const retryTime = new Date(2018, 8, 8, 4, 3, 2);
+      const runWithHistory: V2beta1Run = {
+        ...TEST_RUN,
+        scheduled_at: new Date(2018, 8, 6, 4, 3, 2),
+        state_history: [
+          { state: V2beta1RuntimeState.RUNNING, update_time: new Date(2018, 8, 6, 4, 3, 2) },
+          { state: V2beta1RuntimeState.FAILED, update_time: new Date(2018, 8, 6, 5, 0, 0) },
+          { state: V2beta1RuntimeState.RUNNING, update_time: retryTime },
+        ],
+      };
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={v2YamlTemplateString}
+            run={runWithHistory}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
+
+      await userEvent.click(screen.getByText('Detail'));
+
+      screen.getByText(retryTime.toLocaleString());
+      screen.getByText('Scheduled at');
+    });
+
+    it('falls back to scheduled_at when RUNNING entry has no update_time', async () => {
+      const scheduledTime = new Date(2018, 8, 6, 4, 3, 2);
+      const runWithNoUpdateTime: V2beta1Run = {
+        ...TEST_RUN,
+        scheduled_at: scheduledTime,
+        state_history: [{ state: V2beta1RuntimeState.RUNNING, update_time: undefined }],
+      };
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={v2YamlTemplateString}
+            run={runWithNoUpdateTime}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
+
+      await userEvent.click(screen.getByText('Detail'));
+
+      screen.getByText(scheduledTime.toLocaleString());
+      expect(screen.queryByText('Scheduled at')).toBeNull();
+    });
+
+    it('does not show Scheduled at row when actual start equals scheduled_at', async () => {
+      const sameTime = new Date(2018, 8, 6, 4, 3, 2);
+      const runSameTime: V2beta1Run = {
+        ...TEST_RUN,
+        scheduled_at: sameTime,
+        state_history: [{ state: V2beta1RuntimeState.RUNNING, update_time: sameTime }],
+      };
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={v2YamlTemplateString}
+            run={runSameTime}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
+
+      await userEvent.click(screen.getByText('Detail'));
+
+      expect(screen.queryByText('Scheduled at')).toBeNull();
     });
 
     it('shows run parameters', async () => {

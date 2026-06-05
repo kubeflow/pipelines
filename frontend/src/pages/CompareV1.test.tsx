@@ -18,7 +18,7 @@ import * as React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import EnhancedCompareV1, { TEST_ONLY, TaggedViewerConfig } from './CompareV1';
-import TestUtils from 'src/TestUtils';
+import TestUtils, { flushPromisesInAct } from 'src/TestUtils';
 import * as Utils from 'src/lib/Utils';
 import { logger } from 'src/lib/Utils';
 import { Apis } from 'src/lib/Apis';
@@ -122,7 +122,7 @@ describe('CompareV1', () => {
         <TestCompare ref={compareRef} {...propsToUse} />
       </MemoryRouter>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     return propsToUse;
   }
 
@@ -236,7 +236,10 @@ describe('CompareV1', () => {
 
   it('renders a page with multiple runs', async () => {
     await renderCompare();
-    await waitFor(() => expect(getRunSpy).toHaveBeenCalledTimes(3));
+    await waitForRunRows(3);
+    expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_1_ID);
+    expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_2_ID);
+    expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_3_ID);
     expect(stableMuiSnapshotFragment(renderResult!.asFragment())).toMatchSnapshot();
   });
 
@@ -250,7 +253,7 @@ describe('CompareV1', () => {
     props.location.search = `?${QUERY_PARAMS.runlist}=run-1,run-2,run-3`;
 
     await renderCompare(props);
-    await waitFor(() => expect(getRunSpy).toHaveBeenCalledTimes(3));
+    await waitForRunRows(3);
 
     expect(getRunSpy).toHaveBeenCalledWith('run-1');
     expect(getRunSpy).toHaveBeenCalledWith('run-2');
@@ -405,7 +408,13 @@ describe('CompareV1', () => {
     props.location.search = `?${QUERY_PARAMS.runlist}=run1,run2`;
 
     await renderCompare(props);
-    await waitFor(() => expect(getRunSpy).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(getInstance().state.paramsCompareProps.yLabels).toEqual([
+        'shared-param',
+        'r1-unique-param',
+        'r2-unique-param1',
+      ]),
+    );
     expect(stableMuiSnapshotFragment(renderResult!.asFragment())).toMatchSnapshot();
   });
 
@@ -451,12 +460,21 @@ describe('CompareV1', () => {
     props.location.search = `?${QUERY_PARAMS.runlist}=run1,run2`;
 
     await renderCompare(props);
-    await waitFor(() => expect(getRunSpy).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(getInstance().state.metricsCompareProps).toEqual({
+        rows: [
+          ['0.330', '0.670'],
+          ['0.554', ''],
+        ],
+        xLabels: ['test run run1', 'test run run2'],
+        yLabels: ['some-metric', 'another-metric'],
+      }),
+    );
     expect(stableMuiSnapshotFragment(renderResult!.asFragment())).toMatchSnapshot();
   });
 
   it('creates a map of viewers', async () => {
-    outputArtifactLoaderSpy.mockImplementationOnce(() => [
+    outputArtifactLoaderSpy.mockImplementation(() => [
       { type: PlotType.TENSORBOARD, url: 'gs://path' },
       { data: [['test']], labels: ['col1, col2'], type: PlotType.TABLE },
     ]);
@@ -671,14 +689,14 @@ describe('CompareV1', () => {
     await waitForViewersMap(2);
 
     await waitFor(() => {
-      expect(document.querySelectorAll('.plotCard')).toHaveLength(6);
+      expect(screen.getAllByTestId('pop-out-button')).toHaveLength(6);
     });
 
     expect(stableMuiSnapshotFragment(renderResult!.asFragment())).toMatchSnapshot();
   });
 
   describe('EnhancedCompareV1', () => {
-    it('redirects to experiments page when namespace changes', () => {
+    it('redirects to experiments page when namespace changes', async () => {
       const history = createMemoryHistory({
         initialEntries: ['/does-not-matter'],
       });
@@ -689,6 +707,7 @@ describe('CompareV1', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await flushPromisesInAct();
       expect(history.location.pathname).not.toEqual('/experiments');
       rerender(
         <Router history={history}>
@@ -697,10 +716,11 @@ describe('CompareV1', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await flushPromisesInAct();
       expect(history.location.pathname).toEqual('/experiments');
     });
 
-    it('does not redirect when namespace stays the same', () => {
+    it('does not redirect when namespace stays the same', async () => {
       const history = createMemoryHistory({
         initialEntries: ['/initial-path'],
       });
@@ -711,6 +731,7 @@ describe('CompareV1', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await flushPromisesInAct();
       expect(history.location.pathname).toEqual('/initial-path');
       rerender(
         <Router history={history}>
@@ -719,10 +740,11 @@ describe('CompareV1', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await flushPromisesInAct();
       expect(history.location.pathname).toEqual('/initial-path');
     });
 
-    it('does not redirect when namespace initializes', () => {
+    it('does not redirect when namespace initializes', async () => {
       const history = createMemoryHistory({
         initialEntries: ['/initial-path'],
       });
@@ -733,6 +755,7 @@ describe('CompareV1', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await flushPromisesInAct();
       expect(history.location.pathname).toEqual('/initial-path');
       rerender(
         <Router history={history}>
@@ -741,6 +764,7 @@ describe('CompareV1', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await flushPromisesInAct();
       expect(history.location.pathname).toEqual('/initial-path');
     });
   });

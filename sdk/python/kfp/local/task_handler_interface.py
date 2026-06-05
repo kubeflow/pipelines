@@ -13,7 +13,7 @@
 # limitations under the License.
 """An abstract base class that specifies the interface of a task handler."""
 import abc
-from typing import List
+from typing import Dict, List, Optional
 
 from kfp.local import config
 from kfp.local import status
@@ -28,6 +28,7 @@ class ITaskHandler(abc.ABC):
         full_command: List[str],
         pipeline_root: str,
         runner: config.LocalRunnerType,
+        env_vars: Optional[Dict[str, str]] = None,
     ) -> None:
         pass
 

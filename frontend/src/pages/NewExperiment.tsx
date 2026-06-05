@@ -73,7 +73,7 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { description, experimentName, isbeingCreated, validationError } = this.state;
 
     return (
@@ -133,10 +133,11 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
   }
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     const urlParser = new URLParser(this.props);
     const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
     if (pipelineId) {
-      this.setState({ pipelineId });
+      this.setStateSafe({ pipelineId });
     }
 
     this._validate();

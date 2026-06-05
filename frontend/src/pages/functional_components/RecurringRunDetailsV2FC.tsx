@@ -16,6 +16,7 @@
 
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { CircularProgress } from '@mui/material';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { queryKeys } from 'src/hooks/queryKeys';
 import DetailsTable from 'src/components/DetailsTable';
@@ -37,6 +38,7 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
   const recurringRunId = props.match.params[RouteParams.recurringRunId];
 
   const {
+    isLoading: isRecurringRunLoading,
     data: recurringRun,
     error: getRecurringRunError,
     refetch: refetchRecurringRun,
@@ -166,6 +168,10 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
       pageTitle: '',
     };
   };
+
+  if (isRecurringRunLoading) {
+    return <CircularProgress />;
+  }
 
   return (
     <div className={classes(commonCss.page, padding(20, 'lr'))}>

@@ -21,10 +21,12 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/spf13/viper"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 
 	"os"
 	"path/filepath"
@@ -38,6 +40,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
+
+	_ "github.com/kubeflow/pipelines/backend/src/v2/common/plugins/all"
 )
 
 const (
@@ -96,12 +100,14 @@ var (
 	defaultRunAsUser     = flag.Int64("default_run_as_user", -1, "Admin-configured default runAsUser for user containers. -1 means not set.")
 	defaultRunAsGroup    = flag.Int64("default_run_as_group", -1, "Admin-configured default runAsGroup for user containers. -1 means not set.")
 	defaultRunAsNonRoot  = flag.String("default_run_as_non_root", "", "Admin-configured default runAsNonRoot for user containers. Empty means not set.")
+	defaultHostUsers     = flag.String("default_host_users", "", "Administrator-configured default hostUsers for user workload pods. Empty means not set. Set to false to run pods in a dedicated Linux user namespace.")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
 
 func main() {
 	flag.Parse()
+	initConfig()
 
 	glog.Infof("Setting log level to: '%s'", *logLevel)
 	err := flag.Set("v", *logLevel)
@@ -212,6 +218,11 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
+	// pluginDispatcher executes task-level plugin lifecycle hooks
+	pluginDispatcher, err := plugins.GetPluginDispatcher()
+	if err != nil {
+		glog.Errorf("Failed to initialize plugin dispatcher: %v", err)
+	}
 	options := driver.Options{
 		PipelineName:            *pipelineName,
 		RunID:                   *runID,
@@ -234,6 +245,7 @@ func drive() (err error) {
 		MLPipelineTLSEnabled:    *mlPipelineTLSEnabled,
 		MLMDTLSEnabled:          *metadataTLSEnabled,
 		CaCertPath:              *caCertPath,
+		PluginDispatcher:        pluginDispatcher,
 	}
 	var execution *driver.Execution
 	var driverErr error
@@ -258,6 +270,13 @@ func drive() (err error) {
 			if err == nil {
 				options.DefaultRunAsNonRoot = &v
 			}
+		}
+		if *defaultHostUsers != "" {
+			v, err := strconv.ParseBool(*defaultHostUsers)
+			if err != nil {
+				return fmt.Errorf("invalid --default_host_users value %q: %w", *defaultHostUsers, err)
+			}
+			options.DefaultHostUsers = &v
 		}
 		execution, driverErr = driver.Container(ctx, options, client, cacheClient)
 	default:
@@ -381,4 +400,8 @@ func writeFile(path string, data []byte) (err error) {
 
 func newMlmdClient(mlmdServerAddress string, mlmdServerPort string, tlsCfg *tls.Config) (*metadata.Client, error) {
 	return metadata.NewClient(mlmdServerAddress, mlmdServerPort, tlsCfg)
+}
+
+func initConfig() {
+	viper.AutomaticEnv()
 }

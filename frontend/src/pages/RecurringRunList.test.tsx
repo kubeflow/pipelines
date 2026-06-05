@@ -133,8 +133,6 @@ describe('RecurringRunList', () => {
   });
 
   afterEach(() => {
-    renderResult?.unmount();
-    renderResult = null;
     recurringRunListRef = null;
     vi.resetAllMocks();
   });

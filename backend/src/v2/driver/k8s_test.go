@@ -2341,7 +2341,7 @@ func Test_extendPodSpecPatch_SecurityContext_AdminSetPreserved(t *testing.T) {
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, got)
-	// Admin-set values are preserved; user-specified values are ignored.
+	// Administrator-set values are preserved; user-specified values are ignored.
 	assert.Equal(t, int64(1000), *got.Containers[0].SecurityContext.RunAsUser)
 	assert.Equal(t, int64(0), *got.Containers[0].SecurityContext.RunAsGroup)
 	// Capabilities always dropped.
@@ -2366,7 +2366,7 @@ func Test_extendPodSpecPatch_SecurityContext_AdminDefaultsNoUserOverride(t *test
 		nil,
 	)
 	assert.Nil(t, err)
-	// Admin defaults are applied even without user SecurityContext.
+	// Administrator defaults are applied even without user SecurityContext.
 	assert.Equal(t, int64(1000), *got.Containers[0].SecurityContext.RunAsUser)
 }
 
@@ -2440,7 +2440,7 @@ func Test_extendPodSpecPatch_SecurityContext_AdminRunAsNonRoot(t *testing.T) {
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, got)
-	// Admin-set runAsNonRoot is preserved; user-specified value is ignored.
+	// Administrator-set runAsNonRoot is preserved; user-specified value is ignored.
 	assert.True(t, *got.Containers[0].SecurityContext.RunAsNonRoot)
 	// Capabilities always dropped.
 	assert.Equal(t, &k8score.Capabilities{Drop: []k8score.Capability{"ALL"}}, got.Containers[0].SecurityContext.Capabilities)
@@ -2464,7 +2464,7 @@ func Test_extendPodSpecPatch_SecurityContext_AdminRunAsNonRootNoUserOverride(t *
 		nil,
 	)
 	assert.Nil(t, err)
-	// Admin defaults are applied even without user SecurityContext.
+	// Administrator defaults are applied even without user SecurityContext.
 	assert.True(t, *got.Containers[0].SecurityContext.RunAsNonRoot)
 }
 
@@ -3354,4 +3354,207 @@ func Test_extendPodSpecPatch_PvcMounts_Passthrough_AppliedToPod(t *testing.T) {
 	assert.NotEmpty(t, podSpec.Containers[0].VolumeMounts)
 	assert.NotEmpty(t, taskCfg.Volumes)
 	assert.NotEmpty(t, taskCfg.VolumeMounts)
+}
+
+func Test_buildPVCDataSource(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       *structpb.Value
+		expected    *k8score.TypedLocalObjectReference
+		expectError bool
+	}{
+		{
+			name: "Valid VolumeSnapshot data source (with apiGroup)",
+			input: func() *structpb.Value {
+				v, _ := structpb.NewValue(map[string]interface{}{
+					"apiGroup": "snapshot.storage.k8s.io",
+					"kind":     "VolumeSnapshot",
+					"name":     "my-snapshot",
+				})
+				return v
+			}(),
+			expected: &k8score.TypedLocalObjectReference{
+				APIGroup: func() *string { s := "snapshot.storage.k8s.io"; return &s }(),
+				Kind:     "VolumeSnapshot",
+				Name:     "my-snapshot",
+			},
+			expectError: false,
+		},
+		{
+			name: "Valid PVC clone data source (without apiGroup)",
+			input: func() *structpb.Value {
+				v, _ := structpb.NewValue(map[string]interface{}{
+					"kind": "PersistentVolumeClaim",
+					"name": "source-pvc",
+				})
+				return v
+			}(),
+			expected: &k8score.TypedLocalObjectReference{
+				APIGroup: nil,
+				Kind:     "PersistentVolumeClaim",
+				Name:     "source-pvc",
+			},
+			expectError: false,
+		},
+		{
+			name:        "nil input",
+			input:       nil,
+			expected:    nil,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := buildPVCDataSource(tt.input)
+			if tt.expectError {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.expected.Kind, result.Kind)
+				assert.Equal(t, tt.expected.Name, result.Name)
+				if tt.expected.APIGroup != nil {
+					assert.NotNil(t, result.APIGroup)
+					assert.Equal(t, *tt.expected.APIGroup, *result.APIGroup)
+				} else {
+					assert.Nil(t, result.APIGroup)
+				}
+			}
+		})
+	}
+}
+
+func Test_extendPodSpecPatch_DefaultHostUsersFalse(t *testing.T) {
+	hostUsersInDedicatedNamespace := false
+
+	podSpec := &k8score.PodSpec{Containers: []k8score.Container{
+		{Name: "main"},
+	}}
+	err := extendPodSpecPatch(
+		context.Background(),
+		podSpec,
+		Options{
+			DefaultHostUsers: &hostUsersInDedicatedNamespace,
+		},
+		nil, nil, nil,
+		map[string]*structpb.Value{},
+		nil,
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, podSpec.HostUsers)
+	// hostUsers: false places the pod in a dedicated Linux user namespace,
+	// so UID 0 inside the container maps to an unprivileged host UID.
+	assert.False(t, *podSpec.HostUsers)
+}
+
+func Test_extendPodSpecPatch_DefaultHostUsersTrue(t *testing.T) {
+	hostUsersInHostNamespace := true
+
+	podSpec := &k8score.PodSpec{Containers: []k8score.Container{
+		{Name: "main"},
+	}}
+	err := extendPodSpecPatch(
+		context.Background(),
+		podSpec,
+		Options{
+			DefaultHostUsers: &hostUsersInHostNamespace,
+		},
+		nil, nil, nil,
+		map[string]*structpb.Value{},
+		nil,
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, podSpec.HostUsers)
+	assert.True(t, *podSpec.HostUsers)
+}
+
+func Test_extendPodSpecPatch_DefaultHostUsersNil(t *testing.T) {
+	podSpec := &k8score.PodSpec{Containers: []k8score.Container{
+		{Name: "main"},
+	}}
+	err := extendPodSpecPatch(
+		context.Background(),
+		podSpec,
+		Options{
+			DefaultHostUsers: nil,
+		},
+		nil, nil, nil,
+		map[string]*structpb.Value{},
+		nil,
+	)
+	assert.Nil(t, err)
+	// When the administrator default is not set, hostUsers is left unspecified so the
+	// Kubernetes default (host user namespace) applies.
+	assert.Nil(t, podSpec.HostUsers)
+}
+
+// Test_extendPodSpecPatch_RootUserWithHostUsersNamespace verifies that a
+// customer workload container configured to run as UID 0 (root) in combination
+// with hostUsers:false is accepted. When the pod runs in a dedicated Linux user
+// namespace, the root identity inside that namespace does not correspond to root
+// on the host, providing defense-in-depth isolation.
+func Test_extendPodSpecPatch_RootUserWithHostUsersNamespace(t *testing.T) {
+	hostUsersInDedicatedNamespace := false
+	rootUserIdentifier := int64(0)
+
+	podSpec := &k8score.PodSpec{Containers: []k8score.Container{
+		{Name: "main"},
+	}}
+	err := extendPodSpecPatch(
+		context.Background(),
+		podSpec,
+		Options{
+			DefaultHostUsers: &hostUsersInDedicatedNamespace,
+			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsUser: &rootUserIdentifier,
+				},
+			},
+		},
+		nil, nil, nil,
+		map[string]*structpb.Value{},
+		nil,
+	)
+	assert.Nil(t, err)
+	// hostUsers: false must be present on the pod spec.
+	assert.NotNil(t, podSpec.HostUsers)
+	assert.False(t, *podSpec.HostUsers)
+	// The root UID requested by the pipeline author must be applied, since there
+	// is no administrator-level runAsUser override in effect.
+	assert.NotNil(t, podSpec.Containers[0].SecurityContext)
+	assert.NotNil(t, podSpec.Containers[0].SecurityContext.RunAsUser)
+	assert.Equal(t, int64(0), *podSpec.Containers[0].SecurityContext.RunAsUser)
+	// Capabilities are always dropped as a defense-in-depth measure.
+	assert.Equal(t, &k8score.Capabilities{Drop: []k8score.Capability{"ALL"}},
+		podSpec.Containers[0].SecurityContext.Capabilities)
+}
+
+// Test_extendPodSpecPatch_HostUsersAdminOverrideProtection verifies that the
+// post-processing guard re-applies the administrator's hostUsers default even
+// when a user-supplied podSpecPatch has set hostUsers to a different value.
+func Test_extendPodSpecPatch_HostUsersAdminOverrideProtection(t *testing.T) {
+	adminFalse := false
+	// Simulate user setting hostUsers=true via podSpecPatch before
+	// the post-processing guard runs.
+	userTrue := true
+	podSpec := &k8score.PodSpec{
+		Containers: []k8score.Container{{Name: "main"}},
+		HostUsers:  &userTrue,
+	}
+	err := extendPodSpecPatch(
+		context.Background(),
+		podSpec,
+		Options{
+			DefaultHostUsers: &adminFalse,
+		},
+		nil, nil, nil,
+		map[string]*structpb.Value{},
+		nil,
+	)
+	assert.Nil(t, err)
+	// The administrator's false must override the user's true.
+	assert.NotNil(t, podSpec.HostUsers)
+	assert.False(t, *podSpec.HostUsers)
 }

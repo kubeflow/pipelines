@@ -123,6 +123,14 @@ func resolveInputs(
 	if err != nil {
 		return nil, err
 	}
+	// Recover plugin custom properties from the parent DAG's MLMD execution
+	// (e.g. loop DAG → iteration DAG → container). This calls
+	// ApplyCustomProperties so that subsequent OnTaskStart uses the correct
+	// parent run ID.
+	pluginProps := metadata.ExtractPluginCustomProperties(dag.Execution)
+	if pluginProps != nil {
+		opts.PluginDispatcher.ApplyCustomProperties(pluginProps)
+	}
 	inputArtifacts, err := mlmd.GetInputArtifactsByExecutionID(ctx, dag.Execution.GetID())
 	if err != nil {
 		return nil, err
@@ -910,7 +918,10 @@ func CollectInputs(
 
 		previousTaskName = currentTask.TaskName()
 		previousWorkingOutputKey = workingOutputKey
-		workingSubTaskName, workingOutputKey, _ = GetProducerTask(currentTask, tasks, workingSubTaskName, workingOutputKey, isArtifact)
+		workingSubTaskName, workingOutputKey, err = GetProducerTask(currentTask, tasks, workingSubTaskName, workingOutputKey, isArtifact)
+		if err != nil {
+			return nil, nil, cfg.err(err)
+		}
 
 		glog.V(4).Infof("currentTask ID: %v", currentTask.GetID())
 		glog.V(4).Infof("currentTask Name: %v", currentTask.TaskName())
@@ -1034,10 +1045,48 @@ func GetProducerTask(parentTask *metadata.Execution, tasks map[string]*metadata.
 			}
 			glog.V(4).Infof("tempOutputsArtifacts: %v", tempOutputArtifacts)
 			glog.V(4).Infof("outputArtifactKey: %v", outputKey)
-			tempSelectors := tempOutputArtifacts[outputKey].GetArtifactSelectors()
-			if len(tempSelectors) > 0 {
-				producerSubTaskName = tempSelectors[len(tempSelectors)-1].ProducerSubtask
-				tempOutputKey = tempSelectors[len(tempSelectors)-1].OutputArtifactKey
+			artifactOutputSpec, ok := tempOutputArtifacts[outputKey]
+			if !ok || artifactOutputSpec == nil {
+				return "", "", fmt.Errorf(
+					"artifact output key %q not found in parent task %q (dag ID %d)",
+					outputKey,
+					parentTask.TaskName(),
+					parentTask.GetID(),
+				)
+			}
+			tempSelectors := artifactOutputSpec.GetArtifactSelectors()
+			if len(tempSelectors) == 1 {
+				producerSubTaskName = tempSelectors[0].ProducerSubtask
+				tempOutputKey = tempSelectors[0].OutputArtifactKey
+			} else if len(tempSelectors) > 1 {
+				// The current compiler emits multiple DAG artifact selectors
+				// for dsl.OneOf across mutually exclusive branches, while
+				// direct artifact outputs use a single selector. Pick the
+				// branch that actually completed.
+				successfulOneOfTask := false
+				for _, tempSelector := range tempSelectors {
+					producerSubTaskName = tempSelector.GetProducerSubtask()
+					updatedSubTaskName := metadata.GetTaskNameWithDagID(producerSubTaskName, parentTask.GetID())
+					glog.V(4).Infof("subTaskName with Dag ID from artifactSelector: %v", updatedSubTaskName)
+					glog.V(4).Infof("outputArtifactKey from artifactSelector: %v", tempSelector.GetOutputArtifactKey())
+					if subTask, ok := tasks[updatedSubTaskName]; ok {
+						subTaskState := subTask.GetExecution().GetLastKnownState().String()
+						glog.V(4).Infof("subTask: %v , subTaskState: %v", updatedSubTaskName, subTaskState)
+						if subTaskState == "CACHED" || subTaskState == "COMPLETE" {
+							tempOutputKey = tempSelector.GetOutputArtifactKey()
+							successfulOneOfTask = true
+							break
+						}
+					}
+				}
+				if !successfulOneOfTask {
+					return "", "", fmt.Errorf(
+						"processing OneOf: No successful task found for output key %q in parent task %q (dag ID %d)",
+						outputKey,
+						parentTask.TaskName(),
+						parentTask.GetID(),
+					)
+				}
 			}
 		}
 
@@ -1087,7 +1136,12 @@ func GetProducerTask(parentTask *metadata.Execution, tasks map[string]*metadata.
 					}
 				}
 				if !successfulOneOfTask {
-					return "", "", fmt.Errorf("processing OneOf: No successful task found")
+					return "", "", fmt.Errorf(
+						"processing OneOf: No successful task found for output key %q in parent task %q (dag ID %d)",
+						outputKey,
+						parentTask.TaskName(),
+						parentTask.GetID(),
+					)
 				}
 			}
 		}

@@ -127,6 +127,7 @@ type ClientInterface interface {
 	PrePublishExecution(ctx context.Context, execution *Execution, config *ExecutionConfig) (*Execution, error)
 	GetExecutions(ctx context.Context, ids []int64) ([]*pb.Execution, error)
 	GetExecution(ctx context.Context, id int64) (*Execution, error)
+	GetExecutionByTypeAndName(ctx context.Context, typeName, name string) (*Execution, error)
 	GetPipelineFromExecution(ctx context.Context, id int64) (*Pipeline, error)
 	GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pipeline, filter bool) (executionsMap map[string]*Execution, err error)
 	UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipeline *Pipeline) (err error)
@@ -185,6 +186,14 @@ func NewClient(serverAddress, serverPort string, tlsCfg *tls.Config) (*Client, e
 	}, nil
 }
 
+// NewTestClient allows injecting a mocked gRPC service for testing
+func NewTestClient(mockSvc pb.MetadataStoreServiceClient) *Client {
+	return &Client{
+		svc:          mockSvc,
+		ctxTypeCache: sync.Map{},
+	}
+}
+
 // ExecutionConfig represents the input parameters and artifacts to an Execution.
 type ExecutionConfig struct {
 	TaskName         string
@@ -206,6 +215,10 @@ type ExecutionConfig struct {
 	// DAGExecution custom properties
 	IterationCount *int // Number of iterations for an iterator DAG.
 	TotalDagTasks  *int // Number of tasks inside the DAG
+
+	// PluginCustomProperties holds arbitrary key-value pairs contributed by
+	// task-level plugins (e.g. "plugins.mlflow.run_id").
+	PluginCustomProperties map[string]string
 }
 
 // InputArtifact is a wrapper around an MLMD artifact used as component inputs.
@@ -292,7 +305,7 @@ func (p *Pipeline) GetPipelineRoot() string {
 
 // Execution is a handle for the current execution.
 type Execution struct {
-	execution *pb.Execution
+	Execution *pb.Execution
 	pipeline  *Pipeline
 }
 
@@ -300,14 +313,14 @@ func (e *Execution) GetID() int64 {
 	if e == nil {
 		return 0
 	}
-	return e.execution.GetId()
+	return e.Execution.GetId()
 }
 
 func (e *Execution) String() string {
 	if e == nil {
 		return ""
 	}
-	return e.execution.String()
+	return e.Execution.String()
 }
 
 func (e *Execution) GetPipeline() *Pipeline {
@@ -321,21 +334,41 @@ func (e *Execution) GetExecution() *pb.Execution {
 	if e == nil {
 		return nil
 	}
-	return e.execution
+	return e.Execution
 }
 
 func (e *Execution) TaskName() string {
 	if e == nil {
 		return ""
 	}
-	return e.execution.GetCustomProperties()[keyTaskName].GetStringValue()
+	return e.Execution.GetCustomProperties()[keyTaskName].GetStringValue()
 }
 
 func (e *Execution) FingerPrint() string {
 	if e == nil {
 		return ""
 	}
-	return e.execution.GetCustomProperties()[keyCacheFingerPrint].GetStringValue()
+	return e.Execution.GetCustomProperties()[keyCacheFingerPrint].GetStringValue()
+}
+
+const pluginCustomPropertyPrefix = "plugins."
+
+// ExtractPluginCustomProperties returns all MLMD execution custom properties
+// that match the plugin naming convention (keys starting with "plugins.").
+func ExtractPluginCustomProperties(execution *Execution) map[string]string {
+	if execution == nil || execution.Execution == nil {
+		return nil
+	}
+	result := map[string]string{}
+	for key, value := range execution.Execution.GetCustomProperties() {
+		if len(key) > len(pluginCustomPropertyPrefix) && key[:len(pluginCustomPropertyPrefix)] == pluginCustomPropertyPrefix {
+			result[key] = value.GetStringValue()
+		}
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
 }
 
 // GetTaskNameWithDagID appends the taskName with its parent dag id. This is
@@ -454,7 +487,7 @@ func (c *Client) GetDAG(ctx context.Context, executionID int64) (*DAG, error) {
 	}
 	execution := res.GetExecution()
 	// TODO(Bobgy): verify execution type is system.DAGExecution
-	return &DAG{Execution: &Execution{execution: execution}}, nil
+	return &DAG{Execution: &Execution{Execution: execution}}, nil
 }
 
 func (c *Client) putParentContexts(ctx context.Context, req *pb.PutParentContextsRequest) error {
@@ -523,7 +556,7 @@ func getArtifactName(eventPath *pb.Event_Path) (string, error) {
 // PublishExecution publishes the specified execution with the given output
 // parameters, artifacts and state.
 func (c *Client) PublishExecution(ctx context.Context, execution *Execution, outputParameters map[string]*structpb.Value, outputArtifacts []*OutputArtifact, state pb.Execution_State) error {
-	e := execution.execution
+	e := execution.Execution
 	e.LastKnownState = state.Enum()
 	glog.V(4).Infof("outputParameters: %v", outputParameters)
 	glog.V(4).Infof("outputArtifacts: %v", outputArtifacts)
@@ -695,6 +728,9 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 	if config.TotalDagTasks != nil {
 		e.CustomProperties[keyTotalDagTasks] = intValue(int64(*config.TotalDagTasks))
 	}
+	for k, v := range config.PluginCustomProperties {
+		e.CustomProperties[k] = StringValue(v)
+	}
 
 	req := &pb.PutExecutionRequest{
 		Execution: e,
@@ -735,13 +771,13 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 
 	return &Execution{
 		pipeline:  pipeline,
-		execution: getRes.Executions[0],
+		Execution: getRes.Executions[0],
 	}, nil
 }
 
 // PrePublishExecution updates an existing MLMD execution with Pod info.
 func (c *Client) PrePublishExecution(ctx context.Context, execution *Execution, config *ExecutionConfig) (*Execution, error) {
-	e := execution.execution
+	e := execution.Execution
 	if e.CustomProperties == nil {
 		e.CustomProperties = make(map[string]*pb.Value)
 	}
@@ -759,14 +795,31 @@ func (c *Client) PrePublishExecution(ctx context.Context, execution *Execution, 
 	return execution, nil
 }
 
-// UpdateDAGExecutionState checks all the statuses of the tasks in the given DAG, based on that it will update the DAG to the corresponding status if necessary.
+// UpdateDAGExecutionsState checks all the statuses of the tasks in the given DAG, based on that it will update the DAG to the corresponding status if necessary.
+// If the DAG reaches a terminal state, propagation continues upward to ancestor DAGs until reaching the root.
 func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipeline *Pipeline) error {
+	// Prefer runtime iteration_count (set by ParallelFor) over compile-time total_dag_tasks.
+	// We must check key presence because iteration_count=0 is valid (empty loop)
+	// and distinct from the key being absent (non-iterator DAG).
+	customProperties := dag.Execution.GetExecution().GetCustomProperties()
+	iterationCountValue, hasIterationCount := customProperties[keyIterationCount]
+
+	var expectedTaskCount int64
+	if hasIterationCount {
+		expectedTaskCount = iterationCountValue.GetIntValue()
+	} else {
+		expectedTaskCount = customProperties[keyTotalDagTasks].GetIntValue()
+	}
+
+	if expectedTaskCount == 0 && !hasIterationCount {
+		glog.V(4).Infof("DAG %d has no expected task count (root DAG or unknown), skipping state update", dag.Execution.GetID())
+		return nil
+	}
+
 	tasks, err := c.GetExecutionsInDAG(ctx, dag, pipeline, true)
 	if err != nil {
 		return err
 	}
-
-	totalDagTasks := dag.Execution.execution.CustomProperties["total_dag_tasks"].GetIntValue()
 
 	glog.V(4).Infof("tasks: %v", tasks)
 	glog.V(4).Infof("Checking Tasks' State")
@@ -789,17 +842,39 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 	}
 	glog.V(4).Infof("completedTasks: %d", completedTasks)
 	glog.V(4).Infof("failedTasks: %d", failedTasks)
-	glog.V(4).Infof("totalTasks: %d", totalDagTasks)
+	glog.V(4).Infof("expectedTaskCount: %d", expectedTaskCount)
 
-	glog.Infof("Attempting to update DAG state")
-	if completedTasks == int(totalDagTasks) {
-		c.PutDAGExecutionState(ctx, dag.Execution.GetID(), pb.Execution_COMPLETE)
-	} else if failedTasks > 0 {
-		c.PutDAGExecutionState(ctx, dag.Execution.GetID(), pb.Execution_FAILED)
-	} else {
+	glog.Infof("Attempting to update DAG state for execution %d", dag.Execution.GetID())
+
+	var newState pb.Execution_State
+	switch {
+	case completedTasks == int(expectedTaskCount):
+		newState = pb.Execution_COMPLETE
+	case failedTasks > 0:
+		newState = pb.Execution_FAILED
+	default:
 		glog.V(4).Infof("DAG is still running")
+		return nil
 	}
-	return nil
+
+	if err := c.PutDAGExecutionState(ctx, dag.Execution.GetID(), newState); err != nil {
+		return err
+	}
+
+	// Propagate upward to parent DAG if this is not the root.
+	parentDagID := dag.Execution.GetExecution().GetCustomProperties()[keyParentDagID].GetIntValue()
+	if parentDagID == 0 {
+		glog.V(4).Infof("DAG %d is root or has no parent, stopping propagation", dag.Execution.GetID())
+		return nil
+	}
+
+	glog.Infof("Propagating state update to parent DAG %d", parentDagID)
+	parentDAG, err := c.GetDAG(ctx, parentDagID)
+	if err != nil {
+		return fmt.Errorf("failed to get parent DAG %d for recursive state update: %w", parentDagID, err)
+	}
+
+	return c.UpdateDAGExecutionsState(ctx, parentDAG, pipeline)
 }
 
 // PutDAGExecutionState updates the given DAG Id to the state provided.
@@ -809,9 +884,9 @@ func (c *Client) PutDAGExecutionState(ctx context.Context, executionID int64, st
 	if err != nil {
 		return err
 	}
-	e.execution.LastKnownState = state.Enum()
+	e.Execution.LastKnownState = state.Enum()
 	_, err = c.svc.PutExecution(ctx, &pb.PutExecutionRequest{
-		Execution: e.execution,
+		Execution: e.Execution,
 	})
 	return err
 }
@@ -824,6 +899,31 @@ func (c *Client) GetExecutions(ctx context.Context, ids []int64) ([]*pb.Executio
 		return nil, err
 	}
 	return res.Executions, nil
+}
+
+// GetExecutionByTypeAndName retrieves an execution by its type and name from the service.
+// Returns the Execution object if found, or an error if not found or if the request fails.
+func (c *Client) GetExecutionByTypeAndName(ctx context.Context, typeName, name string) (*Execution, error) {
+	res, err := c.svc.GetExecutionByTypeAndName(ctx, &pb.GetExecutionByTypeAndNameRequest{
+		TypeName:      proto.String(typeName),
+		ExecutionName: proto.String(name),
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("GetExecutionsByTypeAndName(type=%q, name=%q): %w", typeName, name, err)
+	}
+
+	execution := res.GetExecution()
+	if execution == nil {
+		return nil, fmt.Errorf("no execution found for type=%q, name=%q", typeName, name)
+	}
+
+	pipeline, err := c.GetPipelineFromExecution(ctx, execution.GetId())
+	if err != nil {
+		return nil, err
+	}
+
+	return &Execution{Execution: execution, pipeline: pipeline}, nil
 }
 
 func (c *Client) GetExecution(ctx context.Context, id int64) (*Execution, error) {
@@ -842,7 +942,7 @@ func (c *Client) GetExecution(ctx context.Context, id int64) (*Execution, error)
 	if err != nil {
 		return nil, err
 	}
-	return &Execution{execution: execution, pipeline: pipeline}, nil
+	return &Execution{Execution: execution, pipeline: pipeline}, nil
 }
 
 func (c *Client) GetPipelineFromExecution(ctx context.Context, id int64) (*Pipeline, error) {
@@ -916,7 +1016,7 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 		execs := res.GetExecutions()
 		glog.V(4).Infof("execs: %v", execs)
 		for _, e := range execs {
-			execution := &Execution{execution: e}
+			execution := &Execution{Execution: e}
 			glog.V(4).Infof("taskName before DAG injection: %s", execution.TaskName())
 			// Sometimes components in nested DAGs have identical task names. We
 			// update all task names to include the DAG ID to avoid potential
@@ -1366,4 +1466,40 @@ func (c *Client) getContextByID(ctx context.Context, id int64) (*pb.Context, err
 		return nil, fmt.Errorf("getContext(id=%v): got nil context", id)
 	}
 	return contexts[0], nil
+}
+
+func FormatExecutionParameters(execution *Execution) map[string]interface{} {
+	if execution == nil {
+		return nil
+	}
+	params := make(map[string]interface{})
+	inputParams, _, err := execution.GetParameters()
+	if err != nil {
+		glog.Errorf("failed to retrieve task parameters: %v", err)
+	} else {
+		for key, value := range inputParams {
+			if value == nil {
+				params[key] = nil
+				continue
+			}
+			params[key] = value.AsInterface()
+		}
+	}
+	return params
+}
+
+func FormatScalarMetricArtifacts(outputArtifacts []*OutputArtifact) map[string]float64 {
+	metrics := map[string]float64{}
+	for _, artifact := range outputArtifacts {
+		if artifact.Artifact != nil && artifact.Artifact.GetType() == "system.Metrics" {
+			for customKey, customValue := range artifact.Artifact.CustomProperties {
+				// retrieve scalar metric artifact values. do not retrieve display_name or store_session_info.
+				if customKey == "display_name" || customKey == "store_session_info" {
+					continue
+				}
+				metrics[customKey] = customValue.GetDoubleValue()
+			}
+		}
+	}
+	return metrics
 }

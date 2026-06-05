@@ -37,6 +37,45 @@ patches:
 
   # Openshift provides its own default restricted SCC's
   # Thus the following can be omitted:
+
+  # Remove fixed UID from init containers so OpenShift SCC can assign UIDs
+  - path: patches/remove-sc-init.json
+    target:
+      group: apps
+      kind: Deployment
+      name: metadata-grpc-deployment
+      version: v1
+  - path: patches/remove-sc-init.json
+    target:
+      group: apps
+      kind: Deployment
+      name: metadata-writer
+      version: v1
+  - path: patches/remove-sc-init.json
+    target:
+      group: apps
+      kind: Deployment
+      name: ml-pipeline
+      version: v1
+  - path: patches/remove-sc-init-1.json
+    target:
+      group: apps
+      kind: Deployment
+      name: ml-pipeline
+      version: v1
+  - path: patches/remove-sc-init.json
+    target:
+      group: apps
+      kind: Deployment
+      name: ml-pipeline-persistenceagent
+      version: v1
+  - path: patches/remove-sc-init.json
+    target:
+      group: apps
+      kind: Deployment
+      name: ml-pipeline-scheduledworkflow
+      version: v1
+
   - path: patches/remove-sc.json
     target:
       group: apps

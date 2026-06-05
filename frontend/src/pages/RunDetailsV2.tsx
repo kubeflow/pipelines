@@ -52,7 +52,7 @@ import { statusToIcon } from './StatusV2';
 import DagCanvas from './v2/DagCanvas';
 
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
-const QUERY_REFETCH_INTERNAL = 10000; // 10000 milliseconds == 10 seconds.
+const QUERY_REFETCH_INTERVAL = 10000; // 10000 milliseconds == 10 seconds.
 const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
 
 interface MlmdPackage {
@@ -110,10 +110,22 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       return { executions, artifacts, events };
     },
     staleTime: QUERY_STALE_TIME,
-    refetchInterval: QUERY_REFETCH_INTERNAL,
+    refetchInterval: QUERY_REFETCH_INTERVAL,
   });
 
-  // Use useEffect instead of deprecated onError/onSuccess (v5 removes them; v4+ recommended pattern).
+  // Retrieves experiment detail.
+  const experimentId = run.experiment_id || null;
+  const {
+    data: experiment,
+    isError: experimentIsError,
+    error: experimentError,
+  } = useQuery<V2beta1Experiment, Error>({
+    queryKey: queryKeys.runDetailsV2Experiment(runId, experimentId),
+    queryFn: () => getExperiment(experimentId),
+  });
+  const namespace = experiment?.namespace;
+
+  // Single banner effect with clear precedence: MLMD error > experiment error > clear on success.
   useEffect(() => {
     if (isError && error) {
       updateBanner({
@@ -121,11 +133,16 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         additionalInfo: error.message,
         mode: 'error',
       });
-    }
-    if (isSuccess) {
+    } else if (experimentIsError && experimentError) {
+      updateBanner({
+        message: 'Error: failed to retrieve experiment details.',
+        additionalInfo: experimentError.message,
+        mode: 'warning',
+      });
+    } else if (isSuccess) {
       updateBanner({});
     }
-  }, [isError, isSuccess, error, updateBanner]);
+  }, [isError, isSuccess, error, experimentIsError, experimentError, updateBanner]);
 
   const layerChange = useCallback(
     (layers: string[]) => {
@@ -161,14 +178,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       );
     }
   };
-
-  // Retrieves experiment detail.
-  const experimentId = run.experiment_id || null;
-  const { data: experiment } = useQuery<V2beta1Experiment, Error>({
-    queryKey: queryKeys.runDetailsV2Experiment(runId, experimentId),
-    queryFn: () => getExperiment(experimentId),
-  });
-  const namespace = experiment?.namespace;
 
   // Update page title and experiment information.
   useEffect(() => {
@@ -334,15 +343,44 @@ function updateToolBarActions(
   updateToolbar({ actions });
 }
 
+function getActualStartTime(run?: V2beta1Run): Date | undefined {
+  if (run?.state_history) {
+    for (let i = run.state_history.length - 1; i >= 0; i--) {
+      const entry = run.state_history[i];
+      if (entry.state === V2beta1RuntimeState.RUNNING && entry.update_time !== undefined) {
+        return entry.update_time;
+      }
+    }
+  }
+  return run?.scheduled_at;
+}
+
 function getDetailsFields(run?: V2beta1Run): Array<KeyValue<string>> {
-  return [
+  const actualStart = getActualStartTime(run);
+  const scheduledAt = run?.scheduled_at;
+  const startDiffers =
+    actualStart && scheduledAt && actualStart.getTime() !== scheduledAt.getTime();
+
+  const fields: Array<KeyValue<string>> = [
     ['Run ID', run?.run_id || '-'],
     ['Workflow name', run?.display_name || '-'],
     ['Status', run?.state ? statusProtoMap.get(run?.state) : '-'],
     ['Description', run?.description || ''],
     ['Created at', run?.created_at ? formatDateString(run.created_at) : '-'],
-    ['Started at', formatDateString(run?.scheduled_at)],
+    ['Started at', formatDateString(actualStart)],
     ['Finished at', hasFinishedV2(run?.state) ? formatDateString(run?.finished_at) : '-'],
     ['Duration', hasFinishedV2(run?.state) ? getRunDurationV2(run) : '-'],
   ];
+
+  if (startDiffers) {
+    const startedAtIndex = fields.findIndex((field) => field[0] === 'Started at');
+    const scheduledAtField: KeyValue<string> = ['Scheduled at', formatDateString(scheduledAt)];
+    if (startedAtIndex >= 0) {
+      fields.splice(startedAtIndex, 0, scheduledAtField);
+    } else {
+      fields.push(scheduledAtField);
+    }
+  }
+
+  return fields;
 }

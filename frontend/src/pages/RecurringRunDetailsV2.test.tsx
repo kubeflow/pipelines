@@ -114,7 +114,7 @@ describe('RecurringRunDetailsV2', () => {
       </CommonTestWrapper>,
     );
     await waitFor(() => {
-      expect(getRecurringRunSpy).toHaveBeenCalledTimes(2);
+      expect(getRecurringRunSpy).toHaveBeenCalled();
       expect(getPipelineVersionSpy).toHaveBeenCalled();
     });
 

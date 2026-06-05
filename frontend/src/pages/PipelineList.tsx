@@ -86,7 +86,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const columns: Column[] = [
       {
         customRenderer: this._nameCustomRenderer,
@@ -146,7 +146,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
     this.setState({ displayPipelines });
   }
 
-  private _getExpandedPipelineComponent(rowIndex: number): JSX.Element {
+  private _getExpandedPipelineComponent(rowIndex: number): React.JSX.Element {
     const pipeline = this.state.displayPipelines[rowIndex];
     return (
       <PipelineVersionList

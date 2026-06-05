@@ -43,7 +43,7 @@ interface CollapseButtonProps {
 }
 
 class CollapseButton extends React.Component<CollapseButtonProps> {
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { collapseSections, collapseSectionsUpdate } = this.props;
     const sectionName = this.props.sectionName;
     return (

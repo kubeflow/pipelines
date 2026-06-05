@@ -199,6 +199,6 @@ describe('ArchivedRuns', () => {
     expect(deleteRunSpy).toHaveBeenCalledWith('id1');
     expect(deleteRunSpy).toHaveBeenCalledWith('id2');
     expect(deleteRunSpy).toHaveBeenCalledWith('id3');
-    expect(archivedRunsRef!.current!.state.selectedIds).toEqual(['id1']);
+    expect(lastRunListProps.selectedIds).toEqual(['id1']);
   });
 });

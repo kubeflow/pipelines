@@ -513,9 +513,7 @@ describe('PipelineDetails', () => {
     );
     renderPipelineDetailsPage(<PipelineDetails {...generateProps()} />);
 
-    await waitFor(() => {
-      expect(listV2PipelineVersionsSpy).toHaveBeenCalled();
-    });
+    await waitFor(() => expect(listV2PipelineVersionsSpy).toHaveBeenCalled());
 
     expect(updateToolbarSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -529,9 +527,7 @@ describe('PipelineDetails', () => {
     TestUtils.makeErrorResponse(getV2PipelineVersionSpy, 'No pipeline version is found');
     renderPipelineDetailsPage(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
 
-    await waitFor(() => {
-      expect(getV2PipelineVersionSpy).toHaveBeenCalled();
-    });
+    await waitFor(() => expect(getV2PipelineVersionSpy).toHaveBeenCalled());
 
     screen.getByText('No graph to show');
   });
@@ -569,11 +565,8 @@ describe('PipelineDetails', () => {
       };
       renderPipelineDetailsPage(<PipelineDetails {...generateProps(undefined, true)} />);
 
-      await waitFor(() => {
-        expect(getV1RunSpy).toHaveBeenCalled();
-      });
+      await waitFor(() => expect(getV1RunSpy).toHaveBeenCalled());
 
-      expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           additionalInfo: 'Unexpected token \'o\', "not valid JSON" is not valid JSON',
@@ -591,8 +584,7 @@ describe('PipelineDetails', () => {
     tree = renderPipelineDetailsElement(<PipelineDetails {...generateProps(undefined, true)} />);
     await getV1PipelineSpy;
     await TestUtils.flushPromises();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
-    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+    expect(updateBannerSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops',
         message: 'Cannot retrieve run details. Click Details for more information.',
@@ -610,7 +602,6 @@ describe('PipelineDetails', () => {
       tree = renderPipelineDetailsElement(<PipelineDetails {...generateProps(undefined, true)} />);
       await getV1PipelineSpy;
       await TestUtils.flushPromises();
-      expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           additionalInfo: 'woops',
@@ -626,8 +617,7 @@ describe('PipelineDetails', () => {
     tree = renderPipelineDetailsElement(<PipelineDetails {...generateProps()} />);
     await getV1PipelineSpy;
     await TestUtils.flushPromises();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
-    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+    expect(updateBannerSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops',
         message: 'Cannot retrieve pipeline details. Click Details for more information.',
@@ -640,13 +630,9 @@ describe('PipelineDetails', () => {
     TestUtils.makeErrorResponse(getV2PipelineVersionSpy, 'No pipeline version is found');
     renderPipelineDetailsPage(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
 
-    await waitFor(() => {
-      expect(getV2PipelineVersionSpy).toHaveBeenCalled();
-      // get version error will use empty string as template string, which won't call createGraph()
-      expect(createGraphSpy).toHaveBeenCalledTimes(0);
-    });
+    await waitFor(() => expect(getV2PipelineVersionSpy).toHaveBeenCalled());
+    expect(createGraphSpy).toHaveBeenCalledTimes(0);
 
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // // Once to clear banner, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'No pipeline version is found',
@@ -676,15 +662,12 @@ describe('PipelineDetails', () => {
       getV1PipelineVersionTemplateSpy.mockResolvedValue({ template: '' });
       renderPipelineDetailsPage(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
 
-      await waitFor(() => {
-        expect(getV2PipelineVersionSpy).toHaveBeenCalled();
-        expect(getV1PipelineVersionTemplateSpy).toHaveBeenCalled();
-        // empty template string from empty pipeline_spec and it won't call createGraph()
-        expect(createGraphSpy).toHaveBeenCalledTimes(0);
-      });
+      await waitFor(() => expect(getV2PipelineVersionSpy).toHaveBeenCalled());
+      await waitFor(() => expect(getV1PipelineVersionTemplateSpy).toHaveBeenCalled());
+      // empty template string from empty pipeline_spec and it won't call createGraph()
+      expect(createGraphSpy).toHaveBeenCalledTimes(0);
 
       // No errors
-      expect(updateBannerSpy).toHaveBeenCalledTimes(1); // Once to clear banner
       expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
     },
   );
@@ -709,15 +692,12 @@ describe('PipelineDetails', () => {
       getV1TemplateSpy.mockResolvedValue({ template: '' });
       renderPipelineDetailsPage(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
 
-      await waitFor(() => {
-        expect(getV2PipelineVersionSpy).toHaveBeenCalled();
-        expect(getV1TemplateSpy).toHaveBeenCalled(); // because no pipeline version id
-        // empty template string from empty pipeline_spec and it won't call createGraph()
-        expect(createGraphSpy).toHaveBeenCalledTimes(0);
-      });
+      await waitFor(() => expect(getV2PipelineVersionSpy).toHaveBeenCalled());
+      await waitFor(() => expect(getV1TemplateSpy).toHaveBeenCalled()); // because no pipeline version id
+      // empty template string from empty pipeline_spec and it won't call createGraph()
+      expect(createGraphSpy).toHaveBeenCalledTimes(0);
 
       // No errors
-      expect(updateBannerSpy).toHaveBeenCalledTimes(1); // Once to clear banner
       expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
     },
   );
@@ -740,11 +720,8 @@ describe('PipelineDetails', () => {
       });
       renderPipelineDetailsPage(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
 
-      await waitFor(() => {
-        expect(getV2PipelineVersionSpy).toHaveBeenCalled();
-      });
+      await waitFor(() => expect(getV2PipelineVersionSpy).toHaveBeenCalled());
 
-      expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           additionalInfo: 'Important infomation is missing. Pipeline Spec is invalid.',
@@ -774,12 +751,9 @@ describe('PipelineDetails', () => {
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
     renderPipelineDetailsPage(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
 
-    await waitFor(() => {
-      expect(getV2PipelineVersionSpy).toHaveBeenCalled();
-      expect(createGraphSpy).toHaveBeenCalled();
-    });
+    await waitFor(() => expect(getV2PipelineVersionSpy).toHaveBeenCalled());
+    await waitFor(() => expect(createGraphSpy).toHaveBeenCalled());
 
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad graph',

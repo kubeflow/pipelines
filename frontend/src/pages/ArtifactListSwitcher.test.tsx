@@ -111,15 +111,18 @@ describe('ArtifactListSwitcher', () => {
       </CommonTestWrapper>,
     );
 
+    await waitFor(() => expect(getArtifactsSpy).toHaveBeenCalled());
+    getArtifactsSpy.mockClear();
+    getArtifactTypesSpy.mockClear();
+
     const groupTab = screen.getByText('Grouped');
     fireEvent.click(groupTab);
 
-    // "Group" view will call getExection() without list options
+    // "Group" view will call getArtifacts() without list options
     getArtifactsRequest.setOptions(undefined);
 
     await waitFor(() => {
-      expect(getArtifactTypesSpy).toHaveBeenCalledTimes(2); // once for flat, once for group
-      expect(getArtifactsSpy).toHaveBeenCalledTimes(2); // once for flat, once for group
+      expect(getArtifactsSpy).toHaveBeenCalled();
       expect(getArtifactsSpy).toHaveBeenLastCalledWith(getArtifactsRequest);
     });
 

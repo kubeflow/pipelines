@@ -65,6 +65,11 @@ def topological_sort(dependency_map: Dict[str, List[str]]) -> List[str]:
     def dfs(node: str) -> None:
         visited.add(node)
         for neighbor in dependency_map[node]:
+            if neighbor not in dependency_map:
+                # Neighbor is outside the subset being sorted (e.g., an exit
+                # task filtered from the body pass). Skip it here — the caller
+                # is responsible for sequencing cross-subset dependencies.
+                continue
             if neighbor not in visited:
                 dfs(neighbor)
         result.append(node)

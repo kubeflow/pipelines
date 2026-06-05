@@ -26,10 +26,10 @@ The Kubeflow pipelines service has the following goals:
 
 ### Dependencies Compatibility Matrix
 
-| Dependency     | Versions     |
-| -------------- |--------------|
-| Argo Workflows | v3.5, v3.7   |
-| MySQL          | v8           |
+| Dependency     | Versions         |
+| -------------- |------------------|
+| Argo Workflows | v3.5, v3.7, v4.0 |
+| MySQL          | v8               |
 
 ## Documentation
 

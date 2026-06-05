@@ -16,6 +16,7 @@
 
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import SidePanel from './SidePanel';
 
@@ -38,6 +39,7 @@ vi.mock('re-resizable', () => ({
 }));
 
 describe('SidePanel (interaction)', () => {
+  let user: ReturnType<typeof userEvent.setup>;
   const defaultProps = {
     isOpen: true,
     onClose: vi.fn(),
@@ -45,6 +47,7 @@ describe('SidePanel (interaction)', () => {
   };
 
   beforeEach(() => {
+    user = userEvent.setup();
     vi.clearAllMocks();
   });
 
@@ -67,24 +70,24 @@ describe('SidePanel (interaction)', () => {
     expect(screen.getByRole('button', { name: 'close' })).toBeInTheDocument();
   });
 
-  it('calls onClose when close button is clicked', () => {
+  it('calls onClose when close button is clicked', async () => {
     const onClose = vi.fn();
     render(<SidePanel {...defaultProps} onClose={onClose} />);
-    fireEvent.click(screen.getByRole('button', { name: 'close' }));
+    await user.click(screen.getByRole('button', { name: 'close' }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('calls onClose when Escape key is pressed', () => {
+  it('calls onClose when Escape key is pressed', async () => {
     const onClose = vi.fn();
     render(<SidePanel {...defaultProps} onClose={onClose} />);
-    fireEvent.keyDown(document, { key: 'Escape' });
+    await user.keyboard('{Escape}');
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('does not call onClose on Escape when panel is closed', () => {
+  it('does not call onClose on Escape when panel is closed', async () => {
     const onClose = vi.fn();
     render(<SidePanel {...defaultProps} isOpen={false} onClose={onClose} />);
-    fireEvent.keyDown(document, { key: 'Escape' });
+    await user.keyboard('{Escape}');
     expect(onClose).not.toHaveBeenCalled();
   });
 
@@ -98,10 +101,12 @@ describe('SidePanel (interaction)', () => {
     expect(screen.queryByRole('progressbar')).toBeNull();
   });
 
-  it('removes keydown listener on unmount', () => {
+  it('removes keydown listener on unmount', async () => {
     const onClose = vi.fn();
     const { unmount } = render(<SidePanel {...defaultProps} onClose={onClose} />);
     unmount();
+    // fireEvent needed here: userEvent.keyboard targets focused element, but after unmount
+    // the event listener should be removed from document
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).not.toHaveBeenCalled();
   });

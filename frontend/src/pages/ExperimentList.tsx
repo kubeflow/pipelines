@@ -88,7 +88,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const columns: Column[] = [
       {
         customRenderer: this._nameCustomRenderer,
@@ -272,7 +272,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
     this.setState({ displayExperiments });
   }
 
-  private _getExpandedExperimentComponent(experimentIndex: number): JSX.Element {
+  private _getExpandedExperimentComponent(experimentIndex: number): React.JSX.Element {
     const experiment = this.state.displayExperiments[experimentIndex];
     return (
       <RunList

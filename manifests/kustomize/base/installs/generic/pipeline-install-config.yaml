@@ -11,7 +11,7 @@ data:
     until the changes take effect. A quick way to restart all deployments in a
     namespace: `kubectl rollout restart deployment -n <your-namespace>`.
   appName: pipeline
-  appVersion: 2.16.0
+  appVersion: 2.16.1
   dbHost: mysql # relic to be removed after release
   dbPort: "3306" # relic to be removed after release
   dbType: mysql
@@ -114,3 +114,13 @@ data:
   defaultSecurityContextRunAsUser: ""
   defaultSecurityContextRunAsGroup: ""
   defaultSecurityContextRunAsNonRoot: ""
+  ## Default pod-level setting (PodSpec.hostUsers) controlling Linux user
+  ## namespace isolation for customer workloads. When "false", UID 0 inside
+  ## the pod maps to an unprivileged host UID. Set "" to disable.
+  defaultSecurityContextHostUsers: ""
+  ## BLOCK_V1_PIPELINES: Controls whether v1 pipelines are allowed to be created and run.
+  ## Valid values are 'true' and 'false'. Defaults to 'false'.
+  BLOCK_V1_PIPELINES: "false"
+  ## V1_ALLOWED_NAMESPACES: Comma-separated list of namespaces that are allowed to use v1 pipelines
+  ## when BLOCK_V1_PIPELINES is set to true. This is only evaluated if BLOCK_V1_PIPELINES is set to true.
+  V1_ALLOWED_NAMESPACES: ""

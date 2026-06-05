@@ -16,6 +16,7 @@
 
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { CircularProgress } from '@mui/material';
 import { ApiRunDetail } from 'src/apis/run';
 import { QUERY_PARAMS } from 'src/components/Router';
 import { queryKeys } from 'src/hooks/queryKeys';
@@ -110,7 +111,15 @@ export default function Compare(props: PageProps) {
     }
   }, [compareVersion, isError, error, isLoading, updateBanner, runIds.length]);
 
-  if (isError || isLoading) {
+  if (isLoading) {
+    return (
+      <div style={{ textAlign: 'center', paddingTop: 40 }}>
+        <CircularProgress />
+      </div>
+    );
+  }
+
+  if (isError) {
     return <></>;
   }
 

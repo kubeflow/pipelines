@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
+import type * as React from 'react';
 import * as dagre from 'dagre';
-import { fireEvent, render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import EnhancedGraph, { Graph } from './Graph';
 import SuccessIcon from '@mui/icons-material/CheckCircle';
@@ -34,7 +35,12 @@ const testIcon = (
   </Tooltip>
 );
 
-const newNode = (label: string, isPlaceHolder?: boolean, color?: string, icon?: JSX.Element) => ({
+const newNode = (
+  label: string,
+  isPlaceHolder?: boolean,
+  color?: string,
+  icon?: React.JSX.Element,
+) => ({
   bgColor: color,
   height: 10,
   icon: icon || testIcon,
@@ -139,10 +145,9 @@ describe('Graph', () => {
     graph.setNode('node2', newNode('node2'));
     graph.setEdge('node2', 'node1');
     const spy = vi.fn();
-    const { container } = render(<Graph graph={graph} onClick={spy} />);
-    const node = container.querySelector('.graphNode');
-    expect(node).not.toBeNull();
-    fireEvent.click(node!);
+    render(<Graph graph={graph} onClick={spy} />);
+    const node = screen.getByTestId('graph-node-node1');
+    fireEvent.click(node);
     expect(spy).toHaveBeenCalledWith('node1');
   });
 

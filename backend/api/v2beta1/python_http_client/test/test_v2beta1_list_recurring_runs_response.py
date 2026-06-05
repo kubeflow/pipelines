@@ -76,7 +76,10 @@ class TestV2beta1ListRecurringRunsResponse(unittest.TestCase):
                                 ], ), 
                         no_catchup = True, 
                         namespace = '0', 
-                        experiment_id = '0', )
+                        experiment_id = '0', 
+                        plugins_input = {
+                            'key' : None
+                            }, )
                     ], 
                 total_size = 56, 
                 next_page_token = '0'

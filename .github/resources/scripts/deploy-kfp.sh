@@ -126,8 +126,8 @@ if [ "${MULTI_USER}" == "true" ]; then
   kubectl wait --for condition=established --timeout=30s crd/compositecontrollers.metacontroller.k8s.io
 
   echo "Installing Profile Controller Resources..."
-  kubectl apply -k https://github.com/kubeflow/manifests/applications/profiles/upstream/overlays/kubeflow?ref=master
-  kubectl -n kubeflow wait --for=condition=Ready pods -l kustomize.component=profiles --timeout 180s
+  kubectl apply -k https://github.com/kubeflow/manifests/applications/dashboard/upstream/profile-controller/overlays/kubeflow?ref=master
+  kubectl -n kubeflow wait --for=condition=Ready pods -l app.kubernetes.io/name=profile-controller --timeout 180s
 fi
 
 # Manifests will be deployed according to the flag provided
@@ -189,6 +189,9 @@ if [ "${MULTI_USER}" == "true" ]; then
 
   echo "Applying network policy to allow user namespace access to kubeflow services..."
   kubectl apply -f test_data/kubernetes/seaweedfs/allow-user-namespace-access.yaml
+
+  echo "Applying shared pipeline RBAC for test user..."
+  kubectl apply -f test_data/kubernetes/seaweedfs/shared-pipeline-rbac.yaml
 fi
 
 # Wait for profile controller to reconcile and verify pipeline integration

@@ -26,21 +26,22 @@ import (
 	"time"
 	"unicode/utf8"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
-	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
-
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
+	apiservermlflow "github.com/kubeflow/pipelines/backend/src/apiserver/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	exec "github.com/kubeflow/pipelines/backend/src/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -126,6 +127,7 @@ type ResourceManagerOptions struct {
 	DefaultRunAsUser     *int64                            `json:"default_run_as_user,omitempty"`
 	DefaultRunAsGroup    *int64                            `json:"default_run_as_group,omitempty"`
 	DefaultRunAsNonRoot  *bool                             `json:"default_run_as_non_root,omitempty"`
+	DefaultHostUsers     *bool                             `json:"default_host_users,omitempty"`
 }
 
 type ResourceManager struct {
@@ -148,10 +150,11 @@ type ResourceManager struct {
 	uuid                      util.UUIDGeneratorInterface
 	authenticators            []kfpauth.Authenticator
 	options                   *ResourceManagerOptions
+	pluginDispatcher          apiserverPlugins.PluginDispatcher
 }
 
 func NewResourceManager(clientManager ClientManagerInterface, options *ResourceManagerOptions) *ResourceManager {
-	return &ResourceManager{
+	rm := &ResourceManager{
 		experimentStore:           clientManager.ExperimentStore(),
 		pipelineStore:             clientManager.PipelineStore(),
 		jobStore:                  clientManager.JobStore(),
@@ -172,6 +175,12 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 		authenticators:            clientManager.Authenticators(),
 		options:                   options,
 	}
+	if apiservermlflow.IsEnabled() {
+		rm.pluginDispatcher = apiservermlflow.NewRunPluginDispatcher(rm.k8sCoreClient, rm.runStore)
+	} else {
+		rm.pluginDispatcher = &apiserverPlugins.NoOpDispatcher{}
+	}
+	return rm
 }
 
 func (r *ResourceManager) getWorkflowClient(namespace string) util.ExecutionInterface {
@@ -513,6 +522,7 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 		DefaultRunAsUser:     r.options.DefaultRunAsUser,
 		DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
 		DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
+		DefaultHostUsers:     r.options.DefaultHostUsers,
 	}
 	tmpl, err := template.New(pipelineSpecBytes, templateOptions)
 	if err != nil {
@@ -622,10 +632,34 @@ func (r *ResourceManager) GetPipelineLatestTemplate(pipelineId string) ([]byte, 
 	}
 }
 
+func isNamespaceAllowed(namespace string, allowedNamespaces string) bool {
+	if allowedNamespaces == "" {
+		return false
+	}
+	targetNamespace := strings.ToLower(strings.TrimSpace(namespace))
+	for _, n := range strings.Split(allowedNamespaces, ",") {
+		if strings.ToLower(strings.TrimSpace(n)) == targetNamespace {
+			return true
+		}
+	}
+	return false
+}
+
 // Creates a run and schedule a workflow CR.
 // Manifest's namespace gets overwritten with the run.Namespace.
 // Creating a run from recurring run prioritizes recurring run's pipeline spec over the run's one.
 func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model.Run, error) {
+	// Guard against duplicate runs from concurrent recurring-run controller replicas.
+	if run.RecurringRunId != "" && run.DisplayName != "" {
+		existingRunID, err := r.runStore.GetRunByRecurringRunIDAndDisplayName(run.RecurringRunId, run.DisplayName)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to check for existing run")
+		}
+		if existingRunID != "" {
+			return r.runStore.GetRun(existingRunID)
+		}
+	}
+
 	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
 	// Update the run.PipelineSpec if an existing pipeline version is used.
 	tmpl, manifest, err := r.fetchTemplateFromPipelineSpec(&run.PipelineSpec)
@@ -640,11 +674,19 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	// 3. Update a record in the DB with scheduled timestamp, state, etc.
 	// 4. Persistence agent will call apiserver to update the records later.
 	if run.UUID == "" {
-		uuid, err := r.uuid.NewRandom()
-		if err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to generate run ID")
+		// For runs created from a recurring run, derive a deterministic run ID from the
+		// recurring run ID and display name. Concurrent triggers (e.g. multiple controller
+		// replicas) then converge on the same primary key, so the second insert collides
+		// and is resolved idempotently by the run store instead of creating a duplicate.
+		if run.RecurringRunId != "" && run.DisplayName != "" {
+			run.UUID = util.NewDeterministicUUID(run.RecurringRunId + "/" + run.DisplayName)
+		} else {
+			uuid, err := r.uuid.NewRandom()
+			if err != nil {
+				return nil, util.NewInternalServerError(err, "Failed to generate run ID")
+			}
+			run.UUID = uuid.String()
 		}
-		run.UUID = uuid.String()
 	}
 	run.RunDetails.CreatedAtInSec = r.time.Now().Unix()
 	runWorkflowOptions := template.RunWorkflowOptions{
@@ -667,9 +709,17 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	if k8sNamespace == "" {
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Namespace cannot be empty when creating an Argo workflow. Check if you have specified POD_NAMESPACE or try adding the parent namespace to the request"), "Failed to create a run due to empty namespace")
 	}
+
+	if common.GetBoolConfigWithDefault(common.BlockV1Pipelines, false) && tmpl.GetTemplateType() == template.V1 {
+		allowedNamespaces := common.GetStringConfigWithDefault(common.V1NamespaceWhitelist, "")
+		if !isNamespaceAllowed(k8sNamespace, allowedNamespaces) {
+			return nil, util.NewInvalidInputError("Namespace %s is not allowed to run v1 pipelines. Please migrate to using KFP V2 pipelines.", k8sNamespace)
+		}
+	}
+
 	executionSpec.SetExecutionNamespace(k8sNamespace)
 
-	// assign OwnerReference to scheduledworkflow
+	// assign OwnerReference and canonical labels to scheduledworkflow
 	if run.RecurringRunId != "" {
 		job, err := r.jobStore.GetJob(run.RecurringRunId)
 		if err != nil {
@@ -680,7 +730,41 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 			return nil, util.NewInternalServerError(util.NewInvalidInputError("ScheduledWorkflow doesn't exist: %s", job.K8SName), "Failed to create a run due to invalid name")
 		}
 		executionSpec.SetOwnerReferences(swf)
+		// canonical labels required for SWF controller label-based workflow tracking
+		nextIndex := int64(1)
+		if swf.Status.Trigger.LastIndex != nil {
+			nextIndex = *swf.Status.Trigger.LastIndex + 1
+		}
+		executionSpec.SetCannonicalLabels(swf.Name, run.CreatedAtInSec, nextIndex)
 	}
+
+	// Run plugin lifecycle hooks before workflow creation.
+	pendingRun := &apiserverPlugins.PendingRun{
+		RunID:             run.UUID,
+		DisplayName:       run.DisplayName,
+		Namespace:         k8sNamespace,
+		PipelineID:        run.PipelineSpec.PipelineId,        //nolint:staticcheck // QF1008
+		PipelineVersionID: run.PipelineSpec.PipelineVersionId, //nolint:staticcheck // QF1008
+		PluginsInput:      (*string)(run.PluginsInputString),
+	}
+	if err := r.pluginDispatcher.OnBeforeRunCreation(ctx, pendingRun, executionSpec); err != nil {
+		return nil, err
+	}
+	// Copy plugin output back to the model.
+	if pendingRun.PluginsOutput != nil {
+		lt := model.LargeText(*pendingRun.PluginsOutput)
+		run.PluginsOutputString = &lt
+	}
+
+	runPersisted := false
+
+	defer func() {
+		if !runPersisted {
+			if pr, prErr := apiservermlflow.ModelToPersistedRun(run, k8sNamespace); prErr == nil {
+				r.pluginDispatcher.OnRunEnd(ctx, pr)
+			}
+		}
+	}()
 
 	newExecSpec, err := r.getWorkflowClient(k8sNamespace).Create(ctx, executionSpec, v1.CreateOptions{})
 	if err != nil {
@@ -711,10 +795,13 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		run.RunDetails.ScheduledAtInSec = run.RunDetails.CreatedAtInSec
 	}
 	run.State = model.RuntimeStatePending
+
 	newRun, err := r.runStore.CreateRun(run)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a run")
 	}
+
+	runPersisted = true
 
 	// Upon run creation, update owning experiment
 	err = r.experimentStore.SetLastRunTimestamp(newRun)
@@ -1058,8 +1145,21 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		}
 		newExecSpec = newCreatedWorkflow
 	}
+	// Notify plugins of retry
+	if run.PluginsOutputString != nil && *run.PluginsOutputString != "" {
+		if pr, prErr := apiservermlflow.ModelToPersistedRun(run, namespace); prErr == nil {
+			r.pluginDispatcher.OnRunRetry(ctx, pr)
+		}
+	}
+
 	condition := string(newExecSpec.ExecutionStatus().Condition())
-	err = r.runStore.UpdateRun(&model.Run{UUID: runId, RunDetails: model.RunDetails{Conditions: condition, FinishedAtInSec: 0, WorkflowRuntimeManifest: model.LargeText(newExecSpec.ToStringForStore()), State: model.RuntimeState(condition).ToV2()}})
+	run.Conditions = condition
+	run.FinishedAtInSec = 0
+	run.WorkflowRuntimeManifest = model.LargeText(newExecSpec.ToStringForStore())
+	run.State = model.RuntimeState(condition).ToV2()
+	// OnRunRetry persists plugin output independently; leave PluginsOutput unchanged here.
+	run.PluginsOutputString = nil
+	err = r.runStore.UpdateRun(run)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error updating entry", runId)
 	}
@@ -1215,6 +1315,10 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	var scheduledWorkflow *scheduledworkflow.ScheduledWorkflow
 	var tmpl template.Template
 
+	// When plugins are enabled the SWF controller must call the CreateRun API
+	// so that per-run plugin logic executes.
+	pluginsEnabled := job.PluginsInputString != nil && *job.PluginsInputString != ""
+
 	// If the pipeline version or pipeline spec is provided, this means the user wants to pin to a specific pipeline.
 	// Otherwise, always let the ScheduledWorkflow controller pick the latest.
 	if job.PipelineVersionId != "" || job.PipelineSpecManifest != "" || job.WorkflowSpecManifest != "" {
@@ -1226,9 +1330,15 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			return nil, util.NewInternalServerError(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
 		}
 
-		// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
-		// Convert modelJob into scheduledWorkflow.
-		scheduledWorkflow, err = tmpl.ScheduledWorkflow(job)
+		if pluginsEnabled {
+			// Plugin-enabled: create a lightweight SWF without inline workflow spec
+			// so the SWF controller calls the CreateRun API for per-run plugin logic.
+			scheduledWorkflow, err = template.NewGenericScheduledWorkflow(job)
+		} else {
+			// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
+			// Convert modelJob into scheduledWorkflow.
+			scheduledWorkflow, err = tmpl.ScheduledWorkflow(job)
+		}
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
 		}
@@ -1250,13 +1360,18 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			DefaultRunAsUser:     r.options.DefaultRunAsUser,
 			DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
 			DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
+			DefaultHostUsers:     r.options.DefaultHostUsers,
 		}
 		tmpl, err := template.New(manifest, templateOptions)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 		}
 
-		_, err = tmpl.ScheduledWorkflow(job)
+		if v2Tmpl, ok := tmpl.(*template.V2Spec); ok {
+			err = v2Tmpl.ValidateJobInputs(job)
+		} else {
+			_, err = tmpl.ScheduledWorkflow(job)
+		}
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
 		}
@@ -1273,6 +1388,13 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 
 		scheduledWorkflow.Spec.Workflow = &scheduledworkflow.WorkflowResource{
 			Parameters: parameters, PipelineRoot: string(job.PipelineRoot),
+		}
+	}
+
+	if tmpl != nil && common.GetBoolConfigWithDefault(common.BlockV1Pipelines, false) && tmpl.GetTemplateType() == template.V1 {
+		allowedNamespaces := common.GetStringConfigWithDefault(common.V1NamespaceWhitelist, "")
+		if !isNamespaceAllowed(k8sNamespace, allowedNamespaces) {
+			return nil, util.NewInvalidInputError("Namespace %s is not allowed to run v1 pipelines. Please migrate to using KFP V2 pipelines.", k8sNamespace)
 		}
 	}
 
@@ -1553,6 +1675,19 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		}
 	}
 	if execStatus.IsInFinalState() {
+		// Notify plugins of terminal state. If a plugin sync fails and
+		// needs retry, defer the persistedFinalState label so the
+		// persistence agent re-reports the workflow on its next cycle.
+		if run != nil && run.PluginsOutputString != nil && *run.PluginsOutputString != "" {
+			pr, prErr := apiservermlflow.ModelToPersistedRun(run, execSpec.ExecutionNamespace())
+			if prErr != nil {
+				glog.Warningf("Failed to build PersistedRun for plugin sync on run %q: %v", run.UUID, prErr)
+			} else if !r.pluginDispatcher.OnRunEnd(ctx, pr) {
+				glog.Warningf("Plugin sync failed for run %q; deferring persistedFinalState label so persistence agent retries", run.UUID)
+				return nil, nil
+			}
+		}
+
 		err := addWorkflowLabel(ctx, r.getWorkflowClient(execSpec.ExecutionNamespace()), execSpec.ExecutionName(), util.LabelKeyWorkflowPersistedFinalState, "true")
 		if err != nil {
 			message := fmt.Sprintf("Failed to add PersistedFinalState label to workflow %s", execSpec.ExecutionName())
@@ -1654,6 +1789,7 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 		DefaultRunAsUser:     r.options.DefaultRunAsUser,
 		DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
 		DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
+		DefaultHostUsers:     r.options.DefaultHostUsers,
 	}
 	tmpl, err := template.New([]byte(manifest), templateOptions)
 	if err != nil {
@@ -1845,6 +1981,7 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 		DefaultRunAsUser:     r.options.DefaultRunAsUser,
 		DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
 		DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
+		DefaultHostUsers:     r.options.DefaultHostUsers,
 	}
 	tmpl, err := template.New(pipelineSpecBytes, templateOptions)
 	if err != nil {

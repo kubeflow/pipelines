@@ -46,7 +46,7 @@ const NEXT_ITEM_SAME_CARD_OFFSET = CARD_ROW_HEIGHT;
 const NEXT_ITEM_NEXT_CARD_OFFSET = CARD_ROW_HEIGHT + CARD_OFFSET;
 
 export class LineageCardColumn extends React.Component<LineageCardColumnProps> {
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const { columnPadding, type, title } = this.props;
 
     const css = stylesheet({
@@ -90,7 +90,7 @@ export class LineageCardColumn extends React.Component<LineageCardColumnProps> {
       </div>
     );
   }
-  private jsxFromCardDetails(det: CardDetails, i: number): JSX.Element {
+  private jsxFromCardDetails(det: CardDetails, i: number): React.JSX.Element {
     const isNotFirstEl = i > 0;
     return (
       <LineageCard
@@ -105,12 +105,12 @@ export class LineageCardColumn extends React.Component<LineageCardColumnProps> {
     );
   }
 
-  private drawColumnContent(): JSX.Element {
+  private drawColumnContent(): React.JSX.Element {
     const { cards, columnPadding, columnWidth, skipEdgeCanvas } = this.props;
     const edgeWidth = columnPadding * 2;
     const cardWidth = columnWidth - edgeWidth;
 
-    let edgeCanvases: JSX.Element[] = [];
+    let edgeCanvases: React.JSX.Element[] = [];
 
     if (this.props.outputExecutionToOutputArtifactMap && this.props.connectedCards) {
       edgeCanvases = this.buildOutputExecutionToOutputArtifactEdgeCanvases(
@@ -145,8 +145,8 @@ export class LineageCardColumn extends React.Component<LineageCardColumnProps> {
     executionCards: CardDetails[],
     edgeWidth: number,
     cardWidth: number,
-  ): JSX.Element[] {
-    const edgeCanvases: JSX.Element[] = [];
+  ): React.JSX.Element[] {
+    const edgeCanvases: React.JSX.Element[] = [];
 
     const artifactIdToCardMap = new Map<number, number>();
     artifactCards.forEach((card, index) => {

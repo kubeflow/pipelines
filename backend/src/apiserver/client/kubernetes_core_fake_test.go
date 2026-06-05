@@ -15,7 +15,11 @@
 package client
 
 import (
+	"context"
 	"testing"
+
+	policyv1 "k8s.io/api/policy/v1"
+	policyv1beta1 "k8s.io/api/policy/v1beta1"
 )
 
 func TestFakeKuberneteCoreClient_PodClient(t *testing.T) {
@@ -40,8 +44,8 @@ func TestFakeKuberneteCoreClient_PodClientPanicsOnEmptyNamespace(t *testing.T) {
 func TestFakeKuberneteCoreClient_GetClientSet(t *testing.T) {
 	client := NewFakeKuberneteCoresClient()
 	clientSet := client.GetClientSet()
-	if clientSet != nil {
-		t.Error("GetClientSet() expected nil for fake implementation, got non-nil")
+	if clientSet == nil {
+		t.Error("GetClientSet() returned nil, expected a fake clientset")
 	}
 }
 
@@ -56,7 +60,23 @@ func TestFakeKubernetesCoreClientWithBadPodClient_PodClient(t *testing.T) {
 func TestFakeKubernetesCoreClientWithBadPodClient_GetClientSet(t *testing.T) {
 	client := NewFakeKubernetesCoreClientWithBadPodClient()
 	clientSet := client.GetClientSet()
-	if clientSet != nil {
-		t.Error("GetClientSet() expected nil for fake implementation, got non-nil")
+	if clientSet == nil {
+		t.Error("GetClientSet() returned nil, expected a fake clientset")
+	}
+}
+
+func TestFakePodClient_EvictV1(t *testing.T) {
+	client := &FakePodClient{}
+	err := client.EvictV1(context.Background(), &policyv1.Eviction{})
+	if err != nil {
+		t.Fatalf("EvictV1() unexpected error: %v", err)
+	}
+}
+
+func TestFakePodClient_EvictV1beta1(t *testing.T) {
+	client := &FakePodClient{}
+	err := client.EvictV1beta1(context.Background(), &policyv1beta1.Eviction{})
+	if err != nil {
+		t.Fatalf("EvictV1beta1() unexpected error: %v", err)
 	}
 }

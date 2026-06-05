@@ -88,21 +88,19 @@ describe('LineageCardRow', () => {
   });
 
   it('hides radio button when hideRadio is true', () => {
-    const { container } = renderCardRow({ hideRadio: true });
+    renderCardRow({ hideRadio: true });
 
-    expect(container.querySelector('.noRadio')).not.toBeNull();
-    expect(container.querySelector('.form-radio')).toBeNull();
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
   });
 
   it('calls setLineageViewTarget once when an artifact radio is clicked', () => {
     const setLineageViewTarget = vi.fn();
     const typedResource = buildArtifactResource('clickable');
 
-    const { container } = renderCardRow({ typedResource, setLineageViewTarget });
+    renderCardRow({ typedResource, setLineageViewTarget });
 
-    const radio = container.querySelector('.form-radio');
-    expect(radio).not.toBeNull();
-    fireEvent.click(radio!);
+    const radio = screen.getAllByRole('radio')[0];
+    fireEvent.click(radio);
     expect(setLineageViewTarget).toHaveBeenCalledTimes(1);
     expect(setLineageViewTarget).toHaveBeenCalledWith(typedResource.resource);
   });
@@ -110,40 +108,37 @@ describe('LineageCardRow', () => {
   it('does NOT call setLineageViewTarget when row is an execution type', () => {
     const setLineageViewTarget = vi.fn();
 
-    const { container } = renderCardRow({
+    renderCardRow({
       typedResource: buildExecutionResource(),
       resourceDetailsRoute: '/executions/1',
       hideRadio: true,
       setLineageViewTarget,
     });
 
-    const row = container.querySelector('.cardRow');
-    expect(row).not.toBeNull();
-    fireEvent.click(row!);
+    const row = screen.getByTestId('card-row');
+    fireEvent.click(row);
     expect(setLineageViewTarget).not.toHaveBeenCalled();
   });
 
   it('does not throw when clicked without setLineageViewTarget provided', () => {
-    const { container } = renderCardRow({
+    renderCardRow({
       typedResource: buildArtifactResource('no-handler'),
       setLineageViewTarget: undefined,
     });
 
-    const row = container.querySelector('.cardRow');
-    expect(row).not.toBeNull();
+    const row = screen.getByTestId('card-row');
     expect(() => {
-      fireEvent.click(row!);
+      fireEvent.click(row);
     }).not.toThrow();
   });
 
   it('toggles the hover hint class when hovering the resource link', () => {
-    const { container } = renderCardRow({
+    renderCardRow({
       typedResource: buildArtifactResource('hoverable'),
     });
 
-    const row = container.querySelector('.cardRow');
+    const row = screen.getByTestId('card-row');
     const link = screen.getByRole('link', { name: 'hoverable' });
-    expect(row).not.toBeNull();
 
     expect(row).toHaveClass('clickTarget');
     fireEvent.mouseEnter(link);

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import docker
 from kfp.dsl import constants as dsl_constants
@@ -30,11 +30,13 @@ class DockerTaskHandler(task_handler_interface.ITaskHandler):
         full_command: List[str],
         pipeline_root: str,
         runner: config.DockerRunner,
+        env_vars: Optional[Dict[str, str]] = None,
     ) -> None:
         self.image = image
         self.full_command = full_command
         self.pipeline_root = pipeline_root
         self.runner = runner
+        self.env_vars = env_vars or {}
 
     def get_volumes_to_mount(self,
                              client: docker.DockerClient = None
@@ -81,6 +83,10 @@ class DockerTaskHandler(task_handler_interface.ITaskHandler):
         try:
             volumes = self.get_volumes_to_mount(client)
 
+            container_run_args = dict(self.runner.container_run_args)
+            if self.env_vars:
+                container_run_args['environment'] = self.env_vars
+
             # Check if command contains pip install operations
             command_str = ' '.join(
                 self.full_command) if self.full_command else ''
@@ -95,14 +101,14 @@ class DockerTaskHandler(task_handler_interface.ITaskHandler):
                         image=self.image,
                         command=self.full_command,
                         volumes=volumes,
-                        **self.runner.container_run_args)
+                        **container_run_args)
             else:
                 return_code = run_docker_container(
                     client=client,
                     image=self.image,
                     command=self.full_command,
                     volumes=volumes,
-                    **self.runner.container_run_args)
+                    **container_run_args)
         finally:
             client.close()
         return status.Status.SUCCESS if return_code == 0 else status.Status.FAILURE

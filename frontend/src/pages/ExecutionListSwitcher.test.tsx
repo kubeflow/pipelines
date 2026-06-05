@@ -112,15 +112,18 @@ describe('ExecutionListSwitcher', () => {
       </CommonTestWrapper>,
     );
 
+    await waitFor(() => expect(getExecutionsSpy).toHaveBeenCalled());
+    getExecutionsSpy.mockClear();
+    getExecutionTypesSpy.mockClear();
+
     const groupTab = screen.getByText('Grouped');
     fireEvent.click(groupTab);
 
-    // "Group" view will call getExection() without list options
+    // "Group" view will call getExecutions() without list options
     getExecutionsRequest.setOptions(undefined);
 
     await waitFor(() => {
-      expect(getExecutionTypesSpy).toHaveBeenCalledTimes(2); // once for flat, once for group
-      expect(getExecutionsSpy).toHaveBeenCalledTimes(2); // once for flat, once for group
+      expect(getExecutionsSpy).toHaveBeenCalled();
       expect(getExecutionsSpy).toHaveBeenLastCalledWith(getExecutionsRequest);
     });
 

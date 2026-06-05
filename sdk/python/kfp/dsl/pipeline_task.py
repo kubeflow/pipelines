@@ -22,7 +22,6 @@ import re
 from typing import Any, Dict, List, Mapping, Optional, TYPE_CHECKING, Union
 import warnings
 
-from kfp.dsl import constants
 from kfp.dsl import pipeline_channel
 from kfp.dsl import placeholders
 from kfp.dsl import structures
@@ -57,6 +56,37 @@ def block_if_final(custom_message: Optional[str] = None):
                     custom_message or
                     f"Task configuration methods are not supported for local execution. Got call to '.{method_name}()'."
                 )
+            elif self.state == TaskState.FUTURE:
+                return method(self, *args, **kwargs)
+            else:
+                raise ValueError(
+                    f'Got unknown {TaskState.__name__}: {self.state}.')
+
+        return wrapper
+
+    return actual_decorator
+
+
+def warn_if_final():
+    """Decorator for K8s-only task config methods that have no local
+    equivalent.
+
+    In local execution (FINAL state), emits a warning and returns self
+    instead of raising.
+    """
+
+    def actual_decorator(method):
+        method_name = method.__name__
+
+        @functools.wraps(method)
+        def wrapper(self: 'PipelineTask', *args, **kwargs):
+            if self.state == TaskState.FINAL:
+                import warnings
+                warnings.warn(
+                    f"'.{method_name}()' is not used by the current local runner and will be ignored.",
+                    stacklevel=2,
+                )
+                return self
             elif self.state == TaskState.FUTURE:
                 return method(self, *args, **kwargs)
             else:
@@ -228,9 +258,12 @@ class PipelineTask:
             return self.component_spec.platform_spec
 
         # can only create primitive task platform spec at compile-time, since the executor label is not known until then
+        pipeline_property = '.platform_spec'
+        primitive_property = '.platform_config'
         raise ValueError(
-            f'Can only access {".platform_spec"!r} property on a tasks created from pipelines. Use {".platform_config"!r} for tasks created from primitive components.'
-        )
+            f'Can only access {pipeline_property!r} property on tasks '
+            f'created from pipelines. Use {primitive_property!r} for tasks '
+            f'created from primitive components.')
 
     @property
     def name(self) -> str:
@@ -385,7 +418,7 @@ class PipelineTask:
                     ' followed by "m".')
         return cpu
 
-    @block_if_final()
+    @warn_if_final()
     def set_cpu_request(
             self,
             cpu: Union[str,
@@ -413,7 +446,7 @@ class PipelineTask:
 
         return self
 
-    @block_if_final()
+    @warn_if_final()
     def set_cpu_limit(
             self,
             cpu: Union[str,
@@ -441,7 +474,7 @@ class PipelineTask:
 
         return self
 
-    @block_if_final()
+    @warn_if_final()
     def set_accelerator_limit(
         self, limit: Union[int, str,
                            pipeline_channel.PipelineChannel]) -> 'PipelineTask':
@@ -474,7 +507,7 @@ class PipelineTask:
 
         return self
 
-    @block_if_final()
+    @warn_if_final()
     def set_gpu_limit(self, gpu: str) -> 'PipelineTask':
         """Sets GPU limit (maximum) for the task. Only applies if accelerator
         type is also set via .add_accelerator_type().
@@ -518,7 +551,7 @@ class PipelineTask:
                     '"Gi", "M", "Mi", "K", "Ki".')
         return memory
 
-    @block_if_final()
+    @warn_if_final()
     def set_memory_request(
             self,
             memory: Union[str,
@@ -545,7 +578,7 @@ class PipelineTask:
 
         return self
 
-    @block_if_final()
+    @warn_if_final()
     def set_memory_limit(
             self,
             memory: Union[str,
@@ -584,7 +617,7 @@ class PipelineTask:
             num_retries : Number of times to retry on failure.
             backoff_duration: Number of seconds to wait before triggering a retry. Defaults to ``'0s'`` (immediate retry).
             backoff_factor: Exponential backoff factor applied to ``backoff_duration``. For example, if ``backoff_duration="60"`` (60 seconds) and ``backoff_factor=2``, the first retry will happen after 60 seconds, then again after 120, 240, and so on. Defaults to ``2.0``.
-            backoff_max_duration: Maximum duration during which the task will be retried. Maximum duration is 1 hour (3600s). Defaults to ``'3600s'``.
+            backoff_max_duration: Maximum duration during which the task will be retried. Defaults to ``'3600s'``.
 
         Returns:
             Self return to allow chained setting calls.
@@ -597,7 +630,7 @@ class PipelineTask:
         )
         return self
 
-    @block_if_final()
+    @warn_if_final()
     def add_node_selector_constraint(self, accelerator: str) -> 'PipelineTask':
         """Deprecated. Use :meth:`set_accelerator_type` instead.
 
@@ -614,7 +647,7 @@ class PipelineTask:
             category=DeprecationWarning)
         return self.set_accelerator_type(accelerator)
 
-    @block_if_final()
+    @warn_if_final()
     def set_accelerator_type(
         self, accelerator: Union[str, pipeline_channel.PipelineChannel]
     ) -> 'PipelineTask':
@@ -640,7 +673,7 @@ class PipelineTask:
 
         return self
 
-    @block_if_final()
+    @warn_if_final()
     def set_display_name(self, name: str) -> 'PipelineTask':
         """Sets display name for the task.
 
@@ -670,6 +703,77 @@ class PipelineTask:
             self.container_spec.env[name] = value
         else:
             self.container_spec.env = {name: value}
+        return self
+
+    @block_if_final()
+    def set_debug_pause(
+        self,
+        before: bool = False,
+        after: bool = True,
+        on_error: bool = False,
+    ) -> 'PipelineTask':
+        """Enable interactive debug-pause for the pipeline task.
+
+        Keeps the pod alive so you can ``kubectl exec`` into it
+        interactively.
+
+        When enabled, Argo Workflows' executor (the ``wait`` container)
+        detects the corresponding ``ARGO_DEBUG_PAUSE_*`` environment variable
+        and pauses the workflow node, preventing the pod from terminating.
+
+        This requires Argo Workflows 3.5.0 or later.
+
+        Args:
+            before: If ``True``, pause before the main process starts.
+                Useful for inspecting the environment, installing tools, or
+                modifying inputs before execution.
+            after: If ``True`` (default), pause after the main process
+                completes. Modified by ``on_error``.
+            on_error: If ``True``, only pause after execution when the
+                component fails (sets ``ARGO_DEBUG_PAUSE_ON_ERROR`` instead
+                of ``ARGO_DEBUG_PAUSE_AFTER``). Requires ``after=True``.
+
+        Returns:
+            Self return to allow chained setting calls.
+
+        Raises:
+            ValueError: If ``after=False`` and ``on_error=True``
+                (contradictory).
+            ValueError: If both ``before`` and ``after`` are ``False``.
+
+        Example:
+          ::
+
+            @dsl.pipeline
+            def my_pipeline():
+                task = my_component()
+                task.set_debug_pause()
+
+                task2 = my_component()
+                task2.set_debug_pause(before=True, after=False)
+
+                task3 = my_component()
+                task3.set_debug_pause(on_error=True)
+        """
+        if not after and on_error:
+            raise ValueError(
+                "'on_error' applies to post-execution pause and requires "
+                'after=True. Got after=False, on_error=True - contradictory '
+                'configuration.')
+
+        if not before and not after:
+            raise ValueError(
+                "At least one of 'before' or 'after' must be True. "
+                'Got before=False, after=False - nothing to pause on.')
+
+        if before:
+            self.set_env_variable('ARGO_DEBUG_PAUSE_BEFORE', 'true')
+        if after:
+            if on_error:
+                self.set_env_variable('ARGO_DEBUG_PAUSE_ON_ERROR', 'true')
+            else:
+                self.set_env_variable('ARGO_DEBUG_PAUSE_AFTER', 'true')
+
         return self
 
     @block_if_final()
@@ -803,7 +907,6 @@ def check_primitive_placeholder_is_used_for_correct_io_type(
         outputs_dict: The existing output names.
         arg: The command line element, which may be a placeholder.
     """
-
     if isinstance(arg, placeholders.InputValuePlaceholder):
         input_name = arg.input_name
         if not type_utils.is_parameter_type(inputs_dict[input_name].type):

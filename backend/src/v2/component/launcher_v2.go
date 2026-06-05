@@ -27,7 +27,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	_ "github.com/kubeflow/pipelines/backend/src/v2/common/plugins/all"
 
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -186,6 +189,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	var execution *metadata.Execution
 	var executorOutput *pipelinespec.ExecutorOutput
 	var outputArtifacts []*metadata.OutputArtifact
+	var dispatcher plugins.TaskPluginDispatcher
 	status := pb.Execution_FAILED
 	defer func() {
 		if execution == nil {
@@ -201,6 +205,19 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 			}
 		}
 		glog.Infof("publish success.")
+
+		if dispatcher != nil {
+			taskPluginInfo := &plugins.TaskInfo{
+				RunStatus:     status.String(),
+				ScalarMetrics: metadata.FormatScalarMetricArtifacts(outputArtifacts),
+				Parameters:    metadata.FormatExecutionParameters(execution),
+			}
+			dispatchErr := dispatcher.OnTaskEnd(ctx, taskPluginInfo)
+			if dispatchErr != nil {
+				glog.Errorf("failed to dispatch task end: %v", dispatchErr)
+			}
+		}
+
 		// At the end of the current task, we check the statuses of all tasks in
 		// the current DAG and update the DAG's status accordingly.
 		dag, err := l.clientManager.MetadataClient().GetDAG(ctx, execution.GetExecution().CustomProperties["parent_dag_id"].GetIntValue())
@@ -217,6 +234,20 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	execution, err = l.prePublish(ctx)
 	if err != nil {
 		return err
+	}
+
+	// Construct the plugin dispatcher after prePublish so we can hydrate
+	// handlers with plugin custom properties from the MLMD execution
+	// (written by the driver during CreateExecution). This reuses the
+	// execution already fetched by prePublish with zero additional queries.
+	dispatcher, dispatchErr := plugins.GetPluginDispatcher()
+	if dispatchErr != nil {
+		glog.Errorf("Failed to get plugin dispatcher: %v", dispatchErr)
+	} else {
+		pluginProps := metadata.ExtractPluginCustomProperties(execution)
+		if pluginProps != nil {
+			dispatcher.ApplyCustomProperties(pluginProps)
+		}
 	}
 	fingerPrint := execution.FingerPrint()
 	storeSessionInfo, err := objectstore.GetSessionInfoFromString(execution.GetPipeline().GetStoreSessionInfo())
@@ -387,6 +418,7 @@ func executeV2(
 	customCAPath string,
 	openBucketConfig *OpenBucketConfig,
 ) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
+	qualifyExecutorLogsForRetry(ctx, executorInput, publishLogs, namespace, k8sClient)
 
 	// Add parameter default values to executorInput, if there is not already a user input.
 	// This process is done in the launcher because we let the component resolve default values internally.
@@ -417,15 +449,11 @@ func executeV2(
 	if err != nil {
 		glog.Errorf("Component failed to execute successfully: %v", err)
 
-		outputArtifacts, uploadErr := uploadOutputArtifacts(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
+		outputArtifacts, _ := uploadOutputArtifactsWithRetry(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
 			bucketConfig:   bucketConfig,
 			bucket:         bucket,
 			metadataClient: metadataClient,
-		}, false)
-
-		if uploadErr != nil {
-			glog.Errorf("Failed to upload log artifact: %v", uploadErr)
-		}
+		}, false, openBucketConfig, 2)
 
 		return executorOutput, outputArtifacts, err
 	}
@@ -437,35 +465,14 @@ func executeV2(
 		return nil, nil, err
 	}
 
-	outputArtifacts, err := uploadOutputArtifacts(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
+	outputArtifacts, err := uploadOutputArtifactsWithRetry(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
 		bucketConfig:   bucketConfig,
 		bucket:         bucket,
 		metadataClient: metadataClient,
-	}, true)
+	}, true, openBucketConfig, 2)
 
 	if err != nil {
-		glog.Errorf("Failed to upload output artifacts: %v", err)
-
-		glog.Info("Refreshing credentials before retrying artifacts upload.")
-		bucket, err = objectstore.OpenBucket(
-			openBucketConfig.ctx,
-			openBucketConfig.k8sClient,
-			openBucketConfig.namespace,
-			openBucketConfig.config,
-		)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		glog.Info("Executing second uploadOutputArtifacts attempt.")
-		outputArtifacts, err = uploadOutputArtifacts(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
-			bucketConfig:   bucketConfig,
-			bucket:         bucket,
-			metadataClient: metadataClient,
-		}, true)
-		if err != nil {
-			return nil, nil, err
-		}
+		return nil, nil, err
 	}
 
 	// TODO(Bobgy): only return executor output. Merge info in output artifacts
@@ -541,7 +548,54 @@ func qualifyExecutorLogsURI(artifacts map[string]*pipelinespec.ArtifactList, ret
 	if art == nil {
 		return
 	}
-	art.Uri = art.Uri + "-" + retryIndex
+	art.Uri = appendRetryIndexSuffix(art.Uri, retryIndex)
+	if art.CustomPath != nil && *art.CustomPath != "" {
+		*art.CustomPath = appendRetryIndexSuffix(*art.CustomPath, retryIndex)
+	}
+}
+
+// appendRetryIndexSuffix appends "-<retryIndex>" to a log path or URI once,
+// preserving already-qualified values.
+func appendRetryIndexSuffix(pathOrURI, retryIndex string) string {
+	if pathOrURI == "" || retryIndex == "" {
+		return pathOrURI
+	}
+	suffix := "-" + retryIndex
+	if strings.HasSuffix(pathOrURI, suffix) {
+		return pathOrURI
+	}
+	return pathOrURI + suffix
+}
+
+// qualifyExecutorLogsForRetry resolves the current retry attempt and updates the
+// launcher-managed executor-logs artifact before placeholder compilation and
+// execution so downstream paths and serialized executor input stay aligned.
+func qualifyExecutorLogsForRetry(
+	ctx context.Context,
+	executorInput *pipelinespec.ExecutorInput,
+	publishLogs string,
+	namespace string,
+	k8sClient kubernetes.Interface,
+) {
+	if publishLogs != "true" {
+		return
+	}
+
+	retryIndex := os.Getenv(EnvRetryIndex)
+	if retryIndex == "" {
+		podName := os.Getenv(EnvPodName)
+		if podName != "" && k8sClient != nil && namespace != "" {
+			if idx, err := retryIndexFromPodAnnotation(ctx, k8sClient, namespace, podName); err == nil {
+				retryIndex = idx
+			} else {
+				glog.Warningf("Could not determine retry index from pod annotation, defaulting to 0: %v", err)
+			}
+		}
+	}
+	if retryIndex == "" {
+		retryIndex = "0"
+	}
+	qualifyExecutorLogsURI(executorInput.GetOutputs().GetArtifacts(), retryIndex)
 }
 
 // retryIndexFromPodAnnotation reads the Argo node-name annotation on the current
@@ -637,30 +691,6 @@ func execute(
 	}
 	if err := downloadArtifacts(ctx, executorInput, bucket, bucketConfig, namespace, k8sClient); err != nil {
 		return nil, err
-	}
-
-	// Qualify the executor-logs URI with the retry index before preparing output
-	// folders so the per-attempt directory is created at the correct path.
-	// Prefer KFP_RETRY_INDEX, which is injected by the Argo compiler as
-	// "{{retries}}" and resolved by Argo at pod creation time. Fall back to
-	// reading the Argo node-name pod annotation, which encodes the index as
-	// executor(N), for compatibility with older API server versions.
-	if publishLogs == "true" {
-		retryIndex := os.Getenv(EnvRetryIndex)
-		if retryIndex == "" {
-			podName := os.Getenv(EnvPodName)
-			if podName != "" && k8sClient != nil && namespace != "" {
-				if idx, err := retryIndexFromPodAnnotation(ctx, k8sClient, namespace, podName); err == nil {
-					retryIndex = idx
-				} else {
-					glog.Warningf("Could not determine retry index from pod annotation, defaulting to 0: %v", err)
-				}
-			}
-		}
-		if retryIndex == "" {
-			retryIndex = "0"
-		}
-		qualifyExecutorLogsURI(executorInput.Outputs.GetArtifacts(), retryIndex)
 	}
 
 	if err := prepareOutputFolders(executorInput); err != nil {
@@ -770,8 +800,9 @@ func uploadOutputArtifacts(
 		for _, outputArtifact := range artifactList.Artifacts {
 			glog.Infof("outputArtifact in uploadOutputArtifacts call: %s", outputArtifact.Name)
 
-			// Merge executor output artifact info with executor input
-			if executorOutput != nil {
+			// executor-logs is launcher-managed; keep its qualified location stable
+			// even if the user executor echoes an older value in ExecutorOutput.
+			if executorOutput != nil && name != "executor-logs" {
 				if list, ok := executorOutput.Artifacts[name]; ok && len(list.Artifacts) > 0 {
 					mergeRuntimeArtifacts(list.Artifacts[0], outputArtifact)
 				}
@@ -781,6 +812,11 @@ func uploadOutputArtifacts(
 			localDir, err := retrieveArtifactPath(outputArtifact)
 			if err != nil {
 				glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.", name, outputArtifact.Uri)
+				if name == "executor-logs" {
+					// Avoid registering a broken executor-logs artifact when launcher setup fails
+					// before the log file path can be initialized.
+					continue
+				}
 			} else if !strings.HasPrefix(outputArtifact.Uri, "oci://") {
 				blobKey, err := opts.bucketConfig.KeyFromURI(outputArtifact.Uri)
 				if err != nil {
@@ -790,6 +826,11 @@ func uploadOutputArtifacts(
 					//  We allow components to not produce output files
 					if errors.Is(err, os.ErrNotExist) {
 						glog.Warningf("Local filepath %q does not exist", localDir)
+						if name == "executor-logs" {
+							// If the executor never started streaming logs to disk, skip recording
+							// the log artifact instead of surfacing a dead link in the UI.
+							continue
+						}
 					} else {
 						return nil, fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)
 					}
@@ -813,6 +854,50 @@ func uploadOutputArtifacts(
 		}
 	}
 	return outputArtifacts, nil
+}
+
+func uploadOutputArtifactsWithRetry(
+	ctx context.Context,
+	executorInput *pipelinespec.ExecutorInput,
+	executorOutput *pipelinespec.ExecutorOutput,
+	opts uploadOutputArtifactsOptions,
+	componentSucceeded bool,
+	openBucketConfig *OpenBucketConfig,
+	maxAttempts int,
+) ([]*metadata.OutputArtifact, error) {
+	glog.Infof("Executing uploadOutputArtifacts attempt: 1")
+	outputArtifacts, err := uploadOutputArtifacts(ctx, executorInput, executorOutput, opts, componentSucceeded)
+
+	if err == nil {
+		return outputArtifacts, nil
+	}
+	finalErr := err
+
+	for retryCount := 1; retryCount < maxAttempts; retryCount++ {
+		glog.Warningf("Failed to upload output artifacts: %v", err)
+		glog.Info("Refreshing credentials before retrying artifacts upload.")
+		opts.bucket, err = objectstore.OpenBucket(
+			openBucketConfig.ctx,
+			openBucketConfig.k8sClient,
+			openBucketConfig.namespace,
+			openBucketConfig.config,
+		)
+		if err != nil {
+			glog.Infof("Failed to refresh credentials: %v", err)
+			finalErr = err
+			continue
+		}
+
+		glog.Infof("Executing uploadOutputArtifacts attempt: %d", retryCount+1)
+		outputArtifacts, err := uploadOutputArtifacts(ctx, executorInput, executorOutput, opts, componentSucceeded)
+
+		if err == nil {
+			return outputArtifacts, nil
+		}
+		finalErr = err
+	}
+	glog.Errorf("All upload artifact attempts failed: %v", finalErr)
+	return nil, finalErr
 }
 
 // waitForModelcar assumes the Modelcar has already been validated by the init container on the launcher

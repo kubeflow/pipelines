@@ -80,12 +80,6 @@ describe('ArchivedExperiments', () => {
     lastExperimentListProps = null;
   });
 
-  afterEach(() => {
-    renderResult?.unmount();
-    renderResult = null;
-    archivedExperimentsRef = null;
-  });
-
   it('renders archived experiments', () => {
     renderArchivedExperiments();
     expect(lastExperimentListProps).toBeTruthy();

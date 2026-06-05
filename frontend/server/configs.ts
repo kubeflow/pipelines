@@ -50,14 +50,14 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
   const { staticDir, port } = parseArgs(argv);
   /** All configurable environment variables can be found here. */
   const {
-    /** minio client use these to retrieve minio objects/artifacts */
+    /** Object storage client credentials (SeaweedFS/MinIO compatible) */
     MINIO_ACCESS_KEY = 'minio',
     MINIO_SECRET_KEY = 'minio123',
     MINIO_PORT = '9000',
     MINIO_HOST = 'seaweedfs',
     MINIO_NAMESPACE = 'kubeflow',
     MINIO_SSL = 'false',
-    /** minio client use these to retrieve s3 objects/artifacts */
+    /** S3-compatible storage credentials */
     AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY,
     AWS_REGION,

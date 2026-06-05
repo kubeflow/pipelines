@@ -23,6 +23,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
@@ -92,12 +93,19 @@ type Options struct {
 
 	PipelineJobScheduleTimeUTC string
 
+	PluginDispatcher plugins.TaskPluginDispatcher
+
 	// Admin-configured default runAsUser for user containers. Nil means not set.
 	DefaultRunAsUser *int64
 	// Admin-configured default runAsGroup for user containers. Nil means not set.
 	DefaultRunAsGroup *int64
 	// Admin-configured default runAsNonRoot for user containers. Nil means not set.
 	DefaultRunAsNonRoot *bool
+	// Administrator-configured default hostUsers for user workload pods. Nil means not set.
+	// When set to false the pod runs in a dedicated Linux user namespace:
+	// UID 0 inside the pod maps to an unprivileged host UID, so root processes
+	// in the container are not root on the host.
+	DefaultHostUsers *bool
 }
 
 // TaskConfig needs to stay aligned with the TaskConfig in the SDK.
@@ -254,6 +262,7 @@ func initPodSpecPatch(
 	mlPipelineServerPort string,
 	mlmdServerAddress string,
 	mlmdServerPort string,
+	pluginEnvVars map[string]string,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -268,6 +277,11 @@ func initPodSpecPatch(
 	userEnvVar := make([]k8score.EnvVar, 0)
 	for _, envVar := range container.GetEnv() {
 		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar.GetName(), Value: envVar.GetValue()})
+	}
+
+	// Append necessary env variables for task-level plugin(s).
+	for envVar, val := range pluginEnvVars {
+		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar, Value: val})
 	}
 
 	userEnvVar = append(userEnvVar, proxy.GetConfig().GetEnvVars()...)

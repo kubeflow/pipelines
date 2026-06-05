@@ -54,7 +54,7 @@ interface BusyButtonProps extends ButtonProps {
 }
 
 class BusyButton extends React.Component<BusyButtonProps> {
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { title, busy, className, disabled, icon, outlined, ...rest } = this.props;
 
     return (

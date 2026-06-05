@@ -244,6 +244,7 @@ exports[`CompareV1 > creates a map of viewers 1`] = `
             >
               <span
                 class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium Mui-checked MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                data-testid="select-all-checkbox"
               >
                 <input
                   class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
@@ -638,6 +639,7 @@ exports[`CompareV1 > creates a map of viewers 1`] = `
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -685,7 +687,7 @@ exports[`CompareV1 > creates a map of viewers 1`] = `
                       class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
                     >
                       <div
-                        aria-controls="_r_51_"
+                        aria-controls="react-use-id-2"
                         aria-expanded="false"
                         aria-haspopup="listbox"
                         class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
@@ -789,6 +791,7 @@ exports[`CompareV1 > creates a map of viewers 1`] = `
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -889,7 +892,7 @@ exports[`CompareV1 > creates a map of viewers 1`] = `
                   />
                   <p
                     class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
-                    id="_r_56_"
+                    id="react-use-id-0"
                   >
                     Rows per page:
                   </p>
@@ -897,12 +900,12 @@ exports[`CompareV1 > creates a map of viewers 1`] = `
                     class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
                   >
                     <div
-                      aria-controls="_r_57_"
+                      aria-controls="react-use-id-3"
                       aria-expanded="false"
                       aria-haspopup="listbox"
-                      aria-labelledby="_r_56_ _r_55_"
+                      aria-labelledby="react-use-id-0 react-use-id-1"
                       class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
-                      id="_r_55_"
+                      id="react-use-id-1"
                       role="combobox"
                       tabindex="0"
                     >
@@ -1095,6 +1098,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
             >
               <span
                 class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium Mui-checked MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                data-testid="select-all-checkbox"
               >
                 <input
                   class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
@@ -1607,6 +1611,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -1654,7 +1659,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                       class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
                     >
                       <div
-                        aria-controls="_r_b4_"
+                        aria-controls="react-use-id-0"
                         aria-expanded="false"
                         aria-haspopup="listbox"
                         class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
@@ -1719,6 +1724,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -1766,7 +1772,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                       class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
                     >
                       <div
-                        aria-controls="_r_b7_"
+                        aria-controls="react-use-id-1"
                         aria-expanded="false"
                         aria-haspopup="listbox"
                         class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
@@ -1831,6 +1837,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -1878,7 +1885,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                       class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
                     >
                       <div
-                        aria-controls="_r_ba_"
+                        aria-controls="react-use-id-2"
                         aria-expanded="false"
                         aria-haspopup="listbox"
                         class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
@@ -1982,6 +1989,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -2268,6 +2276,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -2523,6 +2532,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -2876,6 +2886,7 @@ exports[`CompareV1 > displays a run's metrics if the run has any 1`] = `
             >
               <span
                 class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium Mui-checked MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                data-testid="select-all-checkbox"
               >
                 <input
                   class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
@@ -3380,6 +3391,7 @@ exports[`CompareV1 > displays metrics from multiple runs 1`] = `
             >
               <span
                 class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium Mui-checked MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                data-testid="select-all-checkbox"
               >
                 <input
                   class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
@@ -4018,6 +4030,7 @@ exports[`CompareV1 > displays parameters from multiple runs 1`] = `
             >
               <span
                 class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium Mui-checked MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                data-testid="select-all-checkbox"
               >
                 <input
                   class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
@@ -4676,6 +4689,7 @@ exports[`CompareV1 > displays run's parameters if the run has any 1`] = `
             >
               <span
                 class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium Mui-checked MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                data-testid="select-all-checkbox"
               >
                 <input
                   class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
@@ -5180,6 +5194,7 @@ exports[`CompareV1 > does not show viewers for deselected runs 1`] = `
             >
               <span
                 class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                data-testid="select-all-checkbox"
               >
                 <input
                   class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
@@ -5751,6 +5766,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
             >
               <span
                 class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium Mui-checked MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                data-testid="select-all-checkbox"
               >
                 <input
                   class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
@@ -6263,6 +6279,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -6310,7 +6327,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                       class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
                     >
                       <div
-                        aria-controls="_r_7k_"
+                        aria-controls="react-use-id-4"
                         aria-expanded="false"
                         aria-haspopup="listbox"
                         class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
@@ -6375,6 +6392,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -6422,7 +6440,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                       class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
                     >
                       <div
-                        aria-controls="_r_7n_"
+                        aria-controls="react-use-id-5"
                         aria-expanded="false"
                         aria-haspopup="listbox"
                         class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
@@ -6487,6 +6505,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -6534,7 +6553,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                       class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
                     >
                       <div
-                        aria-controls="_r_7q_"
+                        aria-controls="react-use-id-6"
                         aria-expanded="false"
                         aria-haspopup="listbox"
                         class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
@@ -6638,6 +6657,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -6732,7 +6752,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                   />
                   <p
                     class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
-                    id="_r_7v_"
+                    id="react-use-id-0"
                   >
                     Rows per page:
                   </p>
@@ -6740,12 +6760,12 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                     class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
                   >
                     <div
-                      aria-controls="_r_80_"
+                      aria-controls="react-use-id-7"
                       aria-expanded="false"
                       aria-haspopup="listbox"
-                      aria-labelledby="_r_7v_ _r_7u_"
+                      aria-labelledby="react-use-id-0 react-use-id-1"
                       class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
-                      id="_r_7u_"
+                      id="react-use-id-1"
                       role="combobox"
                       tabindex="0"
                     >
@@ -6840,6 +6860,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
               <div>
                 <button
                   class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-testid="pop-out-button"
                   style="padding: 4px; min-height: 0; min-width: 0;"
                   tabindex="0"
                   type="button"
@@ -6934,7 +6955,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                   />
                   <p
                     class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
-                    id="_r_85_"
+                    id="react-use-id-2"
                   >
                     Rows per page:
                   </p>
@@ -6942,12 +6963,12 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                     class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
                   >
                     <div
-                      aria-controls="_r_86_"
+                      aria-controls="react-use-id-8"
                       aria-expanded="false"
                       aria-haspopup="listbox"
-                      aria-labelledby="_r_85_ _r_84_"
+                      aria-labelledby="react-use-id-2 react-use-id-3"
                       class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
-                      id="_r_84_"
+                      id="react-use-id-3"
                       role="combobox"
                       tabindex="0"
                     >
@@ -7140,6 +7161,7 @@ exports[`CompareV1 > renders a page with multiple runs 1`] = `
             >
               <span
                 class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium Mui-checked MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                data-testid="select-all-checkbox"
               >
                 <input
                   class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
@@ -7829,6 +7851,7 @@ exports[`CompareV1 > renders a page with no runs 1`] = `
             >
               <span
                 class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                data-testid="select-all-checkbox"
               >
                 <input
                   class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"

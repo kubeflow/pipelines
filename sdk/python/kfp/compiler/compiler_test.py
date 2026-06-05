@@ -1816,7 +1816,7 @@ class TestSetRetryCompilation(unittest.TestCase):
         self.assertEqual(retry_policy.max_retry_count, 3)
         self.assertEqual(retry_policy.backoff_duration.seconds, 30)
         self.assertEqual(retry_policy.backoff_factor, 1.0)
-        self.assertEqual(retry_policy.backoff_max_duration.seconds, 3600)
+        self.assertEqual(retry_policy.backoff_max_duration.seconds, 10800)
 
 
 from google.protobuf import json_format

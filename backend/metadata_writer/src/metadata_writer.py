@@ -29,7 +29,7 @@ namespace_to_watch = os.environ.get('NAMESPACE_TO_WATCH', 'default')
 pod_name_to_execution_id_size = os.environ.get('POD_NAME_TO_EXECUTION_ID_SIZE', 5000)
 workflow_name_to_context_id_size = os.environ.get('WORKFLOW_NAME_TO_CONTEXT_ID_SIZE', 5000)
 pods_with_written_metadata_size = os.environ.get('PODS_WITH_WRITTEN_METADATA_SIZE', 5000)
-debug_files_size = os.environ.get('DEBUG_FILES_SIZE', 5000)
+debug_files_size = int(os.environ.get('DEBUG_FILES_SIZE', 5000))
 # See the documentation on settings k8s_watch timeouts:
 # https://github.com/kubernetes-client/python/blob/master/examples/watch/timeout-settings.md
 k8s_watch_server_side_timeout = os.environ.get('K8S_WATCH_SERVER_SIDE_TIMEOUT', 1800)
@@ -181,7 +181,10 @@ while True:
             # Do some housekeeping, ensure we only keep a fixed size buffer of debug files so we don't
             # grow the disk size indefinitely for long running pods.
             if len(debug_paths) > debug_files_size:
-                os.remove(debug_paths.popleft())
+                try:
+                    os.remove(debug_paths.popleft())
+                except FileNotFoundError:
+                    pass
 
             assert obj.kind == 'Pod'
 

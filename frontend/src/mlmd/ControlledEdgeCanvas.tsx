@@ -56,7 +56,7 @@ interface ControlledEdgeCanvasProps {
  * elements in an adjacent <LineageCardColumn />.
  */
 export class ControlledEdgeCanvas extends React.Component<ControlledEdgeCanvasProps> {
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const { reverseEdges, edgeWidth } = this.props;
 
     let viewHeight = 1;
@@ -69,7 +69,7 @@ export class ControlledEdgeCanvas extends React.Component<ControlledEdgeCanvasPr
       viewHeight += clampedOffset;
     }
 
-    const edgeLines: JSX.Element[] = [];
+    const edgeLines: React.JSX.Element[] = [];
     this.props.artifactIds.forEach((artifactId, index) => {
       if (index !== 0) {
         let offset = CARD_OFFSET;

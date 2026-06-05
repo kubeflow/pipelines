@@ -25,6 +25,8 @@ import { stylesheet } from 'typestyle';
 import { RuntimeParameters } from 'src/pages/NewRunV2';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 
+export const COMPARE_PANEL_COUNT = 2;
+
 export const compareCss = stylesheet({
   smallRelativeContainer: {
     position: 'relative',

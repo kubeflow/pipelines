@@ -19,9 +19,17 @@ import {
   parseJSONString,
   isAllowedResourceName,
 } from '../utils.js';
-import { createMinioClient, getObjectStream } from '../minio-helper.js';
+import {
+  createMinioClient,
+  getObjectStream,
+  isNoSuchKeyError,
+  listObjectsUnderPrefix,
+  summarizeDirectoryUnderPrefix,
+} from '../minio-helper.js';
+import * as tar from 'tar-stream';
+import * as zlib from 'zlib';
 import * as serverInfo from '../helpers/server-info.js';
-import { Handler, Request, Response } from 'express';
+import { Handler, Request, Response, NextFunction } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts.js';
 import { URL } from 'url';
@@ -32,6 +40,11 @@ import * as fs from 'fs';
 import { isAllowedDomain } from './domain-checker.js';
 import { getK8sSecret } from '../k8s-helper.js';
 import { CredentialBody } from 'google-auth-library';
+import { AuthorizeFn } from '../helpers/auth.js';
+import {
+  AuthorizeRequestResources,
+  AuthorizeRequestVerb,
+} from '../src/generated/apis/auth/index.js';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -74,6 +87,111 @@ export interface GCSProviderInfo {
 }
 
 /**
+ * Returns an authorization middleware for artifact endpoints.
+ * This middleware handles 3 modes:
+ *
+ * 1. Standalone KFP deployment without Kubeflow platform (single-tenant):
+ *    No Subject Access Review and 100% insecure. The namespace query
+ *    parameter is optional and not validated or authorized when
+ *    authorization is disabled.
+ *
+ * 2. Default multi-tenant deployment of KFP within Kubeflow platform:
+ *    Namespace parameter is required, its format is validated, and RBAC is
+ *    checked (the user is authenticated to access the artifact from the
+ *    specific namespace folder on the object storage via Subject Access
+ *    Review) before accessing SeaweedFS/storage directly.
+ *
+ * 3. Artifact PROXY MODE (overhead, disabled by default):
+ *    Namespace parameter is required, its format is validated, and RBAC is
+ *    checked. This adds significant overhead to each namespace, decreases
+ *    scalability, and is prone to many CVEs in the artifact proxy
+ *    deployment.
+ *
+ * Note: Secret-backed provider mode (fromEnv === 'false') is unsupported
+ * in multi-user deployments. The ml-pipeline-ui ClusterRole no longer
+ * grants secrets:get/list permissions, so getK8sSecret() calls will be
+ * denied by RBAC at the cluster level. This mode may still work in
+ * standalone (single-tenant) deployments where the service account has
+ * direct secret access. See: https://github.com/kubeflow/pipelines/pull/12860
+ *
+ * Security: This addresses the vulnerability where the namespace parameter
+ * could be manipulated to access artifacts from other namespaces.
+ * See https://github.com/kubeflow/pipelines/issues/9889
+ *
+ * @param authorizeFn The authorization function to validate permissions
+ * @param authEnabled Whether authorization is enabled
+ * @param kubeflowUserIdHeader The header name containing the user identity
+ */
+export function getArtifactsAuthMiddleware(
+  authorizeFn: AuthorizeFn,
+  authEnabled: boolean,
+  kubeflowUserIdHeader: string,
+): Handler {
+  return async (request: Request, response: Response, next: NextFunction) => {
+    if (!authEnabled) {
+      return next();
+    }
+
+    const userId = request.headers[kubeflowUserIdHeader.toLowerCase()];
+    if (!userId) {
+      console.warn(
+        `[SECURITY] Unauthenticated artifact access attempt. Path: ${request.originalUrl}`,
+      );
+      response.status(401).send('Authentication required for artifact access');
+      return;
+    }
+
+    const rawNamespace = request.query.namespace;
+    const namespace: string | undefined = Array.isArray(rawNamespace)
+      ? String(rawNamespace[0])
+      : typeof rawNamespace === 'string'
+        ? rawNamespace
+        : undefined;
+
+    if (!namespace) {
+      console.warn(
+        `[SECURITY] Missing namespace parameter. ` +
+          `User: ${userId}, Path: ${request.originalUrl}`,
+      );
+      response.status(400).send('Namespace parameter is required when authentication is enabled');
+      return;
+    }
+
+    if (!isAllowedResourceName(namespace)) {
+      console.warn(
+        `[SECURITY] Invalid namespace format. ` +
+          `User: ${userId}, ` +
+          `Namespace: ${namespace}, Path: ${request.originalUrl}`,
+      );
+      response.status(400).send('Invalid namespace format');
+      return;
+    }
+
+    const authError = await authorizeFn(
+      {
+        verb: AuthorizeRequestVerb.GET,
+        resources: AuthorizeRequestResources.VIEWERS,
+        namespace: namespace,
+      },
+      request,
+    );
+
+    if (authError) {
+      console.warn(
+        `[SECURITY] Unauthorized cross-namespace access attempt. ` +
+          `User: ${userId}, ` +
+          `Namespace: ${namespace}, Path: ${request.originalUrl}, ` +
+          `Reason: ${authError.message}`,
+      );
+      response.status(403).send(authError.message);
+      return;
+    }
+
+    next();
+  };
+}
+
+/**
  * Returns an artifact handler which retrieve an artifact from the corresponding
  * backend (i.e. gcs, minio, s3, http/https).
  * @param artifactsConfigs configs to retrieve the artifacts from the various backend.
@@ -105,6 +223,10 @@ export function getArtifactsHandler({
     const {
       peek = 0,
       providerInfo = '',
+      // When auth is enabled, the authorization middleware has already validated
+      // and required the namespace parameter before this handler runs.
+      // When auth is disabled (standalone mode), fallback to serverNamespace
+      // for provider-based credential lookups via getK8sSecret (Issue #9889).
       namespace = options.server.serverNamespace,
     } = req.query as Partial<ArtifactsQueryStrings>;
     if (!source) {
@@ -215,13 +337,14 @@ function getHttpArtifactsHandler(
   peek: number = 0,
 ) {
   return async (req: Request, res: Response) => {
-    const headers = {};
+    const headers: Record<string, string> = {};
 
     // add authorization header to fetch request if key is non-empty
     if (auth.key.length > 0) {
       // inject original request's value if exists, otherwise default to provided default value
-      headers[auth.key] =
+      const headerValue =
         req.headers[auth.key] || req.headers[auth.key.toLowerCase()] || auth.defaultValue;
+      headers[auth.key] = Array.isArray(headerValue) ? headerValue[0] : headerValue;
     }
     if (!isAllowedDomain(url, allowedDomain)) {
       res.status(500).send(`Domain not allowed.`);
@@ -253,12 +376,160 @@ function getMinioArtifactHandler(
         .pipe(new PreviewStream({ peek }))
         .pipe(res);
     } catch (err) {
+      // In KFP v2, output artifacts may be directories (prefixes) rather than
+      // single objects. Fall back to packaging the contents of the prefix as
+      // a .tar.gz so users can still download them. See
+      // https://github.com/kubeflow/pipelines/issues/7809
+      if (isNoSuchKeyError(err)) {
+        if (peek > 0) {
+          // Preview request (e.g. the run details panel calls
+          // Apis.readFile with a small peek size). We must not stream a
+          // full directory archive here — that would list every object
+          // under the prefix and gzip the whole tree just to render a few
+          // KB of inline text. Instead, answer with a small text summary
+          // backed by one capped ListObjectsV2 call: cost stays bounded
+          // (one round trip, <1KB body) and the user sees that the
+          // artifact is a directory with N files.
+          try {
+            await previewDirectorySummary(options, res);
+            return;
+          } catch (summaryErr) {
+            console.error(summaryErr);
+            res.status(500).send(`Failed to summarize directory: ${summaryErr}`);
+            return;
+          }
+        }
+        try {
+          await streamDirectoryAsTarGz(options, res);
+          return;
+        } catch (tarErr) {
+          console.error(tarErr);
+          if (!res.headersSent) {
+            res.status(500).send(`Failed to get object in bucket: ${tarErr}`);
+          } else {
+            res.end();
+          }
+          return;
+        }
+      }
       console.error(err);
       res.status(500).send(`Failed to get object in bucket: ${err}`);
     }
   };
 }
 
+async function previewDirectorySummary(
+  options: { bucket: string; key: string; client: MinioClient },
+  res: Response,
+) {
+  const { bucket, key, client } = options;
+  // Trailing slash so prefix "foo" doesn't also match sibling key "foobar".
+  const prefix = key.endsWith('/') ? key : `${key}/`;
+  const summary = await summarizeDirectoryUnderPrefix(client, bucket, prefix);
+  if (!summary) {
+    res.status(404).send(`No objects found at ${bucket}/${key}`);
+    return;
+  }
+  const baseName = key.replace(/\/+$/, '').split('/').pop() || 'artifact';
+  const countLabel = `${summary.count}${summary.truncated ? '+' : ''}`;
+  res
+    .type('text/plain')
+    .send(`Directory artifact "${baseName}" — ${countLabel} file(s). Download to view contents.\n`);
+}
+
+async function streamDirectoryAsTarGz(
+  options: { bucket: string; key: string; client: MinioClient },
+  res: Response,
+) {
+  const { bucket, key, client } = options;
+  // Trailing slash so prefix "foo" doesn't also match sibling key "foobar".
+  const prefix = key.endsWith('/') ? key : `${key}/`;
+
+  // Peek the first object before sending headers so an empty prefix can still
+  // produce a 404 instead of an empty 200 tarball.
+  const iterator = listObjectsUnderPrefix(client, bucket, prefix);
+  const first = await iterator.next();
+  if (first.done) {
+    res.status(404).send(`No objects found at ${bucket}/${key}`);
+    return;
+  }
+
+  const baseName = key.replace(/\/+$/, '').split('/').pop() || 'artifact';
+  res.setHeader('Content-Type', 'application/gzip');
+  res.setHeader('Content-Disposition', buildAttachmentDisposition(`${baseName}.tar.gz`));
+
+  const pack = tar.pack();
+  const gzip = zlib.createGzip();
+  pack.pipe(gzip).pipe(res);
+
+  const writeEntry = async ({ name, size }: { name: string; size: number }) => {
+    const relativeName = name.startsWith(prefix) ? name.slice(prefix.length) : name;
+    const safeName = sanitizeTarEntryName(relativeName);
+    if (!safeName) {
+      // Skip directory-marker objects (key === prefix) and any keys that
+      // sanitize to an empty path.
+      return;
+    }
+    const objStream = await client.getObject(bucket, name);
+    await new Promise<void>((resolve, reject) => {
+      const entry = pack.entry({ name: safeName, size }, (err) => (err ? reject(err) : resolve()));
+      objStream.on('error', reject);
+      objStream.pipe(entry);
+    });
+  };
+
+  try {
+    await writeEntry(first.value);
+    for await (const item of iterator) {
+      await writeEntry(item);
+    }
+  } finally {
+    pack.finalize();
+  }
+}
+
+// Builds a `Content-Disposition: attachment` header that is safe to pass to
+// `res.setHeader` regardless of the user-controlled filename. The legacy
+// `filename=` parameter is reduced to an ASCII-only form so older clients
+// don't see broken quoting; the modern `filename*` parameter carries the
+// real name via RFC 5987 percent-encoding (UTF-8). Without this, a key
+// containing quotes, control characters, or anything outside latin-1 could
+// cause `setHeader` to throw or produce a malformed download name.
+function buildAttachmentDisposition(filename: string): string {
+  // Path separators have no place in a filename and are not valid in either
+  // disposition parameter.
+  const stripped = filename.replace(/[/\\]+/g, '_');
+  const asciiFallback = stripped.replace(/[^A-Za-z0-9._-]/g, '_') || 'artifact';
+  // encodeURIComponent leaves a few characters (', (, ), *) unencoded that
+  // RFC 5987's `attr-char` set excludes; encode them explicitly so the
+  // result conforms to `ext-value` from RFC 5987.
+  const rfc5987Encoded = encodeURIComponent(stripped).replace(
+    /['()*]/g,
+    (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase(),
+  );
+  return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${rfc5987Encoded}`;
+}
+
+// Sanitizes an object key into a safe relative POSIX path for inclusion in a
+// tarball. Strips leading slashes and removes "." and ".." segments to
+// prevent tar-slip path traversal during extraction. Returns null when the
+// result is empty (e.g. for directory-marker objects whose key equals the
+// prefix, or paths consisting entirely of unsafe segments).
+function sanitizeTarEntryName(name: string): string | null {
+  const segments = name
+    .split('/')
+    .filter((segment) => segment !== '' && segment !== '.' && segment !== '..');
+  return segments.length > 0 ? segments.join('/') : null;
+}
+
+/**
+ * Parses GCS provider info and retrieves credentials from a Kubernetes secret.
+ *
+ * WARNING: This function is unsupported in multi-user deployments.
+ * The ml-pipeline-ui ClusterRole no longer grants secrets:get/list
+ * permissions, so getK8sSecret() calls will be denied by RBAC.
+ * See: https://github.com/kubeflow/pipelines/pull/12860
+ */
 async function parseGCSProviderInfo(
   providerInfo: GCSProviderInfo,
   namespace: string,

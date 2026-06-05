@@ -30,7 +30,7 @@ spec:
         envFrom:
         - secretRef:
             name: mlpipeline-minio-artifact
-        image: "chrislusf/seaweedfs:4.15"
+        image: "ghcr.io/chrislusf/seaweedfs:4.30"
         args:
         - "server"
         - "-dir=/data"
@@ -142,8 +142,8 @@ spec:
           name: data
         resources:
           requests:
-            cpu: 32m
-            memory: 128Mi
+            cpu: 64m
+            memory: 256Mi
       volumes:
       - name: data
         persistentVolumeClaim:

@@ -181,7 +181,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
     };
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const {
       packageUrl,
       pipelineName,
@@ -512,12 +512,13 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
   }
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     const urlParser = new URLParser(this.props);
     const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
     if (pipelineId) {
       const pipelineResponse = await Apis.pipelineServiceApiV2.getPipeline(pipelineId);
       const currDate = new Date();
-      this.setState(
+      this.setStateSafe(
         {
           pipelineId,
           pipelineName: pipelineResponse.display_name,

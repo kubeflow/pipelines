@@ -14,17 +14,21 @@
  * limitations under the License.
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import { QueryClientProvider } from '@tanstack/react-query';
 import * as JsYaml from 'js-yaml';
 import * as features from 'src/features';
 import { CommonTestWrapper } from 'src/TestWrapper';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import RecurringRunDetailsRouter from './RecurringRunDetailsRouter';
 import { PageProps } from 'src/pages/Page';
+import { queryClientTest } from 'src/TestUtils';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
+import { BrowserRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 
 vi.mock('src/pages/RecurringRunDetails', () => ({
@@ -123,19 +127,8 @@ describe('RecurringRunDetailsRouter', () => {
         pipeline_version_id: TEST_PIPELINE_VERSION_ID,
       },
     };
-    const pipelineVersion: V2beta1PipelineVersion = {
-      pipeline_id: TEST_PIPELINE_ID,
-      pipeline_version_id: TEST_PIPELINE_VERSION_ID,
-      pipeline_spec: {
-        apiVersion: 'argoproj.io/v1alpha1',
-        kind: 'Workflow',
-        metadata: { name: 'from-version' },
-        spec: { arguments: { parameters: [{ name: 'output' }] } },
-      },
-    };
 
     getRecurringRunSpy.mockResolvedValue(recurringRun);
-    getPipelineVersionSpy.mockResolvedValue(pipelineVersion);
 
     render(
       <CommonTestWrapper>
@@ -144,12 +137,9 @@ describe('RecurringRunDetailsRouter', () => {
     );
 
     await waitFor(() => {
-      expect(getPipelineVersionSpy).toHaveBeenCalledWith(
-        TEST_PIPELINE_ID,
-        TEST_PIPELINE_VERSION_ID,
-      );
       expect(screen.getByTestId('recurring-run-details-v2')).toBeInTheDocument();
     });
+    expect(getPipelineVersionSpy).not.toHaveBeenCalled();
   });
 
   it('renders RecurringRunDetailsV2FC when FUNCTIONAL_COMPONENT flag is enabled', async () => {
@@ -233,10 +223,82 @@ describe('RecurringRunDetailsRouter', () => {
     });
   });
 
+  describe('template refetch regression', () => {
+    afterEach(() => {
+      queryClientTest.clear();
+    });
+
+    it('keeps RecurringRunDetails visible during template refetch after the template is cached', async () => {
+      const argoWorkflow = {
+        apiVersion: 'argoproj.io/v1alpha1',
+        kind: 'Workflow',
+        metadata: { name: 'from-version' },
+        spec: { arguments: { parameters: [{ name: 'output' }] } },
+      };
+      const recurringRun: V2beta1RecurringRun = {
+        recurring_run_id: TEST_RECURRING_RUN_ID,
+        pipeline_version_reference: {
+          pipeline_id: TEST_PIPELINE_ID,
+          pipeline_version_id: TEST_PIPELINE_VERSION_ID,
+        },
+      };
+      const pipelineVersion: V2beta1PipelineVersion = {
+        pipeline_id: TEST_PIPELINE_ID,
+        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
+        pipeline_spec: argoWorkflow,
+      };
+      // Use a dedicated query client so the test can invalidate the cached template query directly.
+      const wrapper = (props: { children: React.ReactElement }) => (
+        <BrowserRouter>
+          <QueryClientProvider client={queryClientTest}>{props.children}</QueryClientProvider>
+        </BrowserRouter>
+      );
+
+      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+      );
+      getRecurringRunSpy.mockResolvedValue(recurringRun);
+      getPipelineVersionSpy.mockResolvedValue(pipelineVersion);
+
+      render(<RecurringRunDetailsRouter {...generateProps()} />, { wrapper });
+
+      await waitFor(() => {
+        expect(getPipelineVersionSpy).toHaveBeenCalledWith(
+          TEST_PIPELINE_ID,
+          TEST_PIPELINE_VERSION_ID,
+        );
+      });
+      expect(screen.getByTestId('recurring-run-details-v1')).toBeInTheDocument();
+      expect(screen.queryByRole('progressbar')).toBeNull();
+
+      getPipelineVersionSpy.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(() => resolve(pipelineVersion), 100);
+          }),
+      );
+
+      act(() => {
+        queryClientTest.invalidateQueries({
+          queryKey: queryKeys.pipelineVersionTemplate(TEST_PIPELINE_ID, TEST_PIPELINE_VERSION_ID),
+        });
+      });
+
+      expect(screen.getByTestId('recurring-run-details-v1')).toBeInTheDocument();
+      expect(screen.queryByRole('progressbar')).toBeNull();
+
+      await waitFor(() => {
+        expect(getPipelineVersionSpy).toHaveBeenCalledTimes(2);
+      });
+      expect(screen.getByTestId('recurring-run-details-v1')).toBeInTheDocument();
+      expect(screen.queryByRole('progressbar')).toBeNull();
+    });
+  });
+
   it('returns null when fetch fails and no template is available', async () => {
     getRecurringRunSpy.mockRejectedValue(new Error('Not found'));
 
-    const { container } = render(
+    render(
       <CommonTestWrapper>
         <RecurringRunDetailsRouter {...generateProps()} />
       </CommonTestWrapper>,
@@ -247,9 +309,67 @@ describe('RecurringRunDetailsRouter', () => {
     });
 
     await waitFor(() => {
-      expect(container.querySelector('[data-testid]')).toBeNull();
-      expect(screen.queryByText('Currently loading recurring run information')).toBeNull();
+      expect(screen.queryByTestId('recurring-run-details-v1')).toBeNull();
+      expect(screen.queryByTestId('recurring-run-details-v2')).toBeNull();
+      expect(screen.queryByTestId('recurring-run-details-v2-fc')).toBeNull();
+      expect(screen.queryByRole('progressbar')).toBeNull();
     });
+  });
+
+  it('shows error banner when pipeline version template fetch fails', async () => {
+    const recurringRun: V2beta1RecurringRun = {
+      recurring_run_id: TEST_RECURRING_RUN_ID,
+      pipeline_version_reference: {
+        pipeline_id: TEST_PIPELINE_ID,
+        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
+      },
+    };
+    getRecurringRunSpy.mockResolvedValue(recurringRun);
+    getPipelineVersionSpy.mockRejectedValue(new Error('Version not found'));
+
+    const props = generateProps();
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsRouter {...props} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(props.updateBanner).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining('failed to retrieve pipeline version template'),
+          mode: 'error',
+        }),
+      );
+    });
+  });
+
+  it('does not show error banner when inline pipeline_spec is present and getPipelineVersion rejects', async () => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+    );
+    const recurringRun: V2beta1RecurringRun = {
+      recurring_run_id: TEST_RECURRING_RUN_ID,
+      pipeline_spec: v2PipelineSpec,
+      pipeline_version_reference: {
+        pipeline_id: TEST_PIPELINE_ID,
+        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
+      },
+    };
+    getRecurringRunSpy.mockResolvedValue(recurringRun);
+    getPipelineVersionSpy.mockRejectedValue(new Error('Version not found'));
+
+    const props = generateProps();
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsRouter {...props} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('recurring-run-details-v2')).toBeInTheDocument();
+    });
+    expect(props.updateBanner).not.toHaveBeenCalled();
   });
 
   it('shows loading message while recurring run data is being fetched', () => {
@@ -261,6 +381,7 @@ describe('RecurringRunDetailsRouter', () => {
       </CommonTestWrapper>,
     );
 
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
     expect(screen.getByText('Currently loading recurring run information')).toBeInTheDocument();
   });
 });
