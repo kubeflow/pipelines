@@ -2381,6 +2381,53 @@ func TestWorkflow_FindObjectStoreArtifactKeyOrEmpty_NodeNotFound(t *testing.T) {
 	assert.Equal(t, "", workflow.FindObjectStoreArtifactKeyOrEmpty("node1", "artifact1"))
 }
 
+func TestWorkflow_FindObjectStoreArtifactKeyOrEmpty_RetryParentNode(t *testing.T) {
+	// Retry parent node (from global retryStrategy) delegates artifacts to child execution nodes.
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{
+				"retry-parent-node": {
+					ID:       "retry-parent-node",
+					Type:     workflowapi.NodeTypeRetry,
+					Children: []string{"retry-parent-node(0)"},
+				},
+				"retry-parent-node(0)": {
+					ID: "retry-parent-node(0)",
+					Outputs: &workflowapi.Outputs{
+						Artifacts: workflowapi.Artifacts{
+							{
+								Name: "artifact1",
+								ArtifactLocation: workflowapi.ArtifactLocation{
+									S3: &workflowapi.S3Artifact{
+										Key: "bucket/artifacts/retry-child-key",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	assert.Equal(t, "bucket/artifacts/retry-child-key",
+		workflow.FindObjectStoreArtifactKeyOrEmpty("retry-parent-node", "artifact1"))
+}
+
+func TestWorkflow_FindObjectStoreArtifactKeyOrEmpty_RetryParentNoChildren(t *testing.T) {
+	// Retry parent node with no children should return empty.
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{
+				"retry-parent-node": {
+					ID:   "retry-parent-node",
+					Type: workflowapi.NodeTypeRetry,
+				},
+			},
+		},
+	})
+	assert.Equal(t, "", workflow.FindObjectStoreArtifactKeyOrEmpty("retry-parent-node", "artifact1"))
+}
+
 // nonWorkflowExecution implements ExecutionSpec via embedding but is not *Workflow.
 // Used to test type assertion failures in WorkflowInterface methods.
 type nonWorkflowExecution struct {

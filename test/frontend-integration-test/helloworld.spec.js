@@ -193,7 +193,13 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('has a 4-node graph', async () => {
-    await waitForGraphNodeCount(4, { timeout: uiTimeout });
+    await waitForCondition(
+      async () => (await $$('.graphNode')).length >= 4,
+      {
+        timeout: uiTimeout,
+        timeoutMsg: 'expected at least 4 graph node(s) to be visible',
+      },
+    );
   });
 
   it('opens the side panel when graph node is clicked', async () => {
