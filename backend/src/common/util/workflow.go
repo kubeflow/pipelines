@@ -777,6 +777,7 @@ func (w *Workflow) SetCannonicalLabels(name string, nextScheduledEpoch int64, in
 
 // FindObjectStoreArtifactKeyOrEmpty loops through all node running statuses and look up the first
 // S3 artifact with the specified nodeID and artifactName. Returns empty if nothing is found.
+// Also checks children nodes to handle retry parent nodes that have no artifacts themselves.
 func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeName string, artifactName string) string {
 	if w.Status.Nodes == nil {
 		return ""
@@ -785,17 +786,30 @@ func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeName string, artifactNa
 	if !found {
 		return ""
 	}
+	if s3Key := findArtifactS3KeyFromNode(node, artifactName); s3Key != "" {
+		return s3Key
+	}
+	for _, childNodeID := range node.Children {
+		if childNode, childFound := w.Status.Nodes[childNodeID]; childFound {
+			if s3Key := findArtifactS3KeyFromNode(childNode, artifactName); s3Key != "" {
+				return s3Key
+			}
+		}
+	}
+	return ""
+}
+
+// findArtifactS3KeyFromNode extracts the S3 key for a named artifact from a node's outputs.
+func findArtifactS3KeyFromNode(node workflowapi.NodeStatus, artifactName string) string {
 	if node.Outputs == nil || node.Outputs.Artifacts == nil {
 		return ""
 	}
-	var s3Key string
 	for _, artifact := range node.Outputs.Artifacts {
-		if artifact.Name != artifactName || artifact.S3 == nil || artifact.S3.Key == "" {
-			continue
+		if artifact.Name == artifactName && artifact.S3 != nil && artifact.S3.Key != "" {
+			return artifact.S3.Key
 		}
-		s3Key = artifact.S3.Key
 	}
-	return s3Key
+	return ""
 }
 
 // IsInFinalState whether the workflow is in a final state.
