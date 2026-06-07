@@ -890,6 +890,10 @@ func uploadOutputArtifactsWithRetry(
 		var uploadErr *outputArtifactUploadError
 		if errors.As(err, &uploadErr) {
 			glog.Info("Refreshing credentials before retrying artifacts upload.")
+			if openBucketConfig == nil {
+				finalErr = fmt.Errorf("failed to refresh credentials before retrying artifacts upload: open bucket config is nil: %w", err)
+				break
+			}
 			openBucket := objectstore.OpenBucket
 			if openBucketConfig.open != nil {
 				openBucket = openBucketConfig.open

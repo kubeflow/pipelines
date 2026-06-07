@@ -394,6 +394,53 @@ func Test_uploadOutputArtifactsWithRetry_refreshesBucketAfterUploadFailure(t *te
 	assert.Equal(t, "dataset", string(uploaded))
 }
 
+func Test_uploadOutputArtifactsWithRetry_returnsErrorWhenUploadFailureCannotRefreshBucket(t *testing.T) {
+	ctx := context.Background()
+	bucketConfig, err := objectstore.ParseBucketConfig("mem://test-bucket-refresh-missing-config/pipeline-root/", nil)
+	assert.Nil(t, err)
+
+	staleBucket, err := blob.OpenBucket(ctx, "mem://test-bucket-refresh-missing-config")
+	assert.Nil(t, err)
+	assert.Nil(t, staleBucket.Close())
+
+	tempDir := t.TempDir()
+	outputDataPath := filepath.Join(tempDir, "output-data")
+	assert.Nil(t, os.WriteFile(outputDataPath, []byte("dataset"), 0644))
+
+	executorInput := &pipelinespec.ExecutorInput{
+		Outputs: &pipelinespec.ExecutorInput_Outputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"output-data": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							Uri:        "mem://test-bucket-refresh-missing-config/pipeline-root/output-data",
+							Type:       &pipelinespec.ArtifactTypeSchema{Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Dataset"}},
+							CustomPath: &outputDataPath,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, err = uploadOutputArtifactsWithRetry(
+		ctx,
+		executorInput,
+		nil,
+		uploadOutputArtifactsOptions{
+			bucketConfig:   bucketConfig,
+			bucket:         staleBucket,
+			metadataClient: metadata.NewFakeClient(),
+		},
+		true,
+		nil,
+		2,
+	)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "open bucket config is nil")
+}
+
 func Test_executeV2_publishLogs_skipsArtifactWhenSetupFailsBeforeLogsExist(t *testing.T) {
 	fakeKubernetesClientset := &fake.Clientset{}
 	fakeMetadataClient := metadata.NewFakeClient()
