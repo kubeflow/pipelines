@@ -71,7 +71,8 @@ if [[ "$WORKFLOW_PHASE" != "Succeeded" ]]; then
   exit 1
 fi
 
-KEY=$(kubectl -n "$NAMESPACE" get workflow "$WORKFLOW_NAME" -o jsonpath='{.status.nodes.*.outputs.artifacts[?(@.name=="out")].s3.key}')
+KEY=$(kubectl -n "$NAMESPACE" get workflow "$WORKFLOW_NAME" -o json | \
+  jq -r '[.status.nodes[].outputs.artifacts[]? | select(.name=="out") | .s3.key] | first')
 ART_URL="http://ml-pipeline-ui-artifact.${NAMESPACE}.svc.cluster.local/artifacts/get?source=minio&bucket=mlpipeline&key=${KEY}"
 if ! kubectl -n "$NAMESPACE" exec kfp-proxy-curl -- sh -c \
   "curl -fsS -H 'kubeflow-userid: user@example.com' '${ART_URL}' 2>/dev/null | grep -qx 'artifact-proxy-e2e-test-content'"; then
