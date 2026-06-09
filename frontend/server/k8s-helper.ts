@@ -219,8 +219,9 @@ export async function deleteTensorboardInstance(logdir: string, namespace: strin
 }
 
 /**
- * Polls every second for a running Tensorboard instance with the given logdir,
- * and returns the address of one if found, or rejects if a timeout expires.
+ * Polls every second for a running TensorBoard instance with the given logdir
+ * and resolves with the viewer resource name once it appears, or rejects if a
+ * timeout expires.
  */
 export function waitForTensorboardInstance(
   logdir: string,
