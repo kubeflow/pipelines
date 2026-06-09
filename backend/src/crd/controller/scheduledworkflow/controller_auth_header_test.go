@@ -245,6 +245,7 @@ func TestNormalizeAndValidateMetadataKey(test *testing.T) {
 		{name: "space is invalid", input: "kubeflow userid", expectErr: true},
 		{name: "colon is invalid", input: "kubeflow:userid", expectErr: true},
 		{name: "empty is invalid", input: "", expectErr: true},
+		{name: "grpc- prefix is reserved", input: "grpc-status", expectErr: true},
 	}
 
 	for _, testCase := range tests {

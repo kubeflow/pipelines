@@ -138,6 +138,9 @@ func normalizeAndValidateMetadataKey(key string) (string, error) {
 	if !validGRPCMetadataKey.MatchString(normalized) {
 		return "", fmt.Errorf("must match %s (lowercase letters, digits, '-', '_', '.')", validGRPCMetadataKey.String())
 	}
+	if strings.HasPrefix(normalized, "grpc-") {
+		return "", fmt.Errorf("keys beginning with \"grpc-\" are reserved by the gRPC runtime and will be silently dropped")
+	}
 	return normalized, nil
 }
 
