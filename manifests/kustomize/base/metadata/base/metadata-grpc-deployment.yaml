@@ -84,7 +84,6 @@ spec:
             configMapKeyRef:
               name: pipeline-install-config
               key: mlmdDb
-              optional: true
         - name: MYSQL_HOST
           valueFrom:
             configMapKeyRef:
@@ -102,7 +101,6 @@ spec:
             secretKeyRef:
               name: mysql-secret
               key: username
-              optional: true
         - name: DBCONFIG_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -121,6 +119,11 @@ spec:
             if [ -z "${HOST}" ]; then
               echo "No DB host provided, skipping schema init."
               exit 0
+            fi
+
+            if [ -z "${DB}" ]; then
+              echo "Error: DB name is not set. Exiting."
+              exit 1
             fi
 
             mysql -h "${HOST}" -P "${PORT}" -u "${USER}" -p"${PASS}" -e "CREATE DATABASE IF NOT EXISTS \`${DB}\`;"

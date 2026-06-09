@@ -53,6 +53,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 // Metric variables. Please prefix the metric names with resource_manager_.
@@ -1127,11 +1128,18 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 
 	// First try to update workflow
 	// If fail to get the workflow, return error.
-	maxRetries := 10
+	backoff := wait.Backoff{
+		Duration: 100 * time.Millisecond,
+		Factor:   1.5,
+		Jitter:   0.2,
+		Steps:    10,
+	}
+
 	var finalErr error
-	for i := 0; i < maxRetries; i++ {
+	err = wait.ExponentialBackoffWithContext(ctx, backoff, func(ctx context.Context) (bool, error) {
 		if ctx.Err() != nil {
-			return util.NewInternalServerError(ctx.Err(), "Failed to retry run %s due to context cancellation", runId)
+			finalErr = util.NewInternalServerError(ctx.Err(), "Failed to retry run %s due to context cancellation", runId)
+			return false, finalErr
 		}
 
 		latestWorkflow, updateError := r.getWorkflowClient(namespace).Get(ctx, newExecSpec.ExecutionName(), v1.GetOptions{})
@@ -1143,8 +1151,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		if updateError != nil {
 			if apierrors.IsConflict(errors.Unwrap(updateError)) || apierrors.IsConflict(updateError) {
 				finalErr = updateError
-				time.Sleep(100 * time.Millisecond)
-				continue
+				return false, nil
 			}
 			// Remove resource version
 			newExecSpec.SetVersion("")
@@ -1152,21 +1159,25 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 			if createError != nil {
 				if apierrors.IsAlreadyExists(errors.Unwrap(createError)) || apierrors.IsAlreadyExists(createError) {
 					finalErr = createError
-					time.Sleep(100 * time.Millisecond)
-					continue
+					return false, nil
 				}
 				if createError, ok := createError.(net.Error); ok && createError.Timeout() {
-					return util.NewUnavailableServerError(createError, "Failed to retry run %s due to error creating and updating a workflow - try again later. Update error: %s", runId, updateError.Error())
+					finalErr = util.NewUnavailableServerError(createError, "Failed to retry run %s due to error creating and updating a workflow - try again later. Update error: %s", runId, updateError.Error())
+					return true, finalErr
 				}
-				return util.NewInternalServerError(createError, "Failed to retry run %s due to error updating and creating a workflow. Update error: %s", runId, updateError.Error())
+				finalErr = util.NewInternalServerError(createError, "Failed to retry run %s due to error updating and creating a workflow. Update error: %s", runId, updateError.Error())
+				return true, finalErr
 			}
 			newExecSpec = newCreatedWorkflow
 		}
 		finalErr = nil
-		break
-	}
-	if finalErr != nil {
-		return util.NewInternalServerError(finalErr, "Failed to retry run %s due to exhausted retries", runId)
+		return true, nil
+	})
+	if err != nil || finalErr != nil {
+		if finalErr != nil {
+			return util.NewInternalServerError(finalErr, "Failed to retry run %s due to exhausted retries", runId)
+		}
+		return util.NewInternalServerError(err, "Failed to retry run %s due to exhausted retries", runId)
 	}
 	// Notify plugins of retry
 	if run.PluginsOutputString != nil && *run.PluginsOutputString != "" {

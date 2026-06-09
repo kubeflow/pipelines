@@ -14,10 +14,7 @@ spec:
         - name: WAIT_PORT
           value: "5432"
       - name: init-db-schema
-        env:
-        - $patch: replace
-        - name: MYSQL_HOST
-          value: ""
+        $patch: delete
       containers:
         - name: container
           # Remove existing environment variables
