@@ -192,7 +192,7 @@ describe('deploy helloworld sample run', () => {
     await $('button=Graph').click();
   });
 
-  it('has a 4-node graph', async () => {
+  it('has at least 4 graph nodes', async () => {
     await waitForCondition(
       async () => (await $$('.graphNode')).length >= 4,
       {
