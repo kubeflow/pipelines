@@ -26,17 +26,25 @@ import registerTensorboardProxy, {
 } from './tensorboard-proxy.js';
 
 const TENSORBOARD_PROXY_PREFIX = '/apps/tensorboard/proxy/';
+const TENSORBOARD_PROXY_SIGNING_SECRET = 'tensorboard-proxy-test-secret';
 
 describe('tensorboard-proxy', () => {
   it('creates scoped proxy paths that round-trip through the parser', () => {
-    const proxyPath = createTensorboardProxyPath('test-ns', 'viewer-abcdefg');
+    const proxyPath = createTensorboardProxyPath(
+      'test-ns',
+      'viewer-abcdefg',
+      TENSORBOARD_PROXY_SIGNING_SECRET,
+    );
     expect(proxyPath.startsWith('apps/tensorboard/proxy/')).toBe(true);
 
     const parsedRequest = parseTensorboardProxyRequest(TENSORBOARD_PROXY_PREFIX, `/${proxyPath}`);
     expect(parsedRequest).toBeDefined();
     expect(parsedRequest?.proxyPath).toBe('/');
 
-    const parsedPayload = parseTensorboardProxyPayload(parsedRequest!.token);
+    const parsedPayload = parseTensorboardProxyPayload(
+      parsedRequest!.token,
+      TENSORBOARD_PROXY_SIGNING_SECRET,
+    );
     expect(parsedPayload).toEqual({
       namespace: 'test-ns',
       viewerName: 'viewer-abcdefg',
@@ -62,7 +70,11 @@ describe('tensorboard-proxy', () => {
   });
 
   it('extracts the scoped proxy base path from a referer', () => {
-    const proxyPath = createTensorboardProxyPath('test-ns', 'viewer-abcdefg');
+    const proxyPath = createTensorboardProxyPath(
+      'test-ns',
+      'viewer-abcdefg',
+      TENSORBOARD_PROXY_SIGNING_SECRET,
+    );
     expect(
       getTensorboardProxyBasePath(
         TENSORBOARD_PROXY_PREFIX,
@@ -78,6 +90,7 @@ describe('tensorboard-proxy', () => {
       '/pipeline',
       {
         clusterDomain: '.svc.cluster.local',
+        proxySigningSecret: TENSORBOARD_PROXY_SIGNING_SECRET,
         tfImageName: 'tensorflow/tensorflow',
       },
       vi.fn(async () => undefined),
@@ -86,17 +99,49 @@ describe('tensorboard-proxy', () => {
     await requests(app).get('/apps/tensorboard/proxy/not-a-valid-token/').expect(403);
   });
 
-  it('rewrites absolute TensorBoard subrequests using the referer-scoped token', async () => {
+  it('rejects proxy path traversal before authorizing the request', async () => {
     const app = express();
-    const authorizeFn = vi.fn(
-      async (): Promise<ErrorDetails | undefined> => ({ message: 'denied', additionalInfo: '' }),
+    const authorizeFn = vi.fn(async () => undefined);
+    const proxyPath = createTensorboardProxyPath(
+      'test-ns',
+      'viewer-abcdefg',
+      TENSORBOARD_PROXY_SIGNING_SECRET,
     );
-    const proxyPath = createTensorboardProxyPath('test-ns', 'viewer-abcdefg');
+
     registerTensorboardProxy(
       app,
       '/pipeline',
       {
         clusterDomain: '.svc.cluster.local',
+        proxySigningSecret: TENSORBOARD_PROXY_SIGNING_SECRET,
+        tfImageName: 'tensorflow/tensorflow',
+      },
+      authorizeFn,
+    );
+
+    await requests(app)
+      .get(`/${proxyPath}../data/plugin/scalars/scalars`)
+      .expect(400, 'Invalid TensorBoard proxy path');
+
+    expect(authorizeFn).not.toHaveBeenCalled();
+  });
+
+  it('rewrites absolute TensorBoard subrequests using the referer-scoped token', async () => {
+    const app = express();
+    const authorizeFn = vi.fn(
+      async (): Promise<ErrorDetails | undefined> => ({ message: 'denied', additionalInfo: '' }),
+    );
+    const proxyPath = createTensorboardProxyPath(
+      'test-ns',
+      'viewer-abcdefg',
+      TENSORBOARD_PROXY_SIGNING_SECRET,
+    );
+    registerTensorboardProxy(
+      app,
+      '/pipeline',
+      {
+        clusterDomain: '.svc.cluster.local',
+        proxySigningSecret: TENSORBOARD_PROXY_SIGNING_SECRET,
         tfImageName: 'tensorflow/tensorflow',
       },
       authorizeFn,

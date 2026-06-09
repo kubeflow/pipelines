@@ -788,6 +788,10 @@ export default (app: express.Application) => {
     }, 1000);
   });
 
+  app.all(v1beta1Prefix + '/_proxy/*', (_req, res) => {
+    res.status(410).send('The generic /_proxy/ endpoint is deprecated and no longer supported.');
+  });
+
   app.get('/k8s/pod/logs', (req, res) => {
     const podName = getRequiredDecodedQueryString(res, req.query.podname, 'podname');
     if (!podName) {

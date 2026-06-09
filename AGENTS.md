@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-05-31
+- Last updated: 2026-06-09
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -659,6 +659,7 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - `_KFP_RUNTIME=true`: Disables SDK imports during task execution
 - `VITE_NAMESPACE=...`: Sets the target namespace for the frontend in multi-user mode
 - `LOCAL_API_SERVER=true`: Enables local API server testing mode when running integration tests on a Kind cluster
+- `TENSORBOARD_PROXY_SIGNING_SECRET=...`: Optional shared frontend-server secret for scoped TensorBoard proxy URLs; defaults to `MINIO_SECRET_KEY` when unset
 
 ## Troubleshooting and pitfalls
 

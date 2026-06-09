@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 import express from 'express';
+import { rateLimit } from 'express-rate-limit';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { URL, URLSearchParams } from 'url';
 import { ViewerTensorboardConfig } from '../configs.js';
@@ -27,7 +28,8 @@ import { isAllowedResourceName } from '../utils.js';
 
 const DEFAULT_CLUSTER_DOMAIN = '.svc.cluster.local';
 const TENSORBOARD_PROXY_PREFIX = '/apps/tensorboard/proxy/';
-const TENSORBOARD_PROXY_SECRET = randomBytes(32);
+const TENSORBOARD_PROXY_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const TENSORBOARD_PROXY_RATE_LIMIT = 3000;
 
 interface TensorboardProxyPayload {
   namespace: string;
@@ -39,10 +41,8 @@ interface ParsedTensorboardProxyRequest {
   token: string;
 }
 
-function signTensorboardProxyPayload(serializedPayload: string): string {
-  return createHmac('sha256', TENSORBOARD_PROXY_SECRET)
-    .update(serializedPayload)
-    .digest('base64url');
+function signTensorboardProxyPayload(serializedPayload: string, signingSecret: string): string {
+  return createHmac('sha256', signingSecret).update(serializedPayload).digest('base64url');
 }
 
 function normalizeClusterDomain(clusterDomain: string): string {
@@ -52,13 +52,17 @@ function normalizeClusterDomain(clusterDomain: string): string {
   return clusterDomain.startsWith('.') ? clusterDomain : `.${clusterDomain}`;
 }
 
-export function createTensorboardProxyPath(namespace: string, viewerName: string): string {
+export function createTensorboardProxyPath(
+  namespace: string,
+  viewerName: string,
+  signingSecret: string,
+): string {
   const serializedPayload = JSON.stringify({
     namespace,
     viewerName,
   } satisfies TensorboardProxyPayload);
   const encodedPayload = Buffer.from(serializedPayload).toString('base64url');
-  const signature = signTensorboardProxyPayload(serializedPayload);
+  const signature = signTensorboardProxyPayload(serializedPayload, signingSecret);
   return `${TENSORBOARD_PROXY_PREFIX.slice(1)}${encodeURIComponent(`${encodedPayload}.${signature}`)}/`;
 }
 
@@ -98,7 +102,25 @@ export function getTensorboardProxyBasePath(proxyPrefix: string, referer = ''): 
   }
 }
 
-export function parseTensorboardProxyPayload(token: string): TensorboardProxyPayload | undefined {
+function isSafeTensorboardProxyPath(proxyPath: string): boolean {
+  let decodedProxyPath: string;
+  try {
+    decodedProxyPath = decodeURIComponent(proxyPath);
+  } catch {
+    return false;
+  }
+
+  if (decodedProxyPath.includes('\\') || decodedProxyPath.includes('\0')) {
+    return false;
+  }
+
+  return decodedProxyPath.split('/').every((segment) => segment !== '.' && segment !== '..');
+}
+
+export function parseTensorboardProxyPayload(
+  token: string,
+  signingSecret: string,
+): TensorboardProxyPayload | undefined {
   const decodedToken = decodeURIComponent(token);
   const [encodedPayload, signature, extraPart] = decodedToken.split('.');
   if (!encodedPayload || !signature || extraPart) {
@@ -112,7 +134,7 @@ export function parseTensorboardProxyPayload(token: string): TensorboardProxyPay
     return undefined;
   }
 
-  const expectedSignature = signTensorboardProxyPayload(serializedPayload);
+  const expectedSignature = signTensorboardProxyPayload(serializedPayload, signingSecret);
   if (signature.length !== expectedSignature.length) {
     return undefined;
   }
@@ -173,6 +195,14 @@ export default function registerTensorboardProxy(
   tensorboardConfig: ViewerTensorboardConfig,
   authorizeFn: AuthorizeFn,
 ) {
+  const tensorboardProxyRateLimit = rateLimit({
+    windowMs: TENSORBOARD_PROXY_RATE_LIMIT_WINDOW_MS,
+    limit: TENSORBOARD_PROXY_RATE_LIMIT,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: 'Too many TensorBoard proxy requests',
+  });
+
   app.use((req, _, next) => {
     const proxyBasePath = getTensorboardProxyBasePath(
       TENSORBOARD_PROXY_PREFIX,
@@ -186,7 +216,7 @@ export default function registerTensorboardProxy(
 
   const proxyRoutes = [`${TENSORBOARD_PROXY_PREFIX}*`, `${basePath}${TENSORBOARD_PROXY_PREFIX}*`];
 
-  app.all(proxyRoutes, async (req, res, next) => {
+  app.all(proxyRoutes, tensorboardProxyRateLimit, async (req, res, next) => {
     try {
       const prefixIndex = req.path.indexOf(TENSORBOARD_PROXY_PREFIX);
       const parsedRequest =
@@ -198,7 +228,15 @@ export default function registerTensorboardProxy(
         return;
       }
 
-      const payload = parseTensorboardProxyPayload(parsedRequest.token);
+      if (!isSafeTensorboardProxyPath(parsedRequest.proxyPath)) {
+        res.status(400).send('Invalid TensorBoard proxy path');
+        return;
+      }
+
+      const payload = parseTensorboardProxyPayload(
+        parsedRequest.token,
+        tensorboardConfig.proxySigningSecret,
+      );
       if (!payload) {
         res.status(403).send('Invalid TensorBoard proxy target');
         return;

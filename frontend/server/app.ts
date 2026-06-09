@@ -356,6 +356,17 @@ function createUIServer(options: UIConfigs) {
     },
   );
 
+  const deprecatedProxyRoutes = [
+    `/${apiVersion1Prefix}/_proxy/*`,
+    `/${apiVersion2Prefix}/_proxy/*`,
+    `${basePath}/${apiVersion1Prefix}/_proxy/*`,
+    `${basePath}/${apiVersion2Prefix}/_proxy/*`,
+  ];
+
+  app.all(deprecatedProxyRoutes, (_req, res) => {
+    res.status(410).send('The generic /_proxy/ endpoint is deprecated and no longer supported.');
+  });
+
   /** Proxy to ml-pipeline api server */
   app.all(
     `/${apiVersion1Prefix}/*`,

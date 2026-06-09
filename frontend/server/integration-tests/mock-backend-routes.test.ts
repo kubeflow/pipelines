@@ -426,6 +426,12 @@ describe('mock backend routes', () => {
       });
     });
 
+    it('returns gone for the deprecated generic proxy endpoint', async () => {
+      await request
+        .get('/apis/v1beta1/_proxy/http%3A%2F%2Fviewer.test%2Fdata')
+        .expect(410, 'The generic /_proxy/ endpoint is deprecated and no longer supported.');
+    });
+
     it('returns the expected pod log error paths', async () => {
       await request.get('/k8s/pod/logs?podname=json-12abc').expect(404, 'pod not found');
       await request
