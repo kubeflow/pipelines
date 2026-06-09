@@ -41,10 +41,16 @@ interface ParsedTensorboardProxyRequest {
   token: string;
 }
 
+/**
+ * Signs a serialized TensorBoard proxy payload using the shared HMAC secret.
+ */
 function signTensorboardProxyPayload(serializedPayload: string, signingSecret: string): string {
   return createHmac('sha256', signingSecret).update(serializedPayload).digest('base64url');
 }
 
+/**
+ * Normalizes the configured cluster domain before appending it to an in-cluster service DNS name.
+ */
 function normalizeClusterDomain(clusterDomain: string): string {
   if (!clusterDomain) {
     return DEFAULT_CLUSTER_DOMAIN;
@@ -52,6 +58,9 @@ function normalizeClusterDomain(clusterDomain: string): string {
   return clusterDomain.startsWith('.') ? clusterDomain : `.${clusterDomain}`;
 }
 
+/**
+ * Creates a relative scoped TensorBoard proxy path for a specific viewer instance.
+ */
 export function createTensorboardProxyPath(
   namespace: string,
   viewerName: string,
@@ -66,6 +75,9 @@ export function createTensorboardProxyPath(
   return `${TENSORBOARD_PROXY_PREFIX.slice(1)}${encodeURIComponent(`${encodedPayload}.${signature}`)}/`;
 }
 
+/**
+ * Builds the in-cluster TensorBoard service URL from trusted viewer metadata.
+ */
 export function buildTensorboardProxyTarget(
   namespace: string,
   viewerName: string,
@@ -74,6 +86,9 @@ export function buildTensorboardProxyTarget(
   return `http://${viewerName}-service.${namespace}${normalizeClusterDomain(clusterDomain)}:80`;
 }
 
+/**
+ * Rewrites a scoped proxy request into the upstream TensorBoard path expected by the viewer service.
+ */
 export function buildTensorboardProxyUpstreamPath(
   viewerName: string,
   proxyPath: string,
@@ -85,6 +100,10 @@ export function buildTensorboardProxyUpstreamPath(
   return upstreamPath + (queryString ? `?${queryString}` : '');
 }
 
+/**
+ * Extracts the scoped TensorBoard proxy prefix from a referer so absolute subrequests can be
+ * rewritten back through the dedicated proxy route.
+ */
 export function getTensorboardProxyBasePath(proxyPrefix: string, referer = ''): string | undefined {
   try {
     const pathname = new URL(referer).pathname;
@@ -102,6 +121,9 @@ export function getTensorboardProxyBasePath(proxyPrefix: string, referer = ''): 
   }
 }
 
+/**
+ * Rejects proxy paths that contain traversal segments or invalid escapes before forwarding.
+ */
 function isSafeTensorboardProxyPath(proxyPath: string): boolean {
   let decodedProxyPath: string;
   try {
@@ -117,6 +139,9 @@ function isSafeTensorboardProxyPath(proxyPath: string): boolean {
   return decodedProxyPath.split('/').every((segment) => segment !== '.' && segment !== '..');
 }
 
+/**
+ * Verifies and decodes a signed TensorBoard proxy token.
+ */
 export function parseTensorboardProxyPayload(
   token: string,
   signingSecret: string,
@@ -164,6 +189,9 @@ export function parseTensorboardProxyPayload(
   };
 }
 
+/**
+ * Splits a scoped TensorBoard proxy request into its signed token and forwarded path.
+ */
 export function parseTensorboardProxyRequest(
   proxyPrefix: string,
   requestPath: string,
@@ -189,6 +217,9 @@ export function parseTensorboardProxyRequest(
   };
 }
 
+/**
+ * Registers the dedicated TensorBoard proxy middleware and routes.
+ */
 export default function registerTensorboardProxy(
   app: express.Application,
   basePath: string,

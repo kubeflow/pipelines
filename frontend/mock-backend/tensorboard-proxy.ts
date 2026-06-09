@@ -17,6 +17,10 @@ import { URL } from 'url';
 
 const TENSORBOARD_PROXY_PREFIX = '/apps/tensorboard/proxy/';
 
+/**
+ * Extracts the scoped TensorBoard proxy prefix from a referer so mock absolute
+ * subrequests follow the same path rewriting behavior as the real server.
+ */
 function getTensorboardProxyBasePath(referer = ''): string | undefined {
   try {
     const pathname = new URL(referer).pathname;
@@ -35,6 +39,9 @@ function getTensorboardProxyBasePath(referer = ''): string | undefined {
   }
 }
 
+/**
+ * Registers the mock TensorBoard proxy routes used by the frontend mock backend.
+ */
 // tslint:disable-next-line:no-default-export
 export default (app: express.Application) => {
   app.use((req, _, next) => {
