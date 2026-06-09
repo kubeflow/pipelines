@@ -775,9 +775,9 @@ func (w *Workflow) SetCannonicalLabels(name string, nextScheduledEpoch int64, in
 	w.SetLabels(LabelKeyWorkflowIsOwnedByScheduledWorkflow, "true")
 }
 
-// FindObjectStoreArtifactKeyOrEmpty loops through all node running statuses and look up the first
-// S3 artifact with the specified nodeID and artifactName. Returns empty if nothing is found.
-// Also checks children nodes to handle retry parent nodes that have no artifacts themselves.
+// FindObjectStoreArtifactKeyOrEmpty looks up the first S3 artifact with the specified artifactName
+// on the specified nodeName. If the node has no outputs (e.g., a retry parent node), it also checks
+// the node's direct children. Returns empty string if nothing is found.
 func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeName string, artifactName string) string {
 	if w.Status.Nodes == nil {
 		return ""
