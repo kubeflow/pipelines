@@ -233,6 +233,7 @@ export function waitForTensorboardInstance(
       if (Date.now() - start > timeout) {
         clearInterval(handle);
         reject('Timed out waiting for tensorboard');
+        return;
       }
       const tensorboardInstance = await getTensorboardInstance(logdir, namespace);
       if (tensorboardInstance.viewerName) {

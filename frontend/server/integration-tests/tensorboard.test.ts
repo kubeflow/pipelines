@@ -32,7 +32,11 @@ beforeEach(() => {
 
 describe('/apps/tensorboard', () => {
   let app: UIServer;
-  const existingTensorboardProxyPath = createTensorboardProxyPath('test-ns', 'viewer-abcdefg');
+  const existingTensorboardProxyPath = createTensorboardProxyPath(
+    'test-ns',
+    'viewer-abcdefg',
+    'minio123',
+  );
   afterEach(async () => {
     if (app) {
       await app.close();

@@ -64,7 +64,11 @@ export const getTensorboardHandlers = (
       );
       res.send({
         proxyPath: tensorboardInstance.viewerName
-          ? createTensorboardProxyPath(namespace as string, tensorboardInstance.viewerName)
+          ? createTensorboardProxyPath(
+              namespace as string,
+              tensorboardInstance.viewerName,
+              tensorboardConfig.proxySigningSecret,
+            )
           : '',
         tfVersion: tensorboardInstance.tfVersion,
         image: tensorboardInstance.image,
@@ -144,7 +148,13 @@ export const getTensorboardHandlers = (
         namespace as string,
         60 * 1000,
       );
-      res.send(createTensorboardProxyPath(namespace as string, viewerName));
+      res.send(
+        createTensorboardProxyPath(
+          namespace as string,
+          viewerName,
+          tensorboardConfig.proxySigningSecret,
+        ),
+      );
     } catch (err) {
       const details = await parseError(err);
       console.error(`Failed to start Tensorboard app: ${details.message}`, details.additionalInfo);

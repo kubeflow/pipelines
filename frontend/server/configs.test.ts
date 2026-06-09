@@ -40,4 +40,21 @@ describe('loadConfigs', () => {
     });
     expect(configs.viewer.tensorboard.clusterDomain).toBe('cluster.corp');
   });
+
+  it('tensorboard proxy signing secret defaults to the minio secret', () => {
+    const tmpdir = os.tmpdir();
+    const configs = loadConfigs(['node', 'dist/server.js', tmpdir], {
+      MINIO_SECRET_KEY: 'shared-minio-secret',
+    });
+    expect(configs.viewer.tensorboard.proxySigningSecret).toBe('shared-minio-secret');
+  });
+
+  it('tensorboard proxy signing secret uses TENSORBOARD_PROXY_SIGNING_SECRET when set', () => {
+    const tmpdir = os.tmpdir();
+    const configs = loadConfigs(['node', 'dist/server.js', tmpdir], {
+      MINIO_SECRET_KEY: 'shared-minio-secret',
+      TENSORBOARD_PROXY_SIGNING_SECRET: 'dedicated-proxy-secret',
+    });
+    expect(configs.viewer.tensorboard.proxySigningSecret).toBe('dedicated-proxy-secret');
+  });
 });
