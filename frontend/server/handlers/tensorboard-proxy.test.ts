@@ -84,7 +84,9 @@ describe('tensorboard-proxy', () => {
   });
 
   it('treats malformed percent-encoding as an invalid proxy token', () => {
-    expect(parseTensorboardProxyPayload('%E0%A4%A', TENSORBOARD_PROXY_SIGNING_SECRET)).toBeUndefined();
+    expect(
+      parseTensorboardProxyPayload('%E0%A4%A', TENSORBOARD_PROXY_SIGNING_SECRET),
+    ).toBeUndefined();
   });
 
   it('rejects invalid proxy tokens before proxying upstream traffic', async () => {
