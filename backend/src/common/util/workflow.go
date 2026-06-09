@@ -789,6 +789,9 @@ func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeName string, artifactNa
 	if s3Key := findArtifactS3KeyFromNode(node, artifactName); s3Key != "" {
 		return s3Key
 	}
+	if node.Type != workflowapi.NodeTypeRetry {
+		return ""
+	}
 	for _, childNodeID := range node.Children {
 		if childNode, childFound := w.Status.Nodes[childNodeID]; childFound {
 			if s3Key := findArtifactS3KeyFromNode(childNode, artifactName); s3Key != "" {
