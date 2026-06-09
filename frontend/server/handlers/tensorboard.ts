@@ -20,6 +20,7 @@ import {
 } from '../src/generated/apis/auth/index.js';
 import { parseError, isAllowedResourceName } from '../utils.js';
 import { AuthorizeFn } from '../helpers/auth.js';
+import { createTensorboardProxyPath } from './tensorboard-proxy.js';
 
 export const getTensorboardHandlers = (
   tensorboardConfig: ViewerTensorboardConfig,
@@ -57,13 +58,17 @@ export const getTensorboardHandlers = (
         res.status(401).send(authError.message);
         return;
       }
-      res.send(
-        await k8sHelper.getTensorboardInstance(
-          logdir as string,
-          namespace as string,
-          tensorboardConfig.clusterDomain,
-        ),
+      const tensorboardInstance = await k8sHelper.getTensorboardInstance(
+        logdir as string,
+        namespace as string,
       );
+      res.send({
+        proxyPath: tensorboardInstance.viewerName
+          ? createTensorboardProxyPath(namespace as string, tensorboardInstance.viewerName)
+          : '',
+        tfVersion: tensorboardInstance.tfVersion,
+        image: tensorboardInstance.image,
+      });
     } catch (err) {
       const details = await parseError(err);
       console.error(`Failed to list Tensorboard pods: ${details.message}`, details.additionalInfo);
@@ -90,6 +95,10 @@ export const getTensorboardHandlers = (
     }
     if (!namespace) {
       res.status(400).send('namespace argument is required');
+      return;
+    }
+    if (typeof namespace !== 'string' || !isAllowedResourceName(namespace as string)) {
+      res.status(400).send('invalid namespace');
       return;
     }
     if (!tfversion && !image) {
@@ -129,15 +138,13 @@ export const getTensorboardHandlers = (
         (image || tensorboardConfig.tfImageName) as string,
         (tfversion as string) || '',
         podTemplateSpec || tensorboardConfig.podTemplateSpec,
-        tensorboardConfig.clusterDomain,
       );
-      const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(
+      const viewerName = await k8sHelper.waitForTensorboardInstance(
         logdir as string,
         namespace as string,
         60 * 1000,
-        tensorboardConfig.clusterDomain,
       );
-      res.send(tensorboardAddress);
+      res.send(createTensorboardProxyPath(namespace as string, viewerName));
     } catch (err) {
       const details = await parseError(err);
       console.error(`Failed to start Tensorboard app: ${details.message}`, details.additionalInfo);
@@ -159,6 +166,10 @@ export const getTensorboardHandlers = (
       res.status(400).send('namespace argument is required');
       return;
     }
+    if (typeof namespace !== 'string' || !isAllowedResourceName(namespace as string)) {
+      res.status(400).send('invalid namespace');
+      return;
+    }
 
     try {
       const authError = await authorizeFn(
@@ -173,11 +184,7 @@ export const getTensorboardHandlers = (
         res.status(401).send(authError.message);
         return;
       }
-      await k8sHelper.deleteTensorboardInstance(
-        logdir as string,
-        namespace as string,
-        tensorboardConfig.clusterDomain,
-      );
+      await k8sHelper.deleteTensorboardInstance(logdir as string, namespace as string);
       res.send('Tensorboard deleted.');
     } catch (err) {
       const details = await parseError(err);
