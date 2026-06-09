@@ -73,9 +73,9 @@ fi
 
 KEY=$(kubectl -n "$NAMESPACE" get workflow "$WORKFLOW_NAME" -o json | \
   jq -r '[.status.nodes[].outputs.artifacts[]? | select(.name=="out") | .s3.key] | first')
-ART_URL="http://ml-pipeline-ui-artifact.${NAMESPACE}.svc.cluster.local/artifacts/get?source=minio&bucket=mlpipeline&key=${KEY}"
+ARTIFACT_URL="http://ml-pipeline-ui-artifact.${NAMESPACE}.svc.cluster.local/artifacts/get?source=minio&bucket=mlpipeline&key=${KEY}"
 if ! kubectl -n "$NAMESPACE" exec kfp-proxy-curl -- sh -c \
-  "curl -fsS -H 'kubeflow-userid: user@example.com' '${ART_URL}' 2>/dev/null | grep -qx 'artifact-proxy-e2e-test-content'"; then
+  "curl -fsS -H 'kubeflow-userid: user@example.com' '${ARTIFACT_URL}' 2>/dev/null | grep -qx 'artifact-proxy-e2e-test-content'"; then
   echo "ERROR: Artifact content validation failed"
   kubectl -n "$NAMESPACE" logs deploy/ml-pipeline-ui-artifact -c ml-pipeline-ui-artifact --tail=50 || true
   exit 1
