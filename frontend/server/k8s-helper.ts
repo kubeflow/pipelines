@@ -230,18 +230,27 @@ export function waitForTensorboardInstance(
 ): Promise<string> {
   const start = Date.now();
   return new Promise((resolve, reject) => {
-    const handle = setInterval(async () => {
+    const poll = async () => {
       if (Date.now() - start > timeout) {
-        clearInterval(handle);
         reject('Timed out waiting for tensorboard');
         return;
       }
-      const tensorboardInstance = await getTensorboardInstance(logdir, namespace);
-      if (tensorboardInstance.viewerName) {
-        clearInterval(handle);
-        resolve(tensorboardInstance.viewerName);
+
+      try {
+        const tensorboardInstance = await getTensorboardInstance(logdir, namespace);
+        if (tensorboardInstance.viewerName) {
+          resolve(tensorboardInstance.viewerName);
+          return;
+        }
+      } catch (error) {
+        reject(error);
+        return;
       }
-    }, 1000);
+
+      setTimeout(poll, 1000);
+    };
+
+    setTimeout(poll, 1000);
   });
 }
 

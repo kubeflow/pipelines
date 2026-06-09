@@ -83,6 +83,10 @@ describe('tensorboard-proxy', () => {
     ).toBe(`/pipeline/${proxyPath.slice(0, -1)}`);
   });
 
+  it('treats malformed percent-encoding as an invalid proxy token', () => {
+    expect(parseTensorboardProxyPayload('%E0%A4%A', TENSORBOARD_PROXY_SIGNING_SECRET)).toBeUndefined();
+  });
+
   it('rejects invalid proxy tokens before proxying upstream traffic', async () => {
     const app = express();
     registerTensorboardProxy(
@@ -122,6 +126,41 @@ describe('tensorboard-proxy', () => {
     await requests(app)
       .get(`/${proxyPath}../data/plugin/scalars/scalars`)
       .expect(400, 'Invalid TensorBoard proxy path');
+
+    expect(authorizeFn).not.toHaveBeenCalled();
+  });
+
+  it('does not rewrite normal UI navigations from a stale TensorBoard referer', async () => {
+    const app = express();
+    const authorizeFn = vi.fn(async () => undefined);
+    const proxyPath = createTensorboardProxyPath(
+      'test-ns',
+      'viewer-abcdefg',
+      TENSORBOARD_PROXY_SIGNING_SECRET,
+    );
+
+    registerTensorboardProxy(
+      app,
+      '/pipeline',
+      {
+        clusterDomain: '.svc.cluster.local',
+        proxySigningSecret: TENSORBOARD_PROXY_SIGNING_SECRET,
+        tfImageName: 'tensorflow/tensorflow',
+      },
+      authorizeFn,
+    );
+
+    app.get('/pipeline/', (_req, res) => {
+      res.status(200).send('ui-root');
+    });
+
+    await requests(app)
+      .get('/pipeline/')
+      .set('Accept', 'text/html,application/xhtml+xml')
+      .set('Referer', `http://127.0.0.1/pipeline/${proxyPath}`)
+      .set('Sec-Fetch-Dest', 'document')
+      .set('Sec-Fetch-Mode', 'navigate')
+      .expect(200, 'ui-root');
 
     expect(authorizeFn).not.toHaveBeenCalled();
   });

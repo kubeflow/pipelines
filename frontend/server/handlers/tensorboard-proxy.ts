@@ -27,6 +27,14 @@ import { isAllowedResourceName } from '../utils.js';
 
 const DEFAULT_CLUSTER_DOMAIN = '.svc.cluster.local';
 const TENSORBOARD_PROXY_PREFIX = '/apps/tensorboard/proxy/';
+const UI_SERVER_ROUTE_PREFIXES = [
+  '/apis',
+  '/apps',
+  '/artifacts',
+  '/k8s',
+  '/system',
+  '/visualizations',
+];
 
 interface TensorboardProxyPayload {
   namespace: string;
@@ -43,6 +51,40 @@ interface ParsedTensorboardProxyRequest {
  */
 function signTensorboardProxyPayload(serializedPayload: string, signingSecret: string): string {
   return createHmac('sha256', signingSecret).update(serializedPayload).digest('base64url');
+}
+
+function getHeaderValue(headerValue: string | string[] | undefined): string {
+  return Array.isArray(headerValue) ? (headerValue[0] ?? '') : (headerValue ?? '');
+}
+
+function hasPathPrefix(requestPath: string, pathPrefix: string): boolean {
+  return requestPath === pathPrefix || requestPath.startsWith(`${pathPrefix}/`);
+}
+
+function isDocumentNavigationRequest(req: Pick<express.Request, 'method' | 'headers'>): boolean {
+  const secFetchDest = getHeaderValue(req.headers['sec-fetch-dest']);
+  const secFetchMode = getHeaderValue(req.headers['sec-fetch-mode']);
+  if (secFetchDest || secFetchMode) {
+    return secFetchDest === 'document' || secFetchMode === 'navigate';
+  }
+
+  return req.method === 'GET' && getHeaderValue(req.headers.accept).includes('text/html');
+}
+
+function isUIServerRoute(requestPath: string, basePath: string): boolean {
+  if (requestPath === '/' || requestPath === '/index.html' || requestPath === '/favicon.ico') {
+    return true;
+  }
+
+  if (basePath && hasPathPrefix(requestPath, basePath)) {
+    return true;
+  }
+
+  return (
+    UI_SERVER_ROUTE_PREFIXES.some((routePrefix) => hasPathPrefix(requestPath, routePrefix)) ||
+    requestPath === '/ml_metadata' ||
+    requestPath.startsWith('/ml_metadata.')
+  );
 }
 
 /**
@@ -143,7 +185,12 @@ export function parseTensorboardProxyPayload(
   token: string,
   signingSecret: string,
 ): TensorboardProxyPayload | undefined {
-  const decodedToken = decodeURIComponent(token);
+  let decodedToken: string;
+  try {
+    decodedToken = decodeURIComponent(token);
+  } catch {
+    return undefined;
+  }
   const [encodedPayload, signature, extraPart] = decodedToken.split('.');
   if (!encodedPayload || !signature || extraPart) {
     return undefined;
@@ -228,7 +275,12 @@ export default function registerTensorboardProxy(
       TENSORBOARD_PROXY_PREFIX,
       req.headers.referer as string,
     );
-    if (proxyBasePath && req.url.indexOf(TENSORBOARD_PROXY_PREFIX) < 0) {
+    if (
+      proxyBasePath &&
+      req.url.indexOf(TENSORBOARD_PROXY_PREFIX) < 0 &&
+      !isDocumentNavigationRequest(req) &&
+      !isUIServerRoute(req.path, basePath)
+    ) {
       req.url = `${proxyBasePath}${req.url}`;
     }
     next();
