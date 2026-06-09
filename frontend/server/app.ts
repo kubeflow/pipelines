@@ -35,9 +35,9 @@ import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metad
 import { getAllowCustomVisualizationsHandler } from './handlers/vis.js';
 import { getIndexHTMLHandler } from './handlers/index-html.js';
 
-import proxyMiddleware from './proxy-middleware.js';
 import { Server } from 'http';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts.js';
+import registerTensorboardProxy from './handlers/tensorboard-proxy.js';
 
 function getRegisterHandler(app: Application, basePath: string) {
   return (
@@ -245,6 +245,7 @@ function createUIServer(options: UIConfigs) {
   registerHandler(app.get, '/apps/tensorboard', tensorboardGetHandler);
   registerHandler(app.delete, '/apps/tensorboard', tensorboardDeleteHandler);
   registerHandler(app.post, '/apps/tensorboard', tensorboardCreateHandler);
+  registerTensorboardProxy(app, basePath, options.viewer.tensorboard, authorizeFn);
 
   /** Pod logs - conditionally stream through API server, otherwise directly from k8s and archive */
   if (options.artifacts.streamLogsFromServerApi) {
@@ -354,13 +355,6 @@ function createUIServer(options: UIConfigs) {
       res.status(403).send(`${req.originalUrl} endpoint is not meant for external usage.`);
     },
   );
-
-  // Order matters here, since both handlers can match any proxied request with a referer,
-  // and we prioritize the basepath-friendly handler
-  proxyMiddleware(app, `${basePath}/${apiVersion1Prefix}`);
-  proxyMiddleware(app, `${basePath}/${apiVersion2Prefix}`);
-  proxyMiddleware(app, `/${apiVersion1Prefix}`);
-  proxyMiddleware(app, `/${apiVersion2Prefix}`);
 
   /** Proxy to ml-pipeline api server */
   app.all(

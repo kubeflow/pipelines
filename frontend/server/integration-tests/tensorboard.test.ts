@@ -20,6 +20,7 @@ import * as path from 'path';
 import requests from 'supertest';
 import { UIServer } from '../app.js';
 import { loadConfigs } from '../configs.js';
+import { createTensorboardProxyPath } from '../handlers/tensorboard-proxy.js';
 import { TEST_ONLY as K8S_TEST_EXPORT } from '../k8s-helper.js';
 import { buildQuery, commonSetup, mkTempDir } from './test-helper.js';
 
@@ -31,6 +32,7 @@ beforeEach(() => {
 
 describe('/apps/tensorboard', () => {
   let app: UIServer;
+  const existingTensorboardProxyPath = createTensorboardProxyPath('test-ns', 'viewer-abcdefg');
   afterEach(async () => {
     if (app) {
       await app.close();
@@ -256,8 +258,7 @@ describe('/apps/tensorboard', () => {
         .expect(
           200,
           JSON.stringify({
-            podAddress:
-              'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
+            proxyPath: existingTensorboardProxyPath,
             tfVersion: '2.0.0',
             image: 'tensorflow:2.0.0',
           }),
@@ -275,8 +276,7 @@ describe('/apps/tensorboard', () => {
       `);
     });
 
-    it('gets tensorboard url with custom cluster domain (defensive normalization)', async () => {
-      // Test both with and without leading dot
+    it('gets tensorboard proxy path with custom cluster domain configured', async () => {
       app = new UIServer(loadConfigs(argv, { CLUSTER_DOMAIN: 'cluster.test' }));
       k8sGetCustomObjectSpy.mockImplementation(() =>
         Promise.resolve(
@@ -293,8 +293,7 @@ describe('/apps/tensorboard', () => {
         .expect(
           200,
           JSON.stringify({
-            podAddress:
-              'http://viewer-abcdefg-service.test-ns.cluster.test:80/tensorboard/viewer-abcdefg/',
+            proxyPath: existingTensorboardProxyPath,
             tfVersion: '2.0.0',
             image: 'tensorflow:2.0.0',
           }),
@@ -319,8 +318,7 @@ describe('/apps/tensorboard', () => {
         .expect(
           200,
           JSON.stringify({
-            podAddress:
-              'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
+            proxyPath: existingTensorboardProxyPath,
             tfVersion: '2.0.0',
             image: 'tensorflow:2.0.0',
           }),
@@ -376,10 +374,7 @@ describe('/apps/tensorboard', () => {
             'log-dir-1',
           )}&namespace=test-ns&tfversion=2.0.0`,
         )
-        .expect(
-          200,
-          'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
-        );
+        .expect(200, existingTensorboardProxyPath);
       expect(k8sGetCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
         [
           {
@@ -500,10 +495,7 @@ describe('/apps/tensorboard', () => {
             'Series1:volume://tensorboard/log-dir-1,Series2:volume://tensorboard/log-dir-2',
           )}&namespace=test-ns&tfversion=2.0.0`,
         )
-        .expect(
-          200,
-          'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
-        );
+        .expect(200, existingTensorboardProxyPath);
       expect(k8sGetCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
         [
           {
@@ -619,10 +611,7 @@ describe('/apps/tensorboard', () => {
             'Series1:volume://data/tensorboard/log-dir-1,Series2:volume://data/tensorboard/log-dir-2',
           )}&namespace=test-ns&tfversion=2.0.0`,
         )
-        .expect(
-          200,
-          'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
-        );
+        .expect(200, existingTensorboardProxyPath);
       expect(k8sGetCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
         [
           {
@@ -806,10 +795,7 @@ describe('/apps/tensorboard', () => {
             'log-dir-1',
           )}&namespace=test-ns&tfversion=2.0.0`,
         )
-        .expect(
-          200,
-          'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
-        );
+        .expect(200, existingTensorboardProxyPath);
     });
   });
 
