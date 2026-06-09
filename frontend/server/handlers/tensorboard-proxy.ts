@@ -14,7 +14,6 @@
 
 import { createHmac, timingSafeEqual } from 'crypto';
 import express from 'express';
-import { rateLimit } from 'express-rate-limit';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { URL, URLSearchParams } from 'url';
 import { ViewerTensorboardConfig } from '../configs.js';
@@ -28,8 +27,6 @@ import { isAllowedResourceName } from '../utils.js';
 
 const DEFAULT_CLUSTER_DOMAIN = '.svc.cluster.local';
 const TENSORBOARD_PROXY_PREFIX = '/apps/tensorboard/proxy/';
-const TENSORBOARD_PROXY_RATE_LIMIT_WINDOW_MS = 60 * 1000;
-const TENSORBOARD_PROXY_RATE_LIMIT = 3000;
 
 interface TensorboardProxyPayload {
   namespace: string;
@@ -226,14 +223,6 @@ export default function registerTensorboardProxy(
   tensorboardConfig: ViewerTensorboardConfig,
   authorizeFn: AuthorizeFn,
 ) {
-  const tensorboardProxyRateLimit = rateLimit({
-    windowMs: TENSORBOARD_PROXY_RATE_LIMIT_WINDOW_MS,
-    limit: TENSORBOARD_PROXY_RATE_LIMIT,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: 'Too many TensorBoard proxy requests',
-  });
-
   app.use((req, _, next) => {
     const proxyBasePath = getTensorboardProxyBasePath(
       TENSORBOARD_PROXY_PREFIX,
@@ -247,7 +236,7 @@ export default function registerTensorboardProxy(
 
   const proxyRoutes = [`${TENSORBOARD_PROXY_PREFIX}*`, `${basePath}${TENSORBOARD_PROXY_PREFIX}*`];
 
-  app.all(proxyRoutes, tensorboardProxyRateLimit, async (req, res, next) => {
+  app.all(proxyRoutes, async (req, res, next) => {
     try {
       const prefixIndex = req.path.indexOf(TENSORBOARD_PROXY_PREFIX);
       const parsedRequest =

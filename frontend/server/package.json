@@ -8,7 +8,6 @@
     "axios": ">=1.15.2",
     "crypto-js": "^4.2.0",
     "express": "^5.1.0",
-    "express-rate-limit": "^8.5.2",
     "form-data": "^2.5.4",
     "google-auth-library": "^7.14.1",
     "gunzip-maybe": "^1.4.1",
