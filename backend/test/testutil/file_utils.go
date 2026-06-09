@@ -85,7 +85,7 @@ func GetListOfFilesInADir(directoryPath string) []string {
 
 	for _, file := range files {
 		if !file.IsDir() {
-			if !strings.Contains(file.Name(), ".py") && (file.Name() != "Dockerfile") && !strings.Contains(file.Name(), ".md") && !strings.Contains(file.Name(), ".ipynb") {
+			if isPipelineTestFile(file.Name()) {
 				fileNames = append(fileNames, file.Name())
 			}
 		}
@@ -104,7 +104,7 @@ func GetListOfAllFilesInDir(directoryPath string) []string {
 
 		// Check if it's a regular file (not a directory)
 		if !d.IsDir() {
-			if !strings.Contains(d.Name(), ".py") && (d.Name() != "Dockerfile") && !strings.Contains(d.Name(), ".md") && !strings.Contains(d.Name(), ".ipynb") {
+			if isPipelineTestFile(d.Name()) {
 				filePaths = append(filePaths, path)
 			}
 		}
@@ -114,6 +114,14 @@ func GetListOfAllFilesInDir(directoryPath string) []string {
 		fmt.Printf("Error walking the directory tree: %v\n", err)
 	}
 	return filePaths
+}
+
+func isPipelineTestFile(fileName string) bool {
+	return !strings.HasPrefix(fileName, ".") &&
+		!strings.Contains(fileName, ".py") &&
+		fileName != "Dockerfile" &&
+		!strings.Contains(fileName, ".md") &&
+		!strings.Contains(fileName, ".ipynb")
 }
 
 func ProtoToBytes(objectToConvert proto.Message) []byte {
@@ -138,7 +146,7 @@ func ToBytes(objectToConvert any) []byte {
 
 // ParseFileToSpecs - Read a file and unmarshall it into a template.V2Spec
 func ParseFileToSpecs(pipelineFilePath string, cacheDisabled bool, defaultWorkspace *v1.PersistentVolumeClaimSpec) *template.V2Spec {
-	specFromFile, err := os.OpenFile(pipelineFilePath, os.O_RDWR, 0o644)
+	specFromFile, err := os.Open(pipelineFilePath)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to read pipeline file")
 	defer specFromFile.Close()
 	pipelineSpecBytes, pipelineUnmarshallError := server.ReadPipelineFile(pipelineFilePath, specFromFile, common.MaxFileLength)
