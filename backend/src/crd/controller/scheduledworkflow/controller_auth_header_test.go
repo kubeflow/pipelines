@@ -105,7 +105,7 @@ func newTestSWFForAPIPath() *util.ScheduledWorkflow {
 // TestUserIdentityHeader_BothSet verifies that when both userIdentityHeader and
 // userIdentityValue are configured, the CreateRun call carries the corresponding
 // gRPC metadata key/value.
-func TestUserIdentityHeader_BothSet(t *testing.T) {
+func TestUserIdentityHeader_BothSet(test *testing.T) {
 	fakeRun := &fakeRunServiceClient{}
 	controller := &Controller{
 		workflowClient:     client.NewWorkflowClient(&fakeExecutionClient{}, &fakeExecutionInformer{}),
@@ -118,18 +118,18 @@ func TestUserIdentityHeader_BothSet(t *testing.T) {
 	submitted, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
 		context.Background(), swf, 100, 200)
 
-	require.NoError(t, err)
-	assert.True(t, submitted)
+	require.NoError(test, err)
+	assert.True(test, submitted)
 
 	md, ok := metadata.FromOutgoingContext(fakeRun.capturedCtx)
-	require.True(t, ok, "expected outgoing metadata on context")
-	assert.Equal(t, []string{"system:serviceaccount:kubeflow:ml-pipeline-scheduledworkflow"},
+	require.True(test, ok, "expected outgoing metadata on context")
+	assert.Equal(test, []string{"system:serviceaccount:kubeflow:ml-pipeline-scheduledworkflow"},
 		md.Get("kubeflow-userid"))
 }
 
 // TestUserIdentityHeader_BothEmpty verifies that when both fields are empty
 // (default), no user identity header is set on the outgoing context.
-func TestUserIdentityHeader_BothEmpty(t *testing.T) {
+func TestUserIdentityHeader_BothEmpty(test *testing.T) {
 	fakeRun := &fakeRunServiceClient{}
 	controller := &Controller{
 		workflowClient:     client.NewWorkflowClient(&fakeExecutionClient{}, &fakeExecutionInformer{}),
@@ -142,19 +142,19 @@ func TestUserIdentityHeader_BothEmpty(t *testing.T) {
 	submitted, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
 		context.Background(), swf, 100, 200)
 
-	require.NoError(t, err)
-	assert.True(t, submitted)
+	require.NoError(test, err)
+	assert.True(test, submitted)
 
 	md, ok := metadata.FromOutgoingContext(fakeRun.capturedCtx)
 	if ok {
-		assert.Empty(t, md.Get("kubeflow-userid"),
+		assert.Empty(test, md.Get("kubeflow-userid"),
 			"expected no kubeflow-userid header when both fields are empty")
 	}
 }
 
 // TestUserIdentityHeader_OnlyOneSet verifies that when only one of the two
 // fields is set, no header is injected (the guard requires both).
-func TestUserIdentityHeader_OnlyOneSet(t *testing.T) {
+func TestUserIdentityHeader_OnlyOneSet(test *testing.T) {
 	tests := []struct {
 		name   string
 		header string
@@ -172,26 +172,26 @@ func TestUserIdentityHeader_OnlyOneSet(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		test.Run(testCase.name, func(test *testing.T) {
 			fakeRun := &fakeRunServiceClient{}
 			controller := &Controller{
 				workflowClient:     client.NewWorkflowClient(&fakeExecutionClient{}, &fakeExecutionInformer{}),
 				runClient:          fakeRun,
-				userIdentityHeader: tt.header,
-				userIdentityValue:  tt.value,
+				userIdentityHeader: testCase.header,
+				userIdentityValue:  testCase.value,
 			}
 
 			swf := newTestSWFForAPIPath()
 			submitted, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
 				context.Background(), swf, 100, 200)
 
-			require.NoError(t, err)
-			assert.True(t, submitted)
+			require.NoError(test, err)
+			assert.True(test, submitted)
 
 			md, ok := metadata.FromOutgoingContext(fakeRun.capturedCtx)
 			if ok {
-				assert.Empty(t, md.Get("kubeflow-userid"),
+				assert.Empty(test, md.Get("kubeflow-userid"),
 					"expected no kubeflow-userid header when only one field is set")
 			}
 		})
@@ -201,7 +201,7 @@ func TestUserIdentityHeader_OnlyOneSet(t *testing.T) {
 // TestUserIdentityHeader_CoexistsWithBearerToken verifies that both the
 // Authorization: Bearer header and the user identity header are present on
 // the outgoing context when tokenSrc is non-nil and identity fields are set.
-func TestUserIdentityHeader_CoexistsWithBearerToken(t *testing.T) {
+func TestUserIdentityHeader_CoexistsWithBearerToken(test *testing.T) {
 	fakeRun := &fakeRunServiceClient{}
 	controller := &Controller{
 		workflowClient:     client.NewWorkflowClient(&fakeExecutionClient{}, &fakeExecutionInformer{}),
@@ -215,24 +215,24 @@ func TestUserIdentityHeader_CoexistsWithBearerToken(t *testing.T) {
 	submitted, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
 		context.Background(), swf, 100, 200)
 
-	require.NoError(t, err)
-	assert.True(t, submitted)
+	require.NoError(test, err)
+	assert.True(test, submitted)
 
 	md, ok := metadata.FromOutgoingContext(fakeRun.capturedCtx)
-	require.True(t, ok, "expected outgoing metadata on context")
+	require.True(test, ok, "expected outgoing metadata on context")
 
 	// Verify Authorization header is present
-	assert.Equal(t, []string{"Bearer my-sa-token"}, md.Get("authorization"))
+	assert.Equal(test, []string{"Bearer my-sa-token"}, md.Get("authorization"))
 
 	// Verify user identity header is present
-	assert.Equal(t, []string{"system:serviceaccount:kubeflow:ml-pipeline-scheduledworkflow"},
+	assert.Equal(test, []string{"system:serviceaccount:kubeflow:ml-pipeline-scheduledworkflow"},
 		md.Get("kubeflow-userid"))
 }
 
 // TestNormalizeAndValidateMetadataKey verifies that gRPC metadata keys are
 // lowercased and validated, so the controller can fail fast at startup on a
 // malformed --userIdentityHeader instead of failing requests at runtime.
-func TestNormalizeAndValidateMetadataKey(t *testing.T) {
+func TestNormalizeAndValidateMetadataKey(test *testing.T) {
 	tests := []struct {
 		name      string
 		input     string
@@ -247,16 +247,16 @@ func TestNormalizeAndValidateMetadataKey(t *testing.T) {
 		{name: "empty is invalid", input: "", expectErr: true},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := normalizeAndValidateMetadataKey(tt.input)
-			if tt.expectErr {
-				require.Error(t, err)
-				assert.Empty(t, got)
+	for _, testCase := range tests {
+		test.Run(testCase.name, func(test *testing.T) {
+			got, err := normalizeAndValidateMetadataKey(testCase.input)
+			if testCase.expectErr {
+				require.Error(test, err)
+				assert.Empty(test, got)
 				return
 			}
-			require.NoError(t, err)
-			assert.Equal(t, tt.want, got)
+			require.NoError(test, err)
+			assert.Equal(test, testCase.want, got)
 		})
 	}
 }
@@ -264,7 +264,7 @@ func TestNormalizeAndValidateMetadataKey(t *testing.T) {
 // TestNewController_InvalidUserIdentityHeader verifies that NewController fails
 // fast when the configured user identity metadata key is malformed. Validation
 // happens before any client or informer is used, so nil dependencies are fine.
-func TestNewController_InvalidUserIdentityHeader(t *testing.T) {
+func TestNewController_InvalidUserIdentityHeader(test *testing.T) {
 	_, err := NewController(
 		nil, // kubeClientSet
 		nil, // swfClientSet
@@ -278,6 +278,6 @@ func TestNewController_InvalidUserIdentityHeader(t *testing.T) {
 		"invalid header",
 		"some-value",
 	)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid userIdentityHeader")
+	require.Error(test, err)
+	assert.Contains(test, err.Error(), "invalid userIdentityHeader")
 }

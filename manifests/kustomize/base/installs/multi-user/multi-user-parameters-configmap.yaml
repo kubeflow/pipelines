@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: pipeline-multi-user-params
+  name: pipeline-multi-user-parameters
 data:
   KUBEFLOW_USERID_HEADER: kubeflow-userid
   KUBEFLOW_USERID_PREFIX: ""

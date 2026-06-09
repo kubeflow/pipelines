@@ -9,7 +9,7 @@ spec:
       - name: ml-pipeline-scheduledworkflow
         env:
         - name: NAMESPACE
-          value: '' # Empty namespace let viewer controller watch all namespaces
+          value: '' # Empty namespace lets viewer controller watch all namespaces
           valueFrom: null # HACK: https://github.com/kubernetes-sigs/kustomize/issues/2606
         - name: NAMESPACE_SELF
           valueFrom:
@@ -17,15 +17,15 @@ spec:
               fieldPath: metadata.namespace
         # Inject the controller's own service-account identity as the user identity
         # header so CreateRun calls pass the API server's multi-user authorization.
-        # The controller maps these env vars to its --userIdentityHeader/--userIdentityValue
+        # The controller maps these environment variables to its --userIdentityHeader/--userIdentityValue
         # flags (see backend/Dockerfile.scheduledworkflow).
         # USER_IDENTITY_HEADER is sourced from the shared ConfigMap so it stays in
-        # sync with the API server's KUBEFLOW_USERID_HEADER; operators patch the
+        # synchronization with the API server's KUBEFLOW_USERID_HEADER; operators patch the
         # ConfigMap once to update both deployments.
         - name: USER_IDENTITY_HEADER
           valueFrom:
             configMapKeyRef:
-              name: pipeline-multi-user-params
+              name: pipeline-multi-user-parameters
               key: KUBEFLOW_USERID_HEADER
         # SERVICE_ACCOUNT_NAME is resolved at runtime via the downward API so
         # renamed service accounts are handled automatically.

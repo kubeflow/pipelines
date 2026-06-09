@@ -31,12 +31,12 @@ spec:
         - name: KUBEFLOW_USERID_HEADER
           valueFrom:
             configMapKeyRef:
-              name: pipeline-multi-user-params
+              name: pipeline-multi-user-parameters
               key: KUBEFLOW_USERID_HEADER
         - name: KUBEFLOW_USERID_PREFIX
           valueFrom:
             configMapKeyRef:
-              name: pipeline-multi-user-params
+              name: pipeline-multi-user-parameters
               key: KUBEFLOW_USERID_PREFIX
         volumeMounts:
         - name: config-volume
