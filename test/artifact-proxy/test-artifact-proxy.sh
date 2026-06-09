@@ -71,8 +71,14 @@ if [[ "$WORKFLOW_PHASE" != "Succeeded" ]]; then
   exit 1
 fi
 
-KEY=$(kubectl -n "$NAMESPACE" get workflow "$WORKFLOW_NAME" -o json | \
-  jq -r '[.status.nodes[].outputs.artifacts[]? | select(.name=="out") | .s3.key] | first')
+KEY=$(
+  kubectl -n "$NAMESPACE" get workflow "$WORKFLOW_NAME" -o json |
+    jq -r '[.status.nodes[].outputs.artifacts[]? | select(.name=="out") | .s3.key] | first // empty'
+)
+if [[ -z "$KEY" ]]; then
+  echo "ERROR: Could not locate S3 key for artifact 'out' in workflow status"
+  exit 1
+fi
 ARTIFACT_URL="http://ml-pipeline-ui-artifact.${NAMESPACE}.svc.cluster.local/artifacts/get?source=minio&bucket=mlpipeline&key=${KEY}"
 if ! kubectl -n "$NAMESPACE" exec kfp-proxy-curl -- sh -c \
   "curl -fsS -H 'kubeflow-userid: user@example.com' '${ARTIFACT_URL}' 2>/dev/null | grep -qx 'artifact-proxy-e2e-test-content'"; then
