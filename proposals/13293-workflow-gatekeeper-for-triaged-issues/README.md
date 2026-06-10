@@ -16,7 +16,7 @@ These consequences threaten the health and longevity of KFP and drive the follow
 
 ### Goals
 1. Reduce the KFP maintainer burden by closing unfocused PRs that take away focus from KFP community priorities.
-2. Streamline onboarding fatigue for new contributors by requiring them to work on issues labeled `/good-first-issue`
+2. Streamline onboarding fatigue for new contributors by requiring them to work on issues labeled `/ready`
 
 ### Non-Goals
 1. This proposal does not enhance support for the PR review process. It aims to reduce extraneous PRs.
@@ -24,30 +24,33 @@ These consequences threaten the health and longevity of KFP and drive the follow
 ## Proposal
 This KEP proposes a two-part approach: a GitHub Action workflow to label good first issues, and a GitHub Action workflow to validate that PRs raised by new contributors link an issue with this label.
 
-### I. Introduce '/good-first-issue' label for beginner-friendly issues
+### I. Introduce '/ready' label for beginner-friendly issues
+#TODO: this section needs to be updated with updated workflow
 @modichika proposes the following workflow to validate beginner-friendly issues in the following PR: https://github.com/kubeflow/pipelines/pull/13372
-1. Utilize `gpt-4o-mini` with GH Models API to analyze issue for scope, context, guidance and complexity and decide if the issue is a good candidate for first-time contributors.
-2. If the issue is a good candidate, it is labeled `/good-first-issue`
+1. Utilize `gpt-4o-mini` with GH Models API to analyze issue for scope, context, guidance and complexity and decide if the issue contains enough information to be resolved by a contributor (new or otherwise). 
+Also identify which section of the codebase the issue targets (e.g., frontend, backend, testing, chore)
+2. Comment on the issue with the generated feedback.
+3. Tag the relevant maintainers/approvers for the identified section of the codebase, requesting that they review the issue and mark it `/ready` if applicable.
 
 ### II. PRs from new contributors must link valid issue to run CI workflows
 Add a GitHub Action workflow triggered on PRs from new contributors:
 1. Parse the PR body for a linked issue.
-2. Validate that the linked issue is both an existing KFP issue and also labeled `/good-first-issue`.
+2. Validate that the linked issue is both an existing KFP issue and also labeled `/ready`.
 3. If the linked issue does not meet the above criteria, the PR is auto-closed with the following message:
 ```text
-Closing this PR automatically. Link an issue labeled '/good-first-issue' in the PR body and then reopen. See CONTRIBUTING.md for more details.
+Closing this PR automatically. Link an issue labeled '/ready' in the PR body and then reopen. See CONTRIBUTING.md for more details.
 ```
 4. If the linked issue does meet the above criteria, the PR is labeled `/ok-to-test` and CI continues.
 
 ### III. Documentation
-Documentation must be added to [CONTRIBUTING.md](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md) to explain `/good-first-issue` label criteria.
+Documentation must be added to [CONTRIBUTING.md](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md) to explain `/ready` label criteria.
 
 ### IV. Managing Pre-existing PRs and Issues
 **Note that only PRs from non-KF members will be evaluated. PRs from KF members will not be affected.**
 After these two proposed workflows are merged into master, the following steps are required to handle pre-existing work:
 1. All current PRs from new contributors that have been inactive for 4+ weeks will be closed with an explanatory message.
 2. Current PRs from new contributors that have been inactive for less than 4 weeks will not be closed, but when the contributor pushes new commits, the PR will be re-evaluated for an issue.
-3. All current issues will be evaluated for `/good-first-issue` label.
+3. All current issues will be evaluated for `/ready` label.
 
 ### Risks and Mitigations
 #### Large CI Change
@@ -62,11 +65,11 @@ This risk is mitigated by the process documentation added to CONTRIBUTING.md, wh
 For this reason, the gatekeeper workflow will not be executed on PRs with `(docs)` or `(chore)` in the title, allowing new contributors to bypass the gatekeeper workflow for these smaller changes.
 
 #### Slowing Down Work Under Current Review
-The linked issue requirement will slow down PRs currently under review, as the author will need to create an issue which must then be labeled `/good-first-issue`.
+The linked issue requirement will slow down PRs currently under review, as the author will need to create an issue which must then be labeled `/ready`.
 However, this label can also be manually applied by maintainers in the case that the label fails, but the PR is a good fit for the contributor.
 
 ## Drawbacks
-While the overall goal of this KEP is to reduce maintainer/reviewer fatigue, the design does require more maintainer/reviewer involvement at the issue level, given that issues must be labeled `/good-first-issue`.
+While the overall goal of this KEP is to reduce maintainer/reviewer fatigue, the design does require more maintainer/reviewer involvement at the issue level, given that issues must be labeled `/ready`.
 
 
 ## Alternatives
