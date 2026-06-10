@@ -2428,6 +2428,47 @@ func TestWorkflow_FindObjectStoreArtifactKeyOrEmpty_RetryParentNoChildren(t *tes
 	assert.Equal(t, "", workflow.FindObjectStoreArtifactKeyOrEmpty("retry-parent-node", "artifact1"))
 }
 
+func TestWorkflow_FindObjectStoreArtifactKeyOrEmpty_StepGroupToRetryToPod(t *testing.T) {
+	// With templateDefaults.retryStrategy, the hierarchy is:
+	// StepGroup → Retry parent → Pod (with artifacts).
+	// The test regex may capture the StepGroup node, so the function must
+	// traverse two levels to reach the Pod's artifacts.
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{
+				"step-group-node": {
+					ID:       "step-group-node",
+					Type:     workflowapi.NodeTypeStepGroup,
+					Children: []string{"retry-parent-node"},
+				},
+				"retry-parent-node": {
+					ID:       "retry-parent-node",
+					Type:     workflowapi.NodeTypeRetry,
+					Children: []string{"retry-parent-node(0)"},
+				},
+				"retry-parent-node(0)": {
+					ID:   "retry-parent-node(0)",
+					Type: workflowapi.NodeTypePod,
+					Outputs: &workflowapi.Outputs{
+						Artifacts: workflowapi.Artifacts{
+							{
+								Name: "artifact1",
+								ArtifactLocation: workflowapi.ArtifactLocation{
+									S3: &workflowapi.S3Artifact{
+										Key: "bucket/artifacts/deep-nested-key",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	assert.Equal(t, "bucket/artifacts/deep-nested-key",
+		workflow.FindObjectStoreArtifactKeyOrEmpty("step-group-node", "artifact1"))
+}
+
 // nonWorkflowExecution implements ExecutionSpec via embedding but is not *Workflow.
 // Used to test type assertion failures in WorkflowInterface methods.
 type nonWorkflowExecution struct {

@@ -776,8 +776,10 @@ func (w *Workflow) SetCannonicalLabels(name string, nextScheduledEpoch int64, in
 }
 
 // FindObjectStoreArtifactKeyOrEmpty looks up the first S3 artifact with the specified artifactName
-// on the specified nodeName. If the node has no outputs (e.g., a retry parent node), it also checks
-// the node's direct children. Returns empty string if nothing is found.
+// on the specified nodeName. If the node has no outputs (e.g., a retry parent or step group node),
+// it recursively checks the node's children up to a bounded depth. This handles the hierarchy
+// introduced by templateDefaults.retryStrategy: StepGroup → Retry → Pod.
+// Returns empty string if nothing is found.
 func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeName string, artifactName string) string {
 	if w.Status.Nodes == nil {
 		return ""
@@ -786,15 +788,22 @@ func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeName string, artifactNa
 	if !found {
 		return ""
 	}
+	// maxDepth of 3 covers: StepGroup → Retry → Pod (deepest expected path).
+	return w.findArtifactKeyRecursive(node, artifactName, 3)
+}
+
+// findArtifactKeyRecursive searches the node and its children (up to maxDepth levels)
+// for an S3 artifact with the given name.
+func (w *Workflow) findArtifactKeyRecursive(node workflowapi.NodeStatus, artifactName string, maxDepth int) string {
 	if s3Key := findArtifactS3KeyFromNode(node, artifactName); s3Key != "" {
 		return s3Key
 	}
-	if node.Type != workflowapi.NodeTypeRetry {
+	if maxDepth <= 0 {
 		return ""
 	}
 	for _, childNodeID := range node.Children {
 		if childNode, childFound := w.Status.Nodes[childNodeID]; childFound {
-			if s3Key := findArtifactS3KeyFromNode(childNode, artifactName); s3Key != "" {
+			if s3Key := w.findArtifactKeyRecursive(childNode, artifactName, maxDepth-1); s3Key != "" {
 				return s3Key
 			}
 		}
