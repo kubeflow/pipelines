@@ -3,5 +3,5 @@ kind: ConfigMap
 metadata:
   name: pipeline-multi-user-parameters
 data:
-  KUBEFLOW_USERID_HEADER: kubeflow-userid
-  KUBEFLOW_USERID_PREFIX: ""
+  USERID_HEADER: kubeflow-userid
+  USERID_PREFIX: ""
