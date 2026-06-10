@@ -1,4 +1,4 @@
-# Copyright 2026 The Kubeflow Authors
+# Copyright The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@ PipelinesClient`` or through the Kubeflow SDK re-export at
 """
 
 from kfp.kubeflow_client import constants
-from kfp.kubeflow_client.pipelines_client import PipelinesBackendConfig
-from kfp.kubeflow_client.pipelines_client import PipelinesClient
+from kfp.kubeflow_client.api.pipelines_client import PipelinesClient
+from kfp.kubeflow_client.backends.kubernetes import KubernetesBackendConfig
 from kfp.kubeflow_client.types import Experiment
 from kfp.kubeflow_client.types import ListExperimentsResponse
 from kfp.kubeflow_client.types import ListPipelinesResponse
@@ -33,12 +33,12 @@ from kfp.kubeflow_client.types import Run
 __all__ = [
     'constants',
     'Experiment',
+    'KubernetesBackendConfig',
     'ListExperimentsResponse',
     'ListPipelinesResponse',
     'ListPipelineVersionsResponse',
     'ListRunsResponse',
     'Pipeline',
-    'PipelinesBackendConfig',
     'PipelinesClient',
     'PipelineVersion',
     'Run',
