@@ -1722,6 +1722,7 @@ func toModelTask(t interface{}) (*model.Task, error) {
 	}
 	var taskId, nodeId, namespace, pipelineName, runId, mlmdExecId, fingerprint string
 	var name, parentTaskId, state, inputs, outputs string
+	var lifecycleFailureMessage string
 	var createTime, startTime, finishTime int64
 	var stateHistory []*model.RuntimeStatus
 	var children []string
@@ -1782,27 +1783,29 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		createTime = wfStatus.CreateTime
 		finishTime = wfStatus.FinishTime
 		children = wfStatus.Children
+		lifecycleFailureMessage = nodeLifecycleFailureMessage(wfStatus)
 	default:
 		return nil, util.NewUnknownApiVersionError("Task", t)
 	}
 	return &model.Task{
-		UUID:              taskId,
-		PodName:           nodeId,
-		Namespace:         namespace,
-		PipelineName:      pipelineName,
-		RunID:             runId,
-		MLMDExecutionID:   mlmdExecId,
-		CreatedTimestamp:  createTime,
-		StartedTimestamp:  startTime,
-		FinishedTimestamp: finishTime,
-		Fingerprint:       fingerprint,
-		Name:              name,
-		ParentTaskId:      parentTaskId,
-		State:             model.RuntimeState(state).ToV2(),
-		StateHistory:      stateHistory,
-		MLMDInputs:        model.LargeText(inputs),
-		MLMDOutputs:       model.LargeText(outputs),
-		ChildrenPods:      children,
+		UUID:                    taskId,
+		PodName:                 nodeId,
+		Namespace:               namespace,
+		PipelineName:            pipelineName,
+		RunID:                   runId,
+		MLMDExecutionID:         mlmdExecId,
+		CreatedTimestamp:        createTime,
+		StartedTimestamp:        startTime,
+		FinishedTimestamp:       finishTime,
+		Fingerprint:             fingerprint,
+		Name:                    name,
+		ParentTaskId:            parentTaskId,
+		State:                   model.RuntimeState(state).ToV2(),
+		StateHistory:            stateHistory,
+		MLMDInputs:              model.LargeText(inputs),
+		MLMDOutputs:             model.LargeText(outputs),
+		ChildrenPods:            children,
+		LifecycleFailureMessage: model.LargeText(lifecycleFailureMessage),
 	}, nil
 }
 
@@ -1836,6 +1839,11 @@ func toModelTasks(t interface{}) ([]*model.Task, error) {
 			nodeNames = append(nodeNames, nodeName)
 		}
 		sort.Strings(nodeNames)
+		// Argo records pod-level lifecycle failures (e.g. ImagePullBackOff) on the executor Pod
+		// node, which is a child of the task node the UI renders. Resolve an effective message for
+		// each node by propagating a non-empty descendant message up to its ancestors, so the
+		// failure is associated with the pipeline task the user actually sees in the graph.
+		resolvedMessages := resolveNodeLifecycleMessages(nodes)
 		modelTasks := make([]*model.Task, 0)
 		for _, nodeName := range nodeNames {
 			node := nodes[nodeName]
@@ -1846,12 +1854,99 @@ func toModelTasks(t interface{}) ([]*model.Task, error) {
 			modelTask.RunID = runId
 			modelTask.Namespace = namespace
 			modelTask.CreatedTimestamp = createdAt
+			// resolveNodeLifecycleMessages already accounts for node state and bubbles a pod-level
+			// failure up from the executor child to the task node the UI renders, so it is the
+			// authoritative value. Recomputed every sync, so it clears once the node recovers.
+			modelTask.LifecycleFailureMessage = model.LargeText(resolvedMessages[nodeName])
 			modelTasks = append(modelTasks, modelTask)
 		}
 		return modelTasks, nil
 	default:
 		return nil, util.NewUnknownApiVersionError("[]Task", t)
 	}
+}
+
+// transientNodeMessages are benign Argo/Kubernetes node messages that appear during a pod's normal
+// startup and are cleared once the pod is running. They must NOT be treated as lifecycle failures;
+// otherwise healthy runs would be mislabeled (every KFP pod passes through PodInitializing because
+// of the launcher init container).
+var transientNodeMessages = map[string]bool{
+	"podinitializing":   true,
+	"containercreating": true,
+}
+
+// nonFailureNodeStates are terminal/benign Argo node phases that never represent a pod lifecycle
+// failure. Messages attached to nodes in these states (e.g. a skip reason such as
+// "when 'true != true' evaluated false") must not be surfaced as failures.
+var nonFailureNodeStates = map[string]bool{
+	"Succeeded": true,
+	"Skipped":   true,
+	"Omitted":   true,
+}
+
+// normalizeLifecycleFailureMessage normalizes an Argo node message into a pod lifecycle failure
+// message. It returns the message verbatim for genuine failures (e.g. ImagePullBackOff, OOMKilled,
+// Unschedulable) and an empty string for transient/benign startup states, so that only real
+// failures are surfaced to the UI.
+func normalizeLifecycleFailureMessage(message string) string {
+	if transientNodeMessages[strings.ToLower(strings.TrimSpace(message))] {
+		return ""
+	}
+	return message
+}
+
+// nodeLifecycleFailureMessage returns the pod lifecycle failure message for a single node, or an
+// empty string when the node is in a non-failure state or only carries a transient/benign message.
+func nodeLifecycleFailureMessage(node util.NodeStatus) string {
+	if nonFailureNodeStates[node.State] {
+		return ""
+	}
+	return normalizeLifecycleFailureMessage(node.Message)
+}
+
+// resolveNodeLifecycleMessages computes, for each workflow node, the lifecycle failure message to
+// surface. Nodes in a non-failure state (e.g. Succeeded/Skipped) resolve to an empty message. For
+// the rest, a node's own message takes precedence; if empty, the first non-empty message found
+// among its descendants is used. This lets pod-level failures recorded on a child executor node
+// (e.g. "ImagePullBackOff ...") be associated with the parent task node that the UI renders. The
+// keys and child references are Argo node IDs, matching the NodeStatuses map.
+func resolveNodeLifecycleMessages(nodes map[string]util.NodeStatus) map[string]string {
+	resolved := make(map[string]string, len(nodes))
+	var resolve func(nodeID string, visited map[string]bool) string
+	resolve = func(nodeID string, visited map[string]bool) string {
+		if message, ok := resolved[nodeID]; ok {
+			return message
+		}
+		if visited[nodeID] {
+			return ""
+		}
+		visited[nodeID] = true
+		node, ok := nodes[nodeID]
+		if !ok {
+			return ""
+		}
+		// A node in a non-failure state (e.g. Succeeded/Skipped) never carries a lifecycle failure,
+		// and must not inherit one from its descendants either.
+		if nonFailureNodeStates[node.State] {
+			resolved[nodeID] = ""
+			return ""
+		}
+		message := normalizeLifecycleFailureMessage(node.Message)
+		if message == "" {
+			for _, childID := range node.Children {
+				if childMessage := resolve(childID, visited); childMessage != "" {
+					message = childMessage
+					break
+				}
+			}
+		}
+		resolved[nodeID] = message
+		return message
+	}
+	for nodeID := range nodes {
+		resolve(nodeID, make(map[string]bool))
+	}
+	return resolved
 }
 
 // Converts internal task representation to its API counterpart.
@@ -1905,7 +2000,7 @@ func toApiPipelineTaskDetail(t *model.Task) *apiv2beta1.PipelineTaskDetail {
 			ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: c},
 		})
 	}
-	return &apiv2beta1.PipelineTaskDetail{
+	taskDetail := &apiv2beta1.PipelineTaskDetail{
 		RunId:        t.RunID,
 		TaskId:       t.UUID,
 		DisplayName:  t.Name,
@@ -1920,6 +2015,13 @@ func toApiPipelineTaskDetail(t *model.Task) *apiv2beta1.PipelineTaskDetail {
 		StateHistory: toApiRuntimeStatuses(t.StateHistory),
 		ChildTasks:   children,
 	}
+	if t.LifecycleFailureMessage != "" {
+		taskDetail.Error = util.ToRpcStatus(util.NewInternalServerError(
+			fmt.Errorf("%s", string(t.LifecycleFailureMessage)),
+			"Pod lifecycle failure",
+		))
+	}
+	return taskDetail
 }
 
 // Converts and array of internal task representations to its API counterpart.

@@ -36,6 +36,7 @@ import {
 import { getArtifactNameFromEvent, LinkedArtifact, ExecutionHelpers } from 'src/mlmd/MlmdUtils';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
+import { V2beta1PipelineTaskDetail } from 'src/apisv2beta1/run';
 
 export const TASK_NAME_KEY = 'task_name';
 export const PARENT_DAG_ID_KEY = 'parent_dag_id';
@@ -221,10 +222,29 @@ export function updateFlowElementsState(
   executions: Execution[],
   events: Event[],
   artifacts: Artifact[],
+  taskDetails?: V2beta1PipelineTaskDetail[],
 ): PipelineFlowElement[] {
   const executionLayers = getExecutionLayers(layers, executions);
+
+  // Build a map from task display_name to lifecycle error message from the KFP API, so we can
+  // surface pod lifecycle failures (e.g. ImagePullBackOff) on nodes that have no MLMD execution.
+  const taskNameToLifecycleError = buildTaskNameToLifecycleError(taskDetails);
+
   if (executionLayers.length < layers.length) {
-    // This Sub DAG is not executed yet. There is no runtime information to update.
+    // This Sub DAG is not executed yet. There is no MLMD runtime information to update.
+    // However, individual tasks may already have lifecycle errors recorded in the KFP API.
+    if (taskNameToLifecycleError.size > 0) {
+      return elems.map((elem) => {
+        if (NodeTypeNames.EXECUTION !== elem.type) {
+          return elem;
+        }
+        const updatedElem = cloneFlowElement(elem);
+        const taskLabel = getTaskLabelByPipelineFlowElement(elem);
+        const lifecycleError = taskNameToLifecycleError.get(taskLabel);
+        (updatedElem.data as ExecutionFlowElementData).lifecycleError = lifecycleError;
+        return updatedElem;
+      });
+    }
     return elems;
   }
 
@@ -265,9 +285,10 @@ export function updateFlowElementsState(
   for (let elem of elems) {
     const updatedElem = cloneFlowElement(elem);
     if (NodeTypeNames.EXECUTION === elem.type) {
+      const taskLabel = getTaskLabelByPipelineFlowElement(elem);
       const executions = getExecutionsUnderDAG(
         taskNameToExecution,
-        getTaskLabelByPipelineFlowElement(elem),
+        taskLabel,
         executionLayers,
       );
       if (executions) {
@@ -277,6 +298,18 @@ export function updateFlowElementsState(
         (updatedElem.data as ExecutionFlowElementData).label = ExecutionHelpers.getName(
           executions[0],
         );
+      }
+      // Always reconcile the lifecycle error from the KFP API. A pod lifecycle failure (e.g.
+      // ImagePullBackOff) can occur even when an MLMD execution exists, because the driver
+      // registers the execution before the user container fails to start. Recompute every
+      // refresh so the error clears if the task later recovers.
+      const lifecycleError = taskNameToLifecycleError.get(taskLabel);
+      (updatedElem.data as ExecutionFlowElementData).lifecycleError = lifecycleError;
+      // When the pod never starts, MLMD keeps the execution stuck at RUNNING, leaving the node
+      // spinning forever. Render it as FAILED so the failure is visible in the graph, matching
+      // how pipeline script failures are surfaced.
+      if (lifecycleError) {
+        (updatedElem.data as ExecutionFlowElementData).state = Execution.State.FAILED;
       }
     } else if (NodeTypeNames.ARTIFACT === elem.type) {
       let linkedArtifact = artifactNodeKeyToArtifact.get(elem.id);
@@ -341,6 +374,26 @@ function cloneFlowElement(elem: PipelineFlowElement): PipelineFlowElement {
 function getTaskLabelByPipelineFlowElement(elem: PipelineFlowElement) {
   // Always use the original task name from the node ID for MLMD data lookups
   return getTaskKeyFromNodeKey(elem.id);
+}
+
+/**
+ * Builds a map from task display name to lifecycle error message.
+ * Lifecycle errors are pod-level failures (e.g. ImagePullBackOff, Unschedulable) that are
+ * recorded via the KFP API when no MLMD execution record exists for the task.
+ */
+function buildTaskNameToLifecycleError(
+  taskDetails?: V2beta1PipelineTaskDetail[],
+): Map<string, string> {
+  const result = new Map<string, string>();
+  if (!taskDetails) {
+    return result;
+  }
+  for (const task of taskDetails) {
+    if (task.display_name && task.error?.message) {
+      result.set(task.display_name, task.error.message);
+    }
+  }
+  return result;
 }
 
 function getExecutionsUnderDAG(
