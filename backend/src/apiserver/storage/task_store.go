@@ -496,7 +496,8 @@ func patchTask(original *model.Task, patch *model.Task) {
 	if len(original.ChildrenPods) == 0 {
 		original.ChildrenPods = patch.ChildrenPods
 	}
-	// LifecycleFailureMessage is intentionally not preserved here. It is recomputed from the current
-	// workflow on every sync, so the latest value must win; otherwise a transient message captured
-	// mid-startup would stick even after the pod recovers or succeeds.
+	// LifecycleFailureMessage is deliberately omitted from this preserve-old-when-empty pattern.
+	// `original` is the freshly synced task and already holds the authoritative value computed from
+	// the current workflow (including an empty string when the pod has recovered or succeeded).
+	// Preserving the prior DB value here would let a transient mid-startup message stick forever.
 }

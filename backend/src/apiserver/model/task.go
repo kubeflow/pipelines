@@ -26,25 +26,29 @@ type Task struct {
 	// RunID is limited to varchar(191) to make it indexable as a foreign key.
 	// For details on type lengths and index safety, refer to comments in the Pipeline struct.
 	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
-	RunID                   string           `gorm:"column:RunUUID; type:varchar(191); not null; index:tasks_RunUUID_run_details_UUID_foreign;"`                            // Note: field name (RunID) ≠ column name (RunUUID). The former should be the foreign key instead of the letter.
-	Run                     Run              `gorm:"foreignKey:RunID;references:UUID;constraint:tasks_RunUUID_run_details_UUID_foreign,OnDelete:CASCADE,OnUpdate:CASCADE;"` // A Task belongs to a Run.
-	PodName                 string           `gorm:"column:PodName; not null;"`
-	MLMDExecutionID         string           `gorm:"column:MLMDExecutionID; not null;"`
-	CreatedTimestamp        int64            `gorm:"column:CreatedTimestamp; not null;"`
-	StartedTimestamp        int64            `gorm:"column:StartedTimestamp; default:0;"`
-	FinishedTimestamp       int64            `gorm:"column:FinishedTimestamp; default:0;"`
-	Fingerprint             string           `gorm:"column:Fingerprint; not null;"`
-	Name                    string           `gorm:"column:Name; default:null"`
-	ParentTaskId            string           `gorm:"column:ParentTaskUUID; default:null"`
-	State                   RuntimeState     `gorm:"column:State; default:null;"`
-	StateHistoryString      LargeText        `gorm:"column:StateHistory; default:null;"`
-	MLMDInputs              LargeText        `gorm:"column:MLMDInputs; default:null;"`
-	MLMDOutputs             LargeText        `gorm:"column:MLMDOutputs; default:null;"`
-	ChildrenPodsString      LargeText        `gorm:"column:ChildrenPods; default:null;"`
-	StateHistory            []*RuntimeStatus `gorm:"-;"`
-	ChildrenPods            []string         `gorm:"-;"`
-	Payload                 LargeText        `gorm:"column:Payload; default:null;"`
-	LifecycleFailureMessage LargeText        `gorm:"column:LifecycleFailureMessage; default:null;"`
+	RunID              string           `gorm:"column:RunUUID; type:varchar(191); not null; index:tasks_RunUUID_run_details_UUID_foreign;"`                            // Note: field name (RunID) ≠ column name (RunUUID). The former should be the foreign key instead of the letter.
+	Run                Run              `gorm:"foreignKey:RunID;references:UUID;constraint:tasks_RunUUID_run_details_UUID_foreign,OnDelete:CASCADE,OnUpdate:CASCADE;"` // A Task belongs to a Run.
+	PodName            string           `gorm:"column:PodName; not null;"`
+	MLMDExecutionID    string           `gorm:"column:MLMDExecutionID; not null;"`
+	CreatedTimestamp   int64            `gorm:"column:CreatedTimestamp; not null;"`
+	StartedTimestamp   int64            `gorm:"column:StartedTimestamp; default:0;"`
+	FinishedTimestamp  int64            `gorm:"column:FinishedTimestamp; default:0;"`
+	Fingerprint        string           `gorm:"column:Fingerprint; not null;"`
+	Name               string           `gorm:"column:Name; default:null"`
+	ParentTaskId       string           `gorm:"column:ParentTaskUUID; default:null"`
+	State              RuntimeState     `gorm:"column:State; default:null;"`
+	StateHistoryString LargeText        `gorm:"column:StateHistory; default:null;"`
+	MLMDInputs         LargeText        `gorm:"column:MLMDInputs; default:null;"`
+	MLMDOutputs        LargeText        `gorm:"column:MLMDOutputs; default:null;"`
+	ChildrenPodsString LargeText        `gorm:"column:ChildrenPods; default:null;"`
+	StateHistory       []*RuntimeStatus `gorm:"-;"`
+	ChildrenPods       []string         `gorm:"-;"`
+	Payload            LargeText        `gorm:"column:Payload; default:null;"`
+
+	// LifecycleFailureMessage carries the pod lifecycle failure message (e.g. ImagePullBackOff,
+	// OOMKilled, Unschedulable) propagated from the underlying execution engine, so the UI can
+	// surface workload failures the same way it surfaces user-script failures.
+	LifecycleFailureMessage LargeText `gorm:"column:LifecycleFailureMessage; default:null;"`
 }
 
 func (t Task) ToString() string {

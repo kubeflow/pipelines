@@ -226,25 +226,15 @@ export function updateFlowElementsState(
 ): PipelineFlowElement[] {
   const executionLayers = getExecutionLayers(layers, executions);
 
-  // Build a map from task display_name to lifecycle error message from the KFP API, so we can
-  // surface pod lifecycle failures (e.g. ImagePullBackOff) on nodes that have no MLMD execution.
+  // Build a map from task name to lifecycle error message from the KFP API, so pod lifecycle
+  // failures (e.g. ImagePullBackOff) can be annotated even when the MLMD execution is stuck in
+  // RUNNING because the driver registered it before the user container failed to start.
+  // The backend sets PipelineTaskDetail.display_name from the Argo node DisplayName, which equals
+  // the pipeline task key the frontend extracts via getTaskKeyFromNodeKey(elem.id).
   const taskNameToLifecycleError = buildTaskNameToLifecycleError(taskDetails);
 
   if (executionLayers.length < layers.length) {
-    // This Sub DAG is not executed yet. There is no MLMD runtime information to update.
-    // However, individual tasks may already have lifecycle errors recorded in the KFP API.
-    if (taskNameToLifecycleError.size > 0) {
-      return elems.map((elem) => {
-        if (NodeTypeNames.EXECUTION !== elem.type) {
-          return elem;
-        }
-        const updatedElem = cloneFlowElement(elem);
-        const taskLabel = getTaskLabelByPipelineFlowElement(elem);
-        const lifecycleError = taskNameToLifecycleError.get(taskLabel);
-        (updatedElem.data as ExecutionFlowElementData).lifecycleError = lifecycleError;
-        return updatedElem;
-      });
-    }
+    // This Sub DAG is not executed yet. There is no runtime information to update.
     return elems;
   }
 
@@ -286,11 +276,7 @@ export function updateFlowElementsState(
     const updatedElem = cloneFlowElement(elem);
     if (NodeTypeNames.EXECUTION === elem.type) {
       const taskLabel = getTaskLabelByPipelineFlowElement(elem);
-      const executions = getExecutionsUnderDAG(
-        taskNameToExecution,
-        taskLabel,
-        executionLayers,
-      );
+      const executions = getExecutionsUnderDAG(taskNameToExecution, taskLabel, executionLayers);
       if (executions) {
         (updatedElem.data as ExecutionFlowElementData).state = executions[0]?.getLastKnownState();
         (updatedElem.data as ExecutionFlowElementData).mlmdId = executions[0]?.getId();

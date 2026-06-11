@@ -156,11 +156,8 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   );
 
   const dynamicFlowElements = useMemo(() => {
-    const taskDetails = run.run_details?.task_details;
-
     if (!isSuccess || !data) {
-      // MLMD not yet available, but we can still annotate nodes with lifecycle errors from the API.
-      return updateFlowElementsState(layers, flowElements, [], [], [], taskDetails);
+      return flowElements;
     }
 
     // Keep React Flow node references stable between unrelated rerenders after MLMD data arrives.
@@ -170,7 +167,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       data.executions,
       data.events,
       data.artifacts,
-      taskDetails,
+      run.run_details?.task_details,
     );
   }, [data, flowElements, isSuccess, layers, run.run_details?.task_details]);
 

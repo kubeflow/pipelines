@@ -33,6 +33,8 @@ import (
 	swapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron"
+	rpcstatus "google.golang.org/genproto/googleapis/rpc/status"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -1912,19 +1914,24 @@ func nodeLifecycleFailureMessage(node util.NodeStatus) string {
 // keys and child references are Argo node IDs, matching the NodeStatuses map.
 func resolveNodeLifecycleMessages(nodes map[string]util.NodeStatus) map[string]string {
 	resolved := make(map[string]string, len(nodes))
-	var resolve func(nodeID string, visited map[string]bool) string
-	resolve = func(nodeID string, visited map[string]bool) string {
+	// onStack tracks nodes currently in the DFS recursion stack, so we only block recursion through
+	// true cycles. Once a node finishes resolving, it is removed from the stack and its answer is
+	// cached in `resolved`; sibling/shared-descendant paths then hit the cache, not the stack.
+	onStack := make(map[string]bool)
+	var resolve func(nodeID string) string
+	resolve = func(nodeID string) string {
 		if message, ok := resolved[nodeID]; ok {
 			return message
 		}
-		if visited[nodeID] {
+		if onStack[nodeID] {
 			return ""
 		}
-		visited[nodeID] = true
 		node, ok := nodes[nodeID]
 		if !ok {
 			return ""
 		}
+		onStack[nodeID] = true
+		defer delete(onStack, nodeID)
 		// A node in a non-failure state (e.g. Succeeded/Skipped) never carries a lifecycle failure,
 		// and must not inherit one from its descendants either.
 		if nonFailureNodeStates[node.State] {
@@ -1934,7 +1941,7 @@ func resolveNodeLifecycleMessages(nodes map[string]util.NodeStatus) map[string]s
 		message := normalizeLifecycleFailureMessage(node.Message)
 		if message == "" {
 			for _, childID := range node.Children {
-				if childMessage := resolve(childID, visited); childMessage != "" {
+				if childMessage := resolve(childID); childMessage != "" {
 					message = childMessage
 					break
 				}
@@ -1944,7 +1951,7 @@ func resolveNodeLifecycleMessages(nodes map[string]util.NodeStatus) map[string]s
 		return message
 	}
 	for nodeID := range nodes {
-		resolve(nodeID, make(map[string]bool))
+		resolve(nodeID)
 	}
 	return resolved
 }
@@ -2016,10 +2023,13 @@ func toApiPipelineTaskDetail(t *model.Task) *apiv2beta1.PipelineTaskDetail {
 		ChildTasks:   children,
 	}
 	if t.LifecycleFailureMessage != "" {
-		taskDetail.Error = util.ToRpcStatus(util.NewInternalServerError(
-			fmt.Errorf("%s", string(t.LifecycleFailureMessage)),
-			"Pod lifecycle failure",
-		))
+		// This is a workload failure surfaced from Argo, not an API server fault. Carry the actual
+		// Kubernetes/Argo message verbatim in the user-facing Status.Message so the UI can render
+		// it as-is, prefixed with a stable label that identifies the failure category.
+		taskDetail.Error = &rpcstatus.Status{
+			Code:    int32(codes.Internal),
+			Message: fmt.Sprintf("Pod lifecycle failure: %s", string(t.LifecycleFailureMessage)),
+		}
 	}
 	return taskDetail
 }
