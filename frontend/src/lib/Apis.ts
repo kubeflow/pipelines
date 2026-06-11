@@ -372,19 +372,19 @@ export class Apis {
   }
 
   /**
-   * Gets the address (IP + port) of a Tensorboard service given the logdir and tfversion
+   * Gets the scoped proxy path for a TensorBoard service given the logdir.
    */
   public static getTensorboardApp(
     logdir: string,
     namespace: string,
-  ): Promise<{ podAddress: string; tfVersion: string; image: string }> {
-    return this._fetchAndParse<{ podAddress: string; tfVersion: string; image: string }>(
+  ): Promise<{ proxyPath: string; tfVersion: string; image: string }> {
+    return this._fetchAndParse<{ proxyPath: string; tfVersion: string; image: string }>(
       `apps/tensorboard${buildQuery({ logdir, namespace })}`,
     );
   }
 
   /**
-   * Starts a deployment and service for Tensorboard given the logdir.
+   * Starts a deployment and service for TensorBoard given the logdir.
    */
   public static startTensorboardApp({
     logdir,
@@ -411,10 +411,10 @@ export class Apis {
   }
 
   /**
-   * Check if the underlying Tensorboard pod is actually up, given the pod address
+   * Checks if the scoped TensorBoard proxy path is ready.
    */
-  public static async isTensorboardPodReady(path: string): Promise<boolean> {
-    const resp = await fetch(path, { method: 'HEAD' });
+  public static async isTensorboardPodReady(proxyPath: string): Promise<boolean> {
+    const resp = await fetch(proxyPath, { method: 'HEAD' });
     return resp.ok;
   }
 

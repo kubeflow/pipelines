@@ -217,6 +217,24 @@ describe('UIServer apis', () => {
     });
   });
 
+  describe('deprecated generic proxy routes', () => {
+    beforeEach(() => {
+      app = new UIServer(loadConfigs(argv, {}));
+    });
+
+    it('returns gone for the legacy v1 proxy endpoint', async () => {
+      await requests(app.app)
+        .get('/apis/v1beta1/_proxy/http%3A%2F%2Fviewer.test%2Fdata')
+        .expect(410, 'The generic /_proxy/ endpoint is deprecated and no longer supported.');
+    });
+
+    it('returns gone for the legacy base-path proxy endpoint', async () => {
+      await requests(app.app)
+        .get('/pipeline/apis/v1beta1/_proxy/http%3A%2F%2Fviewer.test%2Fdata')
+        .expect(410, 'The generic /_proxy/ endpoint is deprecated and no longer supported.');
+    });
+  });
+
   describe('/system', () => {
     describe('/cluster-name', () => {
       it('responds with cluster name data from gke metadata', async () => {
