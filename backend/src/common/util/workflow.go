@@ -17,6 +17,7 @@ package util
 
 import (
 	"context"
+	stdjson "encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -674,33 +675,75 @@ func (w *Workflow) SetLabelsToAllTemplates(key string, value string) {
 	}
 }
 
-// UpsertRuntimeEnvVars adds or replaces env vars on workflow containers
-// matching the specified runtime roles using the AnnotationKeyRuntimeRole
-// annotation stamped by the compiler.  Templates without the annotation are
-// skipped.
-func (w *Workflow) UpsertRuntimeEnvVars(envVars map[string]string, roles ...ExecutionRuntimeRole) error {
-	if len(envVars) == 0 || len(w.Spec.Templates) == 0 {
+// UpsertRuntimeConfig adds or replaces runtime config for the specified
+// runtime roles. Container templates receive it as env vars using the
+// AnnotationKeyRuntimeRole annotation stamped by the compiler.
+// Driver runtime config is passed through executor plugin args because Argo
+// executor plugins do not expose a pod container env block here.
+func (w *Workflow) UpsertRuntimeConfig(runtimeConfig map[string]string, roles ...ExecutionRuntimeRole) error {
+	if len(runtimeConfig) == 0 || len(w.Spec.Templates) == 0 {
 		return nil
 	}
 	roleSet := make(map[ExecutionRuntimeRole]bool, len(roles))
 	for _, r := range roles {
 		roleSet[r] = true
 	}
-	envList := make([]corev1.EnvVar, 0, len(envVars))
-	for k, v := range envVars {
+	envList := make([]corev1.EnvVar, 0, len(runtimeConfig))
+	for k, v := range runtimeConfig {
 		envList = append(envList, corev1.EnvVar{Name: k, Value: v})
 	}
 	for i := range w.Spec.Templates {
 		tmpl := &w.Spec.Templates[i]
-		if tmpl.Container == nil {
-			continue
-		}
-
-		role := tmpl.Metadata.Annotations[AnnotationKeyRuntimeRole]
-		if role != "" && roleSet[ExecutionRuntimeRole(role)] {
+		if tmpl.Container != nil {
+			role := tmpl.Metadata.Annotations[AnnotationKeyRuntimeRole]
+			if role == "" || !roleSet[ExecutionRuntimeRole(role)] {
+				continue
+			}
 			tmpl.Container.Env = upsertEnvVars(tmpl.Container.Env, envList)
 		}
+		// Driver runtime config is passed through executor plugin args because
+		// Argo executor plugins do not expose a pod container env block here.
+		if tmpl.Plugin != nil && roleSet[ExecutionRuntimeRoleDriver] {
+			if err := upsertRuntimeArgs(tmpl, runtimeConfig); err != nil {
+				return err
+			}
+		}
 	}
+	return nil
+}
+
+func upsertRuntimeArgs(tmpl *workflowapi.Template, runtimeArgs map[string]string) error {
+	var pluginConfig map[string]interface{}
+	if err := stdjson.Unmarshal(tmpl.Plugin.Value, &pluginConfig); err != nil {
+		return fmt.Errorf("failed to unmarshal plugin config for template %q: %w", tmpl.Name, err)
+	}
+	driverPlugin, ok := pluginConfig["driver-plugin"].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("failed to unmarshal executor plugin config for template %q: no driver plugin config", tmpl.Name)
+	}
+	args, ok := driverPlugin["args"].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("failed to extract args for template %q: no driver plugin config", tmpl.Name)
+	}
+	existingRuntimeArgs := make(map[string]string)
+	if existing, ok := args["runtime_args"].(string); ok && existing != "" {
+		if err := stdjson.Unmarshal([]byte(existing), &existingRuntimeArgs); err != nil {
+			return fmt.Errorf("failed to unmarshal runtime args for template %q: %w", tmpl.Name, err)
+		}
+	}
+	for key, value := range runtimeArgs {
+		existingRuntimeArgs[key] = value
+	}
+	runtimeArgsValue, err := stdjson.Marshal(existingRuntimeArgs)
+	if err != nil {
+		return fmt.Errorf("failed to marshal runtime args for template %q: %w", tmpl.Name, err)
+	}
+	args["runtime_args"] = string(runtimeArgsValue)
+	value, err := stdjson.Marshal(pluginConfig)
+	if err != nil {
+		return fmt.Errorf("failed to marshal plugin config for template %q: %w", tmpl.Name, err)
+	}
+	tmpl.Plugin.Value = value
 	return nil
 }
 

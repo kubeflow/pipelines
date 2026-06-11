@@ -15,42 +15,71 @@
 // Package driverapi provides HTTP DTOs used by the driver server.
 package driverapi
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
+// RuntimeArgs contains runtime-only settings passed to driver plugin handlers.
+type RuntimeArgs map[string]string
+
+func (r *RuntimeArgs) UnmarshalJSON(value []byte) error {
+	if string(value) == "null" {
+		return nil
+	}
+	var runtimeArgsJSON string
+	if err := json.Unmarshal(value, &runtimeArgsJSON); err != nil {
+		return fmt.Errorf("runtime_args must be a JSON object string")
+	}
+	if runtimeArgsJSON == "" {
+		*r = nil
+		return nil
+	}
+	var runtimeArgs map[string]string
+	if err := json.Unmarshal([]byte(runtimeArgsJSON), &runtimeArgs); err != nil {
+		return fmt.Errorf("failed to unmarshal runtime_args JSON string: %w", err)
+	}
+	*r = runtimeArgs
+	return nil
+}
+
 type DriverPluginArgs struct {
-	CachedDecisionPath      string `json:"cached_decision_path"`
-	Component               string `json:"component,omitempty"`
-	Container               string `json:"container,omitempty"`
-	DagExecutionID          string `json:"dag_execution_id"`
-	IterationIndex          string `json:"iteration_index"`
-	HTTPProxy               string `json:"http_proxy"`
-	HTTPSProxy              string `json:"https_proxy"`
-	NoProxy                 string `json:"no_proxy"`
-	KubernetesConfig        string `json:"kubernetes_config,omitempty"`
-	RuntimeConfig           string `json:"runtime_config,omitempty"`
-	PipelineName            string `json:"pipeline_name"`
-	PublishLogs             string `json:"publish_logs,omitempty"`
-	RunID                   string `json:"run_id"`
-	RunName                 string `json:"run_name"`
-	RunDisplayName          string `json:"run_display_name"`
-	TaskName                string `json:"task_name"`
-	Task                    string `json:"task"`
-	Type                    string `json:"type"`
-	CacheDisabledFlag       bool   `json:"cache_disabled"`
-	ExecutionIDPath         string `json:"execution_id_path"`
-	IterationCountPath      string `json:"iteration_count_path"`
-	ConditionPath           string `json:"condition_path"`
-	PodSpecPatchPath        string `json:"pod_spec_patch_path"`
-	MLMDServerAddress       string `json:"mlmd_server_address"`
-	MLMDServerPort          string `json:"mlmd_server_port"`
-	MlPipelineServerAddress string `json:"ml_pipeline_server_address"`
-	MlPipelineServerPort    string `json:"ml_pipeline_server_port"`
-	MlPipelineTLSEnabled    bool   `json:"ml_pipeline_tls_enabled"`
-	MetadataTLSEnabled      bool   `json:"metadata_tls_enabled"`
-	CACertPath              string `json:"ca_cert_path"`
-	LogLevel                string `json:"log_level"`
-	DefaultRunAsUser        *int64 `json:"default_run_as_user,omitempty"`
-	DefaultRunAsGroup       *int64 `json:"default_run_as_group,omitempty"`
-	DefaultRunAsNonRoot     string `json:"default_run_as_non_root,omitempty"`
-	DefaultHostUsers        *bool  `json:"default_host_users,omitempty"`
+	CachedDecisionPath      string      `json:"cached_decision_path"`
+	Component               string      `json:"component,omitempty"`
+	Container               string      `json:"container,omitempty"`
+	DagExecutionID          string      `json:"dag_execution_id"`
+	IterationIndex          string      `json:"iteration_index"`
+	HTTPProxy               string      `json:"http_proxy"`
+	HTTPSProxy              string      `json:"https_proxy"`
+	NoProxy                 string      `json:"no_proxy"`
+	KubernetesConfig        string      `json:"kubernetes_config,omitempty"`
+	RuntimeConfig           string      `json:"runtime_config,omitempty"`
+	PipelineName            string      `json:"pipeline_name"`
+	PublishLogs             string      `json:"publish_logs,omitempty"`
+	RunID                   string      `json:"run_id"`
+	RunName                 string      `json:"run_name"`
+	RunDisplayName          string      `json:"run_display_name"`
+	TaskName                string      `json:"task_name"`
+	Task                    string      `json:"task"`
+	Type                    string      `json:"type"`
+	CacheDisabledFlag       bool        `json:"cache_disabled"`
+	ExecutionIDPath         string      `json:"execution_id_path"`
+	IterationCountPath      string      `json:"iteration_count_path"`
+	ConditionPath           string      `json:"condition_path"`
+	PodSpecPatchPath        string      `json:"pod_spec_patch_path"`
+	MLMDServerAddress       string      `json:"mlmd_server_address"`
+	MLMDServerPort          string      `json:"mlmd_server_port"`
+	MlPipelineServerAddress string      `json:"ml_pipeline_server_address"`
+	MlPipelineServerPort    string      `json:"ml_pipeline_server_port"`
+	MlPipelineTLSEnabled    bool        `json:"ml_pipeline_tls_enabled"`
+	MetadataTLSEnabled      bool        `json:"metadata_tls_enabled"`
+	CACertPath              string      `json:"ca_cert_path"`
+	LogLevel                string      `json:"log_level"`
+	DefaultRunAsUser        *int64      `json:"default_run_as_user,omitempty"`
+	DefaultRunAsGroup       *int64      `json:"default_run_as_group,omitempty"`
+	DefaultRunAsNonRoot     string      `json:"default_run_as_non_root,omitempty"`
+	DefaultHostUsers        *bool       `json:"default_host_users,omitempty"`
+	RuntimeArgs             RuntimeArgs `json:"runtime_args,omitempty"`
 }
 
 type DriverPlugin struct {

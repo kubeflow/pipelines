@@ -145,6 +145,9 @@ rules:
     resources: ["secrets"]
     resourceNames: ["mlpipeline-minio-artifact"]
     verbs: ["get"]
+  - apiGroups: ["mlflow.kubeflow.org"]
+    resources: ["experiments"]
+    verbs: ["get", "list", "create", "update"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

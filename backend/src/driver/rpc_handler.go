@@ -26,9 +26,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
-	"github.com/spf13/viper"
-
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -36,6 +33,10 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
+
+	// Import plugin packages for side effects so their init() functions register factories.
+	_ "github.com/kubeflow/pipelines/backend/src/v2/common/plugins/all"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
@@ -271,7 +272,7 @@ func drive(args driverapi.DriverPluginArgs) (execution *driver.Execution, err er
 		return nil, err
 	}
 	// pluginDispatcher executes task-level plugin lifecycle hooks
-	pluginDispatcher, err := plugins.GetPluginDispatcher()
+	pluginDispatcher, err := plugins.GetPluginDispatcherWithRuntimeArgs(args.RuntimeArgs)
 	if err != nil {
 		glog.Errorf("Failed to initialize plugin dispatcher: %v", err)
 	}
@@ -482,8 +483,4 @@ func WriteJSONResponse(w http.ResponseWriter, payload driverapi.DriverResponse) 
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
-}
-
-func initConfig() {
-	viper.AutomaticEnv()
 }

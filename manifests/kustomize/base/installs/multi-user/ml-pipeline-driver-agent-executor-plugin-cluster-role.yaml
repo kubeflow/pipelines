@@ -30,3 +30,8 @@ rules:
     resources: ["secrets"]
     resourceNames: ["mlpipeline-minio-artifact"]
     verbs: ["get"]
+    # The driver plugin creates task-level MLflow runs from the task start hook,
+    # so it needs MLflow RBAC permissions.
+  - apiGroups: ["mlflow.kubeflow.org"]
+    resources: ["experiments"]
+    verbs: ["get", "list", "create", "update"]

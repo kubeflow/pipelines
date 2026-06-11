@@ -253,7 +253,6 @@ func (c *workflowCompiler) addContainerDriverTemplate() (string, error) {
 		},
 		Plugin: containerDriverPlugin,
 	}
-	setRuntimeRole(template, util.ExecutionRuntimeRoleDriver)
 	applySecurityContextToTemplate(template)
 	c.templates[name] = template
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *template)

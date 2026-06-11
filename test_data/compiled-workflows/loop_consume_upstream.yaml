@@ -92,9 +92,7 @@ spec:
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata:
-      annotations:
-        pipelines.kubeflow.org/runtime-role: driver
+    metadata: {}
     name: system-container-driver
     outputs:
       parameters:

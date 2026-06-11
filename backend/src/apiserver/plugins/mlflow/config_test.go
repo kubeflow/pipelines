@@ -588,13 +588,8 @@ func TestInjectMLflowRuntimeEnv(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Templates: []workflowapi.Template{
 				{
-					Name: "system-dag-driver",
-					Metadata: workflowapi.Metadata{
-						Annotations: map[string]string{
-							util.AnnotationKeyRuntimeRole: string(util.ExecutionRuntimeRoleDriver),
-						},
-					},
-					Container: &corev1.Container{Args: []string{"--type", "DAG"}},
+					Name:   "system-dag-driver",
+					Plugin: &workflowapi.Plugin{Object: workflowapi.Object{Value: []byte(`{"driver-plugin":{"args":{"type":"DAG"}}}`)}},
 				},
 				{
 					Name: "system-container-impl",
@@ -620,8 +615,13 @@ func TestInjectMLflowRuntimeEnv(t *testing.T) {
 
 	expectedEnv := corev1.EnvVar{Name: commonmlflow.EnvMLflowConfig, Value: env[commonmlflow.EnvMLflowConfig]}
 
-	// Driver container gets the env var.
-	assert.Contains(t, workflow.Spec.Templates[0].Container.Env, expectedEnv)
+	var pluginConfig map[string]map[string]map[string]interface{}
+	require.NoError(t, json.Unmarshal(workflow.Spec.Templates[0].Plugin.Value, &pluginConfig))
+	runtimeArgsJSON, ok := pluginConfig["driver-plugin"]["args"]["runtime_args"].(string)
+	require.True(t, ok)
+	var runtimeArgs map[string]string
+	require.NoError(t, json.Unmarshal([]byte(runtimeArgsJSON), &runtimeArgs))
+	assert.Equal(t, env[commonmlflow.EnvMLflowConfig], runtimeArgs[commonmlflow.EnvMLflowConfig])
 
 	// Launcher main container (template with --copy init container) gets the env var.
 	assert.Contains(t, workflow.Spec.Templates[1].Container.Env, expectedEnv)

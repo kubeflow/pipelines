@@ -3435,7 +3435,7 @@ func Test_extendPodSpecPatch_DefaultHostUsersFalse(t *testing.T) {
 		{Name: "main"},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		podSpec,
 		Options{
 			DefaultHostUsers: &hostUsersInDedicatedNamespace,
@@ -3458,7 +3458,7 @@ func Test_extendPodSpecPatch_DefaultHostUsersTrue(t *testing.T) {
 		{Name: "main"},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		podSpec,
 		Options{
 			DefaultHostUsers: &hostUsersInHostNamespace,
@@ -3477,7 +3477,7 @@ func Test_extendPodSpecPatch_DefaultHostUsersNil(t *testing.T) {
 		{Name: "main"},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		podSpec,
 		Options{
 			DefaultHostUsers: nil,
@@ -3505,7 +3505,7 @@ func Test_extendPodSpecPatch_RootUserWithHostUsersNamespace(t *testing.T) {
 		{Name: "main"},
 	}}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		podSpec,
 		Options{
 			DefaultHostUsers: &hostUsersInDedicatedNamespace,
@@ -3546,7 +3546,7 @@ func Test_extendPodSpecPatch_HostUsersAdminOverrideProtection(t *testing.T) {
 		HostUsers:  &userTrue,
 	}
 	err := extendPodSpecPatch(
-		context.Background(),
+		util.WithExistingLogger(context.Background(), logrus.New()),
 		podSpec,
 		Options{
 			DefaultHostUsers: &adminFalse,
