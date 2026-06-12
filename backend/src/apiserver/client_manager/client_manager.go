@@ -462,7 +462,7 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 	// Refer to manifests/kustomize/third-party/postgresql/base/pg-secret.yaml
 	drvDialect := sqldrv.NewDBDialect(driverName)
 	operation = func() error {
-		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", dbName))
+		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", drvDialect.QuoteIdentifier(dbName)))
 		if ignoreAlreadyExistError(drvDialect, err) != nil {
 			return err
 		}

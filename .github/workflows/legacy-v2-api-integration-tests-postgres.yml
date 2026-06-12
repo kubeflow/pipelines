@@ -6,8 +6,16 @@ on:
   pull_request:
     paths:
       - ".github/workflows/legacy-v2-api-integration-tests-postgres.yml"
+      - ".github/workflows/image-builds.yml"
+      - ".github/actions/create-cluster/**"
+      - ".github/actions/deploy/**"
       - ".github/resources/**"
+      - "api/**"
+      - "go.mod"
+      - "go.sum"
       - "backend/**"
+      - "manifests/kustomize/env/platform-agnostic-postgresql/**"
+      - "manifests/kustomize/env/platform-agnostic-multi-user-postgresql/**"
       - "manifests/kustomize/third-party/postgresql/**"
       - "!**/*.md"
       - "!**/OWNERS"
@@ -33,16 +41,17 @@ jobs:
     needs: build
     continue-on-error: false
     strategy:
+      # TODO: pod_to_pod_tls_enabled=true and cache_enabled=false overlays are not yet
+      # implemented for PostgreSQL (see manifests/kustomize/env/platform-agnostic-postgresql/).
+      # Once those overlays exist, restore the full 2x2 matrix here.
       matrix:
         pipeline_store: ["database"]
         k8s_version: ["v1.35.0"]
-        pod_to_pod_tls_enabled: [true, false]
-        cache_enabled: [true, false]
-        exclude:
-          - pod_to_pod_tls_enabled: true  # TLS+PostgreSQL overlay not yet implemented
-          - cache_enabled: false           # PostgreSQL+cache-disabled overlay not yet implemented
       fail-fast: false # Ensure all jobs in the matrix run, even if one fails
-    name: API v2 - PG - K8s ${{ matrix.k8s_version }} - Store ${{ matrix.pipeline_store }} - TLS ${{ matrix.pod_to_pod_tls_enabled }} - Cache ${{ matrix.cache_enabled }}
+    env:
+      POD_TO_POD_TLS_ENABLED: "false"
+      CACHE_ENABLED: "true"
+    name: API v2 - PG - K8s ${{ matrix.k8s_version }} - Store ${{ matrix.pipeline_store }}
 
     steps:
       - name: Checkout target code
@@ -64,8 +73,8 @@ jobs:
         with:
           db_type: "pgx"
           pipeline_store: ${{ matrix.pipeline_store }}
-          cache_enabled: ${{ matrix.cache_enabled }}
-          pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+          cache_enabled: ${{ env.CACHE_ENABLED }}
+          pod_to_pod_tls_enabled: ${{ env.POD_TO_POD_TLS_ENABLED }}
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
@@ -77,7 +86,7 @@ jobs:
         run: kubectl -n "$NAMESPACE" port-forward svc/metadata-grpc-service 8080:8080 &
 
       - name: Extract CA certificate for TLS
-        if: matrix.pod_to_pod_tls_enabled == true
+        if: env.POD_TO_POD_TLS_ENABLED == 'true'
         run: |
           kubectl wait --for=jsonpath='{.data.ca\.crt}' --timeout=300s secret/kfp-api-tls-cert -n "$NAMESPACE"
           kubectl get secret kfp-api-tls-cert -n "$NAMESPACE" -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
@@ -90,9 +99,9 @@ jobs:
           TEST_CMD="go test -v -timeout 30m ./backend/test/v2/integration/..."
 
           # Arguments for the test binary (passed after -args)
-          TEST_ARGS="-runIntegrationTests=true -namespace=$NAMESPACE -cacheEnabled=${{ matrix.cache_enabled }} -repoName=${{ github.repository }} -branchName=${{ github.ref_name }} -tlsEnabled=${{ matrix.pod_to_pod_tls_enabled }} -caCertPath=$CA_CERT_PATH"
+          TEST_ARGS="-runIntegrationTests=true -namespace=$NAMESPACE -cacheEnabled=${{ env.CACHE_ENABLED }} -repoName=${{ github.repository }} -branchName=${{ github.ref_name }} -tlsEnabled=${{ env.POD_TO_POD_TLS_ENABLED }} -caCertPath=$CA_CERT_PATH"
 
-          if [[ "${{ matrix.cache_enabled }}" == "false" ]]; then
+          if [[ "${{ env.CACHE_ENABLED }}" == "false" ]]; then
             # When cache is disabled, we must skip the cache test itself.
             # Use Go test's -skip flag to exclude TestCache
             TEST_CMD="$TEST_CMD -skip TestCache"
@@ -115,5 +124,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kfp-api-v2-pg-k8s-${{ matrix.k8s_version }}-${{ matrix.pipeline_store }}-tls-${{ matrix.pod_to_pod_tls_enabled }}-cache-${{ matrix.cache_enabled }}
+          name: kfp-api-v2-pg-k8s-${{ matrix.k8s_version }}-${{ matrix.pipeline_store }}-tls-${{ env.POD_TO_POD_TLS_ENABLED }}-cache-${{ env.CACHE_ENABLED }}
           path: /tmp/tmp*/*

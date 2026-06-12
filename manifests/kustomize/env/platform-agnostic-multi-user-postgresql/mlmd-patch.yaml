@@ -8,7 +8,6 @@ spec:
       initContainers:
       - name: wait-for-database
         env:
-        - $patch: replace
         - name: WAIT_HOST
           valueFrom:
             configMapKeyRef:
@@ -22,7 +21,19 @@ spec:
       containers:
         - name: container
           env:
-          - $patch: replace
+          # Remove MySQL-specific env vars from base (references to
+          # mysql-secret and mysqlHost/mysqlPort keys that don't exist
+          # in PostgreSQL deployments would block Pod startup).
+          - name: DBCONFIG_USER
+            $patch: delete
+          - name: DBCONFIG_PASSWORD
+            $patch: delete
+          - name: MYSQL_DATABASE
+            $patch: delete
+          - name: MYSQL_HOST
+            $patch: delete
+          - name: MYSQL_PORT
+            $patch: delete
           - name: METADATA_GRPC_SERVICE_PORT
             valueFrom:
               configMapKeyRef:

@@ -196,6 +196,8 @@ func TestEscapeSQLString(t *testing.T) {
 		{"multiple_quotes", "it's a 'test'", "it''s a ''test''"},
 		{"leading_quote", "'test", "''test"},
 		{"trailing_quote", "test'", "test''"},
+		{"backslash", `path\to\file`, `path\\to\\file`},
+		{"backslash_with_quote", `it\'s`, `it\\''s`},
 		{"empty_string", "", ""},
 	}
 

@@ -402,6 +402,20 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 		return util.NewInternalServerError(err, "Failed to create query to disable jobs")
 	}
 
+	// Disable jobs via ExperimentUUID (v2-style jobs that have ExperimentUUID set but no resource_references row).
+	updateJobsWithExperimentUUIDSQL, updateJobsWithExperimentUUIDArgs, err := qb.
+		Update(q("jobs")).
+		SetMap(sq.Eq{
+			q("Enabled"):        false,
+			q("UpdatedAtInSec"): now,
+		}).
+		Where(sq.Eq{q("ExperimentUUID"): expId}).
+		Where(sq.NotEq{q("Enabled"): false}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to disable jobs by ExperimentUUID")
+	}
+
 	// In a single transaction, we update experiments, run_details and jobs tables.
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -429,7 +443,13 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 	_, err = tx.Exec(updateJobsSQL, updateJobsArgs...)
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err, "Failed to disable jobs")
+		return util.NewInternalServerError(err, "Failed to disable jobs via resource_references")
+	}
+
+	_, err = tx.Exec(updateJobsWithExperimentUUIDSQL, updateJobsWithExperimentUUIDArgs...)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to disable jobs via ExperimentUUID")
 	}
 
 	err = tx.Commit()

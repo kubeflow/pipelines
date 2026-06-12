@@ -152,13 +152,14 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.PipelineServiceCreatePipelineV1Params{
 		Pipeline: &model.APIPipeline{
+			Name: "arguments-parameters.zip",
 			URL: &model.APIURL{
 				PipelineURL: pipelineURL,
 			},
 		},
 	})
 	require.Nil(t, err)
-	assert.Equal(t, "arguments_parameters.zip", argumentUrlPipeline.Name)
+	assert.Equal(t, "arguments-parameters.zip", argumentUrlPipeline.Name)
 
 	/* ---------- Verify list pipeline works ---------- */
 	pipelines, totalSize, _, err := s.pipelineClient.List(&params.PipelineServiceListPipelinesV1Params{})
@@ -178,15 +179,8 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	require.Nil(t, err)
 	assert.Equal(t, 2, len(listFirstPagePipelines))
 	assert.Equal(t, 5, totalSize)
-	// MySQL: _ sorts before - (ascending), so zip comes first at index 0
-	// PostgreSQL: - sorts before _ (en_US.utf8), so yaml comes first at index 0
-	if *runPostgreSQLTests {
-		assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelines[0].Name)
-		assert.Equal(t, "arguments_parameters.zip", listFirstPagePipelines[1].Name)
-	} else {
-		assert.Equal(t, "arguments_parameters.zip", listFirstPagePipelines[0].Name)
-		assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelines[1].Name)
-	}
+	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelines[0].Name)
+	assert.Equal(t, "arguments-parameters.zip", listFirstPagePipelines[1].Name)
 	assert.NotEmpty(t, nextPageToken)
 
 	listSecondPagePipelines, totalSize, nextPageToken, err := s.pipelineClient.List(
@@ -216,7 +210,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, 2, len(listSecondPagePipelines))
 	assert.Equal(t, 5, totalSize)
 	assert.Equal(t, "zip-arguments-parameters", listSecondPagePipelines[0].Name)
-	assert.Equal(t, "arguments_parameters.zip", listSecondPagePipelines[1].Name)
+	assert.Equal(t, "arguments-parameters.zip", listSecondPagePipelines[1].Name)
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- List pipelines sort by unsupported description field. Should fail. ---------- */
@@ -242,15 +236,8 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	require.Nil(t, err)
 	assert.Equal(t, 2, len(listSecondPagePipelines))
 	assert.Equal(t, 5, totalSize)
-	// MySQL: descending order puts yaml at index 0, zip at index 1
-	// PostgreSQL: descending order puts zip at index 0, yaml at index 1
-	if *runPostgreSQLTests {
-		assert.Equal(t, "arguments_parameters.zip", listSecondPagePipelines[0].Name)
-		assert.Equal(t, "arguments-parameters.yaml", listSecondPagePipelines[1].Name)
-	} else {
-		assert.Equal(t, "arguments-parameters.yaml", listSecondPagePipelines[0].Name)
-		assert.Equal(t, "arguments_parameters.zip", listSecondPagePipelines[1].Name)
-	}
+	assert.Equal(t, "arguments-parameters.zip", listSecondPagePipelines[0].Name)
+	assert.Equal(t, "arguments-parameters.yaml", listSecondPagePipelines[1].Name)
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- Verify get pipeline works ---------- */

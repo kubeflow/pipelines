@@ -622,6 +622,55 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Equal(t, false, jobs[1].Enabled)
 }
 
+// TestArchiveExperiment_DisablesJobsWithExperimentUUIDOnly verifies that jobs which have
+// ExperimentUUID set but no resource_references rows are also disabled when the experiment
+// is archived. This is the v2-style job shape that CreateJob() produces.
+func TestArchiveExperiment_DisablesJobsWithExperimentUUIDOnly(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+
+	experimentStore, err := NewExperimentStore(
+		db,
+		util.NewFakeTimeForEpoch(),
+		util.NewFakeUUIDGeneratorOrFatal(fakeID, nil),
+		testDialect,
+	)
+	assert.Nil(t, err)
+	experimentStore.CreateExperiment(createExperiment("experiment1"))
+
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil, testDialect)
+	// v2-style job: ExperimentId (→ ExperimentUUID column) is set, no resource_references row.
+	job := &model.Job{
+		UUID:        "job-v2-only",
+		DisplayName: "v2 job",
+		K8SName:     "v2job",
+		Namespace:   "n1",
+		Enabled:     true,
+		Conditions:  "ENABLED",
+		Trigger: model.Trigger{
+			PeriodicSchedule: model.PeriodicSchedule{
+				IntervalSecond: util.Int64Pointer(60),
+			},
+		},
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 1,
+		ExperimentId:   fakeID,
+		// Deliberately leave ResourceReferences nil so no resource_references row is created.
+		ResourceReferences: nil,
+	}
+	_, err = jobStore.CreateJob(job)
+	assert.Nil(t, err)
+
+	err = experimentStore.ArchiveExperiment(fakeID)
+	assert.Nil(t, err)
+
+	opts, _ := list.NewOptions(&model.Job{}, 10, "id", nil)
+	jobs, _, _, err := jobStore.ListJobs(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
+	assert.Nil(t, err)
+	assert.Len(t, jobs, 1)
+	assert.False(t, jobs[0].Enabled, "v2-style job with ExperimentUUID but no resource_references row must be disabled on experiment archive")
+}
+
 func TestUnarchiveExperiment_InternalError(t *testing.T) {
 	db, testDialect := NewFakeDBOrFatal()
 	experimentStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)

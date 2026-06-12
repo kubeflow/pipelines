@@ -21,7 +21,31 @@ spec:
       containers:
         - name: ml-pipeline-api-server
           env:
-            - $patch: replace
+            # Remove MySQL-specific env vars from base (references to
+            # mysql-secret and mysqlHost/mysqlPort keys that don't exist
+            # in PostgreSQL deployments would block Pod startup).
+            - name: DBCONFIG_USER
+              $patch: delete
+            - name: DBCONFIG_PASSWORD
+              $patch: delete
+            - name: DBCONFIG_DBNAME
+              $patch: delete
+            - name: DBCONFIG_HOST
+              $patch: delete
+            - name: DBCONFIG_PORT
+              $patch: delete
+            - name: DB_DRIVER_NAME
+              $patch: delete
+            - name: DBCONFIG_MYSQLCONFIG_USER
+              $patch: delete
+            - name: DBCONFIG_MYSQLCONFIG_PASSWORD
+              $patch: delete
+            - name: DBCONFIG_MYSQLCONFIG_DBNAME
+              $patch: delete
+            - name: DBCONFIG_MYSQLCONFIG_HOST
+              $patch: delete
+            - name: DBCONFIG_MYSQLCONFIG_PORT
+              $patch: delete
             - name: AUTO_UPDATE_PIPELINE_DEFAULT_VERSION
               valueFrom:
                 configMapKeyRef:

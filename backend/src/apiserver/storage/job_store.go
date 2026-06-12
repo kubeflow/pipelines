@@ -195,9 +195,13 @@ func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 func (s *JobStore) GetJob(id string) (*model.Job, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
-	sql, args, err := s.addResourceReferences(
+	getJobBuilder := s.addResourceReferences(
 		qb.Select(quoteAll(q, jobColumns)...).From(q("jobs")),
-	).Where(sq.Eq{q("UUID"): id}).Limit(1).ToSql()
+	).Where(sq.Eq{q("UUID"): id}).Limit(1)
+	if s.dbDialect.Name() == "pgx" {
+		getJobBuilder = getJobBuilder.PlaceholderFormat(sq.Dollar)
+	}
+	sql, args, err := getJobBuilder.ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to get job: %v",
 			err.Error())
@@ -220,7 +224,8 @@ func (s *JobStore) GetJob(id string) (*model.Job, error) {
 
 func (s *JobStore) addResourceReferences(filteredSelectBuilder sq.SelectBuilder) sq.SelectBuilder {
 	q := s.dbDialect.QuoteIdentifier
-	qb := s.dbDialect.QueryBuilder()
+	qb := sq.StatementBuilder.PlaceholderFormat(sq.Question)
+	filteredSelectBuilder = filteredSelectBuilder.PlaceholderFormat(sq.Question)
 	agg := s.dbDialect.ConcatAgg(false, qualifyIdentifier(q, "r.Payload"), ",")
 	// Build correlated subquery. This is a correlated subquery that references
 	// the outer query's jobs.UUID, so we use string concatenation for the structure.
