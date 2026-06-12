@@ -1141,13 +1141,15 @@ func (s *PipelineStore) GetPipelineVersion(versionId string) (*model.PipelineVer
 }
 
 func (s *PipelineStore) GetPipelineVersionByName(pipelineID, versionName string) (*model.PipelineVersion, error) {
-	query, args, err := sq.
-		Select(pipelineVersionColumns...).
-		From("pipeline_versions").
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	query, args, err := qb.
+		Select(s.selectPipelineVersionColumns()...).
+		From(q("pipeline_versions")).
 		Where(sq.And{
-			sq.Eq{"pipeline_versions.Name": versionName},
-			sq.Eq{"pipeline_versions.PipelineId": pipelineID},
-			sq.Eq{"pipeline_versions.Status": model.PipelineVersionReady},
+			sq.Eq{fmt.Sprintf("%s.%s", q("pipeline_versions"), q("Name")): versionName},
+			sq.Eq{fmt.Sprintf("%s.%s", q("pipeline_versions"), q("PipelineId")): pipelineID},
+			sq.Eq{fmt.Sprintf("%s.%s", q("pipeline_versions"), q("Status")): model.PipelineVersionReady},
 		}).
 		ToSql()
 	if err != nil {

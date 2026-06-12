@@ -128,6 +128,8 @@ make DATABASE=postgres -C backend dev-kind-cluster
 
 **Port difference**: PostgreSQL uses port 5432 instead of MySQL's 3306.
 
+> **Note**: The webhook proxy is currently disabled for `DATABASE=postgres` because the Postgres dev-kind manifests do not yet include cert-manager or webhook configurations.
+
 #### Combining Options
 
 You can combine platform and database selection:
@@ -435,7 +437,7 @@ The Kubeflow Pipelines API server typically runs over HTTPS when deployed in a K
 
 To resolve this, a webhook proxy acts as a bridge, allowing webhooks to communicate with the API server even when it runs over HTTP.
 
-This is used by default when using the `dev-kind-cluster` Make target.
+This is used by default when using the `dev-kind-cluster` Make target with MySQL. When using `DATABASE=postgres`, the webhook proxy is currently disabled — see [Database Selection (PostgreSQL)](#database-selection-postgresql) for details.
 
 ## Contributing
 

@@ -2,15 +2,14 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../../base/installs/generic
-  - ../../../base/metadata/base
-  - ../../../third-party/argo/installs/namespace
-  - ../../../third-party/seaweedfs/base
-  - ../../../third-party/postgresql/base
+  - ../../platform-agnostic-postgresql
   - ./default-allow-same-namespace-networkpolicy.yaml
 
+# !!! If you want to customize the namespace,
+# please also update base/cache-deployer/cluster-scoped/cache-deployer-clusterrolebinding.yaml
+namespace: kubeflow
+
 patches:
-  - path: mlmd-patch.yaml
   # UI NodePort
   - patch: |-
       apiVersion: v1
@@ -174,57 +173,6 @@ patches:
             - seaweedfs
         policyTypes:
         - Ingress
-
-configMapGenerator:
-  - name: pipeline-install-config
-    behavior: merge
-    literals:
-      - DBDriverName=pgx
-      - pipelineDb=mlpipeline
-      - cacheDb=cachedb
-      - postgresHost=postgres-service
-      - postgresPort=5432
-
-# !!! If you want to customize the namespace,
-# please also update base/cache-deployer/cluster-scoped/cache-deployer-clusterrolebinding.yaml
-namespace: kubeflow
-
-# Identifier for application manager to apply ownerReference.
-# The ownerReference ensures the resources get garbage collected
-# when application is deleted.
-labels:
-  - includeSelectors: false
-    pairs:
-      application-crd-id: kubeflow-pipelines
-
-replacements:
-  - source:
-      kind: ConfigMap
-      name: pipeline-install-config
-      fieldPath: metadata.namespace
-    targets:
-      - select:
-          kind: ConfigMap
-          name: workflow-controller-configmap
-        fieldPaths:
-          - data.artifactRepository
-        options:
-          delimiter: .
-          index: 1
-
-  - source:
-      kind: ConfigMap
-      name: pipeline-install-config
-      fieldPath: data.bucketName
-    targets:
-      - select:
-          kind: ConfigMap
-          name: workflow-controller-configmap
-        fieldPaths:
-          - data.artifactRepository
-        options:
-          delimiter: '"'
-          index: 3
 
 images:
   - name: ghcr.io/kubeflow/kfp-api-server

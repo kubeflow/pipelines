@@ -151,8 +151,9 @@ func initDBDriver(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 
 		// Create database if not exist
 		dbName := params.dbName
+		drvDialect := dialect.NewDBDialect(params.dbDriver)
 		operation = func() error {
-			_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
+			_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", drvDialect.QuoteIdentifier(dbName)))
 			if err != nil {
 				return err
 			}
@@ -163,7 +164,7 @@ func initDBDriver(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 		err = backoff.Retry(operation, b)
 
 		operation = func() error {
-			_, err = db.Exec(fmt.Sprintf("USE %s", dbName))
+			_, err = db.Exec(fmt.Sprintf("USE %s", drvDialect.QuoteIdentifier(dbName)))
 			if err != nil {
 				return err
 			}
@@ -207,7 +208,8 @@ func initDBDriver(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 		util.TerminateIfError(err)
 
 		// Create database, ignoring "already exists" error
-		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", params.dbName))
+		pgDialect := dialect.NewDBDialect(params.dbDriver)
+		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", pgDialect.QuoteIdentifier(params.dbName)))
 		if err != nil && !strings.Contains(err.Error(), "already exists") {
 			db.Close()
 			glog.Fatalf("Failed to create database: %v", err)

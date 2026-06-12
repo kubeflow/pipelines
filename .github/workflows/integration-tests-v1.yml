@@ -6,7 +6,7 @@ on:
 
   pull_request:
     paths:
-      - ".github/workflows/api-integration-tests-v1.yml"
+      - ".github/workflows/integration-tests-v1.yml"
       - ".github/workflows/image-builds.yml"
       - ".github/actions/create-cluster/**"
       - ".github/actions/deploy/**"

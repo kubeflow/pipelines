@@ -16,7 +16,6 @@ package storage
 
 import (
 	"database/sql"
-	"strings"
 	"testing"
 	"time"
 
@@ -1028,17 +1027,15 @@ func TestBuildSelectJobsQuery_PgxPlaceholder(t *testing.T) {
 	sqlStr, args, err := jobStore.buildSelectJobsQuery(false, opts, filterContext)
 	assert.Nil(t, err)
 
-	// Invariant 1: no bare ? — Dollar conversion must cover the filteredSelectBuilder
-	// nested inside addResourceReferences via FromSelect.
-	assert.NotContains(t, sqlStr, "?",
-		"SQL must not contain bare ? placeholders in pgx mode")
-
-	// Invariant 2: $1 appears exactly once (for ExperimentUUID). If the inner builder
-	// prematurely applied Dollar format, its $1 would collide with the outer $1.
-	assert.Equal(t, 1, strings.Count(sqlStr, "$1"),
-		"$1 must appear exactly once — duplicate indicates premature Dollar conversion in a sub-builder")
-
-	// Invariant 3: args contains exactly the ExperimentUUID bind value at position 0 ($1).
+	// Exact SQL match catches all three invariants simultaneously:
+	//   1. No bare ? (Dollar conversion covered all sub-queries including those nested
+	//      via FromSelect inside addResourceReferences).
+	//   2. $N numbers are globally sequential — if addResourceReferences used Dollar
+	//      format prematurely its $1 would appear twice in the output.
+	//   3. args are in the correct order and count.
+	expectedSQL := `SELECT "jobs".*, '[' || COALESCE((SELECT string_agg("r"."Payload", ',') FROM "resource_references" AS "r" WHERE "r"."ResourceType"='Job' AND "r"."ResourceUUID" = "jobs"."UUID"), '') || ']' AS "refs" FROM (SELECT "UUID", "DisplayName", "Name", "Namespace", "ServiceAccount", "Description", "MaxConcurrency", "NoCatchup", "CreatedAtInSec", "UpdatedAtInSec", "Enabled", "CronScheduleStartTimeInSec", "CronScheduleEndTimeInSec", "Schedule", "PeriodicScheduleStartTimeInSec", "PeriodicScheduleEndTimeInSec", "IntervalSecond", "PipelineId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "Conditions", "RuntimeParameters", "PipelineRoot", "ExperimentUUID", "PipelineVersionId", "PluginsInput" FROM "jobs" WHERE "ExperimentUUID" = $1) AS "jobs" ORDER BY LOWER("jobs"."DisplayName") ASC, "jobs"."UUID" ASC LIMIT 11`
+	assert.Equal(t, expectedSQL, sqlStr,
+		"SQL must use $N placeholders (not ?) and $1 must appear exactly once for ExperimentUUID")
 	assert.Equal(t, []interface{}{"exp-123"}, args,
 		"args must contain exactly the ExperimentUUID bind value at position 0 ($1)")
 }

@@ -8,7 +8,17 @@ spec:
       containers:
         - name: server
           env:
-            - $patch: replace
+            # Remove MySQL-specific env vars from base (references to
+            # mysql-secret and mysqlHost/mysqlPort keys that don't exist
+            # in PostgreSQL deployments would block Pod startup).
+            - name: DBCONFIG_HOST_NAME
+              $patch: delete
+            - name: DBCONFIG_PORT
+              $patch: delete
+            - name: DBCONFIG_USER
+              $patch: delete
+            - name: DBCONFIG_PASSWORD
+              $patch: delete
             - name: LOG_LEVEL
               valueFrom:
                 configMapKeyRef:
