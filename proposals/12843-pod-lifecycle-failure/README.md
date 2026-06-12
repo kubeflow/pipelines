@@ -52,7 +52,7 @@ KFP positions itself as a Kubernetes abstraction for data scientists and ML engi
 
 ## Proposal
 
-The Argo node message already contains exactly the information the user needs. The fix is to stop dropping it. Persist it on the `Task` model, return it in the existing error field of the run response, and have the frontend render it. The work is split across four backend files and four frontend files. There are no proto changes, no new API endpoints, and no breaking changes to existing responses.
+The Argo node message already contains exactly the information the user needs. The fix is to stop dropping it. Persist it on the `Task` model, return it in the existing error field of the run response, and have the frontend render it. The work is split across six backend files and four frontend files. There are no proto changes, no new API endpoints, and no breaking changes to existing responses.
 
 ### User Stories
 
@@ -251,7 +251,7 @@ Both the failure case and the success case were verified locally on a Kind clust
 
 ## Migration Strategy
 
-The only schema change is one new nullable column on the `tasks` table, `LifecycleFailureMessage` (TEXT). It is added on API server startup by GORM's `AutoMigrate`, which performs additive-only changes. No manual migration script is required and no downtime is needed.
+The only schema change is one new nullable column on the `tasks` table, `LifecycleFailureMessage` (stored as `longtext` in MySQL via GORM's `LargeText` type). It is added on API server startup by GORM's `AutoMigrate`, which performs additive-only changes. No manual migration script is required and no downtime is needed.
 
 Existing rows have a `null` value, which the API converter treats as "no lifecycle failure". This is indistinguishable from "no failure" by design.
 
