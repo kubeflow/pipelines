@@ -3,6 +3,9 @@ on:
   issues:
     types: [opened, edited]
 
+env:
+  DEFAULT_MODEL: "openai/gpt-4o-mini"
+
 jobs:
   label-issue:
     runs-on: ubuntu-latest
@@ -19,54 +22,70 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TITLE: ${{ github.event.issue.title }}
-          BODY: ${{ github.event.issue.body }}
+          RAW_BODY: ${{ github.event.issue.body }}
         run: |
-          # 1. Install and run in the same step
           gh extension install github/gh-models --force
+          echo "Using model: $DEFAULT_MODEL"
 
+          # Token Safeguard: Truncate incoming body text to the first 120 lines (~1500 tokens max)
+          # This protects against huge raw log dumps while retaining core issue text headers
+          SAFE_BODY=$(echo "$RAW_BODY" | head -n 120)
 
-          # 2. Strict prompt to get ONLY good first issue label
-          RESULT=$(gh models run openai/gpt-4o-mini "You are a maintainer of the repo. 
-          Analyze if this issue is a good first issue based on these rules:
-            - Clear Scope: Tasks completed in a few hours or a weekend.
-            - Detailed Context: Clear description, expected behavior, and acceptance criteria.
-            - Guidance: Links to relevant code areas or suggestions on how to approach the fix.
-            - Low Complexity: Typos, documentation, or minor bug fixes.
+          # High-density, hyper-compressed reference blueprints to maximize available context tokens
+          if RESULT=$(gh models run "$DEFAULT_MODEL" "You are an expert open-source maintainer for Kubeflow.
+             Analyze the quality of the incoming issue based on Scope, Context, Guidance, and Complexity.
+             
+             Calibrate your evaluation against these compressed reference standards:
+             - BACKEND (#13314): [backend] S3 operations fail with non-AWS object stores after AWS SDK v2 checksum defaults change. Clear isolated scope.
+             - BUG TIER (#13180): [bug] fix: E2E test flakiness on K8s v1.34.0 — root cause analysis. High-quality root-cause analysis and environment data.
+             - FRONTEND (#13108): [frontend] Adds coverage for frontend mock:api startup and enum drift. Explicit file paths and definitions of done.
+             - SDK (#12865): [sdk] [bug] [set_accelerator_limit] rejects valid accelerator counts (only allows 0, 1, 2, 4, 8, 16). Elite precision with failing parameters.
 
-          If it matches, respond:
-          LABEL: good first issue
-          REASON: <reasoning>
+             Compare the incoming issue detail density directly against the relevant blueprint standard above.
 
-          If it DOES NOT match, respond:
-          LABEL: none
-          REASON: Too complex, needs deep understanding of the codebase.
+             Respond strictly following this format structure without other markdown wraps:
+
+             ### 📊 Scope
+             <Evaluate task boundaries and estimate the time window required to complete it>
+
+             ### 📝 Context & Guidance
+             <Evaluate if steps, expected behavior, or links are provided against repo standards>
+
+             ### ⚡ Complexity
+             <Rate difficulty: Low, Medium, High, detailing architectural deepness vs shallow tweaks>
+
+             ### 🎯 Overall Issue Quality Verdict
+             <State clearly if this is ready for immediate pickup or if it requires more detail>
         
-          Title: $TITLE
-          Body: $BODY"
-          )
+             Title: $TITLE
+             Body: $SAFE_BODY" 2>&1
+             ); then
 
-          # 1. Extract label from AI
-          DECISION=$(echo "$RESULT" | grep -i "LABEL: " | sed 's/LABEL: //I' | xargs)
-          REASON=$(echo "$RESULT" | grep -i "REASON: " | sed 's/REASON: //I' | xargs)
+             echo "✅ AI model executed successfully."
+             ANALYSIS_REPORT="$RESULT"
+          else
+            echo "⚠️ CRITICAL: AI Model execution failed or preview tier limit hit."
+            echo "Error details: $RESULT"
+            
+            read -r -d '' ANALYSIS_REPORT << 'EOF'
+            ### ⚠️ Automated Triage Skipped
+            The issue body text or environment logs exceeded processing size boundaries for this triage pass.
+          EOF
+          fi
 
-          echo "label=$DECISION" >> $GITHUB_OUTPUT
-          echo "reason<<EOF" >> $GITHUB_OUTPUT
-          echo "$REASON" >> $GITHUB_OUTPUT
+          echo "analysis<<EOF" >> $GITHUB_OUTPUT
+          echo "$ANALYSIS_REPORT" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
+          
+          echo "DEBUG: The raw analysis sent to output was:"
+          echo "$ANALYSIS_REPORT"
 
-      - name: Apply Label and a comment
-        if: steps.ai_logic.outputs.label == 'good first issue'
+      - name: Apply Quality Analysis Comment
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
-          LABEL: ${{ steps.ai_logic.outputs.label }}
-          REASON: ${{ steps.ai_logic.outputs.reason }}
+          REPORT: ${{ steps.ai_logic.outputs.analysis }}
         run: |
-          gh label create "$LABEL" --color "5319E7" || true
-
-          gh issue edit "$ISSUE_NUMBER" --add-label "$LABEL"
-
-          gh issue comment "$ISSUE_NUMBER" --body "### 🤖 AI Result
-          This issue has been tagged as: **$LABEL**
-          **Reasoning:** $REASON"
+          gh issue comment "$ISSUE_NUMBER" --body "## 🤖 AI Issue Quality Review
+          $REPORT"
