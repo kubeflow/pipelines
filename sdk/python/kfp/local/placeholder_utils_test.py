@@ -163,10 +163,10 @@ class TestReplacePlaceholders(unittest.TestCase):
 
         self.assertIsNotNone(
             create_time_match,
-            f"Could not extract create-time from {actual[1]!r}")
+            f'Could not extract create-time from {actual[1]!r}')
         self.assertIsNotNone(
             schedule_time_match,
-            f"Could not extract schedule-time from {actual[2]!r}")
+            f'Could not extract schedule-time from {actual[2]!r}')
 
         create_timestamp = create_time_match.group(1)
         schedule_timestamp = schedule_time_match.group(1)
@@ -174,10 +174,10 @@ class TestReplacePlaceholders(unittest.TestCase):
         # Verify both timestamps are valid ISO8601 format
         self.assertRegex(
             create_timestamp, iso8601_pattern,
-            f"Create timestamp {create_timestamp!r} is not valid ISO8601")
+            f'Create timestamp {create_timestamp!r} is not valid ISO8601')
         self.assertRegex(
             schedule_timestamp, iso8601_pattern,
-            f"Schedule timestamp {schedule_timestamp!r} is not valid ISO8601")
+            f'Schedule timestamp {schedule_timestamp!r} is not valid ISO8601')
 
         # Verify both timestamps are identical (stability within replace_placeholders call)
         self.assertEqual(
