@@ -233,13 +233,13 @@ func SelectMLflowExperiment(input *MLflowPluginInput, settings *commonmlflow.MLf
 	return "", DefaultExperimentName
 }
 
-// InjectMLflowRuntimeEnv sets KFP_MLFLOW_CONFIG on driver and launcher
-// containers.
+// InjectMLflowRuntimeEnv passes KFP_MLFLOW_CONFIG to driver plugins through
+// runtime args and to launcher containers through env vars.
 func InjectMLflowRuntimeEnv(executionSpec util.ExecutionSpec, env map[string]string) error {
 	if len(env) == 0 || executionSpec == nil {
 		return nil
 	}
-	return executionSpec.UpsertRuntimeEnvVars(env,
+	return executionSpec.UpsertRuntimeConfig(env,
 		util.ExecutionRuntimeRoleDriver,
 		util.ExecutionRuntimeRoleLauncher,
 	)

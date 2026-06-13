@@ -25,8 +25,12 @@ func GetMLflowRunID() string {
 // ParseKfpMLflowRuntimeConfig parses the KFP_MLFLOW_CONFIG environment variable into an MLflowRuntimeConfig struct.
 // Returns an error if the variable is not set, malformed, or contains an unsupported auth type.
 func ParseKfpMLflowRuntimeConfig() (*commonmlflow.MLflowRuntimeConfig, error) {
-	var cfg commonmlflow.MLflowRuntimeConfig
 	runtimeCfg := GetStringConfig(kfpMLflowConfig)
+	return ParseKfpMLflowRuntimeConfigValue(runtimeCfg)
+}
+
+func ParseKfpMLflowRuntimeConfigValue(runtimeCfg string) (*commonmlflow.MLflowRuntimeConfig, error) {
+	var cfg commonmlflow.MLflowRuntimeConfig
 	if runtimeCfg == "" {
 		return nil, fmt.Errorf("KFP_MLFLOW_CONFIG env var not set")
 	}

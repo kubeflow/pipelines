@@ -173,6 +173,58 @@ def server_factory(frontend_image,
                 else:
                     print(f"ERROR: Failed to configure lifecycle policy: {exception}")
 
+        def executor_plugin_resources(self, namespace):
+            print('Creating executor-plugin resources for namespace:', namespace)
+            # Argo Workflow Executor Plugin Necessary Resources
+            agent_service_account_name = 'ml-pipeline-driver-agent-executor-plugin'
+            agent_secret_name = f'{agent_service_account_name}.service-account-token'
+            return [
+                {
+                    'apiVersion': 'v1',
+                    'kind': 'ServiceAccount',
+                    'metadata': {
+                        'name': agent_service_account_name,
+                        'namespace': namespace,
+                        'labels': {
+                            'application-crd-id': 'kubeflow-pipelines'
+                        }
+                    },
+                    'secrets': [{
+                        'name': agent_secret_name
+                    }]
+                },
+                {
+                    'apiVersion': 'rbac.authorization.k8s.io/v1',
+                    'kind': 'RoleBinding',
+                    'metadata': {
+                        'name': 'ml-pipeline-driver-agent-executor-plugin-binding',
+                        'namespace': namespace,
+                    },
+                    'subjects': [{
+                        'kind': 'ServiceAccount',
+                        'name': agent_service_account_name,
+                        'namespace': namespace,
+                    }],
+                    'roleRef': {
+                        'kind': 'ClusterRole',
+                        'name': 'ml-pipeline-driver-agent-executor-plugin-cluster-role',
+                        'apiGroup': 'rbac.authorization.k8s.io',
+                    }
+                },
+                {
+                    'apiVersion': 'v1',
+                    'kind': 'Secret',
+                    'metadata': {
+                        'name': agent_secret_name,
+                        'namespace': namespace,
+                        'annotations': {
+                            'kubernetes.io/service-account.name': agent_service_account_name,
+                        },
+                    },
+                    'type': 'kubernetes.io/service-account-token',
+                },
+            ]
+
 
         def sync(self, parent, attachments):
             # parent is a namespace
@@ -186,12 +238,18 @@ def server_factory(frontend_image,
 
             # Compute status based on observed state.
             desired_status = {
-                "kubeflow-pipelines-ready":
-                    len(attachments["Secret.v1"]) == 1 and
-                    len(attachments["ConfigMap.v1"]) == 3 and
-                    len(attachments["Deployment.apps/v1"]) == (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
-                    len(attachments["Service.v1"]) == (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
-                    "True" or "False"
+                'kubeflow-pipelines-ready':
+                    len(attachments['Secret.v1']) == 3 and
+                    len(attachments['ConfigMap.v1']) == 3 and
+                    len(attachments['Deployment.apps/v1']) ==
+                    (1 if artifacts_proxy_enabled.lower() == 'true' else 0) and
+                    len(attachments['Service.v1']) ==
+                    (1 if artifacts_proxy_enabled.lower() == 'true' else 0) and
+                    len(attachments['ServiceAccount.v1']) == 2 and
+                    len(attachments['Role.rbac.authorization.k8s.io/v1']) == 4
+                    and
+                    len(attachments['RoleBinding.rbac.authorization.k8s.io/v1'])
+                    == 4 and 'True' or 'False'
             }
 
             # Generate the desired attachment object(s).
@@ -253,7 +311,9 @@ def server_factory(frontend_image,
                 },
             ]
 
-            # Add artifact fetcher related resources if enabled
+            executor_plugin_resources = self.executor_plugin_resources(namespace)
+            desired_resources.extend(executor_plugin_resources)
+
             if artifacts_proxy_enabled.lower() == "true":
                 desired_resources.extend([
                     {
@@ -369,6 +429,20 @@ def server_factory(frontend_image,
                         }
                     },
                 ])
+            desired_resources.extend([
+                {
+                    "apiVersion": "v1",
+                    "kind": "Secret",
+                    "metadata": {
+                        "name": "default-editor.service-account-token",
+                        "namespace": namespace,
+                        "annotations": {
+                            "kubernetes.io/service-account.name": "default-editor"
+                        }
+                    },
+                    "type": "kubernetes.io/service-account-token"
+                },
+            ])
 
             print('Received request:\n', json.dumps(parent, sort_keys=True))
             print('Desired resources except secrets:\n', json.dumps(desired_resources, sort_keys=True))

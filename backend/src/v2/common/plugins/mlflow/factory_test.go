@@ -1,6 +1,7 @@
 package mlflow
 
 import (
+	"encoding/json"
 	"testing"
 
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
@@ -48,6 +49,29 @@ func TestMlflowHandlerFactory_Create_Success(t *testing.T) {
 
 	factory := &mlflowHandlerFactory{}
 	handler, err := factory.Create()
+
+	require.NoError(t, err)
+	require.NotNil(t, handler)
+	assert.Equal(t, "MLflow", handler.Name())
+}
+
+func TestMlflowHandlerFactory_CreateWithRuntimeArgs_Success(t *testing.T) {
+	viper.Reset()
+	runtimeConfig := commonmlflow.MLflowRuntimeConfig{
+		Endpoint:     "http://localhost",
+		ParentRunID:  "parent-run-1",
+		ExperimentID: "exp-1",
+		AuthType:     "kubernetes",
+		Timeout:      "10s",
+	}
+	runtimeConfigJSON, err := json.Marshal(runtimeConfig)
+	require.NoError(t, err)
+
+	factory := &mlflowHandlerFactory{}
+	runtimeArgs := map[string]string{commonmlflow.EnvMLflowConfig: string(runtimeConfigJSON)}
+	assert.True(t, factory.IsEnabledWithRuntimeArgs(runtimeArgs))
+
+	handler, err := factory.CreateWithRuntimeArgs(runtimeArgs)
 
 	require.NoError(t, err)
 	require.NotNil(t, handler)

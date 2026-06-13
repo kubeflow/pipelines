@@ -42,6 +42,10 @@ patches:
     target:
       kind: Deployment
       name: ml-pipeline-persistenceagent
+  - path: patches/ml-pipeline-driver-plugin-cm.yaml
+    target:
+      kind: ConfigMap
+      name: ml-pipeline-driver-agent
   - path: patches/ml-pipeline-ui-deployment.yaml
     target:
       kind: Deployment
