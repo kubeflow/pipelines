@@ -48,7 +48,7 @@ KFP positions itself as a Kubernetes abstraction for data scientists and ML engi
 
 ### Non-Goals
 
-1. Configurable per-class timeouts (for example, fail after one hour of `ImagePullBackOff`). The original issue mentions this. It is a useful follow-up but it is a separate piece of work and is not covered here.
+1. Configurable per-class timeouts (for example, fail after one hour of `ImagePullBackOff`). Timeouts require tracking how long a pod has been in a given failure state, which needs either a new timestamp column on the `Task` model or a separate sweep mechanism in the persistence agent. That is a distinct feature that can be built on top of the `LifecycleFailureMessage` foundation this proposal lays. Bundling it here would significantly increase scope and risk without changing the core visibility fix.
 2. Any changes to the SDK, the pipeline spec, or the compiler.
 3. Any changes to how user-script failures are captured. Those already work.
 4. Surfacing pod logs in the UI. Out of scope.
@@ -157,7 +157,7 @@ In `toApiPipelineTaskDetail`, when the field is non-empty, build the response er
 
 Add `LifecycleFailureMessage` to `taskColumns`, to `scanRows`, and to the `CreateTask` and `CreateOrUpdateTasks` insert paths.
 
-In `patchTask`, do not preserve the previous value of this column. The fresh filtered value computed from the latest workflow state always wins. This is what makes the field self-clearing if a pod recovers on retry.
+In `patchTask`, `LifecycleFailureMessage` is intentionally omitted from the preserve-if-empty loop that fills other fields from the existing DB row. This means the fresh value computed from the current workflow sync is always kept as-is — an empty string when the pod has recovered, or the failure message when it has not. No special overwrite logic is added; the field simply does not participate in the preserve-old-when-empty pattern that governs the other fields. Existing `patchTask` behavior for all other fields is unchanged.
 
 ### Frontend Changes
 
@@ -235,7 +235,25 @@ Backend, added in `backend/src/apiserver/server/api_converter_test.go`:
 
 Backend, in `backend/src/apiserver/storage/task_store_test.go`: existing CRUD tests cover the new column once it is added to the column list. No new test files are required.
 
-Frontend: existing `RunDetailsV2.test.tsx` continues to pass without changes, which is the regression bar. New behavior is exercised through the test cases that already cover `updateFlowElementsState`.
+Frontend unit tests, in `frontend/src/lib/v2/DynamicFlow.test.ts`:
+
+- A test covering a task with a non-empty `lifecycleError` confirms the node state is overridden to `Execution.State.FAILED` and `data.lifecycleError` is set.
+- A test covering a task with no lifecycle error confirms the node state is unchanged and `data.lifecycleError` is undefined.
+- Existing `RunDetailsV2.test.tsx` snapshot and behavior tests continue to pass, confirming the success path is unaffected.
+
+Frontend component tests, in `frontend/src/components/tabs/RuntimeNodeDetailsV2.test.tsx`:
+
+- A test confirms the `Banner` is rendered when `lifecycleError` is set on the flow element data.
+- A test confirms no `Banner` is rendered when `lifecycleError` is absent.
+
+### CI Validation
+
+The existing KFP end-to-end test suite in `.github/workflows/e2e-test.yml` runs full pipeline runs against a live cluster and verifies final task states. Once this change lands, one or more of the following will be added to cover the lifecycle failure path in CI:
+
+- A dedicated test pipeline with a deliberately bad container image that verifies the failing task's `error.message` contains the expected pod lifecycle failure string via the v2beta1 `GetRun` API.
+- A frontend integration test (in `test/frontend-integration-test/`) that submits the bad-image pipeline, waits for the task node to turn red, and asserts the banner text in the side panel.
+
+These CI additions will be part of the implementation PR rather than this KEP.
 
 ### Manual Verification (E2E)
 
@@ -286,7 +304,9 @@ Rollback is straightforward. Reverting the API server image and either dropping 
 
 ## Frontend Considerations
 
-This proposal touches the frontend directly. The relevant points are:
+This proposal directly improves what users see in the run details UI. When a pod lifecycle failure occurs, the affected task node turns red immediately — the same visual treatment as a user-script failure — and the side panel shows a banner with the failure reason, for example `Pod lifecycle failure: Back-off pulling image "..."`. This happens even when MLMD still reports the task as `RUNNING`, because the frontend overrides the node state based on the API response rather than relying solely on MLMD execution records. Users get a clear, actionable error message without ever leaving the KFP UI or running `kubectl`.
+
+The other relevant points:
 
 - No regenerated API client is needed. The frontend consumes the existing `V2beta1PipelineTaskDetail.error` field that the API generator already produces.
 - The change keeps user-controlled state intact across refetches. The query refresh pattern already in `RunDetailsV2.tsx` is preserved, and only the argument list of `updateFlowElementsState` is extended.
