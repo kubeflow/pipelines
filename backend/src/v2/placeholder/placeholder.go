@@ -34,9 +34,10 @@ var InputParameterRe = regexp.MustCompile(`\{\{\$\.inputs\.parameters\['(.+?)']}
 
 // PbValueToString converts a structpb.Value to its canonical string
 // representation.  It handles STRING, NUMBER (integer and double), BOOLEAN,
-// NULL, LIST, and STRUCT values.  The number formatting uses
-// strconv.FormatFloat with 'f' format to match the launcher's established
-// production behavior.
+// NULL, LIST, and STRUCT values.  Integer-valued floats are formatted without
+// a decimal point; non-integer floats use %g (shortest representation,
+// scientific notation for extreme values) to preserve the original driver
+// behavior.
 func PbValueToString(v *structpb.Value) (string, error) {
 	if v == nil {
 		return "", nil
@@ -47,7 +48,11 @@ func PbValueToString(v *structpb.Value) (string, error) {
 	case *structpb.Value_StringValue:
 		return v.GetStringValue(), nil
 	case *structpb.Value_NumberValue:
-		return strconv.FormatFloat(v.GetNumberValue(), 'f', -1, 64), nil
+		n := v.GetNumberValue()
+		if n == float64(int64(n)) {
+			return fmt.Sprintf("%d", int64(n)), nil
+		}
+		return fmt.Sprintf("%g", n), nil
 	case *structpb.Value_BoolValue:
 		return strconv.FormatBool(v.GetBoolValue()), nil
 	case *structpb.Value_ListValue:
