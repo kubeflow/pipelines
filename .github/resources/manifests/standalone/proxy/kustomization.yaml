@@ -46,6 +46,10 @@ patches:
     target:
       kind: Deployment
       name: ml-pipeline
+  - path: wf-controller-env.yaml
+    target:
+      kind: Deployment
+      name: workflow-controller
   - path: ../../base/grpc-specs.yaml
     target:
       kind: Deployment
