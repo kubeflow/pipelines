@@ -11,11 +11,14 @@
   - [Where the Failure Message Lives in Argo](#where-the-failure-message-lives-in-argo)
   - [Backend Changes](#backend-changes)
   - [Frontend Changes](#frontend-changes)
+  - [Structured Message Classification](#structured-message-classification)
+  - [Reporting Latency](#reporting-latency)
   - [End-to-End Data Flow](#end-to-end-data-flow)
 - [Test Plan](#test-plan)
 - [Migration Strategy](#migration-strategy)
 - [Frontend Considerations](#frontend-considerations)
 - [KFP Local Considerations](#kfp-local-considerations)
+- [Future Work](#future-work)
 - [Implementation History](#implementation-history)
 - [Drawbacks](#drawbacks)
 - [Alternatives](#alternatives)
@@ -183,6 +186,30 @@ Pass `run.run_details?.task_details` into `updateFlowElementsState` from the `dy
 
 Read `lifecycleError` from the typed flow element data, replacing the existing `as any` cast with `as ExecutionFlowElementData | undefined` in the same step. When set, render a `Banner` at the top of the side panel with the failure reason. Also render the banner in the Input/Output tab when no MLMD execution record exists, since that is the case where the pod failed before the driver could write any metadata.
 
+### Structured Message Classification
+
+Argo node messages are human-readable strings without a fixed schema. Most useful failure messages map to a small set of known Kubernetes failure categories:
+
+| Category | Example messages |
+|---|---|
+| Image pull | `Back-off pulling image`, `ErrImagePull`, `ImagePullBackOff` |
+| Resource / scheduling | `Unschedulable`, `FailedScheduling`, `Insufficient cpu` |
+| Runtime / OOM | `OOMKilled`, `Error`, `CrashLoopBackOff` |
+| Admission / policy | `pods "..." is forbidden` (Kyverno, PodSecurityPolicy) |
+| Unknown | Anything not matching the above |
+
+Structured classification is intentionally deferred from this proposal. The raw message already gives the user the information needed to diagnose the failure, and the Argo node message works even in cases where the pod was never created at all (for example, resource quota exceeded or an admission controller blocking pod creation). A structured category field can be added later as a separate column on the `Task` model without any breaking changes to the existing `LifecycleFailureMessage` field or the API response. For unknown or newly introduced failure patterns, the structured status would stay `Unknown` while the raw message would still provide the original diagnostic details.
+
+### Reporting Latency
+
+The `resolveNodeLifecycleMessages` function runs inside the persistence agent reporting path, inside `toModelTask`, which is called for each node during `ReportWorkflowResource`. The traversal is a DFS over the Argo node graph with a memoization cache (`resolved` map), so each node is visited at most once. The time complexity is O(n) where n is the number of nodes in the workflow.
+
+For typical KFP pipelines this adds negligible overhead. A pipeline with 100 tasks produces roughly 200-300 Argo nodes (one task node and one executor pod node per task). The traversal is entirely in-memory map lookups with no I/O.
+
+For cron runs, the persistence agent reporting path is more sensitive because the run row may not yet exist in MySQL when the first workflow state update arrives. The lifecycle message processing does not add any new database reads or writes beyond the existing `patchTask` upsert. The graph traversal happens entirely in memory before the database write, so it does not affect the likelihood or window of the existing race condition on the run row.
+
+A before-and-after performance measurement of the persistence agent reporting loop will be included in the implementation PR.
+
 ### End-to-End Data Flow
 
 ```mermaid
@@ -269,6 +296,18 @@ This proposal touches the frontend directly. The relevant points are:
 ## KFP Local Considerations
 
 This feature is backend and frontend only. It does not change the SDK, the compiler, or the IR. KFP local execution (`SubprocessRunner`, `DockerRunner`) does not go through Argo Workflows, the API server, or the database. None of the code paths added by this proposal are reached during local execution, so there is no impact on the local experience.
+
+## Future Work
+
+The following improvements are out of scope for this proposal but are worth keeping in mind for follow-up work.
+
+**Structured message classification.** See the [Structured Message Classification](#structured-message-classification) section for the proposed category taxonomy. Once the raw message is stable, a structured classifier can be added as a new `LifecycleFailureCategory` column without breaking changes to the existing field or API response.
+
+**Transient vs terminal failure distinction.** `OOMKilled` is a terminal failure and it may make sense to immediately transition the task to a `Failed` state in MySQL. `ImagePullBackOff` and `FailedScheduling` are transient and may resolve on retry. A separate `Warning` task state could be introduced for transient conditions, but this requires additional schema changes and UI work.
+
+**Message deduplication.** Kubernetes can alternate between `ErrImagePull` and `ImagePullBackOff` for the same root cause. If this becomes noisy in the persistence agent reporting loop, suppressing semantically equivalent message updates (where the normalized message matches the currently stored value) would reduce unnecessary database writes.
+
+**Task update deduplication.** More broadly, the persistence agent reports task status snapshots on every workflow sync. For tasks whose effective state has not changed since the last report, skipping the upsert would reduce database write load. Lifecycle messages add one more nuance: even when task state is unchanged, the Argo message may change in ways that carry no new information.
 
 ## Implementation History
 
