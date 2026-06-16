@@ -38,7 +38,6 @@ type RunGarbageCollector struct {
 	namespace string
 }
 
-// NewRunGarbageCollector creates a RunGarbageCollector.
 func NewRunGarbageCollector(
 	runStore storage.RunStoreInterface,
 	clientset kubernetes.Interface,
