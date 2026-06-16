@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package gc implements background garbage collection for expired pipeline runs.
 package gc
 
 import (
@@ -50,7 +51,7 @@ func NewRunGarbageCollector(
 	}
 }
 
-// Start launches the GC loop. It blocks until ctx is cancelled.
+// Start launches the GC loop. It blocks until ctx is canceled.
 func (gc *RunGarbageCollector) Start(ctx context.Context) {
 	archiveRetention := common.GetRunsRetentionTime()
 	deleteRetention := common.GetArchivedRunsRetentionTime()
@@ -123,7 +124,7 @@ func (gc *RunGarbageCollector) runLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			glog.Info("Run GC: context cancelled, exiting collection loop")
+			glog.Info("Run GC: context canceled, exiting collection loop")
 			return
 		case <-ticker.C:
 			gc.collect()
