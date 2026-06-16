@@ -36,7 +36,7 @@ import {
   v2PipelineSpecMap,
 } from './fixed-data';
 import helloWorldRuntime from './data/v1/runtime/integration-test-runtime';
-import proxyMiddleware from './proxy-middleware';
+import registerTensorboardProxy from './tensorboard-proxy';
 
 const rocMetadataJsonPath = './eval-output/metadata.json';
 const rocMetadataJsonPath2 = './eval-output/metadata2.json';
@@ -128,7 +128,7 @@ export default (app: express.Application) => {
     next();
   });
 
-  proxyMiddleware(app as any, v1beta1Prefix);
+  registerTensorboardProxy(app as any);
 
   app.set('json spaces', 2);
   app.use(express.json());
@@ -778,14 +778,18 @@ export default (app: express.Application) => {
   });
 
   app.get('/apps/tensorboard', (req, res) => {
-    res.send(tensorboardPod);
+    res.send({ proxyPath: tensorboardPod, tfVersion: '', image: '' });
   });
 
   app.post('/apps/tensorboard', (req, res) => {
-    tensorboardPod = 'http://tensorboardserver:port';
+    tensorboardPod = 'apps/tensorboard/proxy/mock-token/';
     setTimeout(() => {
-      res.send('ok');
+      res.send(tensorboardPod);
     }, 1000);
+  });
+
+  app.all(v1beta1Prefix + '/_proxy/*', (_req, res) => {
+    res.status(410).send('The generic /_proxy/ endpoint is deprecated and no longer supported.');
   });
 
   app.get('/k8s/pod/logs', (req, res) => {

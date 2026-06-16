@@ -14,7 +14,6 @@ repos:
       - id: debug-statements
       - id: check-merge-conflict
       - id: name-tests-test
-      - id: double-quote-string-fixer
       - id: no-commit-to-branch
         args: [--branch, master]
   - repo: https://github.com/PyCQA/flake8

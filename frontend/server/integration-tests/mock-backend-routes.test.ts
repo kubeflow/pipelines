@@ -415,9 +415,21 @@ describe('mock backend routes', () => {
     });
 
     it('tracks tensorboard state within the current app instance', async () => {
-      await request.get('/apps/tensorboard').expect(200, '');
-      await request.post('/apps/tensorboard').expect(200, 'ok');
-      await request.get('/apps/tensorboard').expect(200, 'http://tensorboardserver:port');
+      await request
+        .get('/apps/tensorboard')
+        .expect(200, { proxyPath: '', tfVersion: '', image: '' });
+      await request.post('/apps/tensorboard').expect(200, 'apps/tensorboard/proxy/mock-token/');
+      await request.get('/apps/tensorboard').expect(200, {
+        proxyPath: 'apps/tensorboard/proxy/mock-token/',
+        tfVersion: '',
+        image: '',
+      });
+    });
+
+    it('returns gone for the deprecated generic proxy endpoint', async () => {
+      await request
+        .get('/apis/v1beta1/_proxy/http%3A%2F%2Fviewer.test%2Fdata')
+        .expect(410, 'The generic /_proxy/ endpoint is deprecated and no longer supported.');
     });
 
     it('returns the expected pod log error paths', async () => {

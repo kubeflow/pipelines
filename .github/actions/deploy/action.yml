@@ -50,12 +50,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Deploy Squid
-      id: deploy-squid
-      if: ${{ inputs.proxy == 'true' }}
-      shell: bash
-      run: ./.github/resources/squid/deploy-squid.sh
-
     - name: Download Docker Images
       uses: actions/download-artifact@v7
       with:
@@ -93,12 +87,23 @@ runs:
     - name: Load Runtime Base Images Into Kind
       shell: bash
       run: |
+        docker pull docker.io/alpine:3.23
         docker pull python:3.11
         docker pull registry.access.redhat.com/ubi9/python-311:latest
+        kind load docker-image docker.io/alpine:3.23 --name ${{ inputs.cluster_name }}
         kind load docker-image python:3.11 --name ${{ inputs.cluster_name }}
         kind load docker-image registry.access.redhat.com/ubi9/python-311:latest --name ${{ inputs.cluster_name }}
+        docker image rm docker.io/alpine:3.23
         docker image rm python:3.11
         docker image rm registry.access.redhat.com/ubi9/python-311:latest
+
+    - name: Deploy Squid
+      id: deploy-squid
+      if: ${{ inputs.proxy == 'true' }}
+      shell: bash
+      env:
+        CLUSTER_NAME: ${{ inputs.cluster_name }}
+      run: ./.github/resources/squid/deploy-squid.sh
 
     - name: Configure Args
       shell: bash
