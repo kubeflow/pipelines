@@ -106,6 +106,12 @@ type RunStoreInterface interface {
 	// Checks if a run already exists for a given recurring run and display name.
 	// Returns the existing run UUID if found, or empty string if not.
 	GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayName string) (string, error)
+
+	// Archives terminal active runs older than the cutoff. Returns count.
+	ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (int64, error)
+
+	// Deletes archived runs older than the cutoff, including dependent tables. Returns count.
+	DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize int) (int64, error)
 }
 
 type RunStore struct {
@@ -777,6 +783,193 @@ func (s *RunStore) DeleteRun(id string) error {
 		return util.NewInternalServerError(err, "Failed to delete run %v and its resource references from table", id)
 	}
 	return nil
+}
+
+func (s *RunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (int64, error) {
+	selectSQL, selectArgs, err := sq.
+		Select("UUID").
+		From("run_details").
+		Where(sq.And{
+			sq.Eq{"State": []string{
+				string(model.RuntimeStateSucceeded),
+				string(model.RuntimeStateFailed),
+				string(model.RuntimeStateSkipped),
+				string(model.RuntimeStateCanceled),
+				// Legacy v1 states for databases upgraded from KFP v1.
+				string(model.RuntimeStateSucceededV1),
+				string(model.RuntimeStateFailedV1),
+				string(model.RuntimeStateSkippedV1),
+				string(model.RuntimeStateErrorV1),
+			}},
+			sq.Lt{"FinishedAtInSec": archiveCutoffEpoch},
+			sq.Gt{"FinishedAtInSec": 0},
+			sq.NotEq{"StorageState": []string{
+				string(model.StorageStateArchived),
+				string(model.StorageStateArchivedV1),
+			}},
+		}).
+		OrderBy("FinishedAtInSec ASC").
+		Limit(uint64(batchSize)).
+		ToSql()
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to build query for archiving expired runs")
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to start transaction for archiving expired runs")
+	}
+
+	rows, err := tx.Query(selectSQL, selectArgs...)
+	if err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to query expired runs for archiving")
+	}
+
+	var uuids []string
+	for rows.Next() {
+		var uuid string
+		if err := rows.Scan(&uuid); err != nil {
+			rows.Close()
+			tx.Rollback()
+			return 0, util.NewInternalServerError(err, "Failed to scan run UUID during archive")
+		}
+		uuids = append(uuids, uuid)
+	}
+	rows.Close()
+
+	if len(uuids) == 0 {
+		tx.Commit()
+		return 0, nil
+	}
+
+	updateSQL, updateArgs, err := sq.
+		Update("run_details").
+		Set("StorageState", model.StorageStateArchived.ToString()).
+		Where(sq.Eq{"UUID": uuids}).
+		ToSql()
+	if err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to build update query for archiving expired runs")
+	}
+
+	result, err := tx.Exec(updateSQL, updateArgs...)
+	if err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to archive expired runs")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to commit transaction for archiving expired runs")
+	}
+
+	affected, _ := result.RowsAffected()
+	return affected, nil
+}
+
+func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize int) (int64, error) {
+	selectSQL, selectArgs, err := sq.
+		Select("UUID").
+		From("run_details").
+		Where(sq.And{
+			sq.Eq{"StorageState": []string{
+				string(model.StorageStateArchived),
+				string(model.StorageStateArchivedV1),
+			}},
+			sq.Lt{"FinishedAtInSec": deleteCutoffEpoch},
+			sq.Gt{"FinishedAtInSec": 0},
+		}).
+		OrderBy("FinishedAtInSec ASC").
+		Limit(uint64(batchSize)).
+		ToSql()
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to build query for deleting expired archived runs")
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to start transaction for deleting expired archived runs")
+	}
+
+	rows, err := tx.Query(selectSQL, selectArgs...)
+	if err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to query expired archived runs for deletion")
+	}
+
+	var uuids []string
+	for rows.Next() {
+		var uuid string
+		if err := rows.Scan(&uuid); err != nil {
+			rows.Close()
+			tx.Rollback()
+			return 0, util.NewInternalServerError(err, "Failed to scan run UUID during delete")
+		}
+		uuids = append(uuids, uuid)
+	}
+	rows.Close()
+
+	if len(uuids) == 0 {
+		tx.Commit()
+		return 0, nil
+	}
+
+	// Delete from dependent tables in child-first order.
+	delMetricsSQL, delMetricsArgs, err := sq.Delete("run_metrics").Where(sq.Eq{"RunUUID": uuids}).ToSql()
+	if err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to build delete query for run_metrics")
+	}
+	if _, err := tx.Exec(delMetricsSQL, delMetricsArgs...); err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to delete run_metrics for expired archived runs")
+	}
+
+
+	delTasksSQL, delTasksArgs, err := sq.Delete("tasks").Where(sq.Eq{"RunUUID": uuids}).ToSql()
+	if err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to build delete query for tasks")
+	}
+	if _, err := tx.Exec(delTasksSQL, delTasksArgs...); err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to delete tasks for expired archived runs")
+	}
+
+
+	delRefsSQL, delRefsArgs, err := sq.
+		Delete("resource_references").
+		Where(sq.And{
+			sq.Eq{"ResourceType": model.RunResourceType},
+			sq.Eq{"ResourceUUID": uuids},
+		}).ToSql()
+	if err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to build delete query for resource_references")
+	}
+	if _, err := tx.Exec(delRefsSQL, delRefsArgs...); err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to delete resource_references for expired archived runs")
+	}
+
+
+	delRunsSQL, delRunsArgs, err := sq.Delete("run_details").Where(sq.Eq{"UUID": uuids}).ToSql()
+	if err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to build delete query for run_details")
+	}
+	result, err := tx.Exec(delRunsSQL, delRunsArgs...)
+	if err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to delete expired archived runs")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to commit transaction for deleting expired archived runs")
+	}
+
+	affected, _ := result.RowsAffected()
+	return affected, nil
 }
 
 // Creates a new metric in run_metrics table if does not exist.

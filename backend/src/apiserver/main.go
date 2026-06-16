@@ -43,6 +43,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/gc"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
@@ -245,6 +246,15 @@ func main() {
 
 	wg.Add(1)
 	go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
+
+	// Start the run garbage collector in the background.
+	runGC := gc.NewRunGarbageCollector(
+		clientManager.RunStore(),
+		clientManager.KubernetesCoreClient().GetClientSet(),
+		common.GetPodNamespace(),
+	)
+	go runGC.Start(backgroundCtx)
+
 	go startRPCServer(resourceManager, tlsCfg)
 	// This is blocking
 	startHTTPProxy(resourceManager, *usePipelinesKubernetesStorage, tlsCfg)

@@ -58,6 +58,13 @@ const (
 	PluginMaxTotalPayloadBytes              string = "PLUGIN_MAX_TOTAL_PAYLOAD_BYTES"
 	PluginMaxNestingDepth                   string = "PLUGIN_MAX_NESTING_DEPTH"
 	WorkflowGCGracePeriodSeconds            string = "WORKFLOW_GC_GRACE_PERIOD_SECONDS"
+
+	// Run garbage collection configuration keys.
+	// Disabled by default (zero values).
+	RunsRetentionTime         string = "RunsRetentionTime"
+	ArchivedRunsRetentionTime string = "ArchivedRunsRetentionTime"
+	RunsGCInterval            string = "RunsGCInterval"
+	RunsGCBatchSize           string = "RunsGCBatchSize"
 )
 
 type PluginLimitsConfig struct {
@@ -156,6 +163,22 @@ func GetDurationConfig(configName string) time.Duration {
 		glog.Fatalf("Please specify flag %s", configName)
 	}
 	return viper.GetDuration(configName)
+}
+
+func GetDurationConfigWithDefault(configName string, value time.Duration) time.Duration {
+	if !viper.IsSet(configName) {
+		return value
+	}
+	raw := strings.TrimSpace(viper.GetString(configName))
+	if raw == "" {
+		return value
+	}
+	d, err := time.ParseDuration(raw)
+	if err != nil {
+		glog.Errorf("Failed to parse duration for %s: %v. Using default %v", configName, err, value)
+		return value
+	}
+	return d
 }
 
 func IsMultiUserMode() bool {
@@ -276,4 +299,24 @@ func GetPluginLimitsConfig() (PluginLimitsConfig, error) {
 		MaxTotalPayloadBytes: maxTotalPayloadBytes,
 		MaxNestingDepth:      maxNestingDepth,
 	}, nil
+}
+
+func GetRunsRetentionTime() time.Duration {
+	return GetDurationConfigWithDefault(RunsRetentionTime, 0)
+}
+
+func GetArchivedRunsRetentionTime() time.Duration {
+	return GetDurationConfigWithDefault(ArchivedRunsRetentionTime, 0)
+}
+
+func GetRunsGCInterval() time.Duration {
+	d := GetDurationConfigWithDefault(RunsGCInterval, 6*time.Hour)
+	if d <= 0 {
+		return 6 * time.Hour
+	}
+	return d
+}
+
+func GetRunsGCBatchSize() int {
+	return GetIntConfigWithDefault(RunsGCBatchSize, 100)
 }
