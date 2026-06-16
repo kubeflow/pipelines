@@ -20,14 +20,15 @@ import {
 } from '../src/generated/apis/auth/index.js';
 import { parseError, isAllowedResourceName } from '../utils.js';
 import { AuthorizeFn } from '../helpers/auth.js';
+import { createTensorboardProxyPath } from './tensorboard-proxy.js';
 
 export const getTensorboardHandlers = (
   tensorboardConfig: ViewerTensorboardConfig,
   authorizeFn: AuthorizeFn,
 ): { get: Handler; create: Handler; delete: Handler } => {
   /**
-   * A handler which retrieve the endpoint for a tensorboard instance. The
-   * handler expects a query string `logdir`.
+   * Retrieves the scoped proxy path and image metadata for a TensorBoard instance.
+   * The handler expects query strings `logdir` and `namespace`.
    */
   const get: Handler = async (req, res) => {
     const { logdir, namespace } = req.query;
@@ -57,13 +58,21 @@ export const getTensorboardHandlers = (
         res.status(401).send(authError.message);
         return;
       }
-      res.send(
-        await k8sHelper.getTensorboardInstance(
-          logdir as string,
-          namespace as string,
-          tensorboardConfig.clusterDomain,
-        ),
+      const tensorboardInstance = await k8sHelper.getTensorboardInstance(
+        logdir as string,
+        namespace as string,
       );
+      res.send({
+        proxyPath: tensorboardInstance.viewerName
+          ? createTensorboardProxyPath(
+              namespace as string,
+              tensorboardInstance.viewerName,
+              tensorboardConfig.proxySigningSecret,
+            )
+          : '',
+        tfVersion: tensorboardInstance.tfVersion,
+        image: tensorboardInstance.image,
+      });
     } catch (err) {
       const details = await parseError(err);
       console.error(`Failed to list Tensorboard pods: ${details.message}`, details.additionalInfo);
@@ -72,15 +81,16 @@ export const getTensorboardHandlers = (
   };
 
   /**
-   * A handler which will create a tensorboard viewer CRD, waits for the
-   * tensorboard instance to be ready, and return the endpoint to the instance.
+   * Creates a TensorBoard viewer CRD, waits for the viewer to become ready,
+   * and returns the scoped proxy path for that instance.
    * The handler expects the following query strings in the request:
    * - `logdir`
-   * - `tfversion`, optional. TODO: consider deprecate
+   * - `namespace`
+   * - `tfversion`, optional. TODO: consider deprecating
    * - `image`, optional
    * - `podtemplatespec`, optional
    *
-   * image or tfversion should be specified.
+   * Either `image` or `tfversion` should be specified.
    */
   const create: Handler = async (req, res) => {
     const { logdir, namespace, tfversion, image, podtemplatespec: podTemplateSpecRaw } = req.query;
@@ -90,6 +100,10 @@ export const getTensorboardHandlers = (
     }
     if (!namespace) {
       res.status(400).send('namespace argument is required');
+      return;
+    }
+    if (typeof namespace !== 'string' || !isAllowedResourceName(namespace as string)) {
+      res.status(400).send('invalid namespace');
       return;
     }
     if (!tfversion && !image) {
@@ -129,15 +143,19 @@ export const getTensorboardHandlers = (
         (image || tensorboardConfig.tfImageName) as string,
         (tfversion as string) || '',
         podTemplateSpec || tensorboardConfig.podTemplateSpec,
-        tensorboardConfig.clusterDomain,
       );
-      const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(
+      const viewerName = await k8sHelper.waitForTensorboardInstance(
         logdir as string,
         namespace as string,
         60 * 1000,
-        tensorboardConfig.clusterDomain,
       );
-      res.send(tensorboardAddress);
+      res.send(
+        createTensorboardProxyPath(
+          namespace as string,
+          viewerName,
+          tensorboardConfig.proxySigningSecret,
+        ),
+      );
     } catch (err) {
       const details = await parseError(err);
       console.error(`Failed to start Tensorboard app: ${details.message}`, details.additionalInfo);
@@ -146,8 +164,8 @@ export const getTensorboardHandlers = (
   };
 
   /**
-   * A handler that deletes a tensorboard viewer. The handler expects query string
-   * `logdir` in the request.
+   * Deletes a TensorBoard viewer. The handler expects query strings `logdir`
+   * and `namespace`.
    */
   const deleteHandler: Handler = async (req, res) => {
     const { logdir, namespace } = req.query;
@@ -157,6 +175,10 @@ export const getTensorboardHandlers = (
     }
     if (!namespace) {
       res.status(400).send('namespace argument is required');
+      return;
+    }
+    if (typeof namespace !== 'string' || !isAllowedResourceName(namespace as string)) {
+      res.status(400).send('invalid namespace');
       return;
     }
 
@@ -173,11 +195,7 @@ export const getTensorboardHandlers = (
         res.status(401).send(authError.message);
         return;
       }
-      await k8sHelper.deleteTensorboardInstance(
-        logdir as string,
-        namespace as string,
-        tensorboardConfig.clusterDomain,
-      );
+      await k8sHelper.deleteTensorboardInstance(logdir as string, namespace as string);
       res.send('Tensorboard deleted.');
     } catch (err) {
       const details = await parseError(err);
