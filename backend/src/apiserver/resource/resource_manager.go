@@ -1131,10 +1131,15 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error cleaning up the failed pods from the previous attempt", runId)
 	}
 
-	// First try to update workflow
-	// If fail to get the workflow, return error.
+	// First try to get the workflow and update it.
+	// If we fail to get the workflow (e.g., NotFound), we fall back to creating it.
 	maxRetries := 10
 	var finalErr error
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = 100 * time.Millisecond
+	b.MaxInterval = 2 * time.Second
+	b.Reset()
+
 	for i := 0; i < maxRetries; i++ {
 		if ctx.Err() != nil {
 			return util.NewInternalServerError(ctx.Err(), "Failed to retry run %s due to context cancellation", runId)
@@ -1152,7 +1157,14 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		if updateError != nil {
 			if apierrors.IsConflict(errors.Unwrap(updateError)) || apierrors.IsConflict(updateError) {
 				finalErr = updateError
-				time.Sleep(100 * time.Millisecond)
+				delay := b.NextBackOff()
+				timer := time.NewTimer(delay)
+				select {
+				case <-timer.C:
+				case <-ctx.Done():
+					timer.Stop()
+					return util.NewInternalServerError(ctx.Err(), "Failed to retry run %s due to context cancellation", runId)
+				}
 				continue
 			}
 			// Remove resource version
@@ -1161,7 +1173,14 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 			if createError != nil {
 				if apierrors.IsAlreadyExists(errors.Unwrap(createError)) || apierrors.IsAlreadyExists(createError) {
 					finalErr = createError
-					time.Sleep(100 * time.Millisecond)
+					delay := b.NextBackOff()
+					timer := time.NewTimer(delay)
+					select {
+					case <-timer.C:
+					case <-ctx.Done():
+						timer.Stop()
+						return util.NewInternalServerError(ctx.Err(), "Failed to retry run %s due to context cancellation", runId)
+					}
 					continue
 				}
 				if createError, ok := createError.(net.Error); ok && createError.Timeout() {
