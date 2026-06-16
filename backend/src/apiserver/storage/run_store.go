@@ -786,6 +786,9 @@ func (s *RunStore) DeleteRun(id string) error {
 }
 
 func (s *RunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (int64, error) {
+	if batchSize <= 0 {
+		batchSize = 100
+	}
 	selectSQL, selectArgs, err := sq.
 		Select("UUID").
 		From("run_details").
@@ -843,7 +846,9 @@ func (s *RunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (
 	}
 
 	if len(uuids) == 0 {
-		tx.Commit()
+		if err := tx.Commit(); err != nil {
+			return 0, util.NewInternalServerError(err, "Failed to commit transaction for archiving expired runs")
+		}
 		return 0, nil
 	}
 
@@ -872,6 +877,9 @@ func (s *RunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (
 }
 
 func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize int) (int64, error) {
+	if batchSize <= 0 {
+		batchSize = 100
+	}
 	selectSQL, selectArgs, err := sq.
 		Select("UUID").
 		From("run_details").
@@ -918,7 +926,9 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 	}
 
 	if len(uuids) == 0 {
-		tx.Commit()
+		if err := tx.Commit(); err != nil {
+			return 0, util.NewInternalServerError(err, "Failed to commit transaction for deleting expired archived runs")
+		}
 		return 0, nil
 	}
 

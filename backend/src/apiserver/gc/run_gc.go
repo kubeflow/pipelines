@@ -63,11 +63,14 @@ func (gc *RunGarbageCollector) Start(ctx context.Context) {
 	glog.Infof("Run GC enabled: archive after %v, delete after %v, interval %v, batch %d",
 		archiveRetention, deleteRetention, common.GetRunsGCInterval(), common.GetRunsGCBatchSize())
 
-	id, err := os.Hostname()
-	if err != nil {
-		glog.Errorf("Failed to get hostname for leader election: %v. Falling back to direct GC.", err)
-		gc.runLoop(ctx)
-		return
+	id := os.Getenv("POD_NAME")
+	if id == "" {
+		var err error
+		id, err = os.Hostname()
+		if err != nil {
+			glog.Errorf("Run GC: cannot determine pod identity, disabling GC: %v", err)
+			return
+		}
 	}
 
 	lock := &resourcelock.LeaseLock{
@@ -81,7 +84,7 @@ func (gc *RunGarbageCollector) Start(ctx context.Context) {
 		},
 	}
 
-	leaderelection.RunOrDie(ctx, leaderelection.LeaderElectionConfig{
+	le, err := leaderelection.NewLeaderElector(leaderelection.LeaderElectionConfig{
 		Lock:            lock,
 		LeaseDuration:   15 * time.Second,
 		RenewDeadline:   10 * time.Second,
@@ -102,6 +105,11 @@ func (gc *RunGarbageCollector) Start(ctx context.Context) {
 			},
 		},
 	})
+	if err != nil {
+		glog.Errorf("Run GC: failed to create leader elector, disabling GC: %v", err)
+		return
+	}
+	le.Run(ctx)
 }
 
 func (gc *RunGarbageCollector) runLoop(ctx context.Context) {
