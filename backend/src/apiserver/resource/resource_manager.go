@@ -1041,6 +1041,12 @@ func (r *ResourceManager) ListJobs(filterContext *model.FilterContext, opts *lis
 
 // Terminates a workflow by setting its activeDeadlineSeconds to 0.
 func TerminateWorkflow(ctx context.Context, wfClient util.ExecutionInterface, name string) error {
+	// First check if workflow is already in final state to prevent unnecessary patches or racing.
+	latestWorkflow, err := wfClient.Get(ctx, name, v1.GetOptions{})
+	if err == nil && latestWorkflow.ExecutionStatus() != nil && latestWorkflow.ExecutionStatus().IsInFinalState() {
+		return nil
+	}
+
 	patchObj := util.GetTerminatePatch(util.CurrentExecutionType())
 	patch, err := json.Marshal(patchObj)
 	if err != nil {
@@ -1136,6 +1142,9 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 
 		latestWorkflow, updateError := r.getWorkflowClient(namespace).Get(ctx, newExecSpec.ExecutionName(), v1.GetOptions{})
 		if updateError == nil {
+			if err := latestWorkflow.CanRetry(); err != nil {
+				return util.NewInternalServerError(err, "Failed to retry run %s as the refetched workflow does not allow retries", runId)
+			}
 			// Update the workflow's resource version to latest.
 			newExecSpec.SetVersion(latestWorkflow.Version())
 			_, updateError = r.getWorkflowClient(namespace).Update(ctx, newExecSpec, v1.UpdateOptions{})
