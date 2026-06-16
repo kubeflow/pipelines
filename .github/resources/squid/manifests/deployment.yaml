@@ -18,6 +18,28 @@ spec:
           image: registry.domain.local/squid:test
           ports:
             - containerPort: 3128
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          startupProbe:
+            tcpSocket:
+              port: 3128
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket:
+              port: 3128
+            periodSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: 3128
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
           volumeMounts:
             - name: squid-cache
               mountPath: /var/cache/squid

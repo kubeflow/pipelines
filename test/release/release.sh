@@ -74,6 +74,9 @@ sed -i -E "s#^(FROM ghcr.io/kubeflow/kfp-api-generator:).*#\\1${RELEASE_BRANCH_F
 # Update default RELEASE_IMAGE tag in bump-version-docker.sh to this branch
 sed -i -E "s#^(RELEASE_IMAGE=\$\{RELEASE_IMAGE:-ghcr.io/kubeflow/kfp-release:).*#\\1${RELEASE_BRANCH_FROM_VERSION}}#" test/release/bump-version-docker.sh
 
+# Update the public version ConfigMap to match the release tag (with v prefix)
+sed -i -E "s#^([[:space:]]*-[[:space:]]*kubeflow_pipelines_version=).*#\\1v${TAG}#" manifests/kustomize/base/pipeline/kustomization.yaml
+
 # Ensure the release bump container uses the correct tag for this branch
 export RELEASE_IMAGE="ghcr.io/kubeflow/kfp-release:${RELEASE_BRANCH_FROM_VERSION}"
 

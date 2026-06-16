@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-05-31
+- Last updated: 2026-06-14
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -533,6 +533,9 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 
 - Kind-based clusters are provisioned via the `kfp-cluster` composite action, parameterized by `k8s_version`, `pipeline_store`, `proxy`, `cache_enabled`, and optional `argo_version`.
 - The `create-cluster` and `deploy` actions are used by newer suites; `kfp-k8s` installs SDK components from source inside jobs that execute Python-based tests.
+- The `deploy` action downloads and loads CI-built images before deploying optional Squid proxy support, preloads runtime base images used by test pods and init containers, and waits for Squid readiness/endpoints in proxy lanes.
+- Proxy test failures collect both the KFP namespace and `squid` namespace logs/events to diagnose proxy-service readiness separately from pipeline failures.
+- The CI proxy runs Squid as a no-cache forward proxy under the historical `squid` namespace/service names.
 - The `protobuf` composite action prepares `protoc` and related dependencies when compiling Python protobufs.
 - The `create-cluster` action caches Kind node images by Kubernetes version to reduce Docker Hub pulls.
 - Python workflows use `actions/cache@v5` for pip cache to reduce repeated dependency installs.
@@ -659,6 +662,7 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - `_KFP_RUNTIME=true`: Disables SDK imports during task execution
 - `VITE_NAMESPACE=...`: Sets the target namespace for the frontend in multi-user mode
 - `LOCAL_API_SERVER=true`: Enables local API server testing mode when running integration tests on a Kind cluster
+- `TENSORBOARD_PROXY_SIGNING_SECRET=...`: Optional shared frontend-server secret for scoped TensorBoard proxy URLs; defaults to `MINIO_SECRET_KEY` when unset
 
 ## Troubleshooting and pitfalls
 
@@ -678,3 +682,4 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - API client generation fails with Docker errors (for example permission denied to Docker socket): ensure Docker is running and your user can access the Docker daemon.
 - Frontend fails to start due to Node version mismatch: `nvm use $(cat frontend/.nvmrc)` or `fnm use`.
 - Runtime component imports SDK-only modules: `_KFP_RUNTIME=true` disables many SDK imports; avoid importing SDK-only modules in task code.
+- Proxy CI jobs fail during `Deploy Squid` with `OOMKilled`, `CrashLoopBackOff`, endpoint readiness timeouts, or failed proxy tests: inspect the `squid` namespace logs/events and verify `.github/resources/squid/squid.conf` still disables caching for CI.

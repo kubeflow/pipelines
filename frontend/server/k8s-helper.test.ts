@@ -20,6 +20,7 @@ import {
   listPodEvents,
   getArgoWorkflow,
   getK8sSecret,
+  waitForTensorboardInstance,
 } from './k8s-helper.js';
 
 describe('k8s-helper', () => {
@@ -226,6 +227,49 @@ describe('k8s-helper', () => {
       await expect(getPodLogs('nonexistent-pod', 'test-namespace')).rejects.toThrow(
         JSON.stringify(errorBody),
       );
+    });
+  });
+
+  describe('waitForTensorboardInstance', () => {
+    let getNamespacedCustomObjectSpy: SpyInstance;
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      getNamespacedCustomObjectSpy = vi.spyOn(
+        K8S_TEST_EXPORT.k8sV1CustomObjectClient,
+        'getNamespacedCustomObject',
+      );
+    });
+
+    afterEach(() => {
+      getNamespacedCustomObjectSpy.mockRestore();
+      vi.useRealTimers();
+    });
+
+    it('rejects and stops polling when tensorboard lookup throws', async () => {
+      const lookupError = new Error('lookup failed');
+
+      getNamespacedCustomObjectSpy.mockResolvedValue({
+        metadata: { name: 'viewer-abcdefg' },
+        spec: {
+          tensorboardSpec: {
+            get tensorflowImage() {
+              throw lookupError;
+            },
+          },
+          type: 'tensorboard',
+        },
+      });
+
+      const waitPromise = waitForTensorboardInstance('log-dir-1', 'test-namespace', 5000);
+      const waitErrorPromise = waitPromise.catch((error) => error);
+
+      await vi.advanceTimersByTimeAsync(1000);
+      await expect(waitErrorPromise).resolves.toBe(lookupError);
+      expect(getNamespacedCustomObjectSpy).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(getNamespacedCustomObjectSpy).toHaveBeenCalledTimes(1);
     });
   });
 
