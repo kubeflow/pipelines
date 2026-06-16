@@ -837,6 +837,10 @@ func (s *RunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (
 		uuids = append(uuids, uuid)
 	}
 	rows.Close()
+	if err := rows.Err(); err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to iterate expired runs for archiving")
+	}
 
 	if len(uuids) == 0 {
 		tx.Commit()
@@ -908,6 +912,10 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 		uuids = append(uuids, uuid)
 	}
 	rows.Close()
+	if err := rows.Err(); err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to iterate expired archived runs for deletion")
+	}
 
 	if len(uuids) == 0 {
 		tx.Commit()
@@ -925,7 +933,6 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 		return 0, util.NewInternalServerError(err, "Failed to delete run_metrics for expired archived runs")
 	}
 
-
 	delTasksSQL, delTasksArgs, err := sq.Delete("tasks").Where(sq.Eq{"RunUUID": uuids}).ToSql()
 	if err != nil {
 		tx.Rollback()
@@ -935,7 +942,6 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 		tx.Rollback()
 		return 0, util.NewInternalServerError(err, "Failed to delete tasks for expired archived runs")
 	}
-
 
 	delRefsSQL, delRefsArgs, err := sq.
 		Delete("resource_references").
@@ -951,7 +957,6 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 		tx.Rollback()
 		return 0, util.NewInternalServerError(err, "Failed to delete resource_references for expired archived runs")
 	}
-
 
 	delRunsSQL, delRunsArgs, err := sq.Delete("run_details").Where(sq.Eq{"UUID": uuids}).ToSql()
 	if err != nil {
