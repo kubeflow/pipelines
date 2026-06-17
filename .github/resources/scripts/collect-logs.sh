@@ -14,12 +14,18 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-mkdir -p /tmp/tmp.log
-
 if [[ -z "$NS" ]]; then
-    echo "Both --ns parameters are required."
+    echo "--ns parameter is required."
     exit 1
 fi
+
+if [[ -z "$OUTPUT_FILE" ]]; then
+    echo "--output parameter is required."
+    exit 1
+fi
+
+mkdir -p "$(dirname "$OUTPUT_FILE")"
+touch "$OUTPUT_FILE"
 
 function check_namespace {
     if ! kubectl get namespace "$1" &>/dev/null; then
@@ -43,7 +49,7 @@ function display_pod_info {
         return
     fi
 
-    echo "Pod Information for Namespace: ${NAMESPACE}" > "$OUTPUT_FILE"
+    echo "Pod Information for Namespace: ${NAMESPACE}" | tee -a "$OUTPUT_FILE"
 
     for POD_NAME in ${POD_NAMES}; do
         {

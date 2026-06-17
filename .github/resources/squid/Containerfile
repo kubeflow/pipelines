@@ -7,4 +7,5 @@ COPY squid.conf /etc/squid/squid.conf
 
 EXPOSE 3128
 
-CMD ["squid", "-N", "-d", "1"]
+# Runtime EmptyDir mounts hide any cache/log directories initialized at build time.
+CMD ["sh", "-c", "mkdir -p /var/cache/squid /var/log/squid /run/squid && chown -R squid:squid /var/cache/squid /var/log/squid /run/squid && squid -z -f /etc/squid/squid.conf && rm -f /run/squid.pid && exec squid -N -d 1 -f /etc/squid/squid.conf"]
