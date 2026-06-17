@@ -2930,7 +2930,8 @@ class TestYamlComments(unittest.TestCase):
                 sample_input2: str = 'string') -> str:
             """docstring long description.
 
-            docstring long description. docstring long description.
+            docstring long description.
+            docstring long description.
             """
             op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
@@ -2960,7 +2961,8 @@ class TestYamlComments(unittest.TestCase):
                         sample_input2: str = 'string') -> str:
             """docstring short description.
 
-            docstring long description. docstring long description.
+            docstring long description.
+            docstring long description.
             """
             op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
