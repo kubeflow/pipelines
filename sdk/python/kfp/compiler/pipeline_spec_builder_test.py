@@ -36,6 +36,12 @@ class PipelineSpecBuilderTest(parameterized.TestCase):
     def setUp(self):
         self.maxDiff = None
 
+    def test_to_protobuf_value_none(self):
+        self.assertEqual(
+            struct_pb2.Value(null_value=struct_pb2.NULL_VALUE),
+            pipeline_spec_builder.to_protobuf_value(None),
+        )
+
     @parameterized.parameters(
         {
             'parameter_type': pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
