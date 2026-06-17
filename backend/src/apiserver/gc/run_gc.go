@@ -37,6 +37,7 @@ type RunGarbageCollector struct {
 	runStore  storage.RunStoreInterface
 	clientset kubernetes.Interface
 	namespace string
+	nowFunc   func() int64
 }
 
 func NewRunGarbageCollector(
@@ -48,6 +49,7 @@ func NewRunGarbageCollector(
 		runStore:  runStore,
 		clientset: clientset,
 		namespace: namespace,
+		nowFunc:   func() int64 { return time.Now().Unix() },
 	}
 }
 
@@ -133,7 +135,7 @@ func (gc *RunGarbageCollector) runLoop(ctx context.Context) {
 }
 
 func (gc *RunGarbageCollector) collect() {
-	now := time.Now().Unix()
+	now := gc.nowFunc()
 	batchSize := common.GetRunsGCBatchSize()
 
 	// Pass 1: archive terminal active runs past retention.
