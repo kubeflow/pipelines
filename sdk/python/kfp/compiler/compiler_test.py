@@ -234,6 +234,19 @@ class TestCompilePipeline(parameterized.TestCase):
             def literal_pipeline():
                 literal_component(literal_param='c')
 
+    def test_compile_pipeline_with_disjoint_literal_channel_raises(self):
+        # Fix 3: pipeline input Literal['c'] wired into component Literal['a','b'] must raise
+
+        @dsl.component(base_image='python:3.11')
+        def consume(x: Literal['a', 'b']):
+            pass
+
+        with self.assertRaises(type_utils.InconsistentTypeException):
+
+            @dsl.pipeline(name='test-disjoint-literal-pipeline')
+            def p(x: Literal['c']):
+                consume(x=x)
+
     def test_can_use_dsl_attribute_on_kfp(self):
 
         @kfp.dsl.pipeline
@@ -470,7 +483,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
         @dsl.pipeline(description='Prefer me.')
         def my_pipeline():
-            """Don't prefer me"""
+            """Don't prefer me."""
             VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
         self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.description,
@@ -492,7 +505,8 @@ class TestCompilePipeline(parameterized.TestCase):
         def my_pipeline():
             """Docstring-specified description.
 
-            More information about this pipeline."""
+            More information about this pipeline.
+            """
             VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
         self.assertEqual(
@@ -2887,6 +2901,7 @@ class TestYamlComments(unittest.TestCase):
                 sample_input1: bool = True,
                 sample_input2: str = 'string') -> str:
             """docstring short description.
+
             docstring long description. docstring long description.
             """
             op1 = my_comp(string=sample_input2, model=sample_input1)
@@ -2913,10 +2928,9 @@ class TestYamlComments(unittest.TestCase):
         def pipeline_with_multiline_definition(
                 sample_input1: bool = True,
                 sample_input2: str = 'string') -> str:
-            """
-            docstring long description.
-            docstring long description.
-            docstring long description.
+            """docstring long description.
+
+            docstring long description. docstring long description.
             """
             op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
@@ -2945,8 +2959,8 @@ class TestYamlComments(unittest.TestCase):
         def my_pipeline(sample_input1: bool = True,
                         sample_input2: str = 'string') -> str:
             """docstring short description.
-            docstring long description.
-            docstring long description.
+
+            docstring long description. docstring long description.
             """
             op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
@@ -4512,7 +4526,8 @@ class TestPlatformConfig(unittest.TestCase):
 
     def test_compile_fails_when_workspace_placeholder_used_without_workspace_config(
             self):
-        """Tests that compilation fails if placeholder is used and no workspace configured."""
+        """Tests that compilation fails if placeholder is used and no workspace
+        configured."""
 
         @dsl.component
         def uses_workspace(workspace_path: str) -> str:
@@ -4540,7 +4555,8 @@ class TestPlatformConfig(unittest.TestCase):
 
     def test_compile_fails_when_workspace_placeholder_used_in_nested_groups_without_workspace_config(
             self):
-        """Tests that compilation fails if placeholder is used within nested groups and no workspace configured."""
+        """Tests that compilation fails if placeholder is used within nested
+        groups and no workspace configured."""
 
         import os
         import tempfile
@@ -4580,7 +4596,8 @@ class TestPlatformConfig(unittest.TestCase):
 
     def test_compile_fails_when_importer_download_to_workspace_without_workspace_config(
             self):
-        """Tests that compilation fails if importer uses download_to_workspace without workspace config."""
+        """Tests that compilation fails if importer uses download_to_workspace
+        without workspace config."""
 
         import os
         import tempfile
@@ -4609,7 +4626,8 @@ class TestPlatformConfig(unittest.TestCase):
 
     def test_compile_succeeds_when_importer_download_to_workspace_with_workspace_config(
             self):
-        """Tests that compilation succeeds with both download_to_workspace and workspace config."""
+        """Tests that compilation succeeds with both download_to_workspace and
+        workspace config."""
 
         import os
         import tempfile
@@ -4635,7 +4653,8 @@ class TestPlatformConfig(unittest.TestCase):
             self.assertTrue(os.path.exists(output_yaml))
 
     def test_pipeline_with_ttl_seconds_after_finished(self):
-        """ttl_seconds_after_finished → resource_ttl_on_completion (SecondsAfterCompletion)."""
+        """ttl_seconds_after_finished → resource_ttl_on_completion
+        (SecondsAfterCompletion)."""
 
         @dsl.pipeline(
             pipeline_config=dsl.PipelineConfig(ttl_seconds_after_finished=300))
@@ -4654,7 +4673,8 @@ class TestPlatformConfig(unittest.TestCase):
         self.assertEqual(loaded_pipeline.platform_spec, expected)
 
     def test_pipeline_with_ttl_seconds_after_success(self):
-        """ttl_seconds_after_success → resource_ttl_on_success (SecondsAfterSuccess)."""
+        """ttl_seconds_after_success → resource_ttl_on_success
+        (SecondsAfterSuccess)."""
 
         @dsl.pipeline(
             pipeline_config=dsl.PipelineConfig(ttl_seconds_after_success=600))
@@ -4672,7 +4692,8 @@ class TestPlatformConfig(unittest.TestCase):
         self.assertEqual(loaded_pipeline.platform_spec, expected)
 
     def test_pipeline_with_ttl_seconds_after_failure(self):
-        """ttl_seconds_after_failure → resource_ttl_on_failure (SecondsAfterFailure)."""
+        """ttl_seconds_after_failure → resource_ttl_on_failure
+        (SecondsAfterFailure)."""
 
         @dsl.pipeline(
             pipeline_config=dsl.PipelineConfig(ttl_seconds_after_failure=120))
@@ -4716,9 +4737,10 @@ class TestPlatformConfig(unittest.TestCase):
     def test_pipeline_with_ttl_zero(self):
         """TTL of 0 is accepted but treated as "not set" and not serialized.
 
-        A value of 0 is indistinguishable from the proto3 int32 default, so the
-        serializer skips it.  The resulting platform spec contains no
-        pipelineConfig entry at all, identical to not setting a TTL.
+        A value of 0 is indistinguishable from the proto3 int32 default,
+        so the serializer skips it.  The resulting platform spec
+        contains no pipelineConfig entry at all, identical to not
+        setting a TTL.
         """
 
         @dsl.pipeline(
@@ -4804,7 +4826,8 @@ class TestPlatformConfig(unittest.TestCase):
         self.assertEqual(loaded_pipeline.platform_spec, expected)
 
     def test_pipeline_with_active_deadline_none_omits_field(self):
-        """active_deadline_seconds=None (default) produces no platform spec entry."""
+        """active_deadline_seconds=None (default) produces no platform spec
+        entry."""
 
         @dsl.pipeline(
             pipeline_config=dsl.PipelineConfig(active_deadline_seconds=None))
@@ -5074,7 +5097,7 @@ class ExtractInputOutputDescription(unittest.TestCase):
             string: str,
             in_artifact: Input[Artifact],
         ) -> Outputs:
-            """Pipeline description. Returns
+            """Pipeline description. Returns.
 
             Args:
                 string: Return Pipeline input string. Returns
@@ -5537,7 +5560,9 @@ class TestDslOneOf(unittest.TestCase):
     # To help narrow the tests further (we already test lots of aspects in the following cases), we choose focus on the dsl.OneOf behavior, not the conditional logic if If/Elif/Else. This is more verbose, but more maintainable and the behavior under test is clearer.
 
     def test_if_else_returned(self):
-        """Uses If and Else branches, parameters passed to dsl.OneOf, dsl.OneOf returned from a pipeline, and different output keys on dsl.OneOf channels."""
+        """Uses If and Else branches, parameters passed to dsl.OneOf, dsl.OneOf
+        returned from a pipeline, and different output keys on dsl.OneOf
+        channels."""
 
         @dsl.pipeline
         def roll_die_pipeline() -> str:
@@ -5598,7 +5623,9 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_if_elif_else_returned(self):
-        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf, dsl.OneOf returned from a pipeline, and different output keys on dsl.OneOf channels."""
+        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf,
+        dsl.OneOf returned from a pipeline, and different output keys on
+        dsl.OneOf channels."""
 
         @dsl.pipeline
         def roll_die_pipeline() -> str:
@@ -5673,7 +5700,9 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_if_elif_else_consumed(self):
-        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf, dsl.OneOf passed to a consumer task, and different output keys on dsl.OneOf channels."""
+        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf,
+        dsl.OneOf passed to a consumer task, and different output keys on
+        dsl.OneOf channels."""
 
         @dsl.pipeline
         def roll_die_pipeline():
@@ -5750,7 +5779,9 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_if_else_consumed_and_returned(self):
-        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf, and dsl.OneOf passed to a consumer task and returned from the pipeline."""
+        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf,
+        and dsl.OneOf passed to a consumer task and returned from the
+        pipeline."""
 
         @dsl.pipeline
         def flip_coin_pipeline() -> str:
@@ -5823,7 +5854,8 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_if_else_consumed_and_returned_artifacts(self):
-        """Uses If, Elif, and Else branches, artifacts passed to dsl.OneOf, and dsl.OneOf passed to a consumer task and returned from the pipeline."""
+        """Uses If, Elif, and Else branches, artifacts passed to dsl.OneOf, and
+        dsl.OneOf passed to a consumer task and returned from the pipeline."""
 
         @dsl.pipeline
         def flip_coin_pipeline() -> Artifact:
@@ -5990,7 +6022,8 @@ class TestDslOneOf(unittest.TestCase):
                                      print_task_2.outputs['a'])
 
     def test_deeply_nested_consumed(self):
-        """Uses If, Elif, Else, and OneOf deeply nested within multiple dub-DAGs."""
+        """Uses If, Elif, Else, and OneOf deeply nested within multiple dub-
+        DAGs."""
 
         @dsl.pipeline
         def flip_coin_pipeline(execute_pipeline: bool):
@@ -6089,7 +6122,8 @@ class TestDslOneOf(unittest.TestCase):
                                  print_task_2.outputs['a'])
 
     def test_oneof_in_condition(self):
-        """Tests that dsl.OneOf's channel can be consumed in a downstream group nested one level"""
+        """Tests that dsl.OneOf's channel can be consumed in a downstream group
+        nested one level."""
 
         @dsl.pipeline
         def roll_die_pipeline(repeat_on: str = 'Got heads!'):
@@ -6142,7 +6176,8 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_consumed_in_nested_groups(self):
-        """Tests that dsl.OneOf's channel can be consumed in a downstream group nested multiple levels"""
+        """Tests that dsl.OneOf's channel can be consumed in a downstream group
+        nested multiple levels."""
 
         @dsl.pipeline
         def roll_die_pipeline(

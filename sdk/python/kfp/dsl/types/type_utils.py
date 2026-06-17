@@ -374,7 +374,25 @@ def verify_type_compatibility(
         if literals is not None:
             # avoid circular import
             from kfp.dsl import pipeline_channel
-            if not isinstance(given_value, pipeline_channel.PipelineChannel):
+            if isinstance(given_value, pipeline_channel.PipelineChannel):
+                # Validate channel-to-channel: if the source channel also has
+                # literals, check that the source set is a subset of the expected.
+                channel_literals = getattr(given_value, 'literals', None)
+                if channel_literals is not None:
+                    incompatible = [
+                        v for v in channel_literals if v not in literals
+                    ]
+                    if incompatible:
+                        error_text = (
+                            error_message_prefix +
+                            f'Source Literal values {channel_literals!r} are not all in the allowed Literal values {literals!r}'
+                        )
+                        if raise_on_error:
+                            raise InconsistentTypeException(error_text)
+                        else:
+                            warnings.warn(InconsistentTypeWarning(error_text))
+                            types_are_compatible = False
+            else:
                 if given_value not in literals:
                     error_text = (
                         error_message_prefix +
@@ -384,6 +402,7 @@ def verify_type_compatibility(
                         raise InconsistentTypeException(error_text)
                     else:
                         warnings.warn(InconsistentTypeWarning(error_text))
+                        types_are_compatible = False
 
     return types_are_compatible
 

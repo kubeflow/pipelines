@@ -435,6 +435,12 @@ def make_input_spec(annotation: Any,
     default = None if inspect_param.default == inspect.Parameter.empty or type_annotations.issubclass_of_artifact(
         annotation) else inspect_param.default
 
+    literals = input_output_spec_args.get('literals')
+    if literals is not None and default is not None and default not in literals:
+        raise ValueError(
+            f'Default value {default!r} is not one of the allowed Literal values {literals!r}.'
+        )
+
     optional = (
         inspect_param.default is not inspect.Parameter.empty or
         type_utils.is_task_final_status_type(
@@ -881,8 +887,15 @@ def make_input_for_parameterized_container_component_function(
             # Treat as STRUCT for IR and use reserved input name at runtime.
             placeholder._ir_type = 'STRUCT'
         else:
+            # Normalize annotation: for Literal types, _annotation_to_type_struct
+            # returns (type_struct, literals); unwrap to get the plain type string.
+            result = type_utils._annotation_to_type_struct(annotation)
+            if isinstance(result, tuple):
+                type_struct, _ = result
+            else:
+                type_struct = result
             placeholder._ir_type = type_utils.get_parameter_type_name(
-                annotation)
+                type_struct)
         return placeholder
 
 

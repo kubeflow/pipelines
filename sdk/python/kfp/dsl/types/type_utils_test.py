@@ -1008,5 +1008,102 @@ class TestGetCanonicalNameForOuterGeneric(parameterized.TestCase):
             type_utils.get_canonical_name_for_outer_generic(type_name))
 
 
+class TestLiteralTypeCompatibility(unittest.TestCase):
+
+    def test_literal_constant_valid(self):
+        spec = structures.InputSpec('String', literals=['a', 'b'])
+        self.assertTrue(
+            type_utils.verify_type_compatibility(
+                given_value='a',
+                expected_spec=spec,
+                error_message_prefix='',
+            ))
+
+    def test_literal_constant_invalid_raises(self):
+        spec = structures.InputSpec('String', literals=['a', 'b'])
+        with self.assertRaises(type_utils.InconsistentTypeException):
+            type_utils.verify_type_compatibility(
+                given_value='c',
+                expected_spec=spec,
+                error_message_prefix='',
+            )
+
+    def test_literal_constant_invalid_warn_only_returns_false(self):
+        # Fix 2: warn-only mode must return False, not True, on mismatch
+        spec = structures.InputSpec('String', literals=['a', 'b'])
+        import warnings
+        with warnings.catch_warnings(record=True):
+            result = type_utils.verify_type_compatibility(
+                given_value='c',
+                expected_spec=spec,
+                error_message_prefix='',
+                raise_on_error=False,
+            )
+        self.assertFalse(result)
+
+    def test_literal_channel_disjoint_sets_raises(self):
+        # Fix 3: pipeline channel with Literal['c'] into component Literal['a','b'] must raise
+        channel = pipeline_channel.PipelineParameterChannel(
+            name='x',
+            channel_type='String',
+            literals=['c'],
+        )
+        spec = structures.InputSpec('String', literals=['a', 'b'])
+        with self.assertRaises(type_utils.InconsistentTypeException):
+            type_utils.verify_type_compatibility(
+                given_value=channel,
+                expected_spec=spec,
+                error_message_prefix='',
+            )
+
+    def test_literal_channel_subset_valid(self):
+        # Fix 3: channel literals that are a subset of expected literals are valid
+        channel = pipeline_channel.PipelineParameterChannel(
+            name='x',
+            channel_type='String',
+            literals=['a'],
+        )
+        spec = structures.InputSpec('String', literals=['a', 'b'])
+        self.assertTrue(
+            type_utils.verify_type_compatibility(
+                given_value=channel,
+                expected_spec=spec,
+                error_message_prefix='',
+            ))
+
+    def test_literal_channel_no_literals_allowed(self):
+        # Channel without literals into a Literal-constrained spec is allowed
+        # (source Literal is unknown, so we can't reject it at compile time)
+        channel = pipeline_channel.PipelineParameterChannel(
+            name='x',
+            channel_type='String',
+        )
+        spec = structures.InputSpec('String', literals=['a', 'b'])
+        self.assertTrue(
+            type_utils.verify_type_compatibility(
+                given_value=channel,
+                expected_spec=spec,
+                error_message_prefix='',
+            ))
+
+    def test_literal_channel_disjoint_warn_only_returns_false(self):
+        # Fix 2+3: warn-only channel disjoint must return False
+        channel = pipeline_channel.PipelineParameterChannel(
+            name='x',
+            channel_type='String',
+            literals=['c'],
+        )
+        spec = structures.InputSpec('String', literals=['a', 'b'])
+        import warnings
+        with warnings.catch_warnings(record=True):
+            result = type_utils.verify_type_compatibility(
+                given_value=channel,
+                expected_spec=spec,
+                error_message_prefix='',
+                raise_on_error=False,
+            )
+        self.assertFalse(result)
+
+
 if __name__ == '__main__':
     unittest.main()
