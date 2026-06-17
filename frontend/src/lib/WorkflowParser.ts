@@ -97,6 +97,13 @@ export default class WorkflowParser {
       let mlmdState: metadataStorePb.Execution.State | undefined;
       if (isV2Pipeline(workflow)) {
         mlmdState = nodeStateMap.get(node.id);
+        if (
+          mlmdState === metadataStorePb.Execution.State.COMPLETE &&
+          node.phase === 'Running' &&
+          nodeHasDebugPauseEnv(node)
+        ) {
+          mlmdState = undefined;
+        }
       }
       g.setNode(node.id, {
         height: Constants.NODE_HEIGHT,
@@ -479,4 +486,28 @@ function buildNodeToExecutionStateMap(
     }
   });
   return m;
+}
+
+function nodeHasDebugPauseEnv(node: NodeStatus): boolean {
+  const params = node.inputs?.parameters;
+  if (!params) {
+    return false;
+  }
+  const patchParam = params.find((p) => p.name === 'pod-spec-patch');
+  if(!patchParam?.value) {
+    return false;
+  }
+  let patch: { containers?: Array<{ env?: Array<{ name: string; value: string }> }> };
+  try{
+    patch = JSON.parse(patchParam.value);
+  } catch {
+    return false;
+  }
+  return (patch.containers ?? []).some((c) =>
+  (c.env ?? []).some(
+    (e) =>
+      e.value === 'true' &&
+    (e.name === 'ARGO_DEBUG_PAUSE_AFTER' || e.name === 'ARGO_DEBUG_PAUSE_BEFORE'),
+  ),
+  );
 }

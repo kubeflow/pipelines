@@ -903,13 +903,53 @@ func (w *Workflow) PatchTemplateOutputArtifacts() {
 	}
 }
 
+//podSpecPatch is a minimal struct for unmarshaling the pod-spec-patch parameter
+// to detect debug pause env vars injected by set_debug_pause().
+type podSpecPatch struct {
+	Containers []struct {
+		Env []struct {
+			Name string `json:"name"`
+			Value string `json:"value"`
+		} `json:"env"`
+	} `json:"containers"`
+}
+
+//nodeHasDebugPauseEnv returns true when the node's pod-spec-patch input parameter 
+// contains ARGO_DEBUG_PAUSE_AFTER=true or ARGO_DEBUG_PAUSE_BEFORE=true.
+func nodeHasDebugPauseEnv(node workflowapi.NodeStatus) bool {
+	if node.Inputs == nil {
+		return false
+	}
+	for _, p := range node.Inputs.Parameters {
+		if p.Name != "pod-spec-patch" || p.Value == nil {
+			continue
+		}
+		var patch podSpecPatch
+		if err:= json.Unmarshal([]bytte(p.Value.String()), &patch); err != nil {
+			return false
+		}
+		for _, c := range patch.Containers {
+			for _, e := range c.Env { 
+				if e.Value == "true" &&  (e.Name == "ARGO_DEBUG_PAUSE_AFTER" || e.Name == "ARGO_DEBUG_PAUSE_BEFORE") {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 func (w *Workflow) NodeStatuses() map[string]NodeStatus {
 	rev := make(map[string]NodeStatus, len(w.Status.Nodes))
 	for id, node := range w.Status.Nodes {
+		state:= string(node.Phase) 
+		if node.Phase == workflowapi.NodeRunning && nodeHasDebugPauseEnv(node) {
+			state = "PAUSED"
+		}
 		rev[id] = NodeStatus{
 			ID:          RetrievePodName(*w.Workflow, node),
 			DisplayName: node.DisplayName,
-			State:       string(node.Phase),
+			State:       state,
 			StartTime:   node.StartedAt.Unix(),
 			CreateTime:  node.StartedAt.Unix(),
 			FinishTime:  node.FinishedAt.Unix(),
