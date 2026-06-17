@@ -113,7 +113,7 @@ func TestListK8sPipelines_Pagination(t *testing.T) {
 	require.NotNil(t, npt)
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
-	options, err1 = list.NewOptionsFromToken(npt, 1)
+	options, err1 = list.NewOptionsFromToken(&model.Pipeline{}, npt, 1)
 	require.Nil(t, err1, "Failed to create list options: %v")
 	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options, nil)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
@@ -151,7 +151,8 @@ func TestListK8sPipelines_Pagination_Descend(t *testing.T) {
 	require.NotNil(t, npt)
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
-	options, err1 = list.NewOptionsFromToken(npt, 1)
+	options, err1 = list.NewOptionsFromToken(&model.Pipeline{}, npt, 1)
+	require.Nil(t, err1, "Failed to create list options: %v")
 	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options, nil)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
 	require.Equalf(t, pipelines[0].Name, "test-pipeline-3", "Pagination failed")
@@ -188,7 +189,8 @@ func TestListK8sPipelinesV1_Pagination_NameAsc(t *testing.T) {
 	require.NotNil(t, npt)
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
-	options, err1 = list.NewOptionsFromToken(npt, 1)
+	options, err1 = list.NewOptionsFromToken(&model.Pipeline{}, npt, 1)
+	require.Nil(t, err1, "Failed to create list options: %v")
 	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options, nil)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
 	require.Equalf(t, pipelines[0].Name, "test-pipeline-1", "Pagination failed")
@@ -380,7 +382,7 @@ func TestListK8sPipelineVersions_Pagination(t *testing.T) {
 	require.Equalf(t, len(pipelineVersions), 1, "List size should not be zero")
 	require.NotNil(t, npt, "Npt should not be nil")
 
-	options, err = list.NewOptionsFromToken(npt, 1)
+	options, err = list.NewOptionsFromToken(&model.PipelineVersion{}, npt, 1)
 	require.Nil(t, err, "Failed to create list options")
 	pipelineVersions, _, _, err = store.ListPipelineVersions(DefaultFakePipelineIdTwo, options, nil)
 	require.Nil(t, err, "Failed to list pipeline versions: %v", err)

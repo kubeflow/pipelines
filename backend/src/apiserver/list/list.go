@@ -24,8 +24,8 @@ import (
 	"fmt"
 	"math"
 	"reflect"
-	"regexp"
 	"strings"
+	"unicode"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -41,14 +41,22 @@ import (
 // page of results), with the two values pointing to the first record in the
 // next set of results.
 type token struct {
-	// SortByFieldName is the user-facing field name used for pagination state
-	// and GetFieldValue lookups. For metric sorts this is the raw metric name
-	// (e.g. "accuracy"). Never use this field directly in SQL identifiers.
+	// SortByFieldName is the SQL-safe column name used in ORDER BY and WHERE
+	// clauses. For regular fields it equals the model field name. For metric
+	// sorts it is always the fixed constant model.MetricSortSQLAlias
+	// ("sort_metric_value"), never the user-supplied metric name.
 	SortByFieldName string
-	// SortBySQLColumn is the safe SQL column name used in ORDER BY and WHERE
-	// clauses. For regular fields it equals SortByFieldName. For metric sorts
-	// it is always the fixed alias "sort_metric_value", never user input.
-	SortBySQLColumn string
+	// SortByMetricName is the original metric name supplied by the user when
+	// sorting by a run metric (e.g. "log-loss"). It is used only as a bind
+	// parameter value in CASE WHEN / JOIN queries, never as a SQL identifier.
+	// Empty for non-metric sorts.
+	SortByMetricName string
+	// SortBySQLColumn is a legacy field from a prior token layout (commit
+	// ac3a4c656) where SortByFieldName held the raw metric name and
+	// SortBySQLColumn held the SQL alias. It is no longer written by the current
+	// code; it is only read transiently during unmarshal to recognize and
+	// migrate those legacy tokens, then cleared. See PAGE_TOKEN_SORT_DESIGN.md.
+	SortBySQLColumn string `json:",omitempty"`
 	// SortByFieldValue is the value of the sorted field of the next row to be
 	// returned.
 	SortByFieldValue  interface{}
@@ -71,47 +79,65 @@ type token struct {
 	Filter *filter.Filter
 }
 
-// identifierPattern matches valid SQL identifier names: start with a letter,
-// followed by letters, digits, or underscores, max 128 characters.
-// Used to validate pageToken fields before they are used in SQL queries.
-var identifierPattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]{0,127}$`)
+// maxBindValueLength bounds the length of a string that ends up as a SQL
+// bind-parameter value (never SQL structure). It exists purely as a hygiene
+// limit, not an injection defense — parameterization already closes that.
+const maxBindValueLength = 256
 
-// metricNamePattern matches valid metric names. Metric names follow the same
-// rules as SQL identifiers but additionally allow hyphens ("-"), since ML
-// frameworks commonly use names like "log-loss" or "val-accuracy".
-// Metric names are never used as SQL identifiers — they are passed as bind
-// parameters — so allowing "-" here is safe.
-var metricNamePattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_\-]{0,127}$`)
-
-// validateMetricName validates that a metric name only contains safe characters.
-// Unlike validateIdentifierName, hyphens are permitted.
-func validateMetricName(name string) error {
+// validateBindValue checks that a string is safe to pass as a SQL bind
+// parameter (e.g. SortByMetricName). Unlike IsRegularField, it does not
+// check identity against a known set of names — bind values are
+// parameterized by the driver, so injection is already closed regardless of
+// shape. It only guards against unrelated risks: oversized payloads and
+// control/non-printable characters (e.g. newlines, NUL, ANSI escapes) that
+// could cause log injection or downstream rendering issues. Printable
+// characters such as "/" or "." are allowed, since real historical metric
+// names (e.g. "val/loss") use them and were never a SQL-structure risk.
+// Values that are meant to reach SQL structure (column/table names) must
+// use IsRegularField / GetModelName instead, never this function.
+func validateBindValue(name string) error {
 	if name == "" {
 		return nil
 	}
-	if !metricNamePattern.MatchString(name) {
+	if len(name) > maxBindValueLength {
 		return util.NewInvalidInputError(
-			"Invalid metric name: %q. Metric names must start with a letter and contain only letters, numbers, underscores, and hyphens (max 128 characters)",
-			name)
+			"Invalid value: too long (max %d bytes)", maxBindValueLength)
+	}
+	for _, r := range name {
+		if !unicode.IsPrint(r) {
+			return util.NewInvalidInputError(
+				"Invalid value: %q contains a non-printable character", name)
+		}
 	}
 	return nil
 }
 
-// validateIdentifierName validates that a field name or table name only contains
-// safe characters to prevent SQL injection through pageToken parameters.
-func validateIdentifierName(name, fieldType string) error {
-	if name == "" {
-		return nil // empty names are handled elsewhere
+// tokenVersion identifies which historical pageToken layout a decoded token
+// uses, so unmarshal() can migrate it to the current layout (C) explicitly
+// per version rather than via undifferentiated sequential ifs. See
+// PAGE_TOKEN_SORT_DESIGN.md for the full version history.
+type tokenVersion int
+
+const (
+	tokenVersionC tokenVersion = iota // current: SortByMetricName is dedicated
+	tokenVersionB                     // has SortBySQLColumn == MetricSortSQLAlias
+	tokenVersionA                     // neither marker present (oldest layout)
+)
+
+// detectTokenVersion classifies a decoded token by its explicit version
+// markers. C and B both have unambiguous markers; A is whatever is left
+// over (absence of marker, not a positive signal).
+func detectTokenVersion(t *token) tokenVersion {
+	if t.SortByMetricName != "" {
+		return tokenVersionC
 	}
-	if !identifierPattern.MatchString(name) {
-		return util.NewInvalidInputError(
-			"Invalid %s: %q. Field names must start with a letter and contain only letters, numbers, and underscores (max 128 characters)",
-			fieldType, name)
+	if t.SortBySQLColumn == model.MetricSortSQLAlias && t.SortByFieldName != "" {
+		return tokenVersionB
 	}
-	return nil
+	return tokenVersionA
 }
 
-func (t *token) unmarshal(pageToken string) error {
+func (t *token) unmarshal(listable Listable, pageToken string) error {
 	errorF := func(err error) error {
 		return util.NewInvalidInputErrorWithDetails(err, "Invalid page token")
 	}
@@ -124,47 +150,85 @@ func (t *token) unmarshal(pageToken string) error {
 		return errorF(err)
 	}
 
-	// Validate all identifier fields to prevent SQL injection attacks.
-	// pageToken fields are used to construct SQL queries; unvalidated field names
-	// allow injection of arbitrary SQL through the pageToken parameter.
-	if err := validateIdentifierName(t.KeyFieldName, "key field name"); err != nil {
+	// Migrate legacy tokens into the current layout (in memory only; nothing
+	// is re-persisted). See PAGE_TOKEN_SORT_DESIGN.md for the full version
+	// history.
+	switch detectTokenVersion(t) {
+	case tokenVersionB:
+		// upgrade B to C: B stored the raw metric name in SortByFieldName and
+		// the alias in SortBySQLColumn. Confirm the listable actually
+		// supports metric sorting via GetField (the same check NewOptions
+		// uses on page 1) before promoting; a B-shaped token decoded against
+		// a listable with no metric support is forged or stale and must be
+		// rejected, not silently turned into a metric-sort token.
+		if n, sqlCol, ok := listable.GetField("metric:" + t.SortByFieldName); ok && n != sqlCol {
+			t.SortByMetricName = n
+			t.SortByFieldName = sqlCol
+		} else {
+			return util.NewInvalidInputError("Invalid sort field name: %q", t.SortByFieldName)
+		}
+	case tokenVersionA:
+		// upgrade A to C: A has no marker field at all. First ask the
+		// listable whether SortByFieldName is one of its real columns; if
+		// so it's a regular sort, not a metric one. Otherwise confirm via
+		// GetField that the listable supports metric sorting on this name
+		// before promoting it — IsRegularField returning false is only
+		// "not a real column," not a positive signal that this is a
+		// legacy metric name (see "Two independent checks" in
+		// PAGE_TOKEN_SORT_DESIGN.md). This is a precise check (not a
+		// shape-based guess), so identifier-safe legacy metric names like
+		// "accuracy" are migrated correctly too, while names that aren't
+		// columns on this listable and aren't valid metrics either are
+		// rejected outright.
+		if t.SortByFieldName != "" && !listable.IsRegularField(t.SortByFieldName) {
+			if n, sqlCol, ok := listable.GetField("metric:" + t.SortByFieldName); ok && n != sqlCol {
+				t.SortByMetricName = n
+				t.SortByFieldName = sqlCol
+			} else {
+				return util.NewInvalidInputError("Invalid sort field name: %q", t.SortByFieldName)
+			}
+		}
+	case tokenVersionC:
+		// already current layout; nothing to migrate.
+	}
+	// SortBySQLColumn is consumed; never let it propagate further.
+	t.SortBySQLColumn = ""
+
+	// Validate all values that reach SQL structure against the listable's
+	// real field/table names, and bind-parameter values with the separate
+	// hygiene check. See "Two independent checks" in PAGE_TOKEN_SORT_DESIGN.md.
+	if t.KeyFieldName != "" && !listable.IsRegularField(t.KeyFieldName) {
+		return util.NewInvalidInputError("Invalid key field name: %q", t.KeyFieldName)
+	}
+	// SortByFieldName is always either a real column or the fixed metric alias.
+	if t.SortByFieldName != "" && t.SortByFieldName != model.MetricSortSQLAlias &&
+		!listable.IsRegularField(t.SortByFieldName) {
+		return util.NewInvalidInputError("Invalid sort field name: %q", t.SortByFieldName)
+	}
+	if err := validateBindValue(t.SortByMetricName); err != nil {
 		return err
 	}
-	// SortByFieldName is the user-facing metric name when sorting by a run
-	// metric (e.g. "log-loss"). Metric names allow hyphens, so they must not
-	// be validated with the SQL identifier regex. SortBySQLColumn carries the
-	// fixed safe alias ("sort_metric_value") and is always a valid identifier.
-	if t.SortBySQLColumn == model.MetricSortSQLAlias {
-		if err := validateMetricName(t.SortByFieldName); err != nil {
-			return err
-		}
-	} else {
-		if err := validateIdentifierName(t.SortByFieldName, "sort field name"); err != nil {
-			return err
-		}
-	}
-	if err := validateIdentifierName(t.SortBySQLColumn, "sort SQL column"); err != nil {
-		return err
-	}
-	if err := validateIdentifierName(t.ModelName, "model name"); err != nil {
-		return err
-	}
-	if t.KeyFieldPrefix != "" {
-		prefix := strings.TrimSuffix(t.KeyFieldPrefix, ".")
-		if err := validateIdentifierName(prefix, "key field prefix"); err != nil {
-			return err
-		}
-	}
-	if t.SortByFieldPrefix != "" {
-		prefix := strings.TrimSuffix(t.SortByFieldPrefix, ".")
-		if err := validateIdentifierName(prefix, "sort field prefix"); err != nil {
-			return err
-		}
+	if t.ModelName != "" && t.ModelName != listable.GetModelName() {
+		return util.NewInvalidInputError("Invalid model name: %q", t.ModelName)
 	}
 
+	// Prefixes are table aliases, not field names or bind values — never
+	// trust the token's claim. Recompute them server-side from the listable.
+	t.KeyFieldPrefix = listable.GetKeyFieldPrefix()
+	t.SortByFieldPrefix = listable.GetSortByFieldPrefix(t.SortByFieldName)
+
 	if t.Filter != nil {
-		if err := t.Filter.ValidateKeys(func(segment string) error {
-			return validateIdentifierName(segment, "filter key")
+		if err := t.Filter.ValidateKeys(func(segment string, isLast bool) error {
+			if isLast {
+				if !listable.IsRegularField(segment) {
+					return util.NewInvalidInputError("Invalid filter key: %q", segment)
+				}
+				return nil
+			}
+			if segment != listable.GetModelName() {
+				return util.NewInvalidInputError("Invalid filter key table qualifier: %q", segment)
+			}
+			return nil
 		}); err != nil {
 			return err
 		}
@@ -201,7 +265,9 @@ func EmptyOptions() *Options {
 // Matches returns trues if the sorting and filtering criteria in o matches that
 // of the one supplied in opts.
 func (o *Options) Matches(opts *Options) bool {
-	return o.SortByFieldName == opts.SortByFieldName && o.SortByFieldPrefix == opts.SortByFieldPrefix &&
+	return o.SortByFieldName == opts.SortByFieldName &&
+		o.SortByMetricName == opts.SortByMetricName &&
+		o.SortByFieldPrefix == opts.SortByFieldPrefix &&
 		o.IsDesc == opts.IsDesc &&
 		reflect.DeepEqual(o.Filter, opts.Filter)
 }
@@ -209,7 +275,10 @@ func (o *Options) Matches(opts *Options) bool {
 // NewOptionsFromToken creates a new Options struct from the passed in token
 // which represents the next page of results. An empty nextPageToken will result
 // in an error.
-func NewOptionsFromToken(nextPageToken string, pageSize int) (*Options, error) {
+func NewOptionsFromToken(listable Listable, nextPageToken string, pageSize int) (*Options, error) {
+	if listable == nil {
+		return nil, util.NewInvalidInputError("cannot create list.Options from nil listable")
+	}
 	if nextPageToken == "" {
 		return nil, util.NewInvalidInputError("cannot create list.Options from empty page token")
 	}
@@ -219,7 +288,7 @@ func NewOptionsFromToken(nextPageToken string, pageSize int) (*Options, error) {
 	}
 
 	t := &token{}
-	if err := t.unmarshal(nextPageToken); err != nil {
+	if err := t.unmarshal(listable, nextPageToken); err != nil {
 		return nil, err
 	}
 	return &Options{PageSize: pageSize, token: t}, nil
@@ -248,12 +317,22 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 	}
 
 	token.SortByFieldName = listable.DefaultSortField()
-	token.SortBySQLColumn = token.SortByFieldName
 	if len(queryList) > 0 {
 		n, sqlCol, ok := listable.GetField(queryList[0])
 		if ok {
-			token.SortByFieldName = n
-			token.SortBySQLColumn = sqlCol
+			// sqlCol is the SQL-safe column name (for metric sorts it is the
+			// fixed alias MetricSortSQLAlias). n is the original field/metric
+			// name used for value lookups.
+			token.SortByFieldName = sqlCol
+			if n != sqlCol {
+				// Metric sort: validate the name up front so an invalid metric
+				// name fails on page 1 rather than on page 2 when the token is
+				// decoded.
+				if err := validateBindValue(n); err != nil {
+					return nil, err
+				}
+				token.SortByMetricName = n
+			}
 		} else {
 			return nil, util.NewInvalidInputError("Invalid sorting field: %q on listable type %s", queryList[0], reflect.ValueOf(listable).Elem().Type().Name())
 		}
@@ -294,18 +373,18 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 		if o.IsDesc {
 			sqlBuilder = sqlBuilder.
 				Where(sq.Or{
-					sq.Lt{o.SortByFieldPrefix + o.SortBySQLColumn: o.SortByFieldValue},
+					sq.Lt{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
 					sq.And{
-						sq.Eq{o.SortByFieldPrefix + o.SortBySQLColumn: o.SortByFieldValue},
+						sq.Eq{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
 						sq.LtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue},
 					},
 				})
 		} else {
 			sqlBuilder = sqlBuilder.
 				Where(sq.Or{
-					sq.Gt{o.SortByFieldPrefix + o.SortBySQLColumn: o.SortByFieldValue},
+					sq.Gt{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
 					sq.And{
-						sq.Eq{o.SortByFieldPrefix + o.SortBySQLColumn: o.SortByFieldValue},
+						sq.Eq{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
 						sq.GtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue},
 					},
 				})
@@ -317,8 +396,8 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 		order = "DESC"
 	}
 
-	if o.SortBySQLColumn != "" {
-		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", o.SortByFieldPrefix+o.SortBySQLColumn, order))
+	if o.SortByFieldName != "" {
+		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", o.SortByFieldPrefix+o.SortByFieldName, order))
 	}
 
 	if o.KeyFieldName != "" {
@@ -438,6 +517,11 @@ type Listable interface {
 	GetField(name string) (fieldName string, sqlColumn string, ok bool)
 	// Find the value of a given field in a listable object.
 	GetFieldValue(name string) interface{}
+	// IsRegularField reports whether name is a real column on this model (a
+	// value in APIToModelFieldMap), as opposed to a string that merely looks
+	// like a SQL identifier. Used to classify page-token values precisely
+	// instead of guessing from character shape.
+	IsRegularField(name string) bool
 }
 
 // NextPageToken returns a string that can be used to fetch the subsequent set
@@ -455,9 +539,16 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 	elem := reflect.ValueOf(listable).Elem()
 	elemName := elem.Type().Name()
 
+	// For metric sorts, SortByFieldName is the fixed alias (sort_metric_value),
+	// which is not a real field on the model. Look up the row's value by the
+	// original metric name instead.
+	valueFieldName := o.SortByFieldName
+	if o.SortByMetricName != "" {
+		valueFieldName = o.SortByMetricName
+	}
 	var sortByField interface{}
-	if sortByField = listable.GetFieldValue(o.SortByFieldName); sortByField == nil {
-		return nil, util.NewInvalidInputError("cannot sort by field %q on type %q", o.SortByFieldName, elemName)
+	if sortByField = listable.GetFieldValue(valueFieldName); sortByField == nil {
+		return nil, util.NewInvalidInputError("cannot sort by field %q on type %q", valueFieldName, elemName)
 	}
 
 	keyField := elem.FieldByName(listable.PrimaryKeyColumnName())
@@ -467,7 +558,7 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 
 	return &token{
 		SortByFieldName:   o.SortByFieldName,
-		SortBySQLColumn:   o.SortBySQLColumn,
+		SortByMetricName:  o.SortByMetricName,
 		SortByFieldValue:  sortByField,
 		SortByFieldPrefix: listable.GetSortByFieldPrefix(o.SortByFieldName),
 		KeyFieldName:      listable.PrimaryKeyColumnName(),

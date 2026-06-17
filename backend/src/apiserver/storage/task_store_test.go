@@ -205,7 +205,7 @@ func TestListTasks(t *testing.T) {
 	assert.Equal(t, expectedFirstPageTasks, tasks, "Unexpected Tasks listed")
 	assert.NotEmpty(t, nextPageToken)
 
-	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
+	opts, err = list.NewOptionsFromToken(&model.Task{}, nextPageToken, 1)
 	assert.Nil(t, err)
 	tasks, total_size, nextPageToken, err = taskStore.ListTasks(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: defaultFakeRunIdTwo}}, opts)

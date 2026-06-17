@@ -71,6 +71,11 @@ func (t Task) GetModelName() string {
 	return "tasks"
 }
 
+// IsRegularField reports whether name is a real column on Task.
+func (t Task) IsRegularField(name string) bool {
+	return isRegularFieldIn(t.APIToModelFieldMap(), name)
+}
+
 func (t Task) GetSortByFieldPrefix(s string) string {
 	return "tasks."
 }
