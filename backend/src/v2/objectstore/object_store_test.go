@@ -428,6 +428,27 @@ func TestDownloadBlobKeepsSingleZeroByteFile(t *testing.T) {
 	assert.Zero(t, info.Size())
 }
 
+func TestDownloadBlobEmptyDirectoryMarker(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer func() { require.NoError(t, bucket.Close()) }()
+
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/emptydir", "")
+
+	localDir := t.TempDir()
+
+	err := DownloadBlob(ctx, bucket, localDir, "artifacts/emptydir")
+	require.NoError(t, err)
+
+	info, err := os.Stat(localDir)
+	require.NoError(t, err)
+	assert.True(t, info.IsDir())
+
+	entries, err := os.ReadDir(localDir)
+	require.NoError(t, err)
+	assert.Empty(t, entries)
+}
+
 func TestDownloadBlobSkipsSiblingKeys(t *testing.T) {
 	ctx := context.Background()
 	bucket := memblob.OpenBucket(nil)

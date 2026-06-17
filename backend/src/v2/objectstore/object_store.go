@@ -155,15 +155,15 @@ func isBlobKeyUnderPrefix(objKey, blobDir string) bool {
 	return objKey == blobDir || strings.HasPrefix(objKey, blobDir+"/")
 }
 
-func isZeroByteDirectoryMarker(obj *blob.ListObject, blobDir string) bool {
+func isZeroByteDirectoryMarker(obj *blob.ListObject, trimmedBlobDir string) bool {
 	if obj.Size != 0 {
 		return false
 	}
-	blobDir = strings.TrimRight(blobDir, "/")
-	return strings.HasSuffix(obj.Key, "/") || obj.Key == blobDir
+	return strings.HasSuffix(obj.Key, "/") || obj.Key == trimmedBlobDir
 }
 
 func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir string) error {
+	trimmedBlobDir := strings.TrimRight(blobDir, "/")
 	var exactPrefixMarker *blob.ListObject
 	downloadedChild := false
 	iter := bucket.List(&blob.ListOptions{Prefix: blobDir})
@@ -182,8 +182,8 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 			// there is no need to recursively list each folder.
 			continue
 		} else if isBlobKeyUnderPrefix(obj.Key, blobDir) {
-			if isZeroByteDirectoryMarker(obj, blobDir) {
-				if strings.TrimRight(obj.Key, "/") == strings.TrimRight(blobDir, "/") && !downloadedChild {
+			if isZeroByteDirectoryMarker(obj, trimmedBlobDir) {
+				if strings.TrimRight(obj.Key, "/") == trimmedBlobDir && !downloadedChild {
 					exactPrefixMarker = obj
 				}
 				continue
@@ -195,7 +195,7 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 			if err := downloadFile(ctx, bucket, obj.Key, localPath); err != nil {
 				return err
 			}
-			if obj.Key != strings.TrimRight(blobDir, "/") {
+			if obj.Key != trimmedBlobDir {
 				downloadedChild = true
 			}
 		} else {
@@ -206,6 +206,11 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 		localPath, err := sanitizeDownloadPath(localDir, blobDir, exactPrefixMarker.Key)
 		if err != nil {
 			return err
+		}
+		if info, err := os.Stat(localPath); err == nil && info.IsDir() {
+			return nil
+		} else if err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to stat local download path %q: %w", localPath, err)
 		}
 		if err := downloadFile(ctx, bucket, exactPrefixMarker.Key, localPath); err != nil {
 			return err
