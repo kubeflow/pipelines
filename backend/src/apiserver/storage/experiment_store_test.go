@@ -104,7 +104,7 @@ func TestListExperiments_Pagination(t *testing.T) {
 	}
 	experimentsExpected2 := []*model.Experiment{expectedExperiment2, expectedExperiment3}
 
-	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+	opts, err = list.NewOptionsFromToken(&model.Experiment{}, nextPageToken, 2)
 	assert.Nil(t, err)
 
 	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&model.FilterContext{}, opts)
@@ -167,7 +167,7 @@ func TestListExperiments_Pagination_Descend(t *testing.T) {
 	}
 	experimentsExpected2 := []*model.Experiment{expectedExperiment4, expectedExperiment1}
 
-	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+	opts, err = list.NewOptionsFromToken(&model.Experiment{}, nextPageToken, 2)
 	assert.Nil(t, err)
 
 	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&model.FilterContext{}, opts)
@@ -426,7 +426,7 @@ func TestListExperiments_Filtering(t *testing.T) {
 	assert.Equal(t, 3, total_size)
 
 	// Next page should give experiment4.
-	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+	opts, err = list.NewOptionsFromToken(&model.Experiment{}, nextPageToken, 2)
 	assert.Nil(t, err)
 
 	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&model.FilterContext{}, opts)

@@ -265,7 +265,7 @@ func (r *ResourceManager) ArchiveExperiment(ctx context.Context, experimentId st
 		if newToken == "" {
 			break
 		} else {
-			opts, err = list.NewOptionsFromToken(newToken, 50)
+			opts, err = list.NewOptionsFromToken(&model.Job{}, newToken, 50)
 			if err != nil {
 				return util.NewInternalServerError(err,
 					"Failed to create list jobs options from page token when archiving experiment %v", experimentId)
