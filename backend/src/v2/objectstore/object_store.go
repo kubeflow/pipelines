@@ -155,7 +155,17 @@ func isBlobKeyUnderPrefix(objKey, blobDir string) bool {
 	return objKey == blobDir || strings.HasPrefix(objKey, blobDir+"/")
 }
 
+func isZeroByteDirectoryMarker(obj *blob.ListObject, blobDir string) bool {
+	if obj.Size != 0 {
+		return false
+	}
+	blobDir = strings.TrimRight(blobDir, "/")
+	return strings.HasSuffix(obj.Key, "/") || obj.Key == blobDir
+}
+
 func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir string) error {
+	var exactPrefixMarker *blob.ListObject
+	downloadedChild := false
 	iter := bucket.List(&blob.ListOptions{Prefix: blobDir})
 	for {
 		obj, err := iter.Next(ctx)
@@ -172,6 +182,12 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 			// there is no need to recursively list each folder.
 			continue
 		} else if isBlobKeyUnderPrefix(obj.Key, blobDir) {
+			if isZeroByteDirectoryMarker(obj, blobDir) {
+				if strings.TrimRight(obj.Key, "/") == strings.TrimRight(blobDir, "/") && !downloadedChild {
+					exactPrefixMarker = obj
+				}
+				continue
+			}
 			localPath, err := sanitizeDownloadPath(localDir, blobDir, obj.Key)
 			if err != nil {
 				return err
@@ -179,8 +195,20 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 			if err := downloadFile(ctx, bucket, obj.Key, localPath); err != nil {
 				return err
 			}
+			if obj.Key != strings.TrimRight(blobDir, "/") {
+				downloadedChild = true
+			}
 		} else {
 			glog.V(4).Infof("DownloadBlob: skipping blob key %q not under expected prefix %q", obj.Key, blobDir)
+		}
+	}
+	if exactPrefixMarker != nil && !downloadedChild {
+		localPath, err := sanitizeDownloadPath(localDir, blobDir, exactPrefixMarker.Key)
+		if err != nil {
+			return err
+		}
+		if err := downloadFile(ctx, bucket, exactPrefixMarker.Key, localPath); err != nil {
+			return err
 		}
 	}
 	return nil
