@@ -23,14 +23,15 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	argoclient "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
-	argoclientwf "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
-	argoinformer "github.com/argoproj/argo-workflows/v3/pkg/client/informers/externalversions"
-	"github.com/argoproj/argo-workflows/v3/pkg/client/informers/externalversions/workflow/v1alpha1"
-	"github.com/argoproj/argo-workflows/v3/workflow/common"
-	"github.com/argoproj/argo-workflows/v3/workflow/packer"
-	"github.com/argoproj/argo-workflows/v3/workflow/validate"
+	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
+	argoclient "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned"
+	argoclientwf "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	argoinformer "github.com/argoproj/argo-workflows/v4/pkg/client/informers/externalversions"
+	"github.com/argoproj/argo-workflows/v4/pkg/client/informers/externalversions/workflow/v1alpha1"
+	argologging "github.com/argoproj/argo-workflows/v4/util/logging"
+	"github.com/argoproj/argo-workflows/v4/workflow/common"
+	"github.com/argoproj/argo-workflows/v4/workflow/packer"
+	"github.com/argoproj/argo-workflows/v4/workflow/validate"
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifactclient"
@@ -53,6 +54,8 @@ import (
 type Workflow struct {
 	*workflowapi.Workflow
 }
+
+var argoContext = argologging.NewSlogLogger(argologging.Info, argologging.Text).NewBackgroundContext()
 
 func NewWorkflowFromBytes(bytes []byte) (*Workflow, error) {
 	var workflow workflowapi.Workflow
@@ -849,7 +852,7 @@ func (w *Workflow) IsV2Compatible() bool {
 }
 
 func (w *Workflow) Validate(lint, ignoreEntrypoint bool) error {
-	err := validate.ValidateWorkflow(nil, nil, w.Workflow, nil, validate.ValidateOpts{
+	err := validate.ValidateWorkflow(ArgoContext(), nil, nil, w.Workflow, nil, validate.ValidateOpts{
 		Lint:                       lint,
 		IgnoreEntrypoint:           ignoreEntrypoint,
 		WorkflowTemplateValidation: false, // not used by kubeflow
@@ -859,7 +862,11 @@ func (w *Workflow) Validate(lint, ignoreEntrypoint bool) error {
 }
 
 func (w *Workflow) Decompress() error {
-	return packer.DecompressWorkflow(w.Workflow)
+	return packer.DecompressWorkflow(ArgoContext(), w.Workflow)
+}
+
+func ArgoContext() context.Context {
+	return argoContext
 }
 
 func (w *Workflow) CanRetry() error {

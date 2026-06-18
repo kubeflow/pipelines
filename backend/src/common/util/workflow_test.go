@@ -20,10 +20,10 @@ import (
 	"testing"
 	"time"
 
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	argofake "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned/fake"
-	argoinformer "github.com/argoproj/argo-workflows/v3/pkg/client/informers/externalversions"
-	argolister "github.com/argoproj/argo-workflows/v3/pkg/client/listers/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
+	argofake "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned/fake"
+	argoinformer "github.com/argoproj/argo-workflows/v4/pkg/client/informers/externalversions"
+	argolister "github.com/argoproj/argo-workflows/v4/pkg/client/listers/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifactclient"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
@@ -1906,6 +1906,10 @@ func TestWorkflow_Decompress(t *testing.T) {
 	})
 	err := workflow.Decompress()
 	assert.Nil(t, err)
+}
+
+func TestArgoContext_ReusesContext(t *testing.T) {
+	assert.Same(t, ArgoContext(), ArgoContext())
 }
 
 func TestTransformJSONForBackwardCompatibility(t *testing.T) {

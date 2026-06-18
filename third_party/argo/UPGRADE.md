@@ -10,7 +10,7 @@ Instructions:
 1. Set version of argo you want to upgrade to, for example:
 
     ```bash
-    ARGO_TAG=v3.7.3
+    ARGO_TAG=v4.0.5
     ```
 
 1. Run the `update` target of the [Makefile](./Makefile) in this directory
@@ -23,11 +23,11 @@ Instructions:
 
 1. Consider bumping the minimum Argo version used in the GitHub workflows to match the prior version.
     * Add the previous version of argo to the list of versions found in the `argo_version` array found in [e2e workflow](../../.github/workflows/e2e-test.yml)
-    * Update the argo\_versions for the various test matricies found in the [API check workflow](../../.github/workflows/kfp-samples.yml)
-    * Also in the test matrix for the [API check workflow](../../.github/workflows/kfp-samples.yml), add an entry to test the previous version, and consider removing older (ie n-2) legacy checks if they fails CI.  (Note: we should still have n-1 legacy checks pass)
+    * Update the `argo_version` arrays in [API server tests workflow](../../.github/workflows/api-server-tests.yml)
+    * Consider removing older (ie n-2) legacy checks if they fail CI. Note: we should still have n-1 legacy checks pass.
 
 1. Verify all instances of the argo version have been updated.  
-    * A simple seach such as `grep "vX.Y.Z" * -R` from repo root usually is good enough
+    * A simple search such as `grep -R "vX.Y.Z" .` from repo root usually is good enough
 
 1. Verify backend images still build by running `make image_all` from the `backend` directory
     * It would be a good idea to tag and push these images to a dev repo for use in testing
@@ -64,7 +64,7 @@ To upgrade just the manifests used for Argo Workflows:
 
 ### Update Argo Workflows in Backend Code
 
-To upgrade just the Backend code and package references to a new Argo version:
+To upgrade just the backend code and package references to a new Argo version:
 
 1. Update the version in [VERSION](./VERSION)
 2. Run `make update_backend` to automatically update all remote Git references to the new version
@@ -80,7 +80,7 @@ To upgrade just the test references to a new Argo version:
 3. Test the new configuration with your KFP deployment
 
 
-### Update Argo Workflows in Backend Code
+### Update Argo Workflows in Docs
 
 To upgrade just the doc references to a new Argo version:
 
@@ -93,4 +93,3 @@ To upgrade just the doc references to a new Argo version:
 Ideas to improve this process:
 
 * Automate updating/adding new argo versions to the [GitHub Workflows](../../.github)
-
