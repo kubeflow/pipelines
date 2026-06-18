@@ -25,7 +25,8 @@ import warnings
 from google.protobuf import json_format
 from kfp.kubeflow_client.backends.kubernetes import auth
 from kfp.kubeflow_client.backends.kubernetes import utils
-from kfp.kubeflow_client.backends.kubernetes.types import KubernetesBackendConfig
+from kfp.kubeflow_client.backends.kubernetes.types import \
+    KubernetesBackendConfig
 from kfp.kubeflow_client.types import PipelineVersion
 from kfp.kubeflow_client.types import Run
 from kfp.pipeline_spec import pipeline_spec_pb2

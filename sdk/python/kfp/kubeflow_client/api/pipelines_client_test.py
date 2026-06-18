@@ -21,7 +21,8 @@ from unittest.mock import patch
 from absl.testing import parameterized
 from kfp.kubeflow_client import constants
 from kfp.kubeflow_client.api.pipelines_client import PipelinesClient
-from kfp.kubeflow_client.backends.kubernetes.types import KubernetesBackendConfig
+from kfp.kubeflow_client.backends.kubernetes.types import \
+    KubernetesBackendConfig
 import kfp_server_api
 
 _AUTH_MODULE = 'kfp.kubeflow_client.backends.kubernetes.auth'

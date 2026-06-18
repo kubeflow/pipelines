@@ -22,7 +22,8 @@ from absl.testing import parameterized
 from kfp.kubeflow_client.backends.kubernetes import auth
 from kfp.kubeflow_client.backends.kubernetes import utils
 from kfp.kubeflow_client.backends.kubernetes.backend import KubernetesBackend
-from kfp.kubeflow_client.backends.kubernetes.types import KubernetesBackendConfig
+from kfp.kubeflow_client.backends.kubernetes.types import \
+    KubernetesBackendConfig
 import kfp_server_api
 
 _AUTH_MODULE = 'kfp.kubeflow_client.backends.kubernetes.auth'

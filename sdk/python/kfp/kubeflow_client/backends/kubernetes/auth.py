@@ -43,7 +43,8 @@ def apply_in_cluster_credentials(
         return
 
     try:
-        from kfp.client.set_volume_credentials import ServiceAccountTokenVolumeCredentials
+        from kfp.client.set_volume_credentials import \
+            ServiceAccountTokenVolumeCredentials
     except ImportError:
         logger.debug(
             'In-cluster credential module not available.', exc_info=True)
