@@ -132,12 +132,12 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 			testutil.GetPipelineRunTimeInputs(pipelineFile),
 		)
 
-		timeoutSeconds := time.Duration(180)
+		retryTimeout := time.Duration(180)
 		testutil.WaitForRunToBeInState(
 			runClient,
 			&createdRun.RunID,
 			[]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateFAILED},
-			&timeoutSeconds,
+			&retryTimeout,
 		)
 		failedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
 		stateHistoryLengthBeforeRetry := len(failedRun.StateHistory)
@@ -149,7 +149,7 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 			runClient,
 			&createdRun.RunID,
 			[]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateFAILED},
-			&timeoutSeconds,
+			&retryTimeout,
 		)
 		retriedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
 		Expect(len(retriedRun.StateHistory)).To(BeNumerically(">", stateHistoryLengthBeforeRetry))
@@ -168,12 +168,12 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 			testutil.GetPipelineRunTimeInputs(pipelineFile),
 		)
 
-		timeoutSeconds := time.Duration(300)
+		artifactTimeout := time.Duration(300)
 		testutil.WaitForRunToBeInState(
 			runClient,
 			&createdRun.RunID,
 			[]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateSUCCEEDED},
-			&timeoutSeconds,
+			&artifactTimeout,
 		)
 
 		var logPodName string
