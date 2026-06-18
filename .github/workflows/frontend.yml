@@ -29,6 +29,12 @@ jobs:
       with:
         node-version-file: frontend/.nvmrc
 
+    - name: Set up npm
+      working-directory: frontend
+      run: |
+        npm install --global "$(node -p 'require("./package.json").packageManager')"
+        npm --version
+
     - name: Check for toolchain version drift
       if: github.event_name == 'pull_request'
       run: |
