@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-06-14
+- Last updated: 2026-06-17
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -663,6 +663,8 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - `VITE_NAMESPACE=...`: Sets the target namespace for the frontend in multi-user mode
 - `LOCAL_API_SERVER=true`: Enables local API server testing mode when running integration tests on a Kind cluster
 - `TENSORBOARD_PROXY_SIGNING_SECRET=...`: Optional shared frontend-server secret for scoped TensorBoard proxy URLs; defaults to `MINIO_SECRET_KEY` when unset
+- `FRONTEND_SERVER_NAMESPACE=...`: Sets the namespace used by the local frontend Node server for Kubernetes lookups when it is not running inside a cluster pod. `npm run start:proxy-and-server` derives this from `NAMESPACE`.
+- `MINIO_ENDPOINT_REWRITE=from=to[,from=to]`: Rewrites explicit object-store endpoints for local proxy mode, for example from `seaweedfs.kubeflow:9000` to `localhost:9000`.
 
 ## Troubleshooting and pitfalls
 
