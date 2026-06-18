@@ -55,6 +55,8 @@ type Workflow struct {
 	*workflowapi.Workflow
 }
 
+var argoContext = argologging.NewSlogLogger(argologging.Info, argologging.Text).NewBackgroundContext()
+
 func NewWorkflowFromBytes(bytes []byte) (*Workflow, error) {
 	var workflow workflowapi.Workflow
 	err := yaml.Unmarshal(bytes, &workflow)
@@ -864,7 +866,7 @@ func (w *Workflow) Decompress() error {
 }
 
 func ArgoContext() context.Context {
-	return argologging.NewSlogLogger(argologging.Info, argologging.Text).NewBackgroundContext()
+	return argoContext
 }
 
 func (w *Workflow) CanRetry() error {

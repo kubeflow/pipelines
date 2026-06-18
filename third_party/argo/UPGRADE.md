@@ -27,7 +27,7 @@ Instructions:
     * Consider removing older (ie n-2) legacy checks if they fail CI. Note: we should still have n-1 legacy checks pass.
 
 1. Verify all instances of the argo version have been updated.  
-    * A simple search such as `grep "vX.Y.Z" * -R` from repo root usually is good enough
+    * A simple search such as `grep -R "vX.Y.Z" .` from repo root usually is good enough
 
 1. Verify backend images still build by running `make image_all` from the `backend` directory
     * It would be a good idea to tag and push these images to a dev repo for use in testing

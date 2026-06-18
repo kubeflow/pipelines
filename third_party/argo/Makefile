@@ -31,7 +31,7 @@ update_backend:
 	@VERSION=$$(cat $(ARGO_DIR)/VERSION); \
 	MAJOR=$$(echo "$$VERSION" | sed -E 's/^v([0-9]+)\..*/\1/'); \
 	echo "Using Argo Workflows version: $$VERSION"; \
-	echo "Updating go depedency..."; \
+	echo "Updating go dependency..."; \
 	sed -i.bak -E "s|github.com/argoproj/argo-workflows/v[0-9]+ v[0-9]+\.[0-9]+\.[0-9]+|github.com/argoproj/argo-workflows/v$$MAJOR $$VERSION|g" $(REPO_ROOT)/go.mod; \
 	go mod tidy; \
 	echo "Updating code refs in backend..."; \

@@ -1908,6 +1908,10 @@ func TestWorkflow_Decompress(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestArgoContext_ReusesContext(t *testing.T) {
+	assert.Same(t, ArgoContext(), ArgoContext())
+}
+
 func TestTransformJSONForBackwardCompatibility(t *testing.T) {
 	// numberValue → number_value
 	input := `{"metrics":[{"name":"accuracy","numberValue":0.95}]}`
