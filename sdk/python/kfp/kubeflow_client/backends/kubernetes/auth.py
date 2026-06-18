@@ -53,17 +53,15 @@ def apply_in_cluster_credentials(
         credentials.refresh_api_key_hook(api_config)
         api_config.api_key_prefix['authorization'] = 'Bearer'
         api_config.refresh_api_key_hook = credentials.refresh_api_key_hook
-    except OSError:
+    except FileNotFoundError:
         logger.warning(
-            'Could not set up in-cluster credentials. '
-            'Proceeding without authentication.',
+            'Token file not found; proceeding without authentication.',
             exc_info=True)
 
 
 def refresh_credentials(api_config: kfp_server_api.Configuration,) -> None:
     """Refresh the API token using the configured refresh hook."""
-    if hasattr(api_config, 'refresh_api_key_hook') and callable(
-            api_config.refresh_api_key_hook):
+    if api_config.refresh_api_key_hook is not None:
         api_config.refresh_api_key_hook(api_config)
     else:
         raise RuntimeError('Token expired but no refresh hook is configured. '

@@ -26,10 +26,13 @@ import kfp_server_api
 
 _AUTH_MODULE = 'kfp.kubeflow_client.backends.kubernetes.auth'
 
+_BACKEND_MODULE = 'kfp.kubeflow_client.backends.kubernetes.backend'
+
 
 def _make_client(base_url='http://localhost:8888', namespace='test-ns'):
     """Create a PipelinesClient with mocked credentials for testing."""
-    with patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials'):
+    with patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials'), \
+         patch(f'{_BACKEND_MODULE}.KubernetesBackend.verify_backend'):
         return PipelinesClient(
             backend_config=KubernetesBackendConfig(
                 base_url=base_url,
@@ -77,7 +80,9 @@ class TestPipelineOperations(parameterized.TestCase):
 
     def test_delete_pipeline_single_version_no_force(self):
         with patch.object(
-                self.client, '_get_pipeline_id_by_name', return_value='pid-1'):
+                self.client._backend,
+                '_get_pipeline_id_by_name',
+                return_value='pid-1'):
             with patch.object(
                     self.client._backend.pipelines_api,
                     'pipeline_service_list_pipeline_versions',
@@ -91,7 +96,9 @@ class TestPipelineOperations(parameterized.TestCase):
 
     def test_delete_pipeline_multiple_versions_no_force_raises(self):
         with patch.object(
-                self.client, '_get_pipeline_id_by_name', return_value='pid-1'):
+                self.client._backend,
+                '_get_pipeline_id_by_name',
+                return_value='pid-1'):
             with patch.object(
                     self.client._backend.pipelines_api,
                     'pipeline_service_list_pipeline_versions',
@@ -101,7 +108,9 @@ class TestPipelineOperations(parameterized.TestCase):
 
     def test_delete_pipeline_multiple_versions_with_force(self):
         with patch.object(
-                self.client, '_get_pipeline_id_by_name', return_value='pid-1'):
+                self.client._backend,
+                '_get_pipeline_id_by_name',
+                return_value='pid-1'):
             with patch.object(self.client._backend.pipelines_api,
                               'pipeline_service_delete_pipeline') as mock_del:
                 self.client.delete_pipeline('my-pipe', force=True)
@@ -110,9 +119,12 @@ class TestPipelineOperations(parameterized.TestCase):
 
     def test_delete_pipeline_specific_version(self):
         with patch.object(
-                self.client, '_get_pipeline_id_by_name', return_value='pid-1'):
+                self.client._backend,
+                '_get_pipeline_id_by_name',
+                return_value='pid-1'):
             with patch.object(
-                    self.client, '_get_version_id_by_name',
+                    self.client._backend,
+                    '_get_version_id_by_name',
                     return_value='vid-1'):
                 with patch.object(
                         self.client._backend.pipelines_api,
@@ -124,16 +136,21 @@ class TestPipelineOperations(parameterized.TestCase):
 
     def test_delete_pipeline_nonexistent_version_raises(self):
         with patch.object(
-                self.client, '_get_pipeline_id_by_name', return_value='pid-1'):
+                self.client._backend,
+                '_get_pipeline_id_by_name',
+                return_value='pid-1'):
             with patch.object(
-                    self.client, '_get_version_id_by_name', return_value=None):
+                    self.client._backend,
+                    '_get_version_id_by_name',
+                    return_value=None):
                 with self.assertRaisesRegex(ValueError,
                                             'Pipeline version not found'):
                     self.client.delete_pipeline('my-pipe', version='bad-ver')
 
     def test_delete_pipeline_not_found_raises(self):
         with patch.object(
-                self.client, '_get_pipeline_id_by_name', return_value=None):
+                self.client._backend, '_get_pipeline_id_by_name',
+                return_value=None):
             with self.assertRaisesRegex(ValueError, 'Pipeline not found'):
                 self.client.delete_pipeline('ghost-pipe')
 
@@ -149,7 +166,8 @@ class TestRunOperations(parameterized.TestCase):
                 self.client, '_run_inline',
                 return_value=mock_run) as mock_inline:
             with patch.object(
-                    self.client, '_get_experiment_id_by_name',
+                    self.client._backend,
+                    '_get_experiment_id_by_name',
                     return_value='exp-1'):
 
                 def fake_pipeline():
@@ -164,13 +182,15 @@ class TestRunOperations(parameterized.TestCase):
     def test_run_by_name_resolves_latest_version(self):
         mock_run = Mock(run_id='r-2')
         with patch.object(
-                self.client, '_get_pipeline_id_by_name', return_value='pid-1'):
+                self.client._backend,
+                '_get_pipeline_id_by_name',
+                return_value='pid-1'):
             with patch.object(
-                    self.client,
+                    self.client._backend,
                     '_get_latest_version_id',
                     return_value='vid-latest'):
                 with patch.object(
-                        self.client,
+                        self.client._backend,
                         '_run_from_version_reference',
                         return_value=mock_run) as mock_ref:
                     result = self.client.run('my-pipe', name='run-1')
@@ -186,13 +206,15 @@ class TestRunOperations(parameterized.TestCase):
     def test_run_by_name_with_version(self):
         mock_run = Mock(run_id='r-3')
         with patch.object(
-                self.client, '_get_pipeline_id_by_name', return_value='pid-1'):
+                self.client._backend,
+                '_get_pipeline_id_by_name',
+                return_value='pid-1'):
             with patch.object(
-                    self.client,
+                    self.client._backend,
                     '_get_version_id_by_name',
                     return_value='vid-specific'):
                 with patch.object(
-                        self.client,
+                        self.client._backend,
                         '_run_from_version_reference',
                         return_value=mock_run) as mock_ref:
                     result = self.client.run(
@@ -207,11 +229,15 @@ class TestRunOperations(parameterized.TestCase):
 
     def test_run_by_name_nonexistent_version_raises(self):
         with patch.object(
-                self.client, '_get_pipeline_id_by_name', return_value='pid-1'):
+                self.client._backend,
+                '_get_pipeline_id_by_name',
+                return_value='pid-1'):
             with patch.object(
-                    self.client, '_get_version_id_by_name', return_value=None):
+                    self.client._backend,
+                    '_get_version_id_by_name',
+                    return_value=None):
                 with patch.object(
-                        self.client,
+                        self.client._backend,
                         '_get_experiment_id_by_name',
                         return_value='exp-1'):
                     with self.assertRaisesRegex(ValueError,
@@ -220,7 +246,8 @@ class TestRunOperations(parameterized.TestCase):
 
     def test_run_archive_file_raises(self):
         with patch.object(
-                self.client, '_get_experiment_id_by_name',
+                self.client._backend,
+                '_get_experiment_id_by_name',
                 return_value='exp-1'):
             with self.assertRaisesRegex(ValueError, 'Archive files'):
                 self.client.run('/path/to/file.tar.gz')
@@ -232,10 +259,11 @@ class TestRunOperations(parameterized.TestCase):
             pipeline_version_id='vid-1')
         mock_run = Mock(run_id='r-4')
         with patch.object(
-                self.client, '_get_experiment_id_by_name',
+                self.client._backend,
+                '_get_experiment_id_by_name',
                 return_value='exp-1'):
             with patch.object(
-                    self.client,
+                    self.client._backend,
                     '_run_from_version_reference',
                     return_value=mock_run) as mock_ref:
                 result = self.client.run(pv, name='run-pv')
@@ -247,10 +275,11 @@ class TestRunOperations(parameterized.TestCase):
             spec=kfp_server_api.V2beta1Pipeline, pipeline_id='pid-1')
         mock_run = Mock(run_id='r-5')
         with patch.object(
-                self.client, '_get_latest_version_id',
+                self.client._backend,
+                '_get_latest_version_id',
                 return_value='vid-latest') as mock_latest:
             with patch.object(
-                    self.client,
+                    self.client._backend,
                     '_run_from_version_reference',
                     return_value=mock_run) as mock_ref:
                 result = self.client.run(pipeline_obj, name='run-pipe')
@@ -267,7 +296,7 @@ class TestRunOperations(parameterized.TestCase):
     def test_run_yaml_path_dispatches_to_run_from_file(self):
         mock_run = Mock(run_id='r-6')
         with patch.object(
-                self.client, '_run_from_file',
+                self.client._backend, '_run_from_file',
                 return_value=mock_run) as mock_file:
             result = self.client.run('/tmp/my-pipeline.yaml', name='yaml-run')
             mock_file.assert_called_once_with(
@@ -290,7 +319,8 @@ class TestRunOperations(parameterized.TestCase):
 
     def test_run_yaml_path_with_version_logs_warning(self):
         mock_run = Mock(run_id='r-warn-2')
-        with patch.object(self.client, '_run_from_file', return_value=mock_run):
+        with patch.object(
+                self.client._backend, '_run_from_file', return_value=mock_run):
             with self.assertLogs(
                     'kfp.kubeflow_client.api.pipelines_client',
                     level='WARNING') as log:
@@ -304,7 +334,8 @@ class TestRunOperations(parameterized.TestCase):
             pipeline_id='pid-1',
             pipeline_version_id='vid-1')
         with patch.object(
-                self.client, '_run_from_version_reference',
+                self.client._backend,
+                '_run_from_version_reference',
                 return_value=mock_run):
             with self.assertLogs(
                     'kfp.kubeflow_client.api.pipelines_client',
@@ -319,10 +350,11 @@ class TestRunOperations(parameterized.TestCase):
             display_name='my-pipe')
         mock_run = Mock(run_id='r-ver')
         with patch.object(
-                self.client, '_get_version_id_by_name',
+                self.client._backend,
+                '_get_version_id_by_name',
                 return_value='vid-named') as mock_ver:
             with patch.object(
-                    self.client,
+                    self.client._backend,
                     '_run_from_version_reference',
                     return_value=mock_run) as mock_ref:
                 result = self.client.run(
@@ -350,7 +382,9 @@ class TestExperimentOperations(parameterized.TestCase):
     def test_create_experiment(self):
         mock_exp = Mock(experiment_id='exp-1', display_name='my-exp')
         with patch.object(
-                self.client, '_get_experiment_id_by_name', return_value=None):
+                self.client._backend,
+                '_get_experiment_id_by_name',
+                return_value=None):
             with patch.object(
                     self.client._backend.experiment_api,
                     'experiment_service_create_experiment',
@@ -362,7 +396,8 @@ class TestExperimentOperations(parameterized.TestCase):
     def test_create_experiment_idempotent(self):
         existing = Mock(experiment_id='exp-1', display_name='my-exp')
         with patch.object(
-                self.client, '_get_experiment_id_by_name',
+                self.client._backend,
+                '_get_experiment_id_by_name',
                 return_value='exp-1'):
             with patch.object(
                     self.client._backend.experiment_api,
@@ -373,14 +408,17 @@ class TestExperimentOperations(parameterized.TestCase):
 
     def test_get_experiment_not_found_raises(self):
         with patch.object(
-                self.client, '_get_experiment_id_by_name', return_value=None):
+                self.client._backend,
+                '_get_experiment_id_by_name',
+                return_value=None):
             with self.assertRaisesRegex(ValueError, 'Experiment not found'):
                 self.client.get_experiment('nonexistent')
 
     def test_get_experiment_success(self):
         mock_exp = Mock(experiment_id='exp-1', display_name='my-exp')
         with patch.object(
-                self.client, '_get_experiment_id_by_name',
+                self.client._backend,
+                '_get_experiment_id_by_name',
                 return_value='exp-1'):
             with patch.object(
                     self.client._backend.experiment_api,
@@ -391,7 +429,8 @@ class TestExperimentOperations(parameterized.TestCase):
 
     def test_delete_experiment(self):
         with patch.object(
-                self.client, '_get_experiment_id_by_name',
+                self.client._backend,
+                '_get_experiment_id_by_name',
                 return_value='exp-1'):
             with patch.object(
                     self.client._backend.experiment_api,
@@ -401,7 +440,9 @@ class TestExperimentOperations(parameterized.TestCase):
 
     def test_delete_experiment_not_found_raises(self):
         with patch.object(
-                self.client, '_get_experiment_id_by_name', return_value=None):
+                self.client._backend,
+                '_get_experiment_id_by_name',
+                return_value=None):
             with self.assertRaisesRegex(ValueError, 'Experiment not found'):
                 self.client.delete_experiment('bad-exp')
 
@@ -640,7 +681,7 @@ class TestHelperMethods(parameterized.TestCase):
                 self.client._backend.pipelines_api,
                 'pipeline_service_list_pipeline_versions',
                 return_value=Mock(pipeline_versions=[mock_version])):
-            result = self.client._get_latest_version_id('pid-1')
+            result = self.client._backend._get_latest_version_id('pid-1')
             self.assertEqual(result, 'vid-latest')
 
     def test_get_latest_version_id_no_versions_raises(self):
@@ -649,10 +690,10 @@ class TestHelperMethods(parameterized.TestCase):
                 'pipeline_service_list_pipeline_versions',
                 return_value=Mock(pipeline_versions=[])):
             with self.assertRaisesRegex(ValueError, 'has no versions'):
-                self.client._get_latest_version_id('pid-1')
+                self.client._backend._get_latest_version_id('pid-1')
 
     def test_equals_filter(self):
-        result = self.client._equals_filter('display_name', 'test')
+        result = self.client._backend._equals_filter('display_name', 'test')
         expected = '{"predicates": [{"operation": "EQUALS", "key": "display_name", "stringValue": "test"}]}'
         import json
         self.assertEqual(json.loads(result), json.loads(expected))
@@ -667,7 +708,7 @@ class TestHelperMethods(parameterized.TestCase):
                 'pipeline_service_list_pipelines',
                 return_value=Mock(pipelines=pipelines)):
             with self.assertRaisesRegex(ValueError, 'Multiple pipelines'):
-                self.client._get_pipeline_id_by_name('dup-name')
+                self.client._backend._get_pipeline_id_by_name('dup-name')
 
     def test_invoke_callbacks_wraps_exception_in_runtime_error(self):
 
@@ -679,14 +720,16 @@ class TestHelperMethods(parameterized.TestCase):
             PipelinesClient._invoke_callbacks([bad_callback], mock_run)
 
     def test_resolve_experiment_id_returns_none_when_not_specified(self):
-        result = self.client._resolve_experiment_id(None)
+        result = self.client._backend._resolve_experiment_id(None)
         self.assertIsNone(result)
 
     def test_resolve_experiment_id_named_not_found_raises(self):
         with patch.object(
-                self.client, '_get_experiment_id_by_name', return_value=None):
+                self.client._backend,
+                '_get_experiment_id_by_name',
+                return_value=None):
             with self.assertRaisesRegex(ValueError, 'Experiment not found'):
-                self.client._resolve_experiment_id('nonexistent')
+                self.client._backend._resolve_experiment_id('nonexistent')
 
     def test_generate_run_name_from_callable(self):
         func = Mock()
@@ -733,7 +776,7 @@ class TestUploadNewPipeline(parameterized.TestCase):
                         'pipeline_service_update_pipeline_version',
                         create=True,
                 ) as mock_update:
-                    result = self.client._upload_new_pipeline(
+                    result = self.client._backend._upload_new_pipeline(
                         '/tmp/pipe.yaml',
                         name='my-pipe',
                         version_name='v1',
@@ -766,7 +809,7 @@ class TestUploadNewPipeline(parameterized.TestCase):
                     import warnings
                     with warnings.catch_warnings(record=True) as caught:
                         warnings.simplefilter('always')
-                        result = self.client._upload_new_pipeline(
+                        result = self.client._backend._upload_new_pipeline(
                             '/tmp/pipe.yaml',
                             name='my-pipe',
                             version_name='v1',
@@ -788,7 +831,7 @@ class TestUploadNewPipeline(parameterized.TestCase):
                     return_value=Mock(pipeline_versions=[])):
                 with self.assertRaisesRegex(RuntimeError,
                                             'no version was created'):
-                    self.client._upload_new_pipeline(
+                    self.client._backend._upload_new_pipeline(
                         '/tmp/pipe.yaml',
                         name='my-pipe',
                         version_name=None,
@@ -813,9 +856,9 @@ class TestLoadPipelineSpec(parameterized.TestCase):
                 mode='w', suffix='.yaml', delete=False) as f:
             f.write(spec_content)
             f.flush()
-            result = self.client._load_pipeline_spec(f.name)
+        self.addCleanup(os.unlink, f.name)
+        result = self.client._backend._load_pipeline_spec(f.name)
         self.assertIn('pipelineInfo', result)
-        os.unlink(f.name)
 
     def test_load_empty_file_raises(self):
         import tempfile
@@ -823,9 +866,9 @@ class TestLoadPipelineSpec(parameterized.TestCase):
                 mode='w', suffix='.yaml', delete=False) as f:
             f.write('')
             f.flush()
-            with self.assertRaisesRegex(ValueError, 'empty'):
-                self.client._load_pipeline_spec(f.name)
-        os.unlink(f.name)
+        self.addCleanup(os.unlink, f.name)
+        with self.assertRaisesRegex(ValueError, 'empty'):
+            self.client._backend._load_pipeline_spec(f.name)
 
     def test_load_multi_doc_yaml_with_platform_spec(self):
         import tempfile
@@ -843,10 +886,10 @@ class TestLoadPipelineSpec(parameterized.TestCase):
                 mode='w', suffix='.yaml', delete=False) as f:
             f.write(spec_content)
             f.flush()
-            result = self.client._load_pipeline_spec(f.name)
+        self.addCleanup(os.unlink, f.name)
+        result = self.client._backend._load_pipeline_spec(f.name)
         self.assertIn('pipeline_spec', result)
         self.assertIn('platform_spec', result)
-        os.unlink(f.name)
 
 
 class TestListRunsClientSideFilter(parameterized.TestCase):
@@ -863,7 +906,9 @@ class TestListRunsClientSideFilter(parameterized.TestCase):
         response = Mock(runs=[run_match, run_other], next_page_token='')
 
         with patch.object(
-                self.client, '_get_pipeline_id_by_name', return_value='pid-1'):
+                self.client._backend,
+                '_get_pipeline_id_by_name',
+                return_value='pid-1'):
             with patch.object(
                     self.client._backend.run_api,
                     'run_service_list_runs',
@@ -874,13 +919,16 @@ class TestListRunsClientSideFilter(parameterized.TestCase):
 
     def test_pipeline_filter_nonexistent_raises(self):
         with patch.object(
-                self.client, '_get_pipeline_id_by_name', return_value=None):
+                self.client._backend, '_get_pipeline_id_by_name',
+                return_value=None):
             with self.assertRaisesRegex(ValueError, 'Pipeline not found'):
                 self.client.list_runs(pipeline='bad-pipe')
 
     def test_experiment_filter_nonexistent_raises(self):
         with patch.object(
-                self.client, '_get_experiment_id_by_name', return_value=None):
+                self.client._backend,
+                '_get_experiment_id_by_name',
+                return_value=None):
             with self.assertRaisesRegex(ValueError, 'Experiment not found'):
                 self.client.list_runs(experiment='bad-exp')
 
@@ -913,10 +961,11 @@ class TestUploadPipeline(parameterized.TestCase):
                     self.client, '_infer_pipeline_name',
                     return_value='my-pipe'):
                 with patch.object(
-                        self.client, '_get_pipeline_id_by_name',
+                        self.client._backend,
+                        '_get_pipeline_id_by_name',
                         return_value=None):
                     with patch.object(
-                            self.client,
+                            self.client._backend,
                             '_upload_new_pipeline',
                             return_value=mock_version):
                         with patch('shutil.rmtree') as mock_rm:
@@ -937,11 +986,11 @@ class TestUploadPipeline(parameterized.TestCase):
                     '_infer_pipeline_name',
                     return_value='existing-pipe'):
                 with patch.object(
-                        self.client,
+                        self.client._backend,
                         '_get_pipeline_id_by_name',
                         return_value='pid-1'):
                     with patch.object(
-                            self.client,
+                            self.client._backend,
                             '_upload_version',
                             return_value=mock_version) as mock_uv:
                         result = self.client.upload_pipeline(
@@ -1030,7 +1079,8 @@ class TestGetPipelineVersion(parameterized.TestCase):
         with patch.object(
                 self.client, 'get_pipeline', return_value=mock_pipeline):
             with patch.object(
-                    self.client, '_get_version_id_by_name',
+                    self.client._backend,
+                    '_get_version_id_by_name',
                     return_value='vid-1'):
                 with patch.object(
                         self.client._backend.pipelines_api,
@@ -1046,7 +1096,9 @@ class TestGetPipelineVersion(parameterized.TestCase):
         with patch.object(
                 self.client, 'get_pipeline', return_value=mock_pipeline):
             with patch.object(
-                    self.client, '_get_version_id_by_name', return_value=None):
+                    self.client._backend,
+                    '_get_version_id_by_name',
+                    return_value=None):
                 with self.assertRaisesRegex(ValueError, 'version not found'):
                     self.client.get_pipeline_version('my-pipe', 'bad-ver')
 
@@ -1060,7 +1112,9 @@ class TestListPipelineVersions(parameterized.TestCase):
         mock_resp = Mock(
             pipeline_versions=[Mock(), Mock()], next_page_token='t2')
         with patch.object(
-                self.client, '_get_pipeline_id_by_name', return_value='pid-1'):
+                self.client._backend,
+                '_get_pipeline_id_by_name',
+                return_value='pid-1'):
             with patch.object(
                     self.client._backend.pipelines_api,
                     'pipeline_service_list_pipeline_versions',
@@ -1072,7 +1126,8 @@ class TestListPipelineVersions(parameterized.TestCase):
 
     def test_list_versions_pipeline_not_found_raises(self):
         with patch.object(
-                self.client, '_get_pipeline_id_by_name', return_value=None):
+                self.client._backend, '_get_pipeline_id_by_name',
+                return_value=None):
             with self.assertRaisesRegex(ValueError, 'Pipeline not found'):
                 self.client.list_pipeline_versions('ghost-pipe')
 

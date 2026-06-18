@@ -26,6 +26,7 @@ from kfp.kubeflow_client.backends.kubernetes.types import KubernetesBackendConfi
 import kfp_server_api
 
 _AUTH_MODULE = 'kfp.kubeflow_client.backends.kubernetes.auth'
+_BACKEND_MODULE = 'kfp.kubeflow_client.backends.kubernetes.backend'
 
 
 class TestKubernetesBackendConfig(parameterized.TestCase):
@@ -46,10 +47,11 @@ class TestKubernetesBackendConfig(parameterized.TestCase):
         self.assertIn('user_token=None', rep)
 
 
+@patch(f'{_BACKEND_MODULE}.KubernetesBackend.verify_backend')
 class TestBuildApiConfiguration(parameterized.TestCase):
 
     @patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials')
-    def test_explicit_base_url_sets_host(self, _mock_creds):
+    def test_explicit_base_url_sets_host(self, _mock_creds, _mock_verify):
         backend = KubernetesBackend(
             KubernetesBackendConfig(
                 base_url='http://my-host:9999',
@@ -58,7 +60,8 @@ class TestBuildApiConfiguration(parameterized.TestCase):
         self.assertEqual(backend.api_config.host, 'http://my-host:9999')
 
     @patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials')
-    def test_base_url_without_scheme_defaults_to_https(self, _mock_creds):
+    def test_base_url_without_scheme_defaults_to_https(self, _mock_creds,
+                                                       _mock_verify):
         backend = KubernetesBackend(
             KubernetesBackendConfig(
                 base_url='my-host:9999',
@@ -67,7 +70,7 @@ class TestBuildApiConfiguration(parameterized.TestCase):
         self.assertEqual(backend.api_config.host, 'https://my-host:9999')
 
     @patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials')
-    def test_https_url_sets_verify_ssl_true(self, _mock_creds):
+    def test_https_url_sets_verify_ssl_true(self, _mock_creds, _mock_verify):
         backend = KubernetesBackend(
             KubernetesBackendConfig(
                 base_url='https://secure.example.com',
@@ -76,7 +79,7 @@ class TestBuildApiConfiguration(parameterized.TestCase):
         self.assertTrue(backend.api_config.verify_ssl)
 
     @patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials')
-    def test_http_url_sets_verify_ssl_false(self, _mock_creds):
+    def test_http_url_sets_verify_ssl_false(self, _mock_creds, _mock_verify):
         backend = KubernetesBackend(
             KubernetesBackendConfig(
                 base_url='http://insecure.example.com',
@@ -85,7 +88,7 @@ class TestBuildApiConfiguration(parameterized.TestCase):
         self.assertFalse(backend.api_config.verify_ssl)
 
     @patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials')
-    def test_custom_ca_sets_ssl_ca_cert(self, _mock_creds):
+    def test_custom_ca_sets_ssl_ca_cert(self, _mock_creds, _mock_verify):
         backend = KubernetesBackend(
             KubernetesBackendConfig(
                 base_url='https://host',
@@ -95,7 +98,7 @@ class TestBuildApiConfiguration(parameterized.TestCase):
         self.assertEqual(backend.api_config.ssl_ca_cert, '/path/to/ca.crt')
 
     @patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials')
-    def test_is_secure_overrides_scheme(self, _mock_creds):
+    def test_is_secure_overrides_scheme(self, _mock_creds, _mock_verify):
         backend = KubernetesBackend(
             KubernetesBackendConfig(
                 base_url='http://insecure.example.com',
@@ -105,7 +108,7 @@ class TestBuildApiConfiguration(parameterized.TestCase):
         self.assertTrue(backend.api_config.verify_ssl)
 
     @patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials')
-    def test_user_token_sets_api_key(self, _mock_creds):
+    def test_user_token_sets_api_key(self, _mock_creds, _mock_verify):
         backend = KubernetesBackend(
             KubernetesBackendConfig(
                 base_url='http://host',
