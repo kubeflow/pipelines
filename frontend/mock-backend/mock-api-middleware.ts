@@ -56,6 +56,7 @@ import {
 } from '../src/apisv2beta1/run';
 import {
   ExperimentSortKeys,
+  JobSortKeys,
   PipelineSortKeys,
   PipelineVersionSortKeys,
   RunSortKeys,
@@ -226,8 +227,9 @@ function getV2RuntimeState(status?: string): V2beta1RuntimeState {
     case 'paused':
       return V2beta1RuntimeState.PAUSED;
     case 'succeeded':
-    default:
       return V2beta1RuntimeState.SUCCEEDED;
+    default:
+      return V2beta1RuntimeState.RUNTIME_STATE_UNSPECIFIED;
   }
 }
 
@@ -352,7 +354,8 @@ function toV2PipelineVersion(
 }
 
 function toV2Run(run: ApiRun): V2beta1Run {
-  const pipelineId = run.pipeline_spec?.pipeline_id;
+  const pipelineId = RunUtils.getPipelineId(run);
+  const pipelineVersionId = RunUtils.getPipelineVersionId(run);
   return {
     created_at: run.created_at,
     description: run.description,
@@ -360,12 +363,13 @@ function toV2Run(run: ApiRun): V2beta1Run {
     experiment_id: getExperimentId(run),
     finished_at: run.finished_at,
     pipeline_spec: run.pipeline_spec,
-    pipeline_version_reference: pipelineId
-      ? {
-          pipeline_id: pipelineId,
-          pipeline_version_id: pipelineId,
-        }
-      : undefined,
+    pipeline_version_reference:
+      pipelineId && pipelineVersionId
+        ? {
+            pipeline_id: pipelineId,
+            pipeline_version_id: pipelineVersionId,
+          }
+        : undefined,
     run_id: run.id,
     scheduled_at: run.scheduled_at,
     state: getV2RuntimeState(run.status),
@@ -578,7 +582,7 @@ export default (app: express.Application) => {
     }
     recurringRuns = sortV2Resources(
       filterV2Resources(recurringRuns, getQueryString(req.query.filter)),
-      ExperimentSortKeys.CREATED_AT,
+      JobSortKeys.CREATED_AT,
       getQueryString(req.query.sort_by),
     );
     const page = getPage(recurringRuns, req.query.page_token, req.query.page_size);

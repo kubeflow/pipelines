@@ -176,6 +176,18 @@ describe('mock backend routes', () => {
         display_name: 'v2-xgboost-ilbo',
         state: 'SUCCEEDED',
       });
+      expect(response.body.pipeline_version_reference).toBeUndefined();
+    });
+
+    it('uses an unspecified state for an unmapped v1 run status', async () => {
+      const response = await request
+        .get('/apis/v2beta1/runs/47a3d09c-7db4-4788-ac55-3f8d908574aa')
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        run_id: '47a3d09c-7db4-4788-ac55-3f8d908574aa',
+        state: 'RUNTIME_STATE_UNSPECIFIED',
+      });
     });
 
     it('lists v2 recurring runs filtered by experiment id', async () => {
