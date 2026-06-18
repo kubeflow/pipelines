@@ -32,7 +32,7 @@ jobs:
     - name: Set up npm
       working-directory: frontend
       run: |
-        npm install --global "$(node -p "require('./package.json').packageManager")"
+        npm install --global "$(node -p 'require("./package.json").packageManager')"
         npm --version
 
     - name: Check for toolchain version drift

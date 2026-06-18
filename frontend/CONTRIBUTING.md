@@ -25,7 +25,7 @@ nvm use "$(cat .nvmrc)"
 Install the npm version declared in [`package.json`](package.json):
 
 ```bash
-npm install --global "$(node -p "require('./package.json').packageManager")"
+npm install --global "$(node -p 'require("./package.json").packageManager')"
 ```
 
 ## Manage dev environment with npm

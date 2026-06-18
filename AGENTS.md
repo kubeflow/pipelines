@@ -369,7 +369,7 @@ The KFP frontend is a React TypeScript application that provides the web UI for 
 
 ```bash
 cd frontend
-npm install --global "$(node -p "require('./package.json').packageManager")"
+npm install --global "$(node -p 'require("./package.json").packageManager')"
 npm ci  # Install exact dependencies from package-lock.json
 ```
 
@@ -688,7 +688,7 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - API client generation fails with Docker errors (for example permission denied to Docker socket): ensure Docker is running and your user can access the Docker daemon.
 - Frontend fails to start due to Node version mismatch: `nvm use $(cat frontend/.nvmrc)` or `fnm use`.
 - Frontend lockfile checks fail after a dependency update: from `frontend/`, install the pinned
-  npm with `npm install --global "$(node -p "require('./package.json').packageManager")"`,
+  npm with `npm install --global "$(node -p 'require("./package.json").packageManager')"`,
   regenerate `package-lock.json`, and commit the result.
 - Runtime component imports SDK-only modules: `_KFP_RUNTIME=true` disables many SDK imports; avoid importing SDK-only modules in task code.
 - Proxy CI jobs fail during `Deploy Squid` with `OOMKilled`, `CrashLoopBackOff`, endpoint readiness timeouts, or failed proxy tests: inspect the `squid` namespace logs/events and verify `.github/resources/squid/squid.conf` still disables caching for CI.

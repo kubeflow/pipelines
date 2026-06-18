@@ -70,7 +70,7 @@ Now navigate to the KFP frontend folder, install and build your NPM dependencies
 
 ```bash
 cd ${WORKING_DIRECTORY}/frontend
-npm install --global "$(node -p "require('./package.json').packageManager")"
+npm install --global "$(node -p 'require("./package.json").packageManager')"
 npm ci
 npm run build
 ```
