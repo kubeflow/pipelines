@@ -19,7 +19,7 @@ backcall==0.2.0
     # via ipython
 beautifulsoup4==4.13.5
     # via nbconvert
-bleach[css]==6.2.0
+bleach[css]==6.4.0
     # via nbconvert
 bokeh==1.2.0
     # via -r requirements.in
