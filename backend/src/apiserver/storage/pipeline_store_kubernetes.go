@@ -30,6 +30,23 @@ var (
 	ErrUnsupportedField = errors.New("the field is unsupported")
 )
 
+func compositeVersionName(pipelineName, versionName string) (string, error) {
+	if errs := validation.IsDNS1123Subdomain(versionName); len(errs) > 0 {
+		return "", util.NewInvalidInputError(
+			"Invalid pipeline version name %q: %s. Use 'display_name' for human-readable labels",
+			versionName, strings.Join(errs, "; "),
+		)
+	}
+	name := pipelineName + "-" + versionName
+	if errs := validation.IsDNS1123Subdomain(name); len(errs) > 0 {
+		return "", util.NewInvalidInputError(
+			"The combined pipeline and version name %q exceeds Kubernetes naming limits: %s",
+			name, strings.Join(errs, "; "),
+		)
+	}
+	return name, nil
+}
+
 type PipelineStoreKubernetes struct {
 	client        ctrlclient.Client
 	clientNoCache ctrlclient.Client
@@ -205,12 +222,10 @@ func (k *PipelineStoreKubernetes) CreatePipelineAndPipelineVersion(pipeline *mod
 	pipeline.UUID = ""
 	pipelineVersion.UUID = ""
 
-	// Validate the pipeline version name before creating either resource to ensure atomicity.
-	if errs := validation.IsDNS1123Subdomain(pipelineVersion.Name); len(errs) > 0 {
-		return nil, nil, util.NewInvalidInputError(
-			"Invalid pipeline version name %q: %s. Use 'display_name' for human-readable labels",
-			pipelineVersion.Name, strings.Join(errs, "; "),
-		)
+	// Early composite name validation prevents creating an orphaned Pipeline
+	// if the version name would fail in createPipelineVersionWithPipeline.
+	if _, err := compositeVersionName(pipeline.Name, pipelineVersion.Name); err != nil {
+		return nil, nil, err
 	}
 
 	var err error
@@ -367,15 +382,38 @@ func (k *PipelineStoreKubernetes) GetPipelineVersion(pipelineVersionId string) (
 	return pipelineVersion.ToModel()
 }
 
-func (k *PipelineStoreKubernetes) GetPipelineVersionByName(name string) (*model.PipelineVersion, error) {
-	pipelineVersion := v2beta1.PipelineVersion{}
-
+func (k *PipelineStoreKubernetes) GetPipelineVersionByName(pipelineID, name string) (*model.PipelineVersion, error) {
 	if common.GetPodNamespace() == "" {
 		return nil, fmt.Errorf("Error returning the pod namespace. Ensure you have POD_NAMESPACE environment variable set in the API Server pod.")
 	}
 
-	err := k.client.Get(context.TODO(), ctrlclient.ObjectKey{
-		Namespace: common.GetPodNamespace(),
+	pipeline, err := k.GetPipeline(pipelineID)
+	if err != nil {
+		return nil, err
+	}
+
+	namespace := common.GetPodNamespace()
+	pipelineVersion := v2beta1.PipelineVersion{}
+
+	// Try composite name first ({pipelineName}-{versionName})
+	compositeName := pipeline.Name + "-" + name
+	err = k.client.Get(context.TODO(), ctrlclient.ObjectKey{
+		Namespace: namespace,
+		Name:      compositeName,
+	}, &pipelineVersion)
+	if err == nil {
+		if pipelineVersion.IsOwnedByPipeline(pipelineID) {
+			return pipelineVersion.ToModel()
+		}
+		// Composite name exists but belongs to a different pipeline (hyphen
+		// collision). Fall through to bare-name lookup for backward compat.
+	} else if !k8serrors.IsNotFound(err) {
+		return nil, err
+	}
+
+	// Fallback: try bare name (legacy-style CRs created before composite naming)
+	err = k.client.Get(context.TODO(), ctrlclient.ObjectKey{
+		Namespace: namespace,
 		Name:      name,
 	}, &pipelineVersion)
 	if err != nil {
@@ -383,6 +421,13 @@ func (k *PipelineStoreKubernetes) GetPipelineVersionByName(name string) (*model.
 			return nil, util.NewResourceNotFoundError("PipelineVersion", name)
 		}
 		return nil, err
+	}
+
+	// Verify the legacy-style CR belongs to the correct pipeline (check both
+	// OwnerReferences and the pipeline-id label for maximum compatibility).
+	if !pipelineVersion.IsOwnedByPipeline(pipelineID) &&
+		pipelineVersion.Labels["pipelines.kubeflow.org/pipeline-id"] != pipelineID {
+		return nil, util.NewResourceNotFoundError("PipelineVersion", name)
 	}
 
 	return pipelineVersion.ToModel()
@@ -665,12 +710,8 @@ func (k *PipelineStoreKubernetes) getK8sPipelineVersion(ctx context.Context, pip
 }
 
 func (k *PipelineStoreKubernetes) createPipelineVersionWithPipeline(ctx context.Context, pipeline *model.Pipeline, pipelineVersion *model.PipelineVersion) (*model.PipelineVersion, error) {
-	// Validate the pipeline version name is a valid Kubernetes resource name before sending to the API.
-	if errs := validation.IsDNS1123Subdomain(pipelineVersion.Name); len(errs) > 0 {
-		return nil, util.NewInvalidInputError(
-			"Invalid pipeline version name %q: %s. Use 'display_name' for human-readable labels",
-			pipelineVersion.Name, strings.Join(errs, "; "),
-		)
+	if _, err := compositeVersionName(pipeline.Name, pipelineVersion.Name); err != nil {
+		return nil, err
 	}
 
 	k8sPipelineVersion, err := v2beta1.FromPipelineVersionModel(*pipeline, *pipelineVersion)

@@ -57,6 +57,8 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
+              versionName:
+                type: string
             required:
             - pipelineSpec
             type: object

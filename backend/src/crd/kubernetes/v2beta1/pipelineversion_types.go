@@ -35,6 +35,7 @@ type PipelineVersionSpec struct {
 	Description   string `json:"description,omitempty"`
 	CodeSourceURL string `json:"codeSourceURL,omitempty"`
 	PipelineName  string `json:"pipelineName,omitempty"`
+	VersionName   string `json:"versionName,omitempty"`
 	DisplayName   string `json:"displayName,omitempty"`
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Schemaless
@@ -95,6 +96,10 @@ type PipelineVersionList struct {
 }
 
 func FromPipelineVersionModel(pipeline model.Pipeline, pipelineVersion model.PipelineVersion) (*PipelineVersion, error) {
+	if pipelineVersion.Name == "" {
+		return nil, fmt.Errorf("pipeline version name must not be empty")
+	}
+
 	v2Spec, err := template.NewV2SpecTemplate([]byte(string(pipelineVersion.PipelineSpec)), template.TemplateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse the pipeline spec: %w", err)
@@ -137,7 +142,7 @@ func FromPipelineVersionModel(pipeline model.Pipeline, pipelineVersion model.Pip
 
 	return &PipelineVersion{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      pipelineVersion.Name,
+			Name:      pipeline.Name + "-" + pipelineVersion.Name,
 			Namespace: pipeline.Namespace,
 			UID:       types.UID(pipelineVersion.UUID),
 			Labels: map[string]string{
@@ -158,6 +163,7 @@ func FromPipelineVersionModel(pipeline model.Pipeline, pipelineVersion model.Pip
 			PipelineSpec:    pipelineSpec,
 			PlatformSpec:    platformSpec,
 			PipelineName:    pipeline.Name,
+			VersionName:     pipelineVersion.Name,
 			CodeSourceURL:   pipelineVersion.CodeSourceUrl,
 			PipelineSpecURI: string(pipelineVersion.PipelineSpecURI),
 			Tags:            pipelineVersion.Tags,
@@ -210,15 +216,20 @@ func (p *PipelineVersion) ToModel() (*model.PipelineVersion, error) {
 		}
 	}
 
+	versionName := p.Spec.VersionName
+	if versionName == "" {
+		versionName = p.Name
+	}
+
 	displayName := p.Spec.DisplayName
 	if displayName == "" {
-		displayName = p.Name
+		displayName = versionName
 	}
 
 	return &model.PipelineVersion{
 		UUID:            string(p.UID),
 		CreatedAtInSec:  p.CreationTimestamp.Unix(),
-		Name:            p.Name,
+		Name:            versionName,
 		DisplayName:     displayName,
 		Parameters:      "",
 		PipelineId:      string(pipelineID),
@@ -292,6 +303,9 @@ func (p *PipelineVersion) GetField(name string) interface{} {
 	case "pipeline_versions.pipeline_version_id":
 		return p.UID
 	case "pipeline_versions.Name":
+		if p.Spec.VersionName != "" {
+			return p.Spec.VersionName
+		}
 		return p.Name
 	case "pipeline_versions.Status":
 		if len(p.Status.Conditions) > 0 {

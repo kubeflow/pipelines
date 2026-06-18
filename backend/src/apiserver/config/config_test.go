@@ -57,14 +57,16 @@ func TestLoadSamplesConfigBackwardsCompatibility(t *testing.T) {
 	err = LoadSamples(rm, path)
 	require.NoError(t, err)
 
-	_, err = rm.GetPipelineByNameAndNamespace(pc[0].Name, "")
+	p1, err := rm.GetPipelineByNameAndNamespace(pc[0].Name, "")
 	require.NoError(t, err)
-	_, err = rm.GetPipelineByNameAndNamespace(pc[1].Name, "")
+	require.NotNil(t, p1)
+	p2, err := rm.GetPipelineByNameAndNamespace(pc[1].Name, "")
 	require.NoError(t, err)
+	require.NotNil(t, p2)
 
-	_, err = rm.GetPipelineVersionByName(pc[0].Name)
+	_, err = rm.GetPipelineVersionByName(p1.UUID, pc[0].Name)
 	require.NoError(t, err)
-	_, err = rm.GetPipelineVersionByName(pc[1].Name)
+	_, err = rm.GetPipelineVersionByName(p2.UUID, pc[1].Name)
 	require.NoError(t, err)
 
 	// Update pipeline version for Pipeline 1
@@ -148,7 +150,8 @@ func TestLoadSamples(t *testing.T) {
 	var pipeline1 *model.Pipeline
 	pipeline1, err = rm.GetPipelineByNameAndNamespace(pc.Pipelines[0].Name, "")
 	require.NoError(t, err)
-	version1, err := rm.GetPipelineVersionByName(pc.Pipelines[0].VersionName)
+	require.NotNil(t, pipeline1)
+	version1, err := rm.GetPipelineVersionByName(pipeline1.UUID, pc.Pipelines[0].VersionName)
 	require.NoError(t, err)
 	// Verify that the pipeline display name is set to the pipeline name if not provided
 	assert.Equal(t, pipeline1.DisplayName, pc.Pipelines[0].Name)
@@ -156,7 +159,8 @@ func TestLoadSamples(t *testing.T) {
 	var pipeline2 *model.Pipeline
 	pipeline2, err = rm.GetPipelineByNameAndNamespace(pc.Pipelines[1].Name, "")
 	require.NoError(t, err)
-	version2, err := rm.GetPipelineVersionByName(pc.Pipelines[1].VersionName)
+	require.NotNil(t, pipeline2)
+	version2, err := rm.GetPipelineVersionByName(pipeline2.UUID, pc.Pipelines[1].VersionName)
 	// Verify that the pipeline display name is set to the pipeline name if not provided
 	assert.Equal(t, pipeline2.DisplayName, pc.Pipelines[1].Name)
 	assert.Equal(t, version2.DisplayName, pc.Pipelines[1].VersionName)
@@ -165,36 +169,40 @@ func TestLoadSamples(t *testing.T) {
 	// Test display name for Pipeline 3 (pipeline display name only)
 	pipeline3, err := rm.GetPipelineByNameAndNamespace(pc.Pipelines[2].Name, "")
 	require.NoError(t, err)
+	require.NotNil(t, pipeline3)
 	assert.Equal(t, pc.Pipelines[2].DisplayName, pipeline3.DisplayName)
-	version3, err := rm.GetPipelineVersionByName(pc.Pipelines[2].VersionName)
+	version3, err := rm.GetPipelineVersionByName(pipeline3.UUID, pc.Pipelines[2].VersionName)
 	require.NoError(t, err)
 	assert.Equal(t, pc.Pipelines[2].VersionName, version3.DisplayName) // Should use version name when no version display name is provided
 
 	// Test display name for Pipeline 4 (version display name only)
 	pipeline4, err := rm.GetPipelineByNameAndNamespace(pc.Pipelines[3].Name, "")
 	require.NoError(t, err)
+	require.NotNil(t, pipeline4)
 	assert.Equal(t, pc.Pipelines[3].Name, pipeline4.DisplayName) // Should use pipeline name
-	version4, err := rm.GetPipelineVersionByName(pc.Pipelines[3].VersionName)
+	version4, err := rm.GetPipelineVersionByName(pipeline4.UUID, pc.Pipelines[3].VersionName)
 	require.NoError(t, err)
 	assert.Equal(t, pc.Pipelines[3].VersionDisplayName, version4.DisplayName)
 
 	// Test display name for Pipeline 5 (both display names)
 	pipeline5, err := rm.GetPipelineByNameAndNamespace(pc.Pipelines[4].Name, "")
 	require.NoError(t, err)
+	require.NotNil(t, pipeline5)
 	assert.Equal(t, pc.Pipelines[4].DisplayName, pipeline5.DisplayName)
-	version5, err := rm.GetPipelineVersionByName(pc.Pipelines[4].VersionName)
+	version5, err := rm.GetPipelineVersionByName(pipeline5.UUID, pc.Pipelines[4].VersionName)
 	require.NoError(t, err)
 	assert.Equal(t, pc.Pipelines[4].VersionDisplayName, version5.DisplayName)
 
 	// Test display name for Pipeline 6 (only pipeline name)
 	pipeline6, err := rm.GetPipelineByNameAndNamespace(pc.Pipelines[5].Name, "")
 	require.NoError(t, err)
-	assert.Equal(t, pc.Pipelines[5].Name, pipeline6.DisplayName)       // Should use pipeline name
-	version6, err := rm.GetPipelineVersionByName(pc.Pipelines[5].Name) // Version name should default to pipeline name
+	require.NotNil(t, pipeline6)
+	assert.Equal(t, pc.Pipelines[5].Name, pipeline6.DisplayName)                       // Should use pipeline name
+	version6, err := rm.GetPipelineVersionByName(pipeline6.UUID, pc.Pipelines[5].Name) // Version name should default to pipeline name
 	require.NoError(t, err)
 	assert.Equal(t, pc.Pipelines[5].Name, version6.DisplayName) // Version display name should default to pipeline name
 
-	_, err = rm.GetPipelineVersionByName(pc.Pipelines[0].VersionName)
+	_, err = rm.GetPipelineVersionByName(pipeline1.UUID, pc.Pipelines[0].VersionName)
 	require.NoError(t, err)
 
 	// Update pipeline version for Pipeline 1
@@ -219,7 +227,7 @@ func TestLoadSamples(t *testing.T) {
 	require.NoError(t, err)
 
 	// Expect another Pipeline version added for Pipeline 2
-	_, err = rm.GetPipelineVersionByName(pc.Pipelines[1].VersionName)
+	_, err = rm.GetPipelineVersionByName(pipeline2.UUID, pc.Pipelines[1].VersionName)
 	require.NoError(t, err)
 	_, totalSize, _, err = rm.ListPipelineVersions(pipeline2.UUID, opts, nil)
 	require.NoError(t, err)
@@ -278,10 +286,11 @@ func TestLoadSamplesMultiplePipelineVersionsInConfig(t *testing.T) {
 	var pipeline *model.Pipeline
 	pipeline, err = rm.GetPipelineByNameAndNamespace(pc.Pipelines[0].Name, "")
 	require.NoError(t, err)
+	require.NotNil(t, pipeline)
 
-	_, err = rm.GetPipelineVersionByName(pc.Pipelines[0].VersionName)
+	_, err = rm.GetPipelineVersionByName(pipeline.UUID, pc.Pipelines[0].VersionName)
 	require.NoError(t, err)
-	_, err = rm.GetPipelineVersionByName(pc.Pipelines[1].VersionName)
+	_, err = rm.GetPipelineVersionByName(pipeline.UUID, pc.Pipelines[1].VersionName)
 	require.NoError(t, err)
 
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
@@ -383,9 +392,10 @@ func TestLoadSamples_TagsApplied(t *testing.T) {
 
 	pipeline, err := rm.GetPipelineByNameAndNamespace("Tagged Pipeline", "")
 	require.NoError(t, err)
+	require.NotNil(t, pipeline)
 	assert.Equal(t, wantTags, pipeline.Tags)
 
-	version, err := rm.GetPipelineVersionByName("Tagged Pipeline - Ver 1")
+	version, err := rm.GetPipelineVersionByName(pipeline.UUID, "Tagged Pipeline - Ver 1")
 	require.NoError(t, err)
 	assert.Empty(t, version.Tags)
 }
@@ -413,9 +423,10 @@ func TestLoadSamples_NoTagsWhenEnvUnset(t *testing.T) {
 
 	pipeline, err := rm.GetPipelineByNameAndNamespace("Untagged Pipeline", "")
 	require.NoError(t, err)
+	require.NotNil(t, pipeline)
 	assert.Empty(t, pipeline.Tags)
 
-	version, err := rm.GetPipelineVersionByName("Untagged Pipeline - Ver 1")
+	version, err := rm.GetPipelineVersionByName(pipeline.UUID, "Untagged Pipeline - Ver 1")
 	require.NoError(t, err)
 	assert.Empty(t, version.Tags)
 }
