@@ -39,6 +39,12 @@ const runStartTimeout = 30000;
 const runCompletionTimeout = 60000;
 const outputParameterValue = 'Hello world in test';
 
+function getGraphNodeByLabel(label) {
+  return $(
+    `//div[contains(concat(" ", normalize-space(@class), " "), " graphNode ")][.//div[normalize-space()="${label}"]]`,
+  );
+}
+
 async function waitForRunParameterField(selector) {
   try {
     await $(selector).waitForDisplayed({ timeout: runStartTimeout });
@@ -203,7 +209,13 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('opens the side panel when graph node is clicked', async () => {
-    await $('.graphNode').click();
+    // Global Argo retries add an A wrapper and an A(0) pod. Select the pod when present so the
+    // Logs tab targets an execution rather than the retry wrapper.
+    const retryAttemptNode = await getGraphNodeByLabel('A(0)');
+    const loggableNode = (await retryAttemptNode.isExisting())
+      ? retryAttemptNode
+      : await getGraphNodeByLabel('A');
+    await loggableNode.click();
     await $('button=Logs').waitForDisplayed({ timeout: uiTimeout });
   });
 
