@@ -33,7 +33,7 @@
     "pako": "^2.0.4",
 
     "proto3-json-serializer": "^3.0.4",
-    "protobufjs": "~8.0.1",
+    "protobufjs": "~8.6.0",
     "re-resizable": "^6.11.2",
     "react": "^19",
     "react-ace": "^14.0.1",
