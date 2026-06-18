@@ -28,7 +28,11 @@ import { V2beta1Run } from 'src/apisv2beta1/run';
 import { QUERY_PARAMS, RouteParams } from 'src/components/Router';
 import * as features from 'src/features';
 import { Apis } from 'src/lib/Apis';
-import TestUtils, { flushPromisesInAct, mockResizeObserver, testBestPractices } from 'src/TestUtils';
+import TestUtils, {
+  flushPromisesInAct,
+  mockResizeObserver,
+  testBestPractices,
+} from 'src/TestUtils';
 import * as StaticGraphParser from 'src/lib/StaticGraphParser';
 import { PageProps } from './Page';
 import PipelineDetails from './PipelineDetails';
