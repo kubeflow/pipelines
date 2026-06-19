@@ -188,14 +188,13 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 		}, "180s", "1s").ShouldNot(BeEmpty())
 
 		Eventually(func() string {
-			if _, err := k8Client.CoreV1().Pods(testutil.GetNamespace()).Get(context.Background(), logPodName, metav1.GetOptions{}); err != nil {
-				return ""
-			}
-			logContents, err := readArgoCompatibilityRunLog(createdRun.RunID, logPodName)
+			logContents, err := k8Client.CoreV1().Pods(testutil.GetNamespace()).
+				GetLogs(logPodName, &corev1.PodLogOptions{Container: "main"}).
+				DoRaw(context.Background())
 			if err != nil {
 				return ""
 			}
-			return logContents
+			return string(logContents)
 		}, "180s", "1s").Should(ContainSubstring("input:  foo"))
 
 		artifactTimeout := time.Duration(300)
