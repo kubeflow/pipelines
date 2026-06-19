@@ -21,6 +21,11 @@ permissions:
   pull-requests: write
   issues: write
 
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   fetch_data:
     name: Fetch PR eligibility
