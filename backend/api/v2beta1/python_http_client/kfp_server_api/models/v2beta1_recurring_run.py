@@ -47,7 +47,7 @@ class V2beta1RecurringRun(object):
         'created_at': 'datetime',
         'updated_at': 'datetime',
         'status': 'V2beta1RecurringRunStatus',
-        'error': 'GooglerpcStatus',
+        'error': 'GoogleRpcStatus',
         'no_catchup': 'bool',
         'namespace': 'str',
         'experiment_id': 'str',
@@ -460,7 +460,7 @@ class V2beta1RecurringRun(object):
 
 
         :return: The error of this V2beta1RecurringRun.  # noqa: E501
-        :rtype: GooglerpcStatus
+        :rtype: GoogleRpcStatus
         """
         return self._error
 
@@ -470,7 +470,7 @@ class V2beta1RecurringRun(object):
 
 
         :param error: The error of this V2beta1RecurringRun.  # noqa: E501
-        :type error: GooglerpcStatus
+        :type error: GoogleRpcStatus
         """
 
         self._error = error

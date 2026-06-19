@@ -125,7 +125,7 @@ An unexpected error response.
 type RunServiceRetryRunV1Default struct {
 	_statusCode int
 
-	Payload *run_model.GooglerpcStatus
+	Payload *run_model.GoogleRPCStatus
 }
 
 // IsSuccess returns true when this run service retry run v1 default response has a 2xx status code
@@ -168,13 +168,13 @@ func (o *RunServiceRetryRunV1Default) String() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/runs/{run_id}/retry][%d] RunService_RetryRunV1 default %s", o._statusCode, payload)
 }
 
-func (o *RunServiceRetryRunV1Default) GetPayload() *run_model.GooglerpcStatus {
+func (o *RunServiceRetryRunV1Default) GetPayload() *run_model.GoogleRPCStatus {
 	return o.Payload
 }
 
 func (o *RunServiceRetryRunV1Default) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(run_model.GooglerpcStatus)
+	o.Payload = new(run_model.GoogleRPCStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

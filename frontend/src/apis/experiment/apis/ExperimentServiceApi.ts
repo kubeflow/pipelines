@@ -13,14 +13,14 @@
  */
 
 import * as runtime from '../runtime';
-import type { ApiExperiment, ApiListExperimentsResponse, GooglerpcStatus } from '../models/index';
+import type { ApiExperiment, ApiListExperimentsResponse, GoogleRpcStatus } from '../models/index';
 import {
   ApiExperimentFromJSON,
   ApiExperimentToJSON,
   ApiListExperimentsResponseFromJSON,
   ApiListExperimentsResponseToJSON,
-  GooglerpcStatusFromJSON,
-  GooglerpcStatusToJSON,
+  GoogleRpcStatusFromJSON,
+  GoogleRpcStatusToJSON,
 } from '../models/index';
 
 export interface ArchiveExperimentRequest {
