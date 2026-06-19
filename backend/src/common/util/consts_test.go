@@ -118,3 +118,25 @@ func TestMaxParameterBytes_EnvVarParsing(t *testing.T) {
 		})
 	}
 }
+
+func TestGetMaxMetricsFileBytes(t *testing.T) {
+	const defaultMaxMetricsFileBytes int64 = 1 << 20
+	testCases := []struct {
+		name        string
+		envValue    string
+		expectValue int64
+	}{
+		{name: "default", expectValue: defaultMaxMetricsFileBytes},
+		{name: "valid positive integer", envValue: "2048", expectValue: 2048},
+		{name: "invalid string keeps default", envValue: "invalid", expectValue: defaultMaxMetricsFileBytes},
+		{name: "zero keeps default", envValue: "0", expectValue: defaultMaxMetricsFileBytes},
+		{name: "negative keeps default", envValue: "-1", expectValue: defaultMaxMetricsFileBytes},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Setenv(MaxMetricsFileBytesEnvVar, testCase.envValue)
+			assert.Equal(t, testCase.expectValue, GetMaxMetricsFileBytes())
+		})
+	}
+}

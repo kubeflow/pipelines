@@ -31,6 +31,8 @@ const (
 
 	// MaxParameterBytesEnvVar is the environment variable name for configuring max parameter bytes.
 	MaxParameterBytesEnvVar = "MAX_PARAMETER_BYTES"
+	// MaxMetricsFileBytesEnvVar configures the maximum uncompressed metrics artifact size.
+	MaxMetricsFileBytesEnvVar = "MAX_METRICS_FILE_BYTES"
 
 	// LabelKeyWorkflowEpoch is a label on a Workflow.
 	// It captures the epoch at which the workflow was scheduled.
@@ -77,6 +79,19 @@ func GetMaxParameterBytes() int {
 		}
 	}
 	return defaultMaxParameterBytes
+}
+
+// GetMaxMetricsFileBytes returns the maximum uncompressed byte size of a
+// metrics artifact. One MiB comfortably exceeds the meaningful payload for 50
+// scalar metrics while bounding pathological JSON whitespace and encoding.
+func GetMaxMetricsFileBytes() int64 {
+	const defaultMaxMetricsFileBytes int64 = 1 << 20
+	if envValue := os.Getenv(MaxMetricsFileBytesEnvVar); envValue != "" {
+		if value, err := strconv.ParseInt(envValue, 10, 64); err == nil && value > 0 {
+			return value
+		}
+	}
+	return defaultMaxMetricsFileBytes
 }
 
 // MaxParameterBytes is the maximum byte size of the parameter column in package/pipeline DB.
