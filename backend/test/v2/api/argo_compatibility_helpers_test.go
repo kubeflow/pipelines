@@ -33,17 +33,26 @@ func TestFindArgoCompatibilityPodName(t *testing.T) {
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:        "crust-pod",
-				Annotations: map[string]string{argoNodeNameAnnotation: "artifact-pipeline.root.crust-comp"},
+				Name:        "artifact-pod",
+				Annotations: map[string]string{argoNodeNameAnnotation: "artifact-pipeline.write-artifact"},
 			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "artifact-pod-by-image"},
+			Spec: corev1.PodSpec{Containers: []corev1.Container{
+				{Image: "docker.io/alpine:3.23"},
+			}},
 		},
 	}
 
-	if got := findArgoCompatibilityPodName(pods); got != "crust-pod" {
-		t.Fatalf("findArgoCompatibilityPodName() = %q, want %q", got, "crust-pod")
+	if got := findArgoCompatibilityPodName(pods); got != "artifact-pod" {
+		t.Fatalf("findArgoCompatibilityPodName() = %q, want %q", got, "artifact-pod")
 	}
 	if got := findArgoCompatibilityPodName(pods[:1]); got != "" {
 		t.Fatalf("findArgoCompatibilityPodName() = %q, want no match", got)
+	}
+	if got := findArgoCompatibilityPodName(pods[2:]); got != "artifact-pod-by-image" {
+		t.Fatalf("findArgoCompatibilityPodName() = %q, want %q", got, "artifact-pod-by-image")
 	}
 }
 

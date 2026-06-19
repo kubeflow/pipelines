@@ -46,7 +46,8 @@ const argoCompatibilityTestsEnvironmentVariable = "ARGO_COMPATIBILITY_TESTS"
 
 const (
 	argoNodeNameAnnotation = "workflows.argoproj.io/node-name"
-	crustTaskName          = "crust-comp"
+	artifactTaskName       = "write-artifact"
+	artifactContainerImage = "alpine:3.23"
 )
 
 var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, constants.APIServerTests, "ArgoCompatibility"), func() {
@@ -163,7 +164,7 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 	})
 
 	It("preserves task metadata, artifact IDs, and archived logs after pod deletion", func() {
-		pipelineFile := filepath.Join(testutil.GetValidPipelineFilesDir(), "critical", "artifact_crust.yaml")
+		pipelineFile := filepath.Join(pipelineFilesRootDir, "argo_compatibility", "fast_artifact.yaml")
 		createdExperiment := createExperiment(experimentName)
 		createdPipeline := uploadAPipeline(pipelineFile, &testContext.Pipeline.PipelineGeneratedName)
 		createdPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &createdPipeline.PipelineID)
@@ -184,7 +185,7 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 			}
 			logPodName = findArgoCompatibilityPodName(pods.Items)
 			return logPodName
-		}, "300s", "1s").ShouldNot(BeEmpty())
+		}, "180s", "1s").ShouldNot(BeEmpty())
 
 		Eventually(func() string {
 			if _, err := k8Client.CoreV1().Pods(testutil.GetNamespace()).Get(context.Background(), logPodName, metav1.GetOptions{}); err != nil {
@@ -257,8 +258,13 @@ func runtimeStateAppearsAfter(
 func findArgoCompatibilityPodName(pods []corev1.Pod) string {
 	for _, pod := range pods {
 		nodeName := pod.Annotations[argoNodeNameAnnotation]
-		if nodeName == crustTaskName || strings.HasSuffix(nodeName, "."+crustTaskName) {
+		if nodeName == artifactTaskName || strings.HasSuffix(nodeName, "."+artifactTaskName) {
 			return pod.Name
+		}
+		for _, container := range pod.Spec.Containers {
+			if container.Image == artifactContainerImage || strings.HasSuffix(container.Image, "/"+artifactContainerImage) {
+				return pod.Name
+			}
 		}
 	}
 	return ""
