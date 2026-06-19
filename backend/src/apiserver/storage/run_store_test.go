@@ -1994,7 +1994,7 @@ func TestDeleteExpiredArchivedRuns_DeletesArchivedRunsAndDependentTables(t *test
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
 	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
-	taskStore := NewTaskStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal("task-uuid-1", nil))
+	taskStore := NewTaskStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil))
 
 	// Create an archived run that finished in the past.
 	archivedRun := &model.Run{
