@@ -74,6 +74,12 @@ var (
 	urlConfigInit  sync.Once
 )
 
+// lookupIPAddr resolves a host to its IP addresses. It is a package-level
+// variable (rather than a direct net.DefaultResolver.LookupIPAddr call) so
+// tests can substitute a fake resolver instead of performing real DNS
+// lookups.
+var lookupIPAddr = net.DefaultResolver.LookupIPAddr
+
 // initURLConfig initializes blocked networks and allowed domains
 func initURLConfig() {
 	urlConfigInit.Do(func() {
@@ -170,7 +176,7 @@ func validateResolvedIPs(host string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dnsLookupTimeout)
 	defer cancel()
 
-	addrs, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	addrs, err := lookupIPAddr(ctx, host)
 	if err != nil {
 		return util.NewInvalidInputError("DNS resolution failed for %q: %v", host, err)
 	}
@@ -232,7 +238,7 @@ func safeDialContext(ctx context.Context, network, addr string) (net.Conn, error
 
 	initURLConfig()
 
-	addrs, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	addrs, err := lookupIPAddr(ctx, host)
 	if err != nil {
 		return nil, fmt.Errorf("DNS resolution failed for %q: %v", host, err)
 	}
