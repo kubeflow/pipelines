@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-06-18
+- Last updated: 2026-06-19
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -694,3 +694,4 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
   regenerate `package-lock.json`, and commit the result.
 - Runtime component imports SDK-only modules: `_KFP_RUNTIME=true` disables many SDK imports; avoid importing SDK-only modules in task code.
 - Proxy CI jobs fail during `Deploy Squid` with `OOMKilled`, `CrashLoopBackOff`, endpoint readiness timeouts, or failed proxy tests: inspect the `squid` namespace logs/events and verify `.github/resources/squid/squid.conf` still disables caching for CI.
+- Archived run-log requests return `NoSuchKey` under a customized Argo artifact `keyFormat`: confirm the persisted Workflow node contains a `main-logs` artifact location; the API uses that stored key before its legacy configured-path fallback.

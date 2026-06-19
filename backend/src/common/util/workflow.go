@@ -775,7 +775,7 @@ func (w *Workflow) SetCannonicalLabels(name string, nextScheduledEpoch int64, in
 }
 
 // FindObjectStoreArtifactKeyOrEmpty looks up the first S3 artifact with the specified artifactName
-// on the specified nodeName. If the node has no outputs (e.g., a retry parent or step group node),
+// on the specified node ID or derived Pod name. If the node has no outputs (e.g., a retry parent or step group node),
 // it recursively checks the node's children up to a bounded depth. This handles the hierarchy
 // introduced by templateDefaults.retryStrategy: StepGroup → Retry → Pod.
 // Returns empty string if nothing is found.
@@ -784,6 +784,15 @@ func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeName string, artifactNa
 		return ""
 	}
 	node, found := w.Status.Nodes[nodeName]
+	if !found {
+		for _, candidate := range w.Status.Nodes {
+			if RetrievePodName(*w.Workflow, candidate) == nodeName {
+				node = candidate
+				found = true
+				break
+			}
+		}
+	}
 	if !found {
 		return ""
 	}
