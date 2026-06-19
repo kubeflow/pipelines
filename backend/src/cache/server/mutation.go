@@ -110,7 +110,8 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	}
 
 	// Generate the executionHashKey based on pod.metadata.annotations.workflows.argoproj.io/template
-	executionHashKey, err := generateCacheKeyFromTemplate(template)
+	// and the pod's namespace, so cache entries are scoped to a single tenant.
+	executionHashKey, err := generateCacheKeyFromTemplate(template, req.Namespace)
 	log.Println(executionHashKey)
 	if err != nil {
 		log.Printf("Unable to generate cache key for pod %s : %s", pod.ObjectMeta.Name, err.Error())
@@ -249,7 +250,7 @@ func intersectStructureWithSkeleton(src map[string]interface{}, skeleton map[str
 	return result
 }
 
-func generateCacheKeyFromTemplate(template string) (string, error) {
+func generateCacheKeyFromTemplate(template string, namespace string) (string, error) {
 	var templateMap map[string]interface{}
 	b := []byte(template)
 	err := json.Unmarshal(b, &templateMap)
@@ -274,7 +275,16 @@ func generateCacheKeyFromTemplate(template string) (string, error) {
 	}
 	cacheKeyMap := intersectStructureWithSkeleton(templateMap, templateSkeleton)
 
-	b, err = json.Marshal(cacheKeyMap)
+	// Bind the cache entry to the pod's namespace (the KFP tenant boundary) so an
+	// entry written by one tenant is never served to another. Without the
+	// namespace the key is a pure function of container content, which any tenant
+	// can replicate, allowing cross-tenant cache hits in multi-user mode.
+	keyedStructure := map[string]interface{}{
+		"namespace": namespace,
+		"template":  cacheKeyMap,
+	}
+
+	b, err = json.Marshal(keyedStructure)
 	if err != nil {
 		return "", err
 	}
