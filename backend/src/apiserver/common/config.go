@@ -318,5 +318,9 @@ func GetRunsGCInterval() time.Duration {
 }
 
 func GetRunsGCBatchSize() int {
-	return GetIntConfigWithDefault(RunsGCBatchSize, 100)
+	v := GetIntConfigWithDefault(RunsGCBatchSize, 100)
+	if v <= 0 {
+		return 100
+	}
+	return v
 }

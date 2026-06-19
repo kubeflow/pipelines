@@ -141,7 +141,7 @@ func (gc *RunGarbageCollector) collect() {
 	// Pass 1: archive terminal active runs past retention.
 	archiveRetention := common.GetRunsRetentionTime()
 	if archiveRetention > 0 {
-		cutoff := now - int64(archiveRetention.Seconds())
+		cutoff := now - int64(archiveRetention/time.Second)
 		archived, err := gc.runStore.ArchiveExpiredRuns(cutoff, batchSize)
 		if err != nil {
 			glog.Errorf("Run GC archive pass failed: %v", err)
@@ -153,7 +153,7 @@ func (gc *RunGarbageCollector) collect() {
 	// Pass 2: delete archived runs past retention.
 	deleteRetention := common.GetArchivedRunsRetentionTime()
 	if deleteRetention > 0 {
-		cutoff := now - int64(deleteRetention.Seconds())
+		cutoff := now - int64(deleteRetention/time.Second)
 		deleted, err := gc.runStore.DeleteExpiredArchivedRuns(cutoff, batchSize)
 		if err != nil {
 			glog.Errorf("Run GC delete pass failed: %v", err)

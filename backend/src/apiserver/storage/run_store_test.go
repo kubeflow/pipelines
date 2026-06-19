@@ -2143,4 +2143,3 @@ func TestDeleteExpiredArchivedRuns_DoesNotDeleteRecentArchived(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, model.StorageStateArchived, run.StorageState)
 }
-

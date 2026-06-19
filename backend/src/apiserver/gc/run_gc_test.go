@@ -15,12 +15,12 @@
 package gc
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
@@ -57,19 +57,21 @@ func (f *fakeRunStore) DeleteExpiredArchivedRuns(cutoff int64, batchSize int) (i
 }
 
 // Stubs for the remaining RunStoreInterface methods.
-func (f *fakeRunStore) CreateRun(_ *model.Run) (*model.Run, error)                      { return nil, nil }
-func (f *fakeRunStore) GetRun(_ string) (*model.Run, error)                             { return nil, nil }
+func (f *fakeRunStore) CreateRun(_ *model.Run) (*model.Run, error) { return nil, nil }
+func (f *fakeRunStore) GetRun(_ string) (*model.Run, error)        { return nil, nil }
 func (f *fakeRunStore) ListRuns(_ *model.FilterContext, _ *list.Options) ([]*model.Run, int, string, error) {
 	return nil, 0, "", nil
 }
-func (f *fakeRunStore) UpdateRun(_ *model.Run) error                                    { return nil }
-func (f *fakeRunStore) UpdateRunPluginsOutput(_ string, _ *model.LargeText) error        { return nil }
-func (f *fakeRunStore) ArchiveRun(_ string) error                                        { return nil }
-func (f *fakeRunStore) UnarchiveRun(_ string) error                                      { return nil }
-func (f *fakeRunStore) DeleteRun(_ string) error                                         { return nil }
-func (f *fakeRunStore) CreateMetric(_ *model.RunMetric) error                            { return nil }
-func (f *fakeRunStore) TerminateRun(_ string) error                                      { return nil }
-func (f *fakeRunStore) GetRunByRecurringRunIDAndDisplayName(_, _ string) (string, error)  { return "", nil }
+func (f *fakeRunStore) UpdateRun(_ *model.Run) error                              { return nil }
+func (f *fakeRunStore) UpdateRunPluginsOutput(_ string, _ *model.LargeText) error { return nil }
+func (f *fakeRunStore) ArchiveRun(_ string) error                                 { return nil }
+func (f *fakeRunStore) UnarchiveRun(_ string) error                               { return nil }
+func (f *fakeRunStore) DeleteRun(_ string) error                                  { return nil }
+func (f *fakeRunStore) CreateMetric(_ *model.RunMetric) error                     { return nil }
+func (f *fakeRunStore) TerminateRun(_ string) error                               { return nil }
+func (f *fakeRunStore) GetRunByRecurringRunIDAndDisplayName(_, _ string) (string, error) {
+	return "", nil
+}
 
 func resetGCConfig() {
 	viper.Set(common.RunsRetentionTime, "")
@@ -172,7 +174,7 @@ func TestCollect_ArchiveErrorDoesNotBlockDeletePass(t *testing.T) {
 
 	fake := &fakeRunStore{
 		archiveReturn: 0,
-		archiveErr:    util.NewInternalServerError(nil, "db connection lost"),
+		archiveErr:    fmt.Errorf("db connection lost"),
 		deleteReturn:  4,
 	}
 	gc := &RunGarbageCollector{
