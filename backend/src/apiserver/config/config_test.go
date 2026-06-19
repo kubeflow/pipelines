@@ -301,6 +301,50 @@ func TestLoadSamplesMultiplePipelineVersionsInConfig(t *testing.T) {
 	require.Equal(t, totalSize, 2)
 }
 
+func TestLoadSamples_SameVersionNameDifferentPipelines(t *testing.T) {
+	viper.Set("POD_NAMESPACE", "")
+	rm := fakeResourceManager()
+	pc := config{
+		LoadSamplesOnRestart: true,
+		Pipelines: []configPipelines{
+			{
+				Name:        "Pipeline A",
+				Description: "test description",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "v1.0",
+			},
+			{
+				Name:        "Pipeline B",
+				Description: "test description",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "v1.0",
+			},
+		},
+	}
+
+	path, err := writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	pipelineA, err := rm.GetPipelineByNameAndNamespace("Pipeline A", "")
+	require.NoError(t, err)
+	require.NotNil(t, pipelineA)
+
+	pipelineB, err := rm.GetPipelineByNameAndNamespace("Pipeline B", "")
+	require.NoError(t, err)
+	require.NotNil(t, pipelineB)
+
+	versionA, err := rm.GetPipelineVersionByName(pipelineA.UUID, "v1.0")
+	require.NoError(t, err)
+	assert.Equal(t, pipelineA.UUID, versionA.PipelineId)
+
+	versionB, err := rm.GetPipelineVersionByName(pipelineB.UUID, "v1.0")
+	require.NoError(t, err)
+	assert.Equal(t, pipelineB.UUID, versionB.PipelineId)
+
+	assert.NotEqual(t, versionA.UUID, versionB.UUID)
+}
+
 func TestParseManagedPipelinesTags(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -517,6 +561,83 @@ func TestLoadSamples_ExistingPipelineNotRetagged(t *testing.T) {
 	pipeline, err := rm.GetPipelineByNameAndNamespace("Existing Pipeline", "")
 	require.NoError(t, err)
 	assert.Empty(t, pipeline.Tags)
+}
+
+func TestLoadSamples_PreExistingPipelineEmptyNamespace(t *testing.T) {
+	rm := fakeResourceManager()
+
+	// Step 1: Load with empty namespace — pipeline stored with Namespace = ""
+	viper.Set("POD_NAMESPACE", "")
+	pc := config{
+		LoadSamplesOnRestart: true,
+		Pipelines: []configPipelines{
+			{
+				Name:        "My Pipeline",
+				Description: "test description",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "v1",
+			},
+		},
+	}
+	path, err := writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	pipeline, err := rm.GetPipelineByNameAndNamespace("My Pipeline", "")
+	require.NoError(t, err)
+	require.NotNil(t, pipeline)
+
+	// Step 2: Switch to non-empty namespace and add a new version
+	viper.Set("POD_NAMESPACE", "test-namespace")
+	pc.Pipelines[0].VersionName = "v2"
+	path, err = writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	// Step 3: Assert: the new version was created under the existing pipeline
+	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
+	require.NoError(t, err)
+	_, totalSize, _, err := rm.ListPipelineVersions(pipeline.UUID, opts, nil)
+	require.NoError(t, err)
+	require.Equal(t, 2, totalSize)
+}
+
+func TestLoadSamples_IdempotencyAcrossNamespaceSwitch(t *testing.T) {
+	rm := fakeResourceManager()
+
+	// Step 1: Load with empty namespace
+	viper.Set("POD_NAMESPACE", "")
+	pc := config{
+		LoadSamplesOnRestart: true,
+		Pipelines: []configPipelines{
+			{
+				Name:        "My Pipeline",
+				Description: "test description",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "v1",
+			},
+		},
+	}
+	path, err := writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	pipeline, err := rm.GetPipelineByNameAndNamespace("My Pipeline", "")
+	require.NoError(t, err)
+	require.NotNil(t, pipeline)
+
+	// Step 2: Switch namespace but keep same version name
+	viper.Set("POD_NAMESPACE", "test-namespace")
+	path, err = writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	// Step 3: Assert: no duplicate version was created
+	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
+	require.NoError(t, err)
+	_, totalSize, _, err := rm.ListPipelineVersions(pipeline.UUID, opts, nil)
+	require.NoError(t, err)
+	require.Equal(t, 1, totalSize)
 }
 
 func writeSampleConfig(t *testing.T, config config, path string) (string, error) {
