@@ -172,6 +172,7 @@ type OpenBucketConfig struct {
 	k8sClient kubernetes.Interface
 	namespace string
 	config    *objectstore.Config
+	open      func(context.Context, kubernetes.Interface, string, *objectstore.Config) (*blob.Bucket, error)
 }
 
 // Execute calls executeV2, updates the cache, and publishes the results to MLMD.
@@ -775,6 +776,18 @@ type uploadOutputArtifactsOptions struct {
 	metadataClient metadata.ClientInterface
 }
 
+type outputArtifactUploadError struct {
+	err error
+}
+
+func (e *outputArtifactUploadError) Error() string {
+	return e.err.Error()
+}
+
+func (e *outputArtifactUploadError) Unwrap() error {
+	return e.err
+}
+
 func uploadOutputArtifacts(
 	ctx context.Context,
 	executorInput *pipelinespec.ExecutorInput,
@@ -831,7 +844,7 @@ func uploadOutputArtifacts(
 							continue
 						}
 					} else {
-						return nil, fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)
+						return nil, &outputArtifactUploadError{err: fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)}
 					}
 				}
 			}
@@ -874,21 +887,33 @@ func uploadOutputArtifactsWithRetry(
 
 	for retryCount := 1; retryCount < maxAttempts; retryCount++ {
 		glog.Warningf("Failed to upload output artifacts: %v", err)
-		glog.Info("Refreshing credentials before retrying artifacts upload.")
-		opts.bucket, err = objectstore.OpenBucket(
-			openBucketConfig.ctx,
-			openBucketConfig.k8sClient,
-			openBucketConfig.namespace,
-			openBucketConfig.config,
-		)
-		if err != nil {
-			glog.Infof("Failed to refresh credentials: %v", err)
-			finalErr = err
-			continue
+		var uploadErr *outputArtifactUploadError
+		if errors.As(err, &uploadErr) {
+			glog.Info("Refreshing credentials before retrying artifacts upload.")
+			if openBucketConfig == nil {
+				finalErr = fmt.Errorf("failed to refresh credentials before retrying artifacts upload: open bucket config is nil: %w", err)
+				break
+			}
+			openBucket := objectstore.OpenBucket
+			if openBucketConfig.open != nil {
+				openBucket = openBucketConfig.open
+			}
+			refreshedBucket, err := openBucket(
+				openBucketConfig.ctx,
+				openBucketConfig.k8sClient,
+				openBucketConfig.namespace,
+				openBucketConfig.config,
+			)
+			if err != nil {
+				glog.Infof("Failed to refresh credentials: %v", err)
+				finalErr = err
+				continue
+			}
+			opts.bucket = refreshedBucket
 		}
 
 		glog.Infof("Executing uploadOutputArtifacts attempt: %d", retryCount+1)
-		outputArtifacts, err := uploadOutputArtifacts(ctx, executorInput, executorOutput, opts, componentSucceeded)
+		outputArtifacts, err = uploadOutputArtifacts(ctx, executorInput, executorOutput, opts, componentSucceeded)
 
 		if err == nil {
 			return outputArtifacts, nil
