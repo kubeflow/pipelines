@@ -13,12 +13,12 @@
  */
 
 import * as runtime from '../runtime';
-import type { ApiVisualization, GooglerpcStatus } from '../models/index';
+import type { ApiVisualization, GoogleRpcStatus } from '../models/index';
 import {
   ApiVisualizationFromJSON,
   ApiVisualizationToJSON,
-  GooglerpcStatusFromJSON,
-  GooglerpcStatusToJSON,
+  GoogleRpcStatusFromJSON,
+  GoogleRpcStatusToJSON,
 } from '../models/index';
 
 export interface CreateVisualizationRequest {

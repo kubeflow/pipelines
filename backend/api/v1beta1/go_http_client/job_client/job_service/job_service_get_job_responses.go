@@ -127,7 +127,7 @@ An unexpected error response.
 type JobServiceGetJobDefault struct {
 	_statusCode int
 
-	Payload *job_model.GooglerpcStatus
+	Payload *job_model.GoogleRPCStatus
 }
 
 // IsSuccess returns true when this job service get job default response has a 2xx status code
@@ -170,13 +170,13 @@ func (o *JobServiceGetJobDefault) String() string {
 	return fmt.Sprintf("[GET /apis/v1beta1/jobs/{id}][%d] JobService_GetJob default %s", o._statusCode, payload)
 }
 
-func (o *JobServiceGetJobDefault) GetPayload() *job_model.GooglerpcStatus {
+func (o *JobServiceGetJobDefault) GetPayload() *job_model.GoogleRPCStatus {
 	return o.Payload
 }
 
 func (o *JobServiceGetJobDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(job_model.GooglerpcStatus)
+	o.Payload = new(job_model.GoogleRPCStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
