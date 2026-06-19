@@ -974,6 +974,78 @@ func TestGetPipelineVersionByName_HyphenCollisionFallthrough(t *testing.T) {
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
 
+func TestGetPipelineVersionByName_HyphenCollisionFallbackSuccess(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, v2beta1.AddToScheme(scheme))
+
+	pipelineFoo := &v2beta1.Pipeline{
+		ObjectMeta: metav1.ObjectMeta{
+			UID:       DefaultFakePipelineIdThree,
+			Name:      "foo",
+			Namespace: "Test",
+		},
+	}
+	pipelineFooBar := &v2beta1.Pipeline{
+		ObjectMeta: metav1.ObjectMeta{
+			UID:       DefaultFakePipelineIdFour,
+			Name:      "foo-bar",
+			Namespace: "Test",
+		},
+	}
+
+	// Legacy bare-name CR owned by pipeline "foo-bar"
+	legacyVersion := &v2beta1.PipelineVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			UID:       "legacy-version-uid",
+			Name:      "baz",
+			Namespace: "Test",
+			Labels: map[string]string{
+				"pipelines.kubeflow.org/pipeline-id": DefaultFakePipelineIdFour,
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: v2beta1.GroupVersion.String(),
+					Kind:       "Pipeline",
+					UID:        DefaultFakePipelineIdFour,
+					Name:       "foo-bar",
+				},
+			},
+		},
+		Spec: v2beta1.PipelineVersionSpec{
+			PipelineName: "foo-bar",
+			PipelineSpec: getBasicPipelineSpec(),
+		},
+	}
+
+	k8sClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(pipelineFoo, pipelineFooBar, legacyVersion).
+		Build()
+
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	// Pipeline "foo" + version "bar-baz" → composite "foo-bar-baz"
+	_, err := store.CreatePipelineVersion(&model.PipelineVersion{
+		Name:         "bar-baz",
+		PipelineId:   DefaultFakePipelineIdThree,
+		PipelineSpec: model.LargeText(getBasicPipelineSpecYAML()),
+	})
+	require.NoError(t, err)
+
+	// Lookup "foo-bar" + "baz": composite "foo-bar-baz" exists but is owned by
+	// pipeline "foo". The code detects the ownership mismatch, falls back to
+	// bare-name "baz", and finds the legacy CR owned by pipeline "foo-bar".
+	pv, err := store.GetPipelineVersionByName(DefaultFakePipelineIdFour, "baz")
+	require.NoError(t, err)
+	assert.Equal(t, "baz", pv.Name)
+	assert.Equal(t, DefaultFakePipelineIdFour, pv.PipelineId)
+	assert.Equal(t, "legacy-version-uid", pv.UUID)
+}
+
 func TestCreatePipelineAndPipelineVersion_InvalidVersionName(t *testing.T) {
 	podNamespace := viper.Get("POD_NAMESPACE")
 	viper.Set("POD_NAMESPACE", "Test")
