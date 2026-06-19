@@ -5,6 +5,6 @@ export * from './ApiIntValues';
 export * from './ApiLongValues';
 export * from './ApiPredicate';
 export * from './ApiStringValues';
-export * from './GooglerpcStatus';
+export * from './GoogleRpcStatus';
 export * from './PredicateOp';
 export * from './ProtobufAny';

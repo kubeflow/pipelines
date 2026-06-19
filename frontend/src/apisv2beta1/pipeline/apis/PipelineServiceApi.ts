@@ -14,9 +14,9 @@
 
 import * as runtime from '../runtime';
 import type {
-  GooglerpcStatus,
-  RequiredInputPipelineObjectWithUpdatedFieldsPipelineIdIsRequiredToIdentifyThePipelineMutableFieldsDisplayNameTags,
-  RequiredInputPipelineVersionObjectWithUpdatedFieldsPipelineIdAndPipelineVersionIdAreRequiredToIdentifyTheVersionMutableFieldsDisplayNameTags,
+  GoogleRpcStatus,
+  PipelineServiceUpdatePipelineRequest,
+  PipelineServiceUpdatePipelineVersionRequest,
   V2beta1CreatePipelineAndVersionRequest,
   V2beta1ListPipelineVersionsResponse,
   V2beta1ListPipelinesResponse,
@@ -24,12 +24,12 @@ import type {
   V2beta1PipelineVersion,
 } from '../models/index';
 import {
-  GooglerpcStatusFromJSON,
-  GooglerpcStatusToJSON,
-  RequiredInputPipelineObjectWithUpdatedFieldsPipelineIdIsRequiredToIdentifyThePipelineMutableFieldsDisplayNameTagsFromJSON,
-  RequiredInputPipelineObjectWithUpdatedFieldsPipelineIdIsRequiredToIdentifyThePipelineMutableFieldsDisplayNameTagsToJSON,
-  RequiredInputPipelineVersionObjectWithUpdatedFieldsPipelineIdAndPipelineVersionIdAreRequiredToIdentifyTheVersionMutableFieldsDisplayNameTagsFromJSON,
-  RequiredInputPipelineVersionObjectWithUpdatedFieldsPipelineIdAndPipelineVersionIdAreRequiredToIdentifyTheVersionMutableFieldsDisplayNameTagsToJSON,
+  GoogleRpcStatusFromJSON,
+  GoogleRpcStatusToJSON,
+  PipelineServiceUpdatePipelineRequestFromJSON,
+  PipelineServiceUpdatePipelineRequestToJSON,
+  PipelineServiceUpdatePipelineVersionRequestFromJSON,
+  PipelineServiceUpdatePipelineVersionRequestToJSON,
   V2beta1CreatePipelineAndVersionRequestFromJSON,
   V2beta1CreatePipelineAndVersionRequestToJSON,
   V2beta1ListPipelineVersionsResponseFromJSON,
@@ -97,13 +97,13 @@ export interface ListPipelinesRequest {
 
 export interface UpdatePipelineRequest {
   pipeline_pipeline_id: string;
-  pipeline: RequiredInputPipelineObjectWithUpdatedFieldsPipelineIdIsRequiredToIdentifyThePipelineMutableFieldsDisplayNameTags;
+  pipeline: PipelineServiceUpdatePipelineRequest;
 }
 
 export interface UpdatePipelineVersionRequest {
   pipeline_version_pipeline_id: string;
   pipeline_version_pipeline_version_id: string;
-  pipeline_version: RequiredInputPipelineVersionObjectWithUpdatedFieldsPipelineIdAndPipelineVersionIdAreRequiredToIdentifyTheVersionMutableFieldsDisplayNameTags;
+  pipeline_version: PipelineServiceUpdatePipelineVersionRequest;
 }
 
 /**
@@ -787,9 +787,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
         method: 'PATCH',
         headers: headerParameters,
         query: queryParameters,
-        body: RequiredInputPipelineObjectWithUpdatedFieldsPipelineIdIsRequiredToIdentifyThePipelineMutableFieldsDisplayNameTagsToJSON(
-          requestParameters['pipeline'],
-        ),
+        body: PipelineServiceUpdatePipelineRequestToJSON(requestParameters['pipeline']),
       },
       initOverrides,
     );
@@ -802,7 +800,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
    */
   async updatePipeline(
     pipeline_pipeline_id: string,
-    pipeline: RequiredInputPipelineObjectWithUpdatedFieldsPipelineIdIsRequiredToIdentifyThePipelineMutableFieldsDisplayNameTags,
+    pipeline: PipelineServiceUpdatePipelineRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<V2beta1Pipeline> {
     const response = await this.updatePipelineRaw(
@@ -866,7 +864,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
         method: 'PATCH',
         headers: headerParameters,
         query: queryParameters,
-        body: RequiredInputPipelineVersionObjectWithUpdatedFieldsPipelineIdAndPipelineVersionIdAreRequiredToIdentifyTheVersionMutableFieldsDisplayNameTagsToJSON(
+        body: PipelineServiceUpdatePipelineVersionRequestToJSON(
           requestParameters['pipeline_version'],
         ),
       },
@@ -884,7 +882,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
   async updatePipelineVersion(
     pipeline_version_pipeline_id: string,
     pipeline_version_pipeline_version_id: string,
-    pipeline_version: RequiredInputPipelineVersionObjectWithUpdatedFieldsPipelineIdAndPipelineVersionIdAreRequiredToIdentifyTheVersionMutableFieldsDisplayNameTags,
+    pipeline_version: PipelineServiceUpdatePipelineVersionRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<V2beta1PipelineVersion> {
     const response = await this.updatePipelineVersionRaw(
