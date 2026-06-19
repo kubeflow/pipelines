@@ -18,8 +18,8 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"io"
-	"strings"
 )
 
 // Utils to archive and extract tgz (tar.gz) file.
@@ -53,34 +53,49 @@ func ArchiveTgz(files map[string]string) (string, error) {
 	return buf.String(), nil
 }
 
-// ExtractTgz extracts a list of files from a tgz content. The output is a map
-// with file name as key and content as value. Nested files and directories are
-// not supported.
-func ExtractTgz(tgzContent string) (map[string]string, error) {
-	sr := strings.NewReader(tgzContent)
-	gr, err := gzip.NewReader(sr)
-	if err != nil {
-		return nil, err
+// readSingleFileFromTgz streams the only regular file in a tar.gz archive to
+// consume. The caller provides the maximum uncompressed file size.
+func readSingleFileFromTgz(tgzContent []byte, maxFileSize int64, consume func(io.Reader) error) error {
+	if maxFileSize <= 0 {
+		return fmt.Errorf("maximum metrics file size must be positive")
 	}
+
+	gr, err := gzip.NewReader(bytes.NewReader(tgzContent))
+	if err != nil {
+		return err
+	}
+	defer gr.Close()
 	tr := tar.NewReader(gr)
 
-	files := make(map[string]string)
-	for {
-		hdr, err := tr.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-		if hdr == nil {
-			continue
-		}
-		fileContent, err := io.ReadAll(tr)
-		if err != nil {
-			return nil, err
-		}
-		files[hdr.Name] = string(fileContent)
+	hdr, err := tr.Next()
+	if err == io.EOF {
+		return fmt.Errorf("metrics archive must contain exactly one regular file")
 	}
-	return files, nil
+	if err != nil {
+		return err
+	}
+	if hdr.Typeflag != tar.TypeReg && hdr.Typeflag != tar.TypeRegA {
+		return fmt.Errorf("metrics archive entry %q must be a regular file", hdr.Name)
+	}
+	if hdr.Size < 0 {
+		return fmt.Errorf("metrics archive entry %q has invalid negative size %d", hdr.Name, hdr.Size)
+	}
+	if hdr.Size > maxFileSize {
+		return fmt.Errorf("metrics archive entry %q exceeds maximum size of %d bytes", hdr.Name, maxFileSize)
+	}
+
+	limitedReader := &io.LimitedReader{R: tr, N: maxFileSize}
+	if err := consume(limitedReader); err != nil {
+		return err
+	}
+	if _, err := io.Copy(io.Discard, limitedReader); err != nil {
+		return err
+	}
+
+	if _, err := tr.Next(); err == nil {
+		return fmt.Errorf("metrics archive must contain exactly one file")
+	} else if err != io.EOF {
+		return err
+	}
+	return nil
 }
