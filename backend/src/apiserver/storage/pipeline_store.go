@@ -1064,7 +1064,6 @@ func (s *PipelineStore) GetPipelineVersionByName(pipelineID, name string) (*mode
 			sq.Eq{"pipeline_versions.PipelineId": pipelineID},
 			sq.Eq{"pipeline_versions.Status": model.PipelineVersionReady},
 		}).
-		Limit(1).
 		ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to fetch pipeline version with name=%v and pipelineId=%v", name, pipelineID)
