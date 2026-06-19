@@ -125,7 +125,7 @@ An unexpected error response.
 type RunServiceUnarchiveRunV1Default struct {
 	_statusCode int
 
-	Payload *run_model.GooglerpcStatus
+	Payload *run_model.GoogleRPCStatus
 }
 
 // IsSuccess returns true when this run service unarchive run v1 default response has a 2xx status code
@@ -168,13 +168,13 @@ func (o *RunServiceUnarchiveRunV1Default) String() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/runs/{id}:unarchive][%d] RunService_UnarchiveRunV1 default %s", o._statusCode, payload)
 }
 
-func (o *RunServiceUnarchiveRunV1Default) GetPayload() *run_model.GooglerpcStatus {
+func (o *RunServiceUnarchiveRunV1Default) GetPayload() *run_model.GoogleRPCStatus {
 	return o.Payload
 }
 
 func (o *RunServiceUnarchiveRunV1Default) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(run_model.GooglerpcStatus)
+	o.Payload = new(run_model.GoogleRPCStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

@@ -125,7 +125,7 @@ An unexpected error response.
 type ExperimentServiceUnarchiveExperimentDefault struct {
 	_statusCode int
 
-	Payload *experiment_model.GooglerpcStatus
+	Payload *experiment_model.GoogleRPCStatus
 }
 
 // IsSuccess returns true when this experiment service unarchive experiment default response has a 2xx status code
@@ -168,13 +168,13 @@ func (o *ExperimentServiceUnarchiveExperimentDefault) String() string {
 	return fmt.Sprintf("[POST /apis/v2beta1/experiments/{experiment_id}:unarchive][%d] ExperimentService_UnarchiveExperiment default %s", o._statusCode, payload)
 }
 
-func (o *ExperimentServiceUnarchiveExperimentDefault) GetPayload() *experiment_model.GooglerpcStatus {
+func (o *ExperimentServiceUnarchiveExperimentDefault) GetPayload() *experiment_model.GoogleRPCStatus {
 	return o.Payload
 }
 
 func (o *ExperimentServiceUnarchiveExperimentDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(experiment_model.GooglerpcStatus)
+	o.Payload = new(experiment_model.GoogleRPCStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

@@ -17,6 +17,7 @@ syntax = "proto3";
 option go_package = "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client";
 package kubeflow.pipelines.backend.api.v2beta1;
 
+import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
 // This dummy service is required so that grpc-gateway will generate Swagger
@@ -24,7 +25,11 @@ import "google/protobuf/timestamp.proto";
 // since Filter itself is not used in any of the RPC calls - only a serialized
 // encoded version of it is used.
 service DummyFilterService {
-  rpc GetFilter(Filter) returns (Filter) {}
+  rpc GetFilter(Filter) returns (Filter) {
+    option (google.api.http) = {
+      get: "/apis/v2beta1/filters"
+    };
+  }
 }
 
 // Filter is used to filter resources returned from a ListXXX request.
