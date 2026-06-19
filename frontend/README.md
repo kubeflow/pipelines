@@ -25,6 +25,7 @@ You will need the following installed in your environment:
 * [Kind] 
 * [Kustomize] 
 * [Node] version specified in the [.nvmrc]
+* npm version specified in [package.json]
 
 > [!Note]
 > MAC users have reported positive experiences using [Docker + Colima] when using Kind environments. Consider
@@ -69,6 +70,7 @@ Now navigate to the KFP frontend folder, install and build your NPM dependencies
 
 ```bash
 cd ${WORKING_DIRECTORY}/frontend
+npm install --global "$(node -p 'require("./package.json").packageManager')"
 npm ci
 npm run build
 ```
@@ -149,6 +151,7 @@ For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 [Kustomize]: https://kustomize.io
 [Node]: https://www.npmjs.com/package/node
 [.nvmrc]: .nvmrc
+[package.json]: package.json
 [CONTRIBUTING.md]: CONTRIBUTING.md
 [scripts/ui-smoke-test/README.md]: scripts/ui-smoke-test/README.md
 [http://127.0.0.1:3000]: http://127.0.0.1:3000
