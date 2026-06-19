@@ -214,18 +214,14 @@ describe('PipelineDetails', () => {
       display_name: 'test-pipeline-version',
       pipeline_id: 'test-pipeline-id',
       pipeline_version_id: 'test-pipeline-version-id',
-      pipeline_spec: JsYaml.safeLoad(
-        'spec:\n  arguments:\n    parameters:\n      - name: output\n',
-      ),
+      pipeline_spec: JsYaml.load('spec:\n  arguments:\n    parameters:\n      - name: output\n'),
     };
 
     newTestV2PipelineVersion = {
       display_name: 'new-test-pipeline-version',
       pipeline_id: 'test-pipeline-id',
       pipeline_version_id: 'new-test-pipeline-version-id',
-      pipeline_spec: JsYaml.safeLoad(
-        'spec:\n  arguments:\n    parameters:\n      - name: output\n',
-      ),
+      pipeline_spec: JsYaml.load('spec:\n  arguments:\n    parameters:\n      - name: output\n'),
     };
 
     testV2Run = {
