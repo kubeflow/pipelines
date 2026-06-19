@@ -537,6 +537,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - Kind-based clusters are provisioned via the `kfp-cluster` composite action, parameterized by `k8s_version`, `pipeline_store`, `proxy`, `cache_enabled`, and optional `argo_version`.
 - The `create-cluster` and `deploy` actions are used by newer suites; `kfp-k8s` installs SDK components from source inside jobs that execute Python-based tests.
 - The `deploy` action downloads and loads CI-built images before deploying optional Squid proxy support, preloads runtime base images used by test pods and init containers, and waits for Squid readiness/endpoints in proxy lanes.
+- The `test-and-report` action port-forwards MLMD on port `8080` only when `ARGO_COMPATIBILITY_TESTS=true`, allowing the canonical Argo compatibility API job to validate execution/artifact metadata without adding another test lane.
 - Proxy test failures collect both the KFP namespace and `squid` namespace logs/events to diagnose proxy-service readiness separately from pipeline failures.
 - The CI proxy runs Squid as a no-cache forward proxy under the historical `squid` namespace/service names.
 - The `protobuf` composite action prepares `protoc` and related dependencies when compiling Python protobufs.

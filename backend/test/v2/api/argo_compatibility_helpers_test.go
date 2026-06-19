@@ -17,7 +17,9 @@ package api
 import (
 	"testing"
 
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
+	"google.golang.org/protobuf/proto"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,57 +58,68 @@ func TestFindArgoCompatibilityPodName(t *testing.T) {
 	}
 }
 
-func TestArgoCompatibilityMetadataReady(t *testing.T) {
-	executionOnly := &run_model.V2beta1PipelineTaskDetail{ExecutionID: "11"}
-	artifactOnly := &run_model.V2beta1PipelineTaskDetail{
-		Outputs: map[string]run_model.V2beta1ArtifactList{
-			"dataset": {ArtifactIds: []string{"22"}},
-		},
+func TestFindArgoCompatibilityMetadataIDs(t *testing.T) {
+	containerExecution := &pb.Execution{
+		Id:   proto.Int64(33),
+		Type: proto.String(string(metadata.ContainerExecutionTypeName)),
 	}
-	executionWithArtifact := &run_model.V2beta1PipelineTaskDetail{
-		ExecutionID: "33",
-		Outputs: map[string]run_model.V2beta1ArtifactList{
-			"dataset": {ArtifactIds: []string{"44"}},
-		},
+	dagExecution := &pb.Execution{
+		Id:   proto.Int64(11),
+		Type: proto.String(string(metadata.DagExecutionTypeName)),
 	}
-
 	tests := []struct {
-		name        string
-		run         *run_model.V2beta1Run
-		expectReady bool
+		name              string
+		executions        []*pb.Execution
+		events            []*pb.Event
+		expectExecutionID int64
+		expectArtifactID  int64
 	}{
-		{name: "missing run details", run: &run_model.V2beta1Run{}},
 		{
-			name: "execution ID only",
-			run: &run_model.V2beta1Run{RunDetails: &run_model.V2beta1RunDetails{
-				TaskDetails: []*run_model.V2beta1PipelineTaskDetail{executionOnly},
+			name:       "container execution without an output artifact",
+			executions: []*pb.Execution{containerExecution},
+		},
+		{
+			name:       "output artifact linked to a DAG execution",
+			executions: []*pb.Execution{dagExecution, containerExecution},
+			events: []*pb.Event{{
+				ExecutionId: proto.Int64(11),
+				ArtifactId:  proto.Int64(22),
+				Type:        pb.Event_OUTPUT.Enum(),
 			}},
 		},
 		{
-			name: "artifact ID only",
-			run: &run_model.V2beta1Run{RunDetails: &run_model.V2beta1RunDetails{
-				TaskDetails: []*run_model.V2beta1PipelineTaskDetail{artifactOnly},
+			name:       "declared output is not a produced artifact",
+			executions: []*pb.Execution{containerExecution},
+			events: []*pb.Event{{
+				ExecutionId: proto.Int64(33),
+				ArtifactId:  proto.Int64(44),
+				Type:        pb.Event_DECLARED_OUTPUT.Enum(),
 			}},
 		},
 		{
-			name: "execution and artifact IDs on separate tasks",
-			run: &run_model.V2beta1Run{RunDetails: &run_model.V2beta1RunDetails{
-				TaskDetails: []*run_model.V2beta1PipelineTaskDetail{executionOnly, artifactOnly},
+			name:       "output artifact linked to the container execution",
+			executions: []*pb.Execution{dagExecution, containerExecution},
+			events: []*pb.Event{{
+				ExecutionId: proto.Int64(33),
+				ArtifactId:  proto.Int64(44),
+				Type:        pb.Event_OUTPUT.Enum(),
 			}},
-		},
-		{
-			name: "execution and artifact IDs on the same task",
-			run: &run_model.V2beta1Run{RunDetails: &run_model.V2beta1RunDetails{
-				TaskDetails: []*run_model.V2beta1PipelineTaskDetail{executionWithArtifact},
-			}},
-			expectReady: true,
+			expectExecutionID: 33,
+			expectArtifactID:  44,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if got := argoCompatibilityMetadataReady(test.run); got != test.expectReady {
-				t.Fatalf("argoCompatibilityMetadataReady() = %t, want %t", got, test.expectReady)
+			executionID, artifactID := findArgoCompatibilityMetadataIDs(test.executions, test.events)
+			if executionID != test.expectExecutionID || artifactID != test.expectArtifactID {
+				t.Fatalf(
+					"findArgoCompatibilityMetadataIDs() = (%d, %d), want (%d, %d)",
+					executionID,
+					artifactID,
+					test.expectExecutionID,
+					test.expectArtifactID,
+				)
 			}
 		})
 	}

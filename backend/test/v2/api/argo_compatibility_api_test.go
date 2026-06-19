@@ -31,9 +31,12 @@ import (
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata/testutils"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/testutil"
+	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -163,8 +166,15 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 		Expect(runtimeStateAppearsAfter(retriedRun.StateHistory, stateHistoryLengthBeforeRetry, run_model.V2beta1RuntimeStateRUNNING)).To(BeTrue())
 	})
 
-	It("preserves task metadata, artifact IDs, and archived logs after pod deletion", func() {
+	It("writes execution and artifact metadata and serves archived logs after pod deletion", func() {
 		pipelineFile := filepath.Join(pipelineFilesRootDir, "argo_compatibility", "fast_artifact.yaml")
+		mlmdClient, err := testutils.NewTestMlmdClient(
+			"127.0.0.1",
+			metadata.GetMetadataConfig().Port,
+			*config.TLSEnabled,
+			*config.CaCertPath,
+		)
+		Expect(err).NotTo(HaveOccurred())
 		createdExperiment := createExperiment(experimentName)
 		createdPipeline := uploadAPipeline(pipelineFile, &testContext.Pipeline.PipelineGeneratedName)
 		createdPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &createdPipeline.PipelineID)
@@ -206,11 +216,48 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 		)
 
 		Eventually(func() bool {
-			storedRun, err := runClient.Get(&runparams.RunServiceGetRunParams{RunID: createdRun.RunID})
+			requestContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			contextsFilterQuery := fmt.Sprintf("name = '%s'", createdRun.RunID)
+			contexts, err := mlmdClient.GetContexts(requestContext, &pb.GetContextsRequest{
+				Options: &pb.ListOperationOptions{FilterQuery: &contextsFilterQuery},
+			})
 			if err != nil {
 				return false
 			}
-			return argoCompatibilityMetadataReady(storedRun)
+
+			var executions []*pb.Execution
+			for _, metadataContext := range contexts.GetContexts() {
+				contextID := metadataContext.GetId()
+				executionsResponse, err := mlmdClient.GetExecutionsByContext(requestContext, &pb.GetExecutionsByContextRequest{
+					ContextId: &contextID,
+				})
+				if err != nil {
+					return false
+				}
+				executions = append(executions, executionsResponse.GetExecutions()...)
+			}
+
+			executionIDs := make([]int64, 0, len(executions))
+			for _, execution := range executions {
+				executionIDs = append(executionIDs, execution.GetId())
+			}
+			events, err := mlmdClient.GetEventsByExecutionIDs(requestContext, &pb.GetEventsByExecutionIDsRequest{
+				ExecutionIds: executionIDs,
+			})
+			if err != nil {
+				return false
+			}
+
+			executionID, artifactID := findArgoCompatibilityMetadataIDs(executions, events.GetEvents())
+			if executionID == 0 || artifactID == 0 {
+				return false
+			}
+			artifacts, err := mlmdClient.GetArtifactsByID(requestContext, &pb.GetArtifactsByIDRequest{
+				ArtifactIds: []int64{artifactID},
+			})
+			return err == nil && len(artifacts.GetArtifacts()) == 1 && artifacts.GetArtifacts()[0].GetId() == artifactID
 		}, "120s", "2s").Should(BeTrue())
 
 		archivePipelineRun(&createdRun.RunID)
@@ -219,7 +266,7 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 		Expect(*storedRun.StorageState).To(Equal(run_model.V2beta1RunStorageStateARCHIVED))
 
 		zeroGracePeriod := int64(0)
-		err := k8Client.CoreV1().Pods(testutil.GetNamespace()).Delete(context.Background(), logPodName, metav1.DeleteOptions{
+		err = k8Client.CoreV1().Pods(testutil.GetNamespace()).Delete(context.Background(), logPodName, metav1.DeleteOptions{
 			GracePeriodSeconds: &zeroGracePeriod,
 		})
 		Expect(err == nil || apierrors.IsNotFound(err)).To(BeTrue())
@@ -269,22 +316,23 @@ func findArgoCompatibilityPodName(pods []corev1.Pod) string {
 	return ""
 }
 
-func argoCompatibilityMetadataReady(run *run_model.V2beta1Run) bool {
-	if run.RunDetails == nil {
-		return false
+func findArgoCompatibilityMetadataIDs(executions []*pb.Execution, events []*pb.Event) (int64, int64) {
+	containerExecutionIDs := make(map[int64]struct{})
+	for _, execution := range executions {
+		if execution.GetId() > 0 && execution.GetType() == string(metadata.ContainerExecutionTypeName) {
+			containerExecutionIDs[execution.GetId()] = struct{}{}
+		}
 	}
 
-	for _, task := range run.RunDetails.TaskDetails {
-		if task == nil || task.ExecutionID == "" {
+	for _, event := range events {
+		if event.GetType() != pb.Event_OUTPUT || event.GetArtifactId() == 0 {
 			continue
 		}
-		for _, artifacts := range task.Outputs {
-			if len(artifacts.ArtifactIds) > 0 {
-				return true
-			}
+		if _, exists := containerExecutionIDs[event.GetExecutionId()]; exists {
+			return event.GetExecutionId(), event.GetArtifactId()
 		}
 	}
-	return false
+	return 0, 0
 }
 
 func readArgoCompatibilityRunLog(runID string, nodeID string) (string, error) {

@@ -131,6 +131,14 @@ runs:
         sleep 5
       continue-on-error: true
 
+    - name: Port-forward MLMD for Argo compatibility tests
+      if: env.ARGO_COMPATIBILITY_TESTS == 'true'
+      shell: bash
+      run: |
+        NAMESPACE="${{ inputs.default_namespace }}"
+        pkill -f "kubectl port-forward.*metadata-grpc-service" || true
+        kubectl port-forward -n "$NAMESPACE" service/metadata-grpc-service 8080:8080 > /dev/null 2>&1 &
+
     - name: Configure API Access
       id: configure-api
       if: ${{ inputs.skip_api_config != 'true' }}
