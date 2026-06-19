@@ -308,7 +308,7 @@ jobs:
 
       - name: Deploy MLflow
         id: deploy-mlflow        
-        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@8ab07a89d6d2d6bc2ffa0c8601f4a856a4cb1b18
+        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@b55bcb6aa528ccecf8904745bb0218350b1ff453
         if: ${{ steps.create-cluster.outcome == 'success' }}
         with:
           namespace: 'opendatahub'
