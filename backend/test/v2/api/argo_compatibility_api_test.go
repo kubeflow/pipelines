@@ -37,11 +37,17 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const argoCompatibilityTestsEnvironmentVariable = "ARGO_COMPATIBILITY_TESTS"
+
+const (
+	argoNodeNameAnnotation = "workflows.argoproj.io/node-name"
+	crustTaskName          = "crust-comp"
+)
 
 var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, constants.APIServerTests, "ArgoCompatibility"), func() {
 	BeforeEach(func() {
@@ -168,6 +174,29 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 			testutil.GetPipelineRunTimeInputs(pipelineFile),
 		)
 
+		var logPodName string
+		Eventually(func() string {
+			pods, err := k8Client.CoreV1().Pods(testutil.GetNamespace()).List(context.Background(), metav1.ListOptions{
+				LabelSelector: fmt.Sprintf("%s=%s", commonutil.LabelKeyWorkflowRunId, createdRun.RunID),
+			})
+			if err != nil {
+				return ""
+			}
+			logPodName = findArgoCompatibilityPodName(pods.Items)
+			return logPodName
+		}, "300s", "1s").ShouldNot(BeEmpty())
+
+		Eventually(func() string {
+			if _, err := k8Client.CoreV1().Pods(testutil.GetNamespace()).Get(context.Background(), logPodName, metav1.GetOptions{}); err != nil {
+				return ""
+			}
+			logContents, err := readArgoCompatibilityRunLog(createdRun.RunID, logPodName)
+			if err != nil {
+				return ""
+			}
+			return logContents
+		}, "180s", "1s").Should(ContainSubstring("input:  foo"))
+
 		artifactTimeout := time.Duration(300)
 		testutil.WaitForRunToBeInState(
 			runClient,
@@ -176,24 +205,13 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 			&artifactTimeout,
 		)
 
-		var logPodName string
 		Eventually(func() bool {
 			storedRun, err := runClient.Get(&runparams.RunServiceGetRunParams{RunID: createdRun.RunID})
 			if err != nil {
 				return false
 			}
-			var hasMetadataArtifact bool
-			logPodName, hasMetadataArtifact = argoCompatibilityRuntimeDetails(storedRun)
-			return logPodName != "" && hasMetadataArtifact
+			return argoCompatibilityMetadataReady(storedRun)
 		}, "120s", "2s").Should(BeTrue())
-
-		Eventually(func() string {
-			logContents, err := readArgoCompatibilityRunLog(createdRun.RunID, logPodName)
-			if err != nil {
-				return ""
-			}
-			return logContents
-		}, "60s", "2s").Should(ContainSubstring("input:  foo"))
 
 		archivePipelineRun(&createdRun.RunID)
 		storedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
@@ -236,38 +254,32 @@ func runtimeStateAppearsAfter(
 	return false
 }
 
-func argoCompatibilityRuntimeDetails(run *run_model.V2beta1Run) (string, bool) {
+func findArgoCompatibilityPodName(pods []corev1.Pod) string {
+	for _, pod := range pods {
+		nodeName := pod.Annotations[argoNodeNameAnnotation]
+		if nodeName == crustTaskName || strings.HasSuffix(nodeName, "."+crustTaskName) {
+			return pod.Name
+		}
+	}
+	return ""
+}
+
+func argoCompatibilityMetadataReady(run *run_model.V2beta1Run) bool {
 	if run.RunDetails == nil {
-		return "", false
+		return false
 	}
 
-	var logPodName string
-	hasMetadataArtifact := false
 	for _, task := range run.RunDetails.TaskDetails {
-		if task == nil {
+		if task == nil || task.ExecutionID == "" {
 			continue
 		}
-		if task.ExecutionID != "" {
-			for _, artifacts := range task.Outputs {
-				if len(artifacts.ArtifactIds) > 0 {
-					hasMetadataArtifact = true
-				}
-			}
-		}
-		if task.DisplayName != "crust-comp" {
-			continue
-		}
-		if task.PodName != "" {
-			logPodName = task.PodName
-		}
-		for _, childTask := range task.ChildTasks {
-			if childTask != nil && childTask.PodName != "" {
-				logPodName = childTask.PodName
-				break
+		for _, artifacts := range task.Outputs {
+			if len(artifacts.ArtifactIds) > 0 {
+				return true
 			}
 		}
 	}
-	return logPodName, hasMetadataArtifact
+	return false
 }
 
 func readArgoCompatibilityRunLog(runID string, nodeID string) (string, error) {
