@@ -16,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -397,10 +398,17 @@ func (k *PipelineStoreKubernetes) GetPipelineVersionByName(pipelineID, name stri
 
 	// Try composite name first ({pipelineName}-{versionName})
 	compositeName := pipeline.Name + "-" + name
-	err = k.client.Get(context.TODO(), ctrlclient.ObjectKey{
-		Namespace: namespace,
-		Name:      compositeName,
-	}, &pipelineVersion)
+	if errs := validation.IsDNS1123Subdomain(compositeName); len(errs) == 0 {
+		err = k.client.Get(context.TODO(), ctrlclient.ObjectKey{
+			Namespace: namespace,
+			Name:      compositeName,
+		}, &pipelineVersion)
+	} else {
+		err = k8serrors.NewNotFound(
+			schema.GroupResource{Group: v2beta1.GroupVersion.Group, Resource: "pipelineversions"},
+			compositeName,
+		)
+	}
 	if err == nil {
 		if pipelineVersion.IsOwnedByPipeline(pipelineID) {
 			return pipelineVersion.ToModel()
@@ -423,8 +431,7 @@ func (k *PipelineStoreKubernetes) GetPipelineVersionByName(pipelineID, name stri
 		return nil, err
 	}
 
-	// Verify the legacy-style CR belongs to the correct pipeline (check both
-	// OwnerReferences and the pipeline-id label for maximum compatibility).
+	// Legacy CRs may carry ownership via OwnerReference, label, or both.
 	if !pipelineVersion.IsOwnedByPipeline(pipelineID) &&
 		pipelineVersion.Labels["pipelines.kubeflow.org/pipeline-id"] != pipelineID {
 		return nil, util.NewResourceNotFoundError("PipelineVersion", name)

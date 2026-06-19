@@ -182,6 +182,10 @@ func LoadSamples(resourceManager *resource.ResourceManager, sampleConfigPath str
 				})
 				if configErr != nil {
 					if util.IsUserErrorCodeMatch(configErr, codes.AlreadyExists) {
+						// Retry without namespace filter. In standalone mode this
+						// finds the empty-namespace pipeline; safe because sample
+						// names are deterministic and collisions across namespaces
+						// are not expected for managed pipelines.
 						p, fetchErr = resourceManager.GetPipelineByNameAndNamespace(cfg.Name, "")
 						if fetchErr != nil {
 							glog.Warningf("Failed to create or find pipeline %s: create=%v, fetch=%v", cfg.Name, configErr, fetchErr)

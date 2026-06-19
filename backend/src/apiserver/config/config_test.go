@@ -563,7 +563,7 @@ func TestLoadSamples_ExistingPipelineNotRetagged(t *testing.T) {
 	assert.Empty(t, pipeline.Tags)
 }
 
-func TestLoadSamples_PreExistingPipelineEmptyNamespace(t *testing.T) {
+func TestLoadSamples_PreExistingPipelineNamespaceSwitch(t *testing.T) {
 	rm := fakeResourceManager()
 
 	// Step 1: Load with empty namespace — pipeline stored with Namespace = ""
