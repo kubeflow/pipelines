@@ -91,9 +91,6 @@ func decodeMetricsArray(decoder *json.Decoder) ([]*api.RunMetric, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read metrics array: %w", err)
 	}
-	if token == nil {
-		return nil, nil
-	}
 	if delimiter, ok := token.(json.Delim); !ok || delimiter != '[' {
 		return nil, fmt.Errorf("metrics field must be an array")
 	}

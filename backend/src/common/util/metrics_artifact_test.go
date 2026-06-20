@@ -99,6 +99,11 @@ func TestDecodeRunMetrics_RejectsUnknownFieldsAndTrailingJSON(t *testing.T) {
 		errorContains string
 	}{
 		{
+			name:          "null metrics",
+			input:         `{"metrics":null}`,
+			errorContains: "metrics field must be an array",
+		},
+		{
 			name:          "unknown top-level field",
 			input:         `{"metrics":[],"unknown":true}`,
 			errorContains: `unknown metrics field "unknown"`,
