@@ -21,6 +21,7 @@ env:
 jobs:
   image-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     outputs:
       image_path: ${{ steps.configure.outputs.artifact_path }}
       image_tag: ${{ steps.configure.outputs.image_tag }}

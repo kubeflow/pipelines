@@ -57,7 +57,7 @@ class TestV2beta1RunDetails(unittest.TestCase):
                                 ], ), 
                         state = 'RUNTIME_STATE_UNSPECIFIED', 
                         execution_id = '0', 
-                        error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
+                        error = kfp_server_api.models.google_rpc_status.googleRpcStatus(
                             code = 56, 
                             message = '0', 
                             details = [

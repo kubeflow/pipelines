@@ -11,6 +11,11 @@ on:
       - .github/workflows/readthedocs-builds.yml
       - .readthedocs.yml
 
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test-readthedocs-builds:
     runs-on: ubuntu-24.04

@@ -34,7 +34,7 @@ type V2beta1Run struct {
 	// In case any error happens retrieving a run field, only run ID
 	// and the error message is returned. Client has the flexibility of choosing
 	// how to handle the error. This is especially useful during listing call.
-	Error *GooglerpcStatus `json:"error,omitempty"`
+	Error *GoogleRPCStatus `json:"error,omitempty"`
 
 	// Input. ID of the parent experiment.
 	// The default experiment ID will be used if this is not specified.
