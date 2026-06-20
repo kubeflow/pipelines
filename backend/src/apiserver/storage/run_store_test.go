@@ -1436,6 +1436,75 @@ func TestDeleteRun_InternalError(t *testing.T) {
 		"Expected delete run to return internal error")
 }
 
+func TestDeleteRun_CleansUpTasksAndMetrics(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	taskStore := NewTaskStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil))
+
+	run := &model.Run{
+		UUID:         defaultFakeRunId,
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run1",
+		DisplayName:  "run1",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:  1,
+			FinishedAtInSec: 100,
+			State:           model.RuntimeStateSucceeded,
+			Conditions:      "Succeeded",
+		},
+	}
+	runStore.CreateRun(run)
+
+	runStore.CreateMetric(&model.RunMetric{
+		RunUUID:     defaultFakeRunId,
+		NodeID:      "node1",
+		Name:        "accuracy",
+		NumberValue: 0.95,
+		Format:      "RAW",
+	})
+
+	taskStore.CreateTask(&model.Task{
+		Namespace:    "ns1",
+		PipelineName: "pipeline1",
+		RunID:        defaultFakeRunId,
+		PodName:      "pod1",
+		State:        model.RuntimeStateSucceeded,
+	})
+
+	// Verify rows exist before deletion.
+	var metricCount int
+	err := db.QueryRow("SELECT COUNT(*) FROM run_metrics WHERE RunUUID = ?", defaultFakeRunId).Scan(&metricCount)
+	require.Nil(t, err)
+	assert.Equal(t, 1, metricCount)
+
+	var taskCount int
+	err = db.QueryRow("SELECT COUNT(*) FROM tasks WHERE RunUUID = ?", defaultFakeRunId).Scan(&taskCount)
+	require.Nil(t, err)
+	assert.Equal(t, 1, taskCount)
+
+	// Delete the run.
+	err = runStore.DeleteRun(defaultFakeRunId)
+	assert.Nil(t, err)
+
+	// Verify all dependent rows are gone.
+	err = db.QueryRow("SELECT COUNT(*) FROM run_metrics WHERE RunUUID = ?", defaultFakeRunId).Scan(&metricCount)
+	require.Nil(t, err)
+	assert.Equal(t, 0, metricCount)
+
+	err = db.QueryRow("SELECT COUNT(*) FROM tasks WHERE RunUUID = ?", defaultFakeRunId).Scan(&taskCount)
+	require.Nil(t, err)
+	assert.Equal(t, 0, taskCount)
+
+	_, err = runStore.GetRun(defaultFakeRunId)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
 func TestParseMetrics(t *testing.T) {
 	expectedModelRunMetrics := []*model.RunMetric{
 		{

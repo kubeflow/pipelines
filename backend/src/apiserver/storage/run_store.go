@@ -757,30 +757,54 @@ func (s *RunStore) UnarchiveRun(runId string) error {
 }
 
 func (s *RunStore) DeleteRun(id string) error {
-	runSql, runArgs, err := sq.Delete("run_details").Where(sq.Eq{"UUID": id}).ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query to delete run: %s", id)
-	}
-	// Use a transaction to make sure both run and its resource references are stored.
 	tx, err := s.db.Begin()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create a new transaction to delete run")
+	}
+
+	metricsSql, metricsArgs, err := sq.Delete("run_metrics").Where(sq.Eq{"RunUUID": id}).ToSql()
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to create query to delete run metrics for run %s", id)
+	}
+	_, err = tx.Exec(metricsSql, metricsArgs...)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete run metrics for run %s", id)
+	}
+
+	tasksSql, tasksArgs, err := sq.Delete("tasks").Where(sq.Eq{"RunUUID": id}).ToSql()
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to create query to delete tasks for run %s", id)
+	}
+	_, err = tx.Exec(tasksSql, tasksArgs...)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete tasks for run %s", id)
+	}
+
+	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, model.RunResourceType)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete resource references for run %s", id)
+	}
+
+	runSql, runArgs, err := sq.Delete("run_details").Where(sq.Eq{"UUID": id}).ToSql()
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to create query to delete run %s", id)
 	}
 	_, err = tx.Exec(runSql, runArgs...)
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete run %s from table", id)
 	}
-	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, model.RunResourceType)
-	if err != nil {
-		tx.Rollback()
-		return util.NewInternalServerError(err, "Failed to delete resource references from table for run %v ", id)
-	}
+
 	err = tx.Commit()
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err, "Failed to delete run %v and its resource references from table", id)
+		return util.NewInternalServerError(err, "Failed to commit deletion of run %s", id)
 	}
 	return nil
 }
