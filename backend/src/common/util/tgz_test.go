@@ -93,7 +93,7 @@ func TestReadSingleFileFromTgz_RequiresOneEntry(t *testing.T) {
 				{name: "first.json", content: "first"},
 				{name: "second.json", content: "second"},
 			},
-			errorContains: "metrics archive must contain exactly one file",
+			errorContains: "metrics archive must contain exactly one regular file",
 		},
 	}
 
