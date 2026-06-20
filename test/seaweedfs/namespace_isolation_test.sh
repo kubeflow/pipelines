@@ -127,6 +127,21 @@ main() {
     check "cross-namespace download" deny \
         test-profile-2 download --key "private-artifacts/test-profile-1/test-file.txt"
 
+    # Negative: copying FROM another namespace's private object MUST be denied
+    # (CopyObject requires GetObject on the source, which is not granted cross-tenant).
+    check "cross-namespace copy source" deny \
+        test-profile-2 copy \
+        --key "private-artifacts/test-profile-2/stolen.txt" \
+        --source-key "private-artifacts/test-profile-1/test-file.txt"
+
+    # Positive: a namespace MUST be able to delete its own objects.
+    check "own-namespace delete" allow \
+        test-profile-1 delete --key "private-artifacts/test-profile-1/test-file.txt"
+
+    # Negative: deleting another namespace's private object MUST be denied.
+    check "cross-namespace delete" deny \
+        test-profile-2 delete --key "private-artifacts/test-profile-1/test-file.txt"
+
     # Negative: deep cross-namespace prefix listing MUST be denied.
     check "cross-namespace deep prefix list" deny \
         test-profile-2 list --prefix "private-artifacts/test-profile-1/"

@@ -72,6 +72,33 @@ def download(client, bucket, key):
         return False
 
 
+def copy(client, bucket, key, source_bucket, source_key):
+    try:
+        client.copy_object(
+            Bucket=bucket,
+            Key=key,
+            CopySource={"Bucket": source_bucket, "Key": source_key},
+        )
+        print(f"ALLOWED: copied {source_bucket}/{source_key} -> {bucket}/{key}")
+        return True
+    except ClientError as error:
+        code = error.response["Error"]["Code"]
+        denied = code in DENIED or code == "NoSuchKey"
+        print(f"{'DENIED' if denied else 'ERROR'}: copy {source_bucket}/{source_key} -> {bucket}/{key} ({code})")
+        return False
+
+
+def delete(client, bucket, key):
+    try:
+        client.delete_object(Bucket=bucket, Key=key)
+        print(f"ALLOWED: deleted {bucket}/{key}")
+        return True
+    except ClientError as error:
+        code = error.response["Error"]["Code"]
+        print(f"{'DENIED' if code in DENIED else 'ERROR'}: delete {bucket}/{key} ({code})")
+        return False
+
+
 def list_prefix(client, bucket, prefix, delimiter):
     # prefix is None -> omit Prefix entirely (s3:prefix absent)
     # prefix is ""   -> send Prefix="" (s3:prefix still absent at policy layer)
@@ -99,12 +126,13 @@ def list_prefix(client, bucket, prefix, delimiter):
 
 def main():
     parser = argparse.ArgumentParser(description="S3 ops for SeaweedFS isolation tests")
-    parser.add_argument("operation", choices=["headbucket", "upload", "download", "list"])
+    parser.add_argument("operation", choices=["headbucket", "upload", "download", "list", "copy", "delete"])
     parser.add_argument("--access-key", required=True)
     parser.add_argument("--secret-key", required=True)
     parser.add_argument("--endpoint-url", required=True)
     parser.add_argument("--bucket", required=True)
-    parser.add_argument("--key", help="object key (upload/download)")
+    parser.add_argument("--key", help="object key (upload/download/copy destination/delete)")
+    parser.add_argument("--source-key", help="source object key (copy)")
     parser.add_argument("--prefix", help="key prefix for list (omit with --no-prefix)")
     parser.add_argument("--no-prefix", action="store_true",
                         help="send ListObjectsV2 with NO Prefix arg at all")
@@ -120,6 +148,10 @@ def main():
         allowed = upload(client, args.bucket, args.key, args.content)
     elif args.operation == "download":
         allowed = download(client, args.bucket, args.key)
+    elif args.operation == "copy":
+        allowed = copy(client, args.bucket, args.key, args.bucket, args.source_key)
+    elif args.operation == "delete":
+        allowed = delete(client, args.bucket, args.key)
     else:  # list
         list_prefix_arg = None if args.no_prefix else (args.prefix if args.prefix is not None else "")
         allowed = list_prefix(client, args.bucket, list_prefix_arg, args.delimiter)

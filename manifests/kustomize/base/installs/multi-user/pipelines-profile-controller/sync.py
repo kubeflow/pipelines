@@ -182,10 +182,6 @@ def server_factory(frontend_image,
             because the embedded user-policy engine is Allow-only and cannot
             express Deny; SeaweedFS evaluates the bucket policy before it.
             """
-            own = [
-                "private-artifacts/${aws:username}/*",
-                "private/${aws:username}/*",
-            ]
             bucket_arn = f"arn:aws:s3:::{bucket_name}"
             desired = {
                 "Version": "2012-10-17",
@@ -196,7 +192,12 @@ def server_factory(frontend_image,
                         "Principal": "*",
                         "Action": "s3:ListBucket",
                         "Resource": bucket_arn,
-                        "Condition": {"StringLike": {"s3:prefix": own + ["artifacts/*", "shared/*"]}},
+                        "Condition": {"StringLike": {"s3:prefix": [
+                            "private-artifacts/${aws:username}/*",
+                            "private/${aws:username}/*",
+                            "artifacts/*",
+                            "shared/*",
+                        ]}},
                     },
                     {
                         "Sid": "AllowHeadBucket",
@@ -225,7 +226,10 @@ def server_factory(frontend_image,
                         "Resource": bucket_arn,
                         "Condition": {
                             "StringLike": {"s3:prefix": ["private-artifacts/*", "private/*"]},
-                            "StringNotLike": {"s3:prefix": own},
+                            "StringNotLike": {"s3:prefix": [
+                                "private-artifacts/${aws:username}/*",
+                                "private/${aws:username}/*",
+                            ]},
                         },
                     },
                 ],
@@ -473,7 +477,8 @@ def server_factory(frontend_image,
                                     "Action": [
                                         "s3:Put*",
                                         "s3:Get*",
-                                        "s3:List*"
+                                        "s3:List*",
+                                        "s3:DeleteObject"
                                     ],
                                     "Resource": [
                                         f"arn:aws:s3:::{S3_BUCKET_NAME}/artifacts/*",
