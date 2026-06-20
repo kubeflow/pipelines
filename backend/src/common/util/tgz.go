@@ -74,7 +74,7 @@ func readSingleFileFromTgz(tgzContent []byte, maxFileSize int64, consume func(io
 	if err != nil {
 		return err
 	}
-	if hdr.Typeflag != tar.TypeReg && hdr.Typeflag != tar.TypeRegA {
+	if hdr.Typeflag != tar.TypeReg {
 		return fmt.Errorf("metrics archive entry %q must be a regular file", hdr.Name)
 	}
 	if hdr.Size < 0 {
@@ -93,7 +93,7 @@ func readSingleFileFromTgz(tgzContent []byte, maxFileSize int64, consume func(io
 	}
 
 	if _, err := tr.Next(); err == nil {
-		return fmt.Errorf("metrics archive must contain exactly one file")
+		return fmt.Errorf("metrics archive must contain exactly one regular file")
 	} else if err != io.EOF {
 		return err
 	}

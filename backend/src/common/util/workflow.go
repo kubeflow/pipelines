@@ -563,8 +563,7 @@ func readNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus,
 		return decodeError
 	})
 	if err != nil {
-		// Invalid tgz file. This should never happen unless there is a bug in the system and
-		// it is a unrecoverable error.
+		// Contract violations and malformed metrics artifacts are permanent for this completed node.
 		return nil, NewCustomError(err, CUSTOM_CODE_PERMANENT,
 			"Unable to read metrics tgz file from (%+v): %v", artifactRequest, err)
 	}
