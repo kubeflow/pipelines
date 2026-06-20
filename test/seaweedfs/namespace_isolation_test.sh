@@ -1,40 +1,33 @@
 #!/bin/bash
 set -euxo pipefail
 
-echo "SeaweedFS Security Test - Unauthorized Access Check"
-echo "Testing if one namespace can access files from another namespace"
+echo "SeaweedFS Security Test - Namespace Isolation + KServe HeadBucket Check"
 
-# Check dependencies
+# Requires SeaweedFS >= 4.32 (PR #9792): older builds ignore the s3:prefix
+# condition on ListBucket and leak cross-namespace listings.
+#
+# s3_helper.py exit codes: 0 = ALLOWED, 1 = DENIED/failed.
+# This script runs ALL checks and reports each, so a single run shows the full
+# picture instead of bailing on the first failure.
+
+HELPER="test/seaweedfs/s3_helper.py"
+ENDPOINT="http://localhost:8333"
+BUCKET="mlpipeline"
+SECRET="mlpipeline-minio-artifact"
+
 for cmd in kubectl python3; do
-    if ! command -v $cmd &> /dev/null; then
-        echo "Error: $cmd is required but not installed"
-        exit 1
-    fi
+    command -v "$cmd" >/dev/null || { echo "Error: $cmd is required"; exit 1; }
 done
+python3 -c "import boto3" 2>/dev/null || pip3 install boto3
 
-# Install boto3 if not available
-if ! python3 -c "import boto3" 2>/dev/null; then
-    echo "Installing boto3..."
-    pip3 install boto3
-fi
-
-PORT_FORWARD_PID=""
-# Cleanup function
+port_forward_pid=""
 cleanup() {
-    echo "Cleaning up..."
-    if [ -n "$PORT_FORWARD_PID" ]; then
-        kill $PORT_FORWARD_PID 2>/dev/null || true
-    fi
-    rm -f test-file.txt accessed-file.txt
+    [ -n "$port_forward_pid" ] && kill "$port_forward_pid" 2>/dev/null || true
     kubectl delete profile test-profile-1 test-profile-2 --ignore-not-found
 }
 trap cleanup EXIT
 
-# Create test profiles
 create_profiles() {
-    echo "Creating test profiles..."
-
-    # Create both profiles
     kubectl apply -f - <<EOF
 apiVersion: kubeflow.org/v1
 kind: Profile
@@ -54,142 +47,101 @@ spec:
     kind: User
     name: test-user-2@example.com
 EOF
-
-    # Wait for namespaces
-    echo "Waiting for namespaces..."
-    for i in {1..6}; do
-        if kubectl get namespace test-profile-1 test-profile-2 >/dev/null 2>&1; then
-            echo "Namespaces created"
-            return 0
-        fi
+    for _ in {1..6}; do
+        kubectl get namespace test-profile-1 test-profile-2 >/dev/null 2>&1 && return 0
         sleep 10
     done
-
-    echo "Error: Namespaces not created"
-    exit 1
+    echo "Error: namespaces not created"; exit 1
 }
 
-# Wait for S3 credentials
 wait_for_credentials() {
-    local namespace=$1
-    echo "Waiting for S3 credentials in $namespace..."
-
-    for i in {1..6}; do
-        if kubectl get secret -n $namespace mlpipeline-minio-artifact >/dev/null 2>&1; then
-            echo "Credentials found"
-            return 0
-        fi
+    for _ in {1..6}; do
+        kubectl get secret -n "$1" "$SECRET" >/dev/null 2>&1 && return 0
         sleep 10
     done
-
-    echo "Error: No credentials found"
-    return 1
+    echo "Error: no credentials in $1"; return 1
 }
 
-# Get credentials for namespace
-get_credentials() {
-    local namespace=$1
-    local access_key=$(kubectl get secret -n $namespace mlpipeline-minio-artifact -o jsonpath='{.data.accesskey}' | base64 -d)
-    local secret_key=$(kubectl get secret -n $namespace mlpipeline-minio-artifact -o jsonpath='{.data.secretkey}' | base64 -d)
-    echo "$access_key:$secret_key"
+# Run the helper as the given namespace.
+# Usage: run_as <namespace> <operation> [helper args...]
+run_as() {
+    local namespace=$1; shift
+    local access_key secret_key
+    access_key=$(kubectl get secret -n "$namespace" "$SECRET" -o jsonpath='{.data.accesskey}' | base64 -d)
+    secret_key=$(kubectl get secret -n "$namespace" "$SECRET" -o jsonpath='{.data.secretkey}' | base64 -d)
+    python3 "$HELPER" "$1" \
+        --access-key "$access_key" --secret-key "$secret_key" \
+        --endpoint-url "$ENDPOINT" --bucket "$BUCKET" "${@:2}"
 }
 
-# Setup port forward to SeaweedFS
-setup_port_forward() {
-    if [ -n "$PORT_FORWARD_PID" ]; then
-        return 0  # Already running
-    fi
-
-    echo "Setting up port-forward..."
-    local pod=$(kubectl get pod -n kubeflow -l app=seaweedfs -o jsonpath='{.items[0].metadata.name}')
-    kubectl port-forward -n kubeflow pod/$pod 8333:8333 >/dev/null 2>&1 &
-    PORT_FORWARD_PID=$!
+start_port_forward() {
+    local pod
+    pod=$(kubectl get pod -n kubeflow -l app=seaweedfs -o jsonpath='{.items[0].metadata.name}')
+    kubectl port-forward -n kubeflow "pod/$pod" 8333:8333 >/dev/null 2>&1 &
+    port_forward_pid=$!
     sleep 3
 }
 
-# Upload test file
-upload_file() {
-    local namespace=$1
-    echo "Uploading test file to $namespace..."
+failures=0
 
-    local credentials=$(get_credentials $namespace)
-    local access_key=$(echo $credentials | cut -d: -f1)
-    local secret_key=$(echo $credentials | cut -d: -f2)
-
-    setup_port_forward
-
-    python3 test/seaweedfs/s3_helper.py upload \
-        --access-key "$access_key" \
-        --secret-key "$secret_key" \
-        --endpoint-url "http://localhost:8333" \
-        --bucket "mlpipeline" \
-        --key "private-artifacts/$namespace/test-file.txt" \
-        --content "Test file for $namespace"
-}
-
-# Test unauthorized access
-test_unauthorized_access() {
-    local from_namespace=$1
-    local target_namespace=$2
-
-    echo "Testing unauthorized access from $from_namespace to $target_namespace..."
-
-    local credentials=$(get_credentials $from_namespace)
-    local access_key=$(echo $credentials | cut -d: -f1)
-    local secret_key=$(echo $credentials | cut -d: -f2)
-
-    setup_port_forward
-
-    # Try to access the other namespace's file
-    # Note: Python script returns 0 when access is denied (good), 1 when access succeeds (bad)
-    if python3 test/seaweedfs/s3_helper.py download \
-        --access-key "$access_key" \
-        --secret-key "$secret_key" \
-        --endpoint-url "http://localhost:8333" \
-        --bucket "mlpipeline" \
-        --key "private-artifacts/$target_namespace/test-file.txt"; then
-
-        echo "Security OK: Access denied as expected"
-        return 0
+# check <description> <expected: allow|deny> <run_as args...>
+check() {
+    local desc=$1 expect=$2; shift 2
+    local result
+    if run_as "$@"; then result=allow; else result=deny; fi
+    if [ "$result" = "$expect" ]; then
+        echo "PASS [$result]: $desc"
     else
-        echo "SECURITY ISSUE: Unauthorized access successful!"
-        return 1
+        echo "FAIL [got $result, wanted $expect]: $desc"
+        failures=$((failures + 1))
     fi
 }
 
-# Main test function
 main() {
-    echo "Starting security test..."
-
-    # Create test profiles
     create_profiles
-
-    # Wait for credentials to be created
     echo "Waiting for profile controller to create credentials..."
     sleep 30
+    wait_for_credentials test-profile-1
+    wait_for_credentials test-profile-2
+    start_port_forward
 
-    wait_for_credentials "test-profile-1" || {
-        echo "Failed to get credentials for test-profile-1"
-        exit 1
-    }
+    # Seed one file in each namespace's own prefix (best-effort).
+    run_as test-profile-1 upload --key "private-artifacts/test-profile-1/test-file.txt" --content "file for test-profile-1" || true
+    run_as test-profile-2 upload --key "private-artifacts/test-profile-2/test-file.txt" --content "file for test-profile-2" || true
 
-    wait_for_credentials "test-profile-2" || {
-        echo "Failed to get credentials for test-profile-2"
-        exit 1
-    }
+    # KServe support: bucket existence probe MUST be allowed.
+    check "HeadBucket (KServe storage-initializer probe)" allow \
+        test-profile-1 headbucket
 
-    # Upload file to first namespace
-    upload_file "test-profile-1" || {
-        echo "Failed to upload file"
-        exit 1
-    }
+    # Positive: a namespace MUST access its own data.
+    check "own-namespace download" allow \
+        test-profile-1 download --key "private-artifacts/test-profile-1/test-file.txt"
+    check "own-namespace prefix list" allow \
+        test-profile-1 list --prefix "private-artifacts/test-profile-1/"
 
-    # Test unauthorized access
-    if test_unauthorized_access "test-profile-2" "test-profile-1"; then
-        echo "SECURITY TEST PASSED: No unauthorized access detected"
+    # Top-level delimited browse MUST be allowed (folder names only).
+    check "top-level delimited browse" allow \
+        test-profile-2 list --prefix "" --delimiter "/"
+
+    # Negative: cross-namespace object read MUST be denied.
+    check "cross-namespace download" deny \
+        test-profile-2 download --key "private-artifacts/test-profile-1/test-file.txt"
+
+    # Negative: deep cross-namespace prefix listing MUST be denied.
+    check "cross-namespace deep prefix list" deny \
+        test-profile-2 list --prefix "private-artifacts/test-profile-1/"
+
+    # Negative: flat (no-delimiter) bucket-wide listing MUST be denied,
+    # since it would enumerate every namespace's object keys.
+    check "flat empty-prefix list (no delimiter)" deny \
+        test-profile-2 list --prefix ""
+    check "flat no-prefix list (no delimiter)" deny \
+        test-profile-2 list --no-prefix
+
+    if [ "$failures" -eq 0 ]; then
+        echo "ALL PASS: HeadBucket works, own access works, top-level browse works, deep/flat cross-namespace listing is blocked"
     else
-        echo "SECURITY TEST FAILED: Unauthorized access detected"
-        echo "This indicates a security vulnerability in the SeaweedFS setup"
+        echo "$failures CHECK(S) FAILED"
         exit 1
     fi
 }

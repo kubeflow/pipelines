@@ -24,7 +24,7 @@ import botocore.session
 S3_BUCKET_NAME = 'mlpipeline'
 
 session = botocore.session.get_session()
-# S3 client for lifecycle policy management
+# S3 client for lifecycle policy and bucket policy management
 s3_endpoint_url = os.environ.get("S3_ENDPOINT_URL", "http://seaweedfs.kubeflow:8333")
 s3 = session.create_client('s3', region_name='foobar', endpoint_url=s3_endpoint_url)
 
@@ -173,6 +173,80 @@ def server_factory(frontend_image,
                 else:
                     print(f"ERROR: Failed to configure lifecycle policy: {exception}")
 
+        def ensure_bucket_list_policy(self, bucket_name):
+            """Bucket-wide ListBucket isolation, keyed on ${aws:username}.
+
+            Top-level folder browsing is allowed for everyone; listing deeper
+            inside another namespace's private prefix is denied. HeadBucket
+            (KServe storage-initializer) is allowed. Set as a bucket policy
+            because the embedded user-policy engine is Allow-only and cannot
+            express Deny; SeaweedFS evaluates the bucket policy before it.
+            """
+            own = [
+                "private-artifacts/${aws:username}/*",
+                "private/${aws:username}/*",
+            ]
+            bucket_arn = f"arn:aws:s3:::{bucket_name}"
+            desired = {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Sid": "AllowOwnDeepList",
+                        "Effect": "Allow",
+                        "Principal": "*",
+                        "Action": "s3:ListBucket",
+                        "Resource": bucket_arn,
+                        "Condition": {"StringLike": {"s3:prefix": own + ["artifacts/*", "shared/*"]}},
+                    },
+                    {
+                        "Sid": "AllowHeadBucket",
+                        "Effect": "Allow",
+                        "Principal": "*",
+                        "Action": "s3:ListBucket",
+                        "Resource": bucket_arn,
+                        "Condition": {"StringEquals": {"s3:RequestMethod": "HEAD"}},
+                    },
+                    {
+                        "Sid": "AllowTopLevelDelimitedBrowse",
+                        "Effect": "Allow",
+                        "Principal": "*",
+                        "Action": "s3:ListBucket",
+                        "Resource": bucket_arn,
+                        "Condition": {
+                            "Null": {"s3:prefix": "true"},
+                            "StringEquals": {"s3:delimiter": "/"},
+                        },
+                    },
+                    {
+                        "Sid": "DenyOtherDeepList",
+                        "Effect": "Deny",
+                        "Principal": "*",
+                        "Action": "s3:ListBucket",
+                        "Resource": bucket_arn,
+                        "Condition": {
+                            "StringLike": {"s3:prefix": ["private-artifacts/*", "private/*"]},
+                            "StringNotLike": {"s3:prefix": own},
+                        },
+                    },
+                ],
+            }
+            desired_json = json.dumps(desired, sort_keys=True)
+
+            try:
+                current = s3.get_bucket_policy(Bucket=bucket_name).get("Policy", "")
+                if current and json.dumps(json.loads(current), sort_keys=True) == desired_json:
+                    return
+            except Exception:
+                pass
+
+            try:
+                s3.put_bucket_policy(Bucket=bucket_name, Policy=json.dumps(desired))
+                print(f"Set ListBucket isolation bucket policy on {bucket_name}")
+            except Exception as exception:
+                if hasattr(exception, 'response') and 'Error' in exception.response:
+                    print(f"ERROR: Failed to set bucket policy: {exception.response['Error']['Code']} - {exception}")
+                else:
+                    print(f"ERROR: Failed to set bucket policy: {exception}")
 
         def sync(self, parent, attachments):
             # parent is a namespace
@@ -383,8 +457,10 @@ def server_factory(frontend_image,
             else:
                 print('Creating new access key.')
                 s3_access_key = iam.create_access_key(UserName=namespace)
-                # Use the AWS IAM API of seaweedfs to manage access policies to bucket.
-                # This policy ensures that a user can only access artifacts from his own profile.
+
+                # Per-user policy grants object access only. ListBucket scoping is
+                # handled by the bucket policy (ensure_bucket_list_policy) because
+                # the embedded user-policy engine is Allow-only and cannot Deny.
                 iam.put_user_policy(
                     UserName=namespace,
                     PolicyName=f"KubeflowProject{namespace}",
@@ -393,18 +469,6 @@ def server_factory(frontend_image,
                             "Version": "2012-10-17",
                             "Statement": [
                                 {
-                                    # Bucket-level: allows HeadBucket (used by KServe storage-initializer
-                                    # and other S3 clients before downloading model artifacts).
-                                    "Effect": "Allow",
-                                    "Action": [
-                                        "s3:ListBucket"
-                                    ],
-                                    "Resource": [
-                                        f"arn:aws:s3:::{S3_BUCKET_NAME}"
-                                    ]
-                                },
-                                {
-                                    # Object-level: prefix-scoped to this namespace only.
                                     "Effect": "Allow",
                                     "Action": [
                                         "s3:Put*",
@@ -421,6 +485,8 @@ def server_factory(frontend_image,
                             ]
                         })
                 )
+
+                self.ensure_bucket_list_policy(S3_BUCKET_NAME)
 
                 self.upsert_lifecycle_policy(S3_BUCKET_NAME, artifact_retention_days)
 
