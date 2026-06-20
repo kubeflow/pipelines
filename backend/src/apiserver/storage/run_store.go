@@ -762,23 +762,23 @@ func (s *RunStore) DeleteRun(id string) error {
 		return util.NewInternalServerError(err, "Failed to create a new transaction to delete run")
 	}
 
-	metricsSql, metricsArgs, err := sq.Delete("run_metrics").Where(sq.Eq{"RunUUID": id}).ToSql()
+	metricsSQL, metricsArgs, err := sq.Delete("run_metrics").Where(sq.Eq{"RunUUID": id}).ToSql()
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to create query to delete run metrics for run %s", id)
 	}
-	_, err = tx.Exec(metricsSql, metricsArgs...)
+	_, err = tx.Exec(metricsSQL, metricsArgs...)
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete run metrics for run %s", id)
 	}
 
-	tasksSql, tasksArgs, err := sq.Delete("tasks").Where(sq.Eq{"RunUUID": id}).ToSql()
+	tasksSQL, tasksArgs, err := sq.Delete("tasks").Where(sq.Eq{"RunUUID": id}).ToSql()
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to create query to delete tasks for run %s", id)
 	}
-	_, err = tx.Exec(tasksSql, tasksArgs...)
+	_, err = tx.Exec(tasksSQL, tasksArgs...)
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete tasks for run %s", id)
@@ -790,12 +790,12 @@ func (s *RunStore) DeleteRun(id string) error {
 		return util.NewInternalServerError(err, "Failed to delete resource references for run %s", id)
 	}
 
-	runSql, runArgs, err := sq.Delete("run_details").Where(sq.Eq{"UUID": id}).ToSql()
+	runSQL, runArgs, err := sq.Delete("run_details").Where(sq.Eq{"UUID": id}).ToSql()
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to create query to delete run %s", id)
 	}
-	_, err = tx.Exec(runSql, runArgs...)
+	_, err = tx.Exec(runSQL, runArgs...)
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete run %s from table", id)
