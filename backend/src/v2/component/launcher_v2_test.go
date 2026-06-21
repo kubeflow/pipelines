@@ -211,10 +211,10 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			fakeKubernetesClientset := &fake.Clientset{}
 			var fakeMetadataClient metadata.ClientInterface
 			var countingFakeMetadataClient *metadata.RecordArtifactFailureFakeClient
-			// Use a fake client that will fail the RecordArtifact call in uploadArtifactLogs the first time,
-			// and succeed the second time, to test retry behavior
+			// Use a fake client that will fail the executor-logs RecordArtifact call the first time,
+			// and succeed the second time, to test retry behavior without depending on map iteration order.
 			if test.uploadFailure {
-				countingFakeMetadataClient = metadata.NewRecordArtifactFailureFakeClient(1)
+				countingFakeMetadataClient = metadata.NewRecordArtifactFailureFakeClientForOutput("executor-logs", 1)
 				fakeMetadataClient = countingFakeMetadataClient
 			} else {
 				fakeMetadataClient = metadata.NewFakeClient()
@@ -278,15 +278,13 @@ func Test_executeV2_publishLogs(t *testing.T) {
 				assert.NotNil(t, err)
 				assert.Len(t, outputArtifacts, 1, "Expected 1 output artifact (executor-logs)")
 				if test.uploadFailure {
-					// Only logs uploaded - first call fails, second call succeeds
-					assert.Equal(t, 2, countingFakeMetadataClient.RecordArtifactCalls)
+					assert.Equal(t, 2, countingFakeMetadataClient.OutputNameCalls["executor-logs"])
 				}
 			} else {
 				assert.Nil(t, err)
 				assert.Len(t, outputArtifacts, 2, "Expected 2 output artifacts (executor-logs and output-data)")
 				if test.uploadFailure {
-					// First call fails and returns early, then both artifacts succeed on retry
-					assert.Equal(t, 3, countingFakeMetadataClient.RecordArtifactCalls)
+					assert.Equal(t, 2, countingFakeMetadataClient.OutputNameCalls["executor-logs"])
 				}
 			}
 

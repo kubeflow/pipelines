@@ -231,13 +231,14 @@ describe('workflow-helper', () => {
       const stream = await getPodLogsStreamFromWorkflow(
         'workflow-name-system-container-impl-abc',
         '2024-07-09',
+        'kubeflow',
       );
 
-      expect(mockedGetArgoWorkflow).toBeCalledWith('workflow-name');
+      expect(mockedGetArgoWorkflow).toBeCalledWith('workflow-name', 'kubeflow');
 
       expect(mockedGetK8sSecret).toBeCalledTimes(2);
-      expect(mockedGetK8sSecret).toBeCalledWith('accessKeyName', 'accessKey');
-      expect(mockedGetK8sSecret).toBeCalledWith('secretKeyName', 'secretKey');
+      expect(mockedGetK8sSecret).toBeCalledWith('accessKeyName', 'accessKey', 'kubeflow');
+      expect(mockedGetK8sSecret).toBeCalledWith('secretKeyName', 'secretKey', 'kubeflow');
 
       expect(mockedClient).toBeCalledTimes(1);
       expect(mockedClient).toBeCalledWith({

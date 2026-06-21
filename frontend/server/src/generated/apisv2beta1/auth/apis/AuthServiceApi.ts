@@ -13,8 +13,8 @@
  */
 
 import * as runtime from '../runtime.js';
-import type { GooglerpcStatus } from '../models/index.js';
-import { GooglerpcStatusFromJSON, GooglerpcStatusToJSON } from '../models/index.js';
+import type { GoogleRpcStatus } from '../models/index.js';
+import { GoogleRpcStatusFromJSON, GoogleRpcStatusToJSON } from '../models/index.js';
 
 export interface AuthorizeRequest {
   namespace?: string;

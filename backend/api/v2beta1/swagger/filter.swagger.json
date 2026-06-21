@@ -15,7 +15,30 @@
   "produces": [
     "application/json"
   ],
-  "paths": {},
+  "paths": {
+    "/apis/v2beta1/filters": {
+      "get": {
+        "operationId": "DummyFilterService_GetFilter",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1Filter"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googleRpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "DummyFilterService"
+        ]
+      }
+    }
+  },
   "definitions": {
     "PredicateIntValues": {
       "type": "object",
@@ -55,7 +78,7 @@
       },
       "description": "List of strings."
     },
-    "googlerpcStatus": {
+    "googleRpcStatus": {
       "type": "object",
       "properties": {
         "code": {

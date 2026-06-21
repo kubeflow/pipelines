@@ -103,7 +103,7 @@ const SHARED_OPENAPI_SUPPORT_GROUPS = [
 const SHARED_OPENAPI_SUPPORT_FILES = [
   { relativePath: 'runtime.ts' },
   { relativePath: path.join('models', 'ProtobufAny.ts') },
-  { relativePath: path.join('models', 'GooglerpcStatus.ts') },
+  { relativePath: path.join('models', 'GoogleRpcStatus.ts') },
 ];
 
 function fatal(message) {

@@ -45,12 +45,12 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   name: pipeline-install-config
-                  key: dbHost
+                  key: mysqlHost
             - name: WAIT_PORT
               valueFrom:
                 configMapKeyRef:
                   name: pipeline-install-config
-                  key: dbPort
+                  key: mysqlPort
           command: ["/bin/sh", "-ec"]
           args:
             - |
@@ -160,12 +160,12 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   name: pipeline-install-config
-                  key: dbHost
+                  key: mysqlHost
             - name: DBCONFIG_PORT
               valueFrom:
                 configMapKeyRef:
                   name: pipeline-install-config
-                  key: dbPort
+                  key: mysqlPort
             # end of relic variables
             - name: DBCONFIG_CONMAXLIFETIME
               valueFrom:

@@ -7,5 +7,5 @@ export * from './ApiRelationship';
 export * from './ApiResourceKey';
 export * from './ApiResourceReference';
 export * from './ApiResourceType';
-export * from './GooglerpcStatus';
+export * from './GoogleRpcStatus';
 export * from './ProtobufAny';
