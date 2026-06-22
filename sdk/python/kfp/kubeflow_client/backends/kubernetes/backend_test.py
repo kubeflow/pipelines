@@ -18,7 +18,6 @@ import unittest
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
-from absl.testing import parameterized
 from kfp.kubeflow_client.backends.kubernetes import auth
 from kfp.kubeflow_client.backends.kubernetes import utils
 from kfp.kubeflow_client.backends.kubernetes.backend import KubernetesBackend
@@ -30,7 +29,7 @@ _AUTH_MODULE = 'kfp.kubeflow_client.backends.kubernetes.auth'
 _BACKEND_MODULE = 'kfp.kubeflow_client.backends.kubernetes.backend'
 
 
-class TestKubernetesBackendConfig(parameterized.TestCase):
+class TestKubernetesBackendConfig(unittest.TestCase):
 
     def test_repr_masks_token(self):
         cfg = KubernetesBackendConfig(
@@ -49,7 +48,7 @@ class TestKubernetesBackendConfig(parameterized.TestCase):
 
 
 @patch(f'{_BACKEND_MODULE}.KubernetesBackend.verify_backend')
-class TestBuildApiConfiguration(parameterized.TestCase):
+class TestBuildApiConfiguration(unittest.TestCase):
 
     @patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials')
     def test_explicit_base_url_sets_host(self, _mock_creds, _mock_verify):
@@ -123,7 +122,7 @@ class TestBuildApiConfiguration(parameterized.TestCase):
         _mock_creds.assert_not_called()
 
 
-class TestNamespaceResolution(parameterized.TestCase):
+class TestNamespaceResolution(unittest.TestCase):
 
     def test_explicit_namespace(self):
         result = utils.resolve_namespace('explicit-ns')
@@ -154,7 +153,7 @@ class TestNamespaceResolution(parameterized.TestCase):
         self.assertEqual(result, 'kubeflow')
 
 
-class TestApplyInClusterCredentials(parameterized.TestCase):
+class TestApplyInClusterCredentials(unittest.TestCase):
 
     def test_no_token_files_skips_silently(self):
         api_config = kfp_server_api.Configuration()
@@ -164,7 +163,7 @@ class TestApplyInClusterCredentials(parameterized.TestCase):
         self.assertNotIn('authorization', api_config.api_key)
 
 
-class TestHostDiscovery(parameterized.TestCase):
+class TestHostDiscovery(unittest.TestCase):
 
     @patch.dict(os.environ, {'KF_PIPELINES_ENDPOINT': 'http://my-endpoint'})
     def test_env_var_takes_priority(self):

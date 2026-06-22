@@ -18,12 +18,12 @@ import unittest
 from unittest.mock import Mock
 from unittest.mock import patch
 
-from absl.testing import parameterized
 from kfp.kubeflow_client import constants
 from kfp.kubeflow_client.api.pipelines_client import PipelinesClient
 from kfp.kubeflow_client.backends.kubernetes.types import \
     KubernetesBackendConfig
 import kfp_server_api
+import pytest
 
 _AUTH_MODULE = 'kfp.kubeflow_client.backends.kubernetes.auth'
 
@@ -41,7 +41,7 @@ def _make_client(base_url='http://localhost:8888', namespace='test-ns'):
             ))
 
 
-class TestPipelineOperations(parameterized.TestCase):
+class TestPipelineOperations(unittest.TestCase):
 
     def setUp(self):
         self.client = _make_client()
@@ -156,7 +156,7 @@ class TestPipelineOperations(parameterized.TestCase):
                 self.client.delete_pipeline('ghost-pipe')
 
 
-class TestRunOperations(parameterized.TestCase):
+class TestRunOperations(unittest.TestCase):
 
     def setUp(self):
         self.client = _make_client()
@@ -166,92 +166,56 @@ class TestRunOperations(parameterized.TestCase):
         with patch.object(
                 self.client, '_run_inline',
                 return_value=mock_run) as mock_inline:
-            with patch.object(
-                    self.client._backend,
-                    '_get_experiment_id_by_name',
-                    return_value='exp-1'):
 
-                def fake_pipeline():
-                    pass
+            def fake_pipeline():
+                pass
 
-                fake_pipeline.name = 'test-pipe'
-                result = self.client.run(
-                    fake_pipeline, params={'x': '1'}, name='my-run')
-                mock_inline.assert_called_once()
-                self.assertEqual(result.run_id, 'r-1')
+            fake_pipeline.name = 'test-pipe'
+            result = self.client.run(
+                fake_pipeline, params={'x': '1'}, name='my-run')
+            mock_inline.assert_called_once()
+            self.assertEqual(result.run_id, 'r-1')
 
-    def test_run_by_name_resolves_latest_version(self):
+    def test_run_by_name_delegates_to_backend(self):
         mock_run = Mock(run_id='r-2')
         with patch.object(
-                self.client._backend,
-                '_get_pipeline_id_by_name',
-                return_value='pid-1'):
-            with patch.object(
-                    self.client._backend,
-                    '_get_latest_version_id',
-                    return_value='vid-latest'):
-                with patch.object(
-                        self.client._backend,
-                        '_run_from_version_reference',
-                        return_value=mock_run) as mock_ref:
-                    result = self.client.run('my-pipe', name='run-1')
-                    mock_ref.assert_called_once_with(
-                        pipeline_id='pid-1',
-                        version_id='vid-latest',
-                        params=None,
-                        run_name='run-1',
-                        experiment_id=None,
-                    )
-                    self.assertEqual(result.run_id, 'r-2')
+                self.client._backend, 'run_by_name',
+                return_value=mock_run) as mock_run_by_name:
+            result = self.client.run('my-pipe', name='run-1')
+            mock_run_by_name.assert_called_once_with(
+                pipeline_name='my-pipe',
+                version_name=None,
+                params=None,
+                run_name='run-1',
+                experiment=None,
+            )
+            self.assertEqual(result.run_id, 'r-2')
 
     def test_run_by_name_with_version(self):
         mock_run = Mock(run_id='r-3')
         with patch.object(
-                self.client._backend,
-                '_get_pipeline_id_by_name',
-                return_value='pid-1'):
-            with patch.object(
-                    self.client._backend,
-                    '_get_version_id_by_name',
-                    return_value='vid-specific'):
-                with patch.object(
-                        self.client._backend,
-                        '_run_from_version_reference',
-                        return_value=mock_run) as mock_ref:
-                    result = self.client.run(
-                        'my-pipe', version='v2', name='run-2')
-                    mock_ref.assert_called_once_with(
-                        pipeline_id='pid-1',
-                        version_id='vid-specific',
-                        params=None,
-                        run_name='run-2',
-                        experiment_id=None,
-                    )
+                self.client._backend, 'run_by_name',
+                return_value=mock_run) as mock_run_by_name:
+            result = self.client.run('my-pipe', version='v2', name='run-2')
+            mock_run_by_name.assert_called_once_with(
+                pipeline_name='my-pipe',
+                version_name='v2',
+                params=None,
+                run_name='run-2',
+                experiment=None,
+            )
 
     def test_run_by_name_nonexistent_version_raises(self):
         with patch.object(
                 self.client._backend,
-                '_get_pipeline_id_by_name',
-                return_value='pid-1'):
-            with patch.object(
-                    self.client._backend,
-                    '_get_version_id_by_name',
-                    return_value=None):
-                with patch.object(
-                        self.client._backend,
-                        '_get_experiment_id_by_name',
-                        return_value='exp-1'):
-                    with self.assertRaisesRegex(ValueError,
-                                                'version not found'):
-                        self.client.run('my-pipe', version='bad')
+                'run_by_name',
+                side_effect=ValueError('version not found')):
+            with self.assertRaisesRegex(ValueError, 'version not found'):
+                self.client.run('my-pipe', version='bad')
 
     def test_run_archive_file_raises(self):
-        with patch.object(
-                self.client._backend,
-                '_get_experiment_id_by_name',
-                return_value='exp-1'):
-            with self.assertRaisesRegex(ValueError, 'Archive files'):
-                self.client.run('/path/to/file.tar.gz')
+        with self.assertRaisesRegex(ValueError, 'Archive files'):
+            self.client.run('/path/to/file.tar.gz')
 
     def test_run_pipeline_version_object(self):
         pv = Mock(
@@ -260,51 +224,46 @@ class TestRunOperations(parameterized.TestCase):
             pipeline_version_id='vid-1')
         mock_run = Mock(run_id='r-4')
         with patch.object(
-                self.client._backend,
-                '_get_experiment_id_by_name',
-                return_value='exp-1'):
-            with patch.object(
-                    self.client._backend,
-                    '_run_from_version_reference',
-                    return_value=mock_run) as mock_ref:
-                result = self.client.run(pv, name='run-pv')
-                mock_ref.assert_called_once()
-                self.assertEqual(result.run_id, 'r-4')
+                self.client._backend, 'run_from_version',
+                return_value=mock_run) as mock_ref:
+            result = self.client.run(pv, name='run-pv')
+            mock_ref.assert_called_once_with(
+                pipeline_id='pid-1',
+                version_id='vid-1',
+                params=None,
+                run_name='run-pv',
+                experiment=None,
+            )
+            self.assertEqual(result.run_id, 'r-4')
 
-    def test_run_pipeline_object_resolves_latest_version(self):
+    def test_run_pipeline_object_delegates_to_backend(self):
         pipeline_obj = Mock(
             spec=kfp_server_api.V2beta1Pipeline, pipeline_id='pid-1')
         mock_run = Mock(run_id='r-5')
         with patch.object(
-                self.client._backend,
-                '_get_latest_version_id',
-                return_value='vid-latest') as mock_latest:
-            with patch.object(
-                    self.client._backend,
-                    '_run_from_version_reference',
-                    return_value=mock_run) as mock_ref:
-                result = self.client.run(pipeline_obj, name='run-pipe')
-                mock_latest.assert_called_once_with('pid-1')
-                mock_ref.assert_called_once_with(
-                    pipeline_id='pid-1',
-                    version_id='vid-latest',
-                    params=None,
-                    run_name='run-pipe',
-                    experiment_id=None,
-                )
-                self.assertEqual(result.run_id, 'r-5')
+                self.client._backend, 'run_pipeline',
+                return_value=mock_run) as mock_run_pipeline:
+            result = self.client.run(pipeline_obj, name='run-pipe')
+            mock_run_pipeline.assert_called_once_with(
+                pipeline=pipeline_obj,
+                version=None,
+                params=None,
+                run_name='run-pipe',
+                experiment=None,
+            )
+            self.assertEqual(result.run_id, 'r-5')
 
     def test_run_yaml_path_dispatches_to_run_from_file(self):
         mock_run = Mock(run_id='r-6')
         with patch.object(
-                self.client._backend, '_run_from_file',
+                self.client._backend, 'run_from_file',
                 return_value=mock_run) as mock_file:
             result = self.client.run('/tmp/my-pipeline.yaml', name='yaml-run')
             mock_file.assert_called_once_with(
                 file_path='/tmp/my-pipeline.yaml',
                 params=None,
                 run_name='yaml-run',
-                experiment_id=None,
+                experiment=None,
             )
             self.assertEqual(result.run_id, 'r-6')
 
@@ -321,7 +280,7 @@ class TestRunOperations(parameterized.TestCase):
     def test_run_yaml_path_with_version_logs_warning(self):
         mock_run = Mock(run_id='r-warn-2')
         with patch.object(
-                self.client._backend, '_run_from_file', return_value=mock_run):
+                self.client._backend, 'run_from_file', return_value=mock_run):
             with self.assertLogs(
                     'kfp.kubeflow_client.api.pipelines_client',
                     level='WARNING') as log:
@@ -335,8 +294,7 @@ class TestRunOperations(parameterized.TestCase):
             pipeline_id='pid-1',
             pipeline_version_id='vid-1')
         with patch.object(
-                self.client._backend,
-                '_run_from_version_reference',
+                self.client._backend, 'run_from_version',
                 return_value=mock_run):
             with self.assertLogs(
                     'kfp.kubeflow_client.api.pipelines_client',
@@ -344,38 +302,31 @@ class TestRunOperations(parameterized.TestCase):
                 self.client.run(pv_obj, version='v2', name='run-w3')
             self.assertIn('version parameter is ignored', log.output[0])
 
-    def test_run_pipeline_obj_with_version_resolves_named_version(self):
+    def test_run_pipeline_obj_with_version_delegates_to_backend(self):
         pipeline_obj = Mock(
             spec=kfp_server_api.V2beta1Pipeline,
             pipeline_id='pid-1',
             display_name='my-pipe')
         mock_run = Mock(run_id='r-ver')
         with patch.object(
-                self.client._backend,
-                '_get_version_id_by_name',
-                return_value='vid-named') as mock_ver:
-            with patch.object(
-                    self.client._backend,
-                    '_run_from_version_reference',
-                    return_value=mock_run) as mock_ref:
-                result = self.client.run(
-                    pipeline_obj, version='v2', name='run-ver')
-                mock_ver.assert_called_once_with('pid-1', 'v2')
-                mock_ref.assert_called_once_with(
-                    pipeline_id='pid-1',
-                    version_id='vid-named',
-                    params=None,
-                    run_name='run-ver',
-                    experiment_id=None,
-                )
-                self.assertEqual(result.run_id, 'r-ver')
+                self.client._backend, 'run_pipeline',
+                return_value=mock_run) as mock_run_pipeline:
+            result = self.client.run(pipeline_obj, version='v2', name='run-ver')
+            mock_run_pipeline.assert_called_once_with(
+                pipeline=pipeline_obj,
+                version='v2',
+                params=None,
+                run_name='run-ver',
+                experiment=None,
+            )
+            self.assertEqual(result.run_id, 'r-ver')
 
     def test_run_unsupported_type_raises(self):
         with self.assertRaisesRegex(ValueError, 'Unsupported pipeline'):
             self.client.run(12345)
 
 
-class TestExperimentOperations(parameterized.TestCase):
+class TestExperimentOperations(unittest.TestCase):
 
     def setUp(self):
         self.client = _make_client()
@@ -460,7 +411,7 @@ class TestExperimentOperations(parameterized.TestCase):
             self.assertEqual(result.next_page_token, 'tok2')
 
 
-class TestWaitForRunStatus(parameterized.TestCase):
+class TestWaitForRunStatus(unittest.TestCase):
 
     def setUp(self):
         self.client = _make_client()
@@ -624,24 +575,45 @@ class TestWaitForRunStatus(parameterized.TestCase):
         self.assertEqual(result.state, 'FAILED')
 
 
-class TestHelperMethods(parameterized.TestCase):
+@pytest.mark.parametrize('func_name, expected', [
+    ('my_pipeline', 'my-pipeline'),
+    ('hello_world_pipe', 'hello-world-pipe'),
+    ('already-dashed', 'already-dashed'),
+])
+def test_infer_pipeline_name_from_function_name(func_name, expected):
+    client = _make_client()
+    func = Mock()
+    func.name = None
+    func.__name__ = func_name
+    func.__class__ = type('function', (), {})
+    with patch('os.path.isfile', return_value=False):
+        result = client._infer_pipeline_name(func, '/tmp/f.yaml')
+    assert result == expected
+
+
+@pytest.mark.parametrize('path', [
+    'pipeline.yaml',
+    'pipeline.yml',
+    'path/to/spec.yaml',
+])
+def test_is_yaml_path(path):
+    assert PipelinesClient._is_yaml_path(path)
+
+
+@pytest.mark.parametrize('path', [
+    'pipeline.tar.gz',
+    'pipeline.zip',
+    'pipeline-name',
+    'pipeline.tgz',
+])
+def test_is_not_yaml_path(path):
+    assert not PipelinesClient._is_yaml_path(path)
+
+
+class TestHelperMethods(unittest.TestCase):
 
     def setUp(self):
         self.client = _make_client()
-
-    @parameterized.parameters([
-        ('my_pipeline', 'my-pipeline'),
-        ('hello_world_pipe', 'hello-world-pipe'),
-        ('already-dashed', 'already-dashed'),
-    ])
-    def test_infer_pipeline_name_from_function_name(self, func_name, expected):
-        func = Mock()
-        func.name = None
-        func.__name__ = func_name
-        func.__class__ = type('function', (), {})
-        with patch('os.path.isfile', return_value=False):
-            result = self.client._infer_pipeline_name(func, '/tmp/f.yaml')
-        self.assertEqual(result, expected)
 
     def test_infer_pipeline_name_from_dsl_name(self):
         func = Mock()
@@ -653,16 +625,6 @@ class TestHelperMethods(parameterized.TestCase):
         result = self.client._infer_pipeline_name('/tmp/my-pipeline.yaml',
                                                   '/tmp/my-pipeline.yaml')
         self.assertEqual(result, 'my-pipeline')
-
-    @parameterized.parameters(
-        ['pipeline.yaml', 'pipeline.yml', 'path/to/spec.yaml'])
-    def test_is_yaml_path(self, path):
-        self.assertTrue(self.client._is_yaml_path(path))
-
-    @parameterized.parameters(
-        ['pipeline.tar.gz', 'pipeline.zip', 'pipeline-name', 'pipeline.tgz'])
-    def test_is_not_yaml_path(self, path):
-        self.assertFalse(self.client._is_yaml_path(path))
 
     def test_validate_pipeline_name_valid(self):
         PipelinesClient._validate_pipeline_name('my-pipeline')
@@ -712,13 +674,15 @@ class TestHelperMethods(parameterized.TestCase):
                 self.client._backend._get_pipeline_id_by_name('dup-name')
 
     def test_invoke_callbacks_wraps_exception_in_runtime_error(self):
+        from kfp.kubeflow_client.backends.kubernetes.backend import \
+            KubernetesBackend
 
         def bad_callback(run):
             raise ValueError('callback boom')
 
         mock_run = Mock(run_id='r-1', state='SUCCEEDED')
         with self.assertRaisesRegex(RuntimeError, 'callback boom'):
-            PipelinesClient._invoke_callbacks([bad_callback], mock_run)
+            KubernetesBackend._invoke_callbacks([bad_callback], mock_run)
 
     def test_resolve_experiment_id_returns_none_when_not_specified(self):
         result = self.client._backend._resolve_experiment_id(None)
@@ -752,7 +716,7 @@ class TestHelperMethods(parameterized.TestCase):
         self.assertTrue(result.startswith('uploaded-pipe '))
 
 
-class TestUploadNewPipeline(parameterized.TestCase):
+class TestUploadNewPipeline(unittest.TestCase):
 
     def setUp(self):
         self.client = _make_client()
@@ -840,7 +804,7 @@ class TestUploadNewPipeline(parameterized.TestCase):
                     )
 
 
-class TestLoadPipelineSpec(parameterized.TestCase):
+class TestLoadPipelineSpec(unittest.TestCase):
 
     def setUp(self):
         self.client = _make_client()
@@ -893,7 +857,7 @@ class TestLoadPipelineSpec(parameterized.TestCase):
         self.assertIn('platform_spec', result)
 
 
-class TestListRunsClientSideFilter(parameterized.TestCase):
+class TestListRunsClientSideFilter(unittest.TestCase):
 
     def setUp(self):
         self.client = _make_client()
@@ -947,7 +911,7 @@ class TestListRunsClientSideFilter(parameterized.TestCase):
                              'SUCCEEDED')
 
 
-class TestUploadPipeline(parameterized.TestCase):
+class TestUploadPipeline(unittest.TestCase):
 
     def setUp(self):
         self.client = _make_client()
@@ -1007,7 +971,7 @@ class TestUploadPipeline(parameterized.TestCase):
         self.assertEqual(result.pipeline_version_id, 'vid-2')
 
 
-class TestResolvePipelineToFile(parameterized.TestCase):
+class TestResolvePipelineToFile(unittest.TestCase):
 
     def setUp(self):
         self.client = _make_client()
@@ -1069,42 +1033,30 @@ class TestResolvePipelineToFile(parameterized.TestCase):
             self.client._resolve_pipeline_to_file(12345)
 
 
-class TestGetPipelineVersion(parameterized.TestCase):
+class TestGetPipelineVersion(unittest.TestCase):
 
     def setUp(self):
         self.client = _make_client()
 
     def test_get_pipeline_version_success(self):
-        mock_pipeline = Mock(pipeline_id='pid-1', display_name='my-pipe')
         mock_pv = Mock(pipeline_version_id='vid-1', display_name='v1')
         with patch.object(
-                self.client, 'get_pipeline', return_value=mock_pipeline):
-            with patch.object(
-                    self.client._backend,
-                    '_get_version_id_by_name',
-                    return_value='vid-1'):
-                with patch.object(
-                        self.client._backend.pipelines_api,
-                        'pipeline_service_get_pipeline_version',
-                        return_value=mock_pv) as mock_get:
-                    result = self.client.get_pipeline_version('my-pipe', 'v1')
-                    mock_get.assert_called_once_with(
-                        pipeline_id='pid-1', pipeline_version_id='vid-1')
-                    self.assertEqual(result.display_name, 'v1')
+                self.client._backend, 'get_pipeline_version',
+                return_value=mock_pv) as mock_get:
+            result = self.client.get_pipeline_version('my-pipe', 'v1')
+            mock_get.assert_called_once_with('my-pipe', 'v1')
+            self.assertEqual(result.display_name, 'v1')
 
     def test_get_pipeline_version_not_found_raises(self):
-        mock_pipeline = Mock(pipeline_id='pid-1', display_name='my-pipe')
         with patch.object(
-                self.client, 'get_pipeline', return_value=mock_pipeline):
-            with patch.object(
-                    self.client._backend,
-                    '_get_version_id_by_name',
-                    return_value=None):
-                with self.assertRaisesRegex(ValueError, 'version not found'):
-                    self.client.get_pipeline_version('my-pipe', 'bad-ver')
+                self.client._backend,
+                'get_pipeline_version',
+                side_effect=ValueError('version not found')):
+            with self.assertRaisesRegex(ValueError, 'version not found'):
+                self.client.get_pipeline_version('my-pipe', 'bad-ver')
 
 
-class TestListPipelineVersions(parameterized.TestCase):
+class TestListPipelineVersions(unittest.TestCase):
 
     def setUp(self):
         self.client = _make_client()
@@ -1133,7 +1085,7 @@ class TestListPipelineVersions(parameterized.TestCase):
                 self.client.list_pipeline_versions('ghost-pipe')
 
 
-class TestGetRun(parameterized.TestCase):
+class TestGetRun(unittest.TestCase):
 
     def setUp(self):
         self.client = _make_client()
@@ -1149,7 +1101,7 @@ class TestGetRun(parameterized.TestCase):
             self.assertEqual(result.run_id, 'r-1')
 
 
-class TestKfpClientEscapeHatch(parameterized.TestCase):
+class TestKfpClientEscapeHatch(unittest.TestCase):
 
     def setUp(self):
         self.client = _make_client()
@@ -1163,7 +1115,7 @@ class TestKfpClientEscapeHatch(parameterized.TestCase):
             MockClient.assert_called_once()
 
 
-class TestListRunsBasic(parameterized.TestCase):
+class TestListRunsBasic(unittest.TestCase):
 
     def setUp(self):
         self.client = _make_client()
