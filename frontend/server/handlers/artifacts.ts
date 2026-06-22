@@ -346,11 +346,34 @@ function getHttpArtifactsHandler(
         req.headers[auth.key] || req.headers[auth.key.toLowerCase()] || auth.defaultValue;
       headers[auth.key] = Array.isArray(headerValue) ? headerValue[0] : headerValue;
     }
-    if (!isAllowedDomain(url, allowedDomain)) {
-      res.status(500).send(`Domain not allowed.`);
-      return;
+    // Follow redirects manually so every hop is re-checked against the
+    // allowlist. Letting fetch auto-follow only validates the first URL, so an
+    // allowed host could 3xx the request to an internal address (link-local
+    // metadata, cluster services) and exfiltrate the response plus any auth
+    // header.
+    const maxRedirects = 5;
+    let currentUrl = url;
+    let response: Awaited<ReturnType<typeof fetch>>;
+    for (let hop = 0; ; hop++) {
+      if (!isAllowedDomain(currentUrl, allowedDomain)) {
+        res.status(500).send(`Domain not allowed.`);
+        return;
+      }
+      response = await fetch(currentUrl, { headers, redirect: 'manual' });
+      const status = response.status ?? 200;
+      if (status < 300 || status >= 400) {
+        break;
+      }
+      const location = response.headers?.get('location');
+      if (!location) {
+        break;
+      }
+      if (hop >= maxRedirects) {
+        res.status(500).send('Too many redirects while retrieving artifact');
+        return;
+      }
+      currentUrl = new URL(location, currentUrl).toString();
     }
-    const response = await fetch(url, { headers });
     if (!response.body) {
       res.status(500).send('Unable to retrieve artifact: empty response body');
       return;

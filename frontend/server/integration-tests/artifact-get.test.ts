@@ -497,6 +497,7 @@ describe('/artifacts', () => {
         .expect(200, artifactContent);
       expect(mockedFetch).toBeCalledWith('http://foo.bar/ml-pipeline/hello/world.txt', {
         headers: {},
+        redirect: 'manual',
       });
     });
 
@@ -522,7 +523,46 @@ describe('/artifacts', () => {
         .expect(200, artifactContent.slice(0, 5));
       expect(mockedFetch).toBeCalledWith('http://foo.bar/ml-pipeline/hello/world.txt', {
         headers: {},
+        redirect: 'manual',
       });
+    });
+
+    it('does not follow an http redirect that leaves the allowlist', async () => {
+      // The allowed host answers with a 3xx pointing at the link-local
+      // metadata service. fetch auto-follows redirects, so without per-hop
+      // re-validation the handler would fetch the internal target and stream
+      // its response back. Model real fetch semantics: a non-manual call
+      // follows the redirect, a manual call surfaces the 3xx instead.
+      const allowedUrl = 'http://allowed.host/ml-pipeline/hello/world.txt';
+      const internalUrl = 'http://169.254.169.254/latest/meta-data/';
+      mockedFetch.mockImplementation((url: string, opts: any) => {
+        if (url === allowedUrl) {
+          if (opts?.redirect === 'manual') {
+            return Promise.resolve({
+              status: 302,
+              headers: new Map([['location', internalUrl]]),
+              body: toWebStream(''),
+            });
+          }
+          // Auto-follow: real fetch would end up at the internal target.
+          return Promise.resolve({ status: 200, headers: new Map(), body: toWebStream('SECRET') });
+        }
+        return Promise.resolve({ status: 200, headers: new Map(), body: toWebStream('SECRET') });
+      });
+      const configs = loadConfigs(argv, {
+        ALLOWED_ARTIFACT_DOMAIN_REGEX: '^allowed\\.host$',
+        HTTP_BASE_URL: 'allowed.host/',
+      });
+      app = new UIServer(configs);
+
+      const request = requests(app.app);
+      const res = await request
+        .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .expect(500);
+      expect(res.text).toBe('Domain not allowed.');
+      expect(res.text).not.toContain('SECRET');
+      // The internal target is never fetched.
+      expect(mockedFetch).not.toHaveBeenCalledWith(internalUrl, expect.anything());
     });
 
     it('responds with a https artifact if source=https', async () => {
@@ -551,6 +591,7 @@ describe('/artifacts', () => {
         headers: {
           Authorization: 'someToken',
         },
+        redirect: 'manual',
       });
     });
 
@@ -579,6 +620,7 @@ describe('/artifacts', () => {
         headers: {
           Authorization: 'inheritedToken',
         },
+        redirect: 'manual',
       });
     });
 
