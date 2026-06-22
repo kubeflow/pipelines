@@ -20,17 +20,11 @@ designed for re-export by the Kubeflow SDK at ``kubeflow.pipelines``.
 from __future__ import annotations
 
 from collections.abc import Callable
-import datetime
-import logging
-import os
-import shutil
-import tempfile
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from kfp.client import Client
 
-from kfp import compiler
 from kfp.kubeflow_client.backends.kubernetes import KubernetesBackend
 from kfp.kubeflow_client.backends.kubernetes import KubernetesBackendConfig
 from kfp.kubeflow_client.types import Experiment
@@ -41,13 +35,8 @@ from kfp.kubeflow_client.types import ListRunsResponse
 from kfp.kubeflow_client.types import Pipeline
 from kfp.kubeflow_client.types import PipelineVersion
 from kfp.kubeflow_client.types import Run
-import yaml
-
-logger = logging.getLogger(__name__)
 
 __all__ = ['PipelinesClient']
-
-_VALID_UPLOAD_EXTENSIONS = ('.yaml', '.yml', '.tar.gz', '.tgz', '.zip')
 
 
 class PipelinesClient:
@@ -110,22 +99,8 @@ class PipelinesClient:
         Returns:
             A ``PipelineVersion`` object representing the uploaded version.
         """
-        package_path, temp_dir = self._resolve_pipeline_to_file(pipeline)
-
-        try:
-            if name is None:
-                name = self._infer_pipeline_name(pipeline, package_path)
-            self._validate_pipeline_name(name)
-
-            return self._backend.upload_pipeline(
-                package_path,
-                name=name,
-                version_name=version,
-                description=description,
-            )
-        finally:
-            if temp_dir is not None:
-                shutil.rmtree(temp_dir, ignore_errors=True)
+        return self._backend.upload_pipeline(
+            pipeline, name=name, version_name=version, description=description)
 
     def get_pipeline(self, name: str) -> Pipeline:
         """Get a pipeline by name.
@@ -266,70 +241,13 @@ class PipelinesClient:
         Returns:
             A ``Run`` object.
         """
-        run_name = name or self._generate_run_name(pipeline)
-
-        version_is_usable = (
-            isinstance(pipeline, Pipeline) or
-            (isinstance(pipeline, str) and not self._is_yaml_path(pipeline) and
-             not self._is_archive_path(pipeline)))
-        if version is not None and not version_is_usable:
-            logger.warning(
-                'The version parameter is ignored when pipeline is not a '
-                'name string (got %s).',
-                type(pipeline).__name__
-                if not isinstance(pipeline, str) else repr(pipeline))
-
-        if isinstance(pipeline, PipelineVersion):
-            return self._backend.run_from_version(
-                pipeline_id=pipeline.pipeline_id,
-                version_id=pipeline.pipeline_version_id,
-                params=params,
-                run_name=run_name,
-                experiment=experiment,
-            )
-
-        if isinstance(pipeline, Pipeline):
-            return self._backend.run_pipeline(
-                pipeline=pipeline,
-                version=version,
-                params=params,
-                run_name=run_name,
-                experiment=experiment,
-            )
-
-        if callable(pipeline):
-            return self._run_inline(
-                pipeline_callable=pipeline,
-                params=params,
-                run_name=run_name,
-                experiment=experiment,
-            )
-
-        if isinstance(pipeline, str) and self._is_yaml_path(pipeline):
-            return self._backend.run_from_file(
-                file_path=pipeline,
-                params=params,
-                run_name=run_name,
-                experiment=experiment,
-            )
-
-        if isinstance(pipeline, str) and self._is_archive_path(pipeline):
-            raise ValueError(
-                f'Archive files ({pipeline!r}) cannot be used for inline '
-                'runs. Use upload_pipeline() first, then run by name.')
-
-        if isinstance(pipeline, str):
-            return self._backend.run_by_name(
-                pipeline_name=pipeline,
-                version_name=version,
-                params=params,
-                run_name=run_name,
-                experiment=experiment,
-            )
-
-        raise ValueError(f'Unsupported pipeline type: {type(pipeline)!r}. '
-                         'Expected a pipeline name, file path, callable, '
-                         'Pipeline, or PipelineVersion.')
+        return self._backend.run(
+            pipeline,
+            params=params,
+            name=name,
+            experiment=experiment,
+            version=version,
+        )
 
     def get_run(self, run_id: str) -> Run:
         """Get a run by ID.
@@ -511,170 +429,3 @@ class PipelinesClient:
                 kwargs['verify_ssl'] = config.is_secure
             self._kfp_client_instance = Client(**kwargs)
         return self._kfp_client_instance
-
-    # ------------------------------------------------------------------
-    # Private helpers — SDK-level preprocessing
-    # ------------------------------------------------------------------
-
-    def _resolve_pipeline_to_file(
-        self,
-        pipeline: Callable | str,
-    ) -> tuple[str, str | None]:
-        """Resolve a pipeline source to a compiled YAML file path.
-
-        If ``pipeline`` is callable, compile it to a temporary directory.
-        If it's a string, treat it as a file path and validate existence.
-
-        Returns:
-            A tuple of (package_path, temp_dir). ``temp_dir`` is ``None``
-            when the input is a user-provided file path (no cleanup needed).
-        """
-        if callable(pipeline):
-            temp_dir = tempfile.mkdtemp()
-            package_path = os.path.join(temp_dir, 'pipeline.yaml')
-            try:
-                compiler.Compiler().compile(
-                    pipeline_func=pipeline,
-                    package_path=package_path,
-                )
-            except Exception as error:
-                shutil.rmtree(temp_dir, ignore_errors=True)
-                raise ValueError(
-                    f'Failed to compile pipeline: {error}') from error
-            return package_path, temp_dir
-        if isinstance(pipeline, str):
-            if not os.path.isfile(pipeline):
-                raise ValueError(f'Pipeline file not found: {pipeline!r}.')
-            if not any(
-                    pipeline.endswith(ext) for ext in _VALID_UPLOAD_EXTENSIONS):
-                raise ValueError(f'Unsupported file type: {pipeline!r}. '
-                                 f'Expected one of: '
-                                 f'{", ".join(_VALID_UPLOAD_EXTENSIONS)}')
-            return pipeline, None
-        raise ValueError(
-            f'Expected a callable or file path, got {type(pipeline)!r}.')
-
-    def _infer_pipeline_name(
-        self,
-        pipeline: Callable | str,
-        package_path: str,
-    ) -> str:
-        """Infer a pipeline name from the source.
-
-        Resolution order: callable's .name attribute, callable's
-        __name__, pipeline name from compiled YAML, filename stem, or
-        'pipeline'.
-        """
-        if callable(pipeline) and hasattr(pipeline, 'name') and pipeline.name:
-            return pipeline.name
-        if callable(pipeline) and hasattr(pipeline,
-                                          '__name__') and pipeline.__name__:
-            return pipeline.__name__.replace('_', '-')
-
-        name_from_spec = self._read_pipeline_name_from_yaml(package_path)
-        if name_from_spec:
-            return name_from_spec
-
-        if isinstance(pipeline, str):
-            basename = os.path.basename(pipeline)
-            return self._strip_pipeline_extension(basename)
-        return 'pipeline'
-
-    @staticmethod
-    def _validate_pipeline_name(name: str) -> None:
-        """Validate that a pipeline name is non-empty."""
-        if not name or name.isspace():
-            raise ValueError(
-                'Invalid pipeline name. Pipeline name cannot be empty '
-                'or contain only whitespace.')
-
-    @staticmethod
-    def _read_pipeline_name_from_yaml(package_path: str,) -> str | None:
-        """Try to extract the pipeline name from a compiled YAML file."""
-        try:
-            if not package_path.endswith(('.yaml', '.yml')):
-                return None
-            with open(package_path, 'r') as f:
-                doc = yaml.safe_load(f)
-            if isinstance(doc, dict):
-                pipeline_info = doc.get('pipelineInfo', {})
-                name = pipeline_info.get('name')
-                if name and isinstance(name, str) and not name.isspace():
-                    return name
-        except (OSError, yaml.YAMLError):
-            logger.debug(
-                'Could not read pipeline name from %s.',
-                package_path,
-                exc_info=True)
-        return None
-
-    # ------------------------------------------------------------------
-    # Private helpers — run creation
-    # ------------------------------------------------------------------
-
-    def _run_inline(
-        self,
-        pipeline_callable: Callable,
-        params: dict[str, Any] | None,
-        run_name: str,
-        experiment: str | None,
-    ) -> Run:
-        """Compile a callable and submit inline (no upload)."""
-        package_path, temp_dir = self._resolve_pipeline_to_file(
-            pipeline_callable)
-        try:
-            return self._backend.run_from_file(
-                file_path=package_path,
-                params=params,
-                run_name=run_name,
-                experiment=experiment,
-            )
-        finally:
-            if temp_dir is not None:
-                shutil.rmtree(temp_dir, ignore_errors=True)
-
-    # ------------------------------------------------------------------
-    # Private helpers — utilities
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _is_yaml_path(value: str) -> bool:
-        """Check if a string looks like a YAML pipeline file path."""
-        return value.endswith('.yaml') or value.endswith('.yml')
-
-    @staticmethod
-    def _is_archive_path(value: str) -> bool:
-        """Check if a string looks like an archive pipeline file path."""
-        return (value.endswith('.tar.gz') or value.endswith('.tgz') or
-                value.endswith('.zip'))
-
-    @staticmethod
-    def _strip_pipeline_extension(filename: str) -> str:
-        """Strip known pipeline file extensions including compound ones."""
-        for suffix in ('.tar.gz', '.tgz', '.zip', '.yaml', '.yml'):
-            if filename.endswith(suffix):
-                return filename[:-len(suffix)]
-        return filename
-
-    @staticmethod
-    def _generate_run_name(
-        pipeline: str | Callable | Pipeline | PipelineVersion,) -> str:
-        """Generate a default run display name."""
-        timestamp = (
-            datetime.datetime.now().astimezone().strftime('%Y-%m-%d %H-%M-%S'))
-        if callable(pipeline):
-            base_name = getattr(pipeline, 'name', None)
-            if base_name is None:
-                base_name = getattr(pipeline, '__name__', 'pipeline')
-            return f'{base_name} {timestamp}'
-        if isinstance(pipeline, str):
-            if (PipelinesClient._is_yaml_path(pipeline) or
-                    PipelinesClient._is_archive_path(pipeline)):
-                basename = os.path.basename(pipeline)
-                name = PipelinesClient._strip_pipeline_extension(basename)
-                return f'{name} {timestamp}'
-            return f'{pipeline} {timestamp}'
-        if isinstance(pipeline, (Pipeline, PipelineVersion)):
-            display_name = getattr(pipeline, 'display_name', 'pipeline')
-            return f'{display_name} {timestamp}'
-        return f'pipeline {timestamp}'
