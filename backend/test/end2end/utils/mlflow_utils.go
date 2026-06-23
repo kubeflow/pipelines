@@ -40,6 +40,8 @@ const (
 	mlflowEndpointEnv    = "MLFLOW_TRACKING_URI"
 	mlflowInsecureTLSEnv = "MLFLOW_TRACKING_INSECURE_TLS"
 	mlflowBearerTokenEnv = "MLFLOW_BEARER_TOKEN"
+	mlflowUsernameEnv    = "MLFLOW_TRACKING_USERNAME"
+	mlflowPasswordEnv    = "MLFLOW_TRACKING_PASSWORD"
 	mlflowWorkspaceEnv   = "MLFLOW_WORKSPACE"
 	mlflowPluginKey      = "mlflow"
 )
@@ -48,6 +50,8 @@ func getMLflowClient(endpoint string) (*mlflowclient.Client, error) {
 	insecure := strings.EqualFold(os.Getenv(mlflowInsecureTLSEnv), "true")
 	workspace := os.Getenv(mlflowWorkspaceEnv)
 	bearerToken := os.Getenv(mlflowBearerTokenEnv)
+	username := os.Getenv(mlflowUsernameEnv)
+	password := os.Getenv(mlflowPasswordEnv)
 	httpClient := &http.Client{
 		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
@@ -60,6 +64,8 @@ func getMLflowClient(endpoint string) (*mlflowclient.Client, error) {
 		Endpoint:          endpoint,
 		HTTPClient:        httpClient,
 		BearerToken:       bearerToken,
+		Username:          username,
+		Password:          password,
 		WorkspacesEnabled: workspace != "",
 		Workspace:         workspace,
 	})
@@ -68,6 +74,9 @@ func getMLflowClient(endpoint string) (*mlflowclient.Client, error) {
 	}
 	if bearerToken != "" {
 		logger.Log("MLflow client initialized with bearer token auth")
+	}
+	if username != "" || password != "" {
+		logger.Log("MLflow client initialized with basic auth")
 	}
 	if workspace != "" {
 		logger.Log("MLflow client initialized with workspace header: %s", workspace)

@@ -9,6 +9,7 @@ import (
 	"github.com/golang/glog"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
+	corev1 "k8s.io/api/core/v1"
 )
 
 var _ plugins.TaskPluginHandler = (*MLflowHandler)(nil)
@@ -36,7 +37,7 @@ func NewMLflowTaskHandler(cfg *commonmlflow.MLflowRuntimeConfig) (*MLflowHandler
 	if cfg == nil {
 		return nil, fmt.Errorf("cfg is nil")
 	}
-	if cfg.AuthType != commonmlflow.AuthTypeKubernetes {
+	if !commonmlflow.IsSupportedAuthType(cfg.AuthType) {
 		return nil, fmt.Errorf("failed to parse MLflow runtime config: unsupported auth type: %s", cfg.AuthType)
 	}
 	return &MLflowHandler{
@@ -115,7 +116,8 @@ func (h *MLflowHandler) OnTaskEnd(ctx context.Context, info *plugins.TaskInfo) e
 	}
 
 	resolvedStatus := ExecutionStateToMLflowTerminalStatus(info.RunStatus)
-	err = requestCtx.Client.UpdateRun(ctx, resolvedRunID, resolvedStatus, new(info.RunEndTime))
+	runEndTime := info.RunEndTime
+	err = requestCtx.Client.UpdateRun(ctx, resolvedRunID, resolvedStatus, &runEndTime)
 	if err != nil {
 		return fmt.Errorf("failed to update MLflow run: %v", err)
 	}
@@ -125,35 +127,44 @@ func (h *MLflowHandler) OnTaskEnd(ctx context.Context, info *plugins.TaskInfo) e
 
 // RetrieveUserContainerEnvVars retrieves environment variables to inject into user containers based on the MLflow runtime config.
 // The run ID is resolved from h.nestedRunID, set during OnTaskStart.
-func (h *MLflowHandler) RetrieveUserContainerEnvVars() (injectVars map[string]string, err error) {
+func (h *MLflowHandler) RetrieveUserContainerEnvVars() (injectVars []corev1.EnvVar, err error) {
 	if h == nil || h.runtimeCfg == nil {
 		return nil, fmt.Errorf("MLflow plugin handler and runtime config must be non-nil")
 	}
-	injectVars = make(map[string]string)
+	if !h.runtimeCfg.InjectUserEnvVars {
+		return nil, nil
+	}
+	if h.nestedRunID == "" {
+		return nil, fmt.Errorf("MLflow run ID is empty. Cannot inject MLFLOW_RUN_ID env var")
+	}
 
-	if h.runtimeCfg.InjectUserEnvVars {
-		if h.nestedRunID != "" {
-			injectVars["MLFLOW_RUN_ID"] = h.nestedRunID
-		} else {
-			return nil, fmt.Errorf("MLflow run ID is empty. Cannot inject MLFLOW_RUN_ID env var")
-		}
-
-		injectVars["MLFLOW_TRACKING_URI"] = h.runtimeCfg.Endpoint
-		injectVars["MLFLOW_EXPERIMENT_ID"] = h.runtimeCfg.ExperimentID
-
+	injectVars = []corev1.EnvVar{
+		{Name: "MLFLOW_RUN_ID", Value: h.nestedRunID},
+		{Name: "MLFLOW_TRACKING_URI", Value: h.runtimeCfg.Endpoint},
+		{Name: "MLFLOW_EXPERIMENT_ID", Value: h.runtimeCfg.ExperimentID},
+	}
+	if h.runtimeCfg.WorkspacesEnabled {
+		injectVars = append(injectVars, corev1.EnvVar{Name: "MLFLOW_WORKSPACE", Value: h.runtimeCfg.Workspace})
+	}
+	switch h.runtimeCfg.AuthType {
+	case commonmlflow.AuthTypeKubernetes:
+		auth := "kubernetes"
 		if h.runtimeCfg.WorkspacesEnabled {
-			injectVars["MLFLOW_WORKSPACE"] = h.runtimeCfg.Workspace
+			auth = "kubernetes-namespaced"
 		}
-		var auth string
-		if h.runtimeCfg.AuthType == "kubernetes" {
-			auth = "kubernetes"
-			if h.runtimeCfg.WorkspacesEnabled {
-				auth = "kubernetes-namespaced"
-			}
-			injectVars["MLFLOW_TRACKING_AUTH"] = auth
-		} else {
-			return nil, fmt.Errorf("MLflow auth type %s is not supported", h.runtimeCfg.AuthType)
+		injectVars = append(injectVars, corev1.EnvVar{Name: commonmlflow.EnvMLflowTrackingAuth, Value: auth})
+	case commonmlflow.AuthTypeBearer:
+		credentialEnvVars, err := commonmlflow.BuildCredentialEnvVars(h.runtimeCfg.CredentialSecretRef, commonmlflow.AuthTypeBearer)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build MLflow credential env vars: %v", err)
 		}
+		injectVars = append(injectVars, credentialEnvVars...)
+	case commonmlflow.AuthTypeBasicAuth:
+		credentialEnvVars, err := commonmlflow.BuildCredentialEnvVars(h.runtimeCfg.CredentialSecretRef, commonmlflow.AuthTypeBasicAuth)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build MLflow credential env vars: %v", err)
+		}
+		injectVars = append(injectVars, credentialEnvVars...)
 	}
 	return injectVars, nil
 }

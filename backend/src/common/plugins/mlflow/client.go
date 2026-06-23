@@ -36,6 +36,9 @@ import (
 // Auth type constants.
 const (
 	AuthTypeKubernetes = "kubernetes"
+	AuthTypeBearer     = "bearer"
+	AuthTypeBasicAuth  = "basic-auth"
+	AuthTypeNone       = "none"
 )
 
 // Retry policy defaults.
@@ -76,6 +79,8 @@ type Config struct {
 	Endpoint          string
 	HTTPClient        *http.Client
 	BearerToken       string
+	Username          string
+	Password          string
 	WorkspacesEnabled bool
 	Workspace         string
 	Retry             RetryPolicy
@@ -126,8 +131,20 @@ type Client struct {
 	endpoint          *url.URL
 	httpClient        *http.Client
 	bearerToken       string
+	username          string
+	password          string
 	workspacesEnabled bool
 	workspace         string
+}
+
+// IsSupportedAuthType reports whether authType is supported by the MLflow integration.
+func IsSupportedAuthType(authType string) bool {
+	switch authType {
+	case AuthTypeKubernetes, AuthTypeBearer, AuthTypeBasicAuth, AuthTypeNone:
+		return true
+	default:
+		return false
+	}
 }
 
 // NewClient creates a new MLflow REST API client.
@@ -158,6 +175,8 @@ func NewClient(cfg Config) (*Client, error) {
 		endpoint:          u,
 		httpClient:        httpClient,
 		bearerToken:       cfg.BearerToken,
+		username:          cfg.Username,
+		password:          cfg.Password,
 		workspacesEnabled: cfg.WorkspacesEnabled,
 		workspace:         cfg.Workspace,
 	}, nil
@@ -359,7 +378,9 @@ func (c *Client) buildURL(path string) *url.URL {
 func (c *Client) applyHeaders(req *http.Request) {
 	req.Header.Set("Content-Type", "application/json")
 
-	if c.bearerToken != "" {
+	if c.username != "" && c.password != "" {
+		req.SetBasicAuth(c.username, c.password)
+	} else if c.bearerToken != "" {
 		req.Header.Set("Authorization", "Bearer "+c.bearerToken)
 	}
 
