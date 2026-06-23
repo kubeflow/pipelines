@@ -35,10 +35,37 @@ function check_namespace {
     return 0
 }
 
-function display_pod_info {
+function display_namespace_state {
     local NAMESPACE=$1
 
-    kubectl get pods -n "${NAMESPACE}"
+    {
+        echo "Namespace State for Namespace: ${NAMESPACE}"
+        echo "----- SERVICES -----"
+        kubectl get svc -n "${NAMESPACE}" -o wide || echo "No services found in namespace '${NAMESPACE}'."
+
+        echo "----- ENDPOINTS -----"
+        kubectl get endpoints -n "${NAMESPACE}" -o wide || echo "No endpoints found in namespace '${NAMESPACE}'."
+
+        echo "----- ENDPOINT SLICES -----"
+        kubectl get endpointslices.discovery.k8s.io -n "${NAMESPACE}" -o wide || echo "No endpoint slices found in namespace '${NAMESPACE}'."
+
+        echo "----- PODS -----"
+        kubectl get pods -n "${NAMESPACE}" -o wide || echo "No pods found in namespace '${NAMESPACE}'."
+
+        echo "----- DEPLOYMENTS -----"
+        kubectl get deployments -n "${NAMESPACE}" -o wide || echo "No deployments found in namespace '${NAMESPACE}'."
+
+        echo "----- STATEFULSETS -----"
+        kubectl get statefulsets -n "${NAMESPACE}" -o wide || echo "No statefulsets found in namespace '${NAMESPACE}'."
+
+        echo "----- EVENTS -----"
+        kubectl get events -n "${NAMESPACE}" --sort-by=.lastTimestamp || echo "No events found in namespace '${NAMESPACE}'."
+        echo ""
+    } | tee -a "$OUTPUT_FILE"
+}
+
+function display_pod_info {
+    local NAMESPACE=$1
 
     local POD_NAMES
 
@@ -69,6 +96,7 @@ function display_pod_info {
 }
 
 if check_namespace "$NS"; then
+    display_namespace_state "$NS"
     display_pod_info "$NS"
 else
     exit 0

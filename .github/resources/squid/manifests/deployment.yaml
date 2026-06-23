@@ -23,7 +23,7 @@ spec:
               cpu: 50m
               memory: 64Mi
             limits:
-              memory: 512Mi
+              memory: 256Mi
           startupProbe:
             tcpSocket:
               port: 3128
@@ -40,13 +40,3 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
             failureThreshold: 3
-          volumeMounts:
-            - name: squid-cache
-              mountPath: /var/cache/squid
-            - name: squid-log
-              mountPath: /var/log/squid
-      volumes:
-        - name: squid-cache
-          emptyDir: { }
-        - name: squid-log
-          emptyDir: { }

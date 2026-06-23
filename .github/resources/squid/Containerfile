@@ -1,11 +1,9 @@
-FROM quay.io/fedora/fedora:41
+FROM docker.io/alpine:3.23
 
-RUN dnf install -y squid && \
-    dnf clean all
+RUN apk add --no-cache tinyproxy
 
-COPY squid.conf /etc/squid/squid.conf
+COPY tinyproxy.conf /etc/tinyproxy/tinyproxy.conf
 
 EXPOSE 3128
 
-# Runtime EmptyDir mounts hide any cache/log directories initialized at build time.
-CMD ["sh", "-c", "mkdir -p /var/cache/squid /var/log/squid /run/squid && chown -R squid:squid /var/cache/squid /var/log/squid /run/squid && squid -z -f /etc/squid/squid.conf && rm -f /run/squid.pid && exec squid -N -d 1 -f /etc/squid/squid.conf"]
+CMD ["tinyproxy", "-d", "-c", "/etc/tinyproxy/tinyproxy.conf"]
