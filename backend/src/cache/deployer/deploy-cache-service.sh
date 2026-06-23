@@ -34,9 +34,9 @@ mkdir -p "$HOME/bin"
 export PATH="$HOME/bin:$PATH"
 {
     server_version_major_minor=$(kubectl version --output json | jq --raw-output '(.serverVersion.major + "." + .serverVersion.minor)' | tr -d '"+')
-    stable_build_version=$(curl -s "https://storage.googleapis.com/kubernetes-release/release/stable-${server_version_major_minor}.txt")
-    kubectl_url="https://storage.googleapis.com/kubernetes-release/release/${stable_build_version}/bin/linux/amd64/kubectl"
-    curl -L -o "$HOME/bin/kubectl" "$kubectl_url"
+    stable_build_version=$(curl -fsSL "https://dl.k8s.io/release/stable-${server_version_major_minor}.txt")
+    kubectl_url="https://dl.k8s.io/release/${stable_build_version}/bin/linux/amd64/kubectl"
+    curl -fsSL -o "$HOME/bin/kubectl" "$kubectl_url"
     chmod +x "$HOME/bin/kubectl"
 } || true
 
