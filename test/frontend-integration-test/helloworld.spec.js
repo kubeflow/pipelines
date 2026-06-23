@@ -35,6 +35,7 @@ const runWithoutExperimentName = 'helloworld-2-' + Date.now();
 const runWithoutExperimentDescription =
   'test run without experiment description ' + runWithoutExperimentName;
 const uiTimeout = 5000;
+const logViewerTimeout = 30000;
 const runStartTimeout = 30000;
 const runCompletionTimeout = 60000;
 const outputParameterValue = 'Hello world in test';
@@ -209,17 +210,25 @@ describe('deploy helloworld sample run', () => {
 
   it('shows logs from node', async () => {
     await $('button=Logs').click();
-    await $('#logViewer').waitForDisplayed({ timeout: uiTimeout });
-    await waitForCondition(
-      async () => {
-        const logs = await $('#logViewer').getText();
-        return logs.indexOf(outputParameterValue + ' from node: ') > -1;
-      },
-      {
-        timeout: uiTimeout,
-        timeoutMsg: `expected log viewer to contain ${outputParameterValue}`,
-      },
-    );
+    try {
+      await waitForCondition(
+        async () => {
+          const logViewer = await $('#logViewer');
+          if (!(await logViewer.isExisting()) || !(await logViewer.isDisplayed())) {
+            return false;
+          }
+          const logs = await logViewer.getText();
+          return logs.indexOf(outputParameterValue + ' from node: ') > -1;
+        },
+        {
+          timeout: logViewerTimeout,
+          timeoutMsg: `expected log viewer to contain ${outputParameterValue}`,
+        },
+      );
+    } catch (error) {
+      await saveDebugScreenshot('helloworld-logs');
+      throw error;
+    }
   });
 
   it('navigates to the runs page', async () => {
