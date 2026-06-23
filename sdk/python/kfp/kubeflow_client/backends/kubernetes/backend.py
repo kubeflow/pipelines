@@ -458,13 +458,12 @@ class KubernetesBackend:
                 self._invoke_callbacks(callbacks, run_response)
                 return run_response
 
-            if timeout is not None:
-                elapsed = time.monotonic() - start_time
-                if elapsed >= timeout:
-                    self._invoke_callbacks(callbacks, run_response)
-                    raise TimeoutError(f'Run {run_id} did not reach state '
-                                       f'{target_states} within {timeout}s. '
-                                       f'Current state: {current_state!r}.')
+            elapsed = time.monotonic() - start_time
+            if elapsed >= timeout:
+                self._invoke_callbacks(callbacks, run_response)
+                raise TimeoutError(f'Run {run_id} did not reach state '
+                                   f'{target_states} within {timeout}s. '
+                                   f'Current state: {current_state!r}.')
 
             time.sleep(polling_interval)
 
