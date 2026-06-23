@@ -33,7 +33,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: [ "v1.31.14", "v1.35.0" ]
+        k8s_version: [ "v1.33.12", "v1.36.1" ]
     name: Initialization & Integration tests v1 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
