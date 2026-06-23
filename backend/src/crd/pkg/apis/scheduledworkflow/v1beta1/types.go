@@ -209,12 +209,6 @@ type ScheduledWorkflowCondition struct {
 	Type ScheduledWorkflowConditionType `json:"type,omitempty"`
 	// Status of the condition, one of True, False, Unknown.
 	Status corev1.ConditionStatus `json:"status,omitempty"`
-	// Last time the condition was checked.
-	// +optional
-	LastProbeTime metav1.Time `json:"lastHeartbeatTime,omitempty"`
-	// Last time the condition transit from one status to another.
-	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 	// (brief) reason for the condition's last transition.
 	// +optional
 	Reason string `json:"reason,omitempty"`
