@@ -31,13 +31,15 @@ spec:
         - name: KUBEFLOW_USERID_HEADER
           valueFrom:
             configMapKeyRef:
-              name: pipeline-multi-user-parameters
+              name: pipeline-install-config
               key: USERID_HEADER
+              optional: true
         - name: KUBEFLOW_USERID_PREFIX
           valueFrom:
             configMapKeyRef:
-              name: pipeline-multi-user-parameters
+              name: pipeline-install-config
               key: USERID_PREFIX
+              optional: true
         volumeMounts:
         - name: config-volume
           mountPath: /etc/config

@@ -6,7 +6,6 @@ resources:
 - ../../cache-deployer/cluster-scoped
 - ../generic
 - view-edit-cluster-roles.yaml
-- multi-user-parameters-configmap.yaml
 - api-service
 - pipelines-ui
 - pipelines-profile-controller
