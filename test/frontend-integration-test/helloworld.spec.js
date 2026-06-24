@@ -69,6 +69,36 @@ async function fillRunForm({ runName, description, message }) {
   await browser.keys(message);
 }
 
+function matchesGraphNodeLabel(text, label) {
+  const trimmedText = text.trim();
+  return trimmedText === label || trimmedText.startsWith(`${label}(`);
+}
+
+async function findGraphNodeByLabel(label) {
+  const graphNodes = await $$('.graphNode');
+  for (const graphNode of graphNodes) {
+    const nodeLabel = await graphNode.getText();
+    if (matchesGraphNodeLabel(nodeLabel, label)) {
+      return graphNode;
+    }
+  }
+}
+
+async function clickGraphNodeByLabel(label) {
+  let graphNode;
+  await waitForCondition(
+    async () => {
+      graphNode = await findGraphNodeByLabel(label);
+      return Boolean(graphNode);
+    },
+    {
+      timeout: uiTimeout,
+      timeoutMsg: `expected graph node ${label} to be visible`,
+    },
+  );
+  await graphNode.click();
+}
+
 async function waitForRunLink(runNameToFind, { timeout = runStartTimeout } = {}) {
   const runLinkSelector = `[data-testid="run-name-link"][data-run-name="${runNameToFind}"]`;
 
@@ -204,7 +234,7 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('opens the side panel when graph node is clicked', async () => {
-    await $('.graphNode').click();
+    await clickGraphNodeByLabel('B');
     await $('button=Logs').waitForDisplayed({ timeout: uiTimeout });
   });
 
