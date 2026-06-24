@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 )
 
+// PipelineVersionName encapsulates the DNS-1123 validated composite or bare name for a PipelineVersion CR.
 // +kubebuilder:object:generate=false
 type PipelineVersionName struct {
 	pipelineName string
