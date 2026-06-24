@@ -36,6 +36,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -234,7 +235,9 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 				// This should never happen.
 				return
 			}
-			// Do not return on flush error, we want to propagate the error to the upstream tasks.
+			if executionErr == nil {
+				executionErr = fmt.Errorf("failed to flush batch updates: %w", flushErr)
+			}
 		}
 		// Refresh run before updating statuses
 		fullView := apiV2beta1.GetRunRequest_FULL
@@ -321,6 +324,8 @@ func (o *LauncherV2Options) validate() error {
 // artifacts to object storage, updates the task's recorded outputs, flushes the
 // queued API mutations, and finally propagates the resulting outputs up the DAG.
 func (l *LauncherV2) executeV2(ctx context.Context) (*pipelinespec.ExecutorOutput, error) {
+	qualifyExecutorLogsForRetry(ctx, l.executorInput, l.options.PublishLogs, l.options.Namespace, l.clientManager.K8sClient(), l.options.PodName)
+
 	// Fill in placeholders with runtime values.
 	compiledCmd, compiledArgs, err := compileCmdAndArgs(l.executorInput, l.command, l.args)
 	if err != nil {
@@ -329,6 +334,9 @@ func (l *LauncherV2) executeV2(ctx context.Context) (*pipelinespec.ExecutorOutpu
 
 	executorOutput, err := l.execute(ctx, compiledCmd, compiledArgs)
 	if err != nil {
+		if uploadErr := l.uploadExecutorLogsArtifact(ctx); uploadErr != nil {
+			return nil, fmt.Errorf("failed to execute component: %w (executor log upload failed: %v)", err, uploadErr)
+		}
 		return nil, err
 	}
 
@@ -480,6 +488,55 @@ func appendRetryIndexSuffix(pathOrURI, retryIndex string) string {
 	return pathOrURI + suffix
 }
 
+// qualifyExecutorLogsForRetry resolves the current retry attempt and updates the
+// executor-logs artifact before placeholder compilation so downstream paths stay aligned.
+func qualifyExecutorLogsForRetry(
+	ctx context.Context,
+	executorInput *pipelinespec.ExecutorInput,
+	publishLogs string,
+	namespace string,
+	k8sClient kubernetes.Interface,
+	podName string,
+) {
+	if publishLogs != "true" {
+		return
+	}
+
+	retryIndex := os.Getenv(EnvRetryIndex)
+	if retryIndex == "" && podName != "" && k8sClient != nil && namespace != "" {
+		if idx, err := retryIndexFromPodAnnotation(ctx, k8sClient, namespace, podName); err == nil {
+			retryIndex = idx
+		} else {
+			glog.Warningf("Could not determine retry index from pod annotation, defaulting to 0: %v", err)
+		}
+	}
+	if retryIndex == "" {
+		retryIndex = "0"
+	}
+	qualifyExecutorLogsURI(executorInput.GetOutputs().GetArtifacts(), retryIndex)
+}
+
+func retryIndexFromPodAnnotation(ctx context.Context, k8sClient kubernetes.Interface, namespace, podName string) (string, error) {
+	pod, err := k8sClient.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get pod %s/%s: %w", namespace, podName, err)
+	}
+	nodeName, ok := pod.Annotations["workflows.argoproj.io/node-name"]
+	if !ok {
+		return "", fmt.Errorf("pod %s/%s has no argo node-name annotation", namespace, podName)
+	}
+	open := strings.LastIndex(nodeName, "(")
+	close := strings.LastIndex(nodeName, ")")
+	if open < 0 || close <= open {
+		return "", fmt.Errorf("argo node-name %q has no retry index suffix", nodeName)
+	}
+	index := nodeName[open+1 : close]
+	if _, err := strconv.Atoi(index); err != nil {
+		return "", fmt.Errorf("argo node-name %q retry index %q is not an integer: %w", nodeName, index, err)
+	}
+	return index, nil
+}
+
 // getLogWriter returns an io.Writer that can either be single-channel to stdout
 // or dual-channel to stdout AND a log file based on the URI of a log artifact
 // in the supplied ArtifactList. Downstream, the resulting log file gets
@@ -512,6 +569,25 @@ func getLogWriter(artifacts map[string]*pipelinespec.ArtifactList) (writer io.Wr
 // This method should only be used in tests.
 func (l *LauncherV2) ExecuteForTesting(ctx context.Context) (*pipelinespec.ExecutorOutput, error) {
 	return l.executeV2(ctx)
+}
+
+func PropagateOutputsUpDAGForTask(
+	ctx context.Context,
+	opts LauncherV2Options,
+	clientManager client_manager.ClientManagerInterface,
+	pipelineSpec *structpb.Struct,
+) error {
+	launcher := &LauncherV2{
+		options:           opts,
+		clientManager:     clientManager,
+		pipelineSpec:      pipelineSpec,
+		batchUpdater:      NewBatchUpdater(),
+		openedBucketCache: make(map[string]*blob.Bucket),
+	}
+	if err := launcher.propagateOutputsUpDAG(ctx); err != nil {
+		return err
+	}
+	return launcher.batchUpdater.Flush(ctx, clientManager.KFPAPIClient())
 }
 
 // ObjectStoreDependencies interface implementation for LauncherV2
@@ -759,6 +835,46 @@ func (l *LauncherV2) uploadOutputArtifacts(
 	return nil
 }
 
+func (l *LauncherV2) uploadExecutorLogsArtifact(ctx context.Context) error {
+	if l.options.PublishLogs != "true" {
+		return nil
+	}
+	logsArtifactList, ok := l.executorInput.GetOutputs().GetArtifacts()["executor-logs"]
+	if !ok || logsArtifactList == nil || len(logsArtifactList.Artifacts) != 1 {
+		return nil
+	}
+
+	outputArtifact := logsArtifactList.Artifacts[0]
+	localPath, err := retrieveArtifactPath(outputArtifact)
+	if err != nil {
+		return fmt.Errorf("failed to resolve executor log path: %w", err)
+	}
+	if err := l.objectStore.UploadArtifact(ctx, localPath, outputArtifact.Uri, "executor-logs"); err != nil {
+		return err
+	}
+
+	artifact := &apiV2beta1.Artifact{
+		Name:        outputArtifact.GetName(),
+		Description: "",
+		Type:        apiV2beta1.Artifact_Artifact,
+		Metadata:    outputArtifact.GetMetadata().GetFields(),
+		CreatedAt:   timestamppb.Now(),
+		Namespace:   l.options.Namespace,
+		Uri:         util.StringPointer(outputArtifact.Uri),
+	}
+	request := &apiV2beta1.CreateArtifactRequest{
+		RunId:       l.options.Run.GetRunId(),
+		TaskId:      l.options.Task.GetTaskId(),
+		ProducerKey: "executor-logs",
+		Artifact:    artifact,
+	}
+	if l.options.IterationIndex != nil {
+		request.IterationIndex = l.options.IterationIndex
+	}
+	l.batchUpdater.QueueArtifact(request)
+	return l.batchUpdater.Flush(ctx, l.clientManager.KFPAPIClient())
+}
+
 // determineIOType determines the appropriate IOType for a propagated output based on the parent task type
 // and output definition.
 func determineIOType(
@@ -769,29 +885,18 @@ func determineIOType(
 	parentOutputDefs *pipelinespec.ComponentOutputsSpec,
 	isParameter bool,
 ) apiV2beta1.IOType {
-	// For multi-level propagation, inherit the type from the previous level
-	if !isFirstLevel {
-		return currentIOType
-	}
-
-	// First level: determine type based on parent context
 	if parentTask.GetType() == apiV2beta1.PipelineTask_LOOP {
-		// For loop iterations, use ITERATOR_OUTPUT
 		return apiV2beta1.IOType_ITERATOR_OUTPUT
 	}
 
-	// Check if this is a ONE_OF output for condition branches
 	if parentTask.GetType() == apiV2beta1.PipelineTask_CONDITION_BRANCH {
 		if isParameter {
-			// For parameters, check if it's in output definitions and not a list
 			if paramDef, exists := parentOutputDefs.GetParameters()[parentOutputKey]; exists {
-				// If it's not marked as a list type, it's a ONE_OF output
 				if paramDef.GetParameterType() != pipelinespec.ParameterType_LIST {
 					return apiV2beta1.IOType_ONE_OF_OUTPUT
 				}
 			}
 		} else {
-			// For artifacts, check if it's in output definitions and not a list
 			if artifactDef, exists := parentOutputDefs.GetArtifacts()[parentOutputKey]; exists {
 				if !artifactDef.GetIsArtifactList() {
 					return apiV2beta1.IOType_ONE_OF_OUTPUT
@@ -800,7 +905,10 @@ func determineIOType(
 		}
 	}
 
-	// Default to OUTPUT for regular DAG outputs
+	if !isFirstLevel {
+		return currentIOType
+	}
+
 	return apiV2beta1.IOType_OUTPUT
 }
 

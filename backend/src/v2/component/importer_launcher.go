@@ -13,6 +13,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"gocloud.dev/blob"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"k8s.io/client-go/kubernetes"
 
@@ -115,6 +116,9 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 	defer func() {
 		if executionErr != nil {
 			createdTask.State = apiV2beta1.PipelineTask_FAILED
+			createdTask.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
+				Message: executionErr.Error(),
+			}
 		} else {
 			createdTask.State = apiV2beta1.PipelineTask_SUCCEEDED
 		}
@@ -126,6 +130,9 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 		})
 		if updateErr != nil {
 			glog.Errorf("failed to update task: %v", updateErr)
+			if executionErr == nil {
+				executionErr = fmt.Errorf("failed to update task: %w", updateErr)
+			}
 			return
 		}
 		fullView := apiV2beta1.GetRunRequest_FULL
@@ -178,9 +185,20 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 	}
 
 	// If reimport is true or the artifact does not already exist we create a new artifact
+	outputIO := &apiV2beta1.PipelineTask_InputOutputs_IOArtifact{
+		ArtifactKey: artifactOutputKey,
+		Type:        apiV2beta1.IOType_OUTPUT,
+		Producer: &apiV2beta1.IOProducer{
+			TaskName: l.opts.TaskSpec.GetTaskInfo().GetName(),
+		},
+	}
+	if l.opts.IterationIndex != nil {
+		outputIO.Type = apiV2beta1.IOType_ITERATOR_OUTPUT
+		outputIO.Producer.Iteration = l.opts.IterationIndex
+	}
 	if l.opts.ImporterSpec.Reimport || preExistingArtifact == nil {
 		glog.Infof("Creating new artifact for importer task %s", l.opts.TaskSpec.GetTaskInfo().GetName())
-		_, executionErr := kfpAPI.CreateArtifact(ctx, &apiV2beta1.CreateArtifactRequest{
+		createdArtifact, executionErr := kfpAPI.CreateArtifact(ctx, &apiV2beta1.CreateArtifactRequest{
 			Artifact:    artifactToImport,
 			RunId:       l.opts.Run.RunId,
 			TaskId:      createdTask.TaskId,
@@ -189,6 +207,7 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 		if executionErr != nil {
 			return executionErr
 		}
+		outputIO.Artifacts = []*apiV2beta1.Artifact{createdArtifact}
 	} else {
 		glog.Infof("Reusing existing artifact %s for importer task %s", preExistingArtifact.GetArtifactId(), l.opts.TaskSpec.GetTaskInfo().GetName())
 		// If reimporting then we just need to create a new link to this Importer task via
@@ -208,6 +227,15 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 		if executionErr != nil {
 			return executionErr
 		}
+		outputIO.Artifacts = []*apiV2beta1.Artifact{preExistingArtifact}
+	}
+
+	createdTask.Outputs = &apiV2beta1.PipelineTask_InputOutputs{
+		Artifacts: []*apiV2beta1.PipelineTask_InputOutputs_IOArtifact{outputIO},
+	}
+	l.opts.Task = createdTask
+	if executionErr = PropagateOutputsUpDAGForTask(ctx, l.opts, l.clientManager, l.opts.PipelineSpec); executionErr != nil {
+		return executionErr
 	}
 
 	return nil
@@ -247,7 +275,7 @@ func artifactsAreEqual(artifact1, artifact2 *apiV2beta1.Artifact) bool {
 		return false
 	}
 	for k, v1 := range metadata1 {
-		if v2, exists := metadata2[k]; !exists || v1 != v2 {
+		if v2, exists := metadata2[k]; !exists || !proto.Equal(v1, v2) {
 			return false
 		}
 	}
@@ -289,6 +317,12 @@ func (l *ImportLauncher) ImportSpecToArtifact() (artifact *apiV2beta1.Artifact, 
 		var ioParam *apiV2beta1.PipelineTask_InputOutputs_IOParameter
 		for _, inputParam := range l.opts.ParentTask.GetInputs().GetParameters() {
 			if inputParam.ParameterKey == componentInput {
+				if l.opts.IterationIndex != nil {
+					if inputParam.GetProducer() == nil || inputParam.GetProducer().Iteration == nil ||
+						*inputParam.GetProducer().Iteration != *l.opts.IterationIndex {
+						continue
+					}
+				}
 				ioParam = inputParam
 				break
 			}

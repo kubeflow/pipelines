@@ -25,8 +25,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	clientmanager "github.com/kubeflow/pipelines/backend/src/v2/client_manager"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 )
@@ -71,7 +71,7 @@ func TestImportLauncher_FindMatchedArtifactUsesFullArtifactEquality(t *testing.T
 		t.Fatalf("failed to create second artifact: %v", err)
 	}
 
-	matchedArtifact, err := launcher.findMatchedArtifact(context.Background(), secondArtifact)
+	matchedArtifact, err := launcher.findMatchedArtifact(context.Background(), proto.Clone(secondArtifact).(*apiv2beta1.Artifact))
 	if err != nil {
 		t.Fatalf("findMatchedArtifact returned error: %v", err)
 	}

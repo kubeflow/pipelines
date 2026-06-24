@@ -789,6 +789,24 @@ func Test_get_log_Writer(t *testing.T) {
 	}
 }
 
+func TestQualifyExecutorLogsForRetry_UsesRetryEnv(t *testing.T) {
+	t.Setenv(EnvRetryIndex, "2")
+	executorInput := &pipelinespec.ExecutorInput{
+		Outputs: &pipelinespec.ExecutorInput_Outputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"executor-logs": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{{
+						Uri: "minio://bucket/logs/executor-logs",
+					}},
+				},
+			},
+		},
+	}
+
+	qualifyExecutorLogsForRetry(context.Background(), executorInput, "true", "", nil, "")
+	require.Equal(t, "minio://bucket/logs/executor-logs-2", executorInput.GetOutputs().GetArtifacts()["executor-logs"].Artifacts[0].GetUri())
+}
+
 // Tests happy and unhappy paths for constructing a new LauncherV2
 func Test_NewLauncherV2(t *testing.T) {
 	var testCmdArgs = []string{"sh", "-c", "echo \"hello world\""}

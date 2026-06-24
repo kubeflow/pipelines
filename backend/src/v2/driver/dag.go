@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	gc "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -129,10 +130,33 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 	if opts.ParentTask.GetTaskId() != "" {
 		taskToCreate.ParentTaskId = util.StringPointer(opts.ParentTask.GetTaskId())
 	}
+	if !execution.WillTrigger() {
+		taskToCreate.State = gc.PipelineTask_SKIPPED
+	}
 	taskToCreate, err = handleInputTaskParametersCreation(inputs.Parameters, taskToCreate)
 	if err != nil {
 		return execution, err
 	}
+
+	taskCreated := false
+	defer func() {
+		if err == nil || !taskCreated {
+			return
+		}
+		taskToCreate.State = gc.PipelineTask_FAILED
+		taskToCreate.EndTime = timestamppb.New(time.Now())
+		taskToCreate.StatusMetadata = &gc.PipelineTask_StatusMetadata{
+			Message: err.Error(),
+		}
+		_, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &gc.UpdateTaskRequest{
+			TaskId: taskToCreate.GetTaskId(),
+			Task:   taskToCreate,
+			RunId:  taskToCreate.GetRunId(),
+		})
+		if updateErr != nil {
+			err = fmt.Errorf("%w: failed to update task after DAG error: %v", err, updateErr)
+		}
+	}()
 	glog.Infof("Creating task: %+v", taskToCreate)
 	createdTask, err := clientManager.KFPAPIClient().CreateTask(ctx, &gc.CreateTaskRequest{
 		Task:  taskToCreate,
@@ -142,6 +166,8 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 		return execution, err
 	}
 	glog.Infof("Created task: %+v", createdTask)
+	taskCreated = true
+	taskToCreate = createdTask
 	execution.TaskID = createdTask.TaskId
 
 	err = handleInputTaskArtifactsCreation(ctx, opts, inputs.Artifacts, createdTask, clientManager.KFPAPIClient())

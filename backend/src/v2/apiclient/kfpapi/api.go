@@ -269,13 +269,25 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 		}
 		// Now count the actual number of child tasks created.
 		var childCount int
+		var anyFailed bool
 		for _, task := range run.GetTasks() {
 			if task.ParentTaskId != nil && *task.ParentTaskId == parentTask.GetTaskId() {
 				if task.GetState() == gc.PipelineTask_RUNNING {
 					return nil
 				}
+				if task.GetState() == gc.PipelineTask_FAILED {
+					anyFailed = true
+				}
 				childCount++
 			}
+		}
+
+		if anyFailed {
+			if err := evaluateAndUpdateParentStatus(ctx, run, parentTask, kfpAPIClient); err != nil {
+				return fmt.Errorf("failed to evaluate parent task %s status: %w", parentTask.GetTaskId(), err)
+			}
+			currentTask = parentTask
+			continue
 		}
 
 		// If not all children created yet, exit traversal

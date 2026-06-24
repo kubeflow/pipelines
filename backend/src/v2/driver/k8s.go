@@ -741,7 +741,7 @@ func createPVCTask(
 			taskToCreate.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
 				Message: err.Error(),
 			}
-		} else {
+		} else if taskToCreate.State == apiV2beta1.PipelineTask_RUNNING {
 			// K8s ops drivers do not have executors, we can mark them completed at the driver stage.
 			taskToCreate.State = apiV2beta1.PipelineTask_SUCCEEDED
 		}
@@ -813,7 +813,7 @@ func createPVCTask(
 	taskToCreate.Outputs.Parameters = append(
 		taskToCreate.Outputs.Parameters,
 		&apiV2beta1.PipelineTask_InputOutputs_IOParameter{
-			Value:        execution.ExecutorInput.Inputs.ParameterValues[pvcName],
+			Value:        structpb.NewStringValue(pvcName),
 			ParameterKey: "name", // create-pvc output parameter is always "name"
 			Type:         apiV2beta1.IOType_OUTPUT,
 			Producer: &apiV2beta1.IOProducer{
@@ -967,7 +967,7 @@ func deletePVCTask(
 			taskToCreate.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
 				Message: err.Error(),
 			}
-		} else {
+		} else if taskToCreate.State == apiV2beta1.PipelineTask_RUNNING {
 			// K8s ops drivers do not have executors, we can mark them completed at the driver stage.
 			taskToCreate.State = apiV2beta1.PipelineTask_SUCCEEDED
 		}

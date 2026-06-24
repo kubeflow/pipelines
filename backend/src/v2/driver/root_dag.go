@@ -69,6 +69,13 @@ func RootDAG(ctx context.Context, opts common.Options, clientManager client_mana
 			},
 		},
 	}
+	for _, existingTask := range opts.Run.GetTasks() {
+		if existingTask.GetType() == apiV2beta1.PipelineTask_ROOT &&
+			existingTask.GetScopePath() == pd.GetScopePath() &&
+			existingTask.GetName() == pd.GetName() {
+			return &Execution{TaskID: existingTask.GetTaskId()}, nil
+		}
+	}
 	task, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
 		Task:  pd,
 		RunId: pd.GetRunId(),
