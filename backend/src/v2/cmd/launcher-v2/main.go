@@ -16,6 +16,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
@@ -31,26 +32,34 @@ import (
 )
 
 var (
-	copy                    = flag.String("copy", "", "copy this binary to specified destination path")
-	pipelineName            = flag.String("pipeline_name", "", "pipeline context name")
-	runID                   = flag.String("run_id", "", "pipeline run uid")
-	taskID                  = flag.String("task_id", "", "pipeline task id (PipelineTask.task_id)")
-	parentTaskID            = flag.String("parent_task_id", "", "Parent PipelineTask ID")
-	executorType            = flag.String("executor_type", "container", "The type of the ExecutorSpec")
-	executorInputJSON       = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
-	taskName                = flag.String("task_name", "", "The name of the task.")
-	importerSpecJSON        = flag.String("importer_spec", "", "The JSON-encoded ImporterSpec.")
-	podName                 = flag.String("pod_name", "", "Kubernetes Pod name.")
-	podUID                  = flag.String("pod_uid", "", "Kubernetes Pod UID.")
-	mlPipelineServerAddress = flag.String("ml_pipeline_server_address", "ml-pipeline.kubeflow", "The name of the ML pipeline API server address.")
-	mlPipelineServerPort    = flag.String("ml_pipeline_server_port", "8887", "The port of the ML pipeline API server.")
-	logLevel                = flag.String("log_level", "1", "The verbosity level to log.")
-	publishLogs             = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
-	cacheDisabledFlag       = flag.Bool("cache_disabled", false, "Disable cache globally.")
-	fingerPrint             = flag.String("fingerprint", "", "The fingerprint of the pipeline executor.")
-	iterationIndex          = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
-	caCertPath              = flag.String("ca_cert_path", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
-	mlPipelineTLSEnabled    = flag.Bool("ml_pipeline_tls_enabled", false, "Set to true if mlpipeline API server serves over TLS.")
+	copy                     = flag.String("copy", "", "copy this binary to specified destination path")
+	copyTokenTo              = flag.String("copy_token_to", "", "copy the projected KFP token to the specified destination path")
+	pipelineName             = flag.String("pipeline_name", "", "pipeline context name")
+	runID                    = flag.String("run_id", "", "pipeline run uid")
+	taskID                   = flag.String("task_id", "", "pipeline task id (PipelineTask.task_id)")
+	legacyTaskID             = flag.String("execution_id", "", "Legacy alias for task id")
+	parentTaskID             = flag.String("parent_task_id", "", "Parent PipelineTask ID")
+	legacyParentTaskID       = flag.String("parent_dag_id", "", "Legacy alias for parent task id")
+	executorType             = flag.String("executor_type", "container", "The type of the ExecutorSpec")
+	executorInputJSON        = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
+	taskName                 = flag.String("task_name", "", "The name of the task.")
+	legacyTaskSpecJSON       = flag.String("task_spec", "", "Legacy task spec override")
+	legacyComponentSpecJSON  = flag.String("component_spec", "", "Legacy component spec override")
+	importerSpecJSON         = flag.String("importer_spec", "", "The JSON-encoded ImporterSpec.")
+	podName                  = flag.String("pod_name", "", "Kubernetes Pod name.")
+	podUID                   = flag.String("pod_uid", "", "Kubernetes Pod UID.")
+	mlPipelineServerAddress  = flag.String("ml_pipeline_server_address", "ml-pipeline.kubeflow", "The name of the ML pipeline API server address.")
+	mlPipelineServerPort     = flag.String("ml_pipeline_server_port", "8887", "The port of the ML pipeline API server.")
+	legacyMLMDServerAddress  = flag.String("mlmd_server_address", "", "Legacy no-op MLMD server address")
+	legacyMLMDServerPort     = flag.String("mlmd_server_port", "", "Legacy no-op MLMD server port")
+	logLevel                 = flag.String("log_level", "1", "The verbosity level to log.")
+	publishLogs              = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
+	cacheDisabledFlag        = flag.Bool("cache_disabled", false, "Disable cache globally.")
+	fingerPrint              = flag.String("fingerprint", "", "The fingerprint of the pipeline executor.")
+	iterationIndex           = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
+	caCertPath               = flag.String("ca_cert_path", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
+	mlPipelineTLSEnabled     = flag.Bool("ml_pipeline_tls_enabled", false, "Set to true if mlpipeline API server serves over TLS.")
+	legacyMetadataTLSEnabled = flag.Bool("metadata_tls_enabled", false, "Legacy no-op metadata TLS flag")
 )
 
 func main() {
@@ -74,11 +83,11 @@ func run() error {
 		// copy is used to copy this binary to a shared volume
 		// this is a special command, ignore all other flags by returning
 		// early
-		return component.CopyThisBinary(*copy)
+		return component.CopyThisBinaryAndToken(*copy, *copyTokenTo)
 	}
-	namespace := os.Getenv("NAMESPACE")
-	if namespace == "" {
-		return fmt.Errorf("NAMESPACE environment variable must be set")
+	namespace, err := resolveNamespace()
+	if err != nil {
+		return err
 	}
 
 	// Create a client manager
@@ -103,11 +112,12 @@ func run() error {
 	}
 
 	// Fetch Parent Task
-	if parentTaskID == nil || *parentTaskID == "" {
+	resolvedParentTaskID := resolveStringFlag(parentTaskID, legacyParentTaskID)
+	if resolvedParentTaskID == "" {
 		return fmt.Errorf("parent task id is nil or empty")
 	}
 	parentTask, err := kfpAPI.GetTask(ctx, &go_client.GetTaskRequest{
-		TaskId: *parentTaskID,
+		TaskId: resolvedParentTaskID,
 		RunId:  *runID,
 	})
 	if err != nil {
@@ -120,10 +130,14 @@ func run() error {
 		return err
 	}
 	var scopePath util.ScopePath
+	resolvedTaskName, err := resolveTaskName(*taskName, *legacyTaskSpecJSON)
+	if err != nil {
+		return err
+	}
 	scopePath, err = util.ScopePathFromStringPathWithNewTask(
 		pipelineSpecStruct,
 		parentTask.GetScopePath(),
-		*taskName,
+		resolvedTaskName,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to build scope path: %w", err)
@@ -131,6 +145,18 @@ func run() error {
 
 	componentSpec := scopePath.GetLast().GetComponentSpec()
 	taskSpec := scopePath.GetLast().GetTaskSpec()
+	if componentSpec == nil && *legacyComponentSpecJSON != "" {
+		componentSpec = &pipelinespec.ComponentSpec{}
+		if err := protojson.Unmarshal([]byte(*legacyComponentSpecJSON), componentSpec); err != nil {
+			return fmt.Errorf("failed to unmarshal legacy component spec: %w", err)
+		}
+	}
+	if taskSpec == nil && *legacyTaskSpecJSON != "" {
+		taskSpec = &pipelinespec.PipelineTaskSpec{}
+		if err := protojson.Unmarshal([]byte(*legacyTaskSpecJSON), taskSpec); err != nil {
+			return fmt.Errorf("failed to unmarshal legacy task spec: %w", err)
+		}
+	}
 
 	launcherV2Opts := &component.LauncherV2Options{
 		Namespace:               namespace,
@@ -138,6 +164,7 @@ func run() error {
 		PodUID:                  *podUID,
 		MLPipelineServerAddress: *mlPipelineServerAddress,
 		MLPipelineServerPort:    *mlPipelineServerPort,
+		CaCertPath:              *caCertPath,
 		PipelineName:            *pipelineName,
 		Run:                     pipelineRun,
 		ParentTask:              parentTask,
@@ -178,9 +205,10 @@ func run() error {
 		return nil
 	case "container":
 		// Container task should have a pre-existing task created by the Driver
-		if taskID != nil && *taskID != "" {
+		resolvedTaskID := resolveStringFlag(taskID, legacyTaskID)
+		if resolvedTaskID != "" {
 			task, err := kfpAPI.GetTask(ctx, &go_client.GetTaskRequest{
-				TaskId: *taskID,
+				TaskId: resolvedTaskID,
 				RunId:  *runID,
 			})
 			if err != nil {
@@ -208,6 +236,48 @@ func run() error {
 	}
 	return fmt.Errorf("unsupported executor type %s", *executorType)
 
+}
+
+func resolveNamespace() (string, error) {
+	if namespace := os.Getenv("NAMESPACE"); namespace != "" {
+		return namespace, nil
+	}
+	if namespace := os.Getenv("POD_NAMESPACE"); namespace != "" {
+		return namespace, nil
+	}
+	const serviceAccountNamespacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+	namespaceBytes, err := os.ReadFile(serviceAccountNamespacePath)
+	if err != nil {
+		return "", fmt.Errorf("NAMESPACE environment variable must be set")
+	}
+	return string(bytes.TrimSpace(namespaceBytes)), nil
+}
+
+func resolveStringFlag(primary, legacy *string) string {
+	if primary != nil && *primary != "" {
+		return *primary
+	}
+	if legacy != nil {
+		return *legacy
+	}
+	return ""
+}
+
+func resolveTaskName(primaryTaskName, rawTaskSpec string) (string, error) {
+	if primaryTaskName != "" {
+		return primaryTaskName, nil
+	}
+	if rawTaskSpec == "" {
+		return "", fmt.Errorf("task name is nil or empty")
+	}
+	taskSpec := &pipelinespec.PipelineTaskSpec{}
+	if err := protojson.Unmarshal([]byte(rawTaskSpec), taskSpec); err != nil {
+		return "", fmt.Errorf("failed to unmarshal legacy task spec: %w", err)
+	}
+	if taskSpec.GetTaskInfo().GetName() == "" {
+		return "", fmt.Errorf("task name is nil or empty")
+	}
+	return taskSpec.GetTaskInfo().GetName(), nil
 }
 
 // Use WARNING default logging level to facilitate troubleshooting.

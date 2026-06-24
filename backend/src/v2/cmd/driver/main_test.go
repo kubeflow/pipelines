@@ -14,6 +14,52 @@ func strPtr(s string) *string {
 	return &s
 }
 
+func TestResolveStringFlag(t *testing.T) {
+	t.Run("prefers primary flag", func(t *testing.T) {
+		primary := "new-task-id"
+		legacy := "old-task-id"
+		if got := resolveStringFlag(&primary, &legacy); got != primary {
+			t.Fatalf("resolveStringFlag() = %q, want %q", got, primary)
+		}
+	})
+
+	t.Run("falls back to legacy flag", func(t *testing.T) {
+		primary := ""
+		legacy := "old-task-id"
+		if got := resolveStringFlag(&primary, &legacy); got != legacy {
+			t.Fatalf("resolveStringFlag() = %q, want %q", got, legacy)
+		}
+	})
+}
+
+func TestResolveNamespace(t *testing.T) {
+	t.Run("prefers NAMESPACE", func(t *testing.T) {
+		t.Setenv("NAMESPACE", "kubeflow")
+		t.Setenv("POD_NAMESPACE", "ignored")
+
+		got, err := resolveNamespace()
+		if err != nil {
+			t.Fatalf("resolveNamespace() error = %v", err)
+		}
+		if got != "kubeflow" {
+			t.Fatalf("resolveNamespace() = %q, want %q", got, "kubeflow")
+		}
+	})
+
+	t.Run("falls back to POD_NAMESPACE", func(t *testing.T) {
+		t.Setenv("NAMESPACE", "")
+		t.Setenv("POD_NAMESPACE", "kubeflow-from-pod")
+
+		got, err := resolveNamespace()
+		if err != nil {
+			t.Fatalf("resolveNamespace() error = %v", err)
+		}
+		if got != "kubeflow-from-pod" {
+			t.Fatalf("resolveNamespace() = %q, want %q", got, "kubeflow-from-pod")
+		}
+	})
+}
+
 func TestSpecParsing(t *testing.T) {
 	tt := []struct {
 		name     string

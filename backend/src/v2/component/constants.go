@@ -17,11 +17,13 @@ package component
 const (
 	VolumePathKFPLauncher = "/kfp-launcher"
 	KFPLauncherPath       = VolumePathKFPLauncher + "/launch"
+	KFPTokenRelayPath     = VolumePathKFPLauncher + "/token"
 
 	// Env var names
-	EnvPodName    = "KFP_POD_NAME"
-	EnvPodUID     = "KFP_POD_UID"
-	EnvRetryIndex = "KFP_RETRY_INDEX"
+	EnvPodName      = "KFP_POD_NAME"
+	EnvPodUID       = "KFP_POD_UID"
+	EnvRetryIndex   = "KFP_RETRY_INDEX"
+	EnvKFPTokenPath = "KFP_TOKEN_PATH"
 
 	// Workspace-related constants
 	WorkspaceVolumeName = "kfp-workspace"

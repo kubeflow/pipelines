@@ -64,18 +64,20 @@ var (
 	taskName          = flag.String("task_name", "", "original task name, used for proper input resolution in the container/dag driver")
 
 	// container inputs
-	parentTaskID      = flag.String("parent_task_id", "", "Parent PipelineTask ID")
-	containerSpecJson = flag.String("container", "", "legacy container spec override")
-	k8sExecConfigJson = flag.String("kubernetes_config", "{}", "kubernetes executor config")
+	parentTaskID       = flag.String("parent_task_id", "", "Parent PipelineTask ID")
+	legacyParentTaskID = flag.String("dag_execution_id", "", "Legacy alias for parent task id")
+	containerSpecJson  = flag.String("container", "", "legacy container spec override")
+	k8sExecConfigJson  = flag.String("kubernetes_config", "{}", "kubernetes executor config")
 
 	// config
 	mlPipelineServerAddress = flag.String("ml_pipeline_server_address", "ml-pipeline", "The name of the ML pipeline API server address.")
 	mlPipelineServerPort    = flag.String("ml_pipeline_server_port", "8887", "The port of the ML pipeline API server.")
 
 	// output paths
-	parentTaskIDPath   = flag.String("parent_task_id_path", "", "Parent Task ID output path")
-	iterationCountPath = flag.String("iteration_count_path", "", "Iteration Count output path")
-	podSpecPatchPath   = flag.String("pod_spec_patch_path", "", "Pod Spec Patch output path")
+	parentTaskIDPath       = flag.String("parent_task_id_path", "", "Parent Task ID output path")
+	legacyParentTaskIDPath = flag.String("execution_id_path", "", "Legacy alias for parent task id output path")
+	iterationCountPath     = flag.String("iteration_count_path", "", "Iteration Count output path")
+	podSpecPatchPath       = flag.String("pod_spec_patch_path", "", "Pod Spec Patch output path")
 	// the value stored in the paths will be either 'true' or 'false'
 	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
 	conditionPath      = flag.String("condition_path", "", "Condition output path")
@@ -168,9 +170,9 @@ func drive() (err error) {
 		return err
 	}
 
-	namespace := os.Getenv("NAMESPACE")
-	if namespace == "" {
-		return fmt.Errorf("NAMESPACE environment variable must be set")
+	namespace, err := resolveNamespace()
+	if err != nil {
+		return err
 	}
 
 	podName := os.Getenv("KFP_POD_NAME")
@@ -189,9 +191,10 @@ func drive() (err error) {
 	}
 
 	var parentTask *go_client.PipelineTask
-	if parentTaskID != nil && *parentTaskID != "" {
+	resolvedParentTaskID := resolveStringFlag(parentTaskID, legacyParentTaskID)
+	if resolvedParentTaskID != "" {
 		parentTask, err = clientManager.KFPAPIClient().GetTask(ctx, &go_client.GetTaskRequest{
-			TaskId: *parentTaskID,
+			TaskId: resolvedParentTaskID,
 			RunId:  *runID,
 		})
 		if err != nil {
@@ -289,7 +292,7 @@ func drive() (err error) {
 	}
 
 	executionPaths := &TaskPaths{
-		TaskID:         *parentTaskIDPath,
+		TaskID:         resolveStringFlag(parentTaskIDPath, legacyParentTaskIDPath),
 		IterationCount: *iterationCountPath,
 		CachedDecision: *cachedDecisionPath,
 		Condition:      *conditionPath,
@@ -297,6 +300,31 @@ func drive() (err error) {
 	}
 
 	return handleExecution(execution, *driverType, executionPaths)
+}
+
+func resolveNamespace() (string, error) {
+	if namespace := os.Getenv("NAMESPACE"); namespace != "" {
+		return namespace, nil
+	}
+	if namespace := os.Getenv("POD_NAMESPACE"); namespace != "" {
+		return namespace, nil
+	}
+	const serviceAccountNamespacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+	namespaceBytes, err := os.ReadFile(serviceAccountNamespacePath)
+	if err != nil {
+		return "", fmt.Errorf("NAMESPACE environment variable must be set")
+	}
+	return string(bytes.TrimSpace(namespaceBytes)), nil
+}
+
+func resolveStringFlag(primary, legacy *string) string {
+	if primary != nil && *primary != "" {
+		return *primary
+	}
+	if legacy != nil {
+		return *legacy
+	}
+	return ""
 }
 
 func parseExecConfigJson(k8sExecConfigJson *string) (*kubernetesplatform.KubernetesExecutorConfig, error) {
