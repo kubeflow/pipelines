@@ -303,7 +303,7 @@ class PipelinesClient:
         run: str | Run,
         *,
         status: set[str] | None = None,
-        timeout: int = 600,
+        timeout: int | None = 600,
         polling_interval: int = 5,
         callbacks: list[Callable[[Run], None]] | None = None,
     ) -> Run:
@@ -316,6 +316,7 @@ class PipelinesClient:
                 always exits immediately on any terminal state regardless
                 of this parameter.
             timeout: Maximum seconds to wait. Defaults to 600 (10 minutes).
+                Pass ``None`` to wait indefinitely.
             polling_interval: Seconds between status checks.
             callbacks: Called with the final ``Run`` object when the wait
                 ends (on any stop condition).

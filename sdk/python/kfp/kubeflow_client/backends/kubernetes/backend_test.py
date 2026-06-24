@@ -209,6 +209,32 @@ def test_build_api_configuration_uses_default_namespace_for_discovery():
         mock_discover.assert_called_once_with('kubeflow')
 
 
+def test_build_api_configuration_applies_system_ca_when_no_custom_ca():
+    """Verify system CA bundle is used when custom_ca is not provided."""
+    with patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials'), \
+         patch(f'{_BACKEND_MODULE}.KubernetesBackend.verify_backend'), \
+         patch(f'{_BACKEND_MODULE}.utils.detect_system_ca_bundle',
+               return_value='/etc/pki/tls/certs/ca-bundle.crt'):
+        backend = KubernetesBackend(
+            KubernetesBackendConfig(base_url='https://host', namespace='ns'))
+        assert backend.api_config.ssl_ca_cert == \
+            '/etc/pki/tls/certs/ca-bundle.crt'
+
+
+def test_build_api_configuration_custom_ca_overrides_system_ca():
+    """Verify custom_ca takes precedence over system CA bundle."""
+    with patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials'), \
+         patch(f'{_BACKEND_MODULE}.KubernetesBackend.verify_backend'), \
+         patch(f'{_BACKEND_MODULE}.utils.detect_system_ca_bundle',
+               return_value='/etc/pki/tls/certs/ca-bundle.crt'):
+        backend = KubernetesBackend(
+            KubernetesBackendConfig(
+                base_url='https://host',
+                namespace='ns',
+                custom_ca='/my/custom/ca.crt'))
+        assert backend.api_config.ssl_ca_cert == '/my/custom/ca.crt'
+
+
 # ------------------------------------------------------------------
 # test_resolve_namespace
 # ------------------------------------------------------------------
@@ -284,6 +310,103 @@ def test_apply_in_cluster_credentials(test_case):
         with patch('os.environ.get', return_value=None):
             auth.apply_in_cluster_credentials(api_config)
     assert 'authorization' not in api_config.api_key
+
+
+# ------------------------------------------------------------------
+# test_detect_system_ca_bundle
+# ------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    'test_case', [
+        TestCase(
+            name='SSL_CERT_FILE env var takes priority',
+            config={'env': {
+                'SSL_CERT_FILE': '/custom/ca.crt'
+            }},
+            expected_output='/custom/ca.crt',
+        ),
+        TestCase(
+            name='REQUESTS_CA_BUNDLE used when SSL_CERT_FILE absent',
+            config={'env': {
+                'REQUESTS_CA_BUNDLE': '/bundle/ca.pem'
+            }},
+            expected_output='/bundle/ca.pem',
+        ),
+        TestCase(
+            name='OpenSSL default cafile used when env vars absent',
+            config={'mode': 'openssl_default'},
+            expected_output='/openssl/default/ca.pem',
+        ),
+        TestCase(
+            name='falls back to common OS path',
+            config={'mode': 'os_path'},
+            expected_output='/etc/pki/tls/certs/ca-bundle.crt',
+        ),
+        TestCase(
+            name='returns None when nothing found',
+            config={'mode': 'nothing'},
+            expected_output=None,
+        ),
+    ],
+    ids=lambda tc: tc.name)
+def test_detect_system_ca_bundle(test_case):
+    """Test utils.detect_system_ca_bundle across detection scenarios."""
+    env_vars = test_case.config.get('env')
+    mode = test_case.config.get('mode')
+    result = None
+
+    if env_vars:
+        env_clean = {
+            k: v
+            for k, v in os.environ.items()
+            if k not in ('SSL_CERT_FILE', 'REQUESTS_CA_BUNDLE')
+        }
+        env_clean.update(env_vars)
+        with patch.dict(os.environ, env_clean, clear=True):
+            with patch('os.path.isfile', return_value=True):
+                result = utils.detect_system_ca_bundle()
+    elif mode == 'openssl_default':
+        env_clean = {
+            k: v
+            for k, v in os.environ.items()
+            if k not in ('SSL_CERT_FILE', 'REQUESTS_CA_BUNDLE')
+        }
+        with patch.dict(os.environ, env_clean, clear=True):
+            with patch('ssl.get_default_verify_paths') as mock_ssl:
+                mock_ssl.return_value = MagicMock(
+                    cafile='/openssl/default/ca.pem')
+                with patch('os.path.isfile', return_value=True):
+                    result = utils.detect_system_ca_bundle()
+    elif mode == 'os_path':
+        env_clean = {
+            k: v
+            for k, v in os.environ.items()
+            if k not in ('SSL_CERT_FILE', 'REQUESTS_CA_BUNDLE')
+        }
+        with patch.dict(os.environ, env_clean, clear=True):
+            with patch('ssl.get_default_verify_paths') as mock_ssl:
+                mock_ssl.return_value = MagicMock(cafile=None)
+                with patch(
+                        'os.path.isfile',
+                        side_effect=lambda p: p ==
+                        '/etc/pki/tls/certs/ca-bundle.crt'):
+                    result = utils.detect_system_ca_bundle()
+    elif mode == 'nothing':
+        env_clean = {
+            k: v
+            for k, v in os.environ.items()
+            if k not in ('SSL_CERT_FILE', 'REQUESTS_CA_BUNDLE')
+        }
+        with patch.dict(os.environ, env_clean, clear=True):
+            with patch('ssl.get_default_verify_paths') as mock_ssl:
+                mock_ssl.return_value = MagicMock(cafile=None)
+                with patch('os.path.isfile', return_value=False):
+                    result = utils.detect_system_ca_bundle()
+    else:
+        pytest.fail(f'Unhandled test config: {test_case.config}')
+
+    assert result == test_case.expected_output
 
 
 # ------------------------------------------------------------------
@@ -1272,6 +1395,21 @@ def test_list_runs(backend, test_case):
             },
             expected_status=FAILED,
             expected_error=TimeoutError,
+        ),
+        TestCase(
+            name='timeout None waits indefinitely until terminal state',
+            config={
+                'side_effects': [
+                    Mock(run_id='r-1', state='RUNNING'),
+                    Mock(run_id='r-1', state='RUNNING'),
+                    Mock(run_id='r-1', state='SUCCEEDED'),
+                ],
+                'kwargs': {
+                    'timeout': None,
+                    'polling_interval': 0
+                },
+            },
+            expected_output={'state': 'SUCCEEDED'},
         ),
         TestCase(
             name='callbacks are invoked',

@@ -17,10 +17,53 @@ from __future__ import annotations
 
 import logging
 import os
+import ssl
 
 from kfp.kubeflow_client.backends.kubernetes import constants
 
 logger = logging.getLogger(__name__)
+
+_COMMON_CA_BUNDLE_PATHS = (
+    '/etc/ssl/certs/ca-certificates.crt',
+    '/etc/pki/tls/certs/ca-bundle.crt',
+    '/etc/ssl/ca-bundle.pem',
+    '/etc/ssl/cert.pem',
+)
+
+
+def detect_system_ca_bundle() -> str | None:
+    """Best-effort detection of a system CA certificate bundle.
+
+    Resolution order:
+        1. ``SSL_CERT_FILE`` environment variable.
+        2. ``REQUESTS_CA_BUNDLE`` environment variable.
+        3. OpenSSL default CA file (via :func:`ssl.get_default_verify_paths`).
+        4. Common OS bundle paths (Debian, RHEL, openSUSE, macOS/Alpine).
+
+    Returns:
+        Absolute path to a CA bundle file, or ``None`` if no bundle was found.
+    """
+    for env_var in ('SSL_CERT_FILE', 'REQUESTS_CA_BUNDLE'):
+        path = os.environ.get(env_var)
+        if path and os.path.isfile(path):
+            logger.debug('System CA bundle from %s: %s', env_var, path)
+            return path
+
+    try:
+        defaults = ssl.get_default_verify_paths()
+        if defaults.cafile and os.path.isfile(defaults.cafile):
+            logger.debug('System CA bundle from OpenSSL defaults: %s',
+                         defaults.cafile)
+            return defaults.cafile
+    except Exception:  # pylint: disable=broad-except
+        logger.debug('ssl.get_default_verify_paths() failed.', exc_info=True)
+
+    for path in _COMMON_CA_BUNDLE_PATHS:
+        if os.path.isfile(path):
+            logger.debug('System CA bundle found at: %s', path)
+            return path
+
+    return None
 
 
 def discover_host(namespace: str) -> str:

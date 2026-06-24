@@ -416,7 +416,7 @@ class KubernetesBackend:
         run: str | Run,
         *,
         status: set[str] | None = None,
-        timeout: int = 600,
+        timeout: int | None = 600,
         polling_interval: int = 5,
         callbacks: list[Callable[[Run], None]] | None = None,
     ) -> Run:
@@ -425,7 +425,8 @@ class KubernetesBackend:
         Args:
             run: A Run object or a run ID string.
             status: Set of states to wait for.
-            timeout: Maximum time to wait, in seconds.
+            timeout: Maximum time to wait, in seconds. Pass ``None`` to
+                wait indefinitely.
             polling_interval: Time between status checks, in seconds.
             callbacks: Called with the final Run object when the wait ends.
         """
@@ -468,12 +469,13 @@ class KubernetesBackend:
                 self._invoke_callbacks(callbacks, run_response)
                 return run_response
 
-            elapsed = time.monotonic() - start_time
-            if elapsed >= timeout:
-                self._invoke_callbacks(callbacks, run_response)
-                raise TimeoutError(f'Run {run_id} did not reach state '
-                                   f'{target_states} within {timeout}s. '
-                                   f'Current state: {current_state!r}.')
+            if timeout is not None:
+                elapsed = time.monotonic() - start_time
+                if elapsed >= timeout:
+                    self._invoke_callbacks(callbacks, run_response)
+                    raise TimeoutError(f'Run {run_id} did not reach state '
+                                       f'{target_states} within {timeout}s. '
+                                       f'Current state: {current_state!r}.')
 
             time.sleep(polling_interval)
 
@@ -1073,6 +1075,10 @@ class KubernetesBackend:
 
         if config.custom_ca:
             api_config.ssl_ca_cert = config.custom_ca
+        else:
+            system_ca = utils.detect_system_ca_bundle()
+            if system_ca:
+                api_config.ssl_ca_cert = system_ca
 
         if config.base_url:
             host = config.base_url
