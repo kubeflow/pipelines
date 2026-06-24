@@ -159,8 +159,8 @@ func (b *BatchUpdater) QueueArtifact(request *apiV2beta1.CreateArtifactRequest) 
 // Flush executes all queued updates in batches
 // Order of operations:
 // 1. Create artifacts (they need to exist before artifact-tasks can reference them)
-// 2. Update tasks (task updates can happen in parallel with artifact creation)
-// 3. Create artifact-tasks (these depend on artifacts existing)
+// 2. Create artifact-tasks (these depend on artifacts existing)
+// 3. Update tasks to terminal states after outputs and links are durable
 func (b *BatchUpdater) Flush(ctx context.Context, client kfpapi.API) error {
 	if len(b.taskUpdates) == 0 && len(b.artifactTasks) == 0 && len(b.artifacts) == 0 {
 		glog.V(2).Info("BatchUpdater: No updates to flush")
@@ -212,26 +212,7 @@ func (b *BatchUpdater) Flush(ctx context.Context, client kfpapi.API) error {
 		b.actualArtifactCalls = 1 // Bulk call counts as 1
 	}
 
-	// Step 2: Update tasks using bulk API
-	if len(b.taskUpdates) > 0 {
-		var runID string
-		for _, task := range b.taskUpdates {
-			runID = task.GetRunId()
-			if runID != "" {
-				break
-			}
-		}
-		_, err := client.UpdateTasksBulk(ctx, &apiV2beta1.UpdateTasksBulkRequest{
-			Tasks: b.taskUpdates,
-			RunId: runID,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to update tasks in bulk: %w", err)
-		}
-		b.actualTaskUpdateCalls = 1 // Bulk call counts as 1
-	}
-
-	// Step 3: Create artifact-tasks using existing bulk API
+	// Step 2: Create artifact-tasks using existing bulk API
 	if len(b.artifactTasks) > 0 {
 		dedupedArtifactTasks := make([]*apiV2beta1.ArtifactTask, 0, len(b.artifactTasks))
 		seenArtifactTasks := make(map[string]struct{}, len(b.artifactTasks))
@@ -250,6 +231,25 @@ func (b *BatchUpdater) Flush(ctx context.Context, client kfpapi.API) error {
 			return fmt.Errorf("failed to create artifact-tasks in bulk: %w", err)
 		}
 		b.actualArtifactTaskCalls = 1 // Bulk call counts as 1
+	}
+
+	// Step 3: Update tasks using bulk API after artifact links exist.
+	if len(b.taskUpdates) > 0 {
+		var runID string
+		for _, task := range b.taskUpdates {
+			runID = task.GetRunId()
+			if runID != "" {
+				break
+			}
+		}
+		_, err := client.UpdateTasksBulk(ctx, &apiV2beta1.UpdateTasksBulkRequest{
+			Tasks: b.taskUpdates,
+			RunId: runID,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to update tasks in bulk: %w", err)
+		}
+		b.actualTaskUpdateCalls = 1 // Bulk call counts as 1
 	}
 
 	// Log metrics

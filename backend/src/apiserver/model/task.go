@@ -132,19 +132,19 @@ type TaskStatus apiv2beta1.PipelineTask_TaskState
 
 type Task struct {
 	UUID             string     `gorm:"column:UUID; not null; primaryKey; type:varchar(191);"`
-	Namespace        string     `gorm:"column:Namespace; not null; type:varchar(63);"`
+	Namespace        string     `gorm:"column:Namespace; not null; type:varchar(63); index:idx_task_cache_lookup,priority:1;"`
 	RunUUID          string     `gorm:"column:RunUUID; type:varchar(191); not null; index:idx_parent_run,priority:1;"`
 	Run              Run        `gorm:"foreignKey:RunUUID;references:UUID;constraint:tasks_RunUUID_run_details_UUID_foreign,OnDelete:CASCADE,OnUpdate:CASCADE;"`
 	Pods             JSONSlice  `gorm:"column:pods; not null; type:json;"`
-	CreatedAtInSec   int64      `gorm:"column:CreatedAtInSec; not null; index:idx_task_created_timestamp;"`
+	CreatedAtInSec   int64      `gorm:"column:CreatedAtInSec; not null; index:idx_task_created_timestamp; index:idx_task_cache_lookup,priority:4,sort:desc;"`
 	StartedInSec     int64      `gorm:"column:StartedInSec; default:0; index:idx_task_started_timestamp;"`
 	FinishedInSec    int64      `gorm:"column:FinishedInSec; default:0; index:idx_task_finished_timestamp;"`
-	Fingerprint      string     `gorm:"column:Fingerprint; not null; type:varchar(255);"`
+	Fingerprint      string     `gorm:"column:Fingerprint; not null; type:varchar(255); index:idx_task_cache_lookup,priority:2;"`
 	Name             string     `gorm:"column:Name; type:varchar(128); default:null;"`
 	DisplayName      string     `gorm:"column:DisplayName; type:varchar(128); default:null;"`
 	ParentTaskUUID   *string    `gorm:"column:ParentTaskUUID; type:varchar(191); default:null; index:idx_parent_task_uuid; index:idx_parent_run,priority:2;"`
 	ParentTask       *Task      `gorm:"foreignKey:ParentTaskUUID;references:UUID;constraint:fk_tasks_parent_task,OnDelete:CASCADE,OnUpdate:CASCADE;"`
-	State            TaskStatus `gorm:"column:State; not null;"`
+	State            TaskStatus `gorm:"column:State; not null; index:idx_task_cache_lookup,priority:3;"`
 	StatusMetadata   JSONData   `gorm:"column:StatusMetadata; type:json; default:null;"`
 	StateHistory     JSONSlice  `gorm:"column:StateHistory; type:json;"`
 	InputParameters  JSONSlice  `gorm:"column:InputParameters; type:json;"`

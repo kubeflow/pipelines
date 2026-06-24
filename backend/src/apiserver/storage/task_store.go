@@ -87,6 +87,9 @@ type TaskStoreInterface interface {
 
 	// GetTaskCountsForRuns fetches task counts keyed by run ID.
 	GetTaskCountsForRuns(runIDs []string) (map[string]int, error)
+
+	// FindLatestCachedTask returns the newest succeeded task for a fingerprint.
+	FindLatestCachedTask(namespace, fingerprint string) (*model.Task, error)
 }
 
 type TaskStore struct {
@@ -707,6 +710,45 @@ func (s *TaskStore) GetTask(id string) (*model.Task, error) {
 	// Hydrate artifacts for this task
 	if err := hydrateArtifactsForTasks(s.db, []*model.Task{tasks[0]}); err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to hydrate task artifacts")
+	}
+	return tasks[0], nil
+}
+
+func (s *TaskStore) FindLatestCachedTask(namespace, fingerprint string) (*model.Task, error) {
+	sqlBuilder := sq.
+		Select(taskColumns...).
+		From("tasks").
+		Where(sq.Eq{
+			"Fingerprint": fingerprint,
+			"State":       model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		})
+	if namespace != "" {
+		sqlBuilder = sqlBuilder.Where(sq.Eq{"Namespace": namespace})
+	}
+
+	sqlStr, args, err := sqlBuilder.
+		OrderBy("CreatedAtInSec DESC", "UUID DESC").
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to find latest cached task: %v", err.Error())
+	}
+
+	rows, err := s.db.Query(sqlStr, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to find latest cached task: %v", err.Error())
+	}
+	defer rows.Close()
+
+	tasks, err := s.scanRows(rows)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to scan latest cached task: %v", err.Error())
+	}
+	if len(tasks) == 0 {
+		return nil, nil
+	}
+	if err := hydrateArtifactsForTasks(s.db, []*model.Task{tasks[0]}); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to hydrate latest cached task artifacts")
 	}
 	return tasks[0], nil
 }

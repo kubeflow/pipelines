@@ -38,6 +38,7 @@ func getFingerPrint(opts common.Options, executorInput *pipelinespec.ExecutorInp
 	userCmdArgs := make([]string, 0, len(opts.Container.Command)+len(opts.Container.Args))
 	userCmdArgs = append(userCmdArgs, opts.Container.Command...)
 	userCmdArgs = append(userCmdArgs, opts.Container.Args...)
+	userCmdArgs = append(userCmdArgs, fmt.Sprintf("__kfp_pipeline_name=%s", opts.PipelineName))
 
 	// Deduplicate PVC names and sort them to ensure consistent fingerprint generation.
 	pvcNamesMap := map[string]struct{}{}

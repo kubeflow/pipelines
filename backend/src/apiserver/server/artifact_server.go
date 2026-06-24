@@ -444,6 +444,15 @@ func (s *ArtifactServer) CreateArtifactTasksBulk(ctx context.Context, request *a
 		if apiAT.GetRunId() == "" {
 			return nil, util.NewInvalidInputError("artifact_task.run_id is required")
 		}
+		if apiAT.GetType() == apiv2beta1.IOType_UNSPECIFIED {
+			return nil, util.NewInvalidInputError("artifact_task.type is required")
+		}
+		if apiAT.GetProducer() == nil {
+			return nil, util.NewInvalidInputError("artifact_task.producer is required")
+		}
+		if apiAT.GetKey() == "" {
+			return nil, util.NewInvalidInputError("artifact_task.key is required")
+		}
 
 		// Fetch task and artifact for validation and authorization
 		task, err := s.resourceManager.GetTask(apiAT.GetTaskId())

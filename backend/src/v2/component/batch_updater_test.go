@@ -23,6 +23,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type orderingMockAPI struct {
+	*kfpapi.MockAPI
+	order []string
+}
+
+func (m *orderingMockAPI) CreateArtifactsBulk(ctx context.Context, req *apiv2beta1.CreateArtifactsBulkRequest) (*apiv2beta1.CreateArtifactsBulkResponse, error) {
+	m.order = append(m.order, "artifacts")
+	return m.MockAPI.CreateArtifactsBulk(ctx, req)
+}
+
+func (m *orderingMockAPI) CreateArtifactTasks(ctx context.Context, req *apiv2beta1.CreateArtifactTasksBulkRequest) (*apiv2beta1.CreateArtifactTasksBulkResponse, error) {
+	m.order = append(m.order, "artifact-tasks")
+	return m.MockAPI.CreateArtifactTasks(ctx, req)
+}
+
+func (m *orderingMockAPI) UpdateTasksBulk(ctx context.Context, req *apiv2beta1.UpdateTasksBulkRequest) (*apiv2beta1.UpdateTasksBulkResponse, error) {
+	m.order = append(m.order, "tasks")
+	return m.MockAPI.UpdateTasksBulk(ctx, req)
+}
+
 func TestBatchUpdater_FlushDeduplicatesArtifactTasks(t *testing.T) {
 	mockAPI := kfpapi.NewMockAPI()
 	updater := NewBatchUpdater()
@@ -70,4 +90,42 @@ func TestBatchUpdater_QueueTaskUpdateDoesNotSelfDuplicateOutputs(t *testing.T) {
 
 	require.Len(t, updater.taskUpdates["task-1"].GetOutputs().GetParameters(), 1)
 	require.Len(t, updater.taskUpdates["task-1"].GetOutputs().GetArtifacts(), 1)
+}
+
+func TestBatchUpdater_FlushCreatesArtifactLinksBeforeTerminalTaskUpdate(t *testing.T) {
+	mockAPI := &orderingMockAPI{MockAPI: kfpapi.NewMockAPI()}
+	updater := NewBatchUpdater()
+	_, err := mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: "run-1",
+		Task: &apiv2beta1.PipelineTask{
+			TaskId: "task-1",
+			RunId:  "run-1",
+			Name:   "task-1",
+			State:  apiv2beta1.PipelineTask_RUNNING,
+		},
+	})
+	require.NoError(t, err)
+
+	updater.QueueArtifact(&apiv2beta1.CreateArtifactRequest{
+		RunId:       "run-1",
+		TaskId:      "task-1",
+		ProducerKey: "model",
+		Artifact: &apiv2beta1.Artifact{
+			Name: "model",
+		},
+	})
+	updater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+		TaskId: "task-1",
+		RunId:  "run-1",
+		Key:    "model",
+		Type:   apiv2beta1.IOType_OUTPUT,
+	})
+	updater.QueueTaskUpdate(&apiv2beta1.PipelineTask{
+		TaskId: "task-1",
+		RunId:  "run-1",
+		State:  apiv2beta1.PipelineTask_SUCCEEDED,
+	})
+
+	require.NoError(t, updater.Flush(context.Background(), mockAPI))
+	require.Equal(t, []string{"artifacts", "artifact-tasks", "tasks"}, mockAPI.order)
 }

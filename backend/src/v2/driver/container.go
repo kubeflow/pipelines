@@ -26,11 +26,13 @@ import (
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/resolver"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -115,8 +117,8 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 			} else {
 				_, err := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
 					TaskId: taskToCreate.TaskId,
-					Task:  taskToCreate,
-					RunId: taskToCreate.GetRunId(),
+					Task:   taskToCreate,
+					RunId:  taskToCreate.GetRunId(),
 				})
 				if err != nil {
 					glog.Errorf("Failed to update task %s: %v", taskToCreate.Name, err)
@@ -188,6 +190,27 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 		return execution, kubernetesPlatformOps(ctx, clientManager, execution, taskToCreate, &opts)
 	}
 
+	// Determine the pipeline root and provision outputs before generating the
+	// cache fingerprint so the fingerprint reflects the actual output contract.
+	pipelineRoot, driverErr := config.GetPipelineRootWithPipelineRunContext(
+		ctx,
+		opts.PipelineName,
+		opts.Namespace,
+		clientManager.K8sClient(),
+		opts.Run)
+	if driverErr != nil {
+		return execution, fmt.Errorf("failed to get pipeline root: %w", driverErr)
+	}
+	if execution.WillTrigger() {
+		executorInput.Outputs = provisionOutputs(
+			pipelineRoot,
+			opts.TaskName,
+			opts.Component.GetOutputDefinitions(),
+			uuid.NewString(),
+			opts.PublishLogs,
+		)
+	}
+
 	var inputParams []*apiV2beta1.PipelineTask_InputOutputs_IOParameter
 	if opts.KubernetesExecutorConfig != nil {
 		inputParams = parentTask.GetInputs().GetParameters()
@@ -238,8 +261,12 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	execution.Cached = util.BoolPointer(false)
 	if !opts.CacheDisabled {
 		if opts.Task.GetCachingOptions().GetEnableCache() && cachedTask != nil {
+			cachedOutputs, err := cloneCachedOutputsForTask(cachedTask.GetOutputs(), opts.TaskName, iterationIndex)
+			if err != nil {
+				return execution, err
+			}
 			taskToCreate.State = apiV2beta1.PipelineTask_CACHED
-			taskToCreate.Outputs = cachedTask.Outputs
+			taskToCreate.Outputs = cachedOutputs
 			*execution.Cached = true
 			createdTask, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
 				Task:  taskToCreate,
@@ -252,7 +279,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 
 			// Artifacts are not embedded in tasks like parameters, we need to create separate ArtifactTasks for each output.
 			var artifactTasks []*apiV2beta1.ArtifactTask
-			for _, cachedOutput := range cachedTask.Outputs.Artifacts {
+			for _, cachedOutput := range cachedOutputs.GetArtifacts() {
 				for _, artifact := range cachedOutput.Artifacts {
 					artifactTasks = append(artifactTasks, &apiV2beta1.ArtifactTask{
 						ArtifactId: artifact.GetArtifactId(),
@@ -264,11 +291,31 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 					})
 				}
 			}
-			_, err := clientManager.KFPAPIClient().CreateArtifactTasks(ctx, &apiV2beta1.CreateArtifactTasksBulkRequest{
-				ArtifactTasks: artifactTasks,
-			})
-			if err != nil {
-				return execution, fmt.Errorf("failed to create artifact tasks: %w", err)
+			if len(artifactTasks) > 0 {
+				_, err := clientManager.KFPAPIClient().CreateArtifactTasks(ctx, &apiV2beta1.CreateArtifactTasksBulkRequest{
+					ArtifactTasks: artifactTasks,
+				})
+				if err != nil {
+					return execution, fmt.Errorf("failed to create artifact tasks: %w", err)
+				}
+			}
+			if err := component.PropagateOutputsUpDAGForTask(ctx, component.LauncherV2Options{
+				Namespace:     opts.Namespace,
+				Run:           opts.Run,
+				ParentTask:    opts.ParentTask,
+				Task:          createdTask,
+				ComponentSpec: opts.Component,
+				TaskSpec:      opts.Task,
+				ScopePath:     opts.ScopePath,
+				PipelineSpec:  opts.ScopePath.GetPipelineSpecStruct(),
+				IterationIndex: func() *int64 {
+					if iterationIndex == nil {
+						return nil
+					}
+					return util.Int64Pointer(int64(*iterationIndex))
+				}(),
+			}, clientManager, opts.ScopePath.GetPipelineSpecStruct()); err != nil {
+				return execution, fmt.Errorf("failed to propagate cached task outputs: %w", err)
 			}
 			execution.TaskID = createdTask.TaskId
 			glog.Infof("Cache hit for task %s", opts.TaskName)
@@ -307,31 +354,6 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	// If this Task is a condition branch and the condition was not met, skip it.
 	if !execution.WillTrigger() {
 		return execution, nil
-	}
-
-	// Determine the pipeline root with the pipeline run context.
-	// If a user sets a pipeline root at the runtime config, use that.
-	// Otherwise, we use the default pipeline root from the launcher config map.
-	// If none is set, we use the hardcoded default.
-	pipelineRoot, driverErr := config.GetPipelineRootWithPipelineRunContext(
-		ctx,
-		opts.PipelineName,
-		opts.Namespace,
-		clientManager.K8sClient(),
-		opts.Run)
-	if driverErr != nil {
-		return execution, fmt.Errorf("failed to get pipeline root: %w", driverErr)
-	}
-
-	// Provision Outputs in ExecutorInput
-	if execution.WillTrigger() {
-		executorInput.Outputs = provisionOutputs(
-			pipelineRoot,
-			opts.TaskName,
-			opts.Component.GetOutputDefinitions(),
-			uuid.NewString(),
-			opts.PublishLogs,
-		)
 	}
 
 	// Generate pod spec patch.
@@ -421,6 +443,33 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	}
 	execution.PodSpecPatch = string(podSpecPatchBytes)
 	return execution, nil
+}
+
+func cloneCachedOutputsForTask(
+	outputs *apiV2beta1.PipelineTask_InputOutputs,
+	taskName string,
+	iterationIndex *int,
+) (*apiV2beta1.PipelineTask_InputOutputs, error) {
+	if outputs == nil {
+		return nil, nil
+	}
+	clonedOutputs, ok := proto.Clone(outputs).(*apiV2beta1.PipelineTask_InputOutputs)
+	if !ok {
+		return nil, fmt.Errorf("failed to clone cached task outputs")
+	}
+	for _, parameterOutput := range clonedOutputs.GetParameters() {
+		parameterOutput.Producer = &apiV2beta1.IOProducer{TaskName: taskName}
+		if iterationIndex != nil {
+			parameterOutput.Producer.Iteration = util.Int64Pointer(int64(*iterationIndex))
+		}
+	}
+	for _, artifactOutput := range clonedOutputs.GetArtifacts() {
+		artifactOutput.Producer = &apiV2beta1.IOProducer{TaskName: taskName}
+		if iterationIndex != nil {
+			artifactOutput.Producer.Iteration = util.Int64Pointer(int64(*iterationIndex))
+		}
+	}
+	return clonedOutputs, nil
 }
 
 func pipelineTaskInputsToExecutorInputs(inputMetadata *resolver.InputMetadata) (*pipelinespec.ExecutorInput, error) {

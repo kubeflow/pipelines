@@ -61,6 +61,41 @@ func TestGetFingerPrintIsDeterministicForEquivalentPVCSets(t *testing.T) {
 	assert.Equal(t, fingerprintA, fingerprintB)
 }
 
+func TestGetFingerPrintIncludesPipelineName(t *testing.T) {
+	baseOpts := common.Options{
+		Component: &pipelinespec.ComponentSpec{
+			OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+				Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
+					"output1": {ParameterType: pipelinespec.ParameterType_STRING},
+				},
+			},
+		},
+		Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+			Image:   "test-image:latest",
+			Command: []string{"python", "main.py"},
+		},
+	}
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"input1": structpb.NewStringValue("value1"),
+			},
+		},
+	}
+
+	optsA := baseOpts
+	optsA.PipelineName = "pipeline-a"
+	fingerprintA, err := getFingerPrint(optsA, executorInput, nil)
+	require.NoError(t, err)
+
+	optsB := baseOpts
+	optsB.PipelineName = "pipeline-b"
+	fingerprintB, err := getFingerPrint(optsB, executorInput, nil)
+	require.NoError(t, err)
+
+	assert.NotEqual(t, fingerprintA, fingerprintB)
+}
+
 func TestGetFingerPrintsAndIDReturnsEarlyWhenCachingDisabled(t *testing.T) {
 	execution := &Execution{
 		ExecutorInput: &pipelinespec.ExecutorInput{},
@@ -193,6 +228,42 @@ func TestGetFingerPrintsAndIDUsesFindCachedTask(t *testing.T) {
 	require.NotNil(t, api.findCachedTaskRequest)
 	assert.Equal(t, opts.Namespace, api.findCachedTaskRequest.GetNamespace())
 	assert.Equal(t, fingerprint, api.findCachedTaskRequest.GetCacheFingerprint())
+}
+
+func TestCloneCachedOutputsForTaskRestampsProducers(t *testing.T) {
+	iterationIndex := 3
+	outputs := &apiv2beta1.PipelineTask_InputOutputs{
+		Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+			{
+				ParameterKey: "result",
+				Producer: &apiv2beta1.IOProducer{
+					TaskName:  "cached-task",
+					Iteration: proto.Int64(0),
+				},
+			},
+		},
+		Artifacts: []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
+			{
+				ArtifactKey: "model",
+				Producer: &apiv2beta1.IOProducer{
+					TaskName:  "cached-task",
+					Iteration: proto.Int64(0),
+				},
+			},
+		},
+	}
+
+	clonedOutputs, err := cloneCachedOutputsForTask(outputs, "current-task", &iterationIndex)
+	require.NoError(t, err)
+	require.NotNil(t, clonedOutputs)
+
+	assert.Equal(t, "current-task", clonedOutputs.GetParameters()[0].GetProducer().GetTaskName())
+	assert.Equal(t, int64(iterationIndex), *clonedOutputs.GetParameters()[0].GetProducer().Iteration)
+	assert.Equal(t, "current-task", clonedOutputs.GetArtifacts()[0].GetProducer().GetTaskName())
+	assert.Equal(t, int64(iterationIndex), *clonedOutputs.GetArtifacts()[0].GetProducer().Iteration)
+
+	assert.Equal(t, "cached-task", outputs.GetParameters()[0].GetProducer().GetTaskName())
+	assert.Equal(t, "cached-task", outputs.GetArtifacts()[0].GetProducer().GetTaskName())
 }
 
 type fakeCacheLookupAPI struct {
