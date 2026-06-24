@@ -18,18 +18,21 @@ package apiclient
 import (
 	"context"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/golang/glog"
 	"golang.org/x/oauth2"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/credentials"
 	"k8s.io/client-go/transport"
 )
 
 const (
 	// KFPTokenPath is the path where the projected service account token is mounted
 	KFPTokenPath = "/var/run/secrets/kfp/token"
+	// KFPTokenPathEnvVar overrides the token path for executor launchers that stage
+	// the token into a private scratch volume before user code starts.
+	KFPTokenPathEnvVar = "KFP_TOKEN_PATH"
 )
 
 var (
@@ -45,15 +48,31 @@ var (
 // This is called once lazily when the first request needs authentication.
 func initTokenSource() {
 	tokenSourceOnce.Do(func() {
+		tokenPath := resolveTokenPath()
 		// Check if token file exists before creating the token source
-		if _, err := os.Stat(KFPTokenPath); err != nil {
+		if _, err := os.Stat(tokenPath); err != nil {
 			if os.IsNotExist(err) {
-				glog.Warningf("KFP token file not found at %s, proceeding without authentication", KFPTokenPath)
+				glog.Warningf("KFP token file not found at %s, proceeding without authentication", tokenPath)
 				tokenSource = &emptyTokenSource{}
 				return
 			}
 			// Other errors - log but continue
-			glog.Warningf("Error checking KFP token file at %s: %v", KFPTokenPath, err)
+			glog.Warningf("Error checking KFP token file at %s: %v", tokenPath, err)
+		}
+
+		if tokenPath != KFPTokenPath {
+			tokenBytes, err := os.ReadFile(tokenPath)
+			if err != nil {
+				glog.Warningf("Failed to read staged KFP token from %s: %v", tokenPath, err)
+				tokenSource = &emptyTokenSource{}
+				return
+			}
+			if err := os.Remove(tokenPath); err != nil {
+				glog.Warningf("Failed to remove staged KFP token at %s: %v", tokenPath, err)
+			}
+			token := strings.TrimSpace(string(tokenBytes))
+			tokenSource = oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
+			return
 		}
 
 		// Create a cached file token source that automatically reloads when the file changes.
@@ -62,9 +81,16 @@ func initTokenSource() {
 		// - Handles token rotation seamlessly
 		// - Caches the token to avoid excessive disk I/O
 		// This is the same approach used by client-go for in-cluster authentication.
-		tokenSource = transport.NewCachedFileTokenSource(KFPTokenPath)
-		glog.V(2).Infof("Initialized KFP token source from %s with automatic reload", KFPTokenPath)
+		tokenSource = transport.NewCachedFileTokenSource(tokenPath)
+		glog.V(2).Infof("Initialized KFP token source from %s with automatic reload", tokenPath)
 	})
+}
+
+func resolveTokenPath() string {
+	if tokenPath := os.Getenv(KFPTokenPathEnvVar); tokenPath != "" {
+		return tokenPath
+	}
+	return KFPTokenPath
 }
 
 // emptyTokenSource returns an empty token (for dev/test environments without token files)
@@ -98,21 +124,25 @@ func getToken() string {
 	return tok.AccessToken
 }
 
-// authUnaryInterceptor is a gRPC unary interceptor that adds the Authorization header
-// to all outgoing requests using the KFP service account token.
-func authUnaryInterceptor(
+type tokenPerRPCCredentials struct{}
+
+var _ credentials.PerRPCCredentials = (*tokenPerRPCCredentials)(nil)
+
+func newTokenPerRPCCredentials() credentials.PerRPCCredentials {
+	return &tokenPerRPCCredentials{}
+}
+
+func (c *tokenPerRPCCredentials) GetRequestMetadata(
 	ctx context.Context,
-	method string,
-	req interface{},
-	reply interface{},
-	cc *grpc.ClientConn,
-	invoker grpc.UnaryInvoker,
-	opts ...grpc.CallOption,
-) error {
+	uri ...string,
+) (map[string]string, error) {
 	token := getToken()
 	if token != "" {
-		// Add Authorization header with Bearer token
-		ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+token)
+		return map[string]string{"authorization": "Bearer " + token}, nil
 	}
-	return invoker(ctx, method, req, reply, cc, opts...)
+	return map[string]string{}, nil
+}
+
+func (c *tokenPerRPCCredentials) RequireTransportSecurity() bool {
+	return true
 }

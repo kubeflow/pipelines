@@ -431,7 +431,10 @@ func (c *workflowCompiler) propagateIterationIndexToNestedDAGTemplates(templateN
 		return nil
 	}
 
-	template.Inputs.Parameters = appendParameterIfMissing(template.Inputs.Parameters, wfapi.Parameter{Name: paramIterationIndex})
+	template.Inputs.Parameters = appendParameterIfMissing(template.Inputs.Parameters, wfapi.Parameter{
+		Name:    paramIterationIndex,
+		Default: wfapi.AnyStringPtr("-1"),
+	})
 
 	for i := range template.DAG.Tasks {
 		task := &template.DAG.Tasks[i]
@@ -628,6 +631,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			},
 		},
 	}
+	applySecurityContextToTemplate(t)
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the DAG driver template.
 	if setCABundle {
 		ConfigureCustomCABundle(t)

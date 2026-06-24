@@ -542,6 +542,52 @@ func Test_QueryParameters(t *testing.T) {
 	}
 }
 
+func TestHasExplicitBucketOverride(t *testing.T) {
+	config := Config{data: map[string]string{
+		"providers": `
+minio:
+  default:
+    endpoint: default-endpoint
+    credentials:
+      secretRef:
+        secretName: default-secret
+        accessKeyKey: accesskey
+        secretKeyKey: secretkey
+  Overrides:
+    - bucketName: allowlisted-bucket
+      keyPrefix: allowed/
+      endpoint: override-endpoint
+      credentials:
+        secretRef:
+          secretName: override-secret
+          accessKeyKey: accesskey
+          secretKeyKey: secretkey
+`,
+	}}
+
+	hasOverride, err := config.HasExplicitBucketOverride("minio://allowlisted-bucket/allowed/path")
+	require.NoError(t, err)
+	assert.True(t, hasOverride)
+
+	hasOverride, err = config.HasExplicitBucketOverride("minio://allowlisted-bucket/other/path")
+	require.NoError(t, err)
+	assert.False(t, hasOverride)
+}
+
+func TestIsPathUnderDefaultPipelineRoot(t *testing.T) {
+	config := Config{data: map[string]string{
+		configKeyDefaultPipelineRoot: "minio://mlpipeline/v2/artifacts/root?endpoint=root-endpoint&region=us-east-1",
+	}}
+
+	underRoot, err := config.IsPathUnderDefaultPipelineRoot("minio://mlpipeline/v2/artifacts/root/run-1/output")
+	require.NoError(t, err)
+	assert.True(t, underRoot)
+
+	underRoot, err = config.IsPathUnderDefaultPipelineRoot("minio://other-bucket/v2/artifacts/root/run-1/output")
+	require.NoError(t, err)
+	assert.False(t, underRoot)
+}
+
 func TestInPodName_PrefersKFPPodNameEnvVar(t *testing.T) {
 	t.Setenv("KFP_POD_NAME", "my-workflow-pod-abc123")
 	podName, err := InPodName()

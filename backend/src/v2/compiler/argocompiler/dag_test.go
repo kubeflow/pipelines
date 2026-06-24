@@ -175,6 +175,9 @@ func TestAddDAGDriverTemplate_IncludesDebugMetadata(t *testing.T) {
 	require.True(t, exists, "system-dag-driver template should exist")
 	assert.Equal(t, "dag-driver", tmpl.Metadata.Labels[systemPodRoleLabelKey])
 	assert.Equal(t, "system-dag-driver", tmpl.Metadata.Annotations[systemTemplateNameAnnotationKey])
+	require.NotNil(t, tmpl.SecurityContext, "system-dag-driver template should preserve pod security context hardening")
+	require.NotNil(t, tmpl.Container)
+	require.NotNil(t, tmpl.Container.SecurityContext, "system-dag-driver container should preserve container security context hardening")
 }
 
 func TestAddDAGDriverTemplate_PropagatesGRPCBackoffEnv(t *testing.T) {
@@ -209,6 +212,29 @@ func TestAddDAGDriverTemplate_PropagatesGRPCBackoffEnv(t *testing.T) {
 		}
 	}
 	assert.True(t, found, "expected DAG driver to include configured gRPC backoff env")
+}
+
+func TestPropagateIterationIndexToNestedDAGTemplates_DefaultsTemplateInput(t *testing.T) {
+	c := &workflowCompiler{
+		templates: map[string]*wfapi.Template{
+			"nested-dag": {
+				Name: "nested-dag",
+				DAG:  &wfapi.DAGTemplate{},
+			},
+		},
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+	}
+
+	require.NoError(t, c.propagateIterationIndexToNestedDAGTemplates("nested-dag", map[string]bool{}))
+	template := c.templates["nested-dag"]
+	require.Len(t, template.Inputs.Parameters, 1)
+	require.Equal(t, paramIterationIndex, template.Inputs.Parameters[0].Name)
+	require.NotNil(t, template.Inputs.Parameters[0].Default)
+	assert.Equal(t, "-1", template.Inputs.Parameters[0].Default.String())
 }
 
 func TestPropagateIterationIndexToNestedDAGTemplates(t *testing.T) {

@@ -99,7 +99,9 @@ func New(cfg *Config, tlsCfg *tls.Config) (*Client, error) {
 	}
 	dialOptions := []grpc.DialOption{
 		grpc.WithTransportCredentials(creds),
-		grpc.WithUnaryInterceptor(authUnaryInterceptor), // Add auth interceptor for all requests
+	}
+	if tlsCfg != nil {
+		dialOptions = append(dialOptions, grpc.WithPerRPCCredentials(newTokenPerRPCCredentials()))
 	}
 	connectParams, err := cfg.connectParams()
 	if err != nil {

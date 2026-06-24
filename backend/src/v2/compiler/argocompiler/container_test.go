@@ -22,6 +22,7 @@ import (
 	backendcommon "github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient"
+	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -157,6 +158,49 @@ func TestAddContainerExecutorTemplate_IncludesDebugMetadata(t *testing.T) {
 	require.True(t, exists, "system-container-impl template should exist")
 	assert.Equal(t, "container-executor", tmpl.Metadata.Labels[systemPodRoleLabelKey])
 	assert.Equal(t, "system-container-impl", tmpl.Metadata.Annotations[systemTemplateNameAnnotationKey])
+}
+
+func TestAddContainerExecutorTemplate_KeepsProjectedTokenOutOfUserContainer(t *testing.T) {
+	c := &workflowCompiler{
+		templates: make(map[string]*wfapi.Template),
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+	}
+
+	c.addContainerExecutorTemplate(
+		&pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test-ref"}},
+		&kubernetesplatform.KubernetesExecutorConfig{},
+	)
+
+	tmpl := c.templates["system-container-impl"]
+	require.NotNil(t, tmpl)
+	require.NotNil(t, tmpl.Container)
+	require.Len(t, tmpl.InitContainers, 1)
+
+	for _, volumeMount := range tmpl.Container.VolumeMounts {
+		assert.NotEqual(t, kfpTokenVolumeName, volumeMount.Name, "user container should not mount the projected KFP token volume directly")
+	}
+
+	foundInitTokenMount := false
+	for _, volumeMount := range tmpl.InitContainers[0].VolumeMounts {
+		if volumeMount.Name == kfpTokenVolumeName && volumeMount.MountPath == kfpTokenMountPath {
+			foundInitTokenMount = true
+			break
+		}
+	}
+	assert.True(t, foundInitTokenMount, "init container should mount the projected KFP token volume")
+
+	foundTokenPathEnv := false
+	for _, env := range tmpl.Container.Env {
+		if env.Name == component.EnvKFPTokenPath && env.Value == component.KFPTokenRelayPath {
+			foundTokenPathEnv = true
+			break
+		}
+	}
+	assert.True(t, foundTokenPathEnv, "user container should read the staged token path through env")
 }
 
 func TestAddContainerExecutorTemplate_DefaultsIterationIndex(t *testing.T) {

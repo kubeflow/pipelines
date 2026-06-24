@@ -126,6 +126,52 @@ func (c *Config) GetStoreSessionInfo(path string) (objectstore.SessionInfo, erro
 	return sess, nil
 }
 
+func (c *Config) HasExplicitBucketOverride(path string) (bool, error) {
+	provider, err := objectstore.ParseProviderFromPath(path)
+	if err != nil {
+		return false, err
+	}
+	bucketProviders, err := c.getBucketProviders()
+	if err != nil {
+		return false, err
+	}
+	if bucketProviders == nil {
+		return false, nil
+	}
+
+	switch provider {
+	case "minio":
+		if bucketProviders.Minio == nil {
+			return false, nil
+		}
+		return bucketProviders.Minio.HasExplicitOverride(path)
+	case "s3":
+		if bucketProviders.S3 == nil {
+			return false, nil
+		}
+		return bucketProviders.S3.HasExplicitOverride(path)
+	case "gs":
+		if bucketProviders.GCS == nil {
+			return false, nil
+		}
+		return bucketProviders.GCS.HasExplicitOverride(path)
+	default:
+		return false, fmt.Errorf("Encountered unsupported provider in provider config %s", provider)
+	}
+}
+
+func (c *Config) IsPathUnderDefaultPipelineRoot(path string) (bool, error) {
+	rootConfig, err := objectstore.ParseBucketPathToConfig(c.DefaultPipelineRoot())
+	if err != nil {
+		return false, err
+	}
+	pathConfig, err := objectstore.ParseBucketPathToConfig(path)
+	if err != nil {
+		return false, err
+	}
+	return objectstore.IsWithinBucketRoot(rootConfig, pathConfig), nil
+}
+
 // getBucketProviders gets the provider configuration
 func (c *Config) getBucketProviders() (*BucketProviders, error) {
 	if c == nil || c.data[configBucketProviders] == "" {

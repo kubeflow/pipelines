@@ -156,9 +156,10 @@ func (c *ObjectStoreClient) getBucket(
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to get base URI path for artifact %q: %w", artifactKey, err)
 	}
-	bucketConfig, err := objectstore.ParseBucketPathToConfig(prefix)
+	launcherConfig := c.deps.GetLauncherConfig()
+	bucketConfig, sessionLookupPath, err := resolveArtifactBucketConfig(launcherConfig, prefix)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to get base URI path for artifact %q: %w", artifactKey, err)
+		return nil, "", fmt.Errorf("failed to resolve bucket config for artifact %q: %w", artifactKey, err)
 	}
 
 	key := bucketConfig.Hash()
@@ -167,10 +168,9 @@ func (c *ObjectStoreClient) getBucket(
 	}
 
 	// Create new opened bucket and store in cache
-	launcherConfig := c.deps.GetLauncherConfig()
-	storeSessionInfo, err := launcherConfig.GetStoreSessionInfo(bucketConfig.PrefixedBucket())
+	storeSessionInfo, err := launcherConfig.GetStoreSessionInfo(sessionLookupPath)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to get store session info for bucket %q: %w", bucketConfig.PrefixedBucket(), err)
+		return nil, "", fmt.Errorf("failed to get store session info for bucket %q: %w", sessionLookupPath, err)
 	}
 	newOpenBucket, err := objectstore.OpenBucket(ctx, c.deps.GetK8sClient(), c.deps.GetNamespace(), bucketConfig, &storeSessionInfo)
 	if err != nil {
@@ -179,4 +179,47 @@ func (c *ObjectStoreClient) getBucket(
 	c.deps.SetOpenedBucket(bucketConfig.Hash(), newOpenBucket)
 
 	return newOpenBucket, base, nil
+}
+
+func resolveArtifactBucketConfig(
+	launcherConfig *config.Config,
+	prefix string,
+) (*objectstore.Config, string, error) {
+	bucketConfig, err := objectstore.ParseBucketPathToConfig(prefix)
+	if err != nil {
+		return nil, "", err
+	}
+	if launcherConfig == nil {
+		return bucketConfig, bucketConfig.BucketURL(), nil
+	}
+
+	underPipelineRoot, err := launcherConfig.IsPathUnderDefaultPipelineRoot(prefix)
+	if err != nil {
+		return nil, "", err
+	}
+	if underPipelineRoot {
+		pipelineRootConfig, err := objectstore.ParseBucketPathToConfig(launcherConfig.DefaultPipelineRoot())
+		if err != nil {
+			return nil, "", err
+		}
+		bucketConfig.QueryString = pipelineRootConfig.QueryString
+		return bucketConfig, bucketConfig.BucketURL(), nil
+	}
+
+	if bucketConfig.QueryString != "" {
+		return bucketConfig, bucketConfig.BucketURL(), nil
+	}
+
+	hasExplicitOverride, err := launcherConfig.HasExplicitBucketOverride(prefix)
+	if err != nil {
+		return nil, "", err
+	}
+	if hasExplicitOverride {
+		return bucketConfig, bucketConfig.BucketURL(), nil
+	}
+
+	return nil, "", fmt.Errorf(
+		"artifact URI %q is outside the configured pipeline root and has no explicit provider override",
+		prefix,
+	)
 }

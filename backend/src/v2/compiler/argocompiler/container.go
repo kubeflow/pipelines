@@ -438,6 +438,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 
 	args := []string{
 		"--copy", component.KFPLauncherPath,
+		"--copy_token_to", component.KFPTokenRelayPath,
 	}
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
@@ -536,6 +537,11 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 						Name:      volumeNameKFPLauncher,
 						MountPath: component.VolumePathKFPLauncher,
 					},
+					{
+						Name:      kfpTokenVolumeName,
+						MountPath: kfpTokenMountPath,
+						ReadOnly:  true,
+					},
 				},
 				Resources: launcherResources,
 			},
@@ -553,11 +559,6 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 				{
 					Name:      volumeNameKFPLauncher,
 					MountPath: component.VolumePathKFPLauncher,
-				},
-				{
-					Name:      kfpTokenVolumeName,
-					MountPath: kfpTokenMountPath,
-					ReadOnly:  true,
 				},
 				{
 					Name:      gcsScratchName,
@@ -585,7 +586,10 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 				},
 			},
 			EnvFrom: []k8score.EnvFromSource{metadataEnvFrom},
-			Env:     append(commonEnvs, mlPipelineAPIClientEnvVars()...),
+			Env: append(
+				append(commonEnvs, mlPipelineAPIClientEnvVars()...),
+				k8score.EnvVar{Name: component.EnvKFPTokenPath, Value: component.KFPTokenRelayPath},
+			),
 		},
 	}
 	// If CABUNDLE_SECRET_NAME or CABUNDLE_CONFIGMAP_NAME is set, add the custom CA bundle to the executor.

@@ -14,3 +14,18 @@ func Test_ParseBucketPathToConfig(t *testing.T) {
 	require.Equal(t, "v2/artifacts/", result.Prefix)
 	require.Equal(t, "mlpipeline", result.BucketName)
 }
+
+func TestConfigHash_UsesLengthDelimitedEncoding(t *testing.T) {
+	configA := &Config{
+		Scheme:     "s3://",
+		BucketName: "abc",
+		Prefix:     "def/",
+	}
+	configB := &Config{
+		Scheme:     "s3://",
+		BucketName: "abcd",
+		Prefix:     "ef/",
+	}
+
+	require.NotEqual(t, configA.Hash(), configB.Hash())
+}

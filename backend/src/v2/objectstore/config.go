@@ -78,16 +78,23 @@ func (b *Config) bucketURL() string {
 	return u
 }
 
+func (b *Config) BucketURL() string {
+	return b.bucketURL()
+}
+
 func (b *Config) PrefixedBucket() string {
 	return b.Scheme + path.Join(b.BucketName, b.Prefix)
 }
 
 func (b *Config) Hash() string {
 	h := sha256.New()
-	h.Write([]byte(b.Scheme))
-	h.Write([]byte(b.BucketName))
-	h.Write([]byte(b.Prefix))
-	h.Write([]byte(b.QueryString))
+	h.Write([]byte(fmt.Sprintf(
+		"%d:%s|%d:%s|%d:%s|%d:%s",
+		len(b.Scheme), b.Scheme,
+		len(b.BucketName), b.BucketName,
+		len(b.Prefix), b.Prefix,
+		len(b.QueryString), b.QueryString,
+	)))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
@@ -115,6 +122,15 @@ func ParseBucketPathToConfig(path string) (*Config, error) {
 		Prefix:      prefix,
 		QueryString: ms[4],
 	}, nil
+}
+
+func IsWithinBucketRoot(rootConfig, candidateConfig *Config) bool {
+	if rootConfig == nil || candidateConfig == nil {
+		return false
+	}
+	return rootConfig.Scheme == candidateConfig.Scheme &&
+		rootConfig.BucketName == candidateConfig.BucketName &&
+		strings.HasPrefix(candidateConfig.Prefix, rootConfig.Prefix)
 }
 
 func SplitObjectURI(uri string) (prefix, base string, err error) {
