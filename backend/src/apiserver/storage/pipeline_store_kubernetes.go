@@ -14,6 +14,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -707,6 +708,8 @@ func (k *PipelineStoreKubernetes) createPipelineVersionWithPipeline(ctx context.
 			"Failed to create a new pipeline version. The name %v already exists. Please specify a new name",
 			pipelineVersion.Name,
 		)
+	} else if !util.IsUserErrorCodeMatch(lookupErr, codes.NotFound) {
+		return nil, lookupErr
 	}
 
 	glog.Infof(
