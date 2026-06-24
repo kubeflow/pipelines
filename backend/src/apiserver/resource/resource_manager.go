@@ -1152,7 +1152,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	return nil
 }
 
-func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, namespace string, runId string, newExecSpec util.ExecutionSpec) (util.ExecutionSpec, error) {
+func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, namespace string, runID string, newExecSpec util.ExecutionSpec) (util.ExecutionSpec, error) {
 	workflowClient := r.getWorkflowClient(namespace)
 	var updateError error
 
@@ -1165,11 +1165,17 @@ func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, names
 				return updatedWorkflow, nil
 			}
 			updateError = err
-			if isKubernetesConflict(err) {
+			if apierrors.IsConflict(err) {
 				continue
+			}
+			if !apierrors.IsNotFound(err) {
+				return nil, util.NewInternalServerError(err, "Failed to retry run %s due to error updating workflow", runID)
 			}
 		} else {
 			updateError = err
+			if !apierrors.IsNotFound(err) {
+				return nil, util.NewInternalServerError(err, "Failed to retry run %s due to error getting workflow", runID)
+			}
 		}
 
 		newExecSpec.SetVersion("")
@@ -1177,24 +1183,16 @@ func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, names
 		if createError == nil {
 			return newCreatedWorkflow, nil
 		}
-		if isKubernetesAlreadyExists(createError) {
+		if apierrors.IsAlreadyExists(createError) {
 			continue
 		}
 		if createError, ok := createError.(net.Error); ok && createError.Timeout() {
-			return nil, util.NewUnavailableServerError(createError, "Failed to retry run %s due to error creating and updating a workflow - try again later. Update error: %s", runId, updateError.Error())
+			return nil, util.NewUnavailableServerError(createError, "Failed to retry run %s due to error creating and updating a workflow - try again later. Update error: %s", runID, updateError.Error())
 		}
-		return nil, util.NewInternalServerError(createError, "Failed to retry run %s due to error updating and creating a workflow. Update error: %s", runId, updateError.Error())
+		return nil, util.NewInternalServerError(createError, "Failed to retry run %s due to error updating and creating a workflow. Update error: %s", runID, updateError.Error())
 	}
 
-	return nil, util.NewInternalServerError(updateError, "Failed to retry run %s due to error updating and creating a workflow after retries. Update error: %s", runId, updateError.Error())
-}
-
-func isKubernetesConflict(err error) bool {
-	return apierrors.IsConflict(err) || apierrors.IsConflict(errors.Cause(err)) || apierrors.IsConflict(errors.Unwrap(err))
-}
-
-func isKubernetesAlreadyExists(err error) bool {
-	return apierrors.IsAlreadyExists(err) || apierrors.IsAlreadyExists(errors.Cause(err)) || apierrors.IsAlreadyExists(errors.Unwrap(err))
+	return nil, util.NewInternalServerError(updateError, "Failed to retry run %s due to error updating and creating a workflow after retries. Update error: %s", runID, updateError.Error())
 }
 
 // Fetches execution logs and writes to the destination.

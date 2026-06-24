@@ -452,14 +452,14 @@ func (c *updateConflictWorkflowClient) Create(ctx context.Context, execSpec util
 
 type createAlreadyExistsWorkflowClient struct {
 	*client.FakeWorkflowClient
-	updateErrorsRemaining        int
+	updateNotFoundRemaining      int
 	createAlreadyExistsRemaining int
 }
 
 func (c *createAlreadyExistsWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
-	if c.updateErrorsRemaining > 0 {
-		c.updateErrorsRemaining--
-		return nil, errors.New("transient update failure")
+	if c.updateNotFoundRemaining > 0 {
+		c.updateNotFoundRemaining--
+		return nil, apierrors.NewNotFound(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName())
 	}
 	return c.FakeWorkflowClient.Update(ctx, execSpec, opts)
 }
@@ -472,11 +472,25 @@ func (c *createAlreadyExistsWorkflowClient) Create(ctx context.Context, execSpec
 	return c.FakeWorkflowClient.Create(ctx, execSpec, opts)
 }
 
+type genericUpdateFailureWorkflowClient struct {
+	*client.FakeWorkflowClient
+	createCalls int
+}
+
+func (c *genericUpdateFailureWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	return nil, errors.New("transient update failure")
+}
+
+func (c *genericUpdateFailureWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	c.createCalls++
+	return nil, apierrors.NewAlreadyExists(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName())
+}
+
 func seedRetryWorkflow(t *testing.T, manager *ResourceManager, runID string, workflowClient util.ExecutionInterface) {
 	t.Helper()
 	run, err := manager.GetRun(runID)
 	require.NoError(t, err)
-	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.RunDetails.WorkflowRuntimeManifest))
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
 	require.NoError(t, err)
 	require.NoError(t, execSpec.Decompress())
 	retryExecSpec, _, err := execSpec.GenerateRetryExecution()
@@ -2840,7 +2854,7 @@ func TestRetryRun_RetriesWorkflowUpdateAfterCreateAlreadyExists(t *testing.T) {
 	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
 	alreadyExistsWorkflowClient := &createAlreadyExistsWorkflowClient{
 		FakeWorkflowClient:           workflowClient,
-		updateErrorsRemaining:        1,
+		updateNotFoundRemaining:      1,
 		createAlreadyExistsRemaining: 1,
 	}
 	manager.execClient = &retryWorkflowExecClient{workflowClient: alreadyExistsWorkflowClient}
@@ -2848,8 +2862,26 @@ func TestRetryRun_RetriesWorkflowUpdateAfterCreateAlreadyExists(t *testing.T) {
 	err := manager.RetryRun(context.Background(), runDetail.UUID)
 
 	require.NoError(t, err)
-	assert.Equal(t, 0, alreadyExistsWorkflowClient.updateErrorsRemaining)
+	assert.Equal(t, 0, alreadyExistsWorkflowClient.updateNotFoundRemaining)
 	assert.Equal(t, 0, alreadyExistsWorkflowClient.createAlreadyExistsRemaining)
+}
+
+func TestRetryRun_GenericWorkflowUpdateFailureDoesNotCreate(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := client.NewWorkflowClientFake()
+	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
+	genericFailureWorkflowClient := &genericUpdateFailureWorkflowClient{
+		FakeWorkflowClient: workflowClient,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: genericFailureWorkflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "error updating workflow")
+	assert.Equal(t, 0, genericFailureWorkflowClient.createCalls)
 }
 
 func TestRetryRun_PreservesRunFields(t *testing.T) {
@@ -3000,7 +3032,7 @@ func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
 	manager.execClient = client.NewFakeExecClientWithBadWorkflow()
 	err := manager.RetryRun(context.Background(), runDetail.UUID)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "error updating and creating a workflow")
+	assert.Contains(t, err.Error(), "error getting workflow")
 }
 
 func TestUnarchiveRun_OK(t *testing.T) {
