@@ -21,6 +21,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"io"
+	"strings"
 	"testing"
 	"time"
 
@@ -65,6 +66,9 @@ type oneByteReader struct {
 }
 
 func (r *oneByteReader) Read(p []byte) (int, error) {
+	if len(p) == 0 {
+		return 0, nil
+	}
 	if r.offset >= len(r.content) {
 		return 0, io.EOF
 	}
@@ -163,6 +167,18 @@ func TestCopyLogFromArchive_FromJsonToText(t *testing.T) {
 	assert.Equal(t, "[ERROR] Unable to connect", line)
 }
 
+func TestCopyLogFromArchiveReader_AllowsLargeLogLine(t *testing.T) {
+	logArchive := initLogArchive()
+	opts := ExtractLogOptions{LogFormat: LogFormatText, Timestamps: false}
+	dst := bytes.Buffer{}
+	largeLogLine := strings.Repeat("x", bufio.MaxScanTokenSize*2)
+	src := compressInput(t, largeLogLine+"\n")
+
+	err := logArchive.CopyLogFromArchiveReader(bytes.NewReader(src), &dst, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, largeLogLine+"\n", dst.String())
+}
+
 func TestCopyLogFromArchiveReader_FromTarGzipStream(t *testing.T) {
 	logArchive := initLogArchive()
 	opts := ExtractLogOptions{LogFormat: LogFormatText, Timestamps: false}
@@ -180,6 +196,17 @@ func TestCopyLogFromArchiveReader_FromTarGzipStream(t *testing.T) {
 	assert.True(t, scanner.Scan())
 	line = scanner.Text()
 	assert.Equal(t, "[ERROR] Unable to connect", line)
+}
+
+func TestOneByteReaderAllowsZeroLengthRead(t *testing.T) {
+	reader := &oneByteReader{content: []byte("x")}
+	buffer := make([]byte, 0)
+
+	n, err := reader.Read(buffer)
+
+	assert.Equal(t, 0, n)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, reader.offset)
 }
 
 func TestCopyLogFromArchive_FromJsonToTextWithTimestamp(t *testing.T) {

@@ -35,6 +35,8 @@ type LogFormat string
 const (
 	LogFormatJSON = LogFormat("json-lines")
 	LogFormatText = LogFormat("text")
+
+	maxArchivedLogLineBytes = 1 << 20 // 1 MiB
 )
 
 type ExtractLogOptions struct {
@@ -274,6 +276,7 @@ func (a *LogArchive) CopyLogFromArchiveReader(logReader io.Reader, dst io.Writer
 	}
 
 	scanner := bufio.NewScanner(reader)
+	scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), maxArchivedLogLineBytes)
 	for scanner.Scan() {
 		// line := strings.Trim(scanner.LogFormatText(), "\n\r\t ")
 		bytes := scanner.Bytes()
