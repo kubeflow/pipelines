@@ -131,12 +131,12 @@ func (s *ScopePath) Push(taskName string) error {
 	if s.list.head == nil {
 		return fmt.Errorf("scope path is empty, first task should be root")
 	}
-	if s.list.head.Value.componentSpec.GetDag() == nil {
-		return fmt.Errorf("this component is not a DAG component")
-	}
 	lastTask := s.GetLast()
 	if lastTask == nil {
 		return fmt.Errorf("last task is nil")
+	}
+	if lastTask.componentSpec == nil || lastTask.componentSpec.GetDag() == nil {
+		return fmt.Errorf("this component is not a DAG component")
 	}
 	if _, ok := lastTask.componentSpec.GetDag().Tasks[taskName]; !ok {
 		return fmt.Errorf("task %s is not found", taskName)

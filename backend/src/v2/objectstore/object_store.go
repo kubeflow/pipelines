@@ -151,7 +151,7 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 	}
 
 	if len(objects) == 0 {
-		return fmt.Errorf("no blob found in remote storage %q", blobDir)
+		return nil
 	}
 
 	normalizedBlobDir := strings.TrimSuffix(blobDir, "/")
@@ -163,11 +163,10 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 		}
 	}
 
-	downloadedBlob := false
 	for _, obj := range objects {
 		normalizedKey := strings.TrimSuffix(obj.Key, "/")
 		if normalizedKey != normalizedBlobDir && !strings.HasPrefix(normalizedKey, normalizedBlobDir+"/") {
-			return fmt.Errorf("unexpected object key %q when listing %q", obj.Key, blobDir)
+			continue
 		}
 		// Some object stores may expose a zero-byte object for the directory prefix itself
 		// alongside the actual nested files. Skip that marker when downloading a directory tree.
@@ -185,12 +184,7 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 		if err := downloadFile(ctx, bucket, obj.Key, filepath.Join(localDir, relativePath)); err != nil {
 			return err
 		}
-		downloadedBlob = true
 	}
-	if !downloadedBlob {
-		return fmt.Errorf("no blob found in remote storage %q", blobDir)
-	}
-
 	return nil
 }
 

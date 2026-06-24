@@ -196,7 +196,7 @@ func TestDownloadBlob_SkipsDirectoryMarkerWhenDownloadingNestedObjects(t *testin
 	assert.Equal(t, "nested content", string(data))
 }
 
-func TestDownloadBlob_RejectsPrefixCollisionOutsideRequestedDirectory(t *testing.T) {
+func TestDownloadBlob_SkipsPrefixCollisionOutsideRequestedDirectory(t *testing.T) {
 	ctx := context.Background()
 	bucket := memblob.OpenBucket(nil)
 	defer bucket.Close()
@@ -206,10 +206,19 @@ func TestDownloadBlob_RejectsPrefixCollisionOutsideRequestedDirectory(t *testing
 
 	localPath := filepath.Join(t.TempDir(), "out_ds")
 	err = DownloadBlob(ctx, bucket, localPath, "artifacts/out_ds")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), `unexpected object key "artifacts/out_ds2/file.txt"`)
+	require.NoError(t, err)
 
 	_, statErr := os.Stat(localPath)
 	assert.Error(t, statErr)
 	assert.True(t, os.IsNotExist(statErr))
+}
+
+func TestDownloadBlob_EmptyListingIsNoOp(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer bucket.Close()
+
+	localPath := filepath.Join(t.TempDir(), "missing")
+	err := DownloadBlob(ctx, bucket, localPath, "artifacts/missing")
+	require.NoError(t, err)
 }

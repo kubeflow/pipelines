@@ -17,6 +17,7 @@ package util
 import (
 	"testing"
 
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -139,6 +140,40 @@ func TestBuildFromStringPath(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "", scopePath3.DotNotation())
 	require.Equal(t, 0, scopePath3.GetSize())
+}
+
+func TestScopePathPush_LeafComponentReturnsValidationError(t *testing.T) {
+	pipelineSpec := &pipelinespec.PipelineSpec{
+		Root: &pipelinespec.ComponentSpec{
+			Implementation: &pipelinespec.ComponentSpec_Dag{
+				Dag: &pipelinespec.DagSpec{
+					Tasks: map[string]*pipelinespec.PipelineTaskSpec{
+						"leaf-task": {
+							TaskInfo:     &pipelinespec.PipelineTaskInfo{Name: "leaf-task"},
+							ComponentRef: &pipelinespec.ComponentRef{Name: "leaf-component"},
+						},
+					},
+				},
+			},
+		},
+		Components: map[string]*pipelinespec.ComponentSpec{
+			"leaf-component": {},
+		},
+	}
+
+	b, err := protojson.Marshal(pipelineSpec)
+	require.NoError(t, err)
+	var pipelineSpecStruct structpb.Struct
+	require.NoError(t, protojson.Unmarshal(b, &pipelineSpecStruct))
+
+	scopePath, err := NewScopePathFromStruct(&pipelineSpecStruct)
+	require.NoError(t, err)
+	require.NoError(t, scopePath.Push("root"))
+	require.NoError(t, scopePath.Push("leaf-task"))
+
+	err = scopePath.Push("does-not-exist")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "not a DAG component")
 }
 
 func TestDotNotationConversion(t *testing.T) {
