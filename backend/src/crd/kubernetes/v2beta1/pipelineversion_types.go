@@ -20,13 +20,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"google.golang.org/protobuf/encoding/protojson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"sigs.k8s.io/yaml"
 )
 
@@ -95,9 +98,45 @@ type PipelineVersionList struct {
 	Items           []PipelineVersion `json:"items"`
 }
 
+type PipelineVersionName struct {
+	pipelineName string
+	versionName  string
+}
+
+func NewPipelineVersionName(pipelineName, versionName string) (PipelineVersionName, error) {
+	if errs := validation.IsDNS1123Subdomain(versionName); len(errs) > 0 {
+		return PipelineVersionName{}, util.NewInvalidInputError(
+			"Invalid pipeline version name %q: %s. Use 'display_name' for human-readable labels",
+			versionName, strings.Join(errs, "; "),
+		)
+	}
+	if pipelineName != "" {
+		compositeName := pipelineName + "-" + versionName
+		if errs := validation.IsDNS1123Subdomain(compositeName); len(errs) > 0 {
+			return PipelineVersionName{}, util.NewInvalidInputError(
+				"The combined pipeline and version name %q exceeds Kubernetes naming limits: %s",
+				compositeName, strings.Join(errs, "; "),
+			)
+		}
+	}
+	return PipelineVersionName{pipelineName: pipelineName, versionName: versionName}, nil
+}
+
+func (n PipelineVersionName) Name() string {
+	if n.pipelineName != "" {
+		return n.pipelineName + "-" + n.versionName
+	}
+	return n.versionName
+}
+
 func FromPipelineVersionModel(pipeline model.Pipeline, pipelineVersion model.PipelineVersion) (*PipelineVersion, error) {
 	if pipelineVersion.Name == "" {
 		return nil, fmt.Errorf("pipeline version name must not be empty")
+	}
+
+	pvName, err := NewPipelineVersionName(pipeline.Name, pipelineVersion.Name)
+	if err != nil {
+		return nil, err
 	}
 
 	v2Spec, err := template.NewV2SpecTemplate([]byte(string(pipelineVersion.PipelineSpec)), template.TemplateOptions{})
@@ -142,7 +181,7 @@ func FromPipelineVersionModel(pipeline model.Pipeline, pipelineVersion model.Pip
 
 	return &PipelineVersion{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      pipeline.Name + "-" + pipelineVersion.Name,
+			Name:      pvName.Name(),
 			Namespace: pipeline.Namespace,
 			UID:       types.UID(pipelineVersion.UUID),
 			Labels: map[string]string{

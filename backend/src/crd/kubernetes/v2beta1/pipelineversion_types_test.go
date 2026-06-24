@@ -889,3 +889,68 @@ func TestFromPipelineVersionModel_EmptyVersionName(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "pipeline version name must not be empty")
 }
+
+func TestFromPipelineVersionModel_InvalidDNSVersionName(t *testing.T) {
+	_, err := FromPipelineVersionModel(
+		model.Pipeline{Name: "my-pipeline", Namespace: "default", UUID: "pipeline-123"},
+		model.PipelineVersion{
+			Name: "UPPERCASE",
+			PipelineSpec: `pipelineInfo:
+  name: test-pipeline
+root:
+  dag:
+    tasks: {}
+schemaVersion: "2.1.0"
+sdkVersion: kfp-2.13.0`,
+		},
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Invalid pipeline version name")
+}
+
+func TestNewPipelineVersionName_CompositeValid(t *testing.T) {
+	pvName, err := NewPipelineVersionName("my-pipeline", "v1")
+	require.NoError(t, err)
+	assert.Equal(t, "my-pipeline-v1", pvName.Name())
+}
+
+func TestNewPipelineVersionName_BareValid(t *testing.T) {
+	pvName, err := NewPipelineVersionName("", "v1")
+	require.NoError(t, err)
+	assert.Equal(t, "v1", pvName.Name())
+}
+
+func TestNewPipelineVersionName_InvalidBareName(t *testing.T) {
+	_, err := NewPipelineVersionName("my-pipeline", "UPPERCASE")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Invalid pipeline version name")
+
+	_, err = NewPipelineVersionName("my-pipeline", "-starts-with-hyphen")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Invalid pipeline version name")
+}
+
+func TestNewPipelineVersionName_CompositeTooLong(t *testing.T) {
+	versionName := strings.Repeat("v", 253)
+	_, err := NewPipelineVersionName("p", versionName)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Kubernetes naming limits")
+}
+
+func TestFromPipelineVersionModel_CompositeTooLong(t *testing.T) {
+	_, err := FromPipelineVersionModel(
+		model.Pipeline{Name: "my-pipeline", Namespace: "default", UUID: "pipeline-123"},
+		model.PipelineVersion{
+			Name: strings.Repeat("v", 253),
+			PipelineSpec: `pipelineInfo:
+  name: test-pipeline
+root:
+  dag:
+    tasks: {}
+schemaVersion: "2.1.0"
+sdkVersion: kfp-2.13.0`,
+		},
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Kubernetes naming limits")
+}

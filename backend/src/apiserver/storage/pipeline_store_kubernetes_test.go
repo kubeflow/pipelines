@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/golang/glog"
@@ -16,7 +15,6 @@ import (
 	"google.golang.org/grpc/codes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/validation"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -888,31 +886,6 @@ func TestCreatePipelineVersion_HyphenCollision(t *testing.T) {
 	})
 	require.NotNil(t, err, "Expected collision due to identical composite K8s names")
 	assert.Contains(t, err.Error(), "already exist")
-}
-
-func TestCompositeVersionName_InvalidBareName(t *testing.T) {
-	_, err := compositeVersionName("my-pipeline", "UPPERCASE")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "Invalid pipeline version name")
-
-	_, err = compositeVersionName("my-pipeline", "-starts-with-hyphen")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "Invalid pipeline version name")
-
-	name, err := compositeVersionName("my-pipeline", "valid-name")
-	require.NoError(t, err)
-	assert.Equal(t, "my-pipeline-valid-name", name)
-}
-
-func TestCompositeVersionName_ValidAloneButCompositeTooLong(t *testing.T) {
-	versionName := strings.Repeat("v", 253)
-	if errs := validation.IsDNS1123Subdomain(versionName); len(errs) > 0 {
-		t.Fatalf("precondition: bare version name should be valid, got: %v", errs)
-	}
-
-	_, err := compositeVersionName("p", versionName)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "Kubernetes naming limits")
 }
 
 func TestGetPipelineVersionByName_InvalidPipelineId(t *testing.T) {
