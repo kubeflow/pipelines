@@ -817,17 +817,34 @@ func (s *RunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (
 		Select("UUID").
 		From("run_details").
 		Where(sq.And{
-			sq.Eq{"State": []string{
-				string(model.RuntimeStateSucceeded),
-				string(model.RuntimeStateFailed),
-				string(model.RuntimeStateSkipped),
-				string(model.RuntimeStateCanceled),
-				// Legacy v1 states for databases upgraded from KFP v1.
-				string(model.RuntimeStateSucceededV1),
-				string(model.RuntimeStateFailedV1),
-				string(model.RuntimeStateSkippedV1),
-				string(model.RuntimeStateErrorV1),
-			}},
+			// Match terminal runs by State column, or by Conditions column
+			// for legacy v1 rows where State is NULL/empty (ToV2() derives
+			// State from Conditions at read time but does not backfill the DB).
+			sq.Or{
+				sq.Eq{"State": []string{
+					string(model.RuntimeStateSucceeded),
+					string(model.RuntimeStateFailed),
+					string(model.RuntimeStateSkipped),
+					string(model.RuntimeStateCanceled),
+					string(model.RuntimeStateSucceededV1),
+					string(model.RuntimeStateFailedV1),
+					string(model.RuntimeStateSkippedV1),
+					string(model.RuntimeStateErrorV1),
+				}},
+				sq.And{
+					sq.Or{sq.Eq{"State": ""}, sq.Expr("State IS NULL")},
+					sq.Eq{"Conditions": []string{
+						string(model.RuntimeStateSucceeded),
+						string(model.RuntimeStateFailed),
+						string(model.RuntimeStateSkipped),
+						string(model.RuntimeStateCanceled),
+						string(model.RuntimeStateSucceededV1),
+						string(model.RuntimeStateFailedV1),
+						string(model.RuntimeStateSkippedV1),
+						string(model.RuntimeStateErrorV1),
+					}},
+				},
+			},
 			sq.Lt{"FinishedAtInSec": archiveCutoffEpoch},
 			sq.Gt{"FinishedAtInSec": 0},
 			sq.NotEq{"StorageState": []string{
