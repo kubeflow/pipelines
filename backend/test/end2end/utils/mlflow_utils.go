@@ -26,6 +26,7 @@ import (
 
 	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	common_api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	mlflowclient "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/test/config"
@@ -42,6 +43,9 @@ const (
 	mlflowBearerTokenEnv = "MLFLOW_BEARER_TOKEN"
 	mlflowWorkspaceEnv   = "MLFLOW_WORKSPACE"
 	mlflowPluginKey      = "mlflow"
+	runRetryTimeout      = 2*common_api_server.APIServerDefaultTimeout +
+		runRetryInterval
+	runRetryInterval = 1 * time.Second
 )
 
 func getMLflowClient(endpoint string) (*mlflowclient.Client, error) {
@@ -81,11 +85,18 @@ func getMLflowClient(endpoint string) (*mlflowclient.Client, error) {
 // RetryPipelineRun retries a failed/terminated KFP pipeline run.
 func RetryPipelineRun(runClient *apiserver.RunClient, runID string) {
 	ginkgo.GinkgoHelper()
-	retryParams := runparams.NewRunServiceRetryRunParams()
-	retryParams.RunID = runID
-	err := runClient.Retry(retryParams)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred(),
-		fmt.Sprintf("Failed to retry run %s", runID))
+	gomega.Eventually(func() error {
+		retryParams := runparams.NewRunServiceRetryRunParams()
+		retryParams.RunID = runID
+		err := runClient.Retry(retryParams)
+		if err != nil {
+			logger.Log("Retrying RetryRun for %s after transient error: %v", runID, err)
+		}
+		return err
+	}, runRetryTimeout, runRetryInterval).Should(
+		gomega.Succeed(),
+		fmt.Sprintf("Failed to retry run %s", runID),
+	)
 	logger.Log("Retried Pipeline Run, runId=%s", runID)
 }
 

@@ -153,8 +153,8 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(mlflowExp.ID).To(Equal(mlflowExperimentID))
 
-			// Verify parent run status
-			err = e2e_utils.VerifyMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FINISHED")
+			// MLflow terminal sync happens after the KFP run reaches a terminal state.
+			err = e2e_utils.WaitForMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FINISHED", &timeout)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify KFP tags on parent run
@@ -193,10 +193,10 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			Expect(len(nestedRuns)).To(Equal(1),
 				"Should have exactly 1 nested MLflow run for a single-task pipeline")
 
-			// Verify the nested run is FINISHED
+			// MLflow terminal sync happens after the KFP run reaches a terminal state.
 			nestedRun := nestedRuns[0]
-			Expect(nestedRun.Info.Status).To(Equal("FINISHED"),
-				"Nested MLflow run should be FINISHED")
+			err = e2e_utils.WaitForMLflowRunStatus(mlflowEndpoint, nestedRun.Info.RunID, mlflowExperimentID, "FINISHED", &timeout)
+			Expect(err).NotTo(HaveOccurred(), "Nested MLflow run should be FINISHED")
 
 			// Verify parent linkage tag is present on the nested run.
 			// Task-level run naming/tagging may vary by launcher/runtime path.
@@ -250,7 +250,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			Expect(err).NotTo(HaveOccurred())
 			mlflowExperimentID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "experiment_id")
 			Expect(err).NotTo(HaveOccurred())
-			err = e2e_utils.VerifyMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FINISHED")
+			err = e2e_utils.WaitForMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FINISHED", &timeout)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify there is one nested run per task
@@ -259,11 +259,12 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			Expect(nestedCount).To(Equal(expectedTaskCount),
 				fmt.Sprintf("Should have exactly %d nested MLflow runs (one per task)", expectedTaskCount))
 
-			// Verify all nested runs are FINISHED
+			// MLflow terminal sync happens after the KFP run reaches a terminal state.
 			allRuns, err := e2e_utils.QueryMLflowRuns(mlflowEndpoint, mlflowExperimentID)
 			Expect(err).NotTo(HaveOccurred())
 			for _, run := range allRuns {
-				Expect(run.Info.Status).To(Equal("FINISHED"),
+				err = e2e_utils.WaitForMLflowRunStatus(mlflowEndpoint, run.Info.RunID, mlflowExperimentID, "FINISHED", &timeout)
+				Expect(err).NotTo(HaveOccurred(),
 					fmt.Sprintf("MLflow run %s should be FINISHED", run.Info.RunID))
 			}
 		})
@@ -302,7 +303,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			mlflowExperimentID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "experiment_id")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = e2e_utils.VerifyMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FINISHED")
+			err = e2e_utils.WaitForMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FINISHED", &timeout)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
@@ -374,7 +375,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			Expect(err).NotTo(HaveOccurred())
 			mlflowExperimentID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "experiment_id")
 			Expect(err).NotTo(HaveOccurred())
-			err = e2e_utils.VerifyMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FINISHED")
+			err = e2e_utils.WaitForMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FINISHED", &timeout)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Direct children of root: 1 loop run + 2 dependent tasks = 3
@@ -407,9 +408,10 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			Expect(loopRunID).NotTo(BeEmpty(),
 				"Should find a loop nested run with iteration children")
 
-			// Verify all MLflow runs in the experiment are FINISHED
+			// MLflow terminal sync happens after the KFP run reaches a terminal state.
 			for _, run := range allRuns {
-				Expect(run.Info.Status).To(Equal("FINISHED"),
+				err = e2e_utils.WaitForMLflowRunStatus(mlflowEndpoint, run.Info.RunID, mlflowExperimentID, "FINISHED", &timeout)
+				Expect(err).NotTo(HaveOccurred(),
 					fmt.Sprintf("MLflow run %s should be FINISHED", run.Info.RunID))
 			}
 
@@ -454,19 +456,21 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			Expect(rootRunID).NotTo(BeEmpty(), "root_run_id should not be empty")
 			mlflowExperimentID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "experiment_id")
 			Expect(err).NotTo(HaveOccurred())
-			// The parent MLflow run should be FAILED because the KFP run failed
-			err = e2e_utils.VerifyMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FAILED")
+
+			// The parent MLflow run should be FAILED because the KFP run failed.
+			err = e2e_utils.WaitForMLflowRunStatus(
+				mlflowEndpoint, rootRunID, mlflowExperimentID, "FAILED", &timeout,
+			)
 			Expect(err).NotTo(HaveOccurred())
 
-			// Verify any nested runs are also in a terminal state (FAILED)
+			// MLflow terminal sync happens after the KFP run reaches a terminal
+			// state.
 			allRuns, err := e2e_utils.QueryMLflowRuns(mlflowEndpoint, mlflowExperimentID)
 			Expect(err).NotTo(HaveOccurred())
 			for _, run := range allRuns {
-				if run.Info.RunID != rootRunID {
-					// Nested runs for failed tasks should be FAILED
-					Expect(run.Info.Status).To(Equal("FAILED"),
-						fmt.Sprintf("Nested MLflow run %s should be FAILED", run.Info.RunID))
-				}
+				err = e2e_utils.WaitForMLflowRunStatus(mlflowEndpoint, run.Info.RunID, mlflowExperimentID, "FAILED", &timeout)
+				Expect(err).NotTo(HaveOccurred(),
+					fmt.Sprintf("MLflow run %s should be FAILED", run.Info.RunID))
 			}
 		})
 	})

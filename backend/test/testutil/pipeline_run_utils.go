@@ -24,11 +24,18 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	run_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	common_api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+)
+
+const (
+	runClientRetryTimeout = 2*common_api_server.APIServerDefaultTimeout +
+		runClientRetryInterval
+	runClientRetryInterval = 1 * time.Second
 )
 
 func DeletePipelineRun(client *api_server.RunClient, runID string) {
@@ -78,10 +85,20 @@ func TerminatePipelineRun(client *api_server.RunClient, runID string) {
 
 func GetPipelineRun(runClient *api_server.RunClient, pipelineRunID *string) *run_model.V2beta1Run {
 	logger.Log("Get a pipeline run with id=%s", *pipelineRunID)
-	pipelineRun, runError := runClient.Get(&run_params.RunServiceGetRunParams{
-		RunID: *pipelineRunID,
-	})
-	gomega.Expect(runError).NotTo(gomega.HaveOccurred(), "Failed to get run with id="+*pipelineRunID)
+	var pipelineRun *run_model.V2beta1Run
+	gomega.Eventually(func() error {
+		var runError error
+		pipelineRun, runError = runClient.Get(&run_params.RunServiceGetRunParams{
+			RunID: *pipelineRunID,
+		})
+		if runError != nil {
+			logger.Log("Retrying get run %s after transient error: %v", *pipelineRunID, runError)
+		}
+		return runError
+	}, runClientRetryTimeout, runClientRetryInterval).Should(
+		gomega.Succeed(),
+		"Failed to get run with id="+*pipelineRunID,
+	)
 	return pipelineRun
 }
 
