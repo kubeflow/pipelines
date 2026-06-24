@@ -22,8 +22,8 @@ spec:
         # USER_IDENTITY_HEADER is sourced from the shared pipeline-install-config
         # ConfigMap so it stays in synchronization with the API server's
         # USERID_HEADER; operators patch the ConfigMap once to update both
-        # deployments. The key is optional so the controller falls back to its own
-        # default header when it is unset.
+        # deployments. If the key is unset, USER_IDENTITY_HEADER will be empty and
+        # the controller will not inject a user identity header.
         - name: USER_IDENTITY_HEADER
           valueFrom:
             configMapKeyRef:
