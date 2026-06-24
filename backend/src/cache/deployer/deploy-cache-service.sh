@@ -36,9 +36,11 @@ export PATH="$HOME/bin:$PATH"
     server_version_major_minor=$(kubectl version --output json | jq --raw-output '(.serverVersion.major + "." + .serverVersion.minor)' | tr -d '"+')
     if stable_build_version=$(curl -fsSL "https://dl.k8s.io/release/stable-${server_version_major_minor}.txt"); then
         kubectl_url="https://dl.k8s.io/release/${stable_build_version}/bin/linux/amd64/kubectl"
-        if curl -fsSL -o "$HOME/bin/kubectl" "$kubectl_url"; then
-            chmod +x "$HOME/bin/kubectl"
+        kubectl_tmp=$(mktemp "$HOME/bin/kubectl.XXXXXX")
+        if curl -fsSL -o "$kubectl_tmp" "$kubectl_url" && chmod +x "$kubectl_tmp" && mv "$kubectl_tmp" "$HOME/bin/kubectl"; then
+            :
         else
+            rm -f "$kubectl_tmp"
             echo "Warning: failed to download kubectl ${stable_build_version}; using kubectl from PATH."
         fi
     else
