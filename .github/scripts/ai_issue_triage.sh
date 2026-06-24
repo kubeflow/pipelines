@@ -31,14 +31,10 @@ Respond strictly following this format structure without other markdown wraps:
 <State clearly if this is ready for immediate pickup or if it requires more detail>
 EOF
 
-SAFE_BODY=$(printf "%s\n" "$RAW_BODY" | head -n 120)
 
-USER_PAYLOAD="Title: ${TITLE}
-Body: ${SAFE_BODY}"
+USER_PROMPT="Title: ${TITLE} | Body: ${RAW_BODY}"
 
-export GH_MODELS_SYSTEM_PROMPT="$SYSTEM_INSTRUCTIONS"
-
-if RESULT=$(printf "%s\n" "$USER_PAYLOAD" | gh models run "$TARGET_MODEL" 2>&1); then
+if RESULT=$(gh models run "$TARGET_MODEL" --system-prompt "$SYSTEM_INSTRUCTIONS" "$USER_PROMPT" 2>&1); then
     echo "✅ AI model executed successfully."
     ANALYSIS_REPORT="$RESULT"
 else
@@ -51,10 +47,9 @@ else
 EOF
 fi
 
-EOF_DELIMITER=$(dd if=/dev/urandom bs=15 count=1 2>/dev/null | base64 | tr -dc 'a-zA-Z0-9')
-echo "analysis<<$EOF_DELIMITER" >> $GITHUB_OUTPUT
+echo "analysis<<EOF" >> $GITHUB_OUTPUT
 echo "$ANALYSIS_REPORT" >> $GITHUB_OUTPUT
-echo "$EOF_DELIMITER" >> $GITHUB_OUTPUT
+echo "EOF" >> $GITHUB_OUTPUT
 
           
 echo "DEBUG: The raw analysis sent to output was:"
