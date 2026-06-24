@@ -955,6 +955,61 @@ func TestCreatePipelineVersion_HyphenCollision(t *testing.T) {
 	assert.Contains(t, err.Error(), "foo-bar-baz")
 }
 
+func TestCreatePipelineVersion_DuplicateLegacyBareName(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, v2beta1.AddToScheme(scheme))
+
+	pipeline := &v2beta1.Pipeline{
+		ObjectMeta: metav1.ObjectMeta{
+			UID:       DefaultFakePipelineIdThree,
+			Name:      "my-pipeline",
+			Namespace: "Test",
+		},
+	}
+
+	// Pre-seed a legacy bare-name CR "v1" owned by the same pipeline
+	legacyVersion := &v2beta1.PipelineVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "v1",
+			Namespace: "Test",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: v2beta1.GroupVersion.String(),
+					Kind:       "Pipeline",
+					UID:        DefaultFakePipelineIdThree,
+					Name:       "my-pipeline",
+				},
+			},
+		},
+		Spec: v2beta1.PipelineVersionSpec{
+			PipelineSpec: getBasicPipelineSpec(),
+			PipelineName: "my-pipeline",
+			VersionName:  "v1",
+		},
+	}
+
+	k8sClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(pipeline, legacyVersion).
+		Build()
+
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	// Creating a new version "v1" under the same pipeline should fail,
+	// even though the composite K8s name "my-pipeline-v1" differs from legacy "v1"
+	_, err := store.CreatePipelineVersion(&model.PipelineVersion{
+		Name:         "v1",
+		PipelineId:   DefaultFakePipelineIdThree,
+		PipelineSpec: model.LargeText(getBasicPipelineSpecYAML()),
+	})
+	require.NotNil(t, err, "Expected duplicate rejection against legacy bare-name CR")
+	assert.Contains(t, err.Error(), "already exist")
+}
+
 func TestGetPipelineVersionByName_InvalidPipelineId(t *testing.T) {
 	podNamespace := viper.Get("POD_NAMESPACE")
 	viper.Set("POD_NAMESPACE", "Test")

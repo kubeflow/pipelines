@@ -701,6 +701,14 @@ func (k *PipelineStoreKubernetes) createPipelineVersionWithPipeline(ctx context.
 		return nil, util.NewBadRequestError(err, "Invalid pipeline spec")
 	}
 
+	// Check for logical name collision (covers legacy bare-name CRs and composite-name CRs)
+	if _, lookupErr := k.GetPipelineVersionByName(pipeline.UUID, pipeline.Name, pipelineVersion.Name); lookupErr == nil {
+		return nil, util.NewAlreadyExistError(
+			"Failed to create a new pipeline version. The name %v already exists. Please specify a new name",
+			pipelineVersion.Name,
+		)
+	}
+
 	glog.Infof(
 		"Creating the pipeline version %s/%s in Kubernetes", k8sPipelineVersion.Namespace, k8sPipelineVersion.Name,
 	)
