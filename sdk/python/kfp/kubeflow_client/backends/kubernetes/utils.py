@@ -38,8 +38,13 @@ def discover_host(namespace: str) -> str:
     try:
         import kubernetes as k8s
     except ImportError:
-        logger.debug('kubernetes package not installed.')
-        return constants.IN_CLUSTER_DNS_NAME.format(namespace)
+        if os.path.exists(constants.NAMESPACE_PATH):
+            return constants.IN_CLUSTER_DNS_NAME.format(namespace)
+        raise ValueError(
+            'Could not auto-discover KFP endpoint: the kubernetes package '
+            'is not installed and no in-cluster environment was detected. '
+            'Set base_url in KubernetesBackendConfig or the '
+            'KF_PIPELINES_ENDPOINT environment variable.')
 
     try:
         k8s.config.load_incluster_config()

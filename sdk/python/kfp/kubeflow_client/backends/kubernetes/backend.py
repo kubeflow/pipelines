@@ -30,6 +30,8 @@ from google.protobuf import json_format
 from kfp import compiler
 from kfp.kubeflow_client import constants
 from kfp.kubeflow_client.backends.kubernetes import auth
+from kfp.kubeflow_client.backends.kubernetes import \
+    constants as backend_constants
 from kfp.kubeflow_client.backends.kubernetes import utils
 from kfp.kubeflow_client.backends.kubernetes.types import \
     KubernetesBackendConfig
@@ -418,7 +420,15 @@ class KubernetesBackend:
         polling_interval: int = 5,
         callbacks: list[Callable[[Run], None]] | None = None,
     ) -> Run:
-        """Wait for a run to reach a target state."""
+        """Wait for a run to reach a target state.
+
+        Args:
+            run: A Run object or a run ID string.
+            status: Set of states to wait for.
+            timeout: Maximum time to wait, in seconds.
+            polling_interval: Time between status checks, in seconds.
+            callbacks: Called with the final Run object when the wait ends.
+        """
         if status is None:
             status = {constants.RUN_COMPLETE}
         target_states = {state.lower() for state in status}
@@ -753,14 +763,23 @@ class KubernetesBackend:
                     pipeline_version=update_body,
                 )
                 first_version.display_name = version_name
-            except kfp_server_api.ApiException:
-                warnings.warn(
-                    f'Could not rename the first pipeline version to '
-                    f'{version_name!r}. The upload API does not accept a '
-                    f'version name for the initial version; subsequent '
-                    f'versions will use the provided name.',
-                    stacklevel=2,
-                )
+            except kfp_server_api.ApiException as e:
+                if e.status in (401, 403):
+                    warnings.warn(
+                        f'Could not rename the first pipeline version to '
+                        f'{version_name!r} (HTTP {e.status}): insufficient '
+                        f'permissions. The version was uploaded successfully '
+                        f'but retains its server-generated name.',
+                        stacklevel=2,
+                    )
+                else:
+                    warnings.warn(
+                        f'Could not rename the first pipeline version to '
+                        f'{version_name!r} (HTTP {e.status}). The version '
+                        f'was uploaded successfully but retains its '
+                        f'server-generated name.',
+                        stacklevel=2,
+                    )
 
         return first_version
 
@@ -1063,7 +1082,8 @@ class KubernetesBackend:
                 host = 'https://' + host
             api_config.host = host.rstrip('/')
         else:
-            api_config.host = utils.discover_host(self.namespace)
+            api_config.host = utils.discover_host(
+                backend_constants.DEFAULT_NAMESPACE)
 
         if config.is_secure is not None:
             api_config.verify_ssl = config.is_secure

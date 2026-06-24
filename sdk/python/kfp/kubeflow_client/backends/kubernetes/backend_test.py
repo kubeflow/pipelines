@@ -197,6 +197,18 @@ def test_build_api_configuration(make_backend, test_case):
                 'authorization'] == expected
 
 
+def test_build_api_configuration_uses_default_namespace_for_discovery():
+    """Verify discover_host is called with DEFAULT_NAMESPACE, not user ns."""
+    with patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials'), \
+         patch(f'{_BACKEND_MODULE}.KubernetesBackend.verify_backend'), \
+         patch(f'{_BACKEND_MODULE}.utils.discover_host',
+               return_value='http://ml-pipeline.kubeflow.svc.cluster.local:8888'
+               ) as mock_discover:
+        KubernetesBackend(
+            KubernetesBackendConfig(base_url=None, namespace='user-profile-ns'))
+        mock_discover.assert_called_once_with('kubeflow')
+
+
 # ------------------------------------------------------------------
 # test_resolve_namespace
 # ------------------------------------------------------------------
@@ -306,6 +318,18 @@ def test_apply_in_cluster_credentials(test_case):
             'http://localhost:8001/'
             'api/v1/namespaces/test-ns/services/ml-pipeline:http/proxy/'),
     ),
+    TestCase(
+        name='no kubernetes package in-cluster falls back to DNS',
+        config={'mode': 'no_k8s_in_cluster'},
+        expected_output='http://ml-pipeline.test-ns.svc.cluster.local:8888',
+    ),
+    TestCase(
+        name='no kubernetes package not in-cluster raises ValueError',
+        config={'mode': 'no_k8s_not_in_cluster'},
+        expected_status=FAILED,
+        expected_error=ValueError,
+        expected_error_match='Could not auto-discover KFP endpoint',
+    ),
 ])
 def test_discover_host(test_case):
     """Test utils.discover_host across discovery scenarios."""
@@ -342,6 +366,25 @@ def test_discover_host(test_case):
         with patch.dict(os.environ, env_clean, clear=True):
             with patch.dict('sys.modules', {'kubernetes': mock_k8s}):
                 result = utils.discover_host('test-ns')
+    elif mode == 'no_k8s_in_cluster':
+        env_clean = {
+            k: v for k, v in os.environ.items() if k != 'KF_PIPELINES_ENDPOINT'
+        }
+        with patch.dict(os.environ, env_clean, clear=True):
+            with patch.dict('sys.modules', {'kubernetes': None}):
+                with patch('os.path.exists', return_value=True):
+                    result = utils.discover_host('test-ns')
+    elif mode == 'no_k8s_not_in_cluster':
+        env_clean = {
+            k: v for k, v in os.environ.items() if k != 'KF_PIPELINES_ENDPOINT'
+        }
+        with patch.dict(os.environ, env_clean, clear=True):
+            with patch.dict('sys.modules', {'kubernetes': None}):
+                with patch('os.path.exists', return_value=False):
+                    with pytest.raises(
+                            ValueError, match=test_case.expected_error_match):
+                        utils.discover_host('test-ns')
+                    return
 
     assert result == test_case.expected_output
 
@@ -1992,6 +2035,11 @@ def test__resolve_pipeline_to_file(backend, test_case):
             expected_output={'display_name': 'auto-generated-name'},
         ),
         TestCase(
+            name='rename version 403 warns insufficient permissions',
+            config={'scenario': 'rename_failure_403'},
+            expected_output={'display_name': 'auto-generated-name'},
+        ),
+        TestCase(
             name='no version created raises RuntimeError',
             config={'scenario': 'no_version'},
             expected_status=FAILED,
@@ -2062,6 +2110,39 @@ def test__upload_new_pipeline(backend, test_case):
                         )
                     assert len(caught) == 1
                     assert 'Could not rename' in str(caught[0].message)
+                    assert result.display_name == test_case.expected_output[
+                        'display_name']
+
+    elif scenario == 'rename_failure_403':
+        mock_pipeline = Mock(pipeline_id='pid-1')
+        mock_version = Mock(
+            pipeline_id='pid-1',
+            pipeline_version_id='vid-1',
+            display_name='auto-generated-name',
+        )
+        with patch.object(
+                backend.upload_api, 'upload_pipeline',
+                return_value=mock_pipeline):
+            with patch.object(
+                    backend.pipelines_api,
+                    'pipeline_service_list_pipeline_versions',
+                    return_value=Mock(pipeline_versions=[mock_version])):
+                with patch.object(
+                        backend.pipelines_api,
+                        'pipeline_service_update_pipeline_version',
+                        create=True,
+                        side_effect=kfp_server_api.ApiException(
+                            status=403, reason='Forbidden')):
+                    with warnings.catch_warnings(record=True) as caught:
+                        warnings.simplefilter('always')
+                        result = backend._upload_new_pipeline(
+                            '/tmp/pipe.yaml',
+                            name='my-pipe',
+                            version_name='v1',
+                            description=None,
+                        )
+                    assert len(caught) == 1
+                    assert 'insufficient permissions' in str(caught[0].message)
                     assert result.display_name == test_case.expected_output[
                         'display_name']
 

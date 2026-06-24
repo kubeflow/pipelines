@@ -17,7 +17,6 @@ __all__ = [
     'RUN_SUCCEEDED',
     'RUN_FAILED',
     'RUN_SKIPPED',
-    'RUN_ERROR',
     'RUN_CANCELED',
     'RUN_CANCELING',
     'RUN_RUNNING',
@@ -30,7 +29,6 @@ __all__ = [
 RUN_SUCCEEDED = 'succeeded'
 RUN_FAILED = 'failed'
 RUN_SKIPPED = 'skipped'
-RUN_ERROR = 'error'
 RUN_CANCELED = 'canceled'
 RUN_CANCELING = 'canceling'
 RUN_RUNNING = 'running'
@@ -43,6 +41,5 @@ TERMINAL_STATES = frozenset({
     RUN_SUCCEEDED,
     RUN_FAILED,
     RUN_SKIPPED,
-    RUN_ERROR,
     RUN_CANCELED,
 })
