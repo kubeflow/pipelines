@@ -364,11 +364,12 @@ func (k *PipelineStoreKubernetes) GetPipelineVersion(pipelineVersionId string) (
 }
 
 func (k *PipelineStoreKubernetes) GetPipelineVersionByName(pipelineID, pipelineName, versionName string) (*model.PipelineVersion, error) {
-	if common.GetPodNamespace() == "" {
-		return nil, fmt.Errorf("Error returning the pod namespace. Ensure you have POD_NAMESPACE environment variable set in the API Server pod.")
+	k8sPipeline, err := k.getK8sPipeline(pipelineID)
+	if err != nil {
+		return nil, err
 	}
 
-	namespace := common.GetPodNamespace()
+	namespace := k8sPipeline.Namespace
 	pipelineVersion := v2beta1.PipelineVersion{}
 
 	// Try composite name first ({pipelineName}-{versionName})
@@ -396,7 +397,7 @@ func (k *PipelineStoreKubernetes) GetPipelineVersionByName(pipelineID, pipelineN
 	if pvNameErr != nil {
 		return nil, util.NewResourceNotFoundError("PipelineVersion", versionName)
 	}
-	err := k.client.Get(context.TODO(), ctrlclient.ObjectKey{
+	err = k.client.Get(context.TODO(), ctrlclient.ObjectKey{
 		Namespace: namespace,
 		Name:      pvName.Name(),
 	}, &pipelineVersion)

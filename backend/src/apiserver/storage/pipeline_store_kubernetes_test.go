@@ -1110,6 +1110,47 @@ func TestCreatePipelineAndPipelineVersion_InvalidVersionName(t *testing.T) {
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
 
+func TestGetPipelineVersionByName_DifferentNamespace(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "DefaultNS")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	multiUser := viper.Get("MULTIUSER")
+	viper.Set("MULTIUSER", "true")
+	defer viper.Set("MULTIUSER", multiUser)
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, v2beta1.AddToScheme(scheme))
+
+	pipeline := &v2beta1.Pipeline{
+		ObjectMeta: metav1.ObjectMeta{
+			UID:       DefaultFakePipelineIdThree,
+			Name:      "user-pipeline",
+			Namespace: "UserNS",
+		},
+	}
+
+	k8sClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(pipeline).
+		Build()
+
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	_, err := store.CreatePipelineVersion(&model.PipelineVersion{
+		Name:         "v1",
+		PipelineId:   DefaultFakePipelineIdThree,
+		PipelineSpec: model.LargeText(getBasicPipelineSpecYAML()),
+	})
+	require.NoError(t, err)
+
+	// POD_NAMESPACE is "DefaultNS" but the version lives in "UserNS"
+	version, err := store.GetPipelineVersionByName(DefaultFakePipelineIdThree, "user-pipeline", "v1")
+	require.NoError(t, err)
+	assert.Equal(t, "v1", version.Name)
+	assert.Equal(t, DefaultFakePipelineIdThree, version.PipelineId)
+}
+
 func getClientWithTwoPipelines() (client.Client, client.Client) {
 	scheme := runtime.NewScheme()
 	err := v2beta1.AddToScheme(scheme)
