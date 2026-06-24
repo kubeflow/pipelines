@@ -771,7 +771,7 @@ func TestBackwardCompat_GetPipelineVersionByName_OwnerRefLabelMismatch(t *testin
 	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
 
 	// OwnerRef points to A, label points to B. Querying with B should reject
-	// because OwnerReferences are authoritative when present.
+	// because ownership is determined by OwnerReferences.
 	_, err := store.GetPipelineVersionByName(DefaultFakePipelineIdThree, "pipeline-b", "mismatch-version")
 	require.NotNil(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())

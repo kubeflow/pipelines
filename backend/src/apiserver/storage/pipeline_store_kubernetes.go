@@ -407,12 +407,8 @@ func (k *PipelineStoreKubernetes) GetPipelineVersionByName(pipelineID, pipelineN
 		return nil, err
 	}
 
-	// Legacy CRs may carry ownership via OwnerReference, label, or both.
 	if !pipelineVersion.IsOwnedByPipeline(pipelineID) {
-		if len(pipelineVersion.OwnerReferences) > 0 ||
-			pipelineVersion.Labels["pipelines.kubeflow.org/pipeline-id"] != pipelineID {
-			return nil, util.NewResourceNotFoundError("PipelineVersion", versionName)
-		}
+		return nil, util.NewResourceNotFoundError("PipelineVersion", versionName)
 	}
 
 	return pipelineVersion.ToModel()
