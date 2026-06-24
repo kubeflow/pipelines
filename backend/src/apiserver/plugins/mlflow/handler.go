@@ -30,44 +30,67 @@ import (
 var _ apiserverPlugins.RunPluginHandler = (*Handler)(nil)
 
 // Handler implements PluginHandler for the MLflow integration.
-type Handler struct {
-	input     *MLflowPluginInput
-	namespace string
+type Handler struct{}
 
-	// RunStartEnv is populated by OnBeforeRunCreation with the single
-	// KFP_MLFLOW_CONFIG env var for the driver and launcher.
-	RunStartEnv map[string]string
+// NewMLflowRunHandler creates a new MLflow plugin handler.
+func NewMLflowRunHandler() *Handler {
+	return &Handler{}
 }
 
-// NewHandler creates a new MLflow plugin handler.
-func NewHandler(input *MLflowPluginInput, namespace string) *Handler {
-	return &Handler{
-		input:     input,
-		namespace: namespace,
+// Name returns the name of the MLflow plugin handler.
+func (h *Handler) Name() string {
+	return "MLflow"
+}
+
+// GetGlobalPluginConfig re-reads the global plugin configuration from Viper so
+// that runtime config changes (e.g. admin removing the MLflow config) are
+// reflected without restarting the API server.
+func (h *Handler) GetGlobalPluginConfig() (*apiserverPlugins.PluginConfig, error) {
+	cfg, ok, err := GetGlobalMLflowConfig()
+	if err != nil {
+		return nil, err
 	}
+	if !ok {
+		return nil, nil
+	}
+	return &cfg, nil
 }
 
 // OnBeforeRunCreation creates the MLflow experiment and parent run, tags it
-// with KFP metadata, and populates RunStartEnv with tracking env vars.
-func (h *Handler) OnBeforeRunCreation(ctx context.Context, run *apiserverPlugins.PendingRun, config interface{}) (*apiv2beta1.PluginOutput, error) {
-	if h == nil || run == nil || h.input == nil || h.input.Disabled {
-		return nil, nil
+// with KFP metadata, and returns runtime env vars for the driver and launcher.
+func (h *Handler) OnBeforeRunCreation(ctx context.Context, run *apiserverPlugins.PendingRun, runCfg *apiserverPlugins.PluginConfig) (*apiv2beta1.PluginOutput, map[string]string, error) {
+	if h == nil || run == nil || runCfg == nil {
+		return nil, nil, nil
 	}
-	pluginConfig, ok := config.(*commonmlflow.PluginConfig)
-	if !ok || pluginConfig == nil {
-		return nil, nil
-	}
-
-	endpoint := pluginConfig.Endpoint
-
-	settings := ApplySettingsDefaults(pluginConfig.Settings)
-
-	experimentID, experimentName := SelectMLflowExperiment(h.input, settings)
-
-	resolvedCfg := &ResolvedConfig{Config: pluginConfig, Settings: settings}
-	mlflowRequestCtx, err := BuildMLflowRunRequestContext(ctx, h.namespace, resolvedCfg)
+	mlflowPluginInput, err := ResolveMLflowPluginInput(run.PluginsInput)
 	if err != nil {
-		return FailedPluginOutput(experimentID, experimentName, "", "", endpoint, fmt.Sprintf("failed to build MLflow request context: %v", err)), err
+		return nil, nil, fmt.Errorf("MLflow run canceled due to error retrieving run-level plugin input: %s", err)
+	}
+	if mlflowPluginInput == nil || mlflowPluginInput.Disabled {
+		return nil, nil, nil
+	}
+
+	endpoint := runCfg.Endpoint
+
+	settings := ResolvePluginSettings(runCfg.Settings)
+
+	experimentID, experimentName := SelectMLflowExperiment(mlflowPluginInput, settings)
+	if experimentID != "" {
+		glog.V(4).Infof("Resolved MLflow experiment selector for run creation: experiment_id=%q (create-by-name skipped)", experimentID)
+	} else {
+		glog.V(4).Infof("Resolved MLflow experiment selector for run creation: experiment_name=%q", experimentName)
+	}
+
+	resolvedCfg, err := ResolveMLflowPluginConfig(runCfg, settings)
+	if err != nil {
+		message := "MLflow config resolution failed; run creation will continue: " + err.Error()
+		glog.Warningf("MLflow OnBeforeRunCreation failed for run %q (%s)", run.RunID, message)
+		return FailedPluginOutput(experimentID, experimentName, "", "", "", message), nil, err
+	}
+
+	mlflowRequestCtx, err := BuildMLflowRunRequestContext(run.Namespace, resolvedCfg)
+	if err != nil {
+		return FailedPluginOutput(experimentID, experimentName, "", "", endpoint, fmt.Sprintf("failed to build MLflow request context: %v", err)), nil, err
 	}
 
 	mlflowExperiment, err := EnsureExperimentExists(
@@ -78,22 +101,22 @@ func (h *Handler) OnBeforeRunCreation(ctx context.Context, run *apiserverPlugins
 		settings.ExperimentDescription,
 	)
 	if err != nil {
-		return FailedPluginOutput(experimentID, experimentName, "", "", endpoint, err.Error()), err
+		return FailedPluginOutput(experimentID, experimentName, "", "", endpoint, err.Error()), nil, err
 	}
 
 	tags := BuildKFPTags(run, settings.KFPBaseURL, settings.KFPRunURLPathTemplate)
 	parentRunID, err := mlflowRequestCtx.Client.CreateRun(ctx, mlflowExperiment.ID, run.DisplayName, tags)
 	if err != nil {
-		return FailedPluginOutput(mlflowExperiment.ID, mlflowExperiment.Name, "", "", endpoint, err.Error()), err
+		return FailedPluginOutput(mlflowExperiment.ID, mlflowExperiment.Name, "", "", endpoint, err.Error()), nil, err
 	}
 
 	insecureSkipVerify := false
-	if pluginConfig.TLS != nil {
-		insecureSkipVerify = pluginConfig.TLS.InsecureSkipVerify
+	if resolvedCfg.TLS != nil {
+		insecureSkipVerify = resolvedCfg.TLS.InsecureSkipVerify
 	}
 	workspace := ""
 	if settings.WorkspacesEnabled != nil && *settings.WorkspacesEnabled {
-		workspace = h.namespace
+		workspace = run.Namespace
 	}
 	// TLS.CABundlePath is intentionally omitted: driver/launcher pods do not
 	// have access to the API server's CA bundle file. CA trust for those pods
@@ -107,35 +130,39 @@ func (h *Handler) OnBeforeRunCreation(ctx context.Context, run *apiserverPlugins
 		ParentRunID:        parentRunID,
 		ExperimentID:       mlflowExperiment.ID,
 		AuthType:           commonmlflow.AuthTypeKubernetes,
-		Timeout:            pluginConfig.Timeout,
+		Timeout:            resolvedCfg.Timeout,
 		InsecureSkipVerify: insecureSkipVerify,
 		InjectUserEnvVars:  settings.InjectUserEnvVars != nil && *settings.InjectUserEnvVars,
 	}
 	mlflowConfigJSON, err := json.Marshal(mlflowRuntimeConfig)
 	if err != nil {
-		return FailedPluginOutput(mlflowExperiment.ID, mlflowExperiment.Name, parentRunID, "", endpoint, fmt.Sprintf("failed to marshal MLflow runtime config: %v", err)), err
+		return FailedPluginOutput(mlflowExperiment.ID, mlflowExperiment.Name, parentRunID, "", endpoint, fmt.Sprintf("failed to marshal MLflow runtime config: %v", err)), nil, err
 	}
 
-	h.RunStartEnv = map[string]string{
+	runStartEnv := map[string]string{
 		commonmlflow.EnvMLflowConfig: string(mlflowConfigJSON),
 	}
 
 	runURL := BuildRunURL(mlflowRequestCtx, mlflowExperiment.ID, parentRunID, settings)
-	return SuccessfulPluginOutput(mlflowExperiment.ID, mlflowExperiment.Name, parentRunID, runURL, endpoint), nil
+	return SuccessfulPluginOutput(mlflowExperiment.ID, mlflowExperiment.Name, parentRunID, runURL, endpoint), runStartEnv, nil
 }
 
 // OnRunEnd marks the MLflow parent run and any active nested runs as
 // complete/failed when the KFP run reaches a terminal state.
-func (h *Handler) OnRunEnd(ctx context.Context, run *apiserverPlugins.PersistedRun, config interface{}) error {
-	if h == nil || run == nil {
+func (h *Handler) OnRunEnd(ctx context.Context, run *apiserverPlugins.PersistedRun, runCfg *apiserverPlugins.PluginConfig) error {
+	if h == nil || run == nil || runCfg == nil {
 		return nil
 	}
-	pluginConfig, _ := config.(*commonmlflow.PluginConfig)
-	return h.syncOnRunTerminal(ctx, run, pluginConfig)
+	resolvedSettings := ResolvePluginSettings(runCfg.Settings)
+	resolvedMLflowCfg, err := ResolveMLflowPluginConfig(runCfg, resolvedSettings)
+	if err != nil {
+		return err
+	}
+	return h.syncOnRunTerminal(ctx, run, resolvedMLflowCfg, run.Namespace)
 }
 
 // syncOnRunTerminal marks the MLflow parent and nested runs as complete/failed.
-func (h *Handler) syncOnRunTerminal(ctx context.Context, run *apiserverPlugins.PersistedRun, config *commonmlflow.PluginConfig) error {
+func (h *Handler) syncOnRunTerminal(ctx context.Context, run *apiserverPlugins.PersistedRun, runCfg *commonmlflow.MLflowPluginConfig, namespace string) error {
 	endTimeMs := int64(0)
 	endTimeRef := (*int64)(nil)
 	if run.FinishedAt != nil {
@@ -143,55 +170,63 @@ func (h *Handler) syncOnRunTerminal(ctx context.Context, run *apiserverPlugins.P
 		endTimeRef = &endTimeMs
 	}
 	terminalStatus := ToMLflowTerminalStatus(run.State)
-	h.syncMLflowRuns(ctx, run, config, RunSyncModeTerminal, terminalStatus, endTimeRef, "terminal")
+	h.syncMLflowRuns(ctx, run, runCfg, apiserverPlugins.RunSyncModeTerminal, terminalStatus, endTimeRef, "terminal", namespace)
 	return nil
 }
 
 // HandleRetry reopens the MLflow parent run and any failed/killed nested runs.
-func (h *Handler) HandleRetry(ctx context.Context, run *apiserverPlugins.PersistedRun, config *commonmlflow.PluginConfig) {
-	h.syncMLflowRuns(ctx, run, config, RunSyncModeRetry, "", nil, "retry")
+func (h *Handler) HandleRetry(ctx context.Context, run *apiserverPlugins.PersistedRun, runCfg *apiserverPlugins.PluginConfig) error {
+	if h == nil || run == nil || runCfg == nil {
+		return fmt.Errorf("handler, run and runCfg must be non-nil")
+	}
+
+	resolvedSettings := ResolvePluginSettings(runCfg.Settings)
+	resolvedMLflowCfg, err := ResolveMLflowPluginConfig(runCfg, resolvedSettings)
+	if err != nil {
+		return fmt.Errorf("failed to resolve MLflow plugin config: %v", err)
+	}
+
+	h.syncMLflowRuns(ctx, run, resolvedMLflowCfg, apiserverPlugins.RunSyncModeRetry, "", nil, "retry", run.Namespace)
+	return nil
 }
 
 // syncMLflowRuns resolves the MLflow request context, syncs the parent and nested runs, and
 // updates the plugin output state.
-func (h *Handler) syncMLflowRuns(ctx context.Context, run *apiserverPlugins.PersistedRun, config *commonmlflow.PluginConfig, mode RunSyncMode, terminalStatus string, endTimeRef *int64, label string) {
-	pluginOutput := run.PluginsOutput[PluginName]
+func (h *Handler) syncMLflowRuns(ctx context.Context, run *apiserverPlugins.PersistedRun, config *commonmlflow.MLflowPluginConfig, mode apiserverPlugins.RunSyncMode, terminalStatus string, endTimeRef *int64, label string, namespace string) {
+	pluginOutput := run.PluginsOutput[h.Name()]
 	if pluginOutput == nil {
 		return
 	}
 
-	parentRunID := GetParentRunID(pluginOutput)
-	experimentID := GetStringEntry(pluginOutput, EntryExperimentID)
+	parentRunID := apiserverPlugins.GetParentRunID(pluginOutput)
+	experimentID := apiserverPlugins.GetStringEntry(pluginOutput, apiserverPlugins.EntryExperimentID)
 	if parentRunID == "" {
 		msg := fmt.Sprintf("MLflow %s sync skipped: missing parent root_run_id in plugins_output.mlflow", label)
 		glog.Warning(msg)
-		SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_FAILED, msg)
+		apiserverPlugins.SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_FAILED, msg)
 		return
 	}
 
 	if config == nil {
 		msg := fmt.Sprintf("MLflow %s sync failed: config unavailable", label)
 		glog.Warning(msg)
-		SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_FAILED, msg)
+		apiserverPlugins.SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_FAILED, msg)
 		return
 	}
 
 	// Use the endpoint stored at run-start time so that in-flight runs
 	// always talk to the MLflow server where their parent run was created,
 	// even if the admin changes the endpoint while the run is in progress.
-	storedEndpoint := GetStringEntry(pluginOutput, EntryEndpoint)
+	storedEndpoint := apiserverPlugins.GetStringEntry(pluginOutput, apiserverPlugins.EntryEndpoint)
 	if storedEndpoint != "" {
 		config.Endpoint = storedEndpoint
 	}
 
-	settings := ApplySettingsDefaults(config.Settings)
-
-	resolvedCfg := &ResolvedConfig{Config: config, Settings: settings}
-	mlflowRequestCtx, err := BuildMLflowRunRequestContext(ctx, h.namespace, resolvedCfg)
+	mlflowRequestCtx, err := BuildMLflowRunRequestContext(namespace, config)
 	if err != nil {
 		msg := fmt.Sprintf("MLflow %s sync failed: %v", label, err)
 		glog.Warning(msg)
-		SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_FAILED, msg)
+		apiserverPlugins.SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_FAILED, msg)
 		return
 	}
 
@@ -199,8 +234,8 @@ func (h *Handler) syncMLflowRuns(ctx context.Context, run *apiserverPlugins.Pers
 	if len(syncErrors) > 0 {
 		msg := strings.Join(syncErrors, "; ")
 		glog.Warningf("MLflow %s sync encountered errors for run %s: %s", label, run.RunID, msg)
-		SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_FAILED, msg)
+		apiserverPlugins.SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_FAILED, msg)
 	} else {
-		SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, "")
+		apiserverPlugins.SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, "")
 	}
 }

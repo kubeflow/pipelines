@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -36,30 +37,24 @@ const TagNestedRunParentRunID = "mlflow.parentRunId"
 
 // MLflowRuntimeConfig is the JSON payload marshaled into KFP_MLFLOW_CONFIG.
 type MLflowRuntimeConfig struct {
-	Endpoint           string     `json:"endpoint"`
-	WorkspacesEnabled  bool       `json:"workspacesEnabled,omitempty"`
-	Workspace          string     `json:"workspace,omitempty"`
-	ParentRunID        string     `json:"parentRunId"`
-	ExperimentID       string     `json:"experimentId"`
-	AuthType           string     `json:"authType"`
-	Timeout            string     `json:"timeout,omitempty"`
-	InsecureSkipVerify bool       `json:"insecureSkipVerify,omitempty"`
-	InjectUserEnvVars  bool       `json:"injectUserEnvVars,omitempty"`
-	TLS                *TLSConfig `json:"tls,omitempty" mapstructure:"tls"`
+	Endpoint           string                   `json:"endpoint"`
+	WorkspacesEnabled  bool                     `json:"workspacesEnabled,omitempty"`
+	Workspace          string                   `json:"workspace,omitempty"`
+	ParentRunID        string                   `json:"parentRunId"`
+	ExperimentID       string                   `json:"experimentId"`
+	AuthType           string                   `json:"authType"`
+	Timeout            string                   `json:"timeout,omitempty"`
+	InsecureSkipVerify bool                     `json:"insecureSkipVerify,omitempty"`
+	InjectUserEnvVars  bool                     `json:"injectUserEnvVars,omitempty"`
+	TLS                *commonplugins.TLSConfig `json:"tls,omitempty" mapstructure:"tls"`
 }
 
-// TLSConfig holds TLS settings for the MLflow endpoint.
-type TLSConfig struct {
-	InsecureSkipVerify bool   `json:"insecureSkipVerify,omitempty" mapstructure:"insecureSkipVerify"`
-	CABundlePath       string `json:"caBundlePath,omitempty" mapstructure:"caBundlePath"`
-}
-
-// PluginConfig represents the global or namespace-level plugin configuration.
-type PluginConfig struct {
-	Endpoint string                `json:"endpoint,omitempty" mapstructure:"endpoint"`
-	Timeout  string                `json:"timeout,omitempty" mapstructure:"timeout"`
-	TLS      *TLSConfig            `json:"tls,omitempty" mapstructure:"tls"`
-	Settings *MLflowPluginSettings `json:"settings,omitempty" mapstructure:"settings"`
+// MLflowPluginConfig represents the MLflow plugin configuration.
+type MLflowPluginConfig struct {
+	Endpoint string                   `json:"endpoint,omitempty" mapstructure:"endpoint"`
+	Timeout  string                   `json:"timeout,omitempty" mapstructure:"timeout"`
+	TLS      *commonplugins.TLSConfig `json:"tls,omitempty" mapstructure:"tls"`
+	Settings *MLflowPluginSettings    `json:"settings,omitempty" mapstructure:"settings"`
 }
 
 // MLflowCredentials holds the resolved authentication credentials for an MLflow endpoint.
@@ -90,65 +85,8 @@ type MLflowPluginSettings struct {
 	InjectUserEnvVars     *bool   `json:"injectUserEnvVars,omitempty"`
 }
 
-// MergePluginConfig merges namespace-level overrides into the global config.
-// The namespace config takes precedence on non-zero fields.
-func MergePluginConfig(globalCfg PluginConfig, namespaceCfg *PluginConfig) PluginConfig {
-	merged := globalCfg
-	if namespaceCfg == nil {
-		return merged
-	}
-	if namespaceCfg.Endpoint != "" {
-		merged.Endpoint = namespaceCfg.Endpoint
-	}
-	if namespaceCfg.Timeout != "" {
-		merged.Timeout = namespaceCfg.Timeout
-	}
-	if namespaceCfg.TLS != nil {
-		merged.TLS = namespaceCfg.TLS
-	}
-	merged.Settings = mergeSettings(merged.Settings, namespaceCfg.Settings)
-	return merged
-}
-
-// mergeSettings performs a field-level merge of two MLflowPluginSettings.
-// Namespace values override global values for non-zero fields.
-func mergeSettings(global, namespace *MLflowPluginSettings) *MLflowPluginSettings {
-	if namespace == nil {
-		return global
-	}
-	if global == nil {
-		return namespace
-	}
-	merged := *global // shallow copy
-	if namespace.WorkspacesEnabled != nil {
-		merged.WorkspacesEnabled = namespace.WorkspacesEnabled
-	}
-	if namespace.ExperimentDescription != nil {
-		merged.ExperimentDescription = namespace.ExperimentDescription
-	}
-	if namespace.DefaultExperimentName != "" {
-		merged.DefaultExperimentName = namespace.DefaultExperimentName
-	}
-	if namespace.KFPBaseURL != "" {
-		merged.KFPBaseURL = namespace.KFPBaseURL
-	}
-	if namespace.KFPRunURLPathTemplate != "" {
-		merged.KFPRunURLPathTemplate = namespace.KFPRunURLPathTemplate
-	}
-	if namespace.MLflowBaseURL != "" {
-		merged.MLflowBaseURL = namespace.MLflowBaseURL
-	}
-	if namespace.MLflowUIPathPrefix != "" {
-		merged.MLflowUIPathPrefix = namespace.MLflowUIPathPrefix
-	}
-	if namespace.InjectUserEnvVars != nil {
-		merged.InjectUserEnvVars = namespace.InjectUserEnvVars
-	}
-	return &merged
-}
-
 // BuildHTTPClient configures an http.Client with the given timeout and TLS settings.
-func BuildHTTPClient(timeout time.Duration, tlsCfg *TLSConfig) (*http.Client, error) {
+func BuildHTTPClient(timeout time.Duration, tlsCfg *commonplugins.TLSConfig) (*http.Client, error) {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	if tlsCfg != nil {
 		tlsConfig := &tls.Config{
@@ -200,11 +138,11 @@ func ResolveMLflowCredentials() (MLflowCredentials, error) {
 	}, nil
 }
 
-// BuildMLflowRequestContext is the shared core that validates the PluginConfig,
+// BuildMLflowRequestContext is the shared core that validates the MLflowPluginConfig,
 // resolves credentials, builds the HTTP client and MLflow client, and returns
 // a ready-to-use RequestContext. The workspace and workspacesEnabled values
 // are caller-specific and passed in directly.
-func BuildMLflowRequestContext(pluginCfg PluginConfig, workspace string, workspacesEnabled bool) (*RequestContext, error) {
+func BuildMLflowRequestContext(pluginCfg MLflowPluginConfig, workspace string, workspacesEnabled bool) (*RequestContext, error) {
 	baseURL, err := url.Parse(pluginCfg.Endpoint)
 	if err != nil || baseURL.Scheme == "" || baseURL.Host == "" {
 		return nil, util.NewInvalidInputError("invalid plugins.mlflow endpoint %q", pluginCfg.Endpoint)
