@@ -230,7 +230,7 @@ func LoadSamples(resourceManager *resource.ResourceManager, sampleConfigPath str
 		// If the Pipeline Version exists, do nothing
 		// Otherwise upload new Pipeline Version for
 		// this pipeline.
-		_, fetchErr = resourceManager.GetPipelineVersionByName(p.UUID, pvName)
+		_, fetchErr = resourceManager.GetPipelineVersionByName(p.UUID, p.Name, pvName)
 		if fetchErr != nil {
 			if util.IsUserErrorCodeMatch(fetchErr, codes.NotFound) {
 				_, configErr = resourceManager.CreatePipelineVersion(

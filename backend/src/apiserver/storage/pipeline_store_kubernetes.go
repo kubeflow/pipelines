@@ -16,7 +16,6 @@ import (
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -364,54 +363,44 @@ func (k *PipelineStoreKubernetes) GetPipelineVersion(pipelineVersionId string) (
 	return pipelineVersion.ToModel()
 }
 
-func (k *PipelineStoreKubernetes) GetPipelineVersionByName(pipelineID, name string) (*model.PipelineVersion, error) {
+func (k *PipelineStoreKubernetes) GetPipelineVersionByName(pipelineID, pipelineName, versionName string) (*model.PipelineVersion, error) {
 	if common.GetPodNamespace() == "" {
 		return nil, fmt.Errorf("Error returning the pod namespace. Ensure you have POD_NAMESPACE environment variable set in the API Server pod.")
-	}
-
-	pipeline, err := k.GetPipeline(pipelineID)
-	if err != nil {
-		return nil, err
 	}
 
 	namespace := common.GetPodNamespace()
 	pipelineVersion := v2beta1.PipelineVersion{}
 
 	// Try composite name first ({pipelineName}-{versionName})
-	pvName, pvNameErr := v2beta1.NewPipelineVersionName(pipeline.Name, name)
+	pvName, pvNameErr := v2beta1.NewPipelineVersionName(pipelineName, versionName)
 	if pvNameErr == nil {
-		err = k.client.Get(context.TODO(), ctrlclient.ObjectKey{
+		err := k.client.Get(context.TODO(), ctrlclient.ObjectKey{
 			Namespace: namespace,
 			Name:      pvName.Name(),
 		}, &pipelineVersion)
-	} else {
-		err = k8serrors.NewNotFound(
-			schema.GroupResource{Group: v2beta1.GroupVersion.Group, Resource: "pipelineversions"},
-			name,
-		)
-	}
-	if err == nil {
-		if pipelineVersion.IsOwnedByPipeline(pipelineID) {
-			return pipelineVersion.ToModel()
+		if err == nil {
+			if pipelineVersion.IsOwnedByPipeline(pipelineID) {
+				return pipelineVersion.ToModel()
+			}
+			// Composite name exists but belongs to a different pipeline (hyphen
+			// collision). Fall through to bare-name lookup for backward compat.
+		} else if !k8serrors.IsNotFound(err) {
+			return nil, err
 		}
-		// Composite name exists but belongs to a different pipeline (hyphen
-		// collision). Fall through to bare-name lookup for backward compat.
-	} else if !k8serrors.IsNotFound(err) {
-		return nil, err
 	}
 
 	// Fallback: try bare name (legacy-style CRs created before composite naming)
-	pvName, pvNameErr = v2beta1.NewPipelineVersionName("", name)
+	pvName, pvNameErr = v2beta1.NewPipelineVersionName("", versionName)
 	if pvNameErr != nil {
-		return nil, util.NewResourceNotFoundError("PipelineVersion", name)
+		return nil, util.NewResourceNotFoundError("PipelineVersion", versionName)
 	}
-	err = k.client.Get(context.TODO(), ctrlclient.ObjectKey{
+	err := k.client.Get(context.TODO(), ctrlclient.ObjectKey{
 		Namespace: namespace,
 		Name:      pvName.Name(),
 	}, &pipelineVersion)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			return nil, util.NewResourceNotFoundError("PipelineVersion", name)
+			return nil, util.NewResourceNotFoundError("PipelineVersion", versionName)
 		}
 		return nil, err
 	}
@@ -419,7 +408,7 @@ func (k *PipelineStoreKubernetes) GetPipelineVersionByName(pipelineID, name stri
 	// Legacy CRs may carry ownership via OwnerReference, label, or both.
 	if !pipelineVersion.IsOwnedByPipeline(pipelineID) &&
 		pipelineVersion.Labels["pipelines.kubeflow.org/pipeline-id"] != pipelineID {
-		return nil, util.NewResourceNotFoundError("PipelineVersion", name)
+		return nil, util.NewResourceNotFoundError("PipelineVersion", versionName)
 	}
 
 	return pipelineVersion.ToModel()
