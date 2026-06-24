@@ -560,6 +560,7 @@ func TestCreateK8sPipelineVersion_InvalidName_Standalone(t *testing.T) {
 	require.NotNil(t, err, "Expected error for invalid pipeline version name")
 	assert.Contains(t, err.Error(), "Invalid pipeline version name")
 	assert.Contains(t, err.Error(), "display_name")
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 }
 
 // getBasicPipelineSpec returns a basic PipelineSpec for testing purposes
@@ -951,6 +952,7 @@ func TestCreatePipelineVersion_HyphenCollision(t *testing.T) {
 	})
 	require.NotNil(t, err, "Expected collision due to identical composite K8s names")
 	assert.Contains(t, err.Error(), "already exist")
+	assert.Contains(t, err.Error(), "foo-bar-baz")
 }
 
 func TestGetPipelineVersionByName_InvalidPipelineId(t *testing.T) {

@@ -693,6 +693,10 @@ func (k *PipelineStoreKubernetes) getK8sPipelineVersion(ctx context.Context, pip
 func (k *PipelineStoreKubernetes) createPipelineVersionWithPipeline(ctx context.Context, pipeline *model.Pipeline, pipelineVersion *model.PipelineVersion) (*model.PipelineVersion, error) {
 	k8sPipelineVersion, err := v2beta1.FromPipelineVersionModel(*pipeline, *pipelineVersion)
 	if err != nil {
+		var userError *util.UserError
+		if errors.As(err, &userError) {
+			return nil, err
+		}
 		return nil, util.NewBadRequestError(err, "Invalid pipeline spec")
 	}
 
@@ -702,8 +706,8 @@ func (k *PipelineStoreKubernetes) createPipelineVersionWithPipeline(ctx context.
 	err = k.client.Create(ctx, k8sPipelineVersion)
 	if k8serrors.IsAlreadyExists(err) {
 		return nil, util.NewAlreadyExistError(
-			"Failed to create a new pipeline version. The name %v already exists. Please specify a new name",
-			pipelineVersion.Name,
+			"Failed to create a new pipeline version. The name %v already exists (resource name: %v). Please specify a new name",
+			pipelineVersion.Name, k8sPipelineVersion.Name,
 		)
 	} else if k8serrors.IsInvalid(err) && strings.Contains(err.Error(), "metadata.name") {
 		return nil, util.NewBadKubernetesNameError("pipeline version")
