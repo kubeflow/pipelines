@@ -717,6 +717,71 @@ func TestBackwardCompat_GetPipelineVersionByName_LegacyCR_WrongPipeline(t *testi
 	assert.Equal(t, "shared-version-name", pv.Name)
 }
 
+func TestBackwardCompat_GetPipelineVersionByName_OwnerRefLabelMismatch(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, v2beta1.AddToScheme(scheme))
+
+	pipelineA := &v2beta1.Pipeline{
+		ObjectMeta: metav1.ObjectMeta{
+			UID:       DefaultFakePipelineIdTwo,
+			Name:      "pipeline-a",
+			Namespace: "Test",
+		},
+	}
+	pipelineB := &v2beta1.Pipeline{
+		ObjectMeta: metav1.ObjectMeta{
+			UID:       DefaultFakePipelineIdThree,
+			Name:      "pipeline-b",
+			Namespace: "Test",
+		},
+	}
+	// CR with OwnerReference pointing to pipeline A but label edited to pipeline B
+	mismatchVersion := &v2beta1.PipelineVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			UID:       DefaultFakePipelineIdFour,
+			Name:      "mismatch-version",
+			Namespace: "Test",
+			Labels: map[string]string{
+				"pipelines.kubeflow.org/pipeline-id": DefaultFakePipelineIdThree,
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: v2beta1.GroupVersion.String(),
+					Kind:       "Pipeline",
+					UID:        DefaultFakePipelineIdTwo,
+					Name:       "pipeline-a",
+				},
+			},
+		},
+		Spec: v2beta1.PipelineVersionSpec{
+			PipelineName: "pipeline-a",
+			PipelineSpec: getBasicPipelineSpec(),
+		},
+	}
+
+	k8sClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(pipelineA, pipelineB, mismatchVersion).
+		Build()
+
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	// OwnerRef points to A, label points to B. Querying with B should reject
+	// because OwnerReferences are authoritative when present.
+	_, err := store.GetPipelineVersionByName(DefaultFakePipelineIdThree, "pipeline-b", "mismatch-version")
+	require.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+
+	// Querying with A (the true owner) should succeed
+	pv, err := store.GetPipelineVersionByName(DefaultFakePipelineIdTwo, "pipeline-a", "mismatch-version")
+	require.NoError(t, err)
+	assert.Equal(t, "mismatch-version", pv.Name)
+}
+
 func TestBackwardCompat_ListPipelineVersions_MixedCRs(t *testing.T) {
 	podNamespace := viper.Get("POD_NAMESPACE")
 	viper.Set("POD_NAMESPACE", "Test")
