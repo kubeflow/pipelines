@@ -15,10 +15,12 @@
 package archive
 
 import (
+	"archive/tar"
 	"bufio"
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"io"
 	"testing"
 	"time"
 
@@ -33,9 +35,42 @@ func compressInput(t *testing.T, content string) []byte {
 	gw := gzip.NewWriter(&src)
 	_, err := gw.Write([]byte(content))
 	assert.Nil(t, err)
-	err = gw.Flush()
+	err = gw.Close()
 	assert.Nil(t, err)
 	return src.Bytes()
+}
+
+func compressTarInput(t *testing.T, name string, content string) []byte {
+	src := bytes.Buffer{}
+	gw := gzip.NewWriter(&src)
+	tw := tar.NewWriter(gw)
+	contents := []byte(content)
+	err := tw.WriteHeader(&tar.Header{
+		Name:     name,
+		Mode:     0600,
+		Size:     int64(len(contents)),
+		Typeflag: tar.TypeReg,
+	})
+	assert.Nil(t, err)
+	_, err = tw.Write(contents)
+	assert.Nil(t, err)
+	assert.Nil(t, tw.Close())
+	assert.Nil(t, gw.Close())
+	return src.Bytes()
+}
+
+type oneByteReader struct {
+	content []byte
+	offset  int
+}
+
+func (r *oneByteReader) Read(p []byte) (int, error) {
+	if r.offset >= len(r.content) {
+		return 0, io.EOF
+	}
+	p[0] = r.content[r.offset]
+	r.offset++
+	return 1, nil
 }
 
 var logJsonLines = `
@@ -116,6 +151,25 @@ func TestCopyLogFromArchive_FromJsonToText(t *testing.T) {
 	src := compressInput(t, logJsonLines)
 
 	err := logArchive.CopyLogFromArchive(src, &dst, opts)
+	assert.Nil(t, err)
+
+	scanner := bufio.NewScanner(&dst)
+	assert.True(t, scanner.Scan())
+	line := scanner.Text()
+	assert.Equal(t, "[INFO] OK", line)
+
+	assert.True(t, scanner.Scan())
+	line = scanner.Text()
+	assert.Equal(t, "[ERROR] Unable to connect", line)
+}
+
+func TestCopyLogFromArchiveReader_FromTarGzipStream(t *testing.T) {
+	logArchive := initLogArchive()
+	opts := ExtractLogOptions{LogFormat: LogFormatText, Timestamps: false}
+	dst := bytes.Buffer{}
+	src := compressTarInput(t, "main.log", logJsonLines)
+
+	err := logArchive.CopyLogFromArchiveReader(&oneByteReader{content: src}, &dst, opts)
 	assert.Nil(t, err)
 
 	scanner := bufio.NewScanner(&dst)
