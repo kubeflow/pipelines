@@ -373,7 +373,9 @@ func (k *PipelineStoreKubernetes) GetPipelineVersionByName(pipelineID, pipelineN
 
 	// Try composite name first ({pipelineName}-{versionName})
 	pvName, pvNameErr := v2beta1.NewPipelineVersionName(pipelineName, versionName)
-	if pvNameErr == nil {
+	if pvNameErr != nil {
+		glog.V(4).Infof("Composite name for pipeline %q version %q is not a valid DNS-1123 subdomain, skipping to bare-name lookup", pipelineName, versionName)
+	} else {
 		err := k.client.Get(context.TODO(), ctrlclient.ObjectKey{
 			Namespace: namespace,
 			Name:      pvName.Name(),
