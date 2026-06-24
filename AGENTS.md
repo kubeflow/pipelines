@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-06-18
+- Last updated: 2026-06-23
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -523,7 +523,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 
 ### Test matrices and variants (Kubernetes, stores, proxy, cache)
 
-- Kubernetes versions: CI runs a matrix across a low and high supported version, commonly `v1.31.14` and `v1.35.0`.
+- Kubernetes versions: CI runs a matrix across a low and high supported version, commonly `v1.33.12` and `v1.36.1`.
   - Examples: `e2e-test.yml`, `sdk-execution.yml`, `upgrade-test.yml`, `kfp-kubernetes-execution-tests.yml`, `kfp-webhooks.yml`, `api-server-tests.yml`, `compiler-tests.yml`, `legacy-v2-api-integration-tests.yml`, `integration-tests-v1.yml`, and frontend integration in `e2e-test-frontend.yml`.
 - Pipeline store variants (v2 engine): tests run with `database` and `kubernetes` stores, and a dedicated job compiles pipelines to Kubernetes-native manifests.
   - Example: `e2e-test.yml` job "API integration tests v2 - K8s with ${pipeline_store}" and "compile pipelines with Kubernetes".
@@ -535,9 +535,9 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 
 - Kind-based clusters are provisioned via the `kfp-cluster` composite action, parameterized by `k8s_version`, `pipeline_store`, `proxy`, `cache_enabled`, and optional `argo_version`.
 - The `create-cluster` and `deploy` actions are used by newer suites; `kfp-k8s` installs SDK components from source inside jobs that execute Python-based tests.
-- The `deploy` action downloads and loads CI-built images before deploying optional Squid proxy support, preloads runtime base images used by test pods and init containers, and waits for Squid readiness/endpoints in proxy lanes.
-- Proxy test failures collect both the KFP namespace and `squid` namespace logs/events to diagnose proxy-service readiness separately from pipeline failures.
-- The CI proxy runs Squid as a no-cache forward proxy under the historical `squid` namespace/service names.
+- The `deploy` action downloads and loads CI-built images before deploying optional proxy support, preloads runtime base images used by test pods and init containers, and waits for proxy readiness/endpoints in proxy lanes.
+- Proxy test failures collect both the KFP namespace and `squid` namespace logs/events to diagnose proxy-service readiness separately from pipeline failures; MLflow test failures also collect `opendatahub` namespace logs.
+- The CI proxy keeps the historical `squid` namespace/service/image names and port `3128`, but runs a lightweight forward proxy process behind that contract.
 - The `protobuf` composite action prepares `protoc` and related dependencies when compiling Python protobufs.
 - The `create-cluster` action caches Kind node images by Kubernetes version to reduce Docker Hub pulls.
 - Python workflows use `actions/cache@v5` for pip cache to reduce repeated dependency installs.
@@ -691,4 +691,4 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
   npm with `npm install --global "$(node -p 'require("./package.json").packageManager')"`,
   regenerate `package-lock.json`, and commit the result.
 - Runtime component imports SDK-only modules: `_KFP_RUNTIME=true` disables many SDK imports; avoid importing SDK-only modules in task code.
-- Proxy CI jobs fail during `Deploy Squid` with `OOMKilled`, `CrashLoopBackOff`, endpoint readiness timeouts, or failed proxy tests: inspect the `squid` namespace logs/events and verify `.github/resources/squid/squid.conf` still disables caching for CI.
+- Proxy CI jobs fail during `Deploy Squid` with `OOMKilled`, `CrashLoopBackOff`, endpoint readiness timeouts, or failed proxy tests: inspect the `squid` namespace pods, events, services, endpoints, and endpoint slices. The service name is historical; the proxy process should stay lightweight behind `squid.squid.svc.cluster.local:3128`.

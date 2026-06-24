@@ -66,25 +66,25 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: ["v1.35.0"]
+        k8s_version: ["v1.36.1"]
         cache_enabled: ["true", "false"]
         argo_version: [ "v3.7.14", "v4.0.5" ]
         proxy: [ "false" ]
         test_label: [ "E2ECritical", "E2EEssential", "E2EParallelNested" ]
         pod_to_pod_tls_enabled: [ "false" ]
         include:
-          - k8s_version: "v1.31.14"
+          - k8s_version: "v1.33.12"
             cache_enabled: "false"
             argo_version: "v3.7.14"
             test_label: "E2ECritical"
-          - k8s_version: "v1.35.0"
+          - k8s_version: "v1.36.1"
             cache_enabled: "false"
             proxy: "true"
             test_label: "E2EProxy"
-          - k8s_version: "v1.35.0"
+          - k8s_version: "v1.36.1"
             cache_enabled: "false"
             test_label: "E2EFailure"
-          - k8s_version: "v1.35.0"
+          - k8s_version: "v1.36.1"
             cache_enabled: "true"
             pod_to_pod_tls_enabled: "true"
             test_label: "E2ECritical"
@@ -173,14 +173,14 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: ["v1.35.0"]
+        k8s_version: ["v1.36.1"]
         cache_enabled: ["true", "false"]
         multi_user: [ "true" ]
         test_label: [ "E2ECritical" ]
         include:
         - multi_user: "true"
           artifact_proxy: "true"
-          k8s_version: "v1.35.0"
+          k8s_version: "v1.36.1"
           cache_enabled: "true"
           test_label: "E2ECritical"
       fail-fast: false
@@ -275,7 +275,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: [ "v1.34.0" ]
+        k8s_version: [ "v1.36.1" ]
         cache_enabled: [ "true", "false" ]
         argo_version: [ "v3.7.3" ]
         proxy: [ "false" ]

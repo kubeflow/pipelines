@@ -283,6 +283,9 @@ runs:
         if [ "${{ inputs.proxy }}" = "true" ]; then
           ./.github/resources/scripts/collect-logs.sh --ns squid --output /tmp/tmp_pod_log.txt
         fi
+        if [ "${{ inputs.mlflow_enabled }}" = "true" ]; then
+          ./.github/resources/scripts/collect-logs.sh --ns opendatahub --output /tmp/tmp_pod_log.txt
+        fi
       continue-on-error: true
 
     - name: Set up Python for reporting

@@ -35,6 +35,7 @@ const runWithoutExperimentName = 'helloworld-2-' + Date.now();
 const runWithoutExperimentDescription =
   'test run without experiment description ' + runWithoutExperimentName;
 const uiTimeout = 5000;
+const logViewerTimeout = 30000;
 const runStartTimeout = 30000;
 const runCompletionTimeout = 60000;
 const outputParameterValue = 'Hello world in test';
@@ -66,6 +67,36 @@ async function fillRunForm({ runName, description, message }) {
   await $(selectors.message).click();
   await clearDefaultInput();
   await browser.keys(message);
+}
+
+function matchesGraphNodeLabel(text, label) {
+  const trimmedText = text.trim();
+  return trimmedText === label || trimmedText.startsWith(`${label}(`);
+}
+
+async function findGraphNodeByLabel(label) {
+  const graphNodes = await $$('.graphNode');
+  for (const graphNode of graphNodes) {
+    const nodeLabel = await graphNode.getText();
+    if (matchesGraphNodeLabel(nodeLabel, label)) {
+      return graphNode;
+    }
+  }
+}
+
+async function clickGraphNodeByLabel(label) {
+  let graphNode;
+  await waitForCondition(
+    async () => {
+      graphNode = await findGraphNodeByLabel(label);
+      return Boolean(graphNode);
+    },
+    {
+      timeout: uiTimeout,
+      timeoutMsg: `expected graph node ${label} to be visible`,
+    },
+  );
+  await graphNode.click();
 }
 
 async function waitForRunLink(runNameToFind, { timeout = runStartTimeout } = {}) {
@@ -203,23 +234,31 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('opens the side panel when graph node is clicked', async () => {
-    await $('.graphNode').click();
+    await clickGraphNodeByLabel('B');
     await $('button=Logs').waitForDisplayed({ timeout: uiTimeout });
   });
 
   it('shows logs from node', async () => {
     await $('button=Logs').click();
-    await $('#logViewer').waitForDisplayed({ timeout: uiTimeout });
-    await waitForCondition(
-      async () => {
-        const logs = await $('#logViewer').getText();
-        return logs.indexOf(outputParameterValue + ' from node: ') > -1;
-      },
-      {
-        timeout: uiTimeout,
-        timeoutMsg: `expected log viewer to contain ${outputParameterValue}`,
-      },
-    );
+    try {
+      await waitForCondition(
+        async () => {
+          const logViewer = await $('#logViewer');
+          if (!(await logViewer.isExisting()) || !(await logViewer.isDisplayed())) {
+            return false;
+          }
+          const logs = await logViewer.getText();
+          return logs.indexOf(outputParameterValue + ' from node: ') > -1;
+        },
+        {
+          timeout: logViewerTimeout,
+          timeoutMsg: `expected log viewer to contain ${outputParameterValue}`,
+        },
+      );
+    } catch (error) {
+      await saveDebugScreenshot('helloworld-logs');
+      throw error;
+    }
   });
 
   it('navigates to the runs page', async () => {
