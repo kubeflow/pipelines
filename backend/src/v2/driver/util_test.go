@@ -145,6 +145,73 @@ func Test_extractInputParameterFromChannel(t *testing.T) {
 	}
 }
 
+func Test_resolveContainerArgs(t *testing.T) {
+	tests := []struct {
+		name          string
+		args          []string
+		executorInput *pipelinespec.ExecutorInput
+		expected      []string
+		wantErr       bool
+	}{
+		{
+			name: "IfPresent with parameter present",
+			args: []string{
+				"{{$.inputs.parameters['file']}}",
+				`{"IfPresent": {"InputName": "line_number", "Then": ["-n"]}}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"file":        structpb.NewStringValue("/etc/hosts"),
+						"line_number": structpb.NewBoolValue(true),
+					},
+				},
+			},
+			expected: []string{"/etc/hosts", "-n"},
+		},
+		{
+			name: "embedded placeholder is substituted",
+			args: []string{
+				"prefix-{{$.inputs.parameters['text1']}}",
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"text1": structpb.NewStringValue("hello"),
+					},
+				},
+			},
+			expected: []string{"prefix-hello"},
+		},
+		{
+			name: "output placeholder is preserved",
+			args: []string{
+				"echo {{$.inputs.parameters['result']}} > {{$.outputs.parameters['sum'].output_file}}",
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"result": structpb.NewStringValue("12"),
+					},
+				},
+			},
+			expected: []string{"echo {{$.inputs.parameters['result']}} > {{$.outputs.parameters['sum'].output_file}}"},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual, err := resolveContainerArgs(test.args, test.executorInput)
+			if test.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expected, actual)
+			}
+		})
+	}
+}
+
 func Test_inputParamConstant(t *testing.T) {
 	tests := []struct {
 		name       string

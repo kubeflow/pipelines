@@ -116,7 +116,7 @@ func TestResolveTaskFinalStatus_FindsIterationScopedProducer(t *testing.T) {
 		RunName:        "run-name",
 		IterationIndex: 1,
 		Task: &pipelinespec.PipelineTaskSpec{
-			TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "cleanup"},
+			TaskInfo:       &pipelinespec.PipelineTaskInfo{Name: "cleanup"},
 			DependentTasks: []string{"produce"},
 		},
 	}
@@ -134,4 +134,93 @@ func TestResolveTaskFinalStatus_FindsIterationScopedProducer(t *testing.T) {
 	require.NotNil(t, resolved)
 	assert.Equal(t, "FAILED", resolved.GetStructValue().GetFields()["state"].GetStringValue())
 	assert.Equal(t, "produce", resolved.GetStructValue().GetFields()["pipelineTaskName"].GetStringValue())
+}
+
+func TestResolveParameters_AppliesSelectorAndStringCoercion(t *testing.T) {
+	inputValue, err := structpb.NewValue(map[string]interface{}{"name": 42})
+	require.NoError(t, err)
+
+	parentTask := &apiv2beta1.PipelineTask{
+		TaskId: "parent-task",
+		Inputs: &apiv2beta1.PipelineTask_InputOutputs{
+			Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+				{
+					ParameterKey: "item",
+					Value:        inputValue,
+					Producer:     &apiv2beta1.IOProducer{TaskName: "upstream"},
+				},
+			},
+		},
+	}
+
+	opts := common.Options{
+		ParentTask: parentTask,
+		Task: &pipelinespec.PipelineTaskSpec{
+			Inputs: &pipelinespec.TaskInputsSpec{
+				Parameters: map[string]*pipelinespec.TaskInputsSpec_InputParameterSpec{
+					"name": {
+						Kind: &pipelinespec.TaskInputsSpec_InputParameterSpec_ComponentInputParameter{
+							ComponentInputParameter: "item",
+						},
+						ParameterExpressionSelector: "struct_value.name",
+					},
+				},
+			},
+		},
+		Component: &pipelinespec.ComponentSpec{
+			InputDefinitions: &pipelinespec.ComponentInputsSpec{
+				Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{
+					"name": {ParameterType: pipelinespec.ParameterType_STRING},
+				},
+			},
+		},
+	}
+
+	parameters, err := resolveParameters(opts)
+	require.NoError(t, err)
+	require.Len(t, parameters, 1)
+	assert.Equal(t, "42", parameters[0].ParameterIO.GetValue().GetStringValue())
+}
+
+func TestResolveParameters_ValidatesLiterals(t *testing.T) {
+	parentTask := &apiv2beta1.PipelineTask{
+		TaskId: "parent-task",
+		Inputs: &apiv2beta1.PipelineTask_InputOutputs{
+			Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+				{
+					ParameterKey: "mode",
+					Value:        structpb.NewStringValue("invalid"),
+					Producer:     &apiv2beta1.IOProducer{TaskName: "upstream"},
+				},
+			},
+		},
+	}
+
+	opts := common.Options{
+		ParentTask: parentTask,
+		Task: &pipelinespec.PipelineTaskSpec{
+			Inputs: &pipelinespec.TaskInputsSpec{
+				Parameters: map[string]*pipelinespec.TaskInputsSpec_InputParameterSpec{
+					"mode": common.InputParamComponent("mode"),
+				},
+			},
+		},
+		Component: &pipelinespec.ComponentSpec{
+			InputDefinitions: &pipelinespec.ComponentInputsSpec{
+				Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{
+					"mode": {
+						ParameterType: pipelinespec.ParameterType_STRING,
+						Literals: []*structpb.Value{
+							structpb.NewStringValue("train"),
+							structpb.NewStringValue("eval"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, err := resolveParameters(opts)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "validating parameter")
 }

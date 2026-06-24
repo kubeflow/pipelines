@@ -113,19 +113,36 @@ func resolveArtifactComponentInputParameter(
 		return nil, fmt.Errorf("empty component input")
 	}
 
+	var matchingArtifactIO []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact
 	for _, artifactIO := range inputArtifactsIO {
 		ioKey := artifactIO.GetArtifactKey()
 		if key == ioKey {
 			if !common.IsLoopArgument(key) {
-				return artifactIO, nil
+				matchingArtifactIO = append(matchingArtifactIO, artifactIO)
+				continue
 			}
 			if artifactIO.Producer != nil && artifactIO.Producer.Iteration != nil && *artifactIO.Producer.Iteration == int64(opts.IterationIndex) {
-				return artifactIO, nil
+				matchingArtifactIO = append(matchingArtifactIO, artifactIO)
 			}
-			return artifactIO, nil
 		}
 	}
-	return nil, fmt.Errorf("failed to find input artifact %s", key)
+	if len(matchingArtifactIO) == 0 {
+		return nil, fmt.Errorf("failed to find input artifact %s", key)
+	}
+	if len(matchingArtifactIO) == 1 {
+		return matchingArtifactIO[0], nil
+	}
+
+	artifacts := make([]*apiv2beta1.Artifact, 0, len(matchingArtifactIO))
+	for _, artifactIO := range matchingArtifactIO {
+		artifacts = append(artifacts, artifactIO.GetArtifacts()...)
+	}
+	return &apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
+		Artifacts:   artifacts,
+		Type:        matchingArtifactIO[0].GetType(),
+		ArtifactKey: key,
+		Producer:    matchingArtifactIO[0].GetProducer(),
+	}, nil
 
 }
 

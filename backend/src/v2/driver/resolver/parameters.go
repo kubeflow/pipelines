@@ -26,6 +26,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
+	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -33,6 +34,10 @@ import (
 
 func resolveParameters(opts common.Options) ([]ParameterMetadata, error) {
 	var parameters []ParameterMetadata
+	expr, err := expression.New()
+	if err != nil {
+		return nil, err
+	}
 	for key, paramSpec := range opts.Task.GetInputs().GetParameters() {
 		if compParam := opts.Component.GetInputDefinitions().GetParameters()[key]; compParam != nil {
 			// Skip resolving dsl.TaskConfig because that information is only available after initPodSpecPatch and
@@ -77,6 +82,30 @@ func resolveParameters(opts common.Options) ([]ParameterMetadata, error) {
 			return nil, err
 		}
 
+		value := v.GetValue()
+		componentParam := opts.Component.GetInputDefinitions().GetParameters()[key]
+		if selector := paramSpec.GetParameterExpressionSelector(); selector != "" {
+			selectedValue, err := expr.Select(value, selector)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"resolving parameter %q: evaluation of parameter expression selector %q failed: %w",
+					key,
+					selector,
+					err,
+				)
+			}
+			value = selectedValue
+		}
+		if componentParam != nil {
+			value, err = normalizeResolvedParameterValue(key, componentParam, value)
+			if err != nil {
+				return nil, err
+			}
+			if err := util.ValidateLiteralParameter(key, value, componentParam.GetLiterals()); err != nil {
+				return nil, fmt.Errorf("validating parameter %q: %w", key, err)
+			}
+		}
+
 		producer := v.GetProducer()
 		if producer == nil {
 			return nil, fmt.Errorf("producer cannot be nil")
@@ -86,7 +115,7 @@ func resolveParameters(opts common.Options) ([]ParameterMetadata, error) {
 			Key:                key,
 			InputParameterSpec: paramSpec,
 			ParameterIO: &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
-				Value:        v.GetValue(),
+				Value:        value,
 				Type:         ioType,
 				ParameterKey: key,
 				Producer:     producer,
@@ -144,6 +173,63 @@ func resolveParameters(opts common.Options) ([]ParameterMetadata, error) {
 	}
 
 	return parameters, nil
+}
+
+func normalizeResolvedParameterValue(
+	name string,
+	spec *pipelinespec.ComponentInputsSpec_ParameterSpec,
+	value *structpb.Value,
+) (*structpb.Value, error) {
+	if spec == nil {
+		return value, nil
+	}
+	if value == nil {
+		return nil, fmt.Errorf("input parameter %q has no value", name)
+	}
+
+	if spec.GetParameterType() == pipelinespec.ParameterType_STRING {
+		if _, isValueString := value.GetKind().(*structpb.Value_StringValue); isValueString {
+			return value, nil
+		}
+		text, err := util.PBValueToText(value)
+		if err != nil {
+			return nil, fmt.Errorf("converting input parameter %q to string: %w", name, err)
+		}
+		return structpb.NewStringValue(text), nil
+	}
+
+	typeMismatch := func(actual string) error {
+		return fmt.Errorf("input parameter %q type mismatch: expect %s, got %s", name, spec.GetParameterType(), actual)
+	}
+
+	switch value.GetKind().(type) {
+	case *structpb.Value_NullValue:
+		return nil, fmt.Errorf("got null for input parameter %q", name)
+	case *structpb.Value_StringValue:
+		return nil, typeMismatch("string")
+	case *structpb.Value_NumberValue:
+		if spec.GetParameterType() != pipelinespec.ParameterType_NUMBER_DOUBLE &&
+			spec.GetParameterType() != pipelinespec.ParameterType_NUMBER_INTEGER {
+			return nil, typeMismatch("number")
+		}
+	case *structpb.Value_BoolValue:
+		if spec.GetParameterType() != pipelinespec.ParameterType_BOOLEAN {
+			return nil, typeMismatch("bool")
+		}
+	case *structpb.Value_ListValue:
+		if spec.GetParameterType() != pipelinespec.ParameterType_LIST {
+			return nil, typeMismatch("list")
+		}
+	case *structpb.Value_StructValue:
+		if spec.GetParameterType() != pipelinespec.ParameterType_STRUCT &&
+			spec.GetParameterType() != pipelinespec.ParameterType_TASK_FINAL_STATUS &&
+			spec.GetParameterType() != pipelinespec.ParameterType_TASK_CONFIG {
+			return nil, typeMismatch("struct")
+		}
+	default:
+		return nil, fmt.Errorf("parameter %s has unknown protobuf.Value type", name)
+	}
+	return value, nil
 }
 
 func ResolveInputParameter(

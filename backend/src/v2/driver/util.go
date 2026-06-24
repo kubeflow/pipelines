@@ -165,6 +165,122 @@ func pbValueToString(v *structpb.Value) string {
 	}
 }
 
+// resolveSinglePlaceholder resolves a single matched {{$.inputs.parameters['name']}}
+// placeholder to its string value from executorInput.
+func resolveSinglePlaceholder(match string, executorInput *pipelinespec.ExecutorInput) (string, error) {
+	submatch := fullInputParameterRe.FindStringSubmatch(match)
+	if len(submatch) < 2 {
+		return "", fmt.Errorf("failed to extract parameter name from: %s", match)
+	}
+	paramName := submatch[1]
+	val, ok := executorInput.GetInputs().GetParameterValues()[paramName]
+	if !ok {
+		return "", fmt.Errorf("parameter %q not found in executor input", paramName)
+	}
+	return pbValueToString(val), nil
+}
+
+// resolveInputParameterPlaceholders replaces every
+// {{$.inputs.parameters['name']}} placeholder in arg with its resolved value.
+func resolveInputParameterPlaceholders(arg string, executorInput *pipelinespec.ExecutorInput) (string, error) {
+	if !fullInputParameterRe.MatchString(arg) {
+		return arg, nil
+	}
+	var resolveErr error
+	result := fullInputParameterRe.ReplaceAllStringFunc(arg, func(match string) string {
+		if resolveErr != nil {
+			return match
+		}
+		resolved, err := resolveSinglePlaceholder(match, executorInput)
+		if err != nil {
+			resolveErr = err
+			return match
+		}
+		return resolved
+	})
+	if resolveErr != nil {
+		return "", resolveErr
+	}
+	return result, nil
+}
+
+func isConditionClause(arg string) bool {
+	return strings.HasPrefix(strings.TrimSpace(arg), `{"IfPresent":`)
+}
+
+func resolveCondition(arg string, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
+	var ifPresent ifPresentCondition
+	if err := json.Unmarshal([]byte(arg), &ifPresent); err != nil {
+		return nil, fmt.Errorf("failed to parse IfPresent JSON: %w", err)
+	}
+
+	val, isPresent := executorInput.GetInputs().GetParameterValues()[ifPresent.IfPresent.InputName]
+	if isPresent {
+		if _, isNull := val.GetKind().(*structpb.Value_NullValue); isNull {
+			isPresent = false
+		}
+	}
+
+	var values interface{}
+	if isPresent {
+		values = ifPresent.IfPresent.Then
+	} else {
+		values = ifPresent.IfPresent.Else
+	}
+	if values == nil {
+		return []string{}, nil
+	}
+
+	var resolved []string
+	switch v := values.(type) {
+	case string:
+		resolvedArg, err := resolveInputParameterPlaceholders(v, executorInput)
+		if err != nil {
+			return nil, err
+		}
+		resolved = []string{resolvedArg}
+	case []interface{}:
+		for _, item := range v {
+			str, ok := item.(string)
+			if !ok {
+				return nil, fmt.Errorf("non-string item in IfPresent Then/Else array: %T", item)
+			}
+			resolvedArg, err := resolveInputParameterPlaceholders(str, executorInput)
+			if err != nil {
+				return nil, err
+			}
+			resolved = append(resolved, resolvedArg)
+		}
+	default:
+		return nil, fmt.Errorf("unexpected type in IfPresent Then/Else: %T", v)
+	}
+	return resolved, nil
+}
+
+func resolveContainerArgs(args []string, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
+	var resolvedArgs []string
+	for _, arg := range args {
+		if strings.Contains(arg, "$.outputs") {
+			resolvedArgs = append(resolvedArgs, arg)
+			continue
+		}
+		if isConditionClause(arg) {
+			resolved, err := resolveCondition(arg, executorInput)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve condition: %w", err)
+			}
+			resolvedArgs = append(resolvedArgs, resolved...)
+			continue
+		}
+		resolvedArg, err := resolveInputParameterPlaceholders(arg, executorInput)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve input parameters: %w", err)
+		}
+		resolvedArgs = append(resolvedArgs, resolvedArg)
+	}
+	return resolvedArgs, nil
+}
+
 // validateRootDAG contains validation for root DAG driver options.
 func validateRootDAG(opts common.Options) (err error) {
 	defer func() {

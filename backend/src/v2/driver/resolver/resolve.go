@@ -86,18 +86,12 @@ func ResolveInputs(ctx context.Context, opts common.Options) (*InputMetadata, *i
 		if err != nil {
 			return nil, nil, err
 		}
-		if len(pm) == 0 {
-			return nil, nil, fmt.Errorf("parameter iterator is empty")
-		}
 		iterationCount = count
 		inputMetadata.Parameters = append(inputMetadata.Parameters, pm...)
 	case artifactIterator != nil:
 		am, count, err := resolveArtifactIterator(opts, inputMetadata.Artifacts)
 		if err != nil {
 			return nil, nil, err
-		}
-		if len(am) == 0 {
-			return nil, nil, fmt.Errorf("artifact iterator is empty")
 		}
 		iterationCount = count
 		inputMetadata.Artifacts = append(inputMetadata.Artifacts, am...)

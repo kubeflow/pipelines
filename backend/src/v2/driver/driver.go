@@ -181,8 +181,16 @@ func initPodSpecPatch(
 	}
 
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
-	userCmdArgs = append(userCmdArgs, container.Command...)
-	userCmdArgs = append(userCmdArgs, container.Args...)
+	resolvedCommand, err := resolveContainerArgs(container.Command, executorInput)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve container command: %w", err)
+	}
+	resolvedArgs, err := resolveContainerArgs(container.Args, executorInput)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve container args: %w", err)
+	}
+	userCmdArgs = append(userCmdArgs, resolvedCommand...)
+	userCmdArgs = append(userCmdArgs, resolvedArgs...)
 	launcherCmd := []string{
 		component.KFPLauncherPath,
 		"--pipeline_name", pipelineName,
