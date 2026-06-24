@@ -38,8 +38,10 @@ type PipelineVersionSpec struct {
 	Description   string `json:"description,omitempty"`
 	CodeSourceURL string `json:"codeSourceURL,omitempty"`
 	PipelineName  string `json:"pipelineName,omitempty"`
-	VersionName   string `json:"versionName,omitempty"`
-	DisplayName   string `json:"displayName,omitempty"`
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([a-z0-9\.\-]*[a-z0-9])?$`
+	VersionName string `json:"versionName,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Schemaless
 	// +kubebuilder:pruning:PreserveUnknownFields
