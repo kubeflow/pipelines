@@ -445,21 +445,22 @@ func TestCreatePipelineVersion_TransientErrorDuringLookup(t *testing.T) {
 		},
 	}
 
-	// Inject a transient error on the second List call (the one inside
-	// GetPipelineVersionByName → getK8sPipeline). The first List call
-	// (from CreatePipelineVersion → GetPipeline → getK8sPipeline) succeeds.
-	listCallCount := 0
+	// Inject a transient error on the first Get call (the one inside
+	// getPipelineVersionByNameInNamespace during the pre-create collision check).
+	getCallCount := 0
 	transientError := fmt.Errorf("simulated transient API server error")
 	k8sClient := fake.NewClientBuilder().
 		WithScheme(scheme).
 		WithObjects(pipeline, legacyVersion).
 		WithInterceptorFuncs(interceptor.Funcs{
-			List: func(ctx context.Context, client client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
-				listCallCount++
-				if listCallCount == 2 {
-					return transientError
+			Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+				if _, ok := obj.(*v2beta1.PipelineVersion); ok {
+					getCallCount++
+					if getCallCount == 1 {
+						return transientError
+					}
 				}
-				return client.List(ctx, list, opts...)
+				return client.Get(ctx, key, obj, opts...)
 			},
 		}).
 		Build()

@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -886,7 +887,8 @@ func TestFromPipelineVersionModel_EmptyVersionName(t *testing.T) {
 		model.Pipeline{Name: "my-pipeline", Namespace: "default", UUID: "pipeline-123"},
 		model.PipelineVersion{Name: ""},
 	)
-	require.Error(t, err)
+	var userError *util.UserError
+	require.ErrorAs(t, err, &userError)
 	assert.Contains(t, err.Error(), "pipeline version name must not be empty")
 }
 

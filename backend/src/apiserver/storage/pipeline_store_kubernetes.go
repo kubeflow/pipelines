@@ -364,13 +364,21 @@ func (k *PipelineStoreKubernetes) GetPipelineVersion(pipelineVersionId string) (
 	return pipelineVersion.ToModel()
 }
 
+// GetPipelineVersionByName returns a pipeline version by name under the given pipeline.
+// It resolves the pipeline's namespace via getK8sPipeline, then performs a two-stage
+// lookup: first by composite name ({pipelineName}-{versionName}), then by bare name
+// (legacy CRs created before composite naming). Both stages verify ownership via
+// OwnerReferences before returning.
 func (k *PipelineStoreKubernetes) GetPipelineVersionByName(pipelineID, pipelineName, versionName string) (*model.PipelineVersion, error) {
 	k8sPipeline, err := k.getK8sPipeline(pipelineID)
 	if err != nil {
 		return nil, err
 	}
 
-	namespace := k8sPipeline.Namespace
+	return k.getPipelineVersionByNameInNamespace(k8sPipeline.Namespace, pipelineID, pipelineName, versionName)
+}
+
+func (k *PipelineStoreKubernetes) getPipelineVersionByNameInNamespace(namespace, pipelineID, pipelineName, versionName string) (*model.PipelineVersion, error) {
 	pipelineVersion := v2beta1.PipelineVersion{}
 
 	// Try composite name first ({pipelineName}-{versionName})
@@ -398,7 +406,7 @@ func (k *PipelineStoreKubernetes) GetPipelineVersionByName(pipelineID, pipelineN
 	if pvNameErr != nil {
 		return nil, util.NewResourceNotFoundError("PipelineVersion", versionName)
 	}
-	err = k.client.Get(context.TODO(), ctrlclient.ObjectKey{
+	err := k.client.Get(context.TODO(), ctrlclient.ObjectKey{
 		Namespace: namespace,
 		Name:      pvName.Name(),
 	}, &pipelineVersion)
@@ -703,7 +711,7 @@ func (k *PipelineStoreKubernetes) createPipelineVersionWithPipeline(ctx context.
 	}
 
 	// Check for logical name collision (covers legacy bare-name CRs and composite-name CRs)
-	if _, lookupErr := k.GetPipelineVersionByName(pipeline.UUID, pipeline.Name, pipelineVersion.Name); lookupErr == nil {
+	if _, lookupErr := k.getPipelineVersionByNameInNamespace(pipeline.Namespace, pipeline.UUID, pipeline.Name, pipelineVersion.Name); lookupErr == nil {
 		return nil, util.NewAlreadyExistError(
 			"Failed to create a new pipeline version. The name %v already exists. Please specify a new name",
 			pipelineVersion.Name,

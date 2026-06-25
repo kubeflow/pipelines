@@ -23,6 +23,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"google.golang.org/protobuf/encoding/protojson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -99,7 +100,7 @@ type PipelineVersionList struct {
 
 func FromPipelineVersionModel(pipeline model.Pipeline, pipelineVersion model.PipelineVersion) (*PipelineVersion, error) {
 	if pipelineVersion.Name == "" {
-		return nil, fmt.Errorf("pipeline version name must not be empty")
+		return nil, util.NewInvalidInputError("pipeline version name must not be empty")
 	}
 
 	pvName, err := NewPipelineVersionName(pipeline.Name, pipelineVersion.Name)

@@ -1055,6 +1055,8 @@ func (s *PipelineStore) GetPipelineVersion(versionId string) (*model.PipelineVer
 	return version, nil
 }
 
+// pipelineName is unused: the SQL store queries by pipelineID alone. The K8s store
+// needs pipelineName to construct the composite CR name for lookup.
 func (s *PipelineStore) GetPipelineVersionByName(pipelineID, _, versionName string) (*model.PipelineVersion, error) {
 	query, args, err := sq.
 		Select(pipelineVersionColumns...).
