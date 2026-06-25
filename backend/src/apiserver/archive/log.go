@@ -320,6 +320,7 @@ func decompressLogArchiveReader(logReader io.Reader) (io.Reader, func() error, e
 		}
 		return nil, nil, err
 	}
+	// Every gzip-compressed stream starts with the two bytes 0x1f 0x8b.
 	if header[0] != 0x1f || header[1] != 0x8b {
 		return bufferedLogReader, nil, nil
 	}

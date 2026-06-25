@@ -28,6 +28,7 @@ import (
 	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -52,9 +53,9 @@ func compressTarInput(t *testing.T, name string, content string) []byte {
 		Size:     int64(len(contents)),
 		Typeflag: tar.TypeReg,
 	})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	_, err = tw.Write(contents)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Nil(t, tw.Close())
 	assert.Nil(t, gw.Close())
 	return src.Bytes()
@@ -175,7 +176,7 @@ func TestCopyLogFromArchiveReader_AllowsLargeLogLine(t *testing.T) {
 	src := compressInput(t, largeLogLine+"\n")
 
 	err := logArchive.CopyLogFromArchiveReader(bytes.NewReader(src), &dst, opts)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, largeLogLine+"\n", dst.String())
 }
 
@@ -186,14 +187,14 @@ func TestCopyLogFromArchiveReader_FromTarGzipStream(t *testing.T) {
 	src := compressTarInput(t, "main.log", logJsonLines)
 
 	err := logArchive.CopyLogFromArchiveReader(&oneByteReader{content: src}, &dst, opts)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	scanner := bufio.NewScanner(&dst)
-	assert.True(t, scanner.Scan())
+	require.True(t, scanner.Scan())
 	line := scanner.Text()
 	assert.Equal(t, "[INFO] OK", line)
 
-	assert.True(t, scanner.Scan())
+	require.True(t, scanner.Scan())
 	line = scanner.Text()
 	assert.Equal(t, "[ERROR] Unable to connect", line)
 }
@@ -205,7 +206,7 @@ func TestOneByteReaderAllowsZeroLengthRead(t *testing.T) {
 	n, err := reader.Read(buffer)
 
 	assert.Equal(t, 0, n)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, 0, reader.offset)
 }
 
