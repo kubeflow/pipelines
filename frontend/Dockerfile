@@ -20,7 +20,8 @@ RUN npm install --global "$(node -p 'require("./package.json").packageManager')"
 
 # Retry with cache clean as a workaround for an intermittent npm EEXIST/ENOENT
 # race condition where parallel download workers collide on the same cache entry.
-RUN npm ci && npm run postinstall || (npm cache clean --force && npm ci && npm run postinstall)
+# npm ci runs the root postinstall script, which installs server and mock-backend deps.
+RUN npm ci || (npm cache clean --force && npm ci)
 RUN npm run build
 
 RUN mkdir -p ./server/dist && \
