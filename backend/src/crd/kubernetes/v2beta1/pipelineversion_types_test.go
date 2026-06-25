@@ -925,5 +925,5 @@ sdkVersion: kfp-2.13.0`,
 		},
 	)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "Kubernetes naming limits")
+	assert.Contains(t, err.Error(), "Kubernetes 253-character naming limit")
 }

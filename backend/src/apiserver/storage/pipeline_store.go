@@ -105,7 +105,7 @@ type PipelineStoreInterface interface {
 	CreatePipelineVersion(pipelineVersion *model.PipelineVersion) (*model.PipelineVersion, error)
 	GetPipelineVersionWithStatus(pipelineVersionId string, status model.PipelineVersionStatus) (*model.PipelineVersion, error)
 	GetPipelineVersion(pipelineVersionId string) (*model.PipelineVersion, error)
-	GetPipelineVersionByName(pipelineID, pipelineName, versionName string) (*model.PipelineVersion, error)
+	GetPipelineVersionByName(pipelineID, versionName string) (*model.PipelineVersion, error)
 	GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error)
 	ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters map[string]string) ([]*model.PipelineVersion, int, string, error)
 	UpdatePipelineVersionStatus(pipelineVersionId string, status model.PipelineVersionStatus) error
@@ -1055,9 +1055,7 @@ func (s *PipelineStore) GetPipelineVersion(versionId string) (*model.PipelineVer
 	return version, nil
 }
 
-// pipelineName is unused: the SQL store queries by pipelineID alone. The K8s store
-// needs pipelineName to construct the composite CR name for lookup.
-func (s *PipelineStore) GetPipelineVersionByName(pipelineID, _, versionName string) (*model.PipelineVersion, error) {
+func (s *PipelineStore) GetPipelineVersionByName(pipelineID, versionName string) (*model.PipelineVersion, error) {
 	query, args, err := sq.
 		Select(pipelineVersionColumns...).
 		From("pipeline_versions").

@@ -444,7 +444,7 @@ func TestGetK8sPipelineVersionByName(t *testing.T) {
 	store := NewPipelineStoreKubernetes(getClient())
 
 	// Legacy-style CR (bare metadata.name) — should be found via bare-name fallback
-	pipelineVersion, err := store.GetPipelineVersionByName(DefaultFakePipelineIdTwo, "test-pipeline-3", "test-pipeline-version-3")
+	pipelineVersion, err := store.GetPipelineVersionByName(DefaultFakePipelineIdTwo, "test-pipeline-version-3")
 	require.Nil(t, err, "Failed to get Pipeline: %v", err)
 	require.Equalf(t, pipelineVersion.Name, "test-pipeline-version-3", pipelineVersion.Name)
 }
@@ -616,12 +616,12 @@ func TestGetPipelineVersionByName_CompositeNameLookup(t *testing.T) {
 	require.NoError(t, err)
 
 	// Look up each by pipeline ID + bare version name
-	versionA, err := store.GetPipelineVersionByName(DefaultFakePipelineIdThree, "pipeline-alpha", "v1.0")
+	versionA, err := store.GetPipelineVersionByName(DefaultFakePipelineIdThree, "v1.0")
 	require.NoError(t, err)
 	assert.Equal(t, "v1.0", versionA.Name)
 	assert.Equal(t, DefaultFakePipelineIdThree, versionA.PipelineId)
 
-	versionB, err := store.GetPipelineVersionByName(DefaultFakePipelineIdFour, "pipeline-beta", "v1.0")
+	versionB, err := store.GetPipelineVersionByName(DefaultFakePipelineIdFour, "v1.0")
 	require.NoError(t, err)
 	assert.Equal(t, "v1.0", versionB.Name)
 	assert.Equal(t, DefaultFakePipelineIdFour, versionB.PipelineId)
@@ -634,7 +634,7 @@ func TestGetPipelineVersionByName_NotFound(t *testing.T) {
 
 	store := NewPipelineStoreKubernetes(getClient())
 
-	_, err := store.GetPipelineVersionByName(DefaultFakePipelineIdTwo, "test-pipeline-3", "nonexistent")
+	_, err := store.GetPipelineVersionByName(DefaultFakePipelineIdTwo, "nonexistent")
 	require.NotNil(t, err)
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.NotFound)
 }

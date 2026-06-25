@@ -41,7 +41,7 @@ func NewPipelineVersionName(pipelineName, versionName string) (PipelineVersionNa
 		compositeName := pipelineName + "-" + versionName
 		if errs := validation.IsDNS1123Subdomain(compositeName); len(errs) > 0 {
 			return PipelineVersionName{}, util.NewInvalidInputError(
-				"The combined pipeline and version name %q exceeds Kubernetes naming limits: %s",
+				"The combined pipeline and version name %q exceeds the Kubernetes 253-character naming limit: %s",
 				compositeName, strings.Join(errs, "; "),
 			)
 		}

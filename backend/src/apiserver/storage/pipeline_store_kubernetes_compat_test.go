@@ -107,12 +107,12 @@ func TestBackwardCompat_GetPipelineVersionByName_LegacyCR_WrongPipeline(t *testi
 	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
 
 	// Looking up with the wrong pipeline should fail with NotFound
-	_, err := store.GetPipelineVersionByName(DefaultFakePipelineIdThree, "other-pipeline", "shared-version-name")
+	_, err := store.GetPipelineVersionByName(DefaultFakePipelineIdThree, "shared-version-name")
 	require.NotNil(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 
 	// Looking up with the correct pipeline should succeed
-	pv, err := store.GetPipelineVersionByName(DefaultFakePipelineIdTwo, "owner-pipeline", "shared-version-name")
+	pv, err := store.GetPipelineVersionByName(DefaultFakePipelineIdTwo, "shared-version-name")
 	require.NoError(t, err)
 	assert.Equal(t, "shared-version-name", pv.Name)
 }
@@ -172,12 +172,12 @@ func TestBackwardCompat_GetPipelineVersionByName_OwnerRefLabelMismatch(t *testin
 
 	// OwnerRef points to A, label points to B. Querying with B should reject
 	// because ownership is determined by OwnerReferences.
-	_, err := store.GetPipelineVersionByName(DefaultFakePipelineIdThree, "pipeline-b", "mismatch-version")
+	_, err := store.GetPipelineVersionByName(DefaultFakePipelineIdThree, "mismatch-version")
 	require.NotNil(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 
 	// Querying with A (the true owner) should succeed
-	pv, err := store.GetPipelineVersionByName(DefaultFakePipelineIdTwo, "pipeline-a", "mismatch-version")
+	pv, err := store.GetPipelineVersionByName(DefaultFakePipelineIdTwo, "mismatch-version")
 	require.NoError(t, err)
 	assert.Equal(t, "mismatch-version", pv.Name)
 }
@@ -483,7 +483,7 @@ func TestGetPipelineVersionByName_InvalidPipelineId(t *testing.T) {
 
 	store := NewPipelineStoreKubernetes(getClient())
 
-	_, err := store.GetPipelineVersionByName("nonexistent-pipeline-id", "", "v1.0")
+	_, err := store.GetPipelineVersionByName("nonexistent-pipeline-id", "v1.0")
 	require.NotNil(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
@@ -530,7 +530,7 @@ func TestGetPipelineVersionByName_HyphenCollisionFallthrough(t *testing.T) {
 	// Lookup "foo-bar" + "baz" → composite is also "foo-bar-baz", but owned by
 	// pipelineFoo, not pipelineFooBar. The code should detect the ownership
 	// mismatch and fall through to bare-name lookup, which also fails → NotFound.
-	_, err = store.GetPipelineVersionByName(DefaultFakePipelineIdFour, "foo-bar", "baz")
+	_, err = store.GetPipelineVersionByName(DefaultFakePipelineIdFour, "baz")
 	require.NotNil(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
@@ -600,7 +600,7 @@ func TestGetPipelineVersionByName_HyphenCollisionFallbackSuccess(t *testing.T) {
 	// Lookup "foo-bar" + "baz": composite "foo-bar-baz" exists but is owned by
 	// pipeline "foo". The code detects the ownership mismatch, falls back to
 	// bare-name "baz", and finds the legacy CR owned by pipeline "foo-bar".
-	pv, err := store.GetPipelineVersionByName(DefaultFakePipelineIdFour, "foo-bar", "baz")
+	pv, err := store.GetPipelineVersionByName(DefaultFakePipelineIdFour, "baz")
 	require.NoError(t, err)
 	assert.Equal(t, "baz", pv.Name)
 	assert.Equal(t, DefaultFakePipelineIdFour, pv.PipelineId)
@@ -666,7 +666,7 @@ func TestGetPipelineVersionByName_DifferentNamespace(t *testing.T) {
 	require.NoError(t, err)
 
 	// POD_NAMESPACE is "DefaultNS" but the version lives in "UserNS"
-	version, err := store.GetPipelineVersionByName(DefaultFakePipelineIdThree, "user-pipeline", "v1")
+	version, err := store.GetPipelineVersionByName(DefaultFakePipelineIdThree, "v1")
 	require.NoError(t, err)
 	assert.Equal(t, "v1", version.Name)
 	assert.Equal(t, DefaultFakePipelineIdThree, version.PipelineId)

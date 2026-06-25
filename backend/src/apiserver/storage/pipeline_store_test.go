@@ -2131,12 +2131,12 @@ func TestGetPipelineVersionByName_SameNameDifferentPipelines(t *testing.T) {
 		createPipelineVersion(pipelineB.UUID, "v1.0", "", "", "", ""))
 	assert.Nil(t, err)
 
-	versionA, err := pipelineStore.GetPipelineVersionByName(pipelineA.UUID, "", "v1.0")
+	versionA, err := pipelineStore.GetPipelineVersionByName(pipelineA.UUID, "v1.0")
 	assert.Nil(t, err)
 	assert.Equal(t, "v1.0", versionA.Name)
 	assert.Equal(t, pipelineA.UUID, versionA.PipelineId)
 
-	versionB, err := pipelineStore.GetPipelineVersionByName(pipelineB.UUID, "", "v1.0")
+	versionB, err := pipelineStore.GetPipelineVersionByName(pipelineB.UUID, "v1.0")
 	assert.Nil(t, err)
 	assert.Equal(t, "v1.0", versionB.Name)
 	assert.Equal(t, pipelineB.UUID, versionB.PipelineId)
@@ -2158,7 +2158,7 @@ func TestGetPipelineVersionByName_SQL_NotFound(t *testing.T) {
 		createPipelineVersion(DefaultFakePipelineId, "v1.0", "", "", "", ""))
 	assert.Nil(t, err)
 
-	_, err = pipelineStore.GetPipelineVersionByName(DefaultFakePipelineId, "", "nonexistent")
+	_, err = pipelineStore.GetPipelineVersionByName(DefaultFakePipelineId, "nonexistent")
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
@@ -2179,7 +2179,7 @@ func TestGetPipelineVersionByName_WrongPipeline(t *testing.T) {
 		createPipelineVersion(DefaultFakePipelineId, "v1.0", "", "", "", ""))
 	assert.Nil(t, err)
 
-	_, err = pipelineStore.GetPipelineVersionByName("nonexistent-pipeline-id", "", "v1.0")
+	_, err = pipelineStore.GetPipelineVersionByName("nonexistent-pipeline-id", "v1.0")
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }

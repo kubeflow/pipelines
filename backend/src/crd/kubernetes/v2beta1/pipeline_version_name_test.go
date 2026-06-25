@@ -50,5 +50,5 @@ func TestNewPipelineVersionName_CompositeTooLong(t *testing.T) {
 	versionName := strings.Repeat("v", 253)
 	_, err := NewPipelineVersionName("p", versionName)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "Kubernetes naming limits")
+	assert.Contains(t, err.Error(), "Kubernetes 253-character naming limit")
 }
