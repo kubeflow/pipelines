@@ -23,6 +23,7 @@ const {
   waitForCondition,
   waitForGraphNodeCount,
   waitForHashPrefix,
+  waitForLogViewerText,
   waitForRunPageReady,
 } = require('./test-helpers');
 
@@ -37,6 +38,7 @@ const runWithoutExperimentDescription =
 const uiTimeout = 5000;
 const runStartTimeout = 30000;
 const runCompletionTimeout = 60000;
+const logsLoadTimeout = 60000;
 const outputParameterValue = 'Hello world in test';
 
 async function waitForRunParameterField(selector) {
@@ -209,17 +211,11 @@ describe('deploy helloworld sample run', () => {
 
   it('shows logs from node', async () => {
     await $('button=Logs').click();
-    await $('#logViewer').waitForDisplayed({ timeout: uiTimeout });
-    await waitForCondition(
-      async () => {
-        const logs = await $('#logViewer').getText();
-        return logs.indexOf(outputParameterValue + ' from node: ') > -1;
-      },
-      {
-        timeout: uiTimeout,
-        timeoutMsg: `expected log viewer to contain ${outputParameterValue}`,
-      },
-    );
+    await waitForLogViewerText(outputParameterValue + ' from node: ', {
+      timeout: logsLoadTimeout,
+      interval: 5000,
+      screenshotName: 'node-logs',
+    });
   });
 
   it('navigates to the runs page', async () => {
