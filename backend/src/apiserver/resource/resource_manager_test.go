@@ -2823,7 +2823,7 @@ func TestRetryRun_ReopensMLflowParentAndFailedNestedRuns(t *testing.T) {
 
 	runWithPluginOutput, err := manager.GetRun(runDetail.UUID)
 	require.NoError(t, err)
-	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", server.URL+"/runs/parent-run-1", server.URL)
+	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", server.URL+"/runs/parent-run-1")
 	lt, err := apiservermlflow.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
 	require.NoError(t, err)
 	runWithPluginOutput.PluginsOutputString = lt
