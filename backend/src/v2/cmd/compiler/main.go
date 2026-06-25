@@ -36,6 +36,7 @@ var (
 	driver            = flag.String("driver", "", "v2 driver image")
 	pipelineRoot      = flag.String("pipeline_root", "", "pipeline root")
 	cacheDisabledFlag = flag.Bool("cache_disabled", false, "disable caching")
+	experimentID = flag.String("experiment-id", "", "The ID of the experiment to inject into workflow annotations")
 )
 
 func main() {
@@ -71,6 +72,7 @@ func compile(job *pipelinespec.PipelineJob) error {
 		LauncherImage: *launcher,
 		PipelineRoot:  *pipelineRoot,
 		CacheDisabled: *cacheDisabledFlag,
+		ExperimentID: *experimentID,
 	})
 	if err != nil {
 		return err
