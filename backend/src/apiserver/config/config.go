@@ -175,7 +175,6 @@ func LoadSamples(resourceManager *resource.ResourceManager, sampleConfigPath str
 			if util.IsUserErrorCodeMatch(fetchErr, codes.NotFound) {
 				p, configErr = resourceManager.CreatePipeline(&model.Pipeline{
 					Name:        cfg.Name,
-					Namespace:   namespace,
 					DisplayName: pipelineDisplayName,
 					Description: model.LargeText(cfg.Description),
 					Tags:        tags,

@@ -529,6 +529,134 @@ func TestLoadSamples_MalformedTagsIgnoredWhenLoadingSkipped(t *testing.T) {
 	require.NoError(t, LoadSamples(rm, path))
 }
 
+func TestLoadSamples_MultiUserMode_PipelinesVisibleWithoutNamespace(t *testing.T) {
+	viper.Set("MULTIUSER", "true")
+	viper.Set("POD_NAMESPACE", "kubeflow")
+	defer func() {
+		viper.Set("MULTIUSER", "false")
+		viper.Set("POD_NAMESPACE", "")
+	}()
+
+	rm := fakeResourceManager()
+	pc := config{
+		LoadSamplesOnRestart: true,
+		Pipelines: []configPipelines{
+			{
+				Name:        "Sample Pipeline",
+				Description: "multi-user sample",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "Sample Pipeline - Ver 1",
+			},
+		},
+	}
+
+	path, err := writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	// A client querying without a namespace (empty namespace) must still
+	// find the sample pipelines. This matches the artifact proxy test
+	// path: GET /apis/v2beta1/pipelines?page_size=1 with no namespace.
+	pipeline, err := rm.GetPipelineByNameAndNamespace("Sample Pipeline", "")
+	require.NoError(t, err, "sample pipeline must be findable with empty namespace")
+	require.NotNil(t, pipeline)
+
+	// Also verify via ListPipelines with an empty-namespace filter context,
+	// which is how the v2beta1 API handler builds the query.
+	filterContext := &model.FilterContext{
+		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""},
+	}
+	opts, err := list.NewOptions(&model.Pipeline{}, 10, "", nil)
+	require.NoError(t, err)
+	pipelines, totalSize, _, err := rm.ListPipelines(filterContext, opts, nil)
+	require.NoError(t, err)
+	assert.Equal(t, 1, totalSize, "should find exactly 1 sample pipeline with empty namespace filter")
+	assert.Len(t, pipelines, 1)
+}
+
+func TestLoadSamples_MultiUserMode_RestartIdempotency(t *testing.T) {
+	viper.Set("MULTIUSER", "true")
+	viper.Set("POD_NAMESPACE", "kubeflow")
+	defer func() {
+		viper.Set("MULTIUSER", "false")
+		viper.Set("POD_NAMESPACE", "")
+	}()
+
+	rm := fakeResourceManager()
+	pc := config{
+		LoadSamplesOnRestart: true,
+		Pipelines: []configPipelines{
+			{
+				Name:        "Sample Pipeline",
+				Description: "multi-user sample",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "v1",
+			},
+		},
+	}
+
+	path, err := writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	pipeline, err := rm.GetPipelineByNameAndNamespace("Sample Pipeline", "")
+	require.NoError(t, err)
+
+	// Second load (simulates API server restart). The lookup uses
+	// namespace="kubeflow" which won't find the empty-namespace pipeline,
+	// triggering the AlreadyExists fallback.
+	path, err = writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
+	require.NoError(t, err)
+	_, totalSize, _, err := rm.ListPipelineVersions(pipeline.UUID, opts, nil)
+	require.NoError(t, err)
+	assert.Equal(t, 1, totalSize, "restart must not duplicate pipeline version")
+}
+
+func TestLoadSamples_MultiUserMode_RestartNewVersion(t *testing.T) {
+	viper.Set("MULTIUSER", "true")
+	viper.Set("POD_NAMESPACE", "kubeflow")
+	defer func() {
+		viper.Set("MULTIUSER", "false")
+		viper.Set("POD_NAMESPACE", "")
+	}()
+
+	rm := fakeResourceManager()
+	pc := config{
+		LoadSamplesOnRestart: true,
+		Pipelines: []configPipelines{
+			{
+				Name:        "Sample Pipeline",
+				Description: "multi-user sample",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "v1",
+			},
+		},
+	}
+
+	path, err := writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	pipeline, err := rm.GetPipelineByNameAndNamespace("Sample Pipeline", "")
+	require.NoError(t, err)
+
+	// Second load with a new version name (simulates config update + restart).
+	pc.Pipelines[0].VersionName = "v2"
+	path, err = writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
+	require.NoError(t, err)
+	_, totalSize, _, err := rm.ListPipelineVersions(pipeline.UUID, opts, nil)
+	require.NoError(t, err)
+	assert.Equal(t, 2, totalSize, "new version should be created under existing pipeline")
+}
+
 func TestLoadSamples_ExistingPipelineNotRetagged(t *testing.T) {
 	viper.Set("POD_NAMESPACE", "")
 	rm := fakeResourceManager()
