@@ -231,9 +231,15 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		if opts.PipelineRoot != "" {
 			job.RuntimeConfig.GcsOutputDirectory = opts.PipelineRoot
 		}
-		if opts != nil && opts.ExperimentID != "" {
-		wf.Spec.PodMetadata.Annotations["pipelines.kubeflow.org/experiment_id"] = opts.ExperimentID
-	}
+		if opts.ExperimentID != "" {
+ 			if wf.ObjectMeta.Labels == nil {
+ 				wf.ObjectMeta.Labels = map[string]string{}
+ 			}
+ 			wf.ObjectMeta.Labels["pipelines.kubeflow.org/experiment_id"] = opts.ExperimentID
+ 			if wf.Spec.PodMetadata != nil && wf.Spec.PodMetadata.Labels != nil {
+ 				wf.Spec.PodMetadata.Labels["pipelines.kubeflow.org/experiment_id"] = opts.ExperimentID
+ 			}
+ 		}
 	}
 
 	// compile

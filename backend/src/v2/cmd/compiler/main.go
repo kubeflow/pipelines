@@ -36,7 +36,7 @@ var (
 	driver            = flag.String("driver", "", "v2 driver image")
 	pipelineRoot      = flag.String("pipeline_root", "", "pipeline root")
 	cacheDisabledFlag = flag.Bool("cache_disabled", false, "disable caching")
-	experimentID = flag.String("experiment-id", "", "The ID of the experiment to inject into workflow annotations")
+	experimentID = flag.String("experiment_id", "", "The ID of the experiment to inject into workflow annotations")
 )
 
 func main() {
