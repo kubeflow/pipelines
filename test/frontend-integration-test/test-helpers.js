@@ -145,6 +145,15 @@ async function saveDebugScreenshot(name) {
   return screenshotPath;
 }
 
+async function saveDebugScreenshotBestEffort(name) {
+  try {
+    await saveDebugScreenshot(name);
+  } catch (error) {
+    const message = error && error.message ? error.message : String(error);
+    console.log(`Unable to save ${name} debug screenshot: ${message}`);
+  }
+}
+
 async function logPipelineSelectorDiagnostics() {
   const rowCount = await browser.execute(() => document.querySelectorAll('[data-testid="table-row"]').length);
   const emptyMessage = await browser.execute(() => {
@@ -290,7 +299,7 @@ async function waitForLogViewerText(
     console.log('LOG_VIEWER_LAST_STATE', lastLogsState);
     console.log('LOG_VIEWER_LAST_TEXT', lastViewerText.slice(0, 500));
     console.log('LOG_VIEWER_URL', await browser.getUrl());
-    await saveDebugScreenshot(screenshotName);
+    await saveDebugScreenshotBestEffort(screenshotName);
     throw error;
   }
 }
