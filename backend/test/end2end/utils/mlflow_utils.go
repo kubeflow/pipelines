@@ -353,6 +353,62 @@ func WaitForMLflowRunStatus(endpoint, runID, experimentID, expectedStatus string
 	}
 }
 
+// WaitForAllMLflowRunsInStatus polls until every MLflow run in the experiment
+// reaches expectedStatus or timeout expires. Runs whose IDs appear in
+// excludeRunIDs are skipped.
+func WaitForAllMLflowRunsInStatus(endpoint, experimentID, expectedStatus string, excludeRunIDs []string, timeout *time.Duration) error {
+	ginkgo.GinkgoHelper()
+	logger.Log("Waiting for all MLflow runs in experiment %s to reach status %s", experimentID, expectedStatus)
+	maxTimeToWait := time.Duration(300)
+	pollTime := time.Duration(5)
+	if timeout != nil {
+		maxTimeToWait = *timeout
+	}
+	exclude := make(map[string]bool, len(excludeRunIDs))
+	for _, id := range excludeRunIDs {
+		exclude[id] = true
+	}
+	deadline := time.Now().Add(maxTimeToWait * time.Second)
+	ticker := time.NewTicker(pollTime * time.Second)
+	defer ticker.Stop()
+	for {
+		runs, err := QueryMLflowRuns(endpoint, experimentID)
+		if err != nil {
+			if time.Now().After(deadline) {
+				return fmt.Errorf("failed to query MLflow runs in experiment %s: %w", experimentID, err)
+			}
+			logger.Log("Failed to query MLflow runs, retrying: %v", err)
+			<-ticker.C
+			continue
+		}
+		allReady := true
+		for _, run := range runs {
+			if exclude[run.Info.RunID] {
+				continue
+			}
+			if run.Info.Status != expectedStatus {
+				allReady = false
+				logger.Log("MLflow run %s is in %s status, waiting for %s...", run.Info.RunID, run.Info.Status, expectedStatus)
+				break
+			}
+		}
+		if allReady {
+			logger.Log("All MLflow runs in experiment %s reached status %s", experimentID, expectedStatus)
+			return nil
+		}
+		if time.Now().After(deadline) {
+			var notReady []string
+			for _, run := range runs {
+				if !exclude[run.Info.RunID] && run.Info.Status != expectedStatus {
+					notReady = append(notReady, fmt.Sprintf("%s=%s", run.Info.RunID, run.Info.Status))
+				}
+			}
+			return fmt.Errorf("timeout waiting for all MLflow runs in experiment %s to reach %s; not ready: %v", experimentID, expectedStatus, notReady)
+		}
+		<-ticker.C
+	}
+}
+
 func VerifyMLflowRunTags(endpoint, runID, experimentID string, expectedTags map[string]string) error {
 	ginkgo.GinkgoHelper()
 	mlflowRun, err := QueryMLflowRunByID(endpoint, runID, experimentID)
