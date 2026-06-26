@@ -169,7 +169,6 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			PodMetadata: &wfapi.Metadata{
 				Annotations: map[string]string{
 					"pipelines.kubeflow.org/v2_component": "true",
-					"pipelines.kubeflow.org/experiment_id": "",
 				},
 				Labels: map[string]string{
 					"pipelines.kubeflow.org/v2_component": "true",
