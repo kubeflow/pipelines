@@ -927,3 +927,31 @@ sdkVersion: kfp-2.13.0`,
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Kubernetes 253-character naming limit")
 }
+
+func TestFromPipelineVersionModel_SameNameAsPipeline(t *testing.T) {
+	pipeline := model.Pipeline{
+		UUID:      "pipeline-123",
+		Name:      "my-pipeline",
+		Namespace: "default",
+	}
+
+	pipelineVersion := model.PipelineVersion{
+		UUID:       "version-456",
+		Name:       "my-pipeline",
+		PipelineId: "pipeline-123",
+		PipelineSpec: `pipelineInfo:
+  name: my-pipeline
+root:
+  dag:
+    tasks: {}
+schemaVersion: "2.1.0"
+sdkVersion: kfp-2.13.0`,
+	}
+
+	result, err := FromPipelineVersionModel(pipeline, pipelineVersion)
+	require.NoError(t, err)
+
+	// When version name matches pipeline name, metadata.name should be bare (not "my-pipeline-my-pipeline")
+	assert.Equal(t, "my-pipeline", result.Name, "expected bare name, not composite %q", result.Name)
+	assert.Equal(t, "my-pipeline", result.Spec.VersionName)
+}

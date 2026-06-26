@@ -103,7 +103,11 @@ func FromPipelineVersionModel(pipeline model.Pipeline, pipelineVersion model.Pip
 		return nil, util.NewInvalidInputError("pipeline version name must not be empty")
 	}
 
-	pvName, err := NewPipelineVersionName(pipeline.Name, pipelineVersion.Name)
+	pipelineName := pipeline.Name
+	if pipelineName == pipelineVersion.Name {
+		pipelineName = ""
+	}
+	pvName, err := NewPipelineVersionName(pipelineName, pipelineVersion.Name)
 	if err != nil {
 		return nil, err
 	}

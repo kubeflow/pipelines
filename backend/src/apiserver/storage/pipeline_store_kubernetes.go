@@ -206,8 +206,10 @@ func (k *PipelineStoreKubernetes) CreatePipelineAndPipelineVersion(pipeline *mod
 	pipeline.UUID = ""
 	pipelineVersion.UUID = ""
 
-	if _, err := v2beta1.NewPipelineVersionName(pipeline.Name, pipelineVersion.Name); err != nil {
-		return nil, nil, err
+	if pipeline.Name != pipelineVersion.Name {
+		if _, err := v2beta1.NewPipelineVersionName(pipeline.Name, pipelineVersion.Name); err != nil {
+			return nil, nil, err
+		}
 	}
 
 	var err error
