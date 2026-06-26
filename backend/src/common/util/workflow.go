@@ -908,7 +908,7 @@ func (w *Workflow) PatchTemplateOutputArtifacts() {
 type podSpecPatch struct {
 	Containers []struct {
 		Env []struct {
-			Name string `json:"name"`
+			Name  string `json:"name"`
 			Value string `json:"value"`
 		} `json:"env"`
 	} `json:"containers"`
