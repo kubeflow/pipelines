@@ -117,3 +117,11 @@ data:
   ## V1_ALLOWED_NAMESPACES: Comma-separated list of namespaces that are allowed to use v1 pipelines
   ## when BLOCK_V1_PIPELINES is set to true. This is only evaluated if BLOCK_V1_PIPELINES is set to true.
   V1_ALLOWED_NAMESPACES: ""
+  ## USERID_HEADER and USERID_PREFIX define the multi-user identity contract shared
+  ## by the API server, the UI, and the scheduled-workflow controller. They are only
+  ## consumed by the multi-user overlay; in single-user installs they are ignored.
+  ## USERID_HEADER is the HTTP header carrying the authenticated user's identity and
+  ## must match what the auth proxy (e.g. Istio/oidc-authservice) injects.
+  ## USERID_PREFIX is stripped from the header value before it is used as the user id.
+  USERID_HEADER: "kubeflow-userid"
+  USERID_PREFIX: ""
