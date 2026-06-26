@@ -169,6 +169,7 @@ jobs:
         uploadPipelinesWithKubernetesClient: [ "true", "false" ]
         argo_version: [ "v3.7.14", "v4.0.5" ]
         pipeline_store: [ "kubernetes" ]
+         # Pod to Pod TLS manifests are not yet implemented for Kubernetes Native API mode
         
         
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
