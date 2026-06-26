@@ -929,8 +929,8 @@ func nodeHasDebugPauseEnv(node workflowapi.NodeStatus) bool {
 			return false
 		}
 		for _, c := range patch.Containers {
-			for _, e := range c.Env { 
-				if e.Value == "true" &&  (e.Name == "ARGO_DEBUG_PAUSE_AFTER" || e.Name == "ARGO_DEBUG_PAUSE_BEFORE") {
+			for _, e := range c.Env {
+				if e.Value == "true" && (e.Name == "ARGO_DEBUG_PAUSE_AFTER" || e.Name == "ARGO_DEBUG_PAUSE_BEFORE") {
 					return true
 				}
 			}
@@ -942,7 +942,7 @@ func nodeHasDebugPauseEnv(node workflowapi.NodeStatus) bool {
 func (w *Workflow) NodeStatuses() map[string]NodeStatus {
 	rev := make(map[string]NodeStatus, len(w.Status.Nodes))
 	for id, node := range w.Status.Nodes {
-		state:= string(node.Phase) 
+		state := string(node.Phase)
 		if node.Phase == workflowapi.NodeRunning && nodeHasDebugPauseEnv(node) {
 			state = "Paused"
 		}
