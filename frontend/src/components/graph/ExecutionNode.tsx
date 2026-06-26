@@ -38,10 +38,7 @@ export interface ExecutionNodeProps {
 
 function ExecutionNode({ id, data }: ExecutionNodeProps) {
   let icon = data.debugPaused
-    ? getStateIconWrapper(
-        <PauseCircleIcon className='text-mui-orange-600' />,
-        'bg-mui-orange-50',
-      )
+    ? getStateIconWrapper(<PauseCircleIcon className='text-mui-orange-600' />, 'bg-mui-orange-50')
     : getIcon(data.state);
   let executionIcon = getExecutionIcon(data.state);
 

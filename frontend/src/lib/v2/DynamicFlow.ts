@@ -240,9 +240,7 @@ export function updateFlowElementsState(
   );
 
   const debugPauseTasks =
-    pipelineSpec && runIsActive
-      ? getDebugPauseTaskNames(pipelineSpec, layers)
-      : new Set<string>();
+    pipelineSpec && runIsActive ? getDebugPauseTaskNames(pipelineSpec, layers) : new Set<string>();
 
   let flowGraph: PipelineFlowElement[] = [];
 
@@ -273,18 +271,11 @@ export function updateFlowElementsState(
     const updatedElem = cloneFlowElement(elem);
     if (NodeTypeNames.EXECUTION === elem.type) {
       const taskLabel = getTaskLabelByPipelineFlowElement(elem);
-      const executions = getExecutionsUnderDAG(
-        taskNameToExecution,
-        taskLabel,
-        executionLayers,
-      );
+      const executions = getExecutionsUnderDAG(taskNameToExecution, taskLabel, executionLayers);
       if (executions) {
         const state = executions[0]?.getLastKnownState();
         (updatedElem.data as ExecutionFlowElementData).state = state;
-        if (
-          state === Execution.State.COMPLETE &&
-          debugPauseTasks.has(taskLabel)
-        ) {
+        if (state === Execution.State.COMPLETE && debugPauseTasks.has(taskLabel)) {
           (updatedElem.data as ExecutionFlowElementData).debugPaused = true;
         }
         (updatedElem.data as ExecutionFlowElementData).mlmdId = executions[0]?.getId();
