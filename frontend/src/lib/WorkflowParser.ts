@@ -494,11 +494,11 @@ function nodeHasDebugPauseEnv(node: NodeStatus): boolean {
     return false;
   }
   const patchParam = params.find((p) => p.name === 'pod-spec-patch');
-  if(!patchParam?.value) {
+  if (!patchParam?.value) {
     return false;
   }
   let patch: { containers?: Array<{ env?: Array<{ name: string; value: string }> }> };
-  try{
+  try {
     patch = JSON.parse(patchParam.value);
   } catch {
     return false;
