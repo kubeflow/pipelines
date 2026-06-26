@@ -58,8 +58,6 @@ func (h *Handler) OnBeforeRunCreation(ctx context.Context, run *apiserverPlugins
 		return nil, nil
 	}
 
-	endpoint := pluginConfig.Endpoint
-
 	settings := ApplySettingsDefaults(pluginConfig.Settings)
 
 	experimentID, experimentName := SelectMLflowExperiment(h.input, settings)
@@ -67,7 +65,7 @@ func (h *Handler) OnBeforeRunCreation(ctx context.Context, run *apiserverPlugins
 	resolvedCfg := &ResolvedConfig{Config: pluginConfig, Settings: settings}
 	mlflowRequestCtx, err := BuildMLflowRunRequestContext(ctx, h.namespace, resolvedCfg)
 	if err != nil {
-		return FailedPluginOutput(experimentID, experimentName, "", "", endpoint, fmt.Sprintf("failed to build MLflow request context: %v", err)), err
+		return FailedPluginOutput(experimentID, experimentName, "", "", fmt.Sprintf("failed to build MLflow request context: %v", err)), err
 	}
 
 	mlflowExperiment, err := EnsureExperimentExists(
@@ -78,13 +76,13 @@ func (h *Handler) OnBeforeRunCreation(ctx context.Context, run *apiserverPlugins
 		settings.ExperimentDescription,
 	)
 	if err != nil {
-		return FailedPluginOutput(experimentID, experimentName, "", "", endpoint, err.Error()), err
+		return FailedPluginOutput(experimentID, experimentName, "", "", err.Error()), err
 	}
 
 	tags := BuildKFPTags(run, settings.KFPBaseURL, settings.KFPRunURLPathTemplate)
 	parentRunID, err := mlflowRequestCtx.Client.CreateRun(ctx, mlflowExperiment.ID, run.DisplayName, tags)
 	if err != nil {
-		return FailedPluginOutput(mlflowExperiment.ID, mlflowExperiment.Name, "", "", endpoint, err.Error()), err
+		return FailedPluginOutput(mlflowExperiment.ID, mlflowExperiment.Name, "", "", err.Error()), err
 	}
 
 	insecureSkipVerify := false
@@ -113,7 +111,7 @@ func (h *Handler) OnBeforeRunCreation(ctx context.Context, run *apiserverPlugins
 	}
 	mlflowConfigJSON, err := json.Marshal(mlflowRuntimeConfig)
 	if err != nil {
-		return FailedPluginOutput(mlflowExperiment.ID, mlflowExperiment.Name, parentRunID, "", endpoint, fmt.Sprintf("failed to marshal MLflow runtime config: %v", err)), err
+		return FailedPluginOutput(mlflowExperiment.ID, mlflowExperiment.Name, parentRunID, "", fmt.Sprintf("failed to marshal MLflow runtime config: %v", err)), err
 	}
 
 	h.RunStartEnv = map[string]string{
@@ -121,7 +119,7 @@ func (h *Handler) OnBeforeRunCreation(ctx context.Context, run *apiserverPlugins
 	}
 
 	runURL := BuildRunURL(mlflowRequestCtx, mlflowExperiment.ID, parentRunID, settings)
-	return SuccessfulPluginOutput(mlflowExperiment.ID, mlflowExperiment.Name, parentRunID, runURL, endpoint), nil
+	return SuccessfulPluginOutput(mlflowExperiment.ID, mlflowExperiment.Name, parentRunID, runURL), nil
 }
 
 // OnRunEnd marks the MLflow parent run and any active nested runs as
@@ -174,14 +172,6 @@ func (h *Handler) syncMLflowRuns(ctx context.Context, run *apiserverPlugins.Pers
 		glog.Warning(msg)
 		SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_FAILED, msg)
 		return
-	}
-
-	// Use the endpoint stored at run-start time so that in-flight runs
-	// always talk to the MLflow server where their parent run was created,
-	// even if the admin changes the endpoint while the run is in progress.
-	storedEndpoint := GetStringEntry(pluginOutput, EntryEndpoint)
-	if storedEndpoint != "" {
-		config.Endpoint = storedEndpoint
 	}
 
 	settings := ApplySettingsDefaults(config.Settings)

@@ -67,7 +67,7 @@ func (d *Dispatcher) OnBeforeRunCreation(ctx context.Context, run *apiserverPlug
 	if err != nil {
 		message := "MLflow config resolution failed; run creation will continue: " + err.Error()
 		glog.Warningf("MLflow OnBeforeRunCreation failed for run %q (%s)", run.RunID, message)
-		pluginOutput := FailedPluginOutput(selectedID, selectedName, "", "", "", message)
+		pluginOutput := FailedPluginOutput(selectedID, selectedName, "", "", message)
 		if outputErr := SetPendingRunPluginOutput(run, PluginName, pluginOutput); outputErr != nil {
 			glog.Warningf("Failed to persist MLflow plugin output for run %q: %v", run.RunID, outputErr)
 		}
