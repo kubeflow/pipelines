@@ -279,14 +279,14 @@ export function updateFlowElementsState(
         executionLayers,
       );
       if (executions) {
-        let state = executions[0]?.getLastKnownState();
+        const state = executions[0]?.getLastKnownState();
+        (updatedElem.data as ExecutionFlowElementData).state = state;
         if (
           state === Execution.State.COMPLETE &&
           debugPauseTasks.has(taskLabel)
         ) {
-          state = Execution.State.RUNNING;
+          (updatedElem.data as ExecutionFlowElementData).debugPaused = true;
         }
-        (updatedElem.data as ExecutionFlowElementData).state = state;
         (updatedElem.data as ExecutionFlowElementData).mlmdId = executions[0]?.getId();
         // Use ExecutionHelpers.getName() which reads display_name from MLMD custom properties
         (updatedElem.data as ExecutionFlowElementData).label = ExecutionHelpers.getName(

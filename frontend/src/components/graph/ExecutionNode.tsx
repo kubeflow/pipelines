@@ -17,6 +17,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import ErrorIcon from '@mui/icons-material/Error';
 import ListAltIcon from '@mui/icons-material/ListAlt';
+import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
@@ -36,7 +37,12 @@ export interface ExecutionNodeProps {
 }
 
 function ExecutionNode({ id, data }: ExecutionNodeProps) {
-  let icon = getIcon(data.state);
+  let icon = data.debugPaused
+    ? getStateIconWrapper(
+        <PauseCircleIcon className='text-mui-orange-600' />,
+        'bg-mui-orange-50',
+      )
+    : getIcon(data.state);
   let executionIcon = getExecutionIcon(data.state);
 
   const fullWidth = icon ? 'w-64' : 'w-56';
