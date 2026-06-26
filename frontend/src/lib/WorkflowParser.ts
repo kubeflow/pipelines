@@ -504,10 +504,10 @@ function nodeHasDebugPauseEnv(node: NodeStatus): boolean {
     return false;
   }
   return (patch.containers ?? []).some((c) =>
-  (c.env ?? []).some(
-    (e) =>
-      e.value === 'true' &&
-    (e.name === 'ARGO_DEBUG_PAUSE_AFTER' || e.name === 'ARGO_DEBUG_PAUSE_BEFORE'),
-  ),
+    (c.env ?? []).some(
+      (e) =>
+        e.value === 'true' &&
+        (e.name === 'ARGO_DEBUG_PAUSE_AFTER' || e.name === 'ARGO_DEBUG_PAUSE_BEFORE'),
+    ),
   );
 }
