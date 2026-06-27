@@ -10,6 +10,7 @@
     "express": "^5.1.0",
     "form-data": "^2.5.6",
     "google-auth-library": "^7.14.1",
+    "google-protobuf": "^3.17.3",
     "gunzip-maybe": "^1.4.1",
     "http-proxy-middleware": "^2.0.7",
     "js-yaml": "^4.2.0",
