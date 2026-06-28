@@ -62,6 +62,8 @@ type Options struct {
 	// in a dedicated Linux user namespace: UID 0 inside the pod maps to an
 	// unprivileged host UID, so root processes in the container are not root on the host.
 	DefaultHostUsers *bool
+
+	ExperimentID string
 }
 
 const (
@@ -228,6 +230,15 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		if opts.PipelineRoot != "" {
 			job.RuntimeConfig.GcsOutputDirectory = opts.PipelineRoot
 		}
+		if opts.ExperimentID != "" {
+ 			if wf.ObjectMeta.Labels == nil {
+ 				wf.ObjectMeta.Labels = map[string]string{}
+ 			}
+ 			wf.ObjectMeta.Labels["pipelines.kubeflow.org/experiment_id"] = opts.ExperimentID
+ 			if wf.Spec.PodMetadata != nil && wf.Spec.PodMetadata.Labels != nil {
+ 				wf.Spec.PodMetadata.Labels["pipelines.kubeflow.org/experiment_id"] = opts.ExperimentID
+ 			}
+ 		}
 	}
 
 	// compile

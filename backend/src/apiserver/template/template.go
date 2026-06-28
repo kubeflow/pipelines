@@ -149,6 +149,7 @@ type TemplateOptions struct {
 	DefaultRunAsGroup    *int64
 	DefaultRunAsNonRoot  *bool
 	DefaultHostUsers     *bool
+	ExperimentID          string
 }
 
 func New(bytes []byte, opts TemplateOptions) (Template, error) {

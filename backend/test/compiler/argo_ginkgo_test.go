@@ -75,6 +75,10 @@ var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, Workfl
 			envVars:           map[string]string{"CABUNDLE_SECRET_NAME": "test-secret-name"},
 			pipelineFilePaths: []string{filepath.Join(pipelineFilesRootDir, pipelineDirectory, "mounted_cabundle_secret.yaml")},
 		},
+		{
+            compilerOptions:   argocompiler.Options{CacheDisabled: false, ExperimentID: "test-experiment-123"},
+            pipelineFilePaths: allPipelineFiles,
+        },
 	}
 	for _, param := range testParams {
 		Context(fmt.Sprintf("Verify compiled workflow for a pipeline with compiler options cacheDisabled '%v' and env vars %v >", param.compilerOptions.CacheDisabled, param.envVars), Ordered, func() {
@@ -120,6 +124,15 @@ var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, Workfl
 					testutil.CheckIfSkipping(pipelineSpecFileName)
 					pipelineSpecs, platformSpec := workflowutils.LoadPipelineSpecsFromIR(pipelineSpecFilePath, param.compilerOptions.CacheDisabled, nil)
 					compiledWorkflow := workflowutils.GetCompiledArgoWorkflow(pipelineSpecs, platformSpec, &param.compilerOptions)
+					
+                    if param.compilerOptions.ExperimentID != "" {
+                        Expect(compiledWorkflow.ObjectMeta.Labels).NotTo(BeNil(), "Expected workflow labels to be initialized")
+                        Expect(compiledWorkflow.ObjectMeta.Labels["pipelines.kubeflow.org/experiment_id"]).To(Equal(param.compilerOptions.ExperimentID))
+                        
+                        if compiledWorkflow.Spec.PodMetadata != nil && compiledWorkflow.Spec.PodMetadata.Labels != nil {
+                            Expect(compiledWorkflow.Spec.PodMetadata.Labels["pipelines.kubeflow.org/experiment_id"]).To(Equal(param.compilerOptions.ExperimentID))
+                        }
+                    }
 					err := util.NewWorkflow(compiledWorkflow.DeepCopy()).Validate(true, false)
 					Expect(err).NotTo(HaveOccurred(), "Compiled workflow failed Argo validation")
 					if *createMissingGoldenFiles || *updateGoldenFiles {
