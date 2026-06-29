@@ -196,6 +196,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--run_id", runID(),
 		"--run_name", runResourceName(),
 		"--run_display_name", c.job.DisplayName,
+		"--pipeline_job_create_time_utc", runCreationTimeUTC(),
 		"--dag_execution_id", inputValue(paramParentDagID),
 		"--component", inputValue(paramComponent),
 		"--task", inputValue(paramTask),

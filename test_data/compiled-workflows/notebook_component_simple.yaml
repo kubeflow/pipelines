@@ -142,6 +142,8 @@ spec:
       - '{{workflow.name}}'
       - --run_display_name
       - ""
+      - --pipeline_job_create_time_utc
+      - '{{workflow.creationTimestamp}}'
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
@@ -392,6 +394,8 @@ spec:
       - '{{workflow.name}}'
       - --run_display_name
       - ""
+      - --pipeline_job_create_time_utc
+      - '{{workflow.creationTimestamp}}'
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
