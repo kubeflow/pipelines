@@ -216,6 +216,8 @@ from test_data.sdk_compiled_pipelines.valid.pipeline_with_metadata_fields import
     dataset_concatenator as pipeline_with_metadata_fields
 from test_data.sdk_compiled_pipelines.valid.pipeline_with_nested_loops import \
     my_pipeline as nested_loops_pipeline
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_loop_subvars import \
+    my_pipeline as pipeline_with_loop_subvars
 from test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_list_artifacts import \
     my_pipeline as pipeline_with_parallelfor_list_artifacts
 from test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_parallelism import \
@@ -814,6 +816,13 @@ class TestPipelineCompilation:
                 pipeline_func_args=None,
                 compiled_file_name='pipeline_with_loops_and_conditions.yaml',
                 expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/pipeline_with_loops_and_conditions.yaml'
+            ),
+            TestData(
+                pipeline_name='pipeline-with-loop-subvars',
+                pipeline_func=pipeline_with_loop_subvars,
+                pipeline_func_args=None,
+                compiled_file_name='pipeline_with_loop_subvars.yaml',
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/pipeline_with_loop_subvars.yaml'
             ),
             TestData(
                 pipeline_name='pipeline-with-various-io-types',
