@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"time"
 
-	argoclient "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
+	argoclient "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned"
 	"github.com/spf13/viper"
 	"google.golang.org/protobuf/encoding/protojson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
