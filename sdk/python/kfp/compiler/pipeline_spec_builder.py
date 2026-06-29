@@ -176,8 +176,22 @@ def build_task_spec_for_task(
             component_input_parameter = (
                 compiler_utils.additional_input_name_for_pipeline_channel(
                     input_value.loop_argument))
-            assert component_input_parameter in parent_component_inputs.parameters, \
-                f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+
+            # When a LoopArgumentVariable crosses a group boundary (e.g. dsl.If
+            # nested inside dsl.ParallelFor with dict items), the parent group
+            # registers subvar parameters instead of the raw loop argument channel.
+            # Fall back to the subvar-qualified name in that case.
+            if component_input_parameter not in parent_component_inputs.parameters:
+                subvar_input_parameter = (
+                    compiler_utils.additional_input_name_for_pipeline_channel(
+                        input_value))
+                assert subvar_input_parameter in parent_component_inputs.parameters, \
+                    f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+                component_input_parameter = subvar_input_parameter
+            else:
+                assert component_input_parameter in parent_component_inputs.parameters, \
+                    f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+
             pipeline_task_spec.inputs.parameters[
                 input_name].component_input_parameter = (
                     component_input_parameter)
