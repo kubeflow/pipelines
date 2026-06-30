@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"testing"
 
+	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -557,6 +558,89 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 
 	assert.Empty(t, taskConfig.Resources.Limits)
 	assert.Empty(t, taskConfig.Resources.Requests)
+}
+
+func Test_initPodSpecPatch_modelcarDoesNotInheritMLflowCredentialEnvVars(t *testing.T) {
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+		Image:   "python:3.11",
+		Args:    []string{"--function_to_execute", "add"},
+		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
+		Env: []*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar{{
+			Name:  "KEEP_ME",
+			Value: "yes",
+		}},
+	}
+	componentSpec := &pipelinespec.ComponentSpec{}
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"my-model": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{{
+						Uri: "oci://registry.domain.local/my-model:latest",
+					}},
+				},
+			},
+		},
+	}
+	taskConfig := &TaskConfig{}
+
+	pluginEnvVars := []k8score.EnvVar{
+		{Name: commonmlflow.EnvMLflowTrackingToken, Value: "token"},
+		{Name: commonmlflow.EnvMLflowTrackingUsername, Value: "username"},
+		{Name: commonmlflow.EnvMLflowTrackingPassword, Value: "password"},
+	}
+
+	podSpec, err := initPodSpecPatch(
+		containerSpec,
+		componentSpec,
+		executorInput,
+		27,
+		"test",
+		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"my-run-name",
+		"1",
+		"false",
+		"false",
+		taskConfig,
+		false,
+		false,
+		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+		"metadata-grpc-service.kubeflow.svc.local",
+		"8080",
+		pluginEnvVars,
+	)
+	require.NoError(t, err)
+	require.Len(t, podSpec.InitContainers, 1)
+	require.Len(t, podSpec.Containers, 2)
+
+	mainEnvNames := make([]string, 0, len(podSpec.Containers[0].Env))
+	for _, envVar := range podSpec.Containers[0].Env {
+		mainEnvNames = append(mainEnvNames, envVar.Name)
+	}
+	assert.Contains(t, mainEnvNames, commonmlflow.EnvMLflowTrackingToken)
+	assert.Contains(t, mainEnvNames, commonmlflow.EnvMLflowTrackingUsername)
+	assert.Contains(t, mainEnvNames, commonmlflow.EnvMLflowTrackingPassword)
+	assert.Contains(t, mainEnvNames, "KEEP_ME")
+
+	modelcarEnvNames := make([]string, 0, len(podSpec.InitContainers[0].Env))
+	for _, envVar := range podSpec.InitContainers[0].Env {
+		modelcarEnvNames = append(modelcarEnvNames, envVar.Name)
+	}
+	assert.NotContains(t, modelcarEnvNames, commonmlflow.EnvMLflowTrackingToken)
+	assert.NotContains(t, modelcarEnvNames, commonmlflow.EnvMLflowTrackingUsername)
+	assert.NotContains(t, modelcarEnvNames, commonmlflow.EnvMLflowTrackingPassword)
+	assert.Contains(t, modelcarEnvNames, "KEEP_ME")
+
+	sidecarEnvNames := make([]string, 0, len(podSpec.Containers[1].Env))
+	for _, envVar := range podSpec.Containers[1].Env {
+		sidecarEnvNames = append(sidecarEnvNames, envVar.Name)
+	}
+	assert.NotContains(t, sidecarEnvNames, commonmlflow.EnvMLflowTrackingToken)
+	assert.NotContains(t, sidecarEnvNames, commonmlflow.EnvMLflowTrackingUsername)
+	assert.NotContains(t, sidecarEnvNames, commonmlflow.EnvMLflowTrackingPassword)
+	assert.Contains(t, sidecarEnvNames, "KEEP_ME")
 }
 
 // Validate that setting publishLogs to true propagates to the driver container
