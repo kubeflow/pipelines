@@ -35,6 +35,8 @@ type LogFormat string
 const (
 	LogFormatJSON = LogFormat("json-lines")
 	LogFormatText = LogFormat("text")
+
+	maxArchivedLogLineBytes = 1 << 20 // 1 MiB
 )
 
 type ExtractLogOptions struct {
@@ -45,6 +47,7 @@ type ExtractLogOptions struct {
 type LogArchiveInterface interface {
 	GetLogObjectKey(workflow util.ExecutionSpec, nodeId string) (string, error)
 	CopyLogFromArchive(logContent []byte, dst io.Writer, opts ExtractLogOptions) error
+	CopyLogFromArchiveReader(logReader io.Reader, dst io.Writer, opts ExtractLogOptions) error
 }
 
 // Log Archive.
@@ -259,12 +262,21 @@ func (a *LogArchive) GetLogObjectKey(workflow util.ExecutionSpec, nodeID string)
 
 // CopyLogFromArchive copies a task run archived log into expected format.
 func (a *LogArchive) CopyLogFromArchive(logContent []byte, dst io.Writer, opts ExtractLogOptions) error {
-	reader, err := decompressLogArchive(logContent)
+	return a.CopyLogFromArchiveReader(bytes.NewReader(logContent), dst, opts)
+}
+
+// CopyLogFromArchiveReader copies a task run archived log stream into expected format.
+func (a *LogArchive) CopyLogFromArchiveReader(logReader io.Reader, dst io.Writer, opts ExtractLogOptions) error {
+	reader, closeReader, err := decompressLogArchiveReader(logReader)
 	if err != nil {
 		return err
 	}
+	if closeReader != nil {
+		defer closeReader()
+	}
 
 	scanner := bufio.NewScanner(reader)
+	scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), maxArchivedLogLineBytes)
 	for scanner.Scan() {
 		// line := strings.Trim(scanner.LogFormatText(), "\n\r\t ")
 		bytes := scanner.Bytes()
@@ -292,30 +304,54 @@ func (a *LogArchive) CopyLogFromArchive(logContent []byte, dst io.Writer, opts E
 			return util.NewInternalServerError(err, "error in parsing the log lines")
 		}
 	}
+	if err := scanner.Err(); err != nil {
+		return util.NewInternalServerError(err, "error in scanning the log lines")
+	}
 
 	return nil
 }
 
-func decompressLogArchive(logContent []byte) (io.Reader, error) {
-	// Decompress tar archive
-	compressedReader := bytes.NewReader(logContent)
-	decompressedLogs, gzipErr := gzip.NewReader(compressedReader)
-	if gzipErr != nil {
-		// err = util.NewInternalServerError(gzipErr, "Failed to decompress the archived log file")
-		// It's not compressed - use original content
-		return bytes.NewReader(logContent), nil
+func decompressLogArchiveReader(logReader io.Reader) (io.Reader, func() error, error) {
+	bufferedLogReader := bufio.NewReader(logReader)
+	header, err := bufferedLogReader.Peek(2)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return bufferedLogReader, nil, nil
+		}
+		return nil, nil, err
+	}
+	// Every gzip-compressed stream starts with the two bytes 0x1f 0x8b.
+	if header[0] != 0x1f || header[1] != 0x8b {
+		return bufferedLogReader, nil, nil
 	}
 
-	archiveReader := tar.NewReader(decompressedLogs)
-	header, tarErr := archiveReader.Next()
-	if tarErr != nil || header.Typeflag != tar.TypeReg {
-		// It's not a tar archive - use decompressed content
-		compressedReader.Reset(logContent)
-		err := decompressedLogs.Reset(compressedReader)
-		return decompressedLogs, err
-	} else {
-		return archiveReader, nil
+	decompressedLogs, err := gzip.NewReader(bufferedLogReader)
+	if err != nil {
+		return nil, nil, err
 	}
+
+	bufferedDecompressedLogs := bufio.NewReader(decompressedLogs)
+	tarHeader, err := bufferedDecompressedLogs.Peek(512)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return bufferedDecompressedLogs, decompressedLogs.Close, nil
+		}
+		decompressedLogs.Close()
+		return nil, nil, err
+	}
+
+	headerReader := tar.NewReader(bytes.NewReader(tarHeader))
+	headerInfo, err := headerReader.Next()
+	if err != nil || headerInfo.Typeflag != tar.TypeReg {
+		return bufferedDecompressedLogs, decompressedLogs.Close, nil
+	}
+
+	archiveReader := tar.NewReader(bufferedDecompressedLogs)
+	if _, err := archiveReader.Next(); err != nil {
+		decompressedLogs.Close()
+		return nil, nil, err
+	}
+	return archiveReader, decompressedLogs.Close, nil
 }
 
 func writeLogLn(dst io.Writer, log []byte, timestamp []byte, opts ExtractLogOptions) error {

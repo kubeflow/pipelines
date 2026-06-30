@@ -15,16 +15,20 @@
 package archive
 
 import (
+	"archive/tar"
 	"bufio"
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"io"
+	"strings"
 	"testing"
 	"time"
 
 	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -33,9 +37,45 @@ func compressInput(t *testing.T, content string) []byte {
 	gw := gzip.NewWriter(&src)
 	_, err := gw.Write([]byte(content))
 	assert.Nil(t, err)
-	err = gw.Flush()
+	err = gw.Close()
 	assert.Nil(t, err)
 	return src.Bytes()
+}
+
+func compressTarInput(t *testing.T, name string, content string) []byte {
+	src := bytes.Buffer{}
+	gw := gzip.NewWriter(&src)
+	tw := tar.NewWriter(gw)
+	contents := []byte(content)
+	err := tw.WriteHeader(&tar.Header{
+		Name:     name,
+		Mode:     0600,
+		Size:     int64(len(contents)),
+		Typeflag: tar.TypeReg,
+	})
+	require.Nil(t, err)
+	_, err = tw.Write(contents)
+	require.Nil(t, err)
+	assert.Nil(t, tw.Close())
+	assert.Nil(t, gw.Close())
+	return src.Bytes()
+}
+
+type oneByteReader struct {
+	content []byte
+	offset  int
+}
+
+func (r *oneByteReader) Read(p []byte) (int, error) {
+	if len(p) == 0 {
+		return 0, nil
+	}
+	if r.offset >= len(r.content) {
+		return 0, io.EOF
+	}
+	p[0] = r.content[r.offset]
+	r.offset++
+	return 1, nil
 }
 
 var logJsonLines = `
@@ -126,6 +166,48 @@ func TestCopyLogFromArchive_FromJsonToText(t *testing.T) {
 	assert.True(t, scanner.Scan())
 	line = scanner.Text()
 	assert.Equal(t, "[ERROR] Unable to connect", line)
+}
+
+func TestCopyLogFromArchiveReader_AllowsLargeLogLine(t *testing.T) {
+	logArchive := initLogArchive()
+	opts := ExtractLogOptions{LogFormat: LogFormatText, Timestamps: false}
+	dst := bytes.Buffer{}
+	largeLogLine := strings.Repeat("x", bufio.MaxScanTokenSize*2)
+	src := compressInput(t, largeLogLine+"\n")
+
+	err := logArchive.CopyLogFromArchiveReader(bytes.NewReader(src), &dst, opts)
+	require.Nil(t, err)
+	assert.Equal(t, largeLogLine+"\n", dst.String())
+}
+
+func TestCopyLogFromArchiveReader_FromTarGzipStream(t *testing.T) {
+	logArchive := initLogArchive()
+	opts := ExtractLogOptions{LogFormat: LogFormatText, Timestamps: false}
+	dst := bytes.Buffer{}
+	src := compressTarInput(t, "main.log", logJsonLines)
+
+	err := logArchive.CopyLogFromArchiveReader(&oneByteReader{content: src}, &dst, opts)
+	require.Nil(t, err)
+
+	scanner := bufio.NewScanner(&dst)
+	require.True(t, scanner.Scan())
+	line := scanner.Text()
+	assert.Equal(t, "[INFO] OK", line)
+
+	require.True(t, scanner.Scan())
+	line = scanner.Text()
+	assert.Equal(t, "[ERROR] Unable to connect", line)
+}
+
+func TestOneByteReaderAllowsZeroLengthRead(t *testing.T) {
+	reader := &oneByteReader{content: []byte("x")}
+	buffer := make([]byte, 0)
+
+	n, err := reader.Read(buffer)
+
+	assert.Equal(t, 0, n)
+	require.Nil(t, err)
+	assert.Equal(t, 0, reader.offset)
 }
 
 func TestCopyLogFromArchive_FromJsonToTextWithTimestamp(t *testing.T) {
