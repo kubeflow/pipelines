@@ -134,8 +134,9 @@ func (d DBDialect) ConcatAgg(distinct bool, expr, sep string) string {
 	}
 }
 
-// EscapeSQLString escapes single quotes for use in SQL string literals by doubling them.
+// EscapeSQLString escapes backslashes and single quotes for use in SQL string literals.
 func EscapeSQLString(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
 	return strings.ReplaceAll(s, "'", "''")
 }
 
