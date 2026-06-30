@@ -71,7 +71,6 @@ type PluginLimitsConfig struct {
 // a workflow without a corresponding DB entry is eligible for garbage collection.
 // This prevents race conditions where the persistence agent reports a workflow
 // before the API server has finished writing the run record to the database.
-// See https://github.com/kubeflow/pipelines/issues/13342.
 func GetWorkflowGCGracePeriodSeconds() int {
 	return GetIntConfigWithDefault(WorkflowGCGracePeriodSeconds, 120)
 }
