@@ -31,6 +31,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 )
@@ -85,7 +86,7 @@ func TestRunPreflightLengthChecks_FailOnTooLong(t *testing.T) {
 		{Model: &model.Experiment{}, Field: "Name", Max: 128},
 	}
 
-	dialect := GetDialect("sqlite")
+	dialect := dialect.NewDBDialect("sqlite")
 	err := runPreflightLengthChecks(db, dialect, specs)
 	t.Logf("FULL ERR:\n%+v", err)
 	require.Error(t, err)
@@ -98,7 +99,7 @@ func TestRunPreflightLengthChecks_PassWhenOK(t *testing.T) {
 	createOldExperimentSchema(t, db)
 	// no long rows
 
-	dialect := GetDialect("sqlite")
+	dialect := dialect.NewDBDialect("sqlite")
 	err := runPreflightLengthChecks(db, dialect, []validation.ColLenSpec{
 		{Model: &model.Experiment{}, Field: "Name", Max: 128},
 	})

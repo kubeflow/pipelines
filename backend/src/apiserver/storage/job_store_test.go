@@ -22,6 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -38,16 +39,22 @@ const (
 	defaultFakeExpIdTwo = "123e4567-e89b-12d3-a456-426655440001"
 )
 
-func initializeDbAndStore() (*DB, *JobStore) {
-	db := NewFakeDBOrFatal()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+func initializeDBAndStore() (*sql.DB, dialect.DBDialect, *JobStore) {
+	db, testDialect := NewFakeDBOrFatal()
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	if err != nil {
+		panic(err)
+	}
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1", Namespace: "n1"})
-	expStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil))
+	expStore, err = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil), testDialect)
+	if err != nil {
+		panic(err)
+	}
 	expStore.CreateExperiment(&model.Experiment{Name: "exp2", Namespace: "n1"})
 	expStore.CreateExperiment(&model.Experiment{Name: "exp2", Namespace: "n1"})
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil), testDialect)
 	pipeline, _ := pipelineStore.CreatePipeline(&model.Pipeline{Name: "p1"})
-	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil)
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil, testDialect)
 	job1 := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
@@ -95,11 +102,11 @@ func initializeDbAndStore() (*DB, *JobStore) {
 		ExperimentId:   defaultFakeExpIdTwo,
 	}
 	jobStore.CreateJob(job2.ToV1())
-	return db, jobStore
+	return db, testDialect, jobStore
 }
 
 func TestListJobs_Pagination(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDBAndStore()
 	defer db.Close()
 
 	jobsExpected := []*model.Job{
@@ -175,7 +182,7 @@ func TestListJobs_Pagination(t *testing.T) {
 }
 
 func TestListJobs_TotalSizeWithNoFilter(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDBAndStore()
 	defer db.Close()
 
 	opts, _ := list.NewOptions(&model.Job{}, 4, "name", nil)
@@ -188,7 +195,7 @@ func TestListJobs_TotalSizeWithNoFilter(t *testing.T) {
 }
 
 func TestListJobs_TotalSizeWithFilter(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDBAndStore()
 	defer db.Close()
 
 	// Add a filter
@@ -214,7 +221,7 @@ func TestListJobs_TotalSizeWithFilter(t *testing.T) {
 }
 
 func TestListJobs_Pagination_Descent(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDBAndStore()
 	defer db.Close()
 
 	jobsExpected := []*model.Job{
@@ -289,7 +296,7 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 }
 
 func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDBAndStore()
 	defer db.Close()
 
 	jobsExpected := []*model.Job{
@@ -353,7 +360,7 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 }
 
 func TestListJobs_FilterByReferenceKey(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDBAndStore()
 	defer db.Close()
 
 	jobsExpected := []*model.Job{
@@ -400,7 +407,7 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 }
 
 func TestListJobsError(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDBAndStore()
 	defer db.Close()
 
 	db.Close()
@@ -413,7 +420,7 @@ func TestListJobsError(t *testing.T) {
 }
 
 func TestGetJob(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDBAndStore()
 	defer db.Close()
 
 	jobExpected := &model.Job{
@@ -445,7 +452,7 @@ func TestGetJob(t *testing.T) {
 }
 
 func TestGetJob_NotFoundError(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDBAndStore()
 	defer db.Close()
 
 	_, err := jobStore.GetJob("notexist")
@@ -454,7 +461,7 @@ func TestGetJob_NotFoundError(t *testing.T) {
 }
 
 func TestGetJob_InternalError(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDBAndStore()
 	defer db.Close()
 
 	db.Close()
@@ -464,13 +471,14 @@ func TestGetJob_InternalError(t *testing.T) {
 }
 
 func TestCreateJob(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	assert.Nil(t, err)
 	experiment, _ := expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	pipeline, _ := pipelineStore.CreatePipeline(&model.Pipeline{Name: "p1"})
-	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil)
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil, testDialect)
 	job := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
@@ -487,7 +495,7 @@ func TestCreateJob(t *testing.T) {
 		ExperimentId:   experiment.UUID,
 	}
 
-	job, err := jobStore.CreateJob(job.ToV1())
+	job, err = jobStore.CreateJob(job.ToV1())
 	assert.Nil(t, err)
 	jobExpected := &model.Job{
 		UUID:        "1",
@@ -512,20 +520,21 @@ func TestCreateJob(t *testing.T) {
 	assert.Equal(t, jobExpected, newJob.ToV1(), "Got unexpected jobs")
 
 	// Check resource reference exists
-	resourceReferenceStore := NewResourceReferenceStore(db, nil)
+	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	r, err := resourceReferenceStore.GetResourceReference("1", model.JobResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
 	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
 }
 
 func TestCreateJob_V2(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	assert.Nil(t, err)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	pipeline, _ := pipelineStore.CreatePipeline(&model.Pipeline{Name: "p1"})
-	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil)
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil, testDialect)
 	job := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
@@ -545,7 +554,7 @@ func TestCreateJob_V2(t *testing.T) {
 		ExperimentId:   defaultFakeExpId,
 	}
 
-	job, err := jobStore.CreateJob(job.ToV1())
+	job, err = jobStore.CreateJob(job.ToV1())
 	assert.Nil(t, err)
 	jobExpected := &model.Job{
 		UUID:        "1",
@@ -569,16 +578,16 @@ func TestCreateJob_V2(t *testing.T) {
 	assert.Equal(t, jobExpected, job.ToV1(), "Got unexpected jobs")
 
 	// Check resource reference exists
-	resourceReferenceStore := NewResourceReferenceStore(db, nil)
+	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	r, err := resourceReferenceStore.GetResourceReference("1", model.JobResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
 	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
 }
 
 func TestCreateJobError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil)
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil, testDialect)
 	db.Close()
 	job := &model.Job{
 		UUID:        "1",
@@ -593,13 +602,13 @@ func TestCreateJobError(t *testing.T) {
 		ExperimentId: defaultFakeExpId,
 	}
 
-	job, err := jobStore.CreateJob(job.ToV2())
+	_, err := jobStore.CreateJob(job.ToV2())
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected create job to return error")
 }
 
 func TestEnableJob(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDBAndStore()
 	defer db.Close()
 
 	err := jobStore.ChangeJobMode("1", false)
@@ -664,7 +673,7 @@ func TestEnableJob(t *testing.T) {
 }
 
 func TestEnableJob_SkipUpdate(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDBAndStore()
 	defer db.Close()
 
 	err := jobStore.ChangeJobMode("1", true)
@@ -699,7 +708,7 @@ func TestEnableJob_SkipUpdate(t *testing.T) {
 }
 
 func TestEnableJob_DatabaseError(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDBAndStore()
 	defer db.Close()
 
 	db.Close()
@@ -710,7 +719,7 @@ func TestEnableJob_DatabaseError(t *testing.T) {
 }
 
 func TestUpdateJob_Success(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDBAndStore()
 	defer db.Close()
 
 	jobExpected := &model.Job{
@@ -825,7 +834,7 @@ func TestUpdateJob_Success(t *testing.T) {
 }
 
 func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDBAndStore()
 	defer db.Close()
 
 	jobExpected := &model.Job{
@@ -900,7 +909,7 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 }
 
 func TestUpdateJob_RecordNotFound(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDBAndStore()
 	defer db.Close()
 
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
@@ -918,7 +927,7 @@ func TestUpdateJob_RecordNotFound(t *testing.T) {
 }
 
 func TestUpdateJob_InternalError(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDBAndStore()
 	db.Close()
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -936,9 +945,9 @@ func TestUpdateJob_InternalError(t *testing.T) {
 }
 
 func TestDeleteJob(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, testDialect, jobStore := initializeDBAndStore()
 	defer db.Close()
-	resourceReferenceStore := NewResourceReferenceStore(db, nil)
+	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	// Check resource reference exists
 	r, err := resourceReferenceStore.GetResourceReference("1", model.JobResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
@@ -958,7 +967,7 @@ func TestDeleteJob(t *testing.T) {
 }
 
 func TestDeleteJob_InternalError(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDBAndStore()
 	defer db.Close()
 
 	db.Close()
@@ -974,16 +983,74 @@ func TestJobAPIFieldMap(t *testing.T) {
 	}
 }
 
+// TestBuildSelectJobsQuery_PgxPlaceholder verifies that buildSelectJobsQuery
+// produces well-formed $N placeholders for the pgx dialect, with no bare ?
+// and no duplicate numbering.
+//
+// This test encodes three invariants of the squirrel placeholder contract:
+//  1. No bare ? in the final SQL (Dollar conversion covers all sub-queries,
+//     including those nested via FromSelect inside addResourceReferences).
+//  2. $N numbers are globally sequential with no gaps or duplicates. If any
+//     sub-builder inside addResourceReferences used Dollar format prematurely,
+//     its own ?s would become $1,$2 before the outer scan runs,
+//     producing duplicate $1 in the final SQL — caught here by exact string match.
+//  3. args length == max N, and each arg value is in the correct position
+//     (caught by exact args slice match).
+//
+// Background: squirrel's aliasExpr.ToSql() (used by FromSelect) calls each
+// sub-builder's own ToSql() independently. If any sub-builder uses Dollar format,
+// it replaces its own ?s with $1,$2 before the outer builder runs, causing
+// duplicate $1 numbering and mismatched args. The fix is to defer Dollar conversion
+// to the outermost ToSql() call in buildSelectJobsQuery.
+//
+// Why not an integration test? Existing CI tests run against SQLite, which uses
+// Question format and never exercises the pgx Dollar path. This unit test is the
+// only gate that catches placeholder bugs before they reach a real PostgreSQL
+// instance.
+func TestBuildSelectJobsQuery_PgxPlaceholder(t *testing.T) {
+	// Use initializeDBAndStore to get a fully wired store (SQLite DB + time/UUID fakes),
+	// then swap its dialect to pgx. buildSelectJobsQuery only generates SQL — it does
+	// not execute — so the underlying SQLite connection is never used in this test.
+	db, _, jobStore := initializeDBAndStore()
+	defer db.Close()
+	jobStore.dbDialect = dialect.NewDBDialect("pgx")
+
+	filterContext := &model.FilterContext{
+		ReferenceKey: &model.ReferenceKey{
+			Type: model.ExperimentResourceType,
+			ID:   "exp-123",
+		},
+	}
+	opts, err := list.NewOptions(&model.Job{}, 10, "name", nil)
+	assert.Nil(t, err)
+
+	sqlStr, args, err := jobStore.buildSelectJobsQuery(false, opts, filterContext)
+	assert.Nil(t, err)
+
+	// Exact SQL match catches all three invariants simultaneously:
+	//   1. No bare ? (Dollar conversion covered all sub-queries including those nested
+	//      via FromSelect inside addResourceReferences).
+	//   2. $N numbers are globally sequential — if addResourceReferences used Dollar
+	//      format prematurely its $1 would appear twice in the output.
+	//   3. args are in the correct order and count.
+	expectedSQL := `SELECT "jobs".*, '[' || COALESCE((SELECT string_agg("r"."Payload", ',') FROM "resource_references" AS "r" WHERE "r"."ResourceType"='Job' AND "r"."ResourceUUID" = "jobs"."UUID"), '') || ']' AS "refs" FROM (SELECT "UUID", "DisplayName", "Name", "Namespace", "ServiceAccount", "Description", "MaxConcurrency", "NoCatchup", "CreatedAtInSec", "UpdatedAtInSec", "Enabled", "CronScheduleStartTimeInSec", "CronScheduleEndTimeInSec", "Schedule", "PeriodicScheduleStartTimeInSec", "PeriodicScheduleEndTimeInSec", "IntervalSecond", "PipelineId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "Conditions", "RuntimeParameters", "PipelineRoot", "ExperimentUUID", "PipelineVersionId", "PluginsInput" FROM "jobs" WHERE "ExperimentUUID" = $1) AS "jobs" ORDER BY LOWER("jobs"."DisplayName") ASC, "jobs"."UUID" ASC LIMIT 11`
+	assert.Equal(t, expectedSQL, sqlStr,
+		"SQL must use $N placeholders (not ?) and $1 must appear exactly once for ExperimentUUID")
+	assert.Equal(t, []interface{}{"exp-123"}, args,
+		"args must contain exactly the ExperimentUUID bind value at position 0 ($1)")
+}
+
 func TestCreateJobPluginsInput(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer func() { require.NoError(t, db.Close()) }()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	assert.Nil(t, err)
 	experiment, err := expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
 	require.NoError(t, err)
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	pipeline, err := pipelineStore.CreatePipeline(&model.Pipeline{Name: "p1"})
 	require.NoError(t, err)
-	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil)
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil, testDialect)
 
 	t.Run("with data round-trips", func(t *testing.T) {
 		const jobUUID = "plugins-job-1"

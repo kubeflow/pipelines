@@ -103,9 +103,9 @@ func (e *Experiment) GetFieldValue(name string) interface{} {
 }
 
 func (e *Experiment) GetSortByFieldPrefix(name string) string {
-	return "experiments."
+	return "experiments"
 }
 
 func (e *Experiment) GetKeyFieldPrefix() string {
-	return "experiments."
+	return "experiments"
 }
