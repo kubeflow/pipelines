@@ -454,7 +454,13 @@ func uploadPipelineAndVerify(pipelineFilePath string, pipelineName *string, pipe
 	// Validate the created pipeline spec (by API server) matches the input file
 	expectedPipelineSpec := testutil.ParseFileToSpecs(pipelineFilePath, true, nil)
 	logger.Log("Verifying that the generated pipeline spec matches the input yaml file")
+	result, pollVersions := eventuallyListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+		PipelineID: createdPipeline.PipelineID,
+	})
+	Eventually(pollVersions, informerSyncTimeout, informerSyncInterval).Should(Equal(1),
+		"Expected to find only one pipeline version after pipeline upload")
 	versions := testutil.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+	Expect(result.Versions).To(HaveLen(1), "Expected to find only one pipeline version after pipeline upload")
 	Expect(versions).Should(HaveLen(1), "Expected to find only one pipeline version after pipeline upload")
 	actualPipelineSpec := versions[0].PipelineSpec.(map[string]interface{})
 	matcher.MatchPipelineSpecs(actualPipelineSpec, expectedPipelineSpec)
