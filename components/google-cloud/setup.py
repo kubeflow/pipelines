@@ -39,6 +39,7 @@ yaml_data = glob.glob(relative_data_path + "/**/*.yaml", recursive=True)
 json_data = glob.glob(
     relative_data_path + "/**/automl/**/*.json", recursive=True
 )
+
 setuptools.setup(
     name="google-cloud-pipeline-components",
     version=version.__version__,
