@@ -577,6 +577,50 @@ class TestExitHandler(testing_utilities.LocalRunnerEnvironmentTestCase):
         with open(status_file, 'r') as f:
             self.assertEqual(f.read(), 'FAILED')
 
+    def test_exit_handler_runs_when_body_contains_skipped_condition(self):
+        """ExitHandler must still fire when the body contains a False
+        dsl.Condition.
+
+        Regression test for SKIPPED-propagation: the false branch
+        records a SKIPPED status in the IOStore but the outer
+        ExitHandler group as a whole succeeds, so the exit task should
+        run and observe ``state='SUCCEEDED'``. Without skip-aware
+        handling the orchestrator used to misclassify the group's
+        terminal state.
+        """
+        local.init(runner=local.SubprocessRunner(use_venv=True))
+
+        import tempfile
+        status_file = os.path.join(tempfile.mkdtemp(), 'status.txt')
+
+        @dsl.component
+        def never_runs() -> str:
+            raise RuntimeError('body of false condition executed despite skip')
+
+        @dsl.component
+        def always_runs() -> str:
+            return 'ok'
+
+        @dsl.component
+        def exit_with_status(
+            status: dsl.PipelineTaskFinalStatus,
+            status_path: str,
+        ):
+            with open(status_path, 'w') as f:
+                f.write(status.state)
+
+        @dsl.pipeline
+        def status_pipeline(status_path: str, flag: str = 'no'):
+            exit_t = exit_with_status(status_path=status_path)
+            with dsl.ExitHandler(exit_t):
+                with dsl.If(flag == 'yes'):
+                    never_runs()
+                always_runs()
+
+        status_pipeline(status_path=status_file)
+        with open(status_file, 'r') as f:
+            self.assertEqual(f.read(), 'SUCCEEDED')
+
 
 class TestK8sOnlyMethodsWarn(testing_utilities.LocalRunnerEnvironmentTestCase):
     """Tests that K8s-only methods emit warnings instead of errors during local

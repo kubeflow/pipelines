@@ -77,6 +77,8 @@ from test_data.sdk_compiled_pipelines.valid.local_execution.pipeline_with_cachin
     pipeline_with_caching
 from test_data.sdk_compiled_pipelines.valid.local_execution.pipeline_with_collected_artifacts import \
     pipeline_with_collected_artifacts
+from test_data.sdk_compiled_pipelines.valid.local_execution.pipeline_with_parallelfor_and_condition import \
+    pipeline_with_parallelfor_and_condition
 from test_data.sdk_compiled_pipelines.valid.nested_return import nested_return
 from test_data.sdk_compiled_pipelines.valid.output_metrics import \
     output_metrics
@@ -286,6 +288,18 @@ pipeline_func_data = [
         pipeline_func=pipeline_with_k8s_only_methods,
         pipeline_func_args={'message': 'hello'},
         expected_output='hello',
+    ),
+    TestData(
+        name='ParallelFor and Condition high branch',
+        pipeline_func=pipeline_with_parallelfor_and_condition,
+        pipeline_func_args={'threshold': 5.0},
+        expected_output='high:12',
+    ),
+    TestData(
+        name='ParallelFor and Condition low branch',
+        pipeline_func=pipeline_with_parallelfor_and_condition,
+        pipeline_func_args={'threshold': 20.0},
+        expected_output='low:12',
     ),
 ]
 
