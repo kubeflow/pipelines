@@ -240,6 +240,24 @@ class PipelineParameterChannel(PipelineChannel):
             task_name=task_name,
         )
 
+    def __getitem__(self, key: str) -> 'DictSubvariable':
+        """Enables dict-style access to extract values from a dict parameter.
+
+        Args:
+            key: The key to extract from the dict parameter.
+
+        Returns:
+            A DictSubvariable representing the extracted value.
+
+        Example:
+          ::
+
+            @dsl.pipeline
+            def my_pipeline(config: dict):
+                my_component(param=config['key1'])  # Extract 'key1' from config
+        """
+        return DictSubvariable(parent_channel=self, key=key)
+
 
 class PipelineArtifactChannel(PipelineChannel):
     """Represents a pipeline artifact channel.
@@ -283,6 +301,104 @@ class PipelineArtifactChannel(PipelineChannel):
             channel_type=channel_type,
             task_name=task_name,
         )
+
+
+class DictSubvariable(PipelineParameterChannel):
+    """Represents a value extracted from a dict parameter using a key.
+
+    This allows extracting individual values from a dict pipeline parameter
+    without passing the entire dict to a component. The extraction happens
+    at runtime using CEL (Common Expression Language) expressions.
+
+    Supports both single-level and nested access:
+    - Single: config['db_host'] → extracts string value
+    - Nested: config['database']['host'] → extracts nested value
+    - Sub-dict: config['database'] → extracts entire sub-dictionary
+
+    Example:
+      ::
+
+        @dsl.pipeline
+        def my_pipeline(config: dict):
+            # Extract individual keys
+            component1(param=config['db_host'])
+
+            # Extract nested values
+            component2(host=config['database']['host'])
+
+            # Pass sub-dicts
+            component3(db_config=config['database'])
+
+    Attributes:
+        parent_channel: The original PipelineParameterChannel (dict) that this
+            subvariable extracts from.
+        key: The dictionary key to extract.
+    """
+    SUBVAR_DELIMITER = '-subvar-'
+
+    def __init__(
+        self,
+        parent_channel: PipelineParameterChannel,
+        key: str,
+    ):
+        """Initializes a DictSubvariable instance.
+
+        Args:
+            parent_channel: The parent PipelineParameterChannel (dict type) to
+                extract from.
+            key: The dictionary key to extract. Will be used in the CEL
+                expression: parseJson(string_value)["key"]
+
+        Raises:
+            TypeError: If parent_channel is not a PipelineParameterChannel.
+        """
+        if not isinstance(parent_channel, PipelineParameterChannel):
+            raise TypeError(
+                f'parent_channel must be a PipelineParameterChannel, got {type(parent_channel)}'
+            )
+
+        self.parent_channel = parent_channel
+        self.key = key
+
+        # Create a unique name for this subvariable
+        # For nested access, chain the keys: 'config-subvar-database-subvar-host'
+        name = f'{parent_channel.name}{self.SUBVAR_DELIMITER}{key}'
+
+        # Infer the type - use a flexible type that can represent both
+        # primitives and structures. The actual type will be determined
+        # at runtime by the CEL evaluator based on the JSON structure.
+        # We use 'String' as a generic placeholder since the backend's
+        # parseJson() can return any JSON type (string, number, object, array).
+        channel_type = 'String'
+
+        super().__init__(
+            name=name,
+            channel_type=channel_type,
+            task_name=parent_channel.task_name,
+        )
+
+    def __getitem__(self, key: str) -> 'DictSubvariable':
+        """Enables nested dict access by chaining DictSubvariable objects.
+
+        This allows chained access like: config['database']['host']
+        which creates: DictSubvariable(DictSubvariable(config, 'database'), 'host')
+
+        Args:
+            key: The nested key to extract.
+
+        Returns:
+            A new DictSubvariable representing the nested access.
+
+        Example:
+          ::
+
+            config['database']['host']
+            # First call: config.__getitem__('database')
+            #   Returns: DictSubvariable(parent=config, key='database')
+            # Second call: <result>.__getitem__('host')
+            #   Returns: DictSubvariable(parent=<first>, key='host')
+        """
+        return DictSubvariable(parent_channel=self, key=key)
 
 
 class OneOfMixin(PipelineChannel):
