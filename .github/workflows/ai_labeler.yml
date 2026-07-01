@@ -1,0 +1,37 @@
+name: AI Issue Labeler
+on:
+  issues:
+    types: [opened, edited]
+
+env:
+  TARGET_MODEL: "openai/gpt-4o-mini"
+
+jobs:
+  label-issue:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+      models: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Execute AI Issue Triage
+        id: ai_logic
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TITLE: ${{ github.event.issue.title }}
+          RAW_BODY: ${{ github.event.issue.body }}
+        run: |
+          chmod +x ./.github/scripts/ai_triage.sh
+          ./.github/scripts/ai_triage.sh
+
+      - name: Apply Quality Analysis Comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPORT: ${{ steps.ai_logic.outputs.analysis }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --body "## 🤖 AI Issue Quality Review
+          $REPORT"
