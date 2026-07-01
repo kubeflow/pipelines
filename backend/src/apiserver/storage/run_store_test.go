@@ -16,8 +16,10 @@ package storage
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"sort"
+	"strings"
 	"testing"
 
 	sq "github.com/Masterminds/squirrel"
@@ -240,7 +242,7 @@ func TestListRuns_Pagination(t *testing.T) {
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
-	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
+	opts, err = list.NewOptionsFromToken(&model.Run{}, nextPageToken, 1)
 	assert.Nil(t, err)
 	runs, total_size, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
@@ -346,7 +348,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
-	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
+	opts, err = list.NewOptionsFromToken(&model.Run{}, nextPageToken, 1)
 	assert.Nil(t, err)
 	runs, total_size, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
@@ -368,7 +370,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
-	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
+	opts, err = list.NewOptionsFromToken(&model.Run{}, nextPageToken, 1)
 	assert.Nil(t, err)
 	runs, total_size, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
@@ -383,31 +385,51 @@ func TestListRuns_MetricSortInjectionSafe(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
 
-	// A malicious sortBy value attempting SQL injection through the metric name.
-	// The payload has no spaces so it passes format validation and reaches SQL
-	// generation. Prior to the fix, opts.SortByFieldName was concatenated directly
-	// into SQL structure (alias and JOIN predicate). After the fix, the metric name
-	// is passed as a bind parameter and the SQL alias is the fixed string
-	// "sort_metric_value", so this must execute without error.
+	// SQL injection through the metric name is closed by parameterization, not
+	// by rejecting the name's character shape: the metric name is always bound
+	// as a "?" parameter (run_metrics.name=?) and the SQL alias is the fixed
+	// constant "sort_metric_value", never user input. validateBindValue only
+	// guards unrelated hygiene concerns (length, control characters) — see
+	// "Two independent checks" in PAGE_TOKEN_SORT_DESIGN.md — so a
+	// shape-only payload like this one is expected to pass validation and be
+	// rendered harmless by parameterization, not rejected up front.
 	maliciousSort := "metric:';DROP/**/TABLE/**/run_metrics;--"
 	opts, err := list.NewOptions(&model.Run{}, 10, maliciousSort, nil)
-	assert.Nil(t, err)
+	assert.Nil(t, err, "shape-only payload is not rejected by validateBindValue; safety comes from parameterization")
 
+	// Confirm the malicious "metric name" is rendered harmless: it never
+	// reaches SQL structure, so listing runs succeeds and the run_metrics
+	// table is untouched (no DROP TABLE occurred).
 	runs, _, _, err := runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
-	assert.Nil(t, err, "SQL injection payload must not cause a query error")
-	// Runs are returned but without a matching metric value (NULL join), so
-	// ordering is stable but no metric value is injected into SQL structure.
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}},
+		opts)
+	assert.Nil(t, err, "malicious metric name must be rendered harmless by parameterization, not by rejection")
 	assert.NotNil(t, runs)
 
-	// Verify the run_metrics table was NOT dropped by confirming a normal
-	// metric-sort query still works.
+	// Verify the run_metrics table was NOT touched by confirming a normal
+	// metric-sort query still works and is itself injection-safe (the metric
+	// name is bound, the alias is the fixed constant).
 	opts2, err := list.NewOptions(&model.Run{}, 10, "metric:dummymetric", nil)
 	assert.Nil(t, err)
-	_, _, _, err = runStore.ListRuns(
+	runs2, _, _, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}},
 		opts2)
-	assert.Nil(t, err, "run_metrics table must still exist after injection attempt")
+	assert.Nil(t, err, "run_metrics table must still exist and normal metric sort must work")
+	assert.NotNil(t, runs2)
+}
+
+// TestListRuns_MetricBindValueHygieneRejected verifies validateBindValue's
+// actual job: rejecting control characters and oversized values in a metric
+// name, independent of SQL-shape concerns (those are covered by
+// TestListRuns_MetricSortInjectionSafe above).
+func TestListRuns_MetricBindValueHygieneRejected(t *testing.T) {
+	controlCharSort := "metric:bad\nname"
+	_, err := list.NewOptions(&model.Run{}, 10, controlCharSort, nil)
+	assert.NotNil(t, err, "metric name with a control character must be rejected")
+
+	oversizedSort := "metric:" + strings.Repeat("a", 300)
+	_, err = list.NewOptions(&model.Run{}, 10, oversizedSort, nil)
+	assert.NotNil(t, err, "oversized metric name must be rejected")
 }
 
 // TestListRuns_HyphenatedMetricSort verifies that metric names containing
@@ -436,12 +458,50 @@ func TestListRuns_HyphenatedMetricSort(t *testing.T) {
 
 	// Page 2: the page token carries SortByFieldName="log-loss". Unmarshalling
 	// it must succeed (i.e. the identifier regex must NOT be applied to metric names).
-	opts2, err := list.NewOptionsFromToken(nextPageToken, 1)
+	opts2, err := list.NewOptionsFromToken(&model.Run{}, nextPageToken, 1)
 	assert.Nil(t, err, "NewOptionsFromToken must not reject hyphenated metric name in pageToken")
 	_, _, _, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}},
 		opts2)
 	assert.Nil(t, err, "page-2 ListRuns must succeed with hyphenated metric name in pageToken")
+}
+
+// TestListRuns_VersionATokenIdentifierSafeMetricResolved is a regression
+// guard for the previously-documented "known limitation": a version-A page
+// token (oldest layout, no SortByMetricName/SortBySQLColumn marker fields)
+// whose SortByFieldName happens to be an identifier-safe metric name (e.g.
+// "accuracy") used to be indistinguishable from a real column and was left
+// as a regular sort, causing ListRuns to build "ORDER BY accuracy" and fail
+// with an unknown-column database error. listable.IsRegularField in
+// unmarshal() now resolves this at the classification source, so ListRuns
+// must never see that error for any token unmarshal() can produce. This is
+// why no "friendly 400" translation layer was added in RunStore.ListRuns —
+// see PAGE_TOKEN_SORT_DESIGN.md and the plan's "Explicitly out of scope"
+// section.
+func TestListRuns_VersionATokenIdentifierSafeMetricResolved(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	runStore.CreateMetric(&model.RunMetric{RunUUID: "1", NodeID: "node1", Name: "accuracy", NumberValue: 0.9, Format: "RAW"})
+	runStore.CreateMetric(&model.RunMetric{RunUUID: "2", NodeID: "node2", Name: "accuracy", NumberValue: 0.7, Format: "RAW"})
+
+	// Construct a version-A token by hand: only SortByFieldName is set, with
+	// no SortByMetricName/SortBySQLColumn marker — exactly the ambiguous
+	// shape that used to be mistaken for a real column.
+	rawVersionAToken := `{"SortByFieldName":"accuracy","KeyFieldName":"UUID"}`
+	encoded := base64.StdEncoding.EncodeToString([]byte(rawVersionAToken))
+
+	opts, err := list.NewOptionsFromToken(&model.Run{}, encoded, 1)
+	require.Nil(t, err, "unmarshal must accept a version-A token with an identifier-safe metric name")
+	assert.Equal(t, model.MetricSortSQLAlias, opts.SortByFieldName,
+		"SortByFieldName must be migrated to the fixed alias, not left as the literal metric name")
+	assert.Equal(t, "accuracy", opts.SortByMetricName,
+		"SortByMetricName must carry the migrated metric name")
+
+	_, _, _, err = runStore.ListRuns(
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}},
+		opts)
+	assert.Nil(t, err, "ListRuns must not hit an unknown-column database error for a resolved version-A token")
 }
 
 func TestListRuns_TotalSizeWithNoFilter(t *testing.T) {
@@ -580,7 +640,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
-	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
+	opts, err = list.NewOptionsFromToken(&model.Run{}, nextPageToken, 1)
 	assert.Nil(t, err)
 	runs, total_size, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)

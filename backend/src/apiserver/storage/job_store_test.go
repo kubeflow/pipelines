@@ -164,7 +164,7 @@ func TestListJobs_Pagination(t *testing.T) {
 	}
 	jobsExpected2[0] = jobsExpected2[0].ToV1()
 
-	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
+	opts, err = list.NewOptionsFromToken(&model.Job{}, nextPageToken, 1)
 	assert.Nil(t, err)
 	jobs, total_size, newToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
 	jobs[0] = jobs[0].ToV1()
@@ -278,7 +278,7 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 		},
 	}
 	jobsExpected2[0] = jobsExpected2[0].ToV1()
-	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+	opts, err = list.NewOptionsFromToken(&model.Job{}, nextPageToken, 2)
 	assert.Nil(t, err)
 	jobs, total_size, newToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
 	jobs[0] = jobs[0].ToV1()
