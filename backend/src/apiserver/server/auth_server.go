@@ -19,8 +19,8 @@ import (
 	"strings"
 
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -37,12 +37,45 @@ var rbacResourceTypeToGroup = map[string]string{
 	common.RbacResourceTypeVisualizations: common.RbacPipelinesGroup,
 }
 
-type AuthServer struct {
+type AuthServerV1 struct {
 	resourceManager *resource.ResourceManager
 	apiv1beta1.UnimplementedAuthServiceServer
 }
 
-func (s *AuthServer) AuthorizeV1(ctx context.Context, request *api.AuthorizeRequest) (
+type AuthServer struct {
+	resourceManager *resource.ResourceManager
+	apiv2beta1.UnimplementedAuthServiceServer
+}
+
+func (s *AuthServerV1) AuthorizeV1(ctx context.Context, request *apiv1beta1.AuthorizeRequest) (
+	*emptypb.Empty, error,
+) {
+	err := ValidateAuthorizeRequestV1(request)
+	if err != nil {
+		return nil, util.Wrap(err, "Authorize request is not valid")
+	}
+
+	namespace := strings.ToLower(request.GetNamespace())
+	verb := strings.ToLower(request.GetVerb().String())
+	resource := strings.ToLower(request.GetResources().String())
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace:   namespace,
+		Verb:        verb,
+		Group:       rbacResourceTypeToGroup[resource],
+		Version:     common.RbacPipelinesVersion,
+		Resource:    resource,
+		Subresource: "",
+		Name:        "",
+	}
+	err = s.resourceManager.IsAuthorized(ctx, resourceAttributes)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (s *AuthServer) Authorize(ctx context.Context, request *apiv2beta1.AuthorizeRequest) (
 	*emptypb.Empty, error,
 ) {
 	err := ValidateAuthorizeRequest(request)
@@ -70,22 +103,40 @@ func (s *AuthServer) AuthorizeV1(ctx context.Context, request *api.AuthorizeRequ
 	return &emptypb.Empty{}, nil
 }
 
-func ValidateAuthorizeRequest(request *api.AuthorizeRequest) error {
+func ValidateAuthorizeRequestV1(request *apiv1beta1.AuthorizeRequest) error {
 	if request == nil {
 		return util.NewInvalidInputError("request object is empty")
 	}
 	if len(request.Namespace) == 0 {
 		return util.NewInvalidInputError("Namespace is empty. Please specify a valid namespace")
 	}
-	if request.Resources == api.AuthorizeRequest_UNASSIGNED_RESOURCES {
+	if request.Resources == apiv1beta1.AuthorizeRequest_UNASSIGNED_RESOURCES {
 		return util.NewInvalidInputError("Resources not specified. Please specify a valid resources")
 	}
-	if request.Verb == api.AuthorizeRequest_UNASSIGNED_VERB {
+	if request.Verb == apiv1beta1.AuthorizeRequest_UNASSIGNED_VERB {
+		return util.NewInvalidInputError("Verb not specified. Please specify a valid verb")
+	}
+	return nil
+}
+func ValidateAuthorizeRequest(request *apiv2beta1.AuthorizeRequest) error {
+	if request == nil {
+		return util.NewInvalidInputError("request object is empty")
+	}
+	if len(request.Namespace) == 0 {
+		return util.NewInvalidInputError("Namespace is empty. Please specify a valid namespace")
+	}
+	if request.Resources == apiv2beta1.AuthorizeRequest_UNASSIGNED_RESOURCES {
+		return util.NewInvalidInputError("Resources not specified. Please specify a valid resources")
+	}
+	if request.Verb == apiv2beta1.AuthorizeRequest_UNASSIGNED_VERB {
 		return util.NewInvalidInputError("Verb not specified. Please specify a valid verb")
 	}
 	return nil
 }
 
+func NewAuthServerV1(resourceManager *resource.ResourceManager) *AuthServerV1 {
+	return &AuthServerV1{resourceManager: resourceManager}
+}
 func NewAuthServer(resourceManager *resource.ResourceManager) *AuthServer {
 	return &AuthServer{resourceManager: resourceManager}
 }
