@@ -542,7 +542,7 @@ func (c *Controller) syncHandler(ctx context.Context, key string) (
 		processNextItemOperationDuration.WithLabelValues("swfsubmit", "ok").Observe(time.Since(startTime).Seconds())
 	}
 
-	err = c.updateStatus(ctx, swf, submitted, active, completed, nextScheduledEpoch, nowEpoch)
+	err = c.updateStatus(ctx, swf, submitted, active, completed, nextScheduledEpoch)
 	if err != nil {
 		return false, true, swf,
 			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't update swf status: %v", name, err)
@@ -722,13 +722,12 @@ func (c *Controller) updateStatus(
 	submitted bool,
 	active []swfapi.WorkflowStatus,
 	completed []swfapi.WorkflowStatus,
-	nextScheduledEpoch int64,
-	nowEpoch int64) error {
+	nextScheduledEpoch int64) error {
 	// NEVER modify objects from the store. It's a read-only, local cache.
 	// You can use DeepCopy() to make a deep copy of original object and modify this copy
 	// Or create a copy manually for better performance
 	swfCopy := util.NewScheduledWorkflow(swf.Get().DeepCopy())
-	swfCopy.UpdateStatus(nowEpoch, submitted, nextScheduledEpoch, active, completed, c.location)
+	swfCopy.UpdateStatus(submitted, nextScheduledEpoch, active, completed, c.location)
 
 	// Pre-update check: determine if the Workflow (wf) object has actually changed
 	// by comparing its Status.Conditions, Status.WorkflowHistory, and Labels
