@@ -3760,11 +3760,14 @@ func TestReportWorkflowResource_RunNotFound(t *testing.T) {
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 	ctx := context.Background()
 	defer store.Close()
+	// Set CreationTimestamp far in the past so the workflow is beyond the GC grace period.
+	// Use the injected fake time to ensure consistency with manager's time.
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "obsolete",
-			Namespace: "kubeflow",
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
+			Name:              "obsolete",
+			Namespace:         "kubeflow",
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
+			CreationTimestamp: v1.NewTime(store.Time().Now().Add(-10 * time.Minute)),
 		},
 	})
 	store.ExecClient().Execution("kubeflow").Create(ctx, workflow, v1.CreateOptions{})
@@ -3772,6 +3775,39 @@ func TestReportWorkflowResource_RunNotFound(t *testing.T) {
 	require.NotNil(t, err)
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
 	assert.Contains(t, err.Error(), "Run run-id-not-exist not found")
+}
+
+func TestReportWorkflowResource_RunNotFound_WithinGracePeriod(t *testing.T) {
+	// When a workflow is young (within the GC grace period) and its run is not
+	// found in the DB, it should NOT be deleted. Instead, a retryable
+	// UNAVAILABLE error should be returned so the persistence agent retries.
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	ctx := context.Background()
+	defer store.Close()
+
+	// Set CreationTimestamp to a recent time so the workflow is within the grace period.
+	// Use the injected fake time to ensure consistency with manager's time.
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:              "young-workflow",
+			Namespace:         "kubeflow",
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
+			CreationTimestamp: v1.NewTime(store.Time().Now().Add(-10 * time.Second)),
+		},
+	})
+	store.ExecClient().Execution("kubeflow").Create(ctx, workflow, v1.CreateOptions{})
+	_, err := manager.ReportWorkflowResource(ctx, workflow)
+	require.NotNil(t, err)
+	// Should be UNAVAILABLE (retryable), not NOT_FOUND (permanent).
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable),
+		"Expected Unavailable error for young workflow within grace period, got: %v", err)
+	assert.Contains(t, err.Error(), "GC grace period")
+
+	// Verify the workflow was NOT deleted by checking it's still accessible.
+	wf, getErr := store.ExecClient().Execution("kubeflow").Get(ctx, "young-workflow", v1.GetOptions{})
+	assert.Nil(t, getErr, "Workflow should still exist after grace period skip")
+	assert.NotNil(t, wf)
 }
 
 func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
