@@ -14,6 +14,7 @@
 """Functions for creating PipelineSpec proto objects."""
 
 import copy
+import hashlib
 import json
 import typing
 from typing import (Any, DefaultDict, Dict, List, Mapping, Optional, Tuple,
@@ -48,6 +49,93 @@ group_type_to_dsl_class = {
     tasks_group.TasksGroupType.FOR_LOOP: tasks_group.ParallelFor,
     tasks_group.TasksGroupType.EXIT_HANDLER: tasks_group.ExitHandler,
 }
+
+
+def _compute_executor_dedup_key(
+    executor_spec: pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec,
+    per_executor_platform_entries: dict,
+) -> str:
+    """Stable hash of an executor body plus its per-executor platform entries.
+
+    Two executors collapse only when their ExecutorSpec protos are
+    bytewise identical AND their platform entries match. Identical
+    bodies with different node selectors or pod metadata must not share
+    a label, since platform entries are keyed by executor_label.
+    """
+    h = hashlib.sha256()
+    h.update(executor_spec.SerializeToString(deterministic=True))
+    h.update(b'|')
+    h.update(
+        json.dumps(per_executor_platform_entries,
+                   sort_keys=True).encode('utf-8'))
+    return h.hexdigest()
+
+
+def deduplicate_executors_in_place(
+    pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+    platform_spec: pipeline_spec_pb2.PlatformSpec,
+) -> None:
+    """Collapses identical entries in pipeline_spec.deployment_spec.executors.
+
+    Two executor entries are considered identical when their ExecutorSpec
+    protos and their per-executor platform-spec entries are byte-equal.
+    For each equivalence class, the lexicographically smallest label is
+    kept; all other labels are removed and every reference to them is
+    rewritten to the canonical label.
+
+    Mutates pipeline_spec.deployment_spec and platform_spec in place.
+    """
+    deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
+    json_format.ParseDict(
+        json_format.MessageToDict(pipeline_spec.deployment_spec),
+        deployment_config)
+
+    def per_executor_platform_for(label: str) -> dict:
+        out = {}
+        for platform_key, platform_config in platform_spec.platforms.items():
+            executors = platform_config.deployment_spec.executors
+            if label in executors:
+                out[platform_key] = json_format.MessageToDict(executors[label])
+        return out
+
+    # Iterate in sorted order so canonical-label choice is deterministic
+    # regardless of protobuf map iteration order.
+    hash_to_canonical: Dict[str, str] = {}
+    rename_map: Dict[str, str] = {}
+    for label in sorted(deployment_config.executors.keys()):
+        executor_spec = deployment_config.executors[label]
+        key = _compute_executor_dedup_key(executor_spec,
+                                          per_executor_platform_for(label))
+        canonical = hash_to_canonical.get(key)
+        if canonical is None:
+            hash_to_canonical[key] = label
+        elif canonical != label:
+            rename_map[label] = canonical
+
+    if not rename_map:
+        return
+
+    for old_label in rename_map:
+        del deployment_config.executors[old_label]
+    for platform_key in list(platform_spec.platforms.keys()):
+        executors_map = platform_spec.platforms[
+            platform_key].deployment_spec.executors
+        for old_label in rename_map:
+            if old_label in executors_map:
+                del executors_map[old_label]
+
+    def _rewrite(component_spec: pipeline_spec_pb2.ComponentSpec) -> None:
+        if component_spec.executor_label in rename_map:
+            component_spec.executor_label = rename_map[
+                component_spec.executor_label]
+
+    _rewrite(pipeline_spec.root)
+    for component_spec in pipeline_spec.components.values():
+        _rewrite(component_spec)
+
+    pipeline_spec.deployment_spec.Clear()
+    pipeline_spec.deployment_spec.update(
+        json_format.MessageToDict(deployment_config))
 
 
 def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
