@@ -1586,7 +1586,6 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			// Handle run not found in run store error.
 			// Before GC, apply a grace period to avoid deleting workflows whose
 			// DB writes are still in-flight.
-			// See https://github.com/kubeflow/pipelines/issues/13342.
 			gracePeriodSeconds := common.GetWorkflowGCGracePeriodSeconds()
 			gracePeriod := time.Duration(gracePeriodSeconds) * time.Second
 			workflowAge := r.time.Now().Sub(objMeta.CreationTimestamp.Time)
@@ -1594,8 +1593,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 				glog.Warningf(
 					"Workflow name=%q namespace=%q runId=%q not found in run store, "+
 						"but workflow is only %v old (grace period: %v). "+
-						"Skipping GC to allow in-flight DB write to complete. "+
-						"See https://github.com/kubeflow/pipelines/issues/13342",
+						"Skipping GC to allow in-flight DB write to complete. ",
 					execSpec.ExecutionName(), execSpec.ExecutionNamespace(), runId,
 					workflowAge.Round(time.Second), gracePeriod)
 				return nil, util.NewUnavailableServerError(
