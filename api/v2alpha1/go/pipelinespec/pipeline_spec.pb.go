@@ -303,6 +303,64 @@ func (PipelineTaskSpec_TriggerPolicy_TriggerStrategy) EnumDescriptor() ([]byte, 
 	return file_pipeline_spec_proto_rawDescGZIP(), []int{13, 1, 0}
 }
 
+// The retry policy controls which failure types trigger a retry attempt.
+// Maps directly to Argo Workflows retryStrategy.retryPolicy.
+// Defaults to POLICY_UNSPECIFIED, which behaves like POLICY_ON_FAILURE.
+type PipelineTaskSpec_RetryPolicy_Policy int32
+
+const (
+	PipelineTaskSpec_RetryPolicy_POLICY_UNSPECIFIED        PipelineTaskSpec_RetryPolicy_Policy = 0
+	PipelineTaskSpec_RetryPolicy_POLICY_ALWAYS             PipelineTaskSpec_RetryPolicy_Policy = 1
+	PipelineTaskSpec_RetryPolicy_POLICY_ON_FAILURE         PipelineTaskSpec_RetryPolicy_Policy = 2
+	PipelineTaskSpec_RetryPolicy_POLICY_ON_ERROR           PipelineTaskSpec_RetryPolicy_Policy = 3
+	PipelineTaskSpec_RetryPolicy_POLICY_ON_TRANSIENT_ERROR PipelineTaskSpec_RetryPolicy_Policy = 4
+)
+
+// Enum value maps for PipelineTaskSpec_RetryPolicy_Policy.
+var (
+	PipelineTaskSpec_RetryPolicy_Policy_name = map[int32]string{
+		0: "POLICY_UNSPECIFIED",
+		1: "POLICY_ALWAYS",
+		2: "POLICY_ON_FAILURE",
+		3: "POLICY_ON_ERROR",
+		4: "POLICY_ON_TRANSIENT_ERROR",
+	}
+	PipelineTaskSpec_RetryPolicy_Policy_value = map[string]int32{
+		"POLICY_UNSPECIFIED":        0,
+		"POLICY_ALWAYS":             1,
+		"POLICY_ON_FAILURE":         2,
+		"POLICY_ON_ERROR":           3,
+		"POLICY_ON_TRANSIENT_ERROR": 4,
+	}
+)
+
+func (x PipelineTaskSpec_RetryPolicy_Policy) Enum() *PipelineTaskSpec_RetryPolicy_Policy {
+	p := new(PipelineTaskSpec_RetryPolicy_Policy)
+	*p = x
+	return p
+}
+
+func (x PipelineTaskSpec_RetryPolicy_Policy) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PipelineTaskSpec_RetryPolicy_Policy) Descriptor() protoreflect.EnumDescriptor {
+	return file_pipeline_spec_proto_enumTypes[4].Descriptor()
+}
+
+func (PipelineTaskSpec_RetryPolicy_Policy) Type() protoreflect.EnumType {
+	return &file_pipeline_spec_proto_enumTypes[4]
+}
+
+func (x PipelineTaskSpec_RetryPolicy_Policy) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PipelineTaskSpec_RetryPolicy_Policy.Descriptor instead.
+func (PipelineTaskSpec_RetryPolicy_Policy) EnumDescriptor() ([]byte, []int) {
+	return file_pipeline_spec_proto_rawDescGZIP(), []int{13, 2, 0}
+}
+
 type PipelineStateEnum_PipelineTaskState int32
 
 const (
@@ -384,11 +442,11 @@ func (x PipelineStateEnum_PipelineTaskState) String() string {
 }
 
 func (PipelineStateEnum_PipelineTaskState) Descriptor() protoreflect.EnumDescriptor {
-	return file_pipeline_spec_proto_enumTypes[4].Descriptor()
+	return file_pipeline_spec_proto_enumTypes[5].Descriptor()
 }
 
 func (PipelineStateEnum_PipelineTaskState) Type() protoreflect.EnumType {
-	return &file_pipeline_spec_proto_enumTypes[4]
+	return &file_pipeline_spec_proto_enumTypes[5]
 }
 
 func (x PipelineStateEnum_PipelineTaskState) Number() protoreflect.EnumNumber {
@@ -4322,7 +4380,8 @@ type PipelineTaskSpec_RetryPolicy struct {
 	BackoffFactor float64 `protobuf:"fixed64,3,opt,name=backoff_factor,json=backoffFactor,proto3" json:"backoff_factor,omitempty"`
 	// The maximum duration during which the task will be retried according to
 	// the backoff strategy. If unspecified, will set to 1 hour.
-	BackoffMaxDuration *durationpb.Duration `protobuf:"bytes,4,opt,name=backoff_max_duration,json=backoffMaxDuration,proto3" json:"backoff_max_duration,omitempty"`
+	BackoffMaxDuration *durationpb.Duration                `protobuf:"bytes,4,opt,name=backoff_max_duration,json=backoffMaxDuration,proto3" json:"backoff_max_duration,omitempty"`
+	Policy             PipelineTaskSpec_RetryPolicy_Policy `protobuf:"varint,5,opt,name=policy,proto3,enum=ml_pipelines.PipelineTaskSpec_RetryPolicy_Policy" json:"policy,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -4383,6 +4442,13 @@ func (x *PipelineTaskSpec_RetryPolicy) GetBackoffMaxDuration() *durationpb.Durat
 		return x.BackoffMaxDuration
 	}
 	return nil
+}
+
+func (x *PipelineTaskSpec_RetryPolicy) GetPolicy() PipelineTaskSpec_RetryPolicy_Policy {
+	if x != nil {
+		return x.Policy
+	}
+	return PipelineTaskSpec_RetryPolicy_POLICY_UNSPECIFIED
 }
 
 // Iterator related settings.
@@ -5893,8 +5959,7 @@ const file_pipeline_spec_proto_rawDesc = "" +
 	"\x12KUBERNETES_VOLUMES\x10\x06\"\x98\x01\n" +
 	"\x15TaskConfigPassthrough\x12[\n" +
 	"\x05field\x18\x01 \x01(\x0e2E.ml_pipelines.TaskConfigPassthroughType.TaskConfigPassthroughTypeEnumR\x05field\x12\"\n" +
-	"\rapply_to_task\x18\x02 \x01(\bR\vapplyToTask\"\xfe\n" +
-	"\n" +
+	"\rapply_to_task\x18\x02 \x01(\bR\vapplyToTask\"\xc9\f\n" +
 	"\x10PipelineTaskSpec\x12;\n" +
 	"\ttask_info\x18\x01 \x01(\v2\x1e.ml_pipelines.PipelineTaskInfoR\btaskInfo\x124\n" +
 	"\x06inputs\x18\x02 \x01(\v2\x1c.ml_pipelines.TaskInputsSpecR\x06inputs\x12'\n" +
@@ -5916,12 +5981,19 @@ const file_pipeline_spec_proto_rawDesc = "" +
 	"\x0fTriggerStrategy\x12 \n" +
 	"\x1cTRIGGER_STRATEGY_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cALL_UPSTREAM_TASKS_SUCCEEDED\x10\x01\x12 \n" +
-	"\x1cALL_UPSTREAM_TASKS_COMPLETED\x10\x02\x1a\xef\x01\n" +
+	"\x1cALL_UPSTREAM_TASKS_COMPLETED\x10\x02\x1a\xba\x03\n" +
 	"\vRetryPolicy\x12&\n" +
 	"\x0fmax_retry_count\x18\x01 \x01(\x05R\rmaxRetryCount\x12D\n" +
 	"\x10backoff_duration\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x0fbackoffDuration\x12%\n" +
 	"\x0ebackoff_factor\x18\x03 \x01(\x01R\rbackoffFactor\x12K\n" +
-	"\x14backoff_max_duration\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\x12backoffMaxDuration\x1a=\n" +
+	"\x14backoff_max_duration\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\x12backoffMaxDuration\x12I\n" +
+	"\x06policy\x18\x05 \x01(\x0e21.ml_pipelines.PipelineTaskSpec.RetryPolicy.PolicyR\x06policy\"~\n" +
+	"\x06Policy\x12\x16\n" +
+	"\x12POLICY_UNSPECIFIED\x10\x00\x12\x11\n" +
+	"\rPOLICY_ALWAYS\x10\x01\x12\x15\n" +
+	"\x11POLICY_ON_FAILURE\x10\x02\x12\x13\n" +
+	"\x0fPOLICY_ON_ERROR\x10\x03\x12\x1d\n" +
+	"\x19POLICY_ON_TRANSIENT_ERROR\x10\x04\x1a=\n" +
 	"\x0eIteratorPolicy\x12+\n" +
 	"\x11parallelism_limit\x18\x01 \x01(\x05R\x10parallelismLimitB\n" +
 	"\n" +
@@ -6178,280 +6250,282 @@ func file_pipeline_spec_proto_rawDescGZIP() []byte {
 	return file_pipeline_spec_proto_rawDescData
 }
 
-var file_pipeline_spec_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_pipeline_spec_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
 var file_pipeline_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 110)
 var file_pipeline_spec_proto_goTypes = []any{
 	(PrimitiveType_PrimitiveTypeEnum)(0),                         // 0: ml_pipelines.PrimitiveType.PrimitiveTypeEnum
 	(ParameterType_ParameterTypeEnum)(0),                         // 1: ml_pipelines.ParameterType.ParameterTypeEnum
 	(TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum)(0), // 2: ml_pipelines.TaskConfigPassthroughType.TaskConfigPassthroughTypeEnum
 	(PipelineTaskSpec_TriggerPolicy_TriggerStrategy)(0),          // 3: ml_pipelines.PipelineTaskSpec.TriggerPolicy.TriggerStrategy
-	(PipelineStateEnum_PipelineTaskState)(0),                     // 4: ml_pipelines.PipelineStateEnum.PipelineTaskState
-	(*PipelineJob)(nil),                                          // 5: ml_pipelines.PipelineJob
-	(*PipelineSpec)(nil),                                         // 6: ml_pipelines.PipelineSpec
-	(*ComponentSpec)(nil),                                        // 7: ml_pipelines.ComponentSpec
-	(*DagSpec)(nil),                                              // 8: ml_pipelines.DagSpec
-	(*DagOutputsSpec)(nil),                                       // 9: ml_pipelines.DagOutputsSpec
-	(*ComponentInputsSpec)(nil),                                  // 10: ml_pipelines.ComponentInputsSpec
-	(*ComponentOutputsSpec)(nil),                                 // 11: ml_pipelines.ComponentOutputsSpec
-	(*TaskInputsSpec)(nil),                                       // 12: ml_pipelines.TaskInputsSpec
-	(*TaskOutputsSpec)(nil),                                      // 13: ml_pipelines.TaskOutputsSpec
-	(*PrimitiveType)(nil),                                        // 14: ml_pipelines.PrimitiveType
-	(*ParameterType)(nil),                                        // 15: ml_pipelines.ParameterType
-	(*TaskConfigPassthroughType)(nil),                            // 16: ml_pipelines.TaskConfigPassthroughType
-	(*TaskConfigPassthrough)(nil),                                // 17: ml_pipelines.TaskConfigPassthrough
-	(*PipelineTaskSpec)(nil),                                     // 18: ml_pipelines.PipelineTaskSpec
-	(*ArtifactIteratorSpec)(nil),                                 // 19: ml_pipelines.ArtifactIteratorSpec
-	(*ParameterIteratorSpec)(nil),                                // 20: ml_pipelines.ParameterIteratorSpec
-	(*ComponentRef)(nil),                                         // 21: ml_pipelines.ComponentRef
-	(*PipelineInfo)(nil),                                         // 22: ml_pipelines.PipelineInfo
-	(*ArtifactTypeSchema)(nil),                                   // 23: ml_pipelines.ArtifactTypeSchema
-	(*PipelineTaskInfo)(nil),                                     // 24: ml_pipelines.PipelineTaskInfo
-	(*ValueOrRuntimeParameter)(nil),                              // 25: ml_pipelines.ValueOrRuntimeParameter
-	(*PipelineDeploymentConfig)(nil),                             // 26: ml_pipelines.PipelineDeploymentConfig
-	(*Value)(nil),                                                // 27: ml_pipelines.Value
-	(*RuntimeArtifact)(nil),                                      // 28: ml_pipelines.RuntimeArtifact
-	(*ArtifactList)(nil),                                         // 29: ml_pipelines.ArtifactList
-	(*ExecutorInput)(nil),                                        // 30: ml_pipelines.ExecutorInput
-	(*ExecutorOutput)(nil),                                       // 31: ml_pipelines.ExecutorOutput
-	(*PipelineTaskFinalStatus)(nil),                              // 32: ml_pipelines.PipelineTaskFinalStatus
-	(*PipelineStateEnum)(nil),                                    // 33: ml_pipelines.PipelineStateEnum
-	(*PlatformSpec)(nil),                                         // 34: ml_pipelines.PlatformSpec
-	(*SinglePlatformSpec)(nil),                                   // 35: ml_pipelines.SinglePlatformSpec
-	(*PlatformDeploymentConfig)(nil),                             // 36: ml_pipelines.PlatformDeploymentConfig
-	(*WorkspaceConfig)(nil),                                      // 37: ml_pipelines.WorkspaceConfig
-	(*KubernetesWorkspaceConfig)(nil),                            // 38: ml_pipelines.KubernetesWorkspaceConfig
-	(*PipelineConfig)(nil),                                       // 39: ml_pipelines.PipelineConfig
-	nil,                                                          // 40: ml_pipelines.PipelineJob.LabelsEntry
-	(*PipelineJob_RuntimeConfig)(nil),                            // 41: ml_pipelines.PipelineJob.RuntimeConfig
-	nil,                                                          // 42: ml_pipelines.PipelineJob.RuntimeConfig.ParametersEntry
-	nil,                                                          // 43: ml_pipelines.PipelineJob.RuntimeConfig.ParameterValuesEntry
-	(*PipelineSpec_RuntimeParameter)(nil),                        // 44: ml_pipelines.PipelineSpec.RuntimeParameter
-	nil,                                                          // 45: ml_pipelines.PipelineSpec.ComponentsEntry
-	nil,                                                          // 46: ml_pipelines.DagSpec.TasksEntry
-	(*DagOutputsSpec_ArtifactSelectorSpec)(nil),                  // 47: ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec
-	(*DagOutputsSpec_DagOutputArtifactSpec)(nil),                 // 48: ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec
-	nil, // 49: ml_pipelines.DagOutputsSpec.ArtifactsEntry
-	(*DagOutputsSpec_ParameterSelectorSpec)(nil),     // 50: ml_pipelines.DagOutputsSpec.ParameterSelectorSpec
-	(*DagOutputsSpec_ParameterSelectorsSpec)(nil),    // 51: ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec
-	(*DagOutputsSpec_MapParameterSelectorsSpec)(nil), // 52: ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec
-	(*DagOutputsSpec_DagOutputParameterSpec)(nil),    // 53: ml_pipelines.DagOutputsSpec.DagOutputParameterSpec
-	nil,                                      // 54: ml_pipelines.DagOutputsSpec.ParametersEntry
-	nil,                                      // 55: ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.MappedParametersEntry
-	(*ComponentInputsSpec_ArtifactSpec)(nil), // 56: ml_pipelines.ComponentInputsSpec.ArtifactSpec
-	(*ComponentInputsSpec_ParameterSpec)(nil), // 57: ml_pipelines.ComponentInputsSpec.ParameterSpec
-	nil, // 58: ml_pipelines.ComponentInputsSpec.ArtifactsEntry
-	nil, // 59: ml_pipelines.ComponentInputsSpec.ParametersEntry
-	(*ComponentOutputsSpec_ArtifactSpec)(nil),  // 60: ml_pipelines.ComponentOutputsSpec.ArtifactSpec
-	(*ComponentOutputsSpec_ParameterSpec)(nil), // 61: ml_pipelines.ComponentOutputsSpec.ParameterSpec
-	nil,                                      // 62: ml_pipelines.ComponentOutputsSpec.ArtifactsEntry
-	nil,                                      // 63: ml_pipelines.ComponentOutputsSpec.ParametersEntry
-	nil,                                      // 64: ml_pipelines.ComponentOutputsSpec.ArtifactSpec.PropertiesEntry
-	nil,                                      // 65: ml_pipelines.ComponentOutputsSpec.ArtifactSpec.CustomPropertiesEntry
-	(*TaskInputsSpec_InputArtifactSpec)(nil), // 66: ml_pipelines.TaskInputsSpec.InputArtifactSpec
-	(*TaskInputsSpec_InputParameterSpec)(nil), // 67: ml_pipelines.TaskInputsSpec.InputParameterSpec
-	nil, // 68: ml_pipelines.TaskInputsSpec.ParametersEntry
-	nil, // 69: ml_pipelines.TaskInputsSpec.ArtifactsEntry
-	(*TaskInputsSpec_InputArtifactSpec_TaskOutputArtifactSpec)(nil),   // 70: ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec
-	(*TaskInputsSpec_InputParameterSpec_TaskOutputParameterSpec)(nil), // 71: ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec
-	(*TaskInputsSpec_InputParameterSpec_TaskFinalStatus)(nil),         // 72: ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus
-	(*TaskOutputsSpec_OutputArtifactSpec)(nil),                        // 73: ml_pipelines.TaskOutputsSpec.OutputArtifactSpec
-	(*TaskOutputsSpec_OutputParameterSpec)(nil),                       // 74: ml_pipelines.TaskOutputsSpec.OutputParameterSpec
-	nil,                                     // 75: ml_pipelines.TaskOutputsSpec.ParametersEntry
-	nil,                                     // 76: ml_pipelines.TaskOutputsSpec.ArtifactsEntry
-	nil,                                     // 77: ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.PropertiesEntry
-	nil,                                     // 78: ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.CustomPropertiesEntry
-	(*PipelineTaskSpec_CachingOptions)(nil), // 79: ml_pipelines.PipelineTaskSpec.CachingOptions
-	(*PipelineTaskSpec_TriggerPolicy)(nil),  // 80: ml_pipelines.PipelineTaskSpec.TriggerPolicy
-	(*PipelineTaskSpec_RetryPolicy)(nil),    // 81: ml_pipelines.PipelineTaskSpec.RetryPolicy
-	(*PipelineTaskSpec_IteratorPolicy)(nil), // 82: ml_pipelines.PipelineTaskSpec.IteratorPolicy
-	(*ArtifactIteratorSpec_ItemsSpec)(nil),  // 83: ml_pipelines.ArtifactIteratorSpec.ItemsSpec
-	(*ParameterIteratorSpec_ItemsSpec)(nil), // 84: ml_pipelines.ParameterIteratorSpec.ItemsSpec
-	(*PipelineDeploymentConfig_PipelineContainerSpec)(nil),   // 85: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec
-	(*PipelineDeploymentConfig_ImporterSpec)(nil),            // 86: ml_pipelines.PipelineDeploymentConfig.ImporterSpec
-	(*PipelineDeploymentConfig_ResolverSpec)(nil),            // 87: ml_pipelines.PipelineDeploymentConfig.ResolverSpec
-	(*PipelineDeploymentConfig_AIPlatformCustomJobSpec)(nil), // 88: ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec
-	(*PipelineDeploymentConfig_ExecutorSpec)(nil),            // 89: ml_pipelines.PipelineDeploymentConfig.ExecutorSpec
-	nil, // 90: ml_pipelines.PipelineDeploymentConfig.ExecutorsEntry
-	(*PipelineDeploymentConfig_PipelineContainerSpec_Lifecycle)(nil),                      // 91: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle
-	(*PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec)(nil),                   // 92: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec
-	(*PipelineDeploymentConfig_PipelineContainerSpec_EnvVar)(nil),                         // 93: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar
-	(*PipelineDeploymentConfig_PipelineContainerSpec_Lifecycle_Exec)(nil),                 // 94: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec
-	(*PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig)(nil), // 95: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig
-	nil, // 96: ml_pipelines.PipelineDeploymentConfig.ImporterSpec.PropertiesEntry
-	nil, // 97: ml_pipelines.PipelineDeploymentConfig.ImporterSpec.CustomPropertiesEntry
-	(*PipelineDeploymentConfig_ResolverSpec_ArtifactQuerySpec)(nil), // 98: ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec
-	nil,                                   // 99: ml_pipelines.PipelineDeploymentConfig.ResolverSpec.OutputArtifactQueriesEntry
-	nil,                                   // 100: ml_pipelines.RuntimeArtifact.PropertiesEntry
-	nil,                                   // 101: ml_pipelines.RuntimeArtifact.CustomPropertiesEntry
-	(*ExecutorInput_Inputs)(nil),          // 102: ml_pipelines.ExecutorInput.Inputs
-	(*ExecutorInput_OutputParameter)(nil), // 103: ml_pipelines.ExecutorInput.OutputParameter
-	(*ExecutorInput_Outputs)(nil),         // 104: ml_pipelines.ExecutorInput.Outputs
-	nil,                                   // 105: ml_pipelines.ExecutorInput.Inputs.ParametersEntry
-	nil,                                   // 106: ml_pipelines.ExecutorInput.Inputs.ArtifactsEntry
-	nil,                                   // 107: ml_pipelines.ExecutorInput.Inputs.ParameterValuesEntry
-	nil,                                   // 108: ml_pipelines.ExecutorInput.Outputs.ParametersEntry
-	nil,                                   // 109: ml_pipelines.ExecutorInput.Outputs.ArtifactsEntry
-	nil,                                   // 110: ml_pipelines.ExecutorOutput.ParametersEntry
-	nil,                                   // 111: ml_pipelines.ExecutorOutput.ArtifactsEntry
-	nil,                                   // 112: ml_pipelines.ExecutorOutput.ParameterValuesEntry
-	nil,                                   // 113: ml_pipelines.PlatformSpec.PlatformsEntry
-	nil,                                   // 114: ml_pipelines.PlatformDeploymentConfig.ExecutorsEntry
-	(*structpb.Struct)(nil),               // 115: google.protobuf.Struct
-	(*structpb.Value)(nil),                // 116: google.protobuf.Value
-	(*status.Status)(nil),                 // 117: google.rpc.Status
-	(*durationpb.Duration)(nil),           // 118: google.protobuf.Duration
+	(PipelineTaskSpec_RetryPolicy_Policy)(0),                     // 4: ml_pipelines.PipelineTaskSpec.RetryPolicy.Policy
+	(PipelineStateEnum_PipelineTaskState)(0),                     // 5: ml_pipelines.PipelineStateEnum.PipelineTaskState
+	(*PipelineJob)(nil),                                          // 6: ml_pipelines.PipelineJob
+	(*PipelineSpec)(nil),                                         // 7: ml_pipelines.PipelineSpec
+	(*ComponentSpec)(nil),                                        // 8: ml_pipelines.ComponentSpec
+	(*DagSpec)(nil),                                              // 9: ml_pipelines.DagSpec
+	(*DagOutputsSpec)(nil),                                       // 10: ml_pipelines.DagOutputsSpec
+	(*ComponentInputsSpec)(nil),                                  // 11: ml_pipelines.ComponentInputsSpec
+	(*ComponentOutputsSpec)(nil),                                 // 12: ml_pipelines.ComponentOutputsSpec
+	(*TaskInputsSpec)(nil),                                       // 13: ml_pipelines.TaskInputsSpec
+	(*TaskOutputsSpec)(nil),                                      // 14: ml_pipelines.TaskOutputsSpec
+	(*PrimitiveType)(nil),                                        // 15: ml_pipelines.PrimitiveType
+	(*ParameterType)(nil),                                        // 16: ml_pipelines.ParameterType
+	(*TaskConfigPassthroughType)(nil),                            // 17: ml_pipelines.TaskConfigPassthroughType
+	(*TaskConfigPassthrough)(nil),                                // 18: ml_pipelines.TaskConfigPassthrough
+	(*PipelineTaskSpec)(nil),                                     // 19: ml_pipelines.PipelineTaskSpec
+	(*ArtifactIteratorSpec)(nil),                                 // 20: ml_pipelines.ArtifactIteratorSpec
+	(*ParameterIteratorSpec)(nil),                                // 21: ml_pipelines.ParameterIteratorSpec
+	(*ComponentRef)(nil),                                         // 22: ml_pipelines.ComponentRef
+	(*PipelineInfo)(nil),                                         // 23: ml_pipelines.PipelineInfo
+	(*ArtifactTypeSchema)(nil),                                   // 24: ml_pipelines.ArtifactTypeSchema
+	(*PipelineTaskInfo)(nil),                                     // 25: ml_pipelines.PipelineTaskInfo
+	(*ValueOrRuntimeParameter)(nil),                              // 26: ml_pipelines.ValueOrRuntimeParameter
+	(*PipelineDeploymentConfig)(nil),                             // 27: ml_pipelines.PipelineDeploymentConfig
+	(*Value)(nil),                                                // 28: ml_pipelines.Value
+	(*RuntimeArtifact)(nil),                                      // 29: ml_pipelines.RuntimeArtifact
+	(*ArtifactList)(nil),                                         // 30: ml_pipelines.ArtifactList
+	(*ExecutorInput)(nil),                                        // 31: ml_pipelines.ExecutorInput
+	(*ExecutorOutput)(nil),                                       // 32: ml_pipelines.ExecutorOutput
+	(*PipelineTaskFinalStatus)(nil),                              // 33: ml_pipelines.PipelineTaskFinalStatus
+	(*PipelineStateEnum)(nil),                                    // 34: ml_pipelines.PipelineStateEnum
+	(*PlatformSpec)(nil),                                         // 35: ml_pipelines.PlatformSpec
+	(*SinglePlatformSpec)(nil),                                   // 36: ml_pipelines.SinglePlatformSpec
+	(*PlatformDeploymentConfig)(nil),                             // 37: ml_pipelines.PlatformDeploymentConfig
+	(*WorkspaceConfig)(nil),                                      // 38: ml_pipelines.WorkspaceConfig
+	(*KubernetesWorkspaceConfig)(nil),                            // 39: ml_pipelines.KubernetesWorkspaceConfig
+	(*PipelineConfig)(nil),                                       // 40: ml_pipelines.PipelineConfig
+	nil,                                                          // 41: ml_pipelines.PipelineJob.LabelsEntry
+	(*PipelineJob_RuntimeConfig)(nil),                            // 42: ml_pipelines.PipelineJob.RuntimeConfig
+	nil,                                                          // 43: ml_pipelines.PipelineJob.RuntimeConfig.ParametersEntry
+	nil,                                                          // 44: ml_pipelines.PipelineJob.RuntimeConfig.ParameterValuesEntry
+	(*PipelineSpec_RuntimeParameter)(nil),                        // 45: ml_pipelines.PipelineSpec.RuntimeParameter
+	nil,                                                          // 46: ml_pipelines.PipelineSpec.ComponentsEntry
+	nil,                                                          // 47: ml_pipelines.DagSpec.TasksEntry
+	(*DagOutputsSpec_ArtifactSelectorSpec)(nil),                  // 48: ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec
+	(*DagOutputsSpec_DagOutputArtifactSpec)(nil),                 // 49: ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec
+	nil, // 50: ml_pipelines.DagOutputsSpec.ArtifactsEntry
+	(*DagOutputsSpec_ParameterSelectorSpec)(nil),     // 51: ml_pipelines.DagOutputsSpec.ParameterSelectorSpec
+	(*DagOutputsSpec_ParameterSelectorsSpec)(nil),    // 52: ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec
+	(*DagOutputsSpec_MapParameterSelectorsSpec)(nil), // 53: ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec
+	(*DagOutputsSpec_DagOutputParameterSpec)(nil),    // 54: ml_pipelines.DagOutputsSpec.DagOutputParameterSpec
+	nil,                                      // 55: ml_pipelines.DagOutputsSpec.ParametersEntry
+	nil,                                      // 56: ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.MappedParametersEntry
+	(*ComponentInputsSpec_ArtifactSpec)(nil), // 57: ml_pipelines.ComponentInputsSpec.ArtifactSpec
+	(*ComponentInputsSpec_ParameterSpec)(nil), // 58: ml_pipelines.ComponentInputsSpec.ParameterSpec
+	nil, // 59: ml_pipelines.ComponentInputsSpec.ArtifactsEntry
+	nil, // 60: ml_pipelines.ComponentInputsSpec.ParametersEntry
+	(*ComponentOutputsSpec_ArtifactSpec)(nil),  // 61: ml_pipelines.ComponentOutputsSpec.ArtifactSpec
+	(*ComponentOutputsSpec_ParameterSpec)(nil), // 62: ml_pipelines.ComponentOutputsSpec.ParameterSpec
+	nil,                                      // 63: ml_pipelines.ComponentOutputsSpec.ArtifactsEntry
+	nil,                                      // 64: ml_pipelines.ComponentOutputsSpec.ParametersEntry
+	nil,                                      // 65: ml_pipelines.ComponentOutputsSpec.ArtifactSpec.PropertiesEntry
+	nil,                                      // 66: ml_pipelines.ComponentOutputsSpec.ArtifactSpec.CustomPropertiesEntry
+	(*TaskInputsSpec_InputArtifactSpec)(nil), // 67: ml_pipelines.TaskInputsSpec.InputArtifactSpec
+	(*TaskInputsSpec_InputParameterSpec)(nil), // 68: ml_pipelines.TaskInputsSpec.InputParameterSpec
+	nil, // 69: ml_pipelines.TaskInputsSpec.ParametersEntry
+	nil, // 70: ml_pipelines.TaskInputsSpec.ArtifactsEntry
+	(*TaskInputsSpec_InputArtifactSpec_TaskOutputArtifactSpec)(nil),   // 71: ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec
+	(*TaskInputsSpec_InputParameterSpec_TaskOutputParameterSpec)(nil), // 72: ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec
+	(*TaskInputsSpec_InputParameterSpec_TaskFinalStatus)(nil),         // 73: ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus
+	(*TaskOutputsSpec_OutputArtifactSpec)(nil),                        // 74: ml_pipelines.TaskOutputsSpec.OutputArtifactSpec
+	(*TaskOutputsSpec_OutputParameterSpec)(nil),                       // 75: ml_pipelines.TaskOutputsSpec.OutputParameterSpec
+	nil,                                     // 76: ml_pipelines.TaskOutputsSpec.ParametersEntry
+	nil,                                     // 77: ml_pipelines.TaskOutputsSpec.ArtifactsEntry
+	nil,                                     // 78: ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.PropertiesEntry
+	nil,                                     // 79: ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.CustomPropertiesEntry
+	(*PipelineTaskSpec_CachingOptions)(nil), // 80: ml_pipelines.PipelineTaskSpec.CachingOptions
+	(*PipelineTaskSpec_TriggerPolicy)(nil),  // 81: ml_pipelines.PipelineTaskSpec.TriggerPolicy
+	(*PipelineTaskSpec_RetryPolicy)(nil),    // 82: ml_pipelines.PipelineTaskSpec.RetryPolicy
+	(*PipelineTaskSpec_IteratorPolicy)(nil), // 83: ml_pipelines.PipelineTaskSpec.IteratorPolicy
+	(*ArtifactIteratorSpec_ItemsSpec)(nil),  // 84: ml_pipelines.ArtifactIteratorSpec.ItemsSpec
+	(*ParameterIteratorSpec_ItemsSpec)(nil), // 85: ml_pipelines.ParameterIteratorSpec.ItemsSpec
+	(*PipelineDeploymentConfig_PipelineContainerSpec)(nil),   // 86: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec
+	(*PipelineDeploymentConfig_ImporterSpec)(nil),            // 87: ml_pipelines.PipelineDeploymentConfig.ImporterSpec
+	(*PipelineDeploymentConfig_ResolverSpec)(nil),            // 88: ml_pipelines.PipelineDeploymentConfig.ResolverSpec
+	(*PipelineDeploymentConfig_AIPlatformCustomJobSpec)(nil), // 89: ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec
+	(*PipelineDeploymentConfig_ExecutorSpec)(nil),            // 90: ml_pipelines.PipelineDeploymentConfig.ExecutorSpec
+	nil, // 91: ml_pipelines.PipelineDeploymentConfig.ExecutorsEntry
+	(*PipelineDeploymentConfig_PipelineContainerSpec_Lifecycle)(nil),                      // 92: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle
+	(*PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec)(nil),                   // 93: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec
+	(*PipelineDeploymentConfig_PipelineContainerSpec_EnvVar)(nil),                         // 94: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar
+	(*PipelineDeploymentConfig_PipelineContainerSpec_Lifecycle_Exec)(nil),                 // 95: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec
+	(*PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig)(nil), // 96: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig
+	nil, // 97: ml_pipelines.PipelineDeploymentConfig.ImporterSpec.PropertiesEntry
+	nil, // 98: ml_pipelines.PipelineDeploymentConfig.ImporterSpec.CustomPropertiesEntry
+	(*PipelineDeploymentConfig_ResolverSpec_ArtifactQuerySpec)(nil), // 99: ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec
+	nil,                                   // 100: ml_pipelines.PipelineDeploymentConfig.ResolverSpec.OutputArtifactQueriesEntry
+	nil,                                   // 101: ml_pipelines.RuntimeArtifact.PropertiesEntry
+	nil,                                   // 102: ml_pipelines.RuntimeArtifact.CustomPropertiesEntry
+	(*ExecutorInput_Inputs)(nil),          // 103: ml_pipelines.ExecutorInput.Inputs
+	(*ExecutorInput_OutputParameter)(nil), // 104: ml_pipelines.ExecutorInput.OutputParameter
+	(*ExecutorInput_Outputs)(nil),         // 105: ml_pipelines.ExecutorInput.Outputs
+	nil,                                   // 106: ml_pipelines.ExecutorInput.Inputs.ParametersEntry
+	nil,                                   // 107: ml_pipelines.ExecutorInput.Inputs.ArtifactsEntry
+	nil,                                   // 108: ml_pipelines.ExecutorInput.Inputs.ParameterValuesEntry
+	nil,                                   // 109: ml_pipelines.ExecutorInput.Outputs.ParametersEntry
+	nil,                                   // 110: ml_pipelines.ExecutorInput.Outputs.ArtifactsEntry
+	nil,                                   // 111: ml_pipelines.ExecutorOutput.ParametersEntry
+	nil,                                   // 112: ml_pipelines.ExecutorOutput.ArtifactsEntry
+	nil,                                   // 113: ml_pipelines.ExecutorOutput.ParameterValuesEntry
+	nil,                                   // 114: ml_pipelines.PlatformSpec.PlatformsEntry
+	nil,                                   // 115: ml_pipelines.PlatformDeploymentConfig.ExecutorsEntry
+	(*structpb.Struct)(nil),               // 116: google.protobuf.Struct
+	(*structpb.Value)(nil),                // 117: google.protobuf.Value
+	(*status.Status)(nil),                 // 118: google.rpc.Status
+	(*durationpb.Duration)(nil),           // 119: google.protobuf.Duration
 }
 var file_pipeline_spec_proto_depIdxs = []int32{
-	115, // 0: ml_pipelines.PipelineJob.pipeline_spec:type_name -> google.protobuf.Struct
-	40,  // 1: ml_pipelines.PipelineJob.labels:type_name -> ml_pipelines.PipelineJob.LabelsEntry
-	41,  // 2: ml_pipelines.PipelineJob.runtime_config:type_name -> ml_pipelines.PipelineJob.RuntimeConfig
-	22,  // 3: ml_pipelines.PipelineSpec.pipeline_info:type_name -> ml_pipelines.PipelineInfo
-	115, // 4: ml_pipelines.PipelineSpec.deployment_spec:type_name -> google.protobuf.Struct
-	45,  // 5: ml_pipelines.PipelineSpec.components:type_name -> ml_pipelines.PipelineSpec.ComponentsEntry
-	7,   // 6: ml_pipelines.PipelineSpec.root:type_name -> ml_pipelines.ComponentSpec
-	10,  // 7: ml_pipelines.ComponentSpec.input_definitions:type_name -> ml_pipelines.ComponentInputsSpec
-	11,  // 8: ml_pipelines.ComponentSpec.output_definitions:type_name -> ml_pipelines.ComponentOutputsSpec
-	8,   // 9: ml_pipelines.ComponentSpec.dag:type_name -> ml_pipelines.DagSpec
-	35,  // 10: ml_pipelines.ComponentSpec.single_platform_specs:type_name -> ml_pipelines.SinglePlatformSpec
-	17,  // 11: ml_pipelines.ComponentSpec.task_config_passthroughs:type_name -> ml_pipelines.TaskConfigPassthrough
-	46,  // 12: ml_pipelines.DagSpec.tasks:type_name -> ml_pipelines.DagSpec.TasksEntry
-	9,   // 13: ml_pipelines.DagSpec.outputs:type_name -> ml_pipelines.DagOutputsSpec
-	49,  // 14: ml_pipelines.DagOutputsSpec.artifacts:type_name -> ml_pipelines.DagOutputsSpec.ArtifactsEntry
-	54,  // 15: ml_pipelines.DagOutputsSpec.parameters:type_name -> ml_pipelines.DagOutputsSpec.ParametersEntry
-	58,  // 16: ml_pipelines.ComponentInputsSpec.artifacts:type_name -> ml_pipelines.ComponentInputsSpec.ArtifactsEntry
-	59,  // 17: ml_pipelines.ComponentInputsSpec.parameters:type_name -> ml_pipelines.ComponentInputsSpec.ParametersEntry
-	62,  // 18: ml_pipelines.ComponentOutputsSpec.artifacts:type_name -> ml_pipelines.ComponentOutputsSpec.ArtifactsEntry
-	63,  // 19: ml_pipelines.ComponentOutputsSpec.parameters:type_name -> ml_pipelines.ComponentOutputsSpec.ParametersEntry
-	68,  // 20: ml_pipelines.TaskInputsSpec.parameters:type_name -> ml_pipelines.TaskInputsSpec.ParametersEntry
-	69,  // 21: ml_pipelines.TaskInputsSpec.artifacts:type_name -> ml_pipelines.TaskInputsSpec.ArtifactsEntry
-	75,  // 22: ml_pipelines.TaskOutputsSpec.parameters:type_name -> ml_pipelines.TaskOutputsSpec.ParametersEntry
-	76,  // 23: ml_pipelines.TaskOutputsSpec.artifacts:type_name -> ml_pipelines.TaskOutputsSpec.ArtifactsEntry
+	116, // 0: ml_pipelines.PipelineJob.pipeline_spec:type_name -> google.protobuf.Struct
+	41,  // 1: ml_pipelines.PipelineJob.labels:type_name -> ml_pipelines.PipelineJob.LabelsEntry
+	42,  // 2: ml_pipelines.PipelineJob.runtime_config:type_name -> ml_pipelines.PipelineJob.RuntimeConfig
+	23,  // 3: ml_pipelines.PipelineSpec.pipeline_info:type_name -> ml_pipelines.PipelineInfo
+	116, // 4: ml_pipelines.PipelineSpec.deployment_spec:type_name -> google.protobuf.Struct
+	46,  // 5: ml_pipelines.PipelineSpec.components:type_name -> ml_pipelines.PipelineSpec.ComponentsEntry
+	8,   // 6: ml_pipelines.PipelineSpec.root:type_name -> ml_pipelines.ComponentSpec
+	11,  // 7: ml_pipelines.ComponentSpec.input_definitions:type_name -> ml_pipelines.ComponentInputsSpec
+	12,  // 8: ml_pipelines.ComponentSpec.output_definitions:type_name -> ml_pipelines.ComponentOutputsSpec
+	9,   // 9: ml_pipelines.ComponentSpec.dag:type_name -> ml_pipelines.DagSpec
+	36,  // 10: ml_pipelines.ComponentSpec.single_platform_specs:type_name -> ml_pipelines.SinglePlatformSpec
+	18,  // 11: ml_pipelines.ComponentSpec.task_config_passthroughs:type_name -> ml_pipelines.TaskConfigPassthrough
+	47,  // 12: ml_pipelines.DagSpec.tasks:type_name -> ml_pipelines.DagSpec.TasksEntry
+	10,  // 13: ml_pipelines.DagSpec.outputs:type_name -> ml_pipelines.DagOutputsSpec
+	50,  // 14: ml_pipelines.DagOutputsSpec.artifacts:type_name -> ml_pipelines.DagOutputsSpec.ArtifactsEntry
+	55,  // 15: ml_pipelines.DagOutputsSpec.parameters:type_name -> ml_pipelines.DagOutputsSpec.ParametersEntry
+	59,  // 16: ml_pipelines.ComponentInputsSpec.artifacts:type_name -> ml_pipelines.ComponentInputsSpec.ArtifactsEntry
+	60,  // 17: ml_pipelines.ComponentInputsSpec.parameters:type_name -> ml_pipelines.ComponentInputsSpec.ParametersEntry
+	63,  // 18: ml_pipelines.ComponentOutputsSpec.artifacts:type_name -> ml_pipelines.ComponentOutputsSpec.ArtifactsEntry
+	64,  // 19: ml_pipelines.ComponentOutputsSpec.parameters:type_name -> ml_pipelines.ComponentOutputsSpec.ParametersEntry
+	69,  // 20: ml_pipelines.TaskInputsSpec.parameters:type_name -> ml_pipelines.TaskInputsSpec.ParametersEntry
+	70,  // 21: ml_pipelines.TaskInputsSpec.artifacts:type_name -> ml_pipelines.TaskInputsSpec.ArtifactsEntry
+	76,  // 22: ml_pipelines.TaskOutputsSpec.parameters:type_name -> ml_pipelines.TaskOutputsSpec.ParametersEntry
+	77,  // 23: ml_pipelines.TaskOutputsSpec.artifacts:type_name -> ml_pipelines.TaskOutputsSpec.ArtifactsEntry
 	2,   // 24: ml_pipelines.TaskConfigPassthrough.field:type_name -> ml_pipelines.TaskConfigPassthroughType.TaskConfigPassthroughTypeEnum
-	24,  // 25: ml_pipelines.PipelineTaskSpec.task_info:type_name -> ml_pipelines.PipelineTaskInfo
-	12,  // 26: ml_pipelines.PipelineTaskSpec.inputs:type_name -> ml_pipelines.TaskInputsSpec
-	79,  // 27: ml_pipelines.PipelineTaskSpec.caching_options:type_name -> ml_pipelines.PipelineTaskSpec.CachingOptions
-	21,  // 28: ml_pipelines.PipelineTaskSpec.component_ref:type_name -> ml_pipelines.ComponentRef
-	80,  // 29: ml_pipelines.PipelineTaskSpec.trigger_policy:type_name -> ml_pipelines.PipelineTaskSpec.TriggerPolicy
-	19,  // 30: ml_pipelines.PipelineTaskSpec.artifact_iterator:type_name -> ml_pipelines.ArtifactIteratorSpec
-	20,  // 31: ml_pipelines.PipelineTaskSpec.parameter_iterator:type_name -> ml_pipelines.ParameterIteratorSpec
-	81,  // 32: ml_pipelines.PipelineTaskSpec.retry_policy:type_name -> ml_pipelines.PipelineTaskSpec.RetryPolicy
-	82,  // 33: ml_pipelines.PipelineTaskSpec.iterator_policy:type_name -> ml_pipelines.PipelineTaskSpec.IteratorPolicy
-	83,  // 34: ml_pipelines.ArtifactIteratorSpec.items:type_name -> ml_pipelines.ArtifactIteratorSpec.ItemsSpec
-	84,  // 35: ml_pipelines.ParameterIteratorSpec.items:type_name -> ml_pipelines.ParameterIteratorSpec.ItemsSpec
-	27,  // 36: ml_pipelines.ValueOrRuntimeParameter.constant_value:type_name -> ml_pipelines.Value
-	116, // 37: ml_pipelines.ValueOrRuntimeParameter.constant:type_name -> google.protobuf.Value
-	90,  // 38: ml_pipelines.PipelineDeploymentConfig.executors:type_name -> ml_pipelines.PipelineDeploymentConfig.ExecutorsEntry
-	23,  // 39: ml_pipelines.RuntimeArtifact.type:type_name -> ml_pipelines.ArtifactTypeSchema
-	100, // 40: ml_pipelines.RuntimeArtifact.properties:type_name -> ml_pipelines.RuntimeArtifact.PropertiesEntry
-	101, // 41: ml_pipelines.RuntimeArtifact.custom_properties:type_name -> ml_pipelines.RuntimeArtifact.CustomPropertiesEntry
-	115, // 42: ml_pipelines.RuntimeArtifact.metadata:type_name -> google.protobuf.Struct
-	28,  // 43: ml_pipelines.ArtifactList.artifacts:type_name -> ml_pipelines.RuntimeArtifact
-	102, // 44: ml_pipelines.ExecutorInput.inputs:type_name -> ml_pipelines.ExecutorInput.Inputs
-	104, // 45: ml_pipelines.ExecutorInput.outputs:type_name -> ml_pipelines.ExecutorInput.Outputs
-	110, // 46: ml_pipelines.ExecutorOutput.parameters:type_name -> ml_pipelines.ExecutorOutput.ParametersEntry
-	111, // 47: ml_pipelines.ExecutorOutput.artifacts:type_name -> ml_pipelines.ExecutorOutput.ArtifactsEntry
-	112, // 48: ml_pipelines.ExecutorOutput.parameter_values:type_name -> ml_pipelines.ExecutorOutput.ParameterValuesEntry
-	117, // 49: ml_pipelines.PipelineTaskFinalStatus.error:type_name -> google.rpc.Status
-	113, // 50: ml_pipelines.PlatformSpec.platforms:type_name -> ml_pipelines.PlatformSpec.PlatformsEntry
-	36,  // 51: ml_pipelines.SinglePlatformSpec.deployment_spec:type_name -> ml_pipelines.PlatformDeploymentConfig
-	115, // 52: ml_pipelines.SinglePlatformSpec.config:type_name -> google.protobuf.Struct
-	39,  // 53: ml_pipelines.SinglePlatformSpec.pipelineConfig:type_name -> ml_pipelines.PipelineConfig
-	114, // 54: ml_pipelines.PlatformDeploymentConfig.executors:type_name -> ml_pipelines.PlatformDeploymentConfig.ExecutorsEntry
-	38,  // 55: ml_pipelines.WorkspaceConfig.kubernetes:type_name -> ml_pipelines.KubernetesWorkspaceConfig
-	115, // 56: ml_pipelines.KubernetesWorkspaceConfig.pvc_spec_patch:type_name -> google.protobuf.Struct
-	37,  // 57: ml_pipelines.PipelineConfig.workspace:type_name -> ml_pipelines.WorkspaceConfig
-	42,  // 58: ml_pipelines.PipelineJob.RuntimeConfig.parameters:type_name -> ml_pipelines.PipelineJob.RuntimeConfig.ParametersEntry
-	43,  // 59: ml_pipelines.PipelineJob.RuntimeConfig.parameter_values:type_name -> ml_pipelines.PipelineJob.RuntimeConfig.ParameterValuesEntry
-	27,  // 60: ml_pipelines.PipelineJob.RuntimeConfig.ParametersEntry.value:type_name -> ml_pipelines.Value
-	116, // 61: ml_pipelines.PipelineJob.RuntimeConfig.ParameterValuesEntry.value:type_name -> google.protobuf.Value
+	25,  // 25: ml_pipelines.PipelineTaskSpec.task_info:type_name -> ml_pipelines.PipelineTaskInfo
+	13,  // 26: ml_pipelines.PipelineTaskSpec.inputs:type_name -> ml_pipelines.TaskInputsSpec
+	80,  // 27: ml_pipelines.PipelineTaskSpec.caching_options:type_name -> ml_pipelines.PipelineTaskSpec.CachingOptions
+	22,  // 28: ml_pipelines.PipelineTaskSpec.component_ref:type_name -> ml_pipelines.ComponentRef
+	81,  // 29: ml_pipelines.PipelineTaskSpec.trigger_policy:type_name -> ml_pipelines.PipelineTaskSpec.TriggerPolicy
+	20,  // 30: ml_pipelines.PipelineTaskSpec.artifact_iterator:type_name -> ml_pipelines.ArtifactIteratorSpec
+	21,  // 31: ml_pipelines.PipelineTaskSpec.parameter_iterator:type_name -> ml_pipelines.ParameterIteratorSpec
+	82,  // 32: ml_pipelines.PipelineTaskSpec.retry_policy:type_name -> ml_pipelines.PipelineTaskSpec.RetryPolicy
+	83,  // 33: ml_pipelines.PipelineTaskSpec.iterator_policy:type_name -> ml_pipelines.PipelineTaskSpec.IteratorPolicy
+	84,  // 34: ml_pipelines.ArtifactIteratorSpec.items:type_name -> ml_pipelines.ArtifactIteratorSpec.ItemsSpec
+	85,  // 35: ml_pipelines.ParameterIteratorSpec.items:type_name -> ml_pipelines.ParameterIteratorSpec.ItemsSpec
+	28,  // 36: ml_pipelines.ValueOrRuntimeParameter.constant_value:type_name -> ml_pipelines.Value
+	117, // 37: ml_pipelines.ValueOrRuntimeParameter.constant:type_name -> google.protobuf.Value
+	91,  // 38: ml_pipelines.PipelineDeploymentConfig.executors:type_name -> ml_pipelines.PipelineDeploymentConfig.ExecutorsEntry
+	24,  // 39: ml_pipelines.RuntimeArtifact.type:type_name -> ml_pipelines.ArtifactTypeSchema
+	101, // 40: ml_pipelines.RuntimeArtifact.properties:type_name -> ml_pipelines.RuntimeArtifact.PropertiesEntry
+	102, // 41: ml_pipelines.RuntimeArtifact.custom_properties:type_name -> ml_pipelines.RuntimeArtifact.CustomPropertiesEntry
+	116, // 42: ml_pipelines.RuntimeArtifact.metadata:type_name -> google.protobuf.Struct
+	29,  // 43: ml_pipelines.ArtifactList.artifacts:type_name -> ml_pipelines.RuntimeArtifact
+	103, // 44: ml_pipelines.ExecutorInput.inputs:type_name -> ml_pipelines.ExecutorInput.Inputs
+	105, // 45: ml_pipelines.ExecutorInput.outputs:type_name -> ml_pipelines.ExecutorInput.Outputs
+	111, // 46: ml_pipelines.ExecutorOutput.parameters:type_name -> ml_pipelines.ExecutorOutput.ParametersEntry
+	112, // 47: ml_pipelines.ExecutorOutput.artifacts:type_name -> ml_pipelines.ExecutorOutput.ArtifactsEntry
+	113, // 48: ml_pipelines.ExecutorOutput.parameter_values:type_name -> ml_pipelines.ExecutorOutput.ParameterValuesEntry
+	118, // 49: ml_pipelines.PipelineTaskFinalStatus.error:type_name -> google.rpc.Status
+	114, // 50: ml_pipelines.PlatformSpec.platforms:type_name -> ml_pipelines.PlatformSpec.PlatformsEntry
+	37,  // 51: ml_pipelines.SinglePlatformSpec.deployment_spec:type_name -> ml_pipelines.PlatformDeploymentConfig
+	116, // 52: ml_pipelines.SinglePlatformSpec.config:type_name -> google.protobuf.Struct
+	40,  // 53: ml_pipelines.SinglePlatformSpec.pipelineConfig:type_name -> ml_pipelines.PipelineConfig
+	115, // 54: ml_pipelines.PlatformDeploymentConfig.executors:type_name -> ml_pipelines.PlatformDeploymentConfig.ExecutorsEntry
+	39,  // 55: ml_pipelines.WorkspaceConfig.kubernetes:type_name -> ml_pipelines.KubernetesWorkspaceConfig
+	116, // 56: ml_pipelines.KubernetesWorkspaceConfig.pvc_spec_patch:type_name -> google.protobuf.Struct
+	38,  // 57: ml_pipelines.PipelineConfig.workspace:type_name -> ml_pipelines.WorkspaceConfig
+	43,  // 58: ml_pipelines.PipelineJob.RuntimeConfig.parameters:type_name -> ml_pipelines.PipelineJob.RuntimeConfig.ParametersEntry
+	44,  // 59: ml_pipelines.PipelineJob.RuntimeConfig.parameter_values:type_name -> ml_pipelines.PipelineJob.RuntimeConfig.ParameterValuesEntry
+	28,  // 60: ml_pipelines.PipelineJob.RuntimeConfig.ParametersEntry.value:type_name -> ml_pipelines.Value
+	117, // 61: ml_pipelines.PipelineJob.RuntimeConfig.ParameterValuesEntry.value:type_name -> google.protobuf.Value
 	0,   // 62: ml_pipelines.PipelineSpec.RuntimeParameter.type:type_name -> ml_pipelines.PrimitiveType.PrimitiveTypeEnum
-	27,  // 63: ml_pipelines.PipelineSpec.RuntimeParameter.default_value:type_name -> ml_pipelines.Value
-	7,   // 64: ml_pipelines.PipelineSpec.ComponentsEntry.value:type_name -> ml_pipelines.ComponentSpec
-	18,  // 65: ml_pipelines.DagSpec.TasksEntry.value:type_name -> ml_pipelines.PipelineTaskSpec
-	47,  // 66: ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.artifact_selectors:type_name -> ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec
-	48,  // 67: ml_pipelines.DagOutputsSpec.ArtifactsEntry.value:type_name -> ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec
-	50,  // 68: ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.parameter_selectors:type_name -> ml_pipelines.DagOutputsSpec.ParameterSelectorSpec
-	55,  // 69: ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.mapped_parameters:type_name -> ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.MappedParametersEntry
-	50,  // 70: ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.value_from_parameter:type_name -> ml_pipelines.DagOutputsSpec.ParameterSelectorSpec
-	51,  // 71: ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.value_from_oneof:type_name -> ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec
-	53,  // 72: ml_pipelines.DagOutputsSpec.ParametersEntry.value:type_name -> ml_pipelines.DagOutputsSpec.DagOutputParameterSpec
-	50,  // 73: ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.MappedParametersEntry.value:type_name -> ml_pipelines.DagOutputsSpec.ParameterSelectorSpec
-	23,  // 74: ml_pipelines.ComponentInputsSpec.ArtifactSpec.artifact_type:type_name -> ml_pipelines.ArtifactTypeSchema
+	28,  // 63: ml_pipelines.PipelineSpec.RuntimeParameter.default_value:type_name -> ml_pipelines.Value
+	8,   // 64: ml_pipelines.PipelineSpec.ComponentsEntry.value:type_name -> ml_pipelines.ComponentSpec
+	19,  // 65: ml_pipelines.DagSpec.TasksEntry.value:type_name -> ml_pipelines.PipelineTaskSpec
+	48,  // 66: ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.artifact_selectors:type_name -> ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec
+	49,  // 67: ml_pipelines.DagOutputsSpec.ArtifactsEntry.value:type_name -> ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec
+	51,  // 68: ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.parameter_selectors:type_name -> ml_pipelines.DagOutputsSpec.ParameterSelectorSpec
+	56,  // 69: ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.mapped_parameters:type_name -> ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.MappedParametersEntry
+	51,  // 70: ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.value_from_parameter:type_name -> ml_pipelines.DagOutputsSpec.ParameterSelectorSpec
+	52,  // 71: ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.value_from_oneof:type_name -> ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec
+	54,  // 72: ml_pipelines.DagOutputsSpec.ParametersEntry.value:type_name -> ml_pipelines.DagOutputsSpec.DagOutputParameterSpec
+	51,  // 73: ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.MappedParametersEntry.value:type_name -> ml_pipelines.DagOutputsSpec.ParameterSelectorSpec
+	24,  // 74: ml_pipelines.ComponentInputsSpec.ArtifactSpec.artifact_type:type_name -> ml_pipelines.ArtifactTypeSchema
 	0,   // 75: ml_pipelines.ComponentInputsSpec.ParameterSpec.type:type_name -> ml_pipelines.PrimitiveType.PrimitiveTypeEnum
 	1,   // 76: ml_pipelines.ComponentInputsSpec.ParameterSpec.parameter_type:type_name -> ml_pipelines.ParameterType.ParameterTypeEnum
-	116, // 77: ml_pipelines.ComponentInputsSpec.ParameterSpec.default_value:type_name -> google.protobuf.Value
-	116, // 78: ml_pipelines.ComponentInputsSpec.ParameterSpec.literals:type_name -> google.protobuf.Value
-	56,  // 79: ml_pipelines.ComponentInputsSpec.ArtifactsEntry.value:type_name -> ml_pipelines.ComponentInputsSpec.ArtifactSpec
-	57,  // 80: ml_pipelines.ComponentInputsSpec.ParametersEntry.value:type_name -> ml_pipelines.ComponentInputsSpec.ParameterSpec
-	23,  // 81: ml_pipelines.ComponentOutputsSpec.ArtifactSpec.artifact_type:type_name -> ml_pipelines.ArtifactTypeSchema
-	64,  // 82: ml_pipelines.ComponentOutputsSpec.ArtifactSpec.properties:type_name -> ml_pipelines.ComponentOutputsSpec.ArtifactSpec.PropertiesEntry
-	65,  // 83: ml_pipelines.ComponentOutputsSpec.ArtifactSpec.custom_properties:type_name -> ml_pipelines.ComponentOutputsSpec.ArtifactSpec.CustomPropertiesEntry
-	115, // 84: ml_pipelines.ComponentOutputsSpec.ArtifactSpec.metadata:type_name -> google.protobuf.Struct
+	117, // 77: ml_pipelines.ComponentInputsSpec.ParameterSpec.default_value:type_name -> google.protobuf.Value
+	117, // 78: ml_pipelines.ComponentInputsSpec.ParameterSpec.literals:type_name -> google.protobuf.Value
+	57,  // 79: ml_pipelines.ComponentInputsSpec.ArtifactsEntry.value:type_name -> ml_pipelines.ComponentInputsSpec.ArtifactSpec
+	58,  // 80: ml_pipelines.ComponentInputsSpec.ParametersEntry.value:type_name -> ml_pipelines.ComponentInputsSpec.ParameterSpec
+	24,  // 81: ml_pipelines.ComponentOutputsSpec.ArtifactSpec.artifact_type:type_name -> ml_pipelines.ArtifactTypeSchema
+	65,  // 82: ml_pipelines.ComponentOutputsSpec.ArtifactSpec.properties:type_name -> ml_pipelines.ComponentOutputsSpec.ArtifactSpec.PropertiesEntry
+	66,  // 83: ml_pipelines.ComponentOutputsSpec.ArtifactSpec.custom_properties:type_name -> ml_pipelines.ComponentOutputsSpec.ArtifactSpec.CustomPropertiesEntry
+	116, // 84: ml_pipelines.ComponentOutputsSpec.ArtifactSpec.metadata:type_name -> google.protobuf.Struct
 	0,   // 85: ml_pipelines.ComponentOutputsSpec.ParameterSpec.type:type_name -> ml_pipelines.PrimitiveType.PrimitiveTypeEnum
 	1,   // 86: ml_pipelines.ComponentOutputsSpec.ParameterSpec.parameter_type:type_name -> ml_pipelines.ParameterType.ParameterTypeEnum
-	60,  // 87: ml_pipelines.ComponentOutputsSpec.ArtifactsEntry.value:type_name -> ml_pipelines.ComponentOutputsSpec.ArtifactSpec
-	61,  // 88: ml_pipelines.ComponentOutputsSpec.ParametersEntry.value:type_name -> ml_pipelines.ComponentOutputsSpec.ParameterSpec
-	25,  // 89: ml_pipelines.ComponentOutputsSpec.ArtifactSpec.PropertiesEntry.value:type_name -> ml_pipelines.ValueOrRuntimeParameter
-	25,  // 90: ml_pipelines.ComponentOutputsSpec.ArtifactSpec.CustomPropertiesEntry.value:type_name -> ml_pipelines.ValueOrRuntimeParameter
-	70,  // 91: ml_pipelines.TaskInputsSpec.InputArtifactSpec.task_output_artifact:type_name -> ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec
-	71,  // 92: ml_pipelines.TaskInputsSpec.InputParameterSpec.task_output_parameter:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec
-	25,  // 93: ml_pipelines.TaskInputsSpec.InputParameterSpec.runtime_value:type_name -> ml_pipelines.ValueOrRuntimeParameter
-	72,  // 94: ml_pipelines.TaskInputsSpec.InputParameterSpec.task_final_status:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus
-	67,  // 95: ml_pipelines.TaskInputsSpec.ParametersEntry.value:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
-	66,  // 96: ml_pipelines.TaskInputsSpec.ArtifactsEntry.value:type_name -> ml_pipelines.TaskInputsSpec.InputArtifactSpec
-	23,  // 97: ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.artifact_type:type_name -> ml_pipelines.ArtifactTypeSchema
-	77,  // 98: ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.properties:type_name -> ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.PropertiesEntry
-	78,  // 99: ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.custom_properties:type_name -> ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.CustomPropertiesEntry
+	61,  // 87: ml_pipelines.ComponentOutputsSpec.ArtifactsEntry.value:type_name -> ml_pipelines.ComponentOutputsSpec.ArtifactSpec
+	62,  // 88: ml_pipelines.ComponentOutputsSpec.ParametersEntry.value:type_name -> ml_pipelines.ComponentOutputsSpec.ParameterSpec
+	26,  // 89: ml_pipelines.ComponentOutputsSpec.ArtifactSpec.PropertiesEntry.value:type_name -> ml_pipelines.ValueOrRuntimeParameter
+	26,  // 90: ml_pipelines.ComponentOutputsSpec.ArtifactSpec.CustomPropertiesEntry.value:type_name -> ml_pipelines.ValueOrRuntimeParameter
+	71,  // 91: ml_pipelines.TaskInputsSpec.InputArtifactSpec.task_output_artifact:type_name -> ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec
+	72,  // 92: ml_pipelines.TaskInputsSpec.InputParameterSpec.task_output_parameter:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec
+	26,  // 93: ml_pipelines.TaskInputsSpec.InputParameterSpec.runtime_value:type_name -> ml_pipelines.ValueOrRuntimeParameter
+	73,  // 94: ml_pipelines.TaskInputsSpec.InputParameterSpec.task_final_status:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus
+	68,  // 95: ml_pipelines.TaskInputsSpec.ParametersEntry.value:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
+	67,  // 96: ml_pipelines.TaskInputsSpec.ArtifactsEntry.value:type_name -> ml_pipelines.TaskInputsSpec.InputArtifactSpec
+	24,  // 97: ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.artifact_type:type_name -> ml_pipelines.ArtifactTypeSchema
+	78,  // 98: ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.properties:type_name -> ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.PropertiesEntry
+	79,  // 99: ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.custom_properties:type_name -> ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.CustomPropertiesEntry
 	0,   // 100: ml_pipelines.TaskOutputsSpec.OutputParameterSpec.type:type_name -> ml_pipelines.PrimitiveType.PrimitiveTypeEnum
-	74,  // 101: ml_pipelines.TaskOutputsSpec.ParametersEntry.value:type_name -> ml_pipelines.TaskOutputsSpec.OutputParameterSpec
-	73,  // 102: ml_pipelines.TaskOutputsSpec.ArtifactsEntry.value:type_name -> ml_pipelines.TaskOutputsSpec.OutputArtifactSpec
-	25,  // 103: ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.PropertiesEntry.value:type_name -> ml_pipelines.ValueOrRuntimeParameter
-	25,  // 104: ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.CustomPropertiesEntry.value:type_name -> ml_pipelines.ValueOrRuntimeParameter
+	75,  // 101: ml_pipelines.TaskOutputsSpec.ParametersEntry.value:type_name -> ml_pipelines.TaskOutputsSpec.OutputParameterSpec
+	74,  // 102: ml_pipelines.TaskOutputsSpec.ArtifactsEntry.value:type_name -> ml_pipelines.TaskOutputsSpec.OutputArtifactSpec
+	26,  // 103: ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.PropertiesEntry.value:type_name -> ml_pipelines.ValueOrRuntimeParameter
+	26,  // 104: ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.CustomPropertiesEntry.value:type_name -> ml_pipelines.ValueOrRuntimeParameter
 	3,   // 105: ml_pipelines.PipelineTaskSpec.TriggerPolicy.strategy:type_name -> ml_pipelines.PipelineTaskSpec.TriggerPolicy.TriggerStrategy
-	118, // 106: ml_pipelines.PipelineTaskSpec.RetryPolicy.backoff_duration:type_name -> google.protobuf.Duration
-	118, // 107: ml_pipelines.PipelineTaskSpec.RetryPolicy.backoff_max_duration:type_name -> google.protobuf.Duration
-	91,  // 108: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.lifecycle:type_name -> ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle
-	92,  // 109: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.resources:type_name -> ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec
-	93,  // 110: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.env:type_name -> ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar
-	25,  // 111: ml_pipelines.PipelineDeploymentConfig.ImporterSpec.artifact_uri:type_name -> ml_pipelines.ValueOrRuntimeParameter
-	23,  // 112: ml_pipelines.PipelineDeploymentConfig.ImporterSpec.type_schema:type_name -> ml_pipelines.ArtifactTypeSchema
-	96,  // 113: ml_pipelines.PipelineDeploymentConfig.ImporterSpec.properties:type_name -> ml_pipelines.PipelineDeploymentConfig.ImporterSpec.PropertiesEntry
-	97,  // 114: ml_pipelines.PipelineDeploymentConfig.ImporterSpec.custom_properties:type_name -> ml_pipelines.PipelineDeploymentConfig.ImporterSpec.CustomPropertiesEntry
-	115, // 115: ml_pipelines.PipelineDeploymentConfig.ImporterSpec.metadata:type_name -> google.protobuf.Struct
-	99,  // 116: ml_pipelines.PipelineDeploymentConfig.ResolverSpec.output_artifact_queries:type_name -> ml_pipelines.PipelineDeploymentConfig.ResolverSpec.OutputArtifactQueriesEntry
-	115, // 117: ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.custom_job:type_name -> google.protobuf.Struct
-	85,  // 118: ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.container:type_name -> ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec
-	86,  // 119: ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.importer:type_name -> ml_pipelines.PipelineDeploymentConfig.ImporterSpec
-	87,  // 120: ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.resolver:type_name -> ml_pipelines.PipelineDeploymentConfig.ResolverSpec
-	88,  // 121: ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.custom_job:type_name -> ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec
-	89,  // 122: ml_pipelines.PipelineDeploymentConfig.ExecutorsEntry.value:type_name -> ml_pipelines.PipelineDeploymentConfig.ExecutorSpec
-	94,  // 123: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.pre_cache_check:type_name -> ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec
-	95,  // 124: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.accelerator:type_name -> ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig
-	25,  // 125: ml_pipelines.PipelineDeploymentConfig.ImporterSpec.PropertiesEntry.value:type_name -> ml_pipelines.ValueOrRuntimeParameter
-	25,  // 126: ml_pipelines.PipelineDeploymentConfig.ImporterSpec.CustomPropertiesEntry.value:type_name -> ml_pipelines.ValueOrRuntimeParameter
-	98,  // 127: ml_pipelines.PipelineDeploymentConfig.ResolverSpec.OutputArtifactQueriesEntry.value:type_name -> ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec
-	27,  // 128: ml_pipelines.RuntimeArtifact.PropertiesEntry.value:type_name -> ml_pipelines.Value
-	27,  // 129: ml_pipelines.RuntimeArtifact.CustomPropertiesEntry.value:type_name -> ml_pipelines.Value
-	105, // 130: ml_pipelines.ExecutorInput.Inputs.parameters:type_name -> ml_pipelines.ExecutorInput.Inputs.ParametersEntry
-	106, // 131: ml_pipelines.ExecutorInput.Inputs.artifacts:type_name -> ml_pipelines.ExecutorInput.Inputs.ArtifactsEntry
-	107, // 132: ml_pipelines.ExecutorInput.Inputs.parameter_values:type_name -> ml_pipelines.ExecutorInput.Inputs.ParameterValuesEntry
-	108, // 133: ml_pipelines.ExecutorInput.Outputs.parameters:type_name -> ml_pipelines.ExecutorInput.Outputs.ParametersEntry
-	109, // 134: ml_pipelines.ExecutorInput.Outputs.artifacts:type_name -> ml_pipelines.ExecutorInput.Outputs.ArtifactsEntry
-	27,  // 135: ml_pipelines.ExecutorInput.Inputs.ParametersEntry.value:type_name -> ml_pipelines.Value
-	29,  // 136: ml_pipelines.ExecutorInput.Inputs.ArtifactsEntry.value:type_name -> ml_pipelines.ArtifactList
-	116, // 137: ml_pipelines.ExecutorInput.Inputs.ParameterValuesEntry.value:type_name -> google.protobuf.Value
-	103, // 138: ml_pipelines.ExecutorInput.Outputs.ParametersEntry.value:type_name -> ml_pipelines.ExecutorInput.OutputParameter
-	29,  // 139: ml_pipelines.ExecutorInput.Outputs.ArtifactsEntry.value:type_name -> ml_pipelines.ArtifactList
-	27,  // 140: ml_pipelines.ExecutorOutput.ParametersEntry.value:type_name -> ml_pipelines.Value
-	29,  // 141: ml_pipelines.ExecutorOutput.ArtifactsEntry.value:type_name -> ml_pipelines.ArtifactList
-	116, // 142: ml_pipelines.ExecutorOutput.ParameterValuesEntry.value:type_name -> google.protobuf.Value
-	35,  // 143: ml_pipelines.PlatformSpec.PlatformsEntry.value:type_name -> ml_pipelines.SinglePlatformSpec
-	115, // 144: ml_pipelines.PlatformDeploymentConfig.ExecutorsEntry.value:type_name -> google.protobuf.Struct
-	145, // [145:145] is the sub-list for method output_type
-	145, // [145:145] is the sub-list for method input_type
-	145, // [145:145] is the sub-list for extension type_name
-	145, // [145:145] is the sub-list for extension extendee
-	0,   // [0:145] is the sub-list for field type_name
+	119, // 106: ml_pipelines.PipelineTaskSpec.RetryPolicy.backoff_duration:type_name -> google.protobuf.Duration
+	119, // 107: ml_pipelines.PipelineTaskSpec.RetryPolicy.backoff_max_duration:type_name -> google.protobuf.Duration
+	4,   // 108: ml_pipelines.PipelineTaskSpec.RetryPolicy.policy:type_name -> ml_pipelines.PipelineTaskSpec.RetryPolicy.Policy
+	92,  // 109: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.lifecycle:type_name -> ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle
+	93,  // 110: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.resources:type_name -> ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec
+	94,  // 111: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.env:type_name -> ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar
+	26,  // 112: ml_pipelines.PipelineDeploymentConfig.ImporterSpec.artifact_uri:type_name -> ml_pipelines.ValueOrRuntimeParameter
+	24,  // 113: ml_pipelines.PipelineDeploymentConfig.ImporterSpec.type_schema:type_name -> ml_pipelines.ArtifactTypeSchema
+	97,  // 114: ml_pipelines.PipelineDeploymentConfig.ImporterSpec.properties:type_name -> ml_pipelines.PipelineDeploymentConfig.ImporterSpec.PropertiesEntry
+	98,  // 115: ml_pipelines.PipelineDeploymentConfig.ImporterSpec.custom_properties:type_name -> ml_pipelines.PipelineDeploymentConfig.ImporterSpec.CustomPropertiesEntry
+	116, // 116: ml_pipelines.PipelineDeploymentConfig.ImporterSpec.metadata:type_name -> google.protobuf.Struct
+	100, // 117: ml_pipelines.PipelineDeploymentConfig.ResolverSpec.output_artifact_queries:type_name -> ml_pipelines.PipelineDeploymentConfig.ResolverSpec.OutputArtifactQueriesEntry
+	116, // 118: ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.custom_job:type_name -> google.protobuf.Struct
+	86,  // 119: ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.container:type_name -> ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec
+	87,  // 120: ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.importer:type_name -> ml_pipelines.PipelineDeploymentConfig.ImporterSpec
+	88,  // 121: ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.resolver:type_name -> ml_pipelines.PipelineDeploymentConfig.ResolverSpec
+	89,  // 122: ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.custom_job:type_name -> ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec
+	90,  // 123: ml_pipelines.PipelineDeploymentConfig.ExecutorsEntry.value:type_name -> ml_pipelines.PipelineDeploymentConfig.ExecutorSpec
+	95,  // 124: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.pre_cache_check:type_name -> ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec
+	96,  // 125: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.accelerator:type_name -> ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig
+	26,  // 126: ml_pipelines.PipelineDeploymentConfig.ImporterSpec.PropertiesEntry.value:type_name -> ml_pipelines.ValueOrRuntimeParameter
+	26,  // 127: ml_pipelines.PipelineDeploymentConfig.ImporterSpec.CustomPropertiesEntry.value:type_name -> ml_pipelines.ValueOrRuntimeParameter
+	99,  // 128: ml_pipelines.PipelineDeploymentConfig.ResolverSpec.OutputArtifactQueriesEntry.value:type_name -> ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec
+	28,  // 129: ml_pipelines.RuntimeArtifact.PropertiesEntry.value:type_name -> ml_pipelines.Value
+	28,  // 130: ml_pipelines.RuntimeArtifact.CustomPropertiesEntry.value:type_name -> ml_pipelines.Value
+	106, // 131: ml_pipelines.ExecutorInput.Inputs.parameters:type_name -> ml_pipelines.ExecutorInput.Inputs.ParametersEntry
+	107, // 132: ml_pipelines.ExecutorInput.Inputs.artifacts:type_name -> ml_pipelines.ExecutorInput.Inputs.ArtifactsEntry
+	108, // 133: ml_pipelines.ExecutorInput.Inputs.parameter_values:type_name -> ml_pipelines.ExecutorInput.Inputs.ParameterValuesEntry
+	109, // 134: ml_pipelines.ExecutorInput.Outputs.parameters:type_name -> ml_pipelines.ExecutorInput.Outputs.ParametersEntry
+	110, // 135: ml_pipelines.ExecutorInput.Outputs.artifacts:type_name -> ml_pipelines.ExecutorInput.Outputs.ArtifactsEntry
+	28,  // 136: ml_pipelines.ExecutorInput.Inputs.ParametersEntry.value:type_name -> ml_pipelines.Value
+	30,  // 137: ml_pipelines.ExecutorInput.Inputs.ArtifactsEntry.value:type_name -> ml_pipelines.ArtifactList
+	117, // 138: ml_pipelines.ExecutorInput.Inputs.ParameterValuesEntry.value:type_name -> google.protobuf.Value
+	104, // 139: ml_pipelines.ExecutorInput.Outputs.ParametersEntry.value:type_name -> ml_pipelines.ExecutorInput.OutputParameter
+	30,  // 140: ml_pipelines.ExecutorInput.Outputs.ArtifactsEntry.value:type_name -> ml_pipelines.ArtifactList
+	28,  // 141: ml_pipelines.ExecutorOutput.ParametersEntry.value:type_name -> ml_pipelines.Value
+	30,  // 142: ml_pipelines.ExecutorOutput.ArtifactsEntry.value:type_name -> ml_pipelines.ArtifactList
+	117, // 143: ml_pipelines.ExecutorOutput.ParameterValuesEntry.value:type_name -> google.protobuf.Value
+	36,  // 144: ml_pipelines.PlatformSpec.PlatformsEntry.value:type_name -> ml_pipelines.SinglePlatformSpec
+	116, // 145: ml_pipelines.PlatformDeploymentConfig.ExecutorsEntry.value:type_name -> google.protobuf.Struct
+	146, // [146:146] is the sub-list for method output_type
+	146, // [146:146] is the sub-list for method input_type
+	146, // [146:146] is the sub-list for extension type_name
+	146, // [146:146] is the sub-list for extension extendee
+	0,   // [0:146] is the sub-list for field type_name
 }
 
 func init() { file_pipeline_spec_proto_init() }
@@ -6515,7 +6589,7 @@ func file_pipeline_spec_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pipeline_spec_proto_rawDesc), len(file_pipeline_spec_proto_rawDesc)),
-			NumEnums:      5,
+			NumEnums:      6,
 			NumMessages:   110,
 			NumExtensions: 0,
 			NumServices:   0,
