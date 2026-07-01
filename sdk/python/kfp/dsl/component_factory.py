@@ -532,7 +532,7 @@ def _get_command_and_args_for_lightweight_component(
             )
 
         buf = io.BytesIO()
-        with tarfile.open(fileobj=buf, mode='w') as tar:
+        with tarfile.open(fileobj=buf, mode='w', dereference=True) as tar:
             if asset_path.is_dir():
                 tar.add(asset_path, arcname='.')
             else:

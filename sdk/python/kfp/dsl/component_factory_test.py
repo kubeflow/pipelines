@@ -411,5 +411,121 @@ class TestPythonEOLWarning(unittest.TestCase):
                 pass
 
 
+def _get_archive(component_fn):
+    """Extract the raw tar bytes from a compiled component's embedded
+    archive."""
+    import base64
+    import gzip
+
+    source = component_fn.component_spec.implementation.container.command[-1]
+    match = re.search(r"__KFP_EMBEDDED_ARCHIVE_B64\s*=\s*'([^']+)'", source)
+    if not match:
+        raise ValueError(
+            'Could not locate __KFP_EMBEDDED_ARCHIVE_B64 in compiled '
+            'component source.')
+    archive_b64 = match.group(1)
+
+    compressed = base64.b64decode(archive_b64.encode('ascii'))
+    return gzip.decompress(compressed)
+
+
+class TestEmbeddedArtifactSymlinkResolution(unittest.TestCase):
+    """Tests for #13533: embedded artifacts should resolve symlinks."""
+
+    def test_symlinked_file_is_dereferenced_in_archive(self):
+        """A symlinked file should be archived as a regular file, not a
+        symlink."""
+        import io
+        import os
+        import tarfile
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            real_dir = os.path.join(tmpdir, 'real')
+            os.makedirs(real_dir)
+            real_file = os.path.join(real_dir, 'data.txt')
+            with open(real_file, 'w') as f:
+                f.write('real content')
+
+            link_file = os.path.join(tmpdir, 'link.txt')
+            try:
+                os.symlink(real_file, link_file)
+            except OSError:
+                self.skipTest('Cannot create symlinks on this platform')
+
+            @component(
+                base_image='python:3.11',
+                embedded_artifact_path=link_file,
+                install_kfp_package=False,
+            )
+            def my_comp(cfg: dsl.EmbeddedInput[dsl.Dataset]):
+                pass
+
+            raw = _get_archive(my_comp)
+            with tarfile.open(fileobj=io.BytesIO(raw), mode='r') as tar:
+                members = tar.getmembers()
+                self.assertEqual(len(members), 1)
+                member = members[0]
+                self.assertFalse(member.issym(),
+                                 'Symlink was not dereferenced in archive')
+                self.assertFalse(member.islnk(),
+                                 'Hardlink was not dereferenced in archive')
+                self.assertTrue(member.isfile())
+                with tar.extractfile(member) as extracted:
+                    self.assertIsNotNone(extracted)
+                    self.assertEqual(extracted.read().decode(), 'real content')
+
+    def test_directory_with_symlinked_file_is_dereferenced(self):
+        """When a directory is embedded and it contains a symlinked file, the
+        archive should contain the real file content."""
+        import io
+        import os
+        import tarfile
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            real_file = os.path.join(tmpdir, 'original.txt')
+            with open(real_file, 'w') as f:
+                f.write('original content')
+
+            embed_dir = os.path.join(tmpdir, 'assets')
+            os.makedirs(embed_dir)
+            link_in_dir = os.path.join(embed_dir, 'linked.txt')
+            try:
+                os.symlink(real_file, link_in_dir)
+            except OSError:
+                self.skipTest('Cannot create symlinks on this platform')
+
+            @component(
+                base_image='python:3.11',
+                embedded_artifact_path=embed_dir,
+                install_kfp_package=False,
+            )
+            def my_comp(cfg: dsl.EmbeddedInput[dsl.Dataset]):
+                pass
+
+            raw = _get_archive(my_comp)
+            with tarfile.open(fileobj=io.BytesIO(raw), mode='r') as tar:
+                members = tar.getmembers()
+                for member in members:
+                    self.assertFalse(
+                        member.issym(),
+                        f'Member {member.name} is still a symlink')
+                    self.assertFalse(
+                        member.islnk(),
+                        f'Member {member.name} is still a hardlink')
+                    self.assertTrue(
+                        member.isfile() or member.isdir(),
+                        f'Member {member.name} has unexpected type')
+                linked_member = next(
+                    (m for m in members if m.name.endswith('linked.txt')), None)
+                self.assertIsNotNone(linked_member,
+                                     'linked.txt not found in archive')
+                with tar.extractfile(linked_member) as extracted:
+                    self.assertIsNotNone(extracted)
+                    self.assertEqual(extracted.read().decode(),
+                                     'original content')
+
+
 if __name__ == '__main__':
     unittest.main()
