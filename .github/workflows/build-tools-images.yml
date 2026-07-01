@@ -46,22 +46,30 @@ jobs:
 
       - name: Build and push api-generator
         id: build_api
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: backend/api/Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/kfp-api-generator:${{ env.IMAGE_TAG }}
+        shell: bash
+        env:
+          SHOULD_PUSH: ${{ github.event_name != 'pull_request' }}
+        run: |
+          source ./.github/resources/scripts/helper-functions.sh
+          IMAGE="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/kfp-api-generator:${{ env.IMAGE_TAG }}"
+          retry 3 20 env DOCKER_BUILDKIT=1 docker build --file backend/api/Dockerfile --tag "$IMAGE" .
+          if [ "$SHOULD_PUSH" = "true" ]; then
+            retry 3 20 docker push "$IMAGE"
+          fi
 
       - name: Build and push release tools
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: test/release/Dockerfile.release
-          push: ${{ github.event_name != 'pull_request' }}
-          build-args: |
-            BASE_IMAGE=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/kfp-api-generator:${{ env.IMAGE_TAG }}
-            NODE_VERSION=${{ steps.frontend_node.outputs.version }}
-          tags: |
-            ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/kfp-release:${{ env.IMAGE_TAG }}
+        shell: bash
+        env:
+          SHOULD_PUSH: ${{ github.event_name != 'pull_request' }}
+        run: |
+          source ./.github/resources/scripts/helper-functions.sh
+          IMAGE="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/kfp-release:${{ env.IMAGE_TAG }}"
+          retry 3 20 env DOCKER_BUILDKIT=1 docker build \
+            --file test/release/Dockerfile.release \
+            --build-arg "BASE_IMAGE=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/kfp-api-generator:${{ env.IMAGE_TAG }}" \
+            --build-arg "NODE_VERSION=${{ steps.frontend_node.outputs.version }}" \
+            --tag "$IMAGE" \
+            .
+          if [ "$SHOULD_PUSH" = "true" ]; then
+            retry 3 20 docker push "$IMAGE"
+          fi
