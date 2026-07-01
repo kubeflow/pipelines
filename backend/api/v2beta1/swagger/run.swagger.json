@@ -611,6 +611,39 @@
           "RunService"
         ]
       }
+    },
+    "/apis/v2beta1/tasks:findCached": {
+      "post": {
+        "summary": "Finds a cached successful task by namespace and fingerprint.",
+        "operationId": "find_cached_task",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1FindCachedTaskResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2beta1FindCachedTaskRequest"
+            }
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      }
     }
   },
   "definitions": {
@@ -902,6 +935,25 @@
         }
       },
       "title": "Not to be confused with RuntimeArtifact in PipelineSpec"
+    },
+    "v2beta1FindCachedTaskRequest": {
+      "type": "object",
+      "properties": {
+        "namespace": {
+          "type": "string"
+        },
+        "cache_fingerprint": {
+          "type": "string"
+        }
+      }
+    },
+    "v2beta1FindCachedTaskResponse": {
+      "type": "object",
+      "properties": {
+        "task": {
+          "$ref": "#/definitions/v2beta1PipelineTask"
+        }
+      }
     },
     "v2beta1GetRunRequestViewMode": {
       "type": "string",

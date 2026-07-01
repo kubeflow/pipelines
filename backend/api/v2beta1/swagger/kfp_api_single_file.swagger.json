@@ -2277,6 +2277,39 @@
         ]
       }
     },
+    "/apis/v2beta1/tasks:findCached": {
+      "post": {
+        "summary": "Finds a cached successful task by namespace and fingerprint.",
+        "operationId": "find_cached_task",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1FindCachedTaskResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2beta1FindCachedTaskRequest"
+            }
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      }
+    },
     "/apis/v2beta1/visualizations/{namespace}": {
       "post": {
         "operationId": "VisualizationService_CreateVisualizationV1",
@@ -3388,6 +3421,25 @@
             "$ref": "#/definitions/v2beta1PipelineTask"
           },
           "title": "Required. Map of task ID to task detail for bulk update.\nKey: task_id, Value: PipelineTask to update"
+        }
+      }
+    },
+    "v2beta1FindCachedTaskRequest": {
+      "type": "object",
+      "properties": {
+        "namespace": {
+          "type": "string"
+        },
+        "cache_fingerprint": {
+          "type": "string"
+        }
+      }
+    },
+    "v2beta1FindCachedTaskResponse": {
+      "type": "object",
+      "properties": {
+        "task": {
+          "$ref": "#/definitions/v2beta1PipelineTask"
         }
       }
     },

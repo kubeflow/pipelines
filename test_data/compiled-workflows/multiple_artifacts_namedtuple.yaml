@@ -1,46 +1,11 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    workflows.argoproj.io/pod-name-format: v1
   generateName: multiple-artifacts-namedtuple-pipeline-
 spec:
-  arguments:
-    parameters:
-    - name: components-41d6f43a77336abfc42373262a0d3f817036dea59881c80ac128ebff19d9ac06
-      value: '{"executorLabel":"exec-crust-comp","inputDefinitions":{"artifacts":{"ds1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"ds2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-41d6f43a77336abfc42373262a0d3f817036dea59881c80ac128ebff19d9ac06
-      value: '{"args":["--executor_input","{{$}}","--function_to_execute","crust_comp"],"command":["sh","-c","\nif
-        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
-        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
-        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
-        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
-        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
-        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
-        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        crust_comp(\n    ds1: dsl.Dataset,\n    ds2: dsl.Dataset,\n):\n    with open(ds1.path,
-        ''r'') as f:\n        print(''ds1: '', f.read())\n    with open(ds2.path,
-        ''r'') as f:\n        print(''ds2: '', f.read())\n\n"],"image":"python:3.11"}'
-    - name: components-5502b96ca3f6aca433522fdb2d6365445dee6a291a29d192a3665429bcba4eca
-      value: '{"executorLabel":"exec-core-comp","outputDefinitions":{"artifacts":{"ds1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"ds2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-5502b96ca3f6aca433522fdb2d6365445dee6a291a29d192a3665429bcba4eca
-      value: '{"args":["--executor_input","{{$}}","--function_to_execute","core_comp"],"command":["sh","-c","\nif
-        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
-        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
-        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
-        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
-        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
-        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
-        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        core_comp(ds1: dsl.Output[dsl.Dataset], ds2: dsl.Output[dsl.Dataset]):\n    with
-        open(ds1.path, ''w'') as f:\n        f.write(''foo'')\n    with open(ds2.path,
-        ''w'') as f:\n        f.write(''bar'')\n\n"],"image":"python:3.11"}'
-    - name: components-comp-core
-      value: '{"dag":{"outputs":{"artifacts":{"ds1":{"artifactSelectors":[{"outputArtifactKey":"ds1","producerSubtask":"core-comp"}]},"ds2":{"artifactSelectors":[{"outputArtifactKey":"ds2","producerSubtask":"core-comp"}]}}},"tasks":{"core-comp":{"cachingOptions":{},"componentRef":{"name":"comp-core-comp"},"taskInfo":{"name":"core-comp"}}}},"outputDefinitions":{"artifacts":{"ds1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"ds2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: components-comp-mantle
-      value: '{"dag":{"outputs":{"artifacts":{"ds1":{"artifactSelectors":[{"outputArtifactKey":"ds1","producerSubtask":"core"}]},"ds2":{"artifactSelectors":[{"outputArtifactKey":"ds2","producerSubtask":"core"}]}}},"tasks":{"core":{"cachingOptions":{},"componentRef":{"name":"comp-core"},"taskInfo":{"name":"core"}}}},"outputDefinitions":{"artifacts":{"ds1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"ds2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: components-root
-      value: '{"dag":{"tasks":{"crust-comp":{"cachingOptions":{},"componentRef":{"name":"comp-crust-comp"},"dependentTasks":["mantle"],"inputs":{"artifacts":{"ds1":{"taskOutputArtifact":{"outputArtifactKey":"ds1","producerTask":"mantle"}},"ds2":{"taskOutputArtifact":{"outputArtifactKey":"ds2","producerTask":"mantle"}}}},"taskInfo":{"name":"crust-comp"}},"mantle":{"cachingOptions":{},"componentRef":{"name":"comp-mantle"},"taskInfo":{"name":"mantle"}}}}}'
+  arguments: {}
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -65,16 +30,10 @@ spec:
       - '{{workflow.name}}'
       - --run_display_name
       - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
-      - --component
-      - '{{inputs.parameters.component}}'
-      - --task
-      - '{{inputs.parameters.task}}'
+      - --parent_task_id
+      - '{{inputs.parameters.parent-dag-task-id}}'
       - --task_name
       - '{{inputs.parameters.task-name}}'
-      - --container
-      - '{{inputs.parameters.container}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
       - --cached_decision_path
@@ -95,10 +54,6 @@ spec:
       - ml-pipeline.kubeflow.svc.cluster.local
       - --ml_pipeline_server_port
       - "8887"
-      - --mlmd_server_address
-      - metadata-grpc-service.kubeflow.svc.cluster.local
-      - --mlmd_server_port
-      - "8080"
       command:
       - driver
       env:
@@ -110,6 +65,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -127,18 +86,23 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
     inputs:
       parameters:
-      - name: component
-      - name: task
-      - name: container
       - name: task-name
-      - name: parent-dag-id
+      - name: parent-dag-task-id
       - default: "-1"
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/template-name: system-container-driver
+      labels:
+        pipelines.kubeflow.org/pod-role: container-driver
     name: system-container-driver
     outputs:
       parameters:
@@ -159,6 +123,14 @@ spec:
       runAsNonRoot: true
       seccompProfile:
         type: RuntimeDefault
+    volumes:
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
   - dag:
       tasks:
       - arguments:
@@ -173,6 +145,8 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: "-1"
+        name: iteration-index
     metadata: {}
     name: system-container-executor
     outputs: {}
@@ -188,6 +162,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap
@@ -205,6 +183,9 @@ spec:
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
       - mountPath: /gcs
         name: gcs-scratch
       - mountPath: /s3
@@ -245,7 +226,11 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/template-name: system-container-impl
+      labels:
+        pipelines.kubeflow.org/pod-role: container-executor
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -255,6 +240,13 @@ spec:
     volumes:
     - emptyDir: {}
       name: kfp-launcher
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
     - emptyDir: {}
       name: gcs-scratch
     - emptyDir: {}
@@ -271,16 +263,10 @@ spec:
       tasks:
       - arguments:
           parameters:
-          - name: component
-            value: '{{workflow.parameters.components-5502b96ca3f6aca433522fdb2d6365445dee6a291a29d192a3665429bcba4eca}}'
-          - name: task
-            value: '{"cachingOptions":{},"componentRef":{"name":"comp-core-comp"},"taskInfo":{"name":"core-comp"}}'
-          - name: container
-            value: '{{workflow.parameters.implementations-5502b96ca3f6aca433522fdb2d6365445dee6a291a29d192a3665429bcba4eca}}'
           - name: task-name
             value: core-comp
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         name: core-comp-driver
         template: system-container-driver
       - arguments:
@@ -295,7 +281,7 @@ spec:
         template: system-container-executor
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: comp-core
     outputs: {}
@@ -311,20 +297,16 @@ spec:
       - '{{workflow.name}}'
       - --run_display_name
       - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
-      - --component
-      - '{{inputs.parameters.component}}'
-      - --task
-      - '{{inputs.parameters.task}}'
+      - --parent_task_id
+      - '{{inputs.parameters.parent-dag-task-id}}'
       - --task_name
       - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
-      - --execution_id_path
-      - '{{outputs.parameters.execution-id.path}}'
+      - --parent_task_id_path
+      - '{{outputs.parameters.parent-dag-task-id-path.path}}'
       - --iteration_count_path
       - '{{outputs.parameters.iteration-count.path}}'
       - --condition_path
@@ -339,12 +321,21 @@ spec:
       - ml-pipeline.kubeflow.svc.cluster.local
       - --ml_pipeline_server_port
       - "8887"
-      - --mlmd_server_address
-      - metadata-grpc-service.kubeflow.svc.cluster.local
-      - --mlmd_server_port
-      - "8080"
       command:
       - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -354,36 +345,33 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
     inputs:
       parameters:
-      - name: component
       - default: ""
         name: runtime-config
       - default: ""
-        name: task
-      - default: ""
         name: task-name
-      - default: "0"
-        name: parent-dag-id
+      - default: ""
+        name: parent-dag-task-id
       - default: "-1"
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/template-name: system-dag-driver
+      labels:
+        pipelines.kubeflow.org/pod-role: dag-driver
     name: system-dag-driver
     outputs:
       parameters:
-      - name: execution-id
+      - name: parent-dag-task-id-path
         valueFrom:
-          path: /tmp/outputs/execution-id
+          path: /tmp/outputs/task-id
       - name: iteration-count
         valueFrom:
           default: "0"
@@ -392,28 +380,28 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
-    securityContext:
-      runAsNonRoot: true
-      seccompProfile:
-        type: RuntimeDefault
+    volumes:
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
   - dag:
       tasks:
       - arguments:
           parameters:
-          - name: component
-            value: '{{workflow.parameters.components-comp-core}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-          - name: task
-            value: '{"cachingOptions":{},"componentRef":{"name":"comp-core"},"taskInfo":{"name":"core"}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: task-name
             value: core
         name: core-driver
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.core-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.core-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: condition
             value: '{{tasks.core-driver.outputs.parameters.condition}}'
         depends: core-driver.Succeeded
@@ -421,7 +409,7 @@ spec:
         template: comp-core
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: comp-mantle
     outputs: {}
@@ -429,16 +417,10 @@ spec:
       tasks:
       - arguments:
           parameters:
-          - name: component
-            value: '{{workflow.parameters.components-41d6f43a77336abfc42373262a0d3f817036dea59881c80ac128ebff19d9ac06}}'
-          - name: task
-            value: '{"cachingOptions":{},"componentRef":{"name":"comp-crust-comp"},"dependentTasks":["mantle"],"inputs":{"artifacts":{"ds1":{"taskOutputArtifact":{"outputArtifactKey":"ds1","producerTask":"mantle"}},"ds2":{"taskOutputArtifact":{"outputArtifactKey":"ds2","producerTask":"mantle"}}}},"taskInfo":{"name":"crust-comp"}}'
-          - name: container
-            value: '{{workflow.parameters.implementations-41d6f43a77336abfc42373262a0d3f817036dea59881c80ac128ebff19d9ac06}}'
           - name: task-name
             value: crust-comp
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         depends: mantle.Succeeded
         name: crust-comp-driver
         template: system-container-driver
@@ -454,20 +436,16 @@ spec:
         template: system-container-executor
       - arguments:
           parameters:
-          - name: component
-            value: '{{workflow.parameters.components-comp-mantle}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-          - name: task
-            value: '{"cachingOptions":{},"componentRef":{"name":"comp-mantle"},"taskInfo":{"name":"mantle"}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: task-name
             value: mantle
         name: mantle-driver
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.mantle-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.mantle-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: condition
             value: '{{tasks.mantle-driver.outputs.parameters.condition}}'
         depends: mantle-driver.Succeeded
@@ -475,7 +453,7 @@ spec:
         template: comp-mantle
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: root
     outputs: {}
@@ -483,8 +461,6 @@ spec:
       tasks:
       - arguments:
           parameters:
-          - name: component
-            value: '{{workflow.parameters.components-root}}'
           - name: runtime-config
             value: '{}'
           - name: driver-type
@@ -493,8 +469,8 @@ spec:
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.root-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: condition
             value: ""
         depends: root-driver.Succeeded

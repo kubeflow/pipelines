@@ -1013,6 +1013,14 @@ func (r *ResourceManager) ListTasks(runID, parentID, namespace string, opts *lis
 	return tasks, totalSize, nextPageToken, nil
 }
 
+func (r *ResourceManager) FindLatestCachedTask(namespace, fingerprint string) (*model.Task, error) {
+	task, err := r.taskStore.FindLatestCachedTask(namespace, fingerprint)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to find latest cached task")
+	}
+	return task, nil
+}
+
 // Fetches recurring runs with given filtering and listing options.
 func (r *ResourceManager) ListJobs(filterContext *model.FilterContext, opts *list.Options) ([]*model.Job, int, string, error) {
 	return r.jobStore.ListJobs(filterContext, opts)

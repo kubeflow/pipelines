@@ -1,147 +1,22 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    workflows.argoproj.io/pod-name-format: v1
   generateName: pipeline-with-pod-metadata-
 spec:
   arguments:
     parameters:
     - name: kubernetes-comp-validate-no-pod-metadata
       value: '{"fieldPathAsEnv":[{"fieldPath":"metadata.annotations[''task-annotation'']","name":"POD_TASK_ANNOTATION"},{"fieldPath":"metadata.annotations[''task-annotation-1'']","name":"POD_TASK_ANNOTATION_1"},{"fieldPath":"metadata.labels[''task-label'']","name":"POD_TASK_LABEL"},{"fieldPath":"metadata.labels[''task-label-1'']","name":"POD_TASK_LABEL_1"}]}'
-    - name: components-3e1061118c8caaf7fb2580deca4c26c68777ea648895af667b433198f8d95a35
-      value: '{"executorLabel":"exec-validate-no-pod-metadata","outputDefinitions":{"parameters":{"Output":{"parameterType":"BOOLEAN"}}}}'
-    - name: implementations-3e1061118c8caaf7fb2580deca4c26c68777ea648895af667b433198f8d95a35
-      value: '{"args":["--executor_input","{{$}}","--function_to_execute","validate_no_pod_metadata"],"command":["sh","-c","\nif
-        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
-        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
-        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
-        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
-        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
-        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
-        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        validate_no_pod_metadata() -\u003e bool:\n    import os\n    annotation =
-        os.getenv(''POD_TASK_ANNOTATION'')\n    annotation_2 = os.getenv(''POD_TASK_ANNOTATION_1'')\n    if
-        annotation != '''' or annotation_2 != '''':\n        raise ValueError(\n            f''Pod
-        annotation is {annotation} but is supposed to be None.''\n        )\n    label
-        = os.getenv(''POD_TASK_LABEL'')\n    label_2 = os.getenv(''POD_TASK_LABEL_1'')\n    if
-        label != '''' or label_2 != '''':\n        raise ValueError(\n            f''Pod
-        label is {label} but is supposed to be None.''\n        )\n    return True\n\n"],"image":"python:3.11"}'
     - name: kubernetes-comp-validate-pod-metadata-task-a
       value: '{"fieldPathAsEnv":[{"fieldPath":"metadata.annotations[''task-annotation'']","name":"POD_TASK_ANNOTATION"},{"fieldPath":"metadata.labels[''task-label-1'']","name":"POD_TASK_LABEL_1"},{"fieldPath":"metadata.labels[''task-label-2'']","name":"POD_TASK_LABEL_2"}],"podMetadata":{"annotations":{"task-annotation":"annotation"},"labels":{"task-label-1":"label-1","task-label-2":"label-2"}}}'
-    - name: components-36b4f5715a9e847c587a42d8970df700b9d7977c0097b0b0a12b7be3bc7cb4f8
-      value: '{"executorLabel":"exec-validate-pod-metadata-task-a","inputDefinitions":{"parameters":{"annotation_exp_val":{"parameterType":"STRING"},"annotation_path":{"parameterType":"STRING"},"label_exp_val_1":{"parameterType":"STRING"},"label_exp_val_2":{"parameterType":"STRING"},"label_path_1":{"parameterType":"STRING"},"label_path_2":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"BOOLEAN"}}}}'
-    - name: implementations-36b4f5715a9e847c587a42d8970df700b9d7977c0097b0b0a12b7be3bc7cb4f8
-      value: '{"args":["--executor_input","{{$}}","--function_to_execute","validate_pod_metadata_task_a"],"command":["sh","-c","\nif
-        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
-        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
-        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
-        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
-        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
-        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
-        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        validate_pod_metadata_task_a(annotation_path: str,\n                                 annotation_exp_val:
-        str,\n                                 label_path_1: str,\n                                 label_exp_val_1:
-        str,\n                                 label_path_2: str,\n                                 label_exp_val_2:
-        str) -\u003e bool:\n    import os\n    annotation_val = os.getenv(annotation_path)\n    if
-        annotation_val != annotation_exp_val:\n        raise ValueError(\n            f''Pod
-        annotation is {annotation_val} but is supposed to be {annotation_exp_val}.''\n        )\n\n    label_val_1
-        = os.getenv(label_path_1)\n    if label_val_1 != label_exp_val_1:\n        raise
-        ValueError(\n            f''Pod label is {label_val_1} but is supposed to
-        be {label_exp_val_1}.''\n        )\n\n    label_val_2 = os.getenv(label_path_2)\n    if
-        label_val_2 != label_exp_val_2:\n        raise ValueError(\n            f''Pod
-        label is {label_val_2} but is supposed to be {label_exp_val_2}.''\n        )\n    return
-        True\n\n"],"image":"python:3.11"}'
     - name: kubernetes-comp-validate-pod-metadata-task-b
       value: '{"fieldPathAsEnv":[{"fieldPath":"metadata.annotations[''task-annotation-1'']","name":"POD_TASK_ANNOTATION_1"},{"fieldPath":"metadata.annotations[''task-annotation-2'']","name":"POD_TASK_ANNOTATION_2"},{"fieldPath":"metadata.annotations[''task-annotation-3'']","name":"POD_TASK_ANNOTATION_3"},{"fieldPath":"metadata.annotations[''task-annotation-4'']","name":"POD_TASK_ANNOTATION_4"},{"fieldPath":"metadata.labels[''task-label-1'']","name":"POD_TASK_LABEL_1"},{"fieldPath":"metadata.labels[''task-label-2'']","name":"POD_TASK_LABEL_2"},{"fieldPath":"metadata.labels[''task-label-3'']","name":"POD_TASK_LABEL_3"}],"podMetadata":{"annotations":{"task-annotation-1":"annotation-1","task-annotation-2":"annotation-2","task-annotation-3":"annotation-3","task-annotation-4":"annotation-4"},"labels":{"task-label-1":"label-1","task-label-2":"label-2","task-label-3":"label-3"}}}'
-    - name: components-e07ac8a27d331c96ac2d5559c43f483a79d4e8956b1941d0e306aee450ad83f1
-      value: '{"executorLabel":"exec-validate-pod-metadata-task-b","inputDefinitions":{"parameters":{"annotation_exp_val_1":{"parameterType":"STRING"},"annotation_exp_val_2":{"parameterType":"STRING"},"annotation_exp_val_3":{"parameterType":"STRING"},"annotation_exp_val_4":{"parameterType":"STRING"},"annotation_path_1":{"parameterType":"STRING"},"annotation_path_2":{"parameterType":"STRING"},"annotation_path_3":{"parameterType":"STRING"},"annotation_path_4":{"parameterType":"STRING"},"label_exp_val_1":{"parameterType":"STRING"},"label_exp_val_2":{"parameterType":"STRING"},"label_exp_val_3":{"parameterType":"STRING"},"label_path_1":{"parameterType":"STRING"},"label_path_2":{"parameterType":"STRING"},"label_path_3":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"BOOLEAN"}}}}'
-    - name: implementations-e07ac8a27d331c96ac2d5559c43f483a79d4e8956b1941d0e306aee450ad83f1
-      value: '{"args":["--executor_input","{{$}}","--function_to_execute","validate_pod_metadata_task_b"],"command":["sh","-c","\nif
-        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
-        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
-        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
-        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
-        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
-        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
-        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        validate_pod_metadata_task_b(annotation_path_1: str,\n                                 annotation_exp_val_1:
-        str,\n                                 annotation_path_2: str,\n                                 annotation_exp_val_2:
-        str,\n                                 annotation_path_3: str,\n                                 annotation_exp_val_3:
-        str,\n                                 annotation_path_4: str,\n                                 annotation_exp_val_4:
-        str,\n                                 label_path_1: str,\n                                 label_exp_val_1:
-        str,\n                                 label_path_2: str,\n                                 label_exp_val_2:
-        str,\n                                 label_path_3: str,\n                                 label_exp_val_3:
-        str) -\u003e bool:\n    import os\n    annotation_val_1 = os.getenv(annotation_path_1)\n    if
-        annotation_val_1 != annotation_exp_val_1:\n        raise ValueError(\n            f''Pod
-        annotation is {annotation_val_1} but is supposed to be {annotation_exp_val_1}.''\n        )\n    annotation_val_2
-        = os.getenv(annotation_path_2)\n    if annotation_val_2 != annotation_exp_val_2:\n        raise
-        ValueError(\n            f''Pod annotation is {annotation_val_2} but is supposed
-        to be {annotation_exp_val_2}.''\n        )\n    annotation_val_3 = os.getenv(annotation_path_3)\n    if
-        annotation_val_3 != annotation_exp_val_3:\n        raise ValueError(\n            f''Pod
-        annotation is {annotation_val_3} but is supposed to be {annotation_exp_val_3}.''\n        )\n    annotation_val_4
-        = os.getenv(annotation_path_4)\n    if annotation_val_4 != annotation_exp_val_4:\n        raise
-        ValueError(\n            f''Pod annotation is {annotation_val_4} but is supposed
-        to be {annotation_exp_val_4}.''\n        )\n    label_val_1 = os.getenv(label_path_1)\n    if
-        label_val_1 != label_exp_val_1:\n        raise ValueError(\n            f''Pod
-        label is {label_val_1} but is supposed to be {label_exp_val_1}.''\n        )\n    label_val_2
-        = os.getenv(label_path_2)\n    if label_val_2 != label_exp_val_2:\n        raise
-        ValueError(\n            f''Pod label is {label_val_2} but is supposed to
-        be {label_exp_val_2}.''\n        )\n    label_val_3 = os.getenv(label_path_3)\n    if
-        label_val_3 != label_exp_val_3:\n        raise ValueError(\n            f''Pod
-        label is {label_val_3} but is supposed to be {label_exp_val_3}.''\n        )\n    return
-        True\n\n"],"image":"python:3.11"}'
     - name: kubernetes-comp-validate-pod-metadata-task-c
       value: '{"fieldPathAsEnv":[{"fieldPath":"metadata.annotations[''task-annotation-1'']","name":"POD_TASK_ANNOTATION_1"},{"fieldPath":"metadata.annotations[''task-annotation-2'']","name":"POD_TASK_ANNOTATION_2"}],"podMetadata":{"annotations":{"task-annotation-1":"annotation-1","task-annotation-2":"annotation-2"}}}'
-    - name: components-08b02a2c7b00c133f7d053207ab1e549fe9374102122ca84dcd6f5a15683fe01
-      value: '{"executorLabel":"exec-validate-pod-metadata-task-c","inputDefinitions":{"parameters":{"annotation_exp_val_1":{"parameterType":"STRING"},"annotation_exp_val_2":{"parameterType":"STRING"},"annotation_path_1":{"parameterType":"STRING"},"annotation_path_2":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"BOOLEAN"}}}}'
-    - name: implementations-08b02a2c7b00c133f7d053207ab1e549fe9374102122ca84dcd6f5a15683fe01
-      value: '{"args":["--executor_input","{{$}}","--function_to_execute","validate_pod_metadata_task_c"],"command":["sh","-c","\nif
-        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
-        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
-        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
-        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
-        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
-        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
-        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        validate_pod_metadata_task_c(annotation_path_1: str,\n                                 annotation_exp_val_1:
-        str,\n                                 annotation_path_2: str,\n                                 annotation_exp_val_2:
-        str) -\u003e bool:\n    import os\n    annotation_val_1 = os.getenv(annotation_path_1)\n    if
-        annotation_val_1 != annotation_exp_val_1:\n        raise ValueError(\n            f''Pod
-        annotation is {annotation_val_1} but is supposed to be {annotation_exp_val_1}.''\n        )\n\n    annotation_val_2
-        = os.getenv(annotation_path_2)\n    if annotation_val_2 != annotation_exp_val_2:\n        raise
-        ValueError(\n            f''Pod annotation is {annotation_val_2} but is supposed
-        to be {annotation_exp_val_2}.''\n        )\n    return True\n\n"],"image":"python:3.11"}'
     - name: kubernetes-comp-validate-pod-metadata-task-d
       value: '{"fieldPathAsEnv":[{"fieldPath":"metadata.labels[''task-label-1'']","name":"POD_TASK_LABEL_1"},{"fieldPath":"metadata.labels[''task-label-2'']","name":"POD_TASK_LABEL_2"},{"fieldPath":"metadata.labels[''task-label-3'']","name":"POD_TASK_LABEL_3"}],"podMetadata":{"labels":{"task-label-1":"label-1","task-label-2":"label-2","task-label-3":"label-3"}}}'
-    - name: components-d56a2097f634e26b0381658dc361347f393e19552ad2c43e9b6b0b6606678502
-      value: '{"executorLabel":"exec-validate-pod-metadata-task-d","inputDefinitions":{"parameters":{"label_exp_val_1":{"parameterType":"STRING"},"label_exp_val_2":{"parameterType":"STRING"},"label_exp_val_3":{"parameterType":"STRING"},"label_path_1":{"parameterType":"STRING"},"label_path_2":{"parameterType":"STRING"},"label_path_3":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"BOOLEAN"}}}}'
-    - name: implementations-d56a2097f634e26b0381658dc361347f393e19552ad2c43e9b6b0b6606678502
-      value: '{"args":["--executor_input","{{$}}","--function_to_execute","validate_pod_metadata_task_d"],"command":["sh","-c","\nif
-        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
-        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
-        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
-        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
-        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
-        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
-        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        validate_pod_metadata_task_d(label_path_1: str,\n                                 label_exp_val_1:
-        str,\n                                 label_path_2: str,\n                                 label_exp_val_2:
-        str,\n                                 label_path_3: str,\n                                 label_exp_val_3:
-        str) -\u003e bool:\n    import os\n    label_val_1 = os.getenv(label_path_1)\n    if
-        label_val_1 != label_exp_val_1:\n        raise ValueError(\n            f''Pod
-        label is {label_val_1} but is supposed to be {label_exp_val_1}.''\n        )\n    label_val_2
-        = os.getenv(label_path_2)\n    if label_val_2 != label_exp_val_2:\n        raise
-        ValueError(\n            f''Pod label is {label_val_2} but is supposed to
-        be {label_exp_val_2}.''\n        )\n    label_val_3 = os.getenv(label_path_3)\n    if
-        label_val_3 != label_exp_val_3:\n        raise ValueError(\n            f''Pod
-        label is {label_val_3} but is supposed to be {label_exp_val_3}.''\n        )\n    return
-        True\n\n"],"image":"python:3.11"}'
-    - name: components-root
-      value: '{"dag":{"tasks":{"validate-no-pod-metadata":{"cachingOptions":{},"componentRef":{"name":"comp-validate-no-pod-metadata"},"taskInfo":{"name":"validate-no-pod-metadata"}},"validate-pod-metadata-task-a":{"cachingOptions":{},"componentRef":{"name":"comp-validate-pod-metadata-task-a"},"inputs":{"parameters":{"annotation_exp_val":{"runtimeValue":{"constant":"annotation"}},"annotation_path":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION"}},"label_exp_val_1":{"runtimeValue":{"constant":"label-1"}},"label_exp_val_2":{"runtimeValue":{"constant":"label-2"}},"label_path_1":{"runtimeValue":{"constant":"POD_TASK_LABEL_1"}},"label_path_2":{"runtimeValue":{"constant":"POD_TASK_LABEL_2"}}}},"taskInfo":{"name":"validate-pod-metadata-task-a"}},"validate-pod-metadata-task-b":{"cachingOptions":{},"componentRef":{"name":"comp-validate-pod-metadata-task-b"},"inputs":{"parameters":{"annotation_exp_val_1":{"runtimeValue":{"constant":"annotation-1"}},"annotation_exp_val_2":{"runtimeValue":{"constant":"annotation-2"}},"annotation_exp_val_3":{"runtimeValue":{"constant":"annotation-3"}},"annotation_exp_val_4":{"runtimeValue":{"constant":"annotation-4"}},"annotation_path_1":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_1"}},"annotation_path_2":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_2"}},"annotation_path_3":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_3"}},"annotation_path_4":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_4"}},"label_exp_val_1":{"runtimeValue":{"constant":"label-1"}},"label_exp_val_2":{"runtimeValue":{"constant":"label-2"}},"label_exp_val_3":{"runtimeValue":{"constant":"label-3"}},"label_path_1":{"runtimeValue":{"constant":"POD_TASK_LABEL_1"}},"label_path_2":{"runtimeValue":{"constant":"POD_TASK_LABEL_2"}},"label_path_3":{"runtimeValue":{"constant":"POD_TASK_LABEL_3"}}}},"taskInfo":{"name":"validate-pod-metadata-task-b"}},"validate-pod-metadata-task-c":{"cachingOptions":{},"componentRef":{"name":"comp-validate-pod-metadata-task-c"},"inputs":{"parameters":{"annotation_exp_val_1":{"runtimeValue":{"constant":"annotation-1"}},"annotation_exp_val_2":{"runtimeValue":{"constant":"annotation-2"}},"annotation_path_1":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_1"}},"annotation_path_2":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_2"}}}},"taskInfo":{"name":"validate-pod-metadata-task-c"}},"validate-pod-metadata-task-d":{"cachingOptions":{},"componentRef":{"name":"comp-validate-pod-metadata-task-d"},"inputs":{"parameters":{"label_exp_val_1":{"runtimeValue":{"constant":"label-1"}},"label_exp_val_2":{"runtimeValue":{"constant":"label-2"}},"label_exp_val_3":{"runtimeValue":{"constant":"label-3"}},"label_path_1":{"runtimeValue":{"constant":"POD_TASK_LABEL_1"}},"label_path_2":{"runtimeValue":{"constant":"POD_TASK_LABEL_2"}},"label_path_3":{"runtimeValue":{"constant":"POD_TASK_LABEL_3"}}}},"taskInfo":{"name":"validate-pod-metadata-task-d"}}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -166,16 +41,10 @@ spec:
       - '{{workflow.name}}'
       - --run_display_name
       - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
-      - --component
-      - '{{inputs.parameters.component}}'
-      - --task
-      - '{{inputs.parameters.task}}'
+      - --parent_task_id
+      - '{{inputs.parameters.parent-dag-task-id}}'
       - --task_name
       - '{{inputs.parameters.task-name}}'
-      - --container
-      - '{{inputs.parameters.container}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
       - --cached_decision_path
@@ -196,10 +65,6 @@ spec:
       - ml-pipeline.kubeflow.svc.cluster.local
       - --ml_pipeline_server_port
       - "8887"
-      - --mlmd_server_address
-      - metadata-grpc-service.kubeflow.svc.cluster.local
-      - --mlmd_server_port
-      - "8080"
       command:
       - driver
       env:
@@ -211,6 +76,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -228,18 +97,23 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
     inputs:
       parameters:
-      - name: component
-      - name: task
-      - name: container
       - name: task-name
-      - name: parent-dag-id
+      - name: parent-dag-task-id
       - default: "-1"
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/template-name: system-container-driver
+      labels:
+        pipelines.kubeflow.org/pod-role: container-driver
     name: system-container-driver
     outputs:
       parameters:
@@ -260,6 +134,14 @@ spec:
       runAsNonRoot: true
       seccompProfile:
         type: RuntimeDefault
+    volumes:
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
   - dag:
       tasks:
       - arguments:
@@ -274,6 +156,8 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: "-1"
+        name: iteration-index
     metadata: {}
     name: system-container-executor
     outputs: {}
@@ -289,6 +173,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap
@@ -306,6 +194,9 @@ spec:
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
       - mountPath: /gcs
         name: gcs-scratch
       - mountPath: /s3
@@ -346,7 +237,11 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/template-name: system-container-impl
+      labels:
+        pipelines.kubeflow.org/pod-role: container-executor
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -356,6 +251,13 @@ spec:
     volumes:
     - emptyDir: {}
       name: kfp-launcher
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
     - emptyDir: {}
       name: gcs-scratch
     - emptyDir: {}
@@ -394,6 +296,8 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: "-1"
+        name: iteration-index
       - name: pod-metadata-annotation-key
       - name: pod-metadata-annotation-val
       - name: pod-metadata-label-key-1
@@ -415,6 +319,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap
@@ -432,6 +340,9 @@ spec:
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
       - mountPath: /gcs
         name: gcs-scratch
       - mountPath: /s3
@@ -481,9 +392,11 @@ spec:
     metadata:
       annotations:
         '{{inputs.parameters.pod-metadata-annotation-key}}': '{{inputs.parameters.pod-metadata-annotation-val}}'
+        pipelines.kubeflow.org/template-name: metadata-1-2-system-container-impl
       labels:
         '{{inputs.parameters.pod-metadata-label-key-1}}': '{{inputs.parameters.pod-metadata-label-val-1}}'
         '{{inputs.parameters.pod-metadata-label-key-2}}': '{{inputs.parameters.pod-metadata-label-val-2}}'
+        pipelines.kubeflow.org/pod-role: container-executor
     name: metadata-1-2-system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -493,6 +406,13 @@ spec:
     volumes:
     - emptyDir: {}
       name: kfp-launcher
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
     - emptyDir: {}
       name: gcs-scratch
     - emptyDir: {}
@@ -547,6 +467,8 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: "-1"
+        name: iteration-index
       - name: pod-metadata-annotation-key-1
       - name: pod-metadata-annotation-val-1
       - name: pod-metadata-annotation-key-2
@@ -576,6 +498,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap
@@ -593,6 +519,9 @@ spec:
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
       - mountPath: /gcs
         name: gcs-scratch
       - mountPath: /s3
@@ -653,10 +582,12 @@ spec:
         '{{inputs.parameters.pod-metadata-annotation-key-2}}': '{{inputs.parameters.pod-metadata-annotation-val-2}}'
         '{{inputs.parameters.pod-metadata-annotation-key-3}}': '{{inputs.parameters.pod-metadata-annotation-val-3}}'
         '{{inputs.parameters.pod-metadata-annotation-key-4}}': '{{inputs.parameters.pod-metadata-annotation-val-4}}'
+        pipelines.kubeflow.org/template-name: metadata-4-3-system-container-impl
       labels:
         '{{inputs.parameters.pod-metadata-label-key-1}}': '{{inputs.parameters.pod-metadata-label-val-1}}'
         '{{inputs.parameters.pod-metadata-label-key-2}}': '{{inputs.parameters.pod-metadata-label-val-2}}'
         '{{inputs.parameters.pod-metadata-label-key-3}}': '{{inputs.parameters.pod-metadata-label-val-3}}'
+        pipelines.kubeflow.org/pod-role: container-executor
     name: metadata-4-3-system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -666,6 +597,13 @@ spec:
     volumes:
     - emptyDir: {}
       name: kfp-launcher
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
     - emptyDir: {}
       name: gcs-scratch
     - emptyDir: {}
@@ -700,6 +638,8 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: "-1"
+        name: iteration-index
       - name: pod-metadata-annotation-key-1
       - name: pod-metadata-annotation-val-1
       - name: pod-metadata-annotation-key-2
@@ -719,6 +659,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap
@@ -736,6 +680,9 @@ spec:
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
       - mountPath: /gcs
         name: gcs-scratch
       - mountPath: /s3
@@ -784,6 +731,9 @@ spec:
       annotations:
         '{{inputs.parameters.pod-metadata-annotation-key-1}}': '{{inputs.parameters.pod-metadata-annotation-val-1}}'
         '{{inputs.parameters.pod-metadata-annotation-key-2}}': '{{inputs.parameters.pod-metadata-annotation-val-2}}'
+        pipelines.kubeflow.org/template-name: metadata-2-0-system-container-impl
+      labels:
+        pipelines.kubeflow.org/pod-role: container-executor
     name: metadata-2-0-system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -793,6 +743,13 @@ spec:
     volumes:
     - emptyDir: {}
       name: kfp-launcher
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
     - emptyDir: {}
       name: gcs-scratch
     - emptyDir: {}
@@ -831,6 +788,8 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: "-1"
+        name: iteration-index
       - name: pod-metadata-label-key-1
       - name: pod-metadata-label-val-1
       - name: pod-metadata-label-key-2
@@ -852,6 +811,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap
@@ -869,6 +832,9 @@ spec:
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
       - mountPath: /gcs
         name: gcs-scratch
       - mountPath: /s3
@@ -916,10 +882,13 @@ spec:
       - name: pod-metadata-label-key-3
       - name: pod-metadata-label-val-3
     metadata:
+      annotations:
+        pipelines.kubeflow.org/template-name: metadata-0-3-system-container-impl
       labels:
         '{{inputs.parameters.pod-metadata-label-key-1}}': '{{inputs.parameters.pod-metadata-label-val-1}}'
         '{{inputs.parameters.pod-metadata-label-key-2}}': '{{inputs.parameters.pod-metadata-label-val-2}}'
         '{{inputs.parameters.pod-metadata-label-key-3}}': '{{inputs.parameters.pod-metadata-label-val-3}}'
+        pipelines.kubeflow.org/pod-role: container-executor
     name: metadata-0-3-system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -929,6 +898,13 @@ spec:
     volumes:
     - emptyDir: {}
       name: kfp-launcher
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
     - emptyDir: {}
       name: gcs-scratch
     - emptyDir: {}
@@ -945,16 +921,10 @@ spec:
       tasks:
       - arguments:
           parameters:
-          - name: component
-            value: '{{workflow.parameters.components-3e1061118c8caaf7fb2580deca4c26c68777ea648895af667b433198f8d95a35}}'
-          - name: task
-            value: '{"cachingOptions":{},"componentRef":{"name":"comp-validate-no-pod-metadata"},"taskInfo":{"name":"validate-no-pod-metadata"}}'
-          - name: container
-            value: '{{workflow.parameters.implementations-3e1061118c8caaf7fb2580deca4c26c68777ea648895af667b433198f8d95a35}}'
           - name: task-name
             value: validate-no-pod-metadata
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: kubernetes-config
             value: '{{workflow.parameters.kubernetes-comp-validate-no-pod-metadata}}'
         name: validate-no-pod-metadata-driver
@@ -971,16 +941,10 @@ spec:
         template: system-container-executor
       - arguments:
           parameters:
-          - name: component
-            value: '{{workflow.parameters.components-36b4f5715a9e847c587a42d8970df700b9d7977c0097b0b0a12b7be3bc7cb4f8}}'
-          - name: task
-            value: '{"cachingOptions":{},"componentRef":{"name":"comp-validate-pod-metadata-task-a"},"inputs":{"parameters":{"annotation_exp_val":{"runtimeValue":{"constant":"annotation"}},"annotation_path":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION"}},"label_exp_val_1":{"runtimeValue":{"constant":"label-1"}},"label_exp_val_2":{"runtimeValue":{"constant":"label-2"}},"label_path_1":{"runtimeValue":{"constant":"POD_TASK_LABEL_1"}},"label_path_2":{"runtimeValue":{"constant":"POD_TASK_LABEL_2"}}}},"taskInfo":{"name":"validate-pod-metadata-task-a"}}'
-          - name: container
-            value: '{{workflow.parameters.implementations-36b4f5715a9e847c587a42d8970df700b9d7977c0097b0b0a12b7be3bc7cb4f8}}'
           - name: task-name
             value: validate-pod-metadata-task-a
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: kubernetes-config
             value: '{{workflow.parameters.kubernetes-comp-validate-pod-metadata-task-a}}'
         name: validate-pod-metadata-task-a-driver
@@ -1009,16 +973,10 @@ spec:
         template: metadata-1-2-system-container-executor
       - arguments:
           parameters:
-          - name: component
-            value: '{{workflow.parameters.components-e07ac8a27d331c96ac2d5559c43f483a79d4e8956b1941d0e306aee450ad83f1}}'
-          - name: task
-            value: '{"cachingOptions":{},"componentRef":{"name":"comp-validate-pod-metadata-task-b"},"inputs":{"parameters":{"annotation_exp_val_1":{"runtimeValue":{"constant":"annotation-1"}},"annotation_exp_val_2":{"runtimeValue":{"constant":"annotation-2"}},"annotation_exp_val_3":{"runtimeValue":{"constant":"annotation-3"}},"annotation_exp_val_4":{"runtimeValue":{"constant":"annotation-4"}},"annotation_path_1":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_1"}},"annotation_path_2":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_2"}},"annotation_path_3":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_3"}},"annotation_path_4":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_4"}},"label_exp_val_1":{"runtimeValue":{"constant":"label-1"}},"label_exp_val_2":{"runtimeValue":{"constant":"label-2"}},"label_exp_val_3":{"runtimeValue":{"constant":"label-3"}},"label_path_1":{"runtimeValue":{"constant":"POD_TASK_LABEL_1"}},"label_path_2":{"runtimeValue":{"constant":"POD_TASK_LABEL_2"}},"label_path_3":{"runtimeValue":{"constant":"POD_TASK_LABEL_3"}}}},"taskInfo":{"name":"validate-pod-metadata-task-b"}}'
-          - name: container
-            value: '{{workflow.parameters.implementations-e07ac8a27d331c96ac2d5559c43f483a79d4e8956b1941d0e306aee450ad83f1}}'
           - name: task-name
             value: validate-pod-metadata-task-b
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: kubernetes-config
             value: '{{workflow.parameters.kubernetes-comp-validate-pod-metadata-task-b}}'
         name: validate-pod-metadata-task-b-driver
@@ -1063,16 +1021,10 @@ spec:
         template: metadata-4-3-system-container-executor
       - arguments:
           parameters:
-          - name: component
-            value: '{{workflow.parameters.components-08b02a2c7b00c133f7d053207ab1e549fe9374102122ca84dcd6f5a15683fe01}}'
-          - name: task
-            value: '{"cachingOptions":{},"componentRef":{"name":"comp-validate-pod-metadata-task-c"},"inputs":{"parameters":{"annotation_exp_val_1":{"runtimeValue":{"constant":"annotation-1"}},"annotation_exp_val_2":{"runtimeValue":{"constant":"annotation-2"}},"annotation_path_1":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_1"}},"annotation_path_2":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_2"}}}},"taskInfo":{"name":"validate-pod-metadata-task-c"}}'
-          - name: container
-            value: '{{workflow.parameters.implementations-08b02a2c7b00c133f7d053207ab1e549fe9374102122ca84dcd6f5a15683fe01}}'
           - name: task-name
             value: validate-pod-metadata-task-c
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: kubernetes-config
             value: '{{workflow.parameters.kubernetes-comp-validate-pod-metadata-task-c}}'
         name: validate-pod-metadata-task-c-driver
@@ -1097,16 +1049,10 @@ spec:
         template: metadata-2-0-system-container-executor
       - arguments:
           parameters:
-          - name: component
-            value: '{{workflow.parameters.components-d56a2097f634e26b0381658dc361347f393e19552ad2c43e9b6b0b6606678502}}'
-          - name: task
-            value: '{"cachingOptions":{},"componentRef":{"name":"comp-validate-pod-metadata-task-d"},"inputs":{"parameters":{"label_exp_val_1":{"runtimeValue":{"constant":"label-1"}},"label_exp_val_2":{"runtimeValue":{"constant":"label-2"}},"label_exp_val_3":{"runtimeValue":{"constant":"label-3"}},"label_path_1":{"runtimeValue":{"constant":"POD_TASK_LABEL_1"}},"label_path_2":{"runtimeValue":{"constant":"POD_TASK_LABEL_2"}},"label_path_3":{"runtimeValue":{"constant":"POD_TASK_LABEL_3"}}}},"taskInfo":{"name":"validate-pod-metadata-task-d"}}'
-          - name: container
-            value: '{{workflow.parameters.implementations-d56a2097f634e26b0381658dc361347f393e19552ad2c43e9b6b0b6606678502}}'
           - name: task-name
             value: validate-pod-metadata-task-d
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: kubernetes-config
             value: '{{workflow.parameters.kubernetes-comp-validate-pod-metadata-task-d}}'
         name: validate-pod-metadata-task-d-driver
@@ -1135,7 +1081,7 @@ spec:
         template: metadata-0-3-system-container-executor
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: root
     outputs: {}
@@ -1151,20 +1097,16 @@ spec:
       - '{{workflow.name}}'
       - --run_display_name
       - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
-      - --component
-      - '{{inputs.parameters.component}}'
-      - --task
-      - '{{inputs.parameters.task}}'
+      - --parent_task_id
+      - '{{inputs.parameters.parent-dag-task-id}}'
       - --task_name
       - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
-      - --execution_id_path
-      - '{{outputs.parameters.execution-id.path}}'
+      - --parent_task_id_path
+      - '{{outputs.parameters.parent-dag-task-id-path.path}}'
       - --iteration_count_path
       - '{{outputs.parameters.iteration-count.path}}'
       - --condition_path
@@ -1179,12 +1121,21 @@ spec:
       - ml-pipeline.kubeflow.svc.cluster.local
       - --ml_pipeline_server_port
       - "8887"
-      - --mlmd_server_address
-      - metadata-grpc-service.kubeflow.svc.cluster.local
-      - --mlmd_server_port
-      - "8080"
       command:
       - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -1194,36 +1145,33 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
     inputs:
       parameters:
-      - name: component
       - default: ""
         name: runtime-config
       - default: ""
-        name: task
-      - default: ""
         name: task-name
-      - default: "0"
-        name: parent-dag-id
+      - default: ""
+        name: parent-dag-task-id
       - default: "-1"
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/template-name: system-dag-driver
+      labels:
+        pipelines.kubeflow.org/pod-role: dag-driver
     name: system-dag-driver
     outputs:
       parameters:
-      - name: execution-id
+      - name: parent-dag-task-id-path
         valueFrom:
-          path: /tmp/outputs/execution-id
+          path: /tmp/outputs/task-id
       - name: iteration-count
         valueFrom:
           default: "0"
@@ -1232,16 +1180,18 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
-    securityContext:
-      runAsNonRoot: true
-      seccompProfile:
-        type: RuntimeDefault
+    volumes:
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
   - dag:
       tasks:
       - arguments:
           parameters:
-          - name: component
-            value: '{{workflow.parameters.components-root}}'
           - name: runtime-config
             value: '{}'
           - name: driver-type
@@ -1250,8 +1200,8 @@ spec:
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.root-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: condition
             value: ""
         depends: root-driver.Succeeded

@@ -113,6 +113,14 @@ func (p GCSProviderConfig) ProvideSessionInfo(path string) (objectstore.SessionI
 	return sessionInfo, nil
 }
 
+func (p GCSProviderConfig) HasExplicitOverride(path string) (bool, error) {
+	bucketConfig, err := objectstore.ParseBucketPathToConfig(path)
+	if err != nil {
+		return false, err
+	}
+	return p.getOverrideByPrefix(bucketConfig.BucketName, bucketConfig.Prefix) != nil, nil
+}
+
 // getOverrideByPrefix returns first matching bucketname and prefix in overrides
 func (p GCSProviderConfig) getOverrideByPrefix(bucketName, prefix string) *GCSOverride {
 	for _, override := range p.Overrides {

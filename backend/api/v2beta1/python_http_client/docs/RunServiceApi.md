@@ -6,6 +6,7 @@ Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**batch_update_tasks**](RunServiceApi.md#batch_update_tasks) | **POST** /apis/v2beta1/runs/{run_id}/tasks:batchUpdate | Updates multiple tasks in bulk.
 [**create_task**](RunServiceApi.md#create_task) | **POST** /apis/v2beta1/runs/{run_id}/tasks | Creates a new task.
+[**find_cached_task**](RunServiceApi.md#find_cached_task) | **POST** /apis/v2beta1/tasks:findCached | Finds a cached successful task by namespace and fingerprint.
 [**get_task**](RunServiceApi.md#get_task) | **GET** /apis/v2beta1/runs/{run_id}/tasks/{task_id} | Gets a specific task by ID.
 [**list_tasks**](RunServiceApi.md#list_tasks) | **GET** /apis/v2beta1/runs/{run_id}/tasks | Lists tasks with optional filtering.
 [**run_service_archive_run**](RunServiceApi.md#run_service_archive_run) | **POST** /apis/v2beta1/runs/{run_id}:archive | Archives a run in an experiment given by run ID and experiment ID.
@@ -157,6 +158,82 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**V2beta1PipelineTask**](V2beta1PipelineTask.md)
+
+### Authorization
+
+[Bearer](../README.md#Bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** | An unexpected error response. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **find_cached_task**
+> V2beta1FindCachedTaskResponse find_cached_task(body)
+
+Finds a cached successful task by namespace and fingerprint.
+
+### Example
+
+* Api Key Authentication (Bearer):
+```python
+from __future__ import print_function
+import time
+import kfp_server_api
+from kfp_server_api.rest import ApiException
+from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
+
+# Enter a context with an instance of the API client
+with kfp_server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp_server_api.RunServiceApi(api_client)
+    body = kfp_server_api.V2beta1FindCachedTaskRequest() # V2beta1FindCachedTaskRequest | 
+
+    try:
+        # Finds a cached successful task by namespace and fingerprint.
+        api_response = api_instance.find_cached_task(body)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling RunServiceApi->find_cached_task: %s\n" % e)
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **body** | [**V2beta1FindCachedTaskRequest**](V2beta1FindCachedTaskRequest.md)|  | 
+
+### Return type
+
+[**V2beta1FindCachedTaskResponse**](V2beta1FindCachedTaskResponse.md)
 
 ### Authorization
 

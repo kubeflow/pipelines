@@ -1,47 +1,11 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    workflows.argoproj.io/pod-name-format: v1
   generateName: preprocess-
 spec:
-  arguments:
-    parameters:
-    - name: components-ea150e85c8a1d73e8fa5cc90cd210a9ae6d20007a7071b293f971fafdecbe6f4
-      value: '{"executorLabel":"exec-preprocess","inputDefinitions":{"parameters":{"input_dict_parameter":{"parameterType":"STRUCT"},"input_list_parameter":{"parameterType":"LIST"},"message":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"output_dataset_one":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"output_dataset_two_path":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}},"parameters":{"output_bool_parameter_path":{"parameterType":"BOOLEAN"},"output_dict_parameter_path":{"parameterType":"STRUCT"},"output_list_parameter_path":{"parameterType":"LIST"},"output_parameter_path":{"parameterType":"STRING"}}}}'
-    - name: implementations-ea150e85c8a1d73e8fa5cc90cd210a9ae6d20007a7071b293f971fafdecbe6f4
-      value: '{"args":["--executor_input","{{$}}","--function_to_execute","preprocess"],"command":["sh","-c","\nif
-        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
-        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
-        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
-        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
-        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
-        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
-        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        preprocess(\n    # An input parameter of type string.\n    message: str,\n    #
-        An input parameter of type dict.\n    input_dict_parameter: Dict[str, int],\n    #
-        An input parameter of type list.\n    input_list_parameter: List[str],\n    #
-        Use Output[T] to get a metadata-rich handle to the output artifact\n    #
-        of type `Dataset`.\n    output_dataset_one: Output[Dataset],\n    # A locally
-        accessible filepath for another output artifact of type\n    # `Dataset`.\n    output_dataset_two_path:
-        OutputPath(''Dataset''),\n    # A locally accessible filepath for an output
-        parameter of type string.\n    output_parameter_path: OutputPath(str),\n    #
-        A locally accessible filepath for an output parameter of type bool.\n    output_bool_parameter_path:
-        OutputPath(bool),\n    # A locally accessible filepath for an output parameter
-        of type dict.\n    output_dict_parameter_path: OutputPath(Dict[str, int]),\n    #
-        A locally accessible filepath for an output parameter of type list.\n    output_list_parameter_path:
-        OutputPath(List[str]),\n):\n    \"\"\"Dummy preprocessing step.\"\"\"\n\n    #
-        Use Dataset.path to access a local file path for writing.\n    # One can also
-        use Dataset.uri to access the actual URI file path.\n    with open(output_dataset_one.path,
-        ''w'') as f:\n        f.write(message)\n\n    # OutputPath is used to just
-        pass the local file path of the output artifact\n    # to the function.\n    with
-        open(output_dataset_two_path, ''w'') as f:\n        f.write(message)\n\n    with
-        open(output_parameter_path, ''w'') as f:\n        f.write(message)\n\n    with
-        open(output_bool_parameter_path, ''w'') as f:\n        f.write(\n            str(True))  #
-        use either `str()` or `json.dumps()` for bool values.\n\n    import json\n    with
-        open(output_dict_parameter_path, ''w'') as f:\n        f.write(json.dumps(input_dict_parameter))\n\n    with
-        open(output_list_parameter_path, ''w'') as f:\n        f.write(json.dumps(input_list_parameter))\n\n"],"image":"python:3.11"}'
-    - name: components-root
-      value: '{"dag":{"outputs":{"artifacts":{"output_dataset_one":{"artifactSelectors":[{"outputArtifactKey":"output_dataset_one","producerSubtask":"preprocess"}]},"output_dataset_two_path":{"artifactSelectors":[{"outputArtifactKey":"output_dataset_two_path","producerSubtask":"preprocess"}]}},"parameters":{"output_bool_parameter_path":{"valueFromParameter":{"outputParameterKey":"output_bool_parameter_path","producerSubtask":"preprocess"}},"output_dict_parameter_path":{"valueFromParameter":{"outputParameterKey":"output_dict_parameter_path","producerSubtask":"preprocess"}},"output_list_parameter_path":{"valueFromParameter":{"outputParameterKey":"output_list_parameter_path","producerSubtask":"preprocess"}},"output_parameter_path":{"valueFromParameter":{"outputParameterKey":"output_parameter_path","producerSubtask":"preprocess"}}}},"tasks":{"preprocess":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-preprocess"},"inputs":{"parameters":{"input_dict_parameter":{"componentInputParameter":"input_dict_parameter"},"input_list_parameter":{"componentInputParameter":"input_list_parameter"},"message":{"componentInputParameter":"message"}}},"taskInfo":{"name":"preprocess"}}}},"inputDefinitions":{"parameters":{"input_dict_parameter":{"parameterType":"STRUCT"},"input_list_parameter":{"parameterType":"LIST"},"message":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"output_dataset_one":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"output_dataset_two_path":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}},"parameters":{"output_bool_parameter_path":{"parameterType":"BOOLEAN"},"output_dict_parameter_path":{"parameterType":"STRUCT"},"output_list_parameter_path":{"parameterType":"LIST"},"output_parameter_path":{"parameterType":"STRING"}}}}'
+  arguments: {}
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -66,16 +30,10 @@ spec:
       - '{{workflow.name}}'
       - --run_display_name
       - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
-      - --component
-      - '{{inputs.parameters.component}}'
-      - --task
-      - '{{inputs.parameters.task}}'
+      - --parent_task_id
+      - '{{inputs.parameters.parent-dag-task-id}}'
       - --task_name
       - '{{inputs.parameters.task-name}}'
-      - --container
-      - '{{inputs.parameters.container}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
       - --cached_decision_path
@@ -96,10 +54,6 @@ spec:
       - ml-pipeline.kubeflow.svc.cluster.local
       - --ml_pipeline_server_port
       - "8887"
-      - --mlmd_server_address
-      - metadata-grpc-service.kubeflow.svc.cluster.local
-      - --mlmd_server_port
-      - "8080"
       command:
       - driver
       env:
@@ -111,6 +65,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -128,18 +86,23 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
     inputs:
       parameters:
-      - name: component
-      - name: task
-      - name: container
       - name: task-name
-      - name: parent-dag-id
+      - name: parent-dag-task-id
       - default: "-1"
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/template-name: system-container-driver
+      labels:
+        pipelines.kubeflow.org/pod-role: container-driver
     name: system-container-driver
     outputs:
       parameters:
@@ -160,6 +123,14 @@ spec:
       runAsNonRoot: true
       seccompProfile:
         type: RuntimeDefault
+    volumes:
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
   - dag:
       tasks:
       - arguments:
@@ -174,6 +145,8 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: "-1"
+        name: iteration-index
     metadata: {}
     name: system-container-executor
     outputs: {}
@@ -189,6 +162,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap
@@ -206,6 +183,9 @@ spec:
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
       - mountPath: /gcs
         name: gcs-scratch
       - mountPath: /s3
@@ -246,7 +226,11 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/template-name: system-container-impl
+      labels:
+        pipelines.kubeflow.org/pod-role: container-executor
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -256,6 +240,13 @@ spec:
     volumes:
     - emptyDir: {}
       name: kfp-launcher
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
     - emptyDir: {}
       name: gcs-scratch
     - emptyDir: {}
@@ -272,16 +263,10 @@ spec:
       tasks:
       - arguments:
           parameters:
-          - name: component
-            value: '{{workflow.parameters.components-ea150e85c8a1d73e8fa5cc90cd210a9ae6d20007a7071b293f971fafdecbe6f4}}'
-          - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-preprocess"},"inputs":{"parameters":{"input_dict_parameter":{"componentInputParameter":"input_dict_parameter"},"input_list_parameter":{"componentInputParameter":"input_list_parameter"},"message":{"componentInputParameter":"message"}}},"taskInfo":{"name":"preprocess"}}'
-          - name: container
-            value: '{{workflow.parameters.implementations-ea150e85c8a1d73e8fa5cc90cd210a9ae6d20007a7071b293f971fafdecbe6f4}}'
           - name: task-name
             value: preprocess
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         name: preprocess-driver
         template: system-container-driver
       - arguments:
@@ -296,7 +281,7 @@ spec:
         template: system-container-executor
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: root
     outputs: {}
@@ -312,20 +297,16 @@ spec:
       - '{{workflow.name}}'
       - --run_display_name
       - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
-      - --component
-      - '{{inputs.parameters.component}}'
-      - --task
-      - '{{inputs.parameters.task}}'
+      - --parent_task_id
+      - '{{inputs.parameters.parent-dag-task-id}}'
       - --task_name
       - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
-      - --execution_id_path
-      - '{{outputs.parameters.execution-id.path}}'
+      - --parent_task_id_path
+      - '{{outputs.parameters.parent-dag-task-id-path.path}}'
       - --iteration_count_path
       - '{{outputs.parameters.iteration-count.path}}'
       - --condition_path
@@ -340,12 +321,21 @@ spec:
       - ml-pipeline.kubeflow.svc.cluster.local
       - --ml_pipeline_server_port
       - "8887"
-      - --mlmd_server_address
-      - metadata-grpc-service.kubeflow.svc.cluster.local
-      - --mlmd_server_port
-      - "8080"
       command:
       - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -355,36 +345,33 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
     inputs:
       parameters:
-      - name: component
       - default: ""
         name: runtime-config
       - default: ""
-        name: task
-      - default: ""
         name: task-name
-      - default: "0"
-        name: parent-dag-id
+      - default: ""
+        name: parent-dag-task-id
       - default: "-1"
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/template-name: system-dag-driver
+      labels:
+        pipelines.kubeflow.org/pod-role: dag-driver
     name: system-dag-driver
     outputs:
       parameters:
-      - name: execution-id
+      - name: parent-dag-task-id-path
         valueFrom:
-          path: /tmp/outputs/execution-id
+          path: /tmp/outputs/task-id
       - name: iteration-count
         valueFrom:
           default: "0"
@@ -393,16 +380,18 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
-    securityContext:
-      runAsNonRoot: true
-      seccompProfile:
-        type: RuntimeDefault
+    volumes:
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
   - dag:
       tasks:
       - arguments:
           parameters:
-          - name: component
-            value: '{{workflow.parameters.components-root}}'
           - name: runtime-config
             value: '{}'
           - name: driver-type
@@ -411,8 +400,8 @@ spec:
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.root-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: condition
             value: ""
         depends: root-driver.Succeeded

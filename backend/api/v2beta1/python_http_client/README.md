@@ -135,6 +135,7 @@ Class | Method | HTTP request | Description
 *ReportServiceApi* | [**report_service_report_workflow**](docs/ReportServiceApi.md#report_service_report_workflow) | **POST** /apis/v2beta1/workflows | 
 *RunServiceApi* | [**batch_update_tasks**](docs/RunServiceApi.md#batch_update_tasks) | **POST** /apis/v2beta1/runs/{run_id}/tasks:batchUpdate | Updates multiple tasks in bulk.
 *RunServiceApi* | [**create_task**](docs/RunServiceApi.md#create_task) | **POST** /apis/v2beta1/runs/{run_id}/tasks | Creates a new task.
+*RunServiceApi* | [**find_cached_task**](docs/RunServiceApi.md#find_cached_task) | **POST** /apis/v2beta1/tasks:findCached | Finds a cached successful task by namespace and fingerprint.
 *RunServiceApi* | [**get_task**](docs/RunServiceApi.md#get_task) | **GET** /apis/v2beta1/runs/{run_id}/tasks/{task_id} | Gets a specific task by ID.
 *RunServiceApi* | [**list_tasks**](docs/RunServiceApi.md#list_tasks) | **GET** /apis/v2beta1/runs/{run_id}/tasks | Lists tasks with optional filtering.
 *RunServiceApi* | [**run_service_archive_run**](docs/RunServiceApi.md#run_service_archive_run) | **POST** /apis/v2beta1/runs/{run_id}:archive | Archives a run in an experiment given by run ID and experiment ID.
@@ -189,6 +190,8 @@ Class | Method | HTTP request | Description
  - [V2beta1Experiment](docs/V2beta1Experiment.md)
  - [V2beta1ExperimentStorageState](docs/V2beta1ExperimentStorageState.md)
  - [V2beta1Filter](docs/V2beta1Filter.md)
+ - [V2beta1FindCachedTaskRequest](docs/V2beta1FindCachedTaskRequest.md)
+ - [V2beta1FindCachedTaskResponse](docs/V2beta1FindCachedTaskResponse.md)
  - [V2beta1GetHealthzResponse](docs/V2beta1GetHealthzResponse.md)
  - [V2beta1GetRunRequestViewMode](docs/V2beta1GetRunRequestViewMode.md)
  - [V2beta1IOProducer](docs/V2beta1IOProducer.md)

@@ -168,6 +168,88 @@ func TestTask_Create_PersistsDisplayNameAndStatusMetadata(t *testing.T) {
 	assert.Equal(t, "oom", got.GetStatusMetadata().GetCustomProperties()["reason"].GetStringValue())
 }
 
+func TestFindCachedTask_ReturnsLatestSucceededMatch(t *testing.T) {
+	clients, manager, run := initWithOneTimeRunV2(t)
+	defer clients.Close()
+
+	runSrv := createRunServer(manager)
+	taskStore := clients.TaskStore()
+
+	olderMatch, err := taskStore.CreateTask(&model.Task{
+		Namespace:      run.Namespace,
+		RunUUID:        run.UUID,
+		Name:           "older-match",
+		Fingerprint:    "cache-fp",
+		State:          model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		CreatedAtInSec: 100,
+	})
+	assert.NoError(t, err)
+
+	_, err = taskStore.CreateTask(&model.Task{
+		Namespace:      run.Namespace,
+		RunUUID:        run.UUID,
+		Name:           "failed-match",
+		Fingerprint:    "cache-fp",
+		State:          model.TaskStatus(apiv2beta1.PipelineTask_FAILED),
+		CreatedAtInSec: 150,
+	})
+	assert.NoError(t, err)
+
+	latestMatch, err := taskStore.CreateTask(&model.Task{
+		Namespace:      run.Namespace,
+		RunUUID:        run.UUID,
+		Name:           "latest-match",
+		Fingerprint:    "cache-fp",
+		State:          model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		CreatedAtInSec: 200,
+	})
+	assert.NoError(t, err)
+
+	response, err := runSrv.FindCachedTask(context.Background(), &apiv2beta1.FindCachedTaskRequest{
+		Namespace:        run.Namespace,
+		CacheFingerprint: "cache-fp",
+	})
+	assert.NoError(t, err)
+	if assert.NotNil(t, response.GetTask()) {
+		assert.Equal(t, latestMatch.UUID, response.GetTask().GetTaskId())
+		assert.NotEqual(t, olderMatch.UUID, response.GetTask().GetTaskId())
+		assert.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, response.GetTask().GetState())
+	}
+}
+
+func TestFindCachedTask_UsesListVerb(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	clients, manager, run := initWithOneTimeRunV2(t)
+	defer clients.Close()
+
+	_, err := clients.TaskStore().CreateTask(&model.Task{
+		Namespace:      run.Namespace,
+		RunUUID:        run.UUID,
+		Name:           "cached-task",
+		Fingerprint:    "cache-fp",
+		State:          model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		CreatedAtInSec: 100,
+	})
+	assert.NoError(t, err)
+
+	recorder := &recordingSubjectAccessReviewClient{}
+	clients.SubjectAccessReviewClientFake = recorder
+	manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+	runSrv := createRunServer(manager)
+
+	_, err = runSrv.FindCachedTask(ctxWithUser(), &apiv2beta1.FindCachedTaskRequest{
+		Namespace:        run.Namespace,
+		CacheFingerprint: "cache-fp",
+	})
+	assert.NoError(t, err)
+	if assert.NotNil(t, recorder.lastReview) {
+		assert.Equal(t, common.RbacResourceVerbList, recorder.lastReview.Spec.ResourceAttributes.Verb)
+		assert.Equal(t, run.Namespace, recorder.lastReview.Spec.ResourceAttributes.Namespace)
+	}
+}
+
 func TestTask_RunHydration_WithInputsOutputs_ArtifactsAndMetrics(t *testing.T) {
 	// Multi-user on to exercise auth paths, but use helper ctx for headers.
 	viper.Set(common.MultiUserMode, "true")

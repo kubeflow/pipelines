@@ -1,73 +1,16 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    workflows.argoproj.io/pod-name-format: v1
   generateName: pipeline-with-volume-
 spec:
   arguments:
     parameters:
     - name: kubernetes-comp-consumer
       value: '{"pvcMount":[{"mountPath":"/data","pvcNameParameter":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}},"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}]}'
-    - name: components-4ca7976f7f3d605d80b9d8bd28e9ae3e49e2b0263940665ccd83fdada3282e8c
-      value: '{"executorLabel":"exec-consumer","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-4ca7976f7f3d605d80b9d8bd28e9ae3e49e2b0263940665ccd83fdada3282e8c
-      value: '{"args":["--executor_input","{{$}}","--function_to_execute","consumer"],"command":["sh","-c","\nif
-        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
-        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
-        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
-        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
-        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
-        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
-        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        consumer() -\u003e str:\n    with open(''/data/file.txt'', ''r'') as file:\n        content
-        = file.read()\n    print(content)\n    return content\n\n"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
-    - name: components-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767
-      value: '{"executorLabel":"exec-createpvc","inputDefinitions":{"parameters":{"access_modes":{"description":"Values
-        for ``PersistentVolumeClaim.spec.accessModes``.","parameterType":"LIST"},"annotations":{"description":"Annotations
-        for the PVC''s metadata. Corresponds to\n`PersistentVolumeClaim.metadata.annotations\n\u003chttps://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim\u003e`_.","isOptional":true,"parameterType":"STRUCT"},"data_source":{"description":"Specifies
-        the data source for the PVC. This can be used to\ncreate a PVC from a VolumeSnapshot
-        or to clone an existing PVC.\nShould be a dictionary with ``''apiGroup''``,
-        ``''kind''``, and\n``''name''`` keys. For example:\n``{''apiGroup'': ''snapshot.storage.k8s.io'',
-        ''kind'': ''VolumeSnapshot'', ''name'': ''my-snapshot''}``.\nCorresponds to
-        `PersistentVolumeClaim.spec.dataSource\n\u003chttps://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec\u003e`_.","isOptional":true,"parameterType":"STRUCT"},"pvc_name":{"description":"Name
-        of the PVC. Corresponds to\n`PersistentVolumeClaim.metadata.name\n\u003chttps://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim\u003e`_.\nOnly
-        one of ``pvc_name`` and ``pvc_name_suffix`` can be provided.","isOptional":true,"parameterType":"STRING"},"pvc_name_suffix":{"description":"Prefix
-        to use for a dynamically generated name, which\nwill take the form ``\u003cargo-workflow-name\u003e-\u003cpvc_name_suffix\u003e``.
-        Only\none of ``pvc_name`` and ``pvc_name_suffix`` can be provided.","isOptional":true,"parameterType":"STRING"},"size":{"description":"The
-        size of storage requested by the PVC that will be\nprovisioned. For example,
-        ``''5Gi''``. Corresponds to\n`PersistentVolumeClaim.spec.resources.requests.storage\n\u003chttps://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec\u003e`_.","parameterType":"STRING"},"storage_class_name":{"defaultValue":"","description":"Name
-        of StorageClass from which to provision the PV\nto back the PVC. ``None``
-        indicates to use the cluster''s default\nstorage_class_name. Set to ``''''``
-        for a statically specified PVC.","isOptional":true,"parameterType":"STRING"},"volume_name":{"description":"Pre-existing
-        PersistentVolume that should back the\nprovisioned PersistentVolumeClaim.
-        Used for statically\nspecified PV only. Corresponds to\n`PersistentVolumeClaim.spec.volumeName\n\u003chttps://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec\u003e`_.","isOptional":true,"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"name":{"parameterType":"STRING"}}}}'
-    - name: implementations-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767
-      value: '{"image":"argostub/createpvc"}'
-    - name: components-ecfc655dce17b0d317707d37fc226fb7de858cc93d45916945122484a13ef725
-      value: '{"executorLabel":"exec-deletepvc","inputDefinitions":{"parameters":{"pvc_name":{"description":"Name
-        of the PVC to delete. Supports passing a runtime-generated name, such as a
-        name provided by ``kubernetes.CreatePvcOp().outputs[''name'']``.","parameterType":"STRING"}}}}'
-    - name: implementations-ecfc655dce17b0d317707d37fc226fb7de858cc93d45916945122484a13ef725
-      value: '{"image":"argostub/deletepvc"}'
     - name: kubernetes-comp-producer
       value: '{"pvcMount":[{"mountPath":"/data","pvcNameParameter":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}},"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}]}'
-    - name: components-71bc0395c46e8bddfaad94bfe774d00d048562e7c07f1b9eab9ec6d3655cc5d2
-      value: '{"executorLabel":"exec-producer","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-71bc0395c46e8bddfaad94bfe774d00d048562e7c07f1b9eab9ec6d3655cc5d2
-      value: '{"args":["--executor_input","{{$}}","--function_to_execute","producer"],"command":["sh","-c","\nif
-        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
-        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
-        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
-        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
-        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
-        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
-        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        producer() -\u003e str:\n    with open(''/data/file.txt'', ''w'') as file:\n        file.write(''Hello
-        world'')\n    with open(''/data/file.txt'', ''r'') as file:\n        content
-        = file.read()\n    print(content)\n    return content\n\n"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
-    - name: components-root
-      value: '{"dag":{"tasks":{"consumer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-consumer"},"dependentTasks":["createpvc","producer"],"taskInfo":{"name":"consumer"}},"createpvc":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-createpvc"},"inputs":{"parameters":{"access_modes":{"runtimeValue":{"constant":["ReadWriteOnce"]}},"pvc_name_suffix":{"runtimeValue":{"constant":"-my-pvc"}},"size":{"runtimeValue":{"constant":"5Mi"}},"storage_class_name":{"runtimeValue":{"constant":"standard"}}}},"taskInfo":{"name":"createpvc"}},"deletepvc":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-deletepvc"},"dependentTasks":["consumer","createpvc"],"inputs":{"parameters":{"pvc_name":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}}},"taskInfo":{"name":"deletepvc"}},"producer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-producer"},"dependentTasks":["createpvc"],"taskInfo":{"name":"producer"}}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -92,16 +35,10 @@ spec:
       - '{{workflow.name}}'
       - --run_display_name
       - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
-      - --component
-      - '{{inputs.parameters.component}}'
-      - --task
-      - '{{inputs.parameters.task}}'
+      - --parent_task_id
+      - '{{inputs.parameters.parent-dag-task-id}}'
       - --task_name
       - '{{inputs.parameters.task-name}}'
-      - --container
-      - '{{inputs.parameters.container}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
       - --cached_decision_path
@@ -122,10 +59,6 @@ spec:
       - ml-pipeline.kubeflow.svc.cluster.local
       - --ml_pipeline_server_port
       - "8887"
-      - --mlmd_server_address
-      - metadata-grpc-service.kubeflow.svc.cluster.local
-      - --mlmd_server_port
-      - "8080"
       command:
       - driver
       env:
@@ -137,6 +70,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -154,18 +91,23 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
     inputs:
       parameters:
-      - name: component
-      - name: task
-      - name: container
       - name: task-name
-      - name: parent-dag-id
+      - name: parent-dag-task-id
       - default: "-1"
         name: iteration-index
       - default: ""
         name: kubernetes-config
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/template-name: system-container-driver
+      labels:
+        pipelines.kubeflow.org/pod-role: container-driver
     name: system-container-driver
     outputs:
       parameters:
@@ -186,6 +128,14 @@ spec:
       runAsNonRoot: true
       seccompProfile:
         type: RuntimeDefault
+    volumes:
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
   - dag:
       tasks:
       - arguments:
@@ -200,6 +150,8 @@ spec:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - default: "-1"
+        name: iteration-index
     metadata: {}
     name: system-container-executor
     outputs: {}
@@ -215,6 +167,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap
@@ -232,6 +188,9 @@ spec:
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
       - mountPath: /gcs
         name: gcs-scratch
       - mountPath: /s3
@@ -272,7 +231,11 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/template-name: system-container-impl
+      labels:
+        pipelines.kubeflow.org/pod-role: container-executor
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
@@ -282,6 +245,13 @@ spec:
     volumes:
     - emptyDir: {}
       name: kfp-launcher
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
     - emptyDir: {}
       name: gcs-scratch
     - emptyDir: {}
@@ -298,16 +268,10 @@ spec:
       tasks:
       - arguments:
           parameters:
-          - name: component
-            value: '{{workflow.parameters.components-4ca7976f7f3d605d80b9d8bd28e9ae3e49e2b0263940665ccd83fdada3282e8c}}'
-          - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-consumer"},"dependentTasks":["createpvc","producer"],"taskInfo":{"name":"consumer"}}'
-          - name: container
-            value: '{{workflow.parameters.implementations-4ca7976f7f3d605d80b9d8bd28e9ae3e49e2b0263940665ccd83fdada3282e8c}}'
           - name: task-name
             value: consumer
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: kubernetes-config
             value: '{{workflow.parameters.kubernetes-comp-consumer}}'
         depends: createpvc.Succeeded && producer.Succeeded
@@ -325,45 +289,27 @@ spec:
         template: system-container-executor
       - arguments:
           parameters:
-          - name: component
-            value: '{{workflow.parameters.components-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767}}'
-          - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-createpvc"},"inputs":{"parameters":{"access_modes":{"runtimeValue":{"constant":["ReadWriteOnce"]}},"pvc_name_suffix":{"runtimeValue":{"constant":"-my-pvc"}},"size":{"runtimeValue":{"constant":"5Mi"}},"storage_class_name":{"runtimeValue":{"constant":"standard"}}}},"taskInfo":{"name":"createpvc"}}'
-          - name: container
-            value: '{{workflow.parameters.implementations-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767}}'
           - name: task-name
             value: createpvc
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         name: createpvc
         template: system-container-driver
       - arguments:
           parameters:
-          - name: component
-            value: '{{workflow.parameters.components-ecfc655dce17b0d317707d37fc226fb7de858cc93d45916945122484a13ef725}}'
-          - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-deletepvc"},"dependentTasks":["consumer","createpvc"],"inputs":{"parameters":{"pvc_name":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}}},"taskInfo":{"name":"deletepvc"}}'
-          - name: container
-            value: '{{workflow.parameters.implementations-ecfc655dce17b0d317707d37fc226fb7de858cc93d45916945122484a13ef725}}'
           - name: task-name
             value: deletepvc
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         depends: consumer.Succeeded && createpvc.Succeeded
         name: deletepvc
         template: system-container-driver
       - arguments:
           parameters:
-          - name: component
-            value: '{{workflow.parameters.components-71bc0395c46e8bddfaad94bfe774d00d048562e7c07f1b9eab9ec6d3655cc5d2}}'
-          - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-producer"},"dependentTasks":["createpvc"],"taskInfo":{"name":"producer"}}'
-          - name: container
-            value: '{{workflow.parameters.implementations-71bc0395c46e8bddfaad94bfe774d00d048562e7c07f1b9eab9ec6d3655cc5d2}}'
           - name: task-name
             value: producer
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: kubernetes-config
             value: '{{workflow.parameters.kubernetes-comp-producer}}'
         depends: createpvc.Succeeded
@@ -381,7 +327,7 @@ spec:
         template: system-container-executor
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: root
     outputs: {}
@@ -397,20 +343,16 @@ spec:
       - '{{workflow.name}}'
       - --run_display_name
       - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
-      - --component
-      - '{{inputs.parameters.component}}'
-      - --task
-      - '{{inputs.parameters.task}}'
+      - --parent_task_id
+      - '{{inputs.parameters.parent-dag-task-id}}'
       - --task_name
       - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
-      - --execution_id_path
-      - '{{outputs.parameters.execution-id.path}}'
+      - --parent_task_id_path
+      - '{{outputs.parameters.parent-dag-task-id-path.path}}'
       - --iteration_count_path
       - '{{outputs.parameters.iteration-count.path}}'
       - --condition_path
@@ -425,12 +367,21 @@ spec:
       - ml-pipeline.kubeflow.svc.cluster.local
       - --ml_pipeline_server_port
       - "8887"
-      - --mlmd_server_address
-      - metadata-grpc-service.kubeflow.svc.cluster.local
-      - --mlmd_server_port
-      - "8080"
       command:
       - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -440,36 +391,33 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
     inputs:
       parameters:
-      - name: component
       - default: ""
         name: runtime-config
       - default: ""
-        name: task
-      - default: ""
         name: task-name
-      - default: "0"
-        name: parent-dag-id
+      - default: ""
+        name: parent-dag-task-id
       - default: "-1"
         name: iteration-index
       - default: DAG
         name: driver-type
-    metadata: {}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/template-name: system-dag-driver
+      labels:
+        pipelines.kubeflow.org/pod-role: dag-driver
     name: system-dag-driver
     outputs:
       parameters:
-      - name: execution-id
+      - name: parent-dag-task-id-path
         valueFrom:
-          path: /tmp/outputs/execution-id
+          path: /tmp/outputs/task-id
       - name: iteration-count
         valueFrom:
           default: "0"
@@ -478,16 +426,18 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
-    securityContext:
-      runAsNonRoot: true
-      seccompProfile:
-        type: RuntimeDefault
+    volumes:
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
   - dag:
       tasks:
       - arguments:
           parameters:
-          - name: component
-            value: '{{workflow.parameters.components-root}}'
           - name: runtime-config
             value: '{}'
           - name: driver-type
@@ -496,8 +446,8 @@ spec:
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.root-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: condition
             value: ""
         depends: root-driver.Succeeded
