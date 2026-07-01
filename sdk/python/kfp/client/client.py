@@ -1422,10 +1422,11 @@ class Client:
             pipeline_name: Name of the pipeline to be shown in the UI.
             description: Description of the pipeline to be shown in the UI.
             namespace: Optional. Kubernetes namespace where the pipeline should
-                be uploaded. Defaults to the namespace configured on the client
-                (e.g. via ``Client(namespace=...)`` or
-                ``set_user_namespace()``). For single-user deployments, leave
-                it as ``None``.
+                be uploaded. If omitted or set to ``None``, the client uses
+                its configured namespace (for example via
+                ``Client(namespace=...)`` or ``set_user_namespace()``). In
+                single-user deployments, this effectively uses the empty
+                namespace.
 
         Returns:
             ``V2beta1Pipeline`` object.
