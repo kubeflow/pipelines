@@ -171,14 +171,7 @@ jobs:
         uploadPipelinesWithKubernetesClient: [ "true", "false" ]
         argo_version: [ "v3.7.14", "v4.0.5" ]
         pipeline_store: [ "kubernetes" ]
-        pod_to_pod_tls_enabled: [ "false" ]
-        include:
-          - k8s_version: "v1.35.0"
-            cache_enabled: "true"
-            # Pod to Pod TLS manifests are not yet implemented for Kubernetes Native API mode
-            pipeline_store: "database"
-            pod_to_pod_tls_enabled: "true"
-            uploadPipelinesWithKubernetesClient: "false"
+        # Pod to Pod TLS manifests are not yet implemented for Kubernetes Native API mode
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
     name: KFP API Server tests K8s Native API - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version }} uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}
 
@@ -217,6 +210,7 @@ jobs:
           num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
           default_namespace: ${{ env.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
+          upload_pipelines_with_kubernetes_client: ${{ matrix.uploadPipelinesWithKubernetesClient }}
           report_name: "K8Native_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_argoVersion=${{ matrix.argo_version }}_uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}"
 
 
