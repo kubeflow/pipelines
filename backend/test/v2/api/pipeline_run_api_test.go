@@ -182,7 +182,14 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 			createdPipelineRun := createPipelineRun(&createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
 			testutil.WaitForRunToBeInState(runClient, &createdPipelineRun.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateRUNNING, run_model.V2beta1RuntimeStatePENDING}, nil)
 			archivePipelineRun(&createdPipelineRun.RunID)
-			pipelineRunAfterArchive := testutil.GetPipelineRun(runClient, &createdPipelineRun.RunID)
+			var pipelineRunAfterArchive *run_model.V2beta1Run
+			Eventually(func() *run_model.V2beta1Run {
+				pipelineRunAfterArchive = testutil.GetPipelineRun(runClient, &createdPipelineRun.RunID)
+				if pipelineRunAfterArchive.State == nil || pipelineRunAfterArchive.StorageState == nil {
+					return nil
+				}
+				return pipelineRunAfterArchive
+			}, "30s", "1s").ShouldNot(BeNil(), "Expected archived pipeline run to retain state and storage state")
 			Expect(*pipelineRunAfterArchive.State).To(BeElementOf([]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateRUNNING, run_model.V2beta1RuntimeStatePENDING}))
 			Expect(*pipelineRunAfterArchive.StorageState).To(Equal(run_model.V2beta1RunStorageStateARCHIVED))
 

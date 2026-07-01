@@ -105,40 +105,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Port-forward SeaweedFS service for archived workflow logs
-      id: port-forward-seaweedfs
-      if: (!cancelled())
-      shell: bash
-      run: |
-        NAMESPACE="${{ inputs.default_namespace }}"
-        pkill -f "kubectl port-forward.*seaweedfs" || true
-        kubectl port-forward -n "$NAMESPACE" service/seaweedfs 9000:9000 > /dev/null 2>&1 &
-        sleep 5
-      continue-on-error: true
-
-    - name: Re-establish MLflow port-forward for tests
-      id: port-forward-mlflow
-      if: (!cancelled())
-      shell: bash
-      run: |
-        if [ -z "${MLFLOW_PORT_FORWARD_NS:-}" ] || [ -z "${MLFLOW_PORT_FORWARD_SVC:-}" ]; then
-          echo "No MLflow port-forward metadata exported for this job"
-          exit 0
-        fi
-        REMOTE_PORT="${MLFLOW_PORT_FORWARD_REMOTE_PORT:-5000}"
-        pkill -f "kubectl port-forward.*${MLFLOW_PORT_FORWARD_SVC}.*8080:${REMOTE_PORT}" || true
-        kubectl port-forward -n "$MLFLOW_PORT_FORWARD_NS" "svc/$MLFLOW_PORT_FORWARD_SVC" "8080:$REMOTE_PORT" > /dev/null 2>&1 &
-        sleep 5
-      continue-on-error: true
-
-    - name: Port-forward MLMD for Argo compatibility tests
-      if: env.ARGO_COMPATIBILITY_TESTS == 'true'
-      shell: bash
-      run: |
-        NAMESPACE="${{ inputs.default_namespace }}"
-        pkill -f "kubectl port-forward.*metadata-grpc-service" || true
-        kubectl port-forward -n "$NAMESPACE" service/metadata-grpc-service 8080:8080 > /dev/null 2>&1 &
-
     - name: Configure API Access
       id: configure-api
       if: ${{ inputs.skip_api_config != 'true' }}
@@ -245,6 +211,9 @@ runs:
       working-directory: ${{ inputs.test_directory }}
       env:
         PIPELINE_STORE: ${{ inputs.pipeline_store }}
+        INPUT_API_URL: ${{ inputs.api_url }}
+        INPUT_DEPLOYMENT_NAME: ${{ inputs.deployment_name }}
+        INPUT_DEFAULT_NAMESPACE: ${{ inputs.default_namespace }}
       run: |
         USE_PROXY=${{ inputs.proxy }}
         if [ -z "$USE_PROXY" ]; then
@@ -279,6 +248,9 @@ runs:
         API_URL="${{ steps.configure-api.outputs.API_URL }}"
         AUTH_TOKEN="${{ steps.configure-api.outputs.API_TOKEN }}"
         SERVICE_ACCOUNT_NAME="${{ steps.configure-api.outputs.SERVICE_ACCOUNT_NAME }}"
+        WORKSPACE_ROOT="${GITHUB_WORKSPACE:-$(git rev-parse --show-toplevel)}"
+        export GOPROXY="https://proxy.golang.org|direct"
+        PORT_FORWARD_PIDS=()
         BASE_IMAGE_FLAG=""
         if [ -n "${{ inputs.base_image }}" ]; then
           BASE_IMAGE_FLAG="-baseImage=${{ inputs.base_image }}"
@@ -289,6 +261,91 @@ runs:
           DISABLE_TLS_CHECK='true'
         else
           DISABLE_TLS_CHECK='false'
+        fi
+
+        (
+          cd "$WORKSPACE_ROOT"
+          go mod download
+        )
+
+        cleanup_port_forwards() {
+          for pid in "${PORT_FORWARD_PIDS[@]}"; do
+            kill "$pid" 2>/dev/null || true
+          done
+        }
+
+        start_port_forward_supervisor() {
+          local name="$1"
+          local namespace="$2"
+          local resource="$3"
+          local local_port="$4"
+          local remote_port="$5"
+          local log_file="/tmp/${name}-port-forward.log"
+
+          (
+            while true; do
+              kubectl port-forward -n "$namespace" "$resource" "${local_port}:${remote_port}" >>"$log_file" 2>&1 || true
+              echo "Port-forward for ${resource} on ${local_port}:${remote_port} exited; restarting in 2s" >>"$log_file"
+              sleep 2
+            done
+          ) &
+          PORT_FORWARD_PIDS+=("$!")
+        }
+
+        wait_for_local_port() {
+          local port="$1"
+
+          for i in $(seq 1 12); do
+            if python3 -c 'import socket, sys; sock = socket.socket(); sock.settimeout(1); result = sock.connect_ex(("127.0.0.1", int(sys.argv[1]))); sock.close(); sys.exit(0 if result == 0 else 1)' "$port"
+            then
+              return 0
+            fi
+            echo "Waiting for localhost:${port} to accept connections... ($i/12)"
+            sleep 5
+          done
+
+          return 1
+        }
+
+        if [ "${{ inputs.skip_api_config }}" != "true" ]; then
+          trap cleanup_port_forwards EXIT
+
+          start_port_forward_supervisor "seaweedfs" "${INPUT_DEFAULT_NAMESPACE}" "service/seaweedfs" "9000" "9000"
+          wait_for_local_port 9000
+
+          if [ -n "${MLFLOW_PORT_FORWARD_NS:-}" ] && [ -n "${MLFLOW_PORT_FORWARD_SVC:-}" ]; then
+            if [ "${ARGO_COMPATIBILITY_TESTS:-}" = "true" ]; then
+              echo "ERROR: MLflow and MLMD both require localhost:8080 in this action"
+              exit 1
+            fi
+            REMOTE_PORT="${MLFLOW_PORT_FORWARD_REMOTE_PORT:-5000}"
+            start_port_forward_supervisor "mlflow" "${MLFLOW_PORT_FORWARD_NS}" "svc/${MLFLOW_PORT_FORWARD_SVC}" "8080" "${REMOTE_PORT}"
+            wait_for_local_port 8080
+          fi
+
+          if [ -z "${INPUT_API_URL}" ]; then
+            API_SERVICE="${INPUT_DEPLOYMENT_NAME:-ml-pipeline}"
+            start_port_forward_supervisor "api-server" "${INPUT_DEFAULT_NAMESPACE}" "service/${API_SERVICE}" "8888" "8888"
+
+            for i in $(seq 1 12); do
+              if curl -sf http://localhost:8888/apis/v1beta1/healthz > /dev/null 2>&1 || \
+                 curl -skf https://localhost:8888/apis/v1beta1/healthz > /dev/null 2>&1; then
+                echo "API server is reachable on localhost:8888"
+                break
+              fi
+              if [ "$i" -eq 12 ]; then
+                echo "ERROR: API server not reachable at localhost:8888"
+                exit 1
+              fi
+              echo "Waiting for API server on localhost:8888... ($i/12)"
+              sleep 5
+            done
+          fi
+
+          if [ "${ARGO_COMPATIBILITY_TESTS:-}" = "true" ]; then
+            start_port_forward_supervisor "mlmd" "${INPUT_DEFAULT_NAMESPACE}" "service/metadata-grpc-service" "8080" "8080"
+            wait_for_local_port 8080
+          fi
         fi
 
         go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter=${{ inputs.test_label }} --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -pipelineStoreKubernetes=$pipelineStoreKubernetes -disableTlsCheck=$DISABLE_TLS_CHECK -apiScheme=$API_SCHEME -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME -apiUrl="$API_URL" -authToken="$AUTH_TOKEN" -serviceAccountName="$SERVICE_ACCOUNT_NAME" -mlflowEnabled=${{ inputs.mlflow_enabled }} $BASE_IMAGE_FLAG

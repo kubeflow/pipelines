@@ -59,6 +59,20 @@ func newListPipelinesParams() *pipeline_params.PipelineServiceListPipelinesParam
 	}
 }
 
+func filterPipelinesByID(pipelines []*pipeline_model.V2beta1Pipeline, pipelineIDs ...string) []*pipeline_model.V2beta1Pipeline {
+	idSet := make(map[string]struct{}, len(pipelineIDs))
+	for _, pipelineID := range pipelineIDs {
+		idSet[pipelineID] = struct{}{}
+	}
+	filtered := make([]*pipeline_model.V2beta1Pipeline, 0, len(pipelineIDs))
+	for _, pipeline := range pipelines {
+		if _, ok := idSet[pipeline.PipelineID]; ok {
+			filtered = append(filtered, pipeline)
+		}
+	}
+	return filtered
+}
+
 const (
 	informerSyncTimeout  = 30 * time.Second
 	informerSyncInterval = 2 * time.Second
@@ -250,11 +264,26 @@ var _ = Describe("List Pipelines API Tests >", Label(constants.POSITIVE, constan
 		})
 
 		It("Sort by name in descending order", func() {
+			pipelineDir := "valid"
+			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
+
+			name1 := testContext.Pipeline.PipelineGeneratedName + "-aaa-desc"
+			createdPipeline1 := uploadPipelineAndVerify(pipelineSpecFilePath, &name1, nil)
+			name2 := testContext.Pipeline.PipelineGeneratedName + "-zzz-desc"
+			createdPipeline2 := uploadPipelineAndVerify(pipelineSpecFilePath, &name2, nil)
+
 			sortBy := "name desc"
 			params := newListPipelinesParams()
 			params.SortBy = &sortBy
-			pipelines, _, _, err := pipelineClient.List(params)
-			Expect(err).NotTo(HaveOccurred())
+			var pipelines []*pipeline_model.V2beta1Pipeline
+			Eventually(func() (int, error) {
+				listedPipelines, _, _, err := pipelineClient.List(params)
+				if err != nil {
+					return 0, err
+				}
+				pipelines = filterPipelinesByID(listedPipelines, createdPipeline1.PipelineID, createdPipeline2.PipelineID)
+				return len(pipelines), nil
+			}, informerSyncTimeout, informerSyncInterval).Should(Equal(2))
 			for i := 1; i < len(pipelines); i++ {
 				cur := strings.ToLower(pipelines[i].Name)
 				prev := strings.ToLower(pipelines[i-1].Name)
@@ -265,11 +294,28 @@ var _ = Describe("List Pipelines API Tests >", Label(constants.POSITIVE, constan
 		})
 
 		It("Sort by display name containing substring in ascending order", func() {
+			pipelineDir := "valid"
+			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
+
+			name1 := testContext.Pipeline.PipelineGeneratedName + "-display-1"
+			displayName1 := "display-alpha"
+			createdPipeline1 := uploadPipelineAndVerify(pipelineSpecFilePath, &name1, &displayName1)
+			name2 := testContext.Pipeline.PipelineGeneratedName + "-display-2"
+			displayName2 := "display-zulu"
+			createdPipeline2 := uploadPipelineAndVerify(pipelineSpecFilePath, &name2, &displayName2)
+
 			sortBy := "display_name asc"
 			params := newListPipelinesParams()
 			params.SortBy = &sortBy
-			pipelines, _, _, err := pipelineClient.List(params)
-			Expect(err).NotTo(HaveOccurred())
+			var pipelines []*pipeline_model.V2beta1Pipeline
+			Eventually(func() (int, error) {
+				listedPipelines, _, _, err := pipelineClient.List(params)
+				if err != nil {
+					return 0, err
+				}
+				pipelines = filterPipelinesByID(listedPipelines, createdPipeline1.PipelineID, createdPipeline2.PipelineID)
+				return len(pipelines), nil
+			}, informerSyncTimeout, informerSyncInterval).Should(Equal(2))
 			for i := 1; i < len(pipelines); i++ {
 				cur := strings.ToLower(pipelines[i].DisplayName)
 				prev := strings.ToLower(pipelines[i-1].DisplayName)
@@ -280,11 +326,28 @@ var _ = Describe("List Pipelines API Tests >", Label(constants.POSITIVE, constan
 		})
 
 		It("Sort by display name containing substring in descending order", func() {
+			pipelineDir := "valid"
+			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
+
+			name1 := testContext.Pipeline.PipelineGeneratedName + "-display-desc-1"
+			displayName1 := "display-alpha-desc"
+			createdPipeline1 := uploadPipelineAndVerify(pipelineSpecFilePath, &name1, &displayName1)
+			name2 := testContext.Pipeline.PipelineGeneratedName + "-display-desc-2"
+			displayName2 := "display-zulu-desc"
+			createdPipeline2 := uploadPipelineAndVerify(pipelineSpecFilePath, &name2, &displayName2)
+
 			sortBy := "display_name desc"
 			params := newListPipelinesParams()
 			params.SortBy = &sortBy
-			pipelines, _, _, err := pipelineClient.List(params)
-			Expect(err).NotTo(HaveOccurred())
+			var pipelines []*pipeline_model.V2beta1Pipeline
+			Eventually(func() (int, error) {
+				listedPipelines, _, _, err := pipelineClient.List(params)
+				if err != nil {
+					return 0, err
+				}
+				pipelines = filterPipelinesByID(listedPipelines, createdPipeline1.PipelineID, createdPipeline2.PipelineID)
+				return len(pipelines), nil
+			}, informerSyncTimeout, informerSyncInterval).Should(Equal(2))
 			for i := 1; i < len(pipelines); i++ {
 				cur := strings.ToLower(pipelines[i].DisplayName)
 				prev := strings.ToLower(pipelines[i-1].DisplayName)
