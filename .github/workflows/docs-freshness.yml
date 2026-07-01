@@ -9,6 +9,11 @@ on:
       - third_party/**
       - README.md
 
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test-docs-freshness:
     runs-on: ubuntu-24.04

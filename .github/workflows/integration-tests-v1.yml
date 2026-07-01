@@ -21,7 +21,7 @@ on:
       - '!**/OWNERS'
 
 concurrency:
-  group: legacy-integration-v1-tests-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -33,16 +33,14 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.34.0" ]
+        k8s_version: [ "v1.31.14", "v1.35.0" ]
     name: Initialization & Integration tests v1 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
+        uses: ./.github/actions/setup-go
 
       - name: Set up Python
         uses: actions/setup-python@v6

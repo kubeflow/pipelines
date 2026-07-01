@@ -145,6 +145,15 @@ async function saveDebugScreenshot(name) {
   return screenshotPath;
 }
 
+async function saveDebugScreenshotBestEffort(name) {
+  try {
+    await saveDebugScreenshot(name);
+  } catch (error) {
+    const message = error && error.message ? error.message : String(error);
+    console.log(`Unable to save ${name} debug screenshot: ${message}`);
+  }
+}
+
 async function logPipelineSelectorDiagnostics() {
   const rowCount = await browser.execute(() => document.querySelectorAll('[data-testid="table-row"]').length);
   const emptyMessage = await browser.execute(() => {
@@ -221,6 +230,80 @@ async function waitForTableRows(
   return await $$(selector);
 }
 
+async function waitForLogViewerText(
+  expectedText,
+  { timeout = defaultTimeout, interval = 1000, screenshotName = 'log-viewer' } = {},
+) {
+  let lastLogsState = 'not-started';
+  let lastViewerText = '';
+  let lastRefreshTimestamp = 0;
+  let isRefreshingLogs = false;
+
+  try {
+    await waitForCondition(
+      async () => {
+        if (await isSelectorDisplayed('#logViewer')) {
+          const viewerText = await $('#logViewer').getText();
+          lastViewerText = viewerText;
+          if (!expectedText || viewerText.includes(expectedText)) {
+            lastLogsState = 'viewer-ready';
+            return true;
+          }
+          lastLogsState = viewerText.trim() ? 'viewer-missing-expected-text' : 'viewer-empty';
+        }
+
+        const logsPanelBusy = await isSelectorDisplayed('[role="progressbar"]');
+        if (isRefreshingLogs) {
+          if (logsPanelBusy) {
+            lastLogsState = 'waiting-for-log-refresh-to-settle';
+            return false;
+          }
+          isRefreshingLogs = false;
+        }
+
+        const logsFetchFailed = await pageContainsText('Failed to retrieve pod logs.');
+        if (
+          logsFetchFailed &&
+          !isRefreshingLogs &&
+          Date.now() - lastRefreshTimestamp >= interval
+        ) {
+          const refreshButton = await $('button=Refresh');
+          if (
+            (await refreshButton.isExisting()) &&
+            (await refreshButton.isDisplayed()) &&
+            (await refreshButton.isEnabled())
+          ) {
+            lastLogsState = 'refreshing-log-fetch';
+            lastRefreshTimestamp = Date.now();
+            isRefreshingLogs = true;
+            await refreshButton.click();
+            return false;
+          }
+        }
+
+        if (logsPanelBusy) {
+          lastLogsState = 'loading-log-viewer';
+        }
+
+        return false;
+      },
+      {
+        timeout,
+        interval,
+        timeoutMsg: expectedText
+          ? `expected log viewer to contain ${expectedText}`
+          : 'expected log viewer to become ready',
+      },
+    );
+  } catch (error) {
+    console.log('LOG_VIEWER_LAST_STATE', lastLogsState);
+    console.log('LOG_VIEWER_LAST_TEXT', lastViewerText.slice(0, 500));
+    console.log('LOG_VIEWER_URL', await browser.getUrl());
+    await saveDebugScreenshotBestEffort(screenshotName);
+    throw error;
+  }
+}
+
 function annotatePhaseError(phaseName, error) {
   if (error instanceof Error) {
     error.message = `[${phaseName}] ${error.message}`;
@@ -260,6 +343,7 @@ module.exports = {
   waitForCondition,
   waitForGraphNodeCount,
   waitForHashPrefix,
+  waitForLogViewerText,
   waitForRunPageReady,
   waitForTableRows,
 };

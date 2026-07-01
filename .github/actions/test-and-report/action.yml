@@ -96,6 +96,10 @@ inputs:
     description: "Skip API access configuration and token generation (for tests that do not need a cluster)"
     required: false
     default: 'false'
+  mlflow_enabled:
+    description: "Whether MLflow is deployed and available for integration tests"
+    required: false
+    default: 'false'
 
 
 runs:
@@ -111,6 +115,29 @@ runs:
         kubectl port-forward -n "$NAMESPACE" service/seaweedfs 9000:9000 > /dev/null 2>&1 &
         sleep 5
       continue-on-error: true
+
+    - name: Re-establish MLflow port-forward for tests
+      id: port-forward-mlflow
+      if: (!cancelled())
+      shell: bash
+      run: |
+        if [ -z "${MLFLOW_PORT_FORWARD_NS:-}" ] || [ -z "${MLFLOW_PORT_FORWARD_SVC:-}" ]; then
+          echo "No MLflow port-forward metadata exported for this job"
+          exit 0
+        fi
+        REMOTE_PORT="${MLFLOW_PORT_FORWARD_REMOTE_PORT:-5000}"
+        pkill -f "kubectl port-forward.*${MLFLOW_PORT_FORWARD_SVC}.*8080:${REMOTE_PORT}" || true
+        kubectl port-forward -n "$MLFLOW_PORT_FORWARD_NS" "svc/$MLFLOW_PORT_FORWARD_SVC" "8080:$REMOTE_PORT" > /dev/null 2>&1 &
+        sleep 5
+      continue-on-error: true
+
+    - name: Port-forward MLMD for Argo compatibility tests
+      if: env.ARGO_COMPATIBILITY_TESTS == 'true'
+      shell: bash
+      run: |
+        NAMESPACE="${{ inputs.default_namespace }}"
+        pkill -f "kubectl port-forward.*metadata-grpc-service" || true
+        kubectl port-forward -n "$NAMESPACE" service/metadata-grpc-service 8080:8080 > /dev/null 2>&1 &
 
     - name: Configure API Access
       id: configure-api
@@ -264,7 +291,7 @@ runs:
           DISABLE_TLS_CHECK='false'
         fi
 
-        go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter=${{ inputs.test_label }} --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -pipelineStoreKubernetes=$pipelineStoreKubernetes -disableTlsCheck=$DISABLE_TLS_CHECK -apiScheme=$API_SCHEME -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME -apiUrl="$API_URL" -authToken="$AUTH_TOKEN" -serviceAccountName="$SERVICE_ACCOUNT_NAME" $BASE_IMAGE_FLAG
+        go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter=${{ inputs.test_label }} --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -pipelineStoreKubernetes=$pipelineStoreKubernetes -disableTlsCheck=$DISABLE_TLS_CHECK -apiScheme=$API_SCHEME -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME -apiUrl="$API_URL" -authToken="$AUTH_TOKEN" -serviceAccountName="$SERVICE_ACCOUNT_NAME" -mlflowEnabled=${{ inputs.mlflow_enabled }} $BASE_IMAGE_FLAG
       continue-on-error: true
 
     - name: Collect Pod logs in case of Test Failures
@@ -275,7 +302,10 @@ runs:
         echo "=== Current disk usage ==="
         df -h
         NAMESPACE="${{ inputs.default_namespace }}"
-        ./.github/resources/scripts/collect-logs.sh --ns $NAMESPACE --output /tmp/tmp_pod_log.txt
+        ./.github/resources/scripts/collect-logs.sh --ns "$NAMESPACE" --output /tmp/tmp_pod_log.txt
+        if [ "${{ inputs.proxy }}" = "true" ]; then
+          ./.github/resources/scripts/collect-logs.sh --ns squid --output /tmp/tmp_pod_log.txt
+        fi
       continue-on-error: true
 
     - name: Set up Python for reporting

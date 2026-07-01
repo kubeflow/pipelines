@@ -23,7 +23,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -31,6 +31,7 @@ import (
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -245,6 +246,40 @@ func TestScheduledWorkflow(t *testing.T) {
 	// It is also tested in compiler.
 	actualScheduledWorkflow.Spec.Workflow.Spec = ""
 	assert.Equal(t, &expectedScheduledWorkflow, actualScheduledWorkflow)
+}
+
+func TestScheduledWorkflow_CustomServiceAccount(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+
+	v2SpecHelloWorldYAML := loadYaml(t, "testdata/hello_world.yaml")
+	v2Template, _ := New([]byte(v2SpecHelloWorldYAML), TemplateOptions{CacheDisabled: true, DefaultWorkspace: defaultPVC})
+
+	modelJob := &model.Job{
+		K8SName:        "name1",
+		Enabled:        true,
+		MaxConcurrency: 1,
+		NoCatchup:      true,
+		ServiceAccount: "custom-sa",
+		Trigger: model.Trigger{
+			CronSchedule: model.CronSchedule{
+				CronScheduleStartTimeInSec: util.Int64Pointer(1),
+				CronScheduleEndTimeInSec:   util.Int64Pointer(10),
+				Cron:                       util.StringPointer("1 * * * *"),
+			},
+		},
+		PipelineSpec: model.PipelineSpec{
+			PipelineId:           "1",
+			PipelineName:         "pipeline name",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorldYAML),
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"y\":\"world\"}",
+			},
+		},
+	}
+
+	actualScheduledWorkflow, err := v2Template.ScheduledWorkflow(modelJob)
+	require.Nil(t, err)
+	assert.Equal(t, "custom-sa", actualScheduledWorkflow.Spec.ServiceAccount)
 }
 
 func TestModelToCRDTrigger_Cron(t *testing.T) {
@@ -985,4 +1020,57 @@ func TestNewGenericScheduledWorkflow(t *testing.T) {
 	assert.Equal(t, "My Pipeline", swf.Spec.PipelineName)
 	assert.NotNil(t, swf.Spec.PeriodicSchedule)
 	assert.Equal(t, int64(120), swf.Spec.PeriodicSchedule.IntervalSecond)
+}
+
+func TestValidateJobInputs(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	v2SpecHelloWorldYAML := loadYaml(t, "testdata/hello_world.yaml")
+	v2Template, err := New([]byte(v2SpecHelloWorldYAML), TemplateOptions{})
+	require.Nil(t, err)
+	v2Spec := v2Template.(*V2Spec)
+
+	tests := []struct {
+		name      string
+		params    string
+		wantErr   bool
+		errSubstr string
+	}{
+		{
+			name:    "valid params",
+			params:  `{"y": "world"}`,
+			wantErr: false,
+		},
+		{
+			name:      "missing required param y",
+			params:    "",
+			wantErr:   true,
+			errSubstr: "y",
+		},
+		{
+			name:    "invalid json in runtime config",
+			params:  "not valid json",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			modelJob := &model.Job{
+				PipelineSpec: model.PipelineSpec{
+					PipelineSpecManifest: model.LargeText(v2SpecHelloWorldYAML),
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters: model.LargeText(tt.params),
+					},
+				},
+			}
+			err := v2Spec.ValidateJobInputs(modelJob)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				if tt.errSubstr != "" {
+					assert.Contains(t, err.Error(), tt.errSubstr)
+				}
+			} else {
+				assert.Nil(t, err)
+			}
+		})
+	}
 }

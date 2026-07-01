@@ -61,3 +61,19 @@ rules:
   - tokenreviews
   verbs:
   - create
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  resourceNames:
+  - kfp-launcher
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  resourceNames:
+  - kfp-mlflow-credentials
+  verbs:
+  - get

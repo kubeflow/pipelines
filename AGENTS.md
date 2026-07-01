@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-04-25
+- Last updated: 2026-06-19
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -354,6 +354,7 @@ The KFP frontend is a React TypeScript application that provides the web UI for 
 ### Prerequisites
 
 - Node.js version specified in `frontend/.nvmrc`
+- npm version specified by `packageManager` in `frontend/package.json`
 - Docker (required for frontend API client generation via OpenAPI Generator container)
 - Use [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm) for Node version management:
 
@@ -368,6 +369,7 @@ The KFP frontend is a React TypeScript application that provides the web UI for 
 
 ```bash
 cd frontend
+npm install --global "$(node -p 'require("./package.json").packageManager')"
 npm ci  # Install exact dependencies from package-lock.json
 ```
 
@@ -521,11 +523,12 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 
 ### Test matrices and variants (Kubernetes, stores, proxy, cache)
 
-- Kubernetes versions: CI runs a matrix across a low and high supported version, commonly `v1.29.2` and `v1.31.0`.
+- Kubernetes versions: CI runs a matrix across a low and high supported version, commonly `v1.31.14` and `v1.35.0`.
   - Examples: `e2e-test.yml`, `sdk-execution.yml`, `upgrade-test.yml`, `kfp-kubernetes-execution-tests.yml`, `kfp-webhooks.yml`, `api-server-tests.yml`, `compiler-tests.yml`, `legacy-v2-api-integration-tests.yml`, `integration-tests-v1.yml`, and frontend integration in `e2e-test-frontend.yml`.
 - Pipeline store variants (v2 engine): tests run with `database` and `kubernetes` stores, and a dedicated job compiles pipelines to Kubernetes-native manifests.
   - Example: `e2e-test.yml` job "API integration tests v2 - K8s with ${pipeline_store}" and "compile pipelines with Kubernetes".
-- Argo Workflows version matrix for compatibility (where relevant): `e2e-test.yml` exercises `v3.5.14`, `v3.7.3`, and `v4.0.4` across the standard cache/test-label matrix, while `api-server-tests.yml` covers standalone and Kubernetes-native Argo compatibility across the standard matrices (with standalone low-Kubernetes spot lanes per supported Argo version).
+- Argo Workflows version matrix for compatibility (where relevant): `e2e-test.yml` exercises `v3.7.14` and `v4.0.5` across the standard cache/test-label matrix, while `api-server-tests.yml` covers standalone and Kubernetes-native Argo compatibility across the standard matrices (with standalone low-Kubernetes spot lanes per supported Argo version).
+- Focused Argo runtime compatibility API tests run only in the canonical standalone `v4.0.5` / Kubernetes `v1.35.0` job via `ARGO_COMPATIBILITY_TESTS`; this covers recurring-run creation, run retry, task metadata/artifacts, and archived logs without adding another E2E lane.
 - Proxy / cache toggles: dedicated jobs run with HTTP proxy enabled and with execution cache disabled to validate those modes.
 - Artifacts: failing logs and test outputs are uploaded as workflow artifacts for debugging.
 
@@ -533,6 +536,10 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 
 - Kind-based clusters are provisioned via the `kfp-cluster` composite action, parameterized by `k8s_version`, `pipeline_store`, `proxy`, `cache_enabled`, and optional `argo_version`.
 - The `create-cluster` and `deploy` actions are used by newer suites; `kfp-k8s` installs SDK components from source inside jobs that execute Python-based tests.
+- The `deploy` action downloads and loads CI-built images before deploying optional Squid proxy support, preloads runtime base images used by test pods and init containers, and waits for Squid readiness/endpoints in proxy lanes.
+- The `test-and-report` action port-forwards MLMD on port `8080` only when `ARGO_COMPATIBILITY_TESTS=true`, allowing the canonical Argo compatibility API job to validate execution/artifact metadata without adding another test lane.
+- Proxy test failures collect both the KFP namespace and `squid` namespace logs/events to diagnose proxy-service readiness separately from pipeline failures.
+- The CI proxy runs Squid as a no-cache forward proxy under the historical `squid` namespace/service names.
 - The `protobuf` composite action prepares `protoc` and related dependencies when compiling Python protobufs.
 - The `create-cluster` action caches Kind node images by Kubernetes version to reduce Docker Hub pulls.
 - Python workflows use `actions/cache@v5` for pip cache to reduce repeated dependency installs.
@@ -586,7 +593,8 @@ KFP frontend supports feature flags for development:
 ### Troubleshooting
 
 - **Port conflicts**: Frontend uses 3000 (React), 3001 (Node server), 3002 (API proxy)
-- **Node version issues**: Ensure you're using the version in `.nvmrc`
+- **Node/npm version issues**: Use the Node version in `.nvmrc` and the npm version in
+  `package.json`'s `packageManager` field
 - **API generation failures**: Ensure Docker is running and `docker` CLI is available in PATH
 - **Proto generation**: Requires `protoc` and `protoc-gen-grpc-web` in PATH
 - **Mock backend**: Limited API support; use real cluster for full testing
@@ -659,6 +667,9 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - `_KFP_RUNTIME=true`: Disables SDK imports during task execution
 - `VITE_NAMESPACE=...`: Sets the target namespace for the frontend in multi-user mode
 - `LOCAL_API_SERVER=true`: Enables local API server testing mode when running integration tests on a Kind cluster
+- `TENSORBOARD_PROXY_SIGNING_SECRET=...`: Optional shared frontend-server secret for scoped TensorBoard proxy URLs; defaults to `MINIO_SECRET_KEY` when unset
+- `FRONTEND_SERVER_NAMESPACE=...`: Sets the namespace used by the local frontend Node server for Kubernetes lookups when it is not running inside a cluster pod. `npm run start:proxy-and-server` derives this from `NAMESPACE`.
+- `MINIO_ENDPOINT_REWRITE=from=to[,from=to]`: Rewrites explicit object-store endpoints for local proxy mode, for example from `seaweedfs.kubeflow:9000` to `localhost:9000`.
 
 ## Troubleshooting and pitfalls
 
@@ -668,7 +679,8 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - Do not assume `pipeline_spec_pb2.py` exists in the repo; it must be generated.
 - Frontend API generation requires Docker (`openapitools/openapi-generator-cli:v7.19.0`).
 - Frontend proto generation requires `protoc` and `protoc-gen-grpc-web` binaries.
-- Node version must match `.nvmrc`; use nvm/fnm to manage versions.
+- Node version must match `.nvmrc`; use nvm/fnm to manage versions. npm must match the
+  `packageManager` version in `frontend/package.json`.
 - Frontend port conflicts: 3000 (Vite), 3001 (Node server), 3002 (API proxy), 6006 (Storybook).
 
 ### Common error patterns and quick fixes
@@ -677,4 +689,12 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - Protobuf generation fails under SELinux enforcing: temporarily disable with `sudo setenforce 0`; re-enable after.
 - API client generation fails with Docker errors (for example permission denied to Docker socket): ensure Docker is running and your user can access the Docker daemon.
 - Frontend fails to start due to Node version mismatch: `nvm use $(cat frontend/.nvmrc)` or `fnm use`.
+- Frontend lockfile checks fail after a dependency update: from `frontend/`, install the pinned
+  npm with `npm install --global "$(node -p 'require("./package.json").packageManager')"`,
+  regenerate `package-lock.json`, and commit the result.
 - Runtime component imports SDK-only modules: `_KFP_RUNTIME=true` disables many SDK imports; avoid importing SDK-only modules in task code.
+- Proxy CI jobs fail during `Deploy Squid` with `OOMKilled`, `CrashLoopBackOff`, endpoint readiness timeouts, or failed proxy tests: inspect the `squid` namespace logs/events and verify `.github/resources/squid/squid.conf` still disables caching for CI.
+- Archived run-log requests return `NoSuchKey` under a customized Argo artifact `keyFormat`: confirm the persisted Workflow node contains a `main-logs` artifact location; the API uses that stored key before its legacy configured-path fallback.
+- Retry tests intermittently miss an expected artifact from an in-memory bucket: do not make a first-call failure fake depend on Go map iteration order; target the named artifact or operation and assert its own call count.
+- Critical E2E samples fail across Argo versions with S3 `PutObject` timeouts to `seaweedfs.kubeflow:9000`: treat this as cluster artifact-store instability and retry the job; do not extend pipeline timeouts or weaken assertions to mask an unavailable store.
+- Kind setup exits immediately after cache restore with `sha256sum: WARNING: 1 computed checksum did NOT match`: no tests or cluster deployment ran; retry the job rather than changing application or test code.

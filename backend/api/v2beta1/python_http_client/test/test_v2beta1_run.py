@@ -56,7 +56,7 @@ class TestV2beta1Run(unittest.TestCase):
                 scheduled_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                 finished_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                 state = 'RUNTIME_STATE_UNSPECIFIED', 
-                error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
+                error = kfp_server_api.models.google_rpc_status.googleRpcStatus(
                     code = 56, 
                     message = '0', 
                     details = [
@@ -86,7 +86,7 @@ class TestV2beta1Run(unittest.TestCase):
                                     ], ), 
                             state = 'RUNTIME_STATE_UNSPECIFIED', 
                             execution_id = '0', 
-                            error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
+                            error = kfp_server_api.models.google_rpc_status.googleRpcStatus(
                                 code = 56, 
                                 message = '0', 
                                 details = [
@@ -120,7 +120,7 @@ class TestV2beta1Run(unittest.TestCase):
                     kfp_server_api.models.v2beta1_runtime_status.v2beta1RuntimeStatus(
                         update_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                         state = 'RUNTIME_STATE_UNSPECIFIED', 
-                        error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
+                        error = kfp_server_api.models.google_rpc_status.googleRpcStatus(
                             code = 56, 
                             message = '0', 
                             details = [
@@ -128,7 +128,20 @@ class TestV2beta1Run(unittest.TestCase):
                                     'key' : None
                                     }
                                 ], ), )
-                    ]
+                    ], 
+                plugins_input = {
+                    'key' : None
+                    }, 
+                plugins_output = {
+                    'key' : kfp_server_api.models.v2beta1_plugin_output.v2beta1PluginOutput(
+                        entries = {
+                            'key' : kfp_server_api.models.v2beta1_metadata_value.v2beta1MetadataValue(
+                                value = kfp_server_api.models.value.value(), 
+                                render_type = 'UNSPECIFIED', )
+                            }, 
+                        state = 'PLUGIN_STATE_UNSPECIFIED', 
+                        state_message = '0', )
+                    }
             )
         else :
             return V2beta1Run(

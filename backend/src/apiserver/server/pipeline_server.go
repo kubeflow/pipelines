@@ -16,11 +16,13 @@ package server
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
 
+	"github.com/golang/glog"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -200,8 +202,21 @@ func (s *BasePipelineServer) createPipelineAndPipelineVersion(ctx context.Contex
 	if err != nil {
 		return nil, nil, util.NewInvalidInputError("invalid pipeline spec URL: %v", pipelineURLStr)
 	}
+
+	if err := validation.ValidatePipelineURL(pipelineURL.String()); err != nil {
+		glog.Warningf("Pipeline URL validation failed: %v", err)
+		return nil, nil, util.NewInvalidInputError("Pipeline URL validation failed")
+	}
+
 	resp, err := s.httpClient.Get(pipelineURL.String())
 	if err != nil {
+		// Unwrap redirect validation errors so they return 4xx, not 500
+		var urlErr *url.Error
+		if errors.As(err, &urlErr) {
+			if userErr, ok := urlErr.Err.(*util.UserError); ok {
+				return nil, nil, userErr
+			}
+		}
 		return nil, nil, util.NewInternalServerError(err, "error downloading the pipeline spec from %v", pipelineURL.String())
 	} else if resp.StatusCode != http.StatusOK {
 		return nil, nil, util.NewInvalidInputError("error fetching pipeline spec from %v - request returned %v", pipelineURL.String(), resp.Status)
@@ -704,7 +719,7 @@ func NewPipelineServer(resourceManager *resource.ResourceManager, options *Pipel
 	return &PipelineServer{
 		BasePipelineServer: &BasePipelineServer{
 			resourceManager: resourceManager,
-			httpClient:      http.DefaultClient,
+			httpClient:      validation.SafePipelineHTTPClient(),
 			options:         options,
 		},
 	}
@@ -714,7 +729,7 @@ func NewPipelineServerV1(resourceManager *resource.ResourceManager, options *Pip
 	return &PipelineServerV1{
 		BasePipelineServer: &BasePipelineServer{
 			resourceManager: resourceManager,
-			httpClient:      http.DefaultClient,
+			httpClient:      validation.SafePipelineHTTPClient(),
 			options:         options,
 		},
 	}
@@ -780,12 +795,22 @@ func (s *BasePipelineServer) createPipelineVersion(ctx context.Context, pv *mode
 		return nil, util.NewInvalidInputError("Failed to create a pipeline version due to invalid pipeline spec URI. PipelineSpecURI: %v. Please specify a valid URL", pv.PipelineSpecURI)
 	}
 
+	if err := validation.ValidatePipelineURL(pipelineUrl.String()); err != nil {
+		glog.Warningf("Pipeline URL validation failed: %v", err)
+		return nil, util.NewInvalidInputError("Pipeline URL validation failed")
+	}
 	resp, err := s.httpClient.Get(pipelineUrl.String())
-	if err != nil || resp.StatusCode != http.StatusOK {
-		if err == nil {
-			return nil, util.NewInvalidInputError("Failed to fetch pipeline spec with url: %v. Request returned %v", pipelineUrl.String(), resp.Status)
+	if err != nil {
+		// Unwrap redirect validation errors so they return 4xx, not 500
+		var urlErr *url.Error
+		if errors.As(err, &urlErr) {
+			if userErr, ok := urlErr.Err.(*util.UserError); ok {
+				return nil, userErr
+			}
 		}
 		return nil, util.NewInternalServerError(err, "Failed to create a pipeline version due error downloading the pipeline spec from %v", pipelineUrl.String())
+	} else if resp.StatusCode != http.StatusOK {
+		return nil, util.NewInvalidInputError("Failed to fetch pipeline spec with url: %v. Request returned %v", pipelineUrl.String(), resp.Status)
 	}
 	defer resp.Body.Close()
 	pipelineFileName := path.Base(pipelineUrl.String())

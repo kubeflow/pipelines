@@ -18,8 +18,9 @@ import (
 	"encoding/json"
 	"errors"
 
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -29,6 +30,14 @@ type ExecutionType string
 const (
 	ArgoWorkflow ExecutionType = "Workflow"
 	Unknown      ExecutionType = "Unknown"
+)
+
+// ExecutionRuntimeRole identifies a logical container role within an execution engine.
+type ExecutionRuntimeRole string
+
+const (
+	ExecutionRuntimeRoleDriver   ExecutionRuntimeRole = "driver"
+	ExecutionRuntimeRoleLauncher ExecutionRuntimeRole = "launcher"
 )
 
 var (
@@ -170,6 +179,10 @@ type ExecutionSpec interface {
 
 	// Set OwnerReferences from a ScheduledWorkflow
 	SetOwnerReferences(schedule *swfapi.ScheduledWorkflow)
+
+	// UpsertRuntimeEnvVars adds or replaces env vars on containers that
+	// implement the given runtime roles for this execution engine.
+	UpsertRuntimeEnvVars(envVars []corev1.EnvVar, roles ...ExecutionRuntimeRole) error
 }
 
 // Convert YAML in bytes into ExecutionSpec instance

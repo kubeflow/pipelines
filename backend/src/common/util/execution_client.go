@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"time"
 
-	argoclient "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
-	argoinformer "github.com/argoproj/argo-workflows/v3/pkg/client/informers/externalversions"
+	argoclient "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned"
+	argoinformer "github.com/argoproj/argo-workflows/v4/pkg/client/informers/externalversions"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"

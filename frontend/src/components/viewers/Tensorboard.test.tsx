@@ -18,7 +18,7 @@ import * as React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import TensorboardViewer, { TensorboardViewerConfig } from './Tensorboard';
-import TestUtils from '../../TestUtils';
+import TestUtils, { flushPromisesInAct, invokeAndFlush } from '../../TestUtils';
 import { Apis } from '../../lib/Apis';
 import { PlotType } from './Viewer';
 
@@ -28,9 +28,9 @@ const DEFAULT_CONFIG: TensorboardViewerConfig = {
   namespace: 'test-ns',
 };
 
-const GET_APP_NOT_FOUND = { podAddress: '', tfVersion: '', image: '' };
+const GET_APP_NOT_FOUND = { proxyPath: '', tfVersion: '', image: '' };
 const GET_APP_FOUND = {
-  podAddress: 'podaddress',
+  proxyPath: 'apps/tensorboard/proxy/test-token/',
   tfVersion: '1.14.0',
   image: 'tensorflow/tensorflow:1.14.0',
 };
@@ -41,10 +41,12 @@ describe('Tensorboard', () => {
   let clearIntervalSpy: ReturnType<typeof vi.spyOn>;
 
   const flushPromisesAndInterval = async () => {
-    if (intervalCallback) {
-      intervalCallback();
-    }
-    await TestUtils.flushPromises();
+    await act(async () => {
+      if (intervalCallback) {
+        intervalCallback();
+      }
+      await TestUtils.flushPromises();
+    });
   };
 
   beforeEach(() => {
@@ -67,14 +69,14 @@ describe('Tensorboard', () => {
   it('base component snapshot', async () => {
     vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue(GET_APP_NOT_FOUND);
     const { asFragment } = render(<TensorboardViewer configs={[]} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(asFragment()).toMatchSnapshot();
   });
 
   it('does not break on no config', async () => {
     vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue(GET_APP_NOT_FOUND);
     render(<TensorboardViewer configs={[]} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(screen.getByRole('button', { name: 'Start Tensorboard' })).toBeInTheDocument();
   });
 
@@ -82,7 +84,7 @@ describe('Tensorboard', () => {
     vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue(GET_APP_NOT_FOUND);
     const config = { ...DEFAULT_CONFIG, url: '' };
     render(<TensorboardViewer configs={[config]} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(screen.getByRole('button', { name: 'Start Tensorboard' })).toBeInTheDocument();
   });
 
@@ -90,19 +92,21 @@ describe('Tensorboard', () => {
     const config = { ...DEFAULT_CONFIG, url: 'http://test/url' };
     vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue({
       ...GET_APP_FOUND,
-      podAddress: 'test/address',
+      proxyPath: 'apps/tensorboard/proxy/existing-token/',
     });
     vi.spyOn(Apis, 'isTensorboardPodReady').mockResolvedValue(true);
     render(<TensorboardViewer configs={[config]} />);
 
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     await flushPromisesAndInterval();
-    expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith('apis/v1beta1/_proxy/test/address');
+    expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith(
+      'apps/tensorboard/proxy/existing-token/',
+    );
     expect(
       screen.getByText('Tensorboard tensorflow/tensorflow:1.14.0 is running for this output.'),
     ).toBeInTheDocument();
     const link = screen.getByRole('link', { name: 'Open Tensorboard' });
-    expect(link).toHaveAttribute('href', 'apis/v1beta1/_proxy/test/address');
+    expect(link).toHaveAttribute('href', 'apps/tensorboard/proxy/existing-token/');
   });
 
   it('shows start button if no instance exists', async () => {
@@ -111,7 +115,7 @@ describe('Tensorboard', () => {
       .spyOn(Apis, 'getTensorboardApp')
       .mockResolvedValue(GET_APP_NOT_FOUND);
     render(<TensorboardViewer configs={[DEFAULT_CONFIG]} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(screen.getByRole('button', { name: 'Start Tensorboard' })).toBeInTheDocument();
     expect(getTensorboardSpy).toHaveBeenCalledWith(config.url, config.namespace);
   });
@@ -122,8 +126,10 @@ describe('Tensorboard', () => {
     const startAppMock = vi.fn(() => Promise.resolve(''));
     vi.spyOn(Apis, 'startTensorboardApp').mockImplementationOnce(startAppMock);
     render(<TensorboardViewer configs={[config]} />);
-    await TestUtils.flushPromises();
-    fireEvent.click(screen.getByRole('button', { name: 'Start Tensorboard' }));
+    await flushPromisesInAct();
+    await invokeAndFlush(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Start Tensorboard' }));
+    });
     expect(startAppMock).toHaveBeenCalledWith({
       logdir: config.url,
       namespace: config.namespace,
@@ -135,19 +141,21 @@ describe('Tensorboard', () => {
   it('shows the open link immediately when start returns a pod address', async () => {
     const config = { ...DEFAULT_CONFIG };
     vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue(GET_APP_NOT_FOUND);
-    const startAppSpy = vi.spyOn(Apis, 'startTensorboardApp').mockResolvedValue('test/address');
+    const startAppSpy = vi
+      .spyOn(Apis, 'startTensorboardApp')
+      .mockResolvedValue('apps/tensorboard/proxy/new-token/');
     vi.spyOn(Apis, 'isTensorboardPodReady').mockResolvedValue(false);
 
     render(<TensorboardViewer configs={[config]} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     fireEvent.click(screen.getByRole('button', { name: 'Start Tensorboard' }));
 
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Open Tensorboard' })));
     expect(screen.getByRole('button', { name: 'Open Tensorboard' }).closest('a')).toHaveAttribute(
       'href',
-      'apis/v1beta1/_proxy/test/address',
+      'apps/tensorboard/proxy/new-token/',
     );
     await flushPromisesAndInterval();
 
@@ -157,7 +165,7 @@ describe('Tensorboard', () => {
       image: expect.stringContaining('tensorflow/tensorflow:'),
       podTemplateSpec: undefined,
     });
-    expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith('apis/v1beta1/_proxy/test/address');
+    expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith('apps/tensorboard/proxy/new-token/');
   });
 
   it('starts tensorboard instance for two configs', async () => {
@@ -168,12 +176,14 @@ describe('Tensorboard', () => {
     vi.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
     vi.spyOn(Apis, 'startTensorboardApp').mockImplementationOnce(startAppMock);
     render(<TensorboardViewer configs={[config, config2]} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(getAppMock).toHaveBeenCalledWith(
       `Series1:${config.url},Series2:${config2.url}`,
       config.namespace,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Start Combined Tensorboard' }));
+    await invokeAndFlush(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Start Combined Tensorboard' }));
+    });
     const expectedUrl = `Series1:${config.url},Series2:${config2.url}`;
     expect(startAppMock).toHaveBeenCalledWith({
       logdir: expectedUrl,
@@ -200,7 +210,7 @@ describe('Tensorboard', () => {
 
     const ref = React.createRef<TensorboardViewer>();
     render(<TensorboardViewer ref={ref} configs={[config]} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     act(() => {
       ref.current?.handleImageSelect({
@@ -208,7 +218,9 @@ describe('Tensorboard', () => {
       } as React.ChangeEvent<{ name?: string; value: unknown }>);
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Start Tensorboard' }));
+    await invokeAndFlush(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Start Tensorboard' }));
+    });
     expect(startAppSpy).toHaveBeenCalledWith({
       logdir: config.url,
       image: 'tensorflow/tensorflow:1.15.5',
@@ -224,13 +236,13 @@ describe('Tensorboard', () => {
     const config = { ...DEFAULT_CONFIG };
 
     render(<TensorboardViewer configs={[config]} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     fireEvent.click(screen.getByText('Stop Tensorboard'));
     fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
 
     expect(deleteAppSpy).toHaveBeenCalledWith(config.url, config.namespace);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(screen.getByRole('button', { name: 'Start Tensorboard' })).toBeInTheDocument();
   });
 
@@ -238,7 +250,7 @@ describe('Tensorboard', () => {
     vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue(GET_APP_FOUND);
     const config = DEFAULT_CONFIG;
     render(<TensorboardViewer configs={[config]} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     fireEvent.click(screen.getByText('Stop Tensorboard'));
     expect(screen.getByText('Stop Tensorboard?')).toBeInTheDocument();
@@ -248,11 +260,11 @@ describe('Tensorboard', () => {
     vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue(GET_APP_FOUND);
     const config = DEFAULT_CONFIG;
     render(<TensorboardViewer configs={[config]} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     fireEvent.click(screen.getByText('Stop Tensorboard'));
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(screen.getByRole('button', { name: 'Open Tensorboard' })).toBeInTheDocument();
     expect(screen.getByText('Stop Tensorboard')).toBeInTheDocument();
@@ -265,9 +277,9 @@ describe('Tensorboard', () => {
     const config = DEFAULT_CONFIG;
     render(<TensorboardViewer configs={[config]} />);
 
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     await flushPromisesAndInterval();
-    expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith('apis/v1beta1/_proxy/podaddress');
+    expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith('apps/tensorboard/proxy/test-token/');
     expect(screen.getByRole('button', { name: 'Open Tensorboard' })).toBeInTheDocument();
     expect(
       screen.getByText('Tensorboard is starting, and you may need to wait for a few minutes.'),

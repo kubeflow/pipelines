@@ -18,9 +18,10 @@ import (
 	"fmt"
 	"os"
 
-	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	k8score "k8s.io/api/core/v1"
@@ -148,6 +149,7 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 		Volumes: volumes,
 	}
 
+	setRuntimeRole(importerTemplate, util.ExecutionRuntimeRoleLauncher)
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the importer template.
 	if setCABundle {
 		ConfigureCustomCABundle(importerTemplate)

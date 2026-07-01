@@ -45,12 +45,12 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   name: pipeline-install-config
-                  key: dbHost
+                  key: mysqlHost
             - name: WAIT_PORT
               valueFrom:
                 configMapKeyRef:
                   name: pipeline-install-config
-                  key: dbPort
+                  key: mysqlPort
           command: ["/bin/sh", "-ec"]
           args:
             - |
@@ -160,12 +160,12 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   name: pipeline-install-config
-                  key: dbHost
+                  key: mysqlHost
             - name: DBCONFIG_PORT
               valueFrom:
                 configMapKeyRef:
                   name: pipeline-install-config
-                  key: dbPort
+                  key: mysqlPort
             # end of relic variables
             - name: DBCONFIG_CONMAXLIFETIME
               valueFrom:
@@ -239,6 +239,12 @@ spec:
                   name: pipeline-install-config
                   key: defaultSecurityContextRunAsNonRoot
                   optional: true
+            - name: DEFAULT_SECURITY_CONTEXT_HOST_USERS
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: defaultSecurityContextHostUsers
+                  optional: true
             - name: BLOCK_V1_PIPELINES
               valueFrom:
                 configMapKeyRef:
@@ -297,4 +303,14 @@ spec:
             requests:
               cpu: 250m
               memory: 500Mi
+          # Trust bundle for plugins.mlflow.tls.caBundlePath (create ConfigMap mlflow-tracking-ca in the same namespace).
+          volumeMounts:
+            - name: mlflow-tracking-ca
+              mountPath: /etc/mlflow-tracking-ca
+              readOnly: true
+      volumes:
+        - name: mlflow-tracking-ca
+          configMap:
+            name: mlflow-tracking-ca
+            optional: true
       serviceAccountName: ml-pipeline

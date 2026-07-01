@@ -1,7 +1,0 @@
-*lightning_logs
-build
-dist
-.tox
-*.egg-info
-.coverag*
-.pytest*

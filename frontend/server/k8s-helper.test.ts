@@ -20,6 +20,7 @@ import {
   listPodEvents,
   getArgoWorkflow,
   getK8sSecret,
+  waitForTensorboardInstance,
 } from './k8s-helper.js';
 
 describe('k8s-helper', () => {
@@ -229,6 +230,49 @@ describe('k8s-helper', () => {
     });
   });
 
+  describe('waitForTensorboardInstance', () => {
+    let getNamespacedCustomObjectSpy: SpyInstance;
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      getNamespacedCustomObjectSpy = vi.spyOn(
+        K8S_TEST_EXPORT.k8sV1CustomObjectClient,
+        'getNamespacedCustomObject',
+      );
+    });
+
+    afterEach(() => {
+      getNamespacedCustomObjectSpy.mockRestore();
+      vi.useRealTimers();
+    });
+
+    it('rejects and stops polling when tensorboard lookup throws', async () => {
+      const lookupError = new Error('lookup failed');
+
+      getNamespacedCustomObjectSpy.mockResolvedValue({
+        metadata: { name: 'viewer-abcdefg' },
+        spec: {
+          tensorboardSpec: {
+            get tensorflowImage() {
+              throw lookupError;
+            },
+          },
+          type: 'tensorboard',
+        },
+      });
+
+      const waitPromise = waitForTensorboardInstance('log-dir-1', 'test-namespace', 5000);
+      const waitErrorPromise = waitPromise.catch((error) => error);
+
+      await vi.advanceTimersByTimeAsync(1000);
+      await expect(waitErrorPromise).resolves.toBe(lookupError);
+      expect(getNamespacedCustomObjectSpy).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(getNamespacedCustomObjectSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('getPod', () => {
     let readNamespacedPodSpy: SpyInstance;
 
@@ -410,14 +454,78 @@ describe('k8s-helper', () => {
   describe('getArgoWorkflow', () => {
     // Note: getArgoWorkflow requires serverNamespace which is read from
     // /var/run/secrets/kubernetes.io/serviceaccount/namespace at module load time.
-    // In a non-cluster environment, this file doesn't exist so serverNamespace is undefined.
-    // These tests verify the namespace validation behavior and error handling.
+    // In local development, FRONTEND_SERVER_NAMESPACE can provide the same value.
+    // These tests verify the namespace validation and fallback behavior.
 
     it('throws error when serverNamespace is not available', async () => {
-      // This test verifies behavior when running outside a kubernetes cluster
-      await expect(getArgoWorkflow('test-workflow')).rejects.toThrow(
-        'Cannot get namespace from /var/run/secrets/kubernetes.io/serviceaccount/namespace',
-      );
+      const originalNamespace = process.env.FRONTEND_SERVER_NAMESPACE;
+      delete process.env.FRONTEND_SERVER_NAMESPACE;
+      try {
+        // This test verifies behavior when running outside a kubernetes cluster
+        await expect(getArgoWorkflow('test-workflow')).rejects.toThrow(
+          'Cannot get namespace from /var/run/secrets/kubernetes.io/serviceaccount/namespace',
+        );
+      } finally {
+        if (originalNamespace === undefined) {
+          delete process.env.FRONTEND_SERVER_NAMESPACE;
+        } else {
+          process.env.FRONTEND_SERVER_NAMESPACE = originalNamespace;
+        }
+      }
+    });
+
+    it('uses FRONTEND_SERVER_NAMESPACE when no namespace is provided', async () => {
+      const originalNamespace = process.env.FRONTEND_SERVER_NAMESPACE;
+      process.env.FRONTEND_SERVER_NAMESPACE = 'local-dev-namespace';
+      const getNamespacedCustomObjectSpy = vi
+        .spyOn(K8S_TEST_EXPORT.k8sV1CustomObjectClient, 'getNamespacedCustomObject')
+        .mockResolvedValue({ body: { metadata: { name: 'test-workflow' } } });
+
+      try {
+        await getArgoWorkflow('test-workflow');
+
+        expect(getNamespacedCustomObjectSpy).toHaveBeenCalledWith({
+          group: 'argoproj.io',
+          version: 'v1alpha1',
+          namespace: 'local-dev-namespace',
+          plural: 'workflows',
+          name: 'test-workflow',
+        });
+      } finally {
+        getNamespacedCustomObjectSpy.mockRestore();
+        if (originalNamespace === undefined) {
+          delete process.env.FRONTEND_SERVER_NAMESPACE;
+        } else {
+          process.env.FRONTEND_SERVER_NAMESPACE = originalNamespace;
+        }
+      }
+    });
+
+    it('uses the provided namespace before FRONTEND_SERVER_NAMESPACE', async () => {
+      const originalNamespace = process.env.FRONTEND_SERVER_NAMESPACE;
+      process.env.FRONTEND_SERVER_NAMESPACE = 'local-dev-namespace';
+      const getNamespacedCustomObjectSpy = vi
+        .spyOn(K8S_TEST_EXPORT.k8sV1CustomObjectClient, 'getNamespacedCustomObject')
+        .mockResolvedValue({ body: { metadata: { name: 'test-workflow' } } });
+
+      try {
+        await getArgoWorkflow('test-workflow', 'provided-namespace');
+
+        expect(getNamespacedCustomObjectSpy).toHaveBeenCalledWith({
+          group: 'argoproj.io',
+          version: 'v1alpha1',
+          namespace: 'provided-namespace',
+          plural: 'workflows',
+          name: 'test-workflow',
+        });
+      } finally {
+        getNamespacedCustomObjectSpy.mockRestore();
+        if (originalNamespace === undefined) {
+          delete process.env.FRONTEND_SERVER_NAMESPACE;
+        } else {
+          process.env.FRONTEND_SERVER_NAMESPACE = originalNamespace;
+        }
+      }
     });
   });
 

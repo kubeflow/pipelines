@@ -41,6 +41,8 @@ import { isAllowedDomain } from './domain-checker.js';
 import { getK8sSecret } from '../k8s-helper.js';
 import { CredentialBody } from 'google-auth-library';
 import { AuthorizeFn } from '../helpers/auth.js';
+import { validateArtifactNamespace, buildArtifactUri } from '../helpers/mlmd-validator.js';
+import { resolveArtifactCoordinates } from '../helpers/artifact-coordinates.js';
 import {
   AuthorizeRequestResources,
   AuthorizeRequestVerb,
@@ -121,11 +123,14 @@ export interface GCSProviderInfo {
  * @param authorizeFn The authorization function to validate permissions
  * @param authEnabled Whether authorization is enabled
  * @param kubeflowUserIdHeader The header name containing the user identity
+ * @param envoyAddress MLMD Envoy address used for namespace-ownership
+ *   validation (#9889). When omitted, the IDOR check is skipped.
  */
 export function getArtifactsAuthMiddleware(
   authorizeFn: AuthorizeFn,
   authEnabled: boolean,
   kubeflowUserIdHeader: string,
+  envoyAddress?: string,
 ): Handler {
   return async (request: Request, response: Response, next: NextFunction) => {
     if (!authEnabled) {
@@ -185,6 +190,36 @@ export function getArtifactsAuthMiddleware(
       );
       response.status(403).send(authError.message);
       return;
+    }
+
+    if (envoyAddress) {
+      const coords = resolveArtifactCoordinates(request);
+      if (coords === null) {
+        console.warn(
+          `[SECURITY] Malformed percent-encoding in artifact path. ` +
+            `User: ${userId}, Path: ${request.path}`,
+        );
+        response.status(400).send('Malformed URL encoding in artifact path');
+        return;
+      }
+      const mlmdTrackedSources = new Set(['minio', 's3', 'gcs', 'http', 'https']);
+      if (mlmdTrackedSources.has(coords.source) && coords.bucket && coords.key) {
+        const artifactUri = buildArtifactUri(coords.source, coords.bucket, coords.key);
+        const validation = await validateArtifactNamespace(envoyAddress, artifactUri, namespace);
+
+        if (!validation.valid) {
+          console.warn(
+            `[SECURITY] IDOR blocked: artifact namespace mismatch. ` +
+              `User: ${userId}, ` +
+              `Claimed namespace: ${namespace}, ` +
+              `Actual namespace: ${validation.actualNamespace}, ` +
+              `URI: ${artifactUri}, ` +
+              `Path: ${request.path}`,
+          );
+          response.status(403).send('Artifact does not belong to the requested namespace');
+          return;
+        }
+      }
     }
 
     next();

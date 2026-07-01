@@ -569,20 +569,7 @@ func runLegacyUpgradeFlow(db *gorm.DB, dialect SQLDialect) error {
 func autoMigrate(db *gorm.DB) error {
 	glog.Infof("Running AutoMigrate.")
 
-	if err := db.AutoMigrate(
-		&model.DBStatus{},
-		&model.DefaultExperiment{},
-		&model.Experiment{},
-		&model.Pipeline{},
-		&model.PipelineVersion{},
-		&model.PipelineTag{},
-		&model.PipelineVersionTag{},
-		&model.Job{},
-		&model.Run{},
-		&model.RunMetric{},
-		&model.Task{},
-		&model.ResourceReference{},
-	); err != nil {
+	if err := db.AutoMigrate(model.AllModels()...); err != nil {
 		return fmt.Errorf("AutoMigrate failed: %w", err)
 	}
 

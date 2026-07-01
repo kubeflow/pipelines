@@ -912,8 +912,8 @@ class TestRetryPolicy(unittest.TestCase):
         self.assertEqual(retry_policy_proto.max_retry_count, 10)
         self.assertEqual(retry_policy_proto.backoff_duration.seconds, 3600)
         self.assertEqual(retry_policy_proto.backoff_factor, 1.5)
-        # tests cap
-        self.assertEqual(retry_policy_proto.backoff_max_duration.seconds, 3600)
+        self.assertEqual(retry_policy_proto.backoff_max_duration.seconds,
+                         1209600)
 
 
 class TestDeserializeV1ComponentYamlDefaults(unittest.TestCase):

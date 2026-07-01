@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { GoogleRpcStatus } from './GoogleRpcStatus';
+import {
+  GoogleRpcStatusFromJSON,
+  GoogleRpcStatusFromJSONTyped,
+  GoogleRpcStatusToJSON,
+  GoogleRpcStatusToJSONTyped,
+} from './GoogleRpcStatus';
 import type { V2beta1PipelineVersionReference } from './V2beta1PipelineVersionReference';
 import {
   V2beta1PipelineVersionReferenceFromJSON,
@@ -34,13 +41,6 @@ import {
   V2beta1RuntimeConfigToJSON,
   V2beta1RuntimeConfigToJSONTyped,
 } from './V2beta1RuntimeConfig';
-import type { GooglerpcStatus } from './GooglerpcStatus';
-import {
-  GooglerpcStatusFromJSON,
-  GooglerpcStatusFromJSONTyped,
-  GooglerpcStatusToJSON,
-  GooglerpcStatusToJSONTyped,
-} from './GooglerpcStatus';
 import type { V2beta1RuntimeStatus } from './V2beta1RuntimeStatus';
 import {
   V2beta1RuntimeStatusFromJSON,
@@ -48,6 +48,13 @@ import {
   V2beta1RuntimeStatusToJSON,
   V2beta1RuntimeStatusToJSONTyped,
 } from './V2beta1RuntimeStatus';
+import type { V2beta1PluginOutput } from './V2beta1PluginOutput';
+import {
+  V2beta1PluginOutputFromJSON,
+  V2beta1PluginOutputFromJSONTyped,
+  V2beta1PluginOutputToJSON,
+  V2beta1PluginOutputToJSONTyped,
+} from './V2beta1PluginOutput';
 import type { V2beta1RuntimeState } from './V2beta1RuntimeState';
 import {
   V2beta1RuntimeStateFromJSON,
@@ -159,10 +166,10 @@ export interface V2beta1Run {
   state?: V2beta1RuntimeState;
   /**
    *
-   * @type {GooglerpcStatus}
+   * @type {GoogleRpcStatus}
    * @memberof V2beta1Run
    */
-  error?: GooglerpcStatus;
+  error?: GoogleRpcStatus;
   /**
    *
    * @type {V2beta1RunDetails}
@@ -182,6 +189,20 @@ export interface V2beta1Run {
    * @memberof V2beta1Run
    */
   state_history?: Array<V2beta1RuntimeStatus>;
+  /**
+   * Optional input. Plugin-specific inputs provided by the user at run creation.
+   * Each key is a plugin name (e.g., "mlflow") and the value is arbitrary JSON config.
+   * @type {{ [key: string]: object; }}
+   * @memberof V2beta1Run
+   */
+  plugins_input?: { [key: string]: object };
+  /**
+   * Output. Plugin-specific outputs populated by backend components.
+   * Each key is a plugin name and the value contains the plugin's output entries and state.
+   * @type {{ [key: string]: V2beta1PluginOutput; }}
+   * @memberof V2beta1Run
+   */
+  plugins_output?: { [key: string]: V2beta1PluginOutput };
 }
 
 /**
@@ -224,7 +245,7 @@ export function V2beta1RunFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     scheduled_at: json['scheduled_at'] == null ? undefined : new Date(json['scheduled_at']),
     finished_at: json['finished_at'] == null ? undefined : new Date(json['finished_at']),
     state: json['state'] == null ? undefined : V2beta1RuntimeStateFromJSON(json['state']),
-    error: json['error'] == null ? undefined : GooglerpcStatusFromJSON(json['error']),
+    error: json['error'] == null ? undefined : GoogleRpcStatusFromJSON(json['error']),
     run_details:
       json['run_details'] == null ? undefined : V2beta1RunDetailsFromJSON(json['run_details']),
     recurring_run_id: json['recurring_run_id'] == null ? undefined : json['recurring_run_id'],
@@ -232,6 +253,11 @@ export function V2beta1RunFromJSONTyped(json: any, ignoreDiscriminator: boolean)
       json['state_history'] == null
         ? undefined
         : (json['state_history'] as Array<any>).map(V2beta1RuntimeStatusFromJSON),
+    plugins_input: json['plugins_input'] == null ? undefined : json['plugins_input'],
+    plugins_output:
+      json['plugins_output'] == null
+        ? undefined
+        : mapValues(json['plugins_output'], V2beta1PluginOutputFromJSON),
   };
 }
 
@@ -267,12 +293,17 @@ export function V2beta1RunToJSONTyped(
     finished_at:
       value['finished_at'] == null ? value['finished_at'] : value['finished_at'].toISOString(),
     state: V2beta1RuntimeStateToJSON(value['state']),
-    error: GooglerpcStatusToJSON(value['error']),
+    error: GoogleRpcStatusToJSON(value['error']),
     run_details: V2beta1RunDetailsToJSON(value['run_details']),
     recurring_run_id: value['recurring_run_id'],
     state_history:
       value['state_history'] == null
         ? undefined
         : (value['state_history'] as Array<any>).map(V2beta1RuntimeStatusToJSON),
+    plugins_input: value['plugins_input'],
+    plugins_output:
+      value['plugins_output'] == null
+        ? undefined
+        : mapValues(value['plugins_output'], V2beta1PluginOutputToJSON),
   };
 }

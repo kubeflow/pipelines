@@ -39,9 +39,6 @@ const workflowGroup = 'argoproj.io';
 const workflowVersion = 'v1alpha1';
 const workflowPlural = 'workflows';
 
-// Default Kubernetes cluster domain
-const DEFAULT_CLUSTER_DOMAIN = '.svc.cluster.local';
-
 /** Default pod template spec used to create tensorboard viewer. */
 export const defaultPodTemplateSpec = {
   spec: {
@@ -51,13 +48,21 @@ export const defaultPodTemplateSpec = {
 
 // The file path contains pod namespace when in Kubernetes cluster.
 if (fs.existsSync(namespaceFilePath)) {
-  serverNamespace = fs.readFileSync(namespaceFilePath, 'utf-8');
+  serverNamespace = fs.readFileSync(namespaceFilePath, 'utf-8').trim();
 }
 const kc = new KubeConfig();
 // This loads kubectl config when not in cluster.
 kc.loadFromDefault();
 const k8sV1Client = kc.makeApiClient(CoreV1Api);
 const k8sV1CustomObjectClient = kc.makeApiClient(CustomObjectsApi);
+
+function getConfiguredServerNamespace(): string | undefined {
+  return serverNamespace || process.env.FRONTEND_SERVER_NAMESPACE?.trim() || undefined;
+}
+
+function resolveNamespace(providedNamespace?: string): string | undefined {
+  return providedNamespace || getConfiguredServerNamespace();
+}
 
 function getNameOfViewerResource(logdir: string): string {
   // TODO: find some hash function with shorter resulting message.
@@ -112,10 +117,9 @@ export async function newTensorboardInstance(
   tfImageName: string,
   tfversion: string,
   podTemplateSpec: object = defaultPodTemplateSpec,
-  clusterDomain: string = DEFAULT_CLUSTER_DOMAIN,
 ): Promise<void> {
-  const currentPod = await getTensorboardInstance(logdir, namespace, clusterDomain);
-  if (currentPod.podAddress) {
+  const currentPod = await getTensorboardInstance(logdir, namespace);
+  if (currentPod.viewerName) {
     if (tfversion === currentPod.tfVersion) {
       return;
     } else {
@@ -151,14 +155,13 @@ export async function newTensorboardInstance(
 }
 
 /**
- * Finds a running Tensorboard instance created via CRD with the given logdir
- * and returns its dns address and its version
+ * Finds a running TensorBoard instance created via CRD with the given logdir
+ * and returns the viewer resource name together with its image metadata.
  */
 export async function getTensorboardInstance(
   logdir: string,
   namespace: string,
-  clusterDomain: string = DEFAULT_CLUSTER_DOMAIN,
-): Promise<{ podAddress: string; tfVersion: string; image: string }> {
+): Promise<{ viewerName: string; tfVersion: string; image: string }> {
   return await k8sV1CustomObjectClient
     .getNamespacedCustomObject({
       group: viewerGroup,
@@ -168,10 +171,6 @@ export async function getTensorboardInstance(
       name: getNameOfViewerResource(logdir),
     })
     .then(
-      // Viewer CRD pod has tensorboard instance running at port 6006 while
-      // viewer CRD service has tensorboard instance running at port 80. Since
-      // we return service address here (instead of pod address), so use 80.
-
       // remove to check viewer.body.spec.tensorboardSpec.logDir===logdir
       // actually getNameOfViewerResource(logdir) may have hash collision
       // but if there is a hash collision, not check logdir will return error tensorboard link
@@ -185,17 +184,12 @@ export async function getTensorboardInstance(
           viewerResource.spec &&
           viewerResource.spec.type === 'tensorboard'
         ) {
-          // Normalize clusterDomain to ensure leading dot
-          const normalizedDomain = clusterDomain.startsWith('.')
-            ? clusterDomain
-            : `.${clusterDomain}`;
-          const address = `http://${viewerResource.metadata.name}-service.${namespace}${normalizedDomain}:80/tensorboard/${viewerResource.metadata.name}/`;
           const image = viewerResource.spec.tensorboardSpec.tensorflowImage;
           const tfImageParts = image.split(':', 2);
           const tfVersion = tfImageParts.length === 2 ? tfImageParts[1] : '';
-          return { podAddress: address, tfVersion: tfVersion, image };
+          return { viewerName: viewerResource.metadata.name, tfVersion: tfVersion, image };
         } else {
-          return { podAddress: '', tfVersion: '', image: '' };
+          return { viewerName: '', tfVersion: '', image: '' };
         }
       },
       // No existing custom object with the given name, i.e., no existing
@@ -206,23 +200,18 @@ export async function getTensorboardInstance(
           `Failed getting viewer custom object for logdir=${logdir} in ${namespace} namespace, err: `,
           err?.body || err,
         );
-        return { podAddress: '', tfVersion: '', image: '' };
+        return { viewerName: '', tfVersion: '', image: '' };
       },
     );
 }
 
 /**
- * Find a running Tensorboard instance with the given logdir, delete the instance
- * and returns the deleted podAddress
+ * Finds a running TensorBoard instance with the given logdir and deletes it.
  */
 
-export async function deleteTensorboardInstance(
-  logdir: string,
-  namespace: string,
-  clusterDomain: string = DEFAULT_CLUSTER_DOMAIN,
-): Promise<void> {
-  const currentPod = await getTensorboardInstance(logdir, namespace, clusterDomain);
-  if (!currentPod.podAddress) {
+export async function deleteTensorboardInstance(logdir: string, namespace: string): Promise<void> {
+  const currentPod = await getTensorboardInstance(logdir, namespace);
+  if (!currentPod.viewerName) {
     return;
   }
 
@@ -238,29 +227,38 @@ export async function deleteTensorboardInstance(
 }
 
 /**
- * Polls every second for a running Tensorboard instance with the given logdir,
- * and returns the address of one if found, or rejects if a timeout expires.
+ * Polls every second for a running TensorBoard instance with the given logdir
+ * and resolves with the viewer resource name once it appears, or rejects if a
+ * timeout expires.
  */
 export function waitForTensorboardInstance(
   logdir: string,
   namespace: string,
   timeout: number,
-  clusterDomain: string = DEFAULT_CLUSTER_DOMAIN,
 ): Promise<string> {
   const start = Date.now();
   return new Promise((resolve, reject) => {
-    const handle = setInterval(async () => {
+    const poll = async () => {
       if (Date.now() - start > timeout) {
-        clearInterval(handle);
         reject('Timed out waiting for tensorboard');
+        return;
       }
-      const tensorboardInstance = await getTensorboardInstance(logdir, namespace, clusterDomain);
-      const tensorboardAddress = tensorboardInstance.podAddress;
-      if (tensorboardAddress) {
-        clearInterval(handle);
-        resolve(tensorboardAddress);
+
+      try {
+        const tensorboardInstance = await getTensorboardInstance(logdir, namespace);
+        if (tensorboardInstance.viewerName) {
+          resolve(tensorboardInstance.viewerName);
+          return;
+        }
+      } catch (error) {
+        reject(error);
+        return;
       }
-    }, 1000);
+
+      setTimeout(poll, 1000);
+    };
+
+    setTimeout(poll, 1000);
   });
 }
 
@@ -269,7 +267,7 @@ export function getPodLogs(
   podNamespace?: string,
   containerName: string = 'main',
 ): Promise<string> {
-  podNamespace = podNamespace || serverNamespace;
+  podNamespace = resolveNamespace(podNamespace);
   if (!podNamespace) {
     throw new Error(
       `podNamespace is not specified and cannot get namespace from ${namespaceFilePath}.`,
@@ -350,16 +348,21 @@ export async function listPodEvents(podName: string, podNamespace: string): Prom
 /**
  * Retrieves the argo workflow CRD.
  * @param workflowName name of the argo workflow
+ * @param providedNamespace use this namespace when provided, otherwise default to server's namespace
  */
-export async function getArgoWorkflow(workflowName: string): Promise<PartialArgoWorkflow> {
-  if (!serverNamespace) {
+export async function getArgoWorkflow(
+  workflowName: string,
+  providedNamespace?: string,
+): Promise<PartialArgoWorkflow> {
+  const namespace = resolveNamespace(providedNamespace);
+  if (!namespace) {
     throw new Error(`Cannot get namespace from ${namespaceFilePath}`);
   }
 
   const res = await k8sV1CustomObjectClient.getNamespacedCustomObject({
     group: workflowGroup,
     version: workflowVersion,
-    namespace: serverNamespace,
+    namespace,
     plural: workflowPlural,
     name: workflowName,
   });
@@ -374,11 +377,7 @@ export async function getArgoWorkflow(workflowName: string): Promise<PartialArgo
  * @param providedNamespace use this namespace when provided, otherwise default to server's namespace
  */
 export async function getK8sSecret(name: string, key: string, providedNamespace?: string) {
-  let namespace = serverNamespace;
-
-  if (providedNamespace) {
-    namespace = providedNamespace;
-  }
+  const namespace = resolveNamespace(providedNamespace);
 
   if (!namespace) {
     throw new Error(`Cannot get namespace from ${namespaceFilePath}`);
@@ -394,4 +393,5 @@ export const TEST_ONLY = {
   k8sV1Client,
   k8sV1CustomObjectClient,
   parseTensorboardLogDir,
+  resolveNamespace,
 };

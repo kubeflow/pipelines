@@ -15,26 +15,33 @@
 package resource
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 	"unicode/utf8"
 
+	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/util/file"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
-
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/argoproj/argo-workflows/v3/util/file"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	apiservermlflow "github.com/kubeflow/pipelines/backend/src/apiserver/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
+
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
@@ -52,6 +59,51 @@ func initEnvVars() {
 	proxy.InitializeConfigWithEmptyForTests()
 }
 
+// setupTestSAToken writes a temp kubeconfig with the given bearer token and
+// sets the KUBECONFIG env var so util.GetKubernetesConfig() picks it up.
+func setupTestSAToken(t *testing.T, token string) {
+	t.Helper()
+	kubeconfig := fmt.Sprintf(`apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    server: https://localhost
+  name: test
+contexts:
+- context:
+    cluster: test
+    user: test
+  name: test
+current-context: test
+users:
+- name: test
+  user:
+    token: %s
+`, token)
+	p := filepath.Join(t.TempDir(), "kubeconfig")
+	require.NoError(t, os.WriteFile(p, []byte(kubeconfig), 0600))
+	t.Setenv("KUBECONFIG", p)
+}
+
+// setupMLflowViperConfig sets plugins.mlflow in Viper and restores the original
+// value when the test completes.
+func setupMLflowViperConfig(t *testing.T, endpoint string) {
+	t.Helper()
+	origConfig := viper.Get("plugins.mlflow")
+	hadConfig := viper.IsSet("plugins.mlflow")
+	viper.Set("plugins.mlflow", map[string]interface{}{
+		"endpoint": endpoint,
+		"timeout":  "10s",
+	})
+	t.Cleanup(func() {
+		if hadConfig {
+			viper.Set("plugins.mlflow", origConfig)
+		} else {
+			viper.Set("plugins.mlflow", nil)
+		}
+	})
+}
+
 type FakeBadObjectStore struct{}
 
 func (m *FakeBadObjectStore) GetPipelineKey(pipelineID string) string {
@@ -66,10 +118,6 @@ func (m *FakeBadObjectStore) DeleteFile(ctx context.Context, filePath string) er
 	return errors.New("Not implemented")
 }
 
-func (m *FakeBadObjectStore) GetFile(ctx context.Context, filePath string) ([]byte, error) {
-	return []byte(""), nil
-}
-
 func (m *FakeBadObjectStore) AddAsYamlFile(ctx context.Context, o interface{}, filePath string) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
@@ -80,6 +128,45 @@ func (m *FakeBadObjectStore) GetFromYamlFile(ctx context.Context, o interface{},
 
 func (m *FakeBadObjectStore) GetFileReader(context.Context, string) (io.ReadCloser, error) {
 	return nil, util.NewInternalServerError(errors.New("Error"), "bad object store")
+}
+
+type readerOnlyObjectStore struct {
+	files              map[string][]byte
+	getFileReaderPaths []string
+}
+
+func (m *readerOnlyObjectStore) GetPipelineKey(pipelineID string) string {
+	return "pipelines/" + pipelineID
+}
+
+func (m *readerOnlyObjectStore) AddFile(ctx context.Context, template []byte, filePath string) error {
+	if m.files == nil {
+		m.files = map[string][]byte{}
+	}
+	m.files[filePath] = template
+	return nil
+}
+
+func (m *readerOnlyObjectStore) DeleteFile(ctx context.Context, filePath string) error {
+	delete(m.files, filePath)
+	return nil
+}
+
+func (m *readerOnlyObjectStore) AddAsYamlFile(ctx context.Context, o interface{}, filePath string) error {
+	return nil
+}
+
+func (m *readerOnlyObjectStore) GetFromYamlFile(ctx context.Context, o interface{}, filePath string) error {
+	return nil
+}
+
+func (m *readerOnlyObjectStore) GetFileReader(ctx context.Context, filePath string) (io.ReadCloser, error) {
+	m.getFileReaderPaths = append(m.getFileReaderPaths, filePath)
+	content, ok := m.files[filePath]
+	if !ok {
+		return nil, util.NewInternalServerError(errors.New("not found"), "file not found")
+	}
+	return io.NopCloser(bytes.NewReader(content)), nil
 }
 
 func createPipelineV1(name string) *model.Pipeline {
@@ -140,6 +227,61 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	},
 	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
+
+func TestReadRunLogFromArchiveStreamsObjectStoreFile(t *testing.T) {
+	logArchive := archive.NewLogArchive("/logs", "main.log")
+	execSpec, err := util.NewExecutionSpecJSON(util.CurrentExecutionType(), []byte(testWorkflow.ToStringForStore()))
+	require.NoError(t, err)
+	logPath, err := logArchive.GetLogObjectKey(execSpec, "node-id")
+	require.NoError(t, err)
+
+	objectStore := &readerOnlyObjectStore{
+		files: map[string][]byte{
+			logPath: []byte("archived log line\n"),
+		},
+	}
+	manager := &ResourceManager{
+		objectStore: objectStore,
+		logArchive:  logArchive,
+	}
+
+	var dst bytes.Buffer
+	err = manager.readRunLogFromArchive(testWorkflow.ToStringForStore(), "node-id", &dst)
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{logPath}, objectStore.getFileReaderPaths)
+	assert.Equal(t, "archived log line\n", dst.String())
+}
+
+func TestReadPipelineSpecFromObjectStoreUsesReaderAndLimit(t *testing.T) {
+	objectStore := &readerOnlyObjectStore{
+		files: map[string][]byte{
+			"pipeline-spec.yaml": []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow\n"),
+		},
+	}
+	manager := &ResourceManager{objectStore: objectStore}
+
+	pipelineSpec, err := manager.readPipelineSpecFromObjectStore(context.Background(), "pipeline-spec.yaml")
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{"pipeline-spec.yaml"}, objectStore.getFileReaderPaths)
+	assert.Equal(t, "apiVersion: argoproj.io/v1alpha1\nkind: Workflow\n", string(pipelineSpec))
+}
+
+func TestReadPipelineSpecFromObjectStoreRejectsOversizedFile(t *testing.T) {
+	objectStore := &readerOnlyObjectStore{
+		files: map[string][]byte{
+			"pipeline-spec.yaml": bytes.Repeat([]byte("x"), common.MaxFileLength+1),
+		},
+	}
+	manager := &ResourceManager{objectStore: objectStore}
+
+	_, err := manager.readPipelineSpecFromObjectStore(context.Background(), "pipeline-spec.yaml")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Pipeline spec file size too large")
+	assert.Equal(t, []string{"pipeline-spec.yaml"}, objectStore.getFileReaderPaths)
+}
 
 // Util function to create an initial state with pipeline uploaded
 func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Pipeline, *model.PipelineVersion) {
@@ -339,7 +481,7 @@ func initWithOneTimeFailedRunCompressed(t *testing.T) (*FakeClientManager, *Reso
 	nodes := map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
 	nodeData, err := json.Marshal(nodes)
 	assert.Nil(t, err)
-	updatedWorkflow.Status.CompressedNodes = file.CompressEncodeString(string(nodeData))
+	updatedWorkflow.Status.CompressedNodes = file.CompressEncodeString(ctx, string(nodeData))
 	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
 	assert.Nil(t, err)
 	return store, manager, runDetail
@@ -2434,6 +2576,118 @@ func TestCreateRun_StoreRunMetadataError(t *testing.T) {
 	assert.Contains(t, err.Error(), "database is closed")
 }
 
+func TestCreateRun_WithMLflowPlugin(t *testing.T) {
+	// Set up a fake MLflow server that handles experiment lookup and run creation.
+	// Tags are passed inline in the CreateRun body (atomic tagging).
+	var (
+		experimentGetCalled bool
+		runCreateCalled     bool
+		createRunBody       string
+	)
+	mlflowServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/2.0/mlflow/experiments/get-by-name":
+			experimentGetCalled = true
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"experiment":{"experiment_id":"mlflow-exp-1","name":"Default"}}`))
+		case "/api/2.0/mlflow/runs/create":
+			runCreateCalled = true
+			defer r.Body.Close()
+			body, _ := io.ReadAll(r.Body)
+			createRunBody = string(body)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"run":{"info":{"run_id":"mlflow-parent-run-1"}}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer mlflowServer.Close()
+
+	setupTestSAToken(t, "test-sa-token")
+	setupMLflowViperConfig(t, mlflowServer.URL)
+
+	store, manager, exp := initWithExperiment(t)
+	defer store.Close()
+
+	// Build a run with plugins_input that triggers MLflow integration.
+	pluginsInput := `{"mlflow":{"experiment_name":"Default"}}`
+	pluginsInputLT := model.LargeText(pluginsInput)
+	apiRun := &model.Run{
+		DisplayName: "mlflow-test-run",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ExperimentId: exp.UUID,
+		RunDetails: model.RunDetails{
+			PluginsInputString: &pluginsInputLT,
+		},
+	}
+
+	runDetail, err := manager.CreateRun(context.Background(), apiRun)
+	require.NoError(t, err)
+	require.NotNil(t, runDetail)
+
+	// Verify MLflow API calls were made.
+	assert.True(t, experimentGetCalled, "MLflow experiment lookup should have been called")
+	assert.True(t, runCreateCalled, "MLflow run creation should have been called")
+	assert.Contains(t, createRunBody, "kfp.pipeline_run_id", "CreateRun body should contain KFP tags")
+
+	// Verify plugins_output is persisted on the run.
+	storedRun, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	require.NotNil(t, storedRun.PluginsOutputString, "PluginsOutputString should be set")
+	assert.Contains(t, string(*storedRun.PluginsOutputString), "mlflow-parent-run-1")
+	assert.Contains(t, string(*storedRun.PluginsOutputString), "mlflow-exp-1")
+
+	// Parse and verify the plugin output structure.
+	outputs, err := apiservermlflow.DeserializePluginsOutput(storedRun.PluginsOutputString)
+	require.NoError(t, err)
+	output := outputs[apiservermlflow.PluginName]
+	require.NotNil(t, output)
+	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, output.State)
+	assert.Equal(t, "mlflow-exp-1", output.Entries[apiservermlflow.EntryExperimentID].Value.GetStringValue())
+	assert.Equal(t, "mlflow-parent-run-1", output.Entries[apiservermlflow.EntryRootRunID].Value.GetStringValue())
+	assert.Contains(t, output.Entries[apiservermlflow.EntryRunURL].Value.GetStringValue(), "mlflow-parent-run-1")
+
+}
+
+// TestCreateRun_NoMLflowConfig verifies that run creation succeeds without
+// error when no MLflow plugin config is set at either the global or namespace
+// level.  The unconditional MLflow dispatcher must short-circuit cleanly.
+func TestCreateRun_NoMLflowConfig(t *testing.T) {
+	// Ensure no global MLflow config.
+	origConfig := viper.Get("plugins.mlflow")
+	viper.Set("plugins.mlflow", nil)
+	t.Cleanup(func() {
+		viper.Set("plugins.mlflow", origConfig)
+	})
+
+	store, manager, exp := initWithExperiment(t)
+	defer store.Close()
+
+	apiRun := &model.Run{
+		DisplayName: "no-mlflow-run",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ExperimentId: exp.UUID,
+	}
+
+	runDetail, err := manager.CreateRun(context.Background(), apiRun)
+	require.NoError(t, err)
+	require.NotNil(t, runDetail)
+
+	// Verify plugins_output is not set (no plugin ran).
+	storedRun, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.True(t,
+		storedRun.PluginsOutputString == nil || *storedRun.PluginsOutputString == "",
+		"PluginsOutputString should be empty when MLflow is not configured",
+	)
+}
+
 func TestDeleteRun(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	defer store.Close()
@@ -2581,6 +2835,108 @@ func TestRetryRun(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Contains(t, string(actualRunDetail.WorkflowRuntimeManifest), "Running")
 	assert.Equal(t, actualRunDetail.RunDetails.State, model.RuntimeStateRunning)
+}
+
+func TestRetryRun_PreservesRunFields(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	originalRun, err := manager.GetRun(runDetail.UUID)
+	require.Nil(t, err)
+	assert.Equal(t, string(v1alpha1.WorkflowFailed), string(originalRun.Conditions))
+
+	err = manager.RetryRun(context.Background(), runDetail.UUID)
+	require.Nil(t, err)
+
+	retriedRun, err := manager.GetRun(runDetail.UUID)
+	require.Nil(t, err)
+
+	// Core identifying fields must be preserved after retry
+	assert.Equal(t, originalRun.UUID, retriedRun.UUID)
+	assert.Equal(t, originalRun.DisplayName, retriedRun.DisplayName)
+	assert.Equal(t, originalRun.ExperimentId, retriedRun.ExperimentId)
+	// FinishedAtInSec must be reset to 0 on retry
+	assert.Equal(t, int64(0), retriedRun.FinishedAtInSec)
+	// State must be updated to Running
+	assert.Equal(t, model.RuntimeStateRunning, retriedRun.State)
+
+	// StateHistory must preserve pre-retry entries and append a new RUNNING entry.
+	// With the old sparse-struct UpdateRun call, StateHistory would be overwritten
+	// to a single entry; passing the full run object preserves history.
+	originalHistoryLen := len(originalRun.StateHistory)
+	assert.Greater(t, originalHistoryLen, 0)
+	require.Greater(t, len(retriedRun.StateHistory), originalHistoryLen)
+	lastEntry := retriedRun.StateHistory[len(retriedRun.StateHistory)-1]
+	assert.Equal(t, model.RuntimeStateRunning, lastEntry.State)
+}
+
+func TestRetryRun_ReopensMLflowParentAndFailedNestedRuns(t *testing.T) {
+	type updateCall struct {
+		RunID  string
+		Status string
+	}
+	var updateCalls []updateCall
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/2.0/mlflow/runs/update":
+			defer r.Body.Close()
+			var payload struct {
+				RunID  string `json:"run_id"`
+				Status string `json:"status"`
+			}
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&payload))
+			updateCalls = append(updateCalls, updateCall{RunID: payload.RunID, Status: payload.Status})
+			_, _ = w.Write([]byte(`{}`))
+		case "/api/2.0/mlflow/runs/search":
+			body, _ := io.ReadAll(r.Body)
+			r.Body.Close()
+			if strings.Contains(string(body), "parent-run-1") {
+				_, _ = w.Write([]byte(`{
+				"runs": [
+					{"info":{"run_id":"nested-failed","status":"FAILED"}},
+					{"info":{"run_id":"nested-killed","status":"KILLED"}},
+					{"info":{"run_id":"nested-finished","status":"FINISHED"}}
+				]
+			}`))
+			} else {
+				_, _ = w.Write([]byte(`{"runs":[]}`))
+			}
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	setupTestSAToken(t, "retry-token")
+	setupMLflowViperConfig(t, server.URL)
+
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	runWithPluginOutput, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", server.URL+"/runs/parent-run-1")
+	lt, err := apiservermlflow.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	require.NoError(t, err)
+	runWithPluginOutput.PluginsOutputString = lt
+	require.NoError(t, manager.runStore.UpdateRun(runWithPluginOutput))
+
+	err = manager.RetryRun(context.Background(), runDetail.UUID)
+	require.NoError(t, err)
+
+	assert.Contains(t, updateCalls, updateCall{RunID: "parent-run-1", Status: "RUNNING"})
+	assert.Contains(t, updateCalls, updateCall{RunID: "nested-failed", Status: "RUNNING"})
+	assert.Contains(t, updateCalls, updateCall{RunID: "nested-killed", Status: "RUNNING"})
+	assert.NotContains(t, updateCalls, updateCall{RunID: "nested-finished", Status: "RUNNING"})
+
+	updatedRun, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	updatedOutputs, err := apiservermlflow.DeserializePluginsOutput(updatedRun.PluginsOutputString)
+	require.NoError(t, err)
+	updatedOutput := updatedOutputs[apiservermlflow.PluginName]
+	require.NotNil(t, updatedOutput)
+	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, updatedOutput.State)
+	assert.Equal(t, "", updatedOutput.StateMessage)
 }
 
 func TestRetryRun_RunNotExist(t *testing.T) {
@@ -3404,11 +3760,14 @@ func TestReportWorkflowResource_RunNotFound(t *testing.T) {
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 	ctx := context.Background()
 	defer store.Close()
+	// Set CreationTimestamp far in the past so the workflow is beyond the GC grace period.
+	// Use the injected fake time to ensure consistency with manager's time.
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "obsolete",
-			Namespace: "kubeflow",
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
+			Name:              "obsolete",
+			Namespace:         "kubeflow",
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
+			CreationTimestamp: v1.NewTime(store.Time().Now().Add(-10 * time.Minute)),
 		},
 	})
 	store.ExecClient().Execution("kubeflow").Create(ctx, workflow, v1.CreateOptions{})
@@ -3416,6 +3775,39 @@ func TestReportWorkflowResource_RunNotFound(t *testing.T) {
 	require.NotNil(t, err)
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
 	assert.Contains(t, err.Error(), "Run run-id-not-exist not found")
+}
+
+func TestReportWorkflowResource_RunNotFound_WithinGracePeriod(t *testing.T) {
+	// When a workflow is young (within the GC grace period) and its run is not
+	// found in the DB, it should NOT be deleted. Instead, a retryable
+	// UNAVAILABLE error should be returned so the persistence agent retries.
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	ctx := context.Background()
+	defer store.Close()
+
+	// Set CreationTimestamp to a recent time so the workflow is within the grace period.
+	// Use the injected fake time to ensure consistency with manager's time.
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:              "young-workflow",
+			Namespace:         "kubeflow",
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
+			CreationTimestamp: v1.NewTime(store.Time().Now().Add(-10 * time.Second)),
+		},
+	})
+	store.ExecClient().Execution("kubeflow").Create(ctx, workflow, v1.CreateOptions{})
+	_, err := manager.ReportWorkflowResource(ctx, workflow)
+	require.NotNil(t, err)
+	// Should be UNAVAILABLE (retryable), not NOT_FOUND (permanent).
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable),
+		"Expected Unavailable error for young workflow within grace period, got: %v", err)
+	assert.Contains(t, err.Error(), "GC grace period")
+
+	// Verify the workflow was NOT deleted by checking it's still accessible.
+	wf, getErr := store.ExecClient().Execution("kubeflow").Get(ctx, "young-workflow", v1.GetOptions{})
+	assert.Nil(t, getErr, "Workflow should still exist after grace period skip")
+	assert.NotNil(t, wf)
 }
 
 func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
@@ -3438,6 +3830,70 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	wf, err := store.ExecClientFake.Execution(namespace).Get(context.Background(), run.K8SName, v1.GetOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, wf.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
+}
+
+// TestReportWorkflow_WithMLflowOnRunEnd verifies that when a run has PluginsOutputString
+// set, reporting a terminal workflow triggers the plugin dispatcher's
+// OnRunEnd, which updates the plugin output state.
+func TestReportWorkflow_WithMLflowOnRunEnd(t *testing.T) {
+	// Set a dummy MLflow config so the manager creates a real MLflow dispatcher,
+	// then clear it before the run lifecycle to simulate config being unavailable
+	// at OnRunEnd time. This verifies that OnRunEnd still fires and sets
+	// PLUGIN_FAILED because config is unavailable.
+	setupMLflowViperConfig(t, "http://dummy-mlflow:5000")
+
+	store, manager, exp := initWithExperiment(t)
+
+	// Now clear MLflow config to simulate it being unavailable at runtime.
+	viper.Set("plugins", nil)
+	t.Cleanup(func() {
+		viper.Set("plugins", nil)
+	})
+	defer store.Close()
+
+	// Pre-populate PluginsOutputString to simulate a prior OnBeforeRunCreation success.
+	pluginsOutputJSON := `{"mlflow":{"entries":{"experiment_id":{"value":"exp-1"},"root_run_id":{"value":"parent-run-1"}},"state":"PLUGIN_SUCCEEDED"}}`
+	pluginsOutput := model.LargeText(pluginsOutputJSON)
+	apiRun := &model.Run{
+		DisplayName: "mlflow-run",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ExperimentId: exp.UUID,
+		RunDetails: model.RunDetails{
+			PluginsOutputString: &pluginsOutput,
+		},
+	}
+	run, err := manager.CreateRun(context.Background(), apiRun)
+	require.NoError(t, err)
+
+	// Verify PluginsOutputString was persisted at creation time.
+	createdRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	require.NotNil(t, createdRun.PluginsOutputString)
+	assert.Contains(t, string(*createdRun.PluginsOutputString), "parent-run-1")
+
+	// Report a terminal (failed) workflow.
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "ns1",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
+	})
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	require.NoError(t, err)
+
+	// After terminal report, the plugin dispatcher's OnRunEnd should have fired.
+	// Without MLflow config in Viper, the handler sets PLUGIN_FAILED.
+	updatedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	require.NotNil(t, updatedRun.PluginsOutputString, "PluginsOutputString should be updated after terminal report")
+	assert.Contains(t, string(*updatedRun.PluginsOutputString), "PLUGIN_FAILED")
+	assert.Contains(t, string(*updatedRun.PluginsOutputString), "config unavailable")
 }
 
 func TestReportWorkflowResource_WorkflowCompleted_WorkflowNotFound(t *testing.T) {
@@ -4898,4 +5354,60 @@ func TestValidateTags(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCreateRun_IdempotentFromRecurringRun(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+
+	// Pre-create a run as if it was already submitted for this recurring run trigger.
+	// This simulates a race where one replica already persisted the run.
+	preExistingRun := &model.Run{
+		UUID:           "pre-existing-run-uuid",
+		DisplayName:    "scheduled-run-trigger-1",
+		RecurringRunId: job.UUID,
+		ExperimentId:   job.ExperimentId,
+		K8SName:        "pre-existing-k8s-name",
+		StorageState:   model.StorageStateAvailable,
+		PipelineSpec:   job.PipelineSpec,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			State:                   model.RuntimeStatePending,
+			WorkflowRuntimeManifest: model.LargeText(testWorkflow.ToStringForStore()),
+		},
+	}
+	_, err := manager.runStore.CreateRun(preExistingRun)
+	require.Nil(t, err)
+
+	// A second CreateRun with the same RecurringRunId + DisplayName should return
+	// the existing run without submitting any new Argo Workflow.
+	duplicateRun := &model.Run{
+		DisplayName:    "scheduled-run-trigger-1",
+		RecurringRunId: job.UUID,
+		ExperimentId:   job.ExperimentId,
+		PipelineSpec:   job.PipelineSpec,
+	}
+	returned, err := manager.CreateRun(context.Background(), duplicateRun)
+	assert.Nil(t, err)
+	assert.Equal(t, "pre-existing-run-uuid", returned.UUID, "should return existing run, not create a new one")
+	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowCount(), "no new Argo Workflow should be submitted")
+}
+
+func TestCreateRun_DeterministicUUIDFromRecurringRun(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+
+	run := &model.Run{
+		DisplayName:    "scheduled-run-trigger-1",
+		RecurringRunId: job.UUID,
+		ExperimentId:   job.ExperimentId,
+		PipelineSpec:   job.PipelineSpec,
+	}
+	created, err := manager.CreateRun(context.Background(), run)
+	require.Nil(t, err)
+
+	// The run ID is derived deterministically from the recurring run ID and display
+	// name, so concurrent triggers converge on the same primary key.
+	wantUUID := util.NewDeterministicUUID(job.UUID + "/scheduled-run-trigger-1")
+	assert.Equal(t, wantUUID, created.UUID)
 }

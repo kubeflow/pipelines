@@ -16,7 +16,7 @@
 
 import { render } from '@testing-library/react';
 import { Column, Row } from './CustomTable';
-import TestUtils from '../TestUtils';
+import { flushPromisesInAct } from '../TestUtils';
 import { CustomTableRow } from './CustomTableRow';
 
 describe('CustomTable', () => {
@@ -44,7 +44,7 @@ describe('CustomTable', () => {
   it('renders some rows using a custom renderer', async () => {
     columns[0].customRenderer = () => (<span>this is custom output</span>) as any;
     const { asFragment } = render(<CustomTableRow {...props} row={row} columns={columns} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(asFragment()).toMatchSnapshot();
     columns[0].customRenderer = undefined;
   });
@@ -52,7 +52,7 @@ describe('CustomTable', () => {
   it('displays warning icon with tooltip if row has error', async () => {
     row.error = 'dummy error';
     const { asFragment } = render(<CustomTableRow {...props} row={row} columns={columns} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(asFragment()).toMatchSnapshot();
     row.error = undefined;
   });

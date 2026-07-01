@@ -98,6 +98,7 @@ All URIs are relative to *http://localhost*
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
 *AuthServiceApi* | [**auth_service_authorize**](docs/AuthServiceApi.md#auth_service_authorize) | **GET** /apis/v2beta1/auth | 
+*DummyFilterServiceApi* | [**dummy_filter_service_get_filter**](docs/DummyFilterServiceApi.md#dummy_filter_service_get_filter) | **GET** /apis/v2beta1/filters | 
 *ExperimentServiceApi* | [**experiment_service_archive_experiment**](docs/ExperimentServiceApi.md#experiment_service_archive_experiment) | **POST** /apis/v2beta1/experiments/{experiment_id}:archive | Archives an experiment and the experiment&#39;s runs and recurring runs.
 *ExperimentServiceApi* | [**experiment_service_create_experiment**](docs/ExperimentServiceApi.md#experiment_service_create_experiment) | **POST** /apis/v2beta1/experiments | Creates a new experiment.
 *ExperimentServiceApi* | [**experiment_service_delete_experiment**](docs/ExperimentServiceApi.md#experiment_service_delete_experiment) | **DELETE** /apis/v2beta1/experiments/{experiment_id} | Deletes an experiment without deleting the experiment&#39;s runs and recurring  runs. To avoid unexpected behaviors, delete an experiment&#39;s runs and recurring  runs before deleting the experiment.
@@ -142,7 +143,10 @@ Class | Method | HTTP request | Description
 
  - [AuthorizeRequestResources](docs/AuthorizeRequestResources.md)
  - [AuthorizeRequestVerb](docs/AuthorizeRequestVerb.md)
- - [GooglerpcStatus](docs/GooglerpcStatus.md)
+ - [GoogleRpcStatus](docs/GoogleRpcStatus.md)
+ - [InlineObject](docs/InlineObject.md)
+ - [InlineObject1](docs/InlineObject1.md)
+ - [MetadataValueRenderType](docs/MetadataValueRenderType.md)
  - [PipelineTaskDetailChildTask](docs/PipelineTaskDetailChildTask.md)
  - [PredicateIntValues](docs/PredicateIntValues.md)
  - [PredicateLongValues](docs/PredicateLongValues.md)
@@ -150,8 +154,6 @@ Class | Method | HTTP request | Description
  - [ProtobufAny](docs/ProtobufAny.md)
  - [ProtobufNullValue](docs/ProtobufNullValue.md)
  - [RecurringRunMode](docs/RecurringRunMode.md)
- - [RequiredInputPipelineObjectWithUpdatedFieldsPipelineIdIsRequiredToIdentifyThePipelineMutableFieldsDisplayNameTags](docs/RequiredInputPipelineObjectWithUpdatedFieldsPipelineIdIsRequiredToIdentifyThePipelineMutableFieldsDisplayNameTags.md)
- - [RequiredInputPipelineVersionObjectWithUpdatedFieldsPipelineIdAndPipelineVersionIdAreRequiredToIdentifyTheVersionMutableFieldsDisplayNameTags](docs/RequiredInputPipelineVersionObjectWithUpdatedFieldsPipelineIdAndPipelineVersionIdAreRequiredToIdentifyTheVersionMutableFieldsDisplayNameTags.md)
  - [V2beta1ArtifactList](docs/V2beta1ArtifactList.md)
  - [V2beta1CreatePipelineAndVersionRequest](docs/V2beta1CreatePipelineAndVersionRequest.md)
  - [V2beta1CronSchedule](docs/V2beta1CronSchedule.md)
@@ -165,12 +167,15 @@ Class | Method | HTTP request | Description
  - [V2beta1ListPipelinesResponse](docs/V2beta1ListPipelinesResponse.md)
  - [V2beta1ListRecurringRunsResponse](docs/V2beta1ListRecurringRunsResponse.md)
  - [V2beta1ListRunsResponse](docs/V2beta1ListRunsResponse.md)
+ - [V2beta1MetadataValue](docs/V2beta1MetadataValue.md)
  - [V2beta1PeriodicSchedule](docs/V2beta1PeriodicSchedule.md)
  - [V2beta1Pipeline](docs/V2beta1Pipeline.md)
  - [V2beta1PipelineTaskDetail](docs/V2beta1PipelineTaskDetail.md)
  - [V2beta1PipelineTaskExecutorDetail](docs/V2beta1PipelineTaskExecutorDetail.md)
  - [V2beta1PipelineVersion](docs/V2beta1PipelineVersion.md)
  - [V2beta1PipelineVersionReference](docs/V2beta1PipelineVersionReference.md)
+ - [V2beta1PluginOutput](docs/V2beta1PluginOutput.md)
+ - [V2beta1PluginState](docs/V2beta1PluginState.md)
  - [V2beta1Predicate](docs/V2beta1Predicate.md)
  - [V2beta1PredicateOperation](docs/V2beta1PredicateOperation.md)
  - [V2beta1RecurringRun](docs/V2beta1RecurringRun.md)

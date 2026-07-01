@@ -28,10 +28,11 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	k8score "k8s.io/api/core/v1"
@@ -195,6 +196,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--run_id", runID(),
 		"--run_name", runResourceName(),
 		"--run_display_name", c.job.DisplayName,
+		"--pipeline_job_create_time_utc", runCreationTimeUTC(),
 		"--dag_execution_id", inputValue(paramParentDagID),
 		"--component", inputValue(paramComponent),
 		"--task", inputValue(paramTask),
@@ -245,6 +247,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	if c.defaultRunAsNonRoot != nil {
 		args = append(args, "--default_run_as_non_root", strconv.FormatBool(*c.defaultRunAsNonRoot))
 	}
+	if c.defaultHostUsers != nil {
+		args = append(args, "--default_host_users", strconv.FormatBool(*c.defaultHostUsers))
+	}
 
 	template := &wfapi.Template{
 		Name: name,
@@ -274,6 +279,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			Env:       append(proxy.GetConfig().GetEnvVars(), commonEnvs...),
 		},
 	}
+	setRuntimeRole(template, util.ExecutionRuntimeRoleDriver)
 	applySecurityContextToTemplate(template)
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver template.
 	if setCABundle {
@@ -561,6 +567,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 			Env:     commonEnvs,
 		},
 	}
+	setRuntimeRole(executor, util.ExecutionRuntimeRoleLauncher)
 	// If CABUNDLE_SECRET_NAME or CABUNDLE_CONFIGMAP_NAME is set, add the custom CA bundle to the executor.
 	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
 		ConfigureCustomCABundle(executor)

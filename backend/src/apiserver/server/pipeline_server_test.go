@@ -41,6 +41,12 @@ import (
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
+func TestMain(m *testing.M) {
+	// Disable URL validation for tests (allows mock server URLs)
+	viper.Set(common.PipelineURLValidationEnabled, "false")
+	os.Exit(m.Run())
+}
+
 func createPipelineServerV1(resourceManager *resource.ResourceManager, httpClient *http.Client) *PipelineServerV1 {
 	return &PipelineServerV1{
 		BasePipelineServer: &BasePipelineServer{
@@ -1234,4 +1240,94 @@ func TestCanAccessPipeline_SharedPipeline_ReadAllowed_EvenWhenUnauthorized(t *te
 	// LIST on shared pipeline should still be allowed even for unauthorized user
 	err = pipelineServer.canAccessPipeline(ctx, "", &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbList})
 	assert.Nil(t, err)
+}
+
+func TestCreatePipelineV1_URLValidation_BlocksDisallowedDomain(t *testing.T) {
+	// Enable URL validation for this test (overrides TestMain's global disable)
+	viper.Set(common.PipelineURLValidationEnabled, "true")
+	defer viper.Set(common.PipelineURLValidationEnabled, "false")
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+
+	pipelineServer := createPipelineServerV1(resourceManager, http.DefaultClient)
+	_, err := pipelineServer.CreatePipelineV1(
+		context.Background(), &api.CreatePipelineRequest{
+			Pipeline: &api.Pipeline{
+				Url:  &api.Url{PipelineUrl: "https://evil.com/malicious.yaml"},
+				Name: "test-blocked-domain",
+			},
+		},
+	)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Pipeline URL validation failed")
+}
+
+func TestCreatePipelineV1_URLValidation_BlocksHTTPByDefault(t *testing.T) {
+	viper.Set(common.PipelineURLValidationEnabled, "true")
+	defer viper.Set(common.PipelineURLValidationEnabled, "false")
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+
+	pipelineServer := createPipelineServerV1(resourceManager, http.DefaultClient)
+	_, err := pipelineServer.CreatePipelineV1(
+		context.Background(), &api.CreatePipelineRequest{
+			Pipeline: &api.Pipeline{
+				Url:  &api.Url{PipelineUrl: "http://storage.googleapis.com/bucket/file.yaml"},
+				Name: "test-http-blocked",
+			},
+		},
+	)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Pipeline URL validation failed")
+}
+
+func TestCreatePipelineV1_URLValidation_BlocksFileScheme(t *testing.T) {
+	viper.Set(common.PipelineURLValidationEnabled, "true")
+	defer viper.Set(common.PipelineURLValidationEnabled, "false")
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+
+	pipelineServer := createPipelineServerV1(resourceManager, http.DefaultClient)
+	_, err := pipelineServer.CreatePipelineV1(
+		context.Background(), &api.CreatePipelineRequest{
+			Pipeline: &api.Pipeline{
+				Url:  &api.Url{PipelineUrl: "file:///etc/passwd"},
+				Name: "test-file-blocked",
+			},
+		},
+	)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Pipeline URL validation failed")
+}
+
+type errorRoundTripper struct {
+	err error
+}
+
+func (rt errorRoundTripper) RoundTrip(*http.Request) (*http.Response, error) {
+	return nil, rt.err
+}
+
+func TestCreatePipelineV1_URLValidation_MapsTransportValidationErrorToInvalidInput(t *testing.T) {
+	viper.Set(common.PipelineURLValidationEnabled, "false")
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+
+	pipelineServer := createPipelineServerV1(resourceManager, &http.Client{
+		Transport: errorRoundTripper{err: util.NewInvalidInputError("connection to blocked IP range denied")},
+	})
+	_, err := pipelineServer.CreatePipelineV1(
+		context.Background(), &api.CreatePipelineRequest{
+			Pipeline: &api.Pipeline{
+				Url:  &api.Url{PipelineUrl: "https://storage.googleapis.com/bucket/file.yaml"},
+				Name: "test-transport-validation-error",
+			},
+		},
+	)
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 }
