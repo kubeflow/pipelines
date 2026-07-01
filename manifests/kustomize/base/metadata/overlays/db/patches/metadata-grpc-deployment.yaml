@@ -13,6 +13,14 @@ spec:
           value: metadata-db
         - name: WAIT_PORT
           value: "3306"
+      - name: init-db-schema
+        env:
+        - $patch: replace
+        envFrom:
+        - configMapRef:
+            name: metadata-db-parameters
+        - secretRef:
+            name: metadata-db-secrets
       containers:
         - name: container
           # Remove existing environment variables

@@ -13,6 +13,8 @@ spec:
           value: metadata-postgres-db
         - name: WAIT_PORT
           value: "5432"
+      - name: init-db-schema
+        $patch: delete
       containers:
         - name: container
           # Remove existing environment variables

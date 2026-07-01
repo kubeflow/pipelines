@@ -67,6 +67,67 @@ spec:
               echo "Waiting for ${WAIT_HOST}:${WAIT_PORT} (attempt ${i}/${MAX_RETRIES})..."
               sleep 5
             done
+      - name: init-db-schema
+        image: mysql:8.0
+        securityContext:
+          allowPrivilegeEscalation: false
+          seccompProfile:
+            type: RuntimeDefault
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: MYSQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: mlmdDb
+        - name: MYSQL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: dbHost
+              optional: true
+        - name: MYSQL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: dbPort
+              optional: true
+        - name: DBCONFIG_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: username
+        - name: DBCONFIG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+              optional: true
+        command: ["/bin/sh", "-ec"]
+        args:
+          - |
+            HOST="${MYSQL_HOST:-${MLMD_DB_HOST}}"
+            PORT="${MYSQL_PORT:-3306}"
+            USER="${DBCONFIG_USER:-${MYSQL_USER_NAME}}"
+            PASS="${DBCONFIG_PASSWORD:-${MYSQL_ROOT_PASSWORD}}"
+            DB="${MYSQL_DATABASE}"
+
+            if [ -z "${HOST}" ]; then
+              echo "No DB host provided, skipping schema init."
+              exit 0
+            fi
+
+            if [ -z "${DB}" ]; then
+              echo "Error: DB name is not set. Exiting."
+              exit 1
+            fi
+
+            mysql -h "${HOST}" -P "${PORT}" -u "${USER}" -p"${PASS}" -e "CREATE DATABASE IF NOT EXISTS \`${DB}\`;"
+            mysql -h "${HOST}" -P "${PORT}" -u "${USER}" -p"${PASS}" -D "${DB}" -e "CREATE TABLE IF NOT EXISTS EventPath ( id INT AUTO_INCREMENT PRIMARY KEY, event_id INT NOT NULL, is_index_step SMALLINT NOT NULL, step_index INT, step_key TEXT );"
       containers:
       - name: container
         # ! Sync to the same MLMD version:
