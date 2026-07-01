@@ -373,6 +373,28 @@ class TestArtifactStringInInputpathOutputpath(unittest.TestCase):
                          'system.Dataset@0.0.1')
         self.assertFalse(comp.component_spec.inputs['i'].is_artifact_list)
 
+    def test_bare_class_without_parentheses(self):
+        """Bare InputPath/OutputPath classes (without parentheses) should
+        default to system.Artifact@0.0.1, same as InputPath()/OutputPath() with
+        no args.
+
+        Regression test for github.com/kubeflow/pipelines/issues/12071.
+        """
+
+        @dsl.component
+        def comp(
+            i: dsl.InputPath,
+            o: dsl.OutputPath,
+        ):
+            ...
+
+        self.assertEqual(comp.component_spec.outputs['o'].type,
+                         'system.Artifact@0.0.1')
+        self.assertFalse(comp.component_spec.outputs['o'].is_artifact_list)
+        self.assertEqual(comp.component_spec.inputs['i'].type,
+                         'system.Artifact@0.0.1')
+        self.assertFalse(comp.component_spec.inputs['i'].is_artifact_list)
+
 
 class TestOutputListsOfArtifactsTemporarilyBlocked(unittest.TestCase):
 
