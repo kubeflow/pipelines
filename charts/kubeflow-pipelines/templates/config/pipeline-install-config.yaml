@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pipeline-install-config
+  namespace: {{ .Release.Namespace }}
+data:
+  dbHost: mysql
+  dbPort: "3306"
+  pipelineDb: mlpipeline
+  cacheDb: cache
+  mlmdDb: metadb
+  bucketName: mlpipeline
+  autoUpdatePipelineDefaultVersion: "true"
+  dbType: mysql
+  ConMaxLifeTime: "120s"
+  cronScheduleTimezone: UTC
