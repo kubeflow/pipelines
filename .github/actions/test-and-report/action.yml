@@ -296,7 +296,7 @@ runs:
         NAMESPACE="${{ inputs.default_namespace }}"
         ./.github/resources/scripts/collect-logs.sh --ns "$NAMESPACE" --output /tmp/tmp_pod_log.txt
         if [ "${{ inputs.proxy }}" = "true" ]; then
-          ./.github/resources/scripts/collect-logs.sh --ns squid --output /tmp/tmp_pod_log.txt
+          ./.github/resources/scripts/collect-logs.sh --ns tinyproxy --output /tmp/tmp_pod_log.txt
         fi
       continue-on-error: true
 

@@ -331,8 +331,8 @@ func TestSafeDialContext_InvalidAddress(t *testing.T) {
 }
 
 func TestSafePipelineHTTPClient_DisablesProxyFromEnvironment(t *testing.T) {
-	t.Setenv("HTTPS_PROXY", "http://squid.squid.svc.cluster.local:3128")
-	t.Setenv("HTTP_PROXY", "http://squid.squid.svc.cluster.local:3128")
+	t.Setenv("HTTPS_PROXY", "http://tinyproxy.tinyproxy.svc.cluster.local:3128")
+	t.Setenv("HTTP_PROXY", "http://tinyproxy.tinyproxy.svc.cluster.local:3128")
 	viper.Reset()
 	resetURLConfig()
 

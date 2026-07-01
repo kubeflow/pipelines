@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: squid
-  namespace: squid
+  name: tinyproxy
+  namespace: tinyproxy
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: squid
+      app: tinyproxy
   template:
     metadata:
       labels:
-        app: squid
+        app: tinyproxy
     spec:
       containers:
-        - name: squid
-          image: registry.domain.local/squid:test
+        - name: tinyproxy
+          image: registry.domain.local/tinyproxy:test
           ports:
             - containerPort: 3128
           resources:
@@ -40,13 +40,3 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
             failureThreshold: 3
-          volumeMounts:
-            - name: squid-cache
-              mountPath: /var/cache/squid
-            - name: squid-log
-              mountPath: /var/log/squid
-      volumes:
-        - name: squid-cache
-          emptyDir: { }
-        - name: squid-log
-          emptyDir: { }
