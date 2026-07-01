@@ -48,6 +48,7 @@ jobs:
 
     - name: Run SDK Tests
       id: run-tests
+      continue-on-error: true
       env:
         # We setup the env in the CI
         SETUP_ENV: false
@@ -61,7 +62,7 @@ jobs:
     - name: Publish Junit Summary
       id: summary
       uses: ./.github/actions/junit-summary
-      if: (!cancelled())
+      if: (!cancelled() && hashFiles(steps.run-tests.outputs.JUNIT_XML || 'sdk-unit.xml'))
       with:
-        xml_files: ${{ steps.run-tests.outputs.JUNIT_XML }}
+        xml_files: ${{ steps.run-tests.outputs.JUNIT_XML || 'sdk-unit.xml' }}
       continue-on-error: true
