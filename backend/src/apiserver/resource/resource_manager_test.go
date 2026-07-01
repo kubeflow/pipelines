@@ -3781,7 +3781,6 @@ func TestReportWorkflowResource_RunNotFound_WithinGracePeriod(t *testing.T) {
 	// When a workflow is young (within the GC grace period) and its run is not
 	// found in the DB, it should NOT be deleted. Instead, a retryable
 	// UNAVAILABLE error should be returned so the persistence agent retries.
-	// This prevents the race condition described in issue #13342.
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 	ctx := context.Background()
