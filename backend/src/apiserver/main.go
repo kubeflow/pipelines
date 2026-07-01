@@ -103,21 +103,20 @@ type HTTPRouterDeps struct {
 	ReadArtifact            http.HandlerFunc
 }
 
-func parseTLSVersion(version string) uint16 {
+func parseTLSVersion(version string) (uint16, error) {
 	switch strings.TrimSpace(version) {
 	case "", "VersionTLS12":
-		return tls.VersionTLS12
+		return tls.VersionTLS12, nil
 	case "VersionTLS13":
-		return tls.VersionTLS13
+		return tls.VersionTLS13, nil
 	default:
-		glog.Warningf("Unrecognized TLS version %q, defaulting to VersionTLS12", version)
-		return tls.VersionTLS12
+		return 0, fmt.Errorf("unrecognized TLS version %q, valid values are VersionTLS12 and VersionTLS13", version)
 	}
 }
 
-func parseTLSCipherSuites(commaSeparated string) []uint16 {
+func parseTLSCipherSuites(commaSeparated string) ([]uint16, error) {
 	if commaSeparated == "" {
-		return nil
+		return nil, nil
 	}
 	allCiphers := make(map[string]uint16)
 	for _, cs := range tls.CipherSuites() {
@@ -127,6 +126,7 @@ func parseTLSCipherSuites(commaSeparated string) []uint16 {
 		allCiphers[cs.Name] = cs.ID
 	}
 	var ids []uint16
+	var unknown []string
 	for _, name := range strings.Split(commaSeparated, ",") {
 		name = strings.TrimSpace(name)
 		if name == "" {
@@ -135,29 +135,38 @@ func parseTLSCipherSuites(commaSeparated string) []uint16 {
 		if id, ok := allCiphers[name]; ok {
 			ids = append(ids, id)
 		} else {
-			glog.Warningf("Unknown TLS cipher suite %q, skipping", name)
+			unknown = append(unknown, name)
 		}
 	}
-	return ids
+	if len(unknown) > 0 {
+		return nil, fmt.Errorf("unknown TLS cipher suite(s): %s. Use Go cipher suite names from crypto/tls.CipherSuites() or InsecureCipherSuites()", strings.Join(unknown, ", "))
+	}
+	if len(ids) == 0 {
+		return nil, fmt.Errorf("--tlsCipherSuites was set but no cipher suites were specified")
+	}
+	return ids, nil
 }
 
-func buildTLSConfig() *tls.Config {
+func buildTLSConfig() (*tls.Config, error) {
+	minVersion, err := parseTLSVersion(*tlsMinVersion)
+	if err != nil {
+		return nil, fmt.Errorf("invalid --tlsMinVersion: %w", err)
+	}
 	cfg := &tls.Config{
-		MinVersion: parseTLSVersion(*tlsMinVersion),
+		MinVersion: minVersion,
 		NextProtos: []string{"h2", "http/1.1"},
 	}
 	if trimmed := strings.TrimSpace(*tlsCipherSuites); trimmed != "" {
 		if cfg.MinVersion >= tls.VersionTLS13 {
-			glog.Warningf("--tlsCipherSuites is ignored for TLS 1.3 (cipher suites are not configurable in Go for TLS 1.3)")
-		} else {
-			suites := parseTLSCipherSuites(trimmed)
-			if len(suites) == 0 {
-				glog.Fatalf("--tlsCipherSuites was set but no valid cipher suites were recognized. Use Go cipher suite names from crypto/tls.CipherSuites() or InsecureCipherSuites(). Note: TLS 1.3 cipher suites are not configurable in Go.")
-			}
-			cfg.CipherSuites = suites
+			return nil, fmt.Errorf("--tlsCipherSuites cannot be used with TLS 1.3 (cipher suites are not configurable in Go for TLS 1.3)")
 		}
+		suites, err := parseTLSCipherSuites(trimmed)
+		if err != nil {
+			return nil, fmt.Errorf("invalid --tlsCipherSuites: %w", err)
+		}
+		cfg.CipherSuites = suites
 	}
-	return cfg
+	return cfg, nil
 }
 
 func initCerts() (*tls.Config, error) {
@@ -175,11 +184,14 @@ func initCerts() (*tls.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	tlsCfg := buildTLSConfig()
+	tlsCfg, err := buildTLSConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build TLS config: %v", err)
+	}
 	tlsCfg.ServerName = common.GetMLPipelineServiceName() + "." + common.GetPodNamespace() + ".svc." + common.GetClusterDomain()
 	tlsCfg.Certificates = []tls.Certificate{serverCert}
 	glog.Infof("TLS cert key/pair loaded (MinVersion: %d)", tlsCfg.MinVersion)
-	return tlsCfg, err
+	return tlsCfg, nil
 }
 
 func main() {
@@ -600,10 +612,15 @@ func startWebhook(client ctrlclient.Client, clientNoCahe ctrlclient.Client, wg *
 	topMux.Handle("/webhooks/validate-pipelineversion", pvValidateWebhook)
 	topMux.Handle("/webhooks/mutate-pipelineversion", pvMutateWebhook)
 
+	tlsConfig, err := buildTLSConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build TLS config: %v", err)
+	}
+
 	webhookServer := &http.Server{
 		Addr:      *webhookPortFlag,
 		Handler:   topMux,
-		TLSConfig: buildTLSConfig(),
+		TLSConfig: tlsConfig,
 	}
 
 	go func() {
