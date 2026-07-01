@@ -38,8 +38,25 @@ def importer(
 ) -> pipeline_task.PipelineTask:
     """Imports an existing artifact for use in a downstream component.
 
+    Supports multiple artifact sources via URI schemes:
+      - gs://bucket/path - Google Cloud Storage
+      - s3://bucket/path - Amazon S3
+      - oci://registry/path - OCI Registry
+      - minio://bucket/path - MinIO
+      - huggingface://repo_id[/revision][?params] - HuggingFace Hub (KFP-specific scheme)
+
     Args:
-      artifact_uri: The URI of the artifact to import.
+      artifact_uri: The URI of the artifact to import. For HuggingFace,
+        use the 'huggingface://' scheme (KFP convention, not standard).
+        Supports query parameters:
+          - repo_type: 'model' (default) or 'dataset'
+          - allow_patterns: Glob patterns of files to include (e.g., *.safetensors)
+          - ignore_patterns: Glob patterns of files to exclude
+        Examples:
+          - huggingface://gpt2
+          - huggingface://meta-llama/Llama-2-7b/v1
+          - huggingface://wikitext?repo_type=dataset
+          - huggingface://stable-diffusion?allow_patterns=*.safetensors
       artifact_class: The artifact class being imported.
       reimport: Whether to reimport the artifact.
       metadata: Properties of the artifact.
