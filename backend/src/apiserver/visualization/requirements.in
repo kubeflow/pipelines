@@ -1,4 +1,4 @@
-bokeh==3.8.2
+bokeh==1.2.0
 gcsfs==0.2.3
 google-api-python-client==1.7.*
 itables==0.1.0
@@ -7,7 +7,7 @@ ipython==7.34.0
 Jinja2>=3.1.2,<4
 jupyter-client==8.6.3
 markupsafe>=2.1.1
-nbconvert==7.16.5
+nbconvert==7.17.1
 nbformat==5.10.4
 pyarrow==14.0.1
 scikit-learn==1.5.0
