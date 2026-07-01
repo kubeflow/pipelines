@@ -1,0 +1,12 @@
+[project]
+name = "kfp-example-plugin"
+version = "0.1.0"
+description = "Example KFP lifecycle plugin demonstrating all available hooks"
+dependencies = ["kfp"]
+
+[project.entry-points."kfp.sdk.plugins"]
+example = "example_plugin.plugin:create_plugin"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
