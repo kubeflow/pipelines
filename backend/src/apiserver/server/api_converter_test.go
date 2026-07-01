@@ -5315,6 +5315,35 @@ func TestToApiPipelineVersionsV1_MultipleVersions(t *testing.T) {
 	assert.Equal(t, "version-2", result[1].Id)
 }
 
+func TestToApiPipelineVersion_OnlyPipelineSpecURI(t *testing.T) {
+	pv := &model.PipelineVersion{
+		UUID:            "version-1",
+		Name:            "v1",
+		DisplayName:     "v1",
+		CreatedAtInSec:  100,
+		PipelineId:      "pipeline-1",
+		PipelineSpecURI: "http://package/v1",
+	}
+	result := toApiPipelineVersion(pv)
+	assert.Empty(t, result.CodeSourceUrl)
+	assert.NotNil(t, result.PackageUrl)
+	assert.Equal(t, "http://package/v1", result.PackageUrl.PipelineUrl)
+}
+
+func TestToApiPipelineVersion_OnlyCodeSourceUrl(t *testing.T) {
+	pv := &model.PipelineVersion{
+		UUID:           "version-1",
+		Name:           "v1",
+		DisplayName:    "v1",
+		CreatedAtInSec: 100,
+		PipelineId:     "pipeline-1",
+		CodeSourceUrl:  "http://repo/v1",
+	}
+	result := toApiPipelineVersion(pv)
+	assert.Equal(t, "http://repo/v1", result.CodeSourceUrl)
+	assert.Nil(t, result.PackageUrl)
+}
+
 func TestToApiPipelineVersions_Empty(t *testing.T) {
 	result := toApiPipelineVersions([]*model.PipelineVersion{})
 	assert.NotNil(t, result)
