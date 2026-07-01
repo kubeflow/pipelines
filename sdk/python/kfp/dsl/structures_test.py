@@ -859,6 +859,19 @@ sdkVersion: kfp-2.0.0-alpha.2""")
             outputs=None)
         self.assertEqual(loaded_component_spec, component_spec)
 
+    def test_description_extraction_index_out_of_bounds(self):
+        compiled_yaml = textwrap.dedent("""\
+            {pipelineInfo: {name: component-1}, components: {}, root: {dag: {tasks: {}}}, deploymentSpec: {executors: {}}}
+            # some comment
+            # Description: some text
+            #             continued text""")
+        loaded_component_spec = structures.ComponentSpec.from_yaml_documents(
+            compiled_yaml)
+        self.assertEqual(loaded_component_spec.description,
+                         'some text\ncontinued text')
+
+
+
 
 class TestNormalizeTimeString(parameterized.TestCase):
 
