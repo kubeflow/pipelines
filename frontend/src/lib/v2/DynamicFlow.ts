@@ -20,7 +20,7 @@ import {
   FlowElementDataBase,
   SubDagFlowElementData,
 } from 'src/components/graph/Constants';
-import { PipelineSpec, PipelineTaskSpec } from 'src/generated/pipeline_spec';
+import { ComponentSpec, PipelineSpec, PipelineTaskSpec } from 'src/generated/pipeline_spec';
 import {
   buildDag,
   buildGraphLayout,
@@ -221,6 +221,8 @@ export function updateFlowElementsState(
   executions: Execution[],
   events: Event[],
   artifacts: Artifact[],
+  pipelineSpec?: PipelineSpec,
+  runIsActive?: boolean,
 ): PipelineFlowElement[] {
   const executionLayers = getExecutionLayers(layers, executions);
   if (executionLayers.length < layers.length) {
@@ -236,6 +238,9 @@ export function updateFlowElementsState(
     executionIdToExectuion,
     artifactIdToArtifact,
   );
+
+  const debugPauseTasks =
+    pipelineSpec && runIsActive ? getDebugPauseTaskNames(pipelineSpec, layers) : new Set<string>();
 
   let flowGraph: PipelineFlowElement[] = [];
 
@@ -265,13 +270,14 @@ export function updateFlowElementsState(
   for (let elem of elems) {
     const updatedElem = cloneFlowElement(elem);
     if (NodeTypeNames.EXECUTION === elem.type) {
-      const executions = getExecutionsUnderDAG(
-        taskNameToExecution,
-        getTaskLabelByPipelineFlowElement(elem),
-        executionLayers,
-      );
+      const taskLabel = getTaskLabelByPipelineFlowElement(elem);
+      const executions = getExecutionsUnderDAG(taskNameToExecution, taskLabel, executionLayers);
       if (executions) {
-        (updatedElem.data as ExecutionFlowElementData).state = executions[0]?.getLastKnownState();
+        const state = executions[0]?.getLastKnownState();
+        (updatedElem.data as ExecutionFlowElementData).state = state;
+        if (state === Execution.State.COMPLETE && debugPauseTasks.has(taskLabel)) {
+          (updatedElem.data as ExecutionFlowElementData).debugPaused = true;
+        }
         (updatedElem.data as ExecutionFlowElementData).mlmdId = executions[0]?.getId();
         // Use ExecutionHelpers.getName() which reads display_name from MLMD custom properties
         (updatedElem.data as ExecutionFlowElementData).label = ExecutionHelpers.getName(
@@ -476,6 +482,53 @@ function getArtifactNodeKeyToArtifact(
     map.set(key, linkedArtifact);
   }
   return map;
+}
+
+function getDebugPauseTaskNames(spec: PipelineSpec, layers: string[]): Set<string> {
+  const pausedTasks = new Set<string>();
+
+  let componentSpec: ComponentSpec | undefined = spec.root;
+  if (!componentSpec) return pausedTasks;
+
+  for (let i = 1; i < layers.length; i++) {
+    if (layers[i].indexOf('.') > 0) continue;
+    const tasksMap: { [key: string]: PipelineTaskSpec } = componentSpec?.dag?.tasks || {};
+    const task: PipelineTaskSpec | undefined = tasksMap[layers[i]];
+    const componentName: string | undefined = task?.componentRef?.name;
+    if (!componentName) return pausedTasks;
+    componentSpec = spec.components[componentName];
+    if (!componentSpec) return pausedTasks;
+  }
+
+  if (!componentSpec?.dag?.tasks) return pausedTasks;
+
+  const executors = (spec.deploymentSpec as any)?.executors || {};
+
+  for (const [taskName, taskSpec] of Object.entries(componentSpec.dag.tasks) as [
+    string,
+    PipelineTaskSpec,
+  ][]) {
+    const componentName = taskSpec.componentRef?.name;
+    if (!componentName) continue;
+    const component = spec.components[componentName];
+    if (!component?.executorLabel) continue;
+    const executor = executors[component.executorLabel];
+    const envList = executor?.container?.env;
+    if (!Array.isArray(envList)) continue;
+
+    const hasDebugPause = envList.some(
+      (e: { name: string; value: string }) =>
+        e.value === 'true' &&
+        (e.name === 'ARGO_DEBUG_PAUSE_AFTER' ||
+          e.name === 'ARGO_DEBUG_PAUSE_BEFORE' ||
+          e.name === 'ARGO_DEBUG_PAUSE_ON_ERROR'),
+    );
+    if (hasDebugPause) {
+      pausedTasks.add(taskName);
+    }
+  }
+
+  return pausedTasks;
 }
 
 function getTaskName(exec: Execution): Value | undefined {
