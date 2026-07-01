@@ -209,6 +209,16 @@ function TaskNodeDetail({
         {/* Logs tab */}
         {selectedTab === 2 && (
           <div className={commonCss.page}>
+            {execution?.getLastKnownState() === Execution.State.FAILED && (
+              <div style={{ margin: "16px", padding: "16px", backgroundColor: "#ffebee", borderRadius: "8px", borderLeft: "4px solid #c62828" }}>
+                <div style={{ fontWeight: 600, color: "#c62828", fontSize: "14px", marginBottom: "8px" }}>
+                  Pod Lifecycle Failure Detected
+                </div>
+                <div style={{ fontSize: "13px", color: "#555555" }}>
+                  This node failed due to a pod lifecycle error. Possible causes include OOMKilled, ImagePullBackOff, or CrashLoopBackOff. Check logs below for details.
+                </div>
+              </div>
+            )}
             {logsBannerMessage && (
               <Banner message={logsBannerMessage} additionalInfo={logsBannerAdditionalInfo} />
             )}
