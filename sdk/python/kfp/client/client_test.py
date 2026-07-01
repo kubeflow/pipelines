@@ -16,7 +16,6 @@ import json
 import os
 import tempfile
 import textwrap
-import unittest
 from unittest.mock import MagicMock
 from unittest.mock import Mock
 from unittest.mock import patch
@@ -548,5 +547,184 @@ class TestClient(parameterized.TestCase):
             self.assertEqual(result, expected_result)
 
 
-if __name__ == '__main__':
-    unittest.main()
+class TestGetLogs(parameterized.TestCase):
+    """Tests for the get_logs method in the KFP Client."""
+
+    def setUp(self):
+        self.client = client.Client(namespace='ns1')
+
+    def test_get_logs_method_exists(self):
+        """Verify get_logs method exists on Client."""
+        self.assertTrue(hasattr(self.client, 'get_logs'))
+        self.assertTrue(callable(self.client.get_logs))
+
+    def test_get_logs_raises_on_missing_run(self):
+        """Test get_logs raises ValueError for non-existent run."""
+        with patch.object(self.client, 'get_run', return_value=None):
+            with self.assertRaisesRegex(
+                    ValueError, "Run with ID 'nonexistent-run' not found."):
+                self.client.get_logs(run_id='nonexistent-run')
+
+    def test_get_logs_raises_on_missing_task_details(self):
+        """Test get_logs raises ValueError when task details missing."""
+        mock_run = Mock()
+        mock_run.run_id = 'test-run-123'
+        mock_run.run_details = None
+
+        with patch.object(self.client, 'get_run', return_value=mock_run):
+            with self.assertRaisesRegex(ValueError,
+                                        'No task details found for run'):
+                self.client.get_logs(run_id='test-run-123')
+
+    def test_get_logs_success_single_component(self):
+        """Test get_logs successfully retrieves logs for single component."""
+        # Mock task detail
+        mock_task = Mock()
+        mock_task.display_name = 'test-component'
+        mock_task.id = 'node-123'
+
+        mock_run_details = Mock()
+        mock_run_details.task_details = [mock_task]
+
+        mock_run = Mock()
+        mock_run.run_id = 'test-run-123'
+        mock_run.run_details = mock_run_details
+
+        # Mock artifact response
+        import base64
+        import gzip
+        import io
+        log_content = b'Component logs here'
+        buf = io.BytesIO()
+        with gzip.GzipFile(fileobj=buf, mode='wb') as f:
+            f.write(log_content)
+        compressed_content = buf.getvalue()
+        mock_response = {
+            'data': base64.b64encode(compressed_content).decode('utf-8')
+        }
+
+        with patch.object(self.client, 'get_run', return_value=mock_run):
+            with patch.object(
+                    self.client._run_api.api_client,
+                    'call_api',
+                    return_value=mock_response) as mock_read:
+
+                result = self.client.get_logs(
+                    run_id='test-run-123', component_name='test-component')
+
+                self.assertEqual(result, 'Component logs here')
+
+    def test_get_logs_success_all_components(self):
+        """Test get_logs successfully retrieves logs for all components."""
+        # Mock multiple tasks
+        mock_task1 = Mock()
+        mock_task1.display_name = 'component-1'
+        mock_task1.id = 'node-1'
+
+        mock_task2 = Mock()
+        mock_task2.display_name = 'component-2'
+        mock_task2.id = 'node-2'
+
+        mock_run_details = Mock()
+        mock_run_details.task_details = [mock_task1, mock_task2]
+
+        mock_run = Mock()
+        mock_run.run_id = 'test-run-123'
+        mock_run.run_details = mock_run_details
+
+        # Mock artifact responses
+        import base64
+        import gzip
+        import io
+
+        def create_mock_response(content):
+            buf = io.BytesIO()
+            with gzip.GzipFile(fileobj=buf, mode='wb') as f:
+                f.write(content)
+            return {'data': base64.b64encode(buf.getvalue()).decode('utf-8')}
+
+        mock_response1 = create_mock_response(b'logs from component-1')
+        mock_response2 = create_mock_response(b'logs from component-2')
+
+        with patch.object(self.client, 'get_run', return_value=mock_run):
+            with patch.object(
+                    self.client._run_api.api_client,
+                    'call_api',
+                    side_effect=[mock_response1, mock_response2]):
+
+                result = self.client.get_logs(run_id='test-run-123')
+
+                self.assertIsInstance(result, dict)
+                self.assertEqual(len(result), 2)
+                self.assertEqual(result['component-1'], 'logs from component-1')
+                self.assertEqual(result['component-2'], 'logs from component-2')
+
+    def test_get_logs_component_not_found(self):
+        """Test get_logs raises ValueError when component not found."""
+        mock_task = Mock()
+        mock_task.display_name = 'other-component'
+        mock_task.id = 'node-1'
+
+        mock_run_details = Mock()
+        mock_run_details.task_details = [mock_task]
+
+        mock_run = Mock()
+        mock_run.run_id = 'test-run-123'
+        mock_run.run_details = mock_run_details
+
+        import base64
+        import gzip
+        import io
+        buf = io.BytesIO()
+        with gzip.GzipFile(fileobj=buf, mode='wb') as f:
+            f.write(b'logs')
+        mock_response = {
+            'data': base64.b64encode(buf.getvalue()).decode('utf-8')
+        }
+
+        with patch.object(self.client, 'get_run', return_value=mock_run):
+            with patch.object(
+                    self.client._run_api.api_client,
+                    'call_api',
+                    return_value=mock_response):
+
+                with self.assertRaisesRegex(
+                        ValueError, 'Component \'test-component\' not found'):
+                    self.client.get_logs(
+                        run_id='test-run-123', component_name='test-component')
+
+    def test_read_artifact_success(self):
+        """Test _read_artifact successfully reads artifact."""
+        import base64
+        import gzip
+        import io
+        buf = io.BytesIO()
+        with gzip.GzipFile(fileobj=buf, mode='wb') as f:
+            f.write(b'artifact content')
+        mock_response = {
+            'data': base64.b64encode(buf.getvalue()).decode('utf-8')
+        }
+
+        with patch.object(
+                self.client._run_api.api_client,
+                'call_api',
+                return_value=mock_response):
+
+            result = self.client._read_artifact(
+                run_id='run-123', node_id='node-123', artifact_name='main.log')
+
+            self.assertEqual(result, 'artifact content')
+
+    def test_read_artifact_failure(self):
+        """Test _read_artifact raises RuntimeError on failure."""
+        with patch.object(
+                self.client._run_api.api_client,
+                'call_api',
+                side_effect=Exception('API Error')):
+
+            with self.assertRaisesRegex(RuntimeError,
+                                        'Failed to read artifact'):
+                self.client._read_artifact(
+                    run_id='run-123',
+                    node_id='node-123',
+                    artifact_name='main.log')
