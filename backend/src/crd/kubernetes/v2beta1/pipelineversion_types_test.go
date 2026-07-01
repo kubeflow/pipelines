@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,11 +61,14 @@ sdkVersion: kfp-2.13.0`,
 	require.NoError(t, err)
 	assert.NotNil(t, result)
 
-	// Check ObjectMeta
-	assert.Equal(t, "test-version", result.Name)
+	// Check ObjectMeta — metadata.name should be composite: {pipelineName}-{versionName}
+	assert.Equal(t, "test-pipeline-test-version", result.Name)
 	assert.Equal(t, "default", result.Namespace)
 	assert.Equal(t, types.UID("version-456"), result.UID)
 	assert.Equal(t, "pipeline-123", result.Labels["pipelines.kubeflow.org/pipeline-id"])
+
+	// Check that the bare version name is stored in spec.VersionName
+	assert.Equal(t, "test-version", result.Spec.VersionName)
 
 	// Check OwnerReferences
 	require.Len(t, result.OwnerReferences, 1)
@@ -726,6 +730,11 @@ platforms:
 	require.NoError(t, err)
 	assert.NotNil(t, result)
 
+	// metadata.name should be composite
+	assert.Equal(t, "hello-world-hello-world-v1", result.Name)
+	// spec.VersionName should store the bare version name
+	assert.Equal(t, "hello-world-v1", result.Spec.VersionName)
+
 	// Convert back to model
 	roundTripModel, err := result.ToModel()
 	require.NoError(t, err)
@@ -763,10 +772,186 @@ platforms:
 			"YAML document %d should be deeply equal after round-trip", i)
 	}
 
-	// Verify basic metadata is preserved
+	// Verify basic metadata is preserved — Name should be the bare version name, not composite
 	assert.Equal(t, "version-456", roundTripModel.UUID)
 	assert.Equal(t, "hello-world-v1", roundTripModel.Name)
 	assert.Equal(t, "Hello World Pipeline v1", roundTripModel.DisplayName)
 	assert.Equal(t, "A simple hello world pipeline with workspace configuration", string(roundTripModel.Description))
 	assert.Equal(t, "pipeline-123", roundTripModel.PipelineId)
+}
+
+func TestToModel_UsesVersionName(t *testing.T) {
+	pipelineVersion := &PipelineVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-pipeline-v1",
+			Namespace: "default",
+			UID:       "version-789",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: GroupVersion.String(),
+					Kind:       "Pipeline",
+					UID:        "pipeline-123",
+					Name:       "my-pipeline",
+				},
+			},
+		},
+		Spec: PipelineVersionSpec{
+			DisplayName:  "Version 1",
+			VersionName:  "v1",
+			PipelineName: "my-pipeline",
+			PipelineSpec: IRSpec{
+				Value: map[string]interface{}{
+					"pipelineInfo":  map[string]interface{}{"name": "my-pipeline"},
+					"root":          map[string]interface{}{"dag": map[string]interface{}{"tasks": map[string]interface{}{}}},
+					"schemaVersion": "2.1.0",
+				},
+			},
+		},
+	}
+
+	result, err := pipelineVersion.ToModel()
+	require.NoError(t, err)
+
+	// Name should come from spec.VersionName, not metadata.name
+	assert.Equal(t, "v1", result.Name)
+	assert.Equal(t, "Version 1", result.DisplayName)
+}
+
+func TestToModel_FallsBackToMetadataName(t *testing.T) {
+	pipelineVersion := &PipelineVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "old-version",
+			Namespace: "default",
+			UID:       "version-old",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: GroupVersion.String(),
+					Kind:       "Pipeline",
+					UID:        "pipeline-123",
+					Name:       "my-pipeline",
+				},
+			},
+		},
+		Spec: PipelineVersionSpec{
+			DisplayName:  "Old Version",
+			PipelineName: "my-pipeline",
+			PipelineSpec: IRSpec{
+				Value: map[string]interface{}{
+					"pipelineInfo":  map[string]interface{}{"name": "my-pipeline"},
+					"root":          map[string]interface{}{"dag": map[string]interface{}{"tasks": map[string]interface{}{}}},
+					"schemaVersion": "2.1.0",
+				},
+			},
+		},
+	}
+
+	result, err := pipelineVersion.ToModel()
+	require.NoError(t, err)
+
+	// No spec.VersionName set — should fall back to metadata.name
+	assert.Equal(t, "old-version", result.Name)
+}
+
+func TestGetField_ReturnsVersionName(t *testing.T) {
+	pipelineVersion := &PipelineVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-pipeline-v1",
+			Namespace: "default",
+			UID:       "version-789",
+		},
+		Spec: PipelineVersionSpec{
+			VersionName: "v1",
+		},
+	}
+
+	// Should return the bare version name from spec, not metadata.name
+	assert.Equal(t, "v1", pipelineVersion.GetField("pipeline_versions.Name"))
+}
+
+func TestGetField_FallsBackToMetadataName(t *testing.T) {
+	pipelineVersion := &PipelineVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "old-version",
+			Namespace: "default",
+			UID:       "version-old",
+		},
+		Spec: PipelineVersionSpec{},
+	}
+
+	// No spec.VersionName — should fall back to metadata.name
+	assert.Equal(t, "old-version", pipelineVersion.GetField("pipeline_versions.Name"))
+}
+
+func TestFromPipelineVersionModel_EmptyVersionName(t *testing.T) {
+	_, err := FromPipelineVersionModel(
+		model.Pipeline{Name: "my-pipeline", Namespace: "default", UUID: "pipeline-123"},
+		model.PipelineVersion{Name: ""},
+	)
+	var userError *util.UserError
+	require.ErrorAs(t, err, &userError)
+	assert.Contains(t, err.Error(), "pipeline version name must not be empty")
+}
+
+func TestFromPipelineVersionModel_InvalidDNSVersionName(t *testing.T) {
+	_, err := FromPipelineVersionModel(
+		model.Pipeline{Name: "my-pipeline", Namespace: "default", UUID: "pipeline-123"},
+		model.PipelineVersion{
+			Name: "UPPERCASE",
+			PipelineSpec: `pipelineInfo:
+  name: test-pipeline
+root:
+  dag:
+    tasks: {}
+schemaVersion: "2.1.0"
+sdkVersion: kfp-2.13.0`,
+		},
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Invalid pipeline version name")
+}
+
+func TestFromPipelineVersionModel_CompositeTooLong(t *testing.T) {
+	_, err := FromPipelineVersionModel(
+		model.Pipeline{Name: "my-pipeline", Namespace: "default", UUID: "pipeline-123"},
+		model.PipelineVersion{
+			Name: strings.Repeat("v", 253),
+			PipelineSpec: `pipelineInfo:
+  name: test-pipeline
+root:
+  dag:
+    tasks: {}
+schemaVersion: "2.1.0"
+sdkVersion: kfp-2.13.0`,
+		},
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Kubernetes 253-character naming limit")
+}
+
+func TestFromPipelineVersionModel_SameNameAsPipeline(t *testing.T) {
+	pipeline := model.Pipeline{
+		UUID:      "pipeline-123",
+		Name:      "my-pipeline",
+		Namespace: "default",
+	}
+
+	pipelineVersion := model.PipelineVersion{
+		UUID:       "version-456",
+		Name:       "my-pipeline",
+		PipelineId: "pipeline-123",
+		PipelineSpec: `pipelineInfo:
+  name: my-pipeline
+root:
+  dag:
+    tasks: {}
+schemaVersion: "2.1.0"
+sdkVersion: kfp-2.13.0`,
+	}
+
+	result, err := FromPipelineVersionModel(pipeline, pipelineVersion)
+	require.NoError(t, err)
+
+	// When version name matches pipeline name, metadata.name should be bare (not "my-pipeline-my-pipeline")
+	assert.Equal(t, "my-pipeline", result.Name, "expected bare name, not composite %q", result.Name)
+	assert.Equal(t, "my-pipeline", result.Spec.VersionName)
 }

@@ -13,7 +13,7 @@ Name | Type | Description | Notes
 **executor_detail** | [**V2beta1PipelineTaskExecutorDetail**](V2beta1PipelineTaskExecutorDetail.md) |  | [optional] 
 **state** | [**V2beta1RuntimeState**](V2beta1RuntimeState.md) |  | [optional] 
 **execution_id** | **str** | Execution id of the corresponding entry in ML metadata store. | [optional] 
-**error** | [**GooglerpcStatus**](GooglerpcStatus.md) |  | [optional] 
+**error** | [**GoogleRpcStatus**](GoogleRpcStatus.md) |  | [optional] 
 **inputs** | [**dict(str, V2beta1ArtifactList)**](V2beta1ArtifactList.md) | Input artifacts of the task. | [optional] 
 **outputs** | [**dict(str, V2beta1ArtifactList)**](V2beta1ArtifactList.md) | Output artifacts of the task. | [optional] 
 **parent_task_id** | **str** | ID of the parent task if the task is within a component scope. Empty if the task is at the root level. | [optional] 

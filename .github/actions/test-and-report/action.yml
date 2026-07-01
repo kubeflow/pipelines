@@ -116,6 +116,21 @@ runs:
         sleep 5
       continue-on-error: true
 
+    - name: Re-establish MLflow port-forward for tests
+      id: port-forward-mlflow
+      if: (!cancelled())
+      shell: bash
+      run: |
+        if [ -z "${MLFLOW_PORT_FORWARD_NS:-}" ] || [ -z "${MLFLOW_PORT_FORWARD_SVC:-}" ]; then
+          echo "No MLflow port-forward metadata exported for this job"
+          exit 0
+        fi
+        REMOTE_PORT="${MLFLOW_PORT_FORWARD_REMOTE_PORT:-5000}"
+        pkill -f "kubectl port-forward.*${MLFLOW_PORT_FORWARD_SVC}.*8080:${REMOTE_PORT}" || true
+        kubectl port-forward -n "$MLFLOW_PORT_FORWARD_NS" "svc/$MLFLOW_PORT_FORWARD_SVC" "8080:$REMOTE_PORT" > /dev/null 2>&1 &
+        sleep 5
+      continue-on-error: true
+
     - name: Configure API Access
       id: configure-api
       if: ${{ inputs.skip_api_config != 'true' }}

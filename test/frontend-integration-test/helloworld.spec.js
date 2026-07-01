@@ -23,6 +23,7 @@ const {
   waitForCondition,
   waitForGraphNodeCount,
   waitForHashPrefix,
+  waitForLogViewerText,
   waitForRunPageReady,
 } = require('./test-helpers');
 
@@ -37,7 +38,14 @@ const runWithoutExperimentDescription =
 const uiTimeout = 5000;
 const runStartTimeout = 30000;
 const runCompletionTimeout = 60000;
+const logsLoadTimeout = 60000;
 const outputParameterValue = 'Hello world in test';
+
+function getGraphNodeByLabel(label) {
+  return $(
+    `//div[contains(concat(" ", normalize-space(@class), " "), " graphNode ")][.//div[normalize-space()="${label}"]]`,
+  );
+}
 
 async function waitForRunParameterField(selector) {
   try {
@@ -203,23 +211,23 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('opens the side panel when graph node is clicked', async () => {
-    await $('.graphNode').click();
+    // Global Argo retries add an A wrapper and an A(0) pod. Select the pod when present so the
+    // Logs tab targets an execution rather than the retry wrapper.
+    const retryAttemptNode = await getGraphNodeByLabel('A(0)');
+    const loggableNode = (await retryAttemptNode.isExisting())
+      ? retryAttemptNode
+      : await getGraphNodeByLabel('A');
+    await loggableNode.click();
     await $('button=Logs').waitForDisplayed({ timeout: uiTimeout });
   });
 
   it('shows logs from node', async () => {
     await $('button=Logs').click();
-    await $('#logViewer').waitForDisplayed({ timeout: uiTimeout });
-    await waitForCondition(
-      async () => {
-        const logs = await $('#logViewer').getText();
-        return logs.indexOf(outputParameterValue + ' from node: ') > -1;
-      },
-      {
-        timeout: uiTimeout,
-        timeoutMsg: `expected log viewer to contain ${outputParameterValue}`,
-      },
-    );
+    await waitForLogViewerText(outputParameterValue + ' from node: ', {
+      timeout: logsLoadTimeout,
+      interval: 5000,
+      screenshotName: 'node-logs',
+    });
   });
 
   it('navigates to the runs page', async () => {

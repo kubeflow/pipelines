@@ -87,6 +87,38 @@ func TestApplyHeaders_NoBearerToken(t *testing.T) {
 	assert.Empty(t, req.Header.Get("Authorization"))
 }
 
+func TestApplyHeaders_BasicAuth(t *testing.T) {
+	c, _ := NewClient(Config{
+		Endpoint: "http://mlflow.example.com",
+		Username: "mlflow-user",
+		Password: "mlflow-pass",
+	})
+	req, _ := http.NewRequest("GET", "http://mlflow.example.com", nil)
+	c.applyHeaders(req)
+
+	username, password, ok := req.BasicAuth()
+	require.True(t, ok)
+	assert.Equal(t, "mlflow-user", username)
+	assert.Equal(t, "mlflow-pass", password)
+}
+
+func TestApplyHeaders_BasicAuthTakesPrecedenceOverBearer(t *testing.T) {
+	c, _ := NewClient(Config{
+		Endpoint:    "http://mlflow.example.com",
+		BearerToken: "sa-token",
+		Username:    "mlflow-user",
+		Password:    "mlflow-pass",
+	})
+	req, _ := http.NewRequest("GET", "http://mlflow.example.com", nil)
+	c.applyHeaders(req)
+
+	username, password, ok := req.BasicAuth()
+	require.True(t, ok)
+	assert.Equal(t, "mlflow-user", username)
+	assert.Equal(t, "mlflow-pass", password)
+	assert.NotEqual(t, "Bearer sa-token", req.Header.Get("Authorization"))
+}
+
 func TestApplyHeaders_WorkspaceHeader(t *testing.T) {
 	c, _ := NewClient(Config{
 		Endpoint:          "http://mlflow.example.com",
@@ -107,6 +139,33 @@ func TestApplyHeaders_WorkspaceHeader_DisabledWhenFalse(t *testing.T) {
 	req, _ := http.NewRequest("GET", "http://mlflow.example.com", nil)
 	c.applyHeaders(req)
 	assert.Empty(t, req.Header.Get(workspaceHeader))
+}
+
+func TestResolveRuntimeMLflowCredentials_Bearer(t *testing.T) {
+	t.Setenv(EnvMLflowTrackingToken, "custom-token")
+	credentials, err := ResolveRuntimeMLflowCredentials(AuthTypeBearer)
+	require.NoError(t, err)
+	assert.Equal(t, AuthTypeBearer, credentials.AuthType)
+	assert.Equal(t, "custom-token", credentials.BearerToken)
+}
+
+func TestResolveRuntimeMLflowCredentials_BasicAuth(t *testing.T) {
+	t.Setenv(EnvMLflowTrackingUsername, "mlflow-user")
+	t.Setenv(EnvMLflowTrackingPassword, "mlflow-pass")
+	credentials, err := ResolveRuntimeMLflowCredentials(AuthTypeBasicAuth)
+	require.NoError(t, err)
+	assert.Equal(t, AuthTypeBasicAuth, credentials.AuthType)
+	assert.Equal(t, "mlflow-user", credentials.Username)
+	assert.Equal(t, "mlflow-pass", credentials.Password)
+}
+
+func TestResolveRuntimeMLflowCredentials_None(t *testing.T) {
+	credentials, err := ResolveRuntimeMLflowCredentials(AuthTypeNone)
+	require.NoError(t, err)
+	assert.Equal(t, AuthTypeNone, credentials.AuthType)
+	assert.Empty(t, credentials.BearerToken)
+	assert.Empty(t, credentials.Username)
+	assert.Empty(t, credentials.Password)
 }
 
 func TestGetExperimentByName_Success(t *testing.T) {

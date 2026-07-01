@@ -24,7 +24,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 
-	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
 	log "github.com/sirupsen/logrus"
@@ -515,6 +515,10 @@ func runID() string {
 func runResourceName() string {
 	// This translates to the Argo Workflow object name.
 	return "{{workflow.name}}"
+}
+
+func runCreationTimeUTC() string {
+	return "{{workflow.creationTimestamp}}"
 }
 
 func workflowParameter(name string) string {

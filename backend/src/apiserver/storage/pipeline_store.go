@@ -105,7 +105,7 @@ type PipelineStoreInterface interface {
 	CreatePipelineVersion(pipelineVersion *model.PipelineVersion) (*model.PipelineVersion, error)
 	GetPipelineVersionWithStatus(pipelineVersionId string, status model.PipelineVersionStatus) (*model.PipelineVersion, error)
 	GetPipelineVersion(pipelineVersionId string) (*model.PipelineVersion, error)
-	GetPipelineVersionByName(name string) (*model.PipelineVersion, error)
+	GetPipelineVersionByName(pipelineID, versionName string) (*model.PipelineVersion, error)
 	GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error)
 	ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters map[string]string) ([]*model.PipelineVersion, int, string, error)
 	UpdatePipelineVersionStatus(pipelineVersionId string, status model.PipelineVersionStatus) error
@@ -1055,11 +1055,35 @@ func (s *PipelineStore) GetPipelineVersion(versionId string) (*model.PipelineVer
 	return version, nil
 }
 
-func (s *PipelineStore) GetPipelineVersionByName(name string) (*model.PipelineVersion, error) {
-	version, err := s.getPipelineVersionByCol("Name", name, model.PipelineVersionReady)
+func (s *PipelineStore) GetPipelineVersionByName(pipelineID, versionName string) (*model.PipelineVersion, error) {
+	query, args, err := sq.
+		Select(pipelineVersionColumns...).
+		From("pipeline_versions").
+		Where(sq.And{
+			sq.Eq{"pipeline_versions.Name": versionName},
+			sq.Eq{"pipeline_versions.PipelineId": pipelineID},
+			sq.Eq{"pipeline_versions.Status": model.PipelineVersionReady},
+		}).
+		ToSql()
 	if err != nil {
-		return nil, err
+		return nil, util.NewInternalServerError(err, "Failed to create query to fetch pipeline version with name=%v and pipelineId=%v", versionName, pipelineID)
 	}
+
+	r, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed fetching pipeline version with name=%v and pipelineId=%v", versionName, pipelineID)
+	}
+	defer r.Close()
+
+	versions, err := s.scanPipelineVersionsRows(r)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to parse pipeline version with name=%v and pipelineId=%v", versionName, pipelineID)
+	}
+	if len(versions) == 0 {
+		return nil, util.NewResourceNotFoundError("PipelineVersion", versionName)
+	}
+
+	version := versions[0]
 	tags, err := s.GetPipelineVersionTags(version.UUID)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to load tags for pipeline version %v", version.UUID)

@@ -285,13 +285,15 @@ export function createPodLogsMinioRequestConfig(
  */
 export async function getPodLogsMinioRequestConfigfromWorkflow(
   podName: string,
+  _createdAt?: string,
+  namespace?: string,
 ): Promise<MinioRequestConfig> {
   let workflow: PartialArgoWorkflow;
   // We should probably parameterize this replace statement. It's brittle to
   // changes in implementation. But brittle is better than completely broken.
   let workflowName = podName.replace(/-system-container-impl-.*/, '');
   try {
-    workflow = await getArgoWorkflow(workflowName);
+    workflow = await getArgoWorkflow(workflowName, namespace);
   } catch (err) {
     throw new Error(`Unable to retrieve workflow status: ${err}.`);
   }
@@ -326,7 +328,7 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
   }
 
   const { host, port } = urlSplit(s3Artifact.endpoint, s3Artifact.insecure);
-  const { accessKey, secretKey } = await getMinioClientSecrets(s3Artifact);
+  const { accessKey, secretKey } = await getMinioClientSecrets(s3Artifact, namespace);
 
   const client = await createMinioClient(
     {
@@ -353,12 +355,15 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
  * Returns the k8s access key and secret used to connect to the s3 artifactory.
  * @param s3artifact s3artifact object describing the s3 artifactory config for argo workflow.
  */
-async function getMinioClientSecrets({ accessKeySecret, secretKeySecret }: S3Artifact) {
+async function getMinioClientSecrets(
+  { accessKeySecret, secretKeySecret }: S3Artifact,
+  namespace?: string,
+) {
   if (!accessKeySecret || !secretKeySecret) {
     return {};
   }
-  const accessKey = await getK8sSecret(accessKeySecret.name, accessKeySecret.key);
-  const secretKey = await getK8sSecret(secretKeySecret.name, secretKeySecret.key);
+  const accessKey = await getK8sSecret(accessKeySecret.name, accessKeySecret.key, namespace);
+  const secretKey = await getK8sSecret(secretKeySecret.name, secretKeySecret.key, namespace);
   return { accessKey, secretKey };
 }
 

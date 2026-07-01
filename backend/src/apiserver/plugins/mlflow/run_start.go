@@ -97,7 +97,6 @@ const (
 	EntryExperimentID            = "experiment_id"
 	EntryRootRunID               = "root_run_id"
 	EntryRunURL                  = "run_url"
-	EntryEndpoint                = "endpoint"
 )
 
 type Experiment struct {
@@ -256,12 +255,12 @@ func BuildRunURL(requestCtx *commonmlflow.RequestContext, experimentID, runID st
 	return trackingUIBase + uiPathPrefix + "/#" + trackingMlflowRunPath
 }
 
-func SuccessfulPluginOutput(experimentID, experimentName, runID, runURL, endpoint string) *apiv2beta1.PluginOutput {
-	return buildPluginOutput(experimentID, experimentName, runID, runURL, endpoint, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, "")
+func SuccessfulPluginOutput(experimentID, experimentName, runID, runURL string) *apiv2beta1.PluginOutput {
+	return buildPluginOutput(experimentID, experimentName, runID, runURL, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, "")
 }
 
-func FailedPluginOutput(experimentID, experimentName, runID, runURL, endpoint, stateMessage string) *apiv2beta1.PluginOutput {
-	return buildPluginOutput(experimentID, experimentName, runID, runURL, endpoint, apiv2beta1.PluginState_PLUGIN_FAILED, stateMessage)
+func FailedPluginOutput(experimentID, experimentName, runID, runURL, stateMessage string) *apiv2beta1.PluginOutput {
+	return buildPluginOutput(experimentID, experimentName, runID, runURL, apiv2beta1.PluginState_PLUGIN_FAILED, stateMessage)
 }
 
 // upsertPluginOutput merges a single plugin's output into an existing
@@ -476,7 +475,7 @@ func syncNestedRuns(ctx context.Context, requestCtx *commonmlflow.RequestContext
 	return syncErrors
 }
 
-func buildPluginOutput(experimentID, experimentName, runID, runURL, endpoint string, state apiv2beta1.PluginState, stateMessage string) *apiv2beta1.PluginOutput {
+func buildPluginOutput(experimentID, experimentName, runID, runURL string, state apiv2beta1.PluginState, stateMessage string) *apiv2beta1.PluginOutput {
 	entries := map[string]*apiv2beta1.MetadataValue{}
 	if experimentName != "" {
 		entries[EntryExperimentName] = &apiv2beta1.MetadataValue{Value: structpb.NewStringValue(experimentName)}
@@ -492,9 +491,6 @@ func buildPluginOutput(experimentID, experimentName, runID, runURL, endpoint str
 			Value:      structpb.NewStringValue(runURL),
 			RenderType: apiv2beta1.MetadataValue_URL.Enum(),
 		}
-	}
-	if endpoint != "" {
-		entries[EntryEndpoint] = &apiv2beta1.MetadataValue{Value: structpb.NewStringValue(endpoint)}
 	}
 	return &apiv2beta1.PluginOutput{
 		Entries:      entries,

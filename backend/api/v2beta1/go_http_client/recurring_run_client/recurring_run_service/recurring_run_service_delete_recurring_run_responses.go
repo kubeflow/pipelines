@@ -125,7 +125,7 @@ An unexpected error response.
 type RecurringRunServiceDeleteRecurringRunDefault struct {
 	_statusCode int
 
-	Payload *recurring_run_model.GooglerpcStatus
+	Payload *recurring_run_model.GoogleRPCStatus
 }
 
 // IsSuccess returns true when this recurring run service delete recurring run default response has a 2xx status code
@@ -168,13 +168,13 @@ func (o *RecurringRunServiceDeleteRecurringRunDefault) String() string {
 	return fmt.Sprintf("[DELETE /apis/v2beta1/recurringruns/{recurring_run_id}][%d] RecurringRunService_DeleteRecurringRun default %s", o._statusCode, payload)
 }
 
-func (o *RecurringRunServiceDeleteRecurringRunDefault) GetPayload() *recurring_run_model.GooglerpcStatus {
+func (o *RecurringRunServiceDeleteRecurringRunDefault) GetPayload() *recurring_run_model.GoogleRPCStatus {
 	return o.Payload
 }
 
 func (o *RecurringRunServiceDeleteRecurringRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(recurring_run_model.GooglerpcStatus)
+	o.Payload = new(recurring_run_model.GoogleRPCStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

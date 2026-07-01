@@ -15,6 +15,7 @@
 package resource
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -28,9 +29,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/argoproj/argo-workflows/v3/util/file"
+	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/util/file"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -116,10 +118,6 @@ func (m *FakeBadObjectStore) DeleteFile(ctx context.Context, filePath string) er
 	return errors.New("Not implemented")
 }
 
-func (m *FakeBadObjectStore) GetFile(ctx context.Context, filePath string) ([]byte, error) {
-	return []byte(""), nil
-}
-
 func (m *FakeBadObjectStore) AddAsYamlFile(ctx context.Context, o interface{}, filePath string) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
@@ -130,6 +128,45 @@ func (m *FakeBadObjectStore) GetFromYamlFile(ctx context.Context, o interface{},
 
 func (m *FakeBadObjectStore) GetFileReader(context.Context, string) (io.ReadCloser, error) {
 	return nil, util.NewInternalServerError(errors.New("Error"), "bad object store")
+}
+
+type readerOnlyObjectStore struct {
+	files              map[string][]byte
+	getFileReaderPaths []string
+}
+
+func (m *readerOnlyObjectStore) GetPipelineKey(pipelineID string) string {
+	return "pipelines/" + pipelineID
+}
+
+func (m *readerOnlyObjectStore) AddFile(ctx context.Context, template []byte, filePath string) error {
+	if m.files == nil {
+		m.files = map[string][]byte{}
+	}
+	m.files[filePath] = template
+	return nil
+}
+
+func (m *readerOnlyObjectStore) DeleteFile(ctx context.Context, filePath string) error {
+	delete(m.files, filePath)
+	return nil
+}
+
+func (m *readerOnlyObjectStore) AddAsYamlFile(ctx context.Context, o interface{}, filePath string) error {
+	return nil
+}
+
+func (m *readerOnlyObjectStore) GetFromYamlFile(ctx context.Context, o interface{}, filePath string) error {
+	return nil
+}
+
+func (m *readerOnlyObjectStore) GetFileReader(ctx context.Context, filePath string) (io.ReadCloser, error) {
+	m.getFileReaderPaths = append(m.getFileReaderPaths, filePath)
+	content, ok := m.files[filePath]
+	if !ok {
+		return nil, util.NewInternalServerError(errors.New("not found"), "file not found")
+	}
+	return io.NopCloser(bytes.NewReader(content)), nil
 }
 
 func createPipelineV1(name string) *model.Pipeline {
@@ -190,6 +227,61 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	},
 	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
+
+func TestReadRunLogFromArchiveStreamsObjectStoreFile(t *testing.T) {
+	logArchive := archive.NewLogArchive("/logs", "main.log")
+	execSpec, err := util.NewExecutionSpecJSON(util.CurrentExecutionType(), []byte(testWorkflow.ToStringForStore()))
+	require.NoError(t, err)
+	logPath, err := logArchive.GetLogObjectKey(execSpec, "node-id")
+	require.NoError(t, err)
+
+	objectStore := &readerOnlyObjectStore{
+		files: map[string][]byte{
+			logPath: []byte("archived log line\n"),
+		},
+	}
+	manager := &ResourceManager{
+		objectStore: objectStore,
+		logArchive:  logArchive,
+	}
+
+	var dst bytes.Buffer
+	err = manager.readRunLogFromArchive(testWorkflow.ToStringForStore(), "node-id", &dst)
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{logPath}, objectStore.getFileReaderPaths)
+	assert.Equal(t, "archived log line\n", dst.String())
+}
+
+func TestReadPipelineSpecFromObjectStoreUsesReaderAndLimit(t *testing.T) {
+	objectStore := &readerOnlyObjectStore{
+		files: map[string][]byte{
+			"pipeline-spec.yaml": []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow\n"),
+		},
+	}
+	manager := &ResourceManager{objectStore: objectStore}
+
+	pipelineSpec, err := manager.readPipelineSpecFromObjectStore(context.Background(), "pipeline-spec.yaml")
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{"pipeline-spec.yaml"}, objectStore.getFileReaderPaths)
+	assert.Equal(t, "apiVersion: argoproj.io/v1alpha1\nkind: Workflow\n", string(pipelineSpec))
+}
+
+func TestReadPipelineSpecFromObjectStoreRejectsOversizedFile(t *testing.T) {
+	objectStore := &readerOnlyObjectStore{
+		files: map[string][]byte{
+			"pipeline-spec.yaml": bytes.Repeat([]byte("x"), common.MaxFileLength+1),
+		},
+	}
+	manager := &ResourceManager{objectStore: objectStore}
+
+	_, err := manager.readPipelineSpecFromObjectStore(context.Background(), "pipeline-spec.yaml")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Pipeline spec file size too large")
+	assert.Equal(t, []string{"pipeline-spec.yaml"}, objectStore.getFileReaderPaths)
+}
 
 // Util function to create an initial state with pipeline uploaded
 func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Pipeline, *model.PipelineVersion) {
@@ -389,7 +481,7 @@ func initWithOneTimeFailedRunCompressed(t *testing.T) (*FakeClientManager, *Reso
 	nodes := map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
 	nodeData, err := json.Marshal(nodes)
 	assert.Nil(t, err)
-	updatedWorkflow.Status.CompressedNodes = file.CompressEncodeString(string(nodeData))
+	updatedWorkflow.Status.CompressedNodes = file.CompressEncodeString(ctx, string(nodeData))
 	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
 	assert.Nil(t, err)
 	return store, manager, runDetail
@@ -2823,7 +2915,7 @@ func TestRetryRun_ReopensMLflowParentAndFailedNestedRuns(t *testing.T) {
 
 	runWithPluginOutput, err := manager.GetRun(runDetail.UUID)
 	require.NoError(t, err)
-	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", server.URL+"/runs/parent-run-1", server.URL)
+	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", server.URL+"/runs/parent-run-1")
 	lt, err := apiservermlflow.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
 	require.NoError(t, err)
 	runWithPluginOutput.PluginsOutputString = lt

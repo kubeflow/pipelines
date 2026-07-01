@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 )
 
 var _ TaskPluginHandler = (*fakeHandler)(nil)
@@ -20,7 +21,7 @@ type fakeHandler struct {
 	startResult TaskHandlerStartResult
 	startErr    error
 	endErr      error
-	envVars     map[string]string
+	envVars     []corev1.EnvVar
 	envErr      error
 	customProps map[string]string
 }
@@ -32,7 +33,7 @@ func (f *fakeHandler) OnTaskStart(_ context.Context, _ *TaskInfo) (TaskHandlerSt
 func (f *fakeHandler) OnTaskEnd(_ context.Context, _ *TaskInfo) error {
 	return f.endErr
 }
-func (f *fakeHandler) RetrieveUserContainerEnvVars() (map[string]string, error) {
+func (f *fakeHandler) RetrieveUserContainerEnvVars() ([]corev1.EnvVar, error) {
 	return f.envVars, f.envErr
 }
 func (f *fakeHandler) GenerateCustomProperties(_ TaskHandlerStartResult) map[string]string {
@@ -264,9 +265,7 @@ func TestRetrieveUserContainerEnvVars_NilDispatcher_Failure(t *testing.T) {
 }
 
 func TestRetrieveUserContainerEnvVars_Success(t *testing.T) {
-	expectedVars := map[string]string{
-		"PLUGIN_RUN_ID": "fake-run-1",
-	}
+	expectedVars := []corev1.EnvVar{{Name: "PLUGIN_RUN_ID", Value: "fake-run-1"}}
 	handler := &fakeHandler{
 		name:    "FakePlugin",
 		envVars: expectedVars,

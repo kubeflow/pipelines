@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // TaskPluginDispatcher orchestrates plugin lifecycle hooks
@@ -22,7 +23,7 @@ type TaskPluginDispatcher interface {
 	OnTaskEnd(ctx context.Context, taskInfo *TaskInfo) error
 
 	// RetrieveUserContainerEnvVars returns the user-specified environment variables to be set in the task user container.
-	RetrieveUserContainerEnvVars(taskInfo *TaskInfo) (envVars map[string]string, err error)
+	RetrieveUserContainerEnvVars(taskInfo *TaskInfo) (envVars []corev1.EnvVar, err error)
 
 	// ApplyCustomProperties updates the custom properties for all registered task-level plugins.
 	ApplyCustomProperties(properties map[string]string)
@@ -37,7 +38,7 @@ func (NoOpDispatcher) OnTaskStart(ctx context.Context, taskInfo *TaskInfo) (*Tas
 func (NoOpDispatcher) OnTaskEnd(ctx context.Context, taskInfo *TaskInfo) error {
 	return nil
 }
-func (NoOpDispatcher) RetrieveUserContainerEnvVars(taskInfo *TaskInfo) (envVars map[string]string, err error) {
+func (NoOpDispatcher) RetrieveUserContainerEnvVars(taskInfo *TaskInfo) (envVars []corev1.EnvVar, err error) {
 	return nil, nil
 }
 func (NoOpDispatcher) ApplyCustomProperties(properties map[string]string) {
@@ -117,23 +118,24 @@ func (t *TaskPluginDispatcherImpl) OnTaskEnd(ctx context.Context, taskInfo *Task
 	return nil
 }
 
-func (t *TaskPluginDispatcherImpl) RetrieveUserContainerEnvVars(taskInfo *TaskInfo) (injectVars map[string]string, err error) {
+func (t *TaskPluginDispatcherImpl) RetrieveUserContainerEnvVars(taskInfo *TaskInfo) (injectVars []corev1.EnvVar, err error) {
 	if t == nil {
 		return nil, fmt.Errorf("dispatcher must be non-nil")
 	}
 
-	injectVars = make(map[string]string)
+	injectVarNameSet := map[string]bool{}
 	for _, handler := range t.handlers {
 		vars, err := handler.RetrieveUserContainerEnvVars()
 		if err != nil {
 			return nil, fmt.Errorf("failed to retrieve user container env vars for handler %s: %v", handler.Name(), err)
 		}
 
-		for k, v := range vars {
-			if _, ok := injectVars[k]; !ok {
-				injectVars[k] = v
+		for _, envVar := range vars {
+			if !injectVarNameSet[envVar.Name] {
+				injectVars = append(injectVars, envVar)
+				injectVarNameSet[envVar.Name] = true
 			} else {
-				glog.Errorf("Key %s already present in container env vars. Key-value pair %s:%s will not be added.", k, k, v)
+				glog.Errorf("Key %s already present in container env vars. Duplicate env var will not be added.", envVar.Name)
 			}
 		}
 	}

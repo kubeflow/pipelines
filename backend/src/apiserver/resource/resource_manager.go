@@ -1233,12 +1233,13 @@ func (r *ResourceManager) readRunLogFromArchive(workflowManifest string, nodeId 
 		return util.NewInternalServerError(err, "Failed to read logs from archive %v", nodeId)
 	}
 
-	logContent, err := r.objectStore.GetFile(context.TODO(), logPath)
+	logReader, err := r.objectStore.GetFileReader(context.TODO(), logPath)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error fetching the log file", nodeId)
 	}
+	defer logReader.Close()
 
-	err = r.logArchive.CopyLogFromArchive(logContent, dst, archive.ExtractLogOptions{LogFormat: archive.LogFormatText, Timestamps: false})
+	err = r.logArchive.CopyLogFromArchiveReader(logReader, dst, archive.ExtractLogOptions{LogFormat: archive.LogFormatText, Timestamps: false})
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error copying the log file", nodeId)
 	}
@@ -1812,13 +1813,13 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 		return bytes, string(pipelineVersion.PipelineSpecURI), nil
 	} else {
 		// Try reading object store from pipeline_spec_uri
-		template, errURI := r.objectStore.GetFile(context.TODO(), string(pipelineVersion.PipelineSpecURI))
+		template, errURI := r.readPipelineSpecFromObjectStore(context.TODO(), string(pipelineVersion.PipelineSpecURI))
 		if errURI != nil {
 			// Try reading object store from pipeline_version_id
-			template, errUUID := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
+			template, errUUID := r.readPipelineSpecFromObjectStore(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
 			if errUUID != nil {
 				// Try reading object store from pipeline_id
-				template, errPipelineID := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
+				template, errPipelineID := r.readPipelineSpecFromObjectStore(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
 				if errPipelineID != nil {
 					return nil, "", util.Wrap(
 						util.Wrap(
@@ -1834,6 +1835,27 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 		}
 		return template, "", nil
 	}
+}
+
+func (r *ResourceManager) readPipelineSpecFromObjectStore(ctx context.Context, filePath string) ([]byte, error) {
+	reader, err := r.objectStore.GetFileReader(ctx, filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	limitedReader := io.LimitReader(reader, int64(common.MaxFileLength)+1)
+	pipelineSpec, err := io.ReadAll(limitedReader)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to read pipeline spec from %v", filePath)
+	}
+	if len(pipelineSpec) > common.MaxFileLength {
+		return nil, util.NewInvalidInputError(
+			"Pipeline spec file size too large (%v bytes). Maximum supported size: %v.",
+			len(pipelineSpec), common.MaxFileLength,
+		)
+	}
+	return pipelineSpec, nil
 }
 
 // Creates the default experiment entry.
@@ -2046,11 +2068,11 @@ func (r *ResourceManager) GetPipelineVersion(pipelineVersionId string) (*model.P
 	return pipelineVersion, nil
 }
 
-// GetPipelineVersionByName returns a pipeline version by Name. Tags are loaded at the store level.
-func (r *ResourceManager) GetPipelineVersionByName(name string) (*model.PipelineVersion, error) {
-	pipelineVersion, err := r.pipelineStore.GetPipelineVersionByName(name)
+// GetPipelineVersionByName returns a pipeline version by pipeline ID and version name. Tags are loaded at the store level.
+func (r *ResourceManager) GetPipelineVersionByName(pipelineID, versionName string) (*model.PipelineVersion, error) {
+	pipelineVersion, err := r.pipelineStore.GetPipelineVersionByName(pipelineID, versionName)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to get a pipeline version with name %v", name)
+		return nil, util.Wrapf(err, "Failed to get a pipeline version with pipelineID=%v and name=%v", pipelineID, versionName)
 	}
 	return pipelineVersion, nil
 }

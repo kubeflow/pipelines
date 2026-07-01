@@ -17,7 +17,7 @@ package argocompiler
 import (
 	"testing"
 
-	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
@@ -105,6 +105,30 @@ func TestContainerDriverTemplate_IncludesKFPPodNameEnv(t *testing.T) {
 	}
 	assert.True(t, foundKFPPodName,
 		"system-container-driver template must include KFP_POD_NAME env var to avoid hostname truncation for long pod names")
+}
+
+func TestContainerDriverTemplate_IncludesPipelineJobCreateTimeArg(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	c := &workflowCompiler{
+		templates: make(map[string]*wfapi.Template),
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+		spec: &pipelinespec.PipelineSpec{
+			PipelineInfo: &pipelinespec.PipelineInfo{Name: "test-pipeline"},
+		},
+		job: &pipelinespec.PipelineJob{},
+	}
+
+	name := c.addContainerDriverTemplate()
+	tmpl, exists := c.templates[name]
+	require.True(t, exists, "system-container-driver template should exist")
+	require.NotNil(t, tmpl.Container, "template should have a container")
+	assert.Contains(t, tmpl.Container.Args, "--pipeline_job_create_time_utc")
+	assert.Contains(t, tmpl.Container.Args, runCreationTimeUTC())
+	assert.NotContains(t, tmpl.Container.Args, "--pipeline_job_schedule_time_epoch_seconds")
 }
 
 func Test_extendPodMetadata(t *testing.T) {
