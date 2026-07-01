@@ -16,9 +16,9 @@
 
 import FolderIcon from '@mui/icons-material/Folder';
 import React from 'react';
-import { Handle, Position } from '@xyflow/react';
 import { Artifact } from 'src/third_party/mlmd';
 import { ArtifactFlowElementData } from './Constants';
+import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
 
 interface ArtifactNodeProps {
   id: string;
@@ -45,18 +45,7 @@ function ArtifactNode({ id, data }: ArtifactNodeProps) {
           </div>
         </div>
       </button>
-      <Handle
-        type='target'
-        position={Position.Top}
-        isValidConnection={() => false}
-        style={{ background: '#000', height: '1px', width: '1px', border: 0 }}
-      />
-      <Handle
-        type='source'
-        position={Position.Bottom}
-        isValidConnection={() => false}
-        style={{ background: '#000', height: '1px', width: '1px', border: 0 }}
-      />
+      <ReadOnlyNodeHandles />
     </>
   );
 }

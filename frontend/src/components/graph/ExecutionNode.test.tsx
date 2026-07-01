@@ -68,6 +68,22 @@ describe('ExecutionNode', () => {
     );
     expect(screen.getByTitle('titled-step')).toBeInTheDocument();
   });
+
+  it('renders hidden, non-connectable edge anchors', () => {
+    const { container } = renderWithProvider(
+      <ExecutionNode id='exec-1' data={{ label: 'anchored-step', state: undefined }} />,
+    );
+    const handles = container.querySelectorAll('.react-flow__handle');
+
+    expect(handles).toHaveLength(2);
+    handles.forEach((handle) => {
+      expect(handle).toHaveStyle({ opacity: '0' });
+      expect(handle).not.toHaveClass('connectable');
+      expect(handle).not.toHaveClass('connectablestart');
+      expect(handle).not.toHaveClass('connectableend');
+      expect(handle).not.toHaveClass('connectionindicator');
+    });
+  });
 });
 
 describe('getIcon', () => {

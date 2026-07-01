@@ -72,4 +72,18 @@ describe('SubDagNode', () => {
     renderWithProvider(<SubDagNode id='subdag-42' data={defaultData} />);
     expect(screen.getByTestId('subdag-42')).toBeInTheDocument();
   });
+
+  it('renders hidden, non-connectable edge anchors', () => {
+    const { container } = renderWithProvider(<SubDagNode id='subdag-1' data={defaultData} />);
+    const handles = container.querySelectorAll('.react-flow__handle');
+
+    expect(handles).toHaveLength(2);
+    handles.forEach((handle) => {
+      expect(handle).toHaveStyle({ opacity: '0' });
+      expect(handle).not.toHaveClass('connectable');
+      expect(handle).not.toHaveClass('connectablestart');
+      expect(handle).not.toHaveClass('connectableend');
+      expect(handle).not.toHaveClass('connectionindicator');
+    });
+  });
 });
