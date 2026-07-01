@@ -404,6 +404,8 @@ const MaxTagValueLength = 63
 // MaxTagsPerEntity is the maximum number of tags allowed on a single pipeline or pipeline version.
 const MaxTagsPerEntity = 20
 
+const maxRetryWorkflowUpdateAttempts = 3
+
 // validateTags checks that tags conform to all constraints:
 // - maximum number of tags per entity
 // - no empty keys
@@ -1132,25 +1134,9 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error cleaning up the failed pods from the previous attempt", runId)
 	}
 
-	// First try to update workflow
-	// If fail to get the workflow, return error.
-	latestWorkflow, updateError := r.getWorkflowClient(namespace).Get(ctx, newExecSpec.ExecutionName(), v1.GetOptions{})
-	if updateError == nil {
-		// Update the workflow's resource version to latest.
-		newExecSpec.SetVersion(latestWorkflow.Version())
-		_, updateError = r.getWorkflowClient(namespace).Update(ctx, newExecSpec, v1.UpdateOptions{})
-	}
-	if updateError != nil {
-		// Remove resource version
-		newExecSpec.SetVersion("")
-		newCreatedWorkflow, createError := r.getWorkflowClient(namespace).Create(ctx, newExecSpec, v1.CreateOptions{})
-		if createError != nil {
-			if createError, ok := createError.(net.Error); ok && createError.Timeout() {
-				return util.NewUnavailableServerError(createError, "Failed to retry run %s due to error creating and updating a workflow - try again later. Update error: %s", runId, updateError.Error())
-			}
-			return util.NewInternalServerError(createError, "Failed to retry run %s due to error updating and creating a workflow. Update error: %s", runId, updateError.Error())
-		}
-		newExecSpec = newCreatedWorkflow
+	newExecSpec, err = r.updateOrCreateRetryWorkflow(ctx, namespace, runId, newExecSpec)
+	if err != nil {
+		return err
 	}
 	// Notify plugins of retry
 	if run.PluginsOutputString != nil && *run.PluginsOutputString != "" {
@@ -1171,6 +1157,49 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error updating entry", runId)
 	}
 	return nil
+}
+
+func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, namespace string, runID string, newExecSpec util.ExecutionSpec) (util.ExecutionSpec, error) {
+	workflowClient := r.getWorkflowClient(namespace)
+	var updateError error
+
+	for attempt := 0; attempt < maxRetryWorkflowUpdateAttempts; attempt++ {
+		latestWorkflow, err := workflowClient.Get(ctx, newExecSpec.ExecutionName(), v1.GetOptions{})
+		if err == nil {
+			newExecSpec.SetVersion(latestWorkflow.Version())
+			updatedWorkflow, err := workflowClient.Update(ctx, newExecSpec, v1.UpdateOptions{})
+			if err == nil {
+				return updatedWorkflow, nil
+			}
+			updateError = err
+			if apierrors.IsConflict(err) {
+				continue
+			}
+			if !apierrors.IsNotFound(err) {
+				return nil, util.NewInternalServerError(err, "Failed to retry run %s due to error updating workflow", runID)
+			}
+		} else {
+			updateError = err
+			if !apierrors.IsNotFound(err) {
+				return nil, util.NewInternalServerError(err, "Failed to retry run %s due to error getting workflow", runID)
+			}
+		}
+
+		newExecSpec.SetVersion("")
+		newCreatedWorkflow, createError := workflowClient.Create(ctx, newExecSpec, v1.CreateOptions{})
+		if createError == nil {
+			return newCreatedWorkflow, nil
+		}
+		if apierrors.IsAlreadyExists(createError) {
+			continue
+		}
+		if createError, ok := createError.(net.Error); ok && createError.Timeout() {
+			return nil, util.NewUnavailableServerError(createError, "Failed to retry run %s due to error creating and updating a workflow - try again later. Update error: %s", runID, updateError.Error())
+		}
+		return nil, util.NewInternalServerError(createError, "Failed to retry run %s due to error updating and creating a workflow. Update error: %s", runID, updateError.Error())
+	}
+
+	return nil, util.NewInternalServerError(updateError, "Failed to retry run %s due to error updating and creating a workflow after retries. Update error: %s", runID, updateError.Error())
 }
 
 // Fetches execution logs and writes to the destination.
