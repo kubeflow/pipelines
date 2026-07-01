@@ -14,6 +14,12 @@
 
 import re
 from typing import List
+
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+
 import unittest
 
 from kfp import dsl
@@ -409,6 +415,34 @@ class TestPythonEOLWarning(unittest.TestCase):
             @dsl.component
             def foo():
                 pass
+
+
+class TestLiteralParameterFixes(unittest.TestCase):
+
+    def test_literal_default_valid(self):
+        # Fix 1: valid default should not raise
+        @dsl.component(base_image='python:3.11')
+        def comp(x: Literal['a', 'b'] = 'a'):
+            pass
+
+        self.assertEqual(comp.component_spec.inputs['x'].default, 'a')
+        self.assertEqual(comp.component_spec.inputs['x'].literals, ['a', 'b'])
+
+    def test_literal_default_invalid_raises(self):
+        # Fix 1: default outside allowed set must raise at definition time
+        with self.assertRaises(ValueError):
+
+            @dsl.component(base_image='python:3.11')
+            def comp(x: Literal['a', 'b'] = 'c'):
+                pass
+
+    def test_container_component_with_literal_input(self):
+        # Fix 4: container_component with Literal input must not raise
+        @dsl.container_component
+        def cc(x: Literal['a', 'b']):
+            return dsl.ContainerSpec(image='alpine', command=['echo', x])
+
+        self.assertEqual(cc.component_spec.inputs['x'].literals, ['a', 'b'])
 
 
 if __name__ == '__main__':
