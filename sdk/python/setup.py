@@ -17,6 +17,7 @@ import re
 from typing import List
 
 import setuptools
+from setuptools import setup
 
 
 def get_requirements(requirements_file: str) -> List[str]:
@@ -109,3 +110,6 @@ setuptools.setup(
             'kfp=kfp.cli.__main__:main',
         ]
     })
+
+if __name__ == "__main__":
+    setup()
