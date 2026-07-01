@@ -245,6 +245,8 @@ type LogArchive struct {
 	logPathPrefix string
 }
 
+const archivedLogArtifactName = "main-logs"
+
 func NewLogArchive(logPathPrefix, logFileName string) *LogArchive {
 	return &LogArchive{
 		logFileName:   logFileName,
@@ -255,9 +257,11 @@ func NewLogArchive(logPathPrefix, logFileName string) *LogArchive {
 func (a *LogArchive) GetLogObjectKey(workflow util.ExecutionSpec, nodeID string) (string, error) {
 	if a.logPathPrefix == "" || a.logFileName == "" || workflow == nil {
 		return "", util.Wrapf(errors.New("invalid log archive configuration"), "configuration: %v", a)
-	} else {
-		return strings.Join([]string{a.logPathPrefix, workflow.ExecutionName(), nodeID, a.logFileName}, "/"), nil
 	}
+	if archivedLogKey := workflow.ExecutionStatus().FindObjectStoreArtifactKeyOrEmpty(nodeID, archivedLogArtifactName); archivedLogKey != "" {
+		return archivedLogKey, nil
+	}
+	return strings.Join([]string{a.logPathPrefix, workflow.ExecutionName(), nodeID, a.logFileName}, "/"), nil
 }
 
 // CopyLogFromArchive copies a task run archived log into expected format.

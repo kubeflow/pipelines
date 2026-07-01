@@ -116,6 +116,27 @@ func TestGetLogObjectKey(t *testing.T) {
 	assert.Equal(t, "/logs/MY_NAME/node-id-98765432/main.log", key)
 }
 
+func TestGetLogObjectKey_UsesWorkflowArtifactLocation(t *testing.T) {
+	logArchive := initLogArchive()
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "MY_NAME"},
+		Status: workflowapi.WorkflowStatus{Nodes: map[string]workflowapi.NodeStatus{
+			"node-id-98765432": {
+				Outputs: &workflowapi.Outputs{Artifacts: workflowapi.Artifacts{{
+					Name: "main-logs",
+					ArtifactLocation: workflowapi.ArtifactLocation{
+						S3: &workflowapi.S3Artifact{Key: "private-artifacts/custom/main.log"},
+					},
+				}}},
+			},
+		}},
+	})
+
+	key, err := logArchive.GetLogObjectKey(workflow, "node-id-98765432")
+	assert.NoError(t, err)
+	assert.Equal(t, "private-artifacts/custom/main.log", key)
+}
+
 func TestGetLogObjectKey_InvalidConfig(t *testing.T) {
 	logArchive := NewLogArchive("", "")
 	_, err := logArchive.GetLogObjectKey(nil, "node-id-98765432")

@@ -2375,6 +2375,34 @@ func TestWorkflow_FindObjectStoreArtifactKeyOrEmpty_WithS3(t *testing.T) {
 	assert.Equal(t, "my-bucket/key/path", workflow.FindObjectStoreArtifactKeyOrEmpty("node1", "artifact1"))
 }
 
+func TestWorkflow_FindObjectStoreArtifactKeyOrEmpty_WithDerivedPodName(t *testing.T) {
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "artifact-pipeline"},
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{
+				"artifact-pipeline-3035043641": {
+					ID:           "artifact-pipeline-3035043641",
+					Name:         "artifact-pipeline.root.write-artifact.executor(0)",
+					TemplateName: "system-container-impl",
+					Outputs: &workflowapi.Outputs{
+						Artifacts: workflowapi.Artifacts{{
+							Name: "main-logs",
+							ArtifactLocation: workflowapi.ArtifactLocation{
+								S3: &workflowapi.S3Artifact{Key: "private-artifacts/custom/main.log"},
+							},
+						}},
+					},
+				},
+			},
+		},
+	})
+
+	assert.Equal(t, "private-artifacts/custom/main.log", workflow.FindObjectStoreArtifactKeyOrEmpty(
+		"artifact-pipeline-system-container-impl-3035043641",
+		"main-logs",
+	))
+}
+
 func TestWorkflow_FindObjectStoreArtifactKeyOrEmpty_NodeNotFound(t *testing.T) {
 	workflow := NewWorkflow(&workflowapi.Workflow{
 		Status: workflowapi.WorkflowStatus{
