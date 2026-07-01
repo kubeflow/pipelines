@@ -1155,5 +1155,60 @@ class TestLoadDocumentsFromYAML(unittest.TestCase):
                 """))
 
 
+
+
+class TestExtractDescriptionBoundsCheck(unittest.TestCase):
+    """Tests that extract_description handles malformed YAML without IndexError.
+
+    extract_description is a nested function inside from_yaml_documents.
+    We mock ComponentSpec.from_ir_dicts to return a dummy spec with
+    description=None, so extract_description gets called on the raw YAML.
+    """
+
+    def _call_with_mock(self, raw_yaml):
+        """Call from_yaml_documents with mocked dependencies."""
+        from unittest import mock
+        dummy_spec = mock.MagicMock()
+        dummy_spec.description = None
+        valid_ir = {
+            'pipelineInfo': {'name': 'test'},
+            'root': {'dag': {'tasks': {}}},
+            'components': {},
+        }
+        with mock.patch(
+            'kfp.dsl.structures.load_documents_from_yaml',
+            return_value=(valid_ir, {})
+        ), mock.patch(
+            'kfp.dsl.structures.ComponentSpec.from_ir_dicts',
+            return_value=dummy_spec
+        ):
+            return structures.ComponentSpec.from_yaml_documents(raw_yaml)
+
+    def test_multiline_description_exceeding_lines_no_crash(self):
+        """Multi-line description that runs past the end of lines."""
+        malicious_yaml = "pipelineInfo:\n  name: test\n# Description: some text\n#             continued text\n#             more text"
+        self._call_with_mock(malicious_yaml)
+
+    def test_description_heading_at_boundary_no_crash(self):
+        """Heading found but YAML has exactly index_of_heading lines."""
+        malicious_yaml = "line0\nline1\n# Description: hello"
+        self._call_with_mock(malicious_yaml)
+
+    def test_empty_yaml_no_crash(self):
+        """Empty string should not raise IndexError."""
+        self._call_with_mock("")
+
+    def test_crafted_yaml_from_issue_no_crash(self):
+        """Exact reproducer from issue #13420."""
+        malicious_yaml = "line0\nline1\n# Description: some text\n#             continued text"
+        self._call_with_mock(malicious_yaml)
+
+    def test_valid_yaml_with_description_still_works(self):
+        """Normal YAML with description should still extract it correctly."""
+        yaml_with_desc = "line0\nline1\n# Description: hello world\n#             continued"
+        result = self._call_with_mock(yaml_with_desc)
+        self.assertIn("hello world", result.description)
+
+
 if __name__ == '__main__':
     unittest.main()
