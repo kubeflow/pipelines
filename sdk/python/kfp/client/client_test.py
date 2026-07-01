@@ -548,5 +548,99 @@ class TestClient(parameterized.TestCase):
             self.assertEqual(result, expected_result)
 
 
+class TestNamespaceResolution(unittest.TestCase):
+    """Tests for namespace resolution logic."""
+
+    @patch('kfp_server_api.ApiClient')
+    @patch.dict('os.environ', {'KF_PIPELINES_NAMESPACE': 'my-custom-ns'})
+    @patch(
+        'kubernetes.config.load_incluster_config',
+        side_effect=Exception('not in cluster'))
+    @patch('kubernetes.config.load_kube_config')
+    def test_namespace_from_env_variable(
+            self, mock_load_kube, mock_load_incluster, mock_api):
+        """Namespace from KF_PIPELINES_NAMESPACE env var should be used."""
+        mock_load_kube.return_value = None
+        c = client.Client('http://dummy:8888')
+        self.assertEqual(c._context_setting['namespace'], 'my-custom-ns')
+
+    @patch('kfp_server_api.ApiClient')
+    @patch.dict('os.environ', {'KF_PIPELINES_NAMESPACE': 'env-ns'})
+    @patch(
+        'kubernetes.config.load_incluster_config',
+        side_effect=Exception('not in cluster'))
+    @patch('kubernetes.config.load_kube_config')
+    def test_namespace_explicit_overrides_env(
+            self, mock_load_kube, mock_load_incluster, mock_api):
+        """Explicit namespace parameter should override env var."""
+        mock_load_kube.return_value = None
+        c = client.Client('http://dummy:8888', namespace='explicit-ns')
+        self.assertEqual(c._context_setting['namespace'], 'explicit-ns')
+
+    @patch('kfp_server_api.ApiClient')
+    @patch.dict('os.environ', {}, clear=False)
+    @patch(
+        'kubernetes.config.load_incluster_config',
+        side_effect=Exception('not in cluster'))
+    @patch('kubernetes.config.load_kube_config')
+    def test_namespace_default_when_nothing_set(
+            self, mock_load_kube, mock_load_incluster, mock_api):
+        """Default namespace should be kubeflow when nothing is set."""
+        mock_load_kube.return_value = None
+        os.environ.pop('KF_PIPELINES_NAMESPACE', None)
+        with patch.object(client.Client, '_load_config') as mock_load_config:
+            from kfp_server_api import Configuration
+            mock_load_config.return_value = Configuration()
+            c = client.Client('http://dummy:8888')
+            call_args = mock_load_config.call_args[0]
+            self.assertEqual(call_args[2], 'kubeflow')
+
+    @patch('kfp_server_api.ApiClient')
+    @patch.dict('os.environ', {'KF_PIPELINES_NAMESPACE': 'my-ns'})
+    @patch('kubernetes.config.load_incluster_config')
+    def test_in_cluster_dns_uses_env_namespace(
+            self, mock_load_incluster, mock_api):
+        """In-cluster DNS name should use namespace from env var."""
+        mock_load_incluster.return_value = None
+        mock_self = MagicMock()
+        mock_self._is_inverse_proxy_host.return_value = False
+        mock_self._get_config_with_default_credentials.side_effect = (
+            lambda cfg: cfg)
+        config = client.Client._load_config(
+            mock_self,
+            host=None,
+            client_id=None,
+            namespace='my-ns',
+            other_client_id=None,
+            other_client_secret=None,
+            existing_token=None,
+            proxy=None,
+            ssl_ca_cert=None,
+            kube_context=None,
+            credentials=None,
+            verify_ssl=None,
+        )
+        self.assertEqual(
+            config.host, 'ml-pipeline.my-ns.svc.cluster.local:8888')
+
+    @patch('kfp_server_api.ApiClient')
+    @patch.dict('os.environ', {'KF_PIPELINES_NAMESPACE': 'env-ns'})
+    @patch(
+        'kubernetes.config.load_incluster_config',
+        side_effect=Exception('not in cluster'))
+    @patch('kubernetes.config.load_kube_config')
+    def test_in_cluster_namespace_from_env_e2e(
+            self, mock_load_kube, mock_load_incluster, mock_api):
+        """End-to-end: env namespace is passed to _load_config."""
+        mock_load_kube.return_value = None
+        with patch.object(
+                client.Client, '_load_config') as mock_load_config:
+            from kfp_server_api import Configuration
+            mock_load_config.return_value = Configuration()
+            client.Client('http://dummy:8888')
+            call_args = mock_load_config.call_args[0]
+            self.assertEqual(call_args[2], 'env-ns')
+
+
 if __name__ == '__main__':
     unittest.main()

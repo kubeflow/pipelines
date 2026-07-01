@@ -58,6 +58,7 @@ KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME = 'KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME'
 KF_PIPELINES_IAP_OAUTH2_CLIENT_ID_ENV = 'KF_PIPELINES_IAP_OAUTH2_CLIENT_ID'
 KF_PIPELINES_APP_OAUTH2_CLIENT_ID_ENV = 'KF_PIPELINES_APP_OAUTH2_CLIENT_ID'
 KF_PIPELINES_APP_OAUTH2_CLIENT_SECRET_ENV = 'KF_PIPELINES_APP_OAUTH2_CLIENT_SECRET'
+KF_PIPELINES_NAMESPACE_ENV = 'KF_PIPELINES_NAMESPACE'
 
 
 @dataclasses.dataclass
@@ -138,12 +139,14 @@ class Client:
 
     _LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
 
+    _DEFAULT_NAMESPACE = 'kubeflow'
+
     # TODO: Wrap the configurations for different authentication methods.
     def __init__(
         self,
         host: Optional[str] = None,
         client_id: Optional[str] = None,
-        namespace: str = 'kubeflow',
+        namespace: Optional[str] = None,
         other_client_id: Optional[str] = None,
         other_client_secret: Optional[str] = None,
         existing_token: Optional[str] = None,
@@ -162,6 +165,8 @@ class Client:
             category=FutureWarning)
 
         host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
+        namespace = namespace or os.environ.get(
+            KF_PIPELINES_NAMESPACE_ENV) or self._DEFAULT_NAMESPACE
         self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, ui_host or
                                       host)
         client_id = client_id or os.environ.get(
@@ -180,7 +185,7 @@ class Client:
 
         # If custom namespace provided, overwrite the loaded or default one in
         # context settings for current client instance
-        if namespace != 'kubeflow':
+        if namespace != self._DEFAULT_NAMESPACE:
             self._context_setting['namespace'] = namespace
 
         self._existing_config = config
