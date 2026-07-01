@@ -77,7 +77,12 @@ describe('ExecutionNode', () => {
 
     expect(handles).toHaveLength(2);
     handles.forEach((handle) => {
-      expect(handle).toHaveStyle({ opacity: '0' });
+      expect(handle).toHaveStyle({
+        height: '1px',
+        opacity: '0',
+        pointerEvents: 'none',
+        width: '1px',
+      });
       expect(handle).not.toHaveClass('connectable');
       expect(handle).not.toHaveClass('connectablestart');
       expect(handle).not.toHaveClass('connectableend');
