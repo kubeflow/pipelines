@@ -81,7 +81,7 @@ Design: [bit.ly/kfp-v2](https://bit.ly/kfp-v2)
   * build first class support for metadata -- recording, presentation and orchestration.
   * making it easy to keep track of all the data produced by machine learning pipelines and how it was computed.
 * KFP native (and argo agnostic) spec and status: define a clear interface for KFP, so that other systems can understand KFP pipeline spec and status in KFP semantics.
-* Gaining more control over KFP runtime behavior, so that it sets up a solid foundation for us to add new features to KFP: give the KFP system more control over the exact runtime behavior. This wasn’t a goal initially coming from use cases. However, the more we innovate on Data Management and KFP native spec/status, the clearer that other workflow systems become limitations to how we may implement new KFP features on our own. Therefore, re-architecturing KFP to let us get more control of runtime behavior is ideal for achieving KFP’s long term goals.
+* Gaining more control over KFP runtime behavior, so that it sets up a solid foundation for us to add new features to KFP: give the KFP system more control over the exact runtime behavior. This wasn’t a goal initially coming from use cases. However, the more we innovate on Data Management and KFP native spec/status, the clearer that other workflow systems become limitations to how we may implement new KFP features on our own. Therefore, re-architecting KFP to let us get more control of runtime behavior is ideal for achieving KFP’s long term goals.
 * Be backward compatible with KFP v1: for existing features, we want to keep them as backward compatible as possible to ease upgrade.
 
 #### Timeline - v2
