@@ -33,7 +33,6 @@ import (
 
 var (
 	copy                     = flag.String("copy", "", "copy this binary to specified destination path")
-	copyTokenTo              = flag.String("copy_token_to", "", "copy the projected KFP token to the specified destination path")
 	pipelineName             = flag.String("pipeline_name", "", "pipeline context name")
 	runID                    = flag.String("run_id", "", "pipeline run uid")
 	taskID                   = flag.String("task_id", "", "pipeline task id (PipelineTask.task_id)")
@@ -83,7 +82,7 @@ func run() error {
 		// copy is used to copy this binary to a shared volume
 		// this is a special command, ignore all other flags by returning
 		// early
-		return component.CopyThisBinaryAndToken(*copy, *copyTokenTo)
+		return component.CopyThisBinary(*copy)
 	}
 	namespace, err := resolveNamespace()
 	if err != nil {

@@ -2,8 +2,6 @@ package apiclient
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 	"sync"
 	"testing"
 
@@ -27,7 +25,6 @@ func TestTokenPerRPCCredentialsGetRequestMetadata(t *testing.T) {
 	t.Cleanup(func() {
 		tokenSource = nil
 		tokenSourceOnce = sync.Once{}
-		t.Setenv(KFPTokenPathEnvVar, "")
 	})
 
 	t.Run("adds bearer token when available", func(t *testing.T) {
@@ -53,25 +50,4 @@ func TestTokenPerRPCCredentialsGetRequestMetadata(t *testing.T) {
 			t.Fatalf("GetRequestMetadata() = %#v, want empty metadata", metadata)
 		}
 	})
-}
-
-func TestGetToken_UsesStagedTokenPathAndDeletesFile(t *testing.T) {
-	t.Cleanup(func() {
-		tokenSource = nil
-		tokenSourceOnce = sync.Once{}
-		t.Setenv(KFPTokenPathEnvVar, "")
-	})
-
-	tokenFilePath := filepath.Join(t.TempDir(), "token")
-	if err := os.WriteFile(tokenFilePath, []byte("staged-token"), 0o600); err != nil {
-		t.Fatalf("WriteFile() error = %v", err)
-	}
-	t.Setenv(KFPTokenPathEnvVar, tokenFilePath)
-
-	if got := getToken(); got != "staged-token" {
-		t.Fatalf("getToken() = %q, want %q", got, "staged-token")
-	}
-	if _, err := os.Stat(tokenFilePath); !os.IsNotExist(err) {
-		t.Fatalf("expected staged token file to be removed, stat error = %v", err)
-	}
 }

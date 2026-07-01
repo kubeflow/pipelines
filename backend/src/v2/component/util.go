@@ -18,13 +18,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/v2/apiclient"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -40,45 +38,12 @@ func CopyThisBinary(destination string) (err error) {
 	if err != nil {
 		return err
 	}
-	return copyFile(path, destination, 0o555)
-}
-
-func CopyThisBinaryAndToken(destination, tokenDestination string) (err error) {
-	defer func() {
-		if err != nil {
-			err = fmt.Errorf("copy launcher assets to %s: %w", destination, err)
-		}
-	}()
-
-	path, err := findThisBinary()
-	if err != nil {
-		return err
-	}
-	if err := copyFile(path, destination, 0o555); err != nil {
-		return err
-	}
-	if tokenDestination == "" {
-		return nil
-	}
-	if _, err := os.Stat(apiclient.KFPTokenPath); err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
-	return copyFile(apiclient.KFPTokenPath, tokenDestination, 0o400)
-}
-
-func copyFile(sourcePath, destinationPath string, mode os.FileMode) error {
-	src, err := os.Open(sourcePath)
+	src, err := os.Open(path)
 	if err != nil {
 		return err
 	}
 	defer src.Close()
-	if err := os.MkdirAll(filepath.Dir(destinationPath), 0o755); err != nil {
-		return err
-	}
-	dst, err := os.OpenFile(destinationPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, mode)
+	dst, err := os.OpenFile(destination, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o555) // 0o555 -> readable and executable by all
 	if err != nil {
 		return err
 	}
