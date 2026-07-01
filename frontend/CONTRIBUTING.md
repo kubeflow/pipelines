@@ -96,11 +96,17 @@ respond to API requests.
 
 ### Api mock server
 
-This is the easiest way to start developing, but it does not support all apis during
-development.
+This is the easiest way to start developing fixture-backed UI flows, but it does
+not support every backend API used by KFP.
 
 Run `npm run mock:api` to start a mock backend api server handler so it can
-serve basic api calls with mock data.
+serve basic api calls with mock data. The mock backend includes enough v2beta1
+fixtures for the primary Pipelines, Experiments, Runs, and Recurring Runs list
+pages, along with v1beta1 fixtures used by older flows.
+
+Use the real-cluster proxy path below when you need behavior that depends on
+Kubernetes, MLMD, runtime artifacts, pod logs, authentication, or full backend
+semantics.
 
 If you want to port real MLMD store to be used for mock backend scenario, you can run the following command. Note that a mock MLMD store doesn't exist yet.
 
