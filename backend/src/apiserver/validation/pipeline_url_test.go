@@ -16,6 +16,7 @@ package validation
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -34,9 +35,42 @@ func resetURLConfig() {
 	allowedDomains = nil
 }
 
+// fakeAddrs maps hostnames (and literal IPs) to the IPs a stubbed resolver
+// should return for them in tests, avoiding real DNS lookups.
+var fakeAddrs = map[string][]net.IP{
+	"storage.googleapis.com": {net.ParseIP("142.250.80.46")},
+	"s3.amazonaws.com":       {net.ParseIP("52.216.0.1")},
+	"github.com":             {net.ParseIP("140.82.112.3")},
+	"example.com":            {net.ParseIP("93.184.216.34")},
+	"evil.com":               {net.ParseIP("203.0.113.1")},
+	"localhost":              {net.ParseIP("127.0.0.1")},
+	"127.0.0.1":              {net.ParseIP("127.0.0.1")},
+	"169.254.169.254":        {net.ParseIP("169.254.169.254")},
+}
+
+// stubLookupIPAddr replaces the package's DNS resolver with a fake one backed
+// by fakeAddrs, so tests never perform a real network lookup, and restores
+// the original resolver when the test completes.
+func stubLookupIPAddr(t *testing.T) {
+	original := lookupIPAddr
+	lookupIPAddr = func(ctx context.Context, host string) ([]net.IPAddr, error) {
+		ips, ok := fakeAddrs[host]
+		if !ok {
+			return nil, fmt.Errorf("fakeAddrs: no stubbed addresses for %q", host)
+		}
+		addrs := make([]net.IPAddr, len(ips))
+		for i, ip := range ips {
+			addrs[i] = net.IPAddr{IP: ip}
+		}
+		return addrs, nil
+	}
+	t.Cleanup(func() { lookupIPAddr = original })
+}
+
 func TestValidatePipelineURL_AllowedDomains(t *testing.T) {
 	viper.Reset()
 	resetURLConfig()
+	stubLookupIPAddr(t)
 
 	// Default allowed domains should pass
 	assert.NoError(t, ValidatePipelineURL("https://storage.googleapis.com/bucket/file.yaml"))
@@ -62,6 +96,7 @@ func TestValidatePipelineURL_BlockedDomain(t *testing.T) {
 func TestValidatePipelineURL_SchemeRestriction(t *testing.T) {
 	viper.Reset()
 	resetURLConfig()
+	stubLookupIPAddr(t)
 
 	// HTTP blocked by default
 	err := ValidatePipelineURL("http://storage.googleapis.com/bucket/file.yaml")
@@ -76,6 +111,7 @@ func TestValidatePipelineURL_HTTPAllowedWhenConfigured(t *testing.T) {
 	viper.Reset()
 	viper.Set("PIPELINE_URL_ALLOW_HTTP", "true")
 	resetURLConfig()
+	stubLookupIPAddr(t)
 
 	// HTTP allowed when configured
 	assert.NoError(t, ValidatePipelineURL("http://storage.googleapis.com/bucket/file.yaml"))
@@ -84,6 +120,7 @@ func TestValidatePipelineURL_HTTPAllowedWhenConfigured(t *testing.T) {
 func TestValidatePipelineURL_PortRestriction(t *testing.T) {
 	viper.Reset()
 	resetURLConfig()
+	stubLookupIPAddr(t)
 
 	// Default port (no port specified) should pass
 	assert.NoError(t, ValidatePipelineURL("https://storage.googleapis.com/bucket/file.yaml"))
@@ -117,6 +154,7 @@ func TestValidatePipelineURL_UserConfiguredDomains(t *testing.T) {
 	viper.Reset()
 	viper.Set("PIPELINE_URL_ALLOWED_DOMAINS", "example.com")
 	resetURLConfig()
+	stubLookupIPAddr(t)
 
 	// User-configured domain should pass
 	assert.NoError(t, ValidatePipelineURL("https://example.com/test.yaml"))
@@ -197,6 +235,7 @@ func TestIsBlockedIP_IPv6Metadata(t *testing.T) {
 func TestValidatePipelineURL_HostnameNormalization(t *testing.T) {
 	viper.Reset()
 	resetURLConfig()
+	stubLookupIPAddr(t)
 
 	// Trailing dot (FQDN) should be normalized and pass
 	assert.NoError(t, ValidatePipelineURL("https://storage.googleapis.com./bucket/file.yaml"))
@@ -208,6 +247,7 @@ func TestValidatePipelineURL_HostnameNormalization(t *testing.T) {
 func TestSafePipelineHTTPClient_RedirectValidation(t *testing.T) {
 	viper.Reset()
 	resetURLConfig()
+	stubLookupIPAddr(t)
 
 	client := SafePipelineHTTPClient()
 
@@ -299,6 +339,7 @@ func TestSafeDialContext_BlocksPrivateIPs(t *testing.T) {
 	viper.Reset()
 	resetURLConfig()
 	initURLConfig()
+	stubLookupIPAddr(t)
 
 	ctx := context.Background()
 	// 127.0.0.1 is in the loopback blocked range
@@ -311,6 +352,7 @@ func TestSafeDialContext_BlocksMetadataIP(t *testing.T) {
 	viper.Reset()
 	resetURLConfig()
 	initURLConfig()
+	stubLookupIPAddr(t)
 
 	ctx := context.Background()
 	// 169.254.169.254 is the cloud metadata endpoint
