@@ -18,10 +18,9 @@ package util
 import (
 	"context"
 	"fmt"
+	"io"
 	"strings"
 	"time"
-
-	"google.golang.org/protobuf/encoding/protojson"
 
 	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	argoclient "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned"
@@ -481,8 +480,6 @@ func (w *Workflow) StartedAtTime() metav1.Time {
 
 const (
 	metricsArtifactName = "mlpipeline-metrics"
-	// More than 50 metrics is not scalable with current UI design.
-	maxMetricsCountLimit = 50
 )
 
 func (w *Workflow) CollectionMetrics(readArtifact func(*artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error)) ([]*api.RunMetric, []error) {
@@ -515,63 +512,24 @@ func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, r
 	if !nodeStatus.Completed() {
 		return nil, nil
 	}
-	metricsJSON, err := readNodeMetricsJSONOrEmpty(runID, nodeStatus, readArtifact, &wf)
-	if err != nil || metricsJSON == "" {
+	metrics, err := readNodeMetricsOrNil(runID, nodeStatus, readArtifact, &wf)
+	if err != nil || metrics == nil {
 		return nil, err
 	}
 
 	retrievedNodeID := nodeStatus.ID
-	// Proto json lib requires a proto message before unmarshal data from JSON. We use
-	// ReportRunMetricsRequest as a workaround to hold user's metrics, which is a superset of what
-	// user can provide.
-	reportMetricsRequest := new(api.ReportRunMetricsRequest)
-	transformedJSON, err := transformJSONForBackwardCompatibility(metricsJSON)
-	if err != nil {
-		fmt.Printf("Failed to transform JSON: %v\n", err)
-		return nil, err
-	}
-
-	err = protojson.Unmarshal([]byte(transformedJSON), reportMetricsRequest)
-	if err != nil {
-		// User writes invalid metrics JSON.
-		// TODO(#1426): report the error back to api server to notify user
-		log.WithFields(log.Fields{
-			"run":         runID,
-			"node":        retrievedNodeID,
-			"raw_content": metricsJSON,
-			"error":       err.Error(),
-		}).Warning("Failed to unmarshal metrics file.")
-		return nil, NewCustomError(err, CUSTOM_CODE_PERMANENT,
-			"failed to unmarshal metrics file from (%s, %s).", runID, retrievedNodeID)
-	}
-	if reportMetricsRequest.GetMetrics() == nil {
-		return nil, nil
-	}
-	for _, metric := range reportMetricsRequest.GetMetrics() {
+	for _, metric := range metrics {
 		// User metrics just have name and value but no NodeId.
 		metric.NodeId = retrievedNodeID
 	}
-	return reportMetricsRequest.GetMetrics(), nil
+	return metrics, nil
 }
 
-// Previously number_value for RunMetrics in backend/api/v1beta1/run.proto
-// allowed camelCase field values in JSON, to be consistent with the
-// rest of the API (as well as with KFP api docs); this value was switched
-// to support snake case. This function will convert old values to the
-// newer snakecase so we can continue to support camelcase Metric Values for
-// backwards compatibility for the end user.
-func transformJSONForBackwardCompatibility(jsonStr string) (string, error) {
-	replacer := strings.NewReplacer(
-		`"numberValue":`, `"number_value":`,
-	)
-	return replacer.Replace(jsonStr), nil
-}
-
-func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus,
+func readNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus,
 	readArtifact func(*artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error), wf *workflowapi.Workflow,
-) (string, error) {
+) ([]*api.RunMetric, error) {
 	if nodeStatus.Outputs == nil || nodeStatus.Outputs.Artifacts == nil {
-		return "", nil // No output artifacts, skip the reporting
+		return nil, nil // No output artifacts, skip the reporting
 	}
 
 	var foundMetricsArtifact bool = false
@@ -581,7 +539,7 @@ func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus
 		}
 	}
 	if !foundMetricsArtifact {
-		return "", nil // No metrics artifact, skip the reporting
+		return nil, nil // No metrics artifact, skip the reporting
 	}
 
 	artifactRequest := &artifactclient.ReadArtifactRequest{
@@ -591,27 +549,25 @@ func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus
 	}
 	artifactResponse, err := readArtifact(artifactRequest)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if artifactResponse == nil || artifactResponse.Data == nil || len(artifactResponse.Data) == 0 {
 		// If artifact is not found or empty content, skip the reporting.
-		return "", nil
+		return nil, nil
 	}
-	archivedFiles, err := ExtractTgz(string(artifactResponse.Data))
+
+	var metrics []*api.RunMetric
+	err = readSingleFileFromTgz(artifactResponse.Data, GetMaxMetricsFileBytes(), func(reader io.Reader) error {
+		var decodeError error
+		metrics, decodeError = decodeRunMetrics(reader)
+		return decodeError
+	})
 	if err != nil {
-		// Invalid tgz file. This should never happen unless there is a bug in the system and
-		// it is a unrecoverable error.
-		return "", NewCustomError(err, CUSTOM_CODE_PERMANENT,
-			"Unable to extract metrics tgz file read from (%+v): %v", artifactRequest, err)
+		// Contract violations and malformed metrics artifacts are permanent for this completed node.
+		return nil, NewCustomError(err, CUSTOM_CODE_PERMANENT,
+			"Unable to read metrics tgz file from (%+v): %v", artifactRequest, err)
 	}
-	// There needs to be exactly one metrics file in the artifact archive. We load that file.
-	if len(archivedFiles) == 1 {
-		for _, value := range archivedFiles {
-			return value, nil
-		}
-	}
-	return "", NewCustomErrorf(CUSTOM_CODE_PERMANENT,
-		"There needs to be exactly one metrics file in the artifact archive, but zero or multiple files were found.")
+	return metrics, nil
 }
 
 func (w *Workflow) HasMetrics() bool {

@@ -15,47 +15,145 @@
 package util
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
+	"errors"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestArchiveTgzAndExtractTgz_Roundtrip(t *testing.T) {
-	expectedFiles := map[string]string{
-		"README":         "Hello, World",
-		"hello_world.sh": "echo 'Hello, World'",
+type testTgzEntry struct {
+	name     string
+	content  string
+	typeflag byte
+}
+
+func createTestTgz(t *testing.T, entries []testTgzEntry) []byte {
+	t.Helper()
+
+	var buf bytes.Buffer
+	gzipWriter := gzip.NewWriter(&buf)
+	tarWriter := tar.NewWriter(gzipWriter)
+	for _, entry := range entries {
+		err := tarWriter.WriteHeader(&tar.Header{
+			Typeflag: entry.typeflag,
+			Name:     entry.name,
+			Size:     int64(len(entry.content)),
+		})
+		require.NoError(t, err)
+		_, err = tarWriter.Write([]byte(entry.content))
+		require.NoError(t, err)
+	}
+	require.NoError(t, tarWriter.Close())
+	require.NoError(t, gzipWriter.Close())
+
+	return buf.Bytes()
+}
+
+func TestArchiveTgzAndReadSingleFileFromTgz_Roundtrip(t *testing.T) {
+	tgzContent, err := ArchiveTgz(map[string]string{"metrics.json": "content"})
+	require.NoError(t, err)
+
+	var content []byte
+	err = readSingleFileFromTgz([]byte(tgzContent), 7, func(reader io.Reader) error {
+		content, err = io.ReadAll(reader)
+		return err
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, "content", string(content))
+}
+
+func TestReadSingleFileFromTgz_RejectsInvalidArchive(t *testing.T) {
+	err := readSingleFileFromTgz([]byte("not a valid tgz"), 1024, func(io.Reader) error {
+		return nil
+	})
+
+	assert.Error(t, err)
+}
+
+func TestReadSingleFileFromTgz_RequiresOneEntry(t *testing.T) {
+	testCases := []struct {
+		name          string
+		entries       []testTgzEntry
+		errorContains string
+	}{
+		{
+			name:          "empty archive",
+			entries:       nil,
+			errorContains: "metrics archive must contain exactly one regular file",
+		},
+		{
+			name: "multiple files",
+			entries: []testTgzEntry{
+				{name: "first.json", content: "first"},
+				{name: "second.json", content: "second"},
+			},
+			errorContains: "metrics archive must contain exactly one regular file",
+		},
 	}
 
-	tgzContent, err := ArchiveTgz(expectedFiles)
-	assert.Nil(t, err)
-	assert.NotEmpty(t, tgzContent)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			tgzContent := createTestTgz(t, testCase.entries)
+			err := readSingleFileFromTgz(tgzContent, 1024, func(reader io.Reader) error {
+				_, err := io.Copy(io.Discard, reader)
+				return err
+			})
 
-	actualFiles, err := ExtractTgz(tgzContent)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedFiles, actualFiles)
+			assert.ErrorContains(t, err, testCase.errorContains)
+		})
+	}
 }
 
-func TestArchiveTgz_EmptyFiles(t *testing.T) {
-	tgzContent, err := ArchiveTgz(map[string]string{})
-	assert.Nil(t, err)
-	assert.NotEmpty(t, tgzContent)
+func TestReadSingleFileFromTgz_RejectsNonRegularEntry(t *testing.T) {
+	tgzContent := createTestTgz(t, []testTgzEntry{{name: "metrics", typeflag: tar.TypeDir}})
 
-	files, err := ExtractTgz(tgzContent)
-	assert.Nil(t, err)
-	assert.Empty(t, files)
+	err := readSingleFileFromTgz(tgzContent, 1024, func(io.Reader) error {
+		return nil
+	})
+
+	assert.ErrorContains(t, err, `metrics archive entry "metrics" must be a regular file`)
 }
 
-func TestExtractTgz_InvalidContent(t *testing.T) {
-	files, err := ExtractTgz("not a valid tgz")
-	assert.NotNil(t, err)
-	assert.Nil(t, files)
+func TestReadSingleFileFromTgz_EnforcesConfigurableByteLimit(t *testing.T) {
+	testCases := []struct {
+		name          string
+		maxBytes      int64
+		errorContains string
+	}{
+		{name: "exact limit", maxBytes: 7},
+		{name: "over limit", maxBytes: 6, errorContains: `metrics archive entry "metrics.json" exceeds maximum size of 6 bytes`},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			tgzContent := createTestTgz(t, []testTgzEntry{{name: "metrics.json", content: "content"}})
+			err := readSingleFileFromTgz(tgzContent, testCase.maxBytes, func(reader io.Reader) error {
+				_, err := io.Copy(io.Discard, reader)
+				return err
+			})
+
+			if testCase.errorContains == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorContains(t, err, testCase.errorContains)
+			}
+		})
+	}
 }
 
-func TestArchiveTgz_SingleFile(t *testing.T) {
-	tgzContent, err := ArchiveTgz(map[string]string{"file.txt": "content"})
-	assert.Nil(t, err)
+func TestReadSingleFileFromTgz_PropagatesConsumerError(t *testing.T) {
+	tgzContent := createTestTgz(t, []testTgzEntry{{name: "metrics.json", content: "content"}})
+	expectedError := errors.New("decode failed")
 
-	files, err := ExtractTgz(tgzContent)
-	assert.Nil(t, err)
-	assert.Equal(t, "content", files["file.txt"])
+	err := readSingleFileFromTgz(tgzContent, 1024, func(io.Reader) error {
+		return expectedError
+	})
+
+	assert.ErrorIs(t, err, expectedError)
 }

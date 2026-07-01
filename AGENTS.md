@@ -668,6 +668,7 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - `VITE_NAMESPACE=...`: Sets the target namespace for the frontend in multi-user mode
 - `LOCAL_API_SERVER=true`: Enables local API server testing mode when running integration tests on a Kind cluster
 - `TENSORBOARD_PROXY_SIGNING_SECRET=...`: Optional shared frontend-server secret for scoped TensorBoard proxy URLs; defaults to `MINIO_SECRET_KEY` when unset
+- `MAX_METRICS_FILE_BYTES=...`: Maximum uncompressed size of the single metrics JSON file read from an `mlpipeline-metrics` archive; defaults to 1 MiB
 - `FRONTEND_SERVER_NAMESPACE=...`: Sets the namespace used by the local frontend Node server for Kubernetes lookups when it is not running inside a cluster pod. `npm run start:proxy-and-server` derives this from `NAMESPACE`.
 - `MINIO_ENDPOINT_REWRITE=from=to[,from=to]`: Rewrites explicit object-store endpoints for local proxy mode, for example from `seaweedfs.kubeflow:9000` to `localhost:9000`.
 
