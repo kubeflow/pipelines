@@ -547,6 +547,141 @@ class TestClient(parameterized.TestCase):
 
             self.assertEqual(result, expected_result)
 
+    def test_list_pipelines_falls_back_to_user_namespace_when_omitted(self):
+        """Omitting namespace resolves to the namespace from get_user_namespace()."""
+        with patch.object(
+                self.client._pipelines_api,
+                'pipeline_service_list_pipelines',
+                return_value=Mock()) as mock_list:
+            with patch.object(
+                    self.client,
+                    'get_user_namespace',
+                    return_value='ctx-ns') as mock_get_ns:
+                self.client.list_pipelines()
+                mock_get_ns.assert_called_once()
+                mock_list.assert_called_once_with(
+                    namespace='ctx-ns',
+                    page_token='',
+                    page_size=10,
+                    sort_by='',
+                    filter=None)
+
+    def test_list_pipelines_explicit_namespace_is_not_overridden(self):
+        """An explicit namespace argument is used as-is; get_user_namespace is not called."""
+        with patch.object(
+                self.client._pipelines_api,
+                'pipeline_service_list_pipelines',
+                return_value=Mock()) as mock_list:
+            with patch.object(
+                    self.client,
+                    'get_user_namespace',
+                    return_value='ctx-ns') as mock_get_ns:
+                self.client.list_pipelines(namespace='explicit-ns')
+                mock_get_ns.assert_not_called()
+                mock_list.assert_called_once_with(
+                    namespace='explicit-ns',
+                    page_token='',
+                    page_size=10,
+                    sort_by='',
+                    filter=None)
+
+    def test_list_recurring_runs_falls_back_to_user_namespace_when_omitted(
+            self):
+        """Omitting namespace resolves to the namespace from get_user_namespace()."""
+        with patch.object(
+                self.client._recurring_run_api,
+                'recurring_run_service_list_recurring_runs',
+                return_value=Mock()) as mock_list:
+            with patch.object(
+                    self.client,
+                    'get_user_namespace',
+                    return_value='ctx-ns') as mock_get_ns:
+                self.client.list_recurring_runs()
+                mock_get_ns.assert_called_once()
+                mock_list.assert_called_once_with(
+                    page_token='',
+                    page_size=10,
+                    sort_by='',
+                    namespace='ctx-ns',
+                    filter=None)
+
+    def test_list_recurring_runs_explicit_namespace_is_not_overridden(self):
+        """An explicit namespace argument is used as-is; get_user_namespace is not called."""
+        with patch.object(
+                self.client._recurring_run_api,
+                'recurring_run_service_list_recurring_runs',
+                return_value=Mock()) as mock_list:
+            with patch.object(
+                    self.client,
+                    'get_user_namespace',
+                    return_value='ctx-ns') as mock_get_ns:
+                self.client.list_recurring_runs(namespace='explicit-ns')
+                mock_get_ns.assert_not_called()
+                mock_list.assert_called_once_with(
+                    page_token='',
+                    page_size=10,
+                    sort_by='',
+                    namespace='explicit-ns',
+                    filter=None)
+
+    def test_list_recurring_runs_with_experiment_id_does_not_forward_namespace(
+            self):
+        """When experiment_id is given, namespace must not be forwarded to the API call."""
+        with patch.object(
+                self.client._recurring_run_api,
+                'recurring_run_service_list_recurring_runs',
+                return_value=Mock()) as mock_list:
+            self.client.list_recurring_runs(experiment_id='exp-123')
+            mock_list.assert_called_once_with(
+                page_token='',
+                page_size=10,
+                sort_by='',
+                experiment_id='exp-123',
+                filter=None)
+
+    def test_upload_pipeline_falls_back_to_user_namespace_when_omitted(self):
+        """Omitting namespace resolves to the namespace from get_user_namespace()."""
+        with patch.object(
+                self.client._upload_api,
+                'upload_pipeline',
+                return_value=Mock(pipeline_id='pipe-1')) as mock_upload:
+            with patch.object(
+                    self.client,
+                    'get_user_namespace',
+                    return_value='ctx-ns') as mock_get_ns:
+                with patch.object(auth, 'is_ipython', return_value=False):
+                    self.client.upload_pipeline(
+                        pipeline_package_path='fake.yaml',
+                        pipeline_name='my-pipeline')
+                    mock_get_ns.assert_called_once()
+                    mock_upload.assert_called_once_with(
+                        'fake.yaml',
+                        name='my-pipeline',
+                        description=None,
+                        namespace='ctx-ns')
+
+    def test_upload_pipeline_explicit_namespace_is_not_overridden(self):
+        """An explicit namespace argument is used as-is; get_user_namespace is not called."""
+        with patch.object(
+                self.client._upload_api,
+                'upload_pipeline',
+                return_value=Mock(pipeline_id='pipe-1')) as mock_upload:
+            with patch.object(
+                    self.client,
+                    'get_user_namespace',
+                    return_value='ctx-ns') as mock_get_ns:
+                with patch.object(auth, 'is_ipython', return_value=False):
+                    self.client.upload_pipeline(
+                        pipeline_package_path='fake.yaml',
+                        pipeline_name='my-pipeline',
+                        namespace='explicit-ns')
+                    mock_get_ns.assert_not_called()
+                    mock_upload.assert_called_once_with(
+                        'fake.yaml',
+                        name='my-pipeline',
+                        description=None,
+                        namespace='explicit-ns')
+
 
 if __name__ == '__main__':
     unittest.main()
