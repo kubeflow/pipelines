@@ -6082,3 +6082,150 @@ func TestToApiRecurringRunPluginsInput(t *testing.T) {
 		assert.Nil(t, got.PluginsInput)
 	})
 }
+
+func TestResolveNodeLifecycleMessages(t *testing.T) {
+	t.Run("node keeps its own message", func(t *testing.T) {
+		nodes := map[string]util.NodeStatus{
+			"task": {ID: "task", Message: "task level failure"},
+		}
+		resolved := resolveNodeLifecycleMessages(nodes)
+		assert.Equal(t, "task level failure", resolved["task"])
+	})
+
+	t.Run("empty parent inherits child message", func(t *testing.T) {
+		nodes := map[string]util.NodeStatus{
+			"task":     {ID: "task", Children: []string{"executor"}},
+			"executor": {ID: "executor", Message: "Pod failed before main container starts"},
+		}
+		resolved := resolveNodeLifecycleMessages(nodes)
+		assert.Equal(t, "Pod failed before main container starts", resolved["task"])
+		assert.Equal(t, "Pod failed before main container starts", resolved["executor"])
+	})
+
+	t.Run("message propagates across multiple levels", func(t *testing.T) {
+		nodes := map[string]util.NodeStatus{
+			"dag":      {ID: "dag", Children: []string{"task"}},
+			"task":     {ID: "task", Children: []string{"executor"}},
+			"executor": {ID: "executor", Message: "ImagePullBackOff"},
+		}
+		resolved := resolveNodeLifecycleMessages(nodes)
+		assert.Equal(t, "ImagePullBackOff", resolved["dag"])
+		assert.Equal(t, "ImagePullBackOff", resolved["task"])
+	})
+
+	t.Run("own message takes precedence over descendant", func(t *testing.T) {
+		nodes := map[string]util.NodeStatus{
+			"task":     {ID: "task", Message: "task message", Children: []string{"executor"}},
+			"executor": {ID: "executor", Message: "executor message"},
+		}
+		resolved := resolveNodeLifecycleMessages(nodes)
+		assert.Equal(t, "task message", resolved["task"])
+	})
+
+	t.Run("no message anywhere resolves to empty", func(t *testing.T) {
+		nodes := map[string]util.NodeStatus{
+			"task":     {ID: "task", Children: []string{"executor"}},
+			"executor": {ID: "executor"},
+		}
+		resolved := resolveNodeLifecycleMessages(nodes)
+		assert.Equal(t, "", resolved["task"])
+		assert.Equal(t, "", resolved["executor"])
+	})
+
+	t.Run("cyclic children do not cause infinite recursion", func(t *testing.T) {
+		nodes := map[string]util.NodeStatus{
+			"a": {ID: "a", Children: []string{"b"}},
+			"b": {ID: "b", Children: []string{"a"}, Message: "cycle failure"},
+		}
+		resolved := resolveNodeLifecycleMessages(nodes)
+		assert.Equal(t, "cycle failure", resolved["a"])
+		assert.Equal(t, "cycle failure", resolved["b"])
+	})
+
+	t.Run("missing child reference is ignored", func(t *testing.T) {
+		nodes := map[string]util.NodeStatus{
+			"task": {ID: "task", Children: []string{"does-not-exist"}},
+		}
+		resolved := resolveNodeLifecycleMessages(nodes)
+		assert.Equal(t, "", resolved["task"])
+	})
+
+	t.Run("transient startup messages are not treated as failures", func(t *testing.T) {
+		nodes := map[string]util.NodeStatus{
+			"task":     {ID: "task", Children: []string{"executor"}},
+			"executor": {ID: "executor", Message: "PodInitializing"},
+		}
+		resolved := resolveNodeLifecycleMessages(nodes)
+		assert.Equal(t, "", resolved["task"])
+		assert.Equal(t, "", resolved["executor"])
+	})
+
+	t.Run("skipped node skip-reason is not a failure", func(t *testing.T) {
+		nodes := map[string]util.NodeStatus{
+			"executor": {ID: "executor", State: "Skipped", Message: "when 'true != true' evaluated false"},
+		}
+		resolved := resolveNodeLifecycleMessages(nodes)
+		assert.Equal(t, "", resolved["executor"])
+	})
+
+	t.Run("succeeded node does not inherit a failed descendant message", func(t *testing.T) {
+		nodes := map[string]util.NodeStatus{
+			"task":     {ID: "task", State: "Succeeded", Children: []string{"executor"}},
+			"executor": {ID: "executor", State: "Failed", Message: "OOMKilled"},
+		}
+		resolved := resolveNodeLifecycleMessages(nodes)
+		assert.Equal(t, "", resolved["task"])
+		assert.Equal(t, "OOMKilled", resolved["executor"])
+	})
+
+	t.Run("running parent inherits failed executor message", func(t *testing.T) {
+		nodes := map[string]util.NodeStatus{
+			"task":     {ID: "task", State: "Running", Children: []string{"executor"}},
+			"executor": {ID: "executor", State: "Pending", Message: "ImagePullBackOff"},
+		}
+		resolved := resolveNodeLifecycleMessages(nodes)
+		assert.Equal(t, "ImagePullBackOff", resolved["task"])
+	})
+}
+
+func TestNodeLifecycleFailureMessage(t *testing.T) {
+	tests := []struct {
+		name string
+		node util.NodeStatus
+		want string
+	}{
+		{"failed node with failure message", util.NodeStatus{State: "Failed", Message: "OOMKilled"}, "OOMKilled"},
+		{"running node stuck on image pull", util.NodeStatus{State: "Running", Message: "ImagePullBackOff"}, "ImagePullBackOff"},
+		{"succeeded node is never a failure", util.NodeStatus{State: "Succeeded", Message: "ImagePullBackOff"}, ""},
+		{"skipped node is never a failure", util.NodeStatus{State: "Skipped", Message: "when 'true != true' evaluated false"}, ""},
+		{"omitted node is never a failure", util.NodeStatus{State: "Omitted", Message: "omitted"}, ""},
+		{"running node initializing is transient", util.NodeStatus{State: "Running", Message: "PodInitializing"}, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, nodeLifecycleFailureMessage(tt.node))
+		})
+	}
+}
+
+func TestNormalizeLifecycleFailureMessage(t *testing.T) {
+	tests := []struct {
+		name    string
+		message string
+		want    string
+	}{
+		{"empty message", "", ""},
+		{"PodInitializing is transient", "PodInitializing", ""},
+		{"ContainerCreating is transient", "ContainerCreating", ""},
+		{"transient match is case-insensitive", "podinitializing", ""},
+		{"transient match trims whitespace", "  PodInitializing  ", ""},
+		{"ImagePullBackOff is a failure", "ImagePullBackOff: Back-off pulling image", "ImagePullBackOff: Back-off pulling image"},
+		{"OOMKilled is a failure", "OOMKilled", "OOMKilled"},
+		{"Unschedulable is a failure", "0/1 nodes are available: Unschedulable", "0/1 nodes are available: Unschedulable"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, normalizeLifecycleFailureMessage(tt.message))
+		})
+	}
+}
