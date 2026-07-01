@@ -81,6 +81,8 @@ describe('SubDagNode', () => {
     handles.forEach((handle) => {
       expect(handle).toHaveStyle({
         height: '1px',
+        minHeight: '1px',
+        minWidth: '1px',
         opacity: '0',
         pointerEvents: 'none',
         width: '1px',

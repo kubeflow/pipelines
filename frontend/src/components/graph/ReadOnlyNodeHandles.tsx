@@ -20,6 +20,8 @@ import { Handle, Position } from '@xyflow/react';
 const hiddenHandleStyle: CSSProperties = {
   border: 0,
   height: '1px',
+  minHeight: '1px',
+  minWidth: '1px',
   opacity: 0,
   pointerEvents: 'none',
   width: '1px',
