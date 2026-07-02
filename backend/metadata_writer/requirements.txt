@@ -48,8 +48,9 @@ pyyaml==6.0.2
     # via
     #   -r metadata_writer/requirements.in
     #   kubernetes
-requests==2.32.5
+requests==2.33.0
     # via
+    #   -r metadata_writer/requirements.in
     #   kubernetes
     #   requests-oauthlib
 requests-oauthlib==2.0.0
