@@ -51,7 +51,7 @@
     "src/apis",
     "src/generated",
     "webpack",
-    "**/?*test.*",
+    "**/?*test.*"
   ],
   "include": [
     "src",
