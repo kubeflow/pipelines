@@ -135,8 +135,9 @@ func TestFakeWorkflowClient_Update(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Update() unexpected error: %v", err)
 	}
-	workflow.SetLabels("updated-label", "true")
-	_, err = client.Update(ctx, workflow, v1.UpdateOptions{})
+	workflowWithUpdatedLabels := util.NewWorkflow(workflow.Workflow.DeepCopy())
+	workflowWithUpdatedLabels.SetLabels("updated-label", "true")
+	_, err = client.Update(ctx, workflowWithUpdatedLabels, v1.UpdateOptions{})
 	if err != nil {
 		t.Fatalf("Update() unexpected error: %v", err)
 	}

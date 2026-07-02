@@ -1682,59 +1682,62 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		// Notify plugins of terminal state. If a plugin sync fails and
 		// needs retry, defer the persistedFinalState label so the
 		// persistence agent re-reports the workflow on its next cycle.
+		shouldPersistFinalState := true
 		if run != nil && run.PluginsOutputString != nil && *run.PluginsOutputString != "" {
 			pr, prErr := apiservermlflow.ModelToPersistedRun(run, execSpec.ExecutionNamespace())
 			if prErr != nil {
 				glog.Warningf("Failed to build PersistedRun for plugin sync on run %q: %v", run.UUID, prErr)
 			} else if !r.pluginDispatcher.OnRunEnd(ctx, pr) {
 				glog.Warningf("Plugin sync failed for run %q; deferring persistedFinalState label so persistence agent retries", run.UUID)
-				return nil, nil
+				shouldPersistFinalState = false
 			}
 		}
 
-		shouldPersistFinalState, err := r.runStillMatchesReportedFinalState(runId, state, execStatus.FinishedAt())
-		if err != nil {
-			return nil, err
-		}
-		if !shouldPersistFinalState {
-			return nil, nil
-		}
-
-		err = addWorkflowLabel(ctx, r.getWorkflowClient(execSpec.ExecutionNamespace()), execSpec.ExecutionName(), util.LabelKeyWorkflowPersistedFinalState, "true")
-		if err != nil {
-			message := fmt.Sprintf("Failed to add PersistedFinalState label to workflow %s", execSpec.ExecutionName())
-			// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
-			// report workflows that no longer exist. It's important to return a not found error, so that persistence
-			// agent won't retry again.
-			if util.IsNotFound(err) {
-				return nil, util.NewNotFoundError(err, "%s", message)
-			} else {
-				return nil, util.Wrapf(err, "%s", message)
+		if shouldPersistFinalState {
+			stillMatchesReportedFinalState, err := r.runStillMatchesReportedFinalState(runId, state, execStatus.FinishedAt())
+			if err != nil {
+				return nil, err
 			}
+			shouldPersistFinalState = stillMatchesReportedFinalState
 		}
 
-		if r.options.CollectMetrics {
-			execNamespace := execSpec.ExecutionNamespace()
-			execName := execSpec.ExecutionName()
+		if shouldPersistFinalState {
+			err := addWorkflowLabel(ctx, r.getWorkflowClient(execSpec.ExecutionNamespace()), execSpec.ExecutionName(), util.LabelKeyWorkflowPersistedFinalState, "true")
+			if err != nil {
+				message := fmt.Sprintf("Failed to add PersistedFinalState label to workflow %s", execSpec.ExecutionName())
+				// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
+				// report workflows that no longer exist. It's important to return a not found error, so that persistence
+				// agent won't retry again.
+				if util.IsNotFound(err) {
+					return nil, util.NewNotFoundError(err, "%s", message)
+				} else {
+					return nil, util.Wrapf(err, "%s", message)
+				}
+			}
 
-			if execStatus.Condition() == exec.ExecutionSucceeded {
-				workflowSuccessCounter.WithLabelValues(execNamespace, execName).Inc()
-			} else {
-				glog.Errorf("pipeline '%s' finished with an error", execName)
+			if r.options.CollectMetrics {
+				execNamespace := execSpec.ExecutionNamespace()
+				execName := execSpec.ExecutionName()
 
-				// also collects counts regarding retries
-				workflowFailedCounter.WithLabelValues(execNamespace, execName).Inc()
+				if execStatus.Condition() == exec.ExecutionSucceeded {
+					workflowSuccessCounter.WithLabelValues(execNamespace, execName).Inc()
+				} else {
+					glog.Errorf("pipeline '%s' finished with an error", execName)
+
+					// also collects counts regarding retries
+					workflowFailedCounter.WithLabelValues(execNamespace, execName).Inc()
+				}
 			}
 		}
 	}
-	execSpec.SetLabels("pipeline/runid", runId)
+	execSpec.SetLabels(util.LabelKeyWorkflowRunId, runId)
 	return execSpec, nil
 }
 
-func (r *ResourceManager) runStillMatchesReportedFinalState(runId string, state model.RuntimeState, finishedAtInSec int64) (bool, error) {
-	currentRun, err := r.GetRun(runId)
+func (r *ResourceManager) runStillMatchesReportedFinalState(runID string, state model.RuntimeState, finishedAtInSec int64) (bool, error) {
+	currentRun, err := r.GetRun(runID)
 	if err != nil {
-		return false, util.Wrapf(err, "Failed to verify current state for completed workflow report on run %s", runId)
+		return false, util.Wrapf(err, "Failed to verify current state for completed workflow report on run %s", runID)
 	}
 	if currentRun.State == state && currentRun.FinishedAtInSec == finishedAtInSec {
 		return true, nil
@@ -1742,7 +1745,7 @@ func (r *ResourceManager) runStillMatchesReportedFinalState(runId string, state 
 
 	glog.Warningf(
 		"Skip adding persistedFinalState label for run %q because the run changed while reporting the terminal workflow state: reported state=%q finishedAt=%d, current state=%q finishedAt=%d",
-		runId,
+		runID,
 		state,
 		finishedAtInSec,
 		currentRun.State,

@@ -3883,9 +3883,11 @@ func TestReportWorkflowResource_SkipsPersistedFinalStateLabelWhenRunRetriedDurin
 		},
 	})
 
-	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	reportedWorkflow, err := manager.ReportWorkflowResource(context.Background(), workflow)
 	require.NoError(t, err)
+	require.NotNil(t, reportedWorkflow)
 	require.NoError(t, dispatcher.retryErr)
+	assert.Equal(t, run.UUID, reportedWorkflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId])
 
 	retriedRun, err := manager.GetRun(run.UUID)
 	require.NoError(t, err)
