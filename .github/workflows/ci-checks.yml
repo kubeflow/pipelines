@@ -48,10 +48,13 @@ jobs:
         if: steps.eligibility.outputs.should_poll == 'true'
         uses: actions/github-script@v8
         with:
+          retries: 3
           script: |
             const headSha = context.payload.pull_request.head.sha;
+            // Timing: approve window (60s) < this gate (300s) < allcheckspassed delay (5min)
             const maxAttempts = 31;
             const intervalMs = 10_000;
+            const initialDelayMs = 15_000;
 
             const listRequest = {
               owner: context.repo.owner,
@@ -60,6 +63,10 @@ jobs:
               status: "action_required",
               head_sha: headSha,
             };
+
+            // Wait for GitHub to finish registering workflow runs before the first check
+            core.info(`Waiting ${initialDelayMs / 1000}s for workflow runs to be registered...`);
+            await new Promise(r => setTimeout(r, initialDelayMs));
 
             for (let attempt = 1; attempt <= maxAttempts; attempt++) {
               core.info(`[Attempt ${attempt}/${maxAttempts}] Checking for action_required runs for ${headSha}`);
