@@ -15,5 +15,8 @@
   "scripts": {
     "docker": "docker build -t gcr.io/ml-pipeline/e2e-tests .",
     "test": "wdio wdio.conf.js"
+  },
+  "overrides": {
+    "serialize-javascript": "7.0.5"
   }
 }
