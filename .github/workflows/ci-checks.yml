@@ -16,6 +16,7 @@ jobs:
   check_ci_status:
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       checks: read
     steps:
       - name: Determine whether CI polling is needed
@@ -42,10 +43,50 @@ jobs:
           echo "reason=${reason}" >> "$GITHUB_OUTPUT"
           echo "${reason}"
 
+      - name: Wait for action_required workflow runs to be approved
+        id: approval_gate
+        if: steps.eligibility.outputs.should_poll == 'true'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const headSha = context.payload.pull_request.head.sha;
+            const maxAttempts = 31;
+            const intervalMs = 10_000;
+
+            const listRequest = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              event: "pull_request",
+              status: "action_required",
+              head_sha: headSha,
+            };
+
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              core.info(`[Attempt ${attempt}/${maxAttempts}] Checking for action_required runs for ${headSha}`);
+              const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, listRequest);
+
+              if (runs.length === 0) {
+                core.info("No action_required workflow runs found. All runs have been approved.");
+                return;
+              }
+
+              core.info(`Found ${runs.length} action_required run(s): ${runs.map(r => r.name).join(', ')}`);
+
+              if (attempt < maxAttempts) {
+                core.info(`Waiting ${intervalMs / 1000}s for approval...`);
+                await new Promise(r => setTimeout(r, intervalMs));
+              }
+            }
+
+            core.setFailed(
+              `${headSha} still has action_required workflow runs after ${(maxAttempts - 1) * intervalMs / 1000}s. ` +
+              `CI cannot pass while workflows are awaiting approval.`
+            );
+
       - name: Check if all CI checks passed
         id: poll
-        if: steps.eligibility.outputs.should_poll == 'true'
-        uses: wechuli/allcheckspassed@0b68b3b7d92e595bcbdea0c860d05605720cf479
+        if: steps.eligibility.outputs.should_poll == 'true' && steps.approval_gate.outcome == 'success'
+        uses: wechuli/allcheckspassed@204ff63e89eabdc8086f0c50b91f675bcf37c8f6
         with:
           delay: '5'
           retries: '10'
