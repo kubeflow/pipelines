@@ -38,6 +38,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
 	apiservermlflow "github.com/kubeflow/pipelines/backend/src/apiserver/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
@@ -227,6 +228,24 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	},
 	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
+
+type retryDuringTerminalReportDispatcher struct {
+	manager  *ResourceManager
+	runID    string
+	retryErr error
+}
+
+func (d *retryDuringTerminalReportDispatcher) OnBeforeRunCreation(context.Context, *apiserverPlugins.PendingRun, util.ExecutionSpec) error {
+	return nil
+}
+
+func (d *retryDuringTerminalReportDispatcher) OnRunEnd(ctx context.Context, _ *apiserverPlugins.PersistedRun) bool {
+	d.retryErr = d.manager.RetryRun(ctx, d.runID)
+	return true
+}
+
+func (d *retryDuringTerminalReportDispatcher) OnRunRetry(context.Context, *apiserverPlugins.PersistedRun) {
+}
 
 func TestReadRunLogFromArchiveStreamsObjectStoreFile(t *testing.T) {
 	logArchive := archive.NewLogArchive("/logs", "main.log")
@@ -3830,6 +3849,54 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	wf, err := store.ExecClientFake.Execution(namespace).Get(context.Background(), run.K8SName, v1.GetOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, wf.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
+}
+
+func TestReportWorkflowResource_SkipsPersistedFinalStateLabelWhenRunRetriedDuringPluginSync(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	namespace := "ns1"
+	defer store.Close()
+
+	runWithPluginOutput, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", "https://mlflow.example/runs/parent-run-1")
+	pluginsOutput, err := apiservermlflow.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	require.NoError(t, err)
+	runWithPluginOutput.PluginsOutputString = pluginsOutput
+	require.NoError(t, manager.runStore.UpdateRun(runWithPluginOutput))
+
+	dispatcher := &retryDuringTerminalReportDispatcher{
+		manager: manager,
+		runID:   run.UUID,
+	}
+	manager.pluginDispatcher = dispatcher
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: namespace,
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowFailed,
+			FinishedAt: v1.NewTime(time.Unix(123, 0)),
+		},
+	})
+
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	require.NoError(t, err)
+	require.NoError(t, dispatcher.retryErr)
+
+	retriedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, retriedRun.State)
+	assert.Equal(t, int64(0), retriedRun.FinishedAtInSec)
+
+	retriedWorkflow, err := store.ExecClientFake.Execution(namespace).Get(context.Background(), run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, string(v1alpha1.WorkflowRunning), string(retriedWorkflow.ExecutionStatus().Condition()))
+	_, hasFinalStateLabel := retriedWorkflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState]
+	assert.False(t, hasFinalStateLabel)
 }
 
 // TestReportWorkflow_WithMLflowOnRunEnd verifies that when a run has PluginsOutputString

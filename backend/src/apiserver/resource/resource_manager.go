@@ -1692,7 +1692,15 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			}
 		}
 
-		err := addWorkflowLabel(ctx, r.getWorkflowClient(execSpec.ExecutionNamespace()), execSpec.ExecutionName(), util.LabelKeyWorkflowPersistedFinalState, "true")
+		shouldPersistFinalState, err := r.runStillMatchesReportedFinalState(runId, state, execStatus.FinishedAt())
+		if err != nil {
+			return nil, err
+		}
+		if !shouldPersistFinalState {
+			return nil, nil
+		}
+
+		err = addWorkflowLabel(ctx, r.getWorkflowClient(execSpec.ExecutionNamespace()), execSpec.ExecutionName(), util.LabelKeyWorkflowPersistedFinalState, "true")
 		if err != nil {
 			message := fmt.Sprintf("Failed to add PersistedFinalState label to workflow %s", execSpec.ExecutionName())
 			// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
@@ -1721,6 +1729,26 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 	}
 	execSpec.SetLabels("pipeline/runid", runId)
 	return execSpec, nil
+}
+
+func (r *ResourceManager) runStillMatchesReportedFinalState(runId string, state model.RuntimeState, finishedAtInSec int64) (bool, error) {
+	currentRun, err := r.GetRun(runId)
+	if err != nil {
+		return false, util.Wrapf(err, "Failed to verify current state for completed workflow report on run %s", runId)
+	}
+	if currentRun.State == state && currentRun.FinishedAtInSec == finishedAtInSec {
+		return true, nil
+	}
+
+	glog.Warningf(
+		"Skip adding persistedFinalState label for run %q because the run changed while reporting the terminal workflow state: reported state=%q finishedAt=%d, current state=%q finishedAt=%d",
+		runId,
+		state,
+		finishedAtInSec,
+		currentRun.State,
+		currentRun.FinishedAtInSec,
+	)
+	return false, nil
 }
 
 // Adds a label for a workflow.

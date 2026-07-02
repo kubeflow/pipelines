@@ -83,6 +83,7 @@ func (c *FakeWorkflowClient) Update(ctx context.Context, execSpec util.Execution
 	name := workflow.GetObjectMeta().GetName()
 	_, ok = c.workflows[name]
 	if ok {
+		c.workflows[name] = workflow.Workflow
 		return workflow, nil
 	}
 	return nil, k8errors.NewNotFound(k8schema.ParseGroupResource("workflows.argoproj.io"), name)
