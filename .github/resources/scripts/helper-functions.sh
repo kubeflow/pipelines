@@ -28,6 +28,86 @@ retry() {
   done
 }
 
+for_each_runtime_base_image() {
+  local images_file=$1
+  local image_callback=$2
+  local image_count=0
+  local image
+
+  while IFS= read -r image; do
+    if [[ -z "$image" || "$image" == \#* ]]; then
+      continue
+    fi
+
+    "$image_callback" "$image" || return 1
+    image_count=$((image_count+1))
+  done < "$images_file"
+
+  if [[ "$image_count" -eq 0 ]]; then
+    echo "No runtime base images configured in $images_file." >&2
+    return 1
+  fi
+}
+
+pull_image_with_backoff() {
+  local image=$1
+  local max_attempts=5
+  local attempt=1
+
+  while [[ "$attempt" -le "$max_attempts" ]]; do
+    if docker pull "$image"; then
+      return 0
+    fi
+
+    if [[ "$attempt" -eq "$max_attempts" ]]; then
+      return 1
+    fi
+
+    local sleep_seconds=$((attempt * 20))
+    echo "Retrying $image in ${sleep_seconds}s..."
+    sleep "$sleep_seconds"
+    attempt=$((attempt+1))
+  done
+}
+
+pull_and_save_runtime_base_images() {
+  local images_file=$1
+  local archive_path=$2
+  local runtime_base_images=()
+  local image
+
+  while IFS= read -r image; do
+    if [[ -z "$image" || "$image" == \#* ]]; then
+      continue
+    fi
+
+    pull_image_with_backoff "$image"
+    runtime_base_images+=("$image")
+  done < "$images_file"
+
+  if [[ "${#runtime_base_images[@]}" -eq 0 ]]; then
+    echo "No runtime base images configured in $images_file." >&2
+    return 1
+  fi
+
+  docker save "${runtime_base_images[@]}" -o "$archive_path"
+}
+
+load_runtime_base_images_into_kind() {
+  local images_file=$1
+  local cluster_name=$2
+
+  load_runtime_base_image() {
+    local image=$1
+
+    pull_image_with_backoff "$image"
+    kind --name "$cluster_name" load docker-image "$image"
+    docker image rm "$image"
+  }
+
+  for_each_runtime_base_image "$images_file" load_runtime_base_image
+}
+
 wait_for_namespace () {
     if [[ $# -ne 3 ]]
     then

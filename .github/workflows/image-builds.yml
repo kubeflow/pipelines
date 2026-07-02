@@ -19,6 +19,37 @@ env:
   GITHUB_SHA: ${{ github.sha }}
 
 jobs:
+  runtime-base-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    env:
+      ARTIFACT_NAME: "runtime-base-images"
+      ARTIFACTS_PATH: "images_${{ github.run_id }}"
+      RUNTIME_BASE_IMAGE_ARCHIVE: "runtime-base-images.tar"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Create Artifacts Path Directory
+        run: mkdir -p ${{ env.ARTIFACTS_PATH }}
+
+      - name: Pull and save runtime base images
+        shell: bash
+        run: |
+          set -euo pipefail
+          source .github/resources/scripts/helper-functions.sh
+          pull_and_save_runtime_base_images \
+            .github/resources/runtime-base-images.txt \
+            "${ARTIFACTS_PATH}/${RUNTIME_BASE_IMAGE_ARCHIVE}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
+          retention-days: 1
+
   image-build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
