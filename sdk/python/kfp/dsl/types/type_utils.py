@@ -110,7 +110,7 @@ def bool_cast_fn(default: Union[str, bool]) -> bool:
 def try_loading_json(default: str) -> Union[dict, list, str]:
     try:
         return json.loads(default)
-    except:
+    except Exception:
         return default
 
 
