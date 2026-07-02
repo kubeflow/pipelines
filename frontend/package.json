@@ -115,7 +115,7 @@
     "build:storybook": "storybook build"
   },
   "devDependencies": {
-    "@google-cloud/storage": "^4.1.3",
+    "@google-cloud/storage": "^7.21.0",
     "@storybook/addon-links": "^10.2.0",
     "@storybook/react-vite": "^10.4.6",
     "@testing-library/dom": "^10.4.1",
