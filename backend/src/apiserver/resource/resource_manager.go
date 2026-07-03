@@ -1134,7 +1134,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 
 func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, namespace string, runID string, newExecSpec util.ExecutionSpec) (util.ExecutionSpec, error) {
 	workflowClient := r.getWorkflowClient(namespace)
-	var updateError error
+	var lastWorkflowError error
 
 	for attempt := 0; attempt < maxRetryWorkflowUpdateAttempts; attempt++ {
 		latestWorkflow, err := workflowClient.Get(ctx, newExecSpec.ExecutionName(), v1.GetOptions{})
@@ -1144,7 +1144,7 @@ func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, names
 			if err == nil {
 				return updatedWorkflow, nil
 			}
-			updateError = err
+			lastWorkflowError = err
 			if apierrors.IsConflict(err) {
 				continue
 			}
@@ -1152,7 +1152,7 @@ func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, names
 				return nil, util.NewInternalServerError(err, "Failed to retry run %s due to error updating workflow", runID)
 			}
 		} else {
-			updateError = err
+			lastWorkflowError = err
 			if !apierrors.IsNotFound(err) {
 				return nil, util.NewInternalServerError(err, "Failed to retry run %s due to error getting workflow", runID)
 			}
@@ -1167,12 +1167,12 @@ func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, names
 			continue
 		}
 		if createError, ok := createError.(net.Error); ok && createError.Timeout() {
-			return nil, util.NewUnavailableServerError(createError, "Failed to retry run %s due to error creating and updating a workflow - try again later. Update error: %s", runID, updateError.Error())
+			return nil, util.NewUnavailableServerError(createError, "Failed to retry run %s due to error creating workflow - try again later. Last workflow error: %s", runID, lastWorkflowError.Error())
 		}
-		return nil, util.NewInternalServerError(createError, "Failed to retry run %s due to error updating and creating a workflow. Update error: %s", runID, updateError.Error())
+		return nil, util.NewInternalServerError(createError, "Failed to retry run %s due to error creating workflow. Last workflow error: %s", runID, lastWorkflowError.Error())
 	}
 
-	return nil, util.NewInternalServerError(updateError, "Failed to retry run %s due to error updating and creating a workflow after retries. Update error: %s", runID, updateError.Error())
+	return nil, util.NewInternalServerError(lastWorkflowError, "Failed to retry run %s due to error reconciling workflow after retries. Last workflow error: %s", runID, lastWorkflowError.Error())
 }
 
 // Fetches execution logs and writes to the destination.
