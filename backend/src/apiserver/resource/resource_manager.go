@@ -52,6 +52,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/util/retry"
 )
 
 // Metric variables. Please prefix the metric names with resource_manager_.
@@ -402,8 +403,6 @@ const MaxTagValueLength = model.MaxTagValueLength
 
 // MaxTagsPerEntity is the maximum number of tags allowed on a single pipeline or pipeline version.
 const MaxTagsPerEntity = model.MaxTagsPerEntity
-
-const maxRetryWorkflowUpdateAttempts = 3
 
 // UpdatePipeline updates mutable fields of a pipeline (display_name, tags).
 // Both fields are updated in a single transaction via UpdatePipelineFields.
@@ -1134,45 +1133,78 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 
 func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, namespace string, runID string, newExecSpec util.ExecutionSpec) (util.ExecutionSpec, error) {
 	workflowClient := r.getWorkflowClient(namespace)
+	var retriedWorkflow util.ExecutionSpec
 	var lastWorkflowError error
+	lastWorkflowAction := "reconciling workflow"
 
-	for attempt := 0; attempt < maxRetryWorkflowUpdateAttempts; attempt++ {
+	err := retry.OnError(retry.DefaultRetry, isRetryableWorkflowReconcileError, func() error {
+		lastWorkflowAction = "getting workflow"
 		latestWorkflow, err := workflowClient.Get(ctx, newExecSpec.ExecutionName(), v1.GetOptions{})
 		if err == nil {
 			newExecSpec.SetVersion(latestWorkflow.Version())
+			lastWorkflowAction = "updating workflow"
 			updatedWorkflow, err := workflowClient.Update(ctx, newExecSpec, v1.UpdateOptions{})
 			if err == nil {
-				return updatedWorkflow, nil
+				retriedWorkflow = updatedWorkflow
+				return nil
 			}
 			lastWorkflowError = err
-			if apierrors.IsConflict(err) {
-				continue
-			}
 			if !apierrors.IsNotFound(err) {
-				return nil, util.NewInternalServerError(err, "Failed to retry run %s due to error updating workflow", runID)
+				return err
 			}
 		} else {
 			lastWorkflowError = err
 			if !apierrors.IsNotFound(err) {
-				return nil, util.NewInternalServerError(err, "Failed to retry run %s due to error getting workflow", runID)
+				return err
 			}
 		}
 
 		newExecSpec.SetVersion("")
+		lastWorkflowAction = "creating workflow"
 		newCreatedWorkflow, createError := workflowClient.Create(ctx, newExecSpec, v1.CreateOptions{})
 		if createError == nil {
-			return newCreatedWorkflow, nil
+			retriedWorkflow = newCreatedWorkflow
+			return nil
 		}
-		if apierrors.IsAlreadyExists(createError) {
-			continue
-		}
-		if createError, ok := createError.(net.Error); ok && createError.Timeout() {
-			return nil, util.NewUnavailableServerError(createError, "Failed to retry run %s due to error creating workflow - try again later. Last workflow error: %s", runID, lastWorkflowError.Error())
-		}
-		return nil, util.NewInternalServerError(createError, "Failed to retry run %s due to error creating workflow. Last workflow error: %s", runID, lastWorkflowError.Error())
+		lastWorkflowError = createError
+		return createError
+	})
+	if err == nil {
+		return retriedWorkflow, nil
 	}
 
-	return nil, util.NewInternalServerError(lastWorkflowError, "Failed to retry run %s due to error reconciling workflow after retries. Last workflow error: %s", runID, lastWorkflowError.Error())
+	lastWorkflowErrorMessage := "none"
+	if lastWorkflowError != nil {
+		lastWorkflowErrorMessage = lastWorkflowError.Error()
+	}
+	if apierrors.IsConflict(err) || apierrors.IsAlreadyExists(err) {
+		return nil, util.NewInternalServerError(err, "Failed to retry run %s due to error reconciling workflow after retries. Last workflow error: %s", runID, lastWorkflowErrorMessage)
+	}
+	if isTransientWorkflowReconcileError(err) {
+		return nil, util.NewUnavailableServerError(err, "Failed to retry run %s due to error %s - try again later. Last workflow error: %s", runID, lastWorkflowAction, lastWorkflowErrorMessage)
+	}
+	return nil, util.NewInternalServerError(err, "Failed to retry run %s due to error %s. Last workflow error: %s", runID, lastWorkflowAction, lastWorkflowErrorMessage)
+}
+
+func isRetryableWorkflowReconcileError(err error) bool {
+	return apierrors.IsConflict(err) ||
+		apierrors.IsAlreadyExists(err) ||
+		isTransientWorkflowReconcileError(err)
+}
+
+func isTransientWorkflowReconcileError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if netError, ok := err.(net.Error); ok && netError.Timeout() {
+		return true
+	}
+	return apierrors.IsServerTimeout(err) ||
+		apierrors.IsTimeout(err) ||
+		apierrors.IsTooManyRequests(err) ||
+		apierrors.IsServiceUnavailable(err) ||
+		apierrors.IsInternalError(err) ||
+		apierrors.IsUnexpectedServerError(err)
 }
 
 // Fetches execution logs and writes to the destination.
