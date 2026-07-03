@@ -93,6 +93,7 @@ runs:
 
         if [[ -f "${RUNTIME_BASE_IMAGE_ARCHIVE}" ]]; then
           if kind --name "${{ inputs.cluster_name }}" load image-archive "${RUNTIME_BASE_IMAGE_ARCHIVE}"; then
+            rm "${RUNTIME_BASE_IMAGE_ARCHIVE}"
             exit 0
           fi
 

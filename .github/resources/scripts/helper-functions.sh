@@ -81,7 +81,7 @@ pull_and_save_runtime_base_images() {
       continue
     fi
 
-    pull_image_with_backoff "$image"
+    pull_image_with_backoff "$image" || return 1
     runtime_base_images+=("$image")
   done < "$images_file"
 
@@ -100,8 +100,8 @@ load_runtime_base_images_into_kind() {
   load_runtime_base_image() {
     local image=$1
 
-    pull_image_with_backoff "$image"
-    kind --name "$cluster_name" load docker-image "$image"
+    pull_image_with_backoff "$image" || return 1
+    kind --name "$cluster_name" load docker-image "$image" || return 1
     docker image rm "$image"
   }
 
