@@ -20,6 +20,10 @@ spec:
           operator: In
           values:
           - istio-system
+  - from:
+    - podSelector: {}
+    ports:
+    - port: 8333
   podSelector:
     matchExpressions:
     - key: app

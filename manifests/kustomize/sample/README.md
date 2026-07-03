@@ -53,14 +53,7 @@ gsutil mb -p myProjectId gs://myBucketName/
 - Edit **params.env**, **params-db-secret.env** and **cluster-scoped-resources/params.env**
 - Edit kustomization.yaml to set your namespace, e.x. "kubeflow"
 
-5. (Optional.) If the cluster is on Workload Identity, please run **[gcp-workload-identity-setup.sh](../gcp-workload-identity-setup.sh)**
-  The script prints usage documentation when calling without argument. Note, you should
-  call it with `USE_GCP_MANAGED_STORAGE=true` env var.
-
-  - make sure the Google Service Account (GSA) can access the CloudSQL instance and GCS bucket
-  - if your workload calls other GCP APIs, make sure the GSA can access them
-
-6. Install
+5. Install
 
 ```
 kustomize build sample/cluster-scoped-resources/ | kubectl apply -f -

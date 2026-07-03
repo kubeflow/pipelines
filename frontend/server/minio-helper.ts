@@ -1,4 +1,3 @@
-import { Stream } from 'stream';
 // Copyright 2019-2020 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,11 +17,11 @@ import peek from 'peek-stream';
 import gunzip from 'gunzip-maybe';
 import { URL } from 'url';
 import { Client as MinioClient, ClientOptions as MinioClientOptions } from 'minio';
-import { isAWSS3Endpoint } from './aws-helper';
-import { S3ProviderInfo } from './handlers/artifacts';
-import { getK8sSecret } from './k8s-helper';
-import { parseJSONString } from './utils';
-const { fromNodeProviderChain } = require('@aws-sdk/credential-providers');
+import { isAWSS3Endpoint } from './aws-helper.js';
+import { S3ProviderInfo } from './handlers/artifacts.js';
+import { getK8sSecret } from './k8s-helper.js';
+import { parseJSONString } from './utils.js';
+import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 /** MinioRequestConfig describes the info required to retrieve an artifact. */
 export interface MinioRequestConfig {
   bucket: string;
@@ -34,6 +33,7 @@ export interface MinioRequestConfig {
 /** MinioClientOptionsWithOptionalSecrets wraps around MinioClientOptions where only endPoint is required (accesskey and secretkey are optional). */
 export interface MinioClientOptionsWithOptionalSecrets extends Partial<MinioClientOptions> {
   endPoint: string;
+  endpointRewrite?: string;
 }
 
 export interface Credentials {
@@ -55,6 +55,12 @@ export interface Credentials {
  * (defaultConfigs or ProviderInfo), and return a minio client configured
  * respectively.
  *
+ * Security: By default, credentials are injected via environment variables
+ * (MINIO_ACCESS_KEY, MINIO_SECRET_KEY) from the deployment spec. When
+ * providerInfo indicates that credentials should not come from the environment
+ * (fromEnv === 'false'), this helper may read namespace-scoped Kubernetes
+ * secrets via getK8sSecret. See: https://github.com/kubeflow/pipelines/issues/12373
+ *
  * @param config minio client options where `accessKey` and `secretKey` are optional.
  * @param providerType provider type ('s3' or 'minio')
  * @param providerInfoString
@@ -74,12 +80,14 @@ export async function createMinioClient(
       const creds = await customCredentialProvider();
 
       if (creds && creds.accessKeyId && creds.secretAccessKey) {
-        return new MinioClient({
-          ...config,
-          accessKey: creds.accessKeyId,
-          secretKey: creds.secretAccessKey,
-          sessionToken: creds.sessionToken,
-        });
+        return new MinioClient(
+          applyEndpointRewrite({
+            ...config,
+            accessKey: creds.accessKeyId,
+            secretKey: creds.secretAccessKey,
+            sessionToken: creds.sessionToken,
+          }) as MinioClientOptions,
+        );
       } else {
         console.warn(
           'Custom credential resolver returned incomplete credentials, falling back to default chain',
@@ -119,7 +127,14 @@ export async function createMinioClient(
             secretAccessKey: secretKey,
             sessionToken,
           } = awsCredentials;
-          return new MinioClient({ ...config, accessKey, secretKey, sessionToken });
+          return new MinioClient(
+            applyEndpointRewrite({
+              ...config,
+              accessKey,
+              secretKey,
+              sessionToken,
+            }) as MinioClientOptions,
+          );
         }
       } catch (e) {
         console.error('Unable to get aws instance profile credentials: ', e);
@@ -134,14 +149,85 @@ export async function createMinioClient(
   // If using any AWS or S3 compatible store (e.g. minio, aws s3 when using manual creds, ceph, etc.)
   let mc: MinioClient;
   try {
-    mc = await new MinioClient(config as MinioClientOptions);
+    mc = await new MinioClient(applyEndpointRewrite(config) as MinioClientOptions);
   } catch (err) {
     throw new Error(`Failed to create MinioClient: ${err}`);
   }
   return mc;
 }
 
-// Parse provider info for any s3 compatible store that's not AWS S3
+function applyEndpointRewrite(
+  config: MinioClientOptionsWithOptionalSecrets,
+): MinioClientOptionsWithOptionalSecrets {
+  const { endpointRewrite, ...clientConfig } = config;
+  const rewriteConfig = endpointRewrite || process.env.MINIO_ENDPOINT_REWRITE || '';
+  if (!rewriteConfig) {
+    return clientConfig;
+  }
+
+  for (const rule of rewriteConfig.split(',')) {
+    const [rawFrom, rawTo] = rule.split('=').map((part) => part.trim());
+    if (!rawFrom || !rawTo) {
+      continue;
+    }
+
+    const from = parseEndpoint(rawFrom);
+    if (!from) {
+      continue;
+    }
+    if (
+      from.host !== clientConfig.endPoint ||
+      (from.port !== undefined && from.port !== clientConfig.port)
+    ) {
+      continue;
+    }
+
+    const to = parseEndpoint(rawTo);
+    if (!to) {
+      continue;
+    }
+    clientConfig.endPoint = to.host;
+    if (to.port !== undefined) {
+      clientConfig.port = to.port;
+    }
+    if (to.useSSL !== undefined) {
+      clientConfig.useSSL = to.useSSL;
+    }
+    break;
+  }
+
+  return clientConfig;
+}
+
+function parseEndpoint(
+  endpoint: string,
+): { host: string; port?: number; useSSL?: boolean } | undefined {
+  try {
+    const url = new URL(endpoint.match(/^https?:\/\//) ? endpoint : `http://${endpoint}`);
+    return {
+      host: url.hostname,
+      port: url.port ? Number(url.port) : undefined,
+      useSSL: endpoint.startsWith('https://')
+        ? true
+        : endpoint.startsWith('http://')
+          ? false
+          : undefined,
+    };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(`Ignoring invalid MinIO endpoint rewrite endpoint "${endpoint}": ${reason}`);
+    return undefined;
+  }
+}
+
+/**
+ * Parse provider info for any S3-compatible store that's not AWS S3.
+ *
+ * WARNING: This function is unsupported in multi-user deployments.
+ * The ml-pipeline-ui ClusterRole no longer grants secrets:get/list
+ * permissions, so getK8sSecret() calls will be denied by RBAC.
+ * See: https://github.com/kubeflow/pipelines/pull/12860
+ */
 async function parseS3ProviderInfo(
   config: MinioClientOptionsWithOptionalSecrets,
   providerInfo: S3ProviderInfo,
@@ -268,7 +354,7 @@ function extractFirstTarRecordAsStream() {
       extract.write(chunk, callback);
     },
   });
-  extract.once('entry', function(_header, stream, next) {
+  extract.once('entry', function (_header, stream, next) {
     stream.on('data', (buffer: any) => transformStream.push(buffer));
     stream.on('end', () => {
       transformStream.emit('end');
@@ -276,7 +362,7 @@ function extractFirstTarRecordAsStream() {
     });
     stream.resume(); // just auto drain the stream
   });
-  extract.on('error', error => transformStream.emit('error', error));
+  extract.on('error', (error) => transformStream.emit('error', error));
   return transformStream;
 }
 
@@ -302,4 +388,114 @@ export async function getObjectStream({
 }: MinioRequestConfig): Promise<Transform> {
   const stream = await client.getObject(bucket, key);
   return tryExtract ? stream.pipe(gunzip()).pipe(maybeTarball()) : stream.pipe(new PassThrough());
+}
+
+/**
+ * Returns a minio/s3 error as a NoSuchKey error if applicable. Different
+ * providers surface the "object not found" condition slightly differently
+ * (code, Code, or message). This normalizes the check.
+ */
+export function isNoSuchKeyError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') {
+    return false;
+  }
+  const e = err as { code?: string; Code?: string; message?: string };
+  const code = e.code || e.Code;
+  if (code === 'NoSuchKey' || code === 'NotFound') {
+    return true;
+  }
+  return typeof e.message === 'string' && e.message.includes('NoSuchKey');
+}
+
+type ListObjectsV2QueryResult = {
+  objects: Array<{ name?: string; size?: number }>;
+  isTruncated: boolean;
+  nextContinuationToken: string;
+};
+
+type ListObjectsV2Query = (
+  bucket: string,
+  prefix: string,
+  continuationToken: string,
+  delimiter: string,
+  maxKeys: number,
+  startAfter: string,
+) => Promise<ListObjectsV2QueryResult>;
+
+// `listObjectsV2Query` is an internal helper on the minio client and is not
+// declared in its public type definitions. We narrow to it via a runtime
+// check so a future minio upgrade that removes the method fails fast with a
+// clear message instead of throwing `undefined is not a function` deep inside
+// the listing loop.
+function getListObjectsV2Query(client: MinioClient): ListObjectsV2Query {
+  const candidate = (client as unknown as { listObjectsV2Query?: unknown }).listObjectsV2Query;
+  if (typeof candidate !== 'function') {
+    throw new Error(
+      'Minio client does not expose listObjectsV2Query; the bundled minio version may be incompatible with listObjectsUnderPrefix',
+    );
+  }
+  return (candidate as ListObjectsV2Query).bind(client);
+}
+
+/**
+ * Yields all objects under a given prefix in an s3-compatible bucket,
+ * recursively, along with their sizes. Implemented as an async generator so
+ * callers can begin streaming the first object before the full listing
+ * completes — important for large directory artifacts where buffering all
+ * keys would delay the first byte and inflate memory use.
+ *
+ * Pages via the lower-level `listObjectsV2Query` instead of the public
+ * `listObjectsV2` streaming API. The public API hard-codes maxKeys=1000 per
+ * page, and minio's bundled fast-xml-parser caps entity expansions at 1000;
+ * each Contents entry has ~2 `&quot;` entities in its ETag, so a full page
+ * trips "Entity expansion limit exceeded" once a directory holds more than
+ * ~500 objects. A smaller page size keeps each XML parse under the cap.
+ */
+export async function* listObjectsUnderPrefix(
+  client: MinioClient,
+  bucket: string,
+  prefix: string,
+): AsyncGenerator<{ name: string; size: number }> {
+  const PAGE_SIZE = 300;
+  const listObjectsV2Query = getListObjectsV2Query(client);
+  let continuationToken = '';
+  let isTruncated = true;
+
+  while (isTruncated) {
+    const page = await listObjectsV2Query(bucket, prefix, continuationToken, '', PAGE_SIZE, '');
+
+    for (const item of page.objects) {
+      if (item.name) {
+        yield { name: item.name, size: item.size ?? 0 };
+      }
+    }
+
+    isTruncated = page.isTruncated;
+    continuationToken = page.nextContinuationToken;
+  }
+}
+
+/**
+ * Returns a bounded summary of a prefix using a single capped
+ * `listObjectsV2Query` call — does not paginate. Designed for preview-style
+ * requests where the caller just needs to know "is there anything here, and
+ * roughly how many files?" without paying for a full listing of a
+ * potentially huge directory.
+ *
+ * Resolves to `null` for an empty prefix so callers can answer with a 404.
+ * `truncated: true` means the directory has more than `maxKeys` files; the
+ * caller should treat `count` as a lower bound.
+ */
+export async function summarizeDirectoryUnderPrefix(
+  client: MinioClient,
+  bucket: string,
+  prefix: string,
+  maxKeys: number = 50,
+): Promise<{ count: number; truncated: boolean } | null> {
+  const listObjectsV2Query = getListObjectsV2Query(client);
+  const page = await listObjectsV2Query(bucket, prefix, '', '', maxKeys, '');
+  if (page.objects.length === 0) {
+    return null;
+  }
+  return { count: page.objects.length, truncated: page.isTruncated };
 }

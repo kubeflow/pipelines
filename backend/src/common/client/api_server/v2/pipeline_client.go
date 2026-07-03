@@ -309,6 +309,78 @@ func (c *PipelineClient) ListPipelineVersions(parameters *params.PipelineService
 	return response.Payload.PipelineVersions, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil
 }
 
+func (c *PipelineClient) GetByName(parameters *params.PipelineServiceGetPipelineByNameParams) (*model.V2beta1Pipeline,
+	error) {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	response, err := c.apiClient.PipelineService.PipelineServiceGetPipelineByName(parameters, c.authInfoWriter)
+	if err != nil {
+		if defaultError, ok := err.(*params.PipelineServiceGetPipelineByNameDefault); ok {
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
+		} else {
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to get pipeline by name. Params: '%v'", parameters),
+			fmt.Sprintf("Failed to get pipeline by name '%v'", parameters.Name))
+	}
+
+	return response.Payload, nil
+}
+
+func (c *PipelineClient) UpdatePipeline(parameters *params.PipelineServiceUpdatePipelineParams) (*model.V2beta1Pipeline,
+	error) {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	response, err := c.apiClient.PipelineService.PipelineServiceUpdatePipeline(parameters, c.authInfoWriter)
+	if err != nil {
+		if defaultError, ok := err.(*params.PipelineServiceUpdatePipelineDefault); ok {
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
+		} else {
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to update pipeline. Params: '%v'", parameters),
+			fmt.Sprintf("Failed to update pipeline '%v'", parameters.PipelinePipelineID))
+	}
+
+	return response.Payload, nil
+}
+
+func (c *PipelineClient) UpdatePipelineVersion(parameters *params.PipelineServiceUpdatePipelineVersionParams) (*model.V2beta1PipelineVersion,
+	error) {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	response, err := c.apiClient.PipelineService.PipelineServiceUpdatePipelineVersion(parameters, c.authInfoWriter)
+	if err != nil {
+		if defaultError, ok := err.(*params.PipelineServiceUpdatePipelineVersionDefault); ok {
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
+		} else {
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to update pipeline version. Params: '%v'", parameters),
+			fmt.Sprintf("Failed to update pipeline version '%v'", parameters.PipelineVersionPipelineVersionID))
+	}
+
+	return response.Payload, nil
+}
+
 func (c *PipelineClient) GetPipelineVersion(parameters *params.PipelineServiceGetPipelineVersionParams) (*model.V2beta1PipelineVersion,
 	error) {
 	// Create context with timeout

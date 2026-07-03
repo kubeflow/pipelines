@@ -52,6 +52,7 @@ else
     git add $PKG_ROOT/docs/.readthedocs.yml
     git add $REPO_ROOT/.readthedocs.yml
     git add $REPO_ROOT/kubernetes_platform/.gitignore
+    git commit -m "chore: kfp-kubernetes docs branch for release ${KFP_KUBERNETES_VERSION}"
 
     echo "Next steps:"
     echo "1. Inspect and commit the modified files."

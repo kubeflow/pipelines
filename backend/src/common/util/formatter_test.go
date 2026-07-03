@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -344,6 +344,20 @@ func TestFormatEmptyWorkflow(t *testing.T) {
 	err := formatter.Format(workflow)
 	assert.Nil(t, err)
 	assert.Equal(t, expected, workflow)
+}
+
+func TestFormatNameError(t *testing.T) {
+	uuid := NewFakeUUIDGeneratorOrFatal(defaultUUID, errors.New("UUID generation failed"))
+	formatter := NewWorkflowFormatter(uuid,
+		getDefaultScheduledAtSec(),
+		getDefaultCreatedAtSec())
+
+	workflow := &v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-[[uuid]]-name"},
+	}
+
+	err := formatter.Format(workflow)
+	assert.Contains(t, err.Error(), "UUID generation failed")
 }
 
 func TestFormatError(t *testing.T) {

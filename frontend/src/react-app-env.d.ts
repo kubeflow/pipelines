@@ -14,4 +14,12 @@
  * limitations under the License.
  */
 
-/// <reference types="react-scripts" />
+/// <reference types="vite/client" />
+
+interface ImportMetaEnv {
+  readonly VITE_NAMESPACE?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}

@@ -17,7 +17,6 @@
 import * as JsYaml from 'js-yaml';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { graphlib } from 'dagre';
-import * as React from 'react';
 import { testBestPractices } from 'src/TestUtils';
 import PipelineDetailsV1, { PipelineDetailsV1Props } from './PipelineDetailsV1';
 import { color } from 'src/Css';
@@ -114,9 +113,9 @@ spec:
       versions: [testPipelineVersion],
       graph: graph,
       reducedGraph: reducedGraph,
-      templateString: JSON.stringify({ template: JsYaml.safeDump(pipelineSpecTemplate) }),
-      updateBanner: bannerProps => {},
-      handleVersionSelected: async versionId => {},
+      templateString: JSON.stringify({ template: JsYaml.dump(pipelineSpecTemplate) }),
+      updateBanner: (bannerProps) => {},
+      handleVersionSelected: async (versionId) => {},
     };
     return props;
   }
@@ -127,7 +126,10 @@ spec:
     render(<PipelineDetailsV1 {...generateProps(new graphlib.Graph(), new graphlib.Graph())} />);
 
     expect(screen.getByText('test-pipeline-version'));
-    expect(screen.getByTestId('version_selector').childElementCount).toEqual(1);
+    fireEvent.mouseDown(screen.getByRole('combobox'));
+    const options = await screen.findAllByRole('option');
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('test-pipeline-version');
   });
 
   it('shows description for pipeline version and pipeline with custom version', async () => {

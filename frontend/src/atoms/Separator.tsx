@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-
 type Orientation = 'horizontal' | 'vertical';
 interface SeparatorProps {
   orientation?: Orientation;

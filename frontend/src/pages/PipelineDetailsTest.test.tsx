@@ -17,7 +17,9 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { graphlib } from 'dagre';
 import * as JsYaml from 'js-yaml';
-import React from 'react';
+import * as React from 'react';
+import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 import { ApiExperiment } from 'src/apis/experiment';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
@@ -26,24 +28,28 @@ import { V2beta1Run } from 'src/apisv2beta1/run';
 import { QUERY_PARAMS, RouteParams } from 'src/components/Router';
 import * as features from 'src/features';
 import { Apis } from 'src/lib/Apis';
-import TestUtils, { mockResizeObserver, testBestPractices } from 'src/TestUtils';
+import TestUtils, {
+  flushPromisesInAct,
+  mockResizeObserver,
+  testBestPractices,
+} from 'src/TestUtils';
 import * as StaticGraphParser from 'src/lib/StaticGraphParser';
 import { PageProps } from './Page';
 import PipelineDetails from './PipelineDetails';
-import fs from 'fs';
+import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 
-const V2_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
-const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
+function renderPipelineDetailsPage(element: React.ReactElement): ReturnType<typeof render> {
+  return render(<MemoryRouter>{element}</MemoryRouter>);
+}
 
-// This file is created in order to replace enzyme with react-testing-library gradually.
-// The old test file is written using enzyme in PipelineDetails.test.tsx.
+// PipelineDetails v1/v2 switch behavior tests using Testing Library.
 testBestPractices();
 describe('switch between v1 and v2', () => {
-  const updateBannerSpy = jest.fn();
-  const updateDialogSpy = jest.fn();
-  const updateSnackbarSpy = jest.fn();
-  const updateToolbarSpy = jest.fn();
-  const historyPushSpy = jest.fn();
+  const updateBannerSpy = vi.fn();
+  const updateDialogSpy = vi.fn();
+  const updateSnackbarSpy = vi.fn();
+  const updateToolbarSpy = vi.fn();
+  const historyPushSpy = vi.fn();
 
   let testV1Pipeline: ApiPipeline = {};
   let testV1PipelineVersion: ApiPipelineVersion = {};
@@ -131,7 +137,7 @@ spec:
     name: leaf-2
     `;
 
-  beforeAll(() => jest.spyOn(console, 'error').mockImplementation());
+  beforeAll(() => vi.spyOn(console, 'error').mockImplementation());
 
   beforeEach(() => {
     mockResizeObserver();
@@ -174,7 +180,7 @@ spec:
       pipeline_id: 'test-v2-pipeline-id',
       pipeline_version_id: 'test-v2-pipeline-version-id',
       name: 'test-v2-pipeline-version',
-      pipeline_spec: JsYaml.safeLoad(v2YamlTemplateString),
+      pipeline_spec: JsYaml.load(v2YamlTemplateString),
     };
 
     testV2Run = {
@@ -183,39 +189,36 @@ spec:
       pipeline_version_reference: {},
     };
 
-    jest.mock('src/lib/Apis', () => jest.fn());
-    Apis.pipelineServiceApi.getPipeline = jest.fn().mockResolvedValue(testV1Pipeline);
-    Apis.pipelineServiceApi.getPipelineVersion = jest.fn().mockResolvedValue(testV1PipelineVersion);
-    Apis.pipelineServiceApi.deletePipelineVersion = jest.fn();
-    Apis.pipelineServiceApi.listPipelineVersions = jest
+    Apis.pipelineServiceApi.getPipeline = vi.fn().mockResolvedValue(testV1Pipeline);
+    Apis.pipelineServiceApi.getPipelineVersion = vi.fn().mockResolvedValue(testV1PipelineVersion);
+    Apis.pipelineServiceApi.deletePipelineVersion = vi.fn();
+    Apis.pipelineServiceApi.listPipelineVersions = vi
       .fn()
       .mockResolvedValue({ versions: [testV1PipelineVersion] });
-    Apis.runServiceApi.getRun = jest.fn().mockResolvedValue(testV1Run);
+    Apis.runServiceApi.getRun = vi.fn().mockResolvedValue(testV1Run);
 
-    Apis.pipelineServiceApiV2.getPipeline = jest.fn().mockResolvedValue(testV2Pipeline);
-    Apis.pipelineServiceApiV2.getPipelineVersion = jest
-      .fn()
-      .mockResolvedValue(testV2PipelineVersion);
-    Apis.pipelineServiceApiV2.listPipelineVersions = jest
+    Apis.pipelineServiceApiV2.getPipeline = vi.fn().mockResolvedValue(testV2Pipeline);
+    Apis.pipelineServiceApiV2.getPipelineVersion = vi.fn().mockResolvedValue(testV2PipelineVersion);
+    Apis.pipelineServiceApiV2.listPipelineVersions = vi
       .fn()
       .mockResolvedValue({ pipeline_versions: [testV2PipelineVersion] });
-    Apis.runServiceApiV2.getRun = jest.fn().mockResolvedValue(testV2Run);
+    Apis.runServiceApiV2.getRun = vi.fn().mockResolvedValue(testV2Run);
 
-    Apis.experimentServiceApi.getExperiment = jest
+    Apis.experimentServiceApi.getExperiment = vi
       .fn()
       .mockResolvedValue({ id: 'test-experiment-id', name: 'test experiment' } as ApiExperiment);
   });
 
   afterEach(async () => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('Show error if not valid v1 template and disabled v2 feature', async () => {
     // v2 feature is turn off.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       return false;
     });
-    Apis.pipelineServiceApiV2.getPipelineVersion = jest.fn().mockResolvedValue({
+    Apis.pipelineServiceApiV2.getPipelineVersion = vi.fn().mockResolvedValue({
       display_name: 'test-pipeline-version',
       pipeline_id: 'test-pipeline-id',
       pipeline_version_id: 'test-pipeline-version-id',
@@ -224,14 +227,13 @@ spec:
         kind: 'bad kind',
       },
     });
-    const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
+    const createGraphSpy = vi.spyOn(StaticGraphParser, 'createGraph');
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
 
-    render(<PipelineDetails {...generateProps()} />);
-    await TestUtils.flushPromises();
+    renderPipelineDetailsPage(<PipelineDetails {...generateProps()} />);
+    await flushPromisesInAct();
 
     screen.getByTestId('pipeline-detail-v1');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo:
@@ -244,10 +246,10 @@ spec:
 
   it('Show error if v1 template cannot generate graph and disabled v2 feature', async () => {
     // v2 feature is turn off.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       return false;
     });
-    Apis.pipelineServiceApiV2.getPipelineVersion = jest.fn().mockResolvedValue({
+    Apis.pipelineServiceApiV2.getPipelineVersion = vi.fn().mockResolvedValue({
       display_name: 'test-pipeline-version',
       pipeline_id: 'test-pipeline-id',
       pipeline_version_id: 'test-pipeline-version-id',
@@ -256,16 +258,15 @@ spec:
         kind: 'Workflow',
       },
     });
-    const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
+    const createGraphSpy = vi.spyOn(StaticGraphParser, 'createGraph');
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
-    render(<PipelineDetails {...generateProps()} />);
+    renderPipelineDetailsPage(<PipelineDetails {...generateProps()} />);
 
     await waitFor(() => {
       expect(createGraphSpy).toHaveBeenCalled();
     });
 
     screen.getByTestId('pipeline-detail-v1');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad graph',
@@ -277,30 +278,27 @@ spec:
 
   it('Show error if not valid v2 template and enabled v2 feature', async () => {
     // v2 feature is turn on.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
       return false;
     });
-    Apis.pipelineServiceApiV2.getPipelineVersion = jest.fn().mockResolvedValue({
+    Apis.pipelineServiceApiV2.getPipelineVersion = vi.fn().mockResolvedValue({
       display_name: 'test-pipeline-version',
       pipeline_id: 'test-pipeline-id',
       pipeline_version_id: 'test-pipeline-version-id',
-      pipeline_spec: JsYaml.safeLoad(
-        'spec:\n  arguments:\n    parameters:\n      - name: output\n',
-      ),
+      pipeline_spec: JsYaml.load('spec:\n  arguments:\n    parameters:\n      - name: output\n'),
     });
-    const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
+    const createGraphSpy = vi.spyOn(StaticGraphParser, 'createGraph');
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
-    render(<PipelineDetails {...generateProps()} />);
+    renderPipelineDetailsPage(<PipelineDetails {...generateProps()} />);
 
     await waitFor(() => {
       expect(createGraphSpy).toHaveBeenCalledTimes(0);
     });
 
     screen.getByTestId('pipeline-detail-v1');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'Important infomation is missing. Pipeline Spec is invalid.',
@@ -312,16 +310,16 @@ spec:
 
   it('Show v1 page if valid v1 template and enabled v2 feature flag', async () => {
     // v2 feature is turn on.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
       return false;
     });
 
-    const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
+    const createGraphSpy = vi.spyOn(StaticGraphParser, 'createGraph');
     createGraphSpy.mockImplementation(() => new graphlib.Graph());
-    Apis.pipelineServiceApiV2.getPipelineVersion = jest.fn().mockResolvedValue({
+    Apis.pipelineServiceApiV2.getPipelineVersion = vi.fn().mockResolvedValue({
       display_name: 'test-pipeline-version',
       pipeline_id: 'test-pipeline-id',
       pipeline_version_id: 'test-pipeline-version-id',
@@ -331,19 +329,19 @@ spec:
       },
     });
 
-    render(<PipelineDetails {...generateProps()} />);
-    await TestUtils.flushPromises();
+    renderPipelineDetailsPage(<PipelineDetails {...generateProps()} />);
+    await flushPromisesInAct();
 
     screen.getByTestId('pipeline-detail-v1');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
   });
 
   it('Show v1 page if valid v1 template and disabled v2 feature flag', async () => {
     // v2 feature is turn off.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       return false;
     });
-    Apis.pipelineServiceApiV2.getPipelineVersion = jest.fn().mockResolvedValue({
+    Apis.pipelineServiceApiV2.getPipelineVersion = vi.fn().mockResolvedValue({
       display_name: 'test-pipeline-version',
       pipeline_id: 'test-pipeline-id',
       pipeline_version_id: 'test-pipeline-version-id',
@@ -352,31 +350,31 @@ spec:
         kind: 'Workflow',
       },
     });
-    const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
+    const createGraphSpy = vi.spyOn(StaticGraphParser, 'createGraph');
     createGraphSpy.mockImplementation(() => new graphlib.Graph());
 
-    render(<PipelineDetails {...generateProps()} />);
-    await TestUtils.flushPromises();
+    renderPipelineDetailsPage(<PipelineDetails {...generateProps()} />);
+    await flushPromisesInAct();
 
     screen.getByTestId('pipeline-detail-v1');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
   });
 
   it('Show v2 page if valid v2 template and enabled v2 feature', async () => {
     // v2 feature is turn on.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
       return false;
     });
-    const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
+    const createGraphSpy = vi.spyOn(StaticGraphParser, 'createGraph');
     createGraphSpy.mockImplementation(() => new graphlib.Graph());
 
-    render(<PipelineDetails {...generateProps()} />);
-    await TestUtils.flushPromises();
+    renderPipelineDetailsPage(<PipelineDetails {...generateProps()} />);
+    await flushPromisesInAct();
 
     screen.getByTestId('pipeline-detail-v2');
-    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
   });
 });

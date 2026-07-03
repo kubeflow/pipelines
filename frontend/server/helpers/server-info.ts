@@ -14,7 +14,7 @@
 
 import * as fs from 'fs';
 import { V1Pod } from '@kubernetes/client-node';
-import { getPod } from '../k8s-helper';
+import { getPod } from '../k8s-helper.js';
 
 const namespaceFilePath = '/var/run/secrets/kubernetes.io/serviceaccount/namespace';
 let serverNamespace: string | undefined;

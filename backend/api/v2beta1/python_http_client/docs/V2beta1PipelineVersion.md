@@ -12,7 +12,8 @@ Name | Type | Description | Notes
 **package_url** | [**V2beta1Url**](V2beta1Url.md) |  | [optional] 
 **code_source_url** | **str** | Input. Optional. The URL to the code source of the pipeline version. The code is usually the Python definition of the pipeline and potentially related the component definitions. This allows users to trace back to how the pipeline YAML was created. | [optional] 
 **pipeline_spec** | [**object**](.md) | Output. The pipeline spec for the pipeline version. | [optional] 
-**error** | [**GooglerpcStatus**](GooglerpcStatus.md) |  | [optional] 
+**error** | [**GoogleRpcStatus**](GoogleRpcStatus.md) |  | [optional] 
+**tags** | **dict(str, str)** | Optional input field. User-defined tags (key-value pairs) for the pipeline version. Both keys and values are limited to 63 characters. | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

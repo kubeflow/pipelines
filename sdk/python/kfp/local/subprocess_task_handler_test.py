@@ -77,7 +77,7 @@ class TestSubprocessRunner(testing_utilities.LocalRunnerEnvironmentTestCase):
     def test_image_warning(self):
         with self.assertWarnsRegex(
                 RuntimeWarning,
-                r"You may be attemping to run a task that uses custom or non-Python base image 'my_custom_image' in a Python environment\. This may result in incorrect dependencies and/or incorrect behavior\."
+                r"You may be attemping to run a task that uses custom or non-Python base image \"my_custom_image\" in a Python environment\. This may result in incorrect dependencies and/or incorrect behavior\. Consider using the \"DockerRunner\" to run this task in a container\."
         ):
             subprocess_task_handler.SubprocessTaskHandler(
                 image='my_custom_image',

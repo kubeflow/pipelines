@@ -15,10 +15,9 @@
  */
 
 import { render, screen, waitFor } from '@testing-library/react';
-import React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { Apis } from '../lib/Apis';
-import { testBestPractices } from '../TestUtils';
+import { expectErrors, testBestPractices } from '../TestUtils';
 import ArtifactPreview from './ArtifactPreview';
 
 testBestPractices();
@@ -42,16 +41,18 @@ describe('ArtifactPreview', () => {
   });
 
   it('handles unsupported path artifact', () => {
+    const expectError = expectErrors();
     render(
       <CommonTestWrapper>
         <ArtifactPreview value={'i am random path'} />
       </CommonTestWrapper>,
     );
     screen.getByText('Can not retrieve storage path from artifact uri: i am random path');
+    expectError();
   });
 
   it('handles invalid artifact: no bucket', async () => {
-    jest.spyOn(Apis, 'readFile').mockRejectedValue(new Error('server error: no bucket'));
+    vi.spyOn(Apis, 'readFile').mockRejectedValue(new Error('server error: no bucket'));
 
     render(
       <CommonTestWrapper>
@@ -62,7 +63,7 @@ describe('ArtifactPreview', () => {
   });
 
   it('handles gcs artifact', async () => {
-    jest.spyOn(Apis, 'readFile').mockResolvedValue('gcs preview');
+    vi.spyOn(Apis, 'readFile').mockResolvedValue('gcs preview');
     render(
       <CommonTestWrapper>
         <ArtifactPreview value={'gs://bucket/key'} />
@@ -73,7 +74,7 @@ describe('ArtifactPreview', () => {
   });
 
   it('handles minio artifact with namespace', async () => {
-    jest.spyOn(Apis, 'readFile').mockResolvedValueOnce('minio content');
+    vi.spyOn(Apis, 'readFile').mockResolvedValueOnce('minio content');
     render(
       <CommonTestWrapper>
         <ArtifactPreview value={'minio://bucket/key'} namespace={'kubeflow'} />
@@ -89,7 +90,7 @@ describe('ArtifactPreview', () => {
 
   it('handles artifact that previews with maxlines', async () => {
     const data = `012\n345\n678\n910`;
-    jest.spyOn(Apis, 'readFile').mockResolvedValueOnce(data);
+    vi.spyOn(Apis, 'readFile').mockResolvedValueOnce(data);
     render(
       <CommonTestWrapper>
         <ArtifactPreview
@@ -106,7 +107,7 @@ describe('ArtifactPreview', () => {
 
   it('handles artifact that previews with maxbytes', async () => {
     const data = `012\n345\n678\n910`;
-    jest.spyOn(Apis, 'readFile').mockResolvedValueOnce(data);
+    vi.spyOn(Apis, 'readFile').mockResolvedValueOnce(data);
     render(
       <CommonTestWrapper>
         <ArtifactPreview

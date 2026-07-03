@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -29,6 +30,31 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"google.golang.org/grpc/codes"
 )
+
+const managedPipelinesUploadTagsEnv = "MANAGED_PIPELINES_UPLOAD_TAGS"
+
+// parseManagedPipelinesTags reads MANAGED_PIPELINES_UPLOAD_TAGS from the
+// environment and returns the parsed key=value pairs. Returns nil when the
+// variable is unset or empty (backward-compatible no-op).
+func parseManagedPipelinesTags() (map[string]string, error) {
+	raw := os.Getenv(managedPipelinesUploadTagsEnv)
+	if raw == "" {
+		return nil, nil
+	}
+	tags := make(map[string]string)
+	for _, entry := range strings.Split(raw, ",") {
+		idx := strings.Index(entry, "=")
+		if idx < 0 {
+			return nil, fmt.Errorf("malformed %s entry %q: missing '='", managedPipelinesUploadTagsEnv, entry)
+		}
+		key := entry[:idx]
+		if key == "" {
+			return nil, fmt.Errorf("malformed %s entry %q: empty key", managedPipelinesUploadTagsEnv, entry)
+		}
+		tags[key] = entry[idx+1:]
+	}
+	return tags, nil
+}
 
 // deprecated
 type deprecatedConfig struct {
@@ -116,6 +142,14 @@ func LoadSamples(resourceManager *resource.ResourceManager, sampleConfigPath str
 		return nil
 	}
 
+	tags, err := parseManagedPipelinesTags()
+	if err != nil {
+		return err
+	}
+	if len(tags) > 0 {
+		glog.Infof("Parsed %d managed pipeline upload tag(s) from %s", len(tags), managedPipelinesUploadTagsEnv)
+	}
+
 	processedPipelines := map[string]bool{}
 
 	for _, cfg := range pipelineConfig.Pipelines {
@@ -135,21 +169,32 @@ func LoadSamples(resourceManager *resource.ResourceManager, sampleConfigPath str
 		}
 
 		// Create pipeline if it does not already exist
-		p, fetchErr := resourceManager.GetPipelineByNameAndNamespace(cfg.Name, common.GetPodNamespace())
+		namespace := resourceManager.ReplaceNamespace(common.GetPodNamespace())
+		p, fetchErr := resourceManager.GetPipelineByNameAndNamespace(cfg.Name, namespace)
 		if fetchErr != nil {
 			if util.IsUserErrorCodeMatch(fetchErr, codes.NotFound) {
 				p, configErr = resourceManager.CreatePipeline(&model.Pipeline{
 					Name:        cfg.Name,
 					DisplayName: pipelineDisplayName,
 					Description: model.LargeText(cfg.Description),
+					Tags:        tags,
 				})
 				if configErr != nil {
-					// Log the error but not fail. The API Server pod can restart and it could potentially cause
-					// name collision. In the future, we might consider loading samples during deployment, instead
-					// of when API server starts.
-					glog.Warningf(fmt.Sprintf(
-						"Failed to create pipeline for %s. Error: %v", cfg.Name, configErr))
-					continue
+					if util.IsUserErrorCodeMatch(configErr, codes.AlreadyExists) {
+						// Retry without namespace filter. In standalone mode this
+						// finds the empty-namespace pipeline; safe because sample
+						// names are deterministic and collisions across namespaces
+						// are not expected for managed pipelines.
+						p, fetchErr = resourceManager.GetPipelineByNameAndNamespace(cfg.Name, "")
+						if fetchErr != nil {
+							glog.Warningf("Failed to create or find pipeline %s: create=%v, fetch=%v", cfg.Name, configErr, fetchErr)
+							continue
+						}
+						glog.Infof("Pipeline %s already exists (id=%s), proceeding to version check.", cfg.Name, p.UUID)
+					} else {
+						glog.Warningf("Failed to create pipeline for %s. Error: %v", cfg.Name, configErr)
+						continue
+					}
 				} else {
 					glog.Info(fmt.Sprintf("Successfully uploaded Pipeline %s.", cfg.Name))
 				}
@@ -184,7 +229,7 @@ func LoadSamples(resourceManager *resource.ResourceManager, sampleConfigPath str
 		// If the Pipeline Version exists, do nothing
 		// Otherwise upload new Pipeline Version for
 		// this pipeline.
-		_, fetchErr = resourceManager.GetPipelineVersionByName(pvName)
+		_, fetchErr = resourceManager.GetPipelineVersionByName(p.UUID, pvName)
 		if fetchErr != nil {
 			if util.IsUserErrorCodeMatch(fetchErr, codes.NotFound) {
 				_, configErr = resourceManager.CreatePipelineVersion(

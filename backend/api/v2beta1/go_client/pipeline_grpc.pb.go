@@ -44,6 +44,8 @@ const (
 	PipelineService_GetPipelineVersion_FullMethodName       = "/kubeflow.pipelines.backend.api.v2beta1.PipelineService/GetPipelineVersion"
 	PipelineService_ListPipelineVersions_FullMethodName     = "/kubeflow.pipelines.backend.api.v2beta1.PipelineService/ListPipelineVersions"
 	PipelineService_DeletePipelineVersion_FullMethodName    = "/kubeflow.pipelines.backend.api.v2beta1.PipelineService/DeletePipelineVersion"
+	PipelineService_UpdatePipeline_FullMethodName           = "/kubeflow.pipelines.backend.api.v2beta1.PipelineService/UpdatePipeline"
+	PipelineService_UpdatePipelineVersion_FullMethodName    = "/kubeflow.pipelines.backend.api.v2beta1.PipelineService/UpdatePipelineVersion"
 )
 
 // PipelineServiceClient is the client API for PipelineService service.
@@ -71,6 +73,10 @@ type PipelineServiceClient interface {
 	ListPipelineVersions(ctx context.Context, in *ListPipelineVersionsRequest, opts ...grpc.CallOption) (*ListPipelineVersionsResponse, error)
 	// Deletes a specific pipeline version by pipeline version ID and pipeline ID.
 	DeletePipelineVersion(ctx context.Context, in *DeletePipelineVersionRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// Updates a pipeline's mutable fields (display_name, tags).
+	UpdatePipeline(ctx context.Context, in *UpdatePipelineRequest, opts ...grpc.CallOption) (*Pipeline, error)
+	// Updates a pipeline version's mutable fields (display_name, tags).
+	UpdatePipelineVersion(ctx context.Context, in *UpdatePipelineVersionRequest, opts ...grpc.CallOption) (*PipelineVersion, error)
 }
 
 type pipelineServiceClient struct {
@@ -181,6 +187,26 @@ func (c *pipelineServiceClient) DeletePipelineVersion(ctx context.Context, in *D
 	return out, nil
 }
 
+func (c *pipelineServiceClient) UpdatePipeline(ctx context.Context, in *UpdatePipelineRequest, opts ...grpc.CallOption) (*Pipeline, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Pipeline)
+	err := c.cc.Invoke(ctx, PipelineService_UpdatePipeline_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pipelineServiceClient) UpdatePipelineVersion(ctx context.Context, in *UpdatePipelineVersionRequest, opts ...grpc.CallOption) (*PipelineVersion, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PipelineVersion)
+	err := c.cc.Invoke(ctx, PipelineService_UpdatePipelineVersion_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PipelineServiceServer is the server API for PipelineService service.
 // All implementations must embed UnimplementedPipelineServiceServer
 // for forward compatibility.
@@ -206,6 +232,10 @@ type PipelineServiceServer interface {
 	ListPipelineVersions(context.Context, *ListPipelineVersionsRequest) (*ListPipelineVersionsResponse, error)
 	// Deletes a specific pipeline version by pipeline version ID and pipeline ID.
 	DeletePipelineVersion(context.Context, *DeletePipelineVersionRequest) (*emptypb.Empty, error)
+	// Updates a pipeline's mutable fields (display_name, tags).
+	UpdatePipeline(context.Context, *UpdatePipelineRequest) (*Pipeline, error)
+	// Updates a pipeline version's mutable fields (display_name, tags).
+	UpdatePipelineVersion(context.Context, *UpdatePipelineVersionRequest) (*PipelineVersion, error)
 	mustEmbedUnimplementedPipelineServiceServer()
 }
 
@@ -245,6 +275,12 @@ func (UnimplementedPipelineServiceServer) ListPipelineVersions(context.Context, 
 }
 func (UnimplementedPipelineServiceServer) DeletePipelineVersion(context.Context, *DeletePipelineVersionRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeletePipelineVersion not implemented")
+}
+func (UnimplementedPipelineServiceServer) UpdatePipeline(context.Context, *UpdatePipelineRequest) (*Pipeline, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdatePipeline not implemented")
+}
+func (UnimplementedPipelineServiceServer) UpdatePipelineVersion(context.Context, *UpdatePipelineVersionRequest) (*PipelineVersion, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdatePipelineVersion not implemented")
 }
 func (UnimplementedPipelineServiceServer) mustEmbedUnimplementedPipelineServiceServer() {}
 func (UnimplementedPipelineServiceServer) testEmbeddedByValue()                         {}
@@ -447,6 +483,42 @@ func _PipelineService_DeletePipelineVersion_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PipelineService_UpdatePipeline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdatePipelineRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PipelineServiceServer).UpdatePipeline(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PipelineService_UpdatePipeline_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PipelineServiceServer).UpdatePipeline(ctx, req.(*UpdatePipelineRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PipelineService_UpdatePipelineVersion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdatePipelineVersionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PipelineServiceServer).UpdatePipelineVersion(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PipelineService_UpdatePipelineVersion_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PipelineServiceServer).UpdatePipelineVersion(ctx, req.(*UpdatePipelineVersionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PipelineService_ServiceDesc is the grpc.ServiceDesc for PipelineService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -493,6 +565,14 @@ var PipelineService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeletePipelineVersion",
 			Handler:    _PipelineService_DeletePipelineVersion_Handler,
+		},
+		{
+			MethodName: "UpdatePipeline",
+			Handler:    _PipelineService_UpdatePipeline_Handler,
+		},
+		{
+			MethodName: "UpdatePipelineVersion",
+			Handler:    _PipelineService_UpdatePipelineVersion_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

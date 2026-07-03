@@ -85,7 +85,7 @@ func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool, tlsCfg *tls
 			httpClient = &http.Client{Transport: tr}
 		}
 		var runtimeClient *httptransport.Runtime
-		if tlsCfg != nil {
+		if tlsCfg != nil && !*testconfig.DisableTLSCheck {
 			scheme = []string{"https"}
 			tr := &http.Transport{
 				TLSClientConfig: tlsCfg,
@@ -122,6 +122,7 @@ func NewKubeflowInClusterHTTPRuntime(namespace string, debug bool, tlsCfg *tls.C
 	var schemes []string
 	var httpClient *http.Client
 	if tlsCfg != nil {
+		schemes = []string{"https"}
 		tr := &http.Transport{TLSClientConfig: tlsCfg}
 		httpClient = &http.Client{Transport: tr}
 	} else {

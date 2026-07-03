@@ -56,4 +56,4 @@ To learn more, refer to [Upgrading or downgrading a dependency](https://go.dev/d
 
 ### Build JS client from proto
 
-Refer to [frontend/README.md](frontend/README.md) for [MLMD components - Building generated metadata Protocol Bufers](https://github.com/kubeflow/pipelines/blob/master/frontend/README.md#mlmd-components), for example: you can search for `npm run build:replace` command. 
+Refer to [frontend/CONTRIBUTING.md](../../frontend/CONTRIBUTING.md#building-generated-metadata-protocol-buffers) for instructions on regenerating the JS proto client using `npm run build:protos`.

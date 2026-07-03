@@ -53,7 +53,7 @@ function newMockExecution(id: number, displayName?: string): Execution {
     const displayNameValue = new Value();
     displayNameValue.setStringValue(displayName);
     customPropertiesMap.set('display_name', displayNameValue);
-    jest.spyOn(execution, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
+    vi.spyOn(execution, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
   }
   return execution;
 }
@@ -103,7 +103,7 @@ function newMockArtifact(
     customPropertiesMap.set('confidenceMetrics', confidenceMetrics);
   }
 
-  jest.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
+  vi.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
   return artifact;
 }
 
@@ -359,5 +359,37 @@ describe('CompareUtils', () => {
         ['', '{"key":2000}', ''],
       ],
     });
+  });
+
+  it('Scalar metrics table omits reserved artifact custom properties', () => {
+    // Build an artifact with display_name, a real metric, and store_session_info
+    const artifact = new Artifact();
+    artifact.setId(10);
+    const customPropertiesMap: jspb.Map<string, Value> = jspb.Map.fromObject([], null, null);
+    customPropertiesMap.set('display_name', new Value().setStringValue('metrics'));
+    customPropertiesMap.set('accuracy', new Value().setDoubleValue(0.95));
+    customPropertiesMap.set('store_session_info', new Value().setStringValue('internal-data'));
+    vi.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
+
+    const event = newMockEvent(10, 1, 'artifact1');
+    const linkedArtifact: LinkedArtifact = { artifact, event };
+
+    const scalarMetricsArtifacts: RunArtifact[] = [
+      {
+        run: { run_id: '1', display_name: 'run1' },
+        executionArtifacts: [
+          {
+            execution: newMockExecution(1, 'execution1'),
+            linkedArtifacts: [linkedArtifact],
+          },
+        ],
+      },
+    ];
+
+    const result = getScalarTableProps(scalarMetricsArtifacts, 1);
+    expect(result).toBeDefined();
+    expect(result!.yLabels).toContain('accuracy');
+    expect(result!.yLabels).not.toContain('store_session_info');
+    expect(result!.yLabels).not.toContain('display_name');
   });
 });

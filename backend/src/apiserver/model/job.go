@@ -109,7 +109,8 @@ type Job struct {
 	ResourceReferences []*ResourceReference `gorm:"-"`
 	Trigger
 	PipelineSpec
-	Conditions string `gorm:"column:Conditions; not null;"`
+	Conditions         string     `gorm:"column:Conditions; not null;"`
+	PluginsInputString *LargeText `gorm:"column:PluginsInput; default:null;"`
 }
 
 // Converts to v1beta1-compatible internal representation of job.
@@ -233,11 +234,11 @@ func (j *Job) GetModelName() string {
 	return "jobs"
 }
 
-func (j *Job) GetField(name string) (string, bool) {
+func (j *Job) GetField(name string) (string, string, bool) {
 	if field, ok := jobAPIToModelFieldMap[name]; ok {
-		return field, true
+		return field, field, true
 	}
-	return "", false
+	return "", "", false
 }
 
 func (j *Job) GetFieldValue(name string) interface{} {

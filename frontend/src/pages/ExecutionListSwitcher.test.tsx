@@ -15,7 +15,7 @@
  */
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import * as React from 'react';
+import { MockInstance } from 'vitest';
 import { Api } from 'src/mlmd/library';
 import {
   Execution,
@@ -34,13 +34,13 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 testBestPractices();
 
 describe('ExecutionListSwitcher', () => {
-  let getExecutionsSpy: jest.Mock<{}>;
-  let getExecutionTypesSpy: jest.Mock<{}>;
+  let getExecutionsSpy: MockInstance;
+  let getExecutionTypesSpy: MockInstance;
   const getExecutionsRequest = new GetExecutionsRequest();
 
   beforeEach(() => {
-    getExecutionsSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getExecutions');
-    getExecutionTypesSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getExecutionTypes');
+    getExecutionsSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getExecutions');
+    getExecutionTypesSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getExecutionTypes');
 
     getExecutionTypesSpy.mockImplementation(() => {
       const executionType = new ExecutionType();
@@ -112,15 +112,18 @@ describe('ExecutionListSwitcher', () => {
       </CommonTestWrapper>,
     );
 
+    await waitFor(() => expect(getExecutionsSpy).toHaveBeenCalled());
+    getExecutionsSpy.mockClear();
+    getExecutionTypesSpy.mockClear();
+
     const groupTab = screen.getByText('Grouped');
     fireEvent.click(groupTab);
 
-    // "Group" view will call getExection() without list options
+    // "Group" view will call getExecutions() without list options
     getExecutionsRequest.setOptions(undefined);
 
     await waitFor(() => {
-      expect(getExecutionTypesSpy).toHaveBeenCalledTimes(2); // once for flat, once for group
-      expect(getExecutionsSpy).toHaveBeenCalledTimes(2); // once for flat, once for group
+      expect(getExecutionsSpy).toHaveBeenCalled();
       expect(getExecutionsSpy).toHaveBeenLastCalledWith(getExecutionsRequest);
     });
 

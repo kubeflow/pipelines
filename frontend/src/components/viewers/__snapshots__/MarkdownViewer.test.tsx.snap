@@ -1,40 +1,44 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`MarkdownViewer does not break on empty data 1`] = `null`;
+exports[`MarkdownViewer > does not break on empty data 1`] = `<DocumentFragment />`;
 
-exports[`MarkdownViewer renders some basic markdown 1`] = `
-<div
-  class="markdown-viewer"
->
-  <div>
-    <h1
-      id="title"
-    >
-      Title
-    </h1>
-    <p>
-      <a
-        class="link"
-        href="http://example.com"
-        rel="noopener"
-        target="_blank"
+exports[`MarkdownViewer > renders some basic markdown 1`] = `
+<DocumentFragment>
+  <div
+    class="markdown-viewer"
+  >
+    <div>
+      <h1
+        id="title"
       >
-        some link here
-      </a>
-    </p>
+        Title
+      </h1>
+      <p>
+        <a
+          class="link_f1fk43bf"
+          href="http://example.com"
+          rel="noopener"
+          target="_blank"
+        >
+          some link here
+        </a>
+      </p>
+    </div>
   </div>
-</div>
+</DocumentFragment>
 `;
 
-exports[`MarkdownViewer sanitizes the markdown to remove XSS 1`] = `
-<div
-  class="markdown-viewer"
->
-  <pre>
-    <code>
-        lower[click me](javascript&#x3a;...)lower
+exports[`MarkdownViewer > sanitizes the markdown to remove XSS 1`] = `
+<DocumentFragment>
+  <div
+    class="markdown-viewer"
+  >
+    <pre>
+      <code>
+          lower[click me](javascript&#x3a;...)lower
   upper[click me](javascript&#X3a;...)upper
-    </code>
-  </pre>
-</div>
+      </code>
+    </pre>
+  </div>
+</DocumentFragment>
 `;

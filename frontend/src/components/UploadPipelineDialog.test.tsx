@@ -15,85 +15,172 @@
  */
 
 import * as React from 'react';
-import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
-import UploadPipelineDialog, { ImportMethod } from './UploadPipelineDialog';
-import TestUtils from '../TestUtils';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { vi } from 'vitest';
+import UploadPipelineDialog, {
+  ImportMethod,
+  PIPELINE_PACKAGE_ACCEPT,
+  PIPELINE_PACKAGE_REJECT_MESSAGE,
+  pipelinePackageValidator,
+} from './UploadPipelineDialog';
+
+describe('PIPELINE_PACKAGE_ACCEPT', () => {
+  it('accepts only backend-supported formats', () => {
+    const allExtensions = Object.values(PIPELINE_PACKAGE_ACCEPT).flat().sort();
+    expect(allExtensions).toEqual(['.tar.gz', '.yaml', '.yml', '.zip']);
+  });
+
+  it('does not include plain .gz (backend only supports .tar.gz)', () => {
+    const allExtensions = Object.values(PIPELINE_PACKAGE_ACCEPT).flat();
+    const plainGz = allExtensions.filter((ext) => ext.endsWith('.gz') && ext !== '.tar.gz');
+    expect(plainGz).toEqual([]);
+  });
+
+  it('uses application/gzip MIME key for .tar.gz so native file picker works', () => {
+    expect(PIPELINE_PACKAGE_ACCEPT).toHaveProperty('application/gzip');
+    expect(PIPELINE_PACKAGE_ACCEPT['application/gzip']).toEqual(['.tar.gz']);
+  });
+
+  it('reject message matches accepted extensions and does not advertise .gz', () => {
+    expect(PIPELINE_PACKAGE_REJECT_MESSAGE).not.toContain('.gz,');
+    expect(PIPELINE_PACKAGE_REJECT_MESSAGE).toContain('.tar.gz');
+    expect(PIPELINE_PACKAGE_REJECT_MESSAGE).toContain('.yaml');
+    expect(PIPELINE_PACKAGE_REJECT_MESSAGE).toContain('.yml');
+    expect(PIPELINE_PACKAGE_REJECT_MESSAGE).toContain('.zip');
+  });
+});
+
+describe('pipelinePackageValidator', () => {
+  it('accepts .tar.gz files', () => {
+    expect(pipelinePackageValidator(new File([], 'pipeline.tar.gz'))).toBeNull();
+  });
+
+  it('accepts .tar.gz files with uppercase names', () => {
+    expect(pipelinePackageValidator(new File([], 'PIPELINE.TAR.GZ'))).toBeNull();
+  });
+
+  it('accepts non-gzip files (validator only guards gzip MIME loophole)', () => {
+    expect(pipelinePackageValidator(new File([], 'pipeline.yaml'))).toBeNull();
+    expect(pipelinePackageValidator(new File([], 'pipeline.zip'))).toBeNull();
+  });
+
+  it('rejects plain .gz files', () => {
+    expect(pipelinePackageValidator(new File([], 'foo.gz'))).toEqual(
+      expect.objectContaining({ code: 'invalid-extension' }),
+    );
+    expect(pipelinePackageValidator(new File([], 'pipeline.yaml.gz'))).toEqual(
+      expect.objectContaining({ code: 'invalid-extension' }),
+    );
+  });
+
+  it('rejects .tgz files', () => {
+    expect(pipelinePackageValidator(new File([], 'pipeline.tgz'))).toEqual(
+      expect.objectContaining({ code: 'invalid-extension' }),
+    );
+  });
+});
 
 describe('UploadPipelineDialog', () => {
-  let tree: ReactWrapper | ShallowWrapper;
+  const user = userEvent.setup();
 
-  afterEach(async () => {
-    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
-    // depends on mocks/spies
-    await tree.unmount();
-  });
+  function renderDialog(onClose = vi.fn().mockResolvedValue(false)) {
+    render(<UploadPipelineDialog open={true} onClose={onClose} />);
+    return { onClose };
+  }
 
-  it('renders closed', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('renders open', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('renders an active dropzone', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    tree.setState({ dropzoneActive: true });
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('renders with a selected file to upload', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    tree.setState({ fileToUpload: true });
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('renders alternate UI for uploading via URL', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    tree.setState({ importMethod: ImportMethod.URL });
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('calls close callback with null and empty string when canceled', () => {
-    const spy = jest.fn();
-    tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
-    tree.find('#cancelUploadBtn').simulate('click');
-    expect(spy).toHaveBeenCalledWith(false, '', null, '', ImportMethod.LOCAL, true, '');
-  });
-
-  it('calls close callback with null and empty string when dialog is closed', () => {
-    const spy = jest.fn();
-    tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
-    tree.find('WithStyles(Dialog)').simulate('close');
-    expect(spy).toHaveBeenCalledWith(false, '', null, '', ImportMethod.LOCAL, true, '');
-  });
-
-  it('calls close callback with file name, file object, and description when confirmed', () => {
-    const spy = jest.fn();
-    tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
-    (tree.instance() as any)._dropzoneRef = { current: { open: () => null } };
-    (tree.instance() as UploadPipelineDialog).handleChange('uploadPipelineName')({
-      target: { value: 'test name' },
+  async function dropFile(file: File): Promise<void> {
+    const dropzone = screen.getByTestId('upload-pipeline-dropzone');
+    // react-dropzone hides the file input with no accessible label; direct query required.
+    const input = dropzone.querySelector('input') as HTMLInputElement;
+    await user.upload(input, file);
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: /Pipeline name/i })).not.toHaveValue('');
     });
-    tree.find('#confirmUploadBtn').simulate('click');
-    expect(spy).toHaveBeenLastCalledWith(true, 'test name', null, '', ImportMethod.LOCAL, true, '');
+  }
+
+  it('shows dialog title when open', () => {
+    renderDialog();
+    expect(
+      screen.getByRole('heading', { name: /upload and name your pipeline/i }),
+    ).toBeInTheDocument();
   });
 
-  it('calls close callback with trimmed file url and pipeline name when confirmed', () => {
-    const spy = jest.fn();
-    tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
-    // Click 'Import by URL'
-    tree.find('#uploadFromUrlBtn').simulate('change');
-    (tree.instance() as UploadPipelineDialog).handleChange('fileUrl')({
-      target: { value: '\n https://www.google.com/test-file.txt ' },
-    });
-    (tree.instance() as UploadPipelineDialog).handleChange('uploadPipelineName')({
-      target: { value: 'test name' },
-    });
-    tree.find('#confirmUploadBtn').simulate('click');
-    expect(spy).toHaveBeenLastCalledWith(
+  it('does not render dialog content when closed', () => {
+    render(<UploadPipelineDialog open={false} onClose={vi.fn().mockResolvedValue(false)} />);
+    expect(
+      screen.queryByRole('heading', { name: /upload and name your pipeline/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('populates pipeline name from filename when a file is dropped', async () => {
+    renderDialog();
+    const file = new File(['test'], 'my_pipeline.yaml', { type: 'application/yaml' });
+    await dropFile(file);
+    expect(screen.getByRole('textbox', { name: /Pipeline name/i })).toHaveValue('my_pipeline');
+    expect(screen.queryByText('Drop files..')).not.toBeInTheDocument();
+  });
+
+  it('trims compound extension (.tar.gz) for pipeline name suggestion', async () => {
+    renderDialog();
+    const file = new File(['test'], 'test_upload_file.tar.gz', { type: 'application/gzip' });
+    await dropFile(file);
+    expect(screen.getByRole('textbox', { name: /Pipeline name/i })).toHaveValue('test_upload_file');
+  });
+
+  it('switches between local upload and URL import modes', async () => {
+    renderDialog();
+    expect(screen.getByTestId('upload-pipeline-dropzone')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: /URL/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByLabelText('Import by URL'));
+    expect(screen.queryByTestId('upload-pipeline-dropzone')).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /URL/i })).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText('Upload a file'));
+    expect(screen.getByTestId('upload-pipeline-dropzone')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: /URL/i })).not.toBeInTheDocument();
+  });
+
+  it('calls onClose with defaults when Cancel is clicked', async () => {
+    const { onClose } = renderDialog();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onClose).toHaveBeenCalledWith(false, '', null, '', ImportMethod.LOCAL, true, '');
+  });
+
+  it('calls onClose with file and pipeline name when Upload is clicked', async () => {
+    const { onClose } = renderDialog();
+    const file = new File(['test'], 'my_pipeline.yaml', { type: 'application/yaml' });
+    await dropFile(file);
+
+    const nameInput = screen.getByRole('textbox', { name: /Pipeline name/i });
+    await user.clear(nameInput);
+    await user.type(nameInput, 'test name');
+
+    await user.click(screen.getByRole('button', { name: 'Upload' }));
+    expect(onClose).toHaveBeenLastCalledWith(
+      true,
+      'test name',
+      expect.any(File),
+      '',
+      ImportMethod.LOCAL,
+      true,
+      '',
+    );
+  });
+
+  it('calls onClose with trimmed URL when Upload is clicked in URL mode', async () => {
+    const { onClose } = renderDialog();
+    await user.click(screen.getByLabelText('Import by URL'));
+
+    const urlInput = screen.getByRole('textbox', { name: /URL/i });
+    await user.type(urlInput, '  https://www.google.com/test-file.txt  ');
+
+    const nameInput = screen.getByRole('textbox', { name: /Pipeline name/i });
+    await user.type(nameInput, 'test name');
+
+    await user.click(screen.getByRole('button', { name: 'Upload' }));
+    expect(onClose).toHaveBeenLastCalledWith(
       true,
       'test name',
       null,
@@ -104,102 +191,34 @@ describe('UploadPipelineDialog', () => {
     );
   });
 
-  it('trims file extension for pipeline name suggestion', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    const file = { name: 'test_upload_file.tar.gz' };
-    tree.find('#dropZone').simulate('drop', [file]);
-    expect(tree.state()).toHaveProperty('dropzoneActive', false);
-    expect(tree.state()).toHaveProperty('uploadPipelineName', 'test_upload_file');
-  });
+  it('resets all inputs after a successful upload', async () => {
+    const onClose = vi.fn().mockResolvedValue(true);
+    renderDialog(onClose);
+    const file = new File(['test'], 'my_pipeline.yaml', { type: 'application/yaml' });
+    await dropFile(file);
 
-  it('sets the import method based on which radio button is toggled', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    // Import method is LOCAL by default
-    expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
+    const nameInput = screen.getByRole('textbox', { name: /Pipeline name/i });
+    await user.clear(nameInput);
+    await user.type(nameInput, 'custom name');
 
-    // Click 'Import by URL'
-    tree.find('#uploadFromUrlBtn').simulate('change');
-    expect(tree.state('importMethod')).toBe(ImportMethod.URL);
-
-    // Click back to default, 'Upload a file'
-    tree.find('#uploadLocalFileBtn').simulate('change');
-    expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
-  });
-
-  it('resets all state if the dialog is closed and the callback returns true', async () => {
-    const spy = jest.fn(() => true);
-
-    tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
-    tree.setState({
-      busy: true,
-      dropzoneActive: true,
-      file: {},
-      fileName: 'test file name',
-      fileUrl: 'https://some.url.com',
-      importMethod: ImportMethod.URL,
-      uploadPipelineDescription: 'test description',
-      uploadPipelineName: 'test pipeline name',
+    await user.click(screen.getByRole('button', { name: 'Upload' }));
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: /Pipeline name/i })).toHaveValue('');
     });
-
-    tree.find('#confirmUploadBtn').simulate('click');
-    await TestUtils.flushPromises();
-
-    expect(tree.state('busy')).toBe(false);
-    expect(tree.state('dropzoneActive')).toBe(false);
-    expect(tree.state('file')).toBeNull();
-    expect(tree.state('fileName')).toBe('');
-    expect(tree.state('fileUrl')).toBe('');
-    expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
-    expect(tree.state('uploadPipelineDescription')).toBe('');
-    expect(tree.state('uploadPipelineName')).toBe('');
+    expect(screen.getByTestId('upload-pipeline-dropzone')).toBeInTheDocument();
   });
 
-  it('does not reset the state if the dialog is closed and the callback returns false', async () => {
-    const spy = jest.fn(() => false);
+  it('does not reset inputs after a failed upload', async () => {
+    const { onClose } = renderDialog();
+    const file = new File(['test'], 'my_pipeline.yaml', { type: 'application/yaml' });
+    await dropFile(file);
 
-    tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
-    tree.setState({
-      busy: true,
-      dropzoneActive: true,
-      file: {},
-      fileName: 'test file name',
-      fileUrl: 'https://some.url.com',
-      importMethod: ImportMethod.URL,
-      uploadPipelineDescription: 'test description',
-      uploadPipelineName: 'test pipeline name',
-    });
+    const nameInput = screen.getByRole('textbox', { name: /Pipeline name/i });
+    await user.clear(nameInput);
+    await user.type(nameInput, 'custom name');
 
-    tree.find('#confirmUploadBtn').simulate('click');
-    await TestUtils.flushPromises();
-
-    expect(tree.state('dropzoneActive')).toBe(true);
-    expect(tree.state('file')).toEqual({});
-    expect(tree.state('fileName')).toBe('test file name');
-    expect(tree.state('fileUrl')).toBe('https://some.url.com');
-    expect(tree.state('importMethod')).toBe(ImportMethod.URL);
-    expect(tree.state('uploadPipelineDescription')).toBe('test description');
-    expect(tree.state('uploadPipelineName')).toBe('test pipeline name');
-    // 'busy' is set to false regardless upon the callback returning
-    expect(tree.state('busy')).toBe(false);
-  });
-
-  it('sets an active dropzone on drag', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    tree.find('#dropZone').simulate('dragEnter');
-    expect(tree.state()).toHaveProperty('dropzoneActive', true);
-  });
-
-  it('sets an inactive dropzone on drag leave', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    tree.find('#dropZone').simulate('dragLeave');
-    expect(tree.state()).toHaveProperty('dropzoneActive', false);
-  });
-
-  it('sets a file object on drop', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    const file = { name: 'test upload file' };
-    tree.find('#dropZone').simulate('drop', [file]);
-    expect(tree.state()).toHaveProperty('dropzoneActive', false);
-    expect(tree.state()).toHaveProperty('uploadPipelineName', file.name);
+    await user.click(screen.getByRole('button', { name: 'Upload' }));
+    expect(onClose).toHaveBeenCalled();
+    expect(screen.getByRole('textbox', { name: /Pipeline name/i })).toHaveValue('custom name');
   });
 });

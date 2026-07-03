@@ -34,7 +34,9 @@ func MatchPipelines(actual *model.V2beta1Pipeline, expected *model.V2beta1Pipeli
 		gomega.Expect(actual.Namespace).To(gomega.Equal(expected.Namespace), "Pipeline Namespace not matching")
 	}
 	gomega.Expect(actual.Description).To(gomega.Equal(expected.Description), "Pipeline Description not matching")
-
+	if expected.Tags != nil {
+		MatchMaps(actual.Tags, expected.Tags, "Pipeline Tags")
+	}
 }
 
 // MatchPipelineVersions - Deep compare 2 pipeline versions - even with deep comparison of pipeline specs
@@ -49,6 +51,9 @@ func MatchPipelineVersions(actual *model.V2beta1PipelineVersion, expected *model
 	}
 	gomega.Expect(actual.DisplayName).To(gomega.Equal(expected.DisplayName), "Pipeline Display Name not matching")
 	gomega.Expect(actual.Description).To(gomega.Equal(expected.Description), "Pipeline Description not matching")
+	if expected.Tags != nil {
+		MatchMaps(actual.Tags, expected.Tags, "Pipeline Version Tags")
+	}
 	expectedPipelineSpec := expected.PipelineSpec.(*template.V2Spec)
 	MatchPipelineSpecs(actual.PipelineSpec, expectedPipelineSpec)
 }

@@ -37,54 +37,101 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        include:
-          - image: kfp-api-server
+        image:
+          - name: kfp-api-server
             dockerfile: backend/Dockerfile
             context: .
-          - image: kfp-frontend
+          - name: kfp-frontend
             dockerfile: frontend/Dockerfile
             context: .
-          - image: kfp-persistence-agent
+          - name: kfp-persistence-agent
             dockerfile: backend/Dockerfile.persistenceagent
             context: .
-          - image: kfp-scheduled-workflow-controller
+          - name: kfp-scheduled-workflow-controller
             dockerfile: backend/Dockerfile.scheduledworkflow
             context: .
-          - image: kfp-viewer-crd-controller
+          - name: kfp-viewer-crd-controller
             dockerfile: backend/Dockerfile.viewercontroller
             context: .
-          - image: kfp-visualization-server
+          - name: kfp-visualization-server
             dockerfile: backend/Dockerfile.visualization
             context: .
-          - image: kfp-launcher
+          - name: kfp-launcher
             dockerfile: backend/Dockerfile.launcher
             context: .
-          - image: kfp-driver
+          - name: kfp-driver
             dockerfile: backend/Dockerfile.driver
             context: .
-          - image: kfp-cache-deployer
+          - name: kfp-cache-deployer
             dockerfile: backend/src/cache/deployer/Dockerfile
             context: .
-          - image: kfp-cache-server
+          - name: kfp-cache-server
             dockerfile: backend/Dockerfile.cacheserver
             context: .
-          - image: kfp-metadata-writer
-            dockerfile: backend/metadata_writer/Dockerfile
-            context: .
-          - image: kfp-metadata-envoy
+          - name: kfp-metadata-envoy
             dockerfile: third_party/metadata_envoy/Dockerfile
             context: .
-          - image: kfp-inverse-proxy-agent
+          - name: kfp-metadata-writer
+            dockerfile: backend/metadata_writer/Dockerfile
+            context: .
+          - name: kfp-inverse-proxy-agent
             dockerfile: proxy/Dockerfile
             context: ./proxy
+
+        arch:
+          - arch_name: amd64
+            runs_on: ubuntu-latest
+            platform: linux/amd64
+          - arch_name: arm64
+            runs_on: ubuntu-24.04-arm
+            platform: linux/arm64
+
+        exclude:
+          - image: { name: kfp-metadata-writer }
+            arch: { arch_name: arm64 }
+
+          - image: { name: kfp-inverse-proxy-agent }
+            arch: { arch_name: arm64 }
+
     uses: ./.github/workflows/build-and-push.yml
+    secrets: inherit
     with:
       src_branch: ${{ inputs.src_branch }}
       target_tag: ${{ inputs.target_tag }}
+      arch_tag: ${{ matrix.arch.arch_name }}
       overwrite_imgs: ${{ inputs.overwrite_imgs }}
       set_latest: ${{ inputs.set_latest }}
       add_sha_tag: ${{ inputs.add_sha_tag }}
-      app_to_build: ${{ matrix.image }}
-      image_context: ${{ matrix.context }}
-      docker_file: ${{ matrix.dockerfile }}
+      app_to_build: ${{ matrix.image.name }}
+      image_context: ${{ matrix.image.context }}
+      docker_file: ${{ matrix.image.dockerfile }}
+      platforms: ${{ matrix.arch.platform }}
+      runs_on: ${{ matrix.arch.runs_on }}
       push: ${{ !inputs.dry_run }}
+
+  create-manifests:
+    needs: build-images-for-release
+    if: ${{ !inputs.dry_run }}
+    strategy:
+      fail-fast: true
+      matrix:
+        component:
+          - image: kfp-api-server
+          - image: kfp-frontend
+          - image: kfp-persistence-agent
+          - image: kfp-scheduled-workflow-controller
+          - image: kfp-viewer-crd-controller
+          - image: kfp-visualization-server
+          - image: kfp-launcher
+          - image: kfp-driver
+          - image: kfp-cache-deployer
+          - image: kfp-cache-server
+          - image: kfp-metadata-writer
+          - image: kfp-metadata-envoy
+          - image: kfp-inverse-proxy-agent
+    uses: ./.github/workflows/create-manifest.yml
+    secrets: inherit
+    with:
+      target_tag: ${{ inputs.target_tag }}
+      app_to_build: ${{ matrix.component.image }}
+      set_latest: ${{ inputs.set_latest }}

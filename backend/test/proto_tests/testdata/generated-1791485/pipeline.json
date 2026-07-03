@@ -9,5 +9,6 @@
     "code": 0,
     "message": "This a successful pipeline.",
     "details": []
-  }
+  },
+  "tags": {}
 }

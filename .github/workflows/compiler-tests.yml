@@ -35,6 +35,11 @@ on:
       - '!**/*.md'
       - '!**/OWNERS'
 
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   compiler-tests:
     runs-on: ubuntu-latest
@@ -42,7 +47,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Configure Input Variables
         shell: bash
@@ -63,9 +68,4 @@ jobs:
           test_label: ${{ steps.configure.outputs.TEST_LABEL }}
           python_version: ${{ env.PYTHON_VERSION }}
           report_name: "Workflow Compiler Tests"
-
-      - name: Notify test reports
-        shell: bash
-        if: ${{ steps.test-run.outcome == 'success' }}
-        run: |
-          echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"
+          skip_api_config: 'true'

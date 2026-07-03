@@ -136,6 +136,22 @@ service PipelineService {
       delete: "/apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id}"
     };
   }
+
+  // Updates a pipeline's mutable fields (display_name, tags).
+  rpc UpdatePipeline(UpdatePipelineRequest) returns (Pipeline) {
+    option (google.api.http) = {
+      patch: "/apis/v2beta1/pipelines/{pipeline.pipeline_id}"
+      body: "pipeline"
+    };
+  }
+
+  // Updates a pipeline version's mutable fields (display_name, tags).
+  rpc UpdatePipelineVersion(UpdatePipelineVersionRequest) returns (PipelineVersion) {
+    option (google.api.http) = {
+      patch: "/apis/v2beta1/pipelines/{pipeline_version.pipeline_id}/versions/{pipeline_version.pipeline_version_id}"
+      body: "pipeline_version"
+    };
+  }
 }
 
 message Pipeline {
@@ -163,6 +179,17 @@ message Pipeline {
   // and the error message is returned. Client has the flexibility of choosing
   // how to handle the error. This is especially useful during listing call.
   google.rpc.Status error = 6;
+
+  // Optional. User-defined tags as key-value pairs associated with the pipeline.
+  // Tags can be used to label and categorize pipelines.
+  // Constraints:
+  //   - Maximum 20 tags per pipeline.
+  //   - Both key and value are limited to 63 characters.
+  //   - Keys cannot be empty and must not contain the '.' character.
+  // Tags can be filtered on when listing pipelines using the filter parameter
+  // with keys prefixed by "tags."
+  // (e.g., filter predicate key "tags.team" with string_value "ml-ops").
+  map<string, string> tags = 8;
 }
 
 message PipelineVersion {
@@ -203,10 +230,18 @@ message PipelineVersion {
   google.protobuf.Struct pipeline_spec = 7;
 
   // In case any error happens retrieving a pipeline version field, only
-  // pipeline ID, pipeline version ID, and the error message are returned. 
-  // Client has the flexibility of choosing how to handle the error. 
+  // pipeline ID, pipeline version ID, and the error message are returned.
+  // Client has the flexibility of choosing how to handle the error.
   // This is especially useful during List() calls.
   google.rpc.Status error = 8;
+
+  // Optional input field. User-defined tags (key-value pairs) for the pipeline version.
+  // Constraints:
+  //   - Maximum 20 tags per pipeline version.
+  //   - Both keys and values are limited to 63 characters.
+  //   - Keys cannot be empty and must not contain the '.' character.
+  // Tags are stored in a separate table and can be retrieved via Get and List APIs.
+  map<string, string> tags = 11;
 }
 
 message Url {
@@ -339,4 +374,18 @@ message DeletePipelineVersionRequest {
 
   // Required input. The ID of the pipeline version to be deleted.
   string pipeline_version_id = 2;
+}
+
+message UpdatePipelineRequest {
+  // Required input. Pipeline object with updated fields.
+  // pipeline_id is required to identify the pipeline.
+  // Mutable fields: display_name, tags.
+  Pipeline pipeline = 1;
+}
+
+message UpdatePipelineVersionRequest {
+  // Required input. Pipeline version object with updated fields.
+  // pipeline_id and pipeline_version_id are required to identify the version.
+  // Mutable fields: display_name, tags.
+  PipelineVersion pipeline_version = 1;
 }

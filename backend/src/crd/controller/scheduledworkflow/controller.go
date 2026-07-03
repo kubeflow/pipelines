@@ -16,10 +16,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/client"
@@ -30,10 +34,16 @@ import (
 	swfScheme "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/scheme"
 	swfinformers "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions"
 	wraperror "github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -50,6 +60,28 @@ import (
 const (
 	Workflow          = "Workflow"
 	ScheduledWorkflow = "ScheduledWorkflow"
+)
+
+var (
+	processNextItemDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "process_scheduled_workflow_duration_seconds",
+		Help: "The duration of scheduled workflow handling in seconds",
+	}, []string{"status"})
+
+	processNextItemOperationDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "scheduled_workflow_duration_operation_seconds",
+		Help: "The duration of scheduled workflow handling in seconds",
+	}, []string{"operation", "status"})
+
+	queueSizeGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "scheduled_workflow_queue_size",
+		Help: "Current number of workflows in the queue",
+	})
+
+	processedWorkflowThroughput = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "scheduled_workflow_throughput_total",
+		Help: "Total number of workflows processed (throughput)",
+	})
 )
 
 var (
@@ -82,6 +114,34 @@ type Controller struct {
 	// tokenSrc provides a way to get the latest refreshed token when authentication to the REST API server is enabled.
 	// This will be nil when authentication is not enabled.
 	tokenSrc transport.ResettableTokenSource
+
+	// userIdentityHeader is the outgoing gRPC metadata key for user identity in multi-user mode
+	// (e.g. "kubeflow-userid"). It is normalized to lowercase and validated when the controller is created.
+	userIdentityHeader string
+	// userIdentityValue is the value to set for the user identity gRPC metadata key.
+	userIdentityValue string
+}
+
+// gRPC metadata keys are limited to lowercase ASCII letters, digits, and the
+// characters '-', '_', and '.'. See google.golang.org/grpc/metadata and the
+// HTTP/2 header field rules. Keys outside this set can cause outgoing requests
+// to fail at the transport layer, so we validate the configured key up front.
+var validGRPCMetadataKey = regexp.MustCompile(`^[a-z0-9._-]+$`)
+
+// normalizeAndValidateMetadataKey lowercases the given gRPC metadata key (matching
+// grpc-go's own normalization) and verifies it only contains characters allowed in
+// a gRPC metadata key. It returns the normalized key or an error describing why the
+// key is invalid, allowing callers to fail fast at startup instead of risking failed
+// requests during reconciliation.
+func normalizeAndValidateMetadataKey(key string) (string, error) {
+	normalized := strings.ToLower(key)
+	if !validGRPCMetadataKey.MatchString(normalized) {
+		return "", fmt.Errorf("must match %s (lowercase letters, digits, '-', '_', '.')", validGRPCMetadataKey.String())
+	}
+	if strings.HasPrefix(normalized, "grpc-") {
+		return "", fmt.Errorf("keys beginning with \"grpc-\" are reserved by the gRPC runtime and will be silently dropped")
+	}
+	return normalized, nil
 }
 
 // NewController returns a new sample controller
@@ -95,7 +155,20 @@ func NewController(
 	time commonutil.TimeInterface,
 	location *time.Location,
 	tokenSrc transport.ResettableTokenSource,
+	userIdentityHeader string,
+	userIdentityValue string,
 ) (*Controller, error) {
+	// Normalize and validate the user identity metadata key up front so the
+	// controller fails fast at startup rather than risking failed requests
+	// during reconciliation when an invalid key reaches the gRPC transport.
+	if userIdentityHeader != "" {
+		normalizedHeader, err := normalizeAndValidateMetadataKey(userIdentityHeader)
+		if err != nil {
+			return nil, fmt.Errorf("invalid userIdentityHeader %q: %w", userIdentityHeader, err)
+		}
+		userIdentityHeader = normalizedHeader
+	}
+
 	// obtain references to shared informers
 	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()
 
@@ -117,9 +190,11 @@ func NewController(
 		workflowClient: client.NewWorkflowClient(workflowClientSet, executionInformer),
 		workqueue: workqueue.NewNamedRateLimitingQueue(
 			workqueue.NewItemExponentialFailureRateLimiter(DefaultJobBackOff, MaxJobBackOff), swfregister.Kind),
-		time:     time,
-		location: location,
-		tokenSrc: tokenSrc,
+		time:               time,
+		location:           location,
+		tokenSrc:           tokenSrc,
+		userIdentityHeader: userIdentityHeader,
+		userIdentityValue:  userIdentityValue,
 	}
 
 	log.Info("Setting up event handlers")
@@ -215,6 +290,7 @@ func (c *Controller) enqueueScheduledWorkflow(obj interface{}) {
 		runtime.HandleError(fmt.Errorf("Equeuing object: error: %v: %+v", err, obj))
 		return
 	}
+	queueSizeGauge.Set(float64(c.workqueue.Len()))
 	c.workqueue.AddRateLimited(key)
 }
 
@@ -285,6 +361,16 @@ func (c *Controller) handleWorkflow(obj interface{}) {
 // processNextWorkItem will read a single work item off the workqueue and
 // attempt to process it, by calling the syncHandler.
 func (c *Controller) processNextWorkItem() bool {
+	startTime := time.Now()
+	var err error
+	defer func() {
+		if err != nil {
+			processNextItemDuration.WithLabelValues("error").Observe(time.Since(startTime).Seconds())
+		} else {
+			processNextItemDuration.WithLabelValues("ok").Observe(time.Since(startTime).Seconds())
+			processedWorkflowThroughput.Inc()
+		}
+	}()
 	obj, shutdown := c.workqueue.Get()
 
 	if shutdown {
@@ -344,7 +430,8 @@ func (c *Controller) processNextWorkItem() bool {
 		// Run the syncHandler, passing it the namespace/name string of the
 		// ScheduledWorkflow to be synced.
 		ctx := context.Background()
-		syncAgain, retryOnError, swf, err := c.syncHandler(ctx, key)
+		syncAgain, retryOnError, swf, syncError := c.syncHandler(ctx, key)
+		err = syncError
 		if err != nil && retryOnError {
 			// Transient failure. We will retry.
 			c.workqueue.AddRateLimited(obj) // Exponential backoff.
@@ -399,12 +486,16 @@ func (c *Controller) syncHandler(ctx context.Context, key string) (
 	}
 
 	// Get the ScheduledWorkflow with this namespace/name
+	startTime := time.Now()
 	swf, err = c.swfClient.Get(namespace, name)
 	if err != nil {
 		// Permanent failure.
 		// The ScheduledWorkflow may no longer exist, we stop processing and do not retry.
+		processNextItemOperationDuration.WithLabelValues("swfget", "error").Observe(time.Since(startTime).Seconds())
 		return false, false, nil,
 			wraperror.Wrapf(err, "ScheduledWorkflow (%s) in work queue no longer exists: %v", key, err)
+	} else {
+		processNextItemOperationDuration.WithLabelValues("swfget", "ok").Observe(time.Since(startTime).Seconds())
 	}
 
 	// Get the current time
@@ -413,27 +504,42 @@ func (c *Controller) syncHandler(ctx context.Context, key string) (
 	nowEpoch := c.time.Now().Unix()
 
 	// Get active workflows for this ScheduledWorkflow.
-	active, err := c.workflowClient.List(swf.Name,
-		false, /* active workflow */
-		0 /* retrieve all workflows */)
+	startTime = time.Time{}
+	active, err := c.workflowClient.List(
+		swf.Name,
+		// active workflow
+		false,
+		// retrieve all workflows
+		0,
+	)
 	if err != nil {
+		processNextItemOperationDuration.WithLabelValues("swflist", "error").Observe(time.Since(startTime).Seconds())
 		return false, true, swf,
 			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch active workflows: %v", name, err)
+	} else {
+		processNextItemOperationDuration.WithLabelValues("swflist", "ok").Observe(time.Since(startTime).Seconds())
 	}
 
+	startTime = time.Now()
 	// Get completed workflows for this ScheduledWorkflow.
 	completed, err := c.workflowClient.List(swf.Name,
 		true, /* completed workflows */
 		swf.MinIndex())
 	if err != nil {
+		processNextItemOperationDuration.WithLabelValues("swflistcompleted", "error").Observe(time.Since(startTime).Seconds())
 		return false, true, swf,
 			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch completed workflows: %v", name, err)
+	} else {
+		processNextItemOperationDuration.WithLabelValues("swflistcompleted", "ok").Observe(time.Since(startTime).Seconds())
 	}
-
+	startTime = time.Now()
 	submitted, nextScheduledEpoch, err := c.submitNextWorkflowIfNeeded(ctx, swf, len(active), nowEpoch)
 	if err != nil {
+		processNextItemOperationDuration.WithLabelValues("swfsubmit", "error").Observe(time.Since(startTime).Seconds())
 		return false, true, swf,
 			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch completed workflows: %v", name, err)
+	} else {
+		processNextItemOperationDuration.WithLabelValues("swfsubmit", "ok").Observe(time.Since(startTime).Seconds())
 	}
 
 	err = c.updateStatus(ctx, swf, submitted, active, completed, nextScheduledEpoch, nowEpoch)
@@ -521,6 +627,12 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 
 	// If the workflow is not found, we need to create it.
 	if swf.Spec.Workflow != nil && swf.Spec.Workflow.Spec != nil {
+		// V1 recurring runs bypass the API server by embedding the workflow spec directly in the ScheduledWorkflow CRD,
+		// so the V1 pipeline block needs to be enforced at the controller level as well.
+		if shouldEnforceV1Block(swf) {
+			return false, "", fmt.Errorf(
+				"namespace %s is not allowed to run v1 pipelines; please migrate to KFP v2 pipelines", swf.Namespace)
+		}
 		newWorkflow, err := swf.NewWorkflow(nextScheduledEpoch, nowEpoch)
 		if err != nil {
 			return false, "", err
@@ -540,6 +652,11 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 		}
 
 		ctx = metadata.AppendToOutgoingContext(ctx, "Authorization", "Bearer "+token.AccessToken)
+	}
+
+	// Inject user identity header for multi-user mode authorization.
+	if c.userIdentityHeader != "" && c.userIdentityValue != "" {
+		ctx = metadata.AppendToOutgoingContext(ctx, c.userIdentityHeader, c.userIdentityValue)
 	}
 
 	var runtimeConfig *api.RuntimeConfig
@@ -562,6 +679,16 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 		}
 	}
 
+	// Convert PluginsInput from the SWF spec (map[string]apiextensionsv1.JSON)
+	// to the protobuf map expected by the CreateRun request.
+	var pluginsInput map[string]*structpb.Struct
+	if len(swf.Spec.PluginsInput) > 0 {
+		pluginsInput, err = crdPluginsInputToProto(swf.Spec.PluginsInput)
+		if err != nil {
+			return false, "", fmt.Errorf("failed to parse plugins_input from SWF spec: %w", err)
+		}
+	}
+
 	run, err := c.runClient.CreateRun(ctx, &api.CreateRunRequest{
 		ExperimentId: swf.Spec.ExperimentId,
 		Run: &api.Run{
@@ -569,6 +696,7 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 			DisplayName:    swf.NextResourceName(),
 			RecurringRunId: string(swf.UID),
 			RuntimeConfig:  runtimeConfig,
+			PluginsInput:   pluginsInput,
 			PipelineSource: &api.Run_PipelineVersionReference{
 				PipelineVersionReference: &api.PipelineVersionReference{
 					PipelineId: swf.Spec.PipelineId,
@@ -602,9 +730,140 @@ func (c *Controller) updateStatus(
 	swfCopy := util.NewScheduledWorkflow(swf.Get().DeepCopy())
 	swfCopy.UpdateStatus(nowEpoch, submitted, nextScheduledEpoch, active, completed, c.location)
 
+	// Pre-update check: determine if the Workflow (wf) object has actually changed
+	// by comparing its Status.Conditions, Status.WorkflowHistory, and Labels
+	// with the previous copy (swfCopy). `updated` will be true if any of these
+	// fields were modified.
+	//
+	// This check prevents unconditional updates: the controller will only
+	// attempt to update the Workflow if meaningful fields have changed, avoiding
+	// unnecessary writes to the Kubernetes API
+	conditionsWasUpdated := !equality.Semantic.DeepEqual(swf.Status.Conditions, swfCopy.Status.Conditions)
+	workHistoryWasUpdated := !equality.Semantic.DeepEqual(swf.Status.WorkflowHistory, swfCopy.Status.WorkflowHistory)
+	labelsWasUpdated := !equality.Semantic.DeepEqual(swf.Labels, swfCopy.Labels)
+	var updated = conditionsWasUpdated ||
+		workHistoryWasUpdated ||
+		labelsWasUpdated
+
 	// Until #38113 is merged, we must use Update instead of UpdateStatus to
 	// update the Status block of the ScheduledWorkflow. UpdateStatus will not
 	// allow changes to the Spec of the resource, which is ideal for ensuring
 	// nothing other than resource status has been updated.
-	return c.swfClient.Update(ctx, swf.Namespace, swfCopy)
+	if updated {
+		startTime := time.Now()
+		err := c.swfClient.Update(ctx, swf.Namespace, swfCopy)
+		if err != nil {
+			processNextItemOperationDuration.WithLabelValues("swfupdate", "error").Observe(time.Since(startTime).Seconds())
+		} else {
+			processNextItemOperationDuration.WithLabelValues("swfupdate", "ok").Observe(time.Since(startTime).Seconds())
+		}
+		return err
+	}
+	return nil
+}
+
+// isV1PipelineBlocked checks if the given namespace is blocked from running V1 pipelines
+// based on the BLOCK_V1_PIPELINES and V1_ALLOWED_NAMESPACES environment variables.
+func isV1PipelineBlocked(namespace string) bool {
+	blockV1Value := viper.GetString(util.BlockV1Pipelines)
+	blockV1, err := strconv.ParseBool(blockV1Value)
+	if err != nil {
+		log.WithError(err).Warnf("Invalid BLOCK_V1_PIPELINES value %q; V1 pipelines are not blocked", blockV1Value)
+		blockV1 = false
+	}
+	if !blockV1 {
+		return false
+	}
+
+	allowedNamespaces := viper.GetString(util.AllowedNamespaces)
+	if allowedNamespaces == "" {
+		return true
+	}
+
+	targetNamespace := strings.ToLower(strings.TrimSpace(namespace))
+	for _, n := range strings.Split(allowedNamespaces, ",") {
+		if strings.ToLower(strings.TrimSpace(n)) == targetNamespace {
+			return false
+		}
+	}
+	return true
+}
+
+// shouldEnforceV1Block Returns true allowing V2 workflows when key V2 component or pipeline labels
+// are present on the pod metadata. Returns false if the workflow is v1.
+func shouldEnforceV1Block(swf *util.ScheduledWorkflow) bool {
+	if swf == nil || !isV1PipelineBlocked(swf.Namespace) {
+		return false
+	}
+
+	if swf.Spec.Workflow == nil || swf.Spec.Workflow.Spec == nil {
+		return false
+	}
+
+	var raw []byte
+	switch v := swf.Spec.Workflow.Spec.(type) {
+	case string:
+		raw = []byte(v)
+	default:
+		var err error
+		raw, err = json.Marshal(v)
+		if err != nil {
+			log.Warnf("Failed to marshal SWF spec to JSON: %v", err)
+			return true
+		}
+	}
+
+	var wf workflowapi.Workflow
+	if err := json.Unmarshal(raw, &wf); err != nil {
+		log.Warnf("Failed to unmarshal SWF spec to JSON: %v", err)
+		return true
+	}
+
+	if hasV2PipelineMarker(wf.GetLabels(), wf.GetAnnotations()) {
+		return false
+	}
+
+	if hasV2ComponentMarker(wf.Spec.PodMetadata) {
+		return false
+	}
+
+	// Fall back because older ScheduledWorkflow specs may embed a WorkflowSpec without
+	// the top-level Workflow wrapper.
+	var workflowSpec workflowapi.WorkflowSpec
+	if err := json.Unmarshal(raw, &workflowSpec); err != nil {
+		log.Warnf("Failed to unmarshal SWF spec to JSON: %v", err)
+		return true
+	}
+
+	if hasV2ComponentMarker(workflowSpec.PodMetadata) {
+		return false
+	}
+
+	return true
+}
+
+func hasV2ComponentMarker(podMetadata *workflowapi.Metadata) bool {
+	if podMetadata == nil {
+		return false
+	}
+
+	return podMetadata.Labels[util.V2Key] == "true" || podMetadata.Annotations[util.V2Key] == "true"
+}
+
+func hasV2PipelineMarker(labels, annotations map[string]string) bool {
+	return labels[util.V2PipelineKey] == "true" || annotations[util.V2PipelineKey] == "true"
+}
+
+// crdPluginsInputToProto converts the CRD's map[string]apiextensionsv1.JSON
+// representation into the protobuf map expected by the CreateRun request.
+func crdPluginsInputToProto(input map[string]apiextensionsv1.JSON) (map[string]*structpb.Struct, error) {
+	result := make(map[string]*structpb.Struct, len(input))
+	for key, val := range input {
+		s := &structpb.Struct{}
+		if err := protojson.Unmarshal(val.Raw, s); err != nil {
+			return nil, fmt.Errorf("invalid plugins_input entry %q: %w", key, err)
+		}
+		result[key] = s
+	}
+	return result, nil
 }

@@ -1,5 +1,7 @@
+# Pass NODE_VERSION from frontend/.nvmrc when building this image.
+ARG NODE_VERSION
 ARG BASE_IMAGE=alpine
-FROM node:22.19 as build
+FROM node:${NODE_VERSION}-slim AS build
 
 ARG COMMIT_HASH
 ENV COMMIT_HASH=${COMMIT_HASH}
@@ -14,7 +16,12 @@ COPY . .
 
 WORKDIR ./frontend
 
-RUN npm ci && npm run postinstall
+RUN npm install --global "$(node -p 'require("./package.json").packageManager')"
+
+# Retry with cache clean as a workaround for an intermittent npm EEXIST/ENOENT
+# race condition where parallel download workers collide on the same cache entry.
+# npm ci runs the root postinstall script, which installs server and mock-backend deps.
+RUN npm ci || (npm cache clean --force && npm ci)
 RUN npm run build
 
 RUN mkdir -p ./server/dist && \
@@ -22,15 +29,24 @@ RUN mkdir -p ./server/dist && \
     echo ${DATE} > ./server/dist/BUILD_DATE && \
     echo ${TAG_NAME} > ./server/dist/TAG_NAME
 
-FROM node:22.19-${BASE_IMAGE}
+FROM node:${NODE_VERSION}-${BASE_IMAGE}
+
+COPY --from=build ./src/frontend/package.json /tmp/frontend-package.json
+RUN npm install --global "$(node -p 'require("/tmp/frontend-package.json").packageManager')" && \
+    rm /tmp/frontend-package.json
 
 COPY --from=build ./src/frontend/server /server
 COPY --from=build ./src/frontend/build /client
+# MLMD proto bundle for the runtime validator; marker forces CJS under type: module.
+COPY --from=build ./src/frontend/src/third_party/mlmd/generated /server/src/third_party/mlmd/generated
+RUN printf '{"type":"commonjs"}\n' > /server/src/third_party/mlmd/generated/package.json
 
 WORKDIR /server
 
 EXPOSE 3000
-RUN npm ci
+# Retry with cache clean as a workaround for an intermittent npm EEXIST/ENOENT
+# race condition where parallel download workers collide on the same cache entry.
+RUN npm ci || (npm cache clean --force && npm ci)
 RUN npm run build
 ENV API_SERVER_ADDRESS http://localhost:3001
 CMD node dist/server.js ../client/ 3000

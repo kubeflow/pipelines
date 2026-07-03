@@ -29,8 +29,8 @@ export function buildRocCurveConfig(confidenceMetricsArray: ConfidenceMetric[]):
   const arraytypesCheck = ConfidenceMetricArrayRunType.check(confidenceMetricsArray);
   return {
     type: PlotType.ROC,
-    data: arraytypesCheck.map(metric => ({
-      label: (metric.confidenceThreshold as unknown) as string,
+    data: arraytypesCheck.map((metric) => ({
+      label: metric.confidenceThreshold as unknown as string,
       x: metric.falsePositiveRate,
       y: metric.recall,
     })),

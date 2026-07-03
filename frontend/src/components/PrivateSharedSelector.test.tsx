@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BuildInfoContext } from '../lib/BuildInfo';
 import PrivateSharedSelector, { PrivateSharedSelectorProps } from './PrivateSharedSelector';
@@ -22,7 +21,7 @@ import { PipelineTabsHeaders } from '../pages/PrivateAndSharedPipelines';
 
 function generateProps(): PrivateSharedSelectorProps {
   return {
-    onChange: jest.fn(),
+    onChange: vi.fn(),
   };
 }
 
@@ -33,9 +32,10 @@ describe('PrivateSharedSelector', () => {
   });
 
   it('it changes checked input on click', async () => {
+    const props = generateProps();
     render(
       <BuildInfoContext.Provider value={{ apiServerMultiUser: true }}>
-        <PrivateSharedSelector {...generateProps()} />
+        <PrivateSharedSelector {...props} />
       </BuildInfoContext.Provider>,
     );
 
@@ -48,5 +48,6 @@ describe('PrivateSharedSelector', () => {
 
     expect(privateInput.checked).toBe(false);
     expect(sharedInput.checked).toBe(true);
+    expect(props.onChange).toHaveBeenCalledWith(false);
   });
 });

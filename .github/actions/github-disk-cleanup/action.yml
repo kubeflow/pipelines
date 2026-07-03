@@ -1,0 +1,16 @@
+name: 'GitHub Disk Cleanup'
+description: 'Free up disk space on GitHub Actions runners by removing unnecessary tools and cleaning caches'
+author: 'Kubeflow Pipelines Team'
+
+branding:
+  icon: 'trash-2'
+  color: 'orange'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 'Free up disk space'
+      shell: bash
+      run: |
+        chmod +x "${{ github.action_path }}/free-disk-space.sh"
+        "${{ github.action_path }}/free-disk-space.sh"

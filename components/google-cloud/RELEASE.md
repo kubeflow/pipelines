@@ -1,5 +1,7 @@
 ## Upcoming release
 
+* Remove deprecated Wide and Deep Tabular Workflow pipeline.
+
 ## Release 2.22.0
 
 * Fix for dataproc batch components pipeline failure.

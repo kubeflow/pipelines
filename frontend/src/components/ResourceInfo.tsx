@@ -17,6 +17,7 @@ import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import * as React from 'react';
 import { getMetadataValue } from 'src/mlmd/library';
 import { Artifact, Execution } from 'src/third_party/mlmd';
+import { isReservedArtifactProperty } from 'src/lib/ReservedArtifactProperties';
 import { stylesheet } from 'typestyle';
 import { color, commonCss } from '../Css';
 import { ArtifactLink } from './ArtifactLink';
@@ -66,7 +67,7 @@ export interface ExecutionProps {
 export type ResourceInfoProps = ArtifactProps | ExecutionProps;
 
 export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const { resource } = this.props;
     const propertyMap = resource.getPropertiesMap();
     const customPropertyMap = resource.getCustomPropertiesMap();
@@ -97,8 +98,8 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
           {propertyMap
             .getEntryList()
             // TODO: __ALL_META__ is something of a hack, is redundant, and can be ignored
-            .filter(k => k[0] !== '__ALL_META__')
-            .map(k => (
+            .filter((k) => k[0] !== '__ALL_META__')
+            .map((k) => (
               <div className={css.field} key={k[0]} data-testid='resource-info-property'>
                 <dt className={css.term} data-testid='resource-info-property-key'>
                   {k[0]}
@@ -111,17 +112,20 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
         </dl>
         <h2 className={commonCss.header2}>Custom Properties</h2>
         <dl className={css.resourceInfo}>
-          {customPropertyMap.getEntryList().map(k => (
-            <div className={css.field} key={k[0]} data-testid='resource-info-property'>
-              <dt className={css.term} data-testid='resource-info-property-key'>
-                {k[0]}
-              </dt>
-              <dd className={css.value} data-testid='resource-info-property-value'>
-                {customPropertyMap &&
-                  prettyPrintValue(getMetadataValue(customPropertyMap.get(k[0])))}
-              </dd>
-            </div>
-          ))}
+          {customPropertyMap
+            .getEntryList()
+            .filter((k) => !isReservedArtifactProperty(k[0]))
+            .map((k) => (
+              <div className={css.field} key={k[0]} data-testid='resource-info-property'>
+                <dt className={css.term} data-testid='resource-info-property-key'>
+                  {k[0]}
+                </dt>
+                <dd className={css.value} data-testid='resource-info-property-value'>
+                  {customPropertyMap &&
+                    prettyPrintValue(getMetadataValue(customPropertyMap.get(k[0])))}
+                </dd>
+              </div>
+            ))}
         </dl>
       </section>
     );
@@ -130,7 +134,7 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
 
 function prettyPrintValue(
   value: string | number | Struct | undefined,
-): JSX.Element | number | string {
+): React.JSX.Element | number | string {
   if (value == null) {
     return '';
   }
@@ -148,7 +152,7 @@ function prettyPrintValue(
   return <pre>{JSON.stringify(jsObject?.struct || jsObject?.list || jsObject, null, 2)}</pre>;
 }
 
-function prettyPrintJsonValue(value: string): JSX.Element | string {
+function prettyPrintJsonValue(value: string): React.JSX.Element | string {
   try {
     const jsonValue = JSON.parse(value);
     return <pre>{JSON.stringify(jsonValue, null, 2)}</pre>;

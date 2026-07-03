@@ -21,6 +21,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"sigs.k8s.io/yaml"
 )
 
@@ -39,7 +40,7 @@ func Test_getDefaultMinioSessionInfo(t *testing.T) {
 		Provider: "minio",
 		Params: map[string]string{
 			"region":       "minio",
-			"endpoint":     "minio-service.kubeflow:9000",
+			"endpoint":     "seaweedfs.kubeflow:9000",
 			"disableSSL":   "true",
 			"fromEnv":      "false",
 			"secretName":   "mlpipeline-minio-artifact",
@@ -104,7 +105,7 @@ func TestGetBucketSessionInfo(t *testing.T) {
 				Provider: "minio",
 				Params: map[string]string{
 					"region":       "minio",
-					"endpoint":     "minio-service.kubeflow:9000",
+					"endpoint":     "seaweedfs.kubeflow:9000",
 					"disableSSL":   "true",
 					"fromEnv":      "false",
 					"secretName":   "mlpipeline-minio-artifact",
@@ -143,7 +144,7 @@ func TestGetBucketSessionInfo(t *testing.T) {
 				Provider: "minio",
 				Params: map[string]string{
 					"region":       "minio",
-					"endpoint":     "minio-service.kubeflow:9000",
+					"endpoint":     "seaweedfs.kubeflow:9000",
 					"disableSSL":   "true",
 					"fromEnv":      "false",
 					"secretName":   "mlpipeline-minio-artifact",
@@ -161,7 +162,7 @@ func TestGetBucketSessionInfo(t *testing.T) {
 				Provider: "minio",
 				Params: map[string]string{
 					"region":       "minio",
-					"endpoint":     "minio-service.kubeflow:9000",
+					"endpoint":     "seaweedfs.kubeflow:9000",
 					"disableSSL":   "true",
 					"fromEnv":      "false",
 					"secretName":   "mlpipeline-minio-artifact",
@@ -539,6 +540,60 @@ func Test_QueryParameters(t *testing.T) {
 			assert.Equal(t, test.expectedSessionInfo, actualSession)
 		})
 	}
+}
+
+func TestInPodName_PrefersKFPPodNameEnvVar(t *testing.T) {
+	t.Setenv("KFP_POD_NAME", "my-workflow-pod-abc123")
+	podName, err := InPodName()
+	require.NoError(t, err)
+	assert.Equal(t, "my-workflow-pod-abc123", podName)
+}
+
+func TestInPodName_HandlesLongPodName(t *testing.T) {
+	// Pod names can exceed the 63-character hostname limit. The downward API
+	// env var must return the full name; falling back to /etc/hostname would
+	// silently truncate it and cause a "pod not found" error at runtime.
+	longName := "here-is-a-pipeline-very-long-name-x25ts-system-container-driver-2462380069"
+
+	t.Setenv("KFP_POD_NAME", longName)
+	podName, err := InPodName()
+	require.NoError(t, err)
+	assert.Equal(t, longName, podName)
+}
+
+func TestInPodName_IgnoresEmptyEnvVar(t *testing.T) {
+	if _, err := os.Stat("/etc/hostname"); os.IsNotExist(err) {
+		t.Skip("/etc/hostname does not exist on this platform")
+	}
+	t.Setenv("KFP_POD_NAME", "")
+	podName, err := InPodName()
+	require.NoError(t, err)
+	assert.NotEmpty(t, podName)
+}
+
+func TestInPodName_FallsBackToHostname(t *testing.T) {
+	if _, err := os.Stat("/etc/hostname"); os.IsNotExist(err) {
+		t.Skip("/etc/hostname does not exist on this platform")
+	}
+	t.Setenv("KFP_POD_NAME", "")
+	err := os.Unsetenv("KFP_POD_NAME")
+	require.NoError(t, err, "failed to unset KFP_POD_NAME")
+	podName, err := InPodName()
+	require.NoError(t, err)
+	require.NotEmpty(t, podName)
+	assert.NotContains(t, podName, "\n", "hostname should not contain trailing newline")
+}
+
+func TestInPodName_ErrorsWhenBothMissing(t *testing.T) {
+	if _, err := os.Stat("/etc/hostname"); err == nil {
+		t.Skip("/etc/hostname exists; cannot test the error path on this platform")
+	}
+	t.Setenv("KFP_POD_NAME", "")
+	err := os.Unsetenv("KFP_POD_NAME")
+	require.NoError(t, err, "failed to unset KFP_POD_NAME")
+	_, err = InPodName()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get pod name in Pod")
 }
 
 func fetchProviderFromData(cases TestcaseData, name string) string {

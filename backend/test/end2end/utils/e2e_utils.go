@@ -15,7 +15,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/test/testutil"
 	apitests "github.com/kubeflow/pipelines/backend/test/v2/api"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
@@ -169,6 +169,7 @@ func GetTasksFromWorkflow(workflow *v1alpha1.Workflow) []TaskDetails {
 				if task.When == "" {
 					continue
 				}
+
 				container, containerExists := containers[task.Template]
 				taskToAppend := TaskDetails{
 					TaskName:  task.Name,

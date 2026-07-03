@@ -114,13 +114,16 @@ class ComponentBuilder():
             temp_dir = pathlib.Path(tempfile.mkdtemp())
             try:
                 subprocess.run([
-                    'python3',
-                    kfp_package_path / 'setup.py',
-                    'bdist_wheel',
-                    '--dist-dir',
+                    sys.executable,
+                    '-m',
+                    'pip',
+                    'wheel',
+                    '--no-deps',
+                    '--wheel-dir',
                     str(temp_dir),
+                    str(kfp_package_path),
                 ],
-                               cwd=kfp_package_path)
+                               check=True)
                 wheel_files = list(temp_dir.glob('*.whl'))
                 if len(wheel_files) != 1:
                     logging.error(

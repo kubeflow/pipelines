@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-import 'brace';
-import 'brace/ext/language_tools';
-import 'brace/mode/yaml';
-import 'brace/theme/github';
+import 'ace-builds/src-noconflict/ace';
+import 'ace-builds/src-noconflict/ext-language_tools';
+import 'ace-builds/src-noconflict/mode-yaml';
+import 'ace-builds/src-noconflict/theme-github';
+import type * as React from 'react';
+import { CircularProgress } from '@mui/material';
 import { graphlib } from 'dagre';
 import * as JsYaml from 'js-yaml';
-import * as React from 'react';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
 import { Apis } from 'src/lib/Apis';
 import {
@@ -63,7 +64,7 @@ interface PipelineDetailsState {
   graphIsLoading: boolean;
   v1Pipeline: ApiPipeline | null;
   v2Pipeline: V2beta1Pipeline | null;
-  selectedNodeInfo: JSX.Element | null;
+  selectedNodeInfo: React.JSX.Element | null;
   v1SelectedVersion?: ApiPipelineVersion;
   v2SelectedVersion?: V2beta1PipelineVersion;
   template?: Workflow;
@@ -134,15 +135,15 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             return this.state.v2Pipeline
               ? this.state.v2Pipeline.pipeline_id
               : pipelineIdFromParams
-              ? pipelineIdFromParams
-              : '';
+                ? pipelineIdFromParams
+                : '';
           },
           () => {
             return this.state.v2SelectedVersion
               ? this.state.v2SelectedVersion.pipeline_version_id
               : pipelineVersionIdFromParams
-              ? pipelineVersionIdFromParams
-              : '';
+                ? pipelineVersionIdFromParams
+                : '';
           },
         )
         .newPipelineVersion('Upload version', () =>
@@ -152,8 +153,8 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           this.state.v1Pipeline
             ? this.state.v1Pipeline.id!
             : pipelineIdFromParams
-            ? pipelineIdFromParams
-            : '',
+              ? pipelineIdFromParams
+              : '',
         )
         .deletePipelineVersion(
           () =>
@@ -171,7 +172,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     }
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     const {
       v1Pipeline,
       v2Pipeline,
@@ -199,7 +200,12 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2 && graphV2.length > 0 && !graph;
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
-        {this.state.graphIsLoading && <div>Currently loading pipeline information</div>}
+        {this.state.graphIsLoading && (
+          <div style={{ textAlign: 'center', paddingTop: 40 }}>
+            <CircularProgress />
+            <div>Currently loading pipeline information</div>
+          </div>
+        )}
         {!this.state.graphIsLoading && showV2Pipeline && (
           <PipelineDetailsV2
             templateString={templateString}
@@ -232,6 +238,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   }
 
   public async componentDidMount(): Promise<void> {
+    this._isMounted = true;
     return this.load();
   }
 
@@ -265,15 +272,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         pipelineVersionId,
       );
       const pipelineSpecFromVersion = pipelineVersion.pipeline_spec;
-      templateStrFromOrigin = pipelineSpecFromVersion
-        ? JsYaml.safeDump(pipelineSpecFromVersion)
-        : '';
+      templateStrFromOrigin = pipelineSpecFromVersion ? JsYaml.dump(pipelineSpecFromVersion) : '';
     }
 
     // 2. Pipeline_spec
     let pipelineManifest: string | undefined;
     if (existingObj.pipeline_spec) {
-      pipelineManifest = JsYaml.safeDump(existingObj.pipeline_spec);
+      pipelineManifest = JsYaml.dump(existingObj.pipeline_spec);
     }
 
     return pipelineManifest ?? templateStrFromOrigin;
@@ -378,7 +383,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             try {
               templateString = WorkflowUtils.isPipelineSpec(workflowManifestString)
                 ? workflowManifestString
-                : JsYaml.safeDump(workflowManifest);
+                : JsYaml.dump(workflowManifest);
             } catch (err) {
               this.setStateSafe({ graphIsLoading: false });
               await this.showPageError(
@@ -578,9 +583,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   public async handleVersionSelected(versionId: string): Promise<void> {
     if (this.state.v2Pipeline) {
-      const v1SelectedVersion = (this.state.v1Versions || []).find(v => v.id === versionId);
+      const v1SelectedVersion = (this.state.v1Versions || []).find((v) => v.id === versionId);
       const v2SelectedVersion = (this.state.v2Versions || []).find(
-        v => v.pipeline_version_id === versionId,
+        (v) => v.pipeline_version_id === versionId,
       );
       const pageTitle = this.state.v2Pipeline.display_name?.concat(
         ' (',
@@ -622,7 +627,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   private async _getTemplateString(pipelineVersion?: V2beta1PipelineVersion): Promise<string> {
     if (pipelineVersion?.pipeline_spec) {
-      return JsYaml.safeDump(pipelineVersion.pipeline_spec);
+      return JsYaml.dump(pipelineVersion.pipeline_spec);
     }
 
     // Handle v1 pipelines created by v1 API (no pipeline_spec field)
@@ -651,7 +656,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     let graphV2: PipelineFlowElement[] = [];
     if (templateString) {
       try {
-        const template = JsYaml.safeLoad(templateString);
+        const template = JsYaml.load(templateString);
         if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
           graph = StaticGraphParser.createGraph(template!);
 

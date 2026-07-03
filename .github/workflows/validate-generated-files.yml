@@ -22,6 +22,11 @@ on:
       - '!**/OWNERS'
       - 'VERSION'
 
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate-generated-files:
     runs-on: ubuntu-latest
@@ -29,17 +34,16 @@ jobs:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-      
+        uses: ./.github/actions/setup-go
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: 3.9
+          cache: 'pip'
 
       - name: Install protobuf dependencies & kfp-pipeline-spec
         id: install-protobuf-deps
@@ -87,12 +91,10 @@ jobs:
   validate-backwards-compabitiblity:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
+        uses: ./.github/actions/setup-go
 
       - name: Validate Go proto code backwards compatibility
         working-directory: ./backend/test/proto_tests

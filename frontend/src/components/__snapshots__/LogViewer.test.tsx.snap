@@ -1,16 +1,16 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`LogViewer does not linkify non http/https urls 1`] = `
+exports[`LogViewer > does not linkify non http/https urls 1`] = `
 <div
-  class="line"
+  class="line_faojhcs"
 >
   <span
-    class="number"
+    class="number_f90q0xh"
   >
     1
   </span>
   <span
-    class="line"
+    class="line_faojhcs"
   >
     <span>
       <span>
@@ -21,17 +21,17 @@ exports[`LogViewer does not linkify non http/https urls 1`] = `
 </div>
 `;
 
-exports[`LogViewer linkifies standalone https urls 1`] = `
+exports[`LogViewer > linkifies standalone https urls 1`] = `
 <div
-  class="line"
+  class="line_faojhcs"
 >
   <span
-    class="number"
+    class="number_f90q0xh"
   >
     1
   </span>
   <span
-    class="line"
+    class="line_faojhcs"
   >
     <span>
       <span>
@@ -40,7 +40,7 @@ exports[`LogViewer linkifies standalone https urls 1`] = `
     </span>
     <span>
       <a
-        class="a"
+        class="a_fj90q9w"
         href="https://path.com"
         rel="noopener noreferrer"
         target="_blank"
@@ -57,17 +57,17 @@ exports[`LogViewer linkifies standalone https urls 1`] = `
 </div>
 `;
 
-exports[`LogViewer linkifies standalone urls 1`] = `
+exports[`LogViewer > linkifies standalone urls 1`] = `
 <div
-  class="line"
+  class="line_faojhcs"
 >
   <span
-    class="number"
+    class="number_f90q0xh"
   >
     1
   </span>
   <span
-    class="line"
+    class="line_faojhcs"
   >
     <span>
       <span>
@@ -76,7 +76,7 @@ exports[`LogViewer linkifies standalone urls 1`] = `
     </span>
     <span>
       <a
-        class="a"
+        class="a_fj90q9w"
         href="http://path.com"
         rel="noopener noreferrer"
         target="_blank"
@@ -93,17 +93,17 @@ exports[`LogViewer linkifies standalone urls 1`] = `
 </div>
 `;
 
-exports[`LogViewer linkifies substring urls 1`] = `
+exports[`LogViewer > linkifies substring urls 1`] = `
 <div
-  class="line"
+  class="line_faojhcs"
 >
   <span
-    class="number"
+    class="number_f90q0xh"
   >
     1
   </span>
   <span
-    class="line"
+    class="line_faojhcs"
   >
     <span>
       <span>
@@ -112,7 +112,7 @@ exports[`LogViewer linkifies substring urls 1`] = `
     </span>
     <span>
       <a
-        class="a"
+        class="a_fj90q9w"
         href="http://path.com"
         rel="noopener noreferrer"
         target="_blank"
@@ -129,17 +129,17 @@ exports[`LogViewer linkifies substring urls 1`] = `
 </div>
 `;
 
-exports[`LogViewer renders a multi-line log 1`] = `
+exports[`LogViewer > renders a multi-line log 1`] = `
 <div
-  class="line"
+  class="line_faojhcs"
 >
   <span
-    class="number"
+    class="number_f90q0xh"
   >
     1
   </span>
   <span
-    class="line"
+    class="line_faojhcs"
   >
     <span>
       <span>
@@ -150,18 +150,18 @@ exports[`LogViewer renders a multi-line log 1`] = `
 </div>
 `;
 
-exports[`LogViewer renders a row with error 1`] = `
+exports[`LogViewer > renders a row with error 1`] = `
 <div
-  class="line"
+  class="line_faojhcs"
 >
   <span
-    class="number"
+    class="number_f90q0xh"
     style="background-color: rgb(112, 0, 0); color: white;"
   >
     1
   </span>
   <span
-    class="line"
+    class="line_faojhcs"
     style="background-color: rgb(112, 0, 0); color: white;"
   >
     <span>
@@ -173,18 +173,18 @@ exports[`LogViewer renders a row with error 1`] = `
 </div>
 `;
 
-exports[`LogViewer renders a row with error word as substring 1`] = `
+exports[`LogViewer > renders a row with error word as substring 1`] = `
 <div
-  class="line"
+  class="line_faojhcs"
 >
   <span
-    class="number"
+    class="number_f90q0xh"
     style="background-color: rgb(112, 0, 0); color: white;"
   >
     1
   </span>
   <span
-    class="line"
+    class="line_faojhcs"
     style="background-color: rgb(112, 0, 0); color: white;"
   >
     <span>
@@ -196,17 +196,17 @@ exports[`LogViewer renders a row with error word as substring 1`] = `
 </div>
 `;
 
-exports[`LogViewer renders a row with given index as line number 1`] = `
+exports[`LogViewer > renders a row with given index as line number 1`] = `
 <div
-  class="line"
+  class="line_faojhcs"
 >
   <span
-    class="number"
+    class="number_f90q0xh"
   >
     1
   </span>
   <span
-    class="line"
+    class="line_faojhcs"
   >
     <span>
       <span>
@@ -217,18 +217,18 @@ exports[`LogViewer renders a row with given index as line number 1`] = `
 </div>
 `;
 
-exports[`LogViewer renders a row with upper case error 1`] = `
+exports[`LogViewer > renders a row with upper case error 1`] = `
 <div
-  class="line"
+  class="line_faojhcs"
 >
   <span
-    class="number"
+    class="number_f90q0xh"
     style="background-color: rgb(112, 0, 0); color: white;"
   >
     1
   </span>
   <span
-    class="line"
+    class="line_faojhcs"
     style="background-color: rgb(112, 0, 0); color: white;"
   >
     <span>
@@ -240,18 +240,18 @@ exports[`LogViewer renders a row with upper case error 1`] = `
 </div>
 `;
 
-exports[`LogViewer renders a row with upper case warning 1`] = `
+exports[`LogViewer > renders a row with upper case warning 1`] = `
 <div
-  class="line"
+  class="line_faojhcs"
 >
   <span
-    class="number"
+    class="number_f90q0xh"
     style="background-color: rgb(84, 84, 0); color: white;"
   >
     1
   </span>
   <span
-    class="line"
+    class="line_faojhcs"
     style="background-color: rgb(84, 84, 0); color: white;"
   >
     <span>
@@ -263,18 +263,18 @@ exports[`LogViewer renders a row with upper case warning 1`] = `
 </div>
 `;
 
-exports[`LogViewer renders a row with warn 1`] = `
+exports[`LogViewer > renders a row with warn 1`] = `
 <div
-  class="line"
+  class="line_faojhcs"
 >
   <span
-    class="number"
+    class="number_f90q0xh"
     style="background-color: rgb(84, 84, 0); color: white;"
   >
     1
   </span>
   <span
-    class="line"
+    class="line_faojhcs"
     style="background-color: rgb(84, 84, 0); color: white;"
   >
     <span>
@@ -286,18 +286,18 @@ exports[`LogViewer renders a row with warn 1`] = `
 </div>
 `;
 
-exports[`LogViewer renders a row with warning 1`] = `
+exports[`LogViewer > renders a row with warning 1`] = `
 <div
-  class="line"
+  class="line_faojhcs"
 >
   <span
-    class="number"
+    class="number_f90q0xh"
     style="background-color: rgb(84, 84, 0); color: white;"
   >
     1
   </span>
   <span
-    class="line"
+    class="line_faojhcs"
     style="background-color: rgb(84, 84, 0); color: white;"
   >
     <span>
@@ -309,18 +309,18 @@ exports[`LogViewer renders a row with warning 1`] = `
 </div>
 `;
 
-exports[`LogViewer renders a row with warning word as substring 1`] = `
+exports[`LogViewer > renders a row with warning word as substring 1`] = `
 <div
-  class="line"
+  class="line_faojhcs"
 >
   <span
-    class="number"
+    class="number_f90q0xh"
     style="background-color: rgb(84, 84, 0); color: white;"
   >
     1
   </span>
   <span
-    class="line"
+    class="line_faojhcs"
     style="background-color: rgb(84, 84, 0); color: white;"
   >
     <span>
@@ -332,28 +332,49 @@ exports[`LogViewer renders a row with warning word as substring 1`] = `
 </div>
 `;
 
-exports[`LogViewer renders an empty container when no logs passed 1`] = `
-<AutoSizer
-  disableHeight={false}
-  disableWidth={false}
-  onResize={[Function]}
-  style={Object {}}
->
-  <Component />
-</AutoSizer>
+exports[`LogViewer > renders an empty container when no logs passed 1`] = `
+<DocumentFragment>
+  <div
+    style="overflow: visible; height: 0px; width: 0px;"
+  >
+    <div
+      aria-label="grid"
+      aria-readonly="true"
+      class="ReactVirtualized__Grid ReactVirtualized__List root_f17jcl2y"
+      id="logViewer"
+      role="grid"
+      style="box-sizing: border-box; direction: ltr; height: 0px; position: relative; width: 0px; -webkit-overflow-scrolling: touch; will-change: transform; overflow-x: hidden; overflow-y: hidden;"
+      tabindex="0"
+    />
+  </div>
+  <div
+    class="resize-triggers"
+  >
+    <div
+      class="expand-trigger"
+    >
+      <div
+        style="width: 1px; height: 1px;"
+      />
+    </div>
+    <div
+      class="contract-trigger"
+    />
+  </div>
+</DocumentFragment>
 `;
 
-exports[`LogViewer renders one log line 1`] = `
+exports[`LogViewer > renders one log line 1`] = `
 <div
-  class="line"
+  class="line_faojhcs"
 >
   <span
-    class="number"
+    class="number_f90q0xh"
   >
     1
   </span>
   <span
-    class="line"
+    class="line_faojhcs"
   >
     <span>
       <span>
@@ -364,17 +385,17 @@ exports[`LogViewer renders one log line 1`] = `
 </div>
 `;
 
-exports[`LogViewer renders one long line without breaking 1`] = `
+exports[`LogViewer > renders one long line without breaking 1`] = `
 <div
-  class="line"
+  class="line_faojhcs"
 >
   <span
-    class="number"
+    class="number_f90q0xh"
   >
     1
   </span>
   <span
-    class="line"
+    class="line_faojhcs"
   >
     <span>
       <span>
@@ -385,17 +406,17 @@ exports[`LogViewer renders one long line without breaking 1`] = `
 </div>
 `;
 
-exports[`LogViewer renders two log lines 1`] = `
+exports[`LogViewer > renders two log lines 1`] = `
 <div
-  class="line"
+  class="line_faojhcs"
 >
   <span
-    class="number"
+    class="number_f90q0xh"
   >
     1
   </span>
   <span
-    class="line"
+    class="line_faojhcs"
   >
     <span>
       <span>

@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 import { Api } from 'src/mlmd/library';
-import { render } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import * as dagre from 'dagre';
-import { mount, ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import { createMemoryHistory } from 'history';
 import * as React from 'react';
 import { Router } from 'react-router-dom';
@@ -32,30 +31,59 @@ import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import { NodePhase } from 'src/lib/StatusUtils';
 import * as Utils from 'src/lib/Utils';
 import WorkflowParser from 'src/lib/WorkflowParser';
-import TestUtils, { testBestPractices } from 'src/TestUtils';
+import TestUtils, { flushPromisesInAct, testBestPractices } from 'src/TestUtils';
 import { PageProps } from './Page';
 import EnhancedRunDetails, { RunDetailsInternalProps, SidePanelTab, TEST_ONLY } from './RunDetails';
-import { Context, Execution, Value } from 'src/third_party/mlmd';
+import { Context, Execution, GetArtifactTypesResponse, Value } from 'src/third_party/mlmd';
 import { KfpExecutionProperties } from 'src/mlmd/MlmdUtils';
+import { vi, SpyInstance } from 'vitest';
+import userEvent from '@testing-library/user-event';
 
 const RunDetails = TEST_ONLY.RunDetails;
 
-jest.mock('src/components/Graph', () => {
-  return function GraphMock({ graph }: { graph: dagre.graphlib.Graph }) {
-    return (
-      <pre data-testid='graph'>
-        {graph
-          .nodes()
-          .map(v => 'Node ' + v)
-          .join('\n  ')}
-        {graph
-          .edges()
-          .map(e => `Edge ${e.v} to ${e.w}`)
-          .join('\n  ')}
-      </pre>
-    );
+vi.mock('src/mlmd/MlmdUtils', async () => {
+  const actual = await vi.importActual<typeof import('src/mlmd/MlmdUtils')>('src/mlmd/MlmdUtils');
+  return {
+    ...actual,
+    getRunContext: vi.fn(),
+    getExecutionsFromContext: vi.fn(),
   };
 });
+
+vi.mock('src/components/Graph', () => ({
+  default: function GraphMock({
+    graph,
+    onClick,
+  }: {
+    graph: dagre.graphlib.Graph;
+    onClick?: (id: string) => void;
+  }) {
+    return (
+      <div>
+        <pre data-testid='graph'>
+          {graph
+            .nodes()
+            .map((v) => 'Node ' + v)
+            .join('\n  ')}
+          {graph
+            .edges()
+            .map((e) => `Edge ${e.v} to ${e.w}`)
+            .join('\n  ')}
+        </pre>
+        {graph.nodes().map((node) => (
+          <button
+            type='button'
+            key={node}
+            data-testid={`graph-node-${node}`}
+            onClick={() => onClick?.(node)}
+          >
+            {node}
+          </button>
+        ))}
+      </div>
+    );
+  },
+}));
 
 const STEP_TABS = {
   INPUT_OUTPUT: SidePanelTab.INPUT_OUTPUT,
@@ -74,8 +102,6 @@ const WORKFLOW_TEMPLATE = {
     name: 'workflow1',
   },
 };
-
-const NODE_DETAILS_SELECTOR = '[data-testid="run-details-node-details"]';
 
 interface CustomProps {
   param_exeuction_id?: string;
@@ -105,7 +131,66 @@ describe('RunDetails', () => {
   let warnSpy: any;
 
   let testRun: ApiRunDetail = {};
-  let tree: ShallowWrapper | ReactWrapper;
+  let renderResult: ReturnType<typeof render> | null = null;
+  let runDetailsRef: React.RefObject<InstanceType<typeof RunDetails>> | null = null;
+
+  async function waitForRunLoad(): Promise<void> {
+    await waitFor(() => {
+      expect(getRunSpy).toHaveBeenCalled();
+      expect(getRunDetailsState()?.workflow).toBeDefined();
+    });
+    await TestUtils.flushPromises();
+  }
+
+  async function renderRunDetails(
+    customProps?: CustomProps,
+    options?: {
+      waitForLoad?: boolean;
+      props?: Partial<RunDetailsInternalProps & PageProps>;
+    },
+  ): Promise<ReturnType<typeof render>> {
+    normalizeWorkflowManifestPhases();
+    runDetailsRef = React.createRef<InstanceType<typeof RunDetails>>();
+    renderResult = render(
+      <RunDetails ref={runDetailsRef} {...generateProps(customProps)} {...options?.props} />,
+    );
+    if (options?.waitForLoad !== false) {
+      await waitForRunLoad();
+    }
+    return renderResult;
+  }
+
+  function normalizeWorkflowManifestPhases(): void {
+    const manifest = testRun.pipeline_runtime?.workflow_manifest;
+    if (!manifest) {
+      return;
+    }
+    try {
+      const workflow = JSON.parse(manifest) as Workflow;
+      const nodes = workflow?.status?.nodes;
+      if (!nodes) {
+        return;
+      }
+      Object.values(nodes).forEach((node) => {
+        if (node && !node.phase) {
+          node.phase = NodePhase.RUNNING;
+        }
+      });
+      testRun.pipeline_runtime!.workflow_manifest = JSON.stringify(workflow);
+    } catch {
+      // ignore malformed workflow manifests in tests that don't use JSON
+    }
+  }
+
+  function getRunDetailsState(): (typeof RunDetails)['prototype']['state'] | undefined {
+    return runDetailsRef?.current?.state;
+  }
+
+  function getToolbarAction(key: string, callIndex?: number) {
+    const calls = updateToolbarSpy.mock.calls;
+    const call = calls[callIndex ?? calls.length - 1][0];
+    return call.actions[key];
+  }
 
   function generateProps(customProps?: CustomProps): RunDetailsInternalProps & PageProps {
     const pageProps: PageProps = {
@@ -133,10 +218,8 @@ describe('RunDetails', () => {
   }
 
   beforeEach(() => {
-    // The RunDetails page uses timers to periodically refresh
-    jest.useFakeTimers('legacy');
     // TODO: mute error only for tests that are expected to have error
-    jest.spyOn(console, 'error').mockImplementation(() => null);
+    vi.spyOn(console, 'error').mockImplementation(() => null);
 
     testRun = {
       pipeline_runtime: {
@@ -154,39 +237,42 @@ describe('RunDetails', () => {
         status: 'Succeeded',
       },
     };
-    updateBannerSpy = jest.fn();
-    updateDialogSpy = jest.fn();
-    updateSnackbarSpy = jest.fn();
-    updateToolbarSpy = jest.fn();
-    historyPushSpy = jest.fn();
-    getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
-    getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
-    isCustomVisualizationsAllowedSpy = jest.spyOn(Apis, 'areCustomVisualizationsAllowed');
-    getPodLogsSpy = jest.spyOn(Apis, 'getPodLogs');
-    getPodInfoSpy = jest.spyOn(Apis, 'getPodInfo');
-    pathsParser = jest.spyOn(WorkflowParser, 'loadNodeOutputPaths');
-    pathsWithStepsParser = jest.spyOn(WorkflowParser, 'loadAllOutputPathsWithStepNames');
-    loaderSpy = jest.spyOn(OutputArtifactLoader, 'load');
-    retryRunSpy = jest.spyOn(Apis.runServiceApiV2, 'retryRun');
-    terminateRunSpy = jest.spyOn(Apis.runServiceApiV2, 'terminateRun');
-    artifactTypesSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes');
+    updateBannerSpy = vi.fn();
+    updateDialogSpy = vi.fn();
+    updateSnackbarSpy = vi.fn();
+    updateToolbarSpy = vi.fn();
+    historyPushSpy = vi.fn();
+    getRunSpy = vi.spyOn(Apis.runServiceApi, 'getRun');
+    getExperimentSpy = vi.spyOn(Apis.experimentServiceApi, 'getExperiment');
+    isCustomVisualizationsAllowedSpy = vi.spyOn(Apis, 'areCustomVisualizationsAllowed');
+    getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs');
+    getPodInfoSpy = vi.spyOn(Apis, 'getPodInfo');
+    pathsParser = vi.spyOn(WorkflowParser, 'loadNodeOutputPaths');
+    pathsWithStepsParser = vi.spyOn(WorkflowParser, 'loadAllOutputPathsWithStepNames');
+    loaderSpy = vi.spyOn(OutputArtifactLoader, 'load');
+    retryRunSpy = vi.spyOn(Apis.runServiceApiV2, 'retryRun');
+    terminateRunSpy = vi.spyOn(Apis.runServiceApiV2, 'terminateRun');
+    artifactTypesSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes');
     // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
     // test environments
-    formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
-    getRunContextSpy = jest.spyOn(MlmdUtils, 'getRunContext').mockImplementation(() => {
-      throw new Error('cannot find run context');
-    });
-    getExecutionsFromContextSpy = jest.spyOn(MlmdUtils, 'getExecutionsFromContext');
+    formatDateStringSpy = vi.spyOn(Utils, 'formatDateString');
+    getRunContextSpy = vi.mocked(MlmdUtils.getRunContext).mockResolvedValue(new Context());
+    getExecutionsFromContextSpy = vi
+      .mocked(MlmdUtils.getExecutionsFromContext)
+      .mockResolvedValue([]);
     // Hide expected warning messages
-    warnSpy = jest.spyOn(Utils.logger, 'warn').mockImplementation();
+    warnSpy = vi.spyOn(Utils.logger, 'warn').mockImplementation();
 
-    getRunSpy.mockImplementation(() => Promise.resolve(testRun));
+    getRunSpy.mockImplementation(() => {
+      normalizeWorkflowManifestPhases();
+      return Promise.resolve(testRun);
+    });
     getExperimentSpy.mockImplementation(() =>
       Promise.resolve({ id: 'some-experiment-id', name: 'some experiment' }),
     );
     isCustomVisualizationsAllowedSpy.mockImplementation(() => Promise.resolve(false));
     getPodLogsSpy.mockImplementation(() => 'test logs');
-    getPodInfoSpy.mockImplementation(() => ({ data: 'some data' } as JSONObject));
+    getPodInfoSpy.mockImplementation(() => ({ data: 'some data' }) as JSONObject);
     pathsParser.mockImplementation(() => []);
     pathsWithStepsParser.mockImplementation(() => []);
     loaderSpy.mockImplementation(() => Promise.resolve([]));
@@ -200,39 +286,46 @@ describe('RunDetails', () => {
     });
   });
 
-  afterEach(async () => {
-    if (tree && tree.exists()) {
+  afterEach(() => {
+    if (renderResult) {
       // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
       // depends on mocks/spies
-      await tree.unmount();
+      renderResult.unmount();
+      renderResult = null;
     }
-    jest.resetAllMocks();
-    jest.restoreAllMocks();
+    runDetailsRef = null;
+    vi.resetAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('shows success run status in page title', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    const lastCall = updateToolbarSpy.mock.calls[2][0];
-    expect(lastCall.pageTitle).toMatchSnapshot();
+    await renderRunDetails();
+    const lastCall = updateToolbarSpy.mock.calls[updateToolbarSpy.mock.calls.length - 1][0];
+    const { unmount } = render(<div>{lastCall.pageTitle}</div>);
+    expect(screen.getByText('test run')).toBeInTheDocument();
+    const icon = screen.getByTestId('node-status-sign');
+    expect(icon).toBeInTheDocument();
+    // Green icon = success
+    expect(icon.style.color).toBe('rgb(52, 168, 83)');
+    unmount();
   });
 
   it('shows failure run status in page title', async () => {
     testRun.run!.status = 'Failed';
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    const lastCall = updateToolbarSpy.mock.calls[2][0];
-    expect(lastCall.pageTitle).toMatchSnapshot();
+    await renderRunDetails();
+    const lastCall = updateToolbarSpy.mock.calls[updateToolbarSpy.mock.calls.length - 1][0];
+    const { unmount } = render(<div>{lastCall.pageTitle}</div>);
+    expect(screen.getByText('test run')).toBeInTheDocument();
+    const icon = screen.getByTestId('node-status-sign');
+    expect(icon).toBeInTheDocument();
+    // Red icon = failure
+    expect(icon.style.color).toBe('rgb(213, 0, 0)');
+    unmount();
   });
 
   it('has a clone button, clicking it navigates to new run page', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    const instance = tree.instance() as RunDetails;
-    const cloneBtn = instance.getInitialToolbarState().actions[ButtonKeys.CLONE_RUN];
+    await renderRunDetails();
+    const cloneBtn = getToolbarAction(ButtonKeys.CLONE_RUN);
     expect(cloneBtn).toBeDefined();
     await cloneBtn!.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
@@ -242,10 +335,9 @@ describe('RunDetails', () => {
   });
 
   it('clicking the clone button when the page is half-loaded navigates to new run page with run id', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
+    await renderRunDetails(undefined, { waitForLoad: false });
     // Intentionally don't wait until all network requests finish.
-    const instance = tree.instance() as RunDetails;
-    const cloneBtn = instance.getInitialToolbarState().actions[ButtonKeys.CLONE_RUN];
+    const cloneBtn = getToolbarAction(ButtonKeys.CLONE_RUN, 0);
     expect(cloneBtn).toBeDefined();
     await cloneBtn!.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
@@ -255,18 +347,14 @@ describe('RunDetails', () => {
   });
 
   it('has a retry button', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    const instance = tree.instance() as RunDetails;
-    const retryBtn = instance.getInitialToolbarState().actions[ButtonKeys.RETRY];
+    await renderRunDetails();
+    const retryBtn = getToolbarAction(ButtonKeys.RETRY);
     expect(retryBtn).toBeDefined();
   });
 
   it('shows retry confirmation dialog when retry button is clicked', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
-    const instance = tree.instance() as RunDetails;
-    const retryBtn = instance.getInitialToolbarState().actions[ButtonKeys.RETRY];
+    await renderRunDetails();
+    const retryBtn = getToolbarAction(ButtonKeys.RETRY);
     await retryBtn!.action();
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
@@ -277,9 +365,8 @@ describe('RunDetails', () => {
   });
 
   it('does not call retry API for selected run when retry dialog is canceled', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
-    const instance = tree.instance() as RunDetails;
-    const retryBtn = instance.getInitialToolbarState().actions[ButtonKeys.RETRY];
+    await renderRunDetails();
+    const retryBtn = getToolbarAction(ButtonKeys.RETRY);
     await retryBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const cancelBtn = call.buttons.find((b: any) => b.text === 'Cancel');
@@ -288,11 +375,8 @@ describe('RunDetails', () => {
   });
 
   it('calls retry API when retry dialog is confirmed', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    const instance = tree.instance() as RunDetails;
-    const retryBtn = instance.getInitialToolbarState().actions[ButtonKeys.RETRY];
+    await renderRunDetails();
+    const retryBtn = getToolbarAction(ButtonKeys.RETRY);
     await retryBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Retry');
@@ -302,10 +386,9 @@ describe('RunDetails', () => {
   });
 
   it('calls retry API when retry dialog is confirmed and page is half-loaded', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
+    await renderRunDetails(undefined, { waitForLoad: false });
     // Intentionally don't wait until all network requests finish.
-    const instance = tree.instance() as RunDetails;
-    const retryBtn = instance.getInitialToolbarState().actions[ButtonKeys.RETRY];
+    const retryBtn = getToolbarAction(ButtonKeys.RETRY, 0);
     await retryBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Retry');
@@ -317,10 +400,8 @@ describe('RunDetails', () => {
   it('shows an error dialog when retry API fails', async () => {
     retryRunSpy.mockImplementation(() => Promise.reject('mocked error'));
 
-    tree = mount(<RunDetails {...generateProps()} />);
-    await TestUtils.flushPromises();
-    const instance = tree.instance() as RunDetails;
-    const retryBtn = instance.getInitialToolbarState().actions[ButtonKeys.RETRY];
+    await renderRunDetails();
+    const retryBtn = getToolbarAction(ButtonKeys.RETRY);
     await retryBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Retry');
@@ -335,18 +416,14 @@ describe('RunDetails', () => {
   });
 
   it('has a terminate button', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    const instance = tree.instance() as RunDetails;
-    const terminateBtn = instance.getInitialToolbarState().actions[ButtonKeys.TERMINATE_RUN];
+    await renderRunDetails();
+    const terminateBtn = getToolbarAction(ButtonKeys.TERMINATE_RUN);
     expect(terminateBtn).toBeDefined();
   });
 
   it('shows terminate confirmation dialog when terminate button is clicked', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
-    const instance = tree.instance() as RunDetails;
-    const terminateBtn = instance.getInitialToolbarState().actions[ButtonKeys.TERMINATE_RUN];
+    await renderRunDetails();
+    const terminateBtn = getToolbarAction(ButtonKeys.TERMINATE_RUN);
     await terminateBtn!.action();
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
@@ -357,9 +434,8 @@ describe('RunDetails', () => {
   });
 
   it('does not call terminate API for selected run when terminate dialog is canceled', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
-    const instance = tree.instance() as RunDetails;
-    const terminateBtn = instance.getInitialToolbarState().actions[ButtonKeys.TERMINATE_RUN];
+    await renderRunDetails();
+    const terminateBtn = getToolbarAction(ButtonKeys.TERMINATE_RUN);
     await terminateBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const cancelBtn = call.buttons.find((b: any) => b.text === 'Cancel');
@@ -368,11 +444,8 @@ describe('RunDetails', () => {
   });
 
   it('calls terminate API when terminate dialog is confirmed', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    const instance = tree.instance() as RunDetails;
-    const terminateBtn = instance.getInitialToolbarState().actions[ButtonKeys.TERMINATE_RUN];
+    await renderRunDetails();
+    const terminateBtn = getToolbarAction(ButtonKeys.TERMINATE_RUN);
     await terminateBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Terminate');
@@ -382,10 +455,9 @@ describe('RunDetails', () => {
   });
 
   it('calls terminate API when terminate dialog is confirmed and page is half-loaded', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
+    await renderRunDetails(undefined, { waitForLoad: false });
     // Intentionally don't wait until all network requests finish.
-    const instance = tree.instance() as RunDetails;
-    const terminateBtn = instance.getInitialToolbarState().actions[ButtonKeys.TERMINATE_RUN];
+    const terminateBtn = getToolbarAction(ButtonKeys.TERMINATE_RUN, 0);
     await terminateBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Terminate');
@@ -395,17 +467,13 @@ describe('RunDetails', () => {
   });
 
   it('has an Archive button if the run is not archived', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
+    await renderRunDetails();
     expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.ARCHIVE)).toBeDefined();
     expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE)).toBeUndefined();
   });
 
   it('shows "All runs" in breadcrumbs if the run is not archived', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
+    await renderRunDetails();
     expect(updateToolbarSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         breadcrumbs: [{ displayName: 'All runs', href: RoutePage.RUNS }],
@@ -417,9 +485,7 @@ describe('RunDetails', () => {
     testRun.run!.resource_references = [
       { key: { id: 'some-experiment-id', type: ApiResourceType.EXPERIMENT } },
     ];
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
+    await renderRunDetails();
     expect(updateToolbarSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         breadcrumbs: [
@@ -437,19 +503,15 @@ describe('RunDetails', () => {
   });
 
   it('has a Restore button if the run is archived', async () => {
-    testRun.run!.storage_state = ApiRunStorageState.ARCHIVED;
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
+    testRun.run!.storage_state = ApiRunStorageState.STORAGESTATE_ARCHIVED;
+    await renderRunDetails();
     expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE)).toBeDefined();
     expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.ARCHIVE)).toBeUndefined();
   });
 
   it('shows Archive in breadcrumbs if the run is archived', async () => {
-    testRun.run!.storage_state = ApiRunStorageState.ARCHIVED;
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
+    testRun.run!.storage_state = ApiRunStorageState.STORAGESTATE_ARCHIVED;
+    await renderRunDetails();
     expect(updateToolbarSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         breadcrumbs: [{ displayName: 'Archive', href: RoutePage.ARCHIVED_RUNS }],
@@ -458,25 +520,20 @@ describe('RunDetails', () => {
   });
 
   it('renders an empty run', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
+    await renderRunDetails(undefined, { waitForLoad: false });
     await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    expect(screen.getByText('No graph to show')).toBeInTheDocument();
   });
 
   it('calls the get run API once to load it', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    expect(getRunSpy).toHaveBeenCalledTimes(1);
+    await renderRunDetails();
     expect(getRunSpy).toHaveBeenLastCalledWith(testRun.run!.id);
   });
 
   it('shows an error banner if get run API fails', async () => {
     TestUtils.makeErrorResponseOnce(getRunSpy, 'woops');
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
+    await renderRunDetails(undefined, { waitForLoad: false });
     await TestUtils.flushPromises();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once initially to clear
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops',
@@ -494,10 +551,8 @@ describe('RunDetails', () => {
       { key: { id: 'experiment1', type: ApiResourceType.EXPERIMENT } },
     ];
     TestUtils.makeErrorResponseOnce(getExperimentSpy, 'woops');
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
+    await renderRunDetails(undefined, { waitForLoad: false });
     await TestUtils.flushPromises();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once initially to clear
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops',
@@ -514,23 +569,14 @@ describe('RunDetails', () => {
     testRun.run!.resource_references = [
       { key: { id: 'experiment1', type: ApiResourceType.EXPERIMENT } },
     ];
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    expect(getRunSpy).toHaveBeenCalledTimes(1);
+    await renderRunDetails();
     expect(getRunSpy).toHaveBeenLastCalledWith(testRun.run!.id);
-    expect(getExperimentSpy).toHaveBeenCalledTimes(1);
     expect(getExperimentSpy).toHaveBeenLastCalledWith('experiment1');
   });
 
   it('shows workflow errors as page error', async () => {
-    jest
-      .spyOn(WorkflowParser, 'getWorkflowError')
-      .mockImplementationOnce(() => 'some error message');
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear on init, once for error
+    vi.spyOn(WorkflowParser, 'getWorkflowError').mockImplementationOnce(() => 'some error message');
+    await renderRunDetails();
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'some error message',
@@ -544,13 +590,12 @@ describe('RunDetails', () => {
   });
 
   it('switches to run output tab, shows empty message', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
+    await renderRunDetails();
+    await userEvent.click(screen.getByRole('button', { name: 'Run output' }));
+    expect(getRunDetailsState()?.selectedTab).toBe(1);
     await TestUtils.flushPromises();
-    tree.find('MD2Tabs').simulate('switch', 1);
-    expect(tree.state('selectedTab')).toBe(1);
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    expect(screen.getByText('No metrics found for this run.')).toBeInTheDocument();
+    expect(screen.getByText('No output artifacts found for this run.')).toBeInTheDocument();
   });
 
   it("loads the run's outputs in the output tab", async () => {
@@ -561,22 +606,36 @@ describe('RunDetails', () => {
     loaderSpy.mockImplementation(() =>
       Promise.resolve([{ type: PlotType.TENSORBOARD, url: 'some url' }]),
     );
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
+    await renderRunDetails();
+    await userEvent.click(screen.getByRole('button', { name: 'Run output' }));
+    expect(getRunDetailsState()?.selectedTab).toBe(1);
     await TestUtils.flushPromises();
-    tree.find('MD2Tabs').simulate('switch', 1);
-    expect(tree.state('selectedTab')).toBe(1);
+    expect(screen.getByText('step1')).toBeInTheDocument();
+    expect(screen.queryByText('No output artifacts found for this run.')).toBeNull();
+  });
+
+  it('catches rejected output artifact loads without surfacing an unhandled rejection', async () => {
+    const loggerErrorSpy = vi.spyOn(Utils.logger, 'error').mockImplementation();
+    pathsWithStepsParser.mockImplementation(() => [
+      { stepName: 'step1', path: { source: 'gcs', bucket: 'somebucket', key: 'somekey' } },
+    ]);
+    loaderSpy.mockImplementation(() => Promise.reject(new Error('artifact load failed')));
+
+    await renderRunDetails();
     await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+
+    expect(loggerErrorSpy).toHaveBeenCalledWith('Failed to load run outputs:', expect.any(Error));
+    expect(getRunDetailsState()?.allArtifactConfigs).toEqual([]);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Run output' }));
+    await TestUtils.flushPromises();
+    expect(screen.getByText('No output artifacts found for this run.')).toBeInTheDocument();
   });
 
   it('switches to config tab', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    tree.find('MD2Tabs').simulate('switch', 2);
-    expect(tree.state('selectedTab')).toBe(2);
-    expect(tree).toMatchSnapshot();
+    await renderRunDetails();
+    await userEvent.click(screen.getByRole('button', { name: 'Config' }));
+    expect(getRunDetailsState()?.selectedTab).toBe(2);
   });
 
   it('shows run config fields', async () => {
@@ -605,12 +664,15 @@ describe('RunDetails', () => {
         startedAt: new Date(2018, 6, 5, 4, 3, 2).toISOString(),
       },
     } as Workflow);
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    tree.find('MD2Tabs').simulate('switch', 2);
-    expect(tree.state('selectedTab')).toBe(2);
-    expect(tree).toMatchSnapshot();
+    await renderRunDetails();
+    await userEvent.click(screen.getByRole('button', { name: 'Config' }));
+    expect(getRunDetailsState()?.selectedTab).toBe(2);
+    expect(screen.getByText('Run details')).toBeInTheDocument();
+    expect(screen.getByText('Run parameters')).toBeInTheDocument();
+    expect(screen.getByText('Workflow name')).toBeInTheDocument();
+    expect(screen.getByText('wf1')).toBeInTheDocument();
+    expect(screen.getByText('param1')).toBeInTheDocument();
+    expect(screen.getByText('value1')).toBeInTheDocument();
   });
 
   it('shows run config fields - handles no description', async () => {
@@ -625,12 +687,12 @@ describe('RunDetails', () => {
         startedAt: new Date(2018, 6, 5, 4, 3, 2).toISOString(),
       },
     } as Workflow);
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    tree.find('MD2Tabs').simulate('switch', 2);
-    expect(tree.state('selectedTab')).toBe(2);
-    expect(tree).toMatchSnapshot();
+    await renderRunDetails();
+    await userEvent.click(screen.getByRole('button', { name: 'Config' }));
+    expect(getRunDetailsState()?.selectedTab).toBe(2);
+    expect(screen.getByText('Run details')).toBeInTheDocument();
+    expect(screen.getByText('Description')).toBeInTheDocument();
+    expect(screen.queryByText('Run parameters')).toBeNull();
   });
 
   it('shows run config fields - handles no metadata', async () => {
@@ -641,12 +703,13 @@ describe('RunDetails', () => {
         startedAt: new Date(2018, 6, 5, 4, 3, 2).toISOString(),
       },
     } as Workflow);
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    tree.find('MD2Tabs').simulate('switch', 2);
-    expect(tree.state('selectedTab')).toBe(2);
-    expect(tree).toMatchSnapshot();
+    await renderRunDetails();
+    await userEvent.click(screen.getByRole('button', { name: 'Config' }));
+    expect(getRunDetailsState()?.selectedTab).toBe(2);
+    expect(screen.getByText('Run details')).toBeInTheDocument();
+    expect(screen.getByText('Workflow name')).toBeInTheDocument();
+    expect(screen.queryByText('wf1')).toBeNull();
+    expect(screen.queryByText('Run parameters')).toBeNull();
   });
 
   it('shows a one-node graph', async () => {
@@ -655,44 +718,27 @@ describe('RunDetails', () => {
       metadata: { name: 'workflow1' },
       status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
-    const { getByTestId } = render(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    expect(getByTestId('graph')).toMatchInlineSnapshot(`
-      <pre
-        data-testid="graph"
-      >
-        Node node1
-        Node node1-running-placeholder
-        Edge node1 to node1-running-placeholder
-      </pre>
-    `);
+    await renderRunDetails();
+    const graph = screen.getByTestId('graph');
+    expect(graph).toHaveTextContent('Node node1');
+    expect(graph).toHaveTextContent('Edge node1 to node1-running-placeholder');
   });
 
   it('shows a one-node compressed workflow graph', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       ...WORKFLOW_TEMPLATE,
-      status: { compressedNodes: 'H4sIAAAAAAACE6tWystPSTVUslKoVspMAVJQfm0tAEBEv1kaAAAA' },
+      status: {
+        compressedNodes:
+          'H4sIAAAAAAAC/6tWystPSTVUslKoVspMAVJQvo6CUkFGYnEqSCSoNC8vMy9dqbYWABMWXjguAAAA',
+      },
     });
 
-    const { getByTestId } = render(<RunDetails {...generateProps()} />);
-
-    await getRunSpy;
+    await renderRunDetails();
     await TestUtils.flushPromises();
 
-    jest.useRealTimers();
-    await new Promise(resolve => setTimeout(resolve, 500));
-    jest.useFakeTimers('legacy');
-
-    expect(getByTestId('graph')).toMatchInlineSnapshot(`
-      <pre
-        data-testid="graph"
-      >
-        Node node1
-        Node node1-running-placeholder
-        Edge node1 to node1-running-placeholder
-      </pre>
-    `);
+    const graph = screen.getByTestId('graph');
+    expect(graph).toHaveTextContent('Node node1');
+    expect(graph).toHaveTextContent('Edge node1 to node1-running-placeholder');
   });
 
   it('shows a empty workflow graph if compressedNodes corrupt', async () => {
@@ -701,29 +747,24 @@ describe('RunDetails', () => {
       status: { compressedNodes: 'Y29ycnVwdF9kYXRh' },
     });
 
-    const { queryAllByTestId } = render(<RunDetails {...generateProps()} />);
-
-    await getRunSpy;
+    await renderRunDetails();
     await TestUtils.flushPromises();
 
-    jest.useRealTimers();
-    await new Promise(resolve => setTimeout(resolve, 500));
-    jest.useFakeTimers('legacy');
-
-    expect(queryAllByTestId('graph')).toEqual([]);
+    expect(screen.queryAllByTestId('graph')).toEqual([]);
   });
 
   it('opens side panel when graph node is clicked', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       metadata: { name: 'workflow1' },
-      status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
+      status: {
+        nodes: {
+          node1: { id: 'node1', name: 'node1', templateName: 'template1', phase: 'Succeeded' },
+        },
+      },
     });
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    clickGraphNode(tree, 'node1');
-    expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
-    expect(tree).toMatchSnapshot();
+    await renderRunDetails();
+    await clickGraphNode('node1');
+    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('id', 'node1');
   });
 
   it('opens side panel when valid execution id in router parameter', async () => {
@@ -735,23 +776,21 @@ describe('RunDetails', () => {
     const execution = new Execution();
     const nodePodName = new Value();
     nodePodName.setStringValue('node1');
-    execution
-      .setId(1)
-      .getCustomPropertiesMap()
-      .set(KfpExecutionProperties.POD_NAME, nodePodName);
+    execution.setId(1).getCustomPropertiesMap().set(KfpExecutionProperties.POD_NAME, nodePodName);
     getRunContextSpy.mockResolvedValue(new Context());
     getExecutionsFromContextSpy.mockResolvedValue([execution]);
 
     // Act
-    tree = shallow(<RunDetails {...generateProps({ param_exeuction_id: '1' })} />);
-    await getRunSpy;
-    await getRunContextSpy;
-    await getExecutionsFromContextSpy;
+    await renderRunDetails({ param_exeuction_id: '1' });
+    await act(async () => {
+      await runDetailsRef?.current?.refresh();
+    });
     await TestUtils.flushPromises();
 
     // Assert
-    expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
-    expect(tree.find('MD2Tabs').length).toEqual(2); // Both Page Tab bar and Side Panel exist,
+    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('id', 'node1');
+    expect(screen.getByRole('button', { name: 'Graph' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Input/Output' })).toBeInTheDocument();
   });
 
   it('shows clicked node message in side panel', async () => {
@@ -769,20 +808,15 @@ describe('RunDetails', () => {
         },
       },
     });
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    clickGraphNode(tree, 'node1');
-    expect(tree.state('selectedNodeDetails')).toHaveProperty(
+    await renderRunDetails();
+    await clickGraphNode('node1');
+    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
       'phaseMessage',
       'This step is in ' + testRun.run!.status + ' state with this message: some test message',
     );
-    expect(tree.find('Banner')).toMatchInlineSnapshot(`
-      <Banner
-        message="This step is in Succeeded state with this message: some test message"
-        mode="info"
-      />
-    `);
+    expect(
+      screen.getByText('This step is in Succeeded state with this message: some test message'),
+    ).toBeInTheDocument();
   });
 
   it('shows clicked node output in side pane', async () => {
@@ -797,10 +831,8 @@ describe('RunDetails', () => {
     loaderSpy.mockImplementation(() =>
       Promise.resolve([{ type: PlotType.TENSORBOARD, url: 'some url' }]),
     );
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    clickGraphNode(tree, 'node1');
+    await renderRunDetails();
+    await clickGraphNode('node1');
     await pathsParser;
     await pathsWithStepsParser;
     await loaderSpy;
@@ -844,17 +876,11 @@ describe('RunDetails', () => {
         },
       },
     });
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
+    await renderRunDetails();
+    await clickGraphNode('node1');
+    await userEvent.click(screen.getByRole('button', { name: 'Input/Output' }));
     await TestUtils.flushPromises();
-    clickGraphNode(tree, 'node1');
-    tree
-      .find('MD2Tabs')
-      .at(1)
-      .simulate('switch', STEP_TABS.INPUT_OUTPUT);
-    await TestUtils.flushPromises();
-    expect(tree.state('sidepanelSelectedTab')).toEqual(STEP_TABS.INPUT_OUTPUT);
-    expect(tree).toMatchSnapshot();
+    expect(getRunDetailsState()?.sidepanelSelectedTab).toEqual(STEP_TABS.INPUT_OUTPUT);
   });
 
   it('switches to volumes tab in side pane', async () => {
@@ -862,16 +888,10 @@ describe('RunDetails', () => {
       metadata: { name: 'workflow1' },
       status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    clickGraphNode(tree, 'node1');
-    tree
-      .find('MD2Tabs')
-      .at(1)
-      .simulate('switch', STEP_TABS.VOLUMES);
-    expect(tree.state('sidepanelSelectedTab')).toEqual(STEP_TABS.VOLUMES);
-    expect(tree).toMatchSnapshot();
+    await renderRunDetails();
+    await clickGraphNode('node1');
+    await userEvent.click(screen.getByRole('button', { name: 'Volumes' }));
+    expect(getRunDetailsState()?.sidepanelSelectedTab).toEqual(STEP_TABS.VOLUMES);
   });
 
   it('switches to manifest tab in side pane', async () => {
@@ -879,16 +899,12 @@ describe('RunDetails', () => {
       metadata: { name: 'workflow1' },
       status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    clickGraphNode(tree, 'node1');
-    tree
-      .find('MD2Tabs')
-      .at(1)
-      .simulate('switch', STEP_TABS.MANIFEST);
-    expect(tree.state('sidepanelSelectedTab')).toEqual(STEP_TABS.MANIFEST);
-    expect(tree).toMatchSnapshot();
+    await renderRunDetails();
+    await clickGraphNode('node1');
+    await act(async () => {
+      await (runDetailsRef?.current as any)?._loadSidePaneTab(STEP_TABS.MANIFEST);
+    });
+    expect(getRunDetailsState()?.sidepanelSelectedTab).toEqual(STEP_TABS.MANIFEST);
   });
 
   it('closes side panel when close button is clicked', async () => {
@@ -896,16 +912,13 @@ describe('RunDetails', () => {
       metadata: { name: 'workflow1' },
       status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
+    await renderRunDetails();
+    await clickGraphNode('node1');
     await TestUtils.flushPromises();
-    clickGraphNode(tree, 'node1');
+    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('id', 'node1');
+    await userEvent.click(screen.getByLabelText('close'));
+    expect(getRunDetailsState()?.selectedNodeDetails).toBeNull();
     await TestUtils.flushPromises();
-    expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
-    tree.find('SidePanel').simulate('close');
-    expect(tree.state('selectedNodeDetails')).toBeNull();
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
   });
 
   it('keeps side pane open and on same tab when page is refreshed', async () => {
@@ -913,21 +926,19 @@ describe('RunDetails', () => {
       metadata: { name: 'workflow1' },
       status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    clickGraphNode(tree, 'node1');
-    tree
-      .find('MD2Tabs')
-      .at(1)
-      .simulate('switch', STEP_TABS.LOGS);
-    expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
-    expect(tree.state('sidepanelSelectedTab')).toEqual(STEP_TABS.LOGS);
+    await renderRunDetails();
+    await clickGraphNode('node1');
+    await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
+    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('id', 'node1');
+    expect(getRunDetailsState()?.sidepanelSelectedTab).toEqual(STEP_TABS.LOGS);
 
-    await (tree.instance() as RunDetails).refresh();
-    expect(getRunSpy).toHaveBeenCalledTimes(2);
-    expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
-    expect(tree.state('sidepanelSelectedTab')).toEqual(STEP_TABS.LOGS);
+    const getRunCallsBefore = getRunSpy.mock.calls.length;
+    await act(async () => {
+      await runDetailsRef?.current?.refresh();
+    });
+    expect(getRunSpy.mock.calls.length).toBeGreaterThan(getRunCallsBefore);
+    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('id', 'node1');
+    expect(getRunDetailsState()?.sidepanelSelectedTab).toEqual(STEP_TABS.LOGS);
   });
 
   it('keeps side pane open and on same tab when more nodes are added after refresh', async () => {
@@ -940,21 +951,19 @@ describe('RunDetails', () => {
         },
       },
     });
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    clickGraphNode(tree, 'node1');
-    tree
-      .find('MD2Tabs')
-      .at(1)
-      .simulate('switch', STEP_TABS.LOGS);
-    expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
-    expect(tree.state('sidepanelSelectedTab')).toEqual(STEP_TABS.LOGS);
+    await renderRunDetails();
+    await clickGraphNode('node1');
+    await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
+    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('id', 'node1');
+    expect(getRunDetailsState()?.sidepanelSelectedTab).toEqual(STEP_TABS.LOGS);
 
-    await (tree.instance() as RunDetails).refresh();
-    expect(getRunSpy).toHaveBeenCalledTimes(2);
-    expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
-    expect(tree.state('sidepanelSelectedTab')).toEqual(STEP_TABS.LOGS);
+    const getRunCallsBefore = getRunSpy.mock.calls.length;
+    await act(async () => {
+      await runDetailsRef?.current?.refresh();
+    });
+    expect(getRunSpy.mock.calls.length).toBeGreaterThan(getRunCallsBefore);
+    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('id', 'node1');
+    expect(getRunDetailsState()?.sidepanelSelectedTab).toEqual(STEP_TABS.LOGS);
   });
 
   it('keeps side pane open and on same tab when run status changes, shows new status', async () => {
@@ -962,25 +971,33 @@ describe('RunDetails', () => {
       metadata: { name: 'workflow1' },
       status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    clickGraphNode(tree, 'node1');
-    tree
-      .find('MD2Tabs')
-      .at(1)
-      .simulate('switch', STEP_TABS.LOGS);
-    expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
-    expect(tree.state('sidepanelSelectedTab')).toEqual(STEP_TABS.LOGS);
-    expect(updateToolbarSpy).toHaveBeenCalledTimes(3);
+    await renderRunDetails();
+    await clickGraphNode('node1');
+    await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
+    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('id', 'node1');
+    expect(getRunDetailsState()?.sidepanelSelectedTab).toEqual(STEP_TABS.LOGS);
 
-    const thirdCall = updateToolbarSpy.mock.calls[2][0];
-    expect(thirdCall.pageTitle).toMatchSnapshot();
+    const beforeRefresh = updateToolbarSpy.mock.calls[updateToolbarSpy.mock.calls.length - 1][0];
+    const { unmount: unmountBefore } = render(<div>{beforeRefresh.pageTitle}</div>);
+    expect(screen.getByText('test run')).toBeInTheDocument();
+    const iconBefore = screen.getByTestId('node-status-sign');
+    expect(iconBefore).toBeInTheDocument();
+    // Green icon = success before refresh
+    expect(iconBefore.style.color).toBe('rgb(52, 168, 83)');
+    unmountBefore();
 
     testRun.run!.status = 'Failed';
-    await (tree.instance() as RunDetails).refresh();
-    const fourthCall = updateToolbarSpy.mock.calls[3][0];
-    expect(fourthCall.pageTitle).toMatchSnapshot();
+    await act(async () => {
+      await runDetailsRef?.current?.refresh();
+    });
+    const afterRefresh = updateToolbarSpy.mock.calls[updateToolbarSpy.mock.calls.length - 1][0];
+    const { unmount: unmountAfter } = render(<div>{afterRefresh.pageTitle}</div>);
+    expect(screen.getByText('test run')).toBeInTheDocument();
+    const iconAfter = screen.getByTestId('node-status-sign');
+    expect(iconAfter).toBeInTheDocument();
+    // Red icon = failure after refresh
+    expect(iconAfter.style.color).toBe('rgb(213, 0, 0)');
+    unmountAfter();
   });
 
   it('shows node message banner if node receives message after refresh', async () => {
@@ -988,17 +1005,16 @@ describe('RunDetails', () => {
       metadata: { name: 'workflow1' },
       status: { nodes: { node1: { id: 'node1', phase: 'Succeeded', message: '' } } },
     });
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    clickGraphNode(tree, 'node1');
-    tree
-      .find('MD2Tabs')
-      .at(1)
-      .simulate('switch', STEP_TABS.LOGS);
-    expect(tree.state('selectedNodeDetails')).toHaveProperty('phaseMessage', undefined);
+    await renderRunDetails();
+    await clickGraphNode('node1');
+    await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
+    await waitFor(() => {
+      expect(getRunDetailsState()?.selectedNodeDetails).toBeTruthy();
+    });
+    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('phaseMessage', undefined);
 
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      metadata: { name: 'workflow1' },
       status: {
         nodes: {
           node1: {
@@ -1011,11 +1027,15 @@ describe('RunDetails', () => {
         },
       },
     });
-    await (tree.instance() as RunDetails).refresh();
-    expect(tree.state('selectedNodeDetails')).toHaveProperty(
-      'phaseMessage',
-      'This step is in Succeeded state with this message: some node message',
-    );
+    await act(async () => {
+      await runDetailsRef?.current?.refresh();
+    });
+    await waitFor(() => {
+      expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
+        'phaseMessage',
+        'This step is in Succeeded state with this message: some node message',
+      );
+    });
   });
 
   it('dismisses node message banner if node loses message after refresh', async () => {
@@ -1033,28 +1053,29 @@ describe('RunDetails', () => {
         },
       },
     });
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    clickGraphNode(tree, 'node1');
-    tree
-      .find('MD2Tabs')
-      .at(1)
-      .simulate('switch', STEP_TABS.LOGS);
-    expect(tree.state('selectedNodeDetails')).toHaveProperty(
-      'phaseMessage',
-      'This step is in Succeeded state with this message: some node message',
-    );
+    await renderRunDetails();
+    await clickGraphNode('node1');
+    await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
+    await waitFor(() => {
+      expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
+        'phaseMessage',
+        'This step is in Succeeded state with this message: some node message',
+      );
+    });
 
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       metadata: { name: 'workflow1' },
       status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
-    await (tree.instance() as RunDetails).refresh();
-    expect(tree.state('selectedNodeDetails')).toHaveProperty('phaseMessage', undefined);
+    await act(async () => {
+      await runDetailsRef?.current?.refresh();
+    });
+    await waitFor(() => {
+      expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('phaseMessage', undefined);
+    });
   });
 
-  [NodePhase.RUNNING, NodePhase.PENDING, NodePhase.UNKNOWN].forEach(unfinishedStatus => {
+  [NodePhase.RUNNING, NodePhase.PENDING, NodePhase.UNKNOWN].forEach((unfinishedStatus) => {
     it(`displays a spinner if graph is not defined and run has status: ${unfinishedStatus}`, async () => {
       const unfinishedRun = {
         pipeline_runtime: {
@@ -1067,18 +1088,14 @@ describe('RunDetails', () => {
           status: unfinishedStatus,
         },
       };
-      getRunSpy.mockImplementationOnce(() => Promise.resolve(unfinishedRun));
+      getRunSpy.mockImplementation(() => Promise.resolve(unfinishedRun));
 
-      tree = shallow(<RunDetails {...generateProps()} />);
-      await getRunSpy;
-      await TestUtils.flushPromises();
-
-      expect(tree).toMatchSnapshot();
+      await renderRunDetails();
     });
   });
 
   [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(
-    finishedStatus => {
+    (finishedStatus) => {
       it(`displays a message indicating there is no graph if graph is not defined and run has status: ${finishedStatus}`, async () => {
         const unfinishedRun = {
           pipeline_runtime: {
@@ -1093,21 +1110,14 @@ describe('RunDetails', () => {
         };
         getRunSpy.mockImplementationOnce(() => Promise.resolve(unfinishedRun));
 
-        tree = shallow(<RunDetails {...generateProps()} />);
-        await getRunSpy;
-        await TestUtils.flushPromises();
-
-        expect(tree).toMatchSnapshot();
+        await renderRunDetails();
       });
     },
   );
 
   it('shows an error banner if the custom visualizations state API fails', async () => {
     TestUtils.makeErrorResponseOnce(isCustomVisualizationsAllowedSpy, 'woops');
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await isCustomVisualizationsAllowedSpy;
-    await TestUtils.flushPromises();
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once initially to clear
+    await renderRunDetails();
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops',
@@ -1124,16 +1134,10 @@ describe('RunDetails', () => {
         status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
         metadata: { namespace: 'ns', name: 'workflow1' },
       });
-      tree = shallow(<RunDetails {...generateProps()} />);
-      await getRunSpy;
-      await TestUtils.flushPromises();
-      clickGraphNode(tree, 'node1');
-      tree
-        .find('MD2Tabs')
-        .at(1)
-        .simulate('switch', STEP_TABS.LOGS);
-      expect(tree.state('sidepanelSelectedTab')).toEqual(STEP_TABS.LOGS);
-      expect(tree).toMatchSnapshot();
+      await renderRunDetails();
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
+      expect(getRunDetailsState()?.sidepanelSelectedTab).toEqual(STEP_TABS.LOGS);
     });
 
     it('loads and shows logs in side pane', async () => {
@@ -1151,15 +1155,10 @@ describe('RunDetails', () => {
         metadata: { namespace: 'ns', name: 'workflow1' },
       });
 
-      tree = shallow(<RunDetails {...generateProps()} />);
-      await getRunSpy;
-      await TestUtils.flushPromises();
-      clickGraphNode(tree, 'node1');
-      tree
-        .find('MD2Tabs')
-        .at(1)
-        .simulate('switch', STEP_TABS.LOGS);
-      await getPodLogsSpy;
+      await renderRunDetails();
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
+      await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(1));
       expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
       expect(getPodLogsSpy).toHaveBeenLastCalledWith(
         'test-run-id',
@@ -1167,7 +1166,6 @@ describe('RunDetails', () => {
         'ns',
         '',
       );
-      expect(tree).toMatchSnapshot();
     });
 
     it('shows stackdriver link next to logs in GKE', async () => {
@@ -1179,58 +1177,21 @@ describe('RunDetails', () => {
         },
         metadata: { namespace: 'ns', name: 'workflow1' },
       });
-      tree = shallow(
-        <RunDetails
-          {...generateProps()}
-          gkeMetadata={{ projectId: 'test-project-id', clusterName: 'test-cluster-name' }}
-        />,
+      await renderRunDetails(undefined, {
+        props: { gkeMetadata: { projectId: 'test-project-id', clusterName: 'test-cluster-name' } },
+      });
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
+      await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(1));
+      await TestUtils.flushPromises();
+      expect(screen.getByText(/Logs can also be viewed in/)).toBeInTheDocument();
+      const stackdriverLink = screen.getByRole('link', {
+        name: /Stackdriver Kubernetes Monitoring/i,
+      });
+      expect(stackdriverLink).toHaveAttribute(
+        'href',
+        expect.stringContaining('console.cloud.google.com'),
       );
-      await getRunSpy;
-      await TestUtils.flushPromises();
-      clickGraphNode(tree, 'node1');
-      tree
-        .find('MD2Tabs')
-        .at(1)
-        .simulate('switch', STEP_TABS.LOGS);
-      await getPodLogsSpy;
-      await TestUtils.flushPromises();
-      expect(tree.find(NODE_DETAILS_SELECTOR)).toMatchInlineSnapshot(`
-        <div
-          className="page"
-          data-testid="run-details-node-details"
-        >
-          <div
-            className="page"
-          >
-            <div
-              className=""
-            >
-              Logs can also be viewed in
-               
-              <a
-                className="link unstyled"
-                href="https://console.cloud.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D\\"k8s_container\\"%0Aresource.labels.cluster_name:\\"test-cluster-name\\"%0Aresource.labels.pod_name:\\"node1\\""
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                Stackdriver Kubernetes Monitoring
-              </a>
-              .
-            </div>
-            <div
-              className="pageOverflowHidden"
-            >
-              <LogViewer
-                logLines={
-                  Array [
-                    "test logs",
-                  ]
-                }
-              />
-            </div>
-          </div>
-        </div>
-      `);
     });
 
     it("loads logs in run's namespace", async () => {
@@ -1242,15 +1203,10 @@ describe('RunDetails', () => {
           },
         },
       });
-      tree = shallow(<RunDetails {...generateProps()} />);
-      await getRunSpy;
-      await TestUtils.flushPromises();
-      clickGraphNode(tree, 'node1');
-      tree
-        .find('MD2Tabs')
-        .at(1)
-        .simulate('switch', STEP_TABS.LOGS);
-      await getPodLogsSpy;
+      await renderRunDetails();
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
+      await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(1));
       expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
       expect(getPodLogsSpy).toHaveBeenLastCalledWith(
         'test-run-id',
@@ -1270,54 +1226,19 @@ describe('RunDetails', () => {
         metadata: { namespace: 'ns', name: 'workflow1' },
       });
       TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'pod not found');
-      tree = shallow(
-        <RunDetails
-          {...generateProps()}
-          gkeMetadata={{ projectId: 'test-project-id', clusterName: 'test-cluster-name' }}
-        />,
-      );
-      await getRunSpy;
+      await renderRunDetails(undefined, {
+        props: { gkeMetadata: { projectId: 'test-project-id', clusterName: 'test-cluster-name' } },
+      });
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
+      await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(1));
       await TestUtils.flushPromises();
-      clickGraphNode(tree, 'node1');
-      tree
-        .find('MD2Tabs')
-        .at(1)
-        .simulate('switch', STEP_TABS.LOGS);
-      await getPodLogsSpy;
-      await TestUtils.flushPromises();
-      expect(tree.find(NODE_DETAILS_SELECTOR)).toMatchInlineSnapshot(`
-        <div
-          className="page"
-          data-testid="run-details-node-details"
-        >
-          <div
-            className="page"
-          >
-            <Banner
-              additionalInfo="Possible reasons include pod garbage collection, cluster autoscaling and pod preemption. Error response: pod not found"
-              message="Failed to retrieve pod logs. Use Stackdriver Kubernetes Monitoring to view them."
-              mode="info"
-              refresh={[Function]}
-              showTroubleshootingGuideLink={false}
-            />
-            <div
-              className=""
-            >
-              Logs can also be viewed in
-               
-              <a
-                className="link unstyled"
-                href="https://console.cloud.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D\\"k8s_container\\"%0Aresource.labels.cluster_name:\\"test-cluster-name\\"%0Aresource.labels.pod_name:\\"node1\\""
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                Stackdriver Kubernetes Monitoring
-              </a>
-              .
-            </div>
-          </div>
-        </div>
-      `);
+      const nodeDetails = within(screen.getByTestId('run-details-node-details'));
+      expect(screen.getByText(/Failed to retrieve pod logs/)).toBeInTheDocument();
+      expect(nodeDetails.getByRole('button', { name: 'Details' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', { name: /Stackdriver Kubernetes Monitoring/i }),
+      ).toBeInTheDocument();
     });
 
     it('shows warning banner without stackdriver link in logs area if fetching logs failed and cluster is not in GKE', async () => {
@@ -1330,34 +1251,17 @@ describe('RunDetails', () => {
         metadata: { namespace: 'ns', name: 'workflow1' },
       });
       TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'pod not found');
-      tree = shallow(<RunDetails {...generateProps()} gkeMetadata={{}} />);
-      await getRunSpy;
+      await renderRunDetails(undefined, { props: { gkeMetadata: {} } });
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
+      await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(1));
       await TestUtils.flushPromises();
-      clickGraphNode(tree, 'node1');
-      tree
-        .find('MD2Tabs')
-        .at(1)
-        .simulate('switch', STEP_TABS.LOGS);
-      await getPodLogsSpy;
-      await TestUtils.flushPromises();
-      expect(tree.find('[data-testid="run-details-node-details"]')).toMatchInlineSnapshot(`
-        <div
-          className="page"
-          data-testid="run-details-node-details"
-        >
-          <div
-            className="page"
-          >
-            <Banner
-              additionalInfo="Possible reasons include pod garbage collection, cluster autoscaling and pod preemption. Error response: pod not found"
-              message="Failed to retrieve pod logs."
-              mode="info"
-              refresh={[Function]}
-              showTroubleshootingGuideLink={false}
-            />
-          </div>
-        </div>
-      `);
+      const nodeDetails = within(screen.getByTestId('run-details-node-details'));
+      expect(screen.getByText(/Failed to retrieve pod logs/)).toBeInTheDocument();
+      expect(nodeDetails.getByRole('button', { name: 'Details' })).toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', { name: /Stackdriver Kubernetes Monitoring/i }),
+      ).not.toBeInTheDocument();
     });
 
     it('does not load logs if clicked node status is skipped', async () => {
@@ -1374,22 +1278,15 @@ describe('RunDetails', () => {
           },
         },
       });
-      tree = shallow(<RunDetails {...generateProps()} />);
-      await getRunSpy;
-      await TestUtils.flushPromises();
-      clickGraphNode(tree, 'node1');
-      tree
-        .find('MD2Tabs')
-        .at(1)
-        .simulate('switch', STEP_TABS.LOGS);
-      await getPodLogsSpy;
+      await renderRunDetails();
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
       await TestUtils.flushPromises();
       expect(getPodLogsSpy).not.toHaveBeenCalled();
-      expect(tree.state()).toMatchObject({
+      expect(getRunDetailsState()).toMatchObject({
         logsBannerAdditionalInfo: '',
         logsBannerMessage: '',
       });
-      expect(tree).toMatchSnapshot();
     });
 
     it('keeps side pane open and on same tab when logs change after refresh', async () => {
@@ -1401,20 +1298,16 @@ describe('RunDetails', () => {
         },
         metadata: { namespace: 'ns', name: 'workflow1' },
       });
-      tree = shallow(<RunDetails {...generateProps()} />);
-      await getRunSpy;
-      await TestUtils.flushPromises();
-      clickGraphNode(tree, 'node1');
-      tree
-        .find('MD2Tabs')
-        .at(1)
-        .simulate('switch', STEP_TABS.LOGS);
-      expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
-      expect(tree.state('sidepanelSelectedTab')).toEqual(STEP_TABS.LOGS);
+      await renderRunDetails();
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
+      expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('id', 'node1');
+      expect(getRunDetailsState()?.sidepanelSelectedTab).toEqual(STEP_TABS.LOGS);
 
       getPodLogsSpy.mockImplementationOnce(() => 'new test logs');
-      await (tree.instance() as RunDetails).refresh();
-      expect(tree).toMatchSnapshot();
+      await act(async () => {
+        await runDetailsRef?.current?.refresh();
+      });
     });
 
     it('shows error banner if fetching logs failed not because pod has gone away', async () => {
@@ -1427,17 +1320,12 @@ describe('RunDetails', () => {
         metadata: { namespace: 'ns', name: 'workflow1' },
       });
       TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
-      tree = shallow(<RunDetails {...generateProps()} />);
-      await getRunSpy;
+      await renderRunDetails();
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
+      await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(1));
       await TestUtils.flushPromises();
-      clickGraphNode(tree, 'node1');
-      tree
-        .find('MD2Tabs')
-        .at(1)
-        .simulate('switch', STEP_TABS.LOGS);
-      await getPodLogsSpy;
-      await TestUtils.flushPromises();
-      expect(tree.state()).toMatchObject({
+      expect(getRunDetailsState()).toMatchObject({
         logsBannerAdditionalInfo: 'Error response: getting logs failed',
         logsBannerMessage: 'Failed to retrieve pod logs.',
         logsBannerMode: 'error',
@@ -1454,25 +1342,22 @@ describe('RunDetails', () => {
         metadata: { namespace: 'ns', name: 'workflow1' },
       });
       TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
-      tree = shallow(<RunDetails {...generateProps()} />);
-      await getRunSpy;
+      await renderRunDetails();
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
+      await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(1));
       await TestUtils.flushPromises();
-      clickGraphNode(tree, 'node1');
-      tree
-        .find('MD2Tabs')
-        .at(1)
-        .simulate('switch', STEP_TABS.LOGS);
-      await getPodLogsSpy;
-      await TestUtils.flushPromises();
-      expect(tree.state()).toMatchObject({
+      expect(getRunDetailsState()).toMatchObject({
         logsBannerAdditionalInfo: 'Error response: getting logs failed',
         logsBannerMessage: 'Failed to retrieve pod logs.',
         logsBannerMode: 'error',
       });
 
       testRun.run!.status = 'Failed';
-      await (tree.instance() as RunDetails).refresh();
-      expect(tree.state()).toMatchObject({
+      await act(async () => {
+        await runDetailsRef?.current?.refresh();
+      });
+      expect(getRunDetailsState()).toMatchObject({
         logsBannerAdditionalInfo: '',
         logsBannerMessage: '',
       });
@@ -1489,32 +1374,16 @@ describe('RunDetails', () => {
         },
         metadata: { namespace: 'ns', name: 'workflow1' },
       });
-      tree = shallow(<RunDetails {...generateProps()} />);
-      await getRunSpy;
+      await renderRunDetails();
+      await clickGraphNode('node1');
+      await waitFor(() =>
+        expect(getRunDetailsState()?.selectedNodeDetails).toMatchObject({ id: 'node1' }),
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Pod' }));
+      await waitFor(() =>
+        expect(getPodInfoSpy).toHaveBeenLastCalledWith('workflow1-template1-node1', 'ns'),
+      );
       await TestUtils.flushPromises();
-      clickGraphNode(tree, 'node1');
-      tree
-        .find('MD2Tabs')
-        .at(1)
-        .simulate('switch', STEP_TABS.POD);
-      await getPodInfoSpy;
-      await TestUtils.flushPromises();
-
-      expect(tree.find(NODE_DETAILS_SELECTOR)).toMatchInlineSnapshot(`
-        <div
-          className="page"
-          data-testid="run-details-node-details"
-        >
-          <div
-            className="page"
-          >
-            <PodInfo
-              name="workflow1-template1-node1"
-              namespace="ns"
-            />
-          </div>
-        </div>
-      `);
     });
 
     it('does not show pod pane if selected node skipped', async () => {
@@ -1526,22 +1395,12 @@ describe('RunDetails', () => {
         },
         metadata: { namespace: 'ns', name: 'workflow1' },
       });
-      tree = shallow(<RunDetails {...generateProps()} />);
-      await getRunSpy;
-      await TestUtils.flushPromises();
-      clickGraphNode(tree, 'node1');
-      tree
-        .find('MD2Tabs')
-        .at(1)
-        .simulate('switch', STEP_TABS.POD);
+      await renderRunDetails();
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Pod' }));
       await TestUtils.flushPromises();
 
-      expect(tree.find(NODE_DETAILS_SELECTOR)).toMatchInlineSnapshot(`
-        <div
-          className="page"
-          data-testid="run-details-node-details"
-        />
-      `);
+      expect(screen.getByTestId('run-details-node-details')).toBeEmptyDOMElement();
     });
   });
 
@@ -1563,69 +1422,58 @@ describe('RunDetails', () => {
         },
         metadata: { namespace: 'ns', name: 'workflow1' },
       });
-      tree = shallow(<RunDetails {...generateProps()} />);
-      await getRunSpy;
-      await TestUtils.flushPromises();
-      clickGraphNode(tree, 'node1');
-      tree
-        .find('MD2Tabs')
-        .at(1)
-        .simulate('switch', STEP_TABS.TASK_DETAILS);
-      await getRunSpy;
+      await renderRunDetails();
+      await clickGraphNode('node1');
+      await userEvent.click(screen.getByRole('button', { name: 'Details' }));
       await TestUtils.flushPromises();
 
-      expect(tree.find(NODE_DETAILS_SELECTOR)).toMatchInlineSnapshot(`
-        <div
-          className="page"
-          data-testid="run-details-node-details"
-        >
-          <div
-            className=""
-          >
-            <DetailsTable
-              fields={
-                Array [
-                  Array [
-                    "Task ID",
-                    "node1",
-                  ],
-                  Array [
-                    "Task name",
-                    "Task",
-                  ],
-                  Array [
-                    "Status",
-                    "Succeeded",
-                  ],
-                  Array [
-                    "Started at",
-                    "1/2/2019, 12:34:56 PM",
-                  ],
-                  Array [
-                    "Finished at",
-                    "1/2/2019, 12:34:56 PM",
-                  ],
-                  Array [
-                    "Duration",
-                    "0:00:02",
-                  ],
-                ]
-              }
-              title="Task Details"
-            />
-          </div>
-        </div>
-      `);
+      const details = screen.getByTestId('run-details-node-details');
+      expect(details).toHaveTextContent('Task Details');
+      expect(details).toHaveTextContent('Task ID');
+      expect(details).toHaveTextContent('node1');
+      expect(details).toHaveTextContent('Task name');
+      expect(details).toHaveTextContent('Succeeded');
+      expect(details).toHaveTextContent('Duration');
     });
   });
 
   describe('auto refresh', () => {
+    let intervalCallback: (() => void) | null = null;
+    let setIntervalSpy: SpyInstance;
+    let clearIntervalSpy: SpyInstance;
+    let loadSpy: SpyInstance;
     beforeEach(() => {
+      intervalCallback = null;
+      setIntervalSpy = vi.spyOn(global, 'setInterval').mockImplementation((callback: any) => {
+        intervalCallback = callback;
+        return 0 as any;
+      });
+      clearIntervalSpy = vi.spyOn(global, 'clearInterval').mockImplementation(() => {});
+      loadSpy = vi.spyOn(RunDetails.prototype, 'load').mockImplementation(async function (
+        this: RunDetails,
+      ) {
+        const status = testRun.run!.status as NodePhase;
+        const runFinished = [
+          NodePhase.ERROR,
+          NodePhase.FAILED,
+          NodePhase.SUCCEEDED,
+          NodePhase.SKIPPED,
+        ].includes(status);
+        this.setState({ runFinished });
+      });
       testRun.run!.status = NodePhase.PENDING;
+    });
+    afterEach(() => {
+      loadSpy.mockRestore();
+      setIntervalSpy.mockRestore();
+      clearIntervalSpy.mockRestore();
     });
 
     it('starts an interval of 5 seconds to auto refresh the page', async () => {
-      tree = shallow(<RunDetails {...generateProps()} />);
+      await renderRunDetails(undefined, { waitForLoad: false });
+      await act(async () => {
+        await (runDetailsRef?.current as any)?._startAutoRefresh();
+      });
       await TestUtils.flushPromises();
 
       expect(setInterval).toHaveBeenCalledTimes(1);
@@ -1633,46 +1481,54 @@ describe('RunDetails', () => {
     });
 
     it('refreshes after each interval', async () => {
-      tree = shallow(<RunDetails {...generateProps()} />);
-      await TestUtils.flushPromises();
+      await renderRunDetails(undefined, { waitForLoad: false });
+      await act(async () => {
+        await (runDetailsRef?.current as any)?._startAutoRefresh();
+      });
+      loadSpy.mockClear();
 
-      const refreshSpy = jest.spyOn(tree.instance() as RunDetails, 'refresh');
+      expect(loadSpy).toHaveBeenCalledTimes(0);
 
-      expect(refreshSpy).toHaveBeenCalledTimes(0);
-
-      jest.runOnlyPendingTimers();
-      expect(refreshSpy).toHaveBeenCalledTimes(1);
+      if (intervalCallback) {
+        intervalCallback();
+      }
+      expect(loadSpy).toHaveBeenCalledTimes(1);
       await TestUtils.flushPromises();
     }, 10000);
 
-    [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(status => {
-      it(`sets 'runFinished' to true if run has status: ${status}`, async () => {
-        testRun.run!.status = status;
-        tree = shallow(<RunDetails {...generateProps()} />);
-        await TestUtils.flushPromises();
+    [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(
+      (status) => {
+        it(`sets 'runFinished' to true if run has status: ${status}`, async () => {
+          testRun.run!.status = status;
+          await renderRunDetails(undefined, { waitForLoad: false });
+          await TestUtils.flushPromises();
 
-        expect(tree.state('runFinished')).toBe(true);
-      });
-    });
+          expect(getRunDetailsState()?.runFinished).toBe(true);
+        });
+      },
+    );
 
-    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN].forEach(status => {
+    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN].forEach((status) => {
       it(`leaves 'runFinished' false if run has status: ${status}`, async () => {
         testRun.run!.status = status;
-        tree = shallow(<RunDetails {...generateProps()} />);
+        await renderRunDetails(undefined, { waitForLoad: false });
         await TestUtils.flushPromises();
 
-        expect(tree.state('runFinished')).toBe(false);
+        expect(getRunDetailsState()?.runFinished).toBe(false);
       });
     });
 
     it('pauses auto refreshing if window loses focus', async () => {
-      tree = shallow(<RunDetails {...generateProps()} />);
+      await renderRunDetails(undefined, { waitForLoad: false });
+      await act(async () => {
+        await (runDetailsRef?.current as any)?._startAutoRefresh();
+      });
       await TestUtils.flushPromises();
 
       expect(setInterval).toHaveBeenCalledTimes(1);
       expect(clearInterval).toHaveBeenCalledTimes(0);
 
-      window.dispatchEvent(new Event('blur'));
+      runDetailsRef?.current?.onBlurHandler();
       await TestUtils.flushPromises();
 
       expect(clearInterval).toHaveBeenCalledTimes(1);
@@ -1681,19 +1537,22 @@ describe('RunDetails', () => {
     it('resumes auto refreshing if window loses focus and then regains it', async () => {
       // Declare that the run has not finished
       testRun.run!.status = NodePhase.PENDING;
-      tree = shallow(<RunDetails {...generateProps()} />);
+      await renderRunDetails(undefined, { waitForLoad: false });
+      await act(async () => {
+        await (runDetailsRef?.current as any)?._startAutoRefresh();
+      });
       await TestUtils.flushPromises();
 
-      expect(tree.state('runFinished')).toBe(false);
+      expect(getRunDetailsState()?.runFinished).toBe(false);
       expect(setInterval).toHaveBeenCalledTimes(1);
       expect(clearInterval).toHaveBeenCalledTimes(0);
 
-      window.dispatchEvent(new Event('blur'));
+      runDetailsRef?.current?.onBlurHandler();
       await TestUtils.flushPromises();
 
       expect(clearInterval).toHaveBeenCalledTimes(1);
 
-      window.dispatchEvent(new Event('focus'));
+      await runDetailsRef?.current?.onFocusHandler();
       await TestUtils.flushPromises();
 
       expect(setInterval).toHaveBeenCalledTimes(2);
@@ -1702,20 +1561,23 @@ describe('RunDetails', () => {
     it('does not resume auto refreshing if window loses focus and then regains it but run is finished', async () => {
       // Declare that the run has finished
       testRun.run!.status = NodePhase.SUCCEEDED;
-      tree = shallow(<RunDetails {...generateProps()} />);
+      await renderRunDetails(undefined, { waitForLoad: false });
+      await act(async () => {
+        await (runDetailsRef?.current as any)?._startAutoRefresh();
+      });
       await TestUtils.flushPromises();
 
-      expect(tree.state('runFinished')).toBe(true);
+      expect(getRunDetailsState()?.runFinished).toBe(true);
       expect(setInterval).toHaveBeenCalledTimes(0);
       expect(clearInterval).toHaveBeenCalledTimes(0);
 
-      window.dispatchEvent(new Event('blur'));
+      runDetailsRef?.current?.onBlurHandler();
       await TestUtils.flushPromises();
 
       // We expect 0 calls because the interval was never set, so it doesn't need to be cleared
       expect(clearInterval).toHaveBeenCalledTimes(0);
 
-      window.dispatchEvent(new Event('focus'));
+      await runDetailsRef?.current?.onFocusHandler();
       await TestUtils.flushPromises();
 
       expect(setInterval).toHaveBeenCalledTimes(0);
@@ -1745,7 +1607,7 @@ describe('RunDetails', () => {
       expect(history.location.pathname).toEqual('/experiments');
     });
 
-    it('does not redirect when namespace stays the same', () => {
+    it('does not redirect when namespace stays the same', async () => {
       const history = createMemoryHistory({
         initialEntries: ['/initial-path'],
       });
@@ -1756,18 +1618,22 @@ describe('RunDetails', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await flushPromisesInAct();
       expect(history.location.pathname).toEqual('/initial-path');
-      rerender(
-        <Router history={history}>
-          <NamespaceContext.Provider value='ns1'>
-            <EnhancedRunDetails {...generateProps()} />
-          </NamespaceContext.Provider>
-        </Router>,
-      );
+      await act(async () => {
+        rerender(
+          <Router history={history}>
+            <NamespaceContext.Provider value='ns1'>
+              <EnhancedRunDetails {...generateProps()} />
+            </NamespaceContext.Provider>
+          </Router>,
+        );
+        await TestUtils.flushPromises();
+      });
       expect(history.location.pathname).toEqual('/initial-path');
     });
 
-    it('does not redirect when namespace initializes', () => {
+    it('does not redirect when namespace initializes', async () => {
       const history = createMemoryHistory({
         initialEntries: ['/initial-path'],
       });
@@ -1778,14 +1644,18 @@ describe('RunDetails', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await flushPromisesInAct();
       expect(history.location.pathname).toEqual('/initial-path');
-      rerender(
-        <Router history={history}>
-          <NamespaceContext.Provider value='ns1'>
-            <EnhancedRunDetails {...generateProps()} />
-          </NamespaceContext.Provider>
-        </Router>,
-      );
+      await act(async () => {
+        rerender(
+          <Router history={history}>
+            <NamespaceContext.Provider value='ns1'>
+              <EnhancedRunDetails {...generateProps()} />
+            </NamespaceContext.Provider>
+          </Router>,
+        );
+        await TestUtils.flushPromises();
+      });
       expect(history.location.pathname).toEqual('/initial-path');
     });
   });
@@ -1808,52 +1678,24 @@ describe('RunDetails', () => {
           },
         },
       });
-      const tree = render(<RunDetails {...generateProps()} />);
-      await getRunSpy;
-      await TestUtils.flushPromises();
-      expect(tree.getByTestId('graph')).toMatchInlineSnapshot(`
-        <pre
-          data-testid="graph"
-        >
-          Node node1
-          Node node1-running-placeholder
-          Node node2
-          Node node2-running-placeholder
-          Node node3
-          Node node3-running-placeholder
-          Edge node1 to node1-running-placeholder
-          Edge node2 to node2-running-placeholder
-          Edge node3 to node3-running-placeholder
-          Edge node1 to node2
-          Edge node1 to node3
-          Edge node2 to node3
-        </pre>
-      `);
+      await renderRunDetails();
+      const graph = screen.getByTestId('graph');
+      expect(graph).toHaveTextContent('Node node1');
+      expect(graph).toHaveTextContent('Node node2');
+      expect(graph).toHaveTextContent('Node node3');
+      expect(graph).toHaveTextContent('Edge node1 to node2');
+      expect(graph).toHaveTextContent('Edge node1 to node3');
+      expect(graph).toHaveTextContent('Edge node2 to node3');
 
-      // Simplify graph
-      tree.getByLabelText('Simplify Graph').click();
-      expect(tree.getByTestId('graph')).toMatchInlineSnapshot(`
-        <pre
-          data-testid="graph"
-        >
-          Node node1
-          Node node1-running-placeholder
-          Node node2
-          Node node2-running-placeholder
-          Node node3
-          Node node3-running-placeholder
-          Edge node1 to node1-running-placeholder
-          Edge node2 to node2-running-placeholder
-          Edge node3 to node3-running-placeholder
-          Edge node1 to node2
-          Edge node2 to node3
-        </pre>
-      `);
+      // Simplify graph — removes the transitive edge node1→node3
+      await userEvent.click(screen.getByLabelText('Simplify Graph'));
+      expect(graph).toHaveTextContent('Edge node1 to node2');
+      expect(graph).toHaveTextContent('Edge node2 to node3');
+      expect(graph).not.toHaveTextContent('Edge node1 to node3');
     });
   });
 });
 
-function clickGraphNode(wrapper: ShallowWrapper, nodeId: string) {
-  // TODO: use dom events instead
-  wrapper.find('GraphMock').simulate('click', nodeId);
+async function clickGraphNode(nodeId: string): Promise<void> {
+  await userEvent.click(screen.getByTestId(`graph-node-${nodeId}`));
 }

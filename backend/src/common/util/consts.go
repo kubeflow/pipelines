@@ -14,7 +14,12 @@
 
 package util
 
-import constants "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
+import (
+	"os"
+	"strconv"
+
+	constants "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
+)
 
 const (
 	// LabelKeyScheduledWorkflowEnabled is a label on a ScheduledWorkflow.
@@ -24,8 +29,8 @@ const (
 	// It captures the status of the scheduled workflow.
 	LabelKeyScheduledWorkflowStatus = constants.FullName + "/status"
 
-	// The maximum byte sizes of the parameter column in package/pipeline DB.
-	MaxParameterBytes = 10000
+	// MaxParameterBytesEnvVar is the environment variable name for configuring max parameter bytes.
+	MaxParameterBytesEnvVar = "MAX_PARAMETER_BYTES"
 
 	// LabelKeyWorkflowEpoch is a label on a Workflow.
 	// It captures the epoch at which the workflow was scheduled.
@@ -51,8 +56,28 @@ const (
 	AnnotationValueIstioSidecarInjectEnabled  = "true"
 	AnnotationValueIstioSidecarInjectDisabled = "false"
 
+	// AnnotationKeyRuntimeRole is set on compiled Argo Workflow templates to
+	// identify the logical role of the pod (driver, launcher, etc.).  It is
+	// used by UpsertRuntimeEnvVars to target the right containers.
+	AnnotationKeyRuntimeRole = "pipelines.kubeflow.org/runtime-role"
+
 	// LabelKeyCacheEnabled is a workflow label key.
 	// It captures whether this step will be selected by cache service.
 	// To disable/enable cache for a single run, this label needs to be added in every step under a run.
 	LabelKeyCacheEnabled = "pipelines.kubeflow.org/cache_enabled"
 )
+
+// GetMaxParameterBytes returns the maximum byte size of parameters.
+// It reads from the MAX_PARAMETER_BYTES environment variable, defaulting to 10000.
+func GetMaxParameterBytes() int {
+	defaultMaxParameterBytes := 10000
+	if envVal := os.Getenv(MaxParameterBytesEnvVar); envVal != "" {
+		if val, err := strconv.Atoi(envVal); err == nil && val > 0 {
+			return val
+		}
+	}
+	return defaultMaxParameterBytes
+}
+
+// MaxParameterBytes is the maximum byte size of the parameter column in package/pipeline DB.
+var MaxParameterBytes = GetMaxParameterBytes()

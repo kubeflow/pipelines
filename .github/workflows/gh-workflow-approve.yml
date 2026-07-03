@@ -1,0 +1,94 @@
+name: Approve Workflow Runs
+
+permissions:
+  actions: write
+  contents: read
+
+on:
+  pull_request_target:
+    types:
+      - labeled
+      - synchronize
+      - reopened
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  ok-to-test:
+    if: contains(github.event.pull_request.labels.*.name, 'ok-to-test') || github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: Check if author is a Kubeflow GitHub member
+        id: membership-check
+        env:
+          AUTHOR_ASSOCIATION: ${{ github.event.pull_request.author_association }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "::group::PR Information"
+          echo "PR Number: #$PR_NUMBER"
+          echo "PR Author: $PR_AUTHOR"
+          echo "Author Association: $AUTHOR_ASSOCIATION"
+          echo "::endgroup::"
+          
+          # MEMBER = org member, OWNER = org owner, COLLABORATOR = invited collaborator
+          if [[ "$AUTHOR_ASSOCIATION" == "MEMBER" || "$AUTHOR_ASSOCIATION" == "OWNER" || "$AUTHOR_ASSOCIATION" == "COLLABORATOR" ]]; then
+            echo "::notice::Author '$PR_AUTHOR' is a trusted contributor (association: $AUTHOR_ASSOCIATION). Auto-approving workflow runs."
+            echo "is_member=true" >> $GITHUB_OUTPUT
+          else
+            echo "::notice::Author '$PR_AUTHOR' is not a trusted contributor (association: $AUTHOR_ASSOCIATION). Checking for 'ok-to-test' label."
+            echo "is_member=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Approve Pending Workflow Runs
+        if: steps.membership-check.outputs.is_member == 'true' || contains(github.event.pull_request.labels.*.name, 'ok-to-test')
+        uses: actions/github-script@v8
+        with:
+          retries: 3 # github-script level: retries the entire script on transient API errors
+          script: |
+            // Poll for runs that may not exist yet due to race with workflow creation
+            const maxAttempts = 7;
+            const intervalMs = 10_000;
+            const headSha = context.payload.pull_request.head.sha;
+
+            const listRequest = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              event: "pull_request",
+              status: "action_required",
+              head_sha: headSha,
+            };
+
+            let runs = [];
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              core.info(`[Attempt ${attempt}/${maxAttempts}] Querying action_required runs for ${headSha}`);
+              runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, listRequest);
+
+              if (runs.length > 0) {
+                core.info(`Found ${runs.length} workflow run(s) to approve.`);
+                break;
+              }
+
+              if (attempt < maxAttempts) {
+                core.info(`No runs found yet. Waiting ${intervalMs / 1000}s before retry...`);
+                await new Promise(r => setTimeout(r, intervalMs));
+              }
+            }
+
+            if (runs.length === 0) {
+              core.warning(`No action_required workflow runs found for ${headSha} after ${maxAttempts} attempts.`);
+            } else {
+              for (const run of runs) {
+                core.info(`Approving workflow run ${run.id} (${run.name})`);
+                await github.rest.actions.approveWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: run.id,
+                });
+              }
+              core.info(`Approved ${runs.length} workflow run(s).`);
+            }

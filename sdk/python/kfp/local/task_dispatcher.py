@@ -12,12 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Code for dispatching a local task execution."""
+
+import copy
 import logging
 from typing import Any, Dict, Tuple
 
 from kfp import local
 from kfp.local import config
-from kfp.local import docker_task_handler
+
+# docker import fix
+try:
+    from kfp.local import docker_task_handler
+    _DOCKER_AVAILABLE = True
+except ImportError:
+    docker_task_handler = None
+    _DOCKER_AVAILABLE = False
+
 from kfp.local import executor_input_utils
 from kfp.local import executor_output_utils
 from kfp.local import logging_utils
@@ -33,15 +43,7 @@ def run_single_task(
     pipeline_spec: pipeline_spec_pb2.PipelineSpec,
     arguments: Dict[str, Any],
 ) -> Dict[str, Any]:
-    """Runs a single component from its compiled PipelineSpec.
-
-    Args:
-        pipeline_spec: The PipelineSpec of the component to run.
-        arguments: The runtime arguments.
-
-    Returns:
-        A LocalTask instance.
-    """
+    """Runs a single component from its compiled PipelineSpec."""
     config.LocalExecutionConfig.validate()
     component_name, component_spec = list(pipeline_spec.components.items())[0]
     executor_spec = get_executor_spec(
@@ -52,8 +54,6 @@ def run_single_task(
     pipeline_resource_name = executor_input_utils.get_local_pipeline_resource_name(
         pipeline_spec.pipeline_info.name)
 
-    # all global state should be accessed here
-    # do not access local config state downstream
     outputs, _ = run_single_task_implementation(
         pipeline_resource_name=pipeline_resource_name,
         component_name=component_name,
@@ -78,6 +78,56 @@ def get_executor_spec(
 Outputs = Dict[str, Any]
 
 
+def _extract_container_env_vars(
+    container: pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
+) -> Dict[str, str]:
+    return {env_var.name: env_var.value for env_var in container.env}
+
+
+def _normalize_environment_config(environment: Any) -> Dict[str, Any]:
+    """Normalize Docker-style environment config to a dict for merging."""
+    if environment is None:
+        return {}
+    if isinstance(environment, dict):
+        return dict(environment)
+    if isinstance(environment, (list, tuple)):
+        normalized = {}
+        for item in environment:
+            if isinstance(item, str):
+                key, _, value = item.partition('=')
+                normalized[key] = value
+            elif isinstance(item, (list, tuple)) and len(item) == 2:
+                key, value = item
+                normalized[key] = value
+            else:
+                raise ValueError(
+                    'DockerRunner environment must be a dict or a sequence '
+                    'of KEY=VALUE strings / (key, value) pairs for local execution.'
+                )
+        return normalized
+    raise ValueError(
+        'DockerRunner environment must be a dict or a sequence of KEY=VALUE '
+        'strings / (key, value) pairs for local execution.')
+
+
+def _prepare_runner_and_env_vars(
+    runner: config.LocalRunnerType,
+    env_vars: Dict[str, str],
+) -> Tuple[config.LocalRunnerType, Dict[str, str]]:
+    """Apply runner-level env override policy before launching a task."""
+    if not isinstance(runner, local.DockerRunner):
+        return runner, env_vars
+
+    runner_env = _normalize_environment_config(
+        runner.container_run_args.get('environment'))
+    merged_env = {**env_vars, **runner_env}
+
+    runner_copy = copy.copy(runner)
+    runner_copy.container_run_args = dict(runner.container_run_args)
+    runner_copy.container_run_args.pop('environment', None)
+    return runner_copy, merged_env
+
+
 def run_single_task_implementation(
     pipeline_resource_name: str,
     component_name: str,
@@ -90,11 +140,6 @@ def run_single_task_implementation(
     block_input_artifact: bool,
     unique_pipeline_id: str,
 ) -> Tuple[Outputs, status.Status]:
-    """The implementation of a single component runner.
-
-    Returns a tuple of (outputs, status). If status is FAILURE, outputs
-    is an empty dictionary.
-    """
 
     task_resource_name = executor_input_utils.get_local_task_resource_name(
         component_name)
@@ -114,6 +159,9 @@ def run_single_task_implementation(
     image = container.image
     full_command = list(container.command) + list(container.args)
 
+    env_vars = _extract_container_env_vars(container)
+    runner, env_vars = _prepare_runner_and_env_vars(runner, env_vars)
+
     executor_input_dict = executor_input_utils.executor_input_to_dict(
         executor_input=executor_input,
         component_spec=component_spec,
@@ -128,13 +176,21 @@ def run_single_task_implementation(
     )
 
     runner_type = type(runner)
+
+    # Safe TaskHandler map fix
     task_handler_map: Dict[
         local.LocalRunnerType, task_handler_interface.ITaskHandler] = {
             local.SubprocessRunner:
                 subprocess_task_handler.SubprocessTaskHandler,
-            local.DockerRunner:
-                docker_task_handler.DockerTaskHandler,
         }
+
+    if _DOCKER_AVAILABLE:
+        task_handler_map[
+            local.DockerRunner] = docker_task_handler.DockerTaskHandler
+    elif runner_type is local.DockerRunner:
+        raise RuntimeError('DockerRunner selected but docker is not installed. '
+                           'Install docker or switch to SubprocessRunner.')
+
     TaskHandler = task_handler_map[runner_type]
 
     with logging_utils.local_logger_context():
@@ -146,13 +202,13 @@ def run_single_task_implementation(
             full_command=full_command,
             pipeline_root=pipeline_root,
             runner=runner,
+            env_vars=env_vars,
         )
 
-        # trailing newline helps visually separate subprocess logs
+        # separate logs visually
         logging.info(f'Streamed logs:\n')
 
         with logging_utils.indented_print():
-            # subprocess logs printed here
             task_status = task_handler.run()
 
         if task_status == status.Status.SUCCESS:
@@ -182,8 +238,8 @@ def run_single_task_implementation(
             outputs = {}
 
         else:
-            # for developers; user should never hit this
             raise ValueError(f'Got unknown status: {task_status}')
+
         logging_utils.print_horizontal_line()
 
         return outputs, task_status

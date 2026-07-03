@@ -15,11 +15,11 @@
  */
 
 import React, { Ref, useRef, useState } from 'react';
-import { Button, Tooltip } from '@material-ui/core';
+import { Button, Tooltip } from '@mui/material';
 import { color } from 'src/Css';
 import { classes, stylesheet } from 'typestyle';
-import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
-import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 const css = stylesheet({
   defaultFont: {
@@ -81,6 +81,7 @@ export interface SelectedItem {
   itemName: string;
   subItemName: string;
   subItemSecondaryName?: string;
+  runId?: string;
 }
 
 export interface DropdownSubItem {
@@ -91,6 +92,7 @@ export interface DropdownSubItem {
 export interface DropdownItem {
   name: string;
   subItems: DropdownSubItem[];
+  id?: string;
 }
 
 interface DropdownButtonProps {
@@ -145,13 +147,8 @@ interface DropdownSubMenuProps {
 }
 
 function DropdownSubMenu(props: DropdownSubMenuProps) {
-  const {
-    subDropdownActive,
-    setSubDropdownActive,
-    subDropdownIndex,
-    item,
-    deactivateDropdown,
-  } = props;
+  const { subDropdownActive, setSubDropdownActive, subDropdownIndex, item, deactivateDropdown } =
+    props;
 
   if (item.subItems.length === 0 || subDropdownActive !== subDropdownIndex) {
     return <></>;
@@ -168,6 +165,7 @@ function DropdownSubMenu(props: DropdownSubMenuProps) {
               itemName: item.name,
               subItemName: subItem.name,
               subItemSecondaryName: subItem.secondaryName,
+              runId: item.id,
             });
             setSubDropdownActive(-1);
           }}

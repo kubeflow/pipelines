@@ -15,26 +15,33 @@
  */
 
 import * as React from 'react';
-import { mount, shallow } from 'enzyme';
+import { act, render } from '@testing-library/react';
+import { vi } from 'vitest';
 import LogViewer from './LogViewer';
+
+function renderRow(logLines: string[], index = 0): HTMLElement | null {
+  const logViewer = new LogViewer({ logLines });
+  const row = (logViewer as any)._rowRenderer({ index });
+  const { container } = render(row);
+  return container.firstChild as HTMLElement | null;
+}
 
 describe('LogViewer', () => {
   it('renders an empty container when no logs passed', () => {
-    expect(shallow(<LogViewer logLines={[]} />)).toMatchSnapshot();
+    const { asFragment } = render(<LogViewer logLines={[]} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders one log line', () => {
     const logLines = ['first line'];
-    const logViewer = new LogViewer({ logLines });
-    const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
-    expect(tree).toMatchSnapshot();
+    const row = renderRow(logLines);
+    expect(row).toMatchSnapshot();
   });
 
   it('renders two log lines', () => {
     const logLines = ['first line', 'second line'];
-    const logViewer = new LogViewer({ logLines });
-    const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
-    expect(tree).toMatchSnapshot();
+    const row = renderRow(logLines);
+    expect(row).toMatchSnapshot();
   });
 
   it('renders one long line without breaking', () => {
@@ -48,9 +55,8 @@ describe('LogViewer', () => {
       `of Letraset sheets containing Lorem Ipsum passages, and more recently` +
       `with desktop publishing software like Aldus PageMaker including versions` +
       `of Lorem Ipsum.`;
-    const logViewer = new LogViewer({ logLines: [line] });
-    const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
-    expect(tree).toMatchSnapshot();
+    const row = renderRow([line]);
+    expect(row).toMatchSnapshot();
   });
 
   it('renders a multi-line log', () => {
@@ -63,92 +69,83 @@ describe('LogViewer', () => {
     of Letraset sheets containing Lorem Ipsum passages, and more recently
     with desktop publishing software like Aldus PageMaker including versions
     of Lorem Ipsum.`;
-    const logViewer = new LogViewer({ logLines: line.split('\n') });
-    const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
-    expect(tree).toMatchSnapshot();
+    const row = renderRow(line.split('\n'));
+    expect(row).toMatchSnapshot();
   });
 
   it('linkifies standalone urls', () => {
     const logLines = ['this string: http://path.com is a url'];
-    const logViewer = new LogViewer({ logLines });
-    const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
-    expect(tree).toMatchSnapshot();
+    const row = renderRow(logLines);
+    expect(row).toMatchSnapshot();
   });
 
   it('linkifies standalone https urls', () => {
     const logLines = ['this string: https://path.com is a url'];
-    const logViewer = new LogViewer({ logLines });
-    const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
-    expect(tree).toMatchSnapshot();
+    const row = renderRow(logLines);
+    expect(row).toMatchSnapshot();
   });
 
   it('linkifies substring urls', () => {
     const logLines = ['this string:http://path.com is a url'];
-    const logViewer = new LogViewer({ logLines });
-    const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
-    expect(tree).toMatchSnapshot();
+    const row = renderRow(logLines);
+    expect(row).toMatchSnapshot();
   });
 
   it('does not linkify non http/https urls', () => {
     const logLines = ['this string: gs://path is a GCS path'];
-    const logViewer = new LogViewer({ logLines });
-    const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
-    expect(tree).toMatchSnapshot();
+    const row = renderRow(logLines);
+    expect(row).toMatchSnapshot();
   });
 
-  it('scrolls to end after rendering', () => {
-    const spy = jest.spyOn(LogViewer.prototype as any, '_scrollToEnd');
+  it('scrolls to end after rendering', async () => {
+    const spy = vi.spyOn(LogViewer.prototype as any, '_scrollToEnd');
     const logs = 'this string: gs://path is a GCS path';
-    const tree = mount(<LogViewer logLines={[logs]} />);
-    tree.instance().componentDidUpdate!({}, {});
+    const ref = React.createRef<LogViewer>();
+    render(<LogViewer ref={ref} logLines={[logs]} />);
+    await act(async () => {
+      ref.current?.componentDidUpdate?.({}, {});
+    });
     expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
   });
 
   it('renders a row with given index as line number', () => {
-    const logViewer = new LogViewer({ logLines: ['line1', 'line2'] });
-    const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
-    expect(tree).toMatchSnapshot();
+    const row = renderRow(['line1', 'line2']);
+    expect(row).toMatchSnapshot();
   });
 
   it('renders a row with error', () => {
-    const logViewer = new LogViewer({ logLines: ['line1 with error', 'line2'] });
-    const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
-    expect(tree).toMatchSnapshot();
+    const row = renderRow(['line1 with error', 'line2']);
+    expect(row).toMatchSnapshot();
   });
 
   it('renders a row with upper case error', () => {
-    const logViewer = new LogViewer({ logLines: ['line1 with ERROR', 'line2'] });
-    const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
-    expect(tree).toMatchSnapshot();
+    const row = renderRow(['line1 with ERROR', 'line2']);
+    expect(row).toMatchSnapshot();
   });
 
   it('renders a row with error word as substring', () => {
-    const logViewer = new LogViewer({ logLines: ['line1 with errorWord', 'line2'] });
-    const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
-    expect(tree).toMatchSnapshot();
+    const row = renderRow(['line1 with errorWord', 'line2']);
+    expect(row).toMatchSnapshot();
   });
 
   it('renders a row with warning', () => {
-    const logViewer = new LogViewer({ logLines: ['line1 with warning', 'line2'] });
-    const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
-    expect(tree).toMatchSnapshot();
+    const row = renderRow(['line1 with warning', 'line2']);
+    expect(row).toMatchSnapshot();
   });
 
   it('renders a row with warn', () => {
-    const logViewer = new LogViewer({ logLines: ['line1 with warn', 'line2'] });
-    const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
-    expect(tree).toMatchSnapshot();
+    const row = renderRow(['line1 with warn', 'line2']);
+    expect(row).toMatchSnapshot();
   });
 
   it('renders a row with upper case warning', () => {
-    const logViewer = new LogViewer({ logLines: ['line1 with WARNING', 'line2'] });
-    const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
-    expect(tree).toMatchSnapshot();
+    const row = renderRow(['line1 with WARNING', 'line2']);
+    expect(row).toMatchSnapshot();
   });
 
   it('renders a row with warning word as substring', () => {
-    const logViewer = new LogViewer({ logLines: ['line1 with warning:something', 'line2'] });
-    const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
-    expect(tree).toMatchSnapshot();
+    const row = renderRow(['line1 with warning:something', 'line2']);
+    expect(row).toMatchSnapshot();
   });
 });

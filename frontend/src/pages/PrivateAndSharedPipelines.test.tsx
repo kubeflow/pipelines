@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import { render } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
 import { PageProps } from './Page';
 import { Apis } from 'src/lib/Apis';
 import { V2beta1Pipeline, V2beta1ListPipelinesResponse } from 'src/apisv2beta1/pipeline';
-import TestUtils from 'src/TestUtils';
+import { flushPromisesInAct } from 'src/TestUtils';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 import PrivateAndSharedPipelines, {
   PrivateAndSharedProps,
@@ -42,10 +41,10 @@ function generatePageProps(): PageProps {
     location: '' as any,
     match: {} as any,
     toolbarProps: {} as any,
-    updateBanner: jest.fn(),
-    updateDialog: jest.fn(),
-    updateSnackbar: jest.fn(),
-    updateToolbar: jest.fn(),
+    updateBanner: vi.fn(),
+    updateDialog: vi.fn(),
+    updateSnackbar: vi.fn(),
+    updateToolbar: vi.fn(),
   };
 }
 
@@ -69,8 +68,8 @@ describe('PrivateAndSharedPipelines', () => {
     initialEntries: ['/does-not-matter'],
   });
   beforeEach(() => {
-    jest.clearAllMocks();
-    let listPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelines');
+    vi.clearAllMocks();
+    let listPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelines');
     listPipelineSpy.mockImplementation((...args) => {
       const response: V2beta1ListPipelinesResponse = {
         pipelines: [oldPipeline, newPipeline],
@@ -81,7 +80,7 @@ describe('PrivateAndSharedPipelines', () => {
   });
 
   afterEach(async () => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('it renders correctly in multi user mode', async () => {
@@ -94,7 +93,7 @@ describe('PrivateAndSharedPipelines', () => {
         </BuildInfoContext.Provider>
       </Router>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(tree).toMatchSnapshot();
   });
 
@@ -108,7 +107,7 @@ describe('PrivateAndSharedPipelines', () => {
         </BuildInfoContext.Provider>
       </Router>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(tree).toMatchSnapshot();
   });
 });

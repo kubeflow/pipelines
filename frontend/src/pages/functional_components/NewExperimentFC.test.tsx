@@ -15,7 +15,6 @@
  */
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import TestUtils from 'src/TestUtils';
 import { NewExperimentFC } from './NewExperimentFC';
@@ -26,11 +25,11 @@ import { RoutePage, QUERY_PARAMS } from 'src/components/Router';
 
 describe('NewExperiment', () => {
   const TEST_EXPERIMENT_ID = 'new-experiment-id';
-  const createExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'createExperiment');
-  const historyPushSpy = jest.fn();
-  const updateDialogSpy = jest.fn();
-  const updateSnackbarSpy = jest.fn();
-  const updateToolbarSpy = jest.fn();
+  const createExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'createExperiment');
+  const historyPushSpy = vi.fn();
+  const updateDialogSpy = vi.fn();
+  const updateSnackbarSpy = vi.fn();
+  const updateToolbarSpy = vi.fn();
 
   function generateProps(): PageProps {
     return {
@@ -46,9 +45,9 @@ describe('NewExperiment', () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // mock both v2_alpha and functional feature keys are enable.
-    jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
+    vi.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
 
     createExperimentSpy.mockImplementation(() => ({
       experiment_id: 'new-experiment-id',
@@ -192,7 +191,7 @@ describe('NewExperiment', () => {
   it('includes pipeline ID and version ID in NewRun page query params if present', async () => {
     const pipelineId = 'some-pipeline-id';
     const pipelineVersionId = 'version-id';
-    const listPipelineVersionsSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
+    const listPipelineVersionsSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
     listPipelineVersionsSpy.mockImplementation(() => ({
       pipeline_versions: [{ pipeline_version_id: pipelineVersionId }],
     }));
@@ -228,6 +227,104 @@ describe('NewExperiment', () => {
         `&pipelineVersionId=${pipelineVersionId}` +
         `&firstRunInExperiment=1`,
     );
+  });
+
+  it('uses an empty pipeline version query param when no latest version is returned', async () => {
+    const pipelineId = 'some-pipeline-id';
+    let resolveVersions: (value: {
+      pipeline_versions?: Array<{ pipeline_version_id: string }>;
+    }) => void = () => {};
+    const listPipelineVersionsSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
+    listPipelineVersionsSpy.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveVersions = resolve;
+        }),
+    );
+
+    const props = generateProps();
+    props.location.search = `?${QUERY_PARAMS.pipelineId}=${pipelineId}`;
+
+    render(
+      <CommonTestWrapper>
+        <NewExperimentFC {...props} />
+      </CommonTestWrapper>,
+    );
+
+    fireEvent.change(screen.getByLabelText(/Experiment name/), {
+      target: { value: 'new-experiment-name' },
+    });
+    fireEvent.click(screen.getByText('Next'));
+
+    await waitFor(() => {
+      expect(createExperimentSpy).toHaveBeenCalled();
+      expect(listPipelineVersionsSpy).toHaveBeenCalledWith(
+        pipelineId,
+        undefined,
+        1,
+        'created_at desc',
+      );
+    });
+
+    resolveVersions({ pipeline_versions: [] });
+
+    await waitFor(() => {
+      expect(historyPushSpy).toHaveBeenCalledTimes(1);
+      expect(updateSnackbarSpy).toHaveBeenCalledTimes(1);
+    });
+    expect(historyPushSpy).toHaveBeenCalledWith(
+      RoutePage.NEW_RUN +
+        `?experimentId=${TEST_EXPERIMENT_ID}` +
+        `&pipelineId=${pipelineId}` +
+        `&pipelineVersionId=` +
+        `&firstRunInExperiment=1`,
+    );
+  });
+
+  it('continues to navigate when retrieving the latest pipeline version fails', async () => {
+    const pipelineId = 'some-pipeline-id';
+    const listPipelineVersionsSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
+    listPipelineVersionsSpy.mockRejectedValue(new Error('version lookup failed'));
+
+    const props = generateProps();
+    props.location.search = `?${QUERY_PARAMS.pipelineId}=${pipelineId}`;
+
+    render(
+      <CommonTestWrapper>
+        <NewExperimentFC {...props} />
+      </CommonTestWrapper>,
+    );
+
+    fireEvent.change(screen.getByLabelText(/Experiment name/), {
+      target: { value: 'new-experiment-name' },
+    });
+    const nextButton = screen.getByText('Next');
+    fireEvent.click(nextButton);
+
+    await waitFor(() => {
+      expect(createExperimentSpy).toHaveBeenCalled();
+      expect(listPipelineVersionsSpy).toHaveBeenCalledWith(
+        pipelineId,
+        undefined,
+        1,
+        'created_at desc',
+      );
+    });
+
+    await waitFor(() => {
+      expect(historyPushSpy).toHaveBeenCalledTimes(1);
+      expect(updateSnackbarSpy).toHaveBeenCalledTimes(1);
+      expect(nextButton.closest('button')?.disabled).toBe(false);
+    });
+
+    expect(historyPushSpy).toHaveBeenCalledWith(
+      RoutePage.NEW_RUN +
+        `?experimentId=${TEST_EXPERIMENT_ID}` +
+        `&pipelineId=${pipelineId}` +
+        `&pipelineVersionId=` +
+        `&firstRunInExperiment=1`,
+    );
+    expect(updateDialogSpy).not.toHaveBeenCalled();
   });
 
   it('shows snackbar confirmation after experiment is created', async () => {

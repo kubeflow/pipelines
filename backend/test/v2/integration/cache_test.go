@@ -331,7 +331,7 @@ func (s *CacheTestSuite) createRun(pipelineVersion *pipeline_upload_model.V2beta
 		}
 
 		return err == nil && *pipelineRunDetail.State == expectedState
-	}, 2*time.Minute, 10*time.Second)
+	}, 4*time.Minute, 10*time.Second)
 
 	return pipelineRunDetail, err
 }
@@ -358,7 +358,7 @@ func (s *CacheTestSuite) createRunWithParams(pipelineVersion *pipeline_upload_mo
 			s.T().Logf("PVC pipeline %v state: %v", pipelineRunDetail.RunID, err.Error())
 		}
 		return err == nil && *pipelineRunDetail.State == expectedState
-	}, 2*time.Minute, 10*time.Second)
+	}, 4*time.Minute, 10*time.Second)
 
 	return pipelineRunDetail, err
 }

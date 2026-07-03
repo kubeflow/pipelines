@@ -18,6 +18,7 @@ import unittest
 
 from absl.testing import parameterized
 from kfp import dsl
+from kfp.dsl import pipeline_channel
 from kfp.dsl import pipeline_task
 from kfp.dsl import placeholders
 from kfp.dsl import structures
@@ -142,6 +143,21 @@ class PipelineTaskTest(parameterized.TestCase):
         task.set_caching_options(False)
         self.assertEqual(False, task._task_spec.enable_caching)
 
+    def test_register_pipeline_channels_deduplicates_channels(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        channel = pipeline_channel.PipelineParameterChannel(
+            name='secret_name',
+            channel_type='String',
+        )
+
+        task.register_pipeline_channels([channel, channel])
+
+        self.assertEqual(task.channel_inputs, [channel])
+
     @parameterized.parameters(
         {
             'cpu': '123',
@@ -218,6 +234,25 @@ class PipelineTaskTest(parameterized.TestCase):
             'limit': 16,
             'expected_limit': '16',
         },
+        # Values that were previously rejected by the hardcoded allowlist
+        # but are valid Kubernetes accelerator counts.
+        {
+            'limit': 3,
+            'expected_limit': '3',
+        },
+        {
+            'limit': 32,
+            'expected_limit': '32',
+        },
+        {
+            'limit': 128,
+            'expected_limit': '128',
+        },
+        # Zero is a valid boundary value.
+        {
+            'limit': 0,
+            'expected_limit': '0',
+        },
     )
     def test_set_accelerator_limit(self, limit, expected_limit):
         task = pipeline_task.PipelineTask(
@@ -229,6 +264,23 @@ class PipelineTaskTest(parameterized.TestCase):
         task.set_accelerator_limit(limit)
         self.assertEqual(expected_limit,
                          task.container_spec.resources.accelerator_count)
+
+    @parameterized.parameters(
+        {'limit': -1},
+        {'limit': -128},
+        {'limit': 'abc'},
+        {'limit': '1.5'},
+        {'limit': '-1'},
+    )
+    def test_set_accelerator_limit_invalid(self, limit):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        with self.assertRaisesRegex(ValueError,
+                                    'limit must be a non-negative integer.'):
+            task.set_accelerator_limit(limit)
 
     @parameterized.parameters(
         {
@@ -330,6 +382,71 @@ class PipelineTaskTest(parameterized.TestCase):
         task.set_env_variable('env_name', 'env_value')
         self.assertEqual({'env_name': 'env_value'}, task.container_spec.env)
 
+    def test_set_debug_pause_default(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        task.set_debug_pause()
+        self.assertEqual({'ARGO_DEBUG_PAUSE_AFTER': 'true'},
+                         task.container_spec.env)
+
+    def test_set_debug_pause_before_only(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        task.set_debug_pause(before=True, after=False)
+        self.assertEqual({'ARGO_DEBUG_PAUSE_BEFORE': 'true'},
+                         task.container_spec.env)
+
+    def test_set_debug_pause_before_and_after(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        task.set_debug_pause(before=True, after=True)
+        self.assertEqual(
+            {
+                'ARGO_DEBUG_PAUSE_BEFORE': 'true',
+                'ARGO_DEBUG_PAUSE_AFTER': 'true',
+            }, task.container_spec.env)
+
+    def test_set_debug_pause_on_error(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        task.set_debug_pause(on_error=True)
+        self.assertEqual({'ARGO_DEBUG_PAUSE_ON_ERROR': 'true'},
+                         task.container_spec.env)
+
+    def test_set_debug_pause_raises_on_error_without_after(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        with self.assertRaisesRegex(
+                ValueError,
+                r"'on_error' applies to post-execution pause and requires"):
+            task.set_debug_pause(on_error=True, after=False)
+
+    def test_set_debug_pause_raises_when_both_false(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        with self.assertRaisesRegex(
+                ValueError,
+                r"At least one of 'before' or 'after' must be True"):
+            task.set_debug_pause(before=False, after=False)
+
     def test_set_display_name(self):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.from_yaml_documents(
@@ -373,7 +490,7 @@ class TestPlatformSpecificFunctionality(unittest.TestCase):
             t.platform_config = {'platform1': {'feature': [1, 2, 3]}}
             with self.assertRaisesRegex(
                     ValueError,
-                    r"Can only access '\.platform_spec' property on a tasks created from pipelines\. Use '\.platform_config' for tasks created from primitive components\."
+                    r"Can only access '\.platform_spec' property on tasks created from pipelines\. Use '\.platform_config' for tasks created from primitive components\."
             ):
                 t.platform_spec
 
@@ -492,6 +609,21 @@ class TestTaskInFinalState(unittest.TestCase):
                 r"Task configuration methods are not supported for local execution\. Got call to '\.ignore_upstream_failure\(\)'\."
         ):
             task.ignore_upstream_failure()
+
+    def test_after_rejects_invalid_dependency_type(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'PipelineTask\.after\(\) only supports PipelineTask and dsl\.ExitHandler dependencies\. Got str\.'
+        ):
+            task.after('not-a-task')
+
+        self.assertEqual(task.dependent_tasks, [])
 
 
 def assert_artifacts_equal(

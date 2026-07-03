@@ -24,6 +24,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
@@ -177,10 +178,28 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		ecfg.FingerPrint = fingerPrint
 	}
 
+	taskPluginInfo := &plugins.TaskInfo{Name: opts.TaskName}
+	pluginStartResult, dispatchErr := opts.PluginDispatcher.OnTaskStart(ctx, taskPluginInfo)
+	if dispatchErr != nil {
+		glog.Errorf("Failed to dispatch task start: %v", dispatchErr)
+	} else if pluginStartResult != nil {
+		ecfg.PluginCustomProperties = pluginStartResult.CustomProperties
+	}
+
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
-		return execution, err
+		if isAlreadyExistsErr(err) {
+			glog.Infof("Execution %q already exists, looking up existing execution", ecfg.Name)
+			existing, lookupErr := mlmd.GetExecutionByTypeAndName(ctx, string(metadata.ContainerExecutionTypeName), ecfg.Name)
+			if lookupErr != nil {
+				return execution, fmt.Errorf("failed to lookup existing execution: %w", lookupErr)
+			}
+			glog.Infof("Found existing execution: %s", existing)
+			createdExecution = existing
+		} else {
+			return execution, err
+		}
 	}
 	glog.Infof("Created execution: %s", createdExecution)
 	execution.ID = createdExecution.GetID()
@@ -188,7 +207,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, nil
 	}
 
-	// Use cache and skip launcher if all contions met:
+	// Use cache and skip launcher if all conditions met:
 	// (1) Cache is enabled globally
 	// (2) Cache is enabled for the task
 	// (3) CachedMLMDExecutionID is non-empty, which means a cache entry exists
@@ -196,7 +215,16 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	execution.Cached = &cached
 	if !opts.CacheDisabled {
 		if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
-			executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, mlmd, ecfg.CachedMLMDExecutionID)
+			var outputArtifacts []*metadata.OutputArtifact
+			var executorOutput *pipelinespec.ExecutorOutput
+			defer func() {
+				taskPluginInfo.UpdateTaskInfoWithMetadata("CACHED", metadata.FormatScalarMetricArtifacts(outputArtifacts), metadata.FormatExecutionParameters(createdExecution))
+				dispatchErr = opts.PluginDispatcher.OnTaskEnd(ctx, taskPluginInfo)
+				if dispatchErr != nil {
+					glog.Errorf("failed to dispatch task end: %v", dispatchErr)
+				}
+			}()
+			executorOutput, outputArtifacts, err = reuseCachedOutputs(ctx, execution.ExecutorInput, mlmd, ecfg.CachedMLMDExecutionID)
 			if err != nil {
 				return execution, err
 			}
@@ -215,6 +243,11 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	}
 
 	taskConfig := &TaskConfig{}
+
+	pluginEnvVars, err := opts.PluginDispatcher.RetrieveUserContainerEnvVars(taskPluginInfo)
+	if err != nil {
+		return execution, err
+	}
 
 	podSpec, err := initPodSpecPatch(
 		opts.Container,
@@ -235,6 +268,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		opts.MLPipelineServerPort,
 		opts.MLMDServerAddress,
 		opts.MLMDServerPort,
+		pluginEnvVars,
 	)
 	if err != nil {
 		return execution, err

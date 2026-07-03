@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { FC } from 'react';
+import { FC } from 'react';
 import { PodInfo, PodEvents } from './PodYaml';
 import { render, act, fireEvent } from '@testing-library/react';
 import { Apis } from 'src/lib/Apis';
@@ -22,19 +22,19 @@ import TestUtils from 'src/TestUtils';
 
 // Original ./Editor uses a complex external editor inside, we use a simple mock
 // for testing instead.
-jest.mock('./Editor', () => {
-  return ({ value }: { value: string }) => <pre data-testid='Editor'>{value}</pre>;
-});
+vi.mock('./Editor', () => ({
+  default: ({ value }: { value: string }) => <pre data-testid='Editor'>{value}</pre>,
+}));
 
 afterEach(async () => {
-  jest.resetAllMocks();
-  jest.restoreAllMocks();
+  vi.resetAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe('PodInfo', () => {
   let podInfoSpy: any;
   beforeEach(() => {
-    podInfoSpy = jest.spyOn(Apis, 'getPodInfo');
+    podInfoSpy = vi.spyOn(Apis, 'getPodInfo');
   });
 
   it('renders Editor with pod yaml', async () => {
@@ -150,7 +150,7 @@ describe('PodInfo', () => {
 describe('PodEvents', () => {
   let podEventsSpy: any;
   beforeEach(() => {
-    podEventsSpy = jest.spyOn(Apis, 'getPodEvents');
+    podEventsSpy = vi.spyOn(Apis, 'getPodEvents');
   });
 
   it('renders Editor with pod events yaml', async () => {

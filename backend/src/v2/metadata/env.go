@@ -13,7 +13,7 @@ type ServerConfig struct {
 
 func GetMetadataConfig() *ServerConfig {
 	return &ServerConfig{
-		Address: common.GetMetadataServiceName() + "." + common.GetPodNamespace() + ".svc.cluster.local",
+		Address: common.GetMetadataServiceName() + "." + common.GetPodNamespace() + ".svc." + common.GetClusterDomain(),
 		Port:    metadataGrpcServicePort,
 	}
 }

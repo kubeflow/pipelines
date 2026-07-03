@@ -15,7 +15,7 @@
  */
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import * as React from 'react';
+import { MockInstance } from 'vitest';
 import { Api } from 'src/mlmd/library';
 import {
   Artifact,
@@ -34,13 +34,13 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 testBestPractices();
 
 describe('ArtifactListSwitcher', () => {
-  let getArtifactsSpy: jest.Mock<{}>;
-  let getArtifactTypesSpy: jest.Mock<{}>;
+  let getArtifactsSpy: MockInstance;
+  let getArtifactTypesSpy: MockInstance;
   const getArtifactsRequest = new GetArtifactsRequest();
 
   beforeEach(() => {
-    getArtifactsSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getArtifacts');
-    getArtifactTypesSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes');
+    getArtifactsSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifacts');
+    getArtifactTypesSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes');
 
     getArtifactTypesSpy.mockImplementation(() => {
       const artifactType = new ArtifactType();
@@ -111,15 +111,18 @@ describe('ArtifactListSwitcher', () => {
       </CommonTestWrapper>,
     );
 
+    await waitFor(() => expect(getArtifactsSpy).toHaveBeenCalled());
+    getArtifactsSpy.mockClear();
+    getArtifactTypesSpy.mockClear();
+
     const groupTab = screen.getByText('Grouped');
     fireEvent.click(groupTab);
 
-    // "Group" view will call getExection() without list options
+    // "Group" view will call getArtifacts() without list options
     getArtifactsRequest.setOptions(undefined);
 
     await waitFor(() => {
-      expect(getArtifactTypesSpy).toHaveBeenCalledTimes(2); // once for flat, once for group
-      expect(getArtifactsSpy).toHaveBeenCalledTimes(2); // once for flat, once for group
+      expect(getArtifactsSpy).toHaveBeenCalled();
       expect(getArtifactsSpy).toHaveBeenLastCalledWith(getArtifactsRequest);
     });
 

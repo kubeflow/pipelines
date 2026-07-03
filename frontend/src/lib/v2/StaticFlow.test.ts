@@ -15,22 +15,17 @@
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { testBestPractices } from 'src/TestUtils';
 import { convertFlowElements } from './StaticFlow';
-import fs from 'fs';
-import jsyaml from 'js-yaml';
-
-const V2_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
-const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
+import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
+import { load } from 'js-yaml';
 
 testBestPractices();
 describe('StaticFlow', () => {
   it('converts simple pipeline with element ids to graph', () => {
-    const yamlObject = jsyaml.safeLoad(v2YamlTemplateString);
+    const yamlObject = load(v2YamlTemplateString);
 
     const pipelineSpec = PipelineSpec.fromJSON(yamlObject);
 
     const graph = convertFlowElements(pipelineSpec);
-    // If the static flow logic gets update, inspect result with the console log result below.
-    console.log(graph);
     for (let element of graph) {
       const index = [
         'task.preprocess',
@@ -44,7 +39,7 @@ describe('StaticFlow', () => {
         'inedge.output_dataset_one.train',
         'outedge.train.model',
         'paramedge.preprocess.train',
-      ].findIndex(x => x === element.id);
+      ].findIndex((x) => x === element.id);
       expect(index > -1).toBeTruthy();
     }
   });

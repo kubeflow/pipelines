@@ -15,6 +15,7 @@
 package testutil
 
 import (
+	"fmt"
 	"math/rand"
 	"slices"
 	"strconv"
@@ -26,6 +27,7 @@ import (
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
 
@@ -102,7 +104,7 @@ func WaitForRunToBeInState(runClient *api_server.RunClient, pipelineRunID *strin
 			}
 
 			if time.Now().After(deadline) {
-				logger.Log("Pipeline run with id=%s is in %s state, did not reach one of '%s' ", *pipelineRunID, *currentPipelineRunState, expectedStates)
+				ginkgo.Fail(fmt.Sprintf("Pipeline run with id=%s did not reach one of %v within timeout, current state: %s", *pipelineRunID, expectedStates, *currentPipelineRunState), 1)
 				return
 			}
 			logger.Log("Pipeline run with id=%s is in %s state, waiting...", *pipelineRunID, *currentPipelineRunState)

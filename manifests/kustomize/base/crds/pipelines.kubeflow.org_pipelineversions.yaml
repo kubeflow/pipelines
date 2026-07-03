@@ -53,6 +53,14 @@ spec:
                 type: string
               platformSpec:
                 x-kubernetes-preserve-unknown-fields: true
+              tags:
+                additionalProperties:
+                  type: string
+                type: object
+              versionName:
+                maxLength: 253
+                pattern: ^[a-z0-9]([a-z0-9\.\-]*[a-z0-9])?$
+                type: string
             required:
             - pipelineSpec
             type: object

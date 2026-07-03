@@ -1,6 +1,12 @@
+import { vi, afterAll, beforeAll, beforeEach } from 'vitest';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import * as os from 'os';
 import * as fs from 'fs';
+import express from 'express';
+import requests from 'supertest';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export function commonSetup(
   options: { commitHash?: string; tagName?: string; showLog?: boolean } = {},
@@ -30,24 +36,26 @@ export function commonSetup(
   });
 
   beforeEach(() => {
-    jest.resetAllMocks();
-    jest.restoreAllMocks();
+    vi.resetAllMocks();
+    vi.restoreAllMocks();
   });
 
   if (!options.showLog) {
     beforeEach(() => {
-      jest.spyOn(global.console, 'info').mockImplementation();
-      jest.spyOn(global.console, 'log').mockImplementation();
+      vi.spyOn(global.console, 'info').mockImplementation(() => {});
+      vi.spyOn(global.console, 'log').mockImplementation(() => {});
     });
   }
 
   return { argv, buildDate, indexHtmlPath, indexHtmlContent };
 }
 
-export function buildQuery(queriesMap: { [key: string]: string | undefined }): string {
+export function buildQuery(queriesMap: { [key: string]: string | number | undefined }): string {
   const queryContent = Object.entries(queriesMap)
-    .filter((entry): entry is [string, string] => entry[1] != null)
-    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+    .filter(
+      (entry): entry is [string, string | number] => entry[1] !== undefined && entry[1] !== null,
+    )
+    .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
     .join('&');
   if (!queryContent) {
     return '';
@@ -57,4 +65,49 @@ export function buildQuery(queriesMap: { [key: string]: string | undefined }): s
 
 export function mkTempDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'kfp-test-'));
+}
+
+export function setupMockBackendTest(options: { showLog?: boolean } = {}): void {
+  const frontendRoot = path.resolve(__dirname, '..', '..');
+  const originalCwd = process.cwd();
+
+  beforeAll(() => {
+    process.chdir(frontendRoot);
+  });
+
+  afterAll(() => {
+    process.chdir(originalCwd);
+  });
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  if (!options.showLog) {
+    beforeEach(() => {
+      vi.spyOn(global.console, 'info').mockImplementation(() => {});
+      vi.spyOn(global.console, 'log').mockImplementation(() => {});
+    });
+  }
+}
+
+export async function createMockBackendRequest(): Promise<ReturnType<typeof requests>> {
+  vi.resetModules();
+  const { default: mockApiMiddleware } = await import('../../mock-backend/mock-api-middleware.ts');
+  const app = express();
+  mockApiMiddleware(app as any);
+  return requests(app);
+}
+
+export function asText(test: requests.Test): requests.Test {
+  return test.buffer(true).parse((response, callback) => {
+    response.setEncoding('utf8');
+    let text = '';
+    response.on('data', (chunk) => {
+      text += chunk;
+    });
+    response.on('end', () => {
+      callback(null, text);
+    });
+  });
 }

@@ -72,7 +72,7 @@ class MarkdownViewer extends Viewer<MarkdownViewerProps, any> {
     return 'Markdown';
   }
 
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     if (!this.props.configs[0]) {
       return null;
     }
@@ -111,10 +111,10 @@ const MarkdownAdvanced = ({
 }: MarkdownAdvancedProps) => {
   // truncatedContent will be memoized, each call with the same content + maxMarkdownStrLength arguments will return the same truncatedContent without calculation.
   // Reference: https://reactjs.org/docs/hooks-reference.html#usememo
-  const truncatedContent = React.useMemo(() => content.substr(0, maxMarkdownStrLength), [
-    maxMarkdownStrLength,
-    content,
-  ]);
+  const truncatedContent = React.useMemo(
+    () => content.substr(0, maxMarkdownStrLength),
+    [maxMarkdownStrLength, content],
+  );
 
   return (
     <>

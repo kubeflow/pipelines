@@ -134,7 +134,7 @@ var _ = BeforeSuite(func() {
 		*config.UploadPipelinesWithKubernetes,
 		*config.KubeflowMode,
 		*config.DebugMode,
-		*config.AuthToken,
+		userToken,
 		*config.Namespace,
 		clientConfig,
 		tlsCfg,
@@ -161,31 +161,21 @@ var _ = BeforeEach(func() {
 	testContext.Pipeline.UploadParams = uploadparams.NewUploadPipelineParams()
 	testContext.PipelineRun.CreatedRunIds = make([]string, 0)
 	testContext.Experiment.CreatedExperimentIds = make([]string, 0)
-})
 
-var _ = AfterEach(func() {
-	// Delete pipelines created during the test
-	logger.Log("################### Global Cleanup after each test #####################")
-
-	logger.Log("Deleting %d run(s)", len(testContext.PipelineRun.CreatedRunIds))
-	for _, runID := range testContext.PipelineRun.CreatedRunIds {
-		testutil.TerminatePipelineRun(runClient, runID)
-		testutil.DeletePipelineRun(runClient, runID)
-	}
-	logger.Log("Deleting %d experiment(s)", len(testContext.Experiment.CreatedExperimentIds))
-	if len(testContext.Experiment.CreatedExperimentIds) > 0 {
-		for _, experimentID := range testContext.Experiment.CreatedExperimentIds {
-			testutil.DeleteExperiment(experimentClient, experimentID)
-		}
-	}
-	logger.Log("Deleting %d pipeline(s)", len(testContext.Pipeline.CreatedPipelines))
-	for _, pipeline := range testContext.Pipeline.CreatedPipelines {
-		testutil.DeletePipeline(pipelineClient, pipeline.PipelineID)
-	}
+	DeferCleanup(cleanupTestResources)
 })
 
 var _ = ReportAfterEach(func(specReport types.SpecReport) {
+	if testContext == nil {
+		return
+	}
+
 	if specReport.Failed() {
+		if len(testContext.PipelineRun.CreatedRunIds) > 0 {
+			report, _ := testutil.BuildArchivedWorkflowLogsReport(k8Client, testContext.PipelineRun.CreatedRunIds)
+			AddReportEntry(testutil.ArchivedWorkflowLogsReportTitle, report)
+		}
+
 		logger.Log("Test failed... Capturing pod logs from %v to %v", testContext.TestStartTimeUTC, time.Now().UTC())
 		podLogs := testutil.ReadContainerLogs(k8Client, *config.Namespace, "pipeline-api-server", nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
 		AddReportEntry("Pod Log", podLogs)
@@ -197,6 +187,35 @@ var _ = ReportAfterEach(func(specReport types.SpecReport) {
 		log.Printf("Test passed")
 	}
 })
+
+func cleanupTestResources() {
+	logger.Log("################### Global Cleanup after each test #####################")
+	cleanupRuns()
+	cleanupExperiments()
+	cleanupPipelines()
+}
+
+func cleanupRuns() {
+	logger.Log("Deleting %d run(s)", len(testContext.PipelineRun.CreatedRunIds))
+	for _, runID := range testContext.PipelineRun.CreatedRunIds {
+		testutil.TerminatePipelineRun(runClient, runID)
+		testutil.DeletePipelineRun(runClient, runID)
+	}
+}
+
+func cleanupExperiments() {
+	logger.Log("Deleting %d experiment(s)", len(testContext.Experiment.CreatedExperimentIds))
+	for _, experimentID := range testContext.Experiment.CreatedExperimentIds {
+		testutil.DeleteExperiment(experimentClient, experimentID)
+	}
+}
+
+func cleanupPipelines() {
+	logger.Log("Deleting %d pipeline(s)", len(testContext.Pipeline.CreatedPipelines))
+	for _, pipeline := range testContext.Pipeline.CreatedPipelines {
+		testutil.DeletePipeline(pipelineClient, pipeline.PipelineID, true)
+	}
+}
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)

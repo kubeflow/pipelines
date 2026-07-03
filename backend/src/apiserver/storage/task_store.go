@@ -61,7 +61,7 @@ type TaskStoreInterface interface {
 	ListTasks(filterContext *model.FilterContext, opts *list.Options) ([]*model.Task, int, string, error)
 
 	// Creates new tasks or updates the existing ones.
-	CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, error)
+	CreateOrUpdateTasks(tasks []*model.Task, runID string) ([]*model.Task, error)
 }
 
 type TaskStore struct {
@@ -324,7 +324,7 @@ func (s *TaskStore) GetTask(id string) (*model.Task, error) {
 }
 
 // Updates missing fields with existing data entries.
-func (s *TaskStore) patchWithExistingTasks(tasks []*model.Task) error {
+func (s *TaskStore) patchWithExistingTasks(tasks []*model.Task, runID string) error {
 	var podNames []string
 	for _, task := range tasks {
 		podNames = append(podNames, task.PodName)
@@ -332,7 +332,7 @@ func (s *TaskStore) patchWithExistingTasks(tasks []*model.Task) error {
 	sql, args, err := sq.
 		Select(taskColumns...).
 		From("tasks").
-		Where(sq.Eq{"PodName": podNames}).
+		Where(sq.Eq{"PodName": podNames, "RunUUID": runID}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create query to check existing tasks")
@@ -359,7 +359,7 @@ func (s *TaskStore) patchWithExistingTasks(tasks []*model.Task) error {
 }
 
 // Creates new entries or updates existing ones.
-func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, error) {
+func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task, runID string) ([]*model.Task, error) {
 	buildQuery := func(ts []*model.Task) (string, []interface{}, error) {
 		sqlInsert := sq.Insert("tasks").Columns(taskColumnsWithPayload...)
 		for _, t := range ts {
@@ -405,7 +405,7 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, err
 
 	// Check for existing tasks and fill empty field with existing data.
 	// Assumes that PodName column is a unique key.
-	if err := s.patchWithExistingTasks(tasks); err != nil {
+	if err := s.patchWithExistingTasks(tasks, runID); err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to check for existing tasks")
 	}
 	for _, task := range tasks {

@@ -17,7 +17,8 @@
             "parameter_type": "STRING",
             "default_value": null,
             "is_optional": false,
-            "description": ""
+            "description": "",
+            "literals": []
           }
         }
       },
@@ -81,14 +82,16 @@
           "parameter_type": "STRING",
           "default_value": "foo",
           "is_optional": false,
-          "description": ""
+          "description": "",
+          "literals": []
         },
         "input2": {
           "type": "PRIMITIVE_TYPE_UNSPECIFIED",
           "parameter_type": "STRING",
           "default_value": null,
           "is_optional": false,
-          "description": ""
+          "description": "",
+          "literals": []
         }
       }
     },

@@ -12,29 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import path from 'path';
-import express from 'express';
-import { Application, static as StaticHandler } from 'express';
+import { fileURLToPath } from 'url';
+import express, { Application, static as StaticHandler } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 
-import { UIConfigs } from './configs';
-import { getAddress } from './utils';
-import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+import { UIConfigs } from './configs.js';
+import { getAddress } from './utils.js';
+import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz.js';
 import {
   getArtifactsHandler,
   getArtifactsProxyHandler,
   getArtifactServiceGetter,
-} from './handlers/artifacts';
-import { getTensorboardHandlers } from './handlers/tensorboard';
-import { getAuthorizeFn } from './helpers/auth';
-import { getPodLogsHandler } from './handlers/pod-logs';
-import { podInfoHandler, podEventsHandler } from './handlers/pod-info';
-import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metadata';
-import { getAllowCustomVisualizationsHandler } from './handlers/vis';
-import { getIndexHTMLHandler } from './handlers/index-html';
+  getArtifactsAuthMiddleware,
+} from './handlers/artifacts.js';
+import { getTensorboardHandlers } from './handlers/tensorboard.js';
+import { getAuthorizeFn } from './helpers/auth.js';
+import { getPodLogsHandler } from './handlers/pod-logs.js';
+import { getPodInfoHandlers } from './handlers/pod-info.js';
+import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metadata.js';
+import { getAllowCustomVisualizationsHandler } from './handlers/vis.js';
+import { getIndexHTMLHandler } from './handlers/index-html.js';
 
-import proxyMiddleware from './proxy-middleware';
 import { Server } from 'http';
-import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts';
+import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts.js';
+import registerTensorboardProxy from './handlers/tensorboard-proxy.js';
 
 function getRegisterHandler(app: Application, basePath: string) {
   return (
@@ -57,6 +60,7 @@ function getRegisterHandler(app: Application, basePath: string) {
 export class UIServer {
   app: Application;
   httpServer?: Server;
+  private closePromise?: Promise<void>;
 
   constructor(public readonly options: UIConfigs) {
     this.app = createUIServer(options);
@@ -67,10 +71,13 @@ export class UIServer {
    * @param port optionally overwrite the provided port to listen to.
    */
   start(port?: number | string) {
+    if (this.closePromise) {
+      throw new Error('UIServer is closing.');
+    }
     if (this.httpServer) {
       throw new Error('UIServer already started.');
     }
-    port = port || this.options.server.port;
+    port = port ?? this.options.server.port;
     this.httpServer = this.app.listen(port, () => {
       console.log('Server listening at http://localhost:' + port);
     });
@@ -80,11 +87,34 @@ export class UIServer {
   /**
    * Stops the http server.
    */
-  close() {
-    if (this.httpServer) {
-      this.httpServer.close();
+  async close() {
+    if (this.closePromise) {
+      await this.closePromise;
+      return this;
     }
-    this.httpServer = undefined;
+
+    const server = this.httpServer;
+    if (!server) {
+      return this;
+    }
+
+    this.closePromise = new Promise<void>((resolve, reject) => {
+      server.close((err) => {
+        const errorCode = (err as NodeJS.ErrnoException | undefined)?.code;
+        if (err && errorCode !== 'ERR_SERVER_NOT_RUNNING') {
+          reject(err);
+          return;
+        }
+        if (this.httpServer === server) {
+          this.httpServer = undefined;
+        }
+        resolve();
+      });
+    }).finally(() => {
+      this.closePromise = undefined;
+    });
+
+    await this.closePromise;
     return this;
   }
 }
@@ -125,19 +155,50 @@ function createUIServer(options: UIConfigs) {
     }),
   );
 
+  /** Authorize function - created early so it can be used by artifact handlers */
+  const authorizeFn = getAuthorizeFn(options.auth, { apiServerAddress });
+
+  /**
+   * Artifact Authorization Middleware
+   * Security fix for https://github.com/kubeflow/pipelines/issues/9889
+   * This middleware validates namespace access before allowing artifact retrieval,
+   * preventing unauthorized cross-namespace artifact access.
+   */
+  const artifactsAuthMiddleware = getArtifactsAuthMiddleware(
+    authorizeFn,
+    options.auth.enabled,
+    options.auth.kubeflowUserIdHeader,
+    envoyServiceAddress,
+  );
+
   /** Artifact */
-  registerHandler(
-    app.get,
+  // Authorization middleware runs once on the catch-all /artifacts/* route,
+  // protecting all artifact endpoints. When proxy is disabled, the proxy
+  // handler calls next() and falls through to the specific handler below.
+  // Security fix for https://github.com/kubeflow/pipelines/issues/9889
+
+  // Proxy handler (checked first — if enabled, proxies to namespaced artifact service)
+  app.get(
     '/artifacts/*',
+    artifactsAuthMiddleware,
     getArtifactsProxyHandler({
       enabled: options.artifacts.proxy.enabled,
       allowedDomain: options.artifacts.allowedDomain,
       namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
     }),
   );
+  app.get(
+    `${basePath}/artifacts/*`,
+    artifactsAuthMiddleware,
+    getArtifactsProxyHandler({
+      enabled: options.artifacts.proxy.enabled,
+      allowedDomain: options.artifacts.allowedDomain,
+      namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
+    }),
+  );
+
   // /artifacts/get endpoint tries to extract the artifact to return pure text content
-  registerHandler(
-    app.get,
+  app.get(
     '/artifacts/get',
     getArtifactsHandler({
       artifactsConfigs: options.artifacts,
@@ -146,14 +207,18 @@ function createUIServer(options: UIConfigs) {
       options: options,
     }),
   );
-  // /artifacts/ endpoint downloads the artifact as is, it does not try to unzip or untar.
-  registerHandler(
-    app.get,
-    // The last * represents object key. Key could contain special characters like '/',
-    // so we cannot use `:key` as the placeholder.
-    // It is important to include the original object's key at the end of the url, because
-    // browser automatically determines file extension by the url. A wrong extension may affect
-    // whether the file can be opened by the correct application by default.
+  app.get(
+    `${basePath}/artifacts/get`,
+    getArtifactsHandler({
+      artifactsConfigs: options.artifacts,
+      useParameter: false,
+      tryExtract: true,
+      options: options,
+    }),
+  );
+
+  // /artifacts/:source/:bucket/* endpoint downloads the artifact as is
+  app.get(
     '/artifacts/:source/:bucket/*',
     getArtifactsHandler({
       artifactsConfigs: options.artifacts,
@@ -162,9 +227,15 @@ function createUIServer(options: UIConfigs) {
       options: options,
     }),
   );
-
-  /** Authorize function */
-  const authorizeFn = getAuthorizeFn(options.auth, { apiServerAddress });
+  app.get(
+    `${basePath}/artifacts/:source/:bucket/*`,
+    getArtifactsHandler({
+      artifactsConfigs: options.artifacts,
+      useParameter: true,
+      tryExtract: false,
+      options: options,
+    }),
+  );
 
   /** Tensorboard viewer */
   const {
@@ -175,6 +246,7 @@ function createUIServer(options: UIConfigs) {
   registerHandler(app.get, '/apps/tensorboard', tensorboardGetHandler);
   registerHandler(app.delete, '/apps/tensorboard', tensorboardDeleteHandler);
   registerHandler(app.post, '/apps/tensorboard', tensorboardCreateHandler);
+  registerTensorboardProxy(app, basePath, options.viewer.tensorboard, authorizeFn);
 
   /** Pod logs - conditionally stream through API server, otherwise directly from k8s and archive */
   if (options.artifacts.streamLogsFromServerApi) {
@@ -182,7 +254,7 @@ function createUIServer(options: UIConfigs) {
       '/k8s/pod/logs',
       createProxyMiddleware({
         changeOrigin: true,
-        onProxyReq: proxyReq => {
+        onProxyReq: (proxyReq) => {
           console.log('Proxied log request: ', proxyReq.path);
         },
         headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
@@ -199,7 +271,13 @@ function createUIServer(options: UIConfigs) {
     registerHandler(
       app.get,
       '/k8s/pod/logs',
-      getPodLogsHandler(options.argo, options.artifacts, options.pod.logContainerName),
+      getPodLogsHandler(
+        options.argo,
+        options.artifacts,
+        options.pod.logContainerName,
+        authorizeFn,
+        options.auth.enabled,
+      ),
     );
   }
 
@@ -208,7 +286,7 @@ function createUIServer(options: UIConfigs) {
       '/k8s/pod/logs',
       createProxyMiddleware({
         changeOrigin: true,
-        onProxyReq: proxyReq => {
+        onProxyReq: (proxyReq) => {
           console.log('Proxied log request: ', proxyReq.path);
         },
         headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
@@ -225,11 +303,18 @@ function createUIServer(options: UIConfigs) {
     registerHandler(
       app.get,
       '/k8s/pod/logs',
-      getPodLogsHandler(options.argo, options.artifacts, options.pod.logContainerName),
+      getPodLogsHandler(
+        options.argo,
+        options.artifacts,
+        options.pod.logContainerName,
+        authorizeFn,
+        options.auth.enabled,
+      ),
     );
   }
 
   /** Pod info */
+  const { podInfoHandler, podEventsHandler } = getPodInfoHandlers(authorizeFn);
   registerHandler(app.get, '/k8s/pod', podInfoHandler);
   registerHandler(app.get, '/k8s/pod/events', podEventsHandler);
 
@@ -249,7 +334,7 @@ function createUIServer(options: UIConfigs) {
     '/ml_metadata.*',
     createProxyMiddleware({
       changeOrigin: true,
-      onProxyReq: proxyReq => {
+      onProxyReq: (proxyReq) => {
         console.log('Metadata proxied request: ', (proxyReq as any).path);
       },
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
@@ -272,19 +357,23 @@ function createUIServer(options: UIConfigs) {
     },
   );
 
-  // Order matters here, since both handlers can match any proxied request with a referer,
-  // and we prioritize the basepath-friendly handler
-  proxyMiddleware(app, `${basePath}/${apiVersion1Prefix}`);
-  proxyMiddleware(app, `${basePath}/${apiVersion2Prefix}`);
-  proxyMiddleware(app, `/${apiVersion1Prefix}`);
-  proxyMiddleware(app, `/${apiVersion2Prefix}`);
+  const deprecatedProxyRoutes = [
+    `/${apiVersion1Prefix}/_proxy/*`,
+    `/${apiVersion2Prefix}/_proxy/*`,
+    `${basePath}/${apiVersion1Prefix}/_proxy/*`,
+    `${basePath}/${apiVersion2Prefix}/_proxy/*`,
+  ];
+
+  app.all(deprecatedProxyRoutes, (_req, res) => {
+    res.status(410).send('The generic /_proxy/ endpoint is deprecated and no longer supported.');
+  });
 
   /** Proxy to ml-pipeline api server */
   app.all(
     `/${apiVersion1Prefix}/*`,
     createProxyMiddleware({
       changeOrigin: true,
-      onProxyReq: proxyReq => {
+      onProxyReq: (proxyReq) => {
         console.log('Proxied request: ', proxyReq.path);
       },
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
@@ -295,7 +384,7 @@ function createUIServer(options: UIConfigs) {
     `/${apiVersion2Prefix}/*`,
     createProxyMiddleware({
       changeOrigin: true,
-      onProxyReq: proxyReq => {
+      onProxyReq: (proxyReq) => {
         console.log('Proxied request: ', proxyReq.path);
       },
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
@@ -307,11 +396,11 @@ function createUIServer(options: UIConfigs) {
     `${basePath}/${apiVersion1Prefix}/*`,
     createProxyMiddleware({
       changeOrigin: true,
-      onProxyReq: proxyReq => {
+      onProxyReq: (proxyReq) => {
         console.log('Proxied request: ', proxyReq.path);
       },
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
-      pathRewrite: pathStr =>
+      pathRewrite: (pathStr) =>
         pathStr.startsWith(basePath) ? pathStr.substr(basePath.length, pathStr.length) : pathStr,
       target: apiServerAddress,
     }),
@@ -320,11 +409,11 @@ function createUIServer(options: UIConfigs) {
     `${basePath}/${apiVersion2Prefix}/*`,
     createProxyMiddleware({
       changeOrigin: true,
-      onProxyReq: proxyReq => {
+      onProxyReq: (proxyReq) => {
         console.log('Proxied request: ', proxyReq.path);
       },
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
-      pathRewrite: pathStr =>
+      pathRewrite: (pathStr) =>
         pathStr.startsWith(basePath) ? pathStr.substr(basePath.length, pathStr.length) : pathStr,
       target: apiServerAddress,
     }),

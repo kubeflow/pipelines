@@ -12,17 +12,26 @@ on:
       - '!**/*.md'
       - '!**/OWNERS'
 
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend-visualization-test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: make install-backend-visualization-deps
 
       - name: Run tests
-        run: ./test/presubmit-backend-visualization.sh
+        run: make test-backend-visualization

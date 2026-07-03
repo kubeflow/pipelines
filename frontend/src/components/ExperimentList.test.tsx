@@ -15,34 +15,25 @@
  */
 
 import * as React from 'react';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 import * as Utils from 'src/lib/Utils';
 import { ExperimentList, ExperimentListProps } from './ExperimentList';
-import TestUtils from 'src/TestUtils';
+import { Apis, ExperimentSortKeys } from 'src/lib/Apis';
+import { range } from 'lodash';
 import { V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
-import { ExpandState } from './CustomTable';
-
-import { Apis, ExperimentSortKeys, ListRequest } from 'src/lib/Apis';
-import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
-import { range } from 'lodash';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
-
-class ExperimentListTest extends ExperimentList {
-  public _loadExperiments(request: ListRequest): Promise<string> {
-    return super._loadExperiments(request);
-  }
-}
+import TestUtils from 'src/TestUtils';
 
 describe('ExperimentList', () => {
-  let tree: ShallowWrapper | ReactWrapper;
-
-  const onErrorSpy = jest.fn();
-  const listExperimentsSpy = jest.spyOn(Apis.experimentServiceApiV2, 'listExperiments');
-  const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
-  // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
-  // test enviroments
-  const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
-  const listRunsSpy = jest.spyOn(Apis.runServiceApiV2, 'listRuns');
+  const user = userEvent.setup();
+  const onErrorSpy = vi.fn();
+  const listExperimentsSpy = vi.spyOn(Apis.experimentServiceApiV2, 'listExperiments');
+  const listRunsSpy = vi.spyOn(Apis.runServiceApiV2, 'listRuns');
+  const formatDateStringSpy = vi.spyOn(Utils, 'formatDateString');
 
   function generateProps(): ExperimentListProps {
     return {
@@ -54,21 +45,19 @@ describe('ExperimentList', () => {
   }
 
   function mockNExperiments(n: number): void {
-    getExperimentSpy.mockImplementation(id =>
-      Promise.resolve({
-        experiment_id: 'testexperiment' + id,
-        display_name: 'experiment with id: testexperiment' + id,
-      }),
-    );
-    listExperimentsSpy.mockImplementation(() =>
-      Promise.resolve({
-        experiments: range(1, n + 1).map(i => {
-          return {
-            experiment_id: 'testexperiment' + i,
-            display_name: 'experiment with id: testexperiment' + i,
-          };
-        }),
-      }),
+    listExperimentsSpy.mockResolvedValue({
+      experiments: range(1, n + 1).map((i) => ({
+        experiment_id: 'testexperiment' + i,
+        display_name: 'experiment with id: testexperiment' + i,
+      })),
+    });
+  }
+
+  function renderExperimentList(props: ExperimentListProps) {
+    return render(
+      <MemoryRouter>
+        <ExperimentList {...props} />
+      </MemoryRouter>,
     );
   }
 
@@ -76,46 +65,39 @@ describe('ExperimentList', () => {
     formatDateStringSpy.mockImplementation((date?: Date) => {
       return date ? '1/2/2019, 12:34:56 PM' : '-';
     });
-    onErrorSpy.mockClear();
-    listExperimentsSpy.mockClear();
-    getExperimentSpy.mockClear();
+    vi.clearAllMocks();
+    listExperimentsSpy.mockResolvedValue({ experiments: [] });
+    listRunsSpy.mockResolvedValue({ runs: [] });
   });
 
-  afterEach(async () => {
-    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
-    // depends on mocks/spies
-    if (tree) {
-      await tree.unmount();
-    }
-    jest.resetAllMocks();
+  it('renders the empty experience', async () => {
+    renderExperimentList(generateProps());
+    await screen.findByText('No archived experiments found.');
   });
 
-  it('renders the empty experience', () => {
-    expect(shallow(<ExperimentList {...generateProps()} />)).toMatchSnapshot();
-  });
-
-  it('renders the empty experience in ARCHIVED state', () => {
+  it('renders the empty experience in ARCHIVED state', async () => {
     const props = generateProps();
     props.storageState = V2beta1ExperimentStorageState.ARCHIVED;
-    expect(shallow(<ExperimentList {...props} />)).toMatchSnapshot();
+    renderExperimentList(props);
+    await screen.findByText('No archived experiments found.');
   });
 
   it('loads experiments whose storage state is not ARCHIVED when storage state equals AVAILABLE', async () => {
     mockNExperiments(1);
     const props = generateProps();
     props.storageState = V2beta1ExperimentStorageState.AVAILABLE;
-    tree = shallow(<ExperimentList {...props} />);
-    await (tree.instance() as ExperimentListTest)._loadExperiments({});
+    renderExperimentList(props);
+    await screen.findByText('experiment with id: testexperiment1');
     expect(listExperimentsSpy).toHaveBeenLastCalledWith(
-      undefined,
-      undefined,
-      undefined,
+      '',
+      10,
+      ExperimentSortKeys.CREATED_AT + ' desc',
       encodeURIComponent(
         JSON.stringify({
           predicates: [
             {
               key: 'storage_state',
-              operation: V2beta1PredicateOperation.NOTEQUALS,
+              operation: V2beta1PredicateOperation.NOT_EQUALS,
               string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
             },
           ],
@@ -129,12 +111,12 @@ describe('ExperimentList', () => {
     mockNExperiments(1);
     const props = generateProps();
     props.storageState = V2beta1ExperimentStorageState.ARCHIVED;
-    tree = shallow(<ExperimentList {...props} />);
-    await (tree.instance() as ExperimentListTest)._loadExperiments({});
+    renderExperimentList(props);
+    await screen.findByText('experiment with id: testexperiment1');
     expect(listExperimentsSpy).toHaveBeenLastCalledWith(
-      undefined,
-      undefined,
-      undefined,
+      '',
+      10,
+      ExperimentSortKeys.CREATED_AT + ' desc',
       encodeURIComponent(
         JSON.stringify({
           predicates: [
@@ -154,13 +136,22 @@ describe('ExperimentList', () => {
     mockNExperiments(1);
     const props = generateProps();
     props.storageState = V2beta1ExperimentStorageState.ARCHIVED;
-    tree = shallow(<ExperimentList {...props} />);
-    await (tree.instance() as ExperimentListTest)._loadExperiments({
-      filter: encodeURIComponent(
-        JSON.stringify({
-          predicates: [{ key: 'k', op: 'op', string_value: 'val' }],
-        }),
-      ),
+    const ref = React.createRef<ExperimentList>();
+    render(
+      <MemoryRouter>
+        <ExperimentList ref={ref} {...props} />
+      </MemoryRouter>,
+    );
+    await screen.findByText('experiment with id: testexperiment1');
+    listExperimentsSpy.mockClear();
+    await act(async () => {
+      await (ref.current as any)._loadExperiments({
+        filter: encodeURIComponent(
+          JSON.stringify({
+            predicates: [{ key: 'k', op: 'op', string_value: 'val' }],
+          }),
+        ),
+      });
     });
     expect(listExperimentsSpy).toHaveBeenLastCalledWith(
       undefined,
@@ -188,27 +179,25 @@ describe('ExperimentList', () => {
 
   it('loads one experiment', async () => {
     mockNExperiments(1);
-    const props = generateProps();
-    tree = shallow(<ExperimentList {...props} />);
-    await (tree.instance() as ExperimentListTest)._loadExperiments({});
-    expect(listExperimentsSpy).toHaveBeenLastCalledWith(
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-    );
-    expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchSnapshot();
+    renderExperimentList(generateProps());
+    await screen.findByText('experiment with id: testexperiment1');
+    expect(onErrorSpy).not.toHaveBeenCalled();
   });
 
   it('reloads the experiment when refresh is called', async () => {
     mockNExperiments(0);
+    const ref = React.createRef<ExperimentList>();
     const props = generateProps();
-    tree = TestUtils.mountWithRouter(<ExperimentList {...props} />);
-    await (tree.instance() as ExperimentList).refresh();
-    tree.update();
-    expect(listExperimentsSpy).toHaveBeenCalledTimes(2);
+    render(
+      <MemoryRouter>
+        <ExperimentList ref={ref} {...props} />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(listExperimentsSpy).toHaveBeenCalled());
+    listExperimentsSpy.mockClear();
+    await act(async () => {
+      await ref.current!.refresh();
+    });
     expect(listExperimentsSpy).toHaveBeenLastCalledWith(
       '',
       10,
@@ -216,64 +205,39 @@ describe('ExperimentList', () => {
       '',
       undefined,
     );
-    expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchSnapshot();
+    expect(onErrorSpy).not.toHaveBeenCalled();
   });
 
   it('loads multiple experiments', async () => {
     mockNExperiments(5);
-    const props = generateProps();
-    tree = shallow(<ExperimentList {...props} />);
-    await (tree.instance() as ExperimentListTest)._loadExperiments({});
-    expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchSnapshot();
+    renderExperimentList(generateProps());
+    await screen.findByText('experiment with id: testexperiment5');
+    expect(screen.getByText('experiment with id: testexperiment1')).toBeInTheDocument();
+    expect(screen.getByText('experiment with id: testexperiment2')).toBeInTheDocument();
+    expect(screen.getByText('experiment with id: testexperiment3')).toBeInTheDocument();
+    expect(screen.getByText('experiment with id: testexperiment4')).toBeInTheDocument();
+    expect(onErrorSpy).not.toHaveBeenCalled();
   });
 
   it('calls error callback when loading experiment fails', async () => {
-    TestUtils.makeErrorResponseOnce(
-      jest.spyOn(Apis.experimentServiceApiV2, 'listExperiments'),
-      'bad stuff happened',
-    );
-    const props = generateProps();
-    tree = shallow(<ExperimentList {...props} />);
-    await (tree.instance() as ExperimentListTest)._loadExperiments({});
-    expect(props.onError).toHaveBeenLastCalledWith(
-      'Error: failed to list experiments: ',
-      new Error('bad stuff happened'),
+    TestUtils.makeErrorResponseOnce(listExperimentsSpy as any, 'bad stuff happened');
+    renderExperimentList(generateProps());
+    await waitFor(() =>
+      expect(onErrorSpy).toHaveBeenLastCalledWith(
+        'Error: failed to list experiments: ',
+        new Error('bad stuff happened'),
+      ),
     );
   });
 
   it('loads runs for a given experiment id when it is expanded', async () => {
-    listRunsSpy.mockImplementation(() => {});
     mockNExperiments(1);
-    const props = generateProps();
-    tree = TestUtils.mountWithRouter(<ExperimentList {...props} />);
-    await (tree.instance() as ExperimentListTest)._loadExperiments({});
-    tree.update();
-    expect(props.onError).not.toHaveBeenCalled();
-    expect(tree.state()).toHaveProperty('displayExperiments', [
-      {
-        expandState: ExpandState.COLLAPSED,
-        experiment_id: 'testexperiment1',
-        display_name: 'experiment with id: testexperiment1',
-      },
-    ]);
-    // Expand the first experiment
-    tree
-      .find('button[aria-label="Expand"]')
-      .at(0)
-      .simulate('click');
-    await listRunsSpy;
-    tree.update();
-    expect(tree.state()).toHaveProperty('displayExperiments', [
-      {
-        expandState: ExpandState.EXPANDED,
-        experiment_id: 'testexperiment1',
-        display_name: 'experiment with id: testexperiment1',
-      },
-    ]);
-    expect(Apis.runServiceApiV2.listRuns).toHaveBeenCalledTimes(1);
-    expect(Apis.runServiceApiV2.listRuns).toHaveBeenLastCalledWith(
+    renderExperimentList(generateProps());
+    await screen.findByText('experiment with id: testexperiment1');
+    listRunsSpy.mockClear();
+    await user.click(screen.getAllByRole('button', { name: /expand/i })[0]);
+    await waitFor(() => expect(listRunsSpy).toHaveBeenCalled());
+    expect(listRunsSpy).toHaveBeenLastCalledWith(
       undefined,
       'testexperiment1',
       '',
@@ -284,7 +248,7 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              operation: V2beta1PredicateOperation.NOTEQUALS,
+              operation: V2beta1PredicateOperation.NOT_EQUALS,
               string_value: V2beta1RunStorageState.ARCHIVED.toString(),
             },
           ],
@@ -293,38 +257,16 @@ describe('ExperimentList', () => {
     );
   });
 
-  it('loads runs for a given experiment id with augumented storage state when it is expanded', async () => {
-    listRunsSpy.mockImplementation(() => {});
+  it('loads runs for a given experiment id with augmented storage state when it is expanded', async () => {
     mockNExperiments(1);
     const props = generateProps();
     props.storageState = V2beta1ExperimentStorageState.ARCHIVED;
-    tree = TestUtils.mountWithRouter(<ExperimentList {...props} />);
-    await (tree.instance() as ExperimentListTest)._loadExperiments({});
-    tree.update();
-    expect(props.onError).not.toHaveBeenCalled();
-    expect(tree.state()).toHaveProperty('displayExperiments', [
-      {
-        expandState: ExpandState.COLLAPSED,
-        experiment_id: 'testexperiment1',
-        display_name: 'experiment with id: testexperiment1',
-      },
-    ]);
-    // Expand the first experiment
-    tree
-      .find('button[aria-label="Expand"]')
-      .at(0)
-      .simulate('click');
-    await listRunsSpy;
-    tree.update();
-    expect(tree.state()).toHaveProperty('displayExperiments', [
-      {
-        expandState: ExpandState.EXPANDED,
-        experiment_id: 'testexperiment1',
-        display_name: 'experiment with id: testexperiment1',
-      },
-    ]);
-    expect(Apis.runServiceApiV2.listRuns).toHaveBeenCalledTimes(1);
-    expect(Apis.runServiceApiV2.listRuns).toHaveBeenLastCalledWith(
+    renderExperimentList(props);
+    await screen.findByText('experiment with id: testexperiment1');
+    listRunsSpy.mockClear();
+    await user.click(screen.getAllByRole('button', { name: /expand/i })[0]);
+    await waitFor(() => expect(listRunsSpy).toHaveBeenCalled());
+    expect(listRunsSpy).toHaveBeenLastCalledWith(
       undefined,
       'testexperiment1',
       '',

@@ -26,6 +26,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
@@ -76,6 +77,7 @@ func kubernetesPlatformOps(
 	var createdExecution *metadata.Execution
 	status := pb.Execution_FAILED
 	var pvcName string
+	taskPluginInfo := &plugins.TaskInfo{Name: opts.TaskName}
 	defer func() {
 		// We publish the execution, no matter this operartion succeeds or not
 		perr := publishDriverExecution(k8sClient, mlmd, ctx, createdExecution, outputParameters, nil, status)
@@ -84,8 +86,20 @@ func kubernetesPlatformOps(
 		} else if perr != nil {
 			err = fmt.Errorf("failed to publish driver execution: %w", perr)
 		}
+		taskPluginInfo.UpdateTaskInfoWithMetadata(status.String(), nil, nil)
+		dispatchErr := opts.PluginDispatcher.OnTaskEnd(ctx, taskPluginInfo)
+		if dispatchErr != nil {
+			glog.Errorf("failed to dispatch task end: %v", dispatchErr)
+		}
+
 	}()
 
+	pluginStartResult, dispatchErr := opts.PluginDispatcher.OnTaskStart(ctx, taskPluginInfo)
+	if dispatchErr != nil {
+		glog.Errorf("Failed to dispatch task start: %v", dispatchErr)
+	} else if pluginStartResult != nil {
+		ecfg.PluginCustomProperties = pluginStartResult.CustomProperties
+	}
 	switch opts.Container.Image {
 	case "argostub/createpvc":
 		pvcName, createdExecution, status, err = createPVC(ctx, k8sClient, *execution, opts, cacheClient, mlmd, ecfg)
@@ -695,6 +709,95 @@ func extendPodSpecPatch(
 		}
 	}
 
+	// Pre-populate admin-configured defaults into the patch so they:
+	// (a) survive strategic merge onto the compiled template, and
+	// (b) cause the user-value checks below to see them as "already set".
+	if opts.DefaultRunAsUser != nil || opts.DefaultRunAsGroup != nil || opts.DefaultRunAsNonRoot != nil {
+		if podSpec.Containers[0].SecurityContext == nil {
+			podSpec.Containers[0].SecurityContext = &k8score.SecurityContext{}
+		}
+		if opts.DefaultRunAsUser != nil {
+			v := *opts.DefaultRunAsUser
+			podSpec.Containers[0].SecurityContext.RunAsUser = &v
+		}
+		if opts.DefaultRunAsGroup != nil {
+			v := *opts.DefaultRunAsGroup
+			podSpec.Containers[0].SecurityContext.RunAsGroup = &v
+		}
+		if opts.DefaultRunAsNonRoot != nil {
+			v := *opts.DefaultRunAsNonRoot
+			podSpec.Containers[0].SecurityContext.RunAsNonRoot = &v
+		}
+	}
+
+	// Pre-populate the administrator-configured hostUsers default at the pod level
+	// only when no value is already present. Setting hostUsers to false places the
+	// pod in a dedicated Linux user namespace: UID 0 inside the pod maps to an
+	// unprivileged host UID, so root processes in the container are not root on
+	// the host. We set only when nil so that the post-processing guard below can
+	// detect and warn about user-supplied overrides.
+	if opts.DefaultHostUsers != nil && podSpec.HostUsers == nil {
+		v := *opts.DefaultHostUsers
+		podSpec.HostUsers = &v
+	}
+
+	// Apply container security context (PSS baseline compliant).
+	// User-specified identity fields (runAsUser, runAsGroup) are only applied
+	// when they are not already set by the platform/admin. If the compiler or
+	// an administrator has already configured these fields, the user-specified
+	// values are ignored and a warning is logged.
+	if userSecurityContext := kubernetesExecutorConfig.GetSecurityContext(); userSecurityContext != nil {
+		if podSpec.Containers[0].SecurityContext == nil {
+			podSpec.Containers[0].SecurityContext = &k8score.SecurityContext{}
+		}
+		existingSecurityContext := podSpec.Containers[0].SecurityContext
+		isCompilerHardened := existingSecurityContext.AllowPrivilegeEscalation != nil && !*existingSecurityContext.AllowPrivilegeEscalation
+		if userSecurityContext.RunAsUser != nil {
+			if existingSecurityContext.RunAsUser != nil {
+				glog.Warningf("Ignoring user-specified runAsUser (%d): security context already set by admin (runAsUser=%d)",
+					*userSecurityContext.RunAsUser, *existingSecurityContext.RunAsUser)
+			} else {
+				if isCompilerHardened && *userSecurityContext.RunAsUser == 0 {
+					glog.Warningf("Setting runAsUser=0 (root) on a container with hardened security context; consider using a non-root UID")
+				}
+				podSpec.Containers[0].SecurityContext.RunAsUser = userSecurityContext.RunAsUser
+			}
+		}
+		if userSecurityContext.RunAsGroup != nil {
+			if existingSecurityContext.RunAsGroup != nil {
+				glog.Warningf("Ignoring user-specified runAsGroup (%d): security context already set by admin (runAsGroup=%d)",
+					*userSecurityContext.RunAsGroup, *existingSecurityContext.RunAsGroup)
+			} else {
+				podSpec.Containers[0].SecurityContext.RunAsGroup = userSecurityContext.RunAsGroup
+			}
+		}
+		if userSecurityContext.RunAsNonRoot != nil {
+			if existingSecurityContext.RunAsNonRoot != nil {
+				glog.Warningf("Ignoring user-specified runAsNonRoot (%v): security context already set by admin (runAsNonRoot=%v)",
+					*userSecurityContext.RunAsNonRoot, *existingSecurityContext.RunAsNonRoot)
+			} else {
+				podSpec.Containers[0].SecurityContext.RunAsNonRoot = userSecurityContext.RunAsNonRoot
+			}
+		}
+		// Always drop all capabilities to comply with PSS baseline.
+		podSpec.Containers[0].SecurityContext.Capabilities = &k8score.Capabilities{
+			Drop: []k8score.Capability{"ALL"},
+		}
+	}
+
+	// Post-processing: enforce administrator hostUsers regardless of any
+	// user override. hostUsers is a pod-level field controlling Linux user
+	// namespace isolation; allowing users to silently flip it to true would
+	// defeat the administrator's security policy.
+	if opts.DefaultHostUsers != nil {
+		if podSpec.HostUsers != nil && *podSpec.HostUsers != *opts.DefaultHostUsers {
+			glog.Warningf("Ignoring user-specified hostUsers=%t: administrator default hostUsers=%t takes precedence",
+				*podSpec.HostUsers, *opts.DefaultHostUsers)
+		}
+		v := *opts.DefaultHostUsers
+		podSpec.HostUsers = &v
+	}
+
 	return nil
 }
 
@@ -770,16 +873,28 @@ func createPVC(
 	}
 
 	// Optional input: annotations
-	pvcAnnotationsInput := inputs.ParameterValues["annotations"]
 	pvcAnnotations := make(map[string]string)
-	for key, val := range pvcAnnotationsInput.GetStructValue().AsMap() {
-		typedVal := val.(structpb.Value)
-		pvcAnnotations[key] = typedVal.GetStringValue()
+	if pvcAnnotationsInput, ok := inputs.ParameterValues["annotations"]; ok && pvcAnnotationsInput != nil {
+		for key, val := range pvcAnnotationsInput.GetStructValue().GetFields() {
+			pvcAnnotations[key] = val.GetStringValue()
+		}
 	}
 
 	// Optional input: volume_name
-	volumeNameInput := inputs.ParameterValues["volume_name"]
-	volumeName := volumeNameInput.GetStringValue()
+	var volumeName string
+	if volumeNameInput, ok := inputs.ParameterValues["volume_name"]; ok && volumeNameInput != nil {
+		volumeName = volumeNameInput.GetStringValue()
+	}
+
+	// Optional input: data_source
+	var dataSource *k8score.TypedLocalObjectReference
+	if dataSourceInput, ok := inputs.ParameterValues["data_source"]; ok && dataSourceInput != nil {
+		ds, err := buildPVCDataSource(dataSourceInput)
+		if err != nil {
+			return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to build data source: %w", err)
+		}
+		dataSource = ds
+	}
 
 	// Get execution fingerprint and MLMD ID for caching
 	// If pvcName includes a randomly generated UUID, it is added in the execution input as a key-value pair for this purpose only
@@ -844,6 +959,7 @@ func createPVC(
 			},
 			StorageClassName: &storageClassName,
 			VolumeName:       volumeName,
+			DataSource:       dataSource,
 		},
 	}
 
@@ -863,6 +979,28 @@ func createPVC(
 	}
 
 	return createdPVC.ObjectMeta.Name, createdExecution, pb.Execution_COMPLETE, nil
+}
+
+// buildPVCDataSource converts a protobuf Value representing a PVC data source
+// into a Kubernetes TypedLocalObjectReference. If the input is nil or if JSON
+// marshaling/unmarshaling fails, it returns an error. Field validation is
+// deferred to the Kubernetes API during PVC creation.
+func buildPVCDataSource(pvcDataSourceInput *structpb.Value) (*k8score.TypedLocalObjectReference, error) {
+	if pvcDataSourceInput == nil {
+		return nil, fmt.Errorf("data_source is nil")
+	}
+
+	var dataSource k8score.TypedLocalObjectReference
+	dataSourceBytes, err := pvcDataSourceInput.MarshalJSON()
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal data_source %v: %w", pvcDataSourceInput.String(), err)
+	}
+
+	if err := json.Unmarshal(dataSourceBytes, &dataSource); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal data_source: %v. %w", string(dataSourceBytes), err)
+	}
+
+	return &dataSource, nil
 }
 
 func deletePVC(
@@ -1017,6 +1155,7 @@ func makeVolumeMountPatch(
 		volumeMount := k8score.VolumeMount{
 			Name:      pvcName,
 			MountPath: pvcMountPath,
+			SubPath:   pvcMount.GetSubPath(),
 		}
 		volume := k8score.Volume{
 			Name: pvcName,

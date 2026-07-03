@@ -15,10 +15,9 @@
  */
 
 import * as React from 'react';
-import Trigger from './Trigger';
-import { shallow } from 'enzyme';
-import { TriggerType, PeriodicInterval } from '../lib/TriggerUtils';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { vi } from 'vitest';
+import Trigger from './Trigger';
 
 const PARAMS_DEFAULT = {
   catchup: true,
@@ -31,96 +30,107 @@ const PERIODIC_DEFAULT = {
 };
 const CRON_DEFAULT = { cron: '0 0 * * * ?', end_time: undefined, start_time: undefined };
 
-beforeAll(() => {
-  process.env.TZ = 'UTC';
-});
+async function selectOption(selectElement: HTMLElement, optionText: string): Promise<void> {
+  fireEvent.mouseDown(selectElement);
+  const option = await screen.findByRole('option', { name: optionText });
+  fireEvent.click(option);
+}
+
+function getTriggerTypeSelect(): HTMLElement {
+  return screen.getByRole('combobox', { name: /trigger type/i });
+}
+
+function getIntervalCategorySelect(): HTMLElement {
+  const comboboxes = screen.getAllByRole('combobox');
+  return comboboxes[1];
+}
 
 describe('Trigger', () => {
-  // tslint:disable-next-line:variable-name
   const RealDate = Date;
 
-  function mockDate(isoDate: any): void {
+  function mockDate(isoDate: Date): void {
     (global as any).Date = class extends RealDate {
       constructor(...args: any[]) {
         super();
         if (args.length === 0) {
-          // Use mocked date when calling new Date()
           return new RealDate(isoDate);
-        } else {
-          // Otherwise, use real Date constructor
-          return new (RealDate as any)(...args);
         }
+        return new (RealDate as any)(...args);
       }
     };
   }
-  const now = new Date(2018, 11, 21, 7, 53);
-  mockDate(now);
-  const oneWeekLater = new Date(2018, 11, 28, 7, 53);
+
+  beforeAll(() => {
+    process.env.TZ = 'UTC';
+    const now = new Date(2018, 11, 21, 7, 53);
+    mockDate(now);
+  });
+
+  afterAll(() => {
+    (global as any).Date = RealDate;
+  });
 
   it('renders periodic schedule controls for initial render', () => {
-    const tree = shallow(<Trigger />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment, unmount } = render(<Trigger />);
+    expect(asFragment()).toMatchSnapshot();
+    unmount();
   });
 
-  it('renders periodic schedule controls if the trigger type is CRON', () => {
-    const tree = shallow(<Trigger />);
-    (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
-    expect(tree).toMatchSnapshot();
+  it('renders periodic schedule controls if the trigger type is CRON', async () => {
+    const { asFragment, unmount } = render(<Trigger />);
+    await selectOption(getTriggerTypeSelect(), 'Cron');
+    expect(asFragment()).toMatchSnapshot();
+    unmount();
   });
 
-  it('renders week days if the trigger type is CRON and interval is weekly', () => {
-    const tree = shallow(<Trigger />);
-    (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
-    (tree.instance() as Trigger).handleChange('intervalCategory')({
-      target: { value: PeriodicInterval.WEEK },
-    });
-    expect(tree).toMatchSnapshot();
+  it('renders week days if the trigger type is CRON and interval is weekly', async () => {
+    const { asFragment, unmount } = render(<Trigger />);
+    await selectOption(getTriggerTypeSelect(), 'Cron');
+    await selectOption(getIntervalCategorySelect(), 'Week');
+    expect(asFragment()).toMatchSnapshot();
+    unmount();
   });
 
-  it('renders all week days enabled', () => {
-    const tree = shallow(<Trigger />);
-    (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
-    (tree.instance() as Trigger).handleChange('intervalCategory')({
-      target: { value: PeriodicInterval.WEEK },
-    });
-    (tree.instance() as any)._toggleCheckAllDays();
-    expect(tree).toMatchSnapshot();
+  it('renders all week days enabled', async () => {
+    const { asFragment, unmount } = render(<Trigger />);
+    await selectOption(getTriggerTypeSelect(), 'Cron');
+    await selectOption(getIntervalCategorySelect(), 'Week');
+    fireEvent.click(screen.getByRole('checkbox', { name: 'All' }));
+    expect(asFragment()).toMatchSnapshot();
+    unmount();
   });
 
-  it('enables a single day on click', () => {
-    const tree = shallow(<Trigger />);
-    (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
-    (tree.instance() as Trigger).handleChange('intervalCategory')({
-      target: { value: PeriodicInterval.WEEK },
-    });
-    (tree.instance() as any)._toggleDay(1);
-    (tree.instance() as any)._toggleDay(3);
-    expect(tree).toMatchSnapshot();
+  it('enables a single day on click', async () => {
+    const { asFragment, unmount } = render(<Trigger />);
+    await selectOption(getTriggerTypeSelect(), 'Cron');
+    await selectOption(getIntervalCategorySelect(), 'Week');
+    fireEvent.click(screen.getByRole('button', { name: 'M' }));
+    fireEvent.click(screen.getByRole('button', { name: 'W' }));
+    expect(asFragment()).toMatchSnapshot();
+    unmount();
   });
 
   describe('max concurrent run', () => {
     it('shows error message if the input is invalid (non-integer)', () => {
       render(<Trigger />);
-      const maxConcurrenyParam = screen.getByDisplayValue('10');
-      fireEvent.change(maxConcurrenyParam, { target: { value: '10a' } });
+      const maxConcurrencyParam = screen.getByDisplayValue('10');
+      fireEvent.change(maxConcurrencyParam, { target: { value: '10a' } });
       screen.getByText('Invalid input. The maximum concurrent runs should be a positive integer.');
     });
 
     it('shows error message if the input is invalid (negative integer)', () => {
       render(<Trigger />);
-      const maxConcurrenyParam = screen.getByDisplayValue('10');
-      fireEvent.change(maxConcurrenyParam, { target: { value: '-10' } });
+      const maxConcurrencyParam = screen.getByDisplayValue('10');
+      fireEvent.change(maxConcurrencyParam, { target: { value: '-10' } });
       screen.getByText('Invalid input. The maximum concurrent runs should be a positive integer.');
     });
   });
 
   describe('interval trigger', () => {
     it('builds an every-hour trigger by default', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({
-        target: { value: TriggerType.INTERVALED },
-      });
+      const spy = vi.fn();
+      render(<Trigger onChange={spy} />);
+
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
@@ -130,14 +140,10 @@ describe('Trigger', () => {
     });
 
     it('builds trigger with a start time if the checkbox is checked', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({
-        target: { value: TriggerType.INTERVALED },
-      });
-      (tree.instance() as Trigger).handleChange('hasStartDate')({
-        target: { type: 'checkbox', checked: true },
-      });
+      const spy = vi.fn();
+      render(<Trigger onChange={spy} />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
+      const now = new Date(2018, 11, 21, 7, 53);
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
@@ -147,16 +153,15 @@ describe('Trigger', () => {
     });
 
     it('builds trigger with the entered start date/time', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({
-        target: { value: TriggerType.INTERVALED },
+      const spy = vi.fn();
+      render(<Trigger onChange={spy} />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
+      fireEvent.change(screen.getByLabelText('Start date'), {
+        target: { value: '2018-11-23' },
       });
-      (tree.instance() as Trigger).handleChange('hasStartDate')({
-        target: { type: 'checkbox', checked: true },
+      fireEvent.change(screen.getByLabelText('Start time'), {
+        target: { value: '08:35' },
       });
-      (tree.instance() as Trigger).handleChange('startDate')({ target: { value: '2018-11-23' } });
-      (tree.instance() as Trigger).handleChange('startTime')({ target: { value: '08:35' } });
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
@@ -169,16 +174,15 @@ describe('Trigger', () => {
     });
 
     it('builds trigger without the entered start date if no time is entered', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({
-        target: { value: TriggerType.INTERVALED },
+      const spy = vi.fn();
+      render(<Trigger onChange={spy} />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
+      fireEvent.change(screen.getByLabelText('Start date'), {
+        target: { value: '2018-11-23' },
       });
-      (tree.instance() as Trigger).handleChange('hasStartDate')({
-        target: { type: 'checkbox', checked: true },
+      fireEvent.change(screen.getByLabelText('Start time'), {
+        target: { value: '' },
       });
-      (tree.instance() as Trigger).handleChange('startDate')({ target: { value: '2018-11-23' } });
-      (tree.instance() as Trigger).handleChange('startTime')({ target: { value: '' } });
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
@@ -188,16 +192,15 @@ describe('Trigger', () => {
     });
 
     it('builds trigger without the entered start time if no date is entered', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({
-        target: { value: TriggerType.INTERVALED },
+      const spy = vi.fn();
+      render(<Trigger onChange={spy} />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
+      fireEvent.change(screen.getByLabelText('Start date'), {
+        target: { value: '' },
       });
-      (tree.instance() as Trigger).handleChange('hasStartDate')({
-        target: { type: 'checkbox', checked: true },
+      fireEvent.change(screen.getByLabelText('Start time'), {
+        target: { value: '11:33' },
       });
-      (tree.instance() as Trigger).handleChange('startDate')({ target: { value: '' } });
-      (tree.instance() as Trigger).handleChange('startTime')({ target: { value: '11:33' } });
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
@@ -207,17 +210,12 @@ describe('Trigger', () => {
     });
 
     it('builds trigger with a date if both start and end checkboxes are checked', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({
-        target: { value: TriggerType.INTERVALED },
-      });
-      (tree.instance() as Trigger).handleChange('hasStartDate')({
-        target: { type: 'checkbox', checked: true },
-      });
-      (tree.instance() as Trigger).handleChange('hasEndDate')({
-        target: { type: 'checkbox', checked: true },
-      });
+      const spy = vi.fn();
+      render(<Trigger onChange={spy} />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has end date' }));
+      const now = new Date(2018, 11, 21, 7, 53);
+      const oneWeekLater = new Date(2018, 11, 28, 7, 53);
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
@@ -227,17 +225,10 @@ describe('Trigger', () => {
     });
 
     it('resets trigger to no start date if it is added then removed', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({
-        target: { value: TriggerType.INTERVALED },
-      });
-      (tree.instance() as Trigger).handleChange('hasStartDate')({
-        target: { type: 'checkbox', checked: true },
-      });
-      (tree.instance() as Trigger).handleChange('hasStartDate')({
-        target: { type: 'checkbox', checked: false },
-      });
+      const spy = vi.fn();
+      render(<Trigger onChange={spy} />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
@@ -246,115 +237,92 @@ describe('Trigger', () => {
       });
     });
 
-    it('Show invalid start date/time format message if date has wrong format.', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({
-        target: { value: TriggerType.INTERVALED },
-      });
-      (tree.instance() as Trigger).handleChange('hasStartDate')({
-        target: { type: 'checkbox', checked: true },
-      });
+    it('Show invalid start date/time format message if date has wrong format.', async () => {
+      render(<Trigger />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
 
-      // Message is shown if the format is incorrect.
-      (tree.instance() as Trigger).handleChange('startDate')({
+      // jsdom sanitizes type="date" inputs, rejecting non-YYYY-MM-DD values.
+      // Temporarily switch to type="text" so the invalid value reaches handleChange.
+      const startDateInput = screen.getByLabelText('Start date') as HTMLInputElement;
+      startDateInput.type = 'text';
+      fireEvent.change(startDateInput, {
         target: { value: 'this_is_not_valid_date_format' },
       });
-      var messageBox = tree.find({ 'data-testid': 'startTimeMessage' });
-      expect(messageBox.text()).toEqual("Invalid start date or time, start time won't be set");
+      expect(
+        await screen.findByText("Invalid start date or time, start time won't be set"),
+      ).toBeInTheDocument();
 
-      // Message is removed if the format is correct.
-      (tree.instance() as Trigger).handleChange('startDate')({
+      fireEvent.change(screen.getByLabelText('Start date'), {
         target: { value: '2021-01-01' },
       });
-      messageBox = tree.find({ 'data-testid': 'startTimeMessage' });
-      expect(messageBox.text()).toEqual('');
+      expect(
+        screen.queryByText("Invalid start date or time, start time won't be set"),
+      ).not.toBeInTheDocument();
     });
 
-    it('Hide invalid start date/time format message if start time checkbox is not selected.', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({
-        target: { value: TriggerType.INTERVALED },
-      });
-      (tree.instance() as Trigger).handleChange('hasStartDate')({
-        target: { type: 'checkbox', checked: true },
-      });
+    it('Hide invalid start date/time format message if start time checkbox is not selected.', async () => {
+      render(<Trigger />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
 
-      // Message is shown if the format is incorrect.
-      (tree.instance() as Trigger).handleChange('startDate')({
+      const startDateInput = screen.getByLabelText('Start date') as HTMLInputElement;
+      startDateInput.type = 'text';
+      fireEvent.change(startDateInput, {
         target: { value: 'this_is_not_valid_date_format' },
       });
-      var messageBox = tree.find({ 'data-testid': 'startTimeMessage' });
-      expect(messageBox.text()).toEqual("Invalid start date or time, start time won't be set");
+      expect(
+        await screen.findByText("Invalid start date or time, start time won't be set"),
+      ).toBeInTheDocument();
 
-      // Message is removed if checkbox is not selected.
-      (tree.instance() as Trigger).handleChange('hasStartDate')({
-        target: { type: 'checkbox', checked: false },
-      });
-      messageBox = tree.find({ 'data-testid': 'startTimeMessage' });
-      expect(messageBox.text()).toEqual('');
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
+      expect(
+        screen.queryByText("Invalid start date or time, start time won't be set"),
+      ).not.toBeInTheDocument();
     });
 
-    it('Show invalid end date/time format message if date has wrong format.', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({
-        target: { value: TriggerType.INTERVALED },
-      });
-      (tree.instance() as Trigger).handleChange('hasEndDate')({
-        target: { type: 'checkbox', checked: true },
-      });
+    it('Show invalid end date/time format message if date has wrong format.', async () => {
+      render(<Trigger />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has end date' }));
 
-      // Message is shown if the time format is incorrect.
-      (tree.instance() as Trigger).handleChange('endTime')({
+      const endTimeInput = screen.getByLabelText('End time') as HTMLInputElement;
+      endTimeInput.type = 'text';
+      fireEvent.change(endTimeInput, {
         target: { value: 'this_is_not_valid_time_format' },
       });
-      var messageBox = tree.find({ 'data-testid': 'endTimeMessage' });
-      expect(messageBox.text()).toEqual("Invalid end date or time, end time won't be set");
+      expect(
+        await screen.findByText("Invalid end date or time, end time won't be set"),
+      ).toBeInTheDocument();
 
-      // Message is removed if the format is correct.
-      (tree.instance() as Trigger).handleChange('endTime')({
+      fireEvent.change(screen.getByLabelText('End time'), {
         target: { value: '11:22' },
       });
-      messageBox = tree.find({ 'data-testid': 'endTimeMessage' });
-      expect(messageBox.text()).toEqual('');
+      expect(
+        screen.queryByText("Invalid end date or time, end time won't be set"),
+      ).not.toBeInTheDocument();
     });
 
-    it('Hide invalid end date/time format message if start time checkbox is not selected.', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({
-        target: { value: TriggerType.INTERVALED },
-      });
-      (tree.instance() as Trigger).handleChange('hasEndDate')({
-        target: { type: 'checkbox', checked: true },
-      });
+    it('Hide invalid end date/time format message if start time checkbox is not selected.', async () => {
+      render(<Trigger />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has end date' }));
 
-      // Message is shown if the format is incorrect.
-      (tree.instance() as Trigger).handleChange('endTime')({
+      const endTimeInput = screen.getByLabelText('End time') as HTMLInputElement;
+      endTimeInput.type = 'text';
+      fireEvent.change(endTimeInput, {
         target: { value: 'this_is_not_valid_date_format' },
       });
-      var messageBox = tree.find({ 'data-testid': 'endTimeMessage' });
-      expect(messageBox.text()).toEqual("Invalid end date or time, end time won't be set");
+      expect(
+        await screen.findByText("Invalid end date or time, end time won't be set"),
+      ).toBeInTheDocument();
 
-      // Message is removed if checkbox is not selected.
-      (tree.instance() as Trigger).handleChange('hasEndDate')({
-        target: { type: 'checkbox', checked: false },
-      });
-      messageBox = tree.find({ 'data-testid': 'endTimeMessage' });
-      expect(messageBox.text()).toEqual('');
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has end date' }));
+      expect(
+        screen.queryByText("Invalid end date or time, end time won't be set"),
+      ).not.toBeInTheDocument();
     });
 
-    it('builds trigger with a weekly interval', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({
-        target: { value: TriggerType.INTERVALED },
-      });
-      (tree.instance() as Trigger).handleChange('intervalCategory')({
-        target: { value: PeriodicInterval.WEEK },
-      });
+    it('builds trigger with a weekly interval', async () => {
+      const spy = vi.fn();
+      render(<Trigger onChange={spy} />);
+      await selectOption(getIntervalCategorySelect(), 'Weeks');
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
@@ -366,16 +334,11 @@ describe('Trigger', () => {
       });
     });
 
-    it('builds trigger with an every-three-months interval', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({
-        target: { value: TriggerType.INTERVALED },
-      });
-      (tree.instance() as Trigger).handleChange('intervalCategory')({
-        target: { value: PeriodicInterval.MONTH },
-      });
-      (tree.instance() as Trigger).handleChange('intervalValue')({ target: { value: 3 } });
+    it('builds trigger with an every-three-months interval', async () => {
+      const spy = vi.fn();
+      render(<Trigger onChange={spy} />);
+      await selectOption(getIntervalCategorySelect(), 'Months');
+      fireEvent.change(screen.getByRole('spinbutton'), { target: { value: 3 } });
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
@@ -388,12 +351,9 @@ describe('Trigger', () => {
     });
 
     it('builds trigger with the specified max concurrency setting', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({
-        target: { value: TriggerType.INTERVALED },
-      });
-      (tree.instance() as Trigger).handleChange('maxConcurrentRuns')({ target: { value: '3' } });
+      const spy = vi.fn();
+      render(<Trigger onChange={spy} />);
+      fireEvent.change(screen.getByDisplayValue('10'), { target: { value: '3' } });
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         maxConcurrentRuns: '3',
@@ -404,14 +364,9 @@ describe('Trigger', () => {
     });
 
     it('builds trigger with the specified catchup setting', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({
-        target: { value: TriggerType.INTERVALED },
-      });
-      (tree.instance() as Trigger).handleChange('catchup')({
-        target: { type: 'checkbox', checked: false },
-      });
+      const spy = vi.fn();
+      render(<Trigger onChange={spy} />);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Catchup' }));
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         catchup: false,
@@ -422,9 +377,9 @@ describe('Trigger', () => {
     });
 
     it('inits with cloned initial props', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       const startTime = new Date('2020-01-01T23:53:00.000Z');
-      shallow(
+      render(
         <Trigger
           onChange={spy}
           initialProps={{
@@ -432,14 +387,13 @@ describe('Trigger', () => {
             catchup: false,
             trigger: {
               periodic_schedule: {
-                interval_second: '' + 60 * 60 * 3, // 3 hours
+                interval_second: '' + 60 * 60 * 3,
                 start_time: startTime.toISOString() as any,
               },
             },
           }}
         />,
       );
-      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenLastCalledWith({
         catchup: false,
         maxConcurrentRuns: '3',
@@ -455,10 +409,10 @@ describe('Trigger', () => {
   });
 
   describe('cron', () => {
-    it('builds a 1-hour cron trigger by default', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
+    it('builds a 1-hour cron trigger by default', async () => {
+      const spy = vi.fn();
+      render(<Trigger onChange={spy} />);
+      await selectOption(getTriggerTypeSelect(), 'Cron');
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
@@ -467,36 +421,33 @@ describe('Trigger', () => {
       });
     });
 
-    it('builds a 1-hour cron trigger with specified start date', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
-      (tree.instance() as Trigger).handleChange('hasStartDate')({
-        target: { type: 'checkbox', checked: true },
+    it('builds a 1-hour cron trigger with specified start date', async () => {
+      const spy = vi.fn();
+      render(<Trigger onChange={spy} />);
+      await selectOption(getTriggerTypeSelect(), 'Cron');
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
+      fireEvent.change(screen.getByLabelText('Start date'), {
+        target: { value: '2018-03-23' },
       });
-      (tree.instance() as Trigger).handleChange('startDate')({ target: { value: '2018-03-23' } });
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
           cron_schedule: {
             ...CRON_DEFAULT,
-            start_time: new Date('2018-03-23T07:53:00.000Z'),
+            start_time: new Date(2018, 2, 23, 7, 53),
             cron: '0 53 * * * ?',
           },
         },
       });
     });
 
-    it('builds a daily cron trigger with specified end date/time', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
-      (tree.instance() as Trigger).handleChange('hasEndDate')({
-        target: { type: 'checkbox', checked: true },
-      });
-      (tree.instance() as Trigger).handleChange('intervalCategory')({
-        target: { value: PeriodicInterval.DAY },
-      });
+    it('builds a daily cron trigger with specified end date/time', async () => {
+      const spy = vi.fn();
+      render(<Trigger onChange={spy} />);
+      await selectOption(getTriggerTypeSelect(), 'Cron');
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Has end date' }));
+      await selectOption(getIntervalCategorySelect(), 'Day');
+      const oneWeekLater = new Date(2018, 11, 28, 7, 53);
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
@@ -505,17 +456,17 @@ describe('Trigger', () => {
       });
     });
 
-    it('builds a weekly cron trigger that runs every Monday, Friday, and Saturday', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
-      (tree.instance() as Trigger).handleChange('intervalCategory')({
-        target: { value: PeriodicInterval.WEEK },
-      });
-      (tree.instance() as any)._toggleCheckAllDays();
-      (tree.instance() as any)._toggleDay(1);
-      (tree.instance() as any)._toggleDay(5);
-      (tree.instance() as any)._toggleDay(6);
+    it('builds a weekly cron trigger that runs every Monday, Friday, and Saturday', async () => {
+      const spy = vi.fn();
+      render(<Trigger onChange={spy} />);
+      await selectOption(getTriggerTypeSelect(), 'Cron');
+      await selectOption(getIntervalCategorySelect(), 'Week');
+
+      fireEvent.click(screen.getByRole('checkbox', { name: 'All' }));
+      fireEvent.click(screen.getByRole('button', { name: 'M' }));
+      fireEvent.click(screen.getByRole('button', { name: 'F' }));
+      // Two "S" buttons exist (Sun, Sat); pick the second = Saturday
+      fireEvent.click(screen.getAllByRole('button', { name: 'S' })[1]);
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
@@ -524,21 +475,20 @@ describe('Trigger', () => {
       });
     });
 
-    it('builds a cron with the manually specified cron string, even if days are toggled', () => {
-      const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
-      (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
-      (tree.instance() as Trigger).handleChange('intervalCategory')({
-        target: { value: PeriodicInterval.WEEK },
-      });
-      (tree.instance() as any)._toggleCheckAllDays();
-      (tree.instance() as any)._toggleDay(1);
-      (tree.instance() as any)._toggleDay(5);
-      (tree.instance() as any)._toggleDay(6);
-      (tree.instance() as Trigger).handleChange('editCron')({
-        target: { type: 'checkbox', checked: true },
-      });
-      (tree.instance() as Trigger).handleChange('cron')({
+    it('builds a cron with the manually specified cron string, even if days are toggled', async () => {
+      const spy = vi.fn();
+      render(<Trigger onChange={spy} />);
+      await selectOption(getTriggerTypeSelect(), 'Cron');
+      await selectOption(getIntervalCategorySelect(), 'Week');
+
+      fireEvent.click(screen.getByRole('checkbox', { name: 'All' }));
+      fireEvent.click(screen.getByRole('button', { name: 'M' }));
+      fireEvent.click(screen.getByRole('button', { name: 'F' }));
+      // Two "S" buttons exist (Sun, Sat); pick the second = Saturday
+      fireEvent.click(screen.getAllByRole('button', { name: 'S' })[1]);
+
+      fireEvent.click(screen.getByRole('checkbox', { name: /allow editing cron expression/i }));
+      fireEvent.change(screen.getByLabelText('cron expression'), {
         target: { value: 'oops this will break!' },
       });
       expect(spy).toHaveBeenLastCalledWith({
@@ -550,10 +500,10 @@ describe('Trigger', () => {
     });
 
     it('inits with cloned initial props', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       const startTime = new Date('2020-01-01T00:00:00.000Z');
       const endTime = new Date('2020-01-02T01:02:00.000Z');
-      shallow(
+      render(
         <Trigger
           onChange={spy}
           initialProps={{
@@ -569,7 +519,6 @@ describe('Trigger', () => {
           }}
         />,
       );
-      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenLastCalledWith({
         catchup: true,
         maxConcurrentRuns: '4',

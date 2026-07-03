@@ -54,6 +54,8 @@ var runColumns = []string{
 	"JobUUID",
 	"State",
 	"StateHistory",
+	"PluginsInput",
+	"PluginsOutput",
 	"PipelineContextId",
 	"PipelineRunContextId",
 }
@@ -81,6 +83,11 @@ type RunStoreInterface interface {
 	// Note: only state, runtime manifest can be updated. Does not update dependent tasks.
 	UpdateRun(run *model.Run) (err error)
 
+	// Updates only the PluginsOutput column for a run. Use this when plugin
+	// handlers need to persist output without touching core run fields (State,
+	// Conditions, etc.) to avoid redundant writes and potential clobbering.
+	UpdateRunPluginsOutput(runID string, pluginsOutput *model.LargeText) error
+
 	// Archives a run.
 	ArchiveRun(runId string) error
 
@@ -95,6 +102,10 @@ type RunStoreInterface interface {
 
 	// Terminates a run.
 	TerminateRun(runId string) error
+
+	// Checks if a run already exists for a given recurring run and display name.
+	// Returns the existing run UUID if found, or empty string if not.
+	GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayName string) (string, error)
 }
 
 type RunStore struct {
@@ -261,7 +272,7 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 		apply(func(column string) string { return "rd." + column }, runColumns), // Add prefix "rd." to runColumns
 		resourceRefConcatQuery+" AS refs")
 	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
-		columnsAfterJoiningResourceReferences = append(columnsAfterJoiningResourceReferences, "rd."+opts.SortByFieldName)
+		columnsAfterJoiningResourceReferences = append(columnsAfterJoiningResourceReferences, "rd."+model.MetricSortSQLAlias)
 	}
 	subQ := sq.
 		Select(columnsAfterJoiningResourceReferences...).
@@ -275,7 +286,7 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 		"rdref.refs",
 		tasksConcatQuery+" AS taskDetails")
 	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
-		columnsAfterJoiningTasks = append(columnsAfterJoiningTasks, "rdref."+opts.SortByFieldName)
+		columnsAfterJoiningTasks = append(columnsAfterJoiningTasks, "rdref."+model.MetricSortSQLAlias)
 	}
 	subQ = sq.
 		Select(columnsAfterJoiningTasks...).
@@ -304,7 +315,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, pipelineRuntimeManifest,
 			workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextId, pipelineRunContextId sql.NullInt64
-		var metricsInString, resourceReferencesInString, tasksInString, runtimeParameters, pipelineRoot, jobId, state, stateHistory, pipelineVersionId sql.NullString
+		var metricsInString, resourceReferencesInString, tasksInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID sql.NullString
 		err := rows.Scan(
 			&uuid,
 			&experimentUUID,
@@ -319,7 +330,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&finishedAtInSec,
 			&conditions,
 			&pipelineId,
-			&pipelineVersionId,
+			&pipelineVersionID,
 			&pipelineName,
 			&pipelineSpecManifest,
 			&workflowSpecManifest,
@@ -328,9 +339,11 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&pipelineRoot,
 			&pipelineRuntimeManifest,
 			&workflowRuntimeManifest,
-			&jobId,
+			&jobID,
 			&state,
 			&stateHistory,
+			&pluginsInput,
+			&pluginsOutput,
 			&pipelineContextId,
 			&pipelineRunContextId,
 			&resourceReferencesInString,
@@ -357,8 +370,8 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		if err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to parse task details")
 		}
-		jId := jobId.String
-		pvId := pipelineVersionId.String
+		jID := jobID.String
+		pvID := pipelineVersionID.String
 		if len(resourceReferences) > 0 {
 			if experimentUUID == "" {
 				experimentUUID = model.GetRefIdFromResourceReferences(resourceReferences, model.ExperimentResourceType)
@@ -369,11 +382,11 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			if pipelineId == "" {
 				pipelineId = model.GetRefIdFromResourceReferences(resourceReferences, model.PipelineResourceType)
 			}
-			if pvId == "" {
-				pvId = model.GetRefIdFromResourceReferences(resourceReferences, model.PipelineVersionResourceType)
+			if pvID == "" {
+				pvID = model.GetRefIdFromResourceReferences(resourceReferences, model.PipelineVersionResourceType)
 			}
-			if jId == "" {
-				jId = model.GetRefIdFromResourceReferences(resourceReferences, model.JobResourceType)
+			if jID == "" {
+				jID = model.GetRefIdFromResourceReferences(resourceReferences, model.JobResourceType)
 			}
 		}
 		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
@@ -389,8 +402,8 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			StorageState:   model.StorageState(storageState),
 			Namespace:      namespace,
 			ServiceAccount: serviceAccount,
-			Description:    string(description),
-			RecurringRunId: jId,
+			Description:    description,
+			RecurringRunId: jID,
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          createdAtInSec.Int64,
 				ScheduledAtInSec:        scheduledAtInSec.Int64,
@@ -408,13 +421,21 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			ResourceReferences: resourceReferences,
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           pipelineId,
-				PipelineVersionId:    pvId,
+				PipelineVersionId:    pvID,
 				PipelineName:         pipelineName,
 				PipelineSpecManifest: model.LargeText(pipelineSpecManifest),
 				WorkflowSpecManifest: model.LargeText(workflowSpecManifest),
 				Parameters:           model.LargeText(parameters),
 				RuntimeConfig:        runtimeConfig,
 			},
+		}
+		if pluginsInput.Valid {
+			lt := model.LargeText(pluginsInput.String)
+			run.PluginsInputString = &lt
+		}
+		if pluginsOutput.Valid {
+			lt := model.LargeText(pluginsOutput.String)
+			run.PluginsOutputString = &lt
 		}
 		run = run.ToV2()
 		runs = append(runs, run)
@@ -506,7 +527,7 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			"Conditions":              r.RunDetails.Conditions,
 			"WorkflowRuntimeManifest": r.RunDetails.WorkflowRuntimeManifest,
 			"PipelineRuntimeManifest": r.RunDetails.PipelineRuntimeManifest,
-			"PipelineId":              r.PipelineSpec.PipelineId,
+			"PipelineId":              r.PipelineSpec.PipelineId, //nolint:staticcheck // QF1008
 			"PipelineName":            r.PipelineSpec.PipelineName,
 			"PipelineSpecManifest":    r.PipelineSpec.PipelineSpecManifest,
 			"WorkflowSpecManifest":    r.PipelineSpec.WorkflowSpecManifest,
@@ -517,6 +538,8 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			"JobUUID":                 r.RecurringRunId,
 			"State":                   r.RunDetails.State.ToString(),
 			"StateHistory":            stateHistoryString,
+			"PluginsInput":            largeTextToNullableSQL(r.PluginsInputString),
+			"PluginsOutput":           largeTextToNullableSQL(r.PluginsOutputString),
 		}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to store run to run table: '%v/%v",
@@ -532,6 +555,17 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	_, err = tx.Exec(runSql, runArgs...)
 	if err != nil {
 		tx.Rollback()
+		// A concurrent recurring-run trigger may have already created this run. Such runs
+		// use a deterministic UUID derived from (RecurringRunId, DisplayName), so the
+		// duplicate insert collides on the primary key. Resolve it idempotently by
+		// returning the already-persisted run instead of surfacing an error.
+		if r.RecurringRunId != "" && s.db.IsDuplicateError(err) {
+			existingRun, getErr := s.GetRun(r.UUID)
+			if getErr != nil {
+				return nil, util.NewInternalServerError(err, "Failed to fetch existing run %v after duplicate key conflict", r.UUID)
+			}
+			return existingRun, nil
+		}
 		return nil, util.NewInternalServerError(err, "Failed to store run %v to table", r.DisplayName)
 	}
 
@@ -550,6 +584,32 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	return r, nil
 }
 
+func (s *RunStore) GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayName string) (string, error) {
+	query, args, err := sq.
+		Select("UUID").
+		From("run_details").
+		Where(sq.Eq{"JobUUID": recurringRunID, "DisplayName": displayName}).
+		OrderBy("CreatedAtInSec DESC", "UUID DESC").
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return "", util.NewInternalServerError(err, "Failed to build query for idempotency check")
+	}
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return "", util.NewInternalServerError(err, "Failed to check for existing run")
+	}
+	defer rows.Close()
+	if rows.Next() {
+		var uuid string
+		if err := rows.Scan(&uuid); err != nil {
+			return "", util.NewInternalServerError(err, "Failed to scan existing run UUID")
+		}
+		return uuid, nil
+	}
+	return "", nil
+}
+
 func (s *RunStore) UpdateRun(run *model.Run) error {
 	tx, err := s.db.DB.Begin()
 	if err != nil {
@@ -565,15 +625,24 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 	if historyString, err := json.Marshal(run.RunDetails.StateHistory); err == nil {
 		stateHistoryString = string(historyString)
 	}
+	updateFields := sq.Eq{
+		"Conditions":              run.Conditions,
+		"State":                   run.State.ToString(),
+		"StateHistory":            stateHistoryString,
+		"FinishedAtInSec":         run.FinishedAtInSec,
+		"WorkflowRuntimeManifest": run.WorkflowRuntimeManifest,
+	}
+	// PluginsOutput is only updated when explicitly set by the caller (e.g.
+	// MLflow terminal sync, retry). A nil pointer means "leave unchanged" so
+	// that normal state-update callers don't accidentally overwrite it.
+	// Note: PluginsInput is intentionally omitted — it is immutable after
+	// run creation and never updated.
+	if run.PluginsOutputString != nil {
+		updateFields["PluginsOutput"] = largeTextToNullableSQL(run.PluginsOutputString)
+	}
 	sql, args, err := sq.
 		Update("run_details").
-		SetMap(sq.Eq{
-			"Conditions":              run.Conditions,
-			"State":                   run.State.ToString(),
-			"StateHistory":            stateHistoryString,
-			"FinishedAtInSec":         run.FinishedAtInSec,
-			"WorkflowRuntimeManifest": run.WorkflowRuntimeManifest,
-		}).
+		SetMap(updateFields).
 		Where(sq.Eq{"UUID": run.UUID}).
 		ToSql()
 	if err != nil {
@@ -603,6 +672,36 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 
 	if err := tx.Commit(); err != nil {
 		return util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
+	}
+	return nil
+}
+
+// UpdateRunPluginsOutput updates only the PluginsOutput column for the given
+// run, leaving all other columns untouched. This avoids redundant writes of
+// core run fields (State, Conditions, WorkflowRuntimeManifest, etc.) when
+// plugin handlers need to persist their output after the run state has already
+// been committed.
+func (s *RunStore) UpdateRunPluginsOutput(runID string, pluginsOutput *model.LargeText) error {
+	sql, args, err := sq.
+		Update("run_details").
+		SetMap(sq.Eq{
+			"PluginsOutput": largeTextToNullableSQL(pluginsOutput),
+		}).
+		Where(sq.Eq{"UUID": runID}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to update plugins output for run %s", runID)
+	}
+	result, err := s.db.DB.Exec(sql, args...) //nolint:staticcheck // QF1008
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to update plugins output for run %s", runID)
+	}
+	r, err := result.RowsAffected()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to update plugins output for run %s", runID)
+	}
+	if r == 0 {
+		return util.Wrap(util.NewResourceNotFoundError("Run", runID), "Failed to update plugins output for run")
 	}
 	return nil
 }
@@ -754,11 +853,13 @@ func (s *RunStore) addSortByRunMetricToSelect(sqlBuilder sq.SelectBuilder, opts 
 	if r.IsRegularField(opts.SortByFieldName) {
 		return sqlBuilder
 	}
-	// TODO(jingzhang36): address the case where runs doesn't have the specified metric.
+	// Use a fixed alias for the metric column so user input never reaches SQL
+	// structure. The metric name is passed as a bind parameter to the JOIN
+	// condition, preventing SQL injection.
 	return sq.
-		Select("selected_runs.*, run_metrics.numbervalue as "+opts.SortByFieldName).
+		Select("selected_runs.*, run_metrics.numbervalue as "+model.MetricSortSQLAlias).
 		FromSelect(sqlBuilder, "selected_runs").
-		LeftJoin("run_metrics ON selected_runs.uuid=run_metrics.runuuid AND run_metrics.name='" + opts.SortByFieldName + "'")
+		LeftJoin("run_metrics ON selected_runs.uuid=run_metrics.runuuid AND run_metrics.name=?", opts.SortByFieldName)
 }
 
 func (s *RunStore) scanRowsToRunMetrics(rows *sql.Rows) ([]*model.RunMetric, error) {

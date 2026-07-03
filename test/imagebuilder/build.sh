@@ -18,6 +18,11 @@ set -xe
 
 DOCKER_FILE=Dockerfile
 
+normalize_node_version()
+{
+    printf '%s\n' "${1#v}"
+}
+
 usage()
 {
     echo "usage: build.sh
@@ -75,7 +80,13 @@ gcloud auth configure-docker
 
 if [ "$BUILD_SCRIPT" == "" ]; then
   echo "Build image ${IMAGE_NAME} using ${BASE_DIR}/${DOCKER_PATH}/${DOCKER_FILE}..."
-  docker build -t ${IMAGE_NAME} -f ${BASE_DIR}/${DOCKER_PATH}/${DOCKER_FILE} ${DOCKER_PATH}
+  dockerfile_path="${BASE_DIR}/${DOCKER_PATH}/${DOCKER_FILE}"
+  build_args=()
+  if grep -qE '^ARG NODE_VERSION(=|$)' "${dockerfile_path}" && [[ -f "${BASE_DIR}/frontend/.nvmrc" ]]; then
+    node_version="$(normalize_node_version "$(tr -d '\r\n' < "${BASE_DIR}/frontend/.nvmrc")")"
+    build_args+=(--build-arg "NODE_VERSION=${node_version}")
+  fi
+  docker build "${build_args[@]}" -t ${IMAGE_NAME} -f "${dockerfile_path}" ${DOCKER_PATH}
 else
   echo "Build image ${IMAGE_NAME} using ${BUILD_SCRIPT}..."
   cd $(dirname ${BUILD_SCRIPT})

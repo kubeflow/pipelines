@@ -181,6 +181,10 @@ type FilterContext struct {
 	*ReferenceKey
 }
 
+func EmptyFilterContext() *FilterContext {
+	return &FilterContext{}
+}
+
 // Checks whether the resource-reference relationship combination is valid.
 func ValidateResourceReferenceRelationship(resType ResourceType, refType ResourceType, relType Relationship) bool {
 	check, err := validResourceReferenceRelationship[ResourceReferenceRelationshipTriplet{

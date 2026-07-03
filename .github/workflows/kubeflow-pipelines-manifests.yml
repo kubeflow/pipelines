@@ -10,12 +10,17 @@ on:
       - '!**/*.md'
       - '!**/OWNERS'
 
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  kubeflow-pipelines-manifests:    
-    runs-on: ubuntu-latest    
+  kubeflow-pipelines-manifests:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5    
+        uses: actions/checkout@v6
 
       - name: Run tests
-        run: ./manifests/kustomize/hack/presubmit.sh 
+        run: ./manifests/kustomize/hack/presubmit.sh

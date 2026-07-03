@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-import { CircularProgress } from '@material-ui/core';
+import { CircularProgress } from '@mui/material';
 import React, { Component } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { Api, getArtifactTypes } from 'src/mlmd/library';
 import {
   ExecutionHelpers,
@@ -43,7 +44,7 @@ import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { color, commonCss, padding } from '../Css';
-import { logger, serviceErrorToString } from '../lib/Utils';
+import { errorToMessage, isServiceError, logger, serviceErrorToString } from '../lib/Utils';
 import { Page, PageErrorHandler } from './Page';
 
 interface ExecutionDetailsState {
@@ -51,6 +52,7 @@ interface ExecutionDetailsState {
   executionType?: ExecutionType;
   events?: Record<Event.Type, Event[]>;
   artifactTypeMap?: Map<number, ArtifactType>;
+  hasError?: boolean;
 }
 
 export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
@@ -60,14 +62,14 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
     return parseInt(this.props.match.params[RouteParams.ID], 10);
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <ExecutionDetailsContent
           key={this.id}
           id={this.id}
           onError={this.showPageError.bind(this)}
-          onTitleUpdate={title =>
+          onTitleUpdate={(title) =>
             this.props.updateToolbar({
               pageTitle: title,
             })
@@ -109,9 +111,12 @@ export class ExecutionDetailsContent extends Component<
     return this.load();
   }
 
-  public render(): JSX.Element {
-    if (!this.state.execution || !this.state.events) {
+  public render(): React.JSX.Element {
+    if ((!this.state.execution || !this.state.events) && !this.state.hasError) {
       return <CircularProgress />;
+    }
+    if (!this.state.execution || !this.state.events) {
+      return <div />;
     }
 
     return (
@@ -159,22 +164,24 @@ export class ExecutionDetailsContent extends Component<
   };
 
   private load = async (): Promise<void> => {
+    this.setState({ hasError: false });
     const metadataStoreServiceClient = Api.getInstance().metadataStoreService;
 
     // this runs parallelly because it's not a critical resource
     getArtifactTypes(metadataStoreServiceClient)
-      .then(artifactTypeMap => {
+      .then((artifactTypeMap) => {
         this.setState({
           artifactTypeMap,
         });
       })
-      .catch(err => {
+      .catch((err) => {
         this.props.onError('Failed to fetch artifact types', err, 'warning', this.refresh);
       });
 
     const numberId = this.props.id;
     if (isNaN(numberId) || numberId < 0) {
       const error = new Error(`Invalid execution id: ${this.props.id}`);
+      this.setState({ hasError: true });
       this.props.onError(error.message, error, 'error', this.refresh);
       return;
     }
@@ -191,6 +198,7 @@ export class ExecutionDetailsContent extends Component<
       ]);
 
       if (!executionResponse.getExecutionsList().length) {
+        this.setState({ hasError: true });
         this.props.onError(
           `No execution identified by id: ${this.props.id}`,
           undefined,
@@ -201,6 +209,7 @@ export class ExecutionDetailsContent extends Component<
       }
 
       if (executionResponse.getExecutionsList().length > 1) {
+        this.setState({ hasError: true });
         this.props.onError(
           `Found multiple executions with ID: ${this.props.id}`,
           undefined,
@@ -219,6 +228,7 @@ export class ExecutionDetailsContent extends Component<
       const types = typeResponse.getExecutionTypesList();
       let executionType: ExecutionType | undefined;
       if (!types || types.length === 0) {
+        this.setState({ hasError: true });
         this.props.onError(
           `Cannot find execution type with id: ${execution.getTypeId()}`,
           undefined,
@@ -227,6 +237,7 @@ export class ExecutionDetailsContent extends Component<
         );
         return;
       } else if (types.length > 1) {
+        this.setState({ hasError: true });
         this.props.onError(
           `More than one execution type found with id: ${execution.getTypeId()}`,
           undefined,
@@ -246,12 +257,30 @@ export class ExecutionDetailsContent extends Component<
         executionType,
       });
     } catch (err) {
-      this.props.onError(serviceErrorToString(err), err, 'error', this.refresh);
+      this.setState({ hasError: true });
+      if (isServiceError(err)) {
+        this.props.onError(
+          serviceErrorToString(err),
+          err instanceof Error ? err : undefined,
+          'error',
+          this.refresh,
+        );
+      } else {
+        const errorMessage = await errorToMessage(err);
+        this.props.onError(
+          errorMessage ? `Error: ${errorMessage}` : 'Error: failed to load execution details.',
+          err instanceof Error
+            ? err
+            : new Error(errorMessage || 'Failed to load execution details.'),
+          'error',
+          this.refresh,
+        );
+      }
     }
   };
 }
 
-function parseEventsByType(
+export function parseEventsByType(
   response: GetEventsByExecutionIDsResponse | null,
 ): Record<Event.Type, Event[]> {
   const events: Record<Event.Type, Event[]> = {
@@ -269,7 +298,7 @@ function parseEventsByType(
     return events;
   }
 
-  response.getEventsList().forEach(event => {
+  response.getEventsList().forEach((event) => {
     const type = event.getType();
     const id = event.getArtifactId();
     if (type != null && id != null) {
@@ -294,7 +323,7 @@ interface SectionIOProps {
 }
 class SectionIO extends Component<
   SectionIOProps,
-  { artifactDataMap: { [id: number]: ArtifactInfo } }
+  { artifactDataMap: { [id: number]: ArtifactInfo }; loadError?: boolean }
 > {
   constructor(props: any) {
     super(props);
@@ -309,7 +338,7 @@ class SectionIO extends Component<
       const linkedArtifacts = await getLinkedArtifactsByEvents(this.props.events);
 
       const artifactDataMap = {};
-      linkedArtifacts.forEach(linkedArtifact => {
+      linkedArtifacts.forEach((linkedArtifact) => {
         const id = linkedArtifact.event.getArtifactId();
         if (!id) {
           logger.error('Artifact has empty id', linkedArtifact.artifact.toObject());
@@ -326,11 +355,12 @@ class SectionIO extends Component<
         artifactDataMap,
       });
     } catch (err) {
-      return;
+      logger.error(`Failed to load linked artifacts for "${this.props.title}":`, err);
+      this.setState({ loadError: true });
     }
   }
 
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const { title, events } = this.props;
     if (events.length === 0) {
       return null;
@@ -339,6 +369,11 @@ class SectionIO extends Component<
     return (
       <section>
         <h2 className={commonCss.header2}>{title}</h2>
+        {this.state.loadError && (
+          <p style={{ color: color.warningText }}>
+            Failed to load artifact details for this section.
+          </p>
+        )}
         <table>
           <thead>
             <tr>
@@ -349,7 +384,7 @@ class SectionIO extends Component<
             </tr>
           </thead>
           <tbody>
-            {events.map(event => {
+            {events.map((event) => {
               const id = event.getArtifactId();
               const data = this.state.artifactDataMap[id] || {};
               const type =
@@ -421,11 +456,15 @@ interface ExecutionReferenceProps {
 }
 
 function ExecutionReference({ execution }: ExecutionReferenceProps) {
-  const { isSuccess, data: context } = useQuery<Context | undefined, Error>(
-    ['context_by_execution', { id: execution.getId(), state: execution.getLastKnownState() }],
-    () => getContextByExecution(execution, KFP_V2_RUN_CONTEXT_TYPE),
-    { staleTime: Infinity },
-  );
+  const {
+    isSuccess,
+    isError,
+    data: context,
+  } = useQuery<Context | null, Error>({
+    queryKey: queryKeys.contextByExecution(execution.getId(), execution.getLastKnownState()),
+    queryFn: async () => (await getContextByExecution(execution, KFP_V2_RUN_CONTEXT_TYPE)) ?? null,
+    staleTime: Infinity,
+  });
 
   const customPropertyMap = execution.getCustomPropertiesMap();
   const originalExecutionId = customPropertyMap
@@ -443,6 +482,13 @@ function ExecutionReference({ execution }: ExecutionReferenceProps) {
           </tr>
         </thead>
         <tbody>
+          {isError && (
+            <tr className={css.row}>
+              <td className={css.tableCell} colSpan={2}>
+                Failed to load pipeline run reference.
+              </td>
+            </tr>
+          )}
           {isSuccess && context && (
             <tr className={css.row}>
               <td className={css.tableCell}>{'Pipeline Run'}</td>
@@ -450,7 +496,7 @@ function ExecutionReference({ execution }: ExecutionReferenceProps) {
                 <span>
                   <Link
                     className={commonCss.link}
-                    onClick={e => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
                     to={RoutePage.RUN_DETAILS_WITH_EXECUTION.replace(
                       ':' + RouteParams.runId,
                       context.getName(),
@@ -469,7 +515,7 @@ function ExecutionReference({ execution }: ExecutionReferenceProps) {
                 <span>
                   <Link
                     className={commonCss.link}
-                    onClick={e => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
                     to={RoutePage.EXECUTION_DETAILS.replace(
                       ':' + RouteParams.ID,
                       originalExecutionId,

@@ -16,7 +16,7 @@ import { Apis } from './Apis';
 import { StorageService } from './WorkflowParser';
 
 const fetchSpy = (response: string) => {
-  const spy = jest.fn(() =>
+  const spy = vi.fn(() =>
     Promise.resolve({
       ok: true,
       text: () => response,
@@ -27,7 +27,7 @@ const fetchSpy = (response: string) => {
 };
 
 const failedFetchSpy = (response: string) => {
-  const spy = jest.fn(() =>
+  const spy = vi.fn(() =>
     Promise.resolve({
       ok: false,
       text: () => response,
@@ -98,15 +98,17 @@ describe('Apis', () => {
   });
 
   it('getPodLogs error', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => null);
-    window.fetch = jest.fn(() =>
+    vi.spyOn(console, 'error').mockImplementation(() => null);
+    window.fetch = vi.fn(() =>
       Promise.resolve({
         ok: false,
         text: () => 'bad response',
       }),
     );
-    expect(Apis.getPodLogs('a-run-id', 'some-pod-name', 'ns')).rejects.toThrowError('bad response');
-    expect(
+    await expect(Apis.getPodLogs('a-run-id', 'some-pod-name', 'ns')).rejects.toThrowError(
+      'bad response',
+    );
+    await expect(
       Apis.getPodLogs('a-run-id', 'some-pod-name', 'some-namespace-name'),
     ).rejects.toThrowError('bad response');
   });
@@ -132,7 +134,7 @@ describe('Apis', () => {
   });
 
   it('isJupyterHubAvailable returns false if the response for the /hub/ url was not ok', async () => {
-    const spy = jest.fn(() => Promise.resolve({ ok: false }));
+    const spy = vi.fn(() => Promise.resolve({ ok: false }));
     window.fetch = spy;
     const isJupyterHubAvailable = await Apis.isJupyterHubAvailable();
     expect(spy).toHaveBeenCalledWith('/hub/', { credentials: 'same-origin' });
@@ -180,14 +182,14 @@ describe('Apis', () => {
   it('getTensorboardApp', async () => {
     const spy = fetchSpy(
       JSON.stringify({
-        podAddress: 'http://some/address',
+        proxyPath: 'apps/tensorboard/proxy/test-token/',
         tfVersion: '1.14.0',
         image: 'tensorflow/tensorflow:1.14.0',
       }),
     );
     const tensorboardInstance = await Apis.getTensorboardApp('gs://log/dir', 'test-ns');
     expect(tensorboardInstance).toEqual({
-      podAddress: 'http://some/address',
+      proxyPath: 'apps/tensorboard/proxy/test-token/',
       tfVersion: '1.14.0',
       image: 'tensorflow/tensorflow:1.14.0',
     });
@@ -204,7 +206,7 @@ describe('Apis', () => {
       namespace: 'test-ns',
     };
     it('starts tensorboard app', async () => {
-      const spy = fetchSpy('http://some/address');
+      const spy = fetchSpy('apps/tensorboard/proxy/test-token/');
       await Apis.startTensorboardApp(defaultArgs);
       expect(spy).toHaveBeenCalledWith(
         'apps/tensorboard?logdir=' +
@@ -253,7 +255,7 @@ describe('Apis', () => {
                   },
                   {
                     name: 'S3_ENDPOINT',
-                    value: 'http://minio-service:9000',
+                    value: 'http://seaweedfs:9000',
                   },
                   {
                     name: 'S3_USE_HTTPS',
@@ -323,15 +325,15 @@ describe('Apis', () => {
 
   it('checks if Tensorboard pod is ready', async () => {
     const spy = fetchSpy('');
-    const ready = await Apis.isTensorboardPodReady('apis/v1beta1/_proxy/pod_address');
+    const ready = await Apis.isTensorboardPodReady('apps/tensorboard/proxy/test-token/');
     expect(ready).toBe(true);
-    expect(spy).toHaveBeenCalledWith('apis/v1beta1/_proxy/pod_address', { method: 'HEAD' });
+    expect(spy).toHaveBeenCalledWith('apps/tensorboard/proxy/test-token/', { method: 'HEAD' });
   });
 
   it('checks if Tensorboard pod is not ready', async () => {
     const spy = failedFetchSpy('');
-    const ready = await Apis.isTensorboardPodReady('apis/v1beta1/_proxy/pod_address');
+    const ready = await Apis.isTensorboardPodReady('apps/tensorboard/proxy/test-token/');
     expect(ready).toBe(false);
-    expect(spy).toHaveBeenCalledWith('apis/v1beta1/_proxy/pod_address', { method: 'HEAD' });
+    expect(spy).toHaveBeenCalledWith('apps/tensorboard/proxy/test-token/', { method: 'HEAD' });
   });
 });

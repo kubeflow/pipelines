@@ -42,14 +42,17 @@ class TestV2beta1Pipeline(unittest.TestCase):
                 description = '0', 
                 created_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                 namespace = '0', 
-                error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
+                error = kfp_server_api.models.google_rpc_status.googleRpcStatus(
                     code = 56, 
                     message = '0', 
                     details = [
                         {
                             'key' : None
                             }
-                        ], )
+                        ], ), 
+                tags = {
+                    'key' : '0'
+                    }
             )
         else :
             return V2beta1Pipeline(

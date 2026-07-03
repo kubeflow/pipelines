@@ -1,7 +1,5 @@
-# Separate service for new ports of seaweedfs. If we add them to the existing minio-service there will be a problem
-# with the mlpipeline api server because it relies on MINIO_SERVICE_SERVICE_PORT pointing to the S3 port.
-# But with multiple ports on a service that is not really reliable. So we use the existing minio-service for
-# backwards-compatibility, but everything new, seaweedfs related is here.
+# SeaweedFS service - provides S3-compatible storage for Kubeflow Pipelines.
+# Port 9000 is included for backward compatibility with configs that expect the legacy port.
 apiVersion: v1
 kind: Service
 metadata:
@@ -15,6 +13,10 @@ spec:
     targetPort: 8111
   - name: http-s3
     port: 8333
+    protocol: TCP
+    targetPort: 8333
+  - name: http-s3-compat
+    port: 9000
     protocol: TCP
     targetPort: 8333
   - name: http-master

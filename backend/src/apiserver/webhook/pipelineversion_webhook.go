@@ -17,6 +17,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"reflect"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
@@ -120,8 +121,19 @@ func (p *PipelineVersionsWebhook) ValidateUpdate(_ context.Context, oldObj, newO
 		return nil, newBadRequestError(fmt.Sprintf("Expected a PipelineVersion but got %T", newObj))
 	}
 
+	// Only validate spec changes when the generation changes.
+	// Metadata and status-only updates do not bump the generation.
 	if oldPipelineVersion.Generation != newPipelineVersion.Generation {
-		return nil, newBadRequestError("Pipeline spec is immutable; only metadata changes (labels/annotations) are allowed")
+		// Copy the old spec and overwrite only the
+		// mutable fields (DisplayName, Tags) from the new spec. If the result
+		// differs from the new spec, immutable fields were changed. This ensures
+		// new fields are immutable by default without updating this code.
+		expected := oldPipelineVersion.Spec.DeepCopy()
+		expected.DisplayName = newPipelineVersion.Spec.DisplayName
+		expected.Tags = newPipelineVersion.Spec.Tags
+		if !reflect.DeepEqual(*expected, newPipelineVersion.Spec) {
+			return nil, newBadRequestError("Pipeline spec is immutable; only mutable fields (display_name, tags) can be updated")
+		}
 	}
 
 	return nil, nil

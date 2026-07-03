@@ -7,7 +7,9 @@ on:
   pull_request:
     paths:
       - '.github/workflows/api-integration-tests-v1.yml'
+      - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
       - '.github/resources/**'
       - 'api/**'
       - 'go.mod'
@@ -18,20 +20,27 @@ on:
       - '!**/*.md'
       - '!**/OWNERS'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   initialization-integration-tests-v1:
     runs-on: ubuntu-latest
     needs: build
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.34.0" ]
+        k8s_version: [ "v1.31.14", "v1.35.0" ]
     name: Initialization & Integration tests v1 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: ./.github/actions/setup-go
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -86,7 +95,7 @@ jobs:
 
       - name: Collect test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kfp-initialization-tests-v1-artifacts-k8s-${{ matrix.k8s_version }}
           path: /tmp/tmp*/*

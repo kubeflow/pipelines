@@ -1,0 +1,164 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-collected-artifacts
+# Outputs:
+#    Output: str
+components:
+  comp-for-loop-2:
+    dag:
+      outputs:
+        artifacts:
+          pipelinechannel--write-artifact-out:
+            artifactSelectors:
+            - outputArtifactKey: out
+              producerSubtask: write-artifact
+      tasks:
+        write-artifact:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-write-artifact
+          inputs:
+            parameters:
+              index:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+          taskInfo:
+            name: write-artifact
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        pipelinechannel--write-artifact-out:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+          isArtifactList: true
+  comp-read-and-join:
+    executorLabel: exec-read-and-join
+    inputDefinitions:
+      artifacts:
+        artifacts:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+          isArtifactList: true
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-write-artifact:
+    executorLabel: exec-write-artifact
+    inputDefinitions:
+      parameters:
+        index:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        out:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-read-and-join:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - read_and_join
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef read_and_join(artifacts: List[Artifact]) -> str:\n    parts =\
+          \ []\n    for artifact in artifacts:\n        with open(artifact.path) as\
+          \ f:\n            parts.append(f.read().strip())\n    return ','.join(sorted(parts))\n\
+          \n"
+        image: python:3.11
+    exec-write-artifact:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - write_artifact
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef write_artifact(index: int, out: Output[Artifact]):\n    with\
+          \ open(out.path, 'w') as f:\n        f.write(str(index))\n\n"
+        image: python:3.11
+pipelineInfo:
+  name: pipeline-with-collected-artifacts
+root:
+  dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: Output
+            producerSubtask: read-and-join
+    tasks:
+      for-loop-2:
+        componentRef:
+          name: comp-for-loop-2
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-1
+          items:
+            raw: '[0, 1, 2]'
+        taskInfo:
+          name: for-loop-2
+      read-and-join:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-read-and-join
+        dependentTasks:
+        - for-loop-2
+        inputs:
+          artifacts:
+            artifacts:
+              taskOutputArtifact:
+                outputArtifactKey: pipelinechannel--write-artifact-out
+                producerTask: for-loop-2
+        taskInfo:
+          name: read-and-join
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2

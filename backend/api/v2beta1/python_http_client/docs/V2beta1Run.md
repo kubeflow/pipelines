@@ -17,10 +17,12 @@ Name | Type | Description | Notes
 **scheduled_at** | **datetime** | Output. When this run is scheduled to start. This could be different from created_at. For example, if a run is from a backfilling job that was supposed to run 2 month ago, the created_at will be 2 month behind scheduled_at. | [optional] 
 **finished_at** | **datetime** | Output. Completion of the run. | [optional] 
 **state** | [**V2beta1RuntimeState**](V2beta1RuntimeState.md) |  | [optional] 
-**error** | [**GooglerpcStatus**](GooglerpcStatus.md) |  | [optional] 
+**error** | [**GoogleRpcStatus**](GoogleRpcStatus.md) |  | [optional] 
 **run_details** | [**V2beta1RunDetails**](V2beta1RunDetails.md) |  | [optional] 
 **recurring_run_id** | **str** | ID of the recurring run that triggered this run. | [optional] 
 **state_history** | [**list[V2beta1RuntimeStatus]**](V2beta1RuntimeStatus.md) | Output. A sequence of run statuses. This field keeps a record of state transitions. | [optional] 
+**plugins_input** | **dict(str, object)** | Optional input. Plugin-specific inputs provided by the user at run creation. Each key is a plugin name (e.g., \&quot;mlflow\&quot;) and the value is arbitrary JSON config. | [optional] 
+**plugins_output** | [**dict(str, V2beta1PluginOutput)**](V2beta1PluginOutput.md) | Output. Plugin-specific outputs populated by backend components. Each key is a plugin name and the value contains the plugin&#39;s output entries and state. | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

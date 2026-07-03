@@ -14,65 +14,68 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { vi } from 'vitest';
 import CollapseButton from './CollapseButton';
-import { shallow } from 'enzyme';
 
 describe('CollapseButton', () => {
   const compareComponent = {
-    collapseSectionsUpdate: jest.fn(),
+    collapseSectionsUpdate: vi.fn(),
     state: {
       collapseSections: {},
     },
   } as any;
 
-  afterEach(() => (compareComponent.state.collapseSections = {}));
+  afterEach(() => {
+    compareComponent.state.collapseSections = {};
+    compareComponent.collapseSectionsUpdate.mockClear();
+  });
 
   it('initial render', () => {
-    const tree = shallow(
+    const { asFragment } = render(
       <CollapseButton
         collapseSections={compareComponent.state.collapseSections}
         collapseSectionsUpdate={compareComponent.collapseSectionsUpdate}
         sectionName='testSection'
       />,
     );
-    expect(tree).toMatchSnapshot();
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders the button collapsed if in collapsedSections', () => {
     compareComponent.state.collapseSections.testSection = true;
-    const tree = shallow(
+    const { asFragment } = render(
       <CollapseButton
         collapseSections={compareComponent.state.collapseSections}
         collapseSectionsUpdate={compareComponent.collapseSectionsUpdate}
         sectionName='testSection'
       />,
     );
-    expect(tree).toMatchSnapshot();
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('collapses given section when clicked', () => {
-    const tree = shallow(
+    render(
       <CollapseButton
         collapseSections={compareComponent.state.collapseSections}
         collapseSectionsUpdate={compareComponent.collapseSectionsUpdate}
         sectionName='testSection'
       />,
     );
-    tree.find('WithStyles(Button)').simulate('click');
+    fireEvent.click(screen.getByRole('button', { name: 'testSection' }));
     expect(compareComponent.collapseSectionsUpdate).toHaveBeenCalledWith({ testSection: true });
   });
 
   it('expands given section when clicked if it is collapsed', () => {
     compareComponent.state.collapseSections.testSection = true;
-    const tree = shallow(
+    render(
       <CollapseButton
         collapseSections={compareComponent.state.collapseSections}
         collapseSectionsUpdate={compareComponent.collapseSectionsUpdate}
         sectionName='testSection'
       />,
     );
-    tree.find('WithStyles(Button)').simulate('click');
+    fireEvent.click(screen.getByRole('button', { name: 'testSection' }));
     expect(compareComponent.collapseSectionsUpdate).toHaveBeenCalledWith({ testSection: false });
   });
 });

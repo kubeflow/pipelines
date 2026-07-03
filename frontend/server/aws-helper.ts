@@ -11,8 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import fetch from 'node-fetch';
-
 /** AWSMetadataCredentials describes the credentials provided by aws metadata store. */
 export interface AWSMetadataCredentials {
   Code: string;
@@ -101,7 +99,7 @@ class AWSInstanceProfileCredentials {
     try {
       const profile = await this.profile();
       const resp = await fetch(`${metadataUrl}/iam/security-credentials/${profile}`);
-      const credentials = await resp.json();
+      const credentials = (await resp.json()) as AWSMetadataCredentials;
       return credentials;
     } catch (error) {
       console.error(`Unable to fetch credentials from AWS metadata store: ${error}`);

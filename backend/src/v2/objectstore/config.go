@@ -26,7 +26,24 @@ import (
 
 // The endpoint uses Kubernetes service DNS name with namespace:
 // https://kubernetes.io/docs/concepts/services-networking/service/#dns
-const DefaultMinioEndpointInMultiUserMode = "minio-service.kubeflow:9000"
+const DefaultEndpointInMultiUserMode = "seaweedfs.kubeflow:9000"
+
+// S3 session param keys shared by object store config parsing.
+//
+// If S3 session fields are added or renamed in the launcher/provider config
+// flow, update these constants and review the S3-related helpers in this file,
+// including StructuredS3Params and HasStructuredS3Settings.
+const (
+	S3ParamFromEnv        = "fromEnv"
+	S3ParamSecretName     = "secretName"
+	S3ParamAccessKeyKey   = "accessKeyKey"
+	S3ParamSecretKeyKey   = "secretKeyKey"
+	S3ParamRegion         = "region"
+	S3ParamEndpoint       = "endpoint"
+	S3ParamDisableSSL     = "disableSSL"
+	S3ParamForcePathStyle = "forcePathStyle"
+	S3ParamMaxRetries     = "maxRetries"
+)
 
 type Config struct {
 	Scheme      string
@@ -175,37 +192,37 @@ func GetSessionInfoFromString(sessionInfoJSON string) (*SessionInfo, error) {
 
 func StructuredS3Params(p map[string]string) (*S3Params, error) {
 	sparams := &S3Params{}
-	if val, ok := p["fromEnv"]; ok {
+	if val, ok := p[S3ParamFromEnv]; ok {
 		boolVal, err := strconv.ParseBool(val)
 		if err != nil {
 			return nil, err
 		}
 		sparams.FromEnv = boolVal
 	}
-	if val, ok := p["secretName"]; ok {
+	if val, ok := p[S3ParamSecretName]; ok {
 		sparams.SecretName = val
 	}
 	// The k8s secret "Key" for "Artifact SecretKey" and "Artifact AccessKey"
-	if val, ok := p["accessKeyKey"]; ok {
+	if val, ok := p[S3ParamAccessKeyKey]; ok {
 		sparams.AccessKeyKey = val
 	}
-	if val, ok := p["secretKeyKey"]; ok {
+	if val, ok := p[S3ParamSecretKeyKey]; ok {
 		sparams.SecretKeyKey = val
 	}
-	if val, ok := p["region"]; ok {
+	if val, ok := p[S3ParamRegion]; ok {
 		sparams.Region = val
 	}
-	if val, ok := p["endpoint"]; ok {
+	if val, ok := p[S3ParamEndpoint]; ok {
 		sparams.Endpoint = val
 	}
-	if val, ok := p["disableSSL"]; ok {
+	if val, ok := p[S3ParamDisableSSL]; ok {
 		boolVal, err := strconv.ParseBool(val)
 		if err != nil {
 			return nil, err
 		}
 		sparams.DisableSSL = boolVal
 	}
-	if val, ok := p["forcePathStyle"]; ok {
+	if val, ok := p[S3ParamForcePathStyle]; ok {
 		boolVal, err := strconv.ParseBool(val)
 		if err != nil {
 			return nil, err
@@ -214,7 +231,7 @@ func StructuredS3Params(p map[string]string) (*S3Params, error) {
 	} else {
 		sparams.ForcePathStyle = true
 	}
-	if val, ok := p["maxRetries"]; ok {
+	if val, ok := p[S3ParamMaxRetries]; ok {
 		intVal, err := strconv.ParseInt(val, 10, 0)
 		if err != nil {
 			return nil, err
@@ -222,6 +239,23 @@ func StructuredS3Params(p map[string]string) (*S3Params, error) {
 		sparams.MaxRetries = int(intVal)
 	}
 	return sparams, nil
+}
+
+// HasStructuredS3Settings reports whether the session params include explicit
+// S3 client settings beyond credential-source metadata.
+func HasStructuredS3Settings(p map[string]string) bool {
+	for _, key := range []string{
+		S3ParamRegion,
+		S3ParamEndpoint,
+		S3ParamDisableSSL,
+		S3ParamForcePathStyle,
+		S3ParamMaxRetries,
+	} {
+		if _, ok := p[key]; ok {
+			return true
+		}
+	}
+	return false
 }
 
 func StructuredGCSParams(p map[string]string) (*GCSParams, error) {

@@ -15,99 +15,114 @@
  */
 
 import * as React from 'react';
-import { mount, ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
-import { LineageActionBar, LineageActionBarProps, LineageActionBarState } from './LineageActionBar';
+import { act, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { vi } from 'vitest';
+import { LineageActionBar } from './LineageActionBar';
+import { ArtifactHelpers } from './MlmdUtils';
 import { buildTestModel, testModel } from './TestUtils';
-import { Artifact } from 'src/third_party/mlmd';
 
 describe('LineageActionBar', () => {
-  let tree: ShallowWrapper;
-  const setLineageViewTarget = jest.fn();
-
-  const mountActionBar = (): ReactWrapper<
-    LineageActionBarProps,
-    LineageActionBarState,
-    LineageActionBar
-  > =>
-    mount(
-      <LineageActionBar initialTarget={testModel} setLineageViewTarget={setLineageViewTarget} />,
-    );
+  const user = userEvent.setup();
+  const setLineageViewTarget = vi.fn();
+  const label = ArtifactHelpers.getName(testModel);
 
   afterEach(() => {
-    tree.unmount();
     setLineageViewTarget.mockReset();
   });
 
-  it('Renders correctly for a given initial target', () => {
-    tree = shallow(<LineageActionBar initialTarget={testModel} setLineageViewTarget={jest.fn()} />);
-    expect(tree).toMatchSnapshot();
+  it('renders the initial breadcrumb as active and shows the Reset button', () => {
+    const { asFragment } = render(
+      <LineageActionBar initialTarget={testModel} setLineageViewTarget={vi.fn()} />,
+    );
+    const breadcrumb = screen.getByRole('button', { name: label });
+    expect(breadcrumb).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Reset/i })).toBeInTheDocument();
+    expect(asFragment()).toMatchSnapshot();
   });
 
-  it('Does not update the LineageView target when the current breadcrumb is clicked', () => {
-    const tree = mountActionBar();
-
-    // There is one disabled button for the initially selected target.
-    expect(tree.state('history').length).toBe(1);
-
-    expect(setLineageViewTarget.mock.calls.length).toBe(0);
-    tree
-      .find('button')
-      .first()
-      .simulate('click');
-    expect(setLineageViewTarget.mock.calls.length).toBe(0);
-    expect(tree.state('history').length).toBe(1);
+  it('does not call setLineageViewTarget when the active breadcrumb is clicked', async () => {
+    render(
+      <LineageActionBar initialTarget={testModel} setLineageViewTarget={setLineageViewTarget} />,
+    );
+    const breadcrumb = screen.getByRole('button', { name: label });
+    expect(breadcrumb).toBeDisabled();
+    await user.click(breadcrumb);
+    expect(setLineageViewTarget).not.toHaveBeenCalled();
   });
 
-  it('Updates the LineageView target model when an inactive breadcrumb is clicked', () => {
-    const tree = mountActionBar();
+  it('calls setLineageViewTarget when an inactive breadcrumb is clicked', async () => {
+    const ref = React.createRef<LineageActionBar>();
+    const { asFragment } = render(
+      <LineageActionBar
+        ref={ref}
+        initialTarget={testModel}
+        setLineageViewTarget={setLineageViewTarget}
+      />,
+    );
 
-    // Add a second artifact to the history state to make the first breadcrumb enabled.
-    tree.setState({
-      history: [testModel, buildTestModel()],
+    // pushHistory is a public API called by parent components.
+    // act() is required because it triggers setState outside of Testing Library.
+    act(() => {
+      ref.current!.pushHistory(buildTestModel());
     });
-    expect(tree.state('history').length).toBe(2);
-    tree.update();
 
-    expect(setLineageViewTarget.mock.calls.length).toBe(0);
-    tree
-      .find('button')
-      .first()
-      .simulate('click');
+    const breadcrumbs = screen.getAllByRole('button', { name: label });
+    expect(breadcrumbs).toHaveLength(2);
+    expect(breadcrumbs[0]).not.toBeDisabled();
+    expect(breadcrumbs[1]).toBeDisabled();
 
-    expect(setLineageViewTarget.mock.calls.length).toBe(1);
-    expect(tree).toMatchSnapshot();
+    await user.click(breadcrumbs[0]);
+    expect(setLineageViewTarget).toHaveBeenCalledTimes(1);
+    expect(asFragment()).toMatchSnapshot();
   });
 
-  it('Adds the artifact to the history state and DOM when pushHistory() is called', () => {
-    const tree = mountActionBar();
-    expect(tree.state('history').length).toBe(1);
-    tree.instance().pushHistory(new Artifact());
-    expect(tree.state('history').length).toBe(2);
-    tree.update();
+  it('adds a breadcrumb when pushHistory() is called', () => {
+    const ref = React.createRef<LineageActionBar>();
+    const { asFragment } = render(
+      <LineageActionBar
+        ref={ref}
+        initialTarget={testModel}
+        setLineageViewTarget={setLineageViewTarget}
+      />,
+    );
 
-    expect(tree).toMatchSnapshot();
+    expect(screen.getAllByRole('button', { name: label })).toHaveLength(1);
+
+    act(() => {
+      ref.current!.pushHistory(buildTestModel());
+    });
+
+    const breadcrumbs = screen.getAllByRole('button', { name: label });
+    expect(breadcrumbs).toHaveLength(2);
+    expect(breadcrumbs[0]).not.toBeDisabled();
+    expect(breadcrumbs[1]).toBeDisabled();
+    expect(asFragment()).toMatchSnapshot();
   });
 
-  it('Sets history to the initial prop when the reset button is clicked', () => {
-    const tree = mountActionBar();
+  it('resets to initial breadcrumb when Reset is clicked', async () => {
+    const ref = React.createRef<LineageActionBar>();
+    render(
+      <LineageActionBar
+        ref={ref}
+        initialTarget={testModel}
+        setLineageViewTarget={setLineageViewTarget}
+      />,
+    );
 
-    expect(tree.state('history').length).toBe(1);
-    tree.instance().pushHistory(buildTestModel());
-    tree.instance().pushHistory(buildTestModel());
-    expect(tree.state('history').length).toBe(3);
+    act(() => {
+      ref.current!.pushHistory(buildTestModel());
+    });
+    act(() => {
+      ref.current!.pushHistory(buildTestModel());
+    });
 
-    // Flush state to the DOM
-    tree.update();
-    const buttonWrappers = tree.find('button');
-    expect(buttonWrappers.length).toBe(4);
+    expect(screen.getAllByRole('button', { name: label })).toHaveLength(3);
 
-    // The reset button is the last button on the action bar.
-    tree
-      .find('button')
-      .last()
-      .simulate('click');
+    await user.click(screen.getByRole('button', { name: /Reset/i }));
 
-    expect(tree.state('history').length).toBe(1);
-    expect(tree).toMatchSnapshot();
+    const breadcrumbs = screen.getAllByRole('button', { name: label });
+    expect(breadcrumbs).toHaveLength(1);
+    expect(breadcrumbs[0]).toBeDisabled();
   });
 });

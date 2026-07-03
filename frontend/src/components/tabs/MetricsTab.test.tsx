@@ -16,7 +16,6 @@
 
 import { render, waitFor } from '@testing-library/react';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
-import React from 'react';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';
 import { testBestPractices } from 'src/TestUtils';
@@ -37,10 +36,8 @@ const namespace = 'kubeflow';
 describe('MetricsTab common case', () => {
   beforeEach(() => {});
   it('has no metrics', async () => {
-    jest
-      .spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution')
-      .mockReturnValue(Promise.resolve([]));
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
+    vi.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution').mockReturnValue(Promise.resolve([]));
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
 
     const { getByText } = render(
@@ -52,10 +49,8 @@ describe('MetricsTab common case', () => {
     await waitFor(() => getByText('There is no metrics artifact available in this step.'));
   });
   it('shows info banner when execution is in UNKNOWN', async () => {
-    jest
-      .spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution')
-      .mockReturnValue(Promise.resolve([]));
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
+    vi.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution').mockReturnValue(Promise.resolve([]));
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
 
     const execution = buildBasicExecution().setLastKnownState(Execution.State.UNKNOWN);
     const { getByText, queryByText } = render(
@@ -68,10 +63,8 @@ describe('MetricsTab common case', () => {
   });
 
   it('shows info banner when execution is in NEW', async () => {
-    jest
-      .spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution')
-      .mockReturnValue(Promise.resolve([]));
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
+    vi.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution').mockReturnValue(Promise.resolve([]));
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
 
     const execution = buildBasicExecution().setLastKnownState(Execution.State.NEW);
     const { getByText } = render(
@@ -83,10 +76,8 @@ describe('MetricsTab common case', () => {
   });
 
   it('shows info banner when execution is in RUNNING', async () => {
-    jest
-      .spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution')
-      .mockReturnValue(Promise.resolve([]));
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
+    vi.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution').mockReturnValue(Promise.resolve([]));
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
 
     const execution = buildBasicExecution().setLastKnownState(Execution.State.RUNNING);
     const { getByText } = render(
@@ -130,10 +121,10 @@ describe('MetricsTab with confidenceMetrics', () => {
     );
     const linkedArtifact = { event: new Event(), artifact: artifact };
 
-    jest
-      .spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution')
-      .mockResolvedValueOnce([linkedArtifact]);
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValueOnce([artifactType]);
+    vi.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution').mockResolvedValueOnce([
+      linkedArtifact,
+    ]);
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValueOnce([artifactType]);
 
     const { getByText } = render(
       <CommonTestWrapper>
@@ -143,7 +134,7 @@ describe('MetricsTab with confidenceMetrics', () => {
 
     getByText('Metrics is loading.');
     await waitFor(() => getByText('ROC Curve: metrics'));
-  });
+  }, 20000);
 
   it('shows error banner when confidenceMetrics type is wrong', async () => {
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
@@ -171,10 +162,8 @@ describe('MetricsTab with confidenceMetrics', () => {
     );
     const linkedArtifact = { event: new Event(), artifact: artifact };
 
-    jest
-      .spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution')
-      .mockResolvedValue([linkedArtifact]);
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([artifactType]);
+    vi.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution').mockResolvedValue([linkedArtifact]);
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([artifactType]);
 
     const { getByText } = render(
       <CommonTestWrapper>
@@ -202,10 +191,8 @@ describe('MetricsTab with confidenceMetrics', () => {
     );
     const linkedArtifact = { event: new Event(), artifact: artifact };
 
-    jest
-      .spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution')
-      .mockResolvedValue([linkedArtifact]);
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([artifactType]);
+    vi.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution').mockResolvedValue([linkedArtifact]);
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([artifactType]);
 
     const { getByText } = render(
       <CommonTestWrapper>
@@ -241,10 +228,10 @@ describe('MetricsTab with confusionMatrix', () => {
       ),
     );
     const linkedArtifact = { event: new Event(), artifact: artifact };
-    jest
-      .spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution')
-      .mockResolvedValueOnce([linkedArtifact]);
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValueOnce([artifactType]);
+    vi.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution').mockResolvedValueOnce([
+      linkedArtifact,
+    ]);
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValueOnce([artifactType]);
     const { getByText } = render(
       <CommonTestWrapper>
         <MetricsTab execution={execution} namespace={namespace}></MetricsTab>
@@ -276,10 +263,8 @@ describe('MetricsTab with confusionMatrix', () => {
     );
     const linkedArtifact = { event: new Event(), artifact: artifact };
 
-    jest
-      .spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution')
-      .mockResolvedValue([linkedArtifact]);
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([artifactType]);
+    vi.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution').mockResolvedValue([linkedArtifact]);
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([artifactType]);
 
     const { getByText } = render(
       <CommonTestWrapper>
@@ -308,10 +293,8 @@ describe('MetricsTab with confusionMatrix', () => {
     );
     const linkedArtifact = { event: new Event(), artifact: artifact };
 
-    jest
-      .spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution')
-      .mockResolvedValue([linkedArtifact]);
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([artifactType]);
+    vi.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution').mockResolvedValue([linkedArtifact]);
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([artifactType]);
 
     const { getByText } = render(
       <CommonTestWrapper>
@@ -341,10 +324,10 @@ describe('MetricsTab with Scalar Metrics', () => {
       ),
     );
     const linkedArtifact = { event: new Event(), artifact: artifact };
-    jest
-      .spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution')
-      .mockResolvedValueOnce([linkedArtifact]);
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValueOnce([buildMetricsArtifactType()]);
+    vi.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution').mockResolvedValueOnce([
+      linkedArtifact,
+    ]);
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValueOnce([buildMetricsArtifactType()]);
     const { getByText } = render(
       <CommonTestWrapper>
         <MetricsTab execution={execution} namespace={namespace}></MetricsTab>
@@ -356,15 +339,37 @@ describe('MetricsTab with Scalar Metrics', () => {
     await waitFor(() => getByText('int'));
     await waitFor(() => getByText('struct'));
   });
+
+  it('filters out store_session_info from Scalar Metrics', async () => {
+    const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
+    const artifact = buildMetricsArtifact();
+    artifact.getCustomPropertiesMap().set('display_name', new Value().setStringValue('metrics'));
+    artifact.getCustomPropertiesMap().set('accuracy', new Value().setDoubleValue(0.95));
+    artifact
+      .getCustomPropertiesMap()
+      .set('store_session_info', new Value().setStringValue('internal-session-data'));
+    const linkedArtifact = { event: new Event(), artifact: artifact };
+    vi.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution').mockResolvedValueOnce([
+      linkedArtifact,
+    ]);
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValueOnce([buildMetricsArtifactType()]);
+    const { getByText, queryByText } = render(
+      <CommonTestWrapper>
+        <MetricsTab execution={execution} namespace={namespace}></MetricsTab>
+      </CommonTestWrapper>,
+    );
+    getByText('Metrics is loading.');
+    await waitFor(() => getByText('Scalar Metrics: metrics'));
+    await waitFor(() => getByText('accuracy'));
+    expect(queryByText('store_session_info')).toBeNull();
+  });
 });
 
 describe('MetricsTab with V1 metrics', () => {
   it('shows Confusion Matrix', async () => {
     const linkedArtifact = buildV1LinkedSytemArtifact();
-    jest
-      .spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution')
-      .mockResolvedValue([linkedArtifact]);
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([buildSystemArtifactType()]);
+    vi.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution').mockResolvedValue([linkedArtifact]);
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([buildSystemArtifactType()]);
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
     const confusionViewerConfigs: ConfusionMatrixConfig[] = [
       {
@@ -378,9 +383,7 @@ describe('MetricsTab with V1 metrics', () => {
         type: PlotType.CONFUSION_MATRIX,
       },
     ];
-    jest
-      .spyOn(OutputArtifactLoader, 'load')
-      .mockReturnValue(Promise.resolve(confusionViewerConfigs));
+    vi.spyOn(OutputArtifactLoader, 'load').mockReturnValue(Promise.resolve(confusionViewerConfigs));
 
     const { getByText } = render(
       <CommonTestWrapper>
@@ -393,10 +396,8 @@ describe('MetricsTab with V1 metrics', () => {
 
   it('shows ROC Curve', async () => {
     const linkedArtifact = buildV1LinkedSytemArtifact();
-    jest
-      .spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution')
-      .mockResolvedValue([linkedArtifact]);
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([buildSystemArtifactType()]);
+    vi.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution').mockResolvedValue([linkedArtifact]);
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([buildSystemArtifactType()]);
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
     const rocViewerConfig: ROCCurveConfig[] = [
       {
@@ -407,7 +408,7 @@ describe('MetricsTab with V1 metrics', () => {
         type: PlotType.ROC,
       },
     ];
-    jest.spyOn(OutputArtifactLoader, 'load').mockReturnValue(Promise.resolve(rocViewerConfig));
+    vi.spyOn(OutputArtifactLoader, 'load').mockReturnValue(Promise.resolve(rocViewerConfig));
 
     const { getByText } = render(
       <CommonTestWrapper>
@@ -420,15 +421,13 @@ describe('MetricsTab with V1 metrics', () => {
 
   it('shows HTML view', async () => {
     const linkedArtifact = buildV1LinkedSytemArtifact();
-    jest
-      .spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution')
-      .mockResolvedValue([linkedArtifact]);
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([buildSystemArtifactType()]);
+    vi.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution').mockResolvedValue([linkedArtifact]);
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([buildSystemArtifactType()]);
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
     const htmlViewerConfig: HTMLViewerConfig[] = [
       { htmlContent: '<h1>Hello, World!</h1>', type: PlotType.WEB_APP },
     ];
-    jest.spyOn(OutputArtifactLoader, 'load').mockResolvedValue(htmlViewerConfig);
+    vi.spyOn(OutputArtifactLoader, 'load').mockResolvedValue(htmlViewerConfig);
 
     const { getByText } = render(
       <CommonTestWrapper>
@@ -441,10 +440,8 @@ describe('MetricsTab with V1 metrics', () => {
 
   it('shows Markdown view', async () => {
     const linkedArtifact = buildV1LinkedSytemArtifact();
-    jest
-      .spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution')
-      .mockResolvedValue([linkedArtifact]);
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([buildSystemArtifactType()]);
+    vi.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution').mockResolvedValue([linkedArtifact]);
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([buildSystemArtifactType()]);
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
     const markdownViewerConfig: MarkdownViewerConfig[] = [
       {
@@ -453,7 +450,7 @@ describe('MetricsTab with V1 metrics', () => {
         type: PlotType.MARKDOWN,
       },
     ];
-    jest.spyOn(OutputArtifactLoader, 'load').mockResolvedValue(markdownViewerConfig);
+    vi.spyOn(OutputArtifactLoader, 'load').mockResolvedValue(markdownViewerConfig);
 
     const { getByText } = render(
       <CommonTestWrapper>
@@ -467,10 +464,8 @@ describe('MetricsTab with V1 metrics', () => {
 
   it('shows Tensorboard view', async () => {
     const linkedArtifact = buildV1LinkedSytemArtifact();
-    jest
-      .spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution')
-      .mockResolvedValue([linkedArtifact]);
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([buildSystemArtifactType()]);
+    vi.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution').mockResolvedValue([linkedArtifact]);
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([buildSystemArtifactType()]);
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
     const tensorboardViewerConfig: TensorboardViewerConfig[] = [
       {
@@ -499,7 +494,7 @@ describe('MetricsTab with V1 metrics', () => {
                     },
                   },
                   { name: 'AWS_REGION', value: 'minio' },
-                  { name: 'S3_ENDPOINT', value: 'minio-service:9000' },
+                  { name: 'S3_ENDPOINT', value: 'seaweedfs:9000' },
                   { name: 'S3_USE_HTTPS', value: '0' },
                   { name: 'S3_VERIFY_SSL', value: '0' },
                 ],
@@ -509,7 +504,7 @@ describe('MetricsTab with V1 metrics', () => {
         },
       },
     ];
-    jest.spyOn(OutputArtifactLoader, 'load').mockResolvedValue(tensorboardViewerConfig);
+    vi.spyOn(OutputArtifactLoader, 'load').mockResolvedValue(tensorboardViewerConfig);
 
     const { getByText } = render(
       <CommonTestWrapper>

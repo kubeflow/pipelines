@@ -14,31 +14,72 @@ def parse_minor(version: str) -> str:
     return match.group(1)
 
 
-def _extract_argo_versions_from_e2e(e2e_yaml_text: str) -> List[str]:
+def _append_argo_version(versions: List[str], value: object) -> None:
+    if isinstance(value, str) and value:
+        versions.append(value)
+    elif isinstance(value, list):
+        versions.extend(
+            version for version in value if isinstance(version, str) and version
+        )
+
+
+def _collect_argo_versions(value: object, versions: List[str]) -> None:
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if key == 'argo_version':
+                _append_argo_version(versions, child)
+                continue
+            _collect_argo_versions(child, versions)
+    elif isinstance(value, list):
+        for child in value:
+            _collect_argo_versions(child, versions)
+
+
+def _extract_argo_versions_from_workflow(workflow_yaml_text: str) -> List[str]:
     yaml = YAML(typ='safe')
-    data = yaml.load(e2e_yaml_text) or {}
+    data = yaml.load(workflow_yaml_text) or {}
+
+    versions: List[str] = []
     jobs = data.get('jobs') or {}
-    return jobs.get('end-to-end-scenario-tests', {}).get('strategy', {}).get('matrix', {}).get('argo_version',[])
+    if not isinstance(jobs, dict):
+        return versions
+
+    for job in jobs.values():
+        if not isinstance(job, dict):
+            continue
+        strategy = job.get('strategy') or {}
+        if not isinstance(strategy, dict):
+            continue
+        matrix = strategy.get('matrix') or {}
+        _collect_argo_versions(matrix, versions)
+
+    return versions
 
 
 def main() -> int:
     repo_root = Path('.')
-    e2e_path = repo_root / '.github' / 'workflows' / 'e2e-test.yml'
+    workflow_paths = [
+        repo_root / '.github' / 'workflows' / 'e2e-test.yml',
+        repo_root / '.github' / 'workflows' / 'api-server-tests.yml',
+    ]
     version_path = repo_root / 'third_party' / 'argo' / 'VERSION'
     readme_path = repo_root / 'README.md'
 
-    # Extract argo versions from e2e workflow (drop patch)
-    try:
-        e2e_content = e2e_path.read_text(encoding='utf-8')
-    except Exception as exc:
-        print(f'ERROR: Failed to read {e2e_path}: {exc}', file=sys.stderr)
-        return 1
+    # Extract argo versions from compatibility workflows (drop patch later).
+    argo_versions: List[str] = []
+    for workflow_path in workflow_paths:
+        try:
+            workflow_content = workflow_path.read_text(encoding='utf-8')
+        except Exception as exc:
+            print(f'ERROR: Failed to read {workflow_path}: {exc}', file=sys.stderr)
+            return 1
 
-    argo_versions = _extract_argo_versions_from_e2e(e2e_content)
+        workflow_versions = _extract_argo_versions_from_workflow(workflow_content)
+        if not workflow_versions:
+            print(f'ERROR: No argo_version found in {workflow_path}', file=sys.stderr)
+            return 1
 
-    if not argo_versions or not isinstance(argo_versions, list):
-        print('ERROR: No argo_version found in .github/workflows/e2e-test.yml', file=sys.stderr)
-        return 1
+        argo_versions.extend(workflow_versions)
 
     # Read VERSION and derive minor
     try:
@@ -86,5 +127,3 @@ def main() -> int:
 
 if __name__ == '__main__':
     sys.exit(main())
-
-

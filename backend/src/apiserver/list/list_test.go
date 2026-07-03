@@ -15,6 +15,7 @@
 package list
 
 import (
+	"encoding/base64"
 	"fmt"
 	"math"
 	"reflect"
@@ -66,14 +67,14 @@ func (f *fakeListable) GetModelName() string {
 	return ""
 }
 
-func (f *fakeListable) GetField(name string) (string, bool) {
+func (f *fakeListable) GetField(name string) (string, string, bool) {
 	if field, ok := fakeAPIToModelMap[name]; ok {
-		return field, true
+		return field, field, true
 	}
 	if strings.HasPrefix(name, "metric:") {
-		return name[7:], true
+		return name[7:], model.MetricSortSQLAlias, true
 	}
-	return "", false
+	return "", "", false
 }
 
 func (f *fakeListable) GetFieldValue(name string) interface{} {
@@ -298,6 +299,31 @@ func TestNewOptionsFromToken_FromInValidSerializedToken(t *testing.T) {
 	}
 }
 
+func TestNewOptionsFromToken_MaliciousFilterKey(t *testing.T) {
+	// Simulate a forged pageToken with a malicious filter key containing SQL injection.
+	// The filter key bypasses NewWithKeyMap's allowlist and reaches SQL construction directly.
+	tests := []struct {
+		name      string
+		filterKey string
+	}{
+		{"sql injection in EQ key", `pipelines.Name) OR 1=1 --`},
+		{"semicolon injection", `Name; DROP TABLE pipelines--`},
+		{"unqualified injection", `Name) OR 1=1`},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			raw := fmt.Sprintf(`{"KeyFieldName":"ID","SortByFieldName":"Name","Filter":{"EQ":{%q:[]}}}`, test.filterKey)
+			token := base64.StdEncoding.EncodeToString([]byte(raw))
+			got, err := NewOptionsFromToken(token, 10)
+			if err == nil {
+				t.Errorf("NewOptionsFromToken with malicious filter key %q =\nGot: %+v, <nil>\nWant: _, error",
+					test.filterKey, got)
+			}
+		})
+	}
+}
+
 func TestNewOptionsFromToken_FromInValidPageSize(t *testing.T) {
 	tok := &token{
 		SortByFieldName:   "SortField",
@@ -335,6 +361,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 					KeyFieldName:      "PrimaryKey",
 					KeyFieldPrefix:    "",
 					SortByFieldName:   "CreatedTimestamp",
+					SortBySQLColumn:   "CreatedTimestamp",
 					SortByFieldPrefix: "",
 					IsDesc:            false,
 				},
@@ -348,6 +375,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 					KeyFieldName:      "PrimaryKey",
 					KeyFieldPrefix:    "",
 					SortByFieldName:   "CreatedTimestamp",
+					SortBySQLColumn:   "CreatedTimestamp",
 					SortByFieldPrefix: "",
 					IsDesc:            false,
 				},
@@ -361,6 +389,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 					KeyFieldName:      "PrimaryKey",
 					KeyFieldPrefix:    "",
 					SortByFieldName:   "FakeName",
+					SortBySQLColumn:   "FakeName",
 					SortByFieldPrefix: "",
 					IsDesc:            false,
 				},
@@ -374,6 +403,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 					KeyFieldName:      "PrimaryKey",
 					KeyFieldPrefix:    "",
 					SortByFieldName:   "FakeName",
+					SortBySQLColumn:   "FakeName",
 					SortByFieldPrefix: "",
 					IsDesc:            false,
 				},
@@ -387,6 +417,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 					KeyFieldName:      "PrimaryKey",
 					KeyFieldPrefix:    "",
 					SortByFieldName:   "FakeName",
+					SortBySQLColumn:   "FakeName",
 					SortByFieldPrefix: "",
 					IsDesc:            true,
 				},
@@ -400,6 +431,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 					KeyFieldName:      "PrimaryKey",
 					KeyFieldPrefix:    "",
 					SortByFieldName:   "PrimaryKey",
+					SortBySQLColumn:   "PrimaryKey",
 					SortByFieldPrefix: "",
 					IsDesc:            true,
 				},
@@ -477,6 +509,7 @@ func TestNewOptions_ValidFilter(t *testing.T) {
 			KeyFieldName:      "PrimaryKey",
 			KeyFieldPrefix:    "",
 			SortByFieldName:   "CreatedTimestamp",
+			SortBySQLColumn:   "CreatedTimestamp",
 			SortByFieldPrefix: "",
 			IsDesc:            false,
 			Filter:            f,
@@ -546,6 +579,7 @@ func TestNewOptions_ModelFilter(t *testing.T) {
 		token: &token{
 			KeyFieldName:    "UUID",
 			SortByFieldName: "DisplayName",
+			SortBySQLColumn: "DisplayName",
 			IsDesc:          false,
 			Filter:          f,
 		},
@@ -588,6 +622,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 				PageSize: 123,
 				token: &token{
 					SortByFieldName:   "SortField",
+					SortBySQLColumn:   "SortField",
 					SortByFieldValue:  "value",
 					SortByFieldPrefix: "",
 					KeyFieldName:      "KeyField",
@@ -604,6 +639,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 				PageSize: 123,
 				token: &token{
 					SortByFieldName:   "SortField",
+					SortBySQLColumn:   "SortField",
 					SortByFieldValue:  "value",
 					SortByFieldPrefix: "",
 					KeyFieldName:      "KeyField",
@@ -620,6 +656,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 				PageSize: 123,
 				token: &token{
 					SortByFieldName:   "SortField",
+					SortBySQLColumn:   "SortField",
 					SortByFieldValue:  "value",
 					SortByFieldPrefix: "",
 					KeyFieldName:      "KeyField",
@@ -637,6 +674,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 				PageSize: 123,
 				token: &token{
 					SortByFieldName:   "SortField",
+					SortBySQLColumn:   "SortField",
 					SortByFieldPrefix: "",
 					KeyFieldName:      "KeyField",
 					KeyFieldPrefix:    "",
@@ -657,6 +695,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 				PageSize: 123,
 				token: &token{
 					SortByFieldName:   "SortField",
+					SortBySQLColumn:   "SortField",
 					SortByFieldValue:  "value",
 					SortByFieldPrefix: "",
 					KeyFieldName:      "KeyField",
@@ -672,6 +711,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 				PageSize: 123,
 				token: &token{
 					SortByFieldName:   "SortField",
+					SortBySQLColumn:   "SortField",
 					SortByFieldValue:  "value",
 					SortByFieldPrefix: "",
 					KeyFieldName:      "KeyField",

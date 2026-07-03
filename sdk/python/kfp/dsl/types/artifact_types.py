@@ -187,6 +187,10 @@ class Model(Artifact):
 
         return self._get_path()
 
+    @path.setter
+    def path(self, path: str) -> None:
+        self._set_path(path)
+
     @framework.setter
     def framework(self, framework: str) -> None:
         self._set_framework(framework)

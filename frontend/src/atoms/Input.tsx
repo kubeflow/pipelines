@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import TextField, { OutlinedTextFieldProps } from '@material-ui/core/TextField';
+import { OutlinedTextFieldProps } from '@mui/material/TextField';
 import { commonCss } from '../Css';
+
+import { TextField } from '@mui/material';
 
 interface InputProps extends OutlinedTextFieldProps {
   height?: number | string;
@@ -32,7 +33,7 @@ const Input = (props: InputProps) => {
       className={commonCss.textField}
       spellCheck={false}
       style={{
-        height: !!props.multiline ? 'auto' : height || 40,
+        height: props.multiline ? 'auto' : height || 40,
         maxWidth: maxWidth || 600,
         width: width || '100%',
       }}

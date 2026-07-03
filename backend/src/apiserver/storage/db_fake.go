@@ -29,18 +29,7 @@ func NewFakeDB() (*DB, error) {
 		return nil, util.Wrap(err, "Could not create the GORM database")
 	}
 	// Create tables
-	if err := dbInstance.AutoMigrate(
-		&model.Experiment{},
-		&model.Job{},
-		&model.Pipeline{},
-		&model.PipelineVersion{},
-		&model.ResourceReference{},
-		&model.Run{},
-		&model.RunMetric{},
-		&model.Task{},
-		&model.DBStatus{},
-		&model.DefaultExperiment{},
-	); err != nil {
+	if err := dbInstance.AutoMigrate(model.AllModels()...); err != nil {
 		return nil, util.Wrap(err, "Failed to automigrate models")
 	}
 

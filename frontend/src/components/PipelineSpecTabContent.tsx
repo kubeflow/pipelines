@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-import jsyaml from 'js-yaml';
-import React from 'react';
+import { dump, load } from 'js-yaml';
 import { isSafari } from 'src/lib/Utils';
 import Editor from './Editor';
 
@@ -28,13 +27,13 @@ const editorHeightWidth = isSafari() ? '640px' : '100%';
 export function PipelineSpecTabContent(props: PipelineSpecTabContentProps) {
   return (
     <Editor
-      value={jsyaml.safeDump(jsyaml.safeLoad(props.templateString || ''))}
+      value={dump(load(props.templateString || ''))}
       // Render the yaml-formatted string in <PipelineSpecTabContent>
       // V1(JSON-formatted):
-      //    safeLoad() convert templateString to object first,
-      //    safeDump() changes the object to yaml-formatted string
+      //    load() converts templateString to an object first,
+      //    dump() changes the object to a yaml-formatted string
       // V2(YAML-formatted):
-      //    Still yaml format after safeLoad() and safeDump().
+      //    Still yaml format after load() and dump().
       height={editorHeightWidth}
       width={editorHeightWidth}
       mode='yaml'

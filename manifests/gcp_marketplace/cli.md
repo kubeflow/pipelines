@@ -108,7 +108,7 @@ export APP_INSTANCE_NAME=kubeflow-pipelines-app
 export NAMESPACE=<namespace>
 ```
 
-Creat the namespace
+Create the namespace
 ```shell
 kubectl create namespace $NAMESPACE
 ```

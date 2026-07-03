@@ -123,12 +123,12 @@ func deserializePageToken(pageToken string) (*common.Token, error) {
 	}
 	tokenBytes, err := base64.StdEncoding.DecodeString(pageToken)
 	if err != nil {
-		return nil, util.NewInvalidInputErrorWithDetails(err, "Invalid package token")
+		return nil, util.NewInvalidInputErrorWithDetails(err, "Invalid page token")
 	}
 	var token common.Token
 	err = json.Unmarshal(tokenBytes, &token)
 	if err != nil {
-		return nil, util.NewInvalidInputErrorWithDetails(err, "Invalid package token")
+		return nil, util.NewInvalidInputErrorWithDetails(err, "Invalid page token")
 	}
 	return &token, nil
 }

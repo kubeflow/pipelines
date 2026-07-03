@@ -20,4 +20,5 @@ export {
   PlatformSpec,
   PipelineDeploymentConfig,
   PipelineDeploymentConfig_ExecutorSpec,
+  ParameterType_ParameterTypeEnum,
 } from './pipeline_spec';

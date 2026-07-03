@@ -101,11 +101,11 @@ var taskAPIToModelFieldMap = map[string]string{
 	"finished_at":     "FinishedTimestamp", // v1beta1 API
 }
 
-func (t Task) GetField(name string) (string, bool) {
+func (t Task) GetField(name string) (string, string, bool) {
 	if field, ok := taskAPIToModelFieldMap[name]; ok {
-		return field, true
+		return field, field, true
 	}
-	return "", false
+	return "", "", false
 }
 
 func (t Task) GetFieldValue(name string) interface{} {

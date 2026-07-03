@@ -16,6 +16,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 
 	"google.golang.org/protobuf/types/known/emptypb"
 
@@ -460,7 +461,6 @@ func (s *RunServerV1) ReportRunMetricsV1(ctx context.Context, request *apiv1beta
 	return &apiv1beta1.ReportRunMetricsResponse{Results: apiResults}, nil
 }
 
-
 // Terminates a run.
 // Applies common logic on v1beta1 and v2beta1 API.
 func (s *BaseRunServer) terminateRun(ctx context.Context, runId string) error {
@@ -514,6 +514,14 @@ func (s *RunServerV1) RetryRunV1(ctx context.Context, request *apiv1beta1.RetryR
 func (s *RunServer) CreateRun(ctx context.Context, request *apiv2beta1.CreateRunRequest) (*apiv2beta1.Run, error) {
 	if s.options.CollectMetrics {
 		createRunRequests.Inc()
+	}
+
+	// plugins_output is server-owned; reject requests that attempt to set it.
+	if request.GetRun() != nil && request.GetRun().PluginsOutput != nil {
+		return nil, util.NewBadRequestError(
+			fmt.Errorf("plugins_output must not be set by the client"),
+			"plugins_output is server-owned and populated exclusively via plugin lifecycle hooks",
+		)
 	}
 
 	modelRun, err := toModelRun(request.GetRun())
@@ -604,7 +612,6 @@ func (s *RunServer) DeleteRun(ctx context.Context, request *apiv2beta1.DeleteRun
 	}
 	return &emptypb.Empty{}, nil
 }
-
 
 // Terminates a run.
 // Supports v2beta1 behavior.

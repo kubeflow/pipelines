@@ -23,7 +23,10 @@ interface BuildInfoProviderState {
 }
 
 export const BuildInfoContext = React.createContext<BuildInfo | undefined>(undefined);
-export class BuildInfoProvider extends React.Component<{}, BuildInfoProviderState> {
+export class BuildInfoProvider extends React.Component<
+  React.PropsWithChildren,
+  BuildInfoProviderState
+> {
   state = {
     buildInfo: undefined,
   };

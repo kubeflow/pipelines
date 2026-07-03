@@ -315,10 +315,12 @@ type RunDetails struct {
 	// varchar(125) is carefully chosen to ensure composite index constraints remain
 	// within MySQL's 767-byte limit (e.g., when combined with ExperimentId and FinishedAtInSec).
 	// For details on type lengths and index safety, refer to comments in the Pipeline struct.
-	Conditions         string           `gorm:"column:Conditions; type:varchar(125); not null;  index:experimentuuid_conditions_finishedatinsec,priority:2;index:namespace_conditions_finishedatinsec,priority:2"`
-	State              RuntimeState     `gorm:"column:State; default:null;"`
-	StateHistoryString LargeText        `gorm:"column:StateHistory; default:null;"`
-	StateHistory       []*RuntimeStatus `gorm:"-;"`
+	Conditions          string           `gorm:"column:Conditions; type:varchar(125); not null;  index:experimentuuid_conditions_finishedatinsec,priority:2;index:namespace_conditions_finishedatinsec,priority:2"`
+	State               RuntimeState     `gorm:"column:State; default:null;"`
+	StateHistoryString  LargeText        `gorm:"column:StateHistory; default:null;"`
+	StateHistory        []*RuntimeStatus `gorm:"-;"`
+	PluginsInputString  *LargeText       `gorm:"column:PluginsInput; default:null;"`
+	PluginsOutputString *LargeText       `gorm:"column:PluginsOutput; default:null;"`
 	// Serialized runtime details of a run in v2beta1
 	PipelineRuntimeManifest LargeText `gorm:"column:PipelineRuntimeManifest; not null;"`
 	// Serialized Argo CRD in v1beta1
@@ -396,14 +398,19 @@ func (r *Run) GetModelName() string {
 	return ""
 }
 
-func (r *Run) GetField(name string) (string, bool) {
+// MetricSortSQLAlias is the fixed SQL column alias used when sorting runs by a
+// metric value. Using a constant prevents user-supplied metric names from ever
+// appearing as SQL identifiers.
+const MetricSortSQLAlias = "sort_metric_value"
+
+func (r *Run) GetField(name string) (string, string, bool) {
 	if field, ok := runAPIToModelFieldMap[name]; ok {
-		return field, true
+		return field, field, true
 	}
 	if strings.HasPrefix(name, "metric:") {
-		return name[7:], true
+		return name[7:], MetricSortSQLAlias, true
 	}
-	return "", false
+	return "", "", false
 }
 
 func (r *Run) GetFieldValue(name string) interface{} {

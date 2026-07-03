@@ -14,20 +14,69 @@
  * limitations under the License.
  */
 
-import { render, screen, fireEvent } from '@testing-library/react';
 import * as React from 'react';
-import CustomTable, { Column, ExpandState, Row, css } from './CustomTable';
-import TestUtils from '../TestUtils';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { vi } from 'vitest';
+import CustomTable, { Column, ExpandState, Row } from './CustomTable';
+import TestUtils, { flushPromisesInAct, invokeAndFlush } from '../TestUtils';
 import { V2beta1PredicateOperation } from '../apisv2beta1/filter';
-import { shallow } from 'enzyme';
+import { logger } from 'src/lib/Utils';
 
-const props = {
+type CustomTableProps = React.ComponentProps<typeof CustomTable>;
+
+type CustomTableState = CustomTable['state'];
+
+class CustomTableTest extends CustomTable {
+  public _requestFilter(filterString?: string): Promise<void> {
+    return super._requestFilter(filterString);
+  }
+}
+
+class CustomTableWrapper {
+  private readonly _instanceHolder: { current: CustomTableTest | null };
+  private _renderResult: ReturnType<typeof render>;
+
+  public constructor(
+    instanceHolder: { current: CustomTableTest | null },
+    renderResult: ReturnType<typeof render>,
+  ) {
+    this._instanceHolder = instanceHolder;
+    this._renderResult = renderResult;
+  }
+
+  public instance(): CustomTableTest {
+    const instance = this._instanceHolder.current;
+    if (!instance) {
+      throw new Error('CustomTable instance not available');
+    }
+    return instance;
+  }
+
+  public state<K extends keyof CustomTableState>(key?: K): CustomTableState | CustomTableState[K] {
+    const state = this.instance().state;
+    return key ? state[key] : state;
+  }
+
+  public rerender(props: CustomTableProps): void {
+    const setTableRef = (instance: CustomTableTest | null): void => {
+      this._instanceHolder.current = instance;
+    };
+    this._renderResult.rerender(<CustomTableTest ref={setTableRef} {...props} />);
+  }
+
+  public unmount(): void {
+    this._renderResult.unmount();
+  }
+
+  public renderResult(): ReturnType<typeof render> {
+    return this._renderResult;
+  }
+}
+
+const baseProps: CustomTableProps = {
   columns: [],
-  orderAscending: true,
-  pageSize: 10,
-  reload: () => '' as any,
+  reload: async () => '',
   rows: [],
-  sortBy: 'asd',
 };
 
 const columns: Column[] = [
@@ -52,103 +101,140 @@ const rows: Row[] = [
   },
 ];
 
-// tslint:disable-next-line:no-console
-const consoleErrorBackup = console.error;
-let consoleSpy: jest.Mock;
-
-class CustomTableTest extends CustomTable {
-  public _requestFilter(filterString?: string): Promise<void> {
-    return super._requestFilter(filterString);
+function renderTable(overrides: Partial<CustomTableProps> = {}): CustomTableWrapper {
+  const props = { ...baseProps, ...overrides } as CustomTableProps;
+  const instanceHolder: { current: CustomTableTest | null } = { current: null };
+  const setTableRef = (instance: CustomTableTest | null): void => {
+    instanceHolder.current = instance;
+  };
+  const renderResult = render(<CustomTableTest ref={setTableRef} {...props} />);
+  if (!instanceHolder.current) {
+    throw new Error('CustomTable instance not available');
   }
+  return new CustomTableWrapper(instanceHolder, renderResult);
+}
+
+function getHeaderCheckbox(): HTMLElement {
+  const wrapper = screen.getByTestId('select-all-checkbox');
+  return within(wrapper).getByRole('checkbox');
+}
+
+function getRowsPerPageCombobox(): HTMLElement {
+  const footer = screen.getByText('Rows per page:').closest('div');
+  if (!footer) {
+    throw new Error('Unable to locate table footer containing the rows-per-page selector');
+  }
+  return within(footer).getByRole('combobox');
+}
+
+async function selectRowsPerPage(pageSize: number): Promise<void> {
+  await act(async () => {
+    fireEvent.mouseDown(getRowsPerPageCombobox());
+  });
+  const option = await screen.findByRole('option', { name: String(pageSize) });
+  await act(async () => {
+    fireEvent.click(option);
+    await TestUtils.flushPromises();
+  });
 }
 
 describe('CustomTable', () => {
-  beforeAll(() => {
-    consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => null);
-  });
-
-  afterAll(() => {
-    // tslint:disable-next-line:no-console
-    console.error = consoleErrorBackup;
+  beforeEach(() => {
+    vi.useRealTimers();
+    localStorage.clear();
   });
 
   it('renders with default filter label', async () => {
-    const tree = shallow(<CustomTable {...props} />);
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    const wrapper = renderTable();
+    await flushPromisesInAct();
+    expect(screen.getByLabelText('Filter')).toBeInTheDocument();
+    wrapper.unmount();
   });
 
   it('renders with provided filter label', async () => {
-    const tree = shallow(<CustomTable {...props} filterLabel='test filter label' />);
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    const wrapper = renderTable({ filterLabel: 'test filter label' });
+    await flushPromisesInAct();
+    expect(screen.getByLabelText('test filter label')).toBeInTheDocument();
+    wrapper.unmount();
   });
 
   it('renders without filter box', async () => {
-    const tree = shallow(<CustomTable {...props} noFilterBox={true} />);
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    const wrapper = renderTable({ noFilterBox: true });
+    await flushPromisesInAct();
+    expect(screen.queryByLabelText('Filter')).toBeNull();
+    wrapper.unmount();
   });
 
   it('renders without rows or columns', async () => {
-    const tree = shallow(<CustomTable {...props} />);
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    const wrapper = renderTable();
+    await flushPromisesInAct();
+    expect(screen.queryAllByTestId('table-row')).toHaveLength(0);
+    wrapper.unmount();
   });
 
   it('renders empty message on no rows', async () => {
-    const tree = shallow(<CustomTable {...props} emptyMessage='test empty message' />);
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    const wrapper = renderTable({ emptyMessage: 'test empty message' });
+    await flushPromisesInAct();
+    expect(screen.getByText('test empty message')).toBeInTheDocument();
+    wrapper.unmount();
   });
 
   it('renders some columns with equal widths without rows', async () => {
-    const tree = shallow(
-      <CustomTable {...props} columns={[{ label: 'col1' }, { label: 'col2' }]} />,
-    );
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    const wrapper = renderTable({ columns: [{ label: 'col1' }, { label: 'col2' }] });
+    await flushPromisesInAct();
+    const col1 = screen.getByText('col1').closest('div[style]');
+    const col2 = screen.getByText('col2').closest('div[style]');
+    expect(col1).toHaveStyle({ width: '50%' });
+    expect(col2).toHaveStyle({ width: '50%' });
+    wrapper.unmount();
   });
 
   it('renders without the checkboxes if disableSelection is true', async () => {
-    const tree = shallow(
-      <CustomTable {...props} rows={rows} columns={columns} disableSelection={true} />,
-    );
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    const wrapper = renderTable({ rows, columns, disableSelection: true });
+    await flushPromisesInAct();
+    expect(screen.queryByTestId('select-all-checkbox')).toBeNull();
+    wrapper.unmount();
   });
 
   it('renders some columns with descending sort order on first column', async () => {
-    const tree = shallow(
-      <CustomTable
-        {...props}
-        initialSortOrder='desc'
-        columns={[{ label: 'col1', sortKey: 'col1sortkey' }, { label: 'col2' }]}
-      />,
-    );
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    const wrapper = renderTable({
+      columns: [{ label: 'col1', sortKey: 'col1sortkey' }, { label: 'col2' }],
+      initialSortOrder: 'desc',
+    });
+    await flushPromisesInAct();
+    const col1Label = screen.getByText('col1');
+    expect(col1Label.closest('.MuiTableSortLabel-root')).toHaveClass('Mui-active');
+    const sortIcon = document.querySelector('.MuiTableSortLabel-icon');
+    expect(sortIcon).not.toBeNull();
+    expect(sortIcon).toHaveClass('MuiTableSortLabel-iconDirectionDesc');
+    wrapper.unmount();
   });
 
   it('renders columns with specified widths', async () => {
-    const testcolumns = [
-      {
-        flex: 3,
-        label: 'col1',
-      },
-      {
-        flex: 1,
-        label: 'col2',
-      },
-    ];
-    const tree = shallow(<CustomTable {...props} columns={testcolumns} />);
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    const wrapper = renderTable({
+      columns: [
+        {
+          flex: 3,
+          label: 'col1',
+        },
+        {
+          flex: 1,
+          label: 'col2',
+        },
+      ],
+    });
+    await flushPromisesInAct();
+    const col1 = screen.getByText('col1').closest('div[style]');
+    const col2 = screen.getByText('col2').closest('div[style]');
+    expect(col1).toHaveStyle({ width: '75%' });
+    expect(col2).toHaveStyle({ width: '25%' });
+    wrapper.unmount();
   });
 
-  it('calls reload function with an empty page token to get rows', () => {
-    const reload = jest.fn();
-    shallow(<CustomTable {...props} reload={reload} />);
+  it('calls reload function with an empty page token to get rows', async () => {
+    const reload = vi.fn(async () => '');
+    renderTable({ reload });
+    await waitFor(() => expect(reload).toHaveBeenCalled());
     expect(reload).toHaveBeenLastCalledWith({
       filter: '',
       orderAscending: false,
@@ -158,8 +244,8 @@ describe('CustomTable', () => {
     });
   });
 
-  it('calls reload function with sort key of clicked column, while keeping same page', () => {
-    const testcolumns = [
+  it('calls reload function with sort key of clicked column, while keeping same page', async () => {
+    const testColumns = [
       {
         flex: 3,
         label: 'col1',
@@ -171,8 +257,9 @@ describe('CustomTable', () => {
         sortKey: 'col2sortkey',
       },
     ];
-    const reload = jest.fn();
-    const tree = shallow(<CustomTable {...props} reload={reload} columns={testcolumns} />);
+    const reload = vi.fn(async () => '');
+    renderTable({ columns: testColumns, reload });
+    await waitFor(() => expect(reload).toHaveBeenCalled());
     expect(reload).toHaveBeenLastCalledWith({
       filter: '',
       orderAscending: false,
@@ -181,21 +268,20 @@ describe('CustomTable', () => {
       sortBy: 'col1sortkey desc',
     });
 
-    tree
-      .find('WithStyles(TableSortLabel)')
-      .at(1)
-      .simulate('click');
-    expect(reload).toHaveBeenLastCalledWith({
-      filter: '',
-      orderAscending: true,
-      pageSize: 10,
-      pageToken: '',
-      sortBy: 'col2sortkey',
-    });
+    fireEvent.click(screen.getByText('col2'));
+    await waitFor(() =>
+      expect(reload).toHaveBeenLastCalledWith({
+        filter: '',
+        orderAscending: true,
+        pageSize: 10,
+        pageToken: '',
+        sortBy: 'col2sortkey',
+      }),
+    );
   });
 
-  it('calls reload function with same sort key in reverse order if same column is clicked twice', () => {
-    const testcolumns = [
+  it('calls reload function with same sort key in reverse order if same column is clicked twice', async () => {
+    const testColumns = [
       {
         flex: 3,
         label: 'col1',
@@ -207,8 +293,9 @@ describe('CustomTable', () => {
         sortKey: 'col2sortkey',
       },
     ];
-    const reload = jest.fn();
-    const tree = shallow(<CustomTable {...props} reload={reload} columns={testcolumns} />);
+    const reload = vi.fn(async () => '');
+    const wrapper = renderTable({ columns: testColumns, reload });
+    await waitFor(() => expect(reload).toHaveBeenCalled());
     expect(reload).toHaveBeenLastCalledWith({
       filter: '',
       orderAscending: false,
@@ -217,33 +304,32 @@ describe('CustomTable', () => {
       sortBy: 'col1sortkey desc',
     });
 
-    tree
-      .find('WithStyles(TableSortLabel)')
-      .at(1)
-      .simulate('click');
-    expect(reload).toHaveBeenLastCalledWith({
-      filter: '',
-      orderAscending: true,
-      pageSize: 10,
-      pageToken: '',
-      sortBy: 'col2sortkey',
-    });
-    tree.setProps({ sortBy: 'col1sortkey' });
-    tree
-      .find('WithStyles(TableSortLabel)')
-      .at(1)
-      .simulate('click');
-    expect(reload).toHaveBeenLastCalledWith({
-      filter: '',
-      orderAscending: false,
-      pageSize: 10,
-      pageToken: '',
-      sortBy: 'col2sortkey desc',
-    });
+    fireEvent.click(screen.getByText('col2'));
+    await waitFor(() =>
+      expect(reload).toHaveBeenLastCalledWith({
+        filter: '',
+        orderAscending: true,
+        pageSize: 10,
+        pageToken: '',
+        sortBy: 'col2sortkey',
+      }),
+    );
+
+    fireEvent.click(screen.getByText('col2'));
+    await waitFor(() =>
+      expect(reload).toHaveBeenLastCalledWith({
+        filter: '',
+        orderAscending: false,
+        pageSize: 10,
+        pageToken: '',
+        sortBy: 'col2sortkey desc',
+      }),
+    );
+    wrapper.unmount();
   });
 
-  it('does not call reload if clicked column has no sort key', () => {
-    const testcolumns = [
+  it('does not call reload if clicked column has no sort key', async () => {
+    const testColumns = [
       {
         flex: 3,
         label: 'col1',
@@ -253,286 +339,209 @@ describe('CustomTable', () => {
         label: 'col2',
       },
     ];
-    const reload = jest.fn();
-    const tree = shallow(<CustomTable {...props} reload={reload} columns={testcolumns} />);
-    expect(reload).toHaveBeenLastCalledWith({
-      filter: '',
-      orderAscending: false,
-      pageSize: 10,
-      pageToken: '',
-      sortBy: '',
-    });
+    const reload = vi.fn(async () => '');
+    renderTable({ columns: testColumns, reload });
+    await waitFor(() => expect(reload).toHaveBeenCalled());
+    const previousCallCount = reload.mock.calls.length;
+    fireEvent.click(screen.getByText('col1'));
+    expect(reload).toHaveBeenCalledTimes(previousCallCount);
+  });
 
-    tree
-      .find('WithStyles(TableSortLabel)')
-      .at(0)
-      .simulate('click');
-    expect(reload).toHaveBeenLastCalledWith({
-      filter: '',
-      orderAscending: false,
-      pageSize: 10,
-      pageToken: '',
-      sortBy: '',
+  it('does not render sort icon for columns without sort key', async () => {
+    renderTable({
+      columns: [{ label: 'sortable', sortKey: 'sortableKey' }, { label: 'unsortable' }],
+      rows,
     });
+    await flushPromisesInAct();
+
+    const sortableHeader = screen.getByText('sortable').closest('.MuiTableSortLabel-root');
+    const unsortableHeader = screen.getByText('unsortable').closest('.MuiTableSortLabel-root');
+
+    expect(sortableHeader?.querySelector('.MuiTableSortLabel-icon')).toBeTruthy();
+    expect(unsortableHeader?.querySelector('.MuiTableSortLabel-icon')).toBeNull();
   });
 
   it('logs error if row has more cells than columns', () => {
-    shallow(<CustomTable {...props} rows={rows} />);
-    expect(consoleSpy).toHaveBeenLastCalledWith(
+    const loggerSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
+    const wrapper = renderTable({ rows });
+    expect(loggerSpy).toHaveBeenCalledWith(
       'Rows must have the same number of cells defined in columns',
     );
+    wrapper.unmount();
+    loggerSpy.mockRestore();
   });
 
   it('logs error if row has fewer cells than columns', () => {
-    const testcolumns = [{ label: 'col1' }, { label: 'col2' }, { label: 'col3' }];
-    shallow(<CustomTable {...props} rows={rows} columns={testcolumns} />);
-    expect(consoleSpy).toHaveBeenLastCalledWith(
+    const loggerSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
+    const testColumns = [{ label: 'col1' }, { label: 'col2' }, { label: 'col3' }];
+    const wrapper = renderTable({ rows, columns: testColumns });
+    expect(loggerSpy).toHaveBeenCalledWith(
       'Rows must have the same number of cells defined in columns',
     );
+    wrapper.unmount();
+    loggerSpy.mockRestore();
   });
 
   it('renders some rows', async () => {
-    const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} />);
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
-  });
+    const wrapper = renderTable({ rows, columns });
+    await flushPromisesInAct();
+    expect(screen.getAllByTestId('table-row')).toHaveLength(2);
+    wrapper.unmount();
+  }, 20000);
 
-  it('starts out with no selected rows', () => {
-    const spy = jest.fn();
-    shallow(<CustomTable {...props} rows={rows} columns={columns} updateSelection={spy} />);
+  it('starts out with no selected rows', async () => {
+    const spy = vi.fn();
+    renderTable({ rows, columns, updateSelection: spy });
+    await flushPromisesInAct();
     expect(spy).not.toHaveBeenCalled();
   });
 
-  it('calls update selection callback when items are selected', () => {
-    const spy = jest.fn();
-    const tree = shallow(
-      <CustomTable {...props} rows={rows} columns={columns} updateSelection={spy} />,
-    );
-    tree
-      .find('.row')
-      .at(0)
-      .simulate('click', { stopPropagation: () => null });
+  it('calls update selection callback when items are selected', async () => {
+    const spy = vi.fn();
+    renderTable({ rows, columns, updateSelection: spy });
+    await flushPromisesInAct();
+    fireEvent.click(screen.getAllByTestId('table-row')[0]);
     expect(spy).toHaveBeenLastCalledWith(['row1']);
   });
 
-  it('does not add items to selection when multiple rows are clicked', () => {
-    // Keeping track of selection is the parent's job.
-    const spy = jest.fn();
-    const tree = shallow(
-      <CustomTable {...props} rows={rows} columns={columns} updateSelection={spy} />,
-    );
-    tree
-      .find('.row')
-      .at(0)
-      .simulate('click', { stopPropagation: () => null });
-    tree
-      .find('.row')
-      .at(1)
-      .simulate('click', { stopPropagation: () => null });
+  it('does not add items to selection when multiple rows are clicked', async () => {
+    const spy = vi.fn();
+    renderTable({ rows, columns, updateSelection: spy });
+    await flushPromisesInAct();
+    fireEvent.click(screen.getAllByTestId('table-row')[0]);
+    fireEvent.click(screen.getAllByTestId('table-row')[1]);
     expect(spy).toHaveBeenLastCalledWith(['row2']);
   });
 
-  it('passes both selectedIds and the newly selected row to updateSelection when a row is clicked', () => {
-    // Keeping track of selection is the parent's job.
+  it('passes both selectedIds and the newly selected row to updateSelection when a row is clicked', async () => {
     const selectedIds = ['previouslySelectedRow'];
-    const spy = jest.fn();
-    const tree = shallow(
-      <CustomTable
-        {...props}
-        selectedIds={selectedIds}
-        rows={rows}
-        columns={columns}
-        updateSelection={spy}
-      />,
-    );
-    tree
-      .find('.row')
-      .at(0)
-      .simulate('click', { stopPropagation: () => null });
+    const spy = vi.fn();
+    renderTable({ rows, columns, selectedIds, updateSelection: spy });
+    await flushPromisesInAct();
+    fireEvent.click(screen.getAllByTestId('table-row')[0]);
     expect(spy).toHaveBeenLastCalledWith(['previouslySelectedRow', 'row1']);
   });
 
-  it('does not call selectionCallback if disableSelection is true', () => {
-    const spy = jest.fn();
-    const tree = shallow(
-      <CustomTable
-        {...props}
-        rows={rows}
-        columns={columns}
-        updateSelection={spy}
-        disableSelection={true}
-      />,
-    );
-    tree
-      .find('.row')
-      .at(0)
-      .simulate('click', { stopPropagation: () => null });
-    tree
-      .find('.row')
-      .at(1)
-      .simulate('click', { stopPropagation: () => null });
+  it('does not call selectionCallback if disableSelection is true', async () => {
+    const spy = vi.fn();
+    renderTable({ rows, columns, updateSelection: spy, disableSelection: true });
+    await flushPromisesInAct();
+    fireEvent.click(screen.getAllByTestId('table-row')[0]);
+    fireEvent.click(screen.getAllByTestId('table-row')[1]);
     expect(spy).not.toHaveBeenCalled();
   });
 
-  it('handles no updateSelection method being passed', () => {
-    const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} />);
-    tree
-      .find('.row')
-      .at(0)
-      .simulate('click', { stopPropagation: () => null });
-    tree
-      .find('.columnName WithStyles(Checkbox)')
-      .at(0)
-      .simulate('change', {
-        target: { checked: true },
-      });
+  it('handles no updateSelection method being passed', async () => {
+    renderTable({ rows, columns });
+    await flushPromisesInAct();
+    fireEvent.click(screen.getAllByTestId('table-row')[0]);
+    const headerCheckbox = getHeaderCheckbox();
+    fireEvent.click(headerCheckbox);
   });
 
-  it('selects all items when head checkbox is clicked', () => {
-    const spy = jest.fn();
-    const tree = shallow(
-      <CustomTable {...props} rows={rows} columns={columns} updateSelection={spy} />,
-    );
-    tree
-      .find('.columnName WithStyles(Checkbox)')
-      .at(0)
-      .simulate('change', {
-        target: { checked: true },
-      });
+  it('selects all items when head checkbox is clicked', async () => {
+    const spy = vi.fn();
+    const wrapper = renderTable({ rows, columns, updateSelection: spy });
+    await flushPromisesInAct();
+    const headerCheckbox = getHeaderCheckbox();
+    fireEvent.click(headerCheckbox);
     expect(spy).toHaveBeenLastCalledWith(['row1', 'row2']);
+    wrapper.unmount();
   });
 
-  it('unselects all items when head checkbox is clicked and all items are selected', () => {
-    const spy = jest.fn();
-    const tree = shallow(
-      <CustomTable {...props} rows={rows} columns={columns} updateSelection={spy} />,
-    );
-    tree
-      .find('.columnName WithStyles(Checkbox)')
-      .at(0)
-      .simulate('change', {
-        target: { checked: true },
-      });
+  it('unselects all items when head checkbox is clicked and all items are selected', async () => {
+    const spy = vi.fn();
+    const wrapper = renderTable({ rows, columns, updateSelection: spy });
+    await flushPromisesInAct();
+    const headerCheckbox = getHeaderCheckbox();
+    fireEvent.click(headerCheckbox);
     expect(spy).toHaveBeenLastCalledWith(['row1', 'row2']);
-    tree
-      .find('.columnName WithStyles(Checkbox)')
-      .at(0)
-      .simulate('change', {
-        target: { checked: false },
-      });
+    wrapper.rerender({
+      ...baseProps,
+      rows,
+      columns,
+      updateSelection: spy,
+      selectedIds: ['row1', 'row2'],
+    });
+    const updatedHeaderCheckbox = getHeaderCheckbox();
+    fireEvent.click(updatedHeaderCheckbox);
     expect(spy).toHaveBeenLastCalledWith([]);
+    wrapper.unmount();
   });
 
-  it('selects all items if one item was checked then the head checkbox is clicked', () => {
-    const spy = jest.fn();
-    const tree = shallow(
-      <CustomTable {...props} rows={rows} columns={columns} updateSelection={spy} />,
-    );
-    tree
-      .find('.row')
-      .at(0)
-      .simulate('click', { stopPropagation: () => null });
-    tree
-      .find('.columnName WithStyles(Checkbox)')
-      .at(0)
-      .simulate('change', {
-        target: { checked: true },
-      });
+  it('selects all items if one item was checked then the head checkbox is clicked', async () => {
+    const spy = vi.fn();
+    const wrapper = renderTable({ rows, columns, updateSelection: spy });
+    await flushPromisesInAct();
+    fireEvent.click(screen.getAllByTestId('table-row')[0]);
+    const headerCheckbox = getHeaderCheckbox();
+    fireEvent.click(headerCheckbox);
     expect(spy).toHaveBeenLastCalledWith(['row1', 'row2']);
+    wrapper.unmount();
   });
 
-  it('deselects all other items if one item is selected in radio button mode', () => {
-    // Simulate that another row has already been selected. Just clicking another row first won't
-    // work here because the parent is where the selectedIds state is kept
+  it('deselects all other items if one item is selected in radio button mode', async () => {
     const selectedIds = ['previouslySelectedRow'];
-    const spy = jest.fn();
-    const tree = shallow(
-      <CustomTable
-        {...props}
-        useRadioButtons={true}
-        selectedIds={selectedIds}
-        rows={rows}
-        columns={columns}
-        updateSelection={spy}
-      />,
-    );
-    tree
-      .find('.row')
-      .at(0)
-      .simulate('click', { stopPropagation: () => null });
+    const spy = vi.fn();
+    renderTable({ rows, columns, useRadioButtons: true, selectedIds, updateSelection: spy });
+    await flushPromisesInAct();
+    fireEvent.click(screen.getAllByTestId('table-row')[0]);
     expect(spy).toHaveBeenLastCalledWith(['row1']);
   });
 
   it('disables previous and next page buttons if no next page token given', async () => {
     const reloadResult = Promise.resolve('');
-    const spy = () => reloadResult;
-    const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} reload={spy} />);
-    await TestUtils.flushPromises();
-    expect(tree.state()).toHaveProperty('maxPageIndex', 0);
-    expect(
-      tree
-        .find('WithStyles(IconButton)')
-        .at(0)
-        .prop('disabled'),
-    ).toBeTruthy();
-    expect(
-      tree
-        .find('WithStyles(IconButton)')
-        .at(1)
-        .prop('disabled'),
-    ).toBeTruthy();
+    const spy = vi.fn(() => reloadResult);
+    const wrapper = renderTable({ rows, columns, reload: spy });
+    await flushPromisesInAct();
+    expect(wrapper.state()).toHaveProperty('maxPageIndex', 0);
+    const prevBtn = screen.getByTestId('prev-page-btn');
+    const nextBtn = screen.getByTestId('next-page-btn');
+    expect(prevBtn).toBeDisabled();
+    expect(nextBtn).toBeDisabled();
+    wrapper.unmount();
   });
 
   it('enables next page button if next page token is given', async () => {
     const reloadResult = Promise.resolve('some token');
-    const spy = () => reloadResult;
-    const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} reload={spy} />);
-    await reloadResult;
-    expect(tree.state()).toHaveProperty('maxPageIndex', Number.MAX_SAFE_INTEGER);
-    expect(
-      tree
-        .find('WithStyles(IconButton)')
-        .at(0)
-        .prop('disabled'),
-    ).toBeTruthy();
-    expect(
-      tree
-        .find('WithStyles(IconButton)')
-        .at(1)
-        .prop('disabled'),
-    ).not.toBeTruthy();
+    const spy = vi.fn(() => reloadResult);
+    const wrapper = renderTable({ rows, columns, reload: spy });
+    await flushPromisesInAct();
+    const prevBtn = screen.getByTestId('prev-page-btn');
+    const nextBtn = screen.getByTestId('next-page-btn');
+    expect(wrapper.state()).toHaveProperty('maxPageIndex', Number.MAX_SAFE_INTEGER);
+    expect(prevBtn).toBeDisabled();
+    expect(nextBtn).not.toBeDisabled();
+    wrapper.unmount();
   });
 
   it('calls reload with next page token when next page button is clicked', async () => {
     const reloadResult = Promise.resolve('some token');
-    const spy = jest.fn(() => reloadResult);
-    const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} reload={spy} />);
-    await TestUtils.flushPromises();
-
-    tree
-      .find('WithStyles(IconButton)')
-      .at(1)
-      .simulate('click');
-    expect(spy).toHaveBeenLastCalledWith({
-      filter: '',
-      orderAscending: false,
-      pageSize: 10,
-      pageToken: 'some token',
-      sortBy: '',
-    });
+    const spy = vi.fn(() => reloadResult);
+    const wrapper = renderTable({ rows, columns, reload: spy });
+    await flushPromisesInAct();
+    const nextBtn = screen.getByTestId('next-page-btn');
+    fireEvent.click(nextBtn);
+    await waitFor(() =>
+      expect(spy).toHaveBeenLastCalledWith({
+        filter: '',
+        orderAscending: false,
+        pageSize: 10,
+        pageToken: 'some token',
+        sortBy: '',
+      }),
+    );
+    wrapper.unmount();
   });
 
   it('renders new rows after clicking next page, and enables previous page button', async () => {
     const reloadResult = Promise.resolve('some token');
-    const spy = jest.fn(() => reloadResult);
-    const tree = shallow(<CustomTable {...props} rows={[]} columns={columns} reload={spy} />);
-    await TestUtils.flushPromises();
-
-    tree
-      .find('WithStyles(IconButton)')
-      .at(1)
-      .simulate('click');
-    await TestUtils.flushPromises();
+    const spy = vi.fn(() => reloadResult);
+    const wrapper = renderTable({ rows: [], columns, reload: spy });
+    await flushPromisesInAct();
+    const nextBtn = screen.getByTestId('next-page-btn');
+    fireEvent.click(nextBtn);
+    await flushPromisesInAct();
     expect(spy).toHaveBeenLastCalledWith({
       filter: '',
       orderAscending: false,
@@ -540,194 +549,166 @@ describe('CustomTable', () => {
       pageToken: 'some token',
       sortBy: '',
     });
-    expect(tree.state()).toHaveProperty('currentPage', 1);
-    tree.setProps({ rows: [rows[1]] });
-    expect(tree).toMatchSnapshot();
-    expect(
-      tree
-        .find('WithStyles(IconButton)')
-        .at(0)
-        .prop('disabled'),
-    ).not.toBeTruthy();
+    expect(wrapper.state()).toHaveProperty('currentPage', 1);
+    wrapper.rerender({ ...baseProps, rows: [rows[1]], columns, reload: spy });
+    const prevBtn = screen.getByTestId('prev-page-btn');
+    expect(prevBtn).not.toBeDisabled();
+    wrapper.unmount();
   });
 
   it('renders new rows after clicking previous page, and enables next page button', async () => {
     const reloadResult = Promise.resolve('some token');
-    const spy = jest.fn(() => reloadResult);
-    const tree = shallow(<CustomTable {...props} rows={[]} columns={columns} reload={spy} />);
-    await reloadResult;
-
-    tree
-      .find('WithStyles(IconButton)')
-      .at(1)
-      .simulate('click');
-    await reloadResult;
-
-    tree
-      .find('WithStyles(IconButton)')
-      .at(0)
-      .simulate('click');
-    await TestUtils.flushPromises();
-    expect(spy).toHaveBeenLastCalledWith({
-      filter: '',
-      orderAscending: false,
-      pageSize: 10,
-      pageToken: '',
-      sortBy: '',
-    });
-
-    tree.setProps({ rows });
-    expect(
-      tree
-        .find('WithStyles(IconButton)')
-        .at(0)
-        .prop('disabled'),
-    ).toBeTruthy();
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    const spy = vi.fn(() => reloadResult);
+    const wrapper = renderTable({ rows: [], columns, reload: spy });
+    await flushPromisesInAct();
+    const prevBtn = screen.getByTestId('prev-page-btn');
+    const nextBtn = screen.getByTestId('next-page-btn');
+    fireEvent.click(nextBtn);
+    await flushPromisesInAct();
+    fireEvent.click(prevBtn);
+    await flushPromisesInAct();
+    await waitFor(() =>
+      expect(spy).toHaveBeenLastCalledWith({
+        filter: '',
+        orderAscending: false,
+        pageSize: 10,
+        pageToken: '',
+        sortBy: '',
+      }),
+    );
+    wrapper.rerender({ ...baseProps, rows, columns, reload: spy });
+    const prevBtnAfterUpdate = screen.getByTestId('prev-page-btn');
+    expect(prevBtnAfterUpdate).toBeDisabled();
+    await flushPromisesInAct();
+    wrapper.unmount();
   });
 
-  it('calls reload with a different page size, resets page token list when rows/page changes', async () => {
+  it('reloads with new page size and appends next-page token when rows/page changes', async () => {
     const reloadResult = Promise.resolve('some token');
-    const spy = jest.fn(() => reloadResult);
-    const tree = shallow(<CustomTable {...props} rows={[]} columns={columns} reload={spy} />);
-
-    tree.find('.' + css.rowsPerPage).simulate('change', { target: { value: 1234 } });
-    await TestUtils.flushPromises();
+    const spy = vi.fn(() => reloadResult);
+    const wrapper = renderTable({ rows: [], columns, reload: spy });
+    await selectRowsPerPage(20);
     expect(spy).toHaveBeenLastCalledWith({
       filter: '',
       orderAscending: false,
-      pageSize: 1234,
+      pageSize: 20,
       pageToken: '',
       sortBy: '',
     });
-    expect(tree.state()).toHaveProperty('tokenList', ['', 'some token']);
+    expect(wrapper.state()).toHaveProperty('tokenList', ['', 'some token']);
+    wrapper.unmount();
   });
 
-  it('calls reload with a different page size, resets page token list when rows/page changes', async () => {
+  it('reloads with new page size and resets token list when no next page exists', async () => {
     const reloadResult = Promise.resolve('');
-    const spy = jest.fn(() => reloadResult);
-    const tree = shallow(<CustomTable {...props} rows={[]} columns={columns} reload={spy} />);
-
-    tree.find('.' + css.rowsPerPage).simulate('change', { target: { value: 1234 } });
+    const spy = vi.fn(() => reloadResult);
+    const wrapper = renderTable({ rows: [], columns, reload: spy });
+    await selectRowsPerPage(20);
     await reloadResult;
     expect(spy).toHaveBeenLastCalledWith({
       filter: '',
       orderAscending: false,
-      pageSize: 1234,
+      pageSize: 20,
       pageToken: '',
       sortBy: '',
     });
-    expect(tree.state()).toHaveProperty('tokenList', ['']);
+    expect(wrapper.state()).toHaveProperty('tokenList', ['']);
+    wrapper.unmount();
   });
 
   it('renders a collapsed row', async () => {
-    const row = { ...rows[0] };
-    row.expandState = ExpandState.COLLAPSED;
-    const tree = shallow(
-      <CustomTable {...props} rows={[row]} columns={columns} getExpandComponent={() => null} />,
-    );
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    const row = { ...rows[0], expandState: ExpandState.COLLAPSED };
+    const wrapper = renderTable({ rows: [row], columns, getExpandComponent: () => null });
+    await flushPromisesInAct();
+    expect(screen.getByLabelText('Expand')).toBeInTheDocument();
+    wrapper.unmount();
   });
 
   it('renders a collapsed row when selection is disabled', async () => {
-    const row = { ...rows[0] };
-    row.expandState = ExpandState.COLLAPSED;
-    const tree = shallow(
-      <CustomTable
-        {...props}
-        rows={[row]}
-        columns={columns}
-        getExpandComponent={() => null}
-        disableSelection={true}
-      />,
-    );
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    const row = { ...rows[0], expandState: ExpandState.COLLAPSED };
+    const wrapper = renderTable({
+      rows: [row],
+      columns,
+      getExpandComponent: () => null,
+      disableSelection: true,
+    });
+    await flushPromisesInAct();
+    expect(screen.queryByTestId('select-all-checkbox')).toBeNull();
+    wrapper.unmount();
   });
 
   it('renders an expanded row', async () => {
-    const row = { ...rows[0] };
-    row.expandState = ExpandState.EXPANDED;
-    const tree = shallow(<CustomTable {...props} rows={[row]} columns={columns} />);
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    const row = { ...rows[0], expandState: ExpandState.EXPANDED };
+    const wrapper = renderTable({ rows: [row], columns });
+    await flushPromisesInAct();
+    const tableRow = screen.getByTestId('table-row');
+    expect(tableRow.closest('[class*="expandedContainer"]')).not.toBeNull();
+    wrapper.unmount();
   });
 
   it('renders an expanded row with expanded component below it', async () => {
-    const row = { ...rows[0] };
-    row.expandState = ExpandState.EXPANDED;
-    const tree = shallow(
-      <CustomTable
-        {...props}
-        rows={[row]}
-        columns={columns}
-        getExpandComponent={() => <span>Hello World</span>}
-      />,
-    );
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    const row = { ...rows[0], expandState: ExpandState.EXPANDED };
+    const wrapper = renderTable({
+      rows: [row],
+      columns,
+      getExpandComponent: () => <span>Hello World</span>,
+    });
+    await flushPromisesInAct();
+    expect(screen.getByText('Hello World')).toBeInTheDocument();
+    wrapper.unmount();
   });
 
-  it('calls prop to toggle expansion', () => {
-    const row = { ...rows[0] };
-    const toggleSpy = jest.fn();
-    const stopPropagationSpy = jest.fn();
-    row.expandState = ExpandState.EXPANDED;
-    const tree = shallow(
-      <CustomTable
-        {...props}
-        rows={[row, row, row]}
-        columns={columns}
-        getExpandComponent={() => <span>Hello World</span>}
-        toggleExpansion={toggleSpy}
-      />,
-    );
-    tree
-      .find('.' + css.expandButton)
-      .at(1)
-      .simulate('click', { stopPropagation: stopPropagationSpy });
+  it('calls prop to toggle expansion', async () => {
+    const row = { ...rows[0], expandState: ExpandState.EXPANDED };
+    const toggleSpy = vi.fn();
+    renderTable({
+      rows: [row, row, row],
+      columns,
+      getExpandComponent: () => <span>Hello World</span>,
+      toggleExpansion: toggleSpy,
+    });
+    await flushPromisesInAct();
+    const expandButtons = screen.getAllByLabelText('Expand');
+    fireEvent.click(expandButtons[1]);
     expect(toggleSpy).toHaveBeenCalledWith(1);
-    expect(stopPropagationSpy).toHaveBeenCalledWith();
   });
 
   it('renders a table with sorting disabled', async () => {
-    const tree = shallow(
-      <CustomTable {...props} rows={rows} columns={columns} disableSorting={true} />,
-    );
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    const wrapper = renderTable({ rows, columns, disableSorting: true });
+    await flushPromisesInAct();
+    expect(screen.queryByLabelText('Sort')).toBeNull();
+    expect(screen.getAllByTestId('table-row')).toHaveLength(2);
+    wrapper.unmount();
   });
 
   it('updates the filter string in state when the filter box input changes', async () => {
-    const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} />);
-    (tree.instance() as CustomTable).handleFilterChange({ target: { value: 'test filter' } });
-    await TestUtils.flushPromises();
-    expect(tree.state('filterString')).toEqual('test filter');
-    expect(tree).toMatchSnapshot();
+    const wrapper = renderTable({ rows, columns });
+    await invokeAndFlush(() =>
+      wrapper.instance().handleFilterChange({ target: { value: 'test filter' } }),
+    );
+    expect(wrapper.state('filterString')).toEqual('test filter');
+    wrapper.unmount();
   });
 
   it('reloads the table with the encoded filter object', async () => {
-    const reload = jest.fn();
-    const tree = shallow(
-      <CustomTableTest {...props} reload={reload} rows={rows} columns={columns} />,
-    );
-    // lodash's debounce function doesn't play nice with Jest, so we skip the handleChange function
-    // and call _requestFilter directly.
-    (tree.instance() as CustomTableTest)._requestFilter('test filter');
+    const reload = vi.fn(async () => '');
+    const wrapper = renderTable({ rows, columns, reload });
+    await flushPromisesInAct();
+    await act(async () => {
+      await wrapper.instance()._requestFilter('test filter');
+    });
     const expectedEncodedFilter = encodeURIComponent(
       JSON.stringify({
         predicates: [
           {
             key: 'name',
-            operation: V2beta1PredicateOperation.ISSUBSTRING,
+            operation: V2beta1PredicateOperation.IS_SUBSTRING,
             string_value: 'test filter',
           },
         ],
       }),
     );
-    expect(tree.state('filterStringEncoded')).toEqual(expectedEncodedFilter);
+    expect(wrapper.state('filterStringEncoded')).toEqual(expectedEncodedFilter);
     expect(reload).toHaveBeenLastCalledWith({
       filter: expectedEncodedFilter,
       orderAscending: false,
@@ -735,51 +716,87 @@ describe('CustomTable', () => {
       pageToken: '',
       sortBy: '',
     });
+    wrapper.unmount();
   });
 
   it('uses an empty filter if requestFilter is called with no filter', async () => {
-    const tree = shallow(<CustomTableTest {...props} rows={rows} columns={columns} />);
-    (tree.instance() as CustomTableTest)._requestFilter();
-    expect(tree.state('filterStringEncoded')).toEqual('');
+    const wrapper = renderTable({ rows, columns });
+    await invokeAndFlush(() => wrapper.instance()._requestFilter());
+    expect(wrapper.state('filterStringEncoded')).toEqual('');
+    wrapper.unmount();
   });
 
   it('The initial filter string is called during first reload', async () => {
-    const reload = jest.fn();
-    render(
-      <CustomTable
-        {...props}
-        reload={reload}
-        rows={rows}
-        columns={columns}
-        initialFilterString={'test filter'}
-      />,
-    );
+    const reload = vi.fn(async () => '');
+    renderTable({
+      rows,
+      columns,
+      reload,
+      initialFilterString: 'test filter',
+    });
     const expectedEncodedFilter = encodeURIComponent(
       JSON.stringify({
         predicates: [
           {
             key: 'name',
-            operation: V2beta1PredicateOperation.ISSUBSTRING,
+            operation: V2beta1PredicateOperation.IS_SUBSTRING,
             string_value: 'test filter',
           },
         ],
       }),
     );
-    expect(reload).toHaveBeenLastCalledWith({
-      filter: expectedEncodedFilter,
-      orderAscending: false,
-      pageSize: 10,
-      pageToken: '',
-      sortBy: '',
-    });
+    await waitFor(() =>
+      expect(reload).toHaveBeenLastCalledWith({
+        filter: expectedEncodedFilter,
+        orderAscending: false,
+        pageSize: 10,
+        pageToken: '',
+        sortBy: '',
+      }),
+    );
   });
 
   it('The setFilterString method is called when the filter text is changed', async () => {
-    const setFilterString = jest.fn();
-    render(
-      <CustomTable {...props} rows={rows} columns={columns} setFilterString={setFilterString} />,
-    );
+    const setFilterString = vi.fn();
+    renderTable({ rows, columns, setFilterString });
+    await flushPromisesInAct();
     fireEvent.change(screen.getByLabelText('Filter'), { target: { value: 'test filter' } });
     expect(setFilterString).toHaveBeenLastCalledWith('test filter');
+  });
+
+  it('reads page size from localStorage on mount', async () => {
+    localStorage.setItem('tablePageSize', '50');
+    const reload = vi.fn(async () => '');
+    const wrapper = renderTable({ rows, columns, reload });
+    await waitFor(() => expect(reload).toHaveBeenCalled());
+    expect(reload).toHaveBeenLastCalledWith({
+      filter: '',
+      orderAscending: false,
+      pageSize: 50,
+      pageToken: '',
+      sortBy: '',
+    });
+    wrapper.unmount();
+  });
+
+  it('persists page size across resources on the same details page', async () => {
+    window.location.hash = '#/runs/details/run-abc123';
+    const firstWrapper = renderTable({ rows: [], columns, reload: vi.fn(async () => '') });
+    await selectRowsPerPage(20);
+    firstWrapper.unmount();
+    const reload = vi.fn(async () => '');
+    window.location.hash = '#/runs/details/run-def456';
+    const secondWrapper = renderTable({ rows, columns, reload });
+    await waitFor(() =>
+      expect(reload).toHaveBeenLastCalledWith({
+        filter: '',
+        orderAscending: false,
+        pageSize: 20,
+        pageToken: '',
+        sortBy: '',
+      }),
+    );
+    secondWrapper.unmount();
+    window.location.hash = '';
   });
 });

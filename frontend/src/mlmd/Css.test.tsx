@@ -34,6 +34,15 @@ import { spacing, _paddingInternal } from './Css';
 import * as Css from './Css';
 
 describe('Css', () => {
+  describe('theme typography', () => {
+    it('uses a numeric base font size and valid derived variant sizes', () => {
+      expect(typeof Css.theme.typography.fontSize).toBe('number');
+      expect(Number.isFinite(Css.theme.typography.fontSize)).toBe(true);
+      expect(String(Css.theme.typography.body1.fontSize)).not.toContain('NaN');
+      expect(String(Css.theme.typography.body2.fontSize)).not.toContain('NaN');
+    });
+  });
+
   describe('padding', () => {
     it('returns padding units in all directions by default', () => {
       expect(_paddingInternal()).toEqual({
@@ -60,10 +69,10 @@ describe('Css', () => {
       });
     });
 
-    it('calls internal padding with the same arguments', () => {
-      const spy = jest.spyOn(Css, 'padding');
-      Css.padding(123, 'abcdefg');
-      expect(spy).toHaveBeenCalledWith(123, 'abcdefg');
+    it('returns a non-empty CSS class name', () => {
+      const result = Css.padding(100, 'lr');
+      expect(typeof result).toBe('string');
+      expect(result.length).toBeGreaterThan(0);
     });
   });
 });

@@ -18,10 +18,12 @@ package testutil
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -47,6 +49,20 @@ func ParsePointersToString(s *string) string {
 	}
 }
 
+// TagsMapToJSONStringPtr serializes a map[string]string to a JSON string pointer.
+// Returns (nil, nil) if the map is nil.
+func TagsMapToJSONStringPtr(m map[string]string) (*string, error) {
+	if m == nil {
+		return nil, nil
+	}
+	data, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	s := string(data)
+	return &s, nil
+}
+
 // GetRandomString - Get a random string of length x
 func GetRandomString(length int) string {
 	charset := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -63,7 +79,9 @@ func CheckIfSkipping(stringValue string) {
 	// Skip pipeline if name contains "GH-" (case-insensitive)
 	if strings.Contains(strings.ToLower(stringValue), "_gh-") {
 		issue := strings.Split(strings.ToLower(stringValue), "_gh-")[1]
-		ginkgo.Skip(fmt.Sprintf("Skipping pipeline run test because of a known issue: https://github.com/kubeflow/pipelines/issues/%s", issue))
+		ginkgo.Skip("Skipping pipeline run")
+		fmt.Printf("Skipping pipeline run test because of a known issue: https://github.com/kubeflow/pipelines/issues/%s", issue)
+
 	}
 	// Skip pipeline 'pipeline_submit_request' test if TLS is not enabled
 	if !*config.TLSEnabled && strings.Contains(strings.ToLower(stringValue), "pipeline_submit_request") {
@@ -86,6 +104,24 @@ func WriteLogFile(specReport types.SpecReport, testName, logDirectory string) {
 	if err != nil {
 		return
 	}
+}
+
+// GetWorkflowNameByRunID retrieves the Argo Workflow name for a given pipeline run ID
+// by querying the Kubernetes API using the pipeline/runid label.
+func GetWorkflowNameByRunID(namespace string, runID string) string {
+	cmd := exec.Command("kubectl", "get", "workflows", "-n", namespace,
+		"-l", fmt.Sprintf("pipeline/runid=%s", runID),
+		"-o", "jsonpath={.items[0].metadata.name}")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Log("Failed to get workflow for run ID %s: %v, kubectl output: %s", runID, err, strings.TrimSpace(string(output)))
+		return ""
+	}
+	workflowName := strings.TrimSpace(string(output))
+	if workflowName == "" {
+		logger.Log("No workflow found for run ID %s", runID)
+	}
+	return workflowName
 }
 
 // GetNamespace - Get Namespace based on the deployment mode
@@ -220,4 +256,14 @@ func getBranchOrPR(pullNumber, branch string) string {
 		return fmt.Sprintf("PR #%s", pullNumber)
 	}
 	return fmt.Sprintf("branch '%s'", branch)
+}
+
+func ContainsEnvVar(envVarMap map[string]string, vars ...string) bool {
+	for _, entry := range vars {
+		_, ok := envVarMap[entry]
+		if !ok {
+			return false
+		}
+	}
+	return true
 }

@@ -1,8 +1,9 @@
 approvers:
   - hbelmiro
-  - DharmitD
+  - jeffspahr
+  - juliusvonkohout
   - mprahl
+  - nsingla
 reviewers:
-  - rimolive
   - droctothorpe
-  - gmfrasca
+  - nsingla

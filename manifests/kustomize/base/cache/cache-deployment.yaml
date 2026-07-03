@@ -15,6 +15,7 @@ spec:
         app: cache-server
     spec:
       securityContext:
+        runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -27,6 +28,8 @@ spec:
           capabilities:
             drop:
             - ALL
+          seccompProfile:
+            type: RuntimeDefault
         image: ghcr.io/kubeflow/kfp-cache-server:dummy
         env:
           - name: DEFAULT_CACHE_STALENESS
@@ -60,12 +63,12 @@ spec:
             valueFrom:
               configMapKeyRef:
                 name: pipeline-install-config
-                key: dbHost
+                key: mysqlHost
           - name: DBCONFIG_PORT
             valueFrom:
               configMapKeyRef:
                 name: pipeline-install-config
-                key: dbPort
+                key: mysqlPort
           - name: DBCONFIG_USER
             valueFrom:
               secretKeyRef:

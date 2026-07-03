@@ -68,8 +68,8 @@ const (
 )
 
 const (
-	TLSCertCAPath = "/kfp/certs/ca.crt"
-	CABundleDir   = "/kfp/certs"
+	CustomCaCertPath = "/kfp/certs/ca.crt"
+	CABundleDir      = "/kfp/certs"
 )
 
 const (
@@ -79,4 +79,18 @@ const (
 const (
 	DefaultMLPipelineServiceName string = "ml-pipeline"
 	DefaultMetadataServiceName   string = "metadata-grpc-service"
+	DefaultClusterDomain         string = "cluster.local"
+)
+
+const (
+	// ClearTagsMetadataKey is the gRPC metadata key set by the HTTP middleware
+	// when the client sends an empty tags map ("tags":{}) to signal that all
+	// tags should be removed. Protobuf binary encoding cannot distinguish an
+	// empty map from nil, so this header preserves the intent across the
+	// HTTP→gRPC proxy roundtrip.
+	ClearTagsMetadataKey              = "x-clear-tags"
+	DefaultPluginMaxKeys              = 16
+	DefaultPluginMaxPayloadBytes      = 64 * 1024
+	DefaultPluginMaxTotalPayloadBytes = 256 * 1024
+	DefaultPluginMaxNestingDepth      = 10
 )

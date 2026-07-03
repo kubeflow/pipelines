@@ -16,11 +16,18 @@ package objectstore
 
 import (
 	"context"
-	"fmt"
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gocloud.dev/blob"
+	"gocloud.dev/blob/memblob"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -201,6 +208,287 @@ func Test_bucketConfig_KeyFromURI(t *testing.T) {
 	}
 }
 
+func TestSanitizeDownloadPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		localDir string
+		blobDir  string
+		objKey   string
+		wantPath string
+		wantErr  bool
+		errMsg   string
+	}{
+		{
+			name:     "Simple child file",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/file.txt",
+			wantPath: filepath.Join("/tmp/outputs", "file.txt"),
+		},
+		{
+			name:     "Nested child file",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/sub/file.txt",
+			wantPath: filepath.Join("/tmp/outputs", "sub", "file.txt"),
+		},
+		{
+			name:     "Current-dir segment is benign",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/./file.txt",
+			wantPath: filepath.Join("/tmp/outputs", "file.txt"),
+		},
+		{
+			name:     "Single file artifact where key equals blobDir",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step",
+			wantPath: filepath.Clean("/tmp/outputs"),
+		},
+		{
+			name:     "Key equals blobDir with trailing slash",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/",
+			wantPath: filepath.Clean("/tmp/outputs"),
+		},
+		{
+			name:     "Key with trailing slash",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/subdir/",
+			wantPath: filepath.Join("/tmp/outputs", "subdir"),
+		},
+		{
+			name:     "Dotdot in bounds still rejected",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/sub/../file.txt",
+			wantErr:  true,
+			errMsg:   "contains '..' component",
+		},
+		{
+			name:     "Traversal via dotdot in key middle",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/../../etc/passwd",
+			wantErr:  true,
+			errMsg:   "contains '..' component",
+		},
+		{
+			name:     "Traversal via dotdot at start of key",
+			localDir: "/tmp/outputs",
+			blobDir:  "safe",
+			objKey:   "../../../etc/shadow",
+			wantErr:  true,
+			errMsg:   "contains '..' component",
+		},
+		{
+			name:     "Single dotdot just barely escapes",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/../secret",
+			wantErr:  true,
+			errMsg:   "contains '..' component",
+		},
+		{
+			name:     "Multiple dotdot through deep nesting",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/a/b/../../../etc/passwd",
+			wantErr:  true,
+			errMsg:   "contains '..' component",
+		},
+		{
+			name:     "Prefix match but not path boundary",
+			localDir: "/tmp/outputs",
+			blobDir:  "art",
+			objKey:   "artifacts/file.txt",
+			wantErr:  true,
+			errMsg:   "path traversal detected",
+		},
+		{
+			name:     "Completely unrelated key",
+			localDir: "/tmp/outputs",
+			blobDir:  "expected/path",
+			objKey:   "totally/different/path",
+			wantErr:  true,
+			errMsg:   "path traversal detected",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := sanitizeDownloadPath(tt.localDir, tt.blobDir, tt.objKey)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantPath, got)
+		})
+	}
+}
+
+func writeBlobToMemBucket(ctx context.Context, t *testing.T, bucket *blob.Bucket, key, content string) {
+	t.Helper()
+	w, err := bucket.NewWriter(ctx, key, nil)
+	require.NoError(t, err)
+	_, writeErr := w.Write([]byte(content))
+	closeErr := w.Close()
+	require.NoError(t, writeErr)
+	require.NoError(t, closeErr)
+}
+
+func TestDownloadBlobSingleFile(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer func() { require.NoError(t, bucket.Close()) }()
+
+	writeBlobToMemBucket(ctx, t, bucket, "path/to/file.txt", "single file content")
+
+	localDir := t.TempDir()
+	targetPath := filepath.Join(localDir, "file.txt")
+
+	err := DownloadBlob(ctx, bucket, targetPath, "path/to/file.txt")
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(targetPath)
+	require.NoError(t, err)
+	assert.Equal(t, "single file content", string(content))
+}
+
+func TestDownloadBlobDirectory(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer func() { require.NoError(t, bucket.Close()) }()
+
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/step/file1.txt", "content1")
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/step/sub/file2.txt", "content2")
+
+	localDir := t.TempDir()
+
+	err := DownloadBlob(ctx, bucket, localDir, "artifacts/step")
+	require.NoError(t, err)
+
+	content1, err := os.ReadFile(filepath.Join(localDir, "file1.txt"))
+	require.NoError(t, err)
+	assert.Equal(t, "content1", string(content1))
+
+	content2, err := os.ReadFile(filepath.Join(localDir, "sub", "file2.txt"))
+	require.NoError(t, err)
+	assert.Equal(t, "content2", string(content2))
+}
+
+func TestDownloadBlobSkipsSiblingKeys(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer func() { require.NoError(t, bucket.Close()) }()
+
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/step/file.txt", "wanted")
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/step2/file.txt", "sibling")
+
+	parentDir := t.TempDir()
+	localDir := filepath.Join(parentDir, "step")
+
+	err := DownloadBlob(ctx, bucket, localDir, "artifacts/step")
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(filepath.Join(localDir, "file.txt"))
+	require.NoError(t, err)
+	assert.Equal(t, "wanted", string(content))
+
+	_, err = os.Stat(filepath.Join(parentDir, "step2", "file.txt"))
+	assert.True(t, os.IsNotExist(err), "sibling key should not have been downloaded")
+}
+
+func TestDownloadBlobRejectsTraversalKey(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer func() { require.NoError(t, bucket.Close()) }()
+
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/step/../../etc/passwd", "malicious")
+
+	localDir := t.TempDir()
+
+	err := DownloadBlob(ctx, bucket, localDir, "artifacts/step")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "path traversal detected")
+}
+
+func TestIsBlobKeyUnderPrefix(t *testing.T) {
+	tests := []struct {
+		name    string
+		objKey  string
+		blobDir string
+		want    bool
+	}{
+		{
+			name:    "Exact match",
+			objKey:  "artifacts/step",
+			blobDir: "artifacts/step",
+			want:    true,
+		},
+		{
+			name:    "Child key",
+			objKey:  "artifacts/step/file.txt",
+			blobDir: "artifacts/step",
+			want:    true,
+		},
+		{
+			name:    "Nested child",
+			objKey:  "artifacts/step/sub/file.txt",
+			blobDir: "artifacts/step",
+			want:    true,
+		},
+		{
+			name:    "Sibling with shared string prefix",
+			objKey:  "artifacts/step2/file.txt",
+			blobDir: "artifacts/step",
+			want:    false,
+		},
+		{
+			name:    "Completely unrelated key",
+			objKey:  "other/path",
+			blobDir: "artifacts/step",
+			want:    false,
+		},
+		{
+			name:    "blobDir with trailing slash",
+			objKey:  "artifacts/step/file.txt",
+			blobDir: "artifacts/step/",
+			want:    true,
+		},
+		{
+			name:    "Sibling with trailing slash on blobDir",
+			objKey:  "artifacts/step2/file.txt",
+			blobDir: "artifacts/step/",
+			want:    false,
+		},
+		{
+			name:    "objKey equals blobDir plus slash",
+			objKey:  "artifacts/step/",
+			blobDir: "artifacts/step",
+			want:    true,
+		},
+		{
+			name:    "objKey is parent of blobDir",
+			objKey:  "artifacts",
+			blobDir: "artifacts/step",
+			want:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isBlobKeyUnderPrefix(tt.objKey, tt.blobDir)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func Test_createS3BucketSession(t *testing.T) {
 	tt := []struct {
 		msg               string
@@ -245,6 +533,22 @@ func Test_createS3BucketSession(t *testing.T) {
 			sessionInfo:       nil,
 			sessionSecret:     nil,
 			expectValidClient: false,
+		},
+		{
+			msg: "Bucket with env-based credentials",
+			ns:  "testnamespace",
+			sessionInfo: &SessionInfo{
+				Provider: "s3",
+				Params: map[string]string{
+					"region":         "us-east-1",
+					"endpoint":       "s3.amazonaws.com",
+					"disableSSL":     "false",
+					"fromEnv":        "true",
+					"forcePathStyle": "true",
+				},
+			},
+			sessionSecret:     nil,
+			expectValidClient: true,
 		},
 		{
 			msg: "Bucket with session but secret doesn't exist",
@@ -296,12 +600,11 @@ func Test_createS3BucketSession(t *testing.T) {
 			ctx := context.Background()
 
 			if test.sessionSecret != nil {
-				testersecret, err := fakeKubernetesClientset.CoreV1().Secrets(test.ns).Create(
+				_, err := fakeKubernetesClientset.CoreV1().Secrets(test.ns).Create(
 					ctx,
 					test.sessionSecret,
 					metav1.CreateOptions{})
-				assert.Nil(t, err)
-				fmt.Printf("%s", testersecret.Namespace)
+				require.NoError(t, err)
 			}
 
 			actualSession, err := createS3BucketSession(ctx, test.ns, test.sessionInfo, fakeKubernetesClientset)
@@ -315,14 +618,188 @@ func Test_createS3BucketSession(t *testing.T) {
 			}
 
 			if test.expectValidClient {
-				// confirm that a valid S3 client was returned
 				assert.NotNil(t, actualSession)
-				// In AWS SDK v2, we can't directly access internal config details
-				// but we can verify that the client was created successfully
-				// and would have the expected configuration based on our inputs
+				assert.Equal(t, aws.RequestChecksumCalculationWhenRequired, actualSession.Options().RequestChecksumCalculation)
+				require.Equal(t, aws.ResponseChecksumValidationWhenRequired, actualSession.Options().ResponseChecksumValidation)
 			} else {
 				assert.Nil(t, actualSession)
 			}
+		})
+	}
+}
+
+func TestOpenBucketUsesExplicitS3ClientForEnvCredentials(t *testing.T) {
+	t.Setenv("AWS_REGION", "us-east-1")
+
+	tests := []struct {
+		name                 string
+		config               *Config
+		expectedRegion       string
+		expectedBaseEndpoint *string
+		expectedPathStyle    bool
+		expectedDisableHTTPS bool
+	}{
+		{
+			name: "Plain S3 URL without session info",
+			config: &Config{
+				Scheme:     "s3://",
+				BucketName: "test-bucket",
+				Prefix:     "artifacts/",
+			},
+			expectedRegion:       "us-east-1",
+			expectedBaseEndpoint: nil,
+			expectedPathStyle:    false,
+			expectedDisableHTTPS: false,
+		},
+		{
+			name: "Plain Minio URL without session info",
+			config: &Config{
+				Scheme:     "minio://",
+				BucketName: "test-bucket",
+				Prefix:     "artifacts/",
+			},
+			expectedRegion:       "us-east-1",
+			expectedBaseEndpoint: nil,
+			expectedPathStyle:    false,
+			expectedDisableHTTPS: false,
+		},
+		{
+			name: "Env-based S3 session info",
+			config: &Config{
+				Scheme:     "s3://",
+				BucketName: "test-bucket",
+				Prefix:     "artifacts/",
+				SessionInfo: &SessionInfo{
+					Provider: "s3",
+					Params: map[string]string{
+						"region":         "us-east-1",
+						"endpoint":       "s3.amazonaws.com",
+						"disableSSL":     "false",
+						"fromEnv":        "true",
+						"forcePathStyle": "true",
+						"maxRetries":     "5",
+					},
+				},
+			},
+			expectedRegion:       "us-east-1",
+			expectedBaseEndpoint: nil,
+			expectedPathStyle:    true,
+			expectedDisableHTTPS: false,
+		},
+		{
+			name: "Env-based S3 session info without structured params",
+			config: &Config{
+				Scheme:     "s3://",
+				BucketName: "test-bucket",
+				Prefix:     "artifacts/",
+				SessionInfo: &SessionInfo{
+					Provider: "s3",
+					Params: map[string]string{
+						"fromEnv": "true",
+					},
+				},
+			},
+			expectedRegion:       "us-east-1",
+			expectedBaseEndpoint: nil,
+			expectedPathStyle:    false,
+			expectedDisableHTTPS: false,
+		},
+		{
+			name: "Env-based Minio session info",
+			config: &Config{
+				Scheme:     "minio://",
+				BucketName: "test-bucket",
+				Prefix:     "artifacts/",
+				SessionInfo: &SessionInfo{
+					Provider: "minio",
+					Params: map[string]string{
+						"region":         "minio",
+						"endpoint":       "minio.example:9000",
+						"disableSSL":     "true",
+						"fromEnv":        "true",
+						"forcePathStyle": "true",
+						"maxRetries":     "5",
+					},
+				},
+			},
+			expectedRegion:       "minio",
+			expectedBaseEndpoint: aws.String("http://minio.example:9000"),
+			expectedPathStyle:    true,
+			expectedDisableHTTPS: true,
+		},
+		{
+			name: "Env-based Minio session info without structured params",
+			config: &Config{
+				Scheme:     "minio://",
+				BucketName: "test-bucket",
+				Prefix:     "artifacts/",
+				SessionInfo: &SessionInfo{
+					Provider: "minio",
+					Params: map[string]string{
+						"fromEnv": "true",
+					},
+				},
+			},
+			expectedRegion:       "us-east-1",
+			expectedBaseEndpoint: nil,
+			expectedPathStyle:    false,
+			expectedDisableHTTPS: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			bucket, err := OpenBucket(context.Background(), nil, "", tt.config)
+			require.NoError(t, err)
+			t.Cleanup(func() {
+				require.NoError(t, bucket.Close())
+			})
+
+			var client *s3.Client
+			require.True(t, bucket.As(&client))
+			require.NotNil(t, client)
+			assert.Equal(t, tt.expectedRegion, client.Options().Region)
+			assert.Equal(t, tt.expectedBaseEndpoint, client.Options().BaseEndpoint)
+			assert.Equal(t, tt.expectedPathStyle, client.Options().UsePathStyle)
+			assert.Equal(t, tt.expectedDisableHTTPS, client.Options().EndpointOptions.DisableHTTPS)
+			assert.Equal(t, aws.RequestChecksumCalculationWhenRequired, client.Options().RequestChecksumCalculation)
+			assert.Equal(t, aws.ResponseChecksumValidationWhenRequired, client.Options().ResponseChecksumValidation)
+		})
+	}
+}
+
+func TestNewS3ClientRetryAttempts(t *testing.T) {
+	tests := []struct {
+		name                string
+		params              *S3Params
+		expectedMaxAttempts int
+	}{
+		{
+			name: "Structured params without maxRetries keep default retry cap",
+			params: &S3Params{
+				FromEnv:    true,
+				Region:     "us-east-1",
+				MaxRetries: 0,
+			},
+			expectedMaxAttempts: retry.NewStandard().MaxAttempts(),
+		},
+		{
+			name: "Structured params with maxRetries use configured retry cap",
+			params: &S3Params{
+				FromEnv:    true,
+				Region:     "us-east-1",
+				MaxRetries: 5,
+			},
+			expectedMaxAttempts: 5,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, err := newS3Client(context.Background(), tt.params, nil)
+			require.NoError(t, err)
+			require.NotNil(t, client)
+			assert.Equal(t, tt.expectedMaxAttempts, client.Options().Retryer.MaxAttempts())
 		})
 	}
 }

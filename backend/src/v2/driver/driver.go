@@ -23,6 +23,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
@@ -87,6 +88,24 @@ type Options struct {
 	MLMDServerPort string
 
 	CaCertPath string
+
+	PipelineJobCreateTimeUTC string
+
+	PipelineJobScheduleTimeUTC string
+
+	PluginDispatcher plugins.TaskPluginDispatcher
+
+	// Admin-configured default runAsUser for user containers. Nil means not set.
+	DefaultRunAsUser *int64
+	// Admin-configured default runAsGroup for user containers. Nil means not set.
+	DefaultRunAsGroup *int64
+	// Admin-configured default runAsNonRoot for user containers. Nil means not set.
+	DefaultRunAsNonRoot *bool
+	// Administrator-configured default hostUsers for user workload pods. Nil means not set.
+	// When set to false the pod runs in a dedicated Linux user namespace:
+	// UID 0 inside the pod maps to an unprivileged host UID, so root processes
+	// in the container are not root on the host.
+	DefaultHostUsers *bool
 }
 
 // TaskConfig needs to stay aligned with the TaskConfig in the SDK.
@@ -243,7 +262,21 @@ func initPodSpecPatch(
 	mlPipelineServerPort string,
 	mlmdServerAddress string,
 	mlmdServerPort string,
+	pluginEnvVars any,
 ) (*k8score.PodSpec, error) {
+	pluginEnvVarSlice := make([]k8score.EnvVar, 0)
+	switch typedEnvVars := pluginEnvVars.(type) {
+	case nil:
+	case map[string]string:
+		pluginEnvVarSlice = make([]k8score.EnvVar, 0, len(typedEnvVars))
+		for envVar, val := range typedEnvVars {
+			pluginEnvVarSlice = append(pluginEnvVarSlice, k8score.EnvVar{Name: envVar, Value: val})
+		}
+	case []k8score.EnvVar:
+		pluginEnvVarSlice = append(pluginEnvVarSlice, typedEnvVars...)
+	default:
+		return nil, fmt.Errorf("unexpected plugin env var type %T", pluginEnvVars)
+	}
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
@@ -259,6 +292,9 @@ func initPodSpecPatch(
 		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar.GetName(), Value: envVar.GetValue()})
 	}
 
+	// Append necessary env variables for task-level plugin(s).
+	userEnvVar = append(userEnvVar, pluginEnvVarSlice...)
+
 	userEnvVar = append(userEnvVar, proxy.GetConfig().GetEnvVars()...)
 
 	setOnTaskConfig, setOnPod := getTaskConfigOptions(componentSpec)
@@ -269,8 +305,18 @@ func initPodSpecPatch(
 	}
 
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
-	userCmdArgs = append(userCmdArgs, container.Command...)
-	userCmdArgs = append(userCmdArgs, container.Args...)
+
+	resolvedCommand, err := resolveContainerArgs(container.Command, executorInput)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve container command: %w", err)
+	}
+	userCmdArgs = append(userCmdArgs, resolvedCommand...)
+
+	resolvedArgs, err := resolveContainerArgs(container.Args, executorInput)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve container args: %w", err)
+	}
+	userCmdArgs = append(userCmdArgs, resolvedArgs...)
 	launcherCmd := []string{
 		component.KFPLauncherPath,
 		// TODO(Bobgy): no need to pass pipeline_name and run_id, these info can be fetched via pipeline context and pipeline run context which have been created by root DAG driver.
@@ -430,7 +476,18 @@ func initPodSpecPatch(
 		podSpec.Containers[0].Resources = res
 	}
 
-	addModelcarsToPodSpec(executorInput.GetInputs().GetArtifacts(), podSpec.Containers[0].Env, podSpec)
+	modelcarEnvVar := slices.Clone(podSpec.Containers[0].Env)
+	if len(pluginEnvVarSlice) > 0 {
+		pluginEnvVarNames := make(map[string]struct{}, len(pluginEnvVarSlice))
+		for _, envVar := range pluginEnvVarSlice {
+			pluginEnvVarNames[envVar.Name] = struct{}{}
+		}
+		modelcarEnvVar = slices.DeleteFunc(modelcarEnvVar, func(envVar k8score.EnvVar) bool {
+			_, ok := pluginEnvVarNames[envVar.Name]
+			return ok
+		})
+	}
+	addModelcarsToPodSpec(executorInput.GetInputs().GetArtifacts(), modelcarEnvVar, podSpec)
 
 	if needsWorkspaceMount(executorInput) {
 		// Validate that no user volume mounts conflict with the workspace
@@ -564,6 +621,22 @@ func addModelcarsToPodSpec(
 
 		image := strings.TrimPrefix(inputArtifact.Uri, "oci://")
 
+		// Apply the same security context to modelcar containers as the main
+		// container to ensure matching credentials for /proc/<pid>/root access
+		// via shareProcessNamespace. Without matching security contexts, the
+		// kernel's ptrace_may_access check can deny access to the symlinked
+		// model files.
+		allowPrivilegeEscalation := false
+		modelcarSecurityContext := &k8score.SecurityContext{
+			AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+			Capabilities: &k8score.Capabilities{
+				Drop: []k8score.Capability{"ALL"},
+			},
+			SeccompProfile: &k8score.SeccompProfile{
+				Type: k8score.SeccompProfileTypeRuntimeDefault,
+			},
+		}
+
 		podSpec.InitContainers = append(
 			podSpec.InitContainers,
 			k8score.Container{
@@ -581,6 +654,7 @@ func addModelcarsToPodSpec(
 						" exit 1)",
 				},
 				Env:                      userEnvVar,
+				SecurityContext:          modelcarSecurityContext,
 				TerminationMessagePolicy: k8score.TerminationMessageFallbackToLogsOnError,
 			},
 		)
@@ -615,6 +689,7 @@ func addModelcarsToPodSpec(
 				ImagePullPolicy: "IfNotPresent",
 				Env:             userEnvVar,
 				VolumeMounts:    []k8score.VolumeMount{emptyDirVolumeMount},
+				SecurityContext: modelcarSecurityContext,
 				Command: []string{
 					"sh",
 					"-c",

@@ -15,10 +15,9 @@
  */
 
 import * as React from 'react';
-import { CSSProperties } from 'jss/css';
 
-export default class StatusRunning extends React.Component<{ style: CSSProperties }> {
-  public render(): JSX.Element {
+export default class StatusRunning extends React.Component<{ style: React.CSSProperties }> {
+  public render(): React.JSX.Element {
     const { style } = this.props;
     return (
       <svg width={style.width as string} height={style.height as string} viewBox='0 0 18 18'>

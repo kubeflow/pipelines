@@ -14,14 +14,14 @@ This allows us to have a ground truth to compare the newly generated code agains
 
 In much the same way we also test for JSON unmarshalling. You will notice that we adjust the unmarshalling options for JSON to match what we use in the grpc-gateway unmarshalling configuration for the grpc server. 
 
-## Updating generate code
+## Updating generated code
 
 Generated code can be updated by running the test code with `UPDATE_EXPECTED=true` environment variable set in your commandline. For example: 
 
 ```shell
 cd backend/test/proto_tests
 export UPDATE_EXPECTED=true
-go test . # update generate code
+go test . # update generated code
 export UPDATE_EXPECTED=false
 go test . # verify your changes
 ```

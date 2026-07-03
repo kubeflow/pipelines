@@ -104,7 +104,7 @@ func InPodNamespace() (string, error) {
 
 // InPodName gets the pod name from inside a Kubernetes Pod.
 func InPodName() (string, error) {
-	if podName, exists := os.LookupEnv("ARGO_POD_NAME"); exists && podName != "" {
+	if podName, exists := os.LookupEnv("KFP_POD_NAME"); exists && podName != "" {
 		return podName, nil
 	}
 	podName, err := os.ReadFile("/etc/hostname")
@@ -179,7 +179,7 @@ func getDefaultMinioSessionInfo() (objectstore.SessionInfo, error) {
 		Provider: "minio",
 		Params: map[string]string{
 			"region":     "minio",
-			"endpoint":   objectstore.DefaultMinioEndpointInMultiUserMode,
+			"endpoint":   objectstore.DefaultEndpointInMultiUserMode,
 			"disableSSL": strconv.FormatBool(true),
 			"fromEnv":    strconv.FormatBool(false),
 			"maxRetries": strconv.FormatInt(int64(5), 10),
@@ -194,7 +194,7 @@ func getDefaultMinioSessionInfo() (objectstore.SessionInfo, error) {
 
 func GetMLPipelineServerConfig() *ServerConfig {
 	return &ServerConfig{
-		Address: common.GetMLPipelineServiceName() + "." + common.GetPodNamespace(),
+		Address: common.GetMLPipelineServiceName() + "." + common.GetPodNamespace() + ".svc." + common.GetClusterDomain(),
 		Port:    mlPipelineGrpcServicePort,
 	}
 }

@@ -17,6 +17,7 @@
 import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
 import {
+  CARD_ROW_CENTER_Y,
   CARD_ROW_HEIGHT,
   CARD_CONTAINER_BORDERS,
   CARD_SPACER_HEIGHT,
@@ -75,7 +76,7 @@ export interface EdgeCanvasProps {
  * is set to true.
  */
 export class EdgeCanvas extends React.Component<EdgeCanvasProps> {
-  public render(): JSX.Element | null {
+  public render(): React.JSX.Element | null {
     const { cards, reverseEdges, edgeWidth } = this.props;
 
     let viewHeight = 1;
@@ -83,9 +84,9 @@ export class EdgeCanvas extends React.Component<EdgeCanvasProps> {
     const lastNode = reverseEdges ? 'y1' : 'y4';
     const lastNodePositions = { y1: 0, y4: 0 };
 
-    const edgeLines: JSX.Element[] = [];
-    cards.forEach((card, i) => {
-      card.elements.forEach((element, j) => {
+    const edgeLines: React.JSX.Element[] = [];
+    cards.forEach((card) => {
+      card.elements.forEach((element) => {
         if (!element.next) {
           return;
         }
@@ -108,7 +109,7 @@ export class EdgeCanvas extends React.Component<EdgeCanvasProps> {
 
     const css = edgeCanvasCss(
       /* left= */ this.props.cardWidth,
-      /* top= */ CARD_TITLE_HEIGHT + CARD_ROW_HEIGHT / 2,
+      /* top= */ CARD_TITLE_HEIGHT + CARD_ROW_CENTER_Y,
       /* width= */ edgeWidth,
     );
     const edgeCanvasClasses = classes(css.edgeCanvas, reverseEdges && 'edgeCanvasReverse');

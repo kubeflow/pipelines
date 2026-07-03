@@ -51,14 +51,14 @@ var _ = Describe("Upgrade Test Preparation >", Label(constants.UpgradePreparatio
 			preparePipelines()
 		})
 		It("Create pipeline run", func() {
-			preparePipelineRun(helloWorldPipelineFileName, "Pipeline 1", "Experiment 1", "Run 1")
+			preparePipelineRun(helloWorldPipelineFileName, "pipeline-1", "Experiment-1", "Run 1")
 		})
 		It("Create pipeline run and wait it to go to RUNNING state", func() {
-			run := preparePipelineRun(longRunningPipelineFileName, "Pipeline 3", "Experiment 3", "Run 3")
+			run := preparePipelineRun(longRunningPipelineFileName, "pipeline-3", "Experiment-3", "Run 3")
 			testutil.WaitForRunToBeInState(runClient, &run.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateRUNNING}, nil)
 		})
 		It("Create scheduled pipeline run", func() {
-			prepareScheduledPipelineRun(helloWorldPipelineFileName, "Pipeline 4", "Experiment 4", "Scheduled Run 1")
+			prepareScheduledPipelineRun(helloWorldPipelineFileName, "pipeline-4", "Experiment-4", "Scheduled Run 1")
 		})
 
 	})
@@ -73,21 +73,21 @@ var _ = Describe("Upgrade Test Verification >", Label(constants.UpgradeVerificat
 			verifyPipelines()
 		})
 		It("Verify pipeline run", func() {
-			verifyPipelineRun(helloWorldPipelineFileName, "Pipeline 1", "Experiment 1", "Run 1")
+			verifyPipelineRun(helloWorldPipelineFileName, "pipeline-1", "Experiment-1", "Run 1")
 		})
 		It("Verify you can create a pipeline run after upgrade", func() {
-			preparePipelineRun(helloWorldPipelineFileName, "Pipeline 2", "Experiment 2", "Run 2")
-			verifyPipelineRun(longRunningPipelineFileName, "Pipeline 2", "Experiment 2", "Run 2")
+			preparePipelineRun(helloWorldPipelineFileName, "pipeline-2", "Experiment-2", "Run 2")
+			verifyPipelineRun(longRunningPipelineFileName, "pipeline-2", "Experiment-2", "Run 2")
 		})
 		It("Verify pipeline run that was in RUNNING state, still exists after the upgrade", func() {
-			verifyPipelineRun(longRunningPipelineFileName, "Pipeline 3", "Experiment 3", "Run 3")
+			verifyPipelineRun(longRunningPipelineFileName, "pipeline-3", "Experiment-3", "Run 3")
 		})
 		It("Verify scheduled pipeline run", func() {
-			verifyScheduledPipelineRun(helloWorldPipelineFileName, "Pipeline 4", "Experiment 4", "Scheduled Run 1")
+			verifyScheduledPipelineRun(helloWorldPipelineFileName, "pipeline-4", "Experiment-4", "Scheduled Run 1")
 		})
 		It("Verify you can create scheduled pipeline run after upgrade", func() {
-			prepareScheduledPipelineRun(helloWorldPipelineFileName, "Pipeline 5", "Experiment 5", "Scheduled Run 2")
-			verifyScheduledPipelineRun(helloWorldPipelineFileName, "Pipeline 5", "Experiment 5", "Scheduled Run 2")
+			prepareScheduledPipelineRun(helloWorldPipelineFileName, "pipeline-5", "Experiment-5", "Scheduled Run 2")
+			verifyScheduledPipelineRun(helloWorldPipelineFileName, "pipeline-5", "Experiment-5", "Scheduled Run 2")
 		})
 	})
 })
@@ -214,7 +214,7 @@ func getPipelineAndExperimentForRun(pipelineToUpload string, pipelineName string
 	}
 
 	if uploadedPipeline == nil {
-		logger.Log("Uploading pipeline from file %s", pipelineFilePath)
+		logger.Log("Uploading pipeline %s from file %s", pipelineName, pipelineFilePath)
 		uploadedPipeline, err = pipelineUploadClient.UploadFile(pipelineFilePath, pipelineUploadParams)
 		Expect(err).To(BeNil(), "Failed to upload pipeline: %s", pipelineFilePath)
 		logger.Log("Uploaded pipeline from file %s", pipelineFilePath)

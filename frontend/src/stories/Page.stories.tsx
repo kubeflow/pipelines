@@ -1,22 +1,27 @@
-import React from 'react';
-import { ComponentStory, ComponentMeta } from '@storybook/react';
+import { Meta, StoryObj } from '@storybook/react';
+import { fn } from 'storybook/test';
 
 import { Page } from './Page';
-import * as HeaderStories from './Header.stories';
 
-export default {
+const meta: Meta<typeof Page> = {
   title: 'Example/Page',
   component: Page,
-} as ComponentMeta<typeof Page>;
-
-const Template: ComponentStory<typeof Page> = args => <Page {...args} />;
-
-export const LoggedIn = Template.bind({});
-LoggedIn.args = {
-  ...HeaderStories.LoggedIn.args,
+  args: {
+    onLogin: fn(),
+    onLogout: fn(),
+    onCreateAccount: fn(),
+  },
 };
 
-export const LoggedOut = Template.bind({});
-LoggedOut.args = {
-  ...HeaderStories.LoggedOut.args,
+export default meta;
+type Story = StoryObj<typeof Page>;
+
+export const LoggedIn: Story = {
+  args: {
+    user: {},
+  },
+};
+
+export const LoggedOut: Story = {
+  args: {},
 };

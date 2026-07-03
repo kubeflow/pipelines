@@ -40,8 +40,10 @@ app.all(
   '/ml_metadata.*',
   createProxyMiddleware({
     changeOrigin: true,
-    onProxyReq: proxyReq => {
-      console.log('Metadata proxied request: ', (proxyReq as any).path);
+    on: {
+      proxyReq: (proxyReq) => {
+        console.log('Metadata proxied request: ', proxyReq.path);
+      },
     },
     headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
     target: getAddress({ host: 'localhost', port: '9090' }),

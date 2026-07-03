@@ -14,24 +14,28 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
+import type * as React from 'react';
 import BusyButton from '../../atoms/BusyButton';
-import Button from '@material-ui/core/Button';
 import Viewer, { ViewerConfig } from './Viewer';
 import { Apis } from '../../lib/Apis';
 import { commonCss, padding, color } from '../../Css';
-import InputLabel from '@material-ui/core/InputLabel';
-import Input from '@material-ui/core/Input';
-import MenuItem from '@material-ui/core/MenuItem';
-import ListSubheader from '@material-ui/core/ListSubheader';
-import FormControl from '@material-ui/core/FormControl';
-import Select from '@material-ui/core/Select';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogTitle from '@material-ui/core/DialogTitle';
 import { classes, stylesheet } from 'typestyle';
+
+import {
+  Button,
+  InputLabel,
+  Input,
+  MenuItem,
+  ListSubheader,
+  FormControl,
+  Select,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+} from '@mui/material';
+import { SelectChangeEvent } from '@mui/material/Select';
 
 export const css = stylesheet({
   button: {
@@ -71,9 +75,9 @@ interface TensorboardViewerProps {
 interface TensorboardViewerState {
   busy: boolean;
   deleteDialogOpen: boolean;
-  podAddress: string;
+  proxyPath: string;
   tfImage: string;
-  // When podAddress is not null, we need to further tell whether the TensorBoard pod is accessible or not
+  // When proxyPath is not null, we need to further tell whether the TensorBoard pod is accessible or not
   tensorboardReady: boolean;
   errorMessage?: string;
 }
@@ -84,6 +88,7 @@ const DEFAULT_TF_IMAGE = 'tensorflow/tensorflow:2.2.2';
 
 class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewerState> {
   timerID: NodeJS.Timeout;
+  private _isMounted = true;
 
   constructor(props: any) {
     super(props);
@@ -91,7 +96,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     this.state = {
       busy: false,
       deleteDialogOpen: false,
-      podAddress: '',
+      proxyPath: '',
       tfImage: this._image() || DEFAULT_TF_IMAGE,
       tensorboardReady: false,
       errorMessage: undefined,
@@ -107,6 +112,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   }
 
   public componentDidMount(): void {
+    this._isMounted = true;
     this._checkTensorboardApp();
     this.timerID = setInterval(
       () => this._checkTensorboardPodStatus(),
@@ -115,27 +121,28 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   }
 
   public componentWillUnmount(): void {
+    this._isMounted = false;
     clearInterval(this.timerID);
   }
 
-  public handleImageSelect = (e: React.ChangeEvent<{ name?: string; value: unknown }>): void => {
+  public handleImageSelect = (e: SelectChangeEvent<string>): void => {
     if (typeof e.target.value !== 'string') {
       throw new Error('Invalid event value type, expected string');
     }
-    this.setState({ tfImage: e.target.value });
+    this.setStateSafe({ tfImage: e.target.value });
   };
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     return (
       <div>
         {this.state.errorMessage && <div className={css.errorText}>{this.state.errorMessage}</div>}
-        {this.state.podAddress && (
+        {this.state.proxyPath && (
           <div>
             <div
               className={padding(20, 'b')}
             >{`Tensorboard ${this.state.tfImage} is running for this output.`}</div>
             <a
-              href={makeProxyUrl(this.state.podAddress)}
+              href={this.state.proxyPath}
               target='_blank'
               rel='noopener noreferrer'
               className={commonCss.unstyled}
@@ -163,7 +170,6 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 id={'delete'}
                 title={`stop tensorboard and delete its instance`}
                 onClick={this._handleDeleteOpen}
-                color={'default'}
               >
                 Stop Tensorboard
               </Button>
@@ -201,13 +207,13 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
             </div>
           </div>
         )}
-
-        {!this.state.podAddress && (
+        {!this.state.proxyPath && (
           <div>
             <div className={padding(30, 'b')}>
-              <FormControl className={css.formControl}>
+              <FormControl variant='standard' className={css.formControl}>
                 <InputLabel htmlFor='viewer-tb-image-select'>TF Image</InputLabel>
                 <Select
+                  variant='standard'
                   className={css.select}
                   value={this.state.tfImage}
                   input={<Input id='viewer-tb-image-select' />}
@@ -247,11 +253,11 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   }
 
   private _handleDeleteOpen = () => {
-    this.setState({ deleteDialogOpen: true });
+    this.setStateSafe({ deleteDialogOpen: true });
   };
 
   private _handleDeleteClose = () => {
-    this.setState({ deleteDialogOpen: false });
+    this.setStateSafe({ deleteDialogOpen: false });
   };
 
   private _getNamespace(): string {
@@ -260,7 +266,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   }
 
   private _buildUrl(): string {
-    const urls = this.props.configs.map(c => c.url).sort();
+    const urls = this.props.configs.map((c) => c.url).sort();
     return urls.length === 1 ? urls[0] : urls.map((c, i) => `Series${i + 1}:` + c).join(',');
   }
 
@@ -275,81 +281,89 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   }
 
   private async _checkTensorboardPodStatus(): Promise<void> {
-    // If pod address is not null and tensorboard pod doesn't seem to be read, pull status again
-    if (this.state.podAddress && !this.state.tensorboardReady) {
-      // Remove protocol prefix bofore ":" from pod address if any.
-      Apis.isTensorboardPodReady(makeProxyUrl(this.state.podAddress)).then(ready => {
-        this.setState(({ tensorboardReady }) => ({ tensorboardReady: tensorboardReady || ready }));
+    // If the proxied TensorBoard is not ready yet, poll the scoped proxy path again.
+    if (this.state.proxyPath && !this.state.tensorboardReady) {
+      Apis.isTensorboardPodReady(this.state.proxyPath).then((ready) => {
+        this.setStateSafe(({ tensorboardReady }) => ({
+          tensorboardReady: tensorboardReady || ready,
+        }));
       });
     }
   }
 
   private async _checkTensorboardApp(): Promise<void> {
-    this.setState({ busy: true }, async () => {
+    this.setStateSafe({ busy: true }, async () => {
       try {
         // TODO: parse tfImage here
-        const { podAddress, image } = await Apis.getTensorboardApp(
+        const { proxyPath, image } = await Apis.getTensorboardApp(
           this._buildUrl(),
           this._getNamespace(),
         );
-        if (podAddress) {
-          this.setState({ busy: false, podAddress, tfImage: image });
+        if (proxyPath) {
+          this.setStateSafe({ busy: false, proxyPath, tfImage: image });
         } else {
           // No existing pod
-          this.setState({ busy: false });
+          this.setStateSafe({ busy: false });
         }
       } catch (err) {
-        this.setState({ busy: false, errorMessage: err?.message || 'Unknown error' });
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        this.setStateSafe({ busy: false, errorMessage });
       }
     });
   }
 
   private _startTensorboard = async () => {
-    this.setState({ busy: true, errorMessage: undefined }, async () => {
+    this.setStateSafe({ busy: true, errorMessage: undefined }, async () => {
       try {
-        await Apis.startTensorboardApp({
+        const proxyPath = await Apis.startTensorboardApp({
           logdir: this._buildUrl(),
           namespace: this._getNamespace(),
           image: this.state.tfImage,
           podTemplateSpec: this._podTemplateSpec(),
         });
-        this.setState({ busy: false, tensorboardReady: false }, () => {
-          this._checkTensorboardApp();
+        this.setStateSafe({ busy: false, proxyPath, tensorboardReady: false }, () => {
+          if (proxyPath) {
+            this._checkTensorboardPodStatus();
+          } else {
+            this._checkTensorboardApp();
+          }
         });
       } catch (err) {
-        this.setState({ busy: false, errorMessage: err?.message || 'Unknown error' });
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        this.setStateSafe({ busy: false, errorMessage });
       }
     });
   };
 
   private _deleteTensorboard = async () => {
-    // delete the already opened Tensorboard, clear the podAddress recorded in frontend,
+    // delete the already opened Tensorboard, clear the proxy path recorded in frontend,
     // and return to the select & start tensorboard page
-    this.setState({ busy: true, errorMessage: undefined }, async () => {
+    this.setStateSafe({ busy: true, errorMessage: undefined }, async () => {
       try {
         await Apis.deleteTensorboardApp(this._buildUrl(), this._getNamespace());
-        this.setState({
+        this.setStateSafe({
           busy: false,
           deleteDialogOpen: false,
-          podAddress: '',
+          proxyPath: '',
           tensorboardReady: false,
         });
       } catch (err) {
-        this.setState({ busy: false, errorMessage: err?.message || 'Unknown error' });
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        this.setStateSafe({ busy: false, errorMessage });
       }
     });
   };
-}
 
-function makeProxyUrl(podAddress: string) {
-  // Strip the protocol from the URL. This is a workaround for cloud shell
-  // incorrectly decoding the address and replacing the protocol's // with /.
-  // Pod address (after stripping protocol) is of the format
-  // <viewer_service_dns>.kubeflow.svc.cluster.local:6006/tensorboard/<viewer_name>/
-  // We use this pod address without encoding since encoded pod address failed to open the
-  // tensorboard instance on this pod.
-  // TODO: figure out why the encoded pod address failed to open the tensorboard.
-  return 'apis/v1beta1/_proxy/' + podAddress.replace(/(^\w+:|^)\/\//, '');
+  private setStateSafe(
+    newState:
+      | Partial<TensorboardViewerState>
+      | ((prevState: TensorboardViewerState) => Partial<TensorboardViewerState>),
+    cb?: () => void,
+  ): void {
+    if (this._isMounted) {
+      this.setState(newState as any, cb);
+    }
+  }
 }
 
 export default TensorboardViewer;

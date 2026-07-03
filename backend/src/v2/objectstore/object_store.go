@@ -21,11 +21,12 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
-	"github.com/aws/aws-sdk-go-v2/config"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/golang/glog"
@@ -48,19 +49,21 @@ func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace s
 	if config.SessionInfo != nil {
 		switch config.SessionInfo.Provider {
 		case "minio", "s3":
-			s3Client, err1 := createS3BucketSession(ctx, namespace, config.SessionInfo, k8sClient)
-			if err1 != nil {
-				return nil, fmt.Errorf("Failed to retrieve credentials for bucket %s: %w", config.BucketName, err1)
-			}
-			if s3Client != nil {
-				// Use s3blob.OpenBucketV2 with the configured S3 client to leverage retry logic
-				openedBucket, err2 := s3blob.OpenBucketV2(ctx, s3Client, config.BucketName, nil)
-				if err2 != nil {
-					return nil, err2
+			if config.QueryString == "" {
+				s3Client, err1 := createS3BucketSession(ctx, namespace, config.SessionInfo, k8sClient)
+				if err1 != nil {
+					return nil, fmt.Errorf("failed to retrieve credentials for bucket %s: %w", config.BucketName, err1)
 				}
-				// Directly calling s3blob.OpenBucketV2 does not allow overriding prefix via bucketConfig.BucketURL().
-				// Therefore, we need to explicitly configure the prefixed bucket.
-				return blob.PrefixedBucket(openedBucket, config.Prefix), nil
+				if s3Client != nil {
+					// Use s3blob.OpenBucketV2 with the configured S3 client to leverage retry logic
+					openedBucket, err2 := s3blob.OpenBucketV2(ctx, s3Client, config.BucketName, nil)
+					if err2 != nil {
+						return nil, err2
+					}
+					// Directly calling s3blob.OpenBucketV2 does not allow overriding prefix via bucketConfig.BucketURL().
+					// Therefore, we need to explicitly configure the prefixed bucket.
+					return blob.PrefixedBucket(openedBucket, config.Prefix), nil
+				}
 			}
 		case "gs":
 			client, err1 := getGCSTokenClient(ctx, namespace, config.SessionInfo, k8sClient)
@@ -85,7 +88,23 @@ func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace s
 		bucketURL = strings.Replace(bucketURL, "minio://", "s3://", 1)
 	}
 
-	// When no provider config is provided, or "FromEnv" is specified, use default credentials from the environment
+	// When no session info is provided for a plain s3:// or minio:// URL,
+	// build the S3 client directly so checksum options are applied.
+	useExplicitS3Client := strings.HasPrefix(bucketURL, "minio://") ||
+		(config.QueryString == "" && strings.HasPrefix(bucketURL, "s3://"))
+	if useExplicitS3Client {
+		s3Client, err1 := newS3Client(ctx, nil, nil)
+		if err1 != nil {
+			return nil, err1
+		}
+		openedBucket, err2 := s3blob.OpenBucketV2(ctx, s3Client, config.BucketName, nil)
+		if err2 != nil {
+			return nil, err2
+		}
+		return blob.PrefixedBucket(openedBucket, config.Prefix), nil
+	}
+
+	// Use gocloud's URL opener for the remaining cases, including query-string based S3 URLs.
 	return blob.OpenBucket(ctx, bucketURL)
 }
 
@@ -124,6 +143,36 @@ func UploadBlob(ctx context.Context, bucket *blob.Bucket, localPath, blobPath st
 	return nil
 }
 
+func sanitizeDownloadPath(localDir, blobDir, objKey string) (string, error) {
+	if slices.Contains(strings.Split(objKey, "/"), "..") {
+		return "", fmt.Errorf("path traversal detected: blob key %q contains '..' component", objKey)
+	}
+
+	relativePath, err := filepath.Rel(blobDir, objKey)
+	if err != nil {
+		return "", fmt.Errorf("unexpected object key %q when listing %q: %w", objKey, blobDir, err)
+	}
+	localPath := filepath.Join(localDir, relativePath)
+
+	absLocal, err := filepath.Abs(localPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve absolute path for %q: %w", localPath, err)
+	}
+	absDir, err := filepath.Abs(localDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve absolute path for %q: %w", localDir, err)
+	}
+	if absLocal != absDir && !strings.HasPrefix(absLocal, absDir+string(os.PathSeparator)) {
+		return "", fmt.Errorf("path traversal detected: blob key %q resolves to %q which is outside target directory %q", objKey, absLocal, absDir)
+	}
+	return localPath, nil
+}
+
+func isBlobKeyUnderPrefix(objKey, blobDir string) bool {
+	blobDir = strings.TrimRight(blobDir, "/")
+	return objKey == blobDir || strings.HasPrefix(objKey, blobDir+"/")
+}
+
 func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir string) error {
 	iter := bucket.List(&blob.ListOptions{Prefix: blobDir})
 	for {
@@ -140,14 +189,16 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 			// Object stores list all files with the same prefix,
 			// there is no need to recursively list each folder.
 			continue
-		} else {
-			relativePath, err := filepath.Rel(blobDir, obj.Key)
+		} else if isBlobKeyUnderPrefix(obj.Key, blobDir) {
+			localPath, err := sanitizeDownloadPath(localDir, blobDir, obj.Key)
 			if err != nil {
-				return fmt.Errorf("unexpected object key %q when listing %q: %w", obj.Key, blobDir, err)
-			}
-			if err := downloadFile(ctx, bucket, obj.Key, filepath.Join(localDir, relativePath)); err != nil {
 				return err
 			}
+			if err := downloadFile(ctx, bucket, obj.Key, localPath); err != nil {
+				return err
+			}
+		} else {
+			glog.V(4).Infof("DownloadBlob: skipping blob key %q not under expected prefix %q", obj.Key, blobDir)
 		}
 	}
 	return nil
@@ -251,23 +302,41 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 	if err != nil {
 		return nil, err
 	}
-	if params.FromEnv {
+	if params.FromEnv && !HasStructuredS3Settings(sessionInfo.Params) {
 		return nil, nil
 	}
-	creds, err := getS3BucketCredential(ctx, client, namespace, params.SecretName, params.SecretKeyKey, params.AccessKeyKey)
-	if err != nil {
-		return nil, err
+	var creds *credentials.StaticCredentialsProvider
+	if !params.FromEnv {
+		creds, err = getS3BucketCredential(ctx, client, namespace, params.SecretName, params.SecretKeyKey, params.AccessKeyKey)
+		if err != nil {
+			return nil, err
+		}
 	}
-	s3Config, err := config.LoadDefaultConfig(ctx,
-		config.WithRetryer(func() aws.Retryer {
-			// Use standard retry logic with exponential backoff for transient S3 connection failures.
-			// The standard retryer implements exponential backoff with jitter, starting with a base delay
-			// and doubling the wait time between retries up to a maximum, helping to avoid thundering herd problems.
-			return retry.AddWithMaxAttempts(retry.NewStandard(), params.MaxRetries)
-		}),
-		config.WithCredentialsProvider(*creds),
-		config.WithRegion(*aws.String(params.Region)),
-	)
+	return newS3Client(ctx, params, creds)
+}
+
+func newS3Client(ctx context.Context, params *S3Params, creds *credentials.StaticCredentialsProvider) (*s3.Client, error) {
+	loadOptions := []func(*awsconfig.LoadOptions) error{
+		awsconfig.WithRequestChecksumCalculation(aws.RequestChecksumCalculationWhenRequired),
+		awsconfig.WithResponseChecksumValidation(aws.ResponseChecksumValidationWhenRequired),
+	}
+	if params != nil {
+		if params.MaxRetries > 0 {
+			loadOptions = append(loadOptions, awsconfig.WithRetryer(func() aws.Retryer {
+				// Use standard retry logic with exponential backoff for transient S3 connection failures.
+				// The standard retryer implements exponential backoff with jitter, starting with a base delay
+				// and doubling the wait time between retries up to a maximum, helping to avoid thundering herd problems.
+				return retry.AddWithMaxAttempts(retry.NewStandard(), params.MaxRetries)
+			}))
+		}
+		if params.Region != "" {
+			loadOptions = append(loadOptions, awsconfig.WithRegion(params.Region))
+		}
+	}
+	if creds != nil {
+		loadOptions = append(loadOptions, awsconfig.WithCredentialsProvider(*creds))
+	}
+	s3Config, err := awsconfig.LoadDefaultConfig(ctx, loadOptions...)
 	if err != nil {
 		return nil, err
 	}
@@ -278,11 +347,14 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 	// for (1) the endpoint is not required, thus we skip it, otherwise the writer will fail to close due to region mismatch.
 	// https://aws.amazon.com/blogs/infrastructure-and-automation/best-practices-for-using-amazon-s3-endpoints-in-aws-cloudformation-templates/
 	// https://docs.aws.amazon.com/sdk-for-go/api/aws/session/
-	awsEndpoint, _ := regexp.MatchString(`^(https://)?s3.amazonaws.com`, strings.ToLower(params.Endpoint))
 	s3Options := func(o *s3.Options) {
+		if params == nil {
+			return
+		}
+		awsEndpoint, _ := regexp.MatchString(`^(https://)?s3.amazonaws.com`, strings.ToLower(params.Endpoint))
 		o.UsePathStyle = *aws.Bool(params.ForcePathStyle)
 		o.EndpointOptions.DisableHTTPS = *aws.Bool(params.DisableSSL)
-		if !awsEndpoint {
+		if !awsEndpoint && params.Endpoint != "" {
 			// AWS SDK v2 requires BaseEndpoint to be a valid URI with scheme
 			endpoint := params.Endpoint
 			if !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
@@ -297,7 +369,7 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 	}
 	s3Client := s3.NewFromConfig(s3Config, s3Options)
 	if s3Client == nil {
-		return nil, fmt.Errorf("Failed to create object store session, %v", err)
+		return nil, fmt.Errorf("failed to create object store session, %v", err)
 	}
 	return s3Client, nil
 }
@@ -313,7 +385,7 @@ func getS3BucketCredential(
 	defer func() {
 		if err != nil {
 			// wrap error before returning
-			err = fmt.Errorf("Failed to get Bucket credentials from secret name=%q namespace=%q: %w", secretName, namespace, err)
+			err = fmt.Errorf("failed to get Bucket credentials from secret name=%q namespace=%q: %w", secretName, namespace, err)
 		}
 	}()
 	secret, err := clientSet.CoreV1().Secrets(namespace).Get(

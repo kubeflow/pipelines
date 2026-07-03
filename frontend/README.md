@@ -2,6 +2,16 @@
 
 This section of the codebase contains the Kubeflow Pipelines (KFP) Frontend.
 
+## Current Stack
+
+- React 19 with TypeScript on Vite 7
+- MUI v5 with Emotion
+- TanStack Query v5
+- React Router v5
+- Vitest with Testing Library v16 for UI tests
+- Vitest for frontend server tests
+- Storybook 10 for component development
+
 ## Quick Start Development
 
 This guide will get you started with development on KFP standalone mode. 
@@ -15,6 +25,7 @@ You will need the following installed in your environment:
 * [Kind] 
 * [Kustomize] 
 * [Node] version specified in the [.nvmrc]
+* npm version specified in [package.json]
 
 > [!Note]
 > MAC users have reported positive experiences using [Docker + Colima] when using Kind environments. Consider
@@ -59,6 +70,7 @@ Now navigate to the KFP frontend folder, install and build your NPM dependencies
 
 ```bash
 cd ${WORKING_DIRECTORY}/frontend
+npm install --global "$(node -p 'require("./package.json").packageManager')"
 npm ci
 npm run build
 ```
@@ -77,22 +89,68 @@ Server listening at http://localhost:3001
 
 Follow this link, and you should be directed to the KFP UI the same as before, except this time you are using the UI running in your local environment!
 
-If you enjoy hot reloading when developing the client side React code, you can subsequently run the following command: 
+If you enjoy hot reloading when developing the client side React code, you can subsequently run the following command:
 
 ```bash
 npm run start
 ```
 
-You should see something like the following output:
+You should see output indicating the Vite dev server is running, for example:
 
 ```bash
-You can now view pipelines-frontend in the browser.
-
-  Local:            http://localhost:3000
+VITE v7.x ready in ...
+➜  Local:   http://localhost:3000/
 ...
 ```
 
 Follow this link, it should also take you to the same UI. The difference here is that whenever you change client side (React) code locally, you will automatically get the new changes in your browser without having to restart your server. 
+
+The local dev bootstrap runs under React Strict Mode. Vitest UI tests are configured to do the same through Testing Library's global `reactStrictMode` setting so direct `render()` calls match dev behavior. Production builds remain outside Strict Mode.
+
+### Mock backend shortcut
+
+For fixture-backed client work that does not need a Kubernetes cluster, run:
+
+```bash
+npm run mock:api
+npm run start
+```
+
+The mock backend serves the primary v2 Pipelines, Experiments, Runs, and Recurring Runs list pages with deterministic fixture data. Use `npm run start:proxy-and-server` against a real KFP deployment when validating MLMD, pod logs, runtime artifacts, auth, or backend behavior beyond those fixtures.
+
+## Visual Regression Testing
+
+When making UI changes, use the smoke test tool to capture screenshots and generate side-by-side comparisons against a base branch. This catches layout regressions, styling issues, and unintended visual changes before they reach review.
+
+### Quick screenshot of your dev server
+
+The fastest workflow — point the tool at your already-running `npm start` server:
+
+```bash
+node scripts/ui-smoke-test/smoke-test-runner.js --current-only --use-existing --url http://localhost:3000
+```
+
+Screenshots are saved to `.ui-smoke-test/screenshots/pr/`.
+
+### Compare your branch against master
+
+The full workflow — detects changed backend components, ensures a Kind cluster, builds both frontends, captures screenshots from both, and generates a side-by-side comparison with diff percentages:
+
+```bash
+node scripts/ui-smoke-test/smoke-test-runner.js --compare master
+```
+
+If your PR only touches frontend code, the backend rebuild is auto-skipped since no backend components changed.
+
+### Compare someone else's PR
+
+Fetch and test a PR you don't have checked out locally:
+
+```bash
+node scripts/ui-smoke-test/smoke-test-runner.js --compare master --pr 12756
+```
+
+Results are saved to `.ui-smoke-test/screenshots/comparison/`. See [scripts/ui-smoke-test/README.md] for the full command reference, troubleshooting, and architecture details.
 
 ## Contributing
 
@@ -104,7 +162,9 @@ For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 [Kustomize]: https://kustomize.io
 [Node]: https://www.npmjs.com/package/node
 [.nvmrc]: .nvmrc
+[package.json]: package.json
 [CONTRIBUTING.md]: CONTRIBUTING.md
+[scripts/ui-smoke-test/README.md]: scripts/ui-smoke-test/README.md
 [http://127.0.0.1:3000]: http://127.0.0.1:3000
 [Kubectl]: https://kubernetes.io/docs/tasks/tools/#kubectl
 [Docker + Colima]: https://github.com/abiosoft/colima?tab=readme-ov-file#docker

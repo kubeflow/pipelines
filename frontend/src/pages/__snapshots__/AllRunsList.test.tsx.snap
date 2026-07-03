@@ -1,82 +1,13 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`AllRunsList renders all runs 1`] = `
-<div
-  className="page"
->
-  <RunList
-    hideMetricMetadata={true}
-    history={
-      Object {
-        "push": [MockFunction],
-      }
-    }
-    location=""
-    match=""
-    onError={[Function]}
-    onSelectionChange={[Function]}
-    selectedIds={Array []}
-    storageState="AVAILABLE"
-    toolbarProps={
-      Object {
-        "actions": Object {
-          "archive": Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select at least one resource to archive",
-            "id": "archiveBtn",
-            "title": "Archive",
-            "tooltip": "Archive selected run(s)",
-          },
-          "cloneRun": Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select a run to clone",
-            "id": "cloneBtn",
-            "style": Object {
-              "minWidth": 100,
-            },
-            "title": "Clone run",
-            "tooltip": "Create a copy from this runs initial state",
-          },
-          "compare": Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select multiple runs to compare",
-            "id": "compareBtn",
-            "style": Object {
-              "minWidth": 125,
-            },
-            "title": "Compare runs",
-            "tooltip": "Compare up to 10 selected runs",
-          },
-          "newRun": Object {
-            "action": [Function],
-            "icon": [Function],
-            "id": "createNewRunBtn",
-            "outlined": true,
-            "primary": true,
-            "style": Object {
-              "minWidth": 130,
-            },
-            "title": "Create run",
-            "tooltip": "Create a new run",
-          },
-          "refresh": Object {
-            "action": [Function],
-            "id": "refreshBtn",
-            "title": "Refresh",
-            "tooltip": "Refresh the list",
-          },
-        },
-        "breadcrumbs": Array [],
-        "pageTitle": "Runs",
-      }
-    }
-    updateBanner={[MockFunction]}
-    updateDialog={[MockFunction]}
-    updateSnackbar={[MockFunction]}
-    updateToolbar={[MockFunction]}
-  />
-</div>
+exports[`AllRunsList > renders all runs 1`] = `
+<DocumentFragment>
+  <div
+    class="page_f1flacxk f9qqjqd"
+  >
+    <div
+      data-testid="run-list"
+    />
+  </div>
+</DocumentFragment>
 `;

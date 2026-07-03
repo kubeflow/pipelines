@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { classes } from 'typestyle';
+const { classes } = require('typestyle');
 
 // Mocks the typestyle module to emit a fixed string for class names to avoid
 // test churn on style changes
@@ -22,10 +22,12 @@ module.exports = {
   classes,
   cssRaw: () => null,
   cssRule: () => null,
-  style: (obj) => '',
-  stylesheet: (obj) => {
+  style: () => '',
+  stylesheet: obj => {
     const mock = {};
-    Object.keys(obj).forEach(key => mock[key] = key);
+    Object.keys(obj).forEach(key => {
+      mock[key] = key;
+    });
     return mock;
   },
 };

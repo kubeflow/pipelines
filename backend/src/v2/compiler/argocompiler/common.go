@@ -15,9 +15,11 @@
 package argocompiler
 
 import (
-	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	k8score "k8s.io/api/core/v1"
 )
 
@@ -53,30 +55,69 @@ var commonEnvs = []k8score.EnvVar{{
 	},
 }}
 
+// retryIndexEnv injects the Argo retry attempt index into the executor
+// container. Argo substitutes {{retries}} with the 0-based attempt index at
+// pod creation time, so each retry attempt writes executor-logs to a distinct,
+// sequentially-numbered path (executor-logs-0, executor-logs-1, …).
+// This variable is only valid inside a template that has a retryStrategy, so
+// it must NOT be added to commonEnvs (which is applied to all templates).
+var retryIndexEnv = k8score.EnvVar{
+	Name:  component.EnvRetryIndex,
+	Value: "{{retries}}",
+}
+
+// setRuntimeRole stamps the template with an annotation declaring its logical
+// execution role (e.g. "driver", "launcher").
+func setRuntimeRole(tmpl *wfapi.Template, role util.ExecutionRuntimeRole) {
+	if tmpl.Metadata.Annotations == nil {
+		tmpl.Metadata.Annotations = make(map[string]string)
+	}
+	tmpl.Metadata.Annotations[util.AnnotationKeyRuntimeRole] = string(role)
+}
+
 // ConfigureCustomCABundle adds CABundle environment variables and volume mounts if CABUNDLE_SECRET_NAME is set.
 func ConfigureCustomCABundle(tmpl *wfapi.Template) {
-	caBundleDir := common.CABundleDir
 	caBundleSecretName := common.GetCaBundleSecretName()
-	if caBundleSecretName == "" {
-		glog.Error("Env var CABUNDLE_SECRET_NAME is blank or empty. Failed to configure custom CA bundle.")
+	caBundleConfigMapName := common.GetCaBundleConfigMapName()
+	// If CABUNDLE_KEY_NAME is not set, use "ca.crt".
+	caBundleKeyName := common.GetCABundleKey()
+	if caBundleKeyName == "" {
+		caBundleKeyName = "ca.crt"
+	}
+	volumeSource := k8score.VolumeSource{}
+
+	// CABUNDLE_SECRET_NAME is prioritized above CABUNDLE_CONFIGMAP_NAME.
+	if caBundleSecretName != "" { // nolint:gocritic // ifElseChain is preferred here for clarity over a switch
+		volumeSource.Secret = &k8score.SecretVolumeSource{
+			SecretName: caBundleSecretName,
+			Items: []k8score.KeyToPath{
+				{
+					Key:  caBundleKeyName,
+					Path: "ca.crt",
+				},
+			},
+		}
+	} else if caBundleConfigMapName != "" {
+		volumeSource.ConfigMap = &k8score.ConfigMapVolumeSource{
+			LocalObjectReference: k8score.LocalObjectReference{Name: caBundleConfigMapName},
+			Items: []k8score.KeyToPath{
+				{
+					Key:  caBundleKeyName,
+					Path: "ca.crt",
+				},
+			},
+		}
+	} else {
+		glog.Error("Neither CABUNDLE_SECRET_NAME nor CABUNDLE_CONFIGMAP_NAME is set. Failed to configure custom CA bundle.")
 		return
 	}
 	volume := k8score.Volume{
-		Name: "ca-secret",
-		VolumeSource: k8score.VolumeSource{
-			Secret: &k8score.SecretVolumeSource{
-				SecretName: caBundleSecretName,
-			},
-		},
+		Name:         "custom-ca",
+		VolumeSource: volumeSource,
 	}
-
 	tmpl.Volumes = append(tmpl.Volumes, volume)
 
-	volumeMount := k8score.VolumeMount{
-		Name:      "ca-secret",
-		MountPath: caBundleDir,
-	}
-
+	volumeMount := k8score.VolumeMount{Name: "custom-ca", MountPath: common.CABundleDir}
 	tmpl.Container.VolumeMounts = append(tmpl.Container.VolumeMounts, volumeMount)
 
 }
