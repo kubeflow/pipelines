@@ -16,7 +16,12 @@
     "docker": "docker build -t gcr.io/ml-pipeline/e2e-tests .",
     "test": "wdio wdio.conf.js"
   },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "overrides": {
-    "serialize-javascript": "7.0.5"
+    "mocha": {
+      "serialize-javascript": "7.0.5"
+    }
   }
 }
