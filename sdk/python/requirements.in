@@ -26,10 +26,10 @@ kubernetes>=8.0.0,<31
 # api/v2alpha1/python/requirements.txt
 protobuf>=6.31.1,<7.0
 PyYAML>=5.3,<7
-requests>=2.33.0,<3
 requests-toolbelt>=0.8.0,<2
 tabulate>=0.8.6,<1
-urllib3>=2.7.0,<3.0.0
+# Keep Python 3.9 installs working until KFP drops Python 3.9 support.
+urllib3<2.7.0
 
 ## standard library backports ##
 typing-extensions>=3.7.4,<5; python_version<"3.9"
