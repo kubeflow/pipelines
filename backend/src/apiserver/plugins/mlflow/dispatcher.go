@@ -16,7 +16,6 @@ package mlflow
 
 import (
 	"context"
-	"time"
 
 	"github.com/golang/glog"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -26,8 +25,6 @@ import (
 )
 
 var _ apiserverPlugins.PluginDispatcher = (*Dispatcher)(nil)
-
-const preRunMLflowTimeout = 3 * time.Second
 
 // Dispatcher implements PluginDispatcher for MLflow.
 type Dispatcher struct {
@@ -78,11 +75,11 @@ func (d *Dispatcher) OnBeforeRunCreation(ctx context.Context, run *apiserverPlug
 	}
 
 	handler := NewHandler(mlflowInput, run.Namespace)
-	// Limit MLflow pre-run calls to a short timeout budget while still
-	// honoring parent request cancellation.
-	mlflowCtx, cancel := context.WithTimeout(ctx, preRunMLflowTimeout)
+	// Keep the pre-run MLflow calls within the configured MLflow timeout while
+	// still honoring parent request cancellation.
+	mlflowCtx, cancel := context.WithTimeout(ctx, resolvedMLflowTimeout(resolvedCfg.Config))
 	defer cancel()
-	pluginOutput, pluginErr := handler.OnBeforeRunCreation(mlflowCtx, run, resolvedCfg.Config)
+	pluginOutput, pluginErr := handler.OnBeforeRunCreation(mlflowCtx, run, resolvedCfg)
 	if pluginErr != nil {
 		glog.Warningf("MLflow OnBeforeRunCreation failed for run %q (run creation will continue): %v", run.RunID, pluginErr)
 	}
@@ -92,10 +89,8 @@ func (d *Dispatcher) OnBeforeRunCreation(ctx context.Context, run *apiserverPlug
 	if err := SetPendingRunPluginOutput(run, PluginName, pluginOutput); err != nil {
 		glog.Warningf("Failed to persist MLflow plugin output for run %q: %v", run.RunID, err)
 	}
-	if len(handler.RunStartEnv) != 0 {
-		if err := InjectMLflowRuntimeEnv(executionSpec, handler.RunStartEnv); err != nil {
-			glog.Warningf("Failed to inject MLflow runtime env for run %q: %v", run.RunID, err)
-		}
+	if err := InjectMLflowRuntimeEnv(executionSpec, handler.RunStartEnvVars); err != nil {
+		glog.Warningf("Failed to inject MLflow runtime env for run %q: %v", run.RunID, err)
 	}
 	return nil
 }
@@ -106,8 +101,8 @@ func (d *Dispatcher) OnRunEnd(ctx context.Context, run *apiserverPlugins.Persist
 	mlflowOutput := run.PluginsOutput[PluginName]
 	hasParentRun := mlflowOutput != nil && GetParentRunID(mlflowOutput) != ""
 
-	syncOK := d.executePostAction(ctx, run, "OnRunEnd", func(h *Handler, r *apiserverPlugins.PersistedRun, cfg *commonmlflow.PluginConfig) {
-		if err := h.OnRunEnd(ctx, r, cfg); err != nil {
+	syncOK := d.executePostAction(ctx, run, "OnRunEnd", func(mlflowCtx context.Context, h *Handler, r *apiserverPlugins.PersistedRun, cfg *ResolvedConfig) {
+		if err := h.OnRunEnd(mlflowCtx, r, cfg); err != nil {
 			glog.Warningf("MLflow OnRunEnd failed for run %q: %v", run.RunID, err)
 		}
 	})
@@ -121,8 +116,8 @@ func (d *Dispatcher) OnRunEnd(ctx context.Context, run *apiserverPlugins.Persist
 
 // OnRunRetry reopens the MLflow parent run and any failed/killed nested runs.
 func (d *Dispatcher) OnRunRetry(ctx context.Context, run *apiserverPlugins.PersistedRun) {
-	d.executePostAction(ctx, run, "HandleRetry", func(h *Handler, r *apiserverPlugins.PersistedRun, cfg *commonmlflow.PluginConfig) {
-		h.HandleRetry(ctx, r, cfg)
+	d.executePostAction(ctx, run, "HandleRetry", func(mlflowCtx context.Context, h *Handler, r *apiserverPlugins.PersistedRun, cfg *ResolvedConfig) {
+		h.HandleRetry(mlflowCtx, r, cfg)
 	})
 }
 
@@ -132,20 +127,22 @@ func (d *Dispatcher) executePostAction(
 	ctx context.Context,
 	run *apiserverPlugins.PersistedRun,
 	hookName string,
-	invoke func(*Handler, *apiserverPlugins.PersistedRun, *commonmlflow.PluginConfig),
+	invoke func(context.Context, *Handler, *apiserverPlugins.PersistedRun, *ResolvedConfig),
 ) bool {
 	resolvedCfg, err := ResolveMLflowRequestConfig(ctx, d.kubeClients, run.Namespace)
 	if err != nil {
 		glog.Warningf("MLflow %s: failed to resolve config for namespace %q: %v", hookName, run.Namespace, err)
 	}
+	timeoutCfg := (*commonmlflow.PluginConfig)(nil)
+	if resolvedCfg != nil {
+		timeoutCfg = resolvedCfg.Config
+	}
+	mlflowCtx, cancel := context.WithTimeout(ctx, resolvedMLflowTimeout(timeoutCfg))
+	defer cancel()
 
 	handler := NewHandler(nil, run.Namespace)
 
-	var config *commonmlflow.PluginConfig
-	if resolvedCfg != nil {
-		config = resolvedCfg.Config
-	}
-	invoke(handler, run, config)
+	invoke(mlflowCtx, handler, run, resolvedCfg)
 
 	mlflowSyncOK := false
 	if po := run.PluginsOutput[PluginName]; po != nil {

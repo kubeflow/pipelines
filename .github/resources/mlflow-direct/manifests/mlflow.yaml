@@ -1,0 +1,139 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow
+  labels:
+    app: mlflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow
+  template:
+    metadata:
+      labels:
+        app: mlflow
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: mlflow
+        image: ghcr.io/mlflow/mlflow:v3.13.0-full
+        imagePullPolicy: Always
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        command:
+        - /bin/sh
+        - -c
+        args:
+        - |
+          set -e
+          auth_args=""
+          if [ "${MLFLOW_AUTH_TYPE}" = "basic-auth" ]; then
+            python -m pip install --no-cache-dir --target /mlflow/python-packages \
+              "mlflow[auth]==$(python -c 'import mlflow; print(mlflow.__version__)')"
+            export PYTHONPATH="/mlflow/python-packages${PYTHONPATH:+:${PYTHONPATH}}"
+            python -m mlflow.server.auth db upgrade --url sqlite:////mlflow/basic_auth.db
+            cd /mlflow
+            auth_args="--app-name basic-auth --disable-security-middleware"
+          fi
+          exec mlflow server \
+            --host 0.0.0.0 \
+            --port 5000 \
+            --workers 2 \
+            --static-prefix /mlflow \
+            --backend-store-uri "${BACKEND_STORE_URI}" \
+            --registry-store-uri "${REGISTRY_STORE_URI}" \
+            --artifacts-destination "${ARTIFACTS_DESTINATION}" \
+            --serve-artifacts \
+            ${auth_args}
+        ports:
+        - containerPort: 5000
+        env:
+        - name: BACKEND_STORE_URI
+          valueFrom:
+            secretKeyRef:
+              name: mlflow-db-credentials
+              key: backend-store-uri
+        - name: REGISTRY_STORE_URI
+          valueFrom:
+            secretKeyRef:
+              name: mlflow-db-credentials
+              key: registry-store-uri
+        - name: MLFLOW_AUTH_TYPE
+          valueFrom:
+            configMapKeyRef:
+              name: mlflow-direct-config
+              key: MLFLOW_AUTH_TYPE
+        - name: ARTIFACTS_DESTINATION
+          valueFrom:
+            configMapKeyRef:
+              name: mlflow-direct-config
+              key: ARTIFACTS_DESTINATION
+        - name: MLFLOW_S3_ENDPOINT_URL
+          valueFrom:
+            configMapKeyRef:
+              name: mlflow-direct-config
+              key: MLFLOW_S3_ENDPOINT_URL
+              optional: true
+        - name: MLFLOW_FLASK_SERVER_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: mlflow-direct-auth
+              key: flask-secret-key
+        - name: MLFLOW_SERVER_DISABLE_SECURITY_MIDDLEWARE
+          valueFrom:
+            configMapKeyRef:
+              name: mlflow-direct-config
+              key: MLFLOW_SERVER_DISABLE_SECURITY_MIDDLEWARE
+              optional: true
+        envFrom:
+        - secretRef:
+            name: aws-credentials
+            optional: true
+        readinessProbe:
+          httpGet:
+            path: /mlflow/health
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 24
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+          limits:
+            memory: 2Gi
+        volumeMounts:
+        - name: mlflow-data
+          mountPath: /mlflow
+      volumes:
+      - name: mlflow-data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow
+  labels:
+    app: mlflow
+spec:
+  selector:
+    app: mlflow
+  ports:
+  - name: http
+    port: 5000
+    targetPort: 5000

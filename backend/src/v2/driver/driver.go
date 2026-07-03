@@ -262,8 +262,21 @@ func initPodSpecPatch(
 	mlPipelineServerPort string,
 	mlmdServerAddress string,
 	mlmdServerPort string,
-	pluginEnvVars map[string]string,
+	pluginEnvVars any,
 ) (*k8score.PodSpec, error) {
+	pluginEnvVarSlice := make([]k8score.EnvVar, 0)
+	switch typedEnvVars := pluginEnvVars.(type) {
+	case nil:
+	case map[string]string:
+		pluginEnvVarSlice = make([]k8score.EnvVar, 0, len(typedEnvVars))
+		for envVar, val := range typedEnvVars {
+			pluginEnvVarSlice = append(pluginEnvVarSlice, k8score.EnvVar{Name: envVar, Value: val})
+		}
+	case []k8score.EnvVar:
+		pluginEnvVarSlice = append(pluginEnvVarSlice, typedEnvVars...)
+	default:
+		return nil, fmt.Errorf("unexpected plugin env var type %T", pluginEnvVars)
+	}
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
@@ -280,9 +293,7 @@ func initPodSpecPatch(
 	}
 
 	// Append necessary env variables for task-level plugin(s).
-	for envVar, val := range pluginEnvVars {
-		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar, Value: val})
-	}
+	userEnvVar = append(userEnvVar, pluginEnvVarSlice...)
 
 	userEnvVar = append(userEnvVar, proxy.GetConfig().GetEnvVars()...)
 
@@ -465,7 +476,18 @@ func initPodSpecPatch(
 		podSpec.Containers[0].Resources = res
 	}
 
-	addModelcarsToPodSpec(executorInput.GetInputs().GetArtifacts(), podSpec.Containers[0].Env, podSpec)
+	modelcarEnvVar := slices.Clone(podSpec.Containers[0].Env)
+	if len(pluginEnvVarSlice) > 0 {
+		pluginEnvVarNames := make(map[string]struct{}, len(pluginEnvVarSlice))
+		for _, envVar := range pluginEnvVarSlice {
+			pluginEnvVarNames[envVar.Name] = struct{}{}
+		}
+		modelcarEnvVar = slices.DeleteFunc(modelcarEnvVar, func(envVar k8score.EnvVar) bool {
+			_, ok := pluginEnvVarNames[envVar.Name]
+			return ok
+		})
+	}
+	addModelcarsToPodSpec(executorInput.GetInputs().GetArtifacts(), modelcarEnvVar, podSpec)
 
 	if needsWorkspaceMount(executorInput) {
 		// Validate that no user volume mounts conflict with the workspace

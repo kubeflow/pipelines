@@ -15,6 +15,7 @@
 package resource
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -31,6 +32,7 @@ import (
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v4/util/file"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -116,10 +118,6 @@ func (m *FakeBadObjectStore) DeleteFile(ctx context.Context, filePath string) er
 	return errors.New("Not implemented")
 }
 
-func (m *FakeBadObjectStore) GetFile(ctx context.Context, filePath string) ([]byte, error) {
-	return []byte(""), nil
-}
-
 func (m *FakeBadObjectStore) AddAsYamlFile(ctx context.Context, o interface{}, filePath string) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
@@ -130,6 +128,45 @@ func (m *FakeBadObjectStore) GetFromYamlFile(ctx context.Context, o interface{},
 
 func (m *FakeBadObjectStore) GetFileReader(context.Context, string) (io.ReadCloser, error) {
 	return nil, util.NewInternalServerError(errors.New("Error"), "bad object store")
+}
+
+type readerOnlyObjectStore struct {
+	files              map[string][]byte
+	getFileReaderPaths []string
+}
+
+func (m *readerOnlyObjectStore) GetPipelineKey(pipelineID string) string {
+	return "pipelines/" + pipelineID
+}
+
+func (m *readerOnlyObjectStore) AddFile(ctx context.Context, template []byte, filePath string) error {
+	if m.files == nil {
+		m.files = map[string][]byte{}
+	}
+	m.files[filePath] = template
+	return nil
+}
+
+func (m *readerOnlyObjectStore) DeleteFile(ctx context.Context, filePath string) error {
+	delete(m.files, filePath)
+	return nil
+}
+
+func (m *readerOnlyObjectStore) AddAsYamlFile(ctx context.Context, o interface{}, filePath string) error {
+	return nil
+}
+
+func (m *readerOnlyObjectStore) GetFromYamlFile(ctx context.Context, o interface{}, filePath string) error {
+	return nil
+}
+
+func (m *readerOnlyObjectStore) GetFileReader(ctx context.Context, filePath string) (io.ReadCloser, error) {
+	m.getFileReaderPaths = append(m.getFileReaderPaths, filePath)
+	content, ok := m.files[filePath]
+	if !ok {
+		return nil, util.NewInternalServerError(errors.New("not found"), "file not found")
+	}
+	return io.NopCloser(bytes.NewReader(content)), nil
 }
 
 func createPipelineV1(name string) *model.Pipeline {
@@ -190,6 +227,61 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	},
 	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
+
+func TestReadRunLogFromArchiveStreamsObjectStoreFile(t *testing.T) {
+	logArchive := archive.NewLogArchive("/logs", "main.log")
+	execSpec, err := util.NewExecutionSpecJSON(util.CurrentExecutionType(), []byte(testWorkflow.ToStringForStore()))
+	require.NoError(t, err)
+	logPath, err := logArchive.GetLogObjectKey(execSpec, "node-id")
+	require.NoError(t, err)
+
+	objectStore := &readerOnlyObjectStore{
+		files: map[string][]byte{
+			logPath: []byte("archived log line\n"),
+		},
+	}
+	manager := &ResourceManager{
+		objectStore: objectStore,
+		logArchive:  logArchive,
+	}
+
+	var dst bytes.Buffer
+	err = manager.readRunLogFromArchive(testWorkflow.ToStringForStore(), "node-id", &dst)
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{logPath}, objectStore.getFileReaderPaths)
+	assert.Equal(t, "archived log line\n", dst.String())
+}
+
+func TestReadPipelineSpecFromObjectStoreUsesReaderAndLimit(t *testing.T) {
+	objectStore := &readerOnlyObjectStore{
+		files: map[string][]byte{
+			"pipeline-spec.yaml": []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow\n"),
+		},
+	}
+	manager := &ResourceManager{objectStore: objectStore}
+
+	pipelineSpec, err := manager.readPipelineSpecFromObjectStore(context.Background(), "pipeline-spec.yaml")
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{"pipeline-spec.yaml"}, objectStore.getFileReaderPaths)
+	assert.Equal(t, "apiVersion: argoproj.io/v1alpha1\nkind: Workflow\n", string(pipelineSpec))
+}
+
+func TestReadPipelineSpecFromObjectStoreRejectsOversizedFile(t *testing.T) {
+	objectStore := &readerOnlyObjectStore{
+		files: map[string][]byte{
+			"pipeline-spec.yaml": bytes.Repeat([]byte("x"), common.MaxFileLength+1),
+		},
+	}
+	manager := &ResourceManager{objectStore: objectStore}
+
+	_, err := manager.readPipelineSpecFromObjectStore(context.Background(), "pipeline-spec.yaml")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Pipeline spec file size too large")
+	assert.Equal(t, []string{"pipeline-spec.yaml"}, objectStore.getFileReaderPaths)
+}
 
 // Util function to create an initial state with pipeline uploaded
 func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Pipeline, *model.PipelineVersion) {
@@ -3668,11 +3760,14 @@ func TestReportWorkflowResource_RunNotFound(t *testing.T) {
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 	ctx := context.Background()
 	defer store.Close()
+	// Set CreationTimestamp far in the past so the workflow is beyond the GC grace period.
+	// Use the injected fake time to ensure consistency with manager's time.
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "obsolete",
-			Namespace: "kubeflow",
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
+			Name:              "obsolete",
+			Namespace:         "kubeflow",
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
+			CreationTimestamp: v1.NewTime(store.Time().Now().Add(-10 * time.Minute)),
 		},
 	})
 	store.ExecClient().Execution("kubeflow").Create(ctx, workflow, v1.CreateOptions{})
@@ -3680,6 +3775,39 @@ func TestReportWorkflowResource_RunNotFound(t *testing.T) {
 	require.NotNil(t, err)
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
 	assert.Contains(t, err.Error(), "Run run-id-not-exist not found")
+}
+
+func TestReportWorkflowResource_RunNotFound_WithinGracePeriod(t *testing.T) {
+	// When a workflow is young (within the GC grace period) and its run is not
+	// found in the DB, it should NOT be deleted. Instead, a retryable
+	// UNAVAILABLE error should be returned so the persistence agent retries.
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	ctx := context.Background()
+	defer store.Close()
+
+	// Set CreationTimestamp to a recent time so the workflow is within the grace period.
+	// Use the injected fake time to ensure consistency with manager's time.
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:              "young-workflow",
+			Namespace:         "kubeflow",
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
+			CreationTimestamp: v1.NewTime(store.Time().Now().Add(-10 * time.Second)),
+		},
+	})
+	store.ExecClient().Execution("kubeflow").Create(ctx, workflow, v1.CreateOptions{})
+	_, err := manager.ReportWorkflowResource(ctx, workflow)
+	require.NotNil(t, err)
+	// Should be UNAVAILABLE (retryable), not NOT_FOUND (permanent).
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable),
+		"Expected Unavailable error for young workflow within grace period, got: %v", err)
+	assert.Contains(t, err.Error(), "GC grace period")
+
+	// Verify the workflow was NOT deleted by checking it's still accessible.
+	wf, getErr := store.ExecClient().Execution("kubeflow").Get(ctx, "young-workflow", v1.GetOptions{})
+	assert.Nil(t, getErr, "Workflow should still exist after grace period skip")
+	assert.NotNil(t, wf)
 }
 
 func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
@@ -5217,7 +5345,7 @@ func TestValidateTags(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateTags(tt.tags)
+			err := model.ValidateTags(tt.tags)
 			if tt.wantErr {
 				assert.NotNil(t, err)
 				assert.Contains(t, err.Error(), tt.errMsg)

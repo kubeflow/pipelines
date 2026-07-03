@@ -24,7 +24,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
@@ -395,40 +394,14 @@ func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versio
 
 // MaxTagKeyLength is the maximum allowed length (in characters) for a tag key.
 // Consistent with Kubernetes label value length limit (63 characters).
-const MaxTagKeyLength = 63
+const MaxTagKeyLength = model.MaxTagKeyLength
 
 // MaxTagValueLength is the maximum allowed length (in characters) for a tag value.
 // Consistent with Kubernetes label value length limit (63 characters).
-const MaxTagValueLength = 63
+const MaxTagValueLength = model.MaxTagValueLength
 
 // MaxTagsPerEntity is the maximum number of tags allowed on a single pipeline or pipeline version.
-const MaxTagsPerEntity = 20
-
-// validateTags checks that tags conform to all constraints:
-// - maximum number of tags per entity
-// - no empty keys
-// - keys must not contain "." (conflicts with tag filter prefix "tags.")
-// - key and value character lengths within limits
-func validateTags(tags map[string]string) error {
-	if len(tags) > MaxTagsPerEntity {
-		return util.NewInvalidInputError("number of tags (%d) exceeds maximum of %d per entity", len(tags), MaxTagsPerEntity)
-	}
-	for key, value := range tags {
-		if key == "" {
-			return util.NewInvalidInputError("tag key cannot be empty")
-		}
-		if strings.Contains(key, ".") {
-			return util.NewInvalidInputError("tag key %q must not contain '.' character", key)
-		}
-		if utf8.RuneCountInString(key) > MaxTagKeyLength {
-			return util.NewInvalidInputError("tag key %q exceeds maximum length of %d characters", key, MaxTagKeyLength)
-		}
-		if utf8.RuneCountInString(value) > MaxTagValueLength {
-			return util.NewInvalidInputError("tag value %q for key %q exceeds maximum length of %d characters", value, key, MaxTagValueLength)
-		}
-	}
-	return nil
-}
+const MaxTagsPerEntity = model.MaxTagsPerEntity
 
 // UpdatePipeline updates mutable fields of a pipeline (display_name, tags).
 // Both fields are updated in a single transaction via UpdatePipelineFields.
@@ -436,7 +409,7 @@ func (r *ResourceManager) UpdatePipeline(pipelineID string, displayName string, 
 	if pipelineID == "" {
 		return nil, util.NewInvalidInputError("pipeline id cannot be empty when updating pipeline")
 	}
-	if err := validateTags(tags); err != nil {
+	if err := model.ValidateTags(tags); err != nil {
 		return nil, err
 	}
 	// Update fields and tags in a single transaction to prevent deadlocks.
@@ -453,7 +426,7 @@ func (r *ResourceManager) UpdatePipelineVersion(pipelineVersionID string, displa
 	if pipelineVersionID == "" {
 		return nil, util.NewInvalidInputError("pipeline version id cannot be empty when updating pipeline version")
 	}
-	if err := validateTags(tags); err != nil {
+	if err := model.ValidateTags(tags); err != nil {
 		return nil, err
 	}
 	// Update fields and tags in a single transaction to prevent deadlocks.
@@ -475,7 +448,7 @@ func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, er
 		p.DisplayName = p.Name
 	}
 
-	if err := validateTags(p.Tags); err != nil {
+	if err := model.ValidateTags(p.Tags); err != nil {
 		return nil, err
 	}
 
@@ -499,10 +472,10 @@ func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, er
 // Creates a pipeline and a pipeline version.
 // This is used when two resources need to be created in a single DB transaction.
 func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv *model.PipelineVersion) (*model.Pipeline, *model.PipelineVersion, error) {
-	if err := validateTags(p.Tags); err != nil {
+	if err := model.ValidateTags(p.Tags); err != nil {
 		return nil, nil, err
 	}
-	if err := validateTags(pv.Tags); err != nil {
+	if err := model.ValidateTags(pv.Tags); err != nil {
 		return nil, nil, err
 	}
 
@@ -945,6 +918,14 @@ func (r *ResourceManager) UnarchiveRun(runId string) error {
 	return nil
 }
 
+// newStandardBackoffPolicy returns a configured backoff policy for retrying operations.
+func newStandardBackoffPolicy() backoff.BackOff {
+	exponentialBackoff := backoff.NewExponentialBackOff()
+	exponentialBackoff.InitialInterval = 100 * time.Millisecond
+	exponentialBackoff.MaxInterval = 5 * time.Second
+	return backoff.WithMaxRetries(exponentialBackoff, 10)
+}
+
 // Deletes a run entry with a given id.
 func (r *ResourceManager) DeleteRun(ctx context.Context, runId string) error {
 	run, err := r.GetRun(runId)
@@ -1050,8 +1031,7 @@ func TerminateWorkflow(ctx context.Context, wfClient util.ExecutionInterface, na
 		_, err = wfClient.Patch(ctx, name, types.MergePatchType, patch, v1.PatchOptions{})
 		return util.Wrapf(err, "Failed to terminate workflow %s due to patching error", name)
 	}
-	backoffPolicy := backoff.WithMaxRetries(backoff.NewConstantBackOff(100), 10)
-	err = backoff.Retry(operation, backoffPolicy)
+	err = backoff.Retry(operation, newStandardBackoffPolicy())
 	if err != nil {
 		return util.Wrapf(err, "Failed to terminate workflow %s due to patching error after multiple retries", name)
 	}
@@ -1233,12 +1213,13 @@ func (r *ResourceManager) readRunLogFromArchive(workflowManifest string, nodeId 
 		return util.NewInternalServerError(err, "Failed to read logs from archive %v", nodeId)
 	}
 
-	logContent, err := r.objectStore.GetFile(context.TODO(), logPath)
+	logReader, err := r.objectStore.GetFileReader(context.TODO(), logPath)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error fetching the log file", nodeId)
 	}
+	defer logReader.Close()
 
-	err = r.logArchive.CopyLogFromArchive(logContent, dst, archive.ExtractLogOptions{LogFormat: archive.LogFormatText, Timestamps: false})
+	err = r.logArchive.CopyLogFromArchiveReader(logReader, dst, archive.ExtractLogOptions{LogFormat: archive.LogFormatText, Timestamps: false})
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error copying the log file", nodeId)
 	}
@@ -1576,17 +1557,40 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 				return nil, util.Wrap(updateError, "Failed to update the run")
 			}
 			// Handle run not found in run store error.
-			// To avoid letting the workflow leak for ever, we need to GC it when its record does not exist in KFP DB.
+			// Before GC, apply a grace period to avoid deleting workflows whose
+			// DB writes are still in-flight.
+			gracePeriodSeconds := common.GetWorkflowGCGracePeriodSeconds()
+			gracePeriod := time.Duration(gracePeriodSeconds) * time.Second
+			workflowAge := r.time.Now().Sub(objMeta.CreationTimestamp.Time)
+			if workflowAge < gracePeriod {
+				glog.Warningf(
+					"Workflow name=%q namespace=%q runId=%q not found in run store, "+
+						"but workflow is only %v old (grace period: %v). "+
+						"Skipping GC to allow in-flight DB write to complete. ",
+					execSpec.ExecutionName(), execSpec.ExecutionNamespace(), runId,
+					workflowAge.Round(time.Second), gracePeriod)
+				return nil, util.NewUnavailableServerError(
+					fmt.Errorf("workflow %s is within GC grace period (%v old, threshold %v)",
+						execSpec.ExecutionName(), workflowAge.Round(time.Second), gracePeriod),
+					"Skipping GC for workflow %s - will retry",
+					execSpec.ExecutionName())
+			}
+			// Workflow is beyond the grace period. To avoid letting the workflow
+			// leak forever, GC it since its record does not exist in KFP DB.
 			glog.Errorf("Cannot find reported workflow name=%q namespace=%q runId=%q in run store. "+
 				"Deleting the workflow to avoid resource leaking. "+
 				"This can be caused by installing two KFP instances that try to manage the same workflows "+
 				"or an unknown bug. If you encounter this, recommend reporting more details in https://github.com/kubeflow/pipelines/issues/6189",
 				execSpec.ExecutionName(), execSpec.ExecutionNamespace(), runId)
-			if err := r.getWorkflowClient(execSpec.ExecutionNamespace()).Delete(ctx, execSpec.ExecutionName(), v1.DeleteOptions{}); err != nil {
-				if util.IsNotFound(err) {
-					return nil, util.NewNotFoundError(err, "Failed to delete the obsolete workflow for run %s", runId)
+			deleteOperation := func() error {
+				err := r.getWorkflowClient(execSpec.ExecutionNamespace()).Delete(ctx, execSpec.ExecutionName(), v1.DeleteOptions{})
+				if err != nil && !util.IsNotFound(err) {
+					return err
 				}
-				return nil, util.NewInternalServerError(err, "Failed to delete the obsolete workflow for run %s", runId)
+				return nil
+			}
+			if err := backoff.Retry(deleteOperation, newStandardBackoffPolicy()); err != nil {
+				return nil, util.NewInternalServerError(err, "Failed to delete the obsolete workflow for run %s after multiple retries", runId)
 			}
 
 			if r.options.CollectMetrics {
@@ -1738,8 +1742,7 @@ func addWorkflowLabel(ctx context.Context, wfClient util.ExecutionInterface, nam
 		_, err = wfClient.Patch(ctx, name, types.MergePatchType, patch, v1.PatchOptions{})
 		return err
 	}
-	backoffPolicy := backoff.WithMaxRetries(backoff.NewConstantBackOff(100), 10)
-	err = backoff.Retry(operation, backoffPolicy)
+	err = backoff.Retry(operation, newStandardBackoffPolicy())
 	return err
 }
 
@@ -1812,13 +1815,13 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 		return bytes, string(pipelineVersion.PipelineSpecURI), nil
 	} else {
 		// Try reading object store from pipeline_spec_uri
-		template, errURI := r.objectStore.GetFile(context.TODO(), string(pipelineVersion.PipelineSpecURI))
+		template, errURI := r.readPipelineSpecFromObjectStore(context.TODO(), string(pipelineVersion.PipelineSpecURI))
 		if errURI != nil {
 			// Try reading object store from pipeline_version_id
-			template, errUUID := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
+			template, errUUID := r.readPipelineSpecFromObjectStore(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
 			if errUUID != nil {
 				// Try reading object store from pipeline_id
-				template, errPipelineID := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
+				template, errPipelineID := r.readPipelineSpecFromObjectStore(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
 				if errPipelineID != nil {
 					return nil, "", util.Wrap(
 						util.Wrap(
@@ -1834,6 +1837,27 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 		}
 		return template, "", nil
 	}
+}
+
+func (r *ResourceManager) readPipelineSpecFromObjectStore(ctx context.Context, filePath string) ([]byte, error) {
+	reader, err := r.objectStore.GetFileReader(ctx, filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	limitedReader := io.LimitReader(reader, int64(common.MaxFileLength)+1)
+	pipelineSpec, err := io.ReadAll(limitedReader)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to read pipeline spec from %v", filePath)
+	}
+	if len(pipelineSpec) > common.MaxFileLength {
+		return nil, util.NewInvalidInputError(
+			"Pipeline spec file size too large (%v bytes). Maximum supported size: %v.",
+			len(pipelineSpec), common.MaxFileLength,
+		)
+	}
+	return pipelineSpec, nil
 }
 
 // Creates the default experiment entry.
@@ -2017,7 +2041,7 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	pv.Status = model.PipelineVersionCreating
 	pv.PipelineSpec = model.LargeText(string(tmpl.Bytes()))
 
-	if err := validateTags(pv.Tags); err != nil {
+	if err := model.ValidateTags(pv.Tags); err != nil {
 		return nil, err
 	}
 

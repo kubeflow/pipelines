@@ -180,7 +180,7 @@ spec:
       pipeline_id: 'test-v2-pipeline-id',
       pipeline_version_id: 'test-v2-pipeline-version-id',
       name: 'test-v2-pipeline-version',
-      pipeline_spec: JsYaml.safeLoad(v2YamlTemplateString),
+      pipeline_spec: JsYaml.load(v2YamlTemplateString),
     };
 
     testV2Run = {
@@ -288,9 +288,7 @@ spec:
       display_name: 'test-pipeline-version',
       pipeline_id: 'test-pipeline-id',
       pipeline_version_id: 'test-pipeline-version-id',
-      pipeline_spec: JsYaml.safeLoad(
-        'spec:\n  arguments:\n    parameters:\n      - name: output\n',
-      ),
+      pipeline_spec: JsYaml.load('spec:\n  arguments:\n    parameters:\n      - name: output\n'),
     });
     const createGraphSpy = vi.spyOn(StaticGraphParser, 'createGraph');
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');

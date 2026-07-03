@@ -21,12 +21,12 @@ import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import { ReactElement } from 'react';
-import { Handle, Position } from '@xyflow/react';
 import StopCircle from 'src/icons/StopCircle';
 import { Execution } from 'src/third_party/mlmd';
 import { classes } from 'typestyle';
 import { ExecutionFlowElementData } from './Constants';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
 
 export interface ExecutionNodeProps {
   id: string;
@@ -63,18 +63,7 @@ function ExecutionNode({ id, data }: ExecutionNodeProps) {
           </div>
         </button>
       </div>
-      <Handle
-        type='target'
-        position={Position.Top}
-        isValidConnection={() => false}
-        style={{ background: '#000', height: '1px', width: '1px', border: 0 }}
-      />
-      <Handle
-        type='source'
-        position={Position.Bottom}
-        isValidConnection={() => false}
-        style={{ background: '#000', height: '1px', width: '1px', border: 0 }}
-      />
+      <ReadOnlyNodeHandles />
     </>
   );
 }

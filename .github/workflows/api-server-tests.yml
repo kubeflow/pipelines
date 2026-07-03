@@ -145,6 +145,8 @@ jobs:
         uses: ./.github/actions/test-and-report
         if: ${{ steps.configure.outcome == 'success' }}
         id: test-run
+        env:
+          ARGO_COMPATIBILITY_TESTS: ${{ matrix.argo_version == 'v4.0.5' && matrix.k8s_version == 'v1.35.0' && matrix.cache_enabled == 'true' && matrix.proxy == 'false' && matrix.pod_to_pod_tls_enabled == 'false' }}
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
@@ -203,6 +205,7 @@ jobs:
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
+          upload_pipelines_with_kubernetes_client: ${{ matrix.uploadPipelinesWithKubernetesClient }}
           test_directory: ${{ env.API_TESTS_DIR }}
           test_label: ${{ env.TESTS_LABEL }}
           num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
