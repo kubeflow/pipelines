@@ -1793,7 +1793,7 @@ func addWorkflowLabelIfWorkflowUnchanged(
 
 	patch, err := json.Marshal(patchObj)
 	if err != nil {
-		return false, util.NewInternalServerError(err, "Unexpected error while marshalling a patch object")
+		return false, util.NewInternalServerError(err, "Unexpected error while marshaling a patch object")
 	}
 
 	operation := func() error {
