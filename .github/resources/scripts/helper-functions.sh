@@ -74,21 +74,15 @@ pull_and_save_runtime_base_images() {
   local images_file=$1
   local archive_path=$2
   local runtime_base_images=()
-  local image
 
-  while IFS= read -r image; do
-    if [[ -z "$image" || "$image" == \#* ]]; then
-      continue
-    fi
+  pull_runtime_base_image() {
+    local image=$1
 
     pull_image_with_backoff "$image" || return 1
     runtime_base_images+=("$image")
-  done < "$images_file"
+  }
 
-  if [[ "${#runtime_base_images[@]}" -eq 0 ]]; then
-    echo "No runtime base images configured in $images_file." >&2
-    return 1
-  fi
+  for_each_runtime_base_image "$images_file" pull_runtime_base_image || return 1
 
   docker save "${runtime_base_images[@]}" -o "$archive_path"
 }
@@ -102,7 +96,7 @@ load_runtime_base_images_into_kind() {
 
     pull_image_with_backoff "$image" || return 1
     kind --name "$cluster_name" load docker-image "$image" || return 1
-    docker image rm "$image"
+    docker image rm "$image" || true
   }
 
   for_each_runtime_base_image "$images_file" load_runtime_base_image
