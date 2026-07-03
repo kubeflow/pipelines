@@ -3851,6 +3851,39 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	assert.Equal(t, wf.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
 }
 
+func TestAddWorkflowLabelIfWorkflowUnchanged_SkipsWhenWorkflowWasRetried(t *testing.T) {
+	wfClient := client.NewWorkflowClientFake()
+	ctx := context.Background()
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:            "workflow-name",
+			Namespace:       "ns1",
+			ResourceVersion: "retry-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: "run-id"},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	})
+	_, err := wfClient.Create(ctx, workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+
+	labelAdded, err := addWorkflowLabelIfWorkflowUnchanged(
+		ctx,
+		wfClient,
+		"workflow-name",
+		"terminal-version",
+		util.LabelKeyWorkflowPersistedFinalState,
+		"true",
+	)
+	require.NoError(t, err)
+	assert.False(t, labelAdded)
+
+	updatedWorkflow, err := wfClient.Get(ctx, "workflow-name", v1.GetOptions{})
+	require.NoError(t, err)
+	_, hasFinalStateLabel := updatedWorkflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState]
+	assert.False(t, hasFinalStateLabel)
+}
+
 func TestReportWorkflowResource_SkipsPersistedFinalStateLabelWhenRunRetriedDuringPluginSync(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	namespace := "ns1"

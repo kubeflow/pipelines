@@ -1702,7 +1702,14 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		}
 
 		if shouldPersistFinalState {
-			err := addWorkflowLabel(ctx, r.getWorkflowClient(execSpec.ExecutionNamespace()), execSpec.ExecutionName(), util.LabelKeyWorkflowPersistedFinalState, "true")
+			labelAdded, err := addWorkflowLabelIfWorkflowUnchanged(
+				ctx,
+				r.getWorkflowClient(execSpec.ExecutionNamespace()),
+				execSpec.ExecutionName(),
+				execSpec.Version(),
+				util.LabelKeyWorkflowPersistedFinalState,
+				"true",
+			)
 			if err != nil {
 				message := fmt.Sprintf("Failed to add PersistedFinalState label to workflow %s", execSpec.ExecutionName())
 				// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
@@ -1714,8 +1721,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 					return nil, util.Wrapf(err, "%s", message)
 				}
 			}
-
-			if r.options.CollectMetrics {
+			if labelAdded && r.options.CollectMetrics {
 				execNamespace := execSpec.ExecutionNamespace()
 				execName := execSpec.ExecutionName()
 
@@ -1754,27 +1760,65 @@ func (r *ResourceManager) runStillMatchesReportedFinalState(runID string, state 
 	return false, nil
 }
 
-// Adds a label for a workflow.
-func addWorkflowLabel(ctx context.Context, wfClient util.ExecutionInterface, name string, labelKey string, labelValue string) error {
-	patchObj := map[string]interface{}{
-		"metadata": map[string]interface{}{
-			"labels": map[string]interface{}{
-				labelKey: labelValue,
-			},
-		},
+type jsonPatchOperation struct {
+	Op    string `json:"op"`
+	Path  string `json:"path"`
+	Value any    `json:"value,omitempty"`
+}
+
+// Adds a label only if the workflow still matches the object that reported the
+// terminal state. This prevents a stale terminal report from labeling a retried
+// workflow after RetryRun has updated the same workflow name back to Running.
+func addWorkflowLabelIfWorkflowUnchanged(
+	ctx context.Context,
+	wfClient util.ExecutionInterface,
+	name string,
+	expectedResourceVersion string,
+	labelKey string,
+	labelValue string,
+) (bool, error) {
+	patchObj := []jsonPatchOperation{}
+	if expectedResourceVersion != "" {
+		patchObj = append(patchObj, jsonPatchOperation{
+			Op:    "test",
+			Path:  "/metadata/resourceVersion",
+			Value: expectedResourceVersion,
+		})
 	}
+	patchObj = append(patchObj, jsonPatchOperation{
+		Op:    "add",
+		Path:  "/metadata/labels/" + escapeJSONPointerPathPart(labelKey),
+		Value: labelValue,
+	})
 
 	patch, err := json.Marshal(patchObj)
 	if err != nil {
-		return util.NewInternalServerError(err, "Unexpected error while marshalling a patch object")
+		return false, util.NewInternalServerError(err, "Unexpected error while marshalling a patch object")
 	}
 
 	operation := func() error {
-		_, err = wfClient.Patch(ctx, name, types.MergePatchType, patch, v1.PatchOptions{})
+		_, err = wfClient.Patch(ctx, name, types.JSONPatchType, patch, v1.PatchOptions{})
+		if apierrors.IsConflict(err) {
+			return backoff.Permanent(err)
+		}
 		return err
 	}
 	err = backoff.Retry(operation, newStandardBackoffPolicy())
-	return err
+	if permanentErr, ok := err.(*backoff.PermanentError); ok {
+		err = permanentErr.Err
+	}
+	if apierrors.IsConflict(err) {
+		glog.Warningf("Skip adding workflow label %q to workflow %q because the workflow changed while reporting the terminal state", labelKey, name)
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func escapeJSONPointerPathPart(pathPart string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(pathPart, "~", "~0"), "/", "~1")
 }
 
 // Updates a recurring run with a scheduled workflow CR.
