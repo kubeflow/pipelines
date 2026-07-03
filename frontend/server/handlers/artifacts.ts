@@ -372,7 +372,15 @@ function getHttpArtifactsHandler(
         res.status(500).send('Too many redirects while retrieving artifact');
         return;
       }
-      currentUrl = new URL(location, currentUrl).toString();
+      // An allowed host can hand back a malformed Location header; resolve it
+      // defensively so a bad value turns into a controlled 500 rather than an
+      // unhandled exception escaping the handler.
+      try {
+        currentUrl = new URL(location, currentUrl).toString();
+      } catch {
+        res.status(500).send('Invalid redirect location while retrieving artifact');
+        return;
+      }
     }
     if (!response.body) {
       res.status(500).send('Unable to retrieve artifact: empty response body');
