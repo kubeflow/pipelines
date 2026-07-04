@@ -228,12 +228,16 @@ var _ = Describe("Verify Pipeline Upload Version with Tags >", Label(constants.P
 
 			uploadPipelineVersionAndVerify(helloWorldPipelineSpecFilePath, parameters, expectedPipelineVersion)
 
-			// Verify tags via ListPipelineVersions
-			versions := testutil.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
-			Expect(len(versions)).To(BeNumerically(">=", 2))
+			// Verify tags via ListPipelineVersions. The Kubernetes-native
+			// pipeline store lists versions from an informer cache that can
+			// lag the upload, so poll until both versions are listed.
+			result, pollVersions := eventuallyListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+				PipelineID: createdPipeline.PipelineID,
+			})
+			Eventually(pollVersions, informerSyncTimeout, informerSyncInterval).Should(BeNumerically(">=", 2), "Expected at least 2 pipeline versions after uploading a tagged version")
 
 			var foundTaggedVersion bool
-			for _, v := range versions {
+			for _, v := range result.Versions {
 				if v.DisplayName == versionName {
 					Expect(v.Tags).To(Equal(tags), "Tagged version should include tags in list response")
 					foundTaggedVersion = true
