@@ -29,3 +29,15 @@ func IsRetriableLocalAPIError(err error) bool {
 		strings.Contains(message, "connection reset by peer") ||
 		strings.Contains(message, "context deadline exceeded")
 }
+
+func IsRetriableAPITestError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if IsRetriableLocalAPIError(err) {
+		return true
+	}
+	message := err.Error()
+	return strings.Contains(message, "context deadline exceeded") ||
+		strings.Contains(message, "i/o timeout")
+}

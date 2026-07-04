@@ -54,8 +54,10 @@ func toUploadModel(p *pipeline_model.V2beta1Pipeline) *upload_model.V2beta1Pipel
 // namespace are returned.
 func newListPipelinesParams() *pipeline_params.PipelineServiceListPipelinesParams {
 	ns := utils.GetNamespace()
+	pageSize := int32(100)
 	return &pipeline_params.PipelineServiceListPipelinesParams{
 		Namespace: &ns,
+		PageSize:  &pageSize,
 	}
 }
 

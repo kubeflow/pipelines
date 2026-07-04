@@ -84,7 +84,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 		}
 		logger.Log("Deleting %d pipeline(s)", len(testContext.Pipeline.CreatedPipelines))
 		for _, pipeline := range testContext.Pipeline.CreatedPipelines {
-			testutil.DeletePipeline(pipelineClient, pipeline.PipelineID, true)
+			testutil.DeletePipelineBestEffort(pipelineClient, pipeline.PipelineID, true)
 		}
 	})
 
@@ -462,7 +462,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 		const failPipelineFile = "fail_v2.yaml"
 		const failPipelineDir = "valid/failing"
 
-		It("Should reopen MLflow runs on retry and then reflect the retried status", func() {
+		It("Should preserve the existing MLflow parent run metadata on retry", func() {
 			pipelineID, versionID := uploadPipeline(failPipelineDir, failPipelineFile)
 			experimentName := fmt.Sprintf("mlflow-retry-%s", randomName)
 			pluginsInput := e2e_utils.BuildMLflowPluginsInput(experimentName)
@@ -490,23 +490,31 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			Expect(rootRunID).NotTo(BeEmpty(), "root_run_id should not be empty")
 			mlflowExperimentID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "experiment_id")
 			Expect(err).NotTo(HaveOccurred())
+			stateHistoryLengthBeforeRetry := len(updatedRun.StateHistory)
 
 			// Retry the run
 			e2e_utils.RetryPipelineRun(runClient, createdRun.RunID)
 
-			// Wait for the retried run to reach terminal state
-			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
-				run_model.V2beta1RuntimeStateFAILED,
-			}, &timeout)
+			// ponytail: the terminal retry path is already covered by non-MLflow
+			// retry tests; here we only wait for the deterministic signal that the
+			// existing run re-entered RUNNING and kept the same MLflow parent run.
+			Eventually(func() bool {
+				retriedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
+				if len(retriedRun.StateHistory) <= stateHistoryLengthBeforeRetry {
+					return false
+				}
+				for _, runtimeStatus := range retriedRun.StateHistory[stateHistoryLengthBeforeRetry:] {
+					if runtimeStatus.State != nil && *runtimeStatus.State == run_model.V2beta1RuntimeStateRUNNING {
+						return true
+					}
+				}
+				return false
+			}, timeout*time.Second, 5*time.Second).Should(BeTrue(),
+				"Retried pipeline run should record a RUNNING state after retry")
 
 			retriedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
 			Expect(retriedRun.State).NotTo(BeNil())
-			Expect(*retriedRun.State).To(Equal(run_model.V2beta1RuntimeStateFAILED),
-				"Retried pipeline run should still be FAILED (fail_v2 always fails)")
-
-			// Verify the MLflow parent run reflects the retry
-			err = e2e_utils.WaitForMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FAILED", &timeout)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(len(retriedRun.StateHistory)).To(BeNumerically(">", stateHistoryLengthBeforeRetry))
 
 			// Verify plugins_output is still populated after retry
 			err = e2e_utils.VerifyPluginsOutput(retriedRun, run_model.V2beta1PluginStatePLUGINSUCCEEDED)
@@ -517,6 +525,21 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(retriedRootRunID).To(Equal(rootRunID),
 				"OnRunRetry should reopen the existing parent MLflow run, not create a new one")
+			retriedExperimentID, err := e2e_utils.GetPluginsOutputEntryValue(retriedRun, "experiment_id")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(retriedExperimentID).To(Equal(mlflowExperimentID),
+				"Retry should keep using the existing MLflow experiment")
+
+			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
+				run_model.V2beta1RuntimeStateFAILED,
+			}, &timeout)
+			retriedRun = testutil.GetPipelineRun(runClient, &createdRun.RunID)
+			Expect(retriedRun.State).NotTo(BeNil())
+			Expect(*retriedRun.State).To(Equal(run_model.V2beta1RuntimeStateFAILED),
+				"Retried pipeline run should still be FAILED (fail_v2 always fails)")
+
+			err = e2e_utils.WaitForMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FAILED", &timeout)
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 

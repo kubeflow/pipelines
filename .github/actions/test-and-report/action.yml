@@ -249,7 +249,7 @@ runs:
         AUTH_TOKEN="${{ steps.configure-api.outputs.API_TOKEN }}"
         SERVICE_ACCOUNT_NAME="${{ steps.configure-api.outputs.SERVICE_ACCOUNT_NAME }}"
         WORKSPACE_ROOT="${GITHUB_WORKSPACE:-$(git rev-parse --show-toplevel)}"
-        export GOPROXY="https://proxy.golang.org|direct"
+        export GOPROXY="${GOPROXY:-https://proxy.golang.org|direct}"
         PORT_FORWARD_PIDS=()
         BASE_IMAGE_FLAG=""
         if [ -n "${{ inputs.base_image }}" ]; then

@@ -380,10 +380,7 @@ func createExperiment(experimentName string) *experiment_model.V2beta1Experiment
 func createdExpectedRunAndVerify(createdPipelineRun *run_model.V2beta1Run, pipelineID *string, pipelineVersionID *string, experimentID *string, pipelineInputMap map[string]interface{}) {
 	expectedPipelineRun := createExpectedPipelineRun(pipelineID, pipelineVersionID, experimentID, pipelineInputMap, false)
 	matcher.MatchPipelineRuns(createdPipelineRun, expectedPipelineRun)
-	createdPipelineRunFromDB, createRunError := runClient.Get(&runparams.RunServiceGetRunParams{
-		RunID: createdPipelineRun.RunID,
-	})
-	Expect(createRunError).NotTo(HaveOccurred(), "Failed to get run with Id="+createdPipelineRun.RunID)
+	createdPipelineRunFromDB := testutil.GetPipelineRun(runClient, &createdPipelineRun.RunID)
 
 	// Making the fields that can be different but we don't care about equal to stabilize tests
 	matcher.MatchPipelineRuns(createdPipelineRun, createdPipelineRunFromDB)

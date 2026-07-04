@@ -67,8 +67,7 @@ func UploadPipeline(pipelineUploadClient api_server.PipelineUploadInterface, pip
 	return pipelineUploadClient.UploadFile(tempPipelineFile.Name(), uploadParams)
 }
 
-// DeletePipeline deletes a pipeline by id. When cascade is true the server also deletes all pipeline versions.
-func DeletePipeline(client *api_server.PipelineClient, pipelineID string, cascade bool) {
+func deletePipelineWithRetry(client *api_server.PipelineClient, pipelineID string, cascade bool) error {
 	ginkgo.GinkgoHelper()
 	logger.Log("Deleting pipeline with id=%s (cascade=%v)", pipelineID, cascade)
 	var err error
@@ -77,18 +76,33 @@ func DeletePipeline(client *api_server.PipelineClient, pipelineID string, cascad
 		if err == nil {
 			break
 		}
-		if !IsRetriableLocalAPIError(err) || attempt == 3 {
+		if !IsRetriableAPITestError(err) || attempt == 3 {
 			break
 		}
-		logger.Log("Transient localhost API error while deleting pipeline %s (attempt %d/3): %v", pipelineID, attempt, err)
+		logger.Log("Transient API error while deleting pipeline %s (attempt %d/3): %v", pipelineID, attempt, err)
 		time.Sleep(2 * time.Second)
 	}
+	return err
+}
+
+// DeletePipeline deletes a pipeline by id. When cascade is true the server also deletes all pipeline versions.
+func DeletePipeline(client *api_server.PipelineClient, pipelineID string, cascade bool) {
+	err := deletePipelineWithRetry(client, pipelineID, cascade)
 	if err != nil {
-		if IsRetriableLocalAPIError(err) {
-			logger.Log("Failed to delete pipeline with id=%s during cleanup after retries: %v", pipelineID, err)
-			return
-		}
 		gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Error occurred while deleting pipeline with id=%s", pipelineID))
+	}
+	logger.Log("Pipeline with id=%s, DELETED", pipelineID)
+}
+
+// DeletePipelineBestEffort keeps cleanup resilient to transient API/backend outages.
+func DeletePipelineBestEffort(client *api_server.PipelineClient, pipelineID string, cascade bool) {
+	err := deletePipelineWithRetry(client, pipelineID, cascade)
+	if err != nil {
+		// ponytail: cleanup should not fail the enclosing test when the API or
+		// backing store is already tearing down; make primary-flow callers use
+		// DeletePipeline so non-cleanup deletions still fail loudly.
+		logger.Log("Failed to delete pipeline with id=%s during cleanup: %v", pipelineID, err)
+		return
 	}
 	logger.Log("Pipeline with id=%s, DELETED", pipelineID)
 }

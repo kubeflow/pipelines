@@ -271,16 +271,14 @@ spec:
               port: 8888
             initialDelaySeconds: 3
             periodSeconds: 5
-            timeoutSeconds: 5
-            failureThreshold: 6
+            timeoutSeconds: 2
           livenessProbe:
             httpGet:
               path: /apis/v1beta1/healthz
               port: 8888
             initialDelaySeconds: 3
             periodSeconds: 5
-            timeoutSeconds: 5
-            failureThreshold: 6
+            timeoutSeconds: 2
           # This startup probe provides up to a 60 second grace window before the
           # liveness probe takes over to accomodate the occasional database
           # migration.
@@ -288,9 +286,9 @@ spec:
             httpGet:
               path: /apis/v1beta1/healthz
               port: 8888
-            failureThreshold: 24
+            failureThreshold: 12
             periodSeconds: 5
-            timeoutSeconds: 5
+            timeoutSeconds: 2
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
