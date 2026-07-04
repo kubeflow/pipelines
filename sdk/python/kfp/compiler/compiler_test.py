@@ -6766,9 +6766,8 @@ class TestNoneLiteralForOptionalParams(unittest.TestCase):
         runtime_value = task_inputs.parameters['x'].runtime_value.constant
         self.assertEqual(runtime_value.WhichOneof('kind'), 'null_value')
 
-    def test_pipeline_level_optional_param_pass_through_none(self):
-        """Pipeline-level Optional[T] param can forward None to a component."""
-
+    def test_pipeline_level_optional_param_is_marked_optional(self):
+        """Pipeline-level Optional[T] input is marked optional in the pipeline spec."""
         @dsl.component
         def my_comp(x: Optional[int] = None):
             print(x)
