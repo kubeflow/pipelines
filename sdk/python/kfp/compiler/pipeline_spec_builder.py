@@ -63,8 +63,10 @@ def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
     Raises:
         ValueError if the given value is not one of the parameter types.
     """
+    if value is None:
+        return struct_pb2.Value(null_value=0)
     # bool check must be above (int, float) check because bool is a subclass of int so isinstance(True, int) == True
-    if isinstance(value, bool):
+    elif isinstance(value, bool):
         return struct_pb2.Value(bool_value=value)
     elif isinstance(value, str):
         return struct_pb2.Value(string_value=value)
@@ -81,7 +83,7 @@ def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
                 values=[to_protobuf_value(v) for v in value]))
     else:
         raise ValueError('Value must be one of the following types: '
-                         'str, int, float, bool, dict, and list. Got: '
+                         'str, int, float, bool, dict, list, and None. Got: '
                          f'"{value}" of type "{type(value)}".')
 
 
@@ -255,6 +257,13 @@ def build_task_spec_for_task(
                     input_name].component_input_parameter = (
                         component_input_parameter)
 
+        elif input_value is None:
+            # None is a valid constant for optional parameters (Optional[T] / Union[T, None]).
+            # Encode it as a protobuf null_value so it round-trips faithfully.
+            pipeline_task_spec.inputs.parameters[
+                input_name].runtime_value.constant.CopyFrom(
+                    to_protobuf_value(None))
+
         elif isinstance(input_value, (str, int, float, bool, dict, list)):
             pipeline_channels = (
                 pipeline_channel.extract_pipeline_channels_from_any(input_value)
@@ -326,7 +335,7 @@ def build_task_spec_for_task(
         else:
             raise ValueError(
                 'Input argument supports only the following types: '
-                'str, int, float, bool, dict, and list.'
+                'str, int, float, bool, dict, list, and None.'
                 f'Got {input_value} of type {type(input_value)}.')
 
     return pipeline_task_spec
