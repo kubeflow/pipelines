@@ -411,6 +411,12 @@ class Executor:
                 value = self.get_input_parameter_value(k)
                 if value is not None:
                     func_kwargs[k] = value
+                elif k in (self.executor_input.get('inputs', {}).get(
+                        'parameterValues', {})):
+                    # The parameter was explicitly set to null/None in the
+                    # pipeline spec.  Pass it through so the function receives
+                    # the expected None value for Optional[T] parameters.
+                    func_kwargs[k] = None
 
             elif type_annotations.is_Input_Output_artifact_annotation(v):
                 if type_annotations.is_artifact_wrapped_in_Input(v):
