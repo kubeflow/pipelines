@@ -3834,7 +3834,10 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 
 // TestReportWorkflow_WithMLflowOnRunEnd verifies that when a run has PluginsOutputString
 // set, reporting a terminal workflow triggers the plugin dispatcher's
-// OnRunEnd, which updates the plugin output state.
+// OnRunEnd, which updates the plugin output state. When OnRunEnd cannot close
+// the MLflow parent run, the report must return a retryable (Unavailable)
+// error — never a nil ExecutionSpec with a nil error — and must defer the
+// persistedFinalState label so the persistence agent re-reports the workflow.
 func TestReportWorkflow_WithMLflowOnRunEnd(t *testing.T) {
 	// Set a dummy MLflow config so the manager creates a real MLflow dispatcher,
 	// then clear it before the run lifecycle to simulate config being unavailable
@@ -3874,7 +3877,8 @@ func TestReportWorkflow_WithMLflowOnRunEnd(t *testing.T) {
 	require.NotNil(t, createdRun.PluginsOutputString)
 	assert.Contains(t, string(*createdRun.PluginsOutputString), "parent-run-1")
 
-	// Report a terminal (failed) workflow.
+	// Report a terminal (failed) workflow. Create it in the fake cluster first
+	// so the persistedFinalState label can be verified afterwards.
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      run.K8SName,
@@ -3884,8 +3888,26 @@ func TestReportWorkflow_WithMLflowOnRunEnd(t *testing.T) {
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	_, err = store.ExecClientFake.Execution("ns1").Create(context.Background(), workflow, v1.CreateOptions{})
 	require.NoError(t, err)
+	execSpec, err := manager.ReportWorkflowResource(context.Background(), workflow)
+
+	// OnRunEnd fails to close the MLflow parent run (config unavailable), so
+	// the report must surface a retryable Unavailable error instead of
+	// returning a nil ExecutionSpec with a nil error (which would panic the
+	// ReportWorkflow gRPC handler). The persistence agent treats Unavailable
+	// as transient and re-reports the workflow with backoff.
+	require.Error(t, err)
+	assert.Nil(t, execSpec)
+	assert.Truef(t, util.IsUserErrorCodeMatch(err, codes.Unavailable),
+		"Expected retryable Unavailable error when plugin sync is deferred, got: %v", err)
+	assert.Contains(t, err.Error(), "Deferring persistedFinalState label")
+
+	// The persistedFinalState label must NOT be set, so the persistence agent
+	// retries the report once MLflow recovers.
+	wf, getErr := store.ExecClientFake.Execution("ns1").Get(context.Background(), run.K8SName, v1.GetOptions{})
+	require.NoError(t, getErr)
+	assert.NotEqual(t, "true", wf.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState])
 
 	// After terminal report, the plugin dispatcher's OnRunEnd should have fired.
 	// Without MLflow config in Viper, the handler sets PLUGIN_FAILED.

@@ -1687,8 +1687,15 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			if prErr != nil {
 				glog.Warningf("Failed to build PersistedRun for plugin sync on run %q: %v", run.UUID, prErr)
 			} else if !r.pluginDispatcher.OnRunEnd(ctx, pr) {
+				// Return a retryable error (Unavailable) rather than success:
+				// the persistence agent treats it as transient and re-reports
+				// the workflow with backoff, and the caller never receives a
+				// nil ExecutionSpec with a nil error.
 				glog.Warningf("Plugin sync failed for run %q; deferring persistedFinalState label so persistence agent retries", run.UUID)
-				return nil, nil
+				return nil, util.NewUnavailableServerError(
+					fmt.Errorf("plugin sync failed for run %s", run.UUID),
+					"Deferring persistedFinalState label for workflow %s - will retry",
+					execSpec.ExecutionName())
 			}
 		}
 
