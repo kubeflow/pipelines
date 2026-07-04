@@ -6792,6 +6792,21 @@ class TestNoneLiteralForOptionalParams(unittest.TestCase):
             'x']
         self.assertTrue(param_spec.is_optional)
 
+    def test_pass_none_to_optional_artifact_raises(self):
+        """Passing None to an optional artifact input should raise ValueError."""
+
+        @dsl.component
+        def my_comp(x: Optional[Input[Artifact]] = None):
+            print(x)
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"is an artifact input and cannot be set to None\. Omit the argument to leave it unset\."):
+
+            @dsl.pipeline
+            def my_pipeline():
+                my_comp(x=None)
+
 
 if __name__ == '__main__':
     unittest.main()
