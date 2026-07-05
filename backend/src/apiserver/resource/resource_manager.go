@@ -1783,11 +1783,19 @@ func (r *ResourceManager) workflowStillMatchesReportedVersion(ctx context.Contex
 
 	currentWorkflow, err := r.getWorkflowClient(execSpec.ExecutionNamespace()).Get(ctx, execSpec.ExecutionName(), v1.GetOptions{})
 	if err != nil {
-		message := fmt.Sprintf("Failed to verify current workflow version while reporting completed workflow %s", execSpec.ExecutionName())
 		if util.IsNotFound(err) {
-			return false, util.NewNotFoundError(err, "%s", message)
+			// The workflow CR is already gone, e.g. deleted between the
+			// persistence agent's read and this report. Proceed with the
+			// reported terminal state so the run row is still finalized;
+			// the persistedFinalState label step then surfaces the NotFound
+			// signal to the caller after the database write.
+			glog.Warningf(
+				"Workflow %q was not found while verifying the reported version; proceeding with the reported terminal state",
+				execSpec.ExecutionName(),
+			)
+			return true, nil
 		}
-		return false, util.Wrapf(err, "%s", message)
+		return false, util.Wrapf(err, "Failed to verify current workflow version while reporting completed workflow %s", execSpec.ExecutionName())
 	}
 	if currentWorkflow.Version() == reportedVersion {
 		return true, nil
