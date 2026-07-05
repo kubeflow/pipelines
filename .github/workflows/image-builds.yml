@@ -25,7 +25,9 @@ jobs:
     continue-on-error: true
     env:
       ARTIFACT_NAME: "runtime-base-images"
-      ARTIFACTS_PATH: "images_${{ github.run_id }}"
+      # Fixed (run-independent) path so actions/cache restores the archive to
+      # the same location it was saved from.
+      ARTIFACTS_PATH: "runtime-base-images-cache"
       RUNTIME_BASE_IMAGE_ARCHIVE: "runtime-base-images.tar"
     steps:
       - name: Checkout repository
@@ -34,7 +36,21 @@ jobs:
       - name: Create Artifacts Path Directory
         run: mkdir -p ${{ env.ARTIFACTS_PATH }}
 
+      # The base-image list uses floating tags, so rotate the cache key weekly
+      # to bound tag drift while still avoiding registry pulls on every run.
+      - name: Compute weekly cache key suffix
+        id: cache-week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore runtime base images from cache
+        id: cache-runtime-base-images
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
+          key: runtime-base-images-${{ hashFiles('.github/resources/runtime-base-images.txt') }}-${{ steps.cache-week.outputs.week }}
+
       - name: Pull and save runtime base images
+        if: steps.cache-runtime-base-images.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
