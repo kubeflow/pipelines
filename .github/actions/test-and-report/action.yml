@@ -121,6 +121,35 @@ runs:
         echo $! > /tmp/runner-telemetry.pid
       continue-on-error: true
 
+    - name: Set up Go
+      uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+      with:
+        go-version-file: go.mod
+        # Caching is handled by the dedicated test-lane cache below; the
+        # default setup-go cache key is shared with non-test workflows and
+        # would never contain the compiled Ginkgo test suites.
+        cache: false
+
+    - name: Compute weekly Go cache suffix
+      id: go-cache-week
+      shell: bash
+      run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+
+    # Without a warm module and build cache every test lane downloads Go
+    # modules and compiles the Ginkgo suites from scratch (~3 minutes before
+    # the first spec runs). The weekly key suffix plus restore-keys keeps
+    # compile artifacts fresh as sources drift between go.sum changes.
+    - name: Restore Go build and module caches
+      uses: actions/cache@v5
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: go-test-lanes-${{ runner.os }}-${{ hashFiles('go.sum') }}-${{ steps.go-cache-week.outputs.week }}
+        restore-keys: |
+          go-test-lanes-${{ runner.os }}-${{ hashFiles('go.sum') }}-
+          go-test-lanes-${{ runner.os }}-
+
     - name: Configure API Access
       id: configure-api
       if: ${{ inputs.skip_api_config != 'true' }}
