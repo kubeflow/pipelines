@@ -177,11 +177,9 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       data.executions,
       data.events,
       data.artifacts,
-      pipelineSpec,
-      !hasFinishedV2(run.state),
       taskStateMap,
     );
-  }, [data, flowElements, isSuccess, layers, pipelineSpec, run.state, taskStateMap]);
+  }, [data, flowElements, isSuccess, layers, taskStateMap]);
 
   const onElementSelection = (event: ReactMouseEvent, element: PipelineFlowElement) => {
     setSelectedNode(element);
