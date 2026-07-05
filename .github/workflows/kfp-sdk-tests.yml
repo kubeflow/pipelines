@@ -34,7 +34,9 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
-        cache-dependency-path: sdk/python/requirements*.txt
+        cache-dependency-path: |
+          sdk/python/requirements*.txt
+          kubernetes_platform/python/requirements*.txt
 
     - name: Install protobuf dependencies & kfp-pipeline-spec
       id: install-protobuf-deps
