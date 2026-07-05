@@ -98,10 +98,14 @@ func DeletePipeline(client *api_server.PipelineClient, pipelineID string, cascad
 func DeletePipelineBestEffort(client *api_server.PipelineClient, pipelineID string, cascade bool) {
 	err := deletePipelineWithRetry(client, pipelineID, cascade)
 	if err != nil {
+		if !IsRetriableAPITestError(err) {
+			gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Error occurred while deleting pipeline with id=%s", pipelineID))
+			return
+		}
 		// ponytail: cleanup should not fail the enclosing test when the API or
 		// backing store is already tearing down; make primary-flow callers use
 		// DeletePipeline so non-cleanup deletions still fail loudly.
-		logger.Log("Failed to delete pipeline with id=%s during cleanup: %v", pipelineID, err)
+		logger.Log("Failed to delete pipeline with id=%s during cleanup after transient API retries: %v", pipelineID, err)
 		return
 	}
 	logger.Log("Pipeline with id=%s, DELETED", pipelineID)

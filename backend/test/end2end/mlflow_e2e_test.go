@@ -530,13 +530,12 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			Expect(retriedExperimentID).To(Equal(mlflowExperimentID),
 				"Retry should keep using the existing MLflow experiment")
 
-			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
-				run_model.V2beta1RuntimeStateFAILED,
-			}, &timeout)
 			retriedRun = testutil.GetPipelineRun(runClient, &createdRun.RunID)
-			Expect(retriedRun.State).NotTo(BeNil())
-			Expect(*retriedRun.State).To(Equal(run_model.V2beta1RuntimeStateFAILED),
-				"Retried pipeline run should still be FAILED (fail_v2 always fails)")
+			Eventually(func() bool {
+				retriedRun = testutil.GetPipelineRun(runClient, &createdRun.RunID)
+				return runtimeStateAppearsAfter(retriedRun.StateHistory, stateHistoryLengthBeforeRetry, run_model.V2beta1RuntimeStateFAILED)
+			}, timeout*time.Second, 5*time.Second).Should(BeTrue(),
+				"Retried pipeline run should record a FAILED state after retry")
 
 			err = e2e_utils.WaitForMLflowRunStatus(mlflowEndpoint, rootRunID, mlflowExperimentID, "FAILED", &timeout)
 			Expect(err).NotTo(HaveOccurred())
@@ -633,6 +632,22 @@ var _ = PDescribe("MLflow Integration > RetryRun >", Label(MLflow, FullRegressio
 		})
 	})
 })
+
+func runtimeStateAppearsAfter(
+	stateHistory []*run_model.V2beta1RuntimeStatus,
+	startIndex int,
+	expectedState run_model.V2beta1RuntimeState,
+) bool {
+	if startIndex < 0 || startIndex > len(stateHistory) {
+		return false
+	}
+	for _, runtimeStatus := range stateHistory[startIndex:] {
+		if runtimeStatus.State != nil && *runtimeStatus.State == expectedState {
+			return true
+		}
+	}
+	return false
+}
 
 var _ = PDescribe("MLflow Integration > CloneRun >", Label(MLflow, FullRegression), func() {
 	Context("Clone behavior >", func() {
