@@ -34,6 +34,7 @@ import {
   TaskType,
 } from 'src/lib/v2/StaticFlow';
 import { getArtifactNameFromEvent, LinkedArtifact, ExecutionHelpers } from 'src/mlmd/MlmdUtils';
+import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
 
@@ -223,6 +224,7 @@ export function updateFlowElementsState(
   artifacts: Artifact[],
   pipelineSpec?: PipelineSpec,
   runIsActive?: boolean,
+  taskStateMap?: Map<string, string>,
 ): PipelineFlowElement[] {
   const executionLayers = getExecutionLayers(layers, executions);
   if (executionLayers.length < layers.length) {
@@ -275,7 +277,10 @@ export function updateFlowElementsState(
       if (executions) {
         const state = executions[0]?.getLastKnownState();
         (updatedElem.data as ExecutionFlowElementData).state = state;
-        if (state === Execution.State.COMPLETE && debugPauseTasks.has(taskLabel)) {
+        if (
+          state === Execution.State.COMPLETE &&
+          taskStateMap?.get(taskLabel) === V2beta1RuntimeState.PAUSED
+        ) {
           (updatedElem.data as ExecutionFlowElementData).debugPaused = true;
         }
         (updatedElem.data as ExecutionFlowElementData).mlmdId = executions[0]?.getId();

@@ -155,6 +155,16 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     [data, pipelineSpec],
   );
 
+  const taskStateMap = useMemo(() => {
+    const map = new Map<string, string>();
+    run.run_details?.task_details?.forEach(task => {
+      if (task.display_name && task.state) {
+        map.set(task.display_name, task.state);
+      }
+    });
+    return map;
+  }, [run.run_details]);
+
   const dynamicFlowElements = useMemo(() => {
     if (!isSuccess || !data) {
       return flowElements;
@@ -169,8 +179,9 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       data.artifacts,
       pipelineSpec,
       !hasFinishedV2(run.state),
+      taskStateMap,
     );
-  }, [data, flowElements, isSuccess, layers, pipelineSpec, run.state]);
+  }, [data, flowElements, isSuccess, layers, pipelineSpec, run.state, taskStateMap]);
 
   const onElementSelection = (event: ReactMouseEvent, element: PipelineFlowElement) => {
     setSelectedNode(element);
