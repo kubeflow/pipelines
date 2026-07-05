@@ -130,10 +130,15 @@ runs:
         # would never contain the compiled Ginkgo test suites.
         cache: false
 
-    - name: Compute weekly Go cache suffix
-      id: go-cache-week
+    - name: Resolve Go cache metadata
+      id: go-cache-meta
       shell: bash
-      run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+      run: |
+        {
+          echo "gomodcache=$(go env GOMODCACHE)"
+          echo "gocache=$(go env GOCACHE)"
+          echo "week=$(date -u +%G-%V)"
+        } >> "$GITHUB_OUTPUT"
 
     # Without a warm module and build cache every test lane downloads Go
     # modules and compiles the Ginkgo suites from scratch (~3 minutes before
@@ -143,9 +148,9 @@ runs:
       uses: actions/cache@v5
       with:
         path: |
-          ~/go/pkg/mod
-          ~/.cache/go-build
-        key: go-test-lanes-${{ runner.os }}-${{ hashFiles('go.sum') }}-${{ steps.go-cache-week.outputs.week }}
+          ${{ steps.go-cache-meta.outputs.gomodcache }}
+          ${{ steps.go-cache-meta.outputs.gocache }}
+        key: go-test-lanes-${{ runner.os }}-${{ hashFiles('go.sum') }}-${{ steps.go-cache-meta.outputs.week }}
         restore-keys: |
           go-test-lanes-${{ runner.os }}-${{ hashFiles('go.sum') }}-
           go-test-lanes-${{ runner.os }}-
