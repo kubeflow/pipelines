@@ -1,6 +1,0 @@
-apiVersion: admissionregistration.k8s.io/v1
-kind: MutatingWebhookConfiguration
-metadata:
-  name: pipelineversions.pipelines.kubeflow.org
-  annotations:
-    cert-manager.io/inject-ca-from: $(kfp-namespace)/kfp-api-webhook-cert
