@@ -29,6 +29,7 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+          cache-dependency-path: backend/src/apiserver/visualization/requirements*.txt
 
       - name: Install dependencies
         run: make install-backend-visualization-deps

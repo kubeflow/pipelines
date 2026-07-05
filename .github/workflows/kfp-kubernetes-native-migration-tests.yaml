@@ -39,6 +39,10 @@ jobs:
         with:
           python-version: "3.9"
           cache: 'pip'
+          cache-dependency-path: |
+            sdk/python/requirements*.txt
+            kubernetes_platform/python/requirements*.txt
+            test/kfp-kubernetes-native-migration-tests/requirements.txt
 
       - name: Create KFP cluster
         id: create-kfp-cluster

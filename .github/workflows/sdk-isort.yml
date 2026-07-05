@@ -30,6 +30,7 @@ jobs:
         with:
           python-version: 3.9
           cache: 'pip'
+          cache-dependency-path: sdk/python/requirements-dev.txt
 
       - name: Run isort tests
         run: ./test/presubmit-isort-sdk.sh

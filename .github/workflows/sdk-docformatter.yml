@@ -29,6 +29,7 @@ jobs:
         with:
           python-version: 3.9
           cache: 'pip'
+          cache-dependency-path: sdk/python/requirements-dev.txt
 
       - name: Run docformatter tests
         run: ./test/presubmit-docformatter-sdk.sh

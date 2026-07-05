@@ -547,6 +547,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - The `protobuf` composite action prepares `protoc` and related dependencies when compiling Python protobufs.
 - The `create-cluster` action caches Kind node images by Kubernetes version to reduce Docker Hub pulls.
 - Python workflows use `actions/cache@v5` for pip cache to reduce repeated dependency installs.
+- Workflows using `setup-python` with `cache: 'pip'` must set `cache-dependency-path` to the requirement files the job actually installs; without it the cache key hashes every requirements file in the monorepo, so any dependency bump anywhere invalidates every workflow's pip cache.
 
 ### Code style and formatting
 

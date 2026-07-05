@@ -46,6 +46,7 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+          cache-dependency-path: sdk/python/requirements*.txt
 
       - name: Create KFP cluster
         id: create-kfp-cluster
