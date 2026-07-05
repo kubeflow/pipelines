@@ -247,6 +247,22 @@ func (d *retryDuringTerminalReportDispatcher) OnRunEnd(ctx context.Context, _ *a
 func (d *retryDuringTerminalReportDispatcher) OnRunRetry(context.Context, *apiserverPlugins.PersistedRun) {
 }
 
+type countingTerminalReportDispatcher struct {
+	onRunEndCalls int
+}
+
+func (d *countingTerminalReportDispatcher) OnBeforeRunCreation(context.Context, *apiserverPlugins.PendingRun, util.ExecutionSpec) error {
+	return nil
+}
+
+func (d *countingTerminalReportDispatcher) OnRunEnd(context.Context, *apiserverPlugins.PersistedRun) bool {
+	d.onRunEndCalls++
+	return true
+}
+
+func (d *countingTerminalReportDispatcher) OnRunRetry(context.Context, *apiserverPlugins.PersistedRun) {
+}
+
 func TestReadRunLogFromArchiveStreamsObjectStoreFile(t *testing.T) {
 	logArchive := archive.NewLogArchive("/logs", "main.log")
 	execSpec, err := util.NewExecutionSpecJSON(util.CurrentExecutionType(), []byte(testWorkflow.ToStringForStore()))
@@ -3884,6 +3900,58 @@ func TestAddWorkflowLabelIfWorkflowUnchanged_SkipsWhenWorkflowWasRetried(t *test
 	assert.False(t, hasFinalStateLabel)
 }
 
+func TestReportWorkflowResource_SkipsTerminalPluginSyncWhenReportedWorkflowIsStale(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	namespace := "ns1"
+	ctx := context.Background()
+	defer store.Close()
+
+	runWithPluginOutput, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", "https://mlflow.example/runs/parent-run-1")
+	pluginsOutput, err := apiservermlflow.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	require.NoError(t, err)
+	runWithPluginOutput.State = model.RuntimeStateRunning
+	runWithPluginOutput.Conditions = string(model.RuntimeStateRunning.ToV1())
+	runWithPluginOutput.FinishedAtInSec = 0
+	runWithPluginOutput.PluginsOutputString = pluginsOutput
+	require.NoError(t, manager.runStore.UpdateRun(runWithPluginOutput))
+
+	dispatcher := &countingTerminalReportDispatcher{}
+	manager.pluginDispatcher = dispatcher
+
+	currentWorkflow, err := store.ExecClientFake.Execution(namespace).Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	currentWorkflow.SetVersion("retry-version")
+	_, err = store.ExecClientFake.Execution(namespace).Update(ctx, currentWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+
+	staleTerminalWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:            run.K8SName,
+			Namespace:       namespace,
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "terminal-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowFailed,
+			FinishedAt: v1.NewTime(time.Unix(123, 0)),
+		},
+	})
+
+	reportedWorkflow, err := manager.ReportWorkflowResource(ctx, staleTerminalWorkflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+	assert.Nil(t, reportedWorkflow)
+	assert.Equal(t, 0, dispatcher.onRunEndCalls)
+
+	currentRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, currentRun.State)
+	assert.Equal(t, int64(0), currentRun.FinishedAtInSec)
+}
+
 func TestReportWorkflowResource_SkipsPersistedFinalStateLabelWhenRunRetriedDuringPluginSync(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	namespace := "ns1"
@@ -3917,10 +3985,10 @@ func TestReportWorkflowResource_SkipsPersistedFinalStateLabelWhenRunRetriedDurin
 	})
 
 	reportedWorkflow, err := manager.ReportWorkflowResource(context.Background(), workflow)
-	require.NoError(t, err)
-	require.NotNil(t, reportedWorkflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+	assert.Nil(t, reportedWorkflow)
 	require.NoError(t, dispatcher.retryErr)
-	assert.Equal(t, run.UUID, reportedWorkflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId])
 
 	retriedRun, err := manager.GetRun(run.UUID)
 	require.NoError(t, err)
@@ -3987,7 +4055,8 @@ func TestReportWorkflow_WithMLflowOnRunEnd(t *testing.T) {
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
 	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
-	require.NoError(t, err)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
 
 	// After terminal report, the plugin dispatcher's OnRunEnd should have fired.
 	// Without MLflow config in Viper, the handler sets PLUGIN_FAILED.
