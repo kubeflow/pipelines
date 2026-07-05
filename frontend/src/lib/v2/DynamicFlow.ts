@@ -241,9 +241,6 @@ export function updateFlowElementsState(
     artifactIdToArtifact,
   );
 
-  const debugPauseTasks =
-    pipelineSpec && runIsActive ? getDebugPauseTaskNames(pipelineSpec, layers) : new Set<string>();
-
   let flowGraph: PipelineFlowElement[] = [];
 
   if (canvasIsParallelForDag(executionLayers, layers)) {
