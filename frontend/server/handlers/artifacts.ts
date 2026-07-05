@@ -368,6 +368,12 @@ function getHttpArtifactsHandler(
       if (!location) {
         break;
       }
+      // We are not streaming this redirect response, so release its body.
+      // Node's fetch keeps the connection tied up until GC if the body is left
+      // unconsumed, which shows up under redirect-heavy artifact traffic.
+      if (response.body) {
+        await response.body.cancel().catch(() => undefined);
+      }
       if (hop >= maxRedirects) {
         res.status(500).send('Too many redirects while retrieving artifact');
         return;
