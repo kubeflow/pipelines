@@ -141,16 +141,21 @@ func (h *Handler) OnBeforeRunCreation(ctx context.Context, run *apiserverPlugins
 }
 
 // OnRunEnd marks the MLflow parent run and any active nested runs as
-// complete/failed when the KFP run reaches a terminal state.
-func (h *Handler) OnRunEnd(ctx context.Context, run *apiserverPlugins.PersistedRun, config interface{}) error {
+// complete/failed when the KFP run reaches a terminal state. The returned
+// bool reports whether a failed sync is worth retrying: transient MLflow
+// call failures request a retry, while permanent problems (missing parent
+// run id, unavailable or invalid config) are recorded in the plugin output
+// and must not block run finalization.
+func (h *Handler) OnRunEnd(ctx context.Context, run *apiserverPlugins.PersistedRun, config interface{}) (bool, error) {
 	if h == nil || run == nil {
-		return nil
+		return false, nil
 	}
-	return h.syncOnRunTerminal(ctx, run, resolveHandlerConfig(config))
+	return h.syncOnRunTerminal(ctx, run, resolveHandlerConfig(config)), nil
 }
 
 // syncOnRunTerminal marks the MLflow parent and nested runs as complete/failed.
-func (h *Handler) syncOnRunTerminal(ctx context.Context, run *apiserverPlugins.PersistedRun, config *ResolvedConfig) error {
+// It returns true when the sync failed transiently and should be retried.
+func (h *Handler) syncOnRunTerminal(ctx context.Context, run *apiserverPlugins.PersistedRun, config *ResolvedConfig) bool {
 	endTimeMs := int64(0)
 	endTimeRef := (*int64)(nil)
 	if run.FinishedAt != nil {
@@ -158,8 +163,7 @@ func (h *Handler) syncOnRunTerminal(ctx context.Context, run *apiserverPlugins.P
 		endTimeRef = &endTimeMs
 	}
 	terminalStatus := ToMLflowTerminalStatus(run.State)
-	h.syncMLflowRuns(ctx, run, config, RunSyncModeTerminal, terminalStatus, endTimeRef, "terminal")
-	return nil
+	return h.syncMLflowRuns(ctx, run, config, RunSyncModeTerminal, terminalStatus, endTimeRef, "terminal")
 }
 
 // HandleRetry reopens the MLflow parent run and any failed/killed nested runs.
@@ -168,11 +172,14 @@ func (h *Handler) HandleRetry(ctx context.Context, run *apiserverPlugins.Persist
 }
 
 // syncMLflowRuns resolves the MLflow request context, syncs the parent and nested runs, and
-// updates the plugin output state.
-func (h *Handler) syncMLflowRuns(ctx context.Context, run *apiserverPlugins.PersistedRun, config *ResolvedConfig, mode RunSyncMode, terminalStatus string, endTimeRef *int64, label string) {
+// updates the plugin output state. The returned bool reports whether the failure is
+// transient and worth retrying; permanent failures (missing parent run id, unavailable
+// or invalid config, unresolvable credentials) return false so callers do not retry
+// a sync that cannot succeed until an operator fixes the configuration.
+func (h *Handler) syncMLflowRuns(ctx context.Context, run *apiserverPlugins.PersistedRun, config *ResolvedConfig, mode RunSyncMode, terminalStatus string, endTimeRef *int64, label string) bool {
 	pluginOutput := run.PluginsOutput[PluginName]
 	if pluginOutput == nil {
-		return
+		return false
 	}
 
 	parentRunID := GetParentRunID(pluginOutput)
@@ -181,7 +188,7 @@ func (h *Handler) syncMLflowRuns(ctx context.Context, run *apiserverPlugins.Pers
 		msg := fmt.Sprintf("MLflow %s sync skipped: missing parent root_run_id in plugins_output.mlflow", label)
 		glog.Warning(msg)
 		SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_FAILED, msg)
-		return
+		return false
 	}
 
 	localConfig := cloneResolvedConfig(config)
@@ -189,13 +196,13 @@ func (h *Handler) syncMLflowRuns(ctx context.Context, run *apiserverPlugins.Pers
 		msg := fmt.Sprintf("MLflow %s sync failed: config unavailable", label)
 		glog.Warning(msg)
 		SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_FAILED, msg)
-		return
+		return false
 	}
 	if localConfig.Config.Settings == nil {
 		msg := fmt.Sprintf("MLflow %s sync failed: resolved MLflow settings are missing", label)
 		glog.Warning(msg)
 		SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_FAILED, msg)
-		return
+		return false
 	}
 
 	mlflowRequestCtx, err := BuildMLflowRunRequestContext(ctx, h.namespace, localConfig)
@@ -203,7 +210,7 @@ func (h *Handler) syncMLflowRuns(ctx context.Context, run *apiserverPlugins.Pers
 		msg := fmt.Sprintf("MLflow %s sync failed: %v", label, err)
 		glog.Warning(msg)
 		SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_FAILED, msg)
-		return
+		return false
 	}
 
 	syncErrors := SyncParentAndNestedRuns(ctx, mlflowRequestCtx, parentRunID, experimentID, mode, terminalStatus, endTimeRef)
@@ -211,9 +218,12 @@ func (h *Handler) syncMLflowRuns(ctx context.Context, run *apiserverPlugins.Pers
 		msg := strings.Join(syncErrors, "; ")
 		glog.Warningf("MLflow %s sync encountered errors for run %s: %s", label, run.RunID, msg)
 		SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_FAILED, msg)
-	} else {
-		SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, "")
+		// The MLflow calls themselves failed (network, availability, or
+		// server-side errors); a later retry can succeed.
+		return true
 	}
+	SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, "")
+	return false
 }
 
 func resolveHandlerConfig(config interface{}) *ResolvedConfig {
