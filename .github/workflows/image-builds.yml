@@ -36,18 +36,18 @@ jobs:
       - name: Create Artifacts Path Directory
         run: mkdir -p ${{ env.ARTIFACTS_PATH }}
 
-      # The base-image list uses floating tags, so rotate the cache key weekly
+      # The base-image list uses floating tags, so rotate the cache key daily
       # to bound tag drift while still avoiding registry pulls on every run.
-      - name: Compute weekly cache key suffix
-        id: cache-week
-        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+      - name: Compute daily cache key suffix
+        id: cache-day
+        run: echo "day=$(date -u +%F)" >> "$GITHUB_OUTPUT"
 
       - name: Restore runtime base images from cache
         id: cache-runtime-base-images
         uses: actions/cache@v5
         with:
           path: ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
-          key: runtime-base-images-${{ hashFiles('.github/resources/runtime-base-images.txt') }}-${{ steps.cache-week.outputs.week }}
+          key: runtime-base-images-${{ hashFiles('.github/resources/runtime-base-images.txt') }}-${{ steps.cache-day.outputs.day }}
 
       - name: Pull and save runtime base images
         if: steps.cache-runtime-base-images.outputs.cache-hit != 'true'
