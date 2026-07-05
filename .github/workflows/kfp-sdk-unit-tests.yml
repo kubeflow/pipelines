@@ -7,7 +7,7 @@ on:
     paths:
       - 'api/**'
       - 'sdk/**'
-      - './test/presubmit-tests-sdk-unit.sh'
+      - 'test/presubmit-tests-sdk-unit.sh'
       - '.github/workflows/kfp-sdk-unit-tests.yml'
       - '!**/*.md'
       - '!**/OWNERS'

@@ -8,7 +8,7 @@ on:
       - 'api/**'
       - 'sdk/**'
       - 'test_data/sdk_compiled_pipelines/**'
-      - './test/presubmit-tests-sdk.sh'
+      - 'test/presubmit-tests-sdk.sh'
       - '.github/workflows/kfp-sdk-tests.yml'
       - '!**/*.md'
       - '!**/OWNERS'

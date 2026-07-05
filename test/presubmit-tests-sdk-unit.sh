@@ -16,6 +16,8 @@
 source_root=$(pwd)
 SETUP_ENV="${SETUP_ENV:-true}"
 JUNIT_XML="${JUNIT_XML:-sdk-unit.xml}"
+# Number of pytest-xdist workers; set to 0 to disable xdist (e.g. for bisecting).
+PYTEST_PARALLEL_WORKERS="${PYTEST_PARALLEL_WORKERS:-auto}"
 
 if [ "${SETUP_ENV}" = "true" ]; then
   # Create a virtual environment and activate it
@@ -48,7 +50,7 @@ fi
 # Run tests in parallel with pytest-xdist. --dist loadfile keeps all tests in
 # a file on the same worker so file-scoped fixtures and local-execution state
 # stay isolated. -s is dropped because xdist workers do not forward live output.
-pytest -v -n auto --dist loadfile sdk/python/kfp --cov=kfp --junitxml="${JUNIT_XML}"
+python -m pytest -v -n "${PYTEST_PARALLEL_WORKERS}" --dist loadfile sdk/python/kfp --cov=kfp --junitxml="${JUNIT_XML}"
 
 if [ "${SETUP_ENV}" = "true" ]; then
   # Deactivate the virtual environment
