@@ -207,7 +207,7 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	glog.V(4).Info("ecfg: ", string(b))
 	glog.V(4).Infof("dag: %v", dag)
 
-	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
+	ecfg.State = pb.Execution_NEW.Enum()
 	createdExecution, err = mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
 		return execution, err

@@ -912,7 +912,7 @@ func createPVC(
 	}
 
 	// Create execution in MLMD
-	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
+	ecfg.State = pb.Execution_NEW.Enum()
 	createdExecution, err = mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
 		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("error creating MLMD execution for createpvc: %w", err)
@@ -1051,7 +1051,7 @@ func deletePVC(
 	}
 
 	// Create execution in MLMD
-	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
+	ecfg.State = pb.Execution_NEW.Enum()
 	createdExecution, err = mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
 		return createdExecution, pb.Execution_FAILED, fmt.Errorf("error creating MLMD execution for createpvc: %w", err)

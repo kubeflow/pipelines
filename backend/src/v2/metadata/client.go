@@ -200,6 +200,7 @@ type ExecutionConfig struct {
 	DisplayName      string // optional, MLMD execution display name.
 	Name             string // optional, MLMD execution name. When provided, this needs to be unique among all MLMD executions.
 	ExecutionType    ExecutionType
+	State            *pb.Execution_State // optional, overrides the default RUNNING state.
 	NotTriggered     bool  // optional, not triggered executions will have CANCELED state.
 	ParentDagID      int64 // parent DAG execution ID. Only the root DAG does not have a parent DAG.
 	InputParameters  map[string]*structpb.Value
@@ -657,6 +658,9 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 		e.Name = &config.Name
 	}
 	e.LastKnownState = pb.Execution_RUNNING.Enum()
+	if config.State != nil {
+		e.LastKnownState = config.State
+	}
 	if config.NotTriggered {
 		// Note, in MLMD, CANCELED state means exactly as what we call
 		// not triggered.
