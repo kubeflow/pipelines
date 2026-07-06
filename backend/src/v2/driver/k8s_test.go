@@ -3558,3 +3558,195 @@ func Test_extendPodSpecPatch_HostUsersAdminOverrideProtection(t *testing.T) {
 	assert.NotNil(t, podSpec.HostUsers)
 	assert.False(t, *podSpec.HostUsers)
 }
+
+// Test_extendPodSpecPatch_InitContainers tests that SDK-specified init
+// containers are appended to the pod spec patch with the same hardened
+// security context the compiler applies to user containers. The
+// compiler-injected "kfp-launcher" init container is not part of the patch;
+// the strategic merge patch is keyed on container name, so its name is
+// reserved.
+func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
+	allowPrivilegeEscalation := false
+	hardenedSecurityContext := &k8score.SecurityContext{
+		AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+		Capabilities: &k8score.Capabilities{
+			Drop: []k8score.Capability{"ALL"},
+		},
+		SeccompProfile: &k8score.SeccompProfile{
+			Type: k8score.SeccompProfileTypeRuntimeDefault,
+		},
+	}
+	tests := []struct {
+		name        string
+		k8sExecCfg  *kubernetesplatform.KubernetesExecutorConfig
+		expected    *k8score.PodSpec
+		expectedErr string
+	}{
+		{
+			name: "Valid - all fields",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				InitContainers: []*kubernetesplatform.InitContainer{
+					{
+						Name:    "fetch-config",
+						Image:   "busybox:1.36",
+						Command: []string{"sh", "-c"},
+						Args:    []string{"wget -O /config/settings.json $CONFIG_URL"},
+						Env: []*kubernetesplatform.InitContainer_EnvVar{
+							{Name: "CONFIG_URL", Value: "http://config-server/settings.json"},
+						},
+						VolumeMounts: []*kubernetesplatform.InitContainer_VolumeMount{
+							{VolumeName: "config-volume", MountPath: "/config"},
+						},
+					},
+				},
+			},
+			expected: &k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+				InitContainers: []k8score.Container{
+					{
+						Name:    "fetch-config",
+						Image:   "busybox:1.36",
+						Command: []string{"sh", "-c"},
+						Args:    []string{"wget -O /config/settings.json $CONFIG_URL"},
+						Env: []k8score.EnvVar{
+							{Name: "CONFIG_URL", Value: "http://config-server/settings.json"},
+						},
+						VolumeMounts: []k8score.VolumeMount{
+							{Name: "config-volume", MountPath: "/config"},
+						},
+						SecurityContext: hardenedSecurityContext,
+					},
+				},
+			},
+		},
+		{
+			name: "Valid - multiple init containers preserve order",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				InitContainers: []*kubernetesplatform.InitContainer{
+					{Name: "first-init", Image: "busybox:1.36"},
+					{Name: "second-init", Image: "busybox:1.36"},
+				},
+			},
+			expected: &k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+				InitContainers: []k8score.Container{
+					{
+						Name:            "first-init",
+						Image:           "busybox:1.36",
+						SecurityContext: hardenedSecurityContext,
+					},
+					{
+						Name:            "second-init",
+						Image:           "busybox:1.36",
+						SecurityContext: hardenedSecurityContext,
+					},
+				},
+			},
+		},
+		{
+			name:       "Valid - no init containers",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{},
+			expected: &k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+		},
+		{
+			name: "Valid - combined with image pull policy",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				ImagePullPolicy: "Always",
+				InitContainers: []*kubernetesplatform.InitContainer{
+					{Name: "prepare-data", Image: "busybox:1.36"},
+				},
+			},
+			expected: &k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name:            "main",
+						ImagePullPolicy: k8score.PullAlways,
+					},
+				},
+				InitContainers: []k8score.Container{
+					{
+						Name:            "prepare-data",
+						Image:           "busybox:1.36",
+						SecurityContext: hardenedSecurityContext,
+					},
+				},
+			},
+		},
+		{
+			name: "Invalid - reserved launcher name",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				InitContainers: []*kubernetesplatform.InitContainer{
+					{Name: "kfp-launcher", Image: "busybox:1.36"},
+				},
+			},
+			expectedErr: `init container name "kfp-launcher" is reserved by Kubeflow Pipelines`,
+		},
+		{
+			name: "Invalid - empty name",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				InitContainers: []*kubernetesplatform.InitContainer{
+					{Name: "", Image: "busybox:1.36"},
+				},
+			},
+			expectedErr: "init container name must not be empty",
+		},
+		{
+			name: "Invalid - missing image",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				InitContainers: []*kubernetesplatform.InitContainer{
+					{Name: "fetch-config"},
+				},
+			},
+			expectedErr: `init container "fetch-config" must specify an image`,
+		},
+		{
+			name: "Invalid - duplicate name",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				InitContainers: []*kubernetesplatform.InitContainer{
+					{Name: "fetch-config", Image: "busybox:1.36"},
+					{Name: "fetch-config", Image: "busybox:1.36"},
+				},
+			},
+			expectedErr: `duplicate init container name "fetch-config"`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := &k8score.PodSpec{Containers: []k8score.Container{
+				{
+					Name: "main",
+				},
+			}}
+			err := extendPodSpecPatch(
+				context.Background(),
+				got,
+				Options{KubernetesExecutorConfig: tt.k8sExecCfg},
+				nil,
+				nil,
+				nil,
+				map[string]*structpb.Value{},
+				nil,
+			)
+			if tt.expectedErr != "" {
+				assert.ErrorContains(t, err, tt.expectedErr)
+				return
+			}
+			assert.Nil(t, err)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}

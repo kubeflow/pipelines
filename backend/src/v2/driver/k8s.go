@@ -51,6 +51,11 @@ var dummyImages = map[string]string{
 	"argostub/deletepvc": "delete PVC",
 }
 
+// launcherInitContainerName is the compiler-injected launcher init container
+// (compiler/argocompiler/container.go). The pod spec patch is strategic-merged
+// by container name, so reusing this name would override the launcher.
+const launcherInitContainerName = "kfp-launcher"
+
 // kubernetesPlatformOps() carries out the Kubernetes-specific operations, such as create PVC,
 // delete PVC, etc. In these operations we skip the launcher due to there being no user container.
 // It also prepublishes and publishes the execution, which are usually done in the launcher.
@@ -783,6 +788,57 @@ func extendPodSpecPatch(
 		podSpec.Containers[0].SecurityContext.Capabilities = &k8score.Capabilities{
 			Drop: []k8score.Capability{"ALL"},
 		}
+	}
+
+	// Append user-specified init containers to the pod (no passthrough).
+	initContainerNames := make(map[string]bool)
+	for _, initContainer := range kubernetesExecutorConfig.GetInitContainers() {
+		if initContainer.GetName() == "" {
+			return fmt.Errorf("init container name must not be empty")
+		}
+		if initContainer.GetName() == launcherInitContainerName {
+			return fmt.Errorf("init container name %q is reserved by Kubeflow Pipelines", launcherInitContainerName)
+		}
+		if initContainerNames[initContainer.GetName()] {
+			return fmt.Errorf("duplicate init container name %q", initContainer.GetName())
+		}
+		initContainerNames[initContainer.GetName()] = true
+		if initContainer.GetImage() == "" {
+			return fmt.Errorf("init container %q must specify an image", initContainer.GetName())
+		}
+
+		// Patch-added init containers bypass the compiler's security context, so
+		// harden them like the compiler hardens user containers: no runAsNonRoot,
+		// since user-specified images may run as root.
+		allowPrivilegeEscalation := false
+		k8sInitContainer := k8score.Container{
+			Name:    initContainer.GetName(),
+			Image:   initContainer.GetImage(),
+			Command: initContainer.GetCommand(),
+			Args:    initContainer.GetArgs(),
+			SecurityContext: &k8score.SecurityContext{
+				AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+				Capabilities: &k8score.Capabilities{
+					Drop: []k8score.Capability{"ALL"},
+				},
+				SeccompProfile: &k8score.SeccompProfile{
+					Type: k8score.SeccompProfileTypeRuntimeDefault,
+				},
+			},
+		}
+		for _, envVar := range initContainer.GetEnv() {
+			k8sInitContainer.Env = append(k8sInitContainer.Env, k8score.EnvVar{
+				Name:  envVar.GetName(),
+				Value: envVar.GetValue(),
+			})
+		}
+		for _, volumeMount := range initContainer.GetVolumeMounts() {
+			k8sInitContainer.VolumeMounts = append(k8sInitContainer.VolumeMounts, k8score.VolumeMount{
+				Name:      volumeMount.GetVolumeName(),
+				MountPath: volumeMount.GetMountPath(),
+			})
+		}
+		podSpec.InitContainers = append(podSpec.InitContainers, k8sInitContainer)
 	}
 
 	// Post-processing: enforce administrator hostUsers regardless of any
