@@ -65,7 +65,7 @@ jobs:
           source ./.github/resources/scripts/helper-functions.sh
           IMAGE="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/kfp-release:${{ env.IMAGE_TAG }}"
           retry 3 20 env DOCKER_BUILDKIT=1 docker build \
-            --file test/release/Dockerfile.release \
+            --file release/Dockerfile.release \
             --build-arg "BASE_IMAGE=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/kfp-api-generator:${{ env.IMAGE_TAG }}" \
             --build-arg "NODE_VERSION=${{ steps.frontend_node.outputs.version }}" \
             --tag "$IMAGE" \
