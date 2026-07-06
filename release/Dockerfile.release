@@ -15,7 +15,7 @@
 # Based on KFP backend api client generator dockerfile
 # Keep in sync with the version used in backend/api/Makefile
 # Allow overriding the base image tag at build time
-ARG BASE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:release-2.17
+ARG BASE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
 FROM ${BASE_IMAGE}
 
 # Install nvm and the Node version pinned in frontend/.nvmrc.
