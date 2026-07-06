@@ -23,6 +23,10 @@ COPY ./go.sum ./
 COPY ./kubernetes_platform/go.mod ./kubernetes_platform/go.mod
 COPY ./api/go.mod ./api/go.mod
 
+# git is required by the GOPROXY direct fallback below to fetch modules
+# from source when the module proxy errors.
+RUN apk add --no-cache git
+
 # Fall back to fetching modules directly from source on any module proxy
 # error (the default comma separator only falls back on 404/410), so a
 # transient proxy.golang.org failure cannot fail the build.
