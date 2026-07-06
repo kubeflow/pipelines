@@ -17,6 +17,7 @@ import gzip
 import inspect
 import io
 import itertools
+import os
 import pathlib
 import re
 import tarfile
@@ -190,8 +191,12 @@ def _get_packages_to_install_command(
         if use_venv:
             pip_install_strings.append(_use_venv_script_template)
         if kfp_package_path:
+            install_parts = [kfp_package_path]
+            if (os.path.exists(kfp_package_path) or
+                    '@refs/pull/' in kfp_package_path):
+                install_parts.append('--no-deps')
             kfp_pip_install_command = make_pip_install_command(
-                install_parts=[kfp_package_path],
+                install_parts=install_parts,
                 index_url_options=index_url_options,
             )
         else:
