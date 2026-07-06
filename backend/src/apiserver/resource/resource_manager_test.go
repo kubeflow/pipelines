@@ -4091,16 +4091,18 @@ func TestReportWorkflow_WithMLflowOnRunEnd(t *testing.T) {
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
 	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
-	require.Error(t, err)
-	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+	require.NoError(t, err,
+		"an unavailable MLflow config is a permanent plugin failure and must not block run finalization")
 
 	// After terminal report, the plugin dispatcher's OnRunEnd should have fired.
-	// Without MLflow config in Viper, the handler sets PLUGIN_FAILED.
+	// Without MLflow config in Viper, the handler sets PLUGIN_FAILED, and the
+	// run still reaches its terminal state.
 	updatedRun, err := manager.GetRun(run.UUID)
 	require.NoError(t, err)
 	require.NotNil(t, updatedRun.PluginsOutputString, "PluginsOutputString should be updated after terminal report")
 	assert.Contains(t, string(*updatedRun.PluginsOutputString), "PLUGIN_FAILED")
 	assert.Contains(t, string(*updatedRun.PluginsOutputString), "config unavailable")
+	assert.Equal(t, model.RuntimeStateFailed, updatedRun.State)
 }
 
 func TestReportWorkflowResource_WorkflowCompleted_WorkflowNotFound(t *testing.T) {
