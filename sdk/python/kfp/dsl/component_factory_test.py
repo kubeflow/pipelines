@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import re
+from tempfile import TemporaryDirectory
 from typing import List
 import unittest
 
@@ -83,6 +84,25 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
             install_kfp_package=False,
         )
         self.assertEqual(command, [])
+
+    def test_with_local_kfp_package_path_uses_no_deps(self):
+        with TemporaryDirectory() as kfp_source:
+            command = component_factory._get_packages_to_install_command(
+                packages_to_install=[],
+                kfp_package_path=kfp_source,
+            )
+
+        self.assertIn(f"'{kfp_source}' '--no-deps'", command[2])
+
+    def test_with_pull_request_kfp_package_path_uses_no_deps(self):
+        kfp_source = 'git+https://github.com/kubeflow/pipelines@refs/pull/13665/merge#egg=kfp&subdirectory=sdk/python'
+
+        command = component_factory._get_packages_to_install_command(
+            packages_to_install=[],
+            kfp_package_path=kfp_source,
+        )
+
+        self.assertIn(f"'{kfp_source}' '--no-deps'", command[2])
 
     def test_with_user_packages_to_install_and_kfp_package_path_and_install_kfp_false(
             self):
