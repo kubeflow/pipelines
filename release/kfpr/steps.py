@@ -16,6 +16,7 @@ from .core import (
     kfp_requirements_command,
     kubernetes_requirements_command,
     parse_github_owner,
+    prompt_choice,
     prompt_required,
     release_version_bump_command,
     sdk_workflow_command,
@@ -70,13 +71,19 @@ def step_preflight(context: ReleaseContext) -> None:
 
 
 def step_prepare_release_branch(context: ReleaseContext) -> None:
-  """Create release branch from master.
+  """Create release branch from the selected source branch.
 
   Args:
     context: Release context with runner and metadata.
   """
   branch = context.metadata.release_branch
-  context.runner.run(['git', 'checkout', 'master'], cwd=context.root)
+  if context.runner.capture(['git', 'branch', '--list', branch, '--format', '%(refname:short)'], cwd=context.root) == branch:
+    if prompt_choice(f'Local branch {branch} already exists. Use it?', ['y', 'n'], default='y') == 'y':
+      context.runner.run(['git', 'checkout', branch], cwd=context.root)
+      return
+    raise RuntimeError(f'Local branch already exists: {branch}')
+  source_branch = str(context.state.answers.get('release_source_branch', 'master'))
+  context.runner.run(['git', 'checkout', source_branch], cwd=context.root)
   context.runner.run(['git', 'pull', '--ff-only'], cwd=context.root)
   context.runner.run(['git', 'checkout', '-b', branch], cwd=context.root)
 
@@ -169,7 +176,8 @@ def step_update_version_tags(context: ReleaseContext) -> None:
   else:
     (root / 'VERSION').write_text(metadata.tag)
   
-  context.runner.run(release_version_bump_command(root, metadata.release_branch), cwd=root)
+  release_image_tag = 'master' if metadata.release_type in ('major', 'minor') else metadata.release_branch
+  context.runner.run(release_version_bump_command(root, metadata.release_branch, release_image_tag), cwd=root)
   
   # Commit and tag
   context.runner.run(['git', 'add', '--all'], cwd=root)
@@ -466,7 +474,8 @@ def step_sync_master(context: ReleaseContext) -> None:
   else:
     (root / 'VERSION').write_text(metadata.tag)
   
-  context.runner.run(release_version_bump_command(root, metadata.release_branch), cwd=root)
+  release_image_tag = 'master' if metadata.release_type in ('major', 'minor') else metadata.release_branch
+  context.runner.run(release_version_bump_command(root, metadata.release_branch, release_image_tag), cwd=root)
   context.runner.run(['git', 'checkout', metadata.tag, '--', 'CHANGELOG.md'], cwd=root)
   context.runner.run(['git', 'add', '-A'], cwd=root)
   context.runner.run(['git', 'commit', '-s', '-m', f'chore(release): bump version to {metadata.tag} on master branch'], cwd=root)
@@ -510,7 +519,7 @@ def build_steps(release_type: str, include_backend: bool, include_sdk: bool) -> 
        ]
     )
   else:
-    steps.append(Step('prepare-release-branch', 'Create release branch from master', 'step_prepare_release_branch'))
+    steps.append(Step('prepare-release-branch', 'Create release branch from selected source branch', 'step_prepare_release_branch'))
   steps.extend(
      [
          Step('update-version-tags', 'Update repository version tags', 'step_update_version_tags'),

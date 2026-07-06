@@ -327,8 +327,9 @@ def kubernetes_requirements_command() -> list[str]:
   ]
 
 
-def release_version_bump_command(root: Path, release_branch: str) -> list[str]:
+def release_version_bump_command(root: Path, release_branch: str, image_tag: str | None = None) -> list[str]:
   """Build command that runs release version updates in the release container."""
+  image_tag = image_tag or release_branch
   repo_path = '/go/src/github.com/kubeflow/pipelines'
   script = f'''
 set -e
@@ -381,9 +382,9 @@ export API_VERSION=v2beta1
       f'{os.getuid()}:{os.getgid()}',
       '--mount',
       f'type=bind,source={root},target={repo_path}',
-      f'ghcr.io/kubeflow/kfp-release:{release_branch}',
+      f'ghcr.io/kubeflow/kfp-release:{image_tag}',
       '/bin/bash',
-      '-lc',
+      '-c',
       script,
   ]
 
@@ -422,7 +423,7 @@ pip wheel --no-deps dist/*.tar.gz -w dist
       f'type=bind,source={root},target={repo_path}',
       f'ghcr.io/kubeflow/kfp-api-generator:{release_branch}',
       '/bin/bash',
-      '-lc',
+      '-c',
       script,
   ]
 
@@ -711,6 +712,8 @@ def collect_context(args: argparse.Namespace, state: ReleaseState) -> ReleaseCon
     if 'include_sdk' not in answers:
       answers['include_sdk'] = prompt_choice('Does this patch include SDK packages?', ['y', 'n'], default='y') == 'y'
   else:
+    if getattr(args, 'prompt_release_source_branch', False) and 'release_source_branch' not in answers:
+      answers['release_source_branch'] = input('Release source branch [master]: ').strip() or 'master'
     if 'include_backend' not in answers:
       answers['include_backend'] = True
     if 'include_sdk' not in answers:

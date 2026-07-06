@@ -41,6 +41,7 @@ def _context(
     patch_prs: Optional[str],
     include_backend: Optional[bool],
     include_sdk: Optional[bool],
+    prompt_release_source_branch: bool = False,
 ) -> ReleaseContext:
   state = _load_state(state_file)
   _set_answer(state, 'release_type', release_type)
@@ -53,7 +54,7 @@ def _context(
   if 'release_type' in state.answers and 'version' in state.answers:
     ReleaseMetadata.from_version(str(state.answers['release_type']), str(state.answers['version']))
 
-  args = type('Args', (), {'dry_run': dry_run})()
+  args = type('Args', (), {'dry_run': dry_run, 'prompt_release_source_branch': prompt_release_source_branch})()
   return collect_context(args, state)
 
 
@@ -160,6 +161,7 @@ def run(
       patch_prs,
       include_backend,
       include_sdk,
+      prompt_release_source_branch=True,
   )
   run_steps(context)
   typer.echo(f'Release flow complete for {context.metadata.tag}')
@@ -292,6 +294,7 @@ def _make_step_command(step_id: str):
         patch_prs,
         include_backend,
         include_sdk,
+        prompt_release_source_branch=step_id == 'prepare-release-branch',
     )
     STEP_HANDLERS[step_id](context)
     if mark_done:

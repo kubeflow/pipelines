@@ -36,6 +36,9 @@ kfpr run \
 `--state-file` to use a different checkpoint file. If the checkpoint already exists, `run` prints
 the saved status and asks before resuming; pass `--force` to resume without that prompt.
 
+For major and minor releases, `run` asks which source branch to cut the release branch from and
+defaults to `master`.
+
 For `--fork-remote`, you can pass either a full remote URL or just your GitHub username. `kfpr`
 expands `droctothorpe` to `git@github.com:droctothorpe/pipelines.git`.
 

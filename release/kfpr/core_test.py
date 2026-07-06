@@ -213,7 +213,8 @@ class InlineCommandTest(unittest.TestCase):
     self.assertEqual(command[:3], ['docker', 'run', '--rm'])
     self.assertIn('ghcr.io/kubeflow/kfp-release:release-3.2', command)
     self.assertIn('/bin/bash', command)
-    self.assertIn('-lc', command)
+    self.assertIn('-c', command)
+    self.assertNotIn('-lc', command)
     script = command[-1]
     self.assertIn('git-cliff -c cliff.toml --unreleased --tag "$TAG_NAME" --prepend CHANGELOG.md', script)
     self.assertIn('"$REPO_ROOT/manifests/gcp_marketplace/hack/release.sh" "$TAG_NAME"', script)
@@ -225,6 +226,12 @@ class InlineCommandTest(unittest.TestCase):
     self.assertIn('go env GOPATH', script)
     self.assertNotIn('check-release-needed-tools.sh', script)
     self.assertNotIn('make release-in-place', command)
+
+  def test_release_version_bump_command_can_use_source_branch_image(self):
+    command = core.release_version_bump_command(Path('/repo'), 'release-3.2', 'master')
+
+    self.assertIn('ghcr.io/kubeflow/kfp-release:master', command)
+    self.assertNotIn('ghcr.io/kubeflow/kfp-release:release-3.2', command)
 
   def test_kfp_kubernetes_docs_build_command_runs_container_directly(self):
     command = core.kfp_kubernetes_docs_build_command(Path('/repo'), 'release-3.2')
@@ -326,6 +333,32 @@ class PromptValidationTest(unittest.TestCase):
 
       self.assertEqual(context.metadata.tag, '3.2.0')
       self.assertEqual(context.fork_remote, 'git@github.com:droctothorpe/pipelines.git')
+
+  def test_collect_context_prompts_for_major_minor_source_branch(self):
+    with TemporaryDirectory() as tmpdir:
+      state = ReleaseState(Path(tmpdir) / 'state.json')
+      args = type('Args', (), {'dry_run': True, 'prompt_release_source_branch': True})()
+
+      with contextlib.redirect_stdout(io.StringIO()), mock.patch(
+          'builtins.input',
+          side_effect=['2', '3.2.0', 'droctothorpe', 'release-candidate'],
+      ):
+        core.collect_context(args, state)
+
+      self.assertEqual(state.answers['release_source_branch'], 'release-candidate')
+
+  def test_collect_context_defaults_major_minor_source_branch_to_master(self):
+    with TemporaryDirectory() as tmpdir:
+      state = ReleaseState(Path(tmpdir) / 'state.json')
+      args = type('Args', (), {'dry_run': True, 'prompt_release_source_branch': True})()
+
+      with contextlib.redirect_stdout(io.StringIO()), mock.patch(
+          'builtins.input',
+          side_effect=['2', '3.2.0', 'droctothorpe', ''],
+      ):
+        core.collect_context(args, state)
+
+      self.assertEqual(state.answers['release_source_branch'], 'master')
 
 
 if __name__ == '__main__':

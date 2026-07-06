@@ -133,6 +133,58 @@ class PreflightStepTest(unittest.TestCase):
       self.assertIn(['which', 'pip-compile'], context.runner.commands)
 
 
+class PrepareReleaseBranchStepTest(unittest.TestCase):
+
+  def test_prepare_release_branch_uses_selected_source_branch(self):
+    with TemporaryDirectory() as tmpdir:
+      state = core.ReleaseState(Path(tmpdir) / 'state.json')
+      state.answers['release_source_branch'] = 'release-candidate'
+      context = core.ReleaseContext(
+          root=Path(tmpdir),
+          state=state,
+          runner=core.CommandRunner(dry_run=True),
+          metadata=core.ReleaseMetadata.from_version('minor', '3.2.0'),
+          fork_remote='origin',
+          include_backend=True,
+          include_sdk=True,
+      )
+
+      steps.step_prepare_release_branch(context)
+
+      self.assertIn(['git', 'checkout', 'release-candidate'], context.runner.commands)
+      self.assertNotIn(['git', 'checkout', 'master'], context.runner.commands)
+
+  def test_prepare_release_branch_reuses_existing_branch_when_confirmed(self):
+    with TemporaryDirectory() as tmpdir:
+      state = core.ReleaseState(Path(tmpdir) / 'state.json')
+      state.answers['release_source_branch'] = 'master'
+
+      class ExistingBranchRunner(core.CommandRunner):
+
+        def __init__(self):
+          super().__init__(dry_run=True)
+
+        def capture(self, command, cwd=None):
+          self.commands.append(command)
+          return 'release-3.2'
+
+      context = core.ReleaseContext(
+          root=Path(tmpdir),
+          state=state,
+          runner=ExistingBranchRunner(),
+          metadata=core.ReleaseMetadata.from_version('minor', '3.2.0'),
+          fork_remote='origin',
+          include_backend=True,
+          include_sdk=True,
+      )
+
+      with mock.patch('builtins.input', return_value='y'):
+        steps.step_prepare_release_branch(context)
+
+      self.assertIn(['git', 'checkout', 'release-3.2'], context.runner.commands)
+      self.assertNotIn(['git', 'checkout', '-b', 'release-3.2'], context.runner.commands)
+
+
 class OrchestrationTest(unittest.TestCase):
 
   def test_run_steps_skips_completed_steps(self):
@@ -377,6 +429,33 @@ class DryRunOutputTest(unittest.TestCase):
       )
       self.assertFalse(
           any('test/release/Dockerfile.release' in command for command in flattened_commands),
+          flattened_commands,
+      )
+
+  def test_update_version_tags_uses_master_release_image_for_minor_release(self):
+    with TemporaryDirectory() as tmpdir:
+      root = Path(tmpdir)
+      state = core.ReleaseState(root / 'state.json')
+      state.answers['release_source_branch'] = 'release-automation'
+      context = core.ReleaseContext(
+          root=root,
+          state=state,
+          runner=core.CommandRunner(dry_run=True),
+          metadata=core.ReleaseMetadata.from_version('minor', '3.2.0'),
+          fork_remote='git@github.com:testuser/pipelines.git',
+          include_backend=True,
+          include_sdk=True,
+      )
+
+      steps.step_update_version_tags(context)
+
+      flattened_commands = [' '.join(command) for command in context.runner.commands]
+      self.assertTrue(
+          any('ghcr.io/kubeflow/kfp-release:master' in command for command in flattened_commands),
+          flattened_commands,
+      )
+      self.assertFalse(
+          any('ghcr.io/kubeflow/kfp-release:release-automation' in command for command in flattened_commands),
           flattened_commands,
       )
 
