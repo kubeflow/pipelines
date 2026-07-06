@@ -497,6 +497,7 @@ describe('/artifacts', () => {
         .expect(200, artifactContent);
       expect(mockedFetch).toBeCalledWith('http://foo.bar/ml-pipeline/hello/world.txt', {
         headers: {},
+        redirect: 'manual',
       });
     });
 
@@ -522,7 +523,138 @@ describe('/artifacts', () => {
         .expect(200, artifactContent.slice(0, 5));
       expect(mockedFetch).toBeCalledWith('http://foo.bar/ml-pipeline/hello/world.txt', {
         headers: {},
+        redirect: 'manual',
       });
+    });
+
+    it('does not follow an http redirect that leaves the allowlist', async () => {
+      // The allowed host answers with a 3xx pointing at the link-local
+      // metadata service. fetch auto-follows redirects, so without per-hop
+      // re-validation the handler would fetch the internal target and stream
+      // its response back. Model real fetch semantics: a non-manual call
+      // follows the redirect, a manual call surfaces the 3xx instead.
+      const allowedUrl = 'http://allowed.host/ml-pipeline/hello/world.txt';
+      const internalUrl = 'http://169.254.169.254/latest/meta-data/';
+      mockedFetch.mockImplementation((url: string, opts: any) => {
+        if (url === allowedUrl) {
+          if (opts?.redirect === 'manual') {
+            return Promise.resolve({
+              status: 302,
+              headers: new Map([['location', internalUrl]]),
+              body: toWebStream(''),
+            });
+          }
+          // Auto-follow: real fetch would end up at the internal target.
+          return Promise.resolve({ status: 200, headers: new Map(), body: toWebStream('SECRET') });
+        }
+        return Promise.resolve({ status: 200, headers: new Map(), body: toWebStream('SECRET') });
+      });
+      const configs = loadConfigs(argv, {
+        ALLOWED_ARTIFACT_DOMAIN_REGEX: '^allowed\\.host$',
+        HTTP_BASE_URL: 'allowed.host/',
+      });
+      app = new UIServer(configs);
+
+      const request = requests(app.app);
+      const res = await request
+        .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .expect(500);
+      expect(res.text).toBe('Domain not allowed.');
+      expect(res.text).not.toContain('SECRET');
+      // The internal target is never fetched.
+      expect(mockedFetch).not.toHaveBeenCalledWith(internalUrl, expect.anything());
+    });
+
+    it('follows an http redirect that stays within the allowlist', async () => {
+      // Artifact stores that hand out signed URLs / CDN links rely on 3xx. A
+      // redirect whose target is still on an allowed host must be followed and
+      // its body streamed back.
+      mockedFetch.mockClear();
+      const firstUrl = 'http://allowed.host/ml-pipeline/hello/world.txt';
+      const redirectedUrl = 'http://allowed.host/signed/hello/world.txt';
+      const artifactContent = 'redirected body';
+      mockedFetch.mockImplementation((url: string) => {
+        if (url === firstUrl) {
+          return Promise.resolve({
+            status: 302,
+            headers: new Map([['location', redirectedUrl]]),
+            body: toWebStream(''),
+          });
+        }
+        if (url === redirectedUrl) {
+          return Promise.resolve({
+            status: 200,
+            headers: new Map(),
+            body: toWebStream(artifactContent),
+          });
+        }
+        return Promise.reject(`unexpected fetch to ${url}`);
+      });
+      const configs = loadConfigs(argv, {
+        ALLOWED_ARTIFACT_DOMAIN_REGEX: '^allowed\\.host$',
+        HTTP_BASE_URL: 'allowed.host/',
+      });
+      app = new UIServer(configs);
+
+      const request = requests(app.app);
+      await request
+        .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .expect(200, artifactContent);
+      expect(mockedFetch).toHaveBeenCalledWith(redirectedUrl, {
+        headers: {},
+        redirect: 'manual',
+      });
+    });
+
+    it('stops after too many http redirects within the allowlist', async () => {
+      // Redirect loop that never leaves the allowlist must still be bounded.
+      mockedFetch.mockClear();
+      mockedFetch.mockImplementation(() =>
+        Promise.resolve({
+          status: 302,
+          headers: new Map([['location', 'http://allowed.host/loop/next']]),
+          body: toWebStream(''),
+        }),
+      );
+      const configs = loadConfigs(argv, {
+        ALLOWED_ARTIFACT_DOMAIN_REGEX: '^allowed\\.host$',
+        HTTP_BASE_URL: 'allowed.host/',
+      });
+      app = new UIServer(configs);
+
+      const request = requests(app.app);
+      const res = await request
+        .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .expect(500);
+      expect(res.text).toBe('Too many redirects while retrieving artifact');
+    });
+
+    it('returns a controlled error when a redirect location is malformed', async () => {
+      // An allowed host can answer with an unparseable Location header; that
+      // must surface as a 500, not an unhandled exception.
+      mockedFetch.mockClear();
+      const firstUrl = 'http://allowed.host/ml-pipeline/hello/world.txt';
+      mockedFetch.mockImplementation((url: string) => {
+        if (url === firstUrl) {
+          return Promise.resolve({
+            status: 302,
+            headers: new Map([['location', 'http://[']]),
+            body: toWebStream(''),
+          });
+        }
+        return Promise.reject(`unexpected fetch to ${url}`);
+      });
+      const configs = loadConfigs(argv, {
+        ALLOWED_ARTIFACT_DOMAIN_REGEX: '^allowed\\.host$',
+        HTTP_BASE_URL: 'allowed.host/',
+      });
+      app = new UIServer(configs);
+
+      const request = requests(app.app);
+      const res = await request
+        .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .expect(500);
+      expect(res.text).toBe('Invalid redirect location while retrieving artifact');
     });
 
     it('responds with a https artifact if source=https', async () => {
@@ -551,6 +683,7 @@ describe('/artifacts', () => {
         headers: {
           Authorization: 'someToken',
         },
+        redirect: 'manual',
       });
     });
 
@@ -579,6 +712,7 @@ describe('/artifacts', () => {
         headers: {
           Authorization: 'inheritedToken',
         },
+        redirect: 'manual',
       });
     });
 
