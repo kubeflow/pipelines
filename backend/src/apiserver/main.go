@@ -191,7 +191,7 @@ func initCerts() (*tls.Config, error) {
 	}
 	tlsCfg.ServerName = common.GetMLPipelineServiceName() + "." + common.GetPodNamespace() + ".svc." + common.GetClusterDomain()
 	tlsCfg.Certificates = []tls.Certificate{serverCert}
-	glog.Infof("TLS cert key/pair loaded (MinVersion: %d)", tlsCfg.MinVersion)
+	glog.Infof("TLS cert key/pair loaded (MinVersion: %s)", *tlsMinVersion)
 	return tlsCfg, nil
 }
 

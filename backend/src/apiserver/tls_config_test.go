@@ -70,7 +70,7 @@ func TestParseTLSCipherSuites(t *testing.T) {
 		{"unknown cipher is error", "BOGUS_CIPHER", 0, true},
 		{"mixed valid and invalid is error", "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,BOGUS", 0, true},
 		{"only commas is error", ",,", 0, true},
-		{"whitespace only returns nil", "", 0, false},
+		{"whitespace only returns nil", "    ", 0, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
