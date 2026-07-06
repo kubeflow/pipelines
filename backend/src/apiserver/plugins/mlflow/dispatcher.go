@@ -97,18 +97,28 @@ func (d *Dispatcher) OnBeforeRunCreation(ctx context.Context, run *apiserverPlug
 
 // OnRunEnd syncs the MLflow parent and nested runs at terminal state.
 // Returns true if the sync succeeded or there is nothing to retry.
+// Permanent failures (for example missing or invalid MLflow config) are
+// recorded in the plugin output and reported as "nothing to retry" so a
+// broken configuration cannot strand completed runs in terminal-report
+// retry; only transient sync failures request a retry.
 func (d *Dispatcher) OnRunEnd(ctx context.Context, run *apiserverPlugins.PersistedRun) bool {
 	mlflowOutput := run.PluginsOutput[PluginName]
 	hasParentRun := mlflowOutput != nil && GetParentRunID(mlflowOutput) != ""
 
-	syncOK := d.executePostAction(ctx, run, "OnRunEnd", func(mlflowCtx context.Context, h *Handler, r *apiserverPlugins.PersistedRun, cfg *ResolvedConfig) {
-		if err := h.OnRunEnd(mlflowCtx, r, cfg); err != nil {
+	syncOK, retryRequested, persisted := d.executePostAction(ctx, run, "OnRunEnd", func(mlflowCtx context.Context, h *Handler, r *apiserverPlugins.PersistedRun, cfg *ResolvedConfig) bool {
+		retryable, err := h.OnRunEnd(mlflowCtx, r, cfg)
+		if err != nil {
 			glog.Warningf("MLflow OnRunEnd failed for run %q: %v", run.RunID, err)
 		}
+		return retryable
 	})
 
-	// Only signal retry-needed when there's a parent run that failed to close.
-	if hasParentRun && !syncOK {
+	// The plugin outcome could not be recorded; retry so it is not lost.
+	if !persisted {
+		return false
+	}
+	// Only signal retry-needed when a transient failure left a parent run open.
+	if hasParentRun && !syncOK && retryRequested {
 		return false
 	}
 	return true
@@ -116,19 +126,21 @@ func (d *Dispatcher) OnRunEnd(ctx context.Context, run *apiserverPlugins.Persist
 
 // OnRunRetry reopens the MLflow parent run and any failed/killed nested runs.
 func (d *Dispatcher) OnRunRetry(ctx context.Context, run *apiserverPlugins.PersistedRun) {
-	d.executePostAction(ctx, run, "HandleRetry", func(mlflowCtx context.Context, h *Handler, r *apiserverPlugins.PersistedRun, cfg *ResolvedConfig) {
+	d.executePostAction(ctx, run, "HandleRetry", func(mlflowCtx context.Context, h *Handler, r *apiserverPlugins.PersistedRun, cfg *ResolvedConfig) bool {
 		h.HandleRetry(mlflowCtx, r, cfg)
+		return false
 	})
 }
 
 // executePostAction handles the common setup for OnRunEnd and HandleRetry.
-// Returns true if the MLflow sync succeeded.
+// It reports whether the MLflow sync succeeded, whether the hook requested a
+// retry for a transient failure, and whether the plugin output was persisted.
 func (d *Dispatcher) executePostAction(
 	ctx context.Context,
 	run *apiserverPlugins.PersistedRun,
 	hookName string,
-	invoke func(context.Context, *Handler, *apiserverPlugins.PersistedRun, *ResolvedConfig),
-) bool {
+	invoke func(context.Context, *Handler, *apiserverPlugins.PersistedRun, *ResolvedConfig) bool,
+) (syncOK, retryRequested, persisted bool) {
 	resolvedCfg, err := ResolveMLflowRequestConfig(ctx, d.kubeClients, run.Namespace)
 	if err != nil {
 		glog.Warningf("MLflow %s: failed to resolve config for namespace %q: %v", hookName, run.Namespace, err)
@@ -142,16 +154,16 @@ func (d *Dispatcher) executePostAction(
 
 	handler := NewHandler(nil, run.Namespace)
 
-	invoke(mlflowCtx, handler, run, resolvedCfg)
+	retryRequested = invoke(mlflowCtx, handler, run, resolvedCfg)
 
-	mlflowSyncOK := false
+	syncOK = false
 	if po := run.PluginsOutput[PluginName]; po != nil {
-		mlflowSyncOK = po.State == apiv2beta1.PluginState_PLUGIN_SUCCEEDED
+		syncOK = po.State == apiv2beta1.PluginState_PLUGIN_SUCCEEDED
 	}
 
 	if err := PersistPluginsOutput(run, d.runOutputStore); err != nil {
 		glog.Warningf("MLflow %s: failed to persist plugin output for run %q: %v", hookName, run.RunID, err)
-		return false
+		return syncOK, retryRequested, false
 	}
-	return mlflowSyncOK
+	return syncOK, retryRequested, true
 }

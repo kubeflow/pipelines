@@ -1538,6 +1538,19 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 	if execSpec.IsTerminating() {
 		state = model.RuntimeState(string(exec.ExecutionPhase(model.RunTerminatingConditionsV1))).ToV2()
 	}
+	if execStatus.IsInFinalState() {
+		workflowStillMatchesReport, err := r.workflowStillMatchesReportedVersion(ctx, execSpec)
+		if err != nil {
+			return nil, err
+		}
+		if !workflowStillMatchesReport {
+			return nil, terminalWorkflowReportDeferredError(
+				runId,
+				execSpec,
+				"workflow resource version changed before terminal report was persisted",
+			)
+		}
+	}
 	// If run already exists, simply update it
 	run, updateError := r.GetRun(runId)
 	if updateError == nil {
@@ -1679,20 +1692,43 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		}
 	}
 	if execStatus.IsInFinalState() {
-		// Notify plugins of terminal state. If a plugin sync fails and
-		// needs retry, defer the persistedFinalState label so the
-		// persistence agent re-reports the workflow on its next cycle.
+		// Notify plugins of terminal state. If terminal handling cannot be
+		// completed, return a retryable signal before callers report tasks or
+		// workflow metrics from a stale terminal report.
 		if run != nil && run.PluginsOutputString != nil && *run.PluginsOutputString != "" {
 			pr, prErr := apiservermlflow.ModelToPersistedRun(run, execSpec.ExecutionNamespace())
 			if prErr != nil {
 				glog.Warningf("Failed to build PersistedRun for plugin sync on run %q: %v", run.UUID, prErr)
 			} else if !r.pluginDispatcher.OnRunEnd(ctx, pr) {
 				glog.Warningf("Plugin sync failed for run %q; deferring persistedFinalState label so persistence agent retries", run.UUID)
-				return nil, nil
+				return nil, terminalWorkflowReportDeferredError(
+					runId,
+					execSpec,
+					"plugin terminal sync requested retry",
+				)
 			}
 		}
 
-		err := addWorkflowLabel(ctx, r.getWorkflowClient(execSpec.ExecutionNamespace()), execSpec.ExecutionName(), util.LabelKeyWorkflowPersistedFinalState, "true")
+		stillMatchesReportedFinalState, err := r.runStillMatchesReportedFinalState(runId, state, execStatus.FinishedAt())
+		if err != nil {
+			return nil, err
+		}
+		if !stillMatchesReportedFinalState {
+			return nil, terminalWorkflowReportDeferredError(
+				runId,
+				execSpec,
+				"run state changed while reporting terminal workflow state",
+			)
+		}
+
+		labelAdded, err := addWorkflowLabelIfWorkflowUnchanged(
+			ctx,
+			r.getWorkflowClient(execSpec.ExecutionNamespace()),
+			execSpec.ExecutionName(),
+			execSpec.Version(),
+			util.LabelKeyWorkflowPersistedFinalState,
+			"true",
+		)
 		if err != nil {
 			message := fmt.Sprintf("Failed to add PersistedFinalState label to workflow %s", execSpec.ExecutionName())
 			// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
@@ -1704,7 +1740,13 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 				return nil, util.Wrapf(err, "%s", message)
 			}
 		}
-
+		if !labelAdded {
+			return nil, terminalWorkflowReportDeferredError(
+				runId,
+				execSpec,
+				"workflow resource version changed before persistedFinalState label could be added",
+			)
+		}
 		if r.options.CollectMetrics {
 			execNamespace := execSpec.ExecutionNamespace()
 			execName := execSpec.ExecutionName()
@@ -1719,31 +1761,134 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			}
 		}
 	}
-	execSpec.SetLabels("pipeline/runid", runId)
+	execSpec.SetLabels(util.LabelKeyWorkflowRunId, runId)
 	return execSpec, nil
 }
 
-// Adds a label for a workflow.
-func addWorkflowLabel(ctx context.Context, wfClient util.ExecutionInterface, name string, labelKey string, labelValue string) error {
-	patchObj := map[string]interface{}{
-		"metadata": map[string]interface{}{
-			"labels": map[string]interface{}{
-				labelKey: labelValue,
-			},
-		},
+func terminalWorkflowReportDeferredError(runID string, execSpec util.ExecutionSpec, reason string) error {
+	return util.NewUnavailableServerError(
+		errors.New(reason),
+		"Skipping terminal workflow report for run %s workflow %s: %s",
+		runID,
+		execSpec.ExecutionName(),
+		reason,
+	)
+}
+
+func (r *ResourceManager) workflowStillMatchesReportedVersion(ctx context.Context, execSpec util.ExecutionSpec) (bool, error) {
+	reportedVersion := execSpec.Version()
+	if reportedVersion == "" {
+		return true, nil
 	}
+
+	currentWorkflow, err := r.getWorkflowClient(execSpec.ExecutionNamespace()).Get(ctx, execSpec.ExecutionName(), v1.GetOptions{})
+	if err != nil {
+		if util.IsNotFound(err) {
+			// The workflow CR is already gone, e.g. deleted between the
+			// persistence agent's read and this report. Proceed with the
+			// reported terminal state so the run row is still finalized;
+			// the persistedFinalState label step then surfaces the NotFound
+			// signal to the caller after the database write.
+			glog.Warningf(
+				"Workflow %q was not found while verifying the reported version; proceeding with the reported terminal state",
+				execSpec.ExecutionName(),
+			)
+			return true, nil
+		}
+		return false, util.Wrapf(err, "Failed to verify current workflow version while reporting completed workflow %s", execSpec.ExecutionName())
+	}
+	if currentWorkflow.Version() == reportedVersion {
+		return true, nil
+	}
+
+	glog.Warningf(
+		"Skip reporting terminal workflow state for workflow %q because the workflow changed before terminal reporting: reported resourceVersion=%q, current resourceVersion=%q",
+		execSpec.ExecutionName(),
+		reportedVersion,
+		currentWorkflow.Version(),
+	)
+	return false, nil
+}
+
+func (r *ResourceManager) runStillMatchesReportedFinalState(runID string, state model.RuntimeState, finishedAtInSec int64) (bool, error) {
+	currentRun, err := r.GetRun(runID)
+	if err != nil {
+		return false, util.Wrapf(err, "Failed to verify current state for completed workflow report on run %s", runID)
+	}
+	if currentRun.State == state && currentRun.FinishedAtInSec == finishedAtInSec {
+		return true, nil
+	}
+
+	glog.Warningf(
+		"Skip adding persistedFinalState label for run %q because the run changed while reporting the terminal workflow state: reported state=%q finishedAt=%d, current state=%q finishedAt=%d",
+		runID,
+		state,
+		finishedAtInSec,
+		currentRun.State,
+		currentRun.FinishedAtInSec,
+	)
+	return false, nil
+}
+
+type jsonPatchOperation struct {
+	Op    string `json:"op"`
+	Path  string `json:"path"`
+	Value any    `json:"value,omitempty"`
+}
+
+// Adds a label only if the workflow still matches the object that reported the
+// terminal state. This prevents a stale terminal report from labeling a retried
+// workflow after RetryRun has updated the same workflow name back to Running.
+func addWorkflowLabelIfWorkflowUnchanged(
+	ctx context.Context,
+	wfClient util.ExecutionInterface,
+	name string,
+	expectedResourceVersion string,
+	labelKey string,
+	labelValue string,
+) (bool, error) {
+	patchObj := []jsonPatchOperation{}
+	if expectedResourceVersion != "" {
+		patchObj = append(patchObj, jsonPatchOperation{
+			Op:    "test",
+			Path:  "/metadata/resourceVersion",
+			Value: expectedResourceVersion,
+		})
+	}
+	patchObj = append(patchObj, jsonPatchOperation{
+		Op:    "add",
+		Path:  "/metadata/labels/" + escapeJSONPointerPathPart(labelKey),
+		Value: labelValue,
+	})
 
 	patch, err := json.Marshal(patchObj)
 	if err != nil {
-		return util.NewInternalServerError(err, "Unexpected error while marshalling a patch object")
+		return false, util.NewInternalServerError(err, "Unexpected error while marshaling a patch object")
 	}
 
 	operation := func() error {
-		_, err = wfClient.Patch(ctx, name, types.MergePatchType, patch, v1.PatchOptions{})
+		_, err = wfClient.Patch(ctx, name, types.JSONPatchType, patch, v1.PatchOptions{})
+		if apierrors.IsConflict(err) {
+			return backoff.Permanent(err)
+		}
 		return err
 	}
 	err = backoff.Retry(operation, newStandardBackoffPolicy())
-	return err
+	if permanentErr, ok := err.(*backoff.PermanentError); ok {
+		err = permanentErr.Err
+	}
+	if apierrors.IsConflict(err) {
+		glog.Warningf("Skip adding workflow label %q to workflow %q because the workflow changed while reporting the terminal state", labelKey, name)
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func escapeJSONPointerPathPart(pathPart string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(pathPart, "~", "~0"), "/", "~1")
 }
 
 // Updates a recurring run with a scheduled workflow CR.

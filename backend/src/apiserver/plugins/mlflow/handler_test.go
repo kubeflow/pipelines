@@ -343,15 +343,17 @@ func TestOnBeforeRunCreation_MLflowFailure_ReturnsFailedOutput(t *testing.T) {
 
 func TestOnRunEnd_NilRun_ReturnsNil(t *testing.T) {
 	handler := NewHandler(nil, "ns1")
-	err := handler.OnRunEnd(context.Background(), nil, testResolvedConfig("http://localhost"))
+	retryable, err := handler.OnRunEnd(context.Background(), nil, testResolvedConfig("http://localhost"))
 	require.NoError(t, err)
+	assert.False(t, retryable)
 }
 
 func TestOnRunEnd_NoPluginOutput_ReturnsNil(t *testing.T) {
 	handler := NewHandler(nil, "ns1")
 	run := testPersistedRun("r1")
-	err := handler.OnRunEnd(context.Background(), run, testResolvedConfig("http://localhost"))
+	retryable, err := handler.OnRunEnd(context.Background(), run, testResolvedConfig("http://localhost"))
 	require.NoError(t, err)
+	assert.False(t, retryable)
 }
 
 func TestOnRunEnd_MissingRootRunID_SetsFailedState(t *testing.T) {
@@ -361,8 +363,9 @@ func TestOnRunEnd_MissingRootRunID_SetsFailedState(t *testing.T) {
 	pluginOutput := SuccessfulPluginOutput("42", "Default", "", "")
 	run := testPersistedRunWithPluginOutput("r-missing-root", pluginOutput)
 
-	err := handler.OnRunEnd(context.Background(), run, testResolvedConfig("http://localhost"))
+	retryable, err := handler.OnRunEnd(context.Background(), run, testResolvedConfig("http://localhost"))
 	require.NoError(t, err)
+	assert.False(t, retryable, "missing parent run id is permanent and must not request a retry")
 
 	// Verify the plugin output was updated in place
 	result := run.PluginsOutput[PluginName]
@@ -377,8 +380,9 @@ func TestOnRunEnd_NilConfig_SetsFailedState(t *testing.T) {
 	pluginOutput := SuccessfulPluginOutput("42", "Default", "parent-1", "")
 	run := testPersistedRunWithPluginOutput("r-nil-config", pluginOutput)
 
-	err := handler.OnRunEnd(context.Background(), run, nil)
+	retryable, err := handler.OnRunEnd(context.Background(), run, nil)
 	require.NoError(t, err)
+	assert.False(t, retryable, "unavailable config is permanent and must not request a retry")
 
 	result := run.PluginsOutput[PluginName]
 	require.NotNil(t, result)
@@ -413,8 +417,9 @@ func TestOnRunEnd_Success(t *testing.T) {
 	run := testPersistedRunWithPluginOutput("r-end-1", pluginOutput)
 	run.State = "SUCCEEDED"
 
-	err := handler.OnRunEnd(context.Background(), run, testResolvedConfig(server.URL))
+	retryable, err := handler.OnRunEnd(context.Background(), run, testResolvedConfig(server.URL))
 	require.NoError(t, err)
+	assert.False(t, retryable)
 
 	// Parent run should have been updated
 	require.NotEmpty(t, updateCalls)
@@ -522,7 +527,8 @@ func TestPostRunSyncUsesResolvedConfigInsteadOfLegacyPluginOutputEndpoint(t *tes
 			runState:         "SUCCEEDED",
 			wantUpdateStatus: "FINISHED",
 			invoke: func(handler *Handler, run *apiserverPlugins.PersistedRun, config *ResolvedConfig) error {
-				return handler.OnRunEnd(context.Background(), run, config)
+				_, err := handler.OnRunEnd(context.Background(), run, config)
+				return err
 			},
 		},
 		{
