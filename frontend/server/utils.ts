@@ -169,19 +169,29 @@ export function resolveFilePathOnVolume(volume: {
   volumeMountSubPath: string | undefined;
 }): [string, string | undefined] {
   const { filePathInVolume, volumeMountPath, volumeMountSubPath } = volume;
+  let relativePath: string;
   if (!volumeMountSubPath) {
-    return [path.join(volumeMountPath, filePathInVolume), undefined];
-  }
-  if (filePathInVolume.startsWith(volumeMountSubPath)) {
+    relativePath = filePathInVolume;
+  } else if (filePathInVolume.startsWith(volumeMountSubPath)) {
+    relativePath = filePathInVolume.substring(volumeMountSubPath.length);
+  } else {
     return [
-      path.join(volumeMountPath, filePathInVolume.substring(volumeMountSubPath.length)),
-      undefined,
+      '',
+      `File ${filePathInVolume} not mounted, expecting the file to be inside volume mount subpath ${volumeMountSubPath}`,
     ];
   }
-  return [
-    '',
-    `File ${filePathInVolume} not mounted, expecting the file to be inside volume mount subpath ${volumeMountSubPath}`,
-  ];
+
+  const resolvedPath = path.join(volumeMountPath, relativePath);
+  // path.join normalizes away `..` segments, so a key like `../../etc/passwd`
+  // can land outside the mount. Keep the result contained to the mount root.
+  const relativeToMount = path.relative(volumeMountPath, resolvedPath);
+  if (relativeToMount.startsWith('..') || path.isAbsolute(relativeToMount)) {
+    return [
+      '',
+      `File ${filePathInVolume} resolves outside of volume mount path ${volumeMountPath}`,
+    ];
+  }
+  return [resolvedPath, undefined];
 }
 
 export interface PreviewStreamOptions extends TransformOptions {

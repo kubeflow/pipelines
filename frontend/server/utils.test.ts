@@ -213,6 +213,30 @@ describe('utils', () => {
         'File a/b/c not mounted, expecting the file to be inside volume mount subpath other',
       ]);
     });
+
+    it('rejects a filePathInVolume that escapes the volume mount path', () => {
+      const path = resolveFilePathOnVolume({
+        volumeMountPath: '/data',
+        filePathInVolume: '../../../../etc/passwd',
+        volumeMountSubPath: undefined,
+      });
+      expect(path).toEqual([
+        '',
+        'File ../../../../etc/passwd resolves outside of volume mount path /data',
+      ]);
+    });
+
+    it('rejects an escape that hides behind the volumeMountSubPath prefix', () => {
+      const path = resolveFilePathOnVolume({
+        volumeMountPath: '/data',
+        filePathInVolume: 'a/../../../etc/passwd',
+        volumeMountSubPath: 'a',
+      });
+      expect(path).toEqual([
+        '',
+        'File a/../../../etc/passwd resolves outside of volume mount path /data',
+      ]);
+    });
   });
 
   describe('parseError', () => {
