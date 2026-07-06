@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-06-19
+- Last updated: 2026-07-02
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -536,10 +536,10 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 
 - Kind-based clusters are provisioned via the `kfp-cluster` composite action, parameterized by `k8s_version`, `pipeline_store`, `proxy`, `cache_enabled`, and optional `argo_version`.
 - The `create-cluster` and `deploy` actions are used by newer suites; `kfp-k8s` installs SDK components from source inside jobs that execute Python-based tests.
-- The `deploy` action downloads and loads CI-built images before deploying optional Squid proxy support, preloads runtime base images used by test pods and init containers, and waits for Squid readiness/endpoints in proxy lanes.
+- The `deploy` action downloads and loads CI-built images before deploying optional Tinyproxy support, preloads runtime base images used by test pods and init containers, and waits for Tinyproxy readiness/endpoints in proxy lanes.
 - The `test-and-report` action port-forwards MLMD on port `8080` only when `ARGO_COMPATIBILITY_TESTS=true`, allowing the canonical Argo compatibility API job to validate execution/artifact metadata without adding another test lane.
-- Proxy test failures collect both the KFP namespace and `squid` namespace logs/events to diagnose proxy-service readiness separately from pipeline failures.
-- The CI proxy runs Squid as a no-cache forward proxy under the historical `squid` namespace/service names.
+- Proxy test failures collect both the KFP namespace and `tinyproxy` namespace logs/events to diagnose proxy-service readiness separately from pipeline failures.
+- The CI proxy runs Tinyproxy as a lightweight forward proxy in the `tinyproxy` namespace on port `3128`.
 - The `protobuf` composite action prepares `protoc` and related dependencies when compiling Python protobufs.
 - The `create-cluster` action caches Kind node images by Kubernetes version to reduce Docker Hub pulls.
 - Python workflows use `actions/cache@v5` for pip cache to reduce repeated dependency installs.
@@ -693,7 +693,7 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
   npm with `npm install --global "$(node -p 'require("./package.json").packageManager')"`,
   regenerate `package-lock.json`, and commit the result.
 - Runtime component imports SDK-only modules: `_KFP_RUNTIME=true` disables many SDK imports; avoid importing SDK-only modules in task code.
-- Proxy CI jobs fail during `Deploy Squid` with `OOMKilled`, `CrashLoopBackOff`, endpoint readiness timeouts, or failed proxy tests: inspect the `squid` namespace logs/events and verify `.github/resources/squid/squid.conf` still disables caching for CI.
+- Proxy CI jobs fail during `Deploy Tinyproxy` with `OOMKilled`, `CrashLoopBackOff`, endpoint readiness timeouts, or failed proxy tests: inspect the `tinyproxy` namespace pods, events, services, endpoints, and endpoint slices.
 - Archived run-log requests return `NoSuchKey` under a customized Argo artifact `keyFormat`: confirm the persisted Workflow node contains a `main-logs` artifact location; the API uses that stored key before its legacy configured-path fallback.
 - Retry tests intermittently miss an expected artifact from an in-memory bucket: do not make a first-call failure fake depend on Go map iteration order; target the named artifact or operation and assert its own call count.
 - Critical E2E samples fail across Argo versions with S3 `PutObject` timeouts to `seaweedfs.kubeflow:9000`: treat this as cluster artifact-store instability and retry the job; do not extend pipeline timeouts or weaken assertions to mask an unavailable store.

@@ -104,13 +104,13 @@ runs:
         source .github/resources/scripts/helper-functions.sh
         load_runtime_base_images_into_kind .github/resources/runtime-base-images.txt "${{ inputs.cluster_name }}"
 
-    - name: Deploy Squid
-      id: deploy-squid
+    - name: Deploy Tinyproxy
+      id: deploy-tinyproxy
       if: ${{ inputs.proxy == 'true' }}
       shell: bash
       env:
         CLUSTER_NAME: ${{ inputs.cluster_name }}
-      run: ./.github/resources/squid/deploy-squid.sh
+      run: ./.github/resources/tinyproxy/deploy-tinyproxy.sh
 
     - name: Configure Args
       shell: bash
