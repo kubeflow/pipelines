@@ -469,7 +469,7 @@ def normalize_fork_remote(fork_remote: str) -> str:
   if re.match(r'^https://github\.com/[^/]+/[^/]+(?:\.git)?$', fork_remote):
     return fork_remote
   if re.match(r'^[A-Za-z0-9][A-Za-z0-9-]*$', fork_remote):
-    return f'git@github.com:{fork_remote}/pipelines.git'
+    return f'https://github.com/{fork_remote}/pipelines.git'
   raise ValueError(
       f'Cannot parse fork_remote: {fork_remote}. '
       'Use a GitHub username, git@github.com:USER/pipelines.git, '
@@ -700,7 +700,7 @@ def collect_context(args: argparse.Namespace, state: ReleaseState) -> ReleaseCon
     )
   if 'fork_remote' not in answers:
     answers['fork_remote'] = prompt_validated(
-        'Fork remote, for example git@github.com:USER/pipelines.git',
+        'Fork remote, for example https://github.com/USER/pipelines.git',
         normalize_fork_remote,
     )
   answers['fork_remote'] = normalize_fork_remote(str(answers['fork_remote']))

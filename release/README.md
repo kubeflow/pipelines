@@ -40,7 +40,7 @@ For major and minor releases, `run` asks which source branch to cut the release 
 defaults to `master`.
 
 For `--fork-remote`, you can pass either a full remote URL or just your GitHub username. `kfpr`
-expands `droctothorpe` to `git@github.com:droctothorpe/pipelines.git`.
+expands `droctothorpe` to `https://github.com/droctothorpe/pipelines.git`.
 
 ## Individual steps
 

@@ -318,7 +318,7 @@ class CliTest(unittest.TestCase):
       self.assertEqual(result.exit_code, 0, result.stdout)
       self.assertTrue(ReleaseState.load(state_file).is_done('preflight'))
 
-  def test_bare_fork_username_option_is_saved_as_ssh_remote(self):
+  def test_bare_fork_username_option_is_saved_as_https_remote(self):
     with TemporaryDirectory() as tmpdir:
       state_file = Path(tmpdir) / 'state.json'
       result = CliRunner().invoke(
@@ -338,7 +338,7 @@ class CliTest(unittest.TestCase):
       )
       self.assertEqual(result.exit_code, 0, result.stdout)
       state = ReleaseState.load(state_file)
-      self.assertEqual(state.answers['fork_remote'], 'git@github.com:droctothorpe/pipelines.git')
+      self.assertEqual(state.answers['fork_remote'], 'https://github.com/droctothorpe/pipelines.git')
 
 
 if __name__ == '__main__':

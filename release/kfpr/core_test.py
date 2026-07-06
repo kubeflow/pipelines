@@ -249,7 +249,7 @@ class ParseGithubOwnerTest(unittest.TestCase):
   def test_normalize_fork_remote_expands_bare_username(self):
     self.assertEqual(
         core.normalize_fork_remote('droctothorpe'),
-        'git@github.com:droctothorpe/pipelines.git',
+        'https://github.com/droctothorpe/pipelines.git',
     )
 
   def test_normalize_fork_remote_keeps_ssh_remote(self):
@@ -332,7 +332,7 @@ class PromptValidationTest(unittest.TestCase):
         context = core.collect_context(args, state)
 
       self.assertEqual(context.metadata.tag, '3.2.0')
-      self.assertEqual(context.fork_remote, 'git@github.com:droctothorpe/pipelines.git')
+      self.assertEqual(context.fork_remote, 'https://github.com/droctothorpe/pipelines.git')
 
   def test_collect_context_prompts_for_major_minor_source_branch(self):
     with TemporaryDirectory() as tmpdir:
