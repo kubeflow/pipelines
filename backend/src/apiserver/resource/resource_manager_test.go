@@ -38,6 +38,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
 	apiservermlflow "github.com/kubeflow/pipelines/backend/src/apiserver/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
@@ -227,6 +228,40 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	},
 	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
+
+type retryDuringTerminalReportDispatcher struct {
+	manager  *ResourceManager
+	runID    string
+	retryErr error
+}
+
+func (d *retryDuringTerminalReportDispatcher) OnBeforeRunCreation(context.Context, *apiserverPlugins.PendingRun, util.ExecutionSpec) error {
+	return nil
+}
+
+func (d *retryDuringTerminalReportDispatcher) OnRunEnd(ctx context.Context, _ *apiserverPlugins.PersistedRun) bool {
+	d.retryErr = d.manager.RetryRun(ctx, d.runID)
+	return true
+}
+
+func (d *retryDuringTerminalReportDispatcher) OnRunRetry(context.Context, *apiserverPlugins.PersistedRun) {
+}
+
+type countingTerminalReportDispatcher struct {
+	onRunEndCalls int
+}
+
+func (d *countingTerminalReportDispatcher) OnBeforeRunCreation(context.Context, *apiserverPlugins.PendingRun, util.ExecutionSpec) error {
+	return nil
+}
+
+func (d *countingTerminalReportDispatcher) OnRunEnd(context.Context, *apiserverPlugins.PersistedRun) bool {
+	d.onRunEndCalls++
+	return true
+}
+
+func (d *countingTerminalReportDispatcher) OnRunRetry(context.Context, *apiserverPlugins.PersistedRun) {
+}
 
 func TestReadRunLogFromArchiveStreamsObjectStoreFile(t *testing.T) {
 	logArchive := archive.NewLogArchive("/logs", "main.log")
@@ -3832,6 +3867,177 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	assert.Equal(t, wf.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
 }
 
+func TestAddWorkflowLabelIfWorkflowUnchanged_SkipsWhenWorkflowWasRetried(t *testing.T) {
+	wfClient := client.NewWorkflowClientFake()
+	ctx := context.Background()
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:            "workflow-name",
+			Namespace:       "ns1",
+			ResourceVersion: "retry-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: "run-id"},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	})
+	_, err := wfClient.Create(ctx, workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+
+	labelAdded, err := addWorkflowLabelIfWorkflowUnchanged(
+		ctx,
+		wfClient,
+		"workflow-name",
+		"terminal-version",
+		util.LabelKeyWorkflowPersistedFinalState,
+		"true",
+	)
+	require.NoError(t, err)
+	assert.False(t, labelAdded)
+
+	updatedWorkflow, err := wfClient.Get(ctx, "workflow-name", v1.GetOptions{})
+	require.NoError(t, err)
+	_, hasFinalStateLabel := updatedWorkflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState]
+	assert.False(t, hasFinalStateLabel)
+}
+
+func TestReportWorkflowResource_SkipsTerminalPluginSyncWhenReportedWorkflowIsStale(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	namespace := "ns1"
+	ctx := context.Background()
+	defer store.Close()
+
+	runWithPluginOutput, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", "https://mlflow.example/runs/parent-run-1")
+	pluginsOutput, err := apiservermlflow.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	require.NoError(t, err)
+	runWithPluginOutput.State = model.RuntimeStateRunning
+	runWithPluginOutput.Conditions = string(model.RuntimeStateRunning.ToV1())
+	runWithPluginOutput.FinishedAtInSec = 0
+	runWithPluginOutput.PluginsOutputString = pluginsOutput
+	require.NoError(t, manager.runStore.UpdateRun(runWithPluginOutput))
+
+	dispatcher := &countingTerminalReportDispatcher{}
+	manager.pluginDispatcher = dispatcher
+
+	currentWorkflow, err := store.ExecClientFake.Execution(namespace).Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	currentWorkflow.SetVersion("retry-version")
+	_, err = store.ExecClientFake.Execution(namespace).Update(ctx, currentWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+
+	staleTerminalWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:            run.K8SName,
+			Namespace:       namespace,
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "terminal-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowFailed,
+			FinishedAt: v1.NewTime(time.Unix(123, 0)),
+		},
+	})
+
+	reportedWorkflow, err := manager.ReportWorkflowResource(ctx, staleTerminalWorkflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+	assert.Nil(t, reportedWorkflow)
+	assert.Equal(t, 0, dispatcher.onRunEndCalls)
+
+	currentRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, currentRun.State)
+	assert.Equal(t, int64(0), currentRun.FinishedAtInSec)
+}
+
+func TestReportWorkflowResource_FinalizesRunWhenWorkflowDeletedBeforeTerminalReport(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	namespace := "ns1"
+	ctx := context.Background()
+	defer store.Close()
+
+	// Report a terminal workflow whose CR no longer exists, simulating a
+	// deletion between the persistence agent's read and this report. The run
+	// row must still be finalized before the caller receives the NotFound
+	// signal that stops further retries.
+	deletedWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:            run.K8SName + "-deleted",
+			Namespace:       namespace,
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "terminal-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowFailed,
+			FinishedAt: v1.NewTime(time.Unix(123, 0)),
+		},
+	})
+
+	reportedWorkflow, err := manager.ReportWorkflowResource(ctx, deletedWorkflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound),
+		"caller should receive the NotFound signal so the persistence agent stops retrying")
+	assert.Nil(t, reportedWorkflow)
+
+	currentRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, currentRun.State)
+	assert.Equal(t, int64(123), currentRun.FinishedAtInSec)
+}
+
+func TestReportWorkflowResource_SkipsPersistedFinalStateLabelWhenRunRetriedDuringPluginSync(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	namespace := "ns1"
+	defer store.Close()
+
+	runWithPluginOutput, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", "https://mlflow.example/runs/parent-run-1")
+	pluginsOutput, err := apiservermlflow.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	require.NoError(t, err)
+	runWithPluginOutput.PluginsOutputString = pluginsOutput
+	require.NoError(t, manager.runStore.UpdateRun(runWithPluginOutput))
+
+	dispatcher := &retryDuringTerminalReportDispatcher{
+		manager: manager,
+		runID:   run.UUID,
+	}
+	manager.pluginDispatcher = dispatcher
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: namespace,
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowFailed,
+			FinishedAt: v1.NewTime(time.Unix(123, 0)),
+		},
+	})
+
+	reportedWorkflow, err := manager.ReportWorkflowResource(context.Background(), workflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+	assert.Nil(t, reportedWorkflow)
+	require.NoError(t, dispatcher.retryErr)
+
+	retriedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, retriedRun.State)
+	assert.Equal(t, int64(0), retriedRun.FinishedAtInSec)
+
+	retriedWorkflow, err := store.ExecClientFake.Execution(namespace).Get(context.Background(), run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, string(v1alpha1.WorkflowRunning), string(retriedWorkflow.ExecutionStatus().Condition()))
+	_, hasFinalStateLabel := retriedWorkflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState]
+	assert.False(t, hasFinalStateLabel)
+}
+
 // TestReportWorkflow_WithMLflowOnRunEnd verifies that when a run has PluginsOutputString
 // set, reporting a terminal workflow triggers the plugin dispatcher's
 // OnRunEnd, which updates the plugin output state.
@@ -3885,15 +4091,18 @@ func TestReportWorkflow_WithMLflowOnRunEnd(t *testing.T) {
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
 	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
-	require.NoError(t, err)
+	require.NoError(t, err,
+		"an unavailable MLflow config is a permanent plugin failure and must not block run finalization")
 
 	// After terminal report, the plugin dispatcher's OnRunEnd should have fired.
-	// Without MLflow config in Viper, the handler sets PLUGIN_FAILED.
+	// Without MLflow config in Viper, the handler sets PLUGIN_FAILED, and the
+	// run still reaches its terminal state.
 	updatedRun, err := manager.GetRun(run.UUID)
 	require.NoError(t, err)
 	require.NotNil(t, updatedRun.PluginsOutputString, "PluginsOutputString should be updated after terminal report")
 	assert.Contains(t, string(*updatedRun.PluginsOutputString), "PLUGIN_FAILED")
 	assert.Contains(t, string(*updatedRun.PluginsOutputString), "config unavailable")
+	assert.Equal(t, model.RuntimeStateFailed, updatedRun.State)
 }
 
 func TestReportWorkflowResource_WorkflowCompleted_WorkflowNotFound(t *testing.T) {

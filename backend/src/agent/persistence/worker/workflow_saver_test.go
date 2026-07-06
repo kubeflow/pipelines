@@ -21,6 +21,7 @@ import (
 
 	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifactclient"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -127,6 +128,56 @@ func TestWorkflow_Save_TransientFailureWhileReporting(t *testing.T) {
 	assert.Equal(t, true, util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT))
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "transient failure")
+}
+
+func TestWorkflow_Save_RetryableReportSkipsMetrics(t *testing.T) {
+	workflowFake := client.NewWorkflowClientFake()
+	pipelineFake := client.NewPipelineClientFake()
+	pipelineFake.SetError(util.NewCustomError(fmt.Errorf("stale terminal report"), util.CUSTOM_CODE_TRANSIENT,
+		"My Transient Error"))
+
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			Name:      "MY_NAME",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "MY_UUID"},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{
+				"node-1": {
+					ID:           "node-1",
+					TemplateName: "template-1",
+					Phase:        workflowapi.NodeSucceeded,
+					Outputs: &workflowapi.Outputs{
+						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
+					},
+				},
+			},
+		},
+	})
+	metricsJSON := `{"metrics": [{"name": "accuracy", "numberValue": 0.77}]}`
+	artifactData, err := util.ArchiveTgz(map[string]string{"file": metricsJSON})
+	assert.Nil(t, err)
+	pipelineFake.StubArtifact(
+		&artifactclient.ReadArtifactRequest{
+			RunID:        "MY_UUID",
+			NodeID:       "node-1",
+			ArtifactName: "mlpipeline-metrics",
+		},
+		&artifactclient.ReadArtifactResponse{
+			Data: []byte(artifactData),
+		})
+
+	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
+
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+
+	err = saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
+
+	assert.Equal(t, true, util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT))
+	assert.NotNil(t, err)
+	assert.Nil(t, pipelineFake.GetReadArtifactRequest())
+	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
 }
 
 func TestWorkflow_Save_SkippedDueToFinalStatue(t *testing.T) {
