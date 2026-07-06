@@ -1,0 +1,15 @@
+[project]
+name = "kfpr"
+version = "0.1.0"
+description = "Kubeflow Pipelines release automation"
+requires-python = ">=3.10"
+dependencies = [
+  "typer>=0.12,<1.0",
+]
+
+[project.scripts]
+kfpr = "kfpr.cli:app"
+
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"

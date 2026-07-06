@@ -288,20 +288,17 @@ git remote add upstream https://github.com/kubeflow/pipelines.git
 
 <!-- I use `origin` for the `kubeflow/pipelines` remote personally. We may want to make this configurable. -->
 
-Execute the version tag update script.
+Execute the version tag update step.
 
 ```bash
-cd ./test/release
-TAG=$VERSION BRANCH=$BRANCH FORK_REMOTE=$FORK_REMOTE make release
+kfpr update-version-tags \
+  --release-type patch \
+  --version "$VERSION" \
+  --fork-remote "$FORK_REMOTE" \
+  --mark-done
 ```
 
-This script updates the version tags in numerous files.
-
-Once it finishes, it will prompt you to push to your fork. You can inspect the changes by navigating to the temporary directory it creates. Once you are comfortable with the changes, press `y` then `Enter`. If you choose `no`, you can always push manually later.
-
-Please note, this script will clone the `kubeflow/pipelines` repo into a temporary location on your computer, make changes there, and attempt to push to your fork, so that it won't interfere with your current git repo.
-
-<!-- We may want to revisit the approach this script takes. KFP is already cloned locally. -->
+This step updates the version tags in numerous files.
 
 > [!Note]
 > If you see error "docker.sock: connect: permission error", you need to [allow managing docker as a non-root user](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user).
@@ -389,7 +386,10 @@ If the release includes changes to `kfp-pipeline-spec` and / or `kfp-server-api`
 
 ```bash
 cd sdk/python
-./pre-release-requirements-update.sh
+pip-compile --no-emit-find-links --no-header --no-emit-index-url requirements.in \
+  --find-links=../../sdk/python/dist \
+  --find-links=../../backend/api/v2beta1/python_http_client/dist \
+  --find-links=../../api/v2alpha1/python/dist
 ```
 
 Update the SDK version in [version.py](sdk/python/kfp/version.py).
@@ -402,7 +402,9 @@ If the release includes changes to `kfp-pipeline-spec` and / or `kfp-server-api`
 
 ```bash
 cd kubernetes_platform/python
-./pre-release-requirements-update.sh
+pip-compile --no-emit-find-links --no-header --no-emit-index-url requirements.in \
+  --find-links=../../../api/v2alpha1/python/dist \
+  --find-links=../../../backend/api/v2beta1/python_http_client/dist
 ```
 
 Update the KFP Kubernetes SDK version in [\_\_init\_\_.py](kubernetes_platform/python/kfp/kubernetes/__init__.py).
@@ -561,12 +563,15 @@ Click `View Docs` and confirm that the new package version is the default.
 
 The kfp-kubernetes docs must be served from a discrete branch.
 
-Run the following script to cut and push the branch:
+Run the following step to cut and push the branch:
 
 ```bash
 export KFP_KUBERNETES_VERSION=${MAJOR}.${MINOR}.${PATCH}
-cd kubernetes_platform/python
-./create_release_branch.sh
+kfpr create-kfp-kubernetes-docs-branch \
+  --release-type patch \
+  --version "$KFP_KUBERNETES_VERSION" \
+  --fork-remote upstream \
+  --mark-done
 ```
     
 Follow the prompt to commit and push the kfp-kubernetes RTD release branch to the `kubeflow/pipelines` remote.
@@ -653,18 +658,7 @@ The final step is to sync the version bumps back to the master branch. Thankfull
 
 ```bash
 export VERSION=${MAJOR}.${MINOR}.${PATCH} # Update this before running this command
-git checkout master
-git pull
-git checkout -b <your-branch-name>
-# This avoids line break at end of line.
-echo -n $VERSION > VERSION
-# Please note, this takes a while.
-pushd test/release
-make release-in-place
-popd
-git checkout $VERSION -- CHANGELOG.md
-git add -A
-git commit -m "chore(release): bump version to $VERSION on master branch"
+kfpr sync-master --release-type patch --version "$VERSION" --fork-remote "$FORK_REMOTE" --mark-done
 ```
 
 If the current release is not a pre-release, create a PR to update the version in the kubeflow documentation website:
