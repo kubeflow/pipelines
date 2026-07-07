@@ -163,9 +163,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver: docker-container
+        shell: bash
+        run: bash ./.github/resources/scripts/setup-buildx-with-retry.sh
 
       - name: Check if image tag already exists
         id: check_tag
@@ -201,20 +200,50 @@ jobs:
       # as the set of files located in the specified path.
       - name: Build and push Image
         id: push
-        uses: docker/build-push-action@v6
         if: steps.check_tag.outcome == 'success'
-        with:
-          platforms: ${{ inputs.platforms }}
-          context: ${{ inputs.image_context }}
-          file: ${{ inputs.docker_file }}
-          push: ${{ inputs.push }}
-          labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ inputs.app_to_build }},push-by-digest=true,name-canonical=true,push=${{ inputs.push }}
-          build-args: |
-            NODE_VERSION=${{ steps.frontend_node.outputs.version }}
-            COMMIT_SHA=${{ steps.get_commit.outputs.sha }}
-            COMMIT_HASH=${{ steps.get_commit.outputs.sha }}
-            TAG_NAME=${{ inputs.target_tag }}
+        shell: bash
+        env:
+          BUILD_LABELS: ${{ steps.meta.outputs.labels }}
+          IMAGE_NAME: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ inputs.app_to_build }}
+          INPUT_DOCKER_FILE: ${{ inputs.docker_file }}
+          INPUT_IMAGE_CONTEXT: ${{ inputs.image_context }}
+          INPUT_PLATFORMS: ${{ inputs.platforms }}
+          INPUT_PUSH: ${{ inputs.push }}
+          INPUT_TARGET_TAG: ${{ inputs.target_tag }}
+          NODE_VERSION: ${{ steps.frontend_node.outputs.version }}
+          COMMIT_SHA: ${{ steps.get_commit.outputs.sha }}
+        run: |
+          METADATA_FILE="$(mktemp)"
+          rm -f "${METADATA_FILE}"
+          build_command=(
+            bash ./.github/resources/scripts/docker-buildx-build-with-retry.sh
+            --platform "${INPUT_PLATFORMS}"
+            --file "${INPUT_DOCKER_FILE}"
+            --output "type=image,name=${IMAGE_NAME},push-by-digest=true,name-canonical=true,push=${INPUT_PUSH}"
+            --metadata-file "${METADATA_FILE}"
+            --build-arg "NODE_VERSION=${NODE_VERSION}"
+            --build-arg "COMMIT_SHA=${COMMIT_SHA}"
+            --build-arg "COMMIT_HASH=${COMMIT_SHA}"
+            --build-arg "TAG_NAME=${INPUT_TARGET_TAG}"
+          )
+
+          while IFS= read -r label; do
+            if [ -n "$label" ]; then
+              build_command+=(--label "$label")
+            fi
+          done <<< "${BUILD_LABELS}"
+
+          build_command+=("${INPUT_IMAGE_CONTEXT}")
+          "${build_command[@]}"
+
+          digest=$(jq -r '."containerimage.digest" // empty' "${METADATA_FILE}")
+          if [ "${INPUT_PUSH}" = "true" ] && [ -z "$digest" ]; then
+            echo "ERROR: Push completed without a container digest"
+            exit 1
+          fi
+          if [ -n "$digest" ]; then
+            echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          fi
 
       # Export the digest
       - name: Export digest

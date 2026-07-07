@@ -30,6 +30,7 @@ import (
 	mlflowclient "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/logger"
+	"github.com/kubeflow/pipelines/backend/test/testutil"
 	apitests "github.com/kubeflow/pipelines/backend/test/v2/api"
 
 	"github.com/onsi/ginkgo/v2"
@@ -92,10 +93,59 @@ func RetryPipelineRun(runClient *apiserver.RunClient, runID string) {
 	ginkgo.GinkgoHelper()
 	retryParams := runparams.NewRunServiceRetryRunParams()
 	retryParams.RunID = runID
-	err := runClient.Retry(retryParams)
+	var err error
+	for attempt := 1; attempt <= 3; attempt++ {
+		err = runClient.Retry(retryParams)
+		if err == nil {
+			break
+		}
+		if retryRunAlreadyStarted(runClient, runID) {
+			err = nil
+			break
+		}
+		if !isRetriableRetryRunError(err) || attempt == 3 {
+			break
+		}
+		// ponytail: RetryRun can fail transiently either from Argo update/create
+		// races or short localhost API disconnects. Keep this local to the test
+		// helper; if it grows beyond a short bounded retry, move it server-side.
+		logger.Log("Transient RetryRun error for run %s (attempt %d/3): %v", runID, attempt, err)
+		time.Sleep(2 * time.Second)
+	}
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(),
 		fmt.Sprintf("Failed to retry run %s", runID))
 	logger.Log("Retried Pipeline Run, runId=%s", runID)
+}
+
+func retryRunAlreadyStarted(runClient *apiserver.RunClient, runID string) bool {
+	for attempt := 1; attempt <= 3; attempt++ {
+		run, err := runClient.Get(&runparams.RunServiceGetRunParams{RunID: runID})
+		if err == nil {
+			if run.State != nil && *run.State == run_model.V2beta1RuntimeStateRUNNING {
+				logger.Log("RetryRun already moved run %s to RUNNING; treating transport error as success", runID)
+				return true
+			}
+			return false
+		}
+		if !testutil.IsRetriableLocalAPIError(err) || attempt == 3 {
+			return false
+		}
+		time.Sleep(2 * time.Second)
+	}
+	return false
+}
+
+func isRetriableRetryRunError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if testutil.IsRetriableLocalAPIError(err) {
+		return true
+	}
+	message := err.Error()
+	return strings.Contains(message, "Operation cannot be fulfilled on workflows.argoproj.io") ||
+		strings.Contains(message, "the object has been modified") ||
+		strings.Contains(message, "already exists, the server was not able to generate a unique name")
 }
 
 // SkipIfMLflowDisabled skips the current test if the mlflowEnabled flag is false.
