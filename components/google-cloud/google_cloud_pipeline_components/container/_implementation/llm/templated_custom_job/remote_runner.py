@@ -146,8 +146,8 @@ def decode_and_render_payload(
 ) -> str:
   """Decodes base64-encoded Jinja2 payload and renders it."""
   params = convert_integer_params(int_params)
-  params.update(convert_string_params(string_params))
-  params.update(convert_float_params(float_params))
+  params.update(convert_string_params(string_params))  # pyrefly: ignore[no-matching-overload]
+  params.update(convert_float_params(float_params))  # pyrefly: ignore[no-matching-overload]
   params.update(convert_boolean_params(boolean_params))
   params.update(convert_json_params(json_params))
 
