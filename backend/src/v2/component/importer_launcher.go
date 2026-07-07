@@ -74,8 +74,12 @@ func NewImporterLauncher(ctx context.Context, componentSpecJSON, importerSpecJSO
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal importer spec: %w", err)
 	}
+	decompressedTaskSpecJSON, err := util.GzipDecompressBase64(taskSpecJSON)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decompress task spec: %w", err)
+	}
 	task := &pipelinespec.PipelineTaskSpec{}
-	err = protojson.Unmarshal([]byte(taskSpecJSON), task)
+	err = protojson.Unmarshal([]byte(decompressedTaskSpecJSON), task)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal task spec: %w", err)
 	}

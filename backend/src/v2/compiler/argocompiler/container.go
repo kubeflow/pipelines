@@ -150,13 +150,19 @@ func GetPipelineRunAsUser() *int64 {
 }
 
 func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
+	taskCompressed, err := util.GzipCompressBase64(inputs.task)
+	if err != nil {
+		// Gzip-compressing an in-memory string cannot practically fail; fall back to the
+		// uncompressed value rather than surfacing a signature change across all callers.
+		taskCompressed = inputs.task
+	}
 	dagTask := &wfapi.DAGTask{
 		Name:     name,
 		Template: c.addContainerDriverTemplate(),
 		Arguments: wfapi.Arguments{
 			Parameters: []wfapi.Parameter{
 				{Name: paramComponent, Value: wfapi.AnyStringPtr(inputs.component)},
-				{Name: paramTask, Value: wfapi.AnyStringPtr(inputs.task)},
+				{Name: paramTask, Value: wfapi.AnyStringPtr(taskCompressed)},
 				{Name: paramContainer, Value: wfapi.AnyStringPtr(inputs.container)},
 				{Name: paramTaskName, Value: wfapi.AnyStringPtr(inputs.taskName)},
 				{Name: paramParentDagID, Value: wfapi.AnyStringPtr(inputs.parentDagID)},

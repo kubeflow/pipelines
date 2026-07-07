@@ -1697,18 +1697,22 @@ func toApiRunDetailV1(r *model.Run) *apiv1beta1.RunDetail {
 	apiRunDetails := &apiv1beta1.RunDetail{
 		Run: apiRunV1,
 	}
+	// GzipDecompressBase64 returns its input unchanged if it isn't compressed,
+	// so this is safe for manifests written before compression was introduced.
+	pipelineManifest, _ := util.GzipDecompressBase64(string(r.PipelineRuntimeManifest))
+	workflowManifest, _ := util.GzipDecompressBase64(string(r.WorkflowRuntimeManifest))
 	if r.RunDetails.WorkflowRuntimeManifest == "" {
 		apiRunDetails.PipelineRuntime = &apiv1beta1.PipelineRuntime{
-			PipelineManifest: string(r.PipelineRuntimeManifest),
+			PipelineManifest: pipelineManifest,
 		}
 	} else if r.RunDetails.PipelineRuntimeManifest == "" {
 		apiRunDetails.PipelineRuntime = &apiv1beta1.PipelineRuntime{
-			WorkflowManifest: string(r.WorkflowRuntimeManifest),
+			WorkflowManifest: workflowManifest,
 		}
 	} else {
 		apiRunDetails.PipelineRuntime = &apiv1beta1.PipelineRuntime{
-			PipelineManifest: string(r.PipelineRuntimeManifest),
-			WorkflowManifest: string(r.WorkflowRuntimeManifest),
+			PipelineManifest: pipelineManifest,
+			WorkflowManifest: workflowManifest,
 		}
 	}
 	return apiRunDetails

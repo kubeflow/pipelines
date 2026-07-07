@@ -754,10 +754,18 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	// TODO(gkcalat): consider to avoid updating runtime manifest at create time and let
 	// persistence agent update the runtime data.
 	if tmpl.GetTemplateType() == template.V1 && run.RunDetails.WorkflowRuntimeManifest == "" {
-		run.WorkflowRuntimeManifest = model.LargeText(newExecSpec.ToStringForStore())
+		compressedManifest, err := util.GzipCompressBase64(newExecSpec.ToStringForStore())
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to compress the workflow runtime manifest")
+		}
+		run.WorkflowRuntimeManifest = model.LargeText(compressedManifest)
 		run.WorkflowSpecManifest = model.LargeText(manifest)
 	} else if tmpl.GetTemplateType() == template.V2 {
-		run.PipelineRuntimeManifest = model.LargeText(newExecSpec.ToStringForStore())
+		compressedManifest, err := util.GzipCompressBase64(newExecSpec.ToStringForStore())
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to compress the pipeline runtime manifest")
+		}
+		run.PipelineRuntimeManifest = model.LargeText(compressedManifest)
 		run.PipelineSpecManifest = model.LargeText(manifest)
 	} else {
 		run.PipelineSpecManifest = model.LargeText(manifest)
@@ -1080,7 +1088,11 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	if run.RunDetails.WorkflowRuntimeManifest == "" {
 		return util.NewBadRequestError(util.NewInvalidInputError("Workflow manifest cannot be empty"), "Failed to retry run %s due to error fetching workflow manifest", runId)
 	}
-	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.RunDetails.WorkflowRuntimeManifest))
+	decompressedManifest, err := util.GzipDecompressBase64(string(run.RunDetails.WorkflowRuntimeManifest))
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to retry run %s due to error decompressing the workflow manifest", runId)
+	}
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(decompressedManifest))
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error parsing the workflow manifest", runId)
 	}
@@ -1135,7 +1147,11 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	condition := string(newExecSpec.ExecutionStatus().Condition())
 	run.Conditions = condition
 	run.FinishedAtInSec = 0
-	run.WorkflowRuntimeManifest = model.LargeText(newExecSpec.ToStringForStore())
+	compressedManifest, err := util.GzipCompressBase64(newExecSpec.ToStringForStore())
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to retry run %s due to error compressing the workflow manifest", runId)
+	}
+	run.WorkflowRuntimeManifest = model.LargeText(compressedManifest)
 	run.State = model.RuntimeState(condition).ToV2()
 	// OnRunRetry persists plugin output independently; leave PluginsOutput unchanged here.
 	run.PluginsOutputString = nil
@@ -1161,7 +1177,11 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 	}
 	err = r.readRunLogFromPod(ctx, namespace, nodeId, follow, dst)
 	if err != nil && r.logArchive != nil {
-		err = r.readRunLogFromArchive(string(run.WorkflowRuntimeManifest), nodeId, dst)
+		decompressedManifest, decompressErr := util.GzipDecompressBase64(string(run.WorkflowRuntimeManifest))
+		if decompressErr != nil {
+			return util.NewBadRequestError(decompressErr, "Failed to read logs for run %v due to error decompressing workflow manifest", runId)
+		}
+		err = r.readRunLogFromArchive(decompressedManifest, nodeId, dst)
 		if err != nil {
 			return util.NewBadRequestError(err, "Failed to read logs for run %v", runId)
 		}
@@ -1557,7 +1577,11 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		run.State = state
 		run.Conditions = string(state.ToV1())
 		run.FinishedAtInSec = execStatus.FinishedAt()
-		run.WorkflowRuntimeManifest = model.LargeText(execSpec.ToStringForStore())
+		compressedManifest, compressErr := util.GzipCompressBase64(execSpec.ToStringForStore())
+		if compressErr != nil {
+			return nil, util.Wrapf(compressErr, "Failed to report a workflow for existing run %s during compressing the workflow manifest", runId)
+		}
+		run.WorkflowRuntimeManifest = model.LargeText(compressedManifest)
 		if updateError = r.runStore.UpdateRun(run); updateError != nil {
 			return nil, util.Wrapf(updateError, "Failed to report a workflow for existing run %s during updating the run. Check if the run entry is corrupted", runId)
 		}
@@ -1658,6 +1682,10 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		if scheduledTimeInSec == 0 {
 			scheduledTimeInSec = objMeta.CreationTimestamp.Unix()
 		}
+		compressedManifest, err := util.GzipCompressBase64(execSpec.ToStringForStore())
+		if err != nil {
+			return nil, util.Wrapf(err, "Failed to report a workflow for run %s due to error compressing the workflow manifest", runId)
+		}
 		run = &model.Run{
 			UUID:           runId,
 			ExperimentId:   experimentId,
@@ -1668,7 +1696,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			Namespace:      namespace,
 			PipelineSpec:   pipelineSpec,
 			RunDetails: model.RunDetails{
-				WorkflowRuntimeManifest: model.LargeText(execSpec.ToStringForStore()),
+				WorkflowRuntimeManifest: model.LargeText(compressedManifest),
 				CreatedAtInSec:          objMeta.CreationTimestamp.Unix(),
 				ScheduledAtInSec:        scheduledTimeInSec,
 				FinishedAtInSec:         execStatus.FinishedAt(),
@@ -2064,10 +2092,14 @@ func (r *ResourceManager) ResolveArtifactPath(runID string, nodeID string, artif
 	if run.WorkflowRuntimeManifest == "" {
 		return "", util.NewInvalidInputError("read artifact from run with v2 IR spec is not supported")
 	}
-	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
+	decompressedManifest, err := util.GzipDecompressBase64(string(run.WorkflowRuntimeManifest))
+	if err != nil {
+		return "", util.NewInternalServerError(err, "failed to decompress workflow manifest")
+	}
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(decompressedManifest))
 	if err != nil {
 		return "", util.NewInternalServerError(
-			err, "failed to unmarshal workflow '%s'", run.WorkflowRuntimeManifest)
+			err, "failed to unmarshal workflow '%s'", decompressedManifest)
 	}
 	artifactPath := execSpec.ExecutionStatus().FindObjectStoreArtifactKeyOrEmpty(nodeID, artifactName)
 	if artifactPath == "" {
