@@ -6,6 +6,9 @@
 # api/v2alpha1/python/requirements.txt
 protobuf>=6.33.5,<7.0
 kfp>=2.14.5,<3
-requests==2.33.0
+# requests 2.33.0 drops Python 3.9 support. Keep Python 3.9 on the
+# compatible line and use the patched line where supported.
+requests==2.32.5; python_version < "3.10"
+requests==2.33.0; python_version >= "3.10"
 # Keep Python 3.9 installs working until KFP drops Python 3.9 support.
 urllib3<2.7.0
