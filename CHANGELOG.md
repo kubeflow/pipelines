@@ -1,5 +1,14 @@
 Changelog
 
+## 2.17.0 (2026-07-07)
+
+### Bug Fixes
+
+- **backend** avoid stale final-state labels on retry ([#13627](https://github.com/kubeflow/pipelines/pull/13627))
+### Other
+
+- automate releases
+
 ## 2.16.1 (2026-05-03)
 
 ### Bug Fixes
