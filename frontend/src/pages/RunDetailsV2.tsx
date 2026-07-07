@@ -157,7 +157,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   const taskStateMap = useMemo(() => {
     const map = new Map<string, string>();
-    run.run_details?.task_details?.forEach(task => {
+    run.run_details?.task_details?.forEach((task) => {
       if (task.display_name && task.state) {
         map.set(task.display_name, task.state);
       }
