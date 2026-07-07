@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -827,12 +828,21 @@ func extendPodSpecPatch(
 			},
 		}
 		for _, envVar := range initContainer.GetEnv() {
+			if envVar.GetName() == "" {
+				return fmt.Errorf("init container %q has an environment variable with an empty name", initContainer.GetName())
+			}
 			k8sInitContainer.Env = append(k8sInitContainer.Env, k8score.EnvVar{
 				Name:  envVar.GetName(),
 				Value: envVar.GetValue(),
 			})
 		}
 		for _, volumeMount := range initContainer.GetVolumeMounts() {
+			if volumeMount.GetVolumeName() == "" {
+				return fmt.Errorf("init container %q has a volume mount with an empty volume name", initContainer.GetName())
+			}
+			if !strings.HasPrefix(volumeMount.GetMountPath(), "/") {
+				return fmt.Errorf("init container %q volume mount %q must use an absolute mount path", initContainer.GetName(), volumeMount.GetVolumeName())
+			}
 			k8sInitContainer.VolumeMounts = append(k8sInitContainer.VolumeMounts, k8score.VolumeMount{
 				Name:      volumeMount.GetVolumeName(),
 				MountPath: volumeMount.GetMountPath(),

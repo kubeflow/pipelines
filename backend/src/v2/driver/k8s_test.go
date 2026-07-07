@@ -3723,6 +3723,51 @@ func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 			},
 			expectedErr: `duplicate init container name "fetch-config"`,
 		},
+		{
+			name: "Invalid - empty environment variable name",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				InitContainers: []*kubernetesplatform.InitContainer{
+					{
+						Name:  "fetch-config",
+						Image: "busybox:1.36",
+						Env: []*kubernetesplatform.InitContainer_EnvVar{
+							{Name: "", Value: "value"},
+						},
+					},
+				},
+			},
+			expectedErr: `init container "fetch-config" has an environment variable with an empty name`,
+		},
+		{
+			name: "Invalid - empty volume name in volume mount",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				InitContainers: []*kubernetesplatform.InitContainer{
+					{
+						Name:  "fetch-config",
+						Image: "busybox:1.36",
+						VolumeMounts: []*kubernetesplatform.InitContainer_VolumeMount{
+							{VolumeName: "", MountPath: "/config"},
+						},
+					},
+				},
+			},
+			expectedErr: `init container "fetch-config" has a volume mount with an empty volume name`,
+		},
+		{
+			name: "Invalid - relative mount path",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				InitContainers: []*kubernetesplatform.InitContainer{
+					{
+						Name:  "fetch-config",
+						Image: "busybox:1.36",
+						VolumeMounts: []*kubernetesplatform.InitContainer_VolumeMount{
+							{VolumeName: "config-volume", MountPath: "config"},
+						},
+					},
+				},
+			},
+			expectedErr: `init container "fetch-config" volume mount "config-volume" must use an absolute mount path`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

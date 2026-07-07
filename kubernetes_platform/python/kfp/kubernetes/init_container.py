@@ -43,7 +43,9 @@ def add_init_container(
         image: Container image of the init container.
         command: Entrypoint array. Corresponds to the ``command`` field.
         args: Arguments to the entrypoint. Corresponds to the ``args`` field.
-        env: Mapping of environment variable names to values.
+        env: Mapping of environment variable names to values. Insertion order
+            is preserved when serializing to the pod spec, which matters for
+            ``$(VAR)`` references; duplicate names are not representable.
         volume_mounts: Mapping of volume name to mount path. Each volume must be
             defined on the pod, for example via
             :func:`~kfp.kubernetes.empty_dir_mount` or
