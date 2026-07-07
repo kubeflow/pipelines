@@ -97,11 +97,7 @@ export default class WorkflowParser {
       let mlmdState: metadataStorePb.Execution.State | undefined;
       if (isV2Pipeline(workflow)) {
         mlmdState = nodeStateMap.get(node.id);
-        if (
-          mlmdState === metadataStorePb.Execution.State.COMPLETE &&
-          node.phase === 'Running' &&
-          nodeHasDebugPauseEnv(node)
-        ) {
+        if (node.phase === 'Running' && nodeHasDebugPauseEnv(node)) {
           mlmdState = undefined;
         }
       }

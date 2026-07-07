@@ -272,10 +272,7 @@ export function updateFlowElementsState(
       if (executions) {
         const state = executions[0]?.getLastKnownState();
         (updatedElem.data as ExecutionFlowElementData).state = state;
-        if (
-          state === Execution.State.COMPLETE &&
-          taskStateMap?.get(taskLabel) === V2beta1RuntimeState.PAUSED
-        ) {
+        if (taskStateMap?.get(taskLabel) === V2beta1RuntimeState.PAUSED) {
           (updatedElem.data as ExecutionFlowElementData).debugPaused = true;
         }
         (updatedElem.data as ExecutionFlowElementData).mlmdId = executions[0]?.getId();
