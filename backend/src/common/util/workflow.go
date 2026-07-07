@@ -679,19 +679,15 @@ func (w *Workflow) SetLabelsToAllTemplates(key string, value string) {
 
 // UpsertRuntimeEnvVars adds or replaces env vars on workflow containers
 // matching the specified runtime roles using the AnnotationKeyRuntimeRole
-// annotation stamped by the compiler.  Templates without the annotation are
+// annotation stamped by the compiler. Templates without the annotation are
 // skipped.
-func (w *Workflow) UpsertRuntimeEnvVars(envVars map[string]string, roles ...ExecutionRuntimeRole) error {
+func (w *Workflow) UpsertRuntimeEnvVars(envVars []corev1.EnvVar, roles ...ExecutionRuntimeRole) error {
 	if len(envVars) == 0 || len(w.Spec.Templates) == 0 {
 		return nil
 	}
 	roleSet := make(map[ExecutionRuntimeRole]bool, len(roles))
 	for _, r := range roles {
 		roleSet[r] = true
-	}
-	envList := make([]corev1.EnvVar, 0, len(envVars))
-	for k, v := range envVars {
-		envList = append(envList, corev1.EnvVar{Name: k, Value: v})
 	}
 	for i := range w.Spec.Templates {
 		tmpl := &w.Spec.Templates[i]
@@ -701,7 +697,7 @@ func (w *Workflow) UpsertRuntimeEnvVars(envVars map[string]string, roles ...Exec
 
 		role := tmpl.Metadata.Annotations[AnnotationKeyRuntimeRole]
 		if role != "" && roleSet[ExecutionRuntimeRole(role)] {
-			tmpl.Container.Env = upsertEnvVars(tmpl.Container.Env, envList)
+			tmpl.Container.Env = upsertEnvVars(tmpl.Container.Env, envVars)
 		}
 	}
 	return nil
@@ -779,7 +775,7 @@ func (w *Workflow) SetCannonicalLabels(name string, nextScheduledEpoch int64, in
 }
 
 // FindObjectStoreArtifactKeyOrEmpty looks up the first S3 artifact with the specified artifactName
-// on the specified nodeName. If the node has no outputs (e.g., a retry parent or step group node),
+// on the specified node ID or derived Pod name. If the node has no outputs (e.g., a retry parent or step group node),
 // it recursively checks the node's children up to a bounded depth. This handles the hierarchy
 // introduced by templateDefaults.retryStrategy: StepGroup → Retry → Pod.
 // Returns empty string if nothing is found.
@@ -788,6 +784,15 @@ func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeName string, artifactNa
 		return ""
 	}
 	node, found := w.Status.Nodes[nodeName]
+	if !found {
+		for _, candidate := range w.Status.Nodes {
+			if RetrievePodName(*w.Workflow, candidate) == nodeName {
+				node = candidate
+				found = true
+				break
+			}
+		}
+	}
 	if !found {
 		return ""
 	}

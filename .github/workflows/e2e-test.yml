@@ -66,25 +66,25 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: ["v1.35.0"]
+        k8s_version: ["v1.36.1"]
         cache_enabled: ["true", "false"]
         argo_version: [ "v3.7.14", "v4.0.5" ]
         proxy: [ "false" ]
         test_label: [ "E2ECritical", "E2EEssential", "E2EParallelNested" ]
         pod_to_pod_tls_enabled: [ "false" ]
         include:
-          - k8s_version: "v1.31.14"
+          - k8s_version: "v1.33.12"
             cache_enabled: "false"
             argo_version: "v3.7.14"
             test_label: "E2ECritical"
-          - k8s_version: "v1.35.0"
+          - k8s_version: "v1.36.1"
             cache_enabled: "false"
             proxy: "true"
             test_label: "E2EProxy"
-          - k8s_version: "v1.35.0"
+          - k8s_version: "v1.36.1"
             cache_enabled: "false"
             test_label: "E2EFailure"
-          - k8s_version: "v1.35.0"
+          - k8s_version: "v1.36.1"
             cache_enabled: "true"
             pod_to_pod_tls_enabled: "true"
             test_label: "E2ECritical"
@@ -173,14 +173,14 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: ["v1.35.0"]
+        k8s_version: ["v1.36.1"]
         cache_enabled: ["true", "false"]
         multi_user: [ "true" ]
         test_label: [ "E2ECritical" ]
         include:
         - multi_user: "true"
           artifact_proxy: "true"
-          k8s_version: "v1.35.0"
+          k8s_version: "v1.36.1"
           cache_enabled: "true"
           test_label: "E2ECritical"
       fail-fast: false
@@ -275,7 +275,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: [ "v1.34.0" ]
+        k8s_version: [ "v1.36.1" ]
         cache_enabled: [ "true", "false" ]
         argo_version: [ "v3.7.3" ]
         proxy: [ "false" ]
@@ -286,8 +286,14 @@ jobs:
         artifact_storage: [ "file", "s3" ]
         backend_store: [ "postgres" ]
         registry_store: [ "postgres" ]
+        mlflow_auth_type: [ "kubernetes", "basic-auth", "none" ]
+        exclude:
+          - artifact_storage: "s3"
+            mlflow_auth_type: "basic-auth"
+          - artifact_storage: "s3"
+            mlflow_auth_type: "none"
       fail-fast: false
-    name: End to End Critical Scenario MLflow Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} artifactStorage=${{ matrix.artifact_storage }}
+    name: End to End Critical Scenario MLflow Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} artifactStorage=${{ matrix.artifact_storage }} authType=${{ matrix.mlflow_auth_type }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -313,10 +319,10 @@ jobs:
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
 
-      - name: Deploy MLflow
+      - name: Deploy MLflow with Kubernetes auth
         id: deploy-mlflow        
         uses: opendatahub-io/mlflow-operator/.github/actions/deploy@b55bcb6aa528ccecf8904745bb0218350b1ff453
-        if: ${{ steps.create-cluster.outcome == 'success' }}
+        if: ${{ steps.create-cluster.outcome == 'success' && matrix.mlflow_auth_type == 'kubernetes' }}
         with:
           namespace: 'opendatahub'
           mlflow_image: quay.io/${{ github.repository_owner == 'red-hat-data-services' && 'rhoai' || 'opendatahub' }}/mlflow:odh-stable
@@ -327,9 +333,20 @@ jobs:
           s3_access_key: ${{ env.AWS_ACCESS_KEY_ID }}
           s3_secret_key: ${{ env.AWS_SECRET_ACCESS_KEY }}
 
+      - name: Deploy MLflow directly
+        id: deploy_direct_mlflow
+        shell: bash
+        if: ${{ steps.create-cluster.outcome == 'success' && matrix.mlflow_auth_type != 'kubernetes' }}
+        env:
+          # The direct optional-auth lane uses upstream MLflow. The kubernetes-auth
+          # lane above still uses the ODH operator because upstream MLflow does not
+          # provide the ODH kubernetes-auth app.
+          MLFLOW_IMAGE: ghcr.io/mlflow/mlflow:v3.13.0-full
+        run: ./.github/resources/scripts/deploy-direct-mlflow.sh opendatahub "${{ matrix.mlflow_auth_type }}" "${{ matrix.artifact_storage }}" "$MLFLOW_IMAGE"
+
       - name: Wait for MLflow stack readiness
         shell: bash
-        if: ${{ steps.deploy-mlflow.outcome == 'success' }}
+        if: ${{ steps.deploy-mlflow.outcome == 'success' || steps.deploy_direct_mlflow.outcome == 'success' }}
         run: |
           kubectl wait --for=condition=Ready pods --field-selector=status.phase=Running -n opendatahub --timeout=180s
           echo "All running pods in opendatahub are Ready"
@@ -337,8 +354,8 @@ jobs:
       - name: Configure MLflow Plugin and Forward Ports
         shell: bash
         id: configure-mlflow-plugin
-        if: ${{ steps.deploy.outcome == 'success' && steps.deploy-mlflow.outcome == 'success' }}
-        run: ./.github/resources/scripts/configure-mlflow.sh kubeflow opendatahub backend/src/apiserver/config/config.json
+        if: ${{ steps.deploy.outcome == 'success' && (steps.deploy-mlflow.outcome == 'success' || steps.deploy_direct_mlflow.outcome == 'success') }}
+        run: ./.github/resources/scripts/configure-mlflow.sh kubeflow opendatahub backend/src/apiserver/config/config.json "${{ matrix.mlflow_auth_type }}"
 
       - name: Configure Input Variables
         shell: bash
@@ -371,7 +388,7 @@ jobs:
       - name: Run Tests
         uses: ./.github/actions/test-and-report
         id: test-run
-        if: ${{ steps.configure.outcome == 'success' && steps.deploy-mlflow.outcome == 'success' && steps.configure-mlflow-plugin.outcome == 'success'}}
+        if: ${{ steps.configure.outcome == 'success' && (steps.deploy-mlflow.outcome == 'success' || steps.deploy_direct_mlflow.outcome == 'success') && steps.configure-mlflow-plugin.outcome == 'success'}}
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
           test_directory: ${{ env.E2E_TESTS_DIR }}
@@ -379,7 +396,7 @@ jobs:
           num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
-          report_name: "MLflowTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_artifactStorage=${{ matrix.artifact_storage }}"
+          report_name: "MLflowTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_artifactStorage=${{ matrix.artifact_storage }}_authType=${{ matrix.mlflow_auth_type }}"
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
           mlflow_enabled: 'true'
