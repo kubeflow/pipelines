@@ -298,7 +298,16 @@ export function getArtifactsHandler({
     // credentials (SeaweedFS in the kubeflow namespace) or, when enabled, the
     // per-namespace artifact proxy. See:
     // https://github.com/kubeflow/pipelines/pull/12860
-    const allowProviderSecrets = !!namespace && namespace === options.server.serverNamespace;
+    // A missing namespace only occurs when auth is disabled (single-tenant): the
+    // auth middleware rejects namespace-less requests whenever auth is enabled, so
+    // treating it as server-local cannot be triggered by a multi-user caller.
+    const allowProviderSecrets = !namespace || namespace === options.server.serverNamespace;
+    if (!allowProviderSecrets && providerInfo) {
+      console.warn(
+        `Ignoring secret-backed provider info for namespace "${namespace}": Secrets may ` +
+          `only be read from the server namespace; falling back to environment credentials.`,
+      );
+    }
     const effectiveProviderInfo = allowProviderSecrets ? providerInfo : '';
 
     let client: MinioClient;
