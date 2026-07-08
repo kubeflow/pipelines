@@ -239,6 +239,13 @@ PROBE
     kubectl get endpoints -n "$MLFLOW_NAMESPACE" || true
     kubectl describe svc "$MLFLOW_SVC" -n "$MLFLOW_NAMESPACE" || true
     kubectl logs -n "$MLFLOW_NAMESPACE" -l app=mlflow --tail=50 --all-containers=true --prefix=true || true
+    # The MLflow operator ships a NetworkPolicy selecting the mlflow pod, and
+    # newer Kind node images enforce NetworkPolicies (older kindnet ignored
+    # them). Capture the policies and the CNI/enforcement agent logs so a
+    # dropped-by-policy failure is distinguishable from an unresponsive server.
+    kubectl get networkpolicy -A -o yaml || true
+    kubectl logs -n kube-system -l app=kindnet --tail=100 --prefix=true || true
+    kubectl logs -n kube-system -l app=kube-network-policies --tail=100 --prefix=true || true
     exit 1
   fi
 }
