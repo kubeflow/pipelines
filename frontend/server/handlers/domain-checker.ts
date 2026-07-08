@@ -15,7 +15,7 @@
 export function isAllowedDomain(urlStr: string, allowedDomain: string): boolean {
   const allowedRegExp = new RegExp(allowedDomain);
   const domain = domain_from_url(urlStr);
-  const allowed = allowedRegExp.test(domain);
+  const allowed = domain.length > 0 && allowedRegExp.test(domain);
   if (!allowed) {
     console.log(`Domain not allowed: ${urlStr}`);
   }
@@ -23,6 +23,13 @@ export function isAllowedDomain(urlStr: string, allowedDomain: string): boolean 
 }
 
 function domain_from_url(url: string): string {
-  const match = url.match(/^(?:https?:\/\/)?(?:[^@/\n]+@)?([^:/?\n]+)/);
-  return match?.[1] ?? '';
+  try {
+    const parsedUrl = new URL(url.includes('://') ? url : `http://${url}`);
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return '';
+    }
+    return parsedUrl.hostname;
+  } catch {
+    return '';
+  }
 }

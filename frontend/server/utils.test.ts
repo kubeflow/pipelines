@@ -184,6 +184,15 @@ describe('utils', () => {
       expect(path).toEqual(['/data/a/b/c', undefined]);
     });
 
+    it('resolves the volume root without volumeMountSubPath', () => {
+      const path = resolveFilePathOnVolume({
+        filePathInVolume: '',
+        volumeMountPath: '/data',
+        volumeMountSubPath: undefined,
+      });
+      expect(path).toEqual(['/data', undefined]);
+    });
+
     it('with volumeMountSubPath', () => {
       const path = resolveFilePathOnVolume({
         volumeMountPath: '/data',
@@ -211,6 +220,36 @@ describe('utils', () => {
       expect(path).toEqual([
         '',
         'File a/b/c not mounted, expecting the file to be inside volume mount subpath other',
+      ]);
+    });
+
+    it('rejects parent directory traversal', () => {
+      const path = resolveFilePathOnVolume({
+        filePathInVolume: '../secret',
+        volumeMountPath: '/data',
+        volumeMountSubPath: undefined,
+      });
+      expect(path).toEqual(['', 'file path ../secret must not contain parent directory segments']);
+    });
+
+    it('rejects absolute paths', () => {
+      const path = resolveFilePathOnVolume({
+        filePathInVolume: '/etc/passwd',
+        volumeMountPath: '/data',
+        volumeMountSubPath: undefined,
+      });
+      expect(path).toEqual(['', 'file path /etc/passwd must be relative']);
+    });
+
+    it('requires subPath to match a full path segment', () => {
+      const path = resolveFilePathOnVolume({
+        volumeMountPath: '/data',
+        filePathInVolume: 'ab/c',
+        volumeMountSubPath: 'a',
+      });
+      expect(path).toEqual([
+        '',
+        'File ab/c not mounted, expecting the file to be inside volume mount subpath a',
       ]);
     });
   });

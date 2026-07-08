@@ -66,6 +66,10 @@ interface ArtifactsQueryStrings {
   namespace?: string;
 }
 
+type ArtifactSource = ArtifactsQueryStrings['source'];
+
+const ARTIFACT_SOURCES = new Set<ArtifactSource>(['minio', 's3', 'gcs', 'http', 'https', 'volume']);
+
 export interface S3ProviderInfo {
   Provider: string;
   Params: {
@@ -148,12 +152,12 @@ export function getArtifactsAuthMiddleware(
       return;
     }
 
-    const rawNamespace = request.query.namespace;
-    const namespace: string | undefined = Array.isArray(rawNamespace)
-      ? String(rawNamespace[0])
-      : typeof rawNamespace === 'string'
-        ? rawNamespace
-        : undefined;
+    const namespaceParam = getOptionalRequestString(request.query.namespace, 'namespace');
+    if ('error' in namespaceParam) {
+      response.status(namespaceParam.error.status).send(namespaceParam.error.message);
+      return;
+    }
+    const namespace = namespaceParam.value;
 
     if (!namespace) {
       console.warn(
@@ -254,32 +258,14 @@ export function getArtifactsHandler({
 }): Handler {
   const { aws, http, minio, allowedDomain } = artifactsConfigs;
   return async (req, res) => {
-    const source = (useParameter ? req.params.source : req.query.source) as string | undefined;
-    const bucket = (useParameter ? req.params.bucket : req.query.bucket) as string | undefined;
-    const key = (useParameter ? req.params[0] : req.query.key) as string | undefined;
-    const {
-      peek = 0,
-      providerInfo = '',
-      // When auth is enabled, the authorization middleware has already validated
-      // and required the namespace parameter before this handler runs.
-      // When auth is disabled (standalone mode), fallback to serverNamespace
-      // for provider-based credential lookups via getK8sSecret (Issue #9889).
-      namespace = options.server.serverNamespace,
-    } = req.query as Partial<ArtifactsQueryStrings>;
-    if (!source) {
-      res.status(500).send('Storage source is missing from artifact request');
+    const artifactRequest = parseArtifactRequest(req, useParameter, options.server.serverNamespace);
+    if ('error' in artifactRequest) {
+      res.status(artifactRequest.error.status).send(artifactRequest.error.message);
       return;
     }
-    if (!bucket) {
-      res.status(500).send('Storage bucket is missing from artifact request');
-      return;
-    }
+    const { source, bucket, key, peek, providerInfo, namespace } = artifactRequest;
     if (!isAllowedResourceName(bucket)) {
       res.status(500).send('Invalid bucket name');
-      return;
-    }
-    if (!key) {
-      res.status(500).send('Storage key is missing from artifact request');
       return;
     }
     if (key.length > 1024) {
@@ -355,12 +341,12 @@ export function getArtifactsHandler({
         break;
       case 'http':
       case 'https':
-        await getHttpArtifactsHandler(
-          allowedDomain,
-          getHttpUrl(source, http.baseUrl || '', bucket, key),
-          http.auth,
-          peek,
-        )(req, res);
+        const httpUrl = getHttpUrl(source, http.baseUrl || '', bucket, key);
+        if (!httpUrl) {
+          res.status(400).send('HTTP artifact base URL is not configured');
+          return;
+        }
+        await getHttpArtifactsHandler(allowedDomain, httpUrl, http.auth, peek)(req, res);
         break;
       case 'volume':
         await getVolumeArtifactsHandler(
@@ -378,6 +364,117 @@ export function getArtifactsHandler({
   };
 }
 
+type ArtifactRequest =
+  | {
+      source: ArtifactSource;
+      bucket: string;
+      key: string;
+      peek: number;
+      providerInfo: string;
+      namespace: string;
+    }
+  | { error: { status: number; message: string } };
+
+function parseArtifactRequest(
+  req: Request,
+  useParameter: boolean,
+  defaultNamespace: string,
+): ArtifactRequest {
+  const source = getRequiredRequestString(
+    useParameter ? req.params.source : req.query.source,
+    'source',
+    'Storage source is missing from artifact request',
+  );
+  if ('error' in source) {
+    return source;
+  }
+  if (!isArtifactSource(source.value)) {
+    return { error: { status: 500, message: 'Unknown storage source' } };
+  }
+
+  const bucket = getRequiredRequestString(
+    useParameter ? req.params.bucket : req.query.bucket,
+    'bucket',
+    'Storage bucket is missing from artifact request',
+  );
+  if ('error' in bucket) {
+    return bucket;
+  }
+
+  const key = getRequiredRequestString(
+    useParameter ? req.params[0] : req.query.key,
+    'key',
+    'Storage key is missing from artifact request',
+  );
+  if ('error' in key) {
+    return key;
+  }
+
+  const providerInfo = getOptionalRequestString(req.query.providerInfo, 'providerInfo');
+  if ('error' in providerInfo) {
+    return providerInfo;
+  }
+
+  const namespace = getOptionalRequestString(req.query.namespace, 'namespace');
+  if ('error' in namespace) {
+    return namespace;
+  }
+
+  const peek = getOptionalRequestString(req.query.peek, 'peek');
+  if ('error' in peek) {
+    return peek;
+  }
+
+  return {
+    source: source.value,
+    bucket: bucket.value,
+    key: key.value,
+    peek: parsePeekValue(peek.value),
+    providerInfo: providerInfo.value ?? '',
+    namespace: namespace.value ?? defaultNamespace,
+  };
+}
+
+function getRequiredRequestString(
+  value: unknown,
+  name: string,
+  missingMessage: string,
+): { value: string } | { error: { status: number; message: string } } {
+  const optional = getOptionalRequestString(value, name);
+  if ('error' in optional) {
+    return optional;
+  }
+  if (!optional.value) {
+    return { error: { status: 500, message: missingMessage } };
+  }
+  return { value: optional.value };
+}
+
+function getOptionalRequestString(
+  value: unknown,
+  name: string,
+): { value: string | undefined } | { error: { status: number; message: string } } {
+  if (value === undefined) {
+    return { value: undefined };
+  }
+  if (typeof value !== 'string') {
+    return { error: { status: 400, message: `${name} must be a single string value` } };
+  }
+  return { value };
+}
+
+function parsePeekValue(value: string | undefined): number {
+  if (!value) {
+    return 0;
+  }
+  const peek = Number(value);
+  return Number.isFinite(peek) && peek > 0 ? peek : 0;
+}
+
+function isArtifactSource(source: string): source is ArtifactSource {
+  return ARTIFACT_SOURCES.has(source as ArtifactSource);
+}
+
 /**
  * Returns the http/https url to retrieve a kfp artifact (of the form: `${source}://${baseUrl}${bucket}/${key}`)
  * @param source "http" or "https".
@@ -386,9 +483,21 @@ export function getArtifactsHandler({
  * @param key path to the artifact.
  */
 function getHttpUrl(source: 'http' | 'https', baseUrl: string, bucket: string, key: string) {
-  // trim `/` from both ends of the base URL, then append with a single `/` to the end (empty string remains empty)
-  baseUrl = baseUrl.replace(/^\/*(.+?)\/*$/, '$1/');
-  return `${source}://${baseUrl}${bucket}/${key}`;
+  const configuredBaseUrl = baseUrl.trim().replace(/^\/+/, '');
+  if (!configuredBaseUrl) {
+    return undefined;
+  }
+  try {
+    const artifactUrl = new URL(`${source}://${configuredBaseUrl}`);
+    artifactUrl.pathname = [artifactUrl.pathname.replace(/\/+$/, ''), bucket, key]
+      .filter(Boolean)
+      .join('/');
+    artifactUrl.search = '';
+    artifactUrl.hash = '';
+    return artifactUrl.toString();
+  } catch {
+    return undefined;
+  }
 }
 
 function getHttpArtifactsHandler(
@@ -419,11 +528,12 @@ function getHttpArtifactsHandler(
     let currentUrl = url;
     let response: Awaited<ReturnType<typeof fetch>>;
     for (let hop = 0; ; hop++) {
-      if (!isAllowedDomain(currentUrl, allowedDomain)) {
+      const allowedUrl = parseAllowedHttpArtifactUrl(currentUrl, allowedDomain);
+      if (!allowedUrl) {
         res.status(500).send(`Domain not allowed.`);
         return;
       }
-      response = await fetch(currentUrl, { headers, redirect: 'manual' });
+      response = await fetch(allowedUrl, { headers, redirect: 'manual' });
       const status = response.status ?? 200;
       if (status < 300 || status >= 400) {
         break;
@@ -463,6 +573,21 @@ function getHttpArtifactsHandler(
       .pipe(new PreviewStream({ peek }))
       .pipe(res);
   };
+}
+
+function parseAllowedHttpArtifactUrl(url: string, allowedDomain: string): string | undefined {
+  try {
+    const parsedUrl = new URL(url);
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return undefined;
+    }
+    if (!isAllowedDomain(parsedUrl.toString(), allowedDomain)) {
+      return undefined;
+    }
+    return parsedUrl.toString();
+  } catch {
+    return undefined;
+  }
 }
 
 function getMinioArtifactHandler(
@@ -875,7 +1000,11 @@ export function getArtifactsProxyHandler({
 function getNamespaceFromUrl(path: string): string | undefined {
   // Gets namespace from query parameter "namespace"
   const params = new URL(path, DUMMY_BASE_PATH).searchParams;
-  return params.get('namespace') || undefined;
+  const namespaces = params.getAll('namespace');
+  if (namespaces.length !== 1) {
+    return undefined;
+  }
+  return namespaces[0] || undefined;
 }
 
 // `new URL('/path')` doesn't work, because URL only accepts full URL with scheme and hostname.

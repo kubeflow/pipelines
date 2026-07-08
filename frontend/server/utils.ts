@@ -138,7 +138,7 @@ export function findFileOnPodVolume(
     }
     // if volume subPath set, volume subPath must be prefix of key
     if (v?.subPath) {
-      return filePathInVolume.startsWith(v.subPath);
+      return isVolumePathInsideSubPath(filePathInVolume, v.subPath);
     }
     return true;
   });
@@ -158,7 +158,7 @@ export function findFileOnPodVolume(
   });
 
   if (err) {
-    return ['', `${prefixErrorMessage}  err`];
+    return ['', `${prefixErrorMessage} ${err}`];
   }
   return [filePath, undefined];
 }
@@ -169,19 +169,83 @@ export function resolveFilePathOnVolume(volume: {
   volumeMountSubPath: string | undefined;
 }): [string, string | undefined] {
   const { filePathInVolume, volumeMountPath, volumeMountSubPath } = volume;
-  if (!volumeMountSubPath) {
-    return [path.join(volumeMountPath, filePathInVolume), undefined];
+  const [safeFilePathInVolume, filePathErr] = normalizeRelativeVolumePath(
+    filePathInVolume,
+    'file path',
+  );
+  if (filePathErr) {
+    return ['', filePathErr];
   }
-  if (filePathInVolume.startsWith(volumeMountSubPath)) {
-    return [
-      path.join(volumeMountPath, filePathInVolume.substring(volumeMountSubPath.length)),
-      undefined,
-    ];
+  const safeVolumeMountPath = path.normalize(volumeMountPath);
+  if (!path.isAbsolute(safeVolumeMountPath)) {
+    return ['', `Volume mount path ${volumeMountPath} must be absolute`];
+  }
+  if (!volumeMountSubPath) {
+    return [path.join(safeVolumeMountPath, safeFilePathInVolume), undefined];
+  }
+  const [safeVolumeMountSubPath, subPathErr] = normalizeRelativeVolumePath(
+    volumeMountSubPath,
+    'volume mount subpath',
+  );
+  if (subPathErr) {
+    return ['', subPathErr];
+  }
+  if (
+    safeFilePathInVolume === safeVolumeMountSubPath ||
+    safeFilePathInVolume.startsWith(`${safeVolumeMountSubPath}/`)
+  ) {
+    const relativePath =
+      safeFilePathInVolume === safeVolumeMountSubPath
+        ? ''
+        : safeFilePathInVolume.substring(safeVolumeMountSubPath.length + 1);
+    return [path.join(safeVolumeMountPath, relativePath), undefined];
   }
   return [
     '',
     `File ${filePathInVolume} not mounted, expecting the file to be inside volume mount subpath ${volumeMountSubPath}`,
   ];
+}
+
+function normalizeRelativeVolumePath(
+  filePath: string,
+  pathLabel: string,
+): [string, string | undefined] {
+  if (filePath.includes('\0')) {
+    return ['', `Invalid ${pathLabel} ${filePath}`];
+  }
+  if (!filePath) {
+    return ['', undefined];
+  }
+  if (path.isAbsolute(filePath)) {
+    return ['', `${pathLabel} ${filePath} must be relative`];
+  }
+  const segments = filePath.split('/');
+  if (segments.some((segment) => segment === '..')) {
+    return ['', `${pathLabel} ${filePath} must not contain parent directory segments`];
+  }
+  const normalized = path.normalize(filePath);
+  if (normalized === '.' || normalized.startsWith('../') || normalized === '..') {
+    return ['', `Invalid ${pathLabel} ${filePath}`];
+  }
+  return [normalized, undefined];
+}
+
+function isVolumePathInsideSubPath(filePathInVolume: string, volumeMountSubPath: string): boolean {
+  const [safeFilePathInVolume, filePathErr] = normalizeRelativeVolumePath(
+    filePathInVolume,
+    'file path',
+  );
+  const [safeVolumeMountSubPath, subPathErr] = normalizeRelativeVolumePath(
+    volumeMountSubPath,
+    'volume mount subpath',
+  );
+  if (filePathErr || subPathErr) {
+    return false;
+  }
+  return (
+    safeFilePathInVolume === safeVolumeMountSubPath ||
+    safeFilePathInVolume.startsWith(`${safeVolumeMountSubPath}/`)
+  );
 }
 
 export interface PreviewStreamOptions extends TransformOptions {
@@ -351,6 +415,11 @@ function parseK8sError(error: any): ErrorDetails | undefined {
   };
 }
 
-export function isAllowedResourceName(name: string): boolean {
-  return name.length > 0 && name.length <= 63 && /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(name);
+export function isAllowedResourceName(name: unknown): name is string {
+  return (
+    typeof name === 'string' &&
+    name.length > 0 &&
+    name.length <= 63 &&
+    /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(name)
+  );
 }
