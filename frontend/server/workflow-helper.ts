@@ -13,7 +13,7 @@
 // limitations under the License.
 import { PassThrough, Stream } from 'stream';
 import { ClientOptions as MinioClientOptions } from 'minio';
-import { getK8sSecret, getArgoWorkflow, getPodLogs, getConfigMap } from './k8s-helper.js';
+import { getK8sSecret, getArgoWorkflow, getPodLogs, getConfigMap, getServerNamespace } from './k8s-helper.js';
 import { createMinioClient, MinioRequestConfig, getObjectStream } from './minio-helper.js';
 import * as JsYaml from 'js-yaml';
 
@@ -328,7 +328,17 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
   }
 
   const { host, port } = urlSplit(s3Artifact.endpoint, s3Artifact.insecure);
-  const { accessKey, secretKey } = await getMinioClientSecrets(s3Artifact, namespace);
+  // Security: Only read the object-store credential Secret when the run's
+  // namespace is the server's own namespace. In multi-user deployments the
+  // namespace is a customer/user namespace, and the ml-pipeline-ui service
+  // account may not read Secrets there. In that case we fall back to the
+  // server's own environment credentials (SeaweedFS in the kubeflow
+  // namespace). See: https://github.com/kubeflow/pipelines/pull/12860
+  const serverNamespace = getServerNamespace();
+  const { accessKey, secretKey } =
+    namespace && namespace === serverNamespace
+      ? await getMinioClientSecrets(s3Artifact, namespace)
+      : {};
 
   const client = await createMinioClient(
     {

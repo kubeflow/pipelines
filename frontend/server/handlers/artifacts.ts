@@ -109,12 +109,14 @@ export interface GCSProviderInfo {
  *    scalability, and is prone to many CVEs in the artifact proxy
  *    deployment.
  *
- * Note: Secret-backed provider mode (fromEnv === 'false') is unsupported
- * in multi-user deployments. The ml-pipeline-ui ClusterRole no longer
- * grants secrets:get/list permissions, so getK8sSecret() calls will be
- * denied by RBAC at the cluster level. This mode may still work in
- * standalone (single-tenant) deployments where the service account has
- * direct secret access. See: https://github.com/kubeflow/pipelines/pull/12860
+ * Note: Secret-backed provider mode (fromEnv === 'false') names a Kubernetes
+ * Secret to source object-store credentials from. The frontend server only
+ * honors it when the requested namespace is the server's own namespace, so it
+ * never reads Secrets from a customer namespace. In multi-user deployments the
+ * provider info is dropped for user namespaces and artifact retrieval falls
+ * back to the server's own environment credentials (SeaweedFS in the kubeflow
+ * namespace) or the per-namespace artifact proxy.
+ * See: https://github.com/kubeflow/pipelines/pull/12860
  *
  * Security: This addresses the vulnerability where the namespace parameter
  * could be manipulated to access artifacts from other namespaces.
@@ -286,14 +288,30 @@ export function getArtifactsHandler({
     }
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
 
+    // Security: The ml-pipeline-ui service account is only permitted to read
+    // Secrets from its own (server) namespace. Secret-backed provider info
+    // (fromEnv === 'false') names a Secret to read for object-store
+    // credentials; honoring it for a customer/user namespace would read
+    // Secrets cross-namespace, which is forbidden. When the requested
+    // namespace is not the server's own namespace we drop the provider info so
+    // credential resolution falls back to the server's own environment
+    // credentials (SeaweedFS in the kubeflow namespace) or, when enabled, the
+    // per-namespace artifact proxy. See:
+    // https://github.com/kubeflow/pipelines/pull/12860
+    const allowProviderSecrets = !!namespace && namespace === options.server.serverNamespace;
+    const effectiveProviderInfo = allowProviderSecrets ? providerInfo : '';
+
     let client: MinioClient;
     switch (source) {
       case 'gcs':
-        await getGCSArtifactHandler({ bucket, key }, peek, providerInfo, namespace)(req, res);
+        await getGCSArtifactHandler({ bucket, key }, peek, effectiveProviderInfo, namespace)(
+          req,
+          res,
+        );
         break;
       case 'minio':
         try {
-          client = await createMinioClient(minio, 'minio', providerInfo, namespace);
+          client = await createMinioClient(minio, 'minio', effectiveProviderInfo, namespace);
         } catch (e) {
           res.status(500).send(`Failed to initialize Minio Client for Minio Provider: ${e}`);
           return;
@@ -310,7 +328,7 @@ export function getArtifactsHandler({
         break;
       case 's3':
         try {
-          client = await createMinioClient(aws, 's3', providerInfo, namespace);
+          client = await createMinioClient(aws, 's3', effectiveProviderInfo, namespace);
         } catch (e) {
           res.status(500).send(`Failed to initialize Minio Client for S3 Provider: ${e}`);
           return;
@@ -595,12 +613,14 @@ function sanitizeTarEntryName(name: string): string | null {
 }
 
 /**
- * Parses GCS provider info and retrieves credentials from a Kubernetes secret.
+ * Parses GCS provider info and retrieves credentials from a Kubernetes Secret.
  *
- * WARNING: This function is unsupported in multi-user deployments.
- * The ml-pipeline-ui ClusterRole no longer grants secrets:get/list
- * permissions, so getK8sSecret() calls will be denied by RBAC.
- * See: https://github.com/kubeflow/pipelines/pull/12860
+ * Security: The artifact handler only forwards provider info when the
+ * requested namespace is the frontend server's own namespace, so this function
+ * never reads Secrets from a customer namespace. In multi-user deployments the
+ * provider info is dropped for user namespaces and credentials fall back to
+ * the server's own environment credentials or the per-namespace artifact
+ * proxy. See: https://github.com/kubeflow/pipelines/pull/12860
  */
 async function parseGCSProviderInfo(
   providerInfo: GCSProviderInfo,
