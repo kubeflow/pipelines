@@ -847,7 +847,34 @@ func TestResolveBasicAuthSecretCredentials_MissingPasswordKey(t *testing.T) {
 		},
 	)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), `does not contain key "password"`)
+	assert.Contains(t, err.Error(), "does not contain a required key")
+	assert.NotContains(t, err.Error(), "password")
+}
+
+func TestResolveBasicAuthSecretCredentials_EmptyPasswordKeyValue(t *testing.T) {
+	clientSet := k8sfake.NewClientset(&corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      commonmlflow.CredentialSecretName,
+			Namespace: "ns1",
+		},
+		Data: map[string][]byte{
+			"username": []byte("user"),
+			"password": []byte(" "),
+		},
+	})
+
+	_, err := resolveBasicAuthSecretCredentials(
+		context.Background(),
+		clientSet,
+		"ns1",
+		&commonmlflow.CredentialSecretRef{
+			UsernameKey: "username",
+			PasswordKey: "password",
+		},
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "has an empty value for a required key")
+	assert.NotContains(t, err.Error(), "password")
 }
 
 func TestBuildMLflowRequestContext_InvalidEndpoint(t *testing.T) {

@@ -11,6 +11,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -67,6 +68,42 @@ func TestSpecParsing(t *testing.T) {
 		assert.Equal(t, tc.wantErr, err != nil)
 		assert.True(t, proto.Equal(tc.expected, cfg))
 	}
+}
+
+func TestPodSpecPatchLogMessageDoesNotIncludePatchContent(t *testing.T) {
+	podSpecPatch := `{"containers":[{"env":[{"valueFrom":{"secretKeyRef":{"name":"mlflow-secret","key":"password"}}}]}]}`
+
+	message := podSpecPatchLogMessage(podSpecPatch)
+
+	assert.Contains(t, message, "output podSpecPatch")
+	assert.Contains(t, message, "bytes")
+	assert.NotContains(t, message, "secretKeyRef")
+	assert.NotContains(t, message, "mlflow-secret")
+	assert.NotContains(t, message, "password")
+}
+
+func TestKubernetesConfigLogMessageDoesNotIncludeConfigContent(t *testing.T) {
+	kubernetesConfig := `{"secretAsEnv":[{"secretName":"mlflow-secret","keyToEnv":[{"secretKey":"password","envVar":"PASSWORD"}]}]}`
+
+	message := kubernetesConfigLogMessage(kubernetesConfig)
+
+	assert.Contains(t, message, "input kubernetesConfig")
+	assert.Contains(t, message, "bytes")
+	assert.NotContains(t, message, "secretAsEnv")
+	assert.NotContains(t, message, "mlflow-secret")
+	assert.NotContains(t, message, "password")
+}
+
+func TestParseExecConfigJsonErrorDoesNotIncludeConfigContent(t *testing.T) {
+	kubernetesConfig := `{"secretAsEnv":[{"secretName":"mlflow-secret","keyToEnv":[{"secretKey":"password","envVar":"PASSWORD"}]}`
+
+	_, err := parseExecConfigJson(&kubernetesConfig)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to unmarshal Kubernetes config")
+	assert.NotContains(t, err.Error(), "secretAsEnv")
+	assert.NotContains(t, err.Error(), "mlflow-secret")
+	assert.NotContains(t, err.Error(), "password")
 }
 
 func TestGetPipelineJobTimePlaceholderUsage(t *testing.T) {

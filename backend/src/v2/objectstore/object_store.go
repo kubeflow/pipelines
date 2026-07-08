@@ -403,5 +403,5 @@ func getS3BucketCredential(
 		s3Creds := credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")
 		return &s3Creds, err
 	}
-	return nil, fmt.Errorf("could not find specified keys '%s' or '%s'", bucketAccessKeyKey, bucketSecretKeyKey)
+	return nil, fmt.Errorf("could not find required bucket credential values; both access key and secret key must be present")
 }
