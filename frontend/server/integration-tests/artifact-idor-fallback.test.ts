@@ -225,6 +225,30 @@ describe('artifact IDOR guard with the real MLMD validator', () => {
     expect(getObjectMock).not.toHaveBeenCalled();
   });
 
+  it('denies a bucket-per-namespace v1 artifact absent from MLMD under the default prefix mode', async () => {
+    // Documents the compatibility gap discussed on the fix PR: v1 deployments
+    // that isolate namespaces with a dedicated bucket per namespace store
+    // artifacts like "s3://team-a-bucket/<workflow>/<pod>/main.log" with no
+    // owning-namespace key prefix, so the default mlmd-then-prefix mode denies
+    // them. This pins the default-mode behavior; if the proposed opt-in
+    // bucket-ownership mode lands, that mode needs its own allow/deny cases
+    // while this default-mode denial must keep holding for shared buckets.
+    mockMlmd({ artifacts: emptyArtifactsResponse() });
+
+    app = new UIServer(authEnabledConfigs());
+
+    const response = await requests(app.app)
+      .get(
+        `/artifacts/get?source=s3&bucket=team-a-bucket&key=${encodeURIComponent(
+          'flip-coin-abc/flip-coin-abc-1/main.log',
+        )}&namespace=team-a`,
+      )
+      .set('kubeflow-userid', 'user@example.com')
+      .expect(403);
+    expect(response.text).toContain('does not belong to the requested namespace');
+    expect(getObjectMock).not.toHaveBeenCalled();
+  });
+
   it('prefers MLMD namespace evidence over a matching object-key prefix', async () => {
     // The prefix fallback must only apply when MLMD has no record. When MLMD
     // attributes the artifact to another namespace, that evidence wins even
