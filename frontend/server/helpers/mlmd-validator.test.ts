@@ -15,6 +15,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   decideFromContexts,
+  decideFromPrefixFallback,
   decodeGrpcWebResponse,
   encodeGrpcWebRequest,
   namespaceFromArtifactUri,
@@ -267,7 +268,9 @@ describe('namespaceFromArtifactUri', () => {
 
   it('extracts the namespace from a v2 pipeline-root key', () => {
     expect(
-      namespaceFromArtifactUri('minio://mlpipeline/private-artifacts/team-b/v2/artifacts/run/op/out'),
+      namespaceFromArtifactUri(
+        'minio://mlpipeline/private-artifacts/team-b/v2/artifacts/run/op/out',
+      ),
     ).toBe('team-b');
   });
 
@@ -291,5 +294,37 @@ describe('namespaceFromArtifactUri', () => {
     expect(
       namespaceFromArtifactUri('minio://mlpipeline/team-b/private-artifacts/team-a/object'),
     ).toBeUndefined();
+  });
+});
+
+describe('decideFromPrefixFallback', () => {
+  const uri = 'minio://mlpipeline/private-artifacts/team-a/flip-coin-abc/1/main.log';
+
+  it('denies under mlmd-only mode without consulting the object-key prefix', () => {
+    expect(decideFromPrefixFallback(uri, 'team-a', 'mlmd-only')).toEqual({
+      valid: false,
+      reason: 'artifact-not-found',
+    });
+  });
+
+  it('denies when the object key carries no owning-namespace prefix', () => {
+    expect(
+      decideFromPrefixFallback('minio://mlpipeline/public/object', 'team-a', 'mlmd-then-prefix'),
+    ).toEqual({ valid: false, reason: 'prefix-absent' });
+  });
+
+  it('denies and reports the actual namespace when the prefix namespace mismatches', () => {
+    expect(decideFromPrefixFallback(uri, 'attacker-ns', 'mlmd-then-prefix')).toEqual({
+      valid: false,
+      actualNamespace: 'team-a',
+      reason: 'prefix-namespace-mismatch',
+    });
+  });
+
+  it('allows when the prefix namespace matches the claim', () => {
+    expect(decideFromPrefixFallback(uri, 'team-a', 'mlmd-then-prefix')).toEqual({
+      valid: true,
+      reason: 'prefix-match',
+    });
   });
 });
