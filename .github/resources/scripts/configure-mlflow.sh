@@ -198,6 +198,53 @@ if [ "$STATUS" != "200" ]; then
   exit 1
 fi
 
+# The port-forward health check above bypasses cluster networking (it goes
+# runner -> kubelet -> pod), but the API server reaches MLflow through the
+# ClusterIP service DNS path. That path has failed while the port-forward
+# path was healthy (run 28974862974: every API-server MLflow call timed out
+# although all pods were Ready and the localhost health check passed), so
+# probe the exact endpoint the API server is configured with from inside
+# the cluster. Any HTTP status proves the endpoint is serving; only a
+# connection failure or timeout fails the probe. python:3.11 is one of the
+# preloaded runtime base images, so this does not pull from a registry.
+verify_mlflow_in_cluster_reachability() {
+  local probe_script
+  probe_script=$(cat <<'PROBE'
+import ssl, sys, time, urllib.error, urllib.request
+
+url = sys.argv[1] + "/health"
+context = ssl.create_default_context()
+context.check_hostname = False
+context.verify_mode = ssl.CERT_NONE
+for attempt in range(1, 13):
+    try:
+        with urllib.request.urlopen(url, timeout=10, context=context) as response:
+            print(f"in-cluster MLflow endpoint responded: HTTP {response.status}")
+            sys.exit(0)
+    except urllib.error.HTTPError as http_error:
+        print(f"in-cluster MLflow endpoint responded: HTTP {http_error.code}")
+        sys.exit(0)
+    except Exception as error:
+        print(f"attempt {attempt}/12: {error}", flush=True)
+        time.sleep(10)
+print(f"ERROR: no HTTP response from {url} inside the cluster")
+sys.exit(1)
+PROBE
+)
+
+  echo "Verifying in-cluster reachability of ${MLFLOW_ENDPOINT} (the endpoint the API server uses)..."
+  if ! kubectl run mlflow-in-cluster-probe -n "$KFP_NAMESPACE" --rm -i --restart=Never       --image=python:3.11 --command -- python3 -c "$probe_script" "$MLFLOW_ENDPOINT"; then
+    echo "ERROR: MLflow endpoint ${MLFLOW_ENDPOINT} is not reachable from inside the cluster;"
+    echo "API-server MLflow calls would time out even though pods are Ready."
+    kubectl get endpoints -n "$MLFLOW_NAMESPACE" || true
+    kubectl describe svc "$MLFLOW_SVC" -n "$MLFLOW_NAMESPACE" || true
+    kubectl logs -n "$MLFLOW_NAMESPACE" -l app=mlflow --tail=50 --all-containers=true --prefix=true || true
+    exit 1
+  fi
+}
+
+verify_mlflow_in_cluster_reachability
+
 verify_mlflow_api_auth() {
   local api_url="${MLFLOW_SCHEME}://localhost:8080${MLFLOW_STATIC_PREFIX}/api/2.0/mlflow/experiments/search"
   local api_status
