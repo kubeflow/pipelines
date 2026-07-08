@@ -236,7 +236,7 @@ PROBE
   if ! kubectl run mlflow-in-cluster-probe -n "$KFP_NAMESPACE" --rm -i --restart=Never       --image=python:3.11 --command -- python3 -c "$probe_script" "$MLFLOW_ENDPOINT"; then
     echo "ERROR: MLflow endpoint ${MLFLOW_ENDPOINT} is not reachable from inside the cluster;"
     echo "API-server MLflow calls would time out even though pods are Ready."
-    kubectl get endpoints -n "$MLFLOW_NAMESPACE" || true
+    kubectl get endpoints "$MLFLOW_SVC" -n "$MLFLOW_NAMESPACE" -o wide || true
     kubectl describe svc "$MLFLOW_SVC" -n "$MLFLOW_NAMESPACE" || true
     kubectl logs -n "$MLFLOW_NAMESPACE" -l app=mlflow --tail=50 --all-containers=true --prefix=true || true
     # The MLflow operator ships a NetworkPolicy selecting the mlflow pod, and
