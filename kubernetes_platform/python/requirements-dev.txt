@@ -3,6 +3,8 @@ isort==5.10.1
 mypy==0.941
 pre-commit==2.19.0
 pycln==2.1.1
-pytest==7.1.2
-pytest-xdist==2.5.0
+# pytest 9.0.3 contains the tmpdir handling fix but requires Python 3.10+.
+pytest==8.4.2; python_version < "3.10"
+pytest==9.0.3; python_version >= "3.10"
+pytest-xdist==3.8.0
 yapf==0.32.0
