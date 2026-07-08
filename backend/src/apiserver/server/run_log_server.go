@@ -23,7 +23,10 @@ import (
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 const (
@@ -33,8 +36,8 @@ const (
 )
 
 type RunLogServer struct {
-	resourceManager *resource.ResourceManager
-	httpClient      *http.Client
+	*BaseRunServer
+	httpClient *http.Client
 }
 
 // Log streaming endpoint
@@ -58,6 +61,11 @@ func (s *RunLogServer) ReadRunLogV1(w http.ResponseWriter, r *http.Request) {
 
 	follow := vars[Follow] == "true" // defaults to false
 
+	if err := s.canAccessRun(r.Context(), runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet}); err != nil {
+		s.writeErrorToResponse(w, http.StatusForbidden, util.Wrap(err, "Failed to authorize the request"))
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("Cache-Control", "no-cache, private")
@@ -80,5 +88,11 @@ func (s *RunLogServer) writeErrorToResponse(w http.ResponseWriter, code int, err
 }
 
 func NewRunLogServer(resourceManager *resource.ResourceManager) *RunLogServer {
-	return &RunLogServer{resourceManager: resourceManager, httpClient: http.DefaultClient}
+	return &RunLogServer{
+		BaseRunServer: &BaseRunServer{
+			resourceManager: resourceManager,
+			options:         &RunServerOptions{CollectMetrics: false},
+		},
+		httpClient: http.DefaultClient,
+	}
 }
