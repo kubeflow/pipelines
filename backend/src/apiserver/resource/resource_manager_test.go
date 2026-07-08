@@ -51,7 +51,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -542,6 +544,140 @@ func initWithOneTimeFailedRunOffloaded(t *testing.T) (*FakeClientManager, *Resou
 	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
 	assert.Nil(t, err)
 	return store, manager, runDetail
+}
+
+type retryWorkflowExecClient struct {
+	workflowClient util.ExecutionInterface
+}
+
+func (c *retryWorkflowExecClient) Execution(namespace string) util.ExecutionInterface {
+	return c.workflowClient
+}
+
+func (c *retryWorkflowExecClient) Compare(old, new interface{}) bool {
+	return false
+}
+
+type updateConflictWorkflowClient struct {
+	*client.FakeWorkflowClient
+	updateConflictsRemaining int
+	createCalls              int
+}
+
+func (c *updateConflictWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	if c.updateConflictsRemaining > 0 {
+		c.updateConflictsRemaining--
+		return nil, apierrors.NewConflict(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName(), errors.New("stale workflow"))
+	}
+	return c.FakeWorkflowClient.Update(ctx, execSpec, opts)
+}
+
+func (c *updateConflictWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	c.createCalls++
+	return nil, apierrors.NewAlreadyExists(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName())
+}
+
+type persistentConflictWorkflowClient struct {
+	*client.FakeWorkflowClient
+	updateCalls int
+	createCalls int
+}
+
+func (c *persistentConflictWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	c.updateCalls++
+	return nil, apierrors.NewConflict(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName(), errors.New("stale workflow"))
+}
+
+func (c *persistentConflictWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	c.createCalls++
+	return c.FakeWorkflowClient.Create(ctx, execSpec, opts)
+}
+
+type createAlreadyExistsWorkflowClient struct {
+	*client.FakeWorkflowClient
+	updateNotFoundRemaining      int
+	createAlreadyExistsRemaining int
+}
+
+func (c *createAlreadyExistsWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	if c.updateNotFoundRemaining > 0 {
+		c.updateNotFoundRemaining--
+		return nil, apierrors.NewNotFound(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName())
+	}
+	return c.FakeWorkflowClient.Update(ctx, execSpec, opts)
+}
+
+func (c *createAlreadyExistsWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	if c.createAlreadyExistsRemaining > 0 {
+		c.createAlreadyExistsRemaining--
+		return nil, apierrors.NewAlreadyExists(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName())
+	}
+	return c.FakeWorkflowClient.Create(ctx, execSpec, opts)
+}
+
+type retryableGetFailureWorkflowClient struct {
+	*client.FakeWorkflowClient
+	getFailuresRemaining int
+	createCalls          int
+}
+
+func (c *retryableGetFailureWorkflowClient) Get(ctx context.Context, name string, options v1.GetOptions) (util.ExecutionSpec, error) {
+	if c.getFailuresRemaining > 0 {
+		c.getFailuresRemaining--
+		return nil, apierrors.NewServiceUnavailable("apiserver temporarily unavailable")
+	}
+	return c.FakeWorkflowClient.Get(ctx, name, options)
+}
+
+func (c *retryableGetFailureWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	c.createCalls++
+	return c.FakeWorkflowClient.Create(ctx, execSpec, opts)
+}
+
+type retryableUpdateFailureWorkflowClient struct {
+	*client.FakeWorkflowClient
+	updateFailuresRemaining int
+	createCalls             int
+}
+
+func (c *retryableUpdateFailureWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	if c.updateFailuresRemaining > 0 {
+		c.updateFailuresRemaining--
+		return nil, apierrors.NewServiceUnavailable("apiserver temporarily unavailable")
+	}
+	return c.FakeWorkflowClient.Update(ctx, execSpec, opts)
+}
+
+func (c *retryableUpdateFailureWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	c.createCalls++
+	return c.FakeWorkflowClient.Create(ctx, execSpec, opts)
+}
+
+type genericUpdateFailureWorkflowClient struct {
+	*client.FakeWorkflowClient
+	createCalls int
+}
+
+func (c *genericUpdateFailureWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	return nil, errors.New("transient update failure")
+}
+
+func (c *genericUpdateFailureWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	c.createCalls++
+	return nil, apierrors.NewAlreadyExists(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName())
+}
+
+func seedRetryWorkflow(t *testing.T, manager *ResourceManager, runID string, workflowClient util.ExecutionInterface) {
+	t.Helper()
+	run, err := manager.GetRun(runID)
+	require.NoError(t, err)
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
+	require.NoError(t, err)
+	require.NoError(t, execSpec.Decompress())
+	retryExecSpec, _, err := execSpec.GenerateRetryExecution()
+	require.NoError(t, err)
+	_, err = workflowClient.Create(context.Background(), retryExecSpec, v1.CreateOptions{})
+	require.NoError(t, err)
 }
 
 // Tests CreatePipeline and CreatePipelineVersion
@@ -2872,6 +3008,118 @@ func TestRetryRun(t *testing.T) {
 	assert.Equal(t, actualRunDetail.RunDetails.State, model.RuntimeStateRunning)
 }
 
+func TestRetryRun_RetriesWorkflowUpdateConflict(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := client.NewWorkflowClientFake()
+	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
+	conflictWorkflowClient := &updateConflictWorkflowClient{
+		FakeWorkflowClient:       workflowClient,
+		updateConflictsRemaining: 1,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: conflictWorkflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.NoError(t, err)
+	assert.Equal(t, 0, conflictWorkflowClient.updateConflictsRemaining)
+	assert.Equal(t, 0, conflictWorkflowClient.createCalls)
+}
+
+func TestRetryRun_ReturnsUnavailableWhenWorkflowUpdateConflictPersists(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := client.NewWorkflowClientFake()
+	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
+	conflictWorkflowClient := &persistentConflictWorkflowClient{
+		FakeWorkflowClient: workflowClient,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: conflictWorkflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable), "expected retryable error after persistent workflow update conflict, got: %v", err)
+	assert.Greater(t, conflictWorkflowClient.updateCalls, 1)
+	assert.Equal(t, 0, conflictWorkflowClient.createCalls)
+}
+
+func TestRetryRun_RetriesWorkflowUpdateAfterCreateAlreadyExists(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := client.NewWorkflowClientFake()
+	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
+	alreadyExistsWorkflowClient := &createAlreadyExistsWorkflowClient{
+		FakeWorkflowClient:           workflowClient,
+		updateNotFoundRemaining:      1,
+		createAlreadyExistsRemaining: 1,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: alreadyExistsWorkflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.NoError(t, err)
+	assert.Equal(t, 0, alreadyExistsWorkflowClient.updateNotFoundRemaining)
+	assert.Equal(t, 0, alreadyExistsWorkflowClient.createAlreadyExistsRemaining)
+}
+
+func TestRetryRun_CreatesWorkflowAfterRetryableGetFailure(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := &retryableGetFailureWorkflowClient{
+		FakeWorkflowClient:   client.NewWorkflowClientFake(),
+		getFailuresRemaining: 10,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: workflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.NoError(t, err)
+	assert.Equal(t, 9, workflowClient.getFailuresRemaining)
+	assert.Equal(t, 1, workflowClient.createCalls)
+}
+
+func TestRetryRun_RetriesRetryableWorkflowUpdateFailure(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := client.NewWorkflowClientFake()
+	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
+	retryableFailureWorkflowClient := &retryableUpdateFailureWorkflowClient{
+		FakeWorkflowClient:      workflowClient,
+		updateFailuresRemaining: 1,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: retryableFailureWorkflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.NoError(t, err)
+	assert.Equal(t, 0, retryableFailureWorkflowClient.updateFailuresRemaining)
+	assert.Equal(t, 0, retryableFailureWorkflowClient.createCalls)
+}
+
+func TestRetryRun_GenericWorkflowUpdateFailureDoesNotCreate(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := client.NewWorkflowClientFake()
+	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
+	genericFailureWorkflowClient := &genericUpdateFailureWorkflowClient{
+		FakeWorkflowClient: workflowClient,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: genericFailureWorkflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "error updating workflow")
+	assert.Equal(t, 0, genericFailureWorkflowClient.createCalls)
+}
+
 func TestRetryRun_PreservesRunFields(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRun(t)
 	defer store.Close()
@@ -3020,7 +3268,7 @@ func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
 	manager.execClient = client.NewFakeExecClientWithBadWorkflow()
 	err := manager.RetryRun(context.Background(), runDetail.UUID)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "error updating and creating a workflow")
+	assert.Contains(t, err.Error(), "error getting workflow")
 }
 
 func TestUnarchiveRun_OK(t *testing.T) {
