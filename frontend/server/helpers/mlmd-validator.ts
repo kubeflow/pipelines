@@ -70,8 +70,10 @@ const DEFAULT_TIMEOUT_MS = (() => {
 // key prefix, and the per-namespace object-storage policy isolates each namespace to
 // its own prefix. Deriving the owning namespace from that prefix restores retrieval of
 // pod logs and other objects that are legitimately not tracked as metadata-store
-// artifacts, while still blocking cross-namespace access. The previous fail-closed
-// behavior is preserved under the `mlmd-only` mode.
+// artifacts, while still blocking cross-namespace access. Because nothing is ever
+// written to the bucket root, an object that carries no such prefix has no derivable
+// owning namespace and is denied. The strict upstream behavior that denies every
+// artifact absent from the metadata store is preserved under the `mlmd-only` mode.
 const NAMESPACE_OWNERSHIP_MODE = (
   process.env.ARTIFACT_NAMESPACE_OWNERSHIP_MODE || 'mlmd-then-prefix'
 ).trim();
@@ -88,7 +90,14 @@ export function namespaceFromArtifactUri(
     return undefined;
   }
   const escapedPrefix = keyPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const match = artifactUri.match(new RegExp(`(?:^|/)${escapedPrefix}/([^/]+)/`));
+  // Anchor the prefix to the very first object-key segment, immediately after the
+  // "<scheme>://<bucket>/" preamble that `buildArtifactUri` produces. The object key is
+  // fully caller-controlled, so a match-anywhere search would let a caller spoof
+  // ownership by embedding "<prefix>/<his-namespace>/" deeper in the path; requiring the
+  // prefix to be the leading key segment prevents that.
+  const match = artifactUri.match(
+    new RegExp(`^[a-zA-Z][a-zA-Z0-9+.-]*://[^/]+/${escapedPrefix}/([^/]+)/`),
+  );
   return match ? match[1] : undefined;
 }
 
@@ -330,16 +339,17 @@ export async function validateArtifactNamespace(
     const prefixNamespace = namespaceFromArtifactUri(artifactUri);
     if (prefixNamespace === undefined) {
       console.warn(
-        `[SECURITY] Artifact not found in MLMD for URI "${artifactUri}" and no ` +
-          `"${NAMESPACE_KEY_PREFIX}/<namespace>/" object-key prefix is present, allowing ` +
-          `access (the caller was already authorized for the claimed namespace).`,
+        `[SECURITY] Insecure direct object reference blocked: artifact "${artifactUri}" is ` +
+          `absent from the metadata store and carries no "${NAMESPACE_KEY_PREFIX}/<namespace>/" ` +
+          `object-key prefix, so its owning namespace cannot be derived; denying access.`,
       );
-      return { valid: true, reason: 'prefix-absent' };
+      return { valid: false, reason: 'prefix-absent' };
     }
     if (prefixNamespace !== claimedNamespace) {
       console.warn(
-        `[SECURITY] IDOR blocked: object-key prefix namespace "${prefixNamespace}" does ` +
-          `not match the requested namespace "${claimedNamespace}" for URI "${artifactUri}".`,
+        `[SECURITY] Insecure direct object reference blocked: object-key prefix namespace ` +
+          `"${prefixNamespace}" does not match the requested namespace "${claimedNamespace}" ` +
+          `for URI "${artifactUri}".`,
       );
       return {
         valid: false,

@@ -286,4 +286,10 @@ describe('namespaceFromArtifactUri', () => {
       namespaceFromArtifactUri('minio://mlpipeline/not-private-artifacts/team-d/object'),
     ).toBeUndefined();
   });
+
+  it('ignores a prefix that is not the leading object-key segment', () => {
+    expect(
+      namespaceFromArtifactUri('minio://mlpipeline/team-b/private-artifacts/team-a/object'),
+    ).toBeUndefined();
+  });
 });
