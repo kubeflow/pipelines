@@ -501,6 +501,7 @@ func Test_createS3BucketSession(t *testing.T) {
 		expectedPathStyle bool
 		wantErr           bool
 		errorMsg          string
+		forbiddenErrorMsg []string
 	}{
 		{
 			msg: "Bucket with session",
@@ -591,7 +592,11 @@ func Test_createS3BucketSession(t *testing.T) {
 			},
 			expectValidClient: false,
 			wantErr:           true,
-			errorMsg:          "could not find specified keys",
+			errorMsg:          "both access key and secret key must be present",
+			forbiddenErrorMsg: []string{
+				"does_not_exist_secret_key",
+				"does_not_exist_access_key",
+			},
 		},
 	}
 	for _, test := range tt {
@@ -612,6 +617,9 @@ func Test_createS3BucketSession(t *testing.T) {
 				assert.Error(t, err)
 				if test.errorMsg != "" {
 					assert.Contains(t, err.Error(), test.errorMsg)
+				}
+				for _, forbidden := range test.forbiddenErrorMsg {
+					assert.NotContains(t, err.Error(), forbidden)
 				}
 			} else {
 				assert.Nil(t, err)

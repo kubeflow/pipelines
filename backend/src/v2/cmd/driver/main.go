@@ -492,10 +492,10 @@ func drive() (err error) {
 func parseExecConfigJson(k8sExecConfigJson *string) (*kubernetesplatform.KubernetesExecutorConfig, error) {
 	var k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
 	if *k8sExecConfigJson != "" {
-		glog.Infof("input kubernetesConfig:%s\n", prettyPrint(*k8sExecConfigJson))
+		glog.Info(kubernetesConfigLogMessage(*k8sExecConfigJson))
 		k8sExecCfg = &kubernetesplatform.KubernetesExecutorConfig{}
 		if err := util.UnmarshalString(*k8sExecConfigJson, k8sExecCfg); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal Kubernetes config, error: %w\nKubernetesConfig: %v", err, k8sExecConfigJson)
+			return nil, fmt.Errorf("failed to unmarshal Kubernetes config: %w", err)
 		}
 	}
 	return k8sExecCfg, nil
@@ -539,7 +539,7 @@ func handleExecution(execution *driver.Execution, driverType string, executionPa
 		}
 	}
 	if execution.PodSpecPatch != "" {
-		glog.Infof("output podSpecPatch=\n%s\n", execution.PodSpecPatch)
+		glog.Info(podSpecPatchLogMessage(execution.PodSpecPatch))
 		if executionPaths.PodSpecPatch == "" {
 			return fmt.Errorf("--pod_spec_patch_path is required for container executor drivers")
 		}
@@ -556,6 +556,16 @@ func handleExecution(execution *driver.Execution, driverType string, executionPa
 		glog.Infof("output ExecutorInput:%s\n", prettyPrint(executorInputJSON))
 	}
 	return nil
+}
+
+func podSpecPatchLogMessage(podSpecPatch string) string {
+	// Pod spec patches can include secretKeyRef fields. Log only metadata.
+	return fmt.Sprintf("output podSpecPatch: %d bytes", len(podSpecPatch))
+}
+
+func kubernetesConfigLogMessage(kubernetesConfig string) string {
+	// Kubernetes executor config can include secret refs. Log only metadata.
+	return fmt.Sprintf("input kubernetesConfig: %d bytes", len(kubernetesConfig))
 }
 
 func prettyPrint(jsonStr string) string {

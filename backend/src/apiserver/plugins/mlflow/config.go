@@ -507,19 +507,17 @@ func readRequiredSecretKey(secret *corev1.Secret, namespace, key string) (string
 	valueBytes, ok := secret.Data[key]
 	if !ok {
 		return "", util.NewInvalidInputError(
-			"secret %q in namespace %q does not contain key %q",
+			"secret %q in namespace %q does not contain a required key",
 			commonmlflow.CredentialSecretName,
 			namespace,
-			key,
 		)
 	}
 	value := strings.TrimSpace(string(valueBytes))
 	if value == "" {
 		return "", util.NewInvalidInputError(
-			"secret %q in namespace %q has an empty value for key %q",
+			"secret %q in namespace %q has an empty value for a required key",
 			commonmlflow.CredentialSecretName,
 			namespace,
-			key,
 		)
 	}
 	return value, nil
