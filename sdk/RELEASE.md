@@ -8,6 +8,24 @@
 
 ## Bug fixes and other changes
 
+# 2.17.0
+
+## Features
+
+* add kubeflow_client PipelinesClient (phase 1) (#13405)
+* Add set_debug_pause method to PipelineTask  (#13396)
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+* remove max duration limit on retries (#13452)
+* build local KFP package with pip wheel (#13398)
+* support .after() dependencies on ExitHandler groups (#13112)
+* gate LocalRunner input-artifact blocking on provided args (#13064)
+* replace lstrip/rstrip with removeprefix/removesuffix for type name parsing (#12991)
 # 2.15.2
 
 ## Bug fixes and other changes
