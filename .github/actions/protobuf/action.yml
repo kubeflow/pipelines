@@ -32,7 +32,7 @@ runs:
       shell: bash
       run: |
         PROTOC_ZIP=protoc-${{inputs.protoc_version}}-linux-x86_64.zip
-        curl -sSL -O https://github.com/protocolbuffers/protobuf/releases/download/v${{inputs.protoc_version}}/$PROTOC_ZIP
+        curl -sSL --fail --retry 3 --retry-delay 10 --retry-all-errors -O https://github.com/protocolbuffers/protobuf/releases/download/v${{inputs.protoc_version}}/$PROTOC_ZIP
         sudo unzip -o $PROTOC_ZIP -d /usr/local bin/protoc
         sudo unzip -o $PROTOC_ZIP -d /usr/local 'include/*'
         rm $PROTOC_ZIP

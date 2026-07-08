@@ -51,7 +51,7 @@ fetch-dependencies: v2beta1/google/rpc/status.proto
 
 v2beta1/google/rpc/status.proto:
 	mkdir -p v2beta1/google/rpc
-	wget -O v2beta1/google/rpc/status.proto https://raw.githubusercontent.com/googleapis/googleapis/047d3a8ac7f75383855df0166144f891d7af08d9/google/rpc/status.proto
+	wget --tries=3 --waitretry=10 --retry-on-http-error=429,500,502,503 -O v2beta1/google/rpc/status.proto https://raw.githubusercontent.com/googleapis/googleapis/047d3a8ac7f75383855df0166144f891d7af08d9/google/rpc/status.proto
 
 # Generate clients starting by building api-generator image locally.
 # Note, this should only be used for local development purposes. Once any change is made to the Dockerfile,
