@@ -221,11 +221,14 @@ function parseEndpoint(
 }
 
 /**
- * Parse provider info for any S3-compatible store that's not AWS S3.
+ * Parse provider info for any S3-compatible store that is not AWS S3.
  *
- * WARNING: This function is unsupported in multi-user deployments.
- * The ml-pipeline-ui ClusterRole no longer grants secrets:get/list
- * permissions, so getK8sSecret() calls will be denied by RBAC.
+ * Security: This reads a Kubernetes Secret named by the provider info. The
+ * artifact handler only forwards provider info when the requested namespace is
+ * the frontend server's own namespace, so this function never reads Secrets
+ * from a customer namespace. In multi-user deployments the provider info is
+ * dropped for user namespaces and credentials fall back to the server's own
+ * environment credentials or the per-namespace artifact proxy.
  * See: https://github.com/kubeflow/pipelines/pull/12860
  */
 async function parseS3ProviderInfo(

@@ -15,8 +15,10 @@
 import { describe, it, expect } from 'vitest';
 import {
   decideFromContexts,
+  decideFromPrefixFallback,
   decodeGrpcWebResponse,
   encodeGrpcWebRequest,
+  namespaceFromArtifactUri,
 } from './mlmd-validator.js';
 
 const PIPELINE_RUN = 'system.PipelineRun';
@@ -252,5 +254,117 @@ describe('decideFromContexts', () => {
       actualNamespace: 'ns-b',
       reason: 'namespace-mismatch',
     });
+  });
+});
+
+describe('namespaceFromArtifactUri', () => {
+  it('extracts the namespace from a v1 Argo archived-log key', () => {
+    expect(
+      namespaceFromArtifactUri(
+        'minio://mlpipeline/private-artifacts/team-a/flip-coin-abc/2026/07/08/flip-coin-abc-1/main.log',
+      ),
+    ).toBe('team-a');
+  });
+
+  it('extracts the namespace from a v2 pipeline-root key', () => {
+    expect(
+      namespaceFromArtifactUri(
+        'minio://mlpipeline/private-artifacts/team-b/v2/artifacts/run/op/out',
+      ),
+    ).toBe('team-b');
+  });
+
+  it('returns undefined when the key prefix is absent', () => {
+    expect(namespaceFromArtifactUri('minio://mlpipeline/public/some/object')).toBeUndefined();
+  });
+
+  it('honors a custom key prefix', () => {
+    expect(
+      namespaceFromArtifactUri('s3://bucket/scoped-artifacts/team-c/object', 'scoped-artifacts'),
+    ).toBe('team-c');
+  });
+
+  it('does not match a partial prefix segment', () => {
+    expect(
+      namespaceFromArtifactUri('minio://mlpipeline/not-private-artifacts/team-d/object'),
+    ).toBeUndefined();
+  });
+
+  it('ignores a prefix that is not the leading object-key segment', () => {
+    expect(
+      namespaceFromArtifactUri('minio://mlpipeline/team-b/private-artifacts/team-a/object'),
+    ).toBeUndefined();
+  });
+});
+
+describe('decideFromPrefixFallback', () => {
+  const uri = 'minio://mlpipeline/private-artifacts/team-a/flip-coin-abc/1/main.log';
+
+  it('denies under mlmd-only mode without consulting the object-key prefix', () => {
+    expect(decideFromPrefixFallback(uri, 'team-a', 'mlmd-only')).toEqual({
+      valid: false,
+      reason: 'artifact-not-found',
+    });
+  });
+
+  it('denies when the object key carries no owning-namespace prefix', () => {
+    expect(
+      decideFromPrefixFallback('minio://mlpipeline/public/object', 'team-a', 'mlmd-then-prefix'),
+    ).toEqual({ valid: false, reason: 'prefix-absent' });
+  });
+
+  it('denies and reports the actual namespace when the prefix namespace mismatches', () => {
+    expect(decideFromPrefixFallback(uri, 'attacker-ns', 'mlmd-then-prefix')).toEqual({
+      valid: false,
+      actualNamespace: 'team-a',
+      reason: 'prefix-namespace-mismatch',
+    });
+  });
+
+  it('allows when the prefix namespace matches the claim', () => {
+    expect(decideFromPrefixFallback(uri, 'team-a', 'mlmd-then-prefix')).toEqual({
+      valid: true,
+      reason: 'prefix-match',
+    });
+  });
+
+  it('denies keys containing "../" traversal segments before checking the prefix namespace', () => {
+    expect(
+      decideFromPrefixFallback(
+        'minio://mlpipeline/private-artifacts/team-a/../victim-ns/obj',
+        'team-a',
+        'mlmd-then-prefix',
+      ),
+    ).toEqual({ valid: false, reason: 'key-not-normalized' });
+  });
+
+  it('denies keys containing "/./" segments', () => {
+    expect(
+      decideFromPrefixFallback(
+        'minio://mlpipeline/private-artifacts/team-a/./obj',
+        'team-a',
+        'mlmd-then-prefix',
+      ),
+    ).toEqual({ valid: false, reason: 'key-not-normalized' });
+  });
+
+  it('denies keys containing empty ("//") segments', () => {
+    expect(
+      decideFromPrefixFallback(
+        'minio://mlpipeline/private-artifacts/team-a//obj',
+        'team-a',
+        'mlmd-then-prefix',
+      ),
+    ).toEqual({ valid: false, reason: 'key-not-normalized' });
+  });
+
+  it('denies traversal keys even when the derived prefix namespace matches the claim', () => {
+    expect(
+      decideFromPrefixFallback(
+        'minio://mlpipeline/private-artifacts/team-a/../team-a/obj',
+        'team-a',
+        'mlmd-then-prefix',
+      ),
+    ).toEqual({ valid: false, reason: 'key-not-normalized' });
   });
 });

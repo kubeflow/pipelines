@@ -362,11 +362,15 @@ describe('/artifacts authorization', () => {
       expect(response.text).toContain('Authentication required');
     });
 
-    it('fails for secret-backed provider when RBAC denies secret access', async () => {
-      // When providerInfo.Params.fromEnv === 'false', the handler calls
-      // getK8sSecret() to retrieve credentials from a Kubernetes secret.
-      // Since ml-pipeline-ui ClusterRole no longer has secrets:get/list,
-      // getK8sSecret() is rejected by RBAC and the request fails with 500.
+    it('ignores secret-backed provider info for a customer namespace and never reads the Secret', async () => {
+      // When providerInfo.Params.fromEnv === 'false', the pipeline names a
+      // Kubernetes Secret to source object-store credentials from. The
+      // ml-pipeline-ui service account may only read Secrets from its own
+      // namespace, so for a customer namespace the provider info must be
+      // ignored entirely (never calling getK8sSecret). Credential resolution
+      // falls back to the server's own environment credentials (SeaweedFS in
+      // the kubeflow namespace) or, when enabled, the per-namespace artifact
+      // proxy. See: https://github.com/kubeflow/pipelines/pull/12860
       mockedFetch.mockResolvedValue({
         ok: true,
         status: 200,
@@ -374,17 +378,17 @@ describe('/artifacts authorization', () => {
         text: () => Promise.resolve(''),
       });
 
-      // Mock getK8sSecret to simulate RBAC denial
       const k8sHelper = await import('../k8s-helper.js');
-      (k8sHelper.getK8sSecret as any) = vi
-        .fn()
-        .mockRejectedValue(new Error('secrets "mlpipeline-minio-artifact" is forbidden'));
+      const getK8sSecretMock = k8sHelper.getK8sSecret as unknown as MockInstance;
+      getK8sSecretMock.mockClear();
 
       const configurations = loadConfigs(argv, {
+        MINIO_ACCESS_KEY: 'minio',
         MINIO_HOST: 'minio-service',
         MINIO_NAMESPACE: 'kubeflow',
         MINIO_PORT: '9000',
         MINIO_SSL: 'false',
+        MINIO_SECRET_KEY: 'minio123',
         ML_PIPELINE_SERVICE_HOST: 'localhost',
         ML_PIPELINE_SERVICE_PORT: '8888',
         KUBEFLOW_USERID_HEADER: 'kubeflow-userid',
@@ -415,8 +419,9 @@ describe('/artifacts authorization', () => {
           )}`,
         )
         .set('kubeflow-userid', 'user@example.com')
-        .expect(500);
-      expect(response.text).toContain('Failed to initialize Minio Client');
+        .expect(200);
+      expect(response.text).toContain(artifactContent);
+      expect(getK8sSecretMock).not.toHaveBeenCalled();
     });
   });
 
