@@ -1,9 +1,9 @@
-bokeh==1.2.0
+bokeh==3.8.2
 gcsfs==0.2.3
 google-api-python-client==1.7.*
 itables==0.1.0
 ipykernel==6.29.5
-ipython==7.34.0
+ipython==8.10.0
 Jinja2>=3.1.2,<4
 jupyter-client==8.6.3
 markupsafe>=2.1.1
@@ -11,9 +11,9 @@ nbconvert==7.17.1
 nbformat==5.10.4
 pyarrow==14.0.1
 scikit-learn==1.5.0
-tensorflow==2.15.1
-tensorflow-metadata==1.16.0
-tensorflow-serving-api==2.15.1
+tensorflow==2.21.0
+tensorflow-metadata==1.21.0
+tensorflow-serving-api==2.20.0
 tornado==6.*
-protobuf>=4.21.6,<5
+protobuf>=6.31.1,<7
 werkzeug==3.1.6
