@@ -126,6 +126,7 @@ jobs:
         uses: docker/build-push-action@v6
         if: ${{ steps.setup-buildx.outcome == 'success' }}
         id: save-image
+        continue-on-error: true
         env:
           # Disable the job summary report in the GitHub Actions UI
           DOCKER_BUILD_SUMMARY: false
@@ -140,7 +141,7 @@ jobs:
 
       - name: Rebuild Images in case of failure
         uses: docker/build-push-action@v6
-        if: ${{ failure() && steps.save-image.outcome == 'failure' && steps.setup-buildx.outcome == 'success' }}
+        if: ${{ steps.save-image.outcome == 'failure' && steps.setup-buildx.outcome == 'success' }}
         id: rebuild
         env:
           # Disable the job summary report in the GitHub Actions UI
@@ -157,7 +158,7 @@ jobs:
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
-        if: ${{ always() && (steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success') }}
+        if: ${{ steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
