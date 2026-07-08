@@ -1,5 +1,11 @@
 Changelog
 
+## 2.17.0 (2026-07-08)
+
+### Other
+
+- automate releases
+
 ## 2.16.1 (2026-05-03)
 
 ### Bug Fixes
