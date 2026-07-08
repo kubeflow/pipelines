@@ -225,6 +225,26 @@ describe('artifact IDOR guard with the real MLMD validator', () => {
     expect(getObjectMock).not.toHaveBeenCalled();
   });
 
+  it('denies a dot-segment key that spoofs the claimed namespace prefix', async () => {
+    // The key is caller-controlled; "private-artifacts/team-a/../victim-ns/obj"
+    // carries team-a's prefix while addressing victim-ns's object on stores
+    // that normalize paths, so the fallback must deny non-normalized keys.
+    mockMlmd({ artifacts: emptyArtifactsResponse() });
+
+    app = new UIServer(authEnabledConfigs());
+
+    const response = await requests(app.app)
+      .get(
+        `/artifacts/get?source=minio&bucket=mlpipeline&key=${encodeURIComponent(
+          'private-artifacts/team-a/../victim-ns/some/object',
+        )}&namespace=team-a`,
+      )
+      .set('kubeflow-userid', 'attacker@example.com')
+      .expect(403);
+    expect(response.text).toContain('does not belong to the requested namespace');
+    expect(getObjectMock).not.toHaveBeenCalled();
+  });
+
   it('denies a bucket-per-namespace v1 artifact absent from MLMD under the default prefix mode', async () => {
     // Documents the compatibility gap discussed on the fix PR: v1 deployments
     // that isolate namespaces with a dedicated bucket per namespace store

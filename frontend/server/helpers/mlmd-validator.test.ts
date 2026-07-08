@@ -327,4 +327,38 @@ describe('decideFromPrefixFallback', () => {
       reason: 'prefix-match',
     });
   });
+
+  it('denies a key that hides a dot-segment traversal behind a matching prefix', () => {
+    expect(
+      decideFromPrefixFallback(
+        'minio://mlpipeline/private-artifacts/team-a/../victim-ns/obj',
+        'team-a',
+        'mlmd-then-prefix',
+      ),
+    ).toEqual({ valid: false, reason: 'key-not-normalized' });
+  });
+
+  it('denies a key containing a single-dot or empty path segment', () => {
+    expect(
+      decideFromPrefixFallback(
+        'minio://mlpipeline/private-artifacts/team-a/./obj',
+        'team-a',
+        'mlmd-then-prefix',
+      ),
+    ).toEqual({ valid: false, reason: 'key-not-normalized' });
+    expect(
+      decideFromPrefixFallback(
+        'minio://mlpipeline/private-artifacts/team-a//obj',
+        'team-a',
+        'mlmd-then-prefix',
+      ),
+    ).toEqual({ valid: false, reason: 'key-not-normalized' });
+  });
+
+  it('fails closed to the strict denial for an unrecognized ownership mode', () => {
+    expect(decideFromPrefixFallback(uri, 'team-a', 'mlmd_then_prefix')).toEqual({
+      valid: false,
+      reason: 'artifact-not-found',
+    });
+  });
 });
