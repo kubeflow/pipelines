@@ -313,10 +313,12 @@ export function getArtifactsHandler({
     let client: MinioClient;
     switch (source) {
       case 'gcs':
-        await getGCSArtifactHandler({ bucket, key }, peek, effectiveProviderInfo, namespace)(
-          req,
-          res,
-        );
+        await getGCSArtifactHandler(
+          { bucket, key },
+          peek,
+          effectiveProviderInfo,
+          namespace,
+        )(req, res);
         break;
       case 'minio':
         try {
