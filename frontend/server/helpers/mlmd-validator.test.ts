@@ -17,6 +17,7 @@ import {
   decideFromContexts,
   decodeGrpcWebResponse,
   encodeGrpcWebRequest,
+  namespaceFromArtifactUri,
 } from './mlmd-validator.js';
 
 const PIPELINE_RUN = 'system.PipelineRun';
@@ -252,5 +253,37 @@ describe('decideFromContexts', () => {
       actualNamespace: 'ns-b',
       reason: 'namespace-mismatch',
     });
+  });
+});
+
+describe('namespaceFromArtifactUri', () => {
+  it('extracts the namespace from a v1 Argo archived-log key', () => {
+    expect(
+      namespaceFromArtifactUri(
+        'minio://mlpipeline/private-artifacts/team-a/flip-coin-abc/2026/07/08/flip-coin-abc-1/main.log',
+      ),
+    ).toBe('team-a');
+  });
+
+  it('extracts the namespace from a v2 pipeline-root key', () => {
+    expect(
+      namespaceFromArtifactUri('minio://mlpipeline/private-artifacts/team-b/v2/artifacts/run/op/out'),
+    ).toBe('team-b');
+  });
+
+  it('returns undefined when the key prefix is absent', () => {
+    expect(namespaceFromArtifactUri('minio://mlpipeline/public/some/object')).toBeUndefined();
+  });
+
+  it('honors a custom key prefix', () => {
+    expect(
+      namespaceFromArtifactUri('s3://bucket/scoped-artifacts/team-c/object', 'scoped-artifacts'),
+    ).toBe('team-c');
+  });
+
+  it('does not match a partial prefix segment', () => {
+    expect(
+      namespaceFromArtifactUri('minio://mlpipeline/not-private-artifacts/team-d/object'),
+    ).toBeUndefined();
   });
 });
