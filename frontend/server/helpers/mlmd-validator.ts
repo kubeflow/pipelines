@@ -325,12 +325,32 @@ export function decideFromPrefixFallback(
   claimedNamespace: string,
   ownershipMode: string = NAMESPACE_OWNERSHIP_MODE,
 ): ValidationResult {
-  if (ownershipMode === 'mlmd-only') {
+  // Only the documented opt-in value enables the prefix fallback; any other value
+  // (including typos) fails closed to the strict denial, so a misconfigured mode can
+  // never silently weaken the guard.
+  if (ownershipMode !== 'mlmd-then-prefix') {
     console.warn(
       `[SECURITY] Artifact not found in MLMD for URI "${artifactUri}", ` +
         `denying access (no namespace ownership evidence).`,
     );
     return { valid: false, reason: 'artifact-not-found' };
+  }
+  // The object key is caller-controlled and is later passed verbatim to the object
+  // store, so a key containing empty or dot segments (for example
+  // "private-artifacts/team-a/../victim-ns/obj") would carry the claimant's prefix
+  // while addressing another namespace's object on stores that normalize paths.
+  // Deny non-normalized keys outright rather than trusting every backend to reject them.
+  const objectKey = artifactUri.replace(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/]+\//, '');
+  const hasUnsafeSegment = objectKey
+    .split('/')
+    .some((segment) => segment === '' || segment === '.' || segment === '..');
+  if (hasUnsafeSegment) {
+    console.warn(
+      `[SECURITY] Insecure direct object reference blocked: artifact "${artifactUri}" ` +
+        `contains empty or dot path segments, so its object key cannot be trusted to ` +
+        `stay inside its owning-namespace prefix; denying access.`,
+    );
+    return { valid: false, reason: 'key-not-normalized' };
   }
   const prefixNamespace = namespaceFromArtifactUri(artifactUri);
   if (prefixNamespace === undefined) {

@@ -77,9 +77,15 @@ spec:
           # retrieval while still blocking cross-namespace access; an object that carries no
           # such prefix has no derivable owner and is denied, because nothing is ever written
           # to the bucket root. Set to "mlmd-only" to enforce the strict guard that denies
-          # every artifact absent from the metadata store.
+          # every artifact absent from the metadata store. Deployments with a customized
+          # Argo keyFormat / pipeline root can override the expected leading key segment
+          # via ARTIFACT_NAMESPACE_KEY_PREFIX (default "private-artifacts").
           - name: ARTIFACT_NAMESPACE_OWNERSHIP_MODE
-            value: "mlmd-then-prefix"
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: ARTIFACT_NAMESPACE_OWNERSHIP_MODE
+                optional: true
           - name: CLUSTER_DOMAIN
             valueFrom:
               configMapKeyRef:
