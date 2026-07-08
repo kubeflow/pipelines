@@ -22,7 +22,13 @@ import {
   toGetPodLogsStream,
   getKeyFormatFromArtifactRepositories,
 } from './workflow-helper.js';
-import { getK8sSecret, getArgoWorkflow, getPodLogs, getConfigMap, getServerNamespace } from './k8s-helper.js';
+import {
+  getK8sSecret,
+  getArgoWorkflow,
+  getPodLogs,
+  getConfigMap,
+  getServerNamespace,
+} from './k8s-helper.js';
 import { V1ConfigMap, V1ObjectMeta } from '@kubernetes/client-node';
 
 vi.mock('minio');

@@ -13,7 +13,13 @@
 // limitations under the License.
 import { PassThrough, Stream } from 'stream';
 import { ClientOptions as MinioClientOptions } from 'minio';
-import { getK8sSecret, getArgoWorkflow, getPodLogs, getConfigMap, getServerNamespace } from './k8s-helper.js';
+import {
+  getK8sSecret,
+  getArgoWorkflow,
+  getPodLogs,
+  getConfigMap,
+  getServerNamespace,
+} from './k8s-helper.js';
 import { createMinioClient, MinioRequestConfig, getObjectStream } from './minio-helper.js';
 import * as JsYaml from 'js-yaml';
 
