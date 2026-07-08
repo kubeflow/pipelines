@@ -102,6 +102,16 @@ describe('/artifacts', () => {
       });
     });
 
+    it('rejects artifact requests with multi-valued query parameters', async () => {
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      const request = requests(app.app);
+      await request
+        .get('/artifacts/get?source=minio&source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .expect(400, 'source must be a single string value');
+    });
+
     it('responds with artifact if source is AWS S3, and creds are sourced from Env', async () => {
       const mockedMinioClient: Mock = minio.Client as any;
       const configs = loadConfigs(argv, {});
@@ -577,6 +587,43 @@ describe('/artifacts', () => {
       });
     });
 
+    it('rejects http artifacts with a request-controlled host and default allowlist', async () => {
+      mockedFetch.mockClear();
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      const request = requests(app.app);
+      await request
+        .get('/artifacts/get?source=http&bucket=metadata&key=latest%2Fmeta-data')
+        .expect(400, 'HTTP artifact base URL is not configured');
+      expect(mockedFetch).not.toHaveBeenCalled();
+    });
+
+    it('treats http artifact key metacharacters as path data', async () => {
+      const artifactContent = 'hello world';
+      mockedFetch.mockImplementationOnce((url: string, opts: any) =>
+        url === 'http://foo.bar/ml-pipeline/hello%3Ftoken=secret%23frag'
+          ? Promise.resolve({
+              buffer: () => Promise.resolve(artifactContent),
+              body: toWebStream(artifactContent),
+            })
+          : Promise.reject('Unable to retrieve http artifact.'),
+      );
+      const configs = loadConfigs(argv, {
+        HTTP_BASE_URL: 'foo.bar/',
+      });
+      app = new UIServer(configs);
+
+      const request = requests(app.app);
+      await request
+        .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%3Ftoken%3Dsecret%23frag')
+        .expect(200, artifactContent);
+      expect(mockedFetch).toBeCalledWith('http://foo.bar/ml-pipeline/hello%3Ftoken=secret%23frag', {
+        headers: {},
+        redirect: 'manual',
+      });
+    });
+
     it('responds with partial http artifact if peek=5 flag is set', async () => {
       const artifactContent = 'hello world';
       const mockedFetch: Mock = fetch as any;
@@ -989,6 +1036,45 @@ describe('/artifacts', () => {
       await request
         .get(`/artifacts/get?source=volume&bucket=artifact&key=content&peek=5`)
         .expect(200, artifactContent.slice(0, 5));
+    });
+
+    it('rejects volume artifact paths that leave the mounted volume', async () => {
+      vi.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
+        Promise.resolve([
+          {
+            spec: {
+              containers: [
+                {
+                  volumeMounts: [
+                    {
+                      name: 'artifact',
+                      mountPath: mkTempDir(),
+                    },
+                  ],
+                  name: 'ml-pipeline-ui',
+                },
+              ],
+              volumes: [
+                {
+                  name: 'artifact',
+                  persistentVolumeClaim: {
+                    claimName: 'artifact_pvc',
+                  },
+                },
+              ],
+            },
+          } as any,
+          undefined,
+        ]),
+      );
+
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      const request = requests(app.app);
+      await request
+        .get('/artifacts/get?source=volume&bucket=artifact&key=..%2Fsecret')
+        .expect(404, 'Failed to open volume.');
     });
 
     it('responds error with a not exist volume', async () => {
