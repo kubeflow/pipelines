@@ -340,7 +340,7 @@ export function getArtifactsHandler({
         )(req, res);
         break;
       case 'http':
-      case 'https':
+      case 'https': {
         const httpUrl = getHttpUrl(source, http.baseUrl || '', bucket, key);
         if (!httpUrl) {
           res.status(400).send('HTTP artifact base URL is not configured');
@@ -348,6 +348,7 @@ export function getArtifactsHandler({
         }
         await getHttpArtifactsHandler(allowedDomain, httpUrl, http.auth, peek)(req, res);
         break;
+      }
       case 'volume':
         await getVolumeArtifactsHandler(
           {
