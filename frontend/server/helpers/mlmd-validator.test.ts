@@ -327,4 +327,44 @@ describe('decideFromPrefixFallback', () => {
       reason: 'prefix-match',
     });
   });
+
+  it('denies keys containing "../" traversal segments before checking the prefix namespace', () => {
+    expect(
+      decideFromPrefixFallback(
+        'minio://mlpipeline/private-artifacts/team-a/../victim-ns/obj',
+        'team-a',
+        'mlmd-then-prefix',
+      ),
+    ).toEqual({ valid: false, reason: 'key-not-normalized' });
+  });
+
+  it('denies keys containing "/./" segments', () => {
+    expect(
+      decideFromPrefixFallback(
+        'minio://mlpipeline/private-artifacts/team-a/./obj',
+        'team-a',
+        'mlmd-then-prefix',
+      ),
+    ).toEqual({ valid: false, reason: 'key-not-normalized' });
+  });
+
+  it('denies keys containing empty ("//") segments', () => {
+    expect(
+      decideFromPrefixFallback(
+        'minio://mlpipeline/private-artifacts/team-a//obj',
+        'team-a',
+        'mlmd-then-prefix',
+      ),
+    ).toEqual({ valid: false, reason: 'key-not-normalized' });
+  });
+
+  it('denies traversal keys even when the derived prefix namespace matches the claim', () => {
+    expect(
+      decideFromPrefixFallback(
+        'minio://mlpipeline/private-artifacts/team-a/../team-a/obj',
+        'team-a',
+        'mlmd-then-prefix',
+      ),
+    ).toEqual({ valid: false, reason: 'key-not-normalized' });
+  });
 });

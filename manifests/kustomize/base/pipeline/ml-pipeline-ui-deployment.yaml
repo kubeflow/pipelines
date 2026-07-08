@@ -86,6 +86,16 @@ spec:
                 name: pipeline-install-config
                 key: ARTIFACT_NAMESPACE_OWNERSHIP_MODE
                 optional: true
+          # Leading object-key segment used by the "mlmd-then-prefix" mode above to derive
+          # an artifact's owning namespace (the "<prefix>/<namespace>/" convention). Override
+          # only when a customized Argo keyFormat / pipeline root changes that leading
+          # segment; when unset the frontend server defaults to "private-artifacts".
+          - name: ARTIFACT_NAMESPACE_KEY_PREFIX
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: ARTIFACT_NAMESPACE_KEY_PREFIX
+                optional: true
           - name: CLUSTER_DOMAIN
             valueFrom:
               configMapKeyRef:
