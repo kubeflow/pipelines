@@ -1,5 +1,31 @@
 Changelog
 
+## 2.17.0 (2026-07-08)
+
+### Bug Fixes
+
+- **test** update frontend integration npm deps ([#13632](https://github.com/kubeflow/pipelines/pull/13632))
+- **deps** update compatible Python security requirements ([#13633](https://github.com/kubeflow/pipelines/pull/13633))
+- **ci** reduce master push workflow flakes ([#13622](https://github.com/kubeflow/pipelines/pull/13622))
+- **ci** make image rebuild step actually run after build failure ([#13685](https://github.com/kubeflow/pipelines/pull/13685))
+- **frontend** object storage Insecure Direct Object Reference (IDOR) prefix fallback ([#13683](https://github.com/kubeflow/pipelines/pull/13683))
+### Other
+
+- **deps** update nested Go grpc dependencies ([#13638](https://github.com/kubeflow/pipelines/pull/13638))
+- **deps** bump golang.org/x/crypto from 0.51.0 to 0.52.0 in /test/tools/project-cleaner ([#13664](https://github.com/kubeflow/pipelines/pull/13664))
+- **deps** update requests constraints ([#13661](https://github.com/kubeflow/pipelines/pull/13661))
+- **deps** update urllib3 constraints ([#13660](https://github.com/kubeflow/pipelines/pull/13660))
+- **deps** bump golang.org/x/crypto from 0.51.0 to 0.52.0 ([#13666](https://github.com/kubeflow/pipelines/pull/13666))
+- **deps** add Dependabot config for Go module version updates ([#13491](https://github.com/kubeflow/pipelines/pull/13491))
+- **deps** update visualization dependencies ([#13668](https://github.com/kubeflow/pipelines/pull/13668))
+- **deps** update pytest dev requirements ([#13669](https://github.com/kubeflow/pipelines/pull/13669))
+- **deps** update metadata-writer protobuf ([#13671](https://github.com/kubeflow/pipelines/pull/13671))
+- **deps** bump github.com/VividCortex/mysqlerr from 0.0.0-20170204212430-6c6b55f8796f to 1.0.0 ([#13673](https://github.com/kubeflow/pipelines/pull/13673))
+- automate releases
+### Automation
+
+- add AI-powered issue quality analysis workflow ([#13372](https://github.com/kubeflow/pipelines/pull/13372))
+
 ## 2.16.1 (2026-05-03)
 
 ### Bug Fixes
