@@ -64,6 +64,34 @@ const DEFAULT_TIMEOUT_MS = (() => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 5000;
 })();
 
+// When the metadata store has no record of an artifact, the artifact is still owned by
+// exactly one namespace, because both the Argo v1 `keyFormat` and the v2
+// `defaultPipelineRoot` store every object under a `private-artifacts/<namespace>/`
+// key prefix, and the per-namespace object-storage policy isolates each namespace to
+// its own prefix. Deriving the owning namespace from that prefix restores retrieval of
+// pod logs and other objects that are legitimately not tracked as metadata-store
+// artifacts, while still blocking cross-namespace access. The previous fail-closed
+// behavior is preserved under the `mlmd-only` mode.
+const NAMESPACE_OWNERSHIP_MODE = (
+  process.env.ARTIFACT_NAMESPACE_OWNERSHIP_MODE || 'mlmd-then-prefix'
+).trim();
+
+const NAMESPACE_KEY_PREFIX = (process.env.ARTIFACT_NAMESPACE_KEY_PREFIX || 'private-artifacts')
+  .trim()
+  .replace(/^\/+|\/+$/g, '');
+
+export function namespaceFromArtifactUri(
+  artifactUri: string,
+  keyPrefix: string = NAMESPACE_KEY_PREFIX,
+): string | undefined {
+  if (!keyPrefix) {
+    return undefined;
+  }
+  const escapedPrefix = keyPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = artifactUri.match(new RegExp(`(?:^|/)${escapedPrefix}/([^/]+)/`));
+  return match ? match[1] : undefined;
+}
+
 export function encodeGrpcWebRequest(serializedMessage: Uint8Array): Uint8Array {
   const frame = new Uint8Array(5 + serializedMessage.length);
   frame[0] = 0x00; // data frame
@@ -292,11 +320,34 @@ export async function validateArtifactNamespace(
   }
 
   if (artifacts.length === 0) {
-    console.warn(
-      `[SECURITY] Artifact not found in MLMD for URI "${artifactUri}", ` +
-        `denying access (no namespace ownership evidence).`,
-    );
-    return { valid: false, reason: 'artifact-not-found' };
+    if (NAMESPACE_OWNERSHIP_MODE === 'mlmd-only') {
+      console.warn(
+        `[SECURITY] Artifact not found in MLMD for URI "${artifactUri}", ` +
+          `denying access (no namespace ownership evidence).`,
+      );
+      return { valid: false, reason: 'artifact-not-found' };
+    }
+    const prefixNamespace = namespaceFromArtifactUri(artifactUri);
+    if (prefixNamespace === undefined) {
+      console.warn(
+        `[SECURITY] Artifact not found in MLMD for URI "${artifactUri}" and no ` +
+          `"${NAMESPACE_KEY_PREFIX}/<namespace>/" object-key prefix is present, allowing ` +
+          `access (the caller was already authorized for the claimed namespace).`,
+      );
+      return { valid: true, reason: 'prefix-absent' };
+    }
+    if (prefixNamespace !== claimedNamespace) {
+      console.warn(
+        `[SECURITY] IDOR blocked: object-key prefix namespace "${prefixNamespace}" does ` +
+          `not match the requested namespace "${claimedNamespace}" for URI "${artifactUri}".`,
+      );
+      return {
+        valid: false,
+        actualNamespace: prefixNamespace,
+        reason: 'prefix-namespace-mismatch',
+      };
+    }
+    return { valid: true, reason: 'prefix-match' };
   }
 
   let contextResults: { artifactId: number; contexts: ContextNamespace[] | null }[];
