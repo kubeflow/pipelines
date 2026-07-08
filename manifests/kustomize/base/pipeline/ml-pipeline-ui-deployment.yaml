@@ -70,6 +70,14 @@ spec:
             value: "true"
           - name: DISABLE_GKE_METADATA
             value: "true"
+          # Namespace-ownership resolution for artifacts the metadata store does not track
+          # (for example pod logs and other objects legitimately absent from MLMD). The
+          # default "mlmd-then-prefix" derives the owning namespace from the
+          # "private-artifacts/<namespace>/" object-key prefix, restoring v1 and v2 artifact
+          # retrieval while still blocking cross-namespace access. Set to "mlmd-only" to
+          # enforce the strict fail-closed guard that denies every artifact absent from MLMD.
+          - name: ARTIFACT_NAMESPACE_OWNERSHIP_MODE
+            value: "mlmd-then-prefix"
           - name: CLUSTER_DOMAIN
             valueFrom:
               configMapKeyRef:
