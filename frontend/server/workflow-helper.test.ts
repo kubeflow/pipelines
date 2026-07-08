@@ -307,25 +307,38 @@ describe('workflow-helper', () => {
 
       const mockedGetK8sSecret: Mock = getK8sSecret as any;
 
+      // The server's own object-store credentials are provided via the
+      // environment, matching the deployment's MINIO_ACCESS_KEY/MINIO_SECRET_KEY.
+      const previousAccessKey = process.env.MINIO_ACCESS_KEY;
+      const previousSecretKey = process.env.MINIO_SECRET_KEY;
+      process.env.MINIO_ACCESS_KEY = 'server-access-key';
+      process.env.MINIO_SECRET_KEY = 'server-secret-key';
+
       const objStream = new PassThrough();
       const mockedClient: Mock = MinioClient as any;
       MinioClient.prototype.getObject = vi.fn().mockResolvedValueOnce(objStream) as any;
       objStream.end('some fake logs.');
 
-      await getPodLogsStreamFromWorkflow(
-        'workflow-name-system-container-impl-abc',
-        '2024-07-09',
-        'my-user-namespace',
-      );
+      try {
+        await getPodLogsStreamFromWorkflow(
+          'workflow-name-system-container-impl-abc',
+          '2024-07-09',
+          'my-user-namespace',
+        );
+      } finally {
+        process.env.MINIO_ACCESS_KEY = previousAccessKey;
+        process.env.MINIO_SECRET_KEY = previousSecretKey;
+      }
 
       expect(mockedGetK8sSecret).not.toBeCalled();
-      // The client is still built, using the server's own environment
-      // credentials rather than the customer-namespace Secret.
+      // The client is built using the server's own environment credentials
+      // rather than the customer-namespace Secret, so the workflow-status log
+      // path works against the shared store instead of failing anonymously.
       expect(mockedClient).toBeCalledWith({
-        accessKey: undefined,
+        accessKey: 'server-access-key',
         endPoint: 'seaweedfs.kubeflow',
         port: 80,
-        secretKey: undefined,
+        secretKey: 'server-secret-key',
         useSSL: false,
       });
     });

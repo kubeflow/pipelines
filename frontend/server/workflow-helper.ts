@@ -331,14 +331,21 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
   // Security: Only read the object-store credential Secret when the run's
   // namespace is the server's own namespace. In multi-user deployments the
   // namespace is a customer/user namespace, and the ml-pipeline-ui service
-  // account may not read Secrets there. In that case we fall back to the
-  // server's own environment credentials (SeaweedFS in the kubeflow
-  // namespace). See: https://github.com/kubeflow/pipelines/pull/12860
+  // account may not read Secrets there. For those runs we instead use the
+  // frontend server's own configured object-store credentials
+  // (MINIO_ACCESS_KEY / MINIO_SECRET_KEY, with the same defaults as configs.ts).
+  // Those credentials own the shared bucket (SeaweedFS in the kubeflow
+  // namespace), so the workflow-status log path works for user namespaces
+  // against the shared store instead of building a doomed anonymous client.
+  // See: https://github.com/kubeflow/pipelines/pull/12860
   const serverNamespace = getServerNamespace();
-  const { accessKey, secretKey } =
+  const { accessKey = undefined, secretKey = undefined } =
     namespace && namespace === serverNamespace
       ? await getMinioClientSecrets(s3Artifact, namespace)
-      : {};
+      : {
+          accessKey: process.env.MINIO_ACCESS_KEY || 'minio',
+          secretKey: process.env.MINIO_SECRET_KEY || 'minio123',
+        };
 
   const client = await createMinioClient(
     {
