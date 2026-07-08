@@ -809,8 +809,8 @@ func extendPodSpecPatch(
 		}
 
 		// Patch-added init containers bypass the compiler's security context, so
-		// harden them like the compiler hardens user containers: no runAsNonRoot,
-		// since user-specified images may run as root.
+		// harden them like the compiler hardens user containers: no forced
+		// runAsNonRoot, since user-specified images may run as root.
 		allowPrivilegeEscalation := false
 		k8sInitContainer := k8score.Container{
 			Name:    initContainer.GetName(),
@@ -826,6 +826,30 @@ func extendPodSpecPatch(
 					Type: k8score.SeccompProfileTypeRuntimeDefault,
 				},
 			},
+		}
+		// Administrator identity defaults apply to init containers exactly as
+		// to the main container. hostUsers is pod-level, enforced below.
+		if opts.DefaultRunAsUser != nil {
+			v := *opts.DefaultRunAsUser
+			k8sInitContainer.SecurityContext.RunAsUser = &v
+		}
+		if opts.DefaultRunAsGroup != nil {
+			v := *opts.DefaultRunAsGroup
+			k8sInitContainer.SecurityContext.RunAsGroup = &v
+		}
+		if opts.DefaultRunAsNonRoot != nil {
+			v := *opts.DefaultRunAsNonRoot
+			k8sInitContainer.SecurityContext.RunAsNonRoot = &v
+		}
+		// "Always" makes the init container a Kubernetes native sidecar; it is
+		// the only restart policy Kubernetes accepts on init containers.
+		if initContainer.GetRestartPolicy() != "" {
+			if initContainer.GetRestartPolicy() != string(k8score.ContainerRestartPolicyAlways) {
+				return fmt.Errorf("init container %q restart policy must be %q, got %q",
+					initContainer.GetName(), k8score.ContainerRestartPolicyAlways, initContainer.GetRestartPolicy())
+			}
+			restartPolicy := k8score.ContainerRestartPolicyAlways
+			k8sInitContainer.RestartPolicy = &restartPolicy
 		}
 		for _, envVar := range initContainer.GetEnv() {
 			if envVar.GetName() == "" {

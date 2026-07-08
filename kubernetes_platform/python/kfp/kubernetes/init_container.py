@@ -28,14 +28,15 @@ def add_init_container(
     args: Optional[List[str]] = None,
     env: Optional[Dict[str, str]] = None,
     volume_mounts: Optional[Dict[str, str]] = None,
+    restart_policy: Optional[str] = None,
 ) -> PipelineTask:
-    """Add an `init container
-    <https://kubernetes.io/docs/concepts/workloads/pods/init-containers/>`_ to
-    the task's pod.
+    """Add an init container to the task's pod.
 
     Init containers run to completion, in call order, before the task's main
-    container starts. The backend applies a Pod Security Standards compliant
-    security context to each one.
+    container starts; see
+    `Init Containers <https://kubernetes.io/docs/concepts/workloads/pods/init-containers/>`_.
+    The backend applies a Pod Security Standards compliant security context to
+    each one, including the administrator-configured identity defaults.
 
     Args:
         task: Pipeline task.
@@ -46,10 +47,15 @@ def add_init_container(
         env: Mapping of environment variable names to values. Insertion order
             is preserved when serializing to the pod spec, which matters for
             ``$(VAR)`` references; duplicate names are not representable.
-        volume_mounts: Mapping of volume name to mount path. Each volume must be
-            defined on the pod, for example via
+        volume_mounts: Mapping of volume name to absolute mount path. Each
+            volume must be defined on the pod, for example via
             :func:`~kfp.kubernetes.empty_dir_mount` or
             :func:`~kfp.kubernetes.mount_pvc`.
+        restart_policy: Restart policy of the init container. The only
+            supported value is ``Always``, which turns the init container
+            into a Kubernetes
+            `native sidecar <https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/>`_
+            that keeps running alongside the main container.
 
     Returns:
         Task object with the added init container.
@@ -62,6 +68,23 @@ def add_init_container(
         )
     if not image:
         raise ValueError('Argument for "image" must be a non-empty string.')
+    if restart_policy is not None and restart_policy != 'Always':
+        raise ValueError(
+            f'Argument for "restart_policy" must be "Always" if provided. Got: {restart_policy}.'
+        )
+    for env_name in (env or {}):
+        if not env_name:
+            raise ValueError(
+                'Environment variable names in "env" must be non-empty strings.'
+            )
+    for volume_name, mount_path in (volume_mounts or {}).items():
+        if not volume_name:
+            raise ValueError(
+                'Volume names in "volume_mounts" must be non-empty strings.')
+        if not mount_path or not mount_path.startswith('/'):
+            raise ValueError(
+                f'Mount path for volume "{volume_name}" must be an absolute path. Got: {mount_path}.'
+            )
 
     msg = common.get_existing_kubernetes_config_as_message(task)
 
@@ -77,6 +100,8 @@ def add_init_container(
         command=command or [],
         args=args or [],
     )
+    if restart_policy is not None:
+        init_container.restart_policy = restart_policy
     for env_name, env_value in (env or {}).items():
         init_container.env.append(
             pb.InitContainer.EnvVar(name=env_name, value=env_value))

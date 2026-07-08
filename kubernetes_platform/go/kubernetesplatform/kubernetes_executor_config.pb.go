@@ -1846,7 +1846,12 @@ type InitContainer struct {
 	Env []*InitContainer_EnvVar `protobuf:"bytes,5,rep,name=env,proto3" json:"env,omitempty"`
 	// Volumes to mount into the init container. Each referenced volume must
 	// be defined on the pod through other fields of this config.
-	VolumeMounts  []*InitContainer_VolumeMount `protobuf:"bytes,6,rep,name=volume_mounts,json=volumeMounts,proto3" json:"volume_mounts,omitempty"`
+	VolumeMounts []*InitContainer_VolumeMount `protobuf:"bytes,6,rep,name=volume_mounts,json=volumeMounts,proto3" json:"volume_mounts,omitempty"`
+	// Restart policy for the init container. The only supported value is
+	// "Always", which turns the init container into a Kubernetes native
+	// sidecar that keeps running alongside the main container.
+	// https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/
+	RestartPolicy *string `protobuf:"bytes,7,opt,name=restart_policy,json=restartPolicy,proto3,oneof" json:"restart_policy,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1921,6 +1926,13 @@ func (x *InitContainer) GetVolumeMounts() []*InitContainer_VolumeMount {
 		return x.VolumeMounts
 	}
 	return nil
+}
+
+func (x *InitContainer) GetRestartPolicy() string {
+	if x != nil && x.RestartPolicy != nil {
+		return *x.RestartPolicy
+	}
+	return ""
 }
 
 type SecretAsEnv_SecretKeyToEnvMap struct {
@@ -2329,14 +2341,15 @@ const file_kubernetes_executor_config_proto_rawDesc = "" +
 	"\n" +
 	"size_limit\x18\x04 \x01(\tH\x01R\tsizeLimit\x88\x01\x01B\t\n" +
 	"\a_mediumB\r\n" +
-	"\v_size_limit\"\xf2\x02\n" +
+	"\v_size_limit\"\xb1\x03\n" +
 	"\rInitContainer\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05image\x18\x02 \x01(\tR\x05image\x12\x18\n" +
 	"\acommand\x18\x03 \x03(\tR\acommand\x12\x12\n" +
 	"\x04args\x18\x04 \x03(\tR\x04args\x126\n" +
 	"\x03env\x18\x05 \x03(\v2$.kfp_kubernetes.InitContainer.EnvVarR\x03env\x12N\n" +
-	"\rvolume_mounts\x18\x06 \x03(\v2).kfp_kubernetes.InitContainer.VolumeMountR\fvolumeMounts\x1a2\n" +
+	"\rvolume_mounts\x18\x06 \x03(\v2).kfp_kubernetes.InitContainer.VolumeMountR\fvolumeMounts\x12*\n" +
+	"\x0erestart_policy\x18\a \x01(\tH\x00R\rrestartPolicy\x88\x01\x01\x1a2\n" +
 	"\x06EnvVar\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value\x1aM\n" +
@@ -2344,7 +2357,8 @@ const file_kubernetes_executor_config_proto_rawDesc = "" +
 	"\vvolume_name\x18\x01 \x01(\tR\n" +
 	"volumeName\x12\x1d\n" +
 	"\n" +
-	"mount_path\x18\x02 \x01(\tR\tmountPathBIZGgithub.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatformb\x06proto3"
+	"mount_path\x18\x02 \x01(\tR\tmountPathB\x11\n" +
+	"\x0f_restart_policyBIZGgithub.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatformb\x06proto3"
 
 var (
 	file_kubernetes_executor_config_proto_rawDescOnce sync.Once
@@ -2476,6 +2490,7 @@ func file_kubernetes_executor_config_proto_init() {
 	file_kubernetes_executor_config_proto_msgTypes[18].OneofWrappers = []any{}
 	file_kubernetes_executor_config_proto_msgTypes[19].OneofWrappers = []any{}
 	file_kubernetes_executor_config_proto_msgTypes[20].OneofWrappers = []any{}
+	file_kubernetes_executor_config_proto_msgTypes[21].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

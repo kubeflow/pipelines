@@ -349,4 +349,10 @@ message InitContainer {
     // Volumes to mount into the init container. Each referenced volume must
     // be defined on the pod through other fields of this config.
     repeated VolumeMount volume_mounts = 6;
+
+    // Restart policy for the init container. The only supported value is
+    // "Always", which turns the init container into a Kubernetes native
+    // sidecar that keeps running alongside the main container.
+    // https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/
+    optional string restart_policy = 7;
 }

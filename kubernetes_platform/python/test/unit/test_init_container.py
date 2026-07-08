@@ -184,6 +184,84 @@ class TestAddInitContainer:
                     image='busybox:1.36',
                 )
 
+    def test_add_init_container_native_sidecar(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = print_greeting()
+            kubernetes.add_init_container(
+                task,
+                name='log-forwarder',
+                image='busybox:1.36',
+                restart_policy='Always',
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-print-greeting': {
+                                'initContainers': [{
+                                    'name': 'log-forwarder',
+                                    'image': 'busybox:1.36',
+                                    'restartPolicy': 'Always',
+                                }]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_add_init_container_invalid_restart_policy(self):
+        with pytest.raises(
+                ValueError,
+                match=r'Argument for "restart_policy" must be "Always" if provided. Got: Never.',
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                task = print_greeting()
+                kubernetes.add_init_container(
+                    task,
+                    name='log-forwarder',
+                    image='busybox:1.36',
+                    restart_policy='Never',
+                )
+
+    def test_add_init_container_empty_env_name(self):
+        with pytest.raises(
+                ValueError,
+                match=r'Environment variable names in "env" must be non-empty strings.',
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                task = print_greeting()
+                kubernetes.add_init_container(
+                    task,
+                    name='fetch-config',
+                    image='busybox:1.36',
+                    env={'': 'value'},
+                )
+
+    def test_add_init_container_relative_mount_path(self):
+        with pytest.raises(
+                ValueError,
+                match=r'Mount path for volume "config-volume" must be an absolute path. Got: config.',
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                task = print_greeting()
+                kubernetes.add_init_container(
+                    task,
+                    name='fetch-config',
+                    image='busybox:1.36',
+                    volume_mounts={'config-volume': 'config'},
+                )
+
 
 @dsl.component
 def print_greeting():

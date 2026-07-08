@@ -3576,6 +3576,9 @@ func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 			Type: k8score.SeccompProfileTypeRuntimeDefault,
 		},
 	}
+	restartPolicyAlwaysValue := string(k8score.ContainerRestartPolicyAlways)
+	restartPolicyAlways := k8score.ContainerRestartPolicyAlways
+	restartPolicyNever := "Never"
 	tests := []struct {
 		name        string
 		k8sExecCfg  *kubernetesplatform.KubernetesExecutorConfig
@@ -3768,6 +3771,46 @@ func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 			},
 			expectedErr: `init container "fetch-config" volume mount "config-volume" must use an absolute mount path`,
 		},
+		{
+			name: "Valid - native sidecar via restart policy Always",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				InitContainers: []*kubernetesplatform.InitContainer{
+					{
+						Name:          "log-forwarder",
+						Image:         "busybox:1.36",
+						RestartPolicy: &restartPolicyAlwaysValue,
+					},
+				},
+			},
+			expected: &k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+				InitContainers: []k8score.Container{
+					{
+						Name:            "log-forwarder",
+						Image:           "busybox:1.36",
+						RestartPolicy:   &restartPolicyAlways,
+						SecurityContext: hardenedSecurityContext,
+					},
+				},
+			},
+		},
+		{
+			name: "Invalid - unsupported restart policy",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				InitContainers: []*kubernetesplatform.InitContainer{
+					{
+						Name:          "log-forwarder",
+						Image:         "busybox:1.36",
+						RestartPolicy: &restartPolicyNever,
+					},
+				},
+			},
+			expectedErr: `init container "log-forwarder" restart policy must be "Always", got "Never"`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3794,4 +3837,63 @@ func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 			assert.Equal(t, tt.expected, got)
 		})
 	}
+}
+
+// Test_extendPodSpecPatch_InitContainers_AdminSecurityDefaults verifies that
+// user init containers receive the administrator-configured identity defaults
+// (the same defaults applied to the main container) and that the pod-level
+// hostUsers default covers pods with init containers.
+func Test_extendPodSpecPatch_InitContainers_AdminSecurityDefaults(t *testing.T) {
+	runAsUser := int64(1000)
+	runAsGroup := int64(2000)
+	runAsNonRoot := true
+	hostUsers := false
+	allowPrivilegeEscalation := false
+	got := &k8score.PodSpec{Containers: []k8score.Container{
+		{
+			Name: "main",
+		},
+	}}
+	err := extendPodSpecPatch(
+		context.Background(),
+		got,
+		Options{
+			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+				InitContainers: []*kubernetesplatform.InitContainer{
+					{Name: "fetch-config", Image: "busybox:1.36"},
+				},
+			},
+			DefaultRunAsUser:    &runAsUser,
+			DefaultRunAsGroup:   &runAsGroup,
+			DefaultRunAsNonRoot: &runAsNonRoot,
+			DefaultHostUsers:    &hostUsers,
+		},
+		nil,
+		nil,
+		nil,
+		map[string]*structpb.Value{},
+		nil,
+	)
+	assert.Nil(t, err)
+	assert.Len(t, got.InitContainers, 1)
+	initContainerSecurityContext := got.InitContainers[0].SecurityContext
+	assert.Equal(t, &k8score.SecurityContext{
+		AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+		Capabilities: &k8score.Capabilities{
+			Drop: []k8score.Capability{"ALL"},
+		},
+		SeccompProfile: &k8score.SeccompProfile{
+			Type: k8score.SeccompProfileTypeRuntimeDefault,
+		},
+		RunAsUser:    &runAsUser,
+		RunAsGroup:   &runAsGroup,
+		RunAsNonRoot: &runAsNonRoot,
+	}, initContainerSecurityContext)
+	// The main container carries the same administrator identity defaults.
+	assert.Equal(t, &runAsUser, got.Containers[0].SecurityContext.RunAsUser)
+	assert.Equal(t, &runAsGroup, got.Containers[0].SecurityContext.RunAsGroup)
+	assert.Equal(t, &runAsNonRoot, got.Containers[0].SecurityContext.RunAsNonRoot)
+	// hostUsers is pod-level and therefore applies to init containers too.
+	assert.NotNil(t, got.HostUsers)
+	assert.False(t, *got.HostUsers)
 }
