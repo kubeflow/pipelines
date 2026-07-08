@@ -124,7 +124,6 @@ jobs:
 
       - name: Build and save Docker image
         uses: docker/build-push-action@v6
-        if: ${{ steps.setup-buildx.outcome == 'success' }}
         id: save-image
         continue-on-error: true
         env:
@@ -141,7 +140,7 @@ jobs:
 
       - name: Rebuild Images in case of failure
         uses: docker/build-push-action@v6
-        if: ${{ steps.save-image.outcome == 'failure' && steps.setup-buildx.outcome == 'success' }}
+        if: ${{ steps.save-image.outcome == 'failure' }}
         id: rebuild
         env:
           # Disable the job summary report in the GitHub Actions UI
