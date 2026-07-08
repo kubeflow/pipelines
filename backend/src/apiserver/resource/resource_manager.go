@@ -1154,7 +1154,7 @@ func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, names
 			}
 		} else {
 			lastWorkflowError = err
-			if !apierrors.IsNotFound(err) {
+			if !apierrors.IsNotFound(err) && !isTransientWorkflowReconcileError(err) {
 				return err
 			}
 		}
@@ -1178,7 +1178,7 @@ func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, names
 		lastWorkflowErrorMessage = lastWorkflowError.Error()
 	}
 	if apierrors.IsConflict(err) || apierrors.IsAlreadyExists(err) {
-		return nil, util.NewInternalServerError(err, "Failed to retry run %s due to error reconciling workflow after retries. Last workflow error: %s", runID, lastWorkflowErrorMessage)
+		return nil, util.NewUnavailableServerError(err, "Failed to retry run %s due to error reconciling workflow after retries - try again later. Last workflow error: %s", runID, lastWorkflowErrorMessage)
 	}
 	if isTransientWorkflowReconcileError(err) {
 		return nil, util.NewUnavailableServerError(err, "Failed to retry run %s due to error %s - try again later. Last workflow error: %s", runID, lastWorkflowAction, lastWorkflowErrorMessage)

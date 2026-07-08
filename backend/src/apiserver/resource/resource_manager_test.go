@@ -577,6 +577,22 @@ func (c *updateConflictWorkflowClient) Create(ctx context.Context, execSpec util
 	return nil, apierrors.NewAlreadyExists(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName())
 }
 
+type persistentConflictWorkflowClient struct {
+	*client.FakeWorkflowClient
+	updateCalls int
+	createCalls int
+}
+
+func (c *persistentConflictWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	c.updateCalls++
+	return nil, apierrors.NewConflict(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName(), errors.New("stale workflow"))
+}
+
+func (c *persistentConflictWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	c.createCalls++
+	return c.FakeWorkflowClient.Create(ctx, execSpec, opts)
+}
+
 type createAlreadyExistsWorkflowClient struct {
 	*client.FakeWorkflowClient
 	updateNotFoundRemaining      int
@@ -596,6 +612,25 @@ func (c *createAlreadyExistsWorkflowClient) Create(ctx context.Context, execSpec
 		c.createAlreadyExistsRemaining--
 		return nil, apierrors.NewAlreadyExists(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName())
 	}
+	return c.FakeWorkflowClient.Create(ctx, execSpec, opts)
+}
+
+type retryableGetFailureWorkflowClient struct {
+	*client.FakeWorkflowClient
+	getFailuresRemaining int
+	createCalls          int
+}
+
+func (c *retryableGetFailureWorkflowClient) Get(ctx context.Context, name string, options v1.GetOptions) (util.ExecutionSpec, error) {
+	if c.getFailuresRemaining > 0 {
+		c.getFailuresRemaining--
+		return nil, apierrors.NewServiceUnavailable("apiserver temporarily unavailable")
+	}
+	return c.FakeWorkflowClient.Get(ctx, name, options)
+}
+
+func (c *retryableGetFailureWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	c.createCalls++
 	return c.FakeWorkflowClient.Create(ctx, execSpec, opts)
 }
 
@@ -2992,6 +3027,25 @@ func TestRetryRun_RetriesWorkflowUpdateConflict(t *testing.T) {
 	assert.Equal(t, 0, conflictWorkflowClient.createCalls)
 }
 
+func TestRetryRun_ReturnsUnavailableWhenWorkflowUpdateConflictPersists(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := client.NewWorkflowClientFake()
+	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
+	conflictWorkflowClient := &persistentConflictWorkflowClient{
+		FakeWorkflowClient: workflowClient,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: conflictWorkflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable), "expected retryable error after persistent workflow update conflict, got: %v", err)
+	assert.Greater(t, conflictWorkflowClient.updateCalls, 1)
+	assert.Equal(t, 0, conflictWorkflowClient.createCalls)
+}
+
 func TestRetryRun_RetriesWorkflowUpdateAfterCreateAlreadyExists(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRun(t)
 	defer store.Close()
@@ -3010,6 +3064,23 @@ func TestRetryRun_RetriesWorkflowUpdateAfterCreateAlreadyExists(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 0, alreadyExistsWorkflowClient.updateNotFoundRemaining)
 	assert.Equal(t, 0, alreadyExistsWorkflowClient.createAlreadyExistsRemaining)
+}
+
+func TestRetryRun_CreatesWorkflowAfterRetryableGetFailure(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := &retryableGetFailureWorkflowClient{
+		FakeWorkflowClient:   client.NewWorkflowClientFake(),
+		getFailuresRemaining: 10,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: workflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.NoError(t, err)
+	assert.Equal(t, 9, workflowClient.getFailuresRemaining)
+	assert.Equal(t, 1, workflowClient.createCalls)
 }
 
 func TestRetryRun_RetriesRetryableWorkflowUpdateFailure(t *testing.T) {
