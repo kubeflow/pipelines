@@ -527,6 +527,27 @@ class CliTest(unittest.TestCase):
       self.assertEqual(result.exit_code, 0, result.stdout)
       self.assertTrue(ReleaseState.load(state_file).answers['skip_local_review'])
 
+  def test_single_step_without_changelog_does_not_prompt_for_previous_release(self):
+    with TemporaryDirectory() as tmpdir:
+      state_file = Path(tmpdir) / 'state.json'
+      result = CliRunner().invoke(
+          app,
+          [
+              'create-kfp-kubernetes-docs-branch',
+              '--release-type',
+              'minor',
+              '--version',
+              '3.2.0',
+              '--fork-remote',
+              'git@github.com:testuser/pipelines.git',
+              '--state-file',
+              str(state_file),
+              '--dry-run',
+          ],
+      )
+      self.assertEqual(result.exit_code, 0, result.stdout)
+      self.assertNotIn('previous_release', ReleaseState.load(state_file).answers)
+
   def test_bare_fork_username_option_is_saved_as_https_remote(self):
     with TemporaryDirectory() as tmpdir:
       state_file = Path(tmpdir) / 'state.json'
