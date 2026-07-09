@@ -85,6 +85,9 @@ jobs:
         run: go test -v ./... -args -runIntegrationTests=true -namespace=kubeflow -repoName=${{ github.repository }} -branchName=${{ github.ref_name }}
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
+          # Authenticates the raw.githubusercontent.com HEAD in
+          # GetRepoBranchURLRAW to avoid anonymous per-IP 429 rate limits.
+          GITHUB_TOKEN: ${{ github.token }}
         continue-on-error: true
 
       - name: Collect failed logs

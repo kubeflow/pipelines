@@ -225,8 +225,12 @@ func GetRepoBranchURLRAW(repoName, branch, path string) (string, error) {
 		url = fmt.Sprintf("https://raw.githubusercontent.com/%s/pull/%s/head/%s", repoName, pullNumber, path)
 	}
 
-	// Verify the URL exists
-	resp, err := http.Head(url)
+	// Verify the URL exists. Anonymous requests to raw.githubusercontent.com
+	// are rate limited per source IP, and CI runners share heavily-used egress
+	// IPs, so this HEAD intermittently returns 429. Authenticate with
+	// GITHUB_TOKEN when available (raising the limit to the per-token bucket)
+	// and retry transient rate-limit / server errors.
+	resp, err := headWithGitHubAuthAndRetry(url)
 	if err != nil {
 		return url, fmt.Errorf("failed to verify URL exists: %s\n"+
 			"Error: %v\n"+
@@ -248,6 +252,46 @@ func GetRepoBranchURLRAW(repoName, branch, path string) (string, error) {
 	}
 
 	return url, nil
+}
+
+// headWithGitHubAuthAndRetry issues a HEAD request, attaching a bearer token
+// from GITHUB_TOKEN when set, and retries rate-limit (429) and server (5xx)
+// responses with a bounded backoff. A definitive response (2xx/4xx other than
+// 429) is returned immediately so a genuinely missing file is not retried.
+func headWithGitHubAuthAndRetry(url string) (*http.Response, error) {
+	token := os.Getenv("GITHUB_TOKEN")
+
+	const maxAttempts = 4
+	var lastErr error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		request, err := http.NewRequest(http.MethodHead, url, nil)
+		if err != nil {
+			return nil, err
+		}
+		if token != "" {
+			request.Header.Set("Authorization", "Bearer "+token)
+		}
+
+		resp, err := http.DefaultClient.Do(request)
+		if err != nil {
+			lastErr = err
+		} else if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500 {
+			lastErr = fmt.Errorf("transient status %d from %s", resp.StatusCode, url)
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				logger.Log("Warning: failed to close response body: %v", closeErr)
+			}
+		} else {
+			return resp, nil
+		}
+
+		if attempt < maxAttempts {
+			backoff := time.Duration(1<<attempt) * time.Second
+			logger.Log("URL HEAD %s failed (attempt %d/%d): %v; retrying in %s",
+				url, attempt, maxAttempts, lastErr, backoff)
+			time.Sleep(backoff)
+		}
+	}
+	return nil, lastErr
 }
 
 // getBranchOrPR returns a human-readable string indicating whether we're using a branch or PR
