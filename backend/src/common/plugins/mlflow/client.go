@@ -41,10 +41,11 @@ const (
 	// the experiment for a run already carrying this tag before recreating.
 	IdempotencyTagKey = "mlflow.kfp.idempotencyKey"
 
-	// CreateMaxAttempts bounds the idempotent retries for experiment and run
-	// creation. The MLflow operation context budget is sized to this many
-	// per-call timeouts so the attempts fit within it.
-	CreateMaxAttempts = 3
+	// MaxIdempotentAttempts bounds the retries for any idempotent MLflow call
+	// (reads, set/last-write-wins writes, and the dedup-protected creates). The
+	// MLflow operation context budget is sized to this many per-call timeouts so
+	// the attempts fit within it.
+	MaxIdempotentAttempts = 3
 
 	AuthTypeKubernetes = "kubernetes"
 	AuthTypeBearer     = "bearer"
@@ -59,9 +60,9 @@ const (
 	DefaultRetryElapsed time.Duration = 60 * time.Second
 )
 
-// createRetryInitialBackoff is the base wait before the first create retry.
+// idempotentRetryInitialBackoff is the base wait before the first retry.
 // It is a var so tests can shorten it.
-var createRetryInitialBackoff = 500 * time.Millisecond
+var idempotentRetryInitialBackoff = 500 * time.Millisecond
 
 // MLflow REST API paths.
 const (
@@ -259,7 +260,7 @@ func (c *Client) GetExperimentByName(ctx context.Context, name string) (*MLflowE
 // create-or-get recovery keeps those retries idempotent.
 func (c *Client) CreateExperiment(ctx context.Context, name string, description *string) (string, error) {
 	var lastErr error
-	for attempt := 0; attempt < CreateMaxAttempts; attempt++ {
+	for attempt := 0; attempt < MaxIdempotentAttempts; attempt++ {
 		if err := ctx.Err(); err != nil {
 			return "", err
 		}
@@ -281,13 +282,13 @@ func (c *Client) CreateExperiment(ctx context.Context, name string, description 
 			}
 			lastErr = err
 		}
-		if attempt < CreateMaxAttempts-1 {
-			if !sleepWithContext(ctx, createRetryBackoff(attempt)) {
+		if attempt < MaxIdempotentAttempts-1 {
+			if !sleepWithContext(ctx, idempotentRetryBackoff(attempt)) {
 				return "", ctx.Err()
 			}
 		}
 	}
-	return "", fmt.Errorf("CreateExperiment %q failed after %d attempts: %w", name, CreateMaxAttempts, lastErr)
+	return "", fmt.Errorf("CreateExperiment %q failed after %d attempts: %w", name, MaxIdempotentAttempts, lastErr)
 }
 
 func (c *Client) createExperimentOnce(ctx context.Context, name string, description *string) (string, error) {
@@ -323,7 +324,7 @@ func (c *Client) CreateRun(ctx context.Context, experimentID, runName string, ta
 	}
 
 	var lastErr error
-	for attempt := 0; attempt < CreateMaxAttempts; attempt++ {
+	for attempt := 0; attempt < MaxIdempotentAttempts; attempt++ {
 		if err := ctx.Err(); err != nil {
 			return "", err
 		}
@@ -348,13 +349,13 @@ func (c *Client) CreateRun(ctx context.Context, experimentID, runName string, ta
 			return "", fmt.Errorf("CreateRun in experiment %q failed and its idempotency search could not confirm the run's state (create error: %w; search error: %v)", experimentID, lastErr, searchErr)
 		}
 		// Confirmed absent: the create did not commit, so recreating is safe.
-		if attempt < CreateMaxAttempts-1 {
-			if !sleepWithContext(ctx, createRetryBackoff(attempt)) {
+		if attempt < MaxIdempotentAttempts-1 {
+			if !sleepWithContext(ctx, idempotentRetryBackoff(attempt)) {
 				return "", ctx.Err()
 			}
 		}
 	}
-	return "", fmt.Errorf("CreateRun in experiment %q failed after %d attempts: %w", experimentID, CreateMaxAttempts, lastErr)
+	return "", fmt.Errorf("CreateRun in experiment %q failed after %d attempts: %w", experimentID, MaxIdempotentAttempts, lastErr)
 }
 
 func (c *Client) createRunOnce(ctx context.Context, experimentID, runName string, tags []Tag) (string, error) {
@@ -425,7 +426,7 @@ func (c *Client) findRunByIdempotencyTag(ctx context.Context, experimentID, idem
 // log-batch is not retried because MLflow params are immutable.
 func (c *Client) callWithIdempotentRetry(ctx context.Context, call func() ([]byte, error)) ([]byte, error) {
 	var lastErr error
-	for attempt := 0; attempt < CreateMaxAttempts; attempt++ {
+	for attempt := 0; attempt < MaxIdempotentAttempts; attempt++ {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
@@ -437,8 +438,8 @@ func (c *Client) callWithIdempotentRetry(ctx context.Context, call func() ([]byt
 			return nil, err
 		}
 		lastErr = err
-		if attempt < CreateMaxAttempts-1 {
-			if !sleepWithContext(ctx, createRetryBackoff(attempt)) {
+		if attempt < MaxIdempotentAttempts-1 {
+			if !sleepWithContext(ctx, idempotentRetryBackoff(attempt)) {
 				return nil, ctx.Err()
 			}
 		}
@@ -446,9 +447,11 @@ func (c *Client) callWithIdempotentRetry(ctx context.Context, call func() ([]byt
 	return nil, lastErr
 }
 
-// isRetryableTransientError reports whether an error is transient (a client
-// timeout, network error, or an MLflow 5xx) and therefore worth retrying an
-// idempotent request.
+// isRetryableTransientError reports whether an error is transient and therefore
+// worth retrying an idempotent request. Transient means: a context deadline /
+// client per-call timeout, a network error that reports itself as a timeout, an
+// MLflow API 5xx, or any other transport-level failure surfaced as a *url.Error
+// (e.g. connection reset/refused). Definitive API errors (4xx) are not retried.
 func isRetryableTransientError(err error) bool {
 	if err == nil {
 		return false
@@ -469,9 +472,9 @@ func isRetryableTransientError(err error) bool {
 	return errors.As(err, &urlErr)
 }
 
-// createRetryBackoff returns the wait before the next create attempt.
-func createRetryBackoff(attempt int) time.Duration {
-	return createRetryInitialBackoff * time.Duration(1<<attempt)
+// idempotentRetryBackoff returns the wait before the next retry attempt.
+func idempotentRetryBackoff(attempt int) time.Duration {
+	return idempotentRetryInitialBackoff * time.Duration(1<<attempt)
 }
 
 // sleepWithContext waits for d or until ctx is done, returning false if ctx

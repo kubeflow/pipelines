@@ -264,9 +264,9 @@ func TestCreateExperiment_AlreadyExistsRecoversByName(t *testing.T) {
 }
 
 func TestCreateExperiment_RetriesTransientThenSucceeds(t *testing.T) {
-	restore := createRetryInitialBackoff
-	createRetryInitialBackoff = time.Millisecond
-	defer func() { createRetryInitialBackoff = restore }()
+	restore := idempotentRetryInitialBackoff
+	idempotentRetryInitialBackoff = time.Millisecond
+	defer func() { idempotentRetryInitialBackoff = restore }()
 
 	var calls int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -287,9 +287,9 @@ func TestCreateExperiment_RetriesTransientThenSucceeds(t *testing.T) {
 }
 
 func TestCreateRun_IdempotentRecoversAfterTransientFailure(t *testing.T) {
-	restore := createRetryInitialBackoff
-	createRetryInitialBackoff = time.Millisecond
-	defer func() { createRetryInitialBackoff = restore }()
+	restore := idempotentRetryInitialBackoff
+	idempotentRetryInitialBackoff = time.Millisecond
+	defer func() { idempotentRetryInitialBackoff = restore }()
 
 	// The first create times out server-side (503) but the run was committed;
 	// the client finds it by its idempotency tag and reuses it — no duplicate.
@@ -314,9 +314,9 @@ func TestCreateRun_IdempotentRecoversAfterTransientFailure(t *testing.T) {
 }
 
 func TestCreateRun_DoesNotRecreateWhenSearchCannotConfirm(t *testing.T) {
-	restore := createRetryInitialBackoff
-	createRetryInitialBackoff = time.Millisecond
-	defer func() { createRetryInitialBackoff = restore }()
+	restore := idempotentRetryInitialBackoff
+	idempotentRetryInitialBackoff = time.Millisecond
+	defer func() { idempotentRetryInitialBackoff = restore }()
 
 	// The create fails transiently and the idempotency search also fails, so the
 	// client cannot tell whether the run committed. It must NOT recreate (that
@@ -626,9 +626,9 @@ func TestDoWithRetry_SkipsRetryForRunsCreate(t *testing.T) {
 }
 
 func TestCreateExperiment_RetriesExhaustedOnPersistentFailure(t *testing.T) {
-	restore := createRetryInitialBackoff
-	createRetryInitialBackoff = time.Millisecond
-	defer func() { createRetryInitialBackoff = restore }()
+	restore := idempotentRetryInitialBackoff
+	idempotentRetryInitialBackoff = time.Millisecond
+	defer func() { idempotentRetryInitialBackoff = restore }()
 
 	var callCount int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -642,8 +642,8 @@ func TestCreateExperiment_RetriesExhaustedOnPersistentFailure(t *testing.T) {
 	_, err := c.CreateExperiment(context.Background(), "test-exp", nil)
 	require.Error(t, err)
 	// The transport still does not blindly retry the create; the method-level
-	// idempotent retry attempts it CreateMaxAttempts times before giving up.
-	assert.Equal(t, int32(CreateMaxAttempts), atomic.LoadInt32(&callCount))
+	// idempotent retry attempts it MaxIdempotentAttempts times before giving up.
+	assert.Equal(t, int32(MaxIdempotentAttempts), atomic.LoadInt32(&callCount))
 }
 
 func TestDoWithRetry_SkipsRetryForLogBatch(t *testing.T) {
@@ -874,9 +874,9 @@ func testFormattedTags() []interface{} {
 }
 
 func TestGetExperimentByName_RetriesTransientThenSucceeds(t *testing.T) {
-	restore := createRetryInitialBackoff
-	createRetryInitialBackoff = time.Millisecond
-	defer func() { createRetryInitialBackoff = restore }()
+	restore := idempotentRetryInitialBackoff
+	idempotentRetryInitialBackoff = time.Millisecond
+	defer func() { idempotentRetryInitialBackoff = restore }()
 
 	var calls int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -897,9 +897,9 @@ func TestGetExperimentByName_RetriesTransientThenSucceeds(t *testing.T) {
 }
 
 func TestSearchRuns_RetriesTransientThenSucceeds(t *testing.T) {
-	restore := createRetryInitialBackoff
-	createRetryInitialBackoff = time.Millisecond
-	defer func() { createRetryInitialBackoff = restore }()
+	restore := idempotentRetryInitialBackoff
+	idempotentRetryInitialBackoff = time.Millisecond
+	defer func() { idempotentRetryInitialBackoff = restore }()
 
 	var calls int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
