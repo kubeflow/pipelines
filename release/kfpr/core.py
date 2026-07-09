@@ -811,7 +811,7 @@ def collect_context(args: argparse.Namespace, state: ReleaseState) -> ReleaseCon
     if 'include_sdk' not in answers:
       answers['include_sdk'] = True
   metadata = ReleaseMetadata.from_version(str(answers['release_type']), str(answers['version']))
-  if 'previous_release' not in answers:
+  if getattr(args, 'require_previous_release', True) and 'previous_release' not in answers:
     answers['previous_release'] = prompt_required('Previous release tag')
   if getattr(args, 'save_state', True):
     state.save()
@@ -824,5 +824,5 @@ def collect_context(args: argparse.Namespace, state: ReleaseState) -> ReleaseCon
       include_backend=bool(answers['include_backend']),
       include_sdk=bool(answers['include_sdk']),
       skip_local_review=bool(answers.get('skip_local_review', False)),
-      previous_release=str(answers['previous_release']),
+      previous_release=str(answers.get('previous_release', '')),
   )

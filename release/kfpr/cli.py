@@ -49,6 +49,7 @@ def _context(
     skip_local_review: bool = False,
     previous_release: Optional[str] = None,
     save_state: bool = True,
+    require_previous_release: bool = True,
 ) -> ReleaseContext:
   state = _load_state(state_file)
   _set_answer(state, 'release_type', release_type)
@@ -72,6 +73,7 @@ def _context(
           'prompt_release_source_branch': prompt_release_source_branch,
           'release_source_branch': release_source_branch,
           'save_state': save_state,
+          'require_previous_release': require_previous_release,
       },
   )()
   return collect_context(args, state)
@@ -407,6 +409,7 @@ def _make_step_command(step_id: str):
         skip_local_review=skip_local_review,
         previous_release=previous_release,
         save_state=mark_done,
+        require_previous_release=step_id in ('update-version-tags', 'sync-master'),
     )
     STEP_HANDLERS[step_id](context)
     if mark_done:
