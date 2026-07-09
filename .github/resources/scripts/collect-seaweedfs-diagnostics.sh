@@ -32,9 +32,9 @@ OUTPUT_FILE=""
 
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
-        --ns) NS="$2"; shift ;;
-        --selector) SELECTOR="$2"; shift ;;
-        --output) OUTPUT_FILE="$2"; shift ;;
+        --ns) NS="${2:?--ns requires a value}"; shift ;;
+        --selector) SELECTOR="${2:?--selector requires a value}"; shift ;;
+        --output) OUTPUT_FILE="${2:?--output requires a value}"; shift ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
     shift
@@ -52,7 +52,10 @@ emit() {
 {
     echo "================ SeaweedFS failure diagnostics ================"
 
-    POD=$(kubectl get pod -n "$NS" -l "$SELECTOR" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+    # Newest matching pod: with strategy Recreate there is normally one, but a
+    # rollout can briefly leave a Terminating pod alongside the new one, and the
+    # new pod is the one whose state matters.
+    POD=$(kubectl get pod -n "$NS" -l "$SELECTOR" --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1].metadata.name}' 2>/dev/null || true)
     if [[ -z "$POD" ]]; then
         echo "No SeaweedFS pod (selector '$SELECTOR') found in namespace '$NS'; skipping."
         echo "=============================================================="
@@ -87,8 +90,10 @@ emit() {
     # If SeaweedFS is Running with no restarts and the node is healthy but the
     # ClusterIP still times out, the failure is in the service dataplane.
     kubectl get pod -n kube-system -l k8s-app=kube-proxy -o wide 2>/dev/null || true
-    kubectl get endpoints -n "$NS" -l "$SELECTOR" -o wide 2>/dev/null \
-        || kubectl get endpoints seaweedfs -n "$NS" -o wide 2>/dev/null || true
+    # Query Endpoints by service name: the SeaweedFS Service has no labels, so a
+    # label selector matches nothing (and would still exit 0, masking the miss).
+    # Empty ENDPOINTS here means the Service has no ready backends.
+    kubectl get endpoints seaweedfs -n "$NS" -o wide 2>/dev/null || true
 
     echo
     echo "----- full describe (events, resource config) -----"
