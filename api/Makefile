@@ -114,7 +114,7 @@ fetch-googleapis:
 	@# is never worse than without a token; both paths keep the retries.
 	@wget_cmd="wget --tries=3 --waitretry=10 --retry-on-http-error=429,500,502,503 -qO $(PROTO_DST_DIR)/rpc/status.proto https://raw.githubusercontent.com/googleapis/googleapis/$(GOOGLEAPIS_COMMIT)/google/rpc/status.proto"; \
 	if [ -n "$$GITHUB_TOKEN" ]; then \
-		wgetrc=$$(mktemp); \
+		wgetrc=$$(mktemp "$${TMPDIR:-/tmp}/kfp-proto-wgetrc.XXXXXX"); \
 		printf 'header = Authorization: Bearer %s\n' "$$GITHUB_TOKEN" > "$$wgetrc"; \
 		WGETRC=$$wgetrc $$wget_cmd || $$wget_cmd; \
 		status=$$?; \

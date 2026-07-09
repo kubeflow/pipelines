@@ -58,7 +58,7 @@ v2beta1/google/rpc/status.proto:
 	@# behavior is never worse than without a token.
 	@wget_cmd="wget --tries=3 --waitretry=10 --retry-on-http-error=429,500,502,503 -O v2beta1/google/rpc/status.proto https://raw.githubusercontent.com/googleapis/googleapis/047d3a8ac7f75383855df0166144f891d7af08d9/google/rpc/status.proto"; \
 	if [ -n "$$GITHUB_TOKEN" ]; then \
-		wgetrc=$$(mktemp); \
+		wgetrc=$$(mktemp "$${TMPDIR:-/tmp}/kfp-proto-wgetrc.XXXXXX"); \
 		printf 'header = Authorization: Bearer %s\n' "$$GITHUB_TOKEN" > "$$wgetrc"; \
 		WGETRC=$$wgetrc $$wget_cmd || $$wget_cmd; \
 		status=$$?; \
