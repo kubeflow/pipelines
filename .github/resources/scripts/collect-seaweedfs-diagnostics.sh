@@ -11,7 +11,7 @@
 #
 #   1. SeaweedFS crashed/restarted   -> pod restart count and last terminated
 #                                        state (OOMKilled, etc.)
-#   2. Node CPU/mem contention       -> node allocated requests vs allocatable
+#   2. Node CPU/memory contention    -> node allocated requests vs allocatable
 #                                        and node pressure conditions. The
 #                                        SeaweedFS deployment sets a CPU request
 #                                        (no limit), so scheduling shares only
@@ -26,13 +26,13 @@
 
 set -u
 
-NS="kubeflow"
+NAMESPACE="kubeflow"
 SELECTOR="app=seaweedfs"
 OUTPUT_FILE=""
 
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
-        --ns) NS="${2:?--ns requires a value}"; shift ;;
+        --namespace) NAMESPACE="${2:?--namespace requires a value}"; shift ;;
         --selector) SELECTOR="${2:?--selector requires a value}"; shift ;;
         --output) OUTPUT_FILE="${2:?--output requires a value}"; shift ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
@@ -55,9 +55,9 @@ emit() {
     # Newest matching pod: with strategy Recreate there is normally one, but a
     # rollout can briefly leave a Terminating pod alongside the new one, and the
     # new pod is the one whose state matters.
-    POD=$(kubectl get pod -n "$NS" -l "$SELECTOR" --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1].metadata.name}' 2>/dev/null || true)
+    POD=$(kubectl get pod -n "$NAMESPACE" -l "$SELECTOR" --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1].metadata.name}' 2>/dev/null || true)
     if [[ -z "$POD" ]]; then
-        echo "No SeaweedFS pod (selector '$SELECTOR') found in namespace '$NS'; skipping."
+        echo "No SeaweedFS pod (selector '$SELECTOR') found in namespace '$NAMESPACE'; skipping."
         echo "=============================================================="
         exit 0
     fi
@@ -67,10 +67,10 @@ emit() {
     echo "----- (1) restarts / last terminated state -----"
     # A non-zero restart count or an OOMKilled/Error last state means the dial
     # timeouts are the pod being down, and the CPU request is not the lever.
-    kubectl get pod "$POD" -n "$NS" -o wide 2>/dev/null || true
-    kubectl get pod "$POD" -n "$NS" -o jsonpath='restartCount={.status.containerStatuses[0].restartCount}{"\n"}lastState={.status.containerStatuses[0].lastState}{"\n"}qosClass={.status.qosClass}{"\n"}' 2>/dev/null || true
+    kubectl get pod "$POD" -n "$NAMESPACE" -o wide 2>/dev/null || true
+    kubectl get pod "$POD" -n "$NAMESPACE" -o jsonpath='restartCount={.status.containerStatuses[0].restartCount}{"\n"}lastState={.status.containerStatuses[0].lastState}{"\n"}qosClass={.status.qosClass}{"\n"}' 2>/dev/null || true
 
-    NODE=$(kubectl get pod "$POD" -n "$NS" -o jsonpath='{.spec.nodeName}' 2>/dev/null || true)
+    NODE=$(kubectl get pod "$POD" -n "$NAMESPACE" -o jsonpath='{.spec.nodeName}' 2>/dev/null || true)
 
     echo
     echo "----- (2) node contention on $NODE -----"
@@ -93,11 +93,11 @@ emit() {
     # Query Endpoints by service name: the SeaweedFS Service has no labels, so a
     # label selector matches nothing (and would still exit 0, masking the miss).
     # Empty ENDPOINTS here means the Service has no ready backends.
-    kubectl get endpoints seaweedfs -n "$NS" -o wide 2>/dev/null || true
+    kubectl get endpoints seaweedfs -n "$NAMESPACE" -o wide 2>/dev/null || true
 
     echo
     echo "----- full describe (events, resource config) -----"
-    kubectl describe pod "$POD" -n "$NS" 2>/dev/null || true
+    kubectl describe pod "$POD" -n "$NAMESPACE" 2>/dev/null || true
 
     echo "=============================================================="
 } | emit
