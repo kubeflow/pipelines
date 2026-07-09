@@ -54,6 +54,14 @@ class PackageImportTest(unittest.TestCase):
     pyproject = Path(__file__).parents[1] / 'pyproject.toml'
     self.assertIn('[build-system]', pyproject.read_text())
 
+  def test_sdk_client_ci_installs_local_server_api_after_requirements(self):
+    workflow = Path(__file__).parents[2] / '.github/workflows/kfp-sdk-client-tests.yml'
+    text = workflow.read_text()
+    self.assertLess(
+        text.index('name: Install Test dependencies'),
+        text.index('name: Build & install kfp-server-api dist'),
+    )
+
 
 class CliTest(unittest.TestCase):
 
