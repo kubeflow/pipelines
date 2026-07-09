@@ -24,6 +24,11 @@ from .steps import STEP_HANDLERS, Step, build_steps, manual_checklist, run_steps
 HELP_OPTION_NAMES = ['-h', '--help']
 
 app = typer.Typer(help='Kubeflow Pipelines release automation.', context_settings={'help_option_names': HELP_OPTION_NAMES})
+run_app = typer.Typer(
+    help='Run the full release flow or one release step.',
+    context_settings={'help_option_names': HELP_OPTION_NAMES},
+    invoke_without_command=True,
+)
 
 
 def _load_state(path: Path) -> ReleaseState:
@@ -148,8 +153,9 @@ update-version-tags -> merge-version-pr
 create-backend-release -> sync-master -> confirm-website-and-slack'''
 
 
-@app.command(context_settings={'help_option_names': HELP_OPTION_NAMES})
+@run_app.callback(invoke_without_command=True)
 def run(
+    ctx: typer.Context,
     state_file: Path = typer.Option(Path(STATE_FILE), help='Path to checkpoint state file.'),
     dry_run: bool = typer.Option(False, help='Print commands without executing.'),
     force: bool = typer.Option(False, help='Resume an existing checkpoint without prompting.'),
@@ -172,6 +178,8 @@ def run(
     previous_release: Optional[str] = typer.Option(None, '--previous-release', help='Previous release tag for changelog generation.'),
 ) -> None:
   """Run the full checkpointed release flow."""
+  if ctx.invoked_subcommand is not None:
+    return
   if state_file.exists() and not force:
     _print_state_status(_load_state(state_file))
     if not typer.confirm(emphasize_prompt('Continue from this checkpoint?')):
@@ -277,8 +285,8 @@ def validate_state_command(state_file: Path = typer.Option(Path(STATE_FILE), hel
   typer.echo(f'{state_file} is valid')
 
 
-@app.command('mark-done', context_settings={'help_option_names': HELP_OPTION_NAMES})
-def mark_done_command(
+@app.command('done', context_settings={'help_option_names': HELP_OPTION_NAMES})
+def done_command(
     step_id: str,
     state_file: Path = typer.Option(Path(STATE_FILE), help='Path to checkpoint state file.'),
 ) -> None:
@@ -353,7 +361,7 @@ def doctor(
   typer.echo('doctor passed')
 
 
-@app.command(context_settings={'help_option_names': HELP_OPTION_NAMES})
+@run_app.command('watch-publish-images', context_settings={'help_option_names': HELP_OPTION_NAMES})
 def watch_publish_images(
     state_file: Path = typer.Option(Path(STATE_FILE), help='Path to checkpoint state file.'),
     dry_run: bool = typer.Option(False, help='Print commands without executing.'),
@@ -387,7 +395,7 @@ def _make_step_command(step_id: str):
           '--include-sdk/--no-include-sdk',
           help='Include SDK steps.',
       ),
-      mark_done: bool = typer.Option(False, help='Mark this step complete after success.'),
+      done: bool = typer.Option(False, '--done', help='Mark this step complete after success.'),
       skip_local_review: bool = typer.Option(False, '--skip-local-review', help='Skip local review prompts before git commit.'),
       previous_release: Optional[str] = typer.Option(None, '--previous-release', help='Previous release tag for changelog generation.'),
   ) -> None:
@@ -408,11 +416,11 @@ def _make_step_command(step_id: str):
         include_sdk,
         skip_local_review=skip_local_review,
         previous_release=previous_release,
-        save_state=mark_done,
+        save_state=done,
         require_previous_release=step_id in ('update-version-tags', 'sync-master'),
     )
     STEP_HANDLERS[step_id](context)
-    if mark_done:
+    if done:
       context.state.mark_done(step_id)
       context.state.save()
 
@@ -422,7 +430,9 @@ def _make_step_command(step_id: str):
 
 
 for _step in _all_steps():
-  app.command(_step.step_id, context_settings={'help_option_names': HELP_OPTION_NAMES})(_make_step_command(_step.step_id))
+  run_app.command(_step.step_id, context_settings={'help_option_names': HELP_OPTION_NAMES})(_make_step_command(_step.step_id))
+
+app.add_typer(run_app, name='run')
 
 
 if __name__ == '__main__':

@@ -62,6 +62,10 @@ class PackageImportTest(unittest.TestCase):
         text.index('name: Build & install kfp-server-api dist'),
     )
 
+  def test_readthedocs_ci_uses_nested_run_step_command(self):
+    workflow = Path(__file__).parents[2] / '.github/workflows/readthedocs-builds.yml'
+    self.assertIn('kfpr run create-kfp-kubernetes-docs-branch', workflow.read_text())
+
 
 class CliTest(unittest.TestCase):
 
@@ -71,9 +75,9 @@ class CliTest(unittest.TestCase):
     self.assertIn('run', result.stdout)
     self.assertIn('steps', result.stdout)
     self.assertIn('clear', result.stdout)
-    self.assertIn('update-version-tags', result.stdout)
-    self.assertIn('publish-images', result.stdout)
-    self.assertIn('confirm-rtd', result.stdout)
+    self.assertNotIn('update-version-tags', result.stdout)
+    self.assertNotIn('publish-images', result.stdout)
+    self.assertNotIn('confirm-rtd', result.stdout)
 
   def test_normal_command_short_help_runnable(self):
     result = CliRunner().invoke(app, ['steps', '-h'])
@@ -84,16 +88,20 @@ class CliTest(unittest.TestCase):
     result = CliRunner().invoke(app, ['run', '-h'], env={'COLUMNS': '200'})
     self.assertEqual(result.exit_code, 0, result.stdout)
     self.assertIn('--release-source-branch', result.stdout)
+    self.assertIn('update-version-tags', result.stdout)
+    self.assertIn('watch-publish-images', result.stdout)
 
-  def test_generated_step_command_short_help_runnable(self):
-    result = CliRunner().invoke(app, ['preflight', '-h'])
+  def test_run_step_command_short_help_runnable(self):
+    result = CliRunner().invoke(app, ['run', 'preflight', '-h'])
     self.assertEqual(result.exit_code, 0, result.stdout)
-    self.assertIn('--mark-done', result.stdout)
+    self.assertIn('--done', result.stdout)
+    self.assertNotIn('--mark-done', result.stdout)
 
   def test_docs_branch_step_does_not_prompt_for_patch_prs(self):
     result = CliRunner().invoke(
         app,
         [
+            'run',
             'create-kfp-kubernetes-docs-branch',
             '--release-type',
             'patch',
@@ -116,6 +124,7 @@ class CliTest(unittest.TestCase):
       result = CliRunner().invoke(
           app,
           [
+              'run',
               'create-kfp-kubernetes-docs-branch',
               '--state-file',
               str(state_file),
@@ -149,7 +158,7 @@ class CliTest(unittest.TestCase):
 
       result = CliRunner().invoke(
           app,
-          ['watch-publish-images', '--state-file', str(state_file), '--dry-run'],
+          ['run', 'watch-publish-images', '--state-file', str(state_file), '--dry-run'],
       )
 
       self.assertEqual(result.exit_code, 0, result.stdout)
@@ -329,11 +338,11 @@ class CliTest(unittest.TestCase):
       self.assertIn('completed_steps must be a list of strings', result.stdout)
       self.assertNotIn('AttributeError', str(result.exception))
 
-  def test_mark_done_and_reset_step_edit_checkpoint(self):
+  def test_done_and_reset_step_edit_checkpoint(self):
     with TemporaryDirectory() as tmpdir:
       state_file = Path(tmpdir) / 'state.json'
 
-      mark_result = CliRunner().invoke(app, ['mark-done', 'preflight', '--state-file', str(state_file)])
+      mark_result = CliRunner().invoke(app, ['done', 'preflight', '--state-file', str(state_file)])
       self.assertEqual(mark_result.exit_code, 0, mark_result.stdout)
       self.assertTrue(ReleaseState.load(state_file).is_done('preflight'))
 
@@ -469,6 +478,7 @@ class CliTest(unittest.TestCase):
       result = CliRunner().invoke(
           app,
           [
+              'run',
               'preflight',
               '--release-type',
               'major',
@@ -492,6 +502,7 @@ class CliTest(unittest.TestCase):
       result = CliRunner().invoke(
           app,
           [
+              'run',
               'preflight',
               '--release-type',
               'major',
@@ -504,7 +515,7 @@ class CliTest(unittest.TestCase):
               '--state-file',
               str(state_file),
               '--dry-run',
-              '--mark-done',
+              '--done',
           ],
       )
       self.assertEqual(result.exit_code, 0, result.stdout)
@@ -516,6 +527,7 @@ class CliTest(unittest.TestCase):
       result = CliRunner().invoke(
           app,
           [
+              'run',
               'preflight',
               '--release-type',
               'major',
@@ -528,7 +540,7 @@ class CliTest(unittest.TestCase):
               '--state-file',
               str(state_file),
               '--dry-run',
-              '--mark-done',
+              '--done',
               '--skip-local-review',
           ],
       )
@@ -541,6 +553,7 @@ class CliTest(unittest.TestCase):
       result = CliRunner().invoke(
           app,
           [
+              'run',
               'create-kfp-kubernetes-docs-branch',
               '--release-type',
               'minor',
@@ -562,6 +575,7 @@ class CliTest(unittest.TestCase):
       result = CliRunner().invoke(
           app,
           [
+              'run',
               'preflight',
               '--release-type',
               'major',
@@ -574,7 +588,7 @@ class CliTest(unittest.TestCase):
               '--state-file',
               str(state_file),
               '--dry-run',
-              '--mark-done',
+              '--done',
           ],
       )
       self.assertEqual(result.exit_code, 0, result.stdout)
