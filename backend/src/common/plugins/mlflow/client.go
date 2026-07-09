@@ -204,13 +204,14 @@ func (c *Client) GetExperiment(ctx context.Context, experimentID string) (*MLflo
 	q.Set("experiment_id", experimentID)
 	reqURL.RawQuery = q.Encode()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL.String(), nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create GetExperiment request: %w", err)
-	}
-	c.applyHeaders(req)
-
-	respBody, err := c.do(req)
+	respBody, err := c.callWithIdempotentRetry(ctx, func() ([]byte, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL.String(), nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create GetExperiment request: %w", err)
+		}
+		c.applyHeaders(req)
+		return c.do(req)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -230,13 +231,14 @@ func (c *Client) GetExperimentByName(ctx context.Context, name string) (*MLflowE
 	q.Set("experiment_name", name)
 	reqURL.RawQuery = q.Encode()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL.String(), nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create GetExperimentByName request: %w", err)
-	}
-	c.applyHeaders(req)
-
-	respBody, err := c.do(req)
+	respBody, err := c.callWithIdempotentRetry(ctx, func() ([]byte, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL.String(), nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create GetExperimentByName request: %w", err)
+		}
+		c.applyHeaders(req)
+		return c.do(req)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +276,7 @@ func (c *Client) CreateExperiment(ctx context.Context, name string, description 
 			}
 			lastErr = getErr
 		} else {
-			if !isRetryableCreateError(err) {
+			if !isRetryableTransientError(err) {
 				return "", err
 			}
 			lastErr = err
@@ -329,7 +331,7 @@ func (c *Client) CreateRun(ctx context.Context, experimentID, runName string, ta
 		if err == nil {
 			return runID, nil
 		}
-		if !isRetryableCreateError(err) {
+		if !isRetryableTransientError(err) {
 			return "", err
 		}
 		lastErr = err
@@ -394,45 +396,60 @@ func (c *Client) createRunOnce(ctx context.Context, experimentID, runName string
 func (c *Client) findRunByIdempotencyTag(ctx context.Context, experimentID, idempotencyKey string) (runID string, confirmed bool, err error) {
 	// Escape single quotes so a tag value can never alter the filter grammar.
 	filter := fmt.Sprintf("tags.`%s` = '%s'", IdempotencyTagKey, strings.ReplaceAll(idempotencyKey, "'", "''"))
-	var lastErr error
-	for attempt := 0; attempt < CreateMaxAttempts; attempt++ {
-		if ctxErr := ctx.Err(); ctxErr != nil {
-			return "", false, ctxErr
-		}
-		resp, searchErr := c.SearchRuns(ctx, []string{experimentID}, filter, 1, "")
-		if searchErr != nil {
-			lastErr = searchErr
-			// A definitive (non-transient) error means the search cannot succeed.
-			if !isRetryableCreateError(searchErr) {
-				return "", false, searchErr
-			}
-			if attempt < CreateMaxAttempts-1 {
-				if !sleepWithContext(ctx, createRetryBackoff(attempt)) {
-					return "", false, ctx.Err()
-				}
-			}
-			continue
-		}
-		if len(resp.Runs) == 0 {
-			return "", true, nil // confirmed absent
-		}
-		var run struct {
-			Info struct {
-				RunID string `json:"run_id"`
-			} `json:"info"`
-		}
-		if unmarshalErr := json.Unmarshal(resp.Runs[0], &run); unmarshalErr != nil {
-			return "", false, fmt.Errorf("failed to parse searched run: %w", unmarshalErr)
-		}
-		return run.Info.RunID, true, nil // confirmed present
+	// SearchRuns retries transient failures itself, so a returned error here is
+	// definitive: the search could not confirm the run's state.
+	resp, searchErr := c.SearchRuns(ctx, []string{experimentID}, filter, 1, "")
+	if searchErr != nil {
+		return "", false, searchErr
 	}
-	return "", false, lastErr
+	if len(resp.Runs) == 0 {
+		return "", true, nil // confirmed absent
+	}
+	var run struct {
+		Info struct {
+			RunID string `json:"run_id"`
+		} `json:"info"`
+	}
+	if unmarshalErr := json.Unmarshal(resp.Runs[0], &run); unmarshalErr != nil {
+		return "", false, fmt.Errorf("failed to parse searched run: %w", unmarshalErr)
+	}
+	return run.Info.RunID, true, nil // confirmed present
 }
 
-// isRetryableCreateError reports whether a create failure is transient (client
+// callWithIdempotentRetry runs an idempotent MLflow HTTP call, retrying it on
+// transient failures (client timeout, network error, MLflow 5xx). Each attempt
+// is a fresh request/response, so several fit within the operation context
+// budget even though the per-call HTTP timeout bounds any single attempt. Only
+// use this for idempotent calls (reads and set/last-write-wins writes); the
+// non-idempotent creates are retried separately with duplicate protection, and
+// log-batch is not retried because MLflow params are immutable.
+func (c *Client) callWithIdempotentRetry(ctx context.Context, call func() ([]byte, error)) ([]byte, error) {
+	var lastErr error
+	for attempt := 0; attempt < CreateMaxAttempts; attempt++ {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		body, err := call()
+		if err == nil {
+			return body, nil
+		}
+		if !isRetryableTransientError(err) {
+			return nil, err
+		}
+		lastErr = err
+		if attempt < CreateMaxAttempts-1 {
+			if !sleepWithContext(ctx, createRetryBackoff(attempt)) {
+				return nil, ctx.Err()
+			}
+		}
+	}
+	return nil, lastErr
+}
+
+// isRetryableTransientError reports whether an error is transient (a client
 // timeout, network error, or an MLflow 5xx) and therefore worth retrying an
-// idempotent create.
-func isRetryableCreateError(err error) bool {
+// idempotent request.
+func isRetryableTransientError(err error) bool {
 	if err == nil {
 		return false
 	}
@@ -489,7 +506,9 @@ func (c *Client) UpdateRun(ctx context.Context, runID, status string, endTimeMs 
 	if endTimeMs != nil {
 		body["end_time"] = *endTimeMs
 	}
-	_, err := c.postJSON(ctx, pathRunsUpdate, body)
+	_, err := c.callWithIdempotentRetry(ctx, func() ([]byte, error) {
+		return c.postJSON(ctx, pathRunsUpdate, body)
+	})
 	return err
 }
 
@@ -500,7 +519,9 @@ func (c *Client) SetTag(ctx context.Context, runID, key, value string) error {
 		"key":    key,
 		"value":  value,
 	}
-	_, err := c.postJSON(ctx, pathRunsSetTag, body)
+	_, err := c.callWithIdempotentRetry(ctx, func() ([]byte, error) {
+		return c.postJSON(ctx, pathRunsSetTag, body)
+	})
 	return err
 }
 
@@ -514,7 +535,9 @@ func (c *Client) SearchRuns(ctx context.Context, experimentIDs []string, filter 
 	if pageToken != "" {
 		body["page_token"] = pageToken
 	}
-	respBody, err := c.postJSON(ctx, pathRunsSearch, body)
+	respBody, err := c.callWithIdempotentRetry(ctx, func() ([]byte, error) {
+		return c.postJSON(ctx, pathRunsSearch, body)
+	})
 	if err != nil {
 		return nil, err
 	}

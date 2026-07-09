@@ -872,3 +872,64 @@ func testFormattedTags() []interface{} {
 		},
 	}
 }
+
+func TestGetExperimentByName_RetriesTransientThenSucceeds(t *testing.T) {
+	restore := createRetryInitialBackoff
+	createRetryInitialBackoff = time.Millisecond
+	defer func() { createRetryInitialBackoff = restore }()
+
+	var calls int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if atomic.AddInt32(&calls, 1) == 1 {
+			w.WriteHeader(http.StatusServiceUnavailable) // transient — the pre-create lookup under load
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"experiment":{"experiment_id":"42","name":"exp"}}`))
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server.URL)
+	exp, err := c.GetExperimentByName(context.Background(), "exp")
+	require.NoError(t, err)
+	assert.Equal(t, "42", exp.ID)
+	assert.GreaterOrEqual(t, atomic.LoadInt32(&calls), int32(2), "the read must retry the transient failure")
+}
+
+func TestSearchRuns_RetriesTransientThenSucceeds(t *testing.T) {
+	restore := createRetryInitialBackoff
+	createRetryInitialBackoff = time.Millisecond
+	defer func() { createRetryInitialBackoff = restore }()
+
+	var calls int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if atomic.AddInt32(&calls, 1) == 1 {
+			w.WriteHeader(http.StatusBadGateway) // transient 502 on the POST search
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"runs":[{"info":{"run_id":"r1"}}]}`))
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server.URL)
+	resp, err := c.SearchRuns(context.Background(), []string{"exp-1"}, "", 1, "")
+	require.NoError(t, err)
+	require.Len(t, resp.Runs, 1)
+	assert.GreaterOrEqual(t, atomic.LoadInt32(&calls), int32(2), "the search must retry the transient failure")
+}
+
+func TestGetExperimentByName_DoesNotRetryDefinitiveError(t *testing.T) {
+	var calls int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&calls, 1)
+		w.WriteHeader(http.StatusNotFound) // 4xx — definitive, not retryable
+		_, _ = w.Write([]byte(`{"error_code":"RESOURCE_DOES_NOT_EXIST","message":"nope"}`))
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server.URL)
+	_, err := c.GetExperimentByName(context.Background(), "exp")
+	require.Error(t, err)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&calls), "a definitive 4xx must not be retried")
+}
