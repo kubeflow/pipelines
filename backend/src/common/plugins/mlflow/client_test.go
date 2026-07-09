@@ -313,6 +313,30 @@ func TestCreateRun_IdempotentRecoversAfterTransientFailure(t *testing.T) {
 	assert.Equal(t, "existing-run", runID, "should reuse the run found by idempotency tag")
 }
 
+func TestCreateRun_DoesNotRecreateWhenSearchCannotConfirm(t *testing.T) {
+	restore := createRetryInitialBackoff
+	createRetryInitialBackoff = time.Millisecond
+	defer func() { createRetryInitialBackoff = restore }()
+
+	// The create fails transiently and the idempotency search also fails, so the
+	// client cannot tell whether the run committed. It must NOT recreate (that
+	// would risk a duplicate) and must issue exactly one create.
+	var createCalls int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == pathRunsCreate {
+			atomic.AddInt32(&createCalls, 1)
+		}
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server.URL)
+	tags := []Tag{{Key: IdempotencyTagKey, Value: "kfp-run-9"}}
+	_, err := c.CreateRun(context.Background(), "exp-1", "parent", tags)
+	require.Error(t, err)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&createCalls), "must not recreate the run when the idempotency search cannot confirm its state")
+}
+
 func TestCreateRun_NoIdempotencyTag_CreatedOnce(t *testing.T) {
 	var createCalls int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

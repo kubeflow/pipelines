@@ -333,11 +333,19 @@ func (c *Client) CreateRun(ctx context.Context, experimentID, runName string, ta
 			return "", err
 		}
 		lastErr = err
-		// The failed attempt may have created the run server-side before the
-		// response was lost; find it by its idempotency tag and reuse it.
-		if existing, findErr := c.findRunByIdempotencyTag(ctx, experimentID, idempotencyKey); findErr == nil && existing != "" {
+		// The failed attempt may have committed the run server-side before its
+		// response was lost. Confirm via search before recreating; recreating
+		// without a definitive answer risks a duplicate run.
+		existing, confirmed, searchErr := c.findRunByIdempotencyTag(ctx, experimentID, idempotencyKey)
+		if existing != "" {
 			return existing, nil
 		}
+		if !confirmed {
+			// The search could not determine whether the run exists, so we cannot
+			// safely recreate it; fail rather than risk a duplicate.
+			return "", fmt.Errorf("CreateRun in experiment %q failed and its idempotency search could not confirm the run's state (create error: %w; search error: %v)", experimentID, lastErr, searchErr)
+		}
+		// Confirmed absent: the create did not commit, so recreating is safe.
 		if attempt < CreateMaxAttempts-1 {
 			if !sleepWithContext(ctx, createRetryBackoff(attempt)) {
 				return "", ctx.Err()
@@ -377,26 +385,48 @@ func (c *Client) createRunOnce(ctx context.Context, experimentID, runName string
 	return result.Run.Info.RunID, nil
 }
 
-// findRunByIdempotencyTag returns the id of a run in the experiment carrying the
-// given IdempotencyTagKey value, or "" if none exists.
-func (c *Client) findRunByIdempotencyTag(ctx context.Context, experimentID, idempotencyKey string) (string, error) {
-	filter := fmt.Sprintf("tags.`%s` = '%s'", IdempotencyTagKey, idempotencyKey)
-	resp, err := c.SearchRuns(ctx, []string{experimentID}, filter, 1, "")
-	if err != nil {
-		return "", err
+// findRunByIdempotencyTag searches for a run in the experiment carrying the
+// given IdempotencyTagKey value, retrying the (read-only, safe) search on
+// transient failures. It returns (runID, confirmed, err): confirmed is true
+// only when the search completed and definitively answered whether the run
+// exists (runID is set when found, "" when absent). When confirmed is false the
+// caller must not recreate the run, since a duplicate cannot be ruled out.
+func (c *Client) findRunByIdempotencyTag(ctx context.Context, experimentID, idempotencyKey string) (runID string, confirmed bool, err error) {
+	// Escape single quotes so a tag value can never alter the filter grammar.
+	filter := fmt.Sprintf("tags.`%s` = '%s'", IdempotencyTagKey, strings.ReplaceAll(idempotencyKey, "'", "''"))
+	var lastErr error
+	for attempt := 0; attempt < CreateMaxAttempts; attempt++ {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return "", false, ctxErr
+		}
+		resp, searchErr := c.SearchRuns(ctx, []string{experimentID}, filter, 1, "")
+		if searchErr != nil {
+			lastErr = searchErr
+			// A definitive (non-transient) error means the search cannot succeed.
+			if !isRetryableCreateError(searchErr) {
+				return "", false, searchErr
+			}
+			if attempt < CreateMaxAttempts-1 {
+				if !sleepWithContext(ctx, createRetryBackoff(attempt)) {
+					return "", false, ctx.Err()
+				}
+			}
+			continue
+		}
+		if len(resp.Runs) == 0 {
+			return "", true, nil // confirmed absent
+		}
+		var run struct {
+			Info struct {
+				RunID string `json:"run_id"`
+			} `json:"info"`
+		}
+		if unmarshalErr := json.Unmarshal(resp.Runs[0], &run); unmarshalErr != nil {
+			return "", false, fmt.Errorf("failed to parse searched run: %w", unmarshalErr)
+		}
+		return run.Info.RunID, true, nil // confirmed present
 	}
-	if len(resp.Runs) == 0 {
-		return "", nil
-	}
-	var run struct {
-		Info struct {
-			RunID string `json:"run_id"`
-		} `json:"info"`
-	}
-	if err := json.Unmarshal(resp.Runs[0], &run); err != nil {
-		return "", fmt.Errorf("failed to parse searched run: %w", err)
-	}
-	return run.Info.RunID, nil
+	return "", false, lastErr
 }
 
 // isRetryableCreateError reports whether a create failure is transient (client
