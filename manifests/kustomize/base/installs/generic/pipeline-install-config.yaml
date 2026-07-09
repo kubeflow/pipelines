@@ -11,7 +11,7 @@ data:
     until the changes take effect. A quick way to restart all deployments in a
     namespace: `kubectl rollout restart deployment -n <your-namespace>`.
   appName: pipeline
-  appVersion: 2.16.1
+  appVersion: 2.17.0
   dbType: mysql
   mysqlHost: mysql
   mysqlPort: "3306"
