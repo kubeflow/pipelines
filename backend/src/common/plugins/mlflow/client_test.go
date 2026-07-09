@@ -933,3 +933,38 @@ func TestGetExperimentByName_DoesNotRetryDefinitiveError(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, int32(1), atomic.LoadInt32(&calls), "a definitive 4xx must not be retried")
 }
+
+// TestGetExperimentByName_RetriesClientTimeoutWithFreshRequest exercises the
+// exact path this fix targets: the first request exceeds the per-call HTTP
+// timeout (which the retryRoundTripper treats as permanent and does NOT retry
+// inside a single Do), and callWithIdempotentRetry recovers it by issuing a
+// fresh request. Without the method-level retry this test fails.
+func TestGetExperimentByName_RetriesClientTimeoutWithFreshRequest(t *testing.T) {
+	restore := idempotentRetryInitialBackoff
+	idempotentRetryInitialBackoff = time.Millisecond
+	defer func() { idempotentRetryInitialBackoff = restore }()
+
+	var calls int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if atomic.AddInt32(&calls, 1) == 1 {
+			time.Sleep(300 * time.Millisecond) // first request exceeds the client timeout below
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"experiment":{"experiment_id":"77","name":"exp"}}`))
+	}))
+	defer server.Close()
+
+	// Short per-call timeout so the first (slow) request times out; the round
+	// tripper will not retry that timeout, so recovery must come from the
+	// method-level fresh-request retry.
+	c, err := NewClient(Config{
+		Endpoint:   server.URL,
+		HTTPClient: &http.Client{Timeout: 100 * time.Millisecond},
+	})
+	require.NoError(t, err)
+
+	exp, err := c.GetExperimentByName(context.Background(), "exp")
+	require.NoError(t, err)
+	assert.Equal(t, "77", exp.ID)
+	assert.GreaterOrEqual(t, atomic.LoadInt32(&calls), int32(2), "the per-call timeout must be retried with a fresh request")
+}
