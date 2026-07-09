@@ -547,6 +547,14 @@ func ToMLflowTerminalStatus(stateV2 string) string {
 	}
 }
 
+// mlflowOperationBudget is the overall context budget for an MLflow plugin
+// operation. It is a multiple of the per-call timeout so the idempotent create
+// retries in the client (up to commonmlflow.CreateMaxAttempts) fit within it
+// without shrinking any single attempt below the configured per-call timeout.
+func mlflowOperationBudget(pluginConfig *commonmlflow.PluginConfig) time.Duration {
+	return resolvedMLflowTimeout(pluginConfig) * time.Duration(commonmlflow.CreateMaxAttempts)
+}
+
 func resolvedMLflowTimeout(pluginConfig *commonmlflow.PluginConfig) time.Duration {
 	defaultTimeout := 30 * time.Second
 	if pluginConfig == nil || pluginConfig.Timeout == "" {
