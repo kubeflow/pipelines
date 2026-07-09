@@ -195,6 +195,11 @@ func BuildKFPTags(run *apiserverPlugins.PendingRun, kfpBaseURL, kfpRunURLPathTem
 	if run.PipelineVersionID != "" {
 		tags = append(tags, commonmlflow.Tag{Key: TagKFPPipelineVersionID, Value: run.PipelineVersionID})
 	}
+	// Idempotency key for CreateRun retries: the stable KFP run ID lets the
+	// client find and reuse a parent run created by a timed-out attempt instead
+	// of creating a duplicate. Appended last so it does not shift the other tag
+	// positions.
+	tags = append(tags, commonmlflow.Tag{Key: commonmlflow.IdempotencyTagKey, Value: run.RunID})
 	return tags
 }
 

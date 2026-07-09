@@ -239,17 +239,120 @@ func TestCreateExperiment_WithDescription(t *testing.T) {
 	assert.Equal(t, "100", id)
 }
 
-func TestCreateExperiment_AlreadyExists(t *testing.T) {
+func TestCreateExperiment_AlreadyExistsRecoversByName(t *testing.T) {
+	// A concurrent or lost-response create leaves the experiment already
+	// present; CreateExperiment recovers its id via get-by-name instead of
+	// failing.
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusConflict)
-		_, _ = w.Write([]byte(`{"error_code":"RESOURCE_ALREADY_EXISTS","message":"experiment already exists"}`))
+		switch r.URL.Path {
+		case pathExperimentsCreate:
+			w.WriteHeader(http.StatusConflict)
+			_, _ = w.Write([]byte(`{"error_code":"RESOURCE_ALREADY_EXISTS","message":"experiment already exists"}`))
+		case pathExperimentsGetByName:
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"experiment":{"experiment_id":"77","name":"test-exp"}}`))
+		default:
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
 	}))
 	defer server.Close()
 
 	c := newTestClient(t, server.URL)
-	_, err := c.CreateExperiment(context.Background(), "test-exp", nil)
+	id, err := c.CreateExperiment(context.Background(), "test-exp", nil)
+	require.NoError(t, err)
+	assert.Equal(t, "77", id)
+}
+
+func TestCreateExperiment_RetriesTransientThenSucceeds(t *testing.T) {
+	restore := createRetryInitialBackoff
+	createRetryInitialBackoff = time.Millisecond
+	defer func() { createRetryInitialBackoff = restore }()
+
+	var calls int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if atomic.AddInt32(&calls, 1) == 1 {
+			w.WriteHeader(http.StatusServiceUnavailable) // transient 503
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"experiment_id":"88"}`))
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server.URL)
+	id, err := c.CreateExperiment(context.Background(), "test-exp", nil)
+	require.NoError(t, err)
+	assert.Equal(t, "88", id)
+	assert.GreaterOrEqual(t, atomic.LoadInt32(&calls), int32(2), "should have retried the transient failure")
+}
+
+func TestCreateRun_IdempotentRecoversAfterTransientFailure(t *testing.T) {
+	restore := createRetryInitialBackoff
+	createRetryInitialBackoff = time.Millisecond
+	defer func() { createRetryInitialBackoff = restore }()
+
+	// The first create times out server-side (503) but the run was committed;
+	// the client finds it by its idempotency tag and reuses it — no duplicate.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case pathRunsCreate:
+			w.WriteHeader(http.StatusServiceUnavailable)
+		case pathRunsSearch:
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"runs":[{"info":{"run_id":"existing-run"}}]}`))
+		default:
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server.URL)
+	tags := []Tag{{Key: IdempotencyTagKey, Value: "kfp-run-123"}}
+	runID, err := c.CreateRun(context.Background(), "exp-1", "parent", tags)
+	require.NoError(t, err)
+	assert.Equal(t, "existing-run", runID, "should reuse the run found by idempotency tag")
+}
+
+func TestCreateRun_DoesNotRecreateWhenSearchCannotConfirm(t *testing.T) {
+	restore := createRetryInitialBackoff
+	createRetryInitialBackoff = time.Millisecond
+	defer func() { createRetryInitialBackoff = restore }()
+
+	// The create fails transiently and the idempotency search also fails, so the
+	// client cannot tell whether the run committed. It must NOT recreate (that
+	// would risk a duplicate) and must issue exactly one create.
+	var createCalls int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == pathRunsCreate {
+			atomic.AddInt32(&createCalls, 1)
+		}
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server.URL)
+	tags := []Tag{{Key: IdempotencyTagKey, Value: "kfp-run-9"}}
+	_, err := c.CreateRun(context.Background(), "exp-1", "parent", tags)
 	require.Error(t, err)
-	assert.True(t, IsAlreadyExistsError(err))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&createCalls), "must not recreate the run when the idempotency search cannot confirm its state")
+}
+
+func TestCreateRun_NoIdempotencyTag_CreatedOnce(t *testing.T) {
+	var createCalls int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == pathRunsCreate {
+			atomic.AddInt32(&createCalls, 1)
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"run":{"info":{"run_id":"run-once"}}}`))
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server.URL)
+	runID, err := c.CreateRun(context.Background(), "exp-1", "run", nil)
+	require.NoError(t, err)
+	assert.Equal(t, "run-once", runID)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&createCalls), "without an idempotency tag the run is created exactly once")
 }
 
 func TestCreateRun_Success(t *testing.T) {
@@ -522,7 +625,11 @@ func TestDoWithRetry_SkipsRetryForRunsCreate(t *testing.T) {
 	assert.Equal(t, int32(1), atomic.LoadInt32(&callCount))
 }
 
-func TestDoWithRetry_SkipsRetryForExperimentsCreate(t *testing.T) {
+func TestCreateExperiment_RetriesExhaustedOnPersistentFailure(t *testing.T) {
+	restore := createRetryInitialBackoff
+	createRetryInitialBackoff = time.Millisecond
+	defer func() { createRetryInitialBackoff = restore }()
+
 	var callCount int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddInt32(&callCount, 1)
@@ -534,8 +641,9 @@ func TestDoWithRetry_SkipsRetryForExperimentsCreate(t *testing.T) {
 	c := newTestClientWithFastRetry(t, server.URL)
 	_, err := c.CreateExperiment(context.Background(), "test-exp", nil)
 	require.Error(t, err)
-	// Non-idempotent endpoint: should be called exactly once, no retries.
-	assert.Equal(t, int32(1), atomic.LoadInt32(&callCount))
+	// The transport still does not blindly retry the create; the method-level
+	// idempotent retry attempts it CreateMaxAttempts times before giving up.
+	assert.Equal(t, int32(CreateMaxAttempts), atomic.LoadInt32(&callCount))
 }
 
 func TestDoWithRetry_SkipsRetryForLogBatch(t *testing.T) {
