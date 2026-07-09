@@ -113,13 +113,46 @@ fi
 
 
 # Deploy multi-user prerequisites if multi-user mode is enabled
+# wait_for_pods_ready waits for pods to reach condition=Ready and, on timeout,
+# dumps pod status, per-container readiness (including any istio-proxy sidecar),
+# recent namespace events, and container logs before failing. These multi-user
+# prerequisites intermittently miss the readiness deadline; without this a
+# timeout under `set -e` exits with only a bare "timed out" line and no state,
+# leaving the cause (sidecar not ready, image pull, slow init) undiagnosable.
+wait_for_pods_ready() {
+  local namespace="$1" selector="$2" timeout="$3" label="$4"
+  local wait_args=(-n "$namespace" wait --for=condition=Ready pods --timeout "$timeout")
+  local scope_args=(-n "$namespace")
+  if [ -n "$selector" ]; then
+    wait_args+=(-l "$selector")
+    scope_args+=(-l "$selector")
+  else
+    wait_args+=(--all)
+  fi
+
+  if kubectl "${wait_args[@]}"; then
+    return 0
+  fi
+
+  echo "ERROR: ${label} did not become Ready within ${timeout}; collecting diagnostics:"
+  echo "----- pods -----"
+  kubectl "${scope_args[@]}" get pods -o wide || true
+  echo "----- describe (container readiness / events) -----"
+  kubectl "${scope_args[@]}" describe pods || true
+  echo "----- recent namespace events -----"
+  kubectl -n "$namespace" get events --sort-by=.lastTimestamp 2>/dev/null | tail -40 || true
+  echo "----- logs (all containers, incl. istio-proxy sidecar) -----"
+  kubectl "${scope_args[@]}" logs --all-containers=true --tail=100 --prefix=true || true
+  return 1
+}
+
 if [ "${MULTI_USER}" == "true" ]; then
   echo "Installing Istio..."
   kubectl apply -k https://github.com/kubeflow/manifests/common/istio/istio-crds/base?ref=master
   kubectl apply -k https://github.com/kubeflow/manifests/common/istio/istio-namespace/base?ref=master
   kubectl apply -k https://github.com/kubeflow/manifests/common/istio/istio-install/base?ref=master
   echo "Waiting for all Istio Pods to become ready..."
-  kubectl wait --for=condition=Ready pods --all -n istio-system --timeout=300s
+  wait_for_pods_ready istio-system "" 300s "Istio pods"
 
   echo "Deploying Metacontroller CRD..."
   kubectl apply -f manifests/kustomize/third-party/metacontroller/base/crd.yaml
@@ -127,7 +160,7 @@ if [ "${MULTI_USER}" == "true" ]; then
 
   echo "Installing Profile Controller Resources..."
   kubectl apply -k https://github.com/kubeflow/manifests/applications/dashboard/upstream/profile-controller/overlays/kubeflow?ref=master
-  kubectl -n kubeflow wait --for=condition=Ready pods -l app.kubernetes.io/name=profile-controller --timeout 180s
+  wait_for_pods_ready kubeflow "app.kubernetes.io/name=profile-controller" 180s "profile-controller pod"
 fi
 
 # Manifests will be deployed according to the flag provided
