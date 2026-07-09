@@ -27,8 +27,8 @@ import (
 func TestHeadWithGitHubAuthAndRetry_RetriesThenSucceeds(t *testing.T) {
 	var calls int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// First two attempts are rate limited, the third succeeds.
-		if atomic.AddInt32(&calls, 1) < 3 {
+		// First attempt is rate limited, the second succeeds.
+		if atomic.AddInt32(&calls, 1) < 2 {
 			w.WriteHeader(http.StatusTooManyRequests)
 			return
 		}
@@ -41,14 +41,14 @@ func TestHeadWithGitHubAuthAndRetry_RetriesThenSucceeds(t *testing.T) {
 	require.NotNil(t, resp)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, int32(3), atomic.LoadInt32(&calls), "should have retried the 429s")
+	assert.Equal(t, int32(2), atomic.LoadInt32(&calls), "should have retried the 429")
 }
 
 func TestHeadWithGitHubAuthAndRetry_SetsBearerTokenWhenPresent(t *testing.T) {
 	t.Setenv("GITHUB_TOKEN", "test-token-123")
-	var gotAuth string
+	var gotAuth atomic.Value
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		gotAuth = r.Header.Get("Authorization")
+		gotAuth.Store(r.Header.Get("Authorization"))
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
@@ -56,15 +56,15 @@ func TestHeadWithGitHubAuthAndRetry_SetsBearerTokenWhenPresent(t *testing.T) {
 	resp, err := headWithGitHubAuthAndRetry(server.URL)
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	assert.Equal(t, "Bearer test-token-123", gotAuth)
+	assert.Equal(t, "Bearer test-token-123", gotAuth.Load())
 }
 
 func TestHeadWithGitHubAuthAndRetry_NoTokenNoHeader(t *testing.T) {
 	t.Setenv("GITHUB_TOKEN", "")
-	sawAuth := false
+	var sawAuth atomic.Bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "" {
-			sawAuth = true
+			sawAuth.Store(true)
 		}
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -73,7 +73,7 @@ func TestHeadWithGitHubAuthAndRetry_NoTokenNoHeader(t *testing.T) {
 	resp, err := headWithGitHubAuthAndRetry(server.URL)
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	assert.False(t, sawAuth, "no Authorization header should be sent without GITHUB_TOKEN")
+	assert.False(t, sawAuth.Load(), "no Authorization header should be sent without GITHUB_TOKEN")
 }
 
 func TestHeadWithGitHubAuthAndRetry_DoesNotRetryNotFound(t *testing.T) {
