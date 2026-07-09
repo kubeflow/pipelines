@@ -230,6 +230,70 @@ class TestAddInitContainer:
                     restart_policy='Never',
                 )
 
+    def test_add_init_container_sidecar_with_resources(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = print_greeting()
+            kubernetes.add_init_container(
+                task,
+                name='log-forwarder',
+                image='busybox:1.36',
+                restart_policy='Always',
+                resource_requests={
+                    'cpu': '250m',
+                    'memory': '128Mi'
+                },
+                resource_limits={
+                    'cpu': '500m',
+                    'memory': '256Mi'
+                },
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-print-greeting': {
+                                'initContainers': [{
+                                    'name': 'log-forwarder',
+                                    'image': 'busybox:1.36',
+                                    'restartPolicy': 'Always',
+                                    'resources': {
+                                        'requests': {
+                                            'cpu': '250m',
+                                            'memory': '128Mi'
+                                        },
+                                        'limits': {
+                                            'cpu': '500m',
+                                            'memory': '256Mi'
+                                        },
+                                    },
+                                }]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_add_init_container_empty_resource_quantity(self):
+        with pytest.raises(
+                ValueError,
+                match=r'Resource names and quantities in "resource_limits" must be non-empty strings.',
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                task = print_greeting()
+                kubernetes.add_init_container(
+                    task,
+                    name='log-forwarder',
+                    image='busybox:1.36',
+                    resource_limits={'cpu': ''},
+                )
+
     def test_add_init_container_empty_env_name(self):
         with pytest.raises(
                 ValueError,

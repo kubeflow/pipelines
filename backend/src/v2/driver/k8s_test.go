@@ -3811,6 +3811,62 @@ func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 			},
 			expectedErr: `init container "log-forwarder" restart policy must be "Always", got "Never"`,
 		},
+		{
+			name: "Valid - sidecar with resource requests and limits",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				InitContainers: []*kubernetesplatform.InitContainer{
+					{
+						Name:          "log-forwarder",
+						Image:         "busybox:1.36",
+						RestartPolicy: &restartPolicyAlwaysValue,
+						Resources: &kubernetesplatform.InitContainer_ResourceRequirements{
+							Requests: map[string]string{"cpu": "250m", "memory": "128Mi"},
+							Limits:   map[string]string{"cpu": "500m", "memory": "256Mi"},
+						},
+					},
+				},
+			},
+			expected: &k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+				InitContainers: []k8score.Container{
+					{
+						Name:          "log-forwarder",
+						Image:         "busybox:1.36",
+						RestartPolicy: &restartPolicyAlways,
+						Resources: k8score.ResourceRequirements{
+							Requests: k8score.ResourceList{
+								k8score.ResourceCPU:    k8sres.MustParse("250m"),
+								k8score.ResourceMemory: k8sres.MustParse("128Mi"),
+							},
+							Limits: k8score.ResourceList{
+								k8score.ResourceCPU:    k8sres.MustParse("500m"),
+								k8score.ResourceMemory: k8sres.MustParse("256Mi"),
+							},
+						},
+						SecurityContext: hardenedSecurityContext,
+					},
+				},
+			},
+		},
+		{
+			name: "Invalid - unparseable resource quantity",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				InitContainers: []*kubernetesplatform.InitContainer{
+					{
+						Name:  "log-forwarder",
+						Image: "busybox:1.36",
+						Resources: &kubernetesplatform.InitContainer_ResourceRequirements{
+							Requests: map[string]string{"cpu": "not-a-quantity"},
+						},
+					},
+				},
+			},
+			expectedErr: `init container "log-forwarder" has an invalid resource request cpu="not-a-quantity"`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

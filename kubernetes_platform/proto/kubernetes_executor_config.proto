@@ -355,4 +355,13 @@ message InitContainer {
     // sidecar that keeps running alongside the main container.
     // https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/
     optional string restart_policy = 7;
+
+    message ResourceRequirements {
+        // Resource name to Kubernetes quantity, for example cpu: "500m".
+        map<string, string> requests = 1;
+        map<string, string> limits = 2;
+    }
+    // Compute resource requests and limits for the init container.
+    // Corresponds to Container.resources.
+    ResourceRequirements resources = 8;
 }

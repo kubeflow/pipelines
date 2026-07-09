@@ -851,6 +851,35 @@ func extendPodSpecPatch(
 			restartPolicy := k8score.ContainerRestartPolicyAlways
 			k8sInitContainer.RestartPolicy = &restartPolicy
 		}
+		if resources := initContainer.GetResources(); resources != nil {
+			parseResourceList := func(kind string, quantities map[string]string) (k8score.ResourceList, error) {
+				if len(quantities) == 0 {
+					return nil, nil
+				}
+				resourceList := k8score.ResourceList{}
+				for resourceName, quantityValue := range quantities {
+					quantity, err := k8sres.ParseQuantity(quantityValue)
+					if err != nil {
+						return nil, fmt.Errorf("init container %q has an invalid resource %s %s=%q: %w",
+							initContainer.GetName(), kind, resourceName, quantityValue, err)
+					}
+					resourceList[k8score.ResourceName(resourceName)] = quantity
+				}
+				return resourceList, nil
+			}
+			requests, err := parseResourceList("request", resources.GetRequests())
+			if err != nil {
+				return err
+			}
+			limits, err := parseResourceList("limit", resources.GetLimits())
+			if err != nil {
+				return err
+			}
+			k8sInitContainer.Resources = k8score.ResourceRequirements{
+				Requests: requests,
+				Limits:   limits,
+			}
+		}
 		for _, envVar := range initContainer.GetEnv() {
 			if envVar.GetName() == "" {
 				return fmt.Errorf("init container %q has an environment variable with an empty name", initContainer.GetName())

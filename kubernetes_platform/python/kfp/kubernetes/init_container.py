@@ -29,6 +29,8 @@ def add_init_container(
     env: Optional[Dict[str, str]] = None,
     volume_mounts: Optional[Dict[str, str]] = None,
     restart_policy: Optional[str] = None,
+    resource_requests: Optional[Dict[str, str]] = None,
+    resource_limits: Optional[Dict[str, str]] = None,
 ) -> PipelineTask:
     """Add an init container to the task's pod.
 
@@ -56,6 +58,10 @@ def add_init_container(
             into a Kubernetes
             `native sidecar <https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/>`_
             that keeps running alongside the main container.
+        resource_requests: Mapping of resource name to requested Kubernetes
+            quantity, for example ``{'cpu': '250m', 'memory': '128Mi'}``.
+        resource_limits: Mapping of resource name to Kubernetes quantity
+            limit, for example ``{'cpu': '500m', 'memory': '256Mi'}``.
 
     Returns:
         Task object with the added init container.
@@ -85,6 +91,13 @@ def add_init_container(
             raise ValueError(
                 f'Mount path for volume "{volume_name}" must be an absolute path. Got: {mount_path}.'
             )
+    for argument_name, quantities in (('resource_requests', resource_requests),
+                                      ('resource_limits', resource_limits)):
+        for resource_name, quantity in (quantities or {}).items():
+            if not resource_name or not quantity:
+                raise ValueError(
+                    f'Resource names and quantities in "{argument_name}" must be non-empty strings.'
+                )
 
     msg = common.get_existing_kubernetes_config_as_message(task)
 
@@ -102,6 +115,10 @@ def add_init_container(
     )
     if restart_policy is not None:
         init_container.restart_policy = restart_policy
+    if resource_requests:
+        init_container.resources.requests.update(resource_requests)
+    if resource_limits:
+        init_container.resources.limits.update(resource_limits)
     for env_name, env_value in (env or {}).items():
         init_container.env.append(
             pb.InitContainer.EnvVar(name=env_name, value=env_value))

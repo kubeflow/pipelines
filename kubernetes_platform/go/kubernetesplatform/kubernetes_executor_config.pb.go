@@ -1852,6 +1852,9 @@ type InitContainer struct {
 	// sidecar that keeps running alongside the main container.
 	// https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/
 	RestartPolicy *string `protobuf:"bytes,7,opt,name=restart_policy,json=restartPolicy,proto3,oneof" json:"restart_policy,omitempty"`
+	// Compute resource requests and limits for the init container.
+	// Corresponds to Container.resources.
+	Resources     *InitContainer_ResourceRequirements `protobuf:"bytes,8,opt,name=resources,proto3" json:"resources,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1933,6 +1936,13 @@ func (x *InitContainer) GetRestartPolicy() string {
 		return *x.RestartPolicy
 	}
 	return ""
+}
+
+func (x *InitContainer) GetResources() *InitContainer_ResourceRequirements {
+	if x != nil {
+		return x.Resources
+	}
+	return nil
 }
 
 type SecretAsEnv_SecretKeyToEnvMap struct {
@@ -2152,6 +2162,59 @@ func (x *InitContainer_VolumeMount) GetMountPath() string {
 	return ""
 }
 
+type InitContainer_ResourceRequirements struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Resource name to Kubernetes quantity, for example cpu: "500m".
+	Requests      map[string]string `protobuf:"bytes,1,rep,name=requests,proto3" json:"requests,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Limits        map[string]string `protobuf:"bytes,2,rep,name=limits,proto3" json:"limits,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InitContainer_ResourceRequirements) Reset() {
+	*x = InitContainer_ResourceRequirements{}
+	mi := &file_kubernetes_executor_config_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InitContainer_ResourceRequirements) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InitContainer_ResourceRequirements) ProtoMessage() {}
+
+func (x *InitContainer_ResourceRequirements) ProtoReflect() protoreflect.Message {
+	mi := &file_kubernetes_executor_config_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InitContainer_ResourceRequirements.ProtoReflect.Descriptor instead.
+func (*InitContainer_ResourceRequirements) Descriptor() ([]byte, []int) {
+	return file_kubernetes_executor_config_proto_rawDescGZIP(), []int{21, 2}
+}
+
+func (x *InitContainer_ResourceRequirements) GetRequests() map[string]string {
+	if x != nil {
+		return x.Requests
+	}
+	return nil
+}
+
+func (x *InitContainer_ResourceRequirements) GetLimits() map[string]string {
+	if x != nil {
+		return x.Limits
+	}
+	return nil
+}
+
 var File_kubernetes_executor_config_proto protoreflect.FileDescriptor
 
 const file_kubernetes_executor_config_proto_rawDesc = "" +
@@ -2341,7 +2404,7 @@ const file_kubernetes_executor_config_proto_rawDesc = "" +
 	"\n" +
 	"size_limit\x18\x04 \x01(\tH\x01R\tsizeLimit\x88\x01\x01B\t\n" +
 	"\a_mediumB\r\n" +
-	"\v_size_limit\"\xb1\x03\n" +
+	"\v_size_limit\"\xca\x06\n" +
 	"\rInitContainer\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05image\x18\x02 \x01(\tR\x05image\x12\x18\n" +
@@ -2349,7 +2412,8 @@ const file_kubernetes_executor_config_proto_rawDesc = "" +
 	"\x04args\x18\x04 \x03(\tR\x04args\x126\n" +
 	"\x03env\x18\x05 \x03(\v2$.kfp_kubernetes.InitContainer.EnvVarR\x03env\x12N\n" +
 	"\rvolume_mounts\x18\x06 \x03(\v2).kfp_kubernetes.InitContainer.VolumeMountR\fvolumeMounts\x12*\n" +
-	"\x0erestart_policy\x18\a \x01(\tH\x00R\rrestartPolicy\x88\x01\x01\x1a2\n" +
+	"\x0erestart_policy\x18\a \x01(\tH\x00R\rrestartPolicy\x88\x01\x01\x12P\n" +
+	"\tresources\x18\b \x01(\v22.kfp_kubernetes.InitContainer.ResourceRequirementsR\tresources\x1a2\n" +
 	"\x06EnvVar\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value\x1aM\n" +
@@ -2357,7 +2421,16 @@ const file_kubernetes_executor_config_proto_rawDesc = "" +
 	"\vvolume_name\x18\x01 \x01(\tR\n" +
 	"volumeName\x12\x1d\n" +
 	"\n" +
-	"mount_path\x18\x02 \x01(\tR\tmountPathB\x11\n" +
+	"mount_path\x18\x02 \x01(\tR\tmountPath\x1a\xc4\x02\n" +
+	"\x14ResourceRequirements\x12\\\n" +
+	"\brequests\x18\x01 \x03(\v2@.kfp_kubernetes.InitContainer.ResourceRequirements.RequestsEntryR\brequests\x12V\n" +
+	"\x06limits\x18\x02 \x03(\v2>.kfp_kubernetes.InitContainer.ResourceRequirements.LimitsEntryR\x06limits\x1a;\n" +
+	"\rRequestsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a9\n" +
+	"\vLimitsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x11\n" +
 	"\x0f_restart_policyBIZGgithub.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatformb\x06proto3"
 
 var (
@@ -2372,7 +2445,7 @@ func file_kubernetes_executor_config_proto_rawDescGZIP() []byte {
 	return file_kubernetes_executor_config_proto_rawDescData
 }
 
-var file_kubernetes_executor_config_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
+var file_kubernetes_executor_config_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
 var file_kubernetes_executor_config_proto_goTypes = []any{
 	(*KubernetesExecutorConfig)(nil),            // 0: kfp_kubernetes.KubernetesExecutorConfig
 	(*EnabledSharedMemory)(nil),                 // 1: kfp_kubernetes.EnabledSharedMemory
@@ -2405,9 +2478,12 @@ var file_kubernetes_executor_config_proto_goTypes = []any{
 	nil,                               // 28: kfp_kubernetes.PodAffinityTerm.MatchNamespaceLabelsEntry
 	(*InitContainer_EnvVar)(nil),      // 29: kfp_kubernetes.InitContainer.EnvVar
 	(*InitContainer_VolumeMount)(nil), // 30: kfp_kubernetes.InitContainer.VolumeMount
-	(*pipelinespec.TaskInputsSpec_InputParameterSpec)(nil),                         // 31: ml_pipelines.TaskInputsSpec.InputParameterSpec
-	(*pipelinespec.TaskInputsSpec_InputParameterSpec_TaskOutputParameterSpec)(nil), // 32: ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec
-	(*structpb.Struct)(nil), // 33: google.protobuf.Struct
+	(*InitContainer_ResourceRequirements)(nil), // 31: kfp_kubernetes.InitContainer.ResourceRequirements
+	nil, // 32: kfp_kubernetes.InitContainer.ResourceRequirements.RequestsEntry
+	nil, // 33: kfp_kubernetes.InitContainer.ResourceRequirements.LimitsEntry
+	(*pipelinespec.TaskInputsSpec_InputParameterSpec)(nil),                         // 34: ml_pipelines.TaskInputsSpec.InputParameterSpec
+	(*pipelinespec.TaskInputsSpec_InputParameterSpec_TaskOutputParameterSpec)(nil), // 35: ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec
+	(*structpb.Struct)(nil), // 36: google.protobuf.Struct
 }
 var file_kubernetes_executor_config_proto_depIdxs = []int32{
 	2,  // 0: kfp_kubernetes.KubernetesExecutorConfig.secret_as_volume:type_name -> kfp_kubernetes.SecretAsVolume
@@ -2427,38 +2503,41 @@ var file_kubernetes_executor_config_proto_depIdxs = []int32{
 	20, // 14: kfp_kubernetes.KubernetesExecutorConfig.empty_dir_mounts:type_name -> kfp_kubernetes.EmptyDirMount
 	19, // 15: kfp_kubernetes.KubernetesExecutorConfig.security_context:type_name -> kfp_kubernetes.SecurityContext
 	21, // 16: kfp_kubernetes.KubernetesExecutorConfig.init_containers:type_name -> kfp_kubernetes.InitContainer
-	31, // 17: kfp_kubernetes.SecretAsVolume.secret_name_parameter:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
+	34, // 17: kfp_kubernetes.SecretAsVolume.secret_name_parameter:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
 	22, // 18: kfp_kubernetes.SecretAsEnv.key_to_env:type_name -> kfp_kubernetes.SecretAsEnv.SecretKeyToEnvMap
-	31, // 19: kfp_kubernetes.SecretAsEnv.secret_name_parameter:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
-	32, // 20: kfp_kubernetes.PvcMount.task_output_parameter:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec
-	31, // 21: kfp_kubernetes.PvcMount.pvc_name_parameter:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
-	33, // 22: kfp_kubernetes.CreatePvc.annotations:type_name -> google.protobuf.Struct
+	34, // 19: kfp_kubernetes.SecretAsEnv.secret_name_parameter:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
+	35, // 20: kfp_kubernetes.PvcMount.task_output_parameter:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec
+	34, // 21: kfp_kubernetes.PvcMount.pvc_name_parameter:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
+	36, // 22: kfp_kubernetes.CreatePvc.annotations:type_name -> google.protobuf.Struct
 	5,  // 23: kfp_kubernetes.CreatePvc.data_source:type_name -> kfp_kubernetes.TypedLocalObjectReference
-	32, // 24: kfp_kubernetes.DeletePvc.task_output_parameter:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec
+	35, // 24: kfp_kubernetes.DeletePvc.task_output_parameter:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec
 	23, // 25: kfp_kubernetes.NodeSelector.labels:type_name -> kfp_kubernetes.NodeSelector.LabelsEntry
-	31, // 26: kfp_kubernetes.NodeSelector.node_selector_json:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
+	34, // 26: kfp_kubernetes.NodeSelector.node_selector_json:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
 	24, // 27: kfp_kubernetes.PodMetadata.labels:type_name -> kfp_kubernetes.PodMetadata.LabelsEntry
 	25, // 28: kfp_kubernetes.PodMetadata.annotations:type_name -> kfp_kubernetes.PodMetadata.AnnotationsEntry
-	31, // 29: kfp_kubernetes.ConfigMapAsVolume.config_map_name_parameter:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
+	34, // 29: kfp_kubernetes.ConfigMapAsVolume.config_map_name_parameter:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
 	26, // 30: kfp_kubernetes.ConfigMapAsEnv.key_to_env:type_name -> kfp_kubernetes.ConfigMapAsEnv.ConfigMapKeyToEnvMap
-	31, // 31: kfp_kubernetes.ConfigMapAsEnv.config_map_name_parameter:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
+	34, // 31: kfp_kubernetes.ConfigMapAsEnv.config_map_name_parameter:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
 	9,  // 32: kfp_kubernetes.GenericEphemeralVolume.metadata:type_name -> kfp_kubernetes.PodMetadata
-	31, // 33: kfp_kubernetes.ImagePullSecret.secret_name_parameter:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
-	31, // 34: kfp_kubernetes.Toleration.toleration_json:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
+	34, // 33: kfp_kubernetes.ImagePullSecret.secret_name_parameter:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
+	34, // 34: kfp_kubernetes.Toleration.toleration_json:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
 	16, // 35: kfp_kubernetes.NodeAffinityTerm.match_expressions:type_name -> kfp_kubernetes.SelectorRequirement
 	16, // 36: kfp_kubernetes.NodeAffinityTerm.match_fields:type_name -> kfp_kubernetes.SelectorRequirement
-	31, // 37: kfp_kubernetes.NodeAffinityTerm.node_affinity_json:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
+	34, // 37: kfp_kubernetes.NodeAffinityTerm.node_affinity_json:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
 	16, // 38: kfp_kubernetes.PodAffinityTerm.match_pod_expressions:type_name -> kfp_kubernetes.SelectorRequirement
 	27, // 39: kfp_kubernetes.PodAffinityTerm.match_pod_labels:type_name -> kfp_kubernetes.PodAffinityTerm.MatchPodLabelsEntry
 	16, // 40: kfp_kubernetes.PodAffinityTerm.match_namespace_expressions:type_name -> kfp_kubernetes.SelectorRequirement
 	28, // 41: kfp_kubernetes.PodAffinityTerm.match_namespace_labels:type_name -> kfp_kubernetes.PodAffinityTerm.MatchNamespaceLabelsEntry
 	29, // 42: kfp_kubernetes.InitContainer.env:type_name -> kfp_kubernetes.InitContainer.EnvVar
 	30, // 43: kfp_kubernetes.InitContainer.volume_mounts:type_name -> kfp_kubernetes.InitContainer.VolumeMount
-	44, // [44:44] is the sub-list for method output_type
-	44, // [44:44] is the sub-list for method input_type
-	44, // [44:44] is the sub-list for extension type_name
-	44, // [44:44] is the sub-list for extension extendee
-	0,  // [0:44] is the sub-list for field type_name
+	31, // 44: kfp_kubernetes.InitContainer.resources:type_name -> kfp_kubernetes.InitContainer.ResourceRequirements
+	32, // 45: kfp_kubernetes.InitContainer.ResourceRequirements.requests:type_name -> kfp_kubernetes.InitContainer.ResourceRequirements.RequestsEntry
+	33, // 46: kfp_kubernetes.InitContainer.ResourceRequirements.limits:type_name -> kfp_kubernetes.InitContainer.ResourceRequirements.LimitsEntry
+	47, // [47:47] is the sub-list for method output_type
+	47, // [47:47] is the sub-list for method input_type
+	47, // [47:47] is the sub-list for extension type_name
+	47, // [47:47] is the sub-list for extension extendee
+	0,  // [0:47] is the sub-list for field type_name
 }
 
 func init() { file_kubernetes_executor_config_proto_init() }
@@ -2497,7 +2576,7 @@ func file_kubernetes_executor_config_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_kubernetes_executor_config_proto_rawDesc), len(file_kubernetes_executor_config_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   31,
+			NumMessages:   34,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
