@@ -8,6 +8,7 @@ on:
     paths:
       - 'api/**'
       - 'sdk/python/**'
+      - 'sdk/Makefile'
       - 'test/presubmit-yapf-sdk.sh'
       - '.github/workflows/sdk-yapf.yml'
       - '!**/*.md'
@@ -32,8 +33,8 @@ jobs:
         python-version: '3.9'
         cache: 'pip'
 
-    - name: Install dependencies
-      run: pip install yapf
+    - name: Install YAPF SDK test dependencies
+      run: make -C sdk install-test-yapf-deps
 
     - name: Run YAPF SDK Tests
-      run: ./test/presubmit-yapf-sdk.sh
+      run: make -C sdk test-yapf
