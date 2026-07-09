@@ -19,7 +19,7 @@ require (
 	github.com/go-openapi/validate v0.25.2
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/golang/glog v1.2.5
-	github.com/google/addlicense v0.0.0-20200906110928-a0294312aa76
+	github.com/google/addlicense v1.2.0
 	github.com/google/cel-go v0.27.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
@@ -118,6 +118,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.16 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.8 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bmatcuk/doublestar/v4 v4.0.2 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cncf/xds/go v0.0.0-20251210132809-ee656c7534f5 // indirect
