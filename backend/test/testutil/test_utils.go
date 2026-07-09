@@ -273,7 +273,8 @@ func headWithGitHubAuthAndRetry(url string) (*http.Response, error) {
 		}
 
 		resp, err := http.DefaultClient.Do(request)
-		if err != nil {
+		switch {
+		case err != nil:
 			lastErr = err
 			// Do can return a non-nil response alongside an error (e.g. a
 			// redirect-policy error); close it so connections are not leaked
@@ -283,12 +284,12 @@ func headWithGitHubAuthAndRetry(url string) (*http.Response, error) {
 					logger.Log("Warning: failed to close response body: %v", closeErr)
 				}
 			}
-		} else if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500 {
+		case resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500:
 			lastErr = fmt.Errorf("transient status %d from %s", resp.StatusCode, url)
 			if closeErr := resp.Body.Close(); closeErr != nil {
 				logger.Log("Warning: failed to close response body: %v", closeErr)
 			}
-		} else {
+		default:
 			return resp, nil
 		}
 
