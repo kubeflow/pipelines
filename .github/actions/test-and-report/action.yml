@@ -363,6 +363,12 @@ runs:
         if [ "${{ inputs.proxy }}" = "true" ]; then
           ./.github/resources/scripts/collect-logs.sh --ns tinyproxy --output /tmp/tmp_pod_log.txt
         fi
+        # Targeted SeaweedFS diagnostics: E2E lanes intermittently fail with
+        # dial-timeout errors to the SeaweedFS ClusterIP. This captures the
+        # restart/contention/dataplane evidence needed to tell whether a CPU
+        # request bump (which this workflow's manifests carry) is the right
+        # lever or the failure is elsewhere.
+        ./.github/resources/scripts/collect-seaweedfs-diagnostics.sh --ns "$NAMESPACE" --output /tmp/tmp_pod_log.txt
       continue-on-error: true
 
     - name: Set up Python for reporting
