@@ -58,7 +58,7 @@ jobs:
           KFP_KUBERNETES_VERSION="$(python -c 'from kfp.kubernetes.__init__ import __version__; print(__version__)')"
           RELEASE_TYPE=patch
           case "$KFP_KUBERNETES_VERSION" in *.0) RELEASE_TYPE=minor ;; esac
-          kfpr create-kfp-kubernetes-docs-branch \
+          kfpr run create-kfp-kubernetes-docs-branch \
             --release-type "$RELEASE_TYPE" \
             --version "$KFP_KUBERNETES_VERSION" \
             --fork-remote upstream \

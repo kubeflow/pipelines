@@ -53,7 +53,7 @@ kfpr steps --diagram
 Run one step without marking it complete:
 
 ```bash
-kfpr update-version-tags \
+kfpr run update-version-tags \
   --release-type patch \
   --version 3.2.1 \
   --fork-remote USER \
@@ -64,15 +64,15 @@ kfpr update-version-tags \
 Mark a step complete after it succeeds:
 
 ```bash
-kfpr update-version-tags \
+kfpr run update-version-tags \
   --release-type patch \
   --version 3.2.1 \
   --fork-remote USER \
   --patch-prs 12345,12346 \
-  --mark-done
+  --done
 ```
 
-Single-step commands do not update the checkpoint unless `--mark-done` is passed.
+Single-step commands do not update the checkpoint unless `--done` is passed.
 `update-version-tags` cuts `<version>-update-version-tags` from the release branch
 before committing version changes. When SDK release steps are enabled, this same PR also updates
 SDK package versions, requirements, docs versions, and `sdk/RELEASE.md`.
@@ -81,7 +81,7 @@ If you complete a step outside `kfpr` (for example, manually creating an already
 release branch), mark that step done before resuming:
 
 ```bash
-kfpr mark-done prepare-release-branch --state-file release-state.json
+kfpr done prepare-release-branch --state-file release-state.json
 kfpr run --state-file release-state.json
 ```
 
@@ -93,8 +93,8 @@ Use the exact step ID from `kfpr steps` or the list below.
 kfpr status --state-file release-state.json
 kfpr clear --state-file release-state.json
 kfpr validate-state --state-file release-state.json
-kfpr watch-publish-images --state-file release-state.json
-kfpr mark-done update-version-tags --state-file release-state.json
+kfpr run watch-publish-images --state-file release-state.json
+kfpr done update-version-tags --state-file release-state.json
 kfpr reset-step update-version-tags --state-file release-state.json
 ```
 
@@ -117,22 +117,23 @@ doctor
 status
 clear
 validate-state
-mark-done
+done
 reset-step
 steps
-preflight
-prepare-release-branch
-prepare-patch-branch
-cherry-pick-prs
-merge-cherry-pick-pr
-update-version-tags
-merge-version-pr
-publish-images
-create-sdk-release
-publish-sdks
-create-kfp-kubernetes-docs-branch
-confirm-rtd
-create-backend-release
-sync-master
-confirm-website-and-slack
+run preflight
+run prepare-release-branch
+run prepare-patch-branch
+run cherry-pick-prs
+run merge-cherry-pick-pr
+run update-version-tags
+run merge-version-pr
+run publish-images
+run create-sdk-release
+run publish-sdks
+run create-kfp-kubernetes-docs-branch
+run confirm-rtd
+run create-backend-release
+run sync-master
+run confirm-website-and-slack
+run watch-publish-images
 ```
