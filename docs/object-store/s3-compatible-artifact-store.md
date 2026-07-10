@@ -65,11 +65,11 @@ stringData:
   secretkey: "${S3_SECRET_ACCESS_KEY}"
 ```
 
-The secret key names `accesskey` and `secretkey` are fixed: the driver/launcher path reads them as
-`minioArtifactAccessKeyKey` and `minioArtifactSecretKeyKey` in
-[`backend/src/v2/config/env.go`](../../backend/src/v2/config/env.go), the API server binds them via the
-`OBJECTSTORECONFIG_ACCESSKEY` and `OBJECTSTORECONFIG_SECRETACCESSKEY` env vars in the API server deployment, and Argo
-reads them through `accessKeySecret`/`secretKeySecret` in the workflow controller ConfigMap.
+The secret key names `accesskey` and `secretkey` are the defaults from
+[`backend/src/v2/config/env.go`](../../backend/src/v2/config/env.go). If you use different key names, update every
+reference to match: the driver/launcher `credentials.secretRef.accessKeyKey` and `secretKeyKey` fields, the API server
+`OBJECTSTORECONFIG_ACCESSKEY` and `OBJECTSTORECONFIG_SECRETACCESSKEY` env var `secretKeyRef` entries, and Argo's
+`accessKeySecret`/`secretKeySecret` entries in the workflow controller ConfigMap.
 
 ## Step 2: API server object-store config
 
