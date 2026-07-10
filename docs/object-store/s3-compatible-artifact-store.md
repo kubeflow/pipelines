@@ -17,17 +17,17 @@ of S3-compatible object stores include Amazon S3, Backblaze B2, Cloudflare R2, a
 KFP touches object storage from three distinct components, and all three must point at the same bucket:
 
 1. **The API server** (`ml-pipeline`) stores uploaded pipeline definitions and reads/writes artifacts and archived
-   logs. Its object-store settings come from `ObjectStoreConfig.*` (see
+   logs. Its object-store settings come from `ObjectStoreConfig.*`. See
    [`backend/src/apiserver/config/config.json`](../../backend/src/apiserver/config/config.json) and the
    `OBJECTSTORECONFIG_*` environment variables in
-   [`manifests/kustomize/base/pipeline/ml-pipeline-apiserver-deployment.yaml`](../../manifests/kustomize/base/pipeline/ml-pipeline-apiserver-deployment.yaml)).
+   [`manifests/kustomize/base/pipeline/ml-pipeline-apiserver-deployment.yaml`](../../manifests/kustomize/base/pipeline/ml-pipeline-apiserver-deployment.yaml).
 2. **The driver and launcher** (run inside each pipeline pod) upload step outputs and download step inputs. Their
    object-store settings come from the per-namespace `kfp-launcher` ConfigMap `providers` block, parsed by
    [`backend/src/v2/config/s3.go`](../../backend/src/v2/config/s3.go) and applied by
    [`backend/src/v2/objectstore/object_store.go`](../../backend/src/v2/objectstore/object_store.go).
 3. **The Argo workflow controller** stores the workflow's own archived logs and artifacts via its
-   `artifactRepository.s3` block (see
-   [`manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml`](../../manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml)).
+   `artifactRepository.s3` block. See
+   [`manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml`](../../manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml).
 
 All three read the same Kubernetes secret for credentials, named `mlpipeline-minio-artifact` by default
 ([`backend/src/v2/config/env.go`](../../backend/src/v2/config/env.go), constant `minioArtifactSecretName`). That secret
@@ -40,7 +40,7 @@ secret access key.
 
 | Env var                | Example value                                | Maps onto KFP setting                                        |
 | ---------------------- | -------------------------------------------- | ------------------------------------------------------------ |
-| `S3_ENDPOINT`          | `https://your-s3-endpoint.example.com`       | `endpoint` / `ObjectStoreConfig.Host`                        |
+| `S3_ENDPOINT`          | `your-s3-endpoint.example.com`               | `endpoint` / `ObjectStoreConfig.Host`                        |
 | `S3_REGION`            | `us-east-1`                                  | `region` / `ObjectStoreConfig.Region`                        |
 | `S3_BUCKET_NAME`       | `your-kfp-artifacts`                         | `bucketName` / `ObjectStoreConfig.BucketName`                |
 | `S3_ACCESS_KEY_ID`     | (access key id)                              | secret key `accesskey` / `ObjectStoreConfig.AccessKey`       |
@@ -187,10 +187,10 @@ Field-by-field, grounded in `S3ProviderDefault.ProvideSessionInfo` ([`backend/sr
 
 These params are consumed by `createS3BucketSession` in
 [`backend/src/v2/objectstore/object_store.go`](../../backend/src/v2/objectstore/object_store.go), which builds an AWS
-SDK v2 S3 client with `config.WithRegion(params.Region)`, `o.UsePathStyle = params.ForcePathStyle`,
-`o.EndpointOptions.DisableHTTPS = params.DisableSSL`, and `o.BaseEndpoint = <endpoint>` (the code only skips
-`BaseEndpoint` for `s3.amazonaws.com` hosts, so a custom endpoint is always applied). For non-AWS providers set the
-access key id and secret access key on this same secret.
+SDK v2 S3 client with `awsconfig.WithRegion(params.Region)` when `params.Region` is non-empty,
+`o.UsePathStyle = params.ForcePathStyle`, `o.EndpointOptions.DisableHTTPS = params.DisableSSL`, and
+`o.BaseEndpoint = <endpoint>` (the code only skips `BaseEndpoint` for `s3.amazonaws.com` hosts, so a custom endpoint is
+always applied). For non-AWS providers set the access key id and secret access key on this same secret.
 
 In multi-user mode each profile namespace gets its own `kfp-launcher` ConfigMap, so apply the `providers` block to every
 namespace that runs pipelines, or set it as the default via `defaultPipelineRoot` in `pipeline-install-config`.
@@ -251,7 +251,7 @@ from botocore.config import Config
 
 s3 = boto3.client(
     "s3",
-    endpoint_url=os.environ["S3_ENDPOINT"],            # https://your-s3-endpoint.example.com
+    endpoint_url=f"https://{os.environ['S3_ENDPOINT']}",  # https://your-s3-endpoint.example.com
     region_name=os.environ["S3_REGION"],               # us-east-1
     aws_access_key_id=os.environ["S3_ACCESS_KEY_ID"],
     aws_secret_access_key=os.environ["S3_SECRET_ACCESS_KEY"],
