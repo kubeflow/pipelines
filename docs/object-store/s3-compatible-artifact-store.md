@@ -172,11 +172,11 @@ data:
             secretKeyKey: secretkey
 ```
 
-Field-by-field, grounded in `S3ProviderDefault.ProvideSessionInfo` ([`backend/src/v2/config/s3.go`](../../backend/src/v2/config/s3.go)):
+Field-by-field, grounded in `S3ProviderConfig.ProvideSessionInfo` ([`backend/src/v2/config/s3.go`](../../backend/src/v2/config/s3.go)):
 
 - `endpoint`: copied straight into the session params (`params["endpoint"]`). Path-style requests are sent to this host.
-- `region`: copied into `params["region"]`. Required for most non-AWS endpoints; the comment in the struct marks it
-  optional only for AWS.
+- `region`: copied into `params["region"]`. It is optional in the provider config schema, but many S3-compatible
+  endpoints still require it in practice.
 - `disableSSL`: defaults to `false` when omitted. Leave it `false` (or omit) so the client uses HTTPS.
 - `forcePathStyle`: defaults to `true` when omitted (see both `s3.go` and `StructuredS3Params` in
   [`backend/src/v2/objectstore/config.go`](../../backend/src/v2/objectstore/config.go)). Most S3-compatible endpoints
