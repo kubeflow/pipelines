@@ -53,6 +53,70 @@ var (
 	metadataTLSEnabled      = flag.Bool("metadata_tls_enabled", false, "Set to true if MLMD serves over TLS.")
 )
 
+// Required flags the driver/compiler must always pass to the launcher, grouped
+// by executor type, making the implicit contract fail-fast instead of silently
+// falling back to defaults. Flags with meaningful defaults (log_level,
+// publish_logs, cache_disabled, the TLS toggles, ca_cert_path) are excluded.
+var (
+	commonRequiredLauncherFlags = []string{
+		"executor_type",
+		"pipeline_name",
+		"run_id",
+		"component_spec",
+		"pod_name",
+		"pod_uid",
+		"mlmd_server_address",
+		"mlmd_server_port",
+	}
+	containerRequiredLauncherFlags = []string{
+		"execution_id",
+		"executor_input",
+		"ml_pipeline_server_address",
+		"ml_pipeline_server_port",
+	}
+	importerRequiredLauncherFlags = []string{
+		"task_spec",
+		"importer_spec",
+		"parent_dag_id",
+	}
+)
+
+// collectProvidedFlags returns the flags explicitly set on the command line.
+// flag.Visit reports only flags that were provided, not those left at default.
+func collectProvidedFlags() map[string]bool {
+	provided := make(map[string]bool)
+	flag.Visit(func(f *flag.Flag) {
+		provided[f.Name] = true
+	})
+	return provided
+}
+
+func requiredLauncherFlags(executorType string) ([]string, error) {
+	required := append([]string{}, commonRequiredLauncherFlags...)
+	switch executorType {
+	case "container":
+		required = append(required, containerRequiredLauncherFlags...)
+	case "importer":
+		required = append(required, importerRequiredLauncherFlags...)
+	default:
+		return nil, fmt.Errorf("unsupported executor type %q, must be one of container, importer", executorType)
+	}
+	return required, nil
+}
+
+func validateLauncherFlags(provided map[string]bool, executorType string) error {
+	required, err := requiredLauncherFlags(executorType)
+	if err != nil {
+		return err
+	}
+	for _, name := range required {
+		if !provided[name] {
+			return fmt.Errorf("--%s is required for %s executor but was not provided", name, executorType)
+		}
+	}
+	return nil
+}
+
 func main() {
 	err := run()
 	if err != nil {
@@ -62,6 +126,7 @@ func main() {
 
 func run() error {
 	flag.Parse()
+	providedFlags := collectProvidedFlags()
 	ctx := context.Background()
 
 	glog.Infof("Setting log level to: '%s'", *logLevel)
@@ -75,6 +140,10 @@ func run() error {
 		// this is a special command, ignore all other flags by returning
 		// early
 		return component.CopyThisBinary(*copy)
+	}
+
+	if err := validateLauncherFlags(providedFlags, *executorType); err != nil {
+		return err
 	}
 	namespace, err := config.InPodNamespace()
 	if err != nil {

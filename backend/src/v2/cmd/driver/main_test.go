@@ -294,6 +294,123 @@ func TestGetWorkflowMetadataForPipelineJobTimes(t *testing.T) {
 	}
 }
 
+func allProvided(flags []string) map[string]bool {
+	provided := make(map[string]bool, len(flags))
+	for _, name := range flags {
+		provided[name] = true
+	}
+	return provided
+}
+
+func TestRequiredDriverFlags(t *testing.T) {
+	common := []string{
+		"type", "pipeline_name", "run_id", "run_name", "run_display_name",
+		"component", "ml_pipeline_server_address", "ml_pipeline_server_port",
+		"mlmd_server_address", "mlmd_server_port", "log_level", "publish_logs",
+	}
+	withCommon := func(extra ...string) []string {
+		return append(append([]string{}, common...), extra...)
+	}
+	tests := []struct {
+		driverType string
+		want       []string
+	}{
+		{driverType: ROOT_DAG, want: withCommon("runtime_config")},
+		{driverType: DAG, want: withCommon("task", "dag_execution_id", "iteration_index", "task_name")},
+		{driverType: CONTAINER, want: withCommon("task", "dag_execution_id", "iteration_index", "task_name", "container", "kubernetes_config")},
+	}
+	for _, tc := range tests {
+		t.Run(tc.driverType, func(t *testing.T) {
+			got, err := requiredDriverFlags(tc.driverType)
+			assert.NoError(t, err)
+			assert.ElementsMatch(t, tc.want, got)
+		})
+	}
+
+	_, err := requiredDriverFlags("UNKNOWN")
+	assert.Error(t, err)
+}
+
+func TestValidateRequiredFlags(t *testing.T) {
+	tests := []struct {
+		name       string
+		driverType string
+		omit       []string
+		wantErr    bool
+	}{
+		{
+			name:       "ROOT_DAG with all required flags",
+			driverType: ROOT_DAG,
+		},
+		{
+			name:       "DAG with all required flags",
+			driverType: DAG,
+		},
+		{
+			name:       "CONTAINER with all required flags",
+			driverType: CONTAINER,
+		},
+		{
+			name:       "ROOT_DAG missing runtime_config",
+			driverType: ROOT_DAG,
+			omit:       []string{"runtime_config"},
+			wantErr:    true,
+		},
+		{
+			name:       "DAG missing dag_execution_id",
+			driverType: DAG,
+			omit:       []string{"dag_execution_id"},
+			wantErr:    true,
+		},
+		{
+			name:       "CONTAINER missing container",
+			driverType: CONTAINER,
+			omit:       []string{"container"},
+			wantErr:    true,
+		},
+		{
+			name:       "CONTAINER missing common flag run_id",
+			driverType: CONTAINER,
+			omit:       []string{"run_id"},
+			wantErr:    true,
+		},
+		{
+			name:       "DAG missing log_level",
+			driverType: DAG,
+			omit:       []string{"log_level"},
+			wantErr:    true,
+		},
+		{
+			name:       "CONTAINER missing publish_logs",
+			driverType: CONTAINER,
+			omit:       []string{"publish_logs"},
+			wantErr:    true,
+		},
+		{
+			name:       "unknown driver type",
+			driverType: "UNKNOWN",
+			wantErr:    true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			required, err := requiredDriverFlags(tc.driverType)
+			if err != nil {
+				assert.True(t, tc.wantErr)
+				assert.Error(t, validateRequiredFlags(map[string]bool{}, tc.driverType))
+				return
+			}
+			provided := allProvided(required)
+			for _, name := range tc.omit {
+				delete(provided, name)
+			}
+			err = validateRequiredFlags(provided, tc.driverType)
+			assert.Equal(t, tc.wantErr, err != nil, "unexpected error state: %v", err)
+		})
+	}
+}
+
 func Test_handleExecutionContainer(t *testing.T) {
 	execution := &driver.Execution{}
 

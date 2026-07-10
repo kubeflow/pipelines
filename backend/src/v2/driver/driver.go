@@ -319,6 +319,8 @@ func initPodSpecPatch(
 	userCmdArgs = append(userCmdArgs, resolvedArgs...)
 	launcherCmd := []string{
 		component.KFPLauncherPath,
+		// Pass executor_type explicitly rather than relying on the launcher's default.
+		"--executor_type", "container",
 		// TODO(Bobgy): no need to pass pipeline_name and run_id, these info can be fetched via pipeline context and pipeline run context which have been created by root DAG driver.
 		"--pipeline_name", pipelineName,
 		"--run_id", runID,

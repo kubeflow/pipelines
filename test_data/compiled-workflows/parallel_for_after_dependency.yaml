@@ -83,6 +83,10 @@ spec:
       - metadata-grpc-service.kubeflow.svc.cluster.local
       - --mlmd_server_port
       - "8080"
+      - --log_level
+      - "1"
+      - --publish_logs
+      - "true"
       command:
       - driver
       env:
@@ -333,6 +337,10 @@ spec:
       - metadata-grpc-service.kubeflow.svc.cluster.local
       - --mlmd_server_port
       - "8080"
+      - --log_level
+      - "1"
+      - --publish_logs
+      - "true"
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver:latest

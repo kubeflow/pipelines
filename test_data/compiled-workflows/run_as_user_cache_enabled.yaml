@@ -74,6 +74,8 @@ spec:
       - "8080"
       - --log_level
       - "3"
+      - --publish_logs
+      - "true"
       command:
       - driver
       env:
@@ -328,6 +330,8 @@ spec:
       - "8080"
       - --log_level
       - "3"
+      - --publish_logs
+      - "true"
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver:latest

@@ -114,6 +114,7 @@ var (
 
 func main() {
 	flag.Parse()
+	providedFlags = collectProvidedFlags()
 	initConfig()
 
 	glog.Infof("Setting log level to: '%s'", *logLevel)
@@ -135,9 +136,84 @@ func init() {
 	flag.Set("stderrthreshold", "WARNING")
 }
 
+// Required flags the compiler must always pass to the driver, grouped by driver
+// type, making the implicit compiler->driver contract fail-fast instead of
+// silently falling back to defaults. Flags with meaningful defaults
+// (cache_disabled, the TLS toggles, ca_cert_path, default_run_as_*) are
+// intentionally excluded; proxy flags are validated via their sentinel below.
+var (
+	commonRequiredDriverFlags = []string{
+		driverTypeArg,
+		"pipeline_name",
+		"run_id",
+		"run_name",
+		"run_display_name",
+		"component",
+		"ml_pipeline_server_address",
+		"ml_pipeline_server_port",
+		"mlmd_server_address",
+		"mlmd_server_port",
+		"log_level",
+		"publish_logs",
+	}
+	nonRootRequiredDriverFlags = []string{
+		"task",
+		"dag_execution_id",
+		"iteration_index",
+		"task_name",
+	}
+	rootDAGRequiredDriverFlags   = []string{"runtime_config"}
+	containerRequiredDriverFlags = []string{"container", "kubernetes_config"}
+)
+
+// providedFlags holds the flags passed on the command line; set in main().
+var providedFlags = map[string]bool{}
+
+// collectProvidedFlags returns the flags explicitly set on the command line.
+// flag.Visit reports only flags that were provided, not those left at default.
+func collectProvidedFlags() map[string]bool {
+	provided := make(map[string]bool)
+	flag.Visit(func(f *flag.Flag) {
+		provided[f.Name] = true
+	})
+	return provided
+}
+
+func requiredDriverFlags(driverType string) ([]string, error) {
+	required := append([]string{}, commonRequiredDriverFlags...)
+	switch driverType {
+	case ROOT_DAG:
+		required = append(required, rootDAGRequiredDriverFlags...)
+	case DAG:
+		required = append(required, nonRootRequiredDriverFlags...)
+	case CONTAINER:
+		required = append(required, nonRootRequiredDriverFlags...)
+		required = append(required, containerRequiredDriverFlags...)
+	default:
+		return nil, fmt.Errorf("unknown driver type %q, must be one of %s, %s, %s", driverType, ROOT_DAG, DAG, CONTAINER)
+	}
+	return required, nil
+}
+
+func validateRequiredFlags(provided map[string]bool, driverType string) error {
+	required, err := requiredDriverFlags(driverType)
+	if err != nil {
+		return err
+	}
+	for _, name := range required {
+		if !provided[name] {
+			return fmt.Errorf("--%s is required for %s but was not provided", name, driverType)
+		}
+	}
+	return nil
+}
+
 func validate() error {
 	if *driverType == "" {
 		return fmt.Errorf("argument --%s must be specified", driverTypeArg)
+	}
+	if err := validateRequiredFlags(providedFlags, *driverType); err != nil {
+		return err
 	}
 	if *httpProxy == unsetProxyArgValue {
 		return fmt.Errorf("argument --%s is required but can be an empty value", httpProxyArg)
@@ -148,7 +224,6 @@ func validate() error {
 	if *noProxy == unsetProxyArgValue {
 		return fmt.Errorf("argument --%s is required but can be an empty value", noProxyArg)
 	}
-	// validation responsibility lives in driver itself, so we do not validate all other args
 	return nil
 }
 
