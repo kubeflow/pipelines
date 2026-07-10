@@ -102,7 +102,7 @@ env:
   - name: OBJECTSTORECONFIG_REGION
     value: "us-east-1"                         # S3_REGION
   - name: OBJECTSTORECONFIG_SECURE
-    value: "true"                              # use TLS; default in config.json-less deploys is false
+    value: "true"                              # use TLS; API server default is false when unset
   - name: OBJECTSTORECONFIG_BUCKETNAME
     valueFrom:
       configMapKeyRef:
@@ -219,8 +219,8 @@ artifactRepository: |
 
 The shipped patch uses `insecure: true` against an in-cluster store; set `insecure: false` for a provider whose S3
 endpoint is HTTPS-only. Argo's S3 client uses path-style by default, which matches most S3-compatible endpoints. The
-`artifactRepository.s3` schema also accepts an optional `region` field, owned by Argo rather than this repo; Argo
-derives a region for non-AWS endpoints, so it can be omitted for many providers.
+`artifactRepository.s3` schema also accepts an optional `region` field, owned by Argo rather than this repo. Whether it
+is required is provider-dependent; set it explicitly if you see signature or redirect errors.
 
 ## Step 5: apply and validate
 
