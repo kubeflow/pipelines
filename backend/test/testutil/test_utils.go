@@ -258,10 +258,16 @@ func GetRepoBranchURLRAW(repoName, branch, path string) (string, error) {
 // from GITHUB_TOKEN when set, and retries rate-limit (429) and server (5xx)
 // responses with a bounded backoff. A definitive response (2xx/4xx other than
 // 429) is returned immediately so a genuinely missing file is not retried.
+// headRetryMaxAttempts bounds the URL-verification retries; headRetryBackoffUnit
+// is the base backoff unit (a var so tests can shorten it).
+const headRetryMaxAttempts = 4
+
+var headRetryBackoffUnit = time.Second
+
 func headWithGitHubAuthAndRetry(url string) (*http.Response, error) {
 	token := os.Getenv("GITHUB_TOKEN")
 
-	const maxAttempts = 4
+	maxAttempts := headRetryMaxAttempts
 	var lastErr error
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		request, err := http.NewRequest(http.MethodHead, url, nil)
@@ -294,7 +300,7 @@ func headWithGitHubAuthAndRetry(url string) (*http.Response, error) {
 		}
 
 		if attempt < maxAttempts {
-			backoff := time.Duration(1<<attempt) * time.Second
+			backoff := time.Duration(1<<attempt) * headRetryBackoffUnit
 			logger.Log("URL HEAD %s failed (attempt %d/%d): %v; retrying in %s",
 				url, attempt, maxAttempts, lastErr, backoff)
 			time.Sleep(backoff)

@@ -19,12 +19,17 @@ import (
 	"net/http/httptest"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestHeadWithGitHubAuthAndRetry_RetriesThenSucceeds(t *testing.T) {
+	restore := headRetryBackoffUnit
+	headRetryBackoffUnit = time.Millisecond
+	defer func() { headRetryBackoffUnit = restore }()
+
 	var calls int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// First attempt is rate limited, the second succeeds.
@@ -89,4 +94,45 @@ func TestHeadWithGitHubAuthAndRetry_DoesNotRetryNotFound(t *testing.T) {
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 	assert.Equal(t, int32(1), atomic.LoadInt32(&calls), "a genuine 404 must not be retried")
+}
+
+func TestHeadWithGitHubAuthAndRetry_Retries5xx(t *testing.T) {
+	restore := headRetryBackoffUnit
+	headRetryBackoffUnit = time.Millisecond
+	defer func() { headRetryBackoffUnit = restore }()
+
+	var calls int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if atomic.AddInt32(&calls, 1) < 2 {
+			w.WriteHeader(http.StatusBadGateway) // transient 5xx
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	resp, err := headWithGitHubAuthAndRetry(server.URL)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, int32(2), atomic.LoadInt32(&calls), "should have retried the 502")
+}
+
+func TestHeadWithGitHubAuthAndRetry_ExhaustsRetries(t *testing.T) {
+	restore := headRetryBackoffUnit
+	headRetryBackoffUnit = time.Millisecond
+	defer func() { headRetryBackoffUnit = restore }()
+
+	var calls int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&calls, 1)
+		w.WriteHeader(http.StatusTooManyRequests) // rate limited on every attempt
+	}))
+	defer server.Close()
+
+	resp, err := headWithGitHubAuthAndRetry(server.URL)
+	require.Error(t, err, "exhausted retries should return the last error")
+	assert.Nil(t, resp)
+	assert.Equal(t, int32(headRetryMaxAttempts), atomic.LoadInt32(&calls), "should have attempted headRetryMaxAttempts times")
 }
