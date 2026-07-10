@@ -14,7 +14,7 @@ of S3-compatible object stores include Amazon S3, Backblaze B2, Cloudflare R2, a
 
 ## What "artifact store" means in KFP
 
-KFP touches object storage from two distinct components, and both must point at the same bucket:
+KFP touches object storage from three distinct components, and all three must point at the same bucket:
 
 1. **The API server** (`ml-pipeline`) stores uploaded pipeline definitions and reads/writes artifacts and archived
    logs. Its object-store settings come from `ObjectStoreConfig.*` (see
