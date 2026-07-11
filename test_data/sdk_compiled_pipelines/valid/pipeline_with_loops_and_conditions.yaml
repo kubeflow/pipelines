@@ -1,7 +1,7 @@
 # PIPELINE DEFINITION
 # Name: pipeline-with-loops-and-conditions-multi-layers
 # Inputs:
-#    loop_parameter: list [Default: [{'A_a': 'heads', 'B_b': ['A', 'B']}, {'A_a': 'tails', 'B_b': ['X', 'Y', 'Z']}]]
+#    loop_parameter: list [Default: [{'B_b': ['A', 'B'], 'A_a': 'heads'}, {'B_b': ['X', 'Y', 'Z'], 'A_a': 'tails'}]]
 #    msg: str [Default: 'hello']
 components:
   comp-args-generator-op:
