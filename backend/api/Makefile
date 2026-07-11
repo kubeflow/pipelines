@@ -50,8 +50,24 @@ generate-kfp-server-api-package:
 fetch-dependencies: v2beta1/google/rpc/status.proto
 
 v2beta1/google/rpc/status.proto:
-	mkdir -p v2beta1/google/rpc
-	wget --tries=3 --waitretry=10 --retry-on-http-error=429,500,502,503 -O v2beta1/google/rpc/status.proto https://raw.githubusercontent.com/googleapis/googleapis/047d3a8ac7f75383855df0166144f891d7af08d9/google/rpc/status.proto
+	@mkdir -p v2beta1/google/rpc
+	@# Authenticate with GITHUB_TOKEN when set to avoid anonymous per-IP 429
+	@# rate limits on raw.githubusercontent.com. The bearer header is passed
+	@# through a temporary WGETRC file, never on the command line. If the
+	@# authenticated fetch fails it falls back to an anonymous fetch, so
+	@# behavior is never worse than without a token.
+	@wget_cmd="wget --tries=3 --waitretry=10 --retry-on-http-error=429,500,502,503 -O v2beta1/google/rpc/status.proto https://raw.githubusercontent.com/googleapis/googleapis/047d3a8ac7f75383855df0166144f891d7af08d9/google/rpc/status.proto"; \
+	if [ -n "$$GITHUB_TOKEN" ]; then \
+		wgetrc=$$(mktemp "$${TMPDIR:-/tmp}/kfp-proto-wgetrc.XXXXXX"); \
+		printf 'header = Authorization: Bearer %s\n' "$$GITHUB_TOKEN" > "$$wgetrc"; \
+		WGETRC=$$wgetrc $$wget_cmd || $$wget_cmd; \
+		status=$$?; \
+		rm -f "$$wgetrc"; \
+	else \
+		$$wget_cmd; \
+		status=$$?; \
+	fi; \
+	exit $$status
 
 # Generate clients starting by building api-generator image locally.
 # Note, this should only be used for local development purposes. Once any change is made to the Dockerfile,
