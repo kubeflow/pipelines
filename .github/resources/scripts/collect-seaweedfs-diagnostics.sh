@@ -23,16 +23,19 @@
 #                                        plus kube-proxy pod state, and probed
 #                                        directly in section (4).
 #
-# Section (4) inspects the Kind node's netfilter state for the failing
-# SeaweedFS ClusterIP. The leading dataplane candidate is conntrack-table
-# saturation: the nested-parallel lanes open a burst of simultaneous
-# connections, and once the node conntrack table fills, new SYNs are dropped
-# and every dial reports 'i/o timeout' while the pod's own liveness probe
-# (kubelet -> pod IP) keeps passing, so the pod is never restarted. The
-# durable evidence is the cumulative insert_failed/drop counters in
-# /proc/net/stat/nf_conntrack and any 'nf_conntrack: table full' dmesg line;
-# the presence or absence of iptables/ipvs rules for the ClusterIP separates
-# conntrack exhaustion from a missing/stale service program.
+# Section (4) inspects every Kind node's netfilter state for the failing
+# SeaweedFS ClusterIP (a ClusterIP dial is DNAT'd and conntrack-tracked on the
+# client pod's node, which need not be the SeaweedFS node). The leading
+# dataplane candidate is conntrack-table saturation: the nested-parallel lanes
+# open a burst of simultaneous connections, and once a node conntrack table
+# fills, new SYNs are dropped and every dial reports 'i/o timeout' while the
+# pod's own liveness probe (kubelet -> pod IP) keeps passing, so the pod is
+# never restarted. The durable evidence is the cumulative insert_failed/drop
+# counters in /proc/net/stat/nf_conntrack and any 'nf_conntrack: table full'
+# dmesg line; the presence or absence of iptables/ipvs rules for the ClusterIP
+# separates conntrack exhaustion from a missing/stale service program. Each
+# probe distinguishes a failed/forbidden query from a genuinely empty result
+# so a blank line never falsely rules out the signal.
 #
 # All commands are best-effort; a missing object never fails the caller.
 
@@ -116,32 +119,76 @@ emit() {
     echo "----- (4) node netfilter state for ClusterIP ${CLUSTER_IP:-<unresolved>} -----"
     # Kind runs each node as a Docker container named after the Kubernetes node,
     # so 'docker exec <node>' reaches the node's network namespace where
-    # kube-proxy programs the ClusterIP and the kernel tracks connections. This
-    # is best-effort: multi-node clusters, non-Docker runtimes, or a locked-down
-    # runner simply skip it.
-    if [[ -z "$NODE" ]]; then
-        echo "Could not resolve SeaweedFS node; skipping node-level dataplane probe."
-    elif ! command -v docker >/dev/null 2>&1 || ! docker inspect "$NODE" >/dev/null 2>&1; then
-        echo "Kind node '$NODE' not inspectable via docker from this runner; skipping node-level dataplane probe."
+    # kube-proxy programs the ClusterIP and the kernel tracks connections. A
+    # ClusterIP dial is DNAT'd and conntrack-tracked on the *client* pod's node,
+    # which need not be the SeaweedFS node, so probe every Kind node rather than
+    # only the destination. Best-effort: nodes that are not Docker containers
+    # (non-Kind / remote runtime) or an unreachable daemon skip individually.
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "docker not available from this runner; skipping node-level dataplane probe."
     else
-        echo "conntrack in-use / max:"
-        # Point-in-time gauge; may have drained by the time diagnostics run.
-        docker exec "$NODE" sh -c 'cat /proc/sys/net/netfilter/nf_conntrack_count /proc/sys/net/netfilter/nf_conntrack_max 2>/dev/null | paste -sd/ -' 2>/dev/null || echo "(unavailable)"
-        echo "conntrack stat header + totals (durable; nonzero insert_failed/drop == table pressure):"
-        # /proc/net/stat/nf_conntrack has one row per CPU; the insert_failed and
-        # drop columns are cumulative since boot and survive the burst draining.
-        docker exec "$NODE" sh -c 'cat /proc/net/stat/nf_conntrack 2>/dev/null' 2>/dev/null || echo "(unavailable)"
-        echo "kernel 'nf_conntrack: table full' events:"
-        docker exec "$NODE" sh -c "dmesg 2>/dev/null | grep -i 'nf_conntrack: table full' | tail -5" 2>/dev/null || true
-        echo "(if the two lines above are blank, no table-full event was logged)"
-        echo "service program for $CLUSTER_IP (iptables, then ipvs fallback):"
-        if [[ -n "$CLUSTER_IP" ]]; then
-            # Rules present + conntrack pressure == exhaustion; rules absent ==
-            # kube-proxy never (re)programmed the VIP (missing/stale service).
-            docker exec "$NODE" sh -c "iptables-save 2>/dev/null | grep -F '$CLUSTER_IP' || ipvsadm -Ln 2>/dev/null | grep -A4 '$CLUSTER_IP' || echo '(no iptables/ipvs rule references $CLUSTER_IP)'" 2>/dev/null || echo "(unavailable)"
-        else
-            echo "ClusterIP unresolved; cannot query service program."
+        NODES=$(kubectl get nodes -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' 2>/dev/null || true)
+        if [[ -z "$NODES" ]]; then
+            echo "Could not list cluster nodes; skipping node-level dataplane probe."
         fi
+        for node in $NODES; do
+            echo "===== node: $node ====="
+            if ! docker inspect "$node" >/dev/null 2>&1; then
+                echo "Node '$node' is not a Docker container (non-Kind or remote runtime); skipping."
+                continue
+            fi
+
+            echo "conntrack in-use / max:"
+            # Point-in-time gauge; may have drained by the time diagnostics run.
+            docker exec "$node" sh -c 'cat /proc/sys/net/netfilter/nf_conntrack_count /proc/sys/net/netfilter/nf_conntrack_max 2>/dev/null | paste -sd/ -' 2>/dev/null || echo "(unavailable)"
+
+            echo "conntrack stat header + totals (durable; nonzero insert_failed/drop == table pressure):"
+            # /proc/net/stat/nf_conntrack has one row per CPU; the insert_failed
+            # and drop columns are cumulative since boot and survive the burst
+            # draining.
+            docker exec "$node" sh -c 'cat /proc/net/stat/nf_conntrack 2>/dev/null' 2>/dev/null || echo "(unavailable)"
+
+            echo "kernel 'nf_conntrack: table full' events:"
+            # Distinguish a forbidden/failed dmesg from a successful empty query:
+            # a blank line must not read as "no event" and falsely rule out the
+            # main signal this section captures.
+            docker exec "$node" sh -c '
+                out=$(dmesg 2>/dev/null) || { echo "(dmesg unavailable — cannot confirm table-full events)"; exit 0; }
+                if printf "%s\n" "$out" | grep -qi "nf_conntrack: table full"; then
+                    printf "%s\n" "$out" | grep -i "nf_conntrack: table full" | tail -5
+                else
+                    echo "(no table-full event logged)"
+                fi' 2>/dev/null || echo "(unavailable)"
+
+            echo "service program for ${CLUSTER_IP:-<unresolved>} (iptables, then ipvs):"
+            # Rules present + conntrack pressure == exhaustion; rules absent ==
+            # kube-proxy never (re)programmed the VIP. Track whether any ruleset
+            # was actually read so a missing iptables/ipvsadm binary is reported
+            # as "cannot confirm", never as confirmed rule absence.
+            if [[ -z "$CLUSTER_IP" ]]; then
+                echo "ClusterIP unresolved; cannot query service program."
+                continue
+            fi
+            docker exec "$node" sh -c '
+                ip=$1
+                read_any=0
+                match=""
+                if ipt=$(iptables-save 2>/dev/null); then
+                    read_any=1
+                    match=$(printf "%s\n" "$ipt" | grep -F "$ip")
+                fi
+                if [ -z "$match" ] && ipvs=$(ipvsadm -Ln 2>/dev/null); then
+                    read_any=1
+                    match=$(printf "%s\n" "$ipvs" | grep -A4 "$ip")
+                fi
+                if [ -n "$match" ]; then
+                    printf "%s\n" "$match"
+                elif [ "$read_any" = 1 ]; then
+                    echo "(no iptables/ipvs rule references $ip)"
+                else
+                    echo "(iptables-save and ipvsadm both unavailable — cannot confirm rule presence)"
+                fi' _ "$CLUSTER_IP" 2>/dev/null || echo "(unavailable)"
+        done
     fi
 
     echo
