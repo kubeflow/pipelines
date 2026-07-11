@@ -1211,7 +1211,8 @@ def build_task_spec_for_group(
     pipeline_task_spec.task_info.name = (
         group.name if isinstance(group, tasks_group.ParallelFor) else
         group.display_name or group.name)
-    pipeline_task_spec.component_ref.name = (utils.sanitize_component_name(group.name))
+    pipeline_task_spec.component_ref.name = (
+        utils.sanitize_component_name(group.name))
     for channel in pipeline_channels:
 
         channel_full_name = channel.full_name
@@ -1364,7 +1365,8 @@ def build_spec_by_group(
         group_name_to_allocated_component_name = {}
 
     if group.name in group_name_to_allocated_component_name:
-        group_component_name = group_name_to_allocated_component_name[group.name]
+        group_component_name = group_name_to_allocated_component_name[
+            group.name]
     else:
         group_component_name = utils.sanitize_component_name(group.name)
 
@@ -1385,8 +1387,10 @@ def build_spec_by_group(
         ]
         subgroup_output_channels = outputs.get(subgroup.name, {})
 
-        display_name = getattr(subgroup, 'display_name', None) if hasattr(subgroup, 'loop_argument') else None
-        subgroup_component_name = utils.sanitize_component_name(display_name or subgroup.name)
+        display_name = getattr(subgroup, 'display_name', None) if hasattr(
+            subgroup, 'loop_argument') else None
+        subgroup_component_name = utils.sanitize_component_name(display_name or
+                                                                subgroup.name)
 
         tasks_in_current_dag = [
             utils.sanitize_task_name(subgroup.name) for subgroup in subgroups
@@ -1578,7 +1582,8 @@ def build_spec_by_group(
             collection=list(pipeline_spec.components.keys()),
             delimiter='-')
 
-        group_name_to_allocated_component_name[subgroup.name] = subgroup_component_name
+        group_name_to_allocated_component_name[
+            subgroup.name] = subgroup_component_name
 
         subgroup_task_spec.component_ref.name = subgroup_component_name
         pipeline_spec.components[subgroup_component_name].CopyFrom(
