@@ -1208,10 +1208,10 @@ def build_task_spec_for_group(
         A PipelineTaskSpec object representing the group.
     """
     pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
-    pipeline_task_spec.task_info.name = group.display_name or group.name
-    pipeline_task_spec.component_ref.name = (
-        utils.sanitize_component_name(group.name))
-
+    pipeline_task_spec.task_info.name = (
+        group.name if isinstance(group, tasks_group.ParallelFor) else
+        group.display_name or group.name)
+    pipeline_task_spec.component_ref.name = (utils.sanitize_component_name(group.name))
     for channel in pipeline_channels:
 
         channel_full_name = channel.full_name
@@ -1332,6 +1332,7 @@ def build_spec_by_group(
     name_to_for_loop_group: Mapping[str, tasks_group.ParallelFor],
     platform_spec: pipeline_spec_pb2.PlatformSpec,
     is_compiled_component: bool,
+    group_name_to_allocated_component_name: Optional[Dict[str, str]] = None,
 ) -> None:
     """Generates IR spec given a TasksGroup.
 
@@ -1359,7 +1360,13 @@ def build_spec_by_group(
         name_to_for_loop_group: The dict of for loop group name to loop
             group.
     """
-    group_component_name = utils.sanitize_component_name(group.name)
+    if group_name_to_allocated_component_name is None:
+        group_name_to_allocated_component_name = {}
+
+    if group.name in group_name_to_allocated_component_name:
+        group_component_name = group_name_to_allocated_component_name[group.name]
+    else:
+        group_component_name = utils.sanitize_component_name(group.name)
 
     if group.name == rootgroup_name:
         group_component_spec = pipeline_spec.root
@@ -1378,7 +1385,8 @@ def build_spec_by_group(
         ]
         subgroup_output_channels = outputs.get(subgroup.name, {})
 
-        subgroup_component_name = (utils.sanitize_component_name(subgroup.name))
+        display_name = getattr(subgroup, 'display_name', None) if hasattr(subgroup, 'loop_argument') else None
+        subgroup_component_name = utils.sanitize_component_name(display_name or subgroup.name)
 
         tasks_in_current_dag = [
             utils.sanitize_task_name(subgroup.name) for subgroup in subgroups
@@ -1569,6 +1577,8 @@ def build_spec_by_group(
             name=subgroup_component_name,
             collection=list(pipeline_spec.components.keys()),
             delimiter='-')
+
+        group_name_to_allocated_component_name[subgroup.name] = subgroup_component_name
 
         subgroup_task_spec.component_ref.name = subgroup_component_name
         pipeline_spec.components[subgroup_component_name].CopyFrom(
@@ -2121,6 +2131,7 @@ def create_pipeline_spec(
         _merge_pipeline_config(
             pipelineConfig=pipeline_config, platformSpec=platform_spec)
 
+    group_name_to_allocated_component_name = {}
     for group in all_groups:
         build_spec_by_group(
             pipeline_spec=pipeline_spec,
@@ -2135,6 +2146,7 @@ def create_pipeline_spec(
             name_to_for_loop_group=name_to_for_loop_group,
             platform_spec=platform_spec,
             is_compiled_component=False,
+            group_name_to_allocated_component_name=group_name_to_allocated_component_name,
         )
 
     build_exit_handler_groups_recursively(
