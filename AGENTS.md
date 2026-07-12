@@ -523,12 +523,12 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 
 ### Test matrices and variants (Kubernetes, stores, proxy, cache)
 
-- Kubernetes versions: CI runs a matrix across a low and high supported version, commonly `v1.31.14` and `v1.35.0`.
+- Kubernetes versions: CI runs a matrix across a low and high supported version, commonly `v1.33.12` and `v1.36.1`.
   - Examples: `e2e-test.yml`, `sdk-execution.yml`, `upgrade-test.yml`, `kfp-kubernetes-execution-tests.yml`, `kfp-webhooks.yml`, `api-server-tests.yml`, `compiler-tests.yml`, `legacy-v2-api-integration-tests.yml`, `integration-tests-v1.yml`, and frontend integration in `e2e-test-frontend.yml`.
 - Pipeline store variants (v2 engine): tests run with `database` and `kubernetes` stores, and a dedicated job compiles pipelines to Kubernetes-native manifests.
   - Example: `e2e-test.yml` job "API integration tests v2 - K8s with ${pipeline_store}" and "compile pipelines with Kubernetes".
 - Argo Workflows version matrix for compatibility (where relevant): `e2e-test.yml` exercises `v3.7.14` and `v4.0.5` across the standard cache/test-label matrix, while `api-server-tests.yml` covers standalone and Kubernetes-native Argo compatibility across the standard matrices (with standalone low-Kubernetes spot lanes per supported Argo version).
-- Focused Argo runtime compatibility API tests run only in the canonical standalone `v4.0.5` / Kubernetes `v1.35.0` job via `ARGO_COMPATIBILITY_TESTS`; this covers recurring-run creation, run retry, task metadata/artifacts, and archived logs without adding another E2E lane.
+- Focused Argo runtime compatibility API tests run only in the canonical standalone `v4.0.5` / Kubernetes `v1.36.1` job via `ARGO_COMPATIBILITY_TESTS`; this covers recurring-run creation, run retry, task metadata/artifacts, and archived logs without adding another E2E lane.
 - Proxy / cache toggles: dedicated jobs run with HTTP proxy enabled and with execution cache disabled to validate those modes.
 - Artifacts: failing logs and test outputs are uploaded as workflow artifacts for debugging.
 
@@ -537,6 +537,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - Kind-based clusters are provisioned via the `kfp-cluster` composite action, parameterized by `k8s_version`, `pipeline_store`, `proxy`, `cache_enabled`, and optional `argo_version`.
 - The `create-cluster` and `deploy` actions are used by newer suites; `kfp-k8s` installs SDK components from source inside jobs that execute Python-based tests.
 - The `deploy` action downloads and loads CI-built images before deploying optional Tinyproxy support, preloads runtime base images used by test pods and init containers, and waits for Tinyproxy readiness/endpoints in proxy lanes.
+- CI Docker-sensitive paths use shell retry wrappers with sleeps for image builds, Buildx bootstrap, and runtime base-image pulls; Kind node image bootstrap also falls back to `gcr.io/k8s-staging-kind/node` when Docker Hub flakes.
 - The `test-and-report` action port-forwards MLMD on port `8080` only when `ARGO_COMPATIBILITY_TESTS=true`, allowing the canonical Argo compatibility API job to validate execution/artifact metadata without adding another test lane.
 - Proxy test failures collect both the KFP namespace and `tinyproxy` namespace logs/events to diagnose proxy-service readiness separately from pipeline failures.
 - The CI proxy runs Tinyproxy as a lightweight forward proxy in the `tinyproxy` namespace on port `3128`.
@@ -692,6 +693,7 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - Frontend lockfile checks fail after a dependency update: from `frontend/`, install the pinned
   npm with `npm install --global "$(node -p 'require("./package.json").packageManager')"`,
   regenerate `package-lock.json`, and commit the result.
+- CI image-build jobs fail while pulling `moby/buildkit`, `kindest/node`, `python:3.11`, or `alpine:3.23`: treat these as registry flakes first; current CI retries those pulls/builds automatically, and Kind node bootstrap falls back to `gcr.io/k8s-staging-kind/node`.
 - Runtime component imports SDK-only modules: `_KFP_RUNTIME=true` disables many SDK imports; avoid importing SDK-only modules in task code.
 - Proxy CI jobs fail during `Deploy Tinyproxy` with `OOMKilled`, `CrashLoopBackOff`, endpoint readiness timeouts, or failed proxy tests: inspect the `tinyproxy` namespace pods, events, services, endpoints, and endpoint slices.
 - Archived run-log requests return `NoSuchKey` under a customized Argo artifact `keyFormat`: confirm the persisted Workflow node contains a `main-logs` artifact location; the API uses that stored key before its legacy configured-path fallback.

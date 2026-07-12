@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -35,6 +36,16 @@ import (
 
 // Auth type constants.
 const (
+	// IdempotencyTagKey, when present in the tags passed to CreateRun, enables
+	// idempotent create-with-retry: on a transient failure the client searches
+	// the experiment for a run already carrying this tag before recreating.
+	IdempotencyTagKey = "mlflow.kfp.idempotencyKey"
+
+	// CreateMaxAttempts bounds the idempotent retries for experiment and run
+	// creation. The MLflow operation context budget is sized to this many
+	// per-call timeouts so the attempts fit within it.
+	CreateMaxAttempts = 3
+
 	AuthTypeKubernetes = "kubernetes"
 	AuthTypeBearer     = "bearer"
 	AuthTypeBasicAuth  = "basic-auth"
@@ -47,6 +58,10 @@ const (
 	DefaultRetryMax     time.Duration = 10 * time.Second
 	DefaultRetryElapsed time.Duration = 60 * time.Second
 )
+
+// createRetryInitialBackoff is the base wait before the first create retry.
+// It is a var so tests can shorten it.
+var createRetryInitialBackoff = 500 * time.Millisecond
 
 // MLflow REST API paths.
 const (
@@ -235,7 +250,45 @@ func (c *Client) GetExperimentByName(ctx context.Context, name string) (*MLflowE
 }
 
 // CreateExperiment creates a new MLflow experiment. Returns the experiment ID.
+// CreateExperiment creates an experiment, recovering the existing id if a
+// concurrent or previously-lost-response create already made it. Under load the
+// single-worker MLflow server can leave a create request queued past the
+// per-call timeout, so the create is retried on transient failures; the
+// create-or-get recovery keeps those retries idempotent.
 func (c *Client) CreateExperiment(ctx context.Context, name string, description *string) (string, error) {
+	var lastErr error
+	for attempt := 0; attempt < CreateMaxAttempts; attempt++ {
+		if err := ctx.Err(); err != nil {
+			return "", err
+		}
+		id, err := c.createExperimentOnce(ctx, name, description)
+		if err == nil {
+			return id, nil
+		}
+		// A prior attempt (whose response was lost) or a concurrent caller may
+		// have already created it; recover the id by name.
+		if IsAlreadyExistsError(err) {
+			exp, getErr := c.GetExperimentByName(ctx, name)
+			if getErr == nil {
+				return exp.ID, nil
+			}
+			lastErr = getErr
+		} else {
+			if !isRetryableCreateError(err) {
+				return "", err
+			}
+			lastErr = err
+		}
+		if attempt < CreateMaxAttempts-1 {
+			if !sleepWithContext(ctx, createRetryBackoff(attempt)) {
+				return "", ctx.Err()
+			}
+		}
+	}
+	return "", fmt.Errorf("CreateExperiment %q failed after %d attempts: %w", name, CreateMaxAttempts, lastErr)
+}
+
+func (c *Client) createExperimentOnce(ctx context.Context, name string, description *string) (string, error) {
 	body := map[string]interface{}{
 		"name": name,
 	}
@@ -255,8 +308,54 @@ func (c *Client) CreateExperiment(ctx context.Context, name string, description 
 	return result.ExperimentID, nil
 }
 
-// CreateRun creates a new MLflow run under the given experiment.
+// CreateRun creates a new MLflow run under the given experiment. When the tags
+// include IdempotencyTagKey, a transient create failure is retried safely: the
+// client first searches the experiment for a run already carrying that tag
+// (created by a previous attempt whose response was lost) and reuses it instead
+// of creating a duplicate. Without the tag, the run is created exactly once,
+// preserving prior behavior.
 func (c *Client) CreateRun(ctx context.Context, experimentID, runName string, tags []Tag) (string, error) {
+	idempotencyKey := tagValue(tags, IdempotencyTagKey)
+	if idempotencyKey == "" {
+		return c.createRunOnce(ctx, experimentID, runName, tags)
+	}
+
+	var lastErr error
+	for attempt := 0; attempt < CreateMaxAttempts; attempt++ {
+		if err := ctx.Err(); err != nil {
+			return "", err
+		}
+		runID, err := c.createRunOnce(ctx, experimentID, runName, tags)
+		if err == nil {
+			return runID, nil
+		}
+		if !isRetryableCreateError(err) {
+			return "", err
+		}
+		lastErr = err
+		// The failed attempt may have committed the run server-side before its
+		// response was lost. Confirm via search before recreating; recreating
+		// without a definitive answer risks a duplicate run.
+		existing, confirmed, searchErr := c.findRunByIdempotencyTag(ctx, experimentID, idempotencyKey)
+		if existing != "" {
+			return existing, nil
+		}
+		if !confirmed {
+			// The search could not determine whether the run exists, so we cannot
+			// safely recreate it; fail rather than risk a duplicate.
+			return "", fmt.Errorf("CreateRun in experiment %q failed and its idempotency search could not confirm the run's state (create error: %w; search error: %v)", experimentID, lastErr, searchErr)
+		}
+		// Confirmed absent: the create did not commit, so recreating is safe.
+		if attempt < CreateMaxAttempts-1 {
+			if !sleepWithContext(ctx, createRetryBackoff(attempt)) {
+				return "", ctx.Err()
+			}
+		}
+	}
+	return "", fmt.Errorf("CreateRun in experiment %q failed after %d attempts: %w", experimentID, CreateMaxAttempts, lastErr)
+}
+
+func (c *Client) createRunOnce(ctx context.Context, experimentID, runName string, tags []Tag) (string, error) {
 	body := map[string]interface{}{
 		"experiment_id": experimentID,
 		"run_name":      runName,
@@ -284,6 +383,101 @@ func (c *Client) CreateRun(ctx context.Context, experimentID, runName string, ta
 		return "", fmt.Errorf("failed to parse CreateRun response: %w", err)
 	}
 	return result.Run.Info.RunID, nil
+}
+
+// findRunByIdempotencyTag searches for a run in the experiment carrying the
+// given IdempotencyTagKey value, retrying the (read-only, safe) search on
+// transient failures. It returns (runID, confirmed, err): confirmed is true
+// only when the search completed and definitively answered whether the run
+// exists (runID is set when found, "" when absent). When confirmed is false the
+// caller must not recreate the run, since a duplicate cannot be ruled out.
+func (c *Client) findRunByIdempotencyTag(ctx context.Context, experimentID, idempotencyKey string) (runID string, confirmed bool, err error) {
+	// Escape single quotes so a tag value can never alter the filter grammar.
+	filter := fmt.Sprintf("tags.`%s` = '%s'", IdempotencyTagKey, strings.ReplaceAll(idempotencyKey, "'", "''"))
+	var lastErr error
+	for attempt := 0; attempt < CreateMaxAttempts; attempt++ {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return "", false, ctxErr
+		}
+		resp, searchErr := c.SearchRuns(ctx, []string{experimentID}, filter, 1, "")
+		if searchErr != nil {
+			lastErr = searchErr
+			// A definitive (non-transient) error means the search cannot succeed.
+			if !isRetryableCreateError(searchErr) {
+				return "", false, searchErr
+			}
+			if attempt < CreateMaxAttempts-1 {
+				if !sleepWithContext(ctx, createRetryBackoff(attempt)) {
+					return "", false, ctx.Err()
+				}
+			}
+			continue
+		}
+		if len(resp.Runs) == 0 {
+			return "", true, nil // confirmed absent
+		}
+		var run struct {
+			Info struct {
+				RunID string `json:"run_id"`
+			} `json:"info"`
+		}
+		if unmarshalErr := json.Unmarshal(resp.Runs[0], &run); unmarshalErr != nil {
+			return "", false, fmt.Errorf("failed to parse searched run: %w", unmarshalErr)
+		}
+		return run.Info.RunID, true, nil // confirmed present
+	}
+	return "", false, lastErr
+}
+
+// isRetryableCreateError reports whether a create failure is transient (client
+// timeout, network error, or an MLflow 5xx) and therefore worth retrying an
+// idempotent create.
+func isRetryableCreateError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+	var apiErr *APIError
+	if errors.As(err, &apiErr) {
+		return apiErr.StatusCode >= 500
+	}
+	// Unclassified transport errors (connection reset/refused) are transient.
+	var urlErr *url.Error
+	return errors.As(err, &urlErr)
+}
+
+// createRetryBackoff returns the wait before the next create attempt.
+func createRetryBackoff(attempt int) time.Duration {
+	return createRetryInitialBackoff * time.Duration(1<<attempt)
+}
+
+// sleepWithContext waits for d or until ctx is done, returning false if ctx
+// ended first.
+func sleepWithContext(ctx context.Context, d time.Duration) bool {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
+	}
+}
+
+// tagValue returns the value of the first tag matching key, or "".
+func tagValue(tags []Tag, key string) string {
+	for _, t := range tags {
+		if t.Key == key {
+			return t.Value
+		}
+	}
+	return ""
 }
 
 // UpdateRun updates the status of an MLflow run.
