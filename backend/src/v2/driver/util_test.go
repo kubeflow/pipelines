@@ -234,6 +234,58 @@ func Test_inputParamTaskOutput(t *testing.T) {
 	}
 }
 
+func Test_parseJSONStringParameter(t *testing.T) {
+	tests := []struct {
+		name          string
+		value         *structpb.Value
+		parameterType pipelinespec.ParameterType
+		want          *structpb.Value
+		wantErr       bool
+	}{
+		{
+			name:          "parses JSON object for struct input",
+			value:         structpb.NewStringValue(`{"key":"value"}`),
+			parameterType: pipelinespec.ParameterType_STRUCT,
+			want: structpb.NewStructValue(&structpb.Struct{Fields: map[string]*structpb.Value{
+				"key": structpb.NewStringValue("value"),
+			}}),
+		},
+		{
+			name:          "parses JSON array for list input",
+			value:         structpb.NewStringValue(`["first","second"]`),
+			parameterType: pipelinespec.ParameterType_LIST,
+			want: structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{
+				structpb.NewStringValue("first"),
+				structpb.NewStringValue("second"),
+			}}),
+		},
+		{
+			name:          "leaves string input unchanged",
+			value:         structpb.NewStringValue(`{"key":"value"}`),
+			parameterType: pipelinespec.ParameterType_STRING,
+			want:          structpb.NewStringValue(`{"key":"value"}`),
+		},
+		{
+			name:          "reports invalid structured JSON",
+			value:         structpb.NewStringValue(`not JSON`),
+			parameterType: pipelinespec.ParameterType_STRUCT,
+			wantErr:       true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual, err := parseJSONStringParameter(test.value, test.parameterType)
+			if test.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, test.want, actual)
+		})
+	}
+}
+
 func Test_getItems(t *testing.T) {
 	tests := []struct {
 		name      string

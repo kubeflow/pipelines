@@ -832,7 +832,7 @@ implementation:
         """Test ParallelFor with literal dict items (Issue #12191)."""
 
         @dsl.component
-        def process_item(item_a: int, item_b: int) -> int:
+        def process_item(item: Dict[str, int], item_a: int, item_b: int) -> int:
             return item_a + item_b
 
         @dsl.pipeline(name='test-parallel-for-with-literal-dicts')
@@ -844,7 +844,7 @@ implementation:
                     'a': 2,
                     'b': 20
             }]) as item:
-                process_item(item_a=item.a, item_b=item.b)
+                process_item(item=item, item_a=item.a, item_b=item.b)
 
         with tempfile.TemporaryDirectory() as tempdir:
             output_yaml = os.path.join(tempdir, 'result.yaml')
@@ -860,6 +860,8 @@ implementation:
         self.assertIn(
             'parseJson(string_value)["a"]', yaml_content,
             'Should generate parseJson expressions for dict field access')
+        self.assertIn('parameterType: STRUCT', yaml_content,
+                      'The whole loop item should remain a struct input')
 
     def test_cannot_compile_parallel_for_with_single_param(self):
 
