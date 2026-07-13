@@ -105,16 +105,20 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Start runner telemetry
-      # Records runner-level CPU / memory / disk / network for the rest of the
-      # job and renders charts into the job summary (post-hook). CI has no
-      # metrics-server, so this is the only measurement of whether a lane
-      # failure coincided with runner resource saturation — the discriminator
-      # between app-level bottlenecks (e.g. MLflow worker queueing) and the
-      # shared runner CPUs being pegged. No external service; summary only.
-      uses: catchpoint/workflow-telemetry-action@94c3c3d9567a0205de6da68a76c428ce4e769af1 # v2.0.0
-      with:
-        comment_on_pr: false
+    - name: Start runner telemetry sampler
+      # Samples host CPU / memory / load from /proc in the background; the
+      # "Render runner telemetry" step below turns the samples into mermaid
+      # charts in the job summary. CI has no metrics-server, so this is the
+      # only measurement of whether a lane failure coincided with runner
+      # resource saturation — the discriminator between app-level bottlenecks
+      # (e.g. MLflow worker queueing) and the shared runner CPUs being pegged.
+      # Deliberately hand-rolled: marketplace telemetry actions render charts
+      # by POSTing the collected samples to external services, which this repo
+      # must not depend on. Everything here stays on the runner and in GitHub.
+      shell: bash
+      run: |
+        nohup ./.github/resources/scripts/runner-telemetry.sh sample /tmp/runner-telemetry.csv >/dev/null 2>&1 &
+        echo $! > /tmp/runner-telemetry.pid
       continue-on-error: true
 
     - name: Configure API Access
@@ -361,6 +365,14 @@ runs:
         fi
 
         go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter=${{ inputs.test_label }} --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -pipelineStoreKubernetes=$pipelineStoreKubernetes -disableTlsCheck=$DISABLE_TLS_CHECK -apiScheme=$API_SCHEME -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME -apiUrl="$API_URL" -authToken="$AUTH_TOKEN" -serviceAccountName="$SERVICE_ACCOUNT_NAME" -mlflowEnabled=${{ inputs.mlflow_enabled }} $BASE_IMAGE_FLAG
+      continue-on-error: true
+
+    - name: Render runner telemetry
+      # Stops the sampler and writes the stats table + mermaid charts to the
+      # job summary. Runs for passing lanes too: a green run's baseline is
+      # what makes a saturated failing run recognizable.
+      shell: bash
+      run: ./.github/resources/scripts/runner-telemetry.sh render /tmp/runner-telemetry.csv
       continue-on-error: true
 
     - name: Collect Pod logs in case of Test Failures
