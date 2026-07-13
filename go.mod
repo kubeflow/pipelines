@@ -5,7 +5,7 @@ go 1.26
 toolchain go1.26.4
 
 require (
-	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
+	github.com/Masterminds/squirrel v1.5.4
 	github.com/VividCortex/mysqlerr v1.0.0
 	github.com/argoproj/argo-workflows/v4 v4.0.5
 	github.com/aws/aws-sdk-go v1.55.5 // indirect
