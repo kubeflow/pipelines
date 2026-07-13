@@ -33,18 +33,24 @@
 #
 # Section (4) inspects every Kind node (a ClusterIP dial is DNAT'd and
 # conntrack-tracked on the *client* pod's node, which need not be the service's
-# node). The leading dataplane candidate is conntrack-table saturation: the
+# node). One dataplane candidate is conntrack-table saturation: the
 # nested-parallel lanes open a burst of simultaneous connections, and once a
 # node conntrack table fills, new SYNs are dropped and every dial reports 'i/o
 # timeout' while the backing pod's own liveness probe (kubelet -> pod IP) keeps
 # passing, so the pod is never restarted. Per node it dumps the node-global
-# conntrack state once -- the cumulative insert_failed/drop counters in
-# /proc/net/stat/nf_conntrack and any 'nf_conntrack: table full' dmesg line are
-# the durable exhaustion evidence -- then the iptables/ipvs program for each
-# timed-out ClusterIP, whose presence or absence separates conntrack exhaustion
-# from a missing/stale service program. Each probe distinguishes a
-# failed/forbidden query from a genuinely empty result so a blank line never
-# falsely rules out the signal.
+# conntrack state once -- the durable drop/insert_failed counters (conntrack -S,
+# falling back to /proc/net/stat/nf_conntrack) and any 'nf_conntrack: table
+# full' dmesg line -- then the iptables/ipvs program for each timed-out
+# ClusterIP, followed end to end (KUBE-SERVICES -> KUBE-SVC -> KUBE-SEP DNAT) so
+# a live endpoint DNAT rules out a missing/stale service program.
+#
+# When the conntrack table and the service program are both clean (as first
+# observed live: table ~0.6% full, no table-full event, KUBE-SEP DNAT present),
+# the remaining candidate is accept-queue saturation on the backing pod itself.
+# Section (5) reads the SeaweedFS pod's listen sockets and cumulative
+# ListenOverflows / ListenDrops from inside its netns to confirm or rule that
+# out. Each probe distinguishes a failed/forbidden query from a genuinely empty
+# result so a blank line never falsely rules out the signal.
 #
 # All commands are best-effort; a missing object never fails the caller.
 
@@ -77,30 +83,54 @@ emit() {
     fi
 }
 
-# Dump the iptables (or ipvs fallback) program for one ClusterIP on one Kind
-# node. Tracks whether a ruleset was actually read so a missing iptables-save /
+# Dump the iptables (or ipvs fallback) program for one ClusterIP:port on one
+# Kind node, following the chain end to end: the KUBE-SERVICES match, the
+# KUBE-SVC chain for the port, and the KUBE-SEP DNAT to the backing pod. A live
+# KUBE-SEP DNAT proves kube-proxy programmed a real endpoint (so a dial timeout
+# is not a missing/stale rule); an empty KUBE-SVC chain means no ready backend.
+# Tracks whether a ruleset was actually read so a missing iptables-save /
 # ipvsadm binary reports "cannot confirm", never a false "no rule".
-# Usage: probe_service_rules <node> <ip>
+# Usage: probe_service_rules <node> <ip> <port>
 probe_service_rules() {
     docker exec "$1" sh -c '
-        ip=$1
-        read_any=0
-        match=""
-        if ipt=$(iptables-save 2>/dev/null); then
-            read_any=1
-            match=$(printf "%s\n" "$ipt" | grep -F "$ip")
+        ip=$1; port=$2
+        rules=$(iptables-save 2>/dev/null)
+        if [ -z "$rules" ]; then
+            if ipvs=$(ipvsadm -Ln 2>/dev/null); then
+                printf "%s\n" "$ipvs" | grep -A6 "$ip:$port" \
+                    || echo "(no ipvs entry for $ip:$port)"
+            else
+                echo "(iptables-save and ipvsadm both unavailable — cannot confirm rule presence)"
+            fi
+            exit 0
         fi
-        if [ -z "$match" ] && ipvs=$(ipvsadm -Ln 2>/dev/null); then
-            read_any=1
-            match=$(printf "%s\n" "$ipvs" | grep -A4 "$ip")
-        fi
-        if [ -n "$match" ]; then
-            printf "%s\n" "$match"
-        elif [ "$read_any" = 1 ]; then
-            echo "(no iptables/ipvs rule references $ip)"
+        svc_rules=$(printf "%s\n" "$rules" | grep -F "$ip" | grep -E "KUBE-SERVICES|KUBE-MARK-MASQ")
+        if [ -n "$svc_rules" ]; then
+            printf "%s\n" "$svc_rules"
         else
-            echo "(iptables-save and ipvsadm both unavailable — cannot confirm rule presence)"
-        fi' _ "$2" 2>/dev/null || echo "(unavailable)"
+            echo "(no KUBE-SERVICES rule references $ip)"
+        fi
+        # Resolve the KUBE-SVC chain for this specific port, then its KUBE-SEP
+        # endpoint chain(s) and their DNAT target (the pod the VIP forwards to).
+        svc=$(printf "%s\n" "$rules" | grep -F "$ip" | grep -E -- "--dport $port -j KUBE-SVC-" \
+            | grep -oE "KUBE-SVC-[A-Z0-9]+" | head -1)
+        if [ -z "$svc" ]; then
+            echo "  (no KUBE-SVC chain for $ip:$port — port not programmed)"
+            exit 0
+        fi
+        echo "  endpoint chain $svc ->"
+        printf "%s\n" "$rules" | grep -E -- "-A $svc " | sed "s/^/    /" \
+            || echo "    (chain $svc empty — no ready endpoints)"
+        seps=$(printf "%s\n" "$rules" | grep -E -- "-A $svc .*-j KUBE-SEP-" \
+            | grep -oE "KUBE-SEP-[A-Z0-9]+" | sort -u)
+        if [ -z "$seps" ]; then
+            echo "    (no KUBE-SEP endpoint jump — VIP has no live backend)"
+        else
+            for sep in $seps; do
+                printf "%s\n" "$rules" | grep -E -- "-A $sep .*(DNAT|to-destination)" | sed "s/^/    /" \
+                    || echo "    ($sep: no DNAT rule)"
+            done
+        fi' _ "$2" "$3" 2>/dev/null || echo "(unavailable)"
 }
 
 # ClusterIP VIPs (ip:port) that recorded a dial timeout in the supplied log.
@@ -203,11 +233,19 @@ fi
             # Point-in-time gauge; may have drained by the time diagnostics run.
             docker exec "$node" sh -c 'cat /proc/sys/net/netfilter/nf_conntrack_count /proc/sys/net/netfilter/nf_conntrack_max 2>/dev/null | paste -sd/ -' 2>/dev/null || echo "(unavailable)"
 
-            echo "conntrack stat header + totals (durable; nonzero insert_failed/drop == table pressure):"
-            # /proc/net/stat/nf_conntrack has one row per CPU; the insert_failed
-            # and drop columns are cumulative since boot and survive the burst
-            # draining.
-            docker exec "$node" sh -c 'cat /proc/net/stat/nf_conntrack 2>/dev/null' 2>/dev/null || echo "(unavailable)"
+            echo "conntrack drop / insert_failed counters (durable; nonzero == table pressure):"
+            # Cumulative-since-boot counters survive the burst draining, unlike
+            # the in-use gauge above. 'conntrack -S' is the reliable source;
+            # /proc/net/stat/nf_conntrack is a fallback but was observed absent
+            # on some Kind node kernels, so try the CLI first.
+            docker exec "$node" sh -c '
+                if command -v conntrack >/dev/null 2>&1 && conntrack -S 2>/dev/null; then
+                    :
+                elif [ -r /proc/net/stat/nf_conntrack ]; then
+                    cat /proc/net/stat/nf_conntrack
+                else
+                    echo "(conntrack -S and /proc/net/stat/nf_conntrack both unavailable)"
+                fi' 2>/dev/null || echo "(unavailable)"
 
             echo "kernel 'nf_conntrack: table full' events:"
             # Distinguish a forbidden/failed dmesg from a successful empty query:
@@ -221,18 +259,37 @@ fi
                     echo "(no table-full event logged)"
                 fi' 2>/dev/null || echo "(unavailable)"
 
-            # Per-VIP service program: rules present + conntrack pressure ==
-            # exhaustion; rules absent == kube-proxy never (re)programmed the VIP.
+            # Per-VIP service program end to end (KUBE-SERVICES -> KUBE-SVC ->
+            # KUBE-SEP DNAT): a live DNAT to the pod means the rule is not the
+            # problem; an empty chain means no ready backend.
             if [[ -z "$TARGET_VIPS" ]]; then
                 echo "service program: no timed-out ClusterIPs to correlate."
             else
                 for vip in $TARGET_VIPS; do
                     echo "service program for $vip (iptables, then ipvs):"
-                    probe_service_rules "$node" "${vip%%:*}"
+                    probe_service_rules "$node" "${vip%%:*}" "${vip##*:}"
                 done
             fi
         done
     fi
+
+    echo
+    echo "----- (5) SeaweedFS pod socket / listen-queue state -----"
+    # Once the node conntrack table and the service program are clean, the
+    # leading remaining cause of the ClusterIP dial timeouts is accept-queue
+    # saturation: under the parallel burst the S3 server's listen backlog
+    # overflows and new SYNs are dropped inside the pod netns (the client sees a
+    # dial timeout) while an already-established liveness connection keeps
+    # passing, so the pod is never restarted. ListenOverflows / ListenDrops in
+    # the pod's /proc/net/netstat are cumulative since pod start, so they
+    # survive the burst; 'ss -lnt' shows the live backlog (Recv-Q = pending
+    # connections, Send-Q = backlog limit) when iproute2 is present. Read from
+    # inside the pod netns via kubectl exec; best-effort if the container lacks
+    # a shell or the tools.
+    echo "listen sockets (Recv-Q=pending backlog / Send-Q=backlog limit):"
+    kubectl exec "$POD" -n "$NAMESPACE" -c seaweedfs -- sh -c 'ss -lnt 2>/dev/null || netstat -lnt 2>/dev/null || echo "(ss/netstat not present in container)"' 2>/dev/null || echo "(kubectl exec unavailable)"
+    echo "TcpExt counters (nonzero ListenOverflows / ListenDrops == accept-queue saturation):"
+    kubectl exec "$POD" -n "$NAMESPACE" -c seaweedfs -- sh -c 'grep "^TcpExt" /proc/net/netstat 2>/dev/null || echo "(/proc/net/netstat unavailable)"' 2>/dev/null || echo "(kubectl exec unavailable)"
 
     echo
     echo "----- full describe (events, resource config) -----"
