@@ -132,13 +132,11 @@ func TestGetPipelineJobTimePlaceholderUsage(t *testing.T) {
 func TestResolvePipelineJobTimes(t *testing.T) {
 	workflowCreationTime := metav1.NewTime(time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC))
 	tt := []struct {
-		name                     string
-		createTimeUTC            string
-		scheduleTimeEpochSeconds string
-		workflowMeta             *metav1.ObjectMeta
-		expectedCreateTimeUTC    string
-		expectedScheduleTimeUTC  string
-		wantErr                  bool
+		name                    string
+		createTimeUTC           string
+		workflowMeta            *metav1.ObjectMeta
+		expectedCreateTimeUTC   string
+		expectedScheduleTimeUTC string
 	}{
 		{
 			name:                    "falls back to create time when schedule label is absent",
@@ -176,32 +174,14 @@ func TestResolvePipelineJobTimes(t *testing.T) {
 			expectedCreateTimeUTC:   "2026-01-02T03:04:05Z",
 			expectedScheduleTimeUTC: "2026-01-02T03:04:05Z",
 		},
-		{
-			name:                     "converts schedule epoch seconds to UTC",
-			createTimeUTC:            "2026-01-02T03:04:05Z",
-			scheduleTimeEpochSeconds: "1767225600",
-			expectedCreateTimeUTC:    "2026-01-02T03:04:05Z",
-			expectedScheduleTimeUTC:  "2026-01-01T00:00:00Z",
-		},
-		{
-			name:                     "rejects invalid schedule epoch seconds",
-			createTimeUTC:            "2026-01-02T03:04:05Z",
-			scheduleTimeEpochSeconds: "not-an-int",
-			wantErr:                  true,
-		},
 	}
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			actualCreateTimeUTC, actualScheduleTimeUTC, err := resolvePipelineJobTimes(
+			actualCreateTimeUTC, actualScheduleTimeUTC := resolvePipelineJobTimes(
 				tc.createTimeUTC,
-				tc.scheduleTimeEpochSeconds,
 				tc.workflowMeta,
 			)
-			assert.Equal(t, tc.wantErr, err != nil)
-			if tc.wantErr {
-				return
-			}
 			assert.Equal(t, tc.expectedCreateTimeUTC, actualCreateTimeUTC)
 			assert.Equal(t, tc.expectedScheduleTimeUTC, actualScheduleTimeUTC)
 		})
@@ -213,15 +193,14 @@ func TestGetWorkflowMetadataForPipelineJobTimes(t *testing.T) {
 	lookupErr := assert.AnError
 
 	tests := []struct {
-		name                     string
-		placeholderUsage         pipelineJobTimePlaceholderUsage
-		createTimeUTC            string
-		scheduleTimeEpochSeconds string
-		getterResult             *metav1.ObjectMeta
-		getterErr                error
-		wantMetadata             *metav1.ObjectMeta
-		wantErr                  bool
-		wantGetterCalls          int
+		name             string
+		placeholderUsage pipelineJobTimePlaceholderUsage
+		createTimeUTC    string
+		getterResult     *metav1.ObjectMeta
+		getterErr        error
+		wantMetadata     *metav1.ObjectMeta
+		wantErr          bool
+		wantGetterCalls  int
 	}{
 		{
 			name:            "skips lookup when current task does not use placeholders",
@@ -232,12 +211,6 @@ func TestGetWorkflowMetadataForPipelineJobTimes(t *testing.T) {
 			placeholderUsage: pipelineJobTimePlaceholderUsage{needsCreateTime: true},
 			createTimeUTC:    "2026-01-02T03:04:05Z",
 			wantGetterCalls:  0,
-		},
-		{
-			name:                     "skips lookup when schedule placeholder already has compiled value",
-			placeholderUsage:         pipelineJobTimePlaceholderUsage{needsScheduleTime: true},
-			scheduleTimeEpochSeconds: "1767225600",
-			wantGetterCalls:          0,
 		},
 		{
 			name:             "returns workflow metadata when schedule time needs lookup",
@@ -279,7 +252,6 @@ func TestGetWorkflowMetadataForPipelineJobTimes(t *testing.T) {
 				"workflow-name",
 				tc.placeholderUsage,
 				tc.createTimeUTC,
-				tc.scheduleTimeEpochSeconds,
 				func(ctx context.Context, namespace string, workflowName string) (*metav1.ObjectMeta, error) {
 					getterCalls++
 					assert.Equal(t, "kubeflow", namespace)
@@ -305,8 +277,10 @@ func allProvided(flags []string) map[string]bool {
 func TestRequiredDriverFlags(t *testing.T) {
 	common := []string{
 		"type", "pipeline_name", "run_id", "run_name", "run_display_name",
-		"component", "ml_pipeline_server_address", "ml_pipeline_server_port",
-		"mlmd_server_address", "mlmd_server_port", "log_level", "publish_logs",
+		"pipeline_job_create_time_utc", "component", "ml_pipeline_server_address",
+		"ml_pipeline_server_port", "mlmd_server_address", "mlmd_server_port",
+		"log_level", "publish_logs", "cache_disabled", "ml_pipeline_tls_enabled",
+		"metadata_tls_enabled", "ca_cert_path", "condition_path",
 	}
 	withCommon := func(extra ...string) []string {
 		return append(append([]string{}, common...), extra...)
@@ -315,9 +289,9 @@ func TestRequiredDriverFlags(t *testing.T) {
 		driverType string
 		want       []string
 	}{
-		{driverType: ROOT_DAG, want: withCommon("runtime_config")},
-		{driverType: DAG, want: withCommon("task", "dag_execution_id", "iteration_index", "task_name")},
-		{driverType: CONTAINER, want: withCommon("task", "dag_execution_id", "iteration_index", "task_name", "container", "kubernetes_config")},
+		{driverType: ROOT_DAG, want: withCommon("execution_id_path", "iteration_count_path", "runtime_config")},
+		{driverType: DAG, want: withCommon("execution_id_path", "iteration_count_path", "task", "dag_execution_id", "iteration_index", "task_name")},
+		{driverType: CONTAINER, want: withCommon("task", "dag_execution_id", "iteration_index", "task_name", "container", "kubernetes_config", "cached_decision_path", "pod_spec_patch_path")},
 	}
 	for _, tc := range tests {
 		t.Run(tc.driverType, func(t *testing.T) {
@@ -384,6 +358,54 @@ func TestValidateRequiredFlags(t *testing.T) {
 			name:       "CONTAINER missing publish_logs",
 			driverType: CONTAINER,
 			omit:       []string{"publish_logs"},
+			wantErr:    true,
+		},
+		{
+			name:       "DAG missing cache_disabled",
+			driverType: DAG,
+			omit:       []string{"cache_disabled"},
+			wantErr:    true,
+		},
+		{
+			name:       "CONTAINER missing metadata_tls_enabled",
+			driverType: CONTAINER,
+			omit:       []string{"metadata_tls_enabled"},
+			wantErr:    true,
+		},
+		{
+			name:       "DAG missing ca_cert_path",
+			driverType: DAG,
+			omit:       []string{"ca_cert_path"},
+			wantErr:    true,
+		},
+		{
+			name:       "ROOT_DAG missing execution_id_path",
+			driverType: ROOT_DAG,
+			omit:       []string{"execution_id_path"},
+			wantErr:    true,
+		},
+		{
+			name:       "DAG missing iteration_count_path",
+			driverType: DAG,
+			omit:       []string{"iteration_count_path"},
+			wantErr:    true,
+		},
+		{
+			name:       "CONTAINER missing pod_spec_patch_path",
+			driverType: CONTAINER,
+			omit:       []string{"pod_spec_patch_path"},
+			wantErr:    true,
+		},
+		{
+			name:       "CONTAINER missing cached_decision_path",
+			driverType: CONTAINER,
+			omit:       []string{"cached_decision_path"},
+			wantErr:    true,
+		},
+		{
+			name:       "DAG missing condition_path",
+			driverType: DAG,
+			omit:       []string{"condition_path"},
 			wantErr:    true,
 		},
 		{

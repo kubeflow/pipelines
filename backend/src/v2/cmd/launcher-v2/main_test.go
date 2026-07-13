@@ -18,6 +18,8 @@ func TestRequiredLauncherFlags(t *testing.T) {
 	common := []string{
 		"executor_type", "pipeline_name", "run_id", "component_spec",
 		"pod_name", "pod_uid", "mlmd_server_address", "mlmd_server_port",
+		"log_level", "publish_logs", "cache_disabled", "ml_pipeline_tls_enabled",
+		"metadata_tls_enabled", "ca_cert_path",
 	}
 	withCommon := func(extra ...string) []string {
 		return append(append([]string{}, common...), extra...)
@@ -78,6 +80,18 @@ func TestValidateLauncherFlags(t *testing.T) {
 			name:         "importer missing executor_type",
 			executorType: "importer",
 			omit:         []string{"executor_type"},
+			wantErr:      true,
+		},
+		{
+			name:         "container missing cache_disabled",
+			executorType: "container",
+			omit:         []string{"cache_disabled"},
+			wantErr:      true,
+		},
+		{
+			name:         "importer missing log_level",
+			executorType: "importer",
+			omit:         []string{"log_level"},
 			wantErr:      true,
 		},
 		{

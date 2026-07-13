@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"slices"
+	"strings"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"sigs.k8s.io/yaml"
@@ -89,53 +89,30 @@ func CreateCompiledWorkflowFile(compiledWorflow *v1alpha1.Workflow, compiledWork
 	return testutil.CreateFile(compiledWorkflowFilePath, [][]byte{fileContents})
 }
 
-// ConfigureCacheSettings - Add/Remove cache_disabled args in the workflow
+// ConfigureCacheSettings rewrites the always-present --cache_disabled=<bool> arg
+// to match the desired cache setting. Golden files are stored in cache-enabled
+// form (--cache_disabled=false); remove=true yields that form while remove=false
+// yields the cache-disabled form (--cache_disabled=true).
 func ConfigureCacheSettings(workflow *v1alpha1.Workflow, remove bool) *v1alpha1.Workflow {
-	cacheDisabledArg := "--cache_disabled"
+	target := "--cache_disabled=true"
+	if remove {
+		target = "--cache_disabled=false"
+	}
+	setCacheArg := func(args []string) {
+		for index, arg := range args {
+			if strings.HasPrefix(arg, "--cache_disabled=") {
+				args[index] = target
+			}
+		}
+	}
 	configuredWorkflow := workflow.DeepCopy()
-	for _, template := range configuredWorkflow.Spec.Templates {
+	for i := range configuredWorkflow.Spec.Templates {
+		template := &configuredWorkflow.Spec.Templates[i]
 		if template.Container != nil {
-			if len(template.Container.Args) > 0 {
-				if remove {
-					// Remove cache_disabled arg if it exists
-					if slices.Contains(template.Container.Args, cacheDisabledArg) {
-						for index, arg := range template.Container.Args {
-							if arg == cacheDisabledArg {
-								template.Container.Args = append(template.Container.Args[:index], template.Container.Args[index+1:]...)
-								break
-							}
-						}
-					}
-				} else {
-					// Add cache_disabled arg if it doesn't exist and this is a driver container
-					if slices.Contains(template.Container.Args, "--run_id") && !slices.Contains(template.Container.Args, cacheDisabledArg) {
-						template.Container.Args = append(template.Container.Args, cacheDisabledArg)
-					}
-				}
-			}
-			for index, userContainer := range template.InitContainers {
-				if remove {
-					// Remove cache_disabled arg if it exists
-					if slices.Contains(userContainer.Args, cacheDisabledArg) {
-						for userArgsIndex, arg := range userContainer.Args {
-							if arg == cacheDisabledArg {
-								userContainer.Args = append(userContainer.Args[:userArgsIndex], userContainer.Args[userArgsIndex+1:]...)
-								break
-							}
-						}
-					}
-				} else {
-					// Add cache_disabled arg if it doesn't exist
-					if !slices.Contains(userContainer.Args, cacheDisabledArg) {
-						if len(userContainer.Args) > 0 {
-							userContainer.Args = append(userContainer.Args, cacheDisabledArg)
-						} else {
-							userContainer.Args = []string{cacheDisabledArg}
-						}
-					}
-				}
-				template.InitContainers[index].Args = userContainer.Args
-			}
+			setCacheArg(template.Container.Args)
+		}
+		for index := range template.InitContainers {
+			setCacheArg(template.InitContainers[index].Args)
 		}
 	}
 	return configuredWorkflow

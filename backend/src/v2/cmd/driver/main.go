@@ -68,7 +68,6 @@ var (
 	runName                         = flag.String("run_name", "", "pipeline run name (Kubernetes object name)")
 	runDisplayName                  = flag.String("run_display_name", "", "pipeline run display name")
 	pipelineJobCreateTimeUTCArg     = flag.String("pipeline_job_create_time_utc", "", "pipeline job creation time in UTC")
-	pipelineJobScheduleTimeEpochArg = flag.String("pipeline_job_schedule_time_epoch_seconds", "", "pipeline job scheduled time as Unix epoch seconds")
 	componentSpecJSON               = flag.String("component", "{}", "component spec")
 	taskSpecJSON                    = flag.String("task", "", "task spec")
 	runtimeConfigJSON               = flag.String("runtime_config", "", "jobruntime config")
@@ -137,10 +136,11 @@ func init() {
 }
 
 // Required flags the compiler must always pass to the driver, grouped by driver
-// type, making the implicit compiler->driver contract fail-fast instead of
-// silently falling back to defaults. Flags with meaningful defaults
-// (cache_disabled, the TLS toggles, ca_cert_path, default_run_as_*) are
-// intentionally excluded; proxy flags are validated via their sentinel below.
+// type, so a dropped flag fails fast instead of silently using a default. A flag
+// is required for a type when the compiler always emits it for that type. The
+// admin-default flags (default_run_as_*, default_host_users) stay optional --
+// they are emitted only when configured, and their absence is indistinguishable
+// from "not set". Proxy flags are validated via their sentinel below.
 var (
 	commonRequiredDriverFlags = []string{
 		driverTypeArg,
@@ -148,6 +148,7 @@ var (
 		"run_id",
 		"run_name",
 		"run_display_name",
+		"pipeline_job_create_time_utc",
 		"component",
 		"ml_pipeline_server_address",
 		"ml_pipeline_server_port",
@@ -155,6 +156,11 @@ var (
 		"mlmd_server_port",
 		"log_level",
 		"publish_logs",
+		"cache_disabled",
+		"ml_pipeline_tls_enabled",
+		"metadata_tls_enabled",
+		"ca_cert_path",
+		"condition_path",
 	}
 	nonRootRequiredDriverFlags = []string{
 		"task",
@@ -162,8 +168,14 @@ var (
 		"iteration_index",
 		"task_name",
 	}
+	dagOutputPathDriverFlags     = []string{"execution_id_path", "iteration_count_path"}
 	rootDAGRequiredDriverFlags   = []string{"runtime_config"}
-	containerRequiredDriverFlags = []string{"container", "kubernetes_config"}
+	containerRequiredDriverFlags = []string{
+		"container",
+		"kubernetes_config",
+		"cached_decision_path",
+		"pod_spec_patch_path",
+	}
 )
 
 // providedFlags holds the flags passed on the command line; set in main().
@@ -183,8 +195,10 @@ func requiredDriverFlags(driverType string) ([]string, error) {
 	required := append([]string{}, commonRequiredDriverFlags...)
 	switch driverType {
 	case ROOT_DAG:
+		required = append(required, dagOutputPathDriverFlags...)
 		required = append(required, rootDAGRequiredDriverFlags...)
 	case DAG:
+		required = append(required, dagOutputPathDriverFlags...)
 		required = append(required, nonRootRequiredDriverFlags...)
 	case CONTAINER:
 		required = append(required, nonRootRequiredDriverFlags...)
@@ -311,11 +325,10 @@ func getWorkflowMetadataForPipelineJobTimes(
 	workflowName string,
 	placeholderUsage pipelineJobTimePlaceholderUsage,
 	createTimeUTC string,
-	scheduleTimeEpochSeconds string,
 	getMetadata workflowMetadataGetter,
 ) (*metav1.ObjectMeta, error) {
 	needsCreateTimeMetadata := placeholderUsage.needsCreateTime && createTimeUTC == ""
-	needsScheduleTimeMetadata := placeholderUsage.needsScheduleTime && scheduleTimeEpochSeconds == ""
+	needsScheduleTimeMetadata := placeholderUsage.needsScheduleTime
 	if !needsCreateTimeMetadata && !needsScheduleTimeMetadata {
 		return nil, nil
 	}
@@ -360,25 +373,16 @@ func resolvePipelineJobScheduleTimeUTCFromWorkflow(
 }
 
 // resolvePipelineJobTimes normalizes the placeholder inputs into the UTC values
-// consumed by driver.Options. Schedule time may come from the compiled flag
-// when explicitly provided, or from workflow metadata when manual runs would
-// otherwise have no workflowEpoch label to resolve.
+// consumed by driver.Options. Schedule time is resolved from workflow metadata,
+// falling back to create time when there is no workflowEpoch label (manual runs).
 func resolvePipelineJobTimes(
 	createTimeUTC string,
-	scheduleTimeEpochSeconds string,
 	workflowMeta *metav1.ObjectMeta,
-) (string, string, error) {
+) (string, string) {
 	if createTimeUTC == "" && workflowMeta != nil {
 		createTimeUTC = workflowMeta.CreationTimestamp.Time.UTC().Format(time.RFC3339)
 	}
-	if scheduleTimeEpochSeconds == "" {
-		return createTimeUTC, resolvePipelineJobScheduleTimeUTCFromWorkflow(workflowMeta, createTimeUTC), nil
-	}
-	scheduleTimeEpoch, err := strconv.ParseInt(scheduleTimeEpochSeconds, 10, 64)
-	if err != nil {
-		return "", "", fmt.Errorf("invalid pipeline job schedule time epoch seconds %q: %w", scheduleTimeEpochSeconds, err)
-	}
-	return createTimeUTC, time.Unix(scheduleTimeEpoch, 0).UTC().Format(time.RFC3339), nil
+	return createTimeUTC, resolvePipelineJobScheduleTimeUTCFromWorkflow(workflowMeta, createTimeUTC)
 }
 
 func drive() (err error) {
@@ -466,20 +470,15 @@ func drive() (err error) {
 		*runName,
 		placeholderUsage,
 		*pipelineJobCreateTimeUTCArg,
-		*pipelineJobScheduleTimeEpochArg,
 		getCurrentWorkflowMetadata,
 	)
 	if err != nil {
 		return err
 	}
-	resolvedPipelineJobCreateTimeUTC, resolvedPipelineJobScheduleTimeUTC, err := resolvePipelineJobTimes(
+	resolvedPipelineJobCreateTimeUTC, resolvedPipelineJobScheduleTimeUTC := resolvePipelineJobTimes(
 		*pipelineJobCreateTimeUTCArg,
-		*pipelineJobScheduleTimeEpochArg,
 		workflowMeta,
 	)
-	if err != nil {
-		return err
-	}
 	options := driver.Options{
 		PipelineName:               *pipelineName,
 		RunID:                      *runID,

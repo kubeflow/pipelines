@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -337,25 +338,13 @@ func initPodSpecPatch(
 		"--mlmd_server_port", mlmdServerPort,
 		"--publish_logs", publishLogs,
 	}
-	if mlPipelineTLSEnabled {
-		launcherCmd = append(launcherCmd, "--ml_pipeline_tls_enabled")
-	}
-	if metadataTLSEnabled {
-		launcherCmd = append(launcherCmd, "--metadata_tls_enabled")
-	}
-	if caCertPath != "" {
-		launcherCmd = append(launcherCmd, "--ca_cert_path", caCertPath)
-	}
-	if cacheDisabled == "true" {
-		launcherCmd = append(launcherCmd, "--cache_disabled")
-	}
-	if pipelineLogLevel != "1" {
-		// Add log level to user code launcher if not default (set to 1)
-		launcherCmd = append(launcherCmd, "--log_level", pipelineLogLevel)
-	}
-	if publishLogs == "true" {
-		launcherCmd = append(launcherCmd, "--publish_logs", publishLogs)
-	}
+	launcherCmd = append(launcherCmd,
+		"--ml_pipeline_tls_enabled="+strconv.FormatBool(mlPipelineTLSEnabled),
+		"--metadata_tls_enabled="+strconv.FormatBool(metadataTLSEnabled),
+		"--ca_cert_path", caCertPath,
+		"--cache_disabled="+strconv.FormatBool(cacheDisabled == "true"),
+		"--log_level", pipelineLogLevel,
+	)
 	launcherCmd = append(launcherCmd, "--") // separater before user command and args
 	res := k8score.ResourceRequirements{
 		Limits:   map[k8score.ResourceName]k8sres.Quantity{},

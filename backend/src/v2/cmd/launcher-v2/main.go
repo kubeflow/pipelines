@@ -55,8 +55,9 @@ var (
 
 // Required flags the driver/compiler must always pass to the launcher, grouped
 // by executor type, making the implicit contract fail-fast instead of silently
-// falling back to defaults. Flags with meaningful defaults (log_level,
-// publish_logs, cache_disabled, the TLS toggles, ca_cert_path) are excluded.
+// falling back to defaults. A flag is required for an executor type when the
+// driver/compiler always emits it for that type; only copy (a special mode
+// selector that short-circuits before validation) stays optional.
 var (
 	commonRequiredLauncherFlags = []string{
 		"executor_type",
@@ -67,6 +68,12 @@ var (
 		"pod_uid",
 		"mlmd_server_address",
 		"mlmd_server_port",
+		"log_level",
+		"publish_logs",
+		"cache_disabled",
+		"ml_pipeline_tls_enabled",
+		"metadata_tls_enabled",
+		"ca_cert_path",
 	}
 	containerRequiredLauncherFlags = []string{
 		"execution_id",
