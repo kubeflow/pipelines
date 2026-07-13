@@ -155,6 +155,7 @@ var (
 		"mlmd_server_port",
 		"log_level",
 		"publish_logs",
+		"condition_path",
 	}
 	nonRootRequiredDriverFlags = []string{
 		"task",
@@ -162,8 +163,14 @@ var (
 		"iteration_index",
 		"task_name",
 	}
+	dagOutputPathDriverFlags     = []string{"execution_id_path", "iteration_count_path"}
 	rootDAGRequiredDriverFlags   = []string{"runtime_config"}
-	containerRequiredDriverFlags = []string{"container", "kubernetes_config"}
+	containerRequiredDriverFlags = []string{
+		"container",
+		"kubernetes_config",
+		"cached_decision_path",
+		"pod_spec_patch_path",
+	}
 )
 
 // providedFlags holds the flags passed on the command line; set in main().
@@ -183,8 +190,10 @@ func requiredDriverFlags(driverType string) ([]string, error) {
 	required := append([]string{}, commonRequiredDriverFlags...)
 	switch driverType {
 	case ROOT_DAG:
+		required = append(required, dagOutputPathDriverFlags...)
 		required = append(required, rootDAGRequiredDriverFlags...)
 	case DAG:
+		required = append(required, dagOutputPathDriverFlags...)
 		required = append(required, nonRootRequiredDriverFlags...)
 	case CONTAINER:
 		required = append(required, nonRootRequiredDriverFlags...)

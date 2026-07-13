@@ -307,6 +307,7 @@ func TestRequiredDriverFlags(t *testing.T) {
 		"type", "pipeline_name", "run_id", "run_name", "run_display_name",
 		"component", "ml_pipeline_server_address", "ml_pipeline_server_port",
 		"mlmd_server_address", "mlmd_server_port", "log_level", "publish_logs",
+		"condition_path",
 	}
 	withCommon := func(extra ...string) []string {
 		return append(append([]string{}, common...), extra...)
@@ -315,9 +316,9 @@ func TestRequiredDriverFlags(t *testing.T) {
 		driverType string
 		want       []string
 	}{
-		{driverType: ROOT_DAG, want: withCommon("runtime_config")},
-		{driverType: DAG, want: withCommon("task", "dag_execution_id", "iteration_index", "task_name")},
-		{driverType: CONTAINER, want: withCommon("task", "dag_execution_id", "iteration_index", "task_name", "container", "kubernetes_config")},
+		{driverType: ROOT_DAG, want: withCommon("execution_id_path", "iteration_count_path", "runtime_config")},
+		{driverType: DAG, want: withCommon("execution_id_path", "iteration_count_path", "task", "dag_execution_id", "iteration_index", "task_name")},
+		{driverType: CONTAINER, want: withCommon("task", "dag_execution_id", "iteration_index", "task_name", "container", "kubernetes_config", "cached_decision_path", "pod_spec_patch_path")},
 	}
 	for _, tc := range tests {
 		t.Run(tc.driverType, func(t *testing.T) {
@@ -384,6 +385,36 @@ func TestValidateRequiredFlags(t *testing.T) {
 			name:       "CONTAINER missing publish_logs",
 			driverType: CONTAINER,
 			omit:       []string{"publish_logs"},
+			wantErr:    true,
+		},
+		{
+			name:       "ROOT_DAG missing execution_id_path",
+			driverType: ROOT_DAG,
+			omit:       []string{"execution_id_path"},
+			wantErr:    true,
+		},
+		{
+			name:       "DAG missing iteration_count_path",
+			driverType: DAG,
+			omit:       []string{"iteration_count_path"},
+			wantErr:    true,
+		},
+		{
+			name:       "CONTAINER missing pod_spec_patch_path",
+			driverType: CONTAINER,
+			omit:       []string{"pod_spec_patch_path"},
+			wantErr:    true,
+		},
+		{
+			name:       "CONTAINER missing cached_decision_path",
+			driverType: CONTAINER,
+			omit:       []string{"cached_decision_path"},
+			wantErr:    true,
+		},
+		{
+			name:       "DAG missing condition_path",
+			driverType: DAG,
+			omit:       []string{"condition_path"},
 			wantErr:    true,
 		},
 		{
