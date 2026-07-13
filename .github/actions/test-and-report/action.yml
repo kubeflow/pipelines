@@ -105,6 +105,18 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Start runner telemetry
+      # Records runner-level CPU / memory / disk / network for the rest of the
+      # job and renders charts into the job summary (post-hook). CI has no
+      # metrics-server, so this is the only measurement of whether a lane
+      # failure coincided with runner resource saturation — the discriminator
+      # between app-level bottlenecks (e.g. MLflow worker queueing) and the
+      # shared runner CPUs being pegged. No external service; summary only.
+      uses: catchpoint/workflow-telemetry-action@94c3c3d9567a0205de6da68a76c428ce4e769af1 # v2.0.0
+      with:
+        comment_on_pr: false
+      continue-on-error: true
+
     - name: Configure API Access
       id: configure-api
       if: ${{ inputs.skip_api_config != 'true' }}
@@ -369,6 +381,66 @@ runs:
         # request bump (which this workflow's manifests carry) is the right
         # lever or the failure is elsewhere.
         ./.github/resources/scripts/collect-seaweedfs-diagnostics.sh --namespace "$NAMESPACE" --output /tmp/tmp_pod_log.txt
+      continue-on-error: true
+
+    - name: Summarize failure signatures
+      # Encodes the recurring-flake triage playbook: greps the collected pod
+      # logs and JUnit reports for known failure signatures (ClusterIP dial
+      # timeouts per VIP, client deadline timeouts, 429 rate limits, OOMKills,
+      # conntrack table-full, ...) and writes a compact classification table to
+      # the job summary, so triage starts from a classified signal instead of
+      # raw log archaeology.
+      shell: bash
+      if: ${{ steps.run-tests.outcome != 'success' }}
+      run: ./.github/resources/scripts/failure-signature-summary.sh --log-file /tmp/tmp_pod_log.txt --reports-dir "${{ inputs.test_directory }}/reports"
+      continue-on-error: true
+
+    - name: Export Kind cluster logs
+      id: kind-logs
+      # `kind export logs` captures what the custom collectors cannot: kubelet
+      # and containerd logs, kernel/dmesg, and per-node info from every node.
+      shell: bash
+      if: ${{ steps.run-tests.outcome != 'success' }}
+      run: |
+        rm -rf /tmp/kind-logs && mkdir -p /tmp/kind-logs
+        exported=false
+        if command -v kind >/dev/null 2>&1; then
+          for cluster in $(kind get clusters 2>/dev/null); do
+            # Steps run under bash -e; a failed export must not abort the step
+            # before the artifact-name suffix below is written.
+            if kind export logs --name "$cluster" "/tmp/kind-logs/$cluster"; then
+              exported=true
+            fi
+          done
+        fi
+        echo "exported=$exported" >> "$GITHUB_OUTPUT"
+        SUFFIX="${{ inputs.report_name }}"
+        if [ -z "$SUFFIX" ]; then
+          SUFFIX="${{ github.run_id }}_${{ github.job }}_$(uuidgen)"
+        fi
+        echo "suffix=$SUFFIX" >> "$GITHUB_OUTPUT"
+      continue-on-error: true
+
+    - name: Upload Kind cluster logs
+      uses: actions/upload-artifact@v7
+      if: ${{ steps.run-tests.outcome != 'success' && steps.kind-logs.outputs.exported == 'true' }}
+      with:
+        name: kind-logs - ${{ steps.kind-logs.outputs.suffix }}
+        path: /tmp/kind-logs
+        retention-days: 5
+        if-no-files-found: ignore
+      continue-on-error: true
+
+    - name: Upload JUnit XML on failure
+      # Raw per-test results from failed runs feed the scheduled CI health
+      # report (per-test flake rates); the HTML report alone is not parseable.
+      uses: actions/upload-artifact@v7
+      if: ${{ steps.run-tests.outcome != 'success' }}
+      with:
+        name: junit-xml - ${{ steps.kind-logs.outputs.suffix || github.run_id }}
+        path: ${{ inputs.test_directory }}/reports/*.xml
+        retention-days: 30
+        if-no-files-found: ignore
       continue-on-error: true
 
     - name: Set up Python for reporting
