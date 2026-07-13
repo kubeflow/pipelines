@@ -70,6 +70,32 @@ spec:
             value: "true"
           - name: DISABLE_GKE_METADATA
             value: "true"
+          # Namespace-ownership resolution for artifacts the metadata store does not track
+          # (for example pod logs and other objects legitimately absent from the metadata
+          # store). The default "mlmd-then-prefix" derives the owning namespace from the
+          # "private-artifacts/<namespace>/" object-key prefix, restoring v1 and v2 artifact
+          # retrieval while still blocking cross-namespace access; an object that carries no
+          # such prefix has no derivable owner and is denied, because nothing is ever written
+          # to the bucket root. Set to "mlmd-only" to enforce the strict guard that denies
+          # every artifact absent from the metadata store. Deployments with a customized
+          # Argo keyFormat / pipeline root can override the expected leading key segment
+          # via ARTIFACT_NAMESPACE_KEY_PREFIX (default "private-artifacts").
+          - name: ARTIFACT_NAMESPACE_OWNERSHIP_MODE
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: ARTIFACT_NAMESPACE_OWNERSHIP_MODE
+                optional: true
+          # Leading object-key segment used by the "mlmd-then-prefix" mode above to derive
+          # an artifact's owning namespace (the "<prefix>/<namespace>/" convention). Override
+          # only when a customized Argo keyFormat / pipeline root changes that leading
+          # segment; when unset the frontend server defaults to "private-artifacts".
+          - name: ARTIFACT_NAMESPACE_KEY_PREFIX
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: ARTIFACT_NAMESPACE_KEY_PREFIX
+                optional: true
           - name: CLUSTER_DOMAIN
             valueFrom:
               configMapKeyRef:

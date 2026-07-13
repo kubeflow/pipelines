@@ -64,6 +64,49 @@ const DEFAULT_TIMEOUT_MS = (() => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 5000;
 })();
 
+// When the metadata store has no record of an artifact, the artifact is still owned by
+// exactly one namespace, because both the Argo v1 `keyFormat` and the v2
+// `defaultPipelineRoot` store every object under a `private-artifacts/<namespace>/`
+// key prefix, and the per-namespace object-storage policy isolates each namespace to
+// its own prefix. Deriving the owning namespace from that prefix restores retrieval of
+// pod logs and other objects that are legitimately not tracked as metadata-store
+// artifacts, while still blocking cross-namespace access. Because nothing is ever
+// written to the bucket root, an object that carries no such prefix has no derivable
+// owning namespace and is denied. The strict upstream behavior that denies every
+// artifact absent from the metadata store is preserved under the `mlmd-only` mode.
+//
+// The mode is normalized to lower case so that an operator-supplied value such as
+// `MLMD-ONLY` selects the strict mode instead of silently falling through to the
+// prefix-based behavior.
+const NAMESPACE_OWNERSHIP_MODE = (
+  process.env.ARTIFACT_NAMESPACE_OWNERSHIP_MODE || 'mlmd-then-prefix'
+)
+  .trim()
+  .toLowerCase();
+
+const NAMESPACE_KEY_PREFIX = (process.env.ARTIFACT_NAMESPACE_KEY_PREFIX || 'private-artifacts')
+  .trim()
+  .replace(/^\/+|\/+$/g, '');
+
+export function namespaceFromArtifactUri(
+  artifactUri: string,
+  keyPrefix: string = NAMESPACE_KEY_PREFIX,
+): string | undefined {
+  if (!keyPrefix) {
+    return undefined;
+  }
+  const escapedPrefix = keyPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // Anchor the prefix to the very first object-key segment, immediately after the
+  // "<scheme>://<bucket>/" preamble that `buildArtifactUri` produces. The object key is
+  // fully caller-controlled, so a match-anywhere search would let a caller spoof
+  // ownership by embedding "<prefix>/<his-namespace>/" deeper in the path; requiring the
+  // prefix to be the leading key segment prevents that.
+  const match = artifactUri.match(
+    new RegExp(`^[a-zA-Z][a-zA-Z0-9+.-]*://[^/]+/${escapedPrefix}/([^/]+)/`),
+  );
+  return match ? match[1] : undefined;
+}
+
 export function encodeGrpcWebRequest(serializedMessage: Uint8Array): Uint8Array {
   const frame = new Uint8Array(5 + serializedMessage.length);
   frame[0] = 0x00; // data frame
@@ -271,6 +314,68 @@ export function decideFromContexts(
   return { valid: true };
 }
 
+// Decides ownership for an artifact that the metadata store does not track. This is the
+// security-critical fallback reached when `getArtifactsByUri` returns zero records. It is
+// factored out of `validateArtifactNamespace` so that every branch (strict `mlmd-only`
+// denial, absent prefix denial, prefix/namespace mismatch denial, and prefix match) is
+// unit-testable without a live metadata store. The ownership mode is a parameter, again
+// defaulting to the module constant, so tests can exercise the strict mode directly.
+export function decideFromPrefixFallback(
+  artifactUri: string,
+  claimedNamespace: string,
+  ownershipMode: string = NAMESPACE_OWNERSHIP_MODE,
+): ValidationResult {
+  // Only the documented opt-in value enables the prefix fallback; any other value
+  // (including typos) fails closed to the strict denial, so a misconfigured mode can
+  // never silently weaken the guard.
+  if (ownershipMode !== 'mlmd-then-prefix') {
+    console.warn(
+      `[SECURITY] Artifact not found in MLMD for URI "${artifactUri}", ` +
+        `denying access (no namespace ownership evidence).`,
+    );
+    return { valid: false, reason: 'artifact-not-found' };
+  }
+  // The object key is caller-controlled and is later passed verbatim to the object
+  // store, so a key containing empty or dot segments (for example
+  // "private-artifacts/team-a/../victim-ns/obj") would carry the claimant's prefix
+  // while addressing another namespace's object on stores that normalize paths.
+  // Deny non-normalized keys outright rather than trusting every backend to reject them.
+  const objectKey = artifactUri.replace(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/]+\//, '');
+  const hasUnsafeSegment = objectKey
+    .split('/')
+    .some((segment) => segment === '' || segment === '.' || segment === '..');
+  if (hasUnsafeSegment) {
+    console.warn(
+      `[SECURITY] Insecure direct object reference blocked: artifact "${artifactUri}" ` +
+        `contains empty or dot path segments, so its object key cannot be trusted to ` +
+        `stay inside its owning-namespace prefix; denying access.`,
+    );
+    return { valid: false, reason: 'key-not-normalized' };
+  }
+  const prefixNamespace = namespaceFromArtifactUri(artifactUri);
+  if (prefixNamespace === undefined) {
+    console.warn(
+      `[SECURITY] Insecure direct object reference blocked: artifact "${artifactUri}" is ` +
+        `absent from the metadata store and carries no "${NAMESPACE_KEY_PREFIX}/<namespace>/" ` +
+        `object-key prefix, so its owning namespace cannot be derived; denying access.`,
+    );
+    return { valid: false, reason: 'prefix-absent' };
+  }
+  if (prefixNamespace !== claimedNamespace) {
+    console.warn(
+      `[SECURITY] Insecure direct object reference blocked: object-key prefix namespace ` +
+        `"${prefixNamespace}" does not match the requested namespace "${claimedNamespace}" ` +
+        `for URI "${artifactUri}".`,
+    );
+    return {
+      valid: false,
+      actualNamespace: prefixNamespace,
+      reason: 'prefix-namespace-mismatch',
+    };
+  }
+  return { valid: true, reason: 'prefix-match' };
+}
+
 export async function validateArtifactNamespace(
   envoyAddress: string,
   artifactUri: string,
@@ -292,11 +397,7 @@ export async function validateArtifactNamespace(
   }
 
   if (artifacts.length === 0) {
-    console.warn(
-      `[SECURITY] Artifact not found in MLMD for URI "${artifactUri}", ` +
-        `denying access (no namespace ownership evidence).`,
-    );
-    return { valid: false, reason: 'artifact-not-found' };
+    return decideFromPrefixFallback(artifactUri, claimedNamespace);
   }
 
   let contextResults: { artifactId: number; contexts: ContextNamespace[] | null }[];

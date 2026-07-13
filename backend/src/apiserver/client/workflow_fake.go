@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
@@ -34,6 +35,12 @@ import (
 type FakeWorkflowClient struct {
 	workflows       map[string]*v1alpha1.Workflow
 	lastGeneratedId int
+}
+
+type jsonPatchOperation struct {
+	Op    string `json:"op"`
+	Path  string `json:"path"`
+	Value any    `json:"value,omitempty"`
 }
 
 func NewWorkflowClientFake() *FakeWorkflowClient {
@@ -83,6 +90,7 @@ func (c *FakeWorkflowClient) Update(ctx context.Context, execSpec util.Execution
 	name := workflow.GetObjectMeta().GetName()
 	_, ok = c.workflows[name]
 	if ok {
+		c.workflows[name] = workflow.Workflow
 		return workflow, nil
 	}
 	return nil, k8errors.NewNotFound(k8schema.ParseGroupResource("workflows.argoproj.io"), name)
@@ -106,9 +114,13 @@ func (c *FakeWorkflowClient) DeleteCollection(ctx context.Context, options v1.De
 func (c *FakeWorkflowClient) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions,
 	subresources ...string,
 ) (util.ExecutionSpec, error) {
-	_, ok := c.workflows[name]
+	workflow, ok := c.workflows[name]
 	if !ok {
 		return nil, k8errors.NewNotFound(k8schema.ParseGroupResource("workflows.argoproj.io"), name)
+	}
+
+	if pt == types.JSONPatchType {
+		return applyJSONPatchToFakeWorkflow(workflow, name, data)
 	}
 
 	var dat map[string]interface{}
@@ -142,6 +154,51 @@ func (c *FakeWorkflowClient) Patch(ctx context.Context, name string, pt types.Pa
 		}
 	}
 	return nil, errors.New("Failed to patch workflow")
+}
+
+func applyJSONPatchToFakeWorkflow(workflow *v1alpha1.Workflow, name string, data []byte) (util.ExecutionSpec, error) {
+	var patchOperations []jsonPatchOperation
+	if err := json.Unmarshal(data, &patchOperations); err != nil {
+		return nil, err
+	}
+
+	for _, patchOperation := range patchOperations {
+		switch patchOperation.Op {
+		case "test":
+			actualValue, ok := fakeWorkflowJSONPatchValue(workflow, patchOperation.Path)
+			if !ok || actualValue != fmt.Sprint(patchOperation.Value) {
+				return nil, k8errors.NewConflict(k8schema.ParseGroupResource("workflows.argoproj.io"), name, fmt.Errorf("json patch test failed for %s", patchOperation.Path))
+			}
+		case "add":
+			if !strings.HasPrefix(patchOperation.Path, "/metadata/labels/") {
+				return nil, fmt.Errorf("unsupported fake JSON patch add path %q", patchOperation.Path)
+			}
+			labelKey := unescapeJSONPointerPathPart(strings.TrimPrefix(patchOperation.Path, "/metadata/labels/"))
+			if workflow.Labels == nil {
+				workflow.Labels = map[string]string{}
+			}
+			workflow.Labels[labelKey] = fmt.Sprint(patchOperation.Value)
+		default:
+			return nil, fmt.Errorf("unsupported fake JSON patch operation %q", patchOperation.Op)
+		}
+	}
+
+	return util.NewWorkflow(workflow), nil
+}
+
+func fakeWorkflowJSONPatchValue(workflow *v1alpha1.Workflow, path string) (string, bool) {
+	switch path {
+	case "/metadata/resourceVersion":
+		return workflow.ResourceVersion, true
+	case "/status/phase":
+		return string(workflow.Status.Phase), true
+	default:
+		return "", false
+	}
+}
+
+func unescapeJSONPointerPathPart(pathPart string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(pathPart, "~1", "/"), "~0", "~")
 }
 
 type FakeBadWorkflowClient struct {

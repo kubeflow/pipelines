@@ -30,6 +30,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/compiler-tests.yml'
+      - '.github/actions/test-and-report/**'
       - 'backend/src/v2/compiler/**'
       - 'test_data/**'
       - '!**/*.md'
