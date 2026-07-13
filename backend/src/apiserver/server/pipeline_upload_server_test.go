@@ -446,6 +446,49 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 	assert.Equal(t, versionsExpect, versions)
 }
 
+func TestUploadPipeline_CodeSourceUrl(t *testing.T) {
+	clientManager, server := setupClientManagerAndServer()
+	bytesBuffer, writer := setupWriter("")
+	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
+	response := uploadPipeline(
+		fmt.Sprintf("/apis/v2beta1/pipelines/upload?name=%s&code_source_url=%s",
+			url.PathEscape("my-pipeline"), url.PathEscape("https://github.com/example/repo")),
+		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
+	assert.Equal(t, 200, response.Code)
+
+	// Verify the pipeline version stored in DB has CodeSourceUrl set
+	opts, _ := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
+	versions, totalSize, _, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts, nil)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, totalSize)
+	assert.Equal(t, "https://github.com/example/repo", versions[0].CodeSourceUrl)
+}
+
+func TestUploadPipelineVersion_CodeSourceUrl(t *testing.T) {
+	clientManager, server := setupClientManagerAndServer()
+	// First create a pipeline
+	bytesBuffer, writer := setupWriter("")
+	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
+	response := uploadPipeline("/apis/v2beta1/pipelines/upload",
+		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
+	assert.Equal(t, 200, response.Code)
+
+	// Upload a version with code_source_url
+	server = updateClientManager(clientManager, util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
+	bytesBuffer, writer = setupWriter("")
+	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
+	response = uploadPipeline(
+		fmt.Sprintf("/apis/v2beta1/pipelines/upload_version?name=%s&pipelineid=%s&code_source_url=%s",
+			url.PathEscape(fakeVersionName), DefaultFakeUUID, url.PathEscape("https://github.com/example/repo")),
+		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineVersion)
+	assert.Equal(t, 200, response.Code)
+
+	// Verify the pipeline version stored in DB has CodeSourceUrl set
+	pipelineVersion, err := clientManager.PipelineStore().GetPipelineVersion(fakeVersionUUID)
+	assert.Nil(t, err)
+	assert.Equal(t, "https://github.com/example/repo", pipelineVersion.CodeSourceUrl)
+}
+
 func TestUploadPipeline_GetFormFileError(t *testing.T) {
 	_, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("I am invalid file")
