@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-02
+- Last updated: 2026-07-13
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -517,6 +517,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 ## CI/CD (GitHub Actions)
 
 - Workflows: `.github/workflows/` (build, test, lint, release)
+- `ci-health-report.yml` runs daily (and on dispatch): aggregates master-branch lane failure rates and per-test flake counts from `junit-xml - *` artifacts, publishing to the job summary and a tracking issue labeled `ci-health`.
 - Composite actions: `.github/actions/` (e.g., `kfp-k8s`, `create-cluster`, `deploy`, `test-and-report`)
 - Typical checks: Go unit tests (backend), Python SDK tests, frontend tests/lint, image builds.
 - Frontend workflow (`frontend.yml`) verifies generated API clients are up to date by running `npm run apis:all` and failing on diff.

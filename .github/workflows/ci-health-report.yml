@@ -1,0 +1,39 @@
+# Daily CI health report: aggregates master-branch lane failure rates and
+# per-test flake counts (from junit-xml artifacts uploaded by failed runs) and
+# publishes them to the job summary and a single tracking issue labeled
+# `ci-health`. Complements GitHub's built-in Actions performance metrics,
+# which stop at job granularity, are UI-only, and require write access to view.
+name: CI Health Report
+
+on:
+  schedule:
+    - cron: "17 7 * * *"
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Lookback window in days"
+        required: false
+        default: "14"
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    name: Generate CI health report
+    # Scheduled analytics only make sense on the canonical repo; forks would
+    # burn API quota reporting on their own (usually empty) master.
+    if: github.repository == 'kubeflow/pipelines'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Generate report and update tracking issue
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DAYS: ${{ inputs.days || '14' }}
+          UPDATE_ISSUE: "true"
+        run: python3 ./.github/resources/scripts/ci_health_report.py
