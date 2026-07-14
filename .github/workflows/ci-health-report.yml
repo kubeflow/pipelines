@@ -20,6 +20,13 @@ permissions:
   contents: read
   issues: write
 
+# One report generation at a time: overlapping schedule/dispatch runs could
+# race the issue upsert (duplicate issues, or an older report overwriting a
+# newer one). Queue instead of cancel so a manual dispatch is never lost.
+concurrency:
+  group: ci-health-report
+  cancel-in-progress: false
+
 jobs:
   report:
     name: Generate CI health report

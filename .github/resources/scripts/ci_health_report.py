@@ -183,6 +183,7 @@ def collect_lane_stats(token, repo, since, max_runs):
     reruns = 0
     notes = []
     capped_workflows = []
+    job_fetch_errors = 0
 
     for workflow in TARGET_WORKFLOWS:
         url = (
@@ -223,7 +224,11 @@ def collect_lane_stats(token, repo, since, max_runs):
                     rate_limited = True
                     break
                 except urllib.error.HTTPError:
-                    continue  # attempt data can expire; skip just this attempt
+                    # Attempt data can expire; skip just this attempt, but a
+                    # silently dropped job listing must not read as a healthy
+                    # lane — surface the gap in the completeness notes.
+                    job_fetch_errors += 1
+                    continue
                 for job in jobs:
                     conclusion = job.get("conclusion")
                     if conclusion in NON_RESULT_CONCLUSIONS:
@@ -245,6 +250,11 @@ def collect_lane_stats(token, repo, since, max_runs):
 
     if capped_workflows:
         notes.append("run cap applied: " + ", ".join(capped_workflows))
+    if job_fetch_errors:
+        notes.append(
+            f"{job_fetch_errors} job listing(s) failed with HTTP errors; "
+            "lane rates may undercount failures"
+        )
     return lanes, failed_runs, reruns, notes
 
 
@@ -253,14 +263,15 @@ def collect_failed_tests(token, repo, failed_runs, max_junit_runs):
 
     Newest failed runs first, across all workflows, so one busy workflow
     cannot monopolize the artifact budget. Returns
-    (failed_tests, artifacts_parsed, ingestion_errors).
+    (failed_tests, artifacts_parsed, ingestion_errors, scanned_run_count).
     """
     failed_tests = collections.Counter()
     artifacts_parsed = 0
     ingestion_errors = 0
 
     newest_first = [run_id for _, run_id in sorted(failed_runs, reverse=True)]
-    for run_id in newest_first[:max_junit_runs]:
+    scanned_runs = newest_first[:max_junit_runs]
+    for run_id in scanned_runs:
         try:
             artifacts = paginate(
                 token,
@@ -299,11 +310,19 @@ def collect_failed_tests(token, repo, failed_runs, max_junit_runs):
                         classname = case.get("classname") or ""
                         key = f"{classname} :: {name}" if classname else name
                         failed_tests[key] += 1
-    return failed_tests, artifacts_parsed, ingestion_errors
+    return failed_tests, artifacts_parsed, ingestion_errors, len(scanned_runs)
 
 
 def render_report(
-    lanes, failed_tests, artifacts_parsed, ingestion_errors, reruns, days, notes
+    lanes,
+    failed_tests,
+    artifacts_parsed,
+    ingestion_errors,
+    reruns,
+    days,
+    notes,
+    junit_scanned=0,
+    junit_total=0,
 ):
     lines = []
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
@@ -346,6 +365,16 @@ def render_report(
     )
 
     lines.append("## Flakiest tests (from junit-xml artifacts of failed runs)\n")
+    # Name the actual scan scope: the artifact budget covers only the newest
+    # failed runs, and describing a capped scan as the whole window would let
+    # artifact-less infrastructure failures mask real junit data on older runs.
+    if junit_total > junit_scanned:
+        lines.append(
+            f"_Scanned the newest {junit_scanned} of {junit_total} failed runs "
+            "for junit artifacts._\n"
+        )
+    else:
+        lines.append(f"_Scanned {junit_scanned} failed run(s) for junit artifacts._\n")
     if ingestion_errors:
         lines.append(
             f"> **Note:** {ingestion_errors} artifact/XML ingestion error(s); "
@@ -360,11 +389,11 @@ def render_report(
         lines.append("")
     elif not ingestion_errors:
         lines.append(
-            "_No `junit-xml - *` artifacts found on failed runs in the window; "
+            "_No `junit-xml - *` artifacts found on the scanned failed runs; "
             "per-test data populates as runs upload them (see test-and-report)._\n"
         )
     else:
-        lines.append("_No junit artifacts could be ingested this window._\n")
+        lines.append("_No junit artifacts could be ingested from the scanned runs._\n")
     return "\n".join(lines) + "\n"
 
 
@@ -384,10 +413,17 @@ def upsert_issue(token, repo, report):
         if error.code != 422:  # 422 = label already exists
             raise
 
-    issues = api_request(
+    listed = api_request(
         token,
         f"{API_ROOT}/repos/{repo}/issues?labels={ISSUE_LABEL}&state=open&per_page=10",
     )
+    # The issues endpoint also returns pull requests, and a label alone could
+    # match unrelated content; only ever overwrite the bot's own report issue.
+    issues = [
+        item
+        for item in listed
+        if "pull_request" not in item and item.get("title") == ISSUE_TITLE
+    ]
     body = {"title": ISSUE_TITLE, "body": report[:65000], "labels": [ISSUE_LABEL]}
     if issues:
         number = issues[0]["number"]
@@ -413,11 +449,19 @@ def main():
     since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
 
     lanes, failed_runs, reruns, notes = collect_lane_stats(token, repo, since, max_runs)
-    failed_tests, artifacts_parsed, ingestion_errors = collect_failed_tests(
-        token, repo, failed_runs, max_junit_runs
+    failed_tests, artifacts_parsed, ingestion_errors, junit_scanned = (
+        collect_failed_tests(token, repo, failed_runs, max_junit_runs)
     )
     report = render_report(
-        lanes, failed_tests, artifacts_parsed, ingestion_errors, reruns, days, notes
+        lanes,
+        failed_tests,
+        artifacts_parsed,
+        ingestion_errors,
+        reruns,
+        days,
+        notes,
+        junit_scanned=junit_scanned,
+        junit_total=len(failed_runs),
     )
 
     print(report)

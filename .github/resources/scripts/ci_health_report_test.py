@@ -14,8 +14,10 @@
 # limitations under the License.
 """Unit tests for ci_health_report.py (stdlib only).
 
-Run with:  python3 -m unittest .github/resources/scripts/ci_health_report_test.py
-       or: python3 .github/resources/scripts/ci_health_report_test.py
+Run with:  cd .github/resources/scripts && python3 -m unittest -v ci_health_report_test
+(the leading-dot directory prevents unittest path-to-module conversion from the
+repo root, and default `unittest discover` only matches test*.py). CI runs this
+via .github/workflows/ci-scripts-tests.yml on changes to these scripts.
 """
 
 import io
@@ -138,6 +140,24 @@ class TruncationFlagTest(unittest.TestCase):
         self.assertTrue(any("rate-limited" in note for note in notes))
 
 
+class JobFetchErrorTest(unittest.TestCase):
+    def test_job_listing_http_error_is_surfaced_not_healthy(self):
+        import urllib.error
+
+        def fake_paginate(token, url, key, max_pages=3):
+            if "workflows/" in url:
+                return [make_run(1)] if "e2e-test.yml" in url else []
+            raise urllib.error.HTTPError(url, 500, "boom", {}, io.BytesIO(b""))
+
+        with mock.patch.object(chr_mod, "paginate", side_effect=fake_paginate):
+            lanes, _, _, notes = chr_mod.collect_lane_stats("t", "o/r", "2026-07-01", 40)
+        self.assertEqual(len(lanes), 0)
+        self.assertTrue(
+            any("job listing(s) failed" in note for note in notes),
+            f"expected job-fetch note in {notes}",
+        )
+
+
 class JunitIngestionTest(unittest.TestCase):
     GOOD_XML = (
         '<testsuite><testcase classname="SuiteA" name="flaky test">'
@@ -157,9 +177,10 @@ class JunitIngestionTest(unittest.TestCase):
 
         with mock.patch.object(chr_mod, "paginate", side_effect=fake_paginate), \
                 mock.patch.object(chr_mod, "api_request", return_value=payload):
-            tests, parsed, errors = chr_mod.collect_failed_tests(
+            tests, parsed, errors, scanned = chr_mod.collect_failed_tests(
                 "t", "o/r", [("2026-07-13T00:00:00Z", 1)], 5
             )
+        self.assertEqual(scanned, 1)
         self.assertEqual(tests["SuiteA :: flaky test"], 1)
         self.assertEqual(tests["SuiteB :: flaky test"], 1)
         self.assertNotIn("SuiteA :: green test", tests)
@@ -187,7 +208,7 @@ class JunitIngestionTest(unittest.TestCase):
             raise chr_mod.RateLimited(url)
 
         with mock.patch.object(chr_mod, "paginate", side_effect=fake_paginate):
-            tests, parsed, errors = chr_mod.collect_failed_tests(
+            tests, parsed, errors, scanned = chr_mod.collect_failed_tests(
                 "t", "o/r", [("2026-07-13T00:00:00Z", 1)], 5
             )
         self.assertEqual(len(tests), 0)
@@ -213,6 +234,18 @@ class RenderTest(unittest.TestCase):
         self.assertNotIn("No `junit-xml - *` artifacts found", errored)
         self.assertIn("No junit artifacts could be ingested", errored)
 
+    def test_junit_scan_scope_is_named_not_whole_window(self):
+        capped = chr_mod.render_report(
+            {}, {}, 0, 0, 0, 7, [], junit_scanned=15, junit_total=20
+        )
+        self.assertIn("newest 15 of 20 failed runs", capped)
+        # the zero-artifact message must not claim the whole window
+        self.assertIn("on the scanned failed runs", capped)
+        uncapped = chr_mod.render_report(
+            {}, {}, 0, 0, 0, 7, [], junit_scanned=3, junit_total=3
+        )
+        self.assertIn("Scanned 3 failed run(s)", uncapped)
+
 
 class UpsertIssueTest(unittest.TestCase):
     def test_updates_existing_issue(self):
@@ -223,7 +256,7 @@ class UpsertIssueTest(unittest.TestCase):
             if method == "POST" and url.endswith("/labels"):
                 return {}
             if "issues?labels=" in url:
-                return [{"number": 42, "html_url": "issue-url"}]
+                return [{"number": 42, "title": chr_mod.ISSUE_TITLE, "html_url": "issue-url"}]
             if method == "PATCH":
                 return {}
             raise AssertionError(f"unexpected call {method} {url}")
@@ -232,6 +265,31 @@ class UpsertIssueTest(unittest.TestCase):
             url = chr_mod.upsert_issue("t", "o/r", "report")
         self.assertEqual(url, "issue-url")
         self.assertIn(("PATCH", f"{chr_mod.API_ROOT}/repos/o/r/issues/42"), calls)
+
+    def test_skips_pull_requests_and_wrong_titles(self):
+        patched = []
+
+        def fake_api(token, url, method="GET", body=None, raw=False):
+            if method == "POST" and url.endswith("/labels"):
+                return {}
+            if "issues?labels=" in url:
+                return [
+                    {"number": 1, "title": chr_mod.ISSUE_TITLE,
+                     "pull_request": {}, "html_url": "pr-url"},
+                    {"number": 2, "title": "Something else entirely",
+                     "html_url": "other-url"},
+                ]
+            if method == "PATCH":
+                patched.append(url)
+                return {}
+            if method == "POST" and url.endswith("/issues"):
+                return {"html_url": "new-issue-url"}
+            raise AssertionError(f"unexpected call {method} {url}")
+
+        with mock.patch.object(chr_mod, "api_request", side_effect=fake_api):
+            url = chr_mod.upsert_issue("t", "o/r", "report")
+        self.assertEqual(patched, [])  # neither the PR nor the unrelated issue
+        self.assertEqual(url, "new-issue-url")
 
     def test_creates_issue_when_none_open(self):
         def fake_api(token, url, method="GET", body=None, raw=False):
