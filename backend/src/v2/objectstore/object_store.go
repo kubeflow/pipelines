@@ -403,5 +403,14 @@ func getS3BucketCredential(
 		s3Creds := credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")
 		return &s3Creds, err
 	}
-	return nil, fmt.Errorf("could not find required bucket credential values; both access key and secret key must be present")
+	// Name which credential role is missing without echoing the configured
+	// secret data key names.
+	missingValues := make([]string, 0, 2)
+	if accessKey == "" {
+		missingValues = append(missingValues, "access key")
+	}
+	if secretKey == "" {
+		missingValues = append(missingValues, "secret key")
+	}
+	return nil, fmt.Errorf("bucket credential secret has no value for: %s", strings.Join(missingValues, ", "))
 }
