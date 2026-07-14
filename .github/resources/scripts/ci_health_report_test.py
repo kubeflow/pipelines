@@ -62,8 +62,8 @@ class ConclusionHandlingTest(unittest.TestCase):
     def collect(self, jobs):
         def fake_paginate(token, url, key, max_pages=3):
             if "workflows/" in url:
-                return [make_run(1)] if "e2e-test.yml" in url else []
-            return jobs
+                return ([make_run(1)], False) if "e2e-test.yml" in url else ([], False)
+            return jobs, False
 
         with mock.patch.object(chr_mod, "paginate", side_effect=fake_paginate):
             return chr_mod.collect_lane_stats("t", "o/r", "2026-07-01", 40)
@@ -96,14 +96,14 @@ class RerunHandlingTest(unittest.TestCase):
             if "workflows/" in url:
                 # Overall conclusion success: the re-run went green.
                 return (
-                    [make_run(7, conclusion="success", attempts=2)]
+                    ([make_run(7, conclusion="success", attempts=2)], False)
                     if "e2e-test.yml" in url
-                    else []
+                    else ([], False)
                 )
             if "/attempts/1/" in url:
-                return [make_job("lane", "failure")]
+                return [make_job("lane", "failure")], False
             if "/attempts/2/" in url:
-                return [make_job("lane", "success")]
+                return [make_job("lane", "success")], False
             raise AssertionError(f"unexpected jobs url {url}")
 
         with mock.patch.object(chr_mod, "paginate", side_effect=fake_paginate):
@@ -123,8 +123,8 @@ class TruncationFlagTest(unittest.TestCase):
 
         def fake_paginate(token, url, key, max_pages=3):
             if "workflows/" in url:
-                return runs if "e2e-test.yml" in url else []
-            return [make_job("lane", "success")]
+                return (runs, False) if "e2e-test.yml" in url else ([], False)
+            return [make_job("lane", "success")], False
 
         with mock.patch.object(chr_mod, "paginate", side_effect=fake_paginate):
             _, _, _, notes = chr_mod.collect_lane_stats("t", "o/r", "2026-07-01", 2)
@@ -146,7 +146,7 @@ class JobFetchErrorTest(unittest.TestCase):
 
         def fake_paginate(token, url, key, max_pages=3):
             if "workflows/" in url:
-                return [make_run(1)] if "e2e-test.yml" in url else []
+                return ([make_run(1)], False) if "e2e-test.yml" in url else ([], False)
             raise urllib.error.HTTPError(url, 500, "boom", {}, io.BytesIO(b""))
 
         with mock.patch.object(chr_mod, "paginate", side_effect=fake_paginate):
@@ -156,6 +156,48 @@ class JobFetchErrorTest(unittest.TestCase):
             any("job listing(s) failed" in note for note in notes),
             f"expected job-fetch note in {notes}",
         )
+
+
+class StaleWorkflowTest(unittest.TestCase):
+    def test_missing_workflow_404_is_surfaced(self):
+        import urllib.error
+
+        def fake_paginate(token, url, key, max_pages=3):
+            if "workflows/" in url:
+                raise urllib.error.HTTPError(url, 404, "gone", {}, io.BytesIO(b""))
+            raise AssertionError("no jobs should be fetched")
+
+        with mock.patch.object(chr_mod, "paginate", side_effect=fake_paginate):
+            _, _, _, notes = chr_mod.collect_lane_stats("t", "o/r", "2026-07-01", 40)
+        self.assertTrue(
+            any("not found" in note and "TARGET_WORKFLOWS" in note for note in notes),
+            f"expected missing-workflow note in {notes}",
+        )
+
+
+class PageBudgetTest(unittest.TestCase):
+    def test_job_page_budget_truncation_is_surfaced(self):
+        def fake_paginate(token, url, key, max_pages=3):
+            if "workflows/" in url:
+                return ([make_run(1)], False) if "e2e-test.yml" in url else ([], False)
+            return [make_job("lane", "success")], True  # budget exhausted
+
+        with mock.patch.object(chr_mod, "paginate", side_effect=fake_paginate):
+            _, _, _, notes = chr_mod.collect_lane_stats("t", "o/r", "2026-07-01", 40)
+        self.assertTrue(
+            any("page budget" in note for note in notes),
+            f"expected page-budget note in {notes}",
+        )
+
+    def test_artifact_page_budget_counts_as_ingestion_gap(self):
+        def fake_paginate(token, url, key, max_pages=3):
+            return [], True  # more artifacts exist beyond page 1
+
+        with mock.patch.object(chr_mod, "paginate", side_effect=fake_paginate):
+            _, _, errors, _ = chr_mod.collect_failed_tests(
+                "t", "o/r", [("2026-07-13T00:00:00Z", 1)], 5
+            )
+        self.assertEqual(errors, 1)
 
 
 class JunitIngestionTest(unittest.TestCase):
@@ -173,7 +215,7 @@ class JunitIngestionTest(unittest.TestCase):
         ]
 
         def fake_paginate(token, url, key, max_pages=3):
-            return artifacts
+            return artifacts, False
 
         with mock.patch.object(chr_mod, "paginate", side_effect=fake_paginate), \
                 mock.patch.object(chr_mod, "api_request", return_value=payload):
@@ -192,7 +234,7 @@ class JunitIngestionTest(unittest.TestCase):
 
         def fake_paginate(token, url, key, max_pages=3):
             seen.append(url)
-            return []
+            return [], False
 
         failed_runs = [
             ("2026-07-01T00:00:00Z", 111),  # oldest (from the first workflow)
@@ -224,7 +266,7 @@ class RenderTest(unittest.TestCase):
         )
         self.assertIn("Data completeness", report)
         self.assertIn("run cap applied", report)
-        self.assertIn("3 artifact/XML ingestion error(s)", report)
+        self.assertIn("3 artifact ingestion gap(s)", report)
         self.assertIn("| WF | lane | 4 | 2 | 50% | 15 |", report)
 
     def test_zero_artifacts_message_distinct_from_errors(self):

@@ -56,13 +56,15 @@ from datetime import datetime, timedelta, timezone
 API_ROOT = "https://api.github.com"
 
 # Heavy master-branch test workflows worth tracking for flake health.
+# Missing entries are surfaced in the report notes rather than silently
+# skipped, so workflow renames/deletions get noticed instead of permanently
+# dropping a suite from the health data.
 TARGET_WORKFLOWS = [
     "e2e-test.yml",
     "api-server-tests.yml",
     "integration-tests-v1.yml",
     "legacy-v2-api-integration-tests.yml",
-    "kfp-kubernetes-execution-tests.yml",
-    "sdk-execution.yml",
+    "kfp-sdk-client-tests.yml",
     "upgrade-test.yml",
     "kfp-webhooks.yml",
 ]
@@ -124,6 +126,12 @@ def api_request(token, url, method="GET", body=None, raw=False):
 
 
 def paginate(token, url, key, max_pages=3):
+    """Returns (items, may_have_more).
+
+    may_have_more is True when the page budget ran out while pages were still
+    full — the caller must surface that as a completeness gap instead of
+    silently publishing partial results.
+    """
     items = []
     page_url = url
     for _ in range(max_pages):
@@ -131,11 +139,11 @@ def paginate(token, url, key, max_pages=3):
         chunk = payload.get(key, []) if isinstance(payload, dict) else payload
         items.extend(chunk)
         if len(chunk) < 100:
-            break
+            return items, False
         separator = "&" if "?" in url else "?"
         page_number = len(items) // 100 + 1
         page_url = f"{url}{separator}page={page_number}"
-    return items
+    return items, True
 
 
 def duration_minutes(job):
@@ -183,7 +191,9 @@ def collect_lane_stats(token, repo, since, max_runs):
     reruns = 0
     notes = []
     capped_workflows = []
+    missing_workflows = []
     job_fetch_errors = 0
+    job_page_truncations = 0
 
     for workflow in TARGET_WORKFLOWS:
         url = (
@@ -191,9 +201,12 @@ def collect_lane_stats(token, repo, since, max_runs):
             f"?branch=master&created=>={since}&per_page=100"
         )
         try:
-            runs = paginate(token, url, "workflow_runs", max_pages=1)
+            runs, more_runs = paginate(token, url, "workflow_runs", max_pages=1)
         except urllib.error.HTTPError as error:
-            if error.code == 404:  # workflow renamed/removed
+            if error.code == 404:
+                # A renamed/deleted workflow silently dropping out would
+                # permanently omit that suite's health; make it visible.
+                missing_workflows.append(f"`{workflow}`")
                 continue
             raise
         except RateLimited:
@@ -205,6 +218,8 @@ def collect_lane_stats(token, repo, since, max_runs):
         if len(runs) > max_runs:
             capped_workflows.append(f"`{workflow}` ({len(runs)}→{max_runs})")
             runs = runs[:max_runs]
+        elif more_runs:
+            capped_workflows.append(f"`{workflow}` (page budget)")
 
         rate_limited = False
         for run in runs:
@@ -215,7 +230,9 @@ def collect_lane_stats(token, repo, since, max_runs):
             run_had_failure = False
             for jobs_url in run_attempt_job_urls(repo, run):
                 try:
-                    jobs = paginate(token, jobs_url, "jobs")
+                    jobs, more_jobs = paginate(token, jobs_url, "jobs")
+                    if more_jobs:
+                        job_page_truncations += 1
                 except RateLimited:
                     notes.append(
                         f"rate-limited while reading jobs for `{workflow}`; "
@@ -248,12 +265,22 @@ def collect_lane_stats(token, repo, since, max_runs):
         if rate_limited:
             break
 
+    if missing_workflows:
+        notes.append(
+            "tracked workflow(s) not found (renamed/removed — update "
+            "TARGET_WORKFLOWS): " + ", ".join(missing_workflows)
+        )
     if capped_workflows:
         notes.append("run cap applied: " + ", ".join(capped_workflows))
     if job_fetch_errors:
         notes.append(
             f"{job_fetch_errors} job listing(s) failed with HTTP errors; "
             "lane rates may undercount failures"
+        )
+    if job_page_truncations:
+        notes.append(
+            f"{job_page_truncations} job listing(s) exceeded the page budget; "
+            "lane rates may undercount"
         )
     return lanes, failed_runs, reruns, notes
 
@@ -273,12 +300,16 @@ def collect_failed_tests(token, repo, failed_runs, max_junit_runs):
     scanned_runs = newest_first[:max_junit_runs]
     for run_id in scanned_runs:
         try:
-            artifacts = paginate(
+            artifacts, more_artifacts = paginate(
                 token,
                 f"{API_ROOT}/repos/{repo}/actions/runs/{run_id}/artifacts?per_page=100",
                 "artifacts",
                 max_pages=1,
             )
+            if more_artifacts:
+                # Artifacts beyond the first page are invisible; that is an
+                # ingestion gap, not a clean zero.
+                ingestion_errors += 1
         except (urllib.error.HTTPError, RateLimited, OSError):
             ingestion_errors += 1
             continue
@@ -377,8 +408,9 @@ def render_report(
         lines.append(f"_Scanned {junit_scanned} failed run(s) for junit artifacts._\n")
     if ingestion_errors:
         lines.append(
-            f"> **Note:** {ingestion_errors} artifact/XML ingestion error(s); "
-            "per-test counts are a lower bound.\n"
+            f"> **Note:** {ingestion_errors} artifact ingestion gap(s) "
+            "(errors or page-budget truncation); per-test counts are a lower "
+            "bound.\n"
         )
     if failed_tests:
         lines.append(f"_Parsed {artifacts_parsed} junit artifact(s)._\n")
