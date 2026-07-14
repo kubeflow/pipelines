@@ -36,8 +36,8 @@ Standalone mode is single-user and unauthenticated. Multi-user deployments requi
 | Variable | Purpose |
 | --- | --- |
 | `_KFP_RUNTIME=true` | Runtime mode that disables most SDK imports |
-| `METADATA_GRPC_MAX_RETRIES` | Overrides the MLMD client retry budget (10 attempts by default); driver and launcher pods read it from the optional `metadata-grpc-configmap` |
-| `PIPELINE_DRIVER_RETRY_LIMIT` | Controls the Argo retry limit compiled into driver templates (3 by default; `0` disables retries) |
+| `METADATA_GRPC_MAX_ATTEMPTS` | Overrides total MLMD gRPC attempts per call (10 by default; `1` disables retries); driver and launcher pods read it from the optional `metadata-grpc-configmap` |
+| `PIPELINE_DRIVER_RETRY_LIMIT` | Opts driver templates into an Argo retry strategy (disabled by default because driver replays are not yet idempotent; see `getDriverRetryStrategy`) |
 | `VITE_NAMESPACE` | Frontend namespace for multi-user development |
 | `LOCAL_API_SERVER=true` | Local API-server integration-test mode |
 | `FRONTEND_SERVER_NAMESPACE` | Namespace used by a local frontend server |
