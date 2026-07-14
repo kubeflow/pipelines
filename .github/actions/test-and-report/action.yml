@@ -369,9 +369,13 @@ runs:
 
     - name: Render runner telemetry
       # Stops the sampler and writes the stats table + mermaid charts to the
-      # job summary. Runs for passing lanes too: a green run's baseline is
-      # what makes a saturated failing run recognizable.
+      # job summary. Runs for passing lanes too (a green run's baseline is
+      # what makes a saturated failing run recognizable) and — via always() —
+      # after setup failures, which would otherwise skip this step (implicit
+      # success()), leave the sampler running until teardown, and drop the
+      # telemetry for exactly the runs that need diagnosing.
       shell: bash
+      if: ${{ always() }}
       run: ./.github/resources/scripts/runner-telemetry.sh render /tmp/runner-telemetry.csv
       continue-on-error: true
 

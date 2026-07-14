@@ -88,10 +88,17 @@ minutes = (rows[-1][0] - start) / 60
 
 
 def downsample(values, cap=50):
+    # Bucket-max, not every-Nth: a short saturation spike between picks must
+    # stay visible in the chart, and for forensics the max is the signal.
     if len(values) <= cap:
         return values
-    step = len(values) / cap
-    return [values[int(i * step)] for i in range(cap)]
+    n = len(values)
+    out = []
+    for i in range(cap):
+        lo = i * n // cap
+        hi = max(lo + 1, (i + 1) * n // cap)
+        out.append(max(values[lo:hi]))
+    return out
 
 
 cpu = [r[1] for r in rows]

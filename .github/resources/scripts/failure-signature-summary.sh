@@ -32,13 +32,51 @@ done
 
 OUT="${GITHUB_STEP_SUMMARY:-/dev/stdout}"
 
-count_in_log() {
-    # $1 = extended regex; prints 0 when the log is missing.
-    if [[ -n "$LOG_FILE" && -r "$LOG_FILE" ]]; then
-        grep -cE "$1" "$LOG_FILE" 2>/dev/null || true
-    else
-        echo 0
+# Signature scan corpus: the collected pod logs PLUS the JUnit failure/error
+# bodies. Client-side failures (MLflow timeouts, connection refused from the
+# test process) live only in the JUnit XML, never in pod logs, so scanning the
+# pod log alone under-reports exactly the client-observed classes.
+SCAN_SOURCES=()
+SOURCE_LABELS=()
+if [[ -n "$LOG_FILE" && -r "$LOG_FILE" ]]; then
+    SCAN_SOURCES+=("$LOG_FILE")
+    SOURCE_LABELS+=("pod logs")
+fi
+JUNIT_TEXT=""
+if [[ -n "$REPORTS_DIR" && -d "$REPORTS_DIR" ]] && command -v python3 >/dev/null 2>&1; then
+    JUNIT_TEXT=$(mktemp)
+    python3 - "$REPORTS_DIR" > "$JUNIT_TEXT" 2>/dev/null <<'PY' || true
+import sys, glob, os
+import xml.etree.ElementTree as ET
+
+for path in glob.glob(os.path.join(sys.argv[1], "*.xml")):
+    try:
+        root = ET.parse(path).getroot()
+    except ET.ParseError:
+        continue
+    for case in root.iter("testcase"):
+        for node_name in ("failure", "error"):
+            node = case.find(node_name)
+            if node is None:
+                continue
+            if node.get("message"):
+                print(node.get("message"))
+            if node.text:
+                print(node.text)
+PY
+    if [[ -s "$JUNIT_TEXT" ]]; then
+        SCAN_SOURCES+=("$JUNIT_TEXT")
+        SOURCE_LABELS+=("JUnit failure bodies")
     fi
+fi
+
+count_signature() {
+    # $1 = extended regex, counted across every scan source.
+    if [[ ${#SCAN_SOURCES[@]} -eq 0 ]]; then
+        echo 0
+        return
+    fi
+    cat "${SCAN_SOURCES[@]}" 2>/dev/null | grep -cE "$1" || true
 }
 
 {
@@ -46,22 +84,26 @@ count_in_log() {
     echo "## Failure signature summary"
     echo ""
 
-    if [[ -z "$LOG_FILE" || ! -r "$LOG_FILE" ]]; then
-        echo "_No collected pod-log file at \`${LOG_FILE:-<unset>}\`; signature scan skipped._"
+    if [[ ${#SCAN_SOURCES[@]} -eq 0 ]]; then
+        echo "_No pod-log file or JUnit reports found; signature scan skipped._"
     else
+        scanned=$(printf '%s, ' "${SOURCE_LABELS[@]}")
+        echo "_Scanned: ${scanned%, }._"
+        echo ""
         echo "| Signature | Count | Points at |"
         echo "|---|---:|---|"
-        echo "| ClusterIP dial \`i/o timeout\` | $(count_in_log 'dial tcp [0-9.]+:[0-9]+: i/o timeout') | service dataplane / backend accept saturation |"
-        echo "| Client deadline / timeout | $(count_in_log 'context deadline exceeded|Client\.Timeout exceeded') | slow server (queueing, saturation) |"
-        echo "| Connection refused / reset | $(count_in_log 'connection refused|connection reset by peer') | process down or restarting |"
-        echo "| HTTP 429 rate limit | $(count_in_log 'status 429|429 Too Many Requests') | upstream rate limiting |"
-        echo "| OOMKilled | $(count_in_log 'OOMKilled') | pod memory limits |"
-        echo "| CrashLoopBackOff | $(count_in_log 'CrashLoopBackOff') | pod lifecycle |"
-        echo "| conntrack table full | $(count_in_log 'nf_conntrack: table full') | node conntrack exhaustion |"
+        echo "| ClusterIP dial \`i/o timeout\` | $(count_signature 'dial tcp [0-9.]+:[0-9]+: i/o timeout') | service dataplane / backend accept saturation |"
+        echo "| Client deadline / timeout | $(count_signature 'context deadline exceeded|Client\.Timeout exceeded') | slow server (queueing, saturation) |"
+        echo "| Connection refused / reset | $(count_signature 'connection refused|connection reset by peer') | process down or restarting |"
+        echo "| HTTP 429 rate limit | $(count_signature 'status 429|429 Too Many Requests') | upstream rate limiting |"
+        echo "| OOMKilled | $(count_signature 'OOMKilled') | pod memory limits |"
+        echo "| CrashLoopBackOff | $(count_signature 'CrashLoopBackOff') | pod lifecycle |"
+        echo "| conntrack table full | $(count_signature 'nf_conntrack: table full') | node conntrack exhaustion |"
 
         # Per-VIP breakdown makes multi-service dataplane failures (SeaweedFS
         # :9000 vs MLflow :8443 ...) visible at a glance.
-        vips=$(grep -oE 'dial tcp [0-9.]+:[0-9]+: i/o timeout' "$LOG_FILE" 2>/dev/null \
+        vips=$(cat "${SCAN_SOURCES[@]}" 2>/dev/null \
+            | grep -oE 'dial tcp [0-9.]+:[0-9]+: i/o timeout' \
             | grep -oE '[0-9.]+:[0-9]+' | sort | uniq -c | sort -rn | head -5 || true)
         if [[ -n "$vips" ]]; then
             echo ""
@@ -104,4 +146,5 @@ PY
     echo ""
 } >> "$OUT"
 
+[[ -n "$JUNIT_TEXT" ]] && rm -f "$JUNIT_TEXT"
 exit 0
