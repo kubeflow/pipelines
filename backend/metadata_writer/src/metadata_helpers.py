@@ -20,6 +20,7 @@ from time import sleep
 from ml_metadata.proto import metadata_store_pb2
 from ml_metadata.metadata_store import metadata_store
 from ipaddress import ip_address, IPv4Address 
+from ml_metadata.errors import AlreadyExistsError
 
 def value_to_mlmd_value(value) -> metadata_store_pb2.Value:
     if value is None:
@@ -209,14 +210,21 @@ def get_or_create_context_with_type(
     try:
         context = get_context_by_name(store, context_name)
     except:
-        context = create_context_with_type(
-            store=store,
-            context_name=context_name,
-            type_name=type_name,
-            properties=properties,
-            type_properties=type_properties,
-            custom_properties=custom_properties,
-        )
+        try:
+            context = create_context_with_type(
+                store=store,
+                context_name=context_name,
+                type_name=type_name,
+                properties=properties,
+                type_properties=type_properties,
+                custom_properties=custom_properties,
+            )
+        except AlreadyExistsError:
+            # Lost a race: some other event/process created this context
+            # between our lookup and our create attempt. Fetch and reuse it
+            # instead of crashing.
+            get_context_by_name.cache_clear()
+            context = get_context_by_name(store, context_name)
         return context
 
     # Verifying that the context has the expected type name
