@@ -43,6 +43,9 @@ jobs:
           pip install -e release
           pip install -r docs/sdk/requirements.txt
 
+      - name: Test release automation
+        run: python -m unittest release.kfpr.cli_test release.kfpr.steps_test release.kfpr.rtd_test release.kfpr.core_test
+
       - name: Build KFP SDK Docs
         working-directory: docs/sdk
         run: |

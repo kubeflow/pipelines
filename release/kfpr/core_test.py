@@ -180,8 +180,13 @@ class GithubCommandTest(unittest.TestCase):
 
     script = command[-1]
     self.assertIn('PREVIOUS_RELEASE=3.1.1', script)
-    self.assertIn('git-cliff -c cliff.toml --tag "$TAG_NAME" --prepend CHANGELOG.md "$PREVIOUS_RELEASE..$TAG_NAME"', script)
+    self.assertIn('git-cliff -c cliff.toml --tag "$TAG_NAME" --prepend CHANGELOG.md "$PREVIOUS_RELEASE..HEAD"', script)
     self.assertNotIn('--unreleased', script)
+
+  def test_release_version_bump_command_quotes_previous_release(self):
+    command = core.release_version_bump_command(Path('/repo'), 'release-3.2', '3.1.1; echo unsafe')
+
+    self.assertIn("PREVIOUS_RELEASE='3.1.1; echo unsafe'", command[-1])
 
   def test_wait_for_pr_merge_dry_run_returns_immediately(self):
     runner = core.CommandRunner(dry_run=True)
@@ -369,6 +374,27 @@ class GithubCommandTest(unittest.TestCase):
     self.assertEqual(runner.commands[-1], ['gh', 'run', 'watch', '222'])
     self.assertNotIn(['gh', 'run', 'watch', '111'], runner.commands)
 
+  def test_watch_latest_workflow_run_can_resume_existing_run(self):
+    class ExistingRunRunner:
+
+      dry_run = False
+
+      def __init__(self):
+        self.commands = []
+
+      def capture(self, command, cwd=None):
+        self.commands.append(command)
+        return '111\thttps://github.com/kubeflow/pipelines/actions/runs/111\t2026-07-08T19:00:00Z'
+
+      def run(self, command, cwd=None, check=True):
+        self.commands.append(command)
+
+    runner = ExistingRunRunner()
+    with mock.patch('time.time', return_value=1783537500):
+      core.watch_latest_workflow_run(runner, 'test-workflow.yml', 'main', fresh_only=False)
+
+    self.assertEqual(runner.commands[-1], ['gh', 'run', 'watch', '111'])
+
   def test_watch_latest_workflow_run_prints_run_url(self):
     class RunUrlRunner:
 
@@ -420,7 +446,7 @@ class InlineCommandTest(unittest.TestCase):
     self.assertIn('-c', command)
     self.assertNotIn('-lc', command)
     script = command[-1]
-    self.assertIn('git-cliff -c cliff.toml --tag "$TAG_NAME" --prepend CHANGELOG.md "$PREVIOUS_RELEASE..$TAG_NAME"', script)
+    self.assertIn('git-cliff -c cliff.toml --tag "$TAG_NAME" --prepend CHANGELOG.md "$PREVIOUS_RELEASE..HEAD"', script)
     self.assertIn('"$REPO_ROOT/manifests/gcp_marketplace/hack/release.sh" "$TAG_NAME"', script)
     self.assertIn('"$REPO_ROOT/backend/api/build_kfp_server_api_python_package.sh"', script)
     self.assertIn('REQUIRED_NODE_VERSION=', script)
@@ -471,6 +497,12 @@ class ParseGithubOwnerTest(unittest.TestCase):
   def test_normalize_fork_remote_rejects_at_username(self):
     with self.assertRaises(ValueError):
       core.normalize_fork_remote('@droctothorpe')
+
+  def test_normalize_fork_remote_rejects_upstream_repository(self):
+    for fork_remote in ('kubeflow', 'Kubeflow', 'git@github.com:kubeflow/pipelines.git', 'https://github.com/Kubeflow/pipelines.git'):
+      with self.subTest(fork_remote=fork_remote):
+        with self.assertRaises(ValueError):
+          core.normalize_fork_remote(fork_remote)
 
   def test_parse_ssh_format(self):
     self.assertEqual(

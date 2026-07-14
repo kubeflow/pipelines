@@ -5,6 +5,7 @@ import datetime
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import time
@@ -353,7 +354,7 @@ def release_version_bump_command(root: Path, release_branch: str, previous_relea
   script = f'''
 set -e
 REPO_ROOT={repo_path}
-PREVIOUS_RELEASE={previous_release}
+PREVIOUS_RELEASE={shlex.quote(previous_release)}
 TAG_NAME="$(cat "$REPO_ROOT/VERSION")"
 if [ -z "$TAG_NAME" ]; then
   echo "ERROR: $REPO_ROOT/VERSION is empty" >&2
@@ -384,7 +385,7 @@ go_path=$(go env GOPATH)
 echo "$PATH" | grep "${{go_path}}/bin" >/dev/null || (echo "\\$GOPATH/bin: ${{go_path}}/bin should be in PATH" && exit 1)
 echo "All tools installed"
 cd "$REPO_ROOT"
-git-cliff -c cliff.toml --tag "$TAG_NAME" --prepend CHANGELOG.md "$PREVIOUS_RELEASE..$TAG_NAME"
+git-cliff -c cliff.toml --tag "$TAG_NAME" --prepend CHANGELOG.md "$PREVIOUS_RELEASE..HEAD"
 "$REPO_ROOT/manifests/gcp_marketplace/hack/release.sh" "$TAG_NAME"
 "$REPO_ROOT/manifests/kustomize/hack/release.sh" "$TAG_NAME"
 export API_VERSION=v1beta1
@@ -484,17 +485,23 @@ def parse_github_owner(fork_remote: str) -> str:
 
 def normalize_fork_remote(fork_remote: str) -> str:
   """Normalize a fork owner or remote URL to a GitHub remote URL."""
+  if fork_remote == 'kubeflow':
+    raise ValueError('fork_remote must not be the kubeflow organization')
   if re.match(r'^git@github\.com:[^/]+/[^/]+(?:\.git)?$', fork_remote):
-    return fork_remote
-  if re.match(r'^https://github\.com/[^/]+/[^/]+(?:\.git)?$', fork_remote):
-    return fork_remote
-  if re.match(r'^[A-Za-z0-9][A-Za-z0-9-]*$', fork_remote):
-    return f'https://github.com/{fork_remote}/pipelines.git'
-  raise ValueError(
-      f'Cannot parse fork_remote: {fork_remote}. '
-      'Use a GitHub username, git@github.com:USER/pipelines.git, '
-      'or https://github.com/USER/pipelines.git'
-  )
+    normalized = fork_remote
+  elif re.match(r'^https://github\.com/[^/]+/[^/]+(?:\.git)?$', fork_remote):
+    normalized = fork_remote
+  elif re.match(r'^[A-Za-z0-9][A-Za-z0-9-]*$', fork_remote):
+    normalized = f'https://github.com/{fork_remote}/pipelines.git'
+  else:
+    raise ValueError(
+        f'Cannot parse fork_remote: {fork_remote}. '
+        'Use a GitHub username, git@github.com:USER/pipelines.git, '
+        'or https://github.com/USER/pipelines.git'
+    )
+  if parse_github_owner(normalized).lower() == 'kubeflow':
+    raise ValueError('fork_remote must not point to kubeflow/pipelines')
+  return normalized
 
 
 def validate_answers(answers: dict[str, object], require_all: bool = True) -> tuple[ReleaseMetadata | None, list[str]]:
@@ -651,7 +658,12 @@ def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
     time.sleep(60)
 
 
-def watch_latest_workflow_run(runner: CommandRunner, workflow: str, branch: str) -> None:
+def watch_latest_workflow_run(
+    runner: CommandRunner,
+    workflow: str,
+    branch: str,
+    fresh_only: bool = True,
+) -> None:
   """Watch the latest workflow run for a given workflow and branch.
 
   Args:
@@ -684,7 +696,7 @@ def watch_latest_workflow_run(runner: CommandRunner, workflow: str, branch: str)
     if candidate:
       _, _, created_at = candidate.split('\t', 2)
       created = datetime.datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-      if created >= started_at:
+      if not fresh_only or created >= started_at:
         run_info = candidate
         break
     time.sleep(5)

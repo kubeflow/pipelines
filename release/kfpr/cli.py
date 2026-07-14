@@ -373,7 +373,12 @@ def watch_publish_images(
     for error in errors:
       typer.echo(error)
     raise typer.Exit(1)
-  watch_latest_workflow_run(CommandRunner(dry_run=dry_run), 'image-builds-release.yml', metadata.release_branch)
+  watch_latest_workflow_run(
+      CommandRunner(dry_run=dry_run),
+      'image-builds-release.yml',
+      metadata.release_branch,
+      fresh_only=False,
+  )
 
 
 def _make_step_command(step_id: str):
@@ -419,6 +424,15 @@ def _make_step_command(step_id: str):
         save_state=done,
         require_previous_release=step_id in ('update-version-tags', 'sync-master'),
     )
+    if not dry_run and step_id in {
+        'prepare-release-branch',
+        'prepare-patch-branch',
+        'cherry-pick-prs',
+        'update-version-tags',
+        'create-kfp-kubernetes-docs-branch',
+        'sync-master',
+    } and context.runner.capture(['git', 'status', '--short'], cwd=context.root).strip():
+      raise typer.BadParameter('git working tree is dirty')
     STEP_HANDLERS[step_id](context)
     if done:
       context.state.mark_done(step_id)
