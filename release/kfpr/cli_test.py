@@ -52,7 +52,9 @@ class PackageImportTest(unittest.TestCase):
 
   def test_pyproject_declares_build_backend(self):
     pyproject = Path(__file__).parents[1] / 'pyproject.toml'
-    self.assertIn('[build-system]', pyproject.read_text())
+    pyproject_text = pyproject.read_text()
+    self.assertIn('[build-system]', pyproject_text)
+    self.assertIn('"typer>=0.16,<1.0"', pyproject_text)
 
   def test_sdk_client_ci_installs_local_server_api_after_requirements(self):
     workflow = Path(__file__).parents[2] / '.github/workflows/kfp-sdk-client-tests.yml'

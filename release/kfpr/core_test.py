@@ -418,6 +418,25 @@ class GithubCommandTest(unittest.TestCase):
     self.assertIn('Workflow run: \033[4mhttps://github.com/kubeflow/pipelines/actions/runs/12345\033[0m', output)
     self.assertEqual(runner.commands[-1], ['gh', 'run', 'watch', '12345'])
 
+  def test_watch_latest_workflow_run_supports_python_without_datetime_utc(self):
+    class RunRunner:
+
+      dry_run = False
+
+      def capture(self, command, cwd=None):
+        return '12345\thttps://github.com/kubeflow/pipelines/actions/runs/12345\t2026-07-08T19:05:01Z'
+
+      def run(self, command, cwd=None, check=True):
+        pass
+
+    utc = core.datetime.UTC
+    del core.datetime.UTC
+    try:
+      with mock.patch('time.time', return_value=1783537500):
+        core.watch_latest_workflow_run(RunRunner(), 'test-workflow.yml', 'main')
+    finally:
+      core.datetime.UTC = utc
+
 
 class InlineCommandTest(unittest.TestCase):
 

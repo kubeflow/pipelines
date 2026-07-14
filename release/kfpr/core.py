@@ -674,7 +674,7 @@ def watch_latest_workflow_run(
   if runner.dry_run:
     print(f'[dry-run] Watching latest workflow run skipped: {workflow} on {branch}')
     return
-  started_at = datetime.datetime.fromtimestamp(time.time() - 10, datetime.UTC)
+  started_at = datetime.datetime.fromtimestamp(time.time() - 10, datetime.timezone.utc)
   command = [
       'gh',
       'run',
