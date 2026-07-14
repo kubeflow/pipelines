@@ -592,7 +592,7 @@ func Test_createS3BucketSession(t *testing.T) {
 			},
 			expectValidClient: false,
 			wantErr:           true,
-			errorMsg:          "both access key and secret key must be present",
+			errorMsg:          "bucket credential secret has no value for: access key, secret key",
 			forbiddenErrorMsg: []string{
 				"does_not_exist_secret_key",
 				"does_not_exist_access_key",
