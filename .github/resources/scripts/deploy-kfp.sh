@@ -140,9 +140,19 @@ wait_for_pods_ready() {
   echo "----- describe (container readiness / events) -----"
   kubectl "${scope_args[@]}" describe pods || true
   echo "----- recent namespace events -----"
-  kubectl -n "$namespace" get events --sort-by=.lastTimestamp 2>/dev/null | tail -40 || true
+  # Sort by creationTimestamp: lastTimestamp is deprecated/absent for
+  # events.k8s.io/v1 objects, which leaves the output unsorted on new clusters.
+  kubectl -n "$namespace" get events --sort-by=.metadata.creationTimestamp 2>/dev/null | tail -40 || true
   echo "----- logs (all containers, incl. istio-proxy sidecar) -----"
-  kubectl "${scope_args[@]}" logs --all-containers=true --tail=100 --prefix=true || true
+  if [ -n "$selector" ]; then
+    kubectl -n "$namespace" logs -l "$selector" --all-containers=true --tail=100 --prefix=true || true
+  else
+    # kubectl logs needs a resource or selector; with no selector (e.g. the
+    # Istio wait covers the whole namespace) dump each pod individually.
+    for pod in $(kubectl -n "$namespace" get pods -o name 2>/dev/null | head -20); do
+      kubectl -n "$namespace" logs "$pod" --all-containers=true --tail=100 --prefix=true || true
+    done
+  fi
   return 1
 }
 
