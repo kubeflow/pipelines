@@ -164,13 +164,6 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
-    retryStrategy:
-      backoff:
-        duration: 5s
-        factor: 2
-        maxDuration: 1m
-      limit: 3
-      retryPolicy: Always
     securityContext:
       runAsNonRoot: true
       seccompProfile:
@@ -450,13 +443,6 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
-    retryStrategy:
-      backoff:
-        duration: 5s
-        factor: 2
-        maxDuration: 1m
-      limit: 3
-      retryPolicy: Always
     securityContext:
       runAsNonRoot: true
       seccompProfile:

@@ -31,28 +31,28 @@ func TestGetDriverRetryStrategy(t *testing.T) {
 		wantLimit int32
 	}{
 		{
-			name:      "default when unset",
-			wantLimit: DefaultDriverRetryLimit,
+			name:    "disabled by default when unset",
+			wantNil: true,
 		},
 		{
-			name:      "explicit limit",
+			name:      "explicit limit enables retries",
 			envValue:  stringPtr("7"),
 			wantLimit: 7,
 		},
 		{
-			name:     "zero disables retries",
+			name:     "explicit zero disables retries",
 			envValue: stringPtr("0"),
 			wantNil:  true,
 		},
 		{
-			name:      "invalid value falls back to default",
-			envValue:  stringPtr("not-a-number"),
-			wantLimit: DefaultDriverRetryLimit,
+			name:     "invalid value falls back to disabled default",
+			envValue: stringPtr("not-a-number"),
+			wantNil:  true,
 		},
 		{
-			name:      "negative value falls back to default",
-			envValue:  stringPtr("-2"),
-			wantLimit: DefaultDriverRetryLimit,
+			name:     "negative value falls back to disabled default",
+			envValue: stringPtr("-2"),
+			wantNil:  true,
 		},
 	}
 	for _, test := range tests {
