@@ -44,6 +44,7 @@ jobs:
         run: |
           pip install -e release
           pip install -r docs/sdk/requirements.txt
+          pip install --upgrade 'typer>=0.16,<1.0'
 
       - name: Test release automation
         run: python -m unittest release.kfpr.cli_test release.kfpr.steps_test release.kfpr.rtd_test release.kfpr.core_test

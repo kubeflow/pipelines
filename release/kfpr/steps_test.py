@@ -160,7 +160,7 @@ class PreflightStepTest(unittest.TestCase):
       context = core.ReleaseContext(
           root=Path(tmpdir),
           state=core.ReleaseState(Path(tmpdir) / 'state.json'),
-          runner=DirtyRunner(),
+          runner=DirtyRunner(dry_run=True),
           metadata=core.ReleaseMetadata.from_version('minor', '3.2.0'),
           fork_remote='git@github.com:testuser/pipelines.git',
           include_backend=True,

@@ -66,7 +66,9 @@ class PackageImportTest(unittest.TestCase):
 
   def test_readthedocs_ci_uses_nested_run_step_command(self):
     workflow = Path(__file__).parents[2] / '.github/workflows/readthedocs-builds.yml'
-    self.assertIn('kfpr run create-kfp-kubernetes-docs-branch', workflow.read_text())
+    workflow_text = workflow.read_text()
+    self.assertIn('kfpr run create-kfp-kubernetes-docs-branch', workflow_text)
+    self.assertIn("pip install --upgrade 'typer>=0.16,<1.0'", workflow_text)
 
 
 class CliTest(unittest.TestCase):

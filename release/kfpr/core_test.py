@@ -429,13 +429,15 @@ class GithubCommandTest(unittest.TestCase):
       def run(self, command, cwd=None, check=True):
         pass
 
-    utc = core.datetime.UTC
-    del core.datetime.UTC
+    utc = getattr(core.datetime, 'UTC', None)
+    if utc is not None:
+      del core.datetime.UTC
     try:
       with mock.patch('time.time', return_value=1783537500):
         core.watch_latest_workflow_run(RunRunner(), 'test-workflow.yml', 'main')
     finally:
-      core.datetime.UTC = utc
+      if utc is not None:
+        core.datetime.UTC = utc
 
 
 class InlineCommandTest(unittest.TestCase):
