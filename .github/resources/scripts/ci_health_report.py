@@ -23,6 +23,14 @@ issue labeled `ci-health` so flake trends live at a stable URL.
 GitHub's built-in Actions performance metrics stop at job granularity and have
 no API; this report adds the per-test layer and a public, automatable record.
 
+Accuracy contract:
+  - Every attempt of re-run workflows is counted, so a flake that passed on
+    re-run still shows its original failure.
+  - Cancelled/skipped jobs are excluded from rates; every other non-success
+    conclusion (failure, timed_out, stale, ...) counts as a failure.
+  - Any truncation (run caps, rate limits, artifact ingestion errors) is
+    surfaced in the report instead of silently publishing partial data.
+
 Environment:
   GITHUB_TOKEN             required, API token
   GITHUB_REPOSITORY        owner/repo (default kubeflow/pipelines)
@@ -61,6 +69,12 @@ TARGET_WORKFLOWS = [
 
 ISSUE_TITLE = "CI Health Report (automated)"
 ISSUE_LABEL = "ci-health"
+
+# Job conclusions that are not results at all: master-push workflows cancel
+# in-progress runs, so counting cancellations as either success or failure
+# biases rates. Everything not listed here and not "success" is a failure
+# (failure, timed_out, stale, ...).
+NON_RESULT_CONCLUSIONS = {None, "", "skipped", "cancelled", "neutral", "action_required"}
 
 
 class RateLimited(Exception):
@@ -134,14 +148,41 @@ def duration_minutes(job):
     return minutes if minutes >= 0 else None
 
 
+def is_failure_conclusion(conclusion):
+    return conclusion not in NON_RESULT_CONCLUSIONS and conclusion != "success"
+
+
+def run_attempt_job_urls(repo, run):
+    """Job listing URLs covering every attempt of a run.
+
+    `filter=latest` alone would hide the original failed jobs of re-run
+    workflows — exactly the flakes this report exists to measure.
+    """
+    attempts = run.get("run_attempt", 1) or 1
+    if attempts <= 1:
+        return [
+            f"{API_ROOT}/repos/{repo}/actions/runs/{run['id']}/jobs"
+            "?filter=latest&per_page=100"
+        ]
+    return [
+        f"{API_ROOT}/repos/{repo}/actions/runs/{run['id']}/attempts/{attempt}/jobs"
+        "?per_page=100"
+        for attempt in range(1, attempts + 1)
+    ]
+
+
 def collect_lane_stats(token, repo, since, max_runs):
-    """Returns (lane stats dict, failed run ids, rerun count, truncated flag)."""
-    lanes = collections.defaultdict(
-        lambda: {"total": 0, "failed": 0, "cancelled": 0, "durations": []}
-    )
-    failed_run_ids = []
+    """Aggregates per-lane job outcomes across every attempt of each run.
+
+    Returns (lanes, failed_runs, reruns, notes) where failed_runs is a list of
+    (created_at, run_id) for runs with a failed job in any attempt, and notes
+    is a list of data-completeness warnings for the report header.
+    """
+    lanes = collections.defaultdict(lambda: {"total": 0, "failed": 0, "durations": []})
+    failed_runs = []
     reruns = 0
-    truncated = False
+    notes = []
+    capped_workflows = []
 
     for workflow in TARGET_WORKFLOWS:
         url = (
@@ -149,54 +190,77 @@ def collect_lane_stats(token, repo, since, max_runs):
             f"?branch=master&created=>={since}&per_page=100"
         )
         try:
-            runs = paginate(token, url, "workflow_runs", max_pages=1)[:max_runs]
+            runs = paginate(token, url, "workflow_runs", max_pages=1)
         except urllib.error.HTTPError as error:
             if error.code == 404:  # workflow renamed/removed
                 continue
             raise
         except RateLimited:
-            truncated = True
+            notes.append(
+                f"rate-limited while listing `{workflow}` runs; later workflows omitted"
+            )
             break
 
+        if len(runs) > max_runs:
+            capped_workflows.append(f"`{workflow}` ({len(runs)}→{max_runs})")
+            runs = runs[:max_runs]
+
+        rate_limited = False
         for run in runs:
             if run.get("status") != "completed":
                 continue
-            if run.get("run_attempt", 1) > 1:
+            if (run.get("run_attempt", 1) or 1) > 1:
                 reruns += 1
-            if run.get("conclusion") == "failure":
-                failed_run_ids.append(run["id"])
-            try:
-                jobs = paginate(
-                    token,
-                    f"{API_ROOT}/repos/{repo}/actions/runs/{run['id']}/jobs"
-                    "?filter=latest&per_page=100",
-                    "jobs",
-                )
-            except RateLimited:
-                truncated = True
+            run_had_failure = False
+            for jobs_url in run_attempt_job_urls(repo, run):
+                try:
+                    jobs = paginate(token, jobs_url, "jobs")
+                except RateLimited:
+                    notes.append(
+                        f"rate-limited while reading jobs for `{workflow}`; "
+                        "results truncated"
+                    )
+                    rate_limited = True
+                    break
+                except urllib.error.HTTPError:
+                    continue  # attempt data can expire; skip just this attempt
+                for job in jobs:
+                    conclusion = job.get("conclusion")
+                    if conclusion in NON_RESULT_CONCLUSIONS:
+                        continue
+                    lane = lanes[(run.get("name") or workflow, job["name"])]
+                    lane["total"] += 1
+                    if is_failure_conclusion(conclusion):
+                        lane["failed"] += 1
+                        run_had_failure = True
+                    minutes = duration_minutes(job)
+                    if minutes is not None:
+                        lane["durations"].append(minutes)
+            if run_had_failure:
+                failed_runs.append((run.get("created_at") or "", run["id"]))
+            if rate_limited:
                 break
-            for job in jobs:
-                if job.get("conclusion") in (None, "skipped"):
-                    continue
-                lane = lanes[(run.get("name") or workflow, job["name"])]
-                lane["total"] += 1
-                if job["conclusion"] == "failure":
-                    lane["failed"] += 1
-                elif job["conclusion"] == "cancelled":
-                    lane["cancelled"] += 1
-                minutes = duration_minutes(job)
-                if minutes is not None:
-                    lane["durations"].append(minutes)
-        if truncated:
+        if rate_limited:
             break
-    return lanes, failed_run_ids, reruns, truncated
+
+    if capped_workflows:
+        notes.append("run cap applied: " + ", ".join(capped_workflows))
+    return lanes, failed_runs, reruns, notes
 
 
-def collect_failed_tests(token, repo, failed_run_ids, max_junit_runs):
-    """Tallies failed testcases from junit-xml artifacts of failed runs."""
+def collect_failed_tests(token, repo, failed_runs, max_junit_runs):
+    """Tallies failed testcases from junit-xml artifacts of failed runs.
+
+    Newest failed runs first, across all workflows, so one busy workflow
+    cannot monopolize the artifact budget. Returns
+    (failed_tests, artifacts_parsed, ingestion_errors).
+    """
     failed_tests = collections.Counter()
-    artifact_runs_seen = 0
-    for run_id in failed_run_ids[:max_junit_runs]:
+    artifacts_parsed = 0
+    ingestion_errors = 0
+
+    newest_first = [run_id for _, run_id in sorted(failed_runs, reverse=True)]
+    for run_id in newest_first[:max_junit_runs]:
         try:
             artifacts = paginate(
                 token,
@@ -204,7 +268,8 @@ def collect_failed_tests(token, repo, failed_run_ids, max_junit_runs):
                 "artifacts",
                 max_pages=1,
             )
-        except (urllib.error.HTTPError, RateLimited):
+        except (urllib.error.HTTPError, RateLimited, OSError):
+            ingestion_errors += 1
             continue
         for artifact in artifacts:
             if not artifact.get("name", "").startswith("junit-xml - "):
@@ -212,35 +277,40 @@ def collect_failed_tests(token, repo, failed_run_ids, max_junit_runs):
             if artifact.get("expired"):
                 continue
             try:
-                content = api_request(
-                    token, artifact["archive_download_url"], raw=True
-                )
+                content = api_request(token, artifact["archive_download_url"], raw=True)
                 archive = zipfile.ZipFile(io.BytesIO(content))
             except Exception:  # noqa: BLE001 - best-effort artifact ingestion
+                ingestion_errors += 1
                 continue
-            artifact_runs_seen += 1
+            artifacts_parsed += 1
             for member in archive.namelist():
                 if not member.endswith(".xml"):
                     continue
                 try:
                     root = ET.fromstring(archive.read(member))
                 except ET.ParseError:
+                    ingestion_errors += 1
                     continue
                 for case in root.iter("testcase"):
                     if case.find("failure") is not None or case.find("error") is not None:
-                        failed_tests[case.get("name") or "<unnamed>"] += 1
-    return failed_tests, artifact_runs_seen
+                        # name alone is only unique within a suite/class;
+                        # include classname so unrelated tests do not merge.
+                        name = case.get("name") or "<unnamed>"
+                        classname = case.get("classname") or ""
+                        key = f"{classname} :: {name}" if classname else name
+                        failed_tests[key] += 1
+    return failed_tests, artifacts_parsed, ingestion_errors
 
 
-def render_report(lanes, failed_tests, artifact_runs_seen, reruns, days, truncated):
+def render_report(
+    lanes, failed_tests, artifacts_parsed, ingestion_errors, reruns, days, notes
+):
     lines = []
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    lines.append(f"# CI Health Report\n")
-    lines.append(
-        f"_Master-branch runs, last {days} days. Generated {now}."
-        + (" **Rate-limited: results truncated.**" if truncated else "")
-        + "_\n"
-    )
+    lines.append("# CI Health Report\n")
+    lines.append(f"_Master-branch runs, last {days} days. Generated {now}._\n")
+    if notes:
+        lines.append("> **Data completeness:** " + "; ".join(notes) + "\n")
 
     ranked = sorted(
         lanes.items(), key=lambda item: (item[1]["failed"], item[1]["total"]), reverse=True
@@ -271,22 +341,30 @@ def render_report(lanes, failed_tests, artifact_runs_seen, reruns, days, truncat
     total_failures = sum(stats["failed"] for stats in lanes.values())
     lines.append(
         f"**Window totals:** {total_jobs} lane runs across {total_lanes} lanes, "
-        f"{total_failures} failures, {reruns} workflow re-runs.\n"
+        f"{total_failures} failures, {reruns} workflow re-runs "
+        "(all attempts counted; cancelled/skipped excluded).\n"
     )
 
     lines.append("## Flakiest tests (from junit-xml artifacts of failed runs)\n")
+    if ingestion_errors:
+        lines.append(
+            f"> **Note:** {ingestion_errors} artifact/XML ingestion error(s); "
+            "per-test counts are a lower bound.\n"
+        )
     if failed_tests:
-        lines.append(f"_Parsed junit artifacts from {artifact_runs_seen} artifact(s)._\n")
+        lines.append(f"_Parsed {artifacts_parsed} junit artifact(s)._\n")
         lines.append("| Test | Failures |")
         lines.append("|---|---:|")
         for name, count in failed_tests.most_common(15):
             lines.append(f"| {name} | {count} |")
         lines.append("")
-    else:
+    elif not ingestion_errors:
         lines.append(
             "_No `junit-xml - *` artifacts found on failed runs in the window; "
             "per-test data populates as runs upload them (see test-and-report)._\n"
         )
+    else:
+        lines.append("_No junit artifacts could be ingested this window._\n")
     return "\n".join(lines) + "\n"
 
 
@@ -296,7 +374,11 @@ def upsert_issue(token, repo, report):
             token,
             f"{API_ROOT}/repos/{repo}/labels",
             method="POST",
-            body={"name": ISSUE_LABEL, "color": "1d76db", "description": "Automated CI health reports"},
+            body={
+                "name": ISSUE_LABEL,
+                "color": "1d76db",
+                "description": "Automated CI health reports",
+            },
         )
     except urllib.error.HTTPError as error:
         if error.code != 422:  # 422 = label already exists
@@ -330,14 +412,12 @@ def main():
     max_junit_runs = int(os.environ.get("MAX_JUNIT_RUNS", "15"))
     since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
 
-    lanes, failed_run_ids, reruns, truncated = collect_lane_stats(
-        token, repo, since, max_runs
-    )
-    failed_tests, artifact_runs_seen = collect_failed_tests(
-        token, repo, failed_run_ids, max_junit_runs
+    lanes, failed_runs, reruns, notes = collect_lane_stats(token, repo, since, max_runs)
+    failed_tests, artifacts_parsed, ingestion_errors = collect_failed_tests(
+        token, repo, failed_runs, max_junit_runs
     )
     report = render_report(
-        lanes, failed_tests, artifact_runs_seen, reruns, days, truncated
+        lanes, failed_tests, artifacts_parsed, ingestion_errors, reruns, days, notes
     )
 
     print(report)
