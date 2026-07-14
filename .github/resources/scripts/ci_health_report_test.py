@@ -176,6 +176,20 @@ class StaleWorkflowTest(unittest.TestCase):
 
 
 class PageBudgetTest(unittest.TestCase):
+    def test_exact_full_page_uses_total_count_to_avoid_false_truncation(self):
+        payload = {"total_count": 100, "artifacts": [{"id": i} for i in range(100)]}
+        with mock.patch.object(chr_mod, "api_request", return_value=payload):
+            items, may_have_more = chr_mod.paginate("t", "u", "artifacts", max_pages=1)
+        self.assertEqual(len(items), 100)
+        self.assertFalse(may_have_more)
+
+    def test_full_page_below_total_count_is_truncated(self):
+        payload = {"total_count": 101, "artifacts": [{"id": i} for i in range(100)]}
+        with mock.patch.object(chr_mod, "api_request", return_value=payload):
+            items, may_have_more = chr_mod.paginate("t", "u", "artifacts", max_pages=1)
+        self.assertEqual(len(items), 100)
+        self.assertTrue(may_have_more)
+
     def test_job_page_budget_truncation_is_surfaced(self):
         def fake_paginate(token, url, key, max_pages=3):
             if "workflows/" in url:

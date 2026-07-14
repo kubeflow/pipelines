@@ -129,8 +129,9 @@ def paginate(token, url, key, max_pages=3):
     """Returns (items, may_have_more).
 
     may_have_more is True when the page budget ran out while pages were still
-    full — the caller must surface that as a completeness gap instead of
-    silently publishing partial results.
+    full and the API's total_count confirms that more results exist. The caller
+    must surface that as a completeness gap instead of silently publishing
+    partial results.
     """
     items = []
     page_url = url
@@ -138,6 +139,9 @@ def paginate(token, url, key, max_pages=3):
         payload = api_request(token, page_url)
         chunk = payload.get(key, []) if isinstance(payload, dict) else payload
         items.extend(chunk)
+        total_count = payload.get("total_count") if isinstance(payload, dict) else None
+        if isinstance(total_count, int) and len(items) >= total_count:
+            return items, False
         if len(chunk) < 100:
             return items, False
         separator = "&" if "?" in url else "?"
