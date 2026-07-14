@@ -164,11 +164,14 @@ func GetPipelineRunAsUser() *int64 {
 // This is opt-in (default 0, no retryStrategy) because replaying a driver is
 // not yet idempotent: only the root DAG execution has a deterministic MLMD
 // name, so a replayed container/DAG driver whose PutExecution committed before
-// the failure creates a duplicate execution; plugin OnTaskStart hooks re-fire;
-// and createpvc/deletepvc replays can create a second UUID-named PVC or fail
-// on the already-deleted one. Cluster operators who accept those risks can
-// enable retries via the PIPELINE_DRIVER_RETRY_LIMIT environment variable on
-// the API server.
+// the failure creates a duplicate execution — and GetExecutionsInDAG then
+// fails the whole DAG on the duplicate task name, so a replay can poison the
+// run instead of recovering it. Plugin OnTaskStart hooks also re-fire, and
+// createpvc/deletepvc replays can create a second UUID-named PVC or fail on
+// the already-deleted one. Cluster operators who accept those risks can enable
+// retries via the PIPELINE_DRIVER_RETRY_LIMIT environment variable on the API
+// server. Default-on requires stable execution identities and read-after-error
+// reconciliation across every driver type.
 func getDriverRetryStrategy() *wfapi.RetryStrategy {
 	limit := int32(DefaultDriverRetryLimit)
 	if value, ok := os.LookupEnv(DriverRetryLimitEnvVar); ok {
