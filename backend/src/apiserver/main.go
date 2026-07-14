@@ -116,6 +116,7 @@ func parseTLSVersion(version string) (uint16, error) {
 }
 
 func parseTLSCipherSuites(commaSeparated string) ([]uint16, error) {
+	commaSeparated = strings.TrimSpace(commaSeparated)
 	if commaSeparated == "" {
 		return nil, nil
 	}
