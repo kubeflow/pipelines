@@ -59,10 +59,14 @@ for path in glob.glob(os.path.join(sys.argv[1], "*.xml")):
             node = case.find(node_name)
             if node is None:
                 continue
-            if node.get("message"):
+            # Ginkgo writes the same failure text to both the message
+            # attribute and the element body; emitting both double-counts
+            # every signature. Prefer the body, fall back to the message.
+            body = (node.text or "").strip()
+            if body:
+                print(body)
+            elif node.get("message"):
                 print(node.get("message"))
-            if node.text:
-                print(node.text)
 PY
     if [[ -s "$JUNIT_TEXT" ]]; then
         SCAN_SOURCES+=("$JUNIT_TEXT")
