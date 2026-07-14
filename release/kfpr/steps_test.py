@@ -20,7 +20,7 @@ class StepSelectionTest(unittest.TestCase):
     self.assertIn('publish-images', steps_list)
     self.assertIn('publish-sdks', steps_list)
     self.assertIn('create-sdk-release', steps_list)
-    self.assertLess(steps_list.index('create-sdk-release'), steps_list.index('publish-sdks'))
+    self.assertLess(steps_list.index('publish-sdks'), steps_list.index('create-sdk-release'))
     self.assertNotIn('create-kfp-kubernetes-docs-branch', steps_list)
     self.assertNotIn('confirm-rtd', steps_list)
     self.assertNotIn('update-sdk-versions', steps_list)
@@ -29,9 +29,9 @@ class StepSelectionTest(unittest.TestCase):
   def test_minor_keeps_release_order_and_updates_docs(self):
     steps_list = [step.step_id for step in steps.build_steps('minor', include_backend=True, include_sdk=True)]
     self.assertLess(steps_list.index('publish-sdks'), steps_list.index('create-backend-release'))
+    self.assertLess(steps_list.index('publish-sdks'), steps_list.index('create-kfp-kubernetes-docs-branch'))
     self.assertLess(steps_list.index('create-kfp-kubernetes-docs-branch'), steps_list.index('confirm-rtd'))
     self.assertLess(steps_list.index('confirm-rtd'), steps_list.index('create-sdk-release'))
-    self.assertLess(steps_list.index('create-sdk-release'), steps_list.index('publish-sdks'))
 
   def test_major_skips_cherry_pick_steps(self):
     steps_list = [step.step_id for step in steps.build_steps('major', include_backend=True, include_sdk=True)]
@@ -54,7 +54,7 @@ class StepRegistryTest(unittest.TestCase):
 
 class CherryPickStepTest(unittest.TestCase):
 
-  def test_cherry_pick_skips_pr_without_merge_commit(self):
+  def test_cherry_pick_rejects_pr_without_merge_commit(self):
     with TemporaryDirectory() as tmpdir:
       state = core.ReleaseState(Path(tmpdir) / 'state.json')
       state.answers['patch_prs'] = '123'
@@ -83,7 +83,7 @@ class CherryPickStepTest(unittest.TestCase):
           include_sdk=True,
       )
 
-      with mock.patch('builtins.print'):
+      with self.assertRaisesRegex(RuntimeError, 'Could not find merge commit for PR 123'):
         steps.step_cherry_pick_prs(context)
 
       self.assertNotIn(['git', 'cherry-pick', 'null'], runner.commands)
@@ -147,6 +147,28 @@ class PreflightStepTest(unittest.TestCase):
 
       self.assertIn(['which', 'sed'], context.runner.commands)
       self.assertIn(['which', 'pip-compile'], context.runner.commands)
+
+  def test_preflight_rejects_dirty_working_tree(self):
+    class DirtyRunner(core.CommandRunner):
+
+      def capture(self, command, cwd=None):
+        if command == ['git', 'status', '--short']:
+          return ' M release/kfpr/steps.py'
+        return ''
+
+    with TemporaryDirectory() as tmpdir:
+      context = core.ReleaseContext(
+          root=Path(tmpdir),
+          state=core.ReleaseState(Path(tmpdir) / 'state.json'),
+          runner=DirtyRunner(),
+          metadata=core.ReleaseMetadata.from_version('minor', '3.2.0'),
+          fork_remote='git@github.com:testuser/pipelines.git',
+          include_backend=True,
+          include_sdk=True,
+      )
+
+      with self.assertRaisesRegex(RuntimeError, 'working tree is dirty'):
+        steps.step_preflight(context)
 
 
 class PublishImagesStepTest(unittest.TestCase):
@@ -284,7 +306,8 @@ class CreateSdkReleaseStepTest(unittest.TestCase):
         steps.step_create_sdk_release(context)
 
       self.assertIn(['gh', 'api', '--silent', 'repos/kubeflow/pipelines/git/ref/tags/sdk-3.2.0'], context.runner.commands)
-      self.assertIn(['git', 'tag', '-f', 'sdk-3.2.0', 'release-3.2'], context.runner.commands)
+      self.assertIn(['git', 'fetch', 'upstream', 'release-3.2'], context.runner.commands)
+      self.assertIn(['git', 'tag', '-f', 'sdk-3.2.0', 'upstream/release-3.2'], context.runner.commands)
       self.assertIn(['git', 'push', '--force', 'https://github.com/kubeflow/pipelines.git', 'sdk-3.2.0'], context.runner.commands)
       self.assertIn(['gh', 'release', 'create', 'sdk-3.2.0'], [command[:4] for command in context.runner.commands])
       self.assertIn('--verify-tag', context.runner.commands[-1])
@@ -318,7 +341,8 @@ class CreateSdkReleaseStepTest(unittest.TestCase):
 
       steps.step_create_sdk_release(context)
 
-      self.assertIn(['git', 'tag', '-f', 'sdk-3.2.0', 'release-3.2'], context.runner.commands)
+      self.assertIn(['git', 'fetch', 'upstream', 'release-3.2'], context.runner.commands)
+      self.assertIn(['git', 'tag', '-f', 'sdk-3.2.0', 'upstream/release-3.2'], context.runner.commands)
       self.assertIn(['git', 'push', '--force', 'https://github.com/kubeflow/pipelines.git', 'sdk-3.2.0'], context.runner.commands)
       self.assertIn('--verify-tag', context.runner.commands[-1])
 
@@ -613,11 +637,16 @@ class OrchestrationTest(unittest.TestCase):
             steps_list = steps.build_steps(release_type, include_backend, include_sdk)
             step_ids = [step.step_id for step in steps_list]
 
-            self.assertIn('create-backend-release', step_ids)
-            self.assertIn('sync-master', step_ids)
-            self.assertIn('confirm-website-and-slack', step_ids)
+            if include_backend:
+              self.assertIn('create-backend-release', step_ids)
+              self.assertIn('sync-master', step_ids)
+              self.assertIn('confirm-website-and-slack', step_ids)
+            else:
+              self.assertNotIn('create-backend-release', step_ids)
+              self.assertNotIn('sync-master', step_ids)
+              self.assertNotIn('confirm-website-and-slack', step_ids)
 
-  def test_run_steps_persists_completed_state_after_each_step(self):
+  def test_run_steps_dry_run_does_not_persist_completed_state(self):
     with TemporaryDirectory() as tmpdir:
       state_file = Path(tmpdir) / 'state.json'
       state = core.ReleaseState(state_file)
@@ -643,7 +672,7 @@ class OrchestrationTest(unittest.TestCase):
       steps.run_steps(context)
 
       loaded_state = core.ReleaseState.load(state_file)
-      self.assertGreater(len(loaded_state.completed_steps), 0)
+      self.assertEqual(loaded_state.completed_steps, [])
 
   def test_run_steps_dry_run_adds_blank_line_between_steps(self):
     with TemporaryDirectory() as tmpdir:
@@ -1185,9 +1214,9 @@ class StepSdkVersionFilesTest(unittest.TestCase):
       self.assertIn("VERSION = '1.3.0'", (root / 'api/v2alpha1/python/setup.py').read_text())
       self.assertIn('VERSION = "1.3.0"', (root / 'backend/api/v2beta1/python_http_client/setup.py').read_text())
       self.assertIn('__version__ = "1.3.0"', (root / 'backend/api/v2beta1/python_http_client/kfp_server_api/__init__.py').read_text())
-      self.assertIn('kfp-pipeline-spec>=1.3.0,<3', (root / 'sdk/python/requirements.in').read_text())
-      self.assertIn('kfp-server-api>=1.3.0,<3', (root / 'sdk/python/requirements.in').read_text())
-      self.assertEqual((root / 'kubernetes_platform/python/requirements.in').read_text(), 'kfp>=1.3.0,<3\n')
+      self.assertIn('kfp-pipeline-spec>=1.3.0,<2', (root / 'sdk/python/requirements.in').read_text())
+      self.assertIn('kfp-server-api>=1.3.0,<2', (root / 'sdk/python/requirements.in').read_text())
+      self.assertEqual((root / 'kubernetes_platform/python/requirements.in').read_text(), 'kfp>=1.3.0,<2\n')
       self.assertIn('"title": "1.3.0"', (root / 'docs/sdk/versions.json').read_text())
       self.assertIn('"aliases": []', (root / 'docs/sdk/versions.json').read_text())
       self.assertIn("'title':\n                '1.3'", (root / 'kubernetes_platform/python/docs/conf.py').read_text())
@@ -1364,7 +1393,7 @@ class DryRunOutputTest(unittest.TestCase):
           flattened_commands,
       )
 
-  def test_update_version_tags_does_not_edit_release_dockerfile_image(self):
+  def test_update_version_tags_pins_release_dockerfile_image(self):
     with TemporaryDirectory() as tmpdir:
       root = Path(tmpdir)
       context = core.ReleaseContext(
@@ -1380,8 +1409,8 @@ class DryRunOutputTest(unittest.TestCase):
       steps.step_update_version_tags(context)
 
       flattened_commands = [' '.join(command) for command in context.runner.commands]
-      self.assertFalse(
-          any('release/Dockerfile.release' in command for command in flattened_commands),
+      self.assertTrue(
+          any('release/Dockerfile.release' in command and 'release-3.2' in command for command in flattened_commands),
           flattened_commands,
       )
       self.assertFalse(
@@ -1389,7 +1418,7 @@ class DryRunOutputTest(unittest.TestCase):
           flattened_commands,
       )
 
-  def test_update_version_tags_keeps_tool_images_on_master(self):
+  def test_update_version_tags_pins_tool_images_to_release_branch(self):
     with TemporaryDirectory() as tmpdir:
       root = Path(tmpdir)
       context = core.ReleaseContext(
@@ -1405,12 +1434,12 @@ class DryRunOutputTest(unittest.TestCase):
       steps.step_update_version_tags(context)
 
       flattened_commands = [' '.join(command) for command in context.runner.commands]
-      self.assertFalse(
-          any('PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:' in command for command in flattened_commands),
+      self.assertTrue(
+          any('PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:' in command and 'release-3.2' in command for command in flattened_commands),
           flattened_commands,
       )
-      self.assertFalse(
-          any('RELEASE_IMAGE=ghcr.io/kubeflow/kfp-release:' in command for command in flattened_commands),
+      self.assertTrue(
+          any('RELEASE_IMAGE=ghcr.io/kubeflow/kfp-release:' in command and 'release-3.2' in command for command in flattened_commands),
           flattened_commands,
       )
       self.assertFalse(

@@ -94,7 +94,8 @@ def step_preflight(context: ReleaseContext) -> None:
   for tool in tools:
     context.runner.run(['which', tool])
   context.runner.run(['gh', 'auth', 'status'])
-  context.runner.run(['git', 'status', '--short'], cwd=context.root)
+  if context.runner.capture(['git', 'status', '--short'], cwd=context.root).strip():
+    raise RuntimeError('git working tree is dirty')
 
 
 def step_prepare_release_branch(context: ReleaseContext) -> None:
@@ -141,7 +142,7 @@ def step_cherry_pick_prs(context: ReleaseContext) -> None:
     if sha:
       context.runner.run(['git', 'cherry-pick', sha], cwd=context.root)
     elif not context.runner.dry_run:
-      print(f'Warning: Could not find merge commit for PR {pr}')
+      raise RuntimeError(f'Could not find merge commit for PR {pr}')
 
 
 def step_merge_cherry_pick_pr(context: ReleaseContext) -> None:
@@ -203,17 +204,26 @@ def step_update_version_tags(context: ReleaseContext) -> None:
     else:
       context.runner.run(['git', 'checkout', '-b', version_branch], cwd=root)
   
-  # Update manifests
-  context.runner.run(['sed', '-i.bak', '-E', f's#^([[:space:]]*-[[:space:]]*kubeflow_pipelines_version=).*#\\1v{metadata.tag}#', 'manifests/kustomize/base/pipeline/kustomization.yaml'], cwd=root)
-  
-  # Write VERSION file
-  if context.runner.dry_run:
-    print(f'[dry-run] would write VERSION: {metadata.tag}')
-  else:
-    (root / 'VERSION').write_text(metadata.tag)
-  
-  release_image_tag = 'master' if metadata.release_type in ('major', 'minor') else metadata.release_branch
-  context.runner.run(release_version_bump_command(root, metadata.release_branch, context.previous_release, release_image_tag), cwd=root)
+  if context.include_backend:
+    context.runner.run(['sed', '-i.bak', '-E', f's#^([[:space:]]*-[[:space:]]*kubeflow_pipelines_version=).*#\\1v{metadata.tag}#', 'manifests/kustomize/base/pipeline/kustomization.yaml'], cwd=root)
+    if context.runner.dry_run:
+      print(f'[dry-run] would write VERSION: {metadata.tag}')
+    else:
+      (root / 'VERSION').write_text(metadata.tag)
+    release_image_tag = 'master' if metadata.release_type in ('major', 'minor') else metadata.release_branch
+    context.runner.run(release_version_bump_command(root, metadata.release_branch, context.previous_release, release_image_tag), cwd=root)
+    for path, expression in [
+        ('backend/api/Makefile', r's#^(PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:).*#\1' + metadata.release_branch + '#'),
+        ('backend/api/Makefile', r's#^(RELEASE_IMAGE=ghcr.io/kubeflow/kfp-release:).*#\1' + metadata.release_branch + '#'),
+    ]:
+      context.runner.run(['sed', '-i.bak', '-E', expression, path], cwd=root)
+  for path, expression in [
+      ('api/Makefile', r's#^(PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:).*#\1' + metadata.release_branch + '#'),
+      ('sdk/Makefile', r's#^(PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:).*#\1' + metadata.release_branch + '#'),
+      ('kubernetes_platform/Makefile', r's#^(PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:).*#\1' + metadata.release_branch + '#'),
+      ('release/Dockerfile.release', r's#^(FROM ghcr.io/kubeflow/kfp-api-generator:).*#\1' + metadata.release_branch + '#'),
+  ]:
+    context.runner.run(['sed', '-i.bak', '-E', expression, path], cwd=root)
   if context.include_sdk:
     _update_sdk_version_files(context)
   
@@ -454,9 +464,10 @@ def _update_sdk_version_files(context: ReleaseContext) -> None:
     _replace(root / 'api/v2alpha1/python/setup.py', r"VERSION\s*=\s*['\"]([^'\"]+)['\"]", f"VERSION = '{metadata.tag}'")
     _replace(root / 'backend/api/v2beta1/python_http_client/setup.py', r"VERSION\s*=\s*['\"]([^'\"]+)['\"]", f'VERSION = "{metadata.tag}"')
     _replace(root / 'backend/api/v2beta1/python_http_client/kfp_server_api/__init__.py', r"__version__\s*=\s*['\"]([^'\"]+)['\"]", f'__version__ = "{metadata.tag}"')
-    _replace(root / 'sdk/python/requirements.in', r'kfp-pipeline-spec>=[^,\n]+,<3', f'kfp-pipeline-spec>={metadata.tag},<3')
-    _replace(root / 'sdk/python/requirements.in', r'kfp-server-api>=[^,\n]+,<3', f'kfp-server-api>={metadata.tag},<3')
-    _replace(root / 'kubernetes_platform/python/requirements.in', r'kfp>=[^,\n]+,<3', f'kfp>={metadata.tag},<3')
+    next_major = metadata.major + 1
+    _replace(root / 'sdk/python/requirements.in', r'kfp-pipeline-spec>=[^,\n]+,<\d+', f'kfp-pipeline-spec>={metadata.tag},<{next_major}')
+    _replace(root / 'sdk/python/requirements.in', r'kfp-server-api>=[^,\n]+,<\d+', f'kfp-server-api>={metadata.tag},<{next_major}')
+    _replace(root / 'kubernetes_platform/python/requirements.in', r'kfp>=[^,\n]+,<\d+', f'kfp>={metadata.tag},<{next_major}')
     _update_sdk_docs_versions(root / 'docs/sdk/versions.json', metadata.tag)
     _update_kfp_kubernetes_docs_versions(root / 'kubernetes_platform/python/docs/conf.py', metadata.tag)
     _update_sdk_release_notes(
@@ -518,7 +529,8 @@ For changelog, see https://github.com/kubeflow/pipelines/blob/{metadata.sdk_tag}
         update_tag = choice == 'r'
       if update_tag:
         verify_existing_tag = True
-        context.runner.run(['git', 'tag', '-f', metadata.sdk_tag, metadata.release_branch], cwd=context.root)
+        context.runner.run(['git', 'fetch', 'upstream', metadata.release_branch], cwd=context.root)
+        context.runner.run(['git', 'tag', '-f', metadata.sdk_tag, f'upstream/{metadata.release_branch}'], cwd=context.root)
         context.runner.run(['git', 'push', '--force', upstream_remote, metadata.sdk_tag], cwd=context.root)
   create_command = [
       'gh',
@@ -806,6 +818,7 @@ def build_steps(release_type: str, include_backend: bool, include_sdk: bool) -> 
   if include_backend:
     steps.append(Step('publish-images', 'Run image publication workflow', 'step_publish_images'))
   if include_sdk:
+    steps.append(Step('publish-sdks', 'Run SDK publication workflow', 'step_publish_sdks'))
     if release_type != 'patch':
       steps.extend(
          [
@@ -813,19 +826,15 @@ def build_steps(release_type: str, include_backend: bool, include_sdk: bool) -> 
              Step('confirm-rtd', 'Confirm ReadTheDocs updates', 'step_confirm_rtd'),
          ]
       )
+    steps.append(Step('create-sdk-release', 'Create SDK GitHub release', 'step_create_sdk_release'))
+  if include_backend:
     steps.extend(
        [
-           Step('create-sdk-release', 'Create SDK GitHub release', 'step_create_sdk_release'),
-           Step('publish-sdks', 'Run SDK publication workflow', 'step_publish_sdks'),
+           Step('create-backend-release', 'Create backend GitHub release', 'step_create_backend_release'),
+           Step('sync-master', 'Sync release version to master', 'step_sync_master'),
+           Step('confirm-website-and-slack', 'Confirm website PR and Slack announcement', 'step_confirm_website_and_slack'),
        ]
     )
-  steps.extend(
-     [
-         Step('create-backend-release', 'Create backend GitHub release', 'step_create_backend_release'),
-         Step('sync-master', 'Sync release version to master', 'step_sync_master'),
-         Step('confirm-website-and-slack', 'Confirm website PR and Slack announcement', 'step_confirm_website_and_slack'),
-     ]
-  )
   return steps
 
 
@@ -847,8 +856,9 @@ def run_steps(context: ReleaseContext) -> None:
       continue
     print(f'Running step: {step.description}')
     handlers[step.handler](context)
-    context.state.mark_done(step.step_id)
-    context.state.save()
+    if not context.runner.dry_run:
+      context.state.mark_done(step.step_id)
+      context.state.save()
 
 
 # Build the step registry mapping step_id to handler for all built steps

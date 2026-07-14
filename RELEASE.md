@@ -260,7 +260,7 @@ Ask other maintainers / release managers for reviews. Once the PR is merged, mov
 
 ### Update version tags
 
-Version tags are distributed throughout the codebase. They need to be updated.
+Release automation instructions are maintained in [release/README.md](release/README.md).
 
 Set `VERSION` based on semver.
 
@@ -291,11 +291,11 @@ git remote add upstream https://github.com/kubeflow/pipelines.git
 Execute the version tag update step.
 
 ```bash
-kfpr update-version-tags \
+kfpr run update-version-tags \
   --release-type patch \
   --version "$VERSION" \
   --fork-remote "$FORK_REMOTE" \
-  --mark-done
+  --done
 ```
 
 This step updates the version tags in numerous files.
@@ -567,11 +567,11 @@ Run the following step to cut and push the branch:
 
 ```bash
 export KFP_KUBERNETES_VERSION=${MAJOR}.${MINOR}.${PATCH}
-kfpr create-kfp-kubernetes-docs-branch \
+kfpr run create-kfp-kubernetes-docs-branch \
   --release-type patch \
   --version "$KFP_KUBERNETES_VERSION" \
   --fork-remote upstream \
-  --mark-done
+  --done
 ```
     
 Follow the prompt to commit and push the kfp-kubernetes RTD release branch to the `kubeflow/pipelines` remote.
@@ -658,7 +658,7 @@ The final step is to sync the version bumps back to the master branch. Thankfull
 
 ```bash
 export VERSION=${MAJOR}.${MINOR}.${PATCH} # Update this before running this command
-kfpr sync-master --release-type patch --version "$VERSION" --fork-remote "$FORK_REMOTE" --mark-done
+kfpr run sync-master --release-type patch --version "$VERSION" --fork-remote "$FORK_REMOTE" --done
 ```
 
 If the current release is not a pre-release, create a PR to update the version in the kubeflow documentation website:
