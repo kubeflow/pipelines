@@ -19,7 +19,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/client"
 	util "github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
@@ -34,76 +33,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func TestIsV1PipelineBlocked(t *testing.T) {
-	tests := []struct {
-		name              string
-		blockV1           string
-		allowedNamespaces string
-		namespace         string
-		expected          bool
-	}{
-		{
-			name:      "Blocking disabled - not blocked",
-			blockV1:   "false",
-			namespace: "ns1",
-			expected:  false,
-		},
-		{
-			name:      "Blocking not set - not blocked",
-			blockV1:   "",
-			namespace: "ns1",
-			expected:  false,
-		},
-		{
-			name:      "Blocking enabled, no allowed namespaces - blocked",
-			blockV1:   "true",
-			namespace: "ns1",
-			expected:  true,
-		},
-		{
-			name:              "Blocking enabled, namespace allowed - not blocked",
-			blockV1:           "true",
-			allowedNamespaces: "ns1",
-			namespace:         "ns1",
-			expected:          false,
-		},
-		{
-			name:              "Blocking enabled, namespace not in allowed list - blocked",
-			blockV1:           "true",
-			allowedNamespaces: "ns2,ns3",
-			namespace:         "ns1",
-			expected:          true,
-		},
-		{
-			name:              "Blocking enabled, namespace in allowed list - not blocked",
-			blockV1:           "true",
-			allowedNamespaces: "ns1,ns2,ns3",
-			namespace:         "ns2",
-			expected:          false,
-		},
-		{
-			name:              "Blocking enabled, case insensitive namespace match - not blocked",
-			blockV1:           "true",
-			allowedNamespaces: "NS1",
-			namespace:         "ns1",
-			expected:          false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			viper.Set(common.BlockV1Pipelines, tt.blockV1)
-			viper.Set(common.V1NamespaceWhitelist, tt.allowedNamespaces)
-			defer func() {
-				viper.Set(common.BlockV1Pipelines, "")
-				viper.Set(common.V1NamespaceWhitelist, "")
-			}()
-
-			result := isV1PipelineBlocked(tt.namespace)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
+// v1AllowedNamespaces mirrors the unexported constant in backend/src/common/util/v1_support.go.
+const v1AllowedNamespaces = "V1_ALLOWED_NAMESPACES"
 
 func TestShouldEnforceV1Block(t *testing.T) {
 	v1WorkflowSpec := map[string]interface{}{
@@ -247,11 +178,11 @@ func TestShouldEnforceV1Block(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			viper.Set(common.BlockV1Pipelines, tt.blockV1)
-			viper.Set(common.V1NamespaceWhitelist, tt.allowedNamespaces)
+			viper.Set(commonutil.BlockV1Pipelines, tt.blockV1)
+			viper.Set(v1AllowedNamespaces, tt.allowedNamespaces)
 			defer func() {
-				viper.Set(common.BlockV1Pipelines, "")
-				viper.Set(common.V1NamespaceWhitelist, "")
+				viper.Set(commonutil.BlockV1Pipelines, "")
+				viper.Set(v1AllowedNamespaces, "")
 			}()
 
 			swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
@@ -271,8 +202,8 @@ func TestShouldEnforceV1Block(t *testing.T) {
 	}
 
 	t.Run("Nil ScheduledWorkflow - not blocked", func(t *testing.T) {
-		viper.Set(common.BlockV1Pipelines, "true")
-		defer viper.Set(common.BlockV1Pipelines, "")
+		viper.Set(commonutil.BlockV1Pipelines, "true")
+		defer viper.Set(commonutil.BlockV1Pipelines, "")
 
 		assert.False(t, shouldEnforceV1Block(nil))
 	})
@@ -323,11 +254,11 @@ func TestSubmitNewWorkflowIfNotAlreadySubmitted_BlockV1AllowsV2(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			viper.Set(common.BlockV1Pipelines, "true")
-			viper.Set(common.V1NamespaceWhitelist, "")
+			viper.Set(commonutil.BlockV1Pipelines, "true")
+			viper.Set(v1AllowedNamespaces, "")
 			defer func() {
-				viper.Set(common.BlockV1Pipelines, "")
-				viper.Set(common.V1NamespaceWhitelist, "")
+				viper.Set(commonutil.BlockV1Pipelines, "")
+				viper.Set(v1AllowedNamespaces, "")
 			}()
 
 			executionClient := &fakeExecutionClient{}

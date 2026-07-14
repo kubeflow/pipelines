@@ -57,6 +57,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+// v1AllowedNamespaces mirrors the unexported constant in backend/src/common/util/v1_support.go.
+const v1AllowedNamespaces = "V1_ALLOWED_NAMESPACES"
+
 func initEnvVars() {
 	viper.Set(common.PodNamespace, "ns1")
 	proxy.InitializeConfigWithEmptyForTests()
@@ -2041,94 +2044,6 @@ func TestDeletePipeline(t *testing.T) {
 	assert.Contains(t, err.Error(), fmt.Sprintf("as it has existing pipeline versions (e.g. %v)", FakeUUIDOne))
 }
 
-func TestIsNamespaceAllowed(t *testing.T) {
-	tt := []struct {
-		msg               string
-		namespace         string
-		allowedNamespaces string
-		expected          bool
-	}{
-		{
-			msg:               "EmptyAllowedNamespaces",
-			namespace:         "ns1",
-			allowedNamespaces: "",
-			expected:          false,
-		},
-		{
-			msg:               "NamespaceInList",
-			namespace:         "ns1",
-			allowedNamespaces: "ns1,ns2,ns3",
-			expected:          true,
-		},
-		{
-			msg:               "NamespaceNotInList",
-			namespace:         "ns4",
-			allowedNamespaces: "ns1,ns2,ns3",
-			expected:          false,
-		},
-		{
-			msg:               "SingleAllowedNamespace_Match",
-			namespace:         "ns1",
-			allowedNamespaces: "ns1",
-			expected:          true,
-		},
-		{
-			msg:               "SingleAllowedNamespace_NoMatch",
-			namespace:         "ns2",
-			allowedNamespaces: "ns1",
-			expected:          false,
-		},
-		{
-			msg:               "CaseInsensitiveNamespace",
-			namespace:         "NS1",
-			allowedNamespaces: "ns1,ns2",
-			expected:          true,
-		},
-		{
-			msg:               "CaseInsensitiveAllowedList",
-			namespace:         "ns1",
-			allowedNamespaces: "NS1,NS2",
-			expected:          true,
-		},
-		{
-			msg:               "WhitespaceAroundNamespace",
-			namespace:         "  ns1  ",
-			allowedNamespaces: "ns1,ns2",
-			expected:          true,
-		},
-		{
-			msg:               "WhitespaceAroundAllowedEntries",
-			namespace:         "ns1",
-			allowedNamespaces: "  ns1  ,  ns2  ",
-			expected:          true,
-		},
-		{
-			msg:               "WhitespaceAndCaseInsensitive",
-			namespace:         "  NS1  ",
-			allowedNamespaces: "  ns1  ,  ns2  ",
-			expected:          true,
-		},
-		{
-			msg:               "EmptyNamespace_EmptyAllowed",
-			namespace:         "",
-			allowedNamespaces: "",
-			expected:          false,
-		},
-		{
-			msg:               "EmptyNamespace_NonEmptyAllowed",
-			namespace:         "",
-			allowedNamespaces: "ns1,ns2",
-			expected:          false,
-		},
-	}
-	for _, test := range tt {
-		t.Run(test.msg, func(t *testing.T) {
-			result := isNamespaceAllowed(test.namespace, test.allowedNamespaces)
-			assert.Equal(t, test.expected, result)
-		})
-	}
-}
-
 func TestCreateRun_BlockV1Pipelines(t *testing.T) {
 	tt := []struct {
 		msg               string
@@ -2196,11 +2111,11 @@ func TestCreateRun_BlockV1Pipelines(t *testing.T) {
 
 	for _, test := range tt {
 		t.Run(test.msg, func(t *testing.T) {
-			viper.Set(common.BlockV1Pipelines, test.blockV1)
-			viper.Set(common.V1NamespaceWhitelist, test.allowedNamespaces)
+			viper.Set(util.BlockV1Pipelines, test.blockV1)
+			viper.Set(v1AllowedNamespaces, test.allowedNamespaces)
 			defer func() {
-				viper.Set(common.BlockV1Pipelines, false)
-				viper.Set(common.V1NamespaceWhitelist, "")
+				viper.Set(util.BlockV1Pipelines, false)
+				viper.Set(v1AllowedNamespaces, "")
 			}()
 
 			store, manager, exp := initWithExperiment(t)
@@ -3381,11 +3296,11 @@ func TestCreateJob_BlocksV1Pipelines(t *testing.T) {
 
 	for _, test := range tt {
 		t.Run(test.msg, func(t *testing.T) {
-			viper.Set(common.BlockV1Pipelines, test.blockV1)
-			viper.Set(common.V1NamespaceWhitelist, test.allowedNamespaces)
+			viper.Set(util.BlockV1Pipelines, test.blockV1)
+			viper.Set(v1AllowedNamespaces, test.allowedNamespaces)
 			defer func() {
-				viper.Set(common.BlockV1Pipelines, false)
-				viper.Set(common.V1NamespaceWhitelist, "")
+				viper.Set(util.BlockV1Pipelines, false)
+				viper.Set(v1AllowedNamespaces, "")
 			}()
 
 			store, manager, exp := initWithExperiment(t)
