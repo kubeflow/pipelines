@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Tests for the kfpr CLI."""
 
+import re
 import subprocess
 import sys
 import unittest
@@ -12,6 +13,10 @@ from typer.testing import CliRunner
 from kfpr import core, steps
 from kfpr.cli import app
 from kfpr.core import ReleaseState
+
+
+def _strip_ansi(text: str) -> str:
+  return re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', text)
 
 
 class PackageImportTest(unittest.TestCase):
@@ -86,20 +91,22 @@ class CliTest(unittest.TestCase):
   def test_normal_command_short_help_runnable(self):
     result = CliRunner().invoke(app, ['steps', '-h'])
     self.assertEqual(result.exit_code, 0, result.stdout)
-    self.assertIn('--diagram', result.stdout)
+    self.assertIn('--diagram', _strip_ansi(result.stdout))
 
   def test_run_help_lists_release_source_branch_flag(self):
     result = CliRunner().invoke(app, ['run', '-h'], env={'COLUMNS': '200'})
     self.assertEqual(result.exit_code, 0, result.stdout)
-    self.assertIn('--release-source-branch', result.stdout)
-    self.assertIn('update-version-tags', result.stdout)
-    self.assertIn('watch-publish-images', result.stdout)
+    output = _strip_ansi(result.stdout)
+    self.assertIn('--release-source-branch', output)
+    self.assertIn('update-version-tags', output)
+    self.assertIn('watch-publish-images', output)
 
   def test_run_step_command_short_help_runnable(self):
     result = CliRunner().invoke(app, ['run', 'preflight', '-h'])
     self.assertEqual(result.exit_code, 0, result.stdout)
-    self.assertIn('--done', result.stdout)
-    self.assertNotIn('--mark-done', result.stdout)
+    output = _strip_ansi(result.stdout)
+    self.assertIn('--done', output)
+    self.assertNotIn('--mark-done', output)
 
   def test_docs_branch_step_does_not_prompt_for_patch_prs(self):
     result = CliRunner().invoke(
