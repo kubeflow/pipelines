@@ -124,6 +124,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -171,6 +175,13 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    retryStrategy:
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
+      limit: 3
+      retryPolicy: Always
     securityContext:
       runAsNonRoot: true
       seccompProfile:
@@ -414,6 +425,10 @@ spec:
       - "8080"
       command:
       - driver
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -463,6 +478,13 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    retryStrategy:
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
+      limit: 3
+      retryPolicy: Always
     securityContext:
       runAsNonRoot: true
       seccompProfile:
