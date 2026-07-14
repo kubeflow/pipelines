@@ -703,8 +703,8 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 ### Key environment variables
 
 - `_KFP_RUNTIME=true`: Disables SDK imports during task execution
-- `METADATA_GRPC_MAX_RETRIES=...`: Overrides the MLMD client's gRPC retry budget (default 10 attempts); read by driver/launcher pods, typically set via the optional `metadata-grpc-configmap`
-- `PIPELINE_DRIVER_RETRY_LIMIT=...`: Set on the API server to tune the Argo `retryStrategy` limit compiled into driver templates (default 3; `0` disables driver retries)
+- `METADATA_GRPC_MAX_ATTEMPTS=...`: Overrides the MLMD client's total gRPC attempts per call (default 10; `1` disables retries); read by driver/launcher pods, typically set via the optional `metadata-grpc-configmap`
+- `PIPELINE_DRIVER_RETRY_LIMIT=...`: Set on the API server to opt in to an Argo `retryStrategy` on driver templates (default `0`, disabled — driver replays are not yet idempotent; see `getDriverRetryStrategy`)
 - `VITE_NAMESPACE=...`: Sets the target namespace for the frontend in multi-user mode
 - `LOCAL_API_SERVER=true`: Enables local API server testing mode when running integration tests on a Kind cluster
 - `TENSORBOARD_PROXY_SIGNING_SECRET=...`: Optional shared frontend-server secret for scoped TensorBoard proxy URLs; defaults to `MINIO_SECRET_KEY` when unset

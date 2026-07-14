@@ -76,7 +76,7 @@ func TestMethodAwareRetryInterceptor(t *testing.T) {
 				attempts++
 				return status.Error(test.code, "injected failure")
 			}
-			interceptor := newMethodAwareRetryInterceptor(maxRetries, time.Millisecond)
+			interceptor := newMethodAwareRetryInterceptor(maxRetries, time.Millisecond, 0)
 			err := interceptor(context.Background(), test.method, nil, nil, nil, invoker)
 			require.Error(t, err)
 			assert.Equal(t, test.code, status.Code(err))
@@ -90,8 +90,40 @@ func TestMethodAwareRetryInterceptor(t *testing.T) {
 			attempts++
 			return nil
 		}
-		interceptor := newMethodAwareRetryInterceptor(maxRetries, time.Millisecond)
+		interceptor := newMethodAwareRetryInterceptor(maxRetries, time.Millisecond, 0)
 		require.NoError(t, interceptor(context.Background(), readMethod, nil, nil, nil, invoker))
+		assert.Equal(t, 1, attempts)
+	})
+
+	// A hung server must not stall a read forever: each read attempt is bounded
+	// by the per-retry timeout and a timed-out attempt is retried.
+	t.Run("hung read attempts time out and retry", func(t *testing.T) {
+		attempts := 0
+		hangingInvoker := func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, opts ...grpc.CallOption) error {
+			attempts++
+			<-ctx.Done()
+			return status.FromContextError(ctx.Err()).Err()
+		}
+		interceptor := newMethodAwareRetryInterceptor(maxRetries, time.Millisecond, 5*time.Millisecond)
+		err := interceptor(context.Background(), readMethod, nil, nil, nil, hangingInvoker)
+		require.Error(t, err)
+		assert.Equal(t, maxRetries, attempts)
+	})
+
+	// Writes have no per-retry timeout: a hung write attempt is only bounded by
+	// the caller's context, never abandoned and replayed by the interceptor.
+	t.Run("hung write is bounded by caller context only", func(t *testing.T) {
+		attempts := 0
+		hangingInvoker := func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, opts ...grpc.CallOption) error {
+			attempts++
+			<-ctx.Done()
+			return status.FromContextError(ctx.Err()).Err()
+		}
+		callerCtx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		defer cancel()
+		interceptor := newMethodAwareRetryInterceptor(maxRetries, time.Millisecond, 5*time.Millisecond)
+		err := interceptor(callerCtx, writeMethod, nil, nil, nil, hangingInvoker)
+		require.Error(t, err)
 		assert.Equal(t, 1, attempts)
 	})
 }

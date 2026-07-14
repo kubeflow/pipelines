@@ -56,12 +56,13 @@ const (
 	PipelineRunAsUserEnvVar = "PIPELINE_RUN_AS_USER"
 	PipelineLogLevelEnvVar  = "PIPELINE_LOG_LEVEL"
 	PublishLogsEnvVar       = "PUBLISH_LOGS"
-	// DriverRetryLimitEnvVar tunes the Argo retryStrategy limit applied to
-	// driver templates. Set it on the API server; "0" disables driver retries.
+	// DriverRetryLimitEnvVar sets the Argo retryStrategy limit applied to
+	// driver templates. Set it on the API server; "0" (the default) disables
+	// driver retries. See getDriverRetryStrategy for why this is opt-in.
 	DriverRetryLimitEnvVar = "PIPELINE_DRIVER_RETRY_LIMIT"
-	// DefaultDriverRetryLimit is the number of times Argo re-runs a failed
-	// driver pod before marking the node failed.
-	DefaultDriverRetryLimit  = 3
+	// DefaultDriverRetryLimit disables driver retries by default: replaying a
+	// driver that already produced side effects is not yet idempotent.
+	DefaultDriverRetryLimit  = 0
 	gcsScratchLocation       = "/gcs"
 	gcsScratchName           = "gcs-scratch"
 	s3ScratchLocation        = "/s3"
@@ -158,9 +159,16 @@ func GetPipelineRunAsUser() *int64 {
 // getDriverRetryStrategy returns the retryStrategy applied to driver
 // templates. Driver pods fail on transient conditions outside the pipeline's
 // control (e.g. the MLMD or API server briefly unavailable, node preemption),
-// and without a retryStrategy any such failure fails the whole run. The retry
-// limit is tunable via the PIPELINE_DRIVER_RETRY_LIMIT environment variable on
-// the API server; 0 disables driver retries and returns nil.
+// and without a retryStrategy any such failure fails the whole run.
+//
+// This is opt-in (default 0, no retryStrategy) because replaying a driver is
+// not yet idempotent: only the root DAG execution has a deterministic MLMD
+// name, so a replayed container/DAG driver whose PutExecution committed before
+// the failure creates a duplicate execution; plugin OnTaskStart hooks re-fire;
+// and createpvc/deletepvc replays can create a second UUID-named PVC or fail
+// on the already-deleted one. Cluster operators who accept those risks can
+// enable retries via the PIPELINE_DRIVER_RETRY_LIMIT environment variable on
+// the API server.
 func getDriverRetryStrategy() *wfapi.RetryStrategy {
 	limit := int32(DefaultDriverRetryLimit)
 	if value, ok := os.LookupEnv(DriverRetryLimitEnvVar); ok {

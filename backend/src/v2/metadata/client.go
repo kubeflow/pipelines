@@ -55,20 +55,27 @@ const (
 	pipelineRunContextTypeName         = "system.PipelineRun"
 	ImporterExecutionTypeName          = "system.ImporterExecution"
 	ImporterWorkspaceExecutionTypeName = "system.ImporterWorkspaceExecution"
-	// defaultMlmdClientSideMaxRetries is the default number of attempts the MLMD
-	// client makes for a failed gRPC call before returning an error. This is
-	// intentionally higher than a typical RPC retry budget because MySQL
-	// deadlocks (codes.Aborted) on the MLMD server are transient and require
-	// time to resolve under sustained parallel execution.
-	defaultMlmdClientSideMaxRetries = 10
-	mlmdClientSideBackoffBase       = 1 * time.Second
-	mlmdClientSideBackoffJitter     = 0.25
+	// defaultMlmdClientSideMaxAttempts is the default total number of attempts
+	// (the first call plus retries) the MLMD client makes for a failed gRPC
+	// call before returning an error. This is intentionally higher than a
+	// typical RPC retry budget because MySQL deadlocks (codes.Aborted) on the
+	// MLMD server are transient and require time to resolve under sustained
+	// parallel execution.
+	defaultMlmdClientSideMaxAttempts = 10
+	mlmdClientSideBackoffBase        = 1 * time.Second
+	mlmdClientSideBackoffJitter      = 0.25
 	// mlmdClientSideBackoffCap limits the maximum per-attempt wait so a single
 	// deadlock retry never stalls a pod for more than 30 s.
-	mlmdClientSideBackoffCap  = 30 * time.Second
-	defaultMaxGRPCMessageSize = 100 * 1024 * 1024 // 100MB
-	maxGRPCMessageSizeEnv     = "METADATA_GRPC_MESSAGE_SIZE"
-	maxGRPCRetriesEnv         = "METADATA_GRPC_MAX_RETRIES"
+	mlmdClientSideBackoffCap = 30 * time.Second
+	// mlmdClientSideReadPerRetryTimeout bounds each attempt of a read-only RPC
+	// so a connected-but-hung MLMD server cannot stall a driver forever (driver
+	// contexts have no deadline). A timed-out read attempt is retried. Write
+	// attempts are deliberately not bounded: abandoning and replaying a slow
+	// write risks duplicating server-side state.
+	mlmdClientSideReadPerRetryTimeout = 2 * time.Minute
+	defaultMaxGRPCMessageSize         = 100 * 1024 * 1024 // 100MB
+	maxGRPCMessageSizeEnv             = "METADATA_GRPC_MESSAGE_SIZE"
+	maxGRPCAttemptsEnv                = "METADATA_GRPC_MAX_ATTEMPTS"
 )
 
 // MaxGRPCMessageSize is the max gRPC message size for the metadata client.
@@ -77,10 +84,11 @@ const (
 // Configurable via the METADATA_GRPC_MESSAGE_SIZE environment variable (in bytes).
 var MaxGRPCMessageSize = defaultMaxGRPCMessageSize
 
-// mlmdClientSideMaxRetries is the number of attempts the MLMD client makes for
-// a failed gRPC call before returning an error.
-// Configurable via the METADATA_GRPC_MAX_RETRIES environment variable.
-var mlmdClientSideMaxRetries = uint(defaultMlmdClientSideMaxRetries)
+// mlmdClientSideMaxAttempts is the total number of attempts (the first call
+// plus retries) the MLMD client makes for a failed gRPC call before returning
+// an error. Configurable via the METADATA_GRPC_MAX_ATTEMPTS environment
+// variable; 1 disables retries.
+var mlmdClientSideMaxAttempts = uint(defaultMlmdClientSideMaxAttempts)
 
 // positiveIntFromEnv reads envName and parses it as a positive integer.
 // The second return value reports whether the variable was set.
@@ -108,13 +116,13 @@ func init() {
 		MaxGRPCMessageSize = size
 		glog.Infof("MaxGRPCMessageSize set to %d bytes from %s", size, maxGRPCMessageSizeEnv)
 	}
-	retries, ok, err := positiveIntFromEnv(maxGRPCRetriesEnv)
+	attempts, ok, err := positiveIntFromEnv(maxGRPCAttemptsEnv)
 	if err != nil {
 		glog.Fatal(err)
 	}
 	if ok {
-		mlmdClientSideMaxRetries = uint(retries)
-		glog.Infof("MLMD client max retries set to %d from %s", retries, maxGRPCRetriesEnv)
+		mlmdClientSideMaxAttempts = uint(attempts)
+		glog.Infof("MLMD client max attempts set to %d from %s", attempts, maxGRPCAttemptsEnv)
 	}
 }
 
@@ -199,19 +207,22 @@ func isReadOnlyMLMDMethod(fullMethod string) bool {
 }
 
 // newMethodAwareRetryInterceptor returns a unary client interceptor that
-// retries read-only MLMD RPCs on a broader set of gRPC codes than write RPCs.
+// retries read-only MLMD RPCs on a broader set of gRPC codes than write RPCs,
+// and bounds each read attempt with readPerRetryTimeout (0 disables the bound)
+// so a hung server cannot stall callers without a context deadline forever.
 // Use bounded exponential backoff so that high-concurrency deadlock storms are
 // given enough time to resolve without stalling a pod indefinitely.
-func newMethodAwareRetryInterceptor(maxRetries uint, backoffBase time.Duration) grpc.UnaryClientInterceptor {
+func newMethodAwareRetryInterceptor(maxAttempts uint, backoffBase time.Duration, readPerRetryTimeout time.Duration) grpc.UnaryClientInterceptor {
 	backoff := grpc_retry.WithBackoff(grpc_retry.BackoffExponentialWithJitterBounded(
 		backoffBase,
 		mlmdClientSideBackoffJitter,
 		mlmdClientSideBackoffCap,
 	))
 	readInterceptor := grpc_retry.UnaryClientInterceptor(
-		grpc_retry.WithMax(maxRetries), backoff, grpc_retry.WithCodes(mlmdReadRetryableCodes...))
+		grpc_retry.WithMax(maxAttempts), backoff, grpc_retry.WithCodes(mlmdReadRetryableCodes...),
+		grpc_retry.WithPerRetryTimeout(readPerRetryTimeout))
 	writeInterceptor := grpc_retry.UnaryClientInterceptor(
-		grpc_retry.WithMax(maxRetries), backoff, grpc_retry.WithCodes(mlmdWriteRetryableCodes...))
+		grpc_retry.WithMax(maxAttempts), backoff, grpc_retry.WithCodes(mlmdWriteRetryableCodes...))
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		if isReadOnlyMLMDMethod(method) {
 			return readInterceptor(ctx, method, req, reply, cc, invoker, opts...)
@@ -225,7 +236,7 @@ func NewClient(serverAddress, serverPort string, tlsCfg *tls.Config) (*Client, e
 	// All MLMD RPCs are unary; keep the conservative write retry policy for the
 	// stream interceptor in case streaming methods are ever added.
 	streamOpts := []grpc_retry.CallOption{
-		grpc_retry.WithMax(mlmdClientSideMaxRetries),
+		grpc_retry.WithMax(mlmdClientSideMaxAttempts),
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponentialWithJitterBounded(
 			mlmdClientSideBackoffBase,
 			mlmdClientSideBackoffJitter,
@@ -246,7 +257,8 @@ func NewClient(serverAddress, serverPort string, tlsCfg *tls.Config) (*Client, e
 			grpc.MaxCallSendMsgSize(MaxGRPCMessageSize),
 		),
 		grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(streamOpts...)),
-		grpc.WithUnaryInterceptor(newMethodAwareRetryInterceptor(mlmdClientSideMaxRetries, mlmdClientSideBackoffBase)),
+		grpc.WithUnaryInterceptor(newMethodAwareRetryInterceptor(
+			mlmdClientSideMaxAttempts, mlmdClientSideBackoffBase, mlmdClientSideReadPerRetryTimeout)),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("metadata.NewClient() failed: %w", err)
