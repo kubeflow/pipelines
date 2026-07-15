@@ -203,6 +203,41 @@ fi
     )
 
     echo
+    echo "----- runner-kernel softirq backlog (shared by every Kind node) -----"
+    # veth traffic is delivered through the per-CPU softirq backlog queue;
+    # when ksoftirqd is starved on a CPU-saturated runner the queue overflows
+    # and packets are dropped silently — upstream of every counter this script
+    # checks (conntrack, accept queue). Kind nodes are containers sharing the
+    # runner kernel and /proc/net/softnet_stat is kernel-global per-CPU state,
+    # so it is read once here on the runner host: reading it inside each node
+    # container would print identical counters under different node headings.
+    # Counters are cumulative, and runner VMs are ephemeral, so they are
+    # naturally scoped to this job. Current limits are recorded so the failure
+    # states what the backlog/budget were at the time.
+    if [[ -r /proc/net/softnet_stat ]]; then
+        row=0
+        while read -r -a fields; do
+            # Newer kernels omit offline CPUs from the file and expose the
+            # actual CPU id in field 13; the row ordinal is only a fallback
+            # for older 11-column kernels.
+            if [[ ${#fields[@]} -ge 13 ]]; then
+                cpu=$((16#${fields[12]}))
+            else
+                cpu=$row
+            fi
+            printf 'cpu%d processed=%d dropped=%d time_squeeze=%d\n' \
+                "$cpu" "$((16#${fields[0]}))" "$((16#${fields[1]}))" "$((16#${fields[2]}))"
+            row=$((row + 1))
+        done < /proc/net/softnet_stat
+        printf 'netdev_max_backlog=%s netdev_budget=%s netdev_budget_usecs=%s\n' \
+            "$(cat /proc/sys/net/core/netdev_max_backlog 2>/dev/null || echo '?')" \
+            "$(cat /proc/sys/net/core/netdev_budget 2>/dev/null || echo '?')" \
+            "$(cat /proc/sys/net/core/netdev_budget_usecs 2>/dev/null || echo '?')"
+    else
+        echo "(/proc/net/softnet_stat unavailable)"
+    fi
+
+    echo
     echo "----- (4) node netfilter state for timed-out ClusterIPs -----"
     echo "ClusterIPs correlated: $(printf '%s ' ${TARGET_VIPS:-<none>})"
     # Kind runs each node as a Docker container named after the Kubernetes node,
@@ -258,34 +293,6 @@ fi
                 else
                     echo "(no table-full event logged)"
                 fi' 2>/dev/null || echo "(unavailable)"
-
-            echo "softirq backlog (per CPU: processed / dropped / time_squeeze; nonzero dropped == packets lost before conntrack/socket):"
-            # veth traffic is delivered through the per-CPU softirq backlog
-            # queue; when ksoftirqd is starved on a CPU-saturated runner the
-            # queue overflows and packets are dropped silently — upstream of
-            # every counter this script already checks (conntrack, accept
-            # queue). /proc/net/softnet_stat column 2 is that drop counter
-            # (hex, cumulative — runners are ephemeral VMs so it is scoped to
-            # the job); column 3 counts budget exhaustion (time_squeeze).
-            # Current limits are recorded so the failure states what the
-            # backlog/budget were at the time.
-            docker exec "$node" sh -c '
-                if [ ! -r /proc/net/softnet_stat ]; then
-                    echo "(/proc/net/softnet_stat unavailable)"
-                    exit 0
-                fi
-                # Fields are hex; POSIX $((0x...)) conversion avoids relying
-                # on gawk-only strtonum (node images ship mawk).
-                i=0
-                while read -r c1 c2 c3 _; do
-                    printf "cpu%d processed=%d dropped=%d time_squeeze=%d\n" \
-                        "$i" "$((0x$c1))" "$((0x$c2))" "$((0x$c3))"
-                    i=$((i + 1))
-                done < /proc/net/softnet_stat
-                printf "netdev_max_backlog=%s netdev_budget=%s netdev_budget_usecs=%s\n" \
-                    "$(cat /proc/sys/net/core/netdev_max_backlog 2>/dev/null || echo "?")" \
-                    "$(cat /proc/sys/net/core/netdev_budget 2>/dev/null || echo "?")" \
-                    "$(cat /proc/sys/net/core/netdev_budget_usecs 2>/dev/null || echo "?")"' 2>/dev/null || echo "(unavailable)"
 
             # Per-VIP service program end to end (KUBE-SERVICES -> KUBE-SVC ->
             # KUBE-SEP DNAT): a live DNAT to the pod means the rule is not the
