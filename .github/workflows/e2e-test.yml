@@ -31,6 +31,9 @@ on:
       - 'backend/**'
       - 'proxy/**'
       - 'manifests/kustomize/**'
+      # The artifact-proxy E2E script is exercised only by this workflow, so
+      # changes to it must trigger these lanes.
+      - 'test/artifact-proxy/**'
       - 'test_data/sdk_compiled_pipelines/**'
       - '!**/*.md'
       - '!**/OWNERS'

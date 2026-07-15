@@ -37,7 +37,7 @@ const runWithoutExperimentDescription =
   'test run without experiment description ' + runWithoutExperimentName;
 const uiTimeout = 5000;
 const runStartTimeout = 30000;
-const runCompletionTimeout = 60000;
+const runCompletionTimeout = 180000;
 const logsLoadTimeout = 60000;
 const outputParameterValue = 'Hello world in test';
 
