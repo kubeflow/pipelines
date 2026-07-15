@@ -14,9 +14,9 @@
 
 # Generate client code (go & json) from API protocol buffers
 FROM golang:1.26.2@sha256:b54cbf583d390341599d7bcbc062425c081105cc5ef6d170ced98ef9d047c716 AS generator
-ENV GRPC_GATEWAY_VERSION=v2.27.1
+ENV GRPC_GATEWAY_VERSION=v2.28.0
 ENV GO_SWAGGER_VERSION=v0.32.3
-ENV GRPC_VERSION=v1.79.3
+ENV GRPC_VERSION=v1.80.0
 ENV PROTOC_VERSION=31.1
 ENV GOBIN=/go/bin
 # The googleapis repo doesn't use GitHub releases or version tags,

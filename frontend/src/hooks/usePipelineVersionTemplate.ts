@@ -42,7 +42,7 @@ export function usePipelineVersionTemplate(
         pipelineVersionId,
       );
       const pipelineSpec = pipelineVersion.pipeline_spec;
-      return pipelineSpec ? JsYaml.safeDump(pipelineSpec) : '';
+      return pipelineSpec ? JsYaml.dump(pipelineSpec) : '';
     },
     enabled: !!pipelineId && !!pipelineVersionId,
     staleTime: Infinity,

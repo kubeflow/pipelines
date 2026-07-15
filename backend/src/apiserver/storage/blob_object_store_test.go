@@ -18,12 +18,18 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"gocloud.dev/blob/memblob"
 )
+
+func TestBlobObjectStoreDoesNotExposeUnboundedGetFile(t *testing.T) {
+	_, ok := reflect.TypeOf((*BlobObjectStore)(nil)).MethodByName("GetFile")
+	require.False(t, ok)
+}
 
 func TestBlobObjectStore_AddFile(t *testing.T) {
 	bucket := memblob.OpenBucket(nil)
@@ -36,7 +42,7 @@ func TestBlobObjectStore_AddFile(t *testing.T) {
 	err := store.AddFile(ctx, content, "test/file.txt")
 	require.Nil(t, err)
 
-	readContent, err := store.GetFile(ctx, "test/file.txt")
+	readContent, err := store.ReadFileLimited(ctx, "test/file.txt", int64(len(content)))
 	require.Nil(t, err)
 	require.Equal(t, content, readContent)
 }
@@ -78,7 +84,7 @@ func TestBlobObjectStore_DeleteFile(t *testing.T) {
 	err = store.DeleteFile(ctx, "test/delete.txt")
 	require.Nil(t, err)
 
-	_, err = store.GetFile(ctx, "test/delete.txt")
+	_, err = store.GetFileReader(ctx, "test/delete.txt")
 	require.NotNil(t, err)
 }
 
@@ -122,32 +128,47 @@ func TestBlobObjectStore_GetPipelineKey(t *testing.T) {
 	require.Equal(t, expectedKey, actualKey)
 }
 
-func TestBlobObjectStore_GetFile(t *testing.T) {
+func TestBlobObjectStore_ReadFileLimited(t *testing.T) {
 	bucket := memblob.OpenBucket(nil)
 	defer bucket.Close()
 
 	store := NewBlobObjectStore(bucket, "pipelines")
 	ctx := context.Background()
 
-	content := []byte("test content for GetFile")
+	content := []byte("test content for ReadFileLimited")
 	err := store.AddFile(ctx, content, "test/getfile.txt")
 	require.Nil(t, err)
 
-	readContent, err := store.GetFile(ctx, "test/getfile.txt")
+	readContent, err := store.ReadFileLimited(ctx, "test/getfile.txt", int64(len(content)))
 	require.Nil(t, err)
 	require.Equal(t, content, readContent)
 }
 
-func TestBlobObjectStore_GetFile_NotFound(t *testing.T) {
+func TestBlobObjectStore_ReadFileLimited_Oversized(t *testing.T) {
 	bucket := memblob.OpenBucket(nil)
 	defer bucket.Close()
 
 	store := NewBlobObjectStore(bucket, "pipelines")
 	ctx := context.Background()
 
-	_, err := store.GetFile(ctx, "non-existent.txt")
+	err := store.AddFile(ctx, []byte("oversized"), "test/oversized.txt")
+	require.NoError(t, err)
+
+	_, err = store.ReadFileLimited(ctx, "test/oversized.txt", 4)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "Failed to get file")
+	require.Contains(t, err.Error(), "size too large")
+}
+
+func TestBlobObjectStore_ReadFileLimited_NotFound(t *testing.T) {
+	bucket := memblob.OpenBucket(nil)
+	defer bucket.Close()
+
+	store := NewBlobObjectStore(bucket, "pipelines")
+	ctx := context.Background()
+
+	_, err := store.ReadFileLimited(ctx, "non-existent.txt", 1024)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "Failed to get file reader")
 }
 
 func TestBlobObjectStore_GetFileReader_NotFound(t *testing.T) {

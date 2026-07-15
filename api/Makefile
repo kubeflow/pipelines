@@ -104,11 +104,35 @@ fetch-protos: fetch-googleapis fetch-protobuf
 
 fetch-googleapis:
 	@echo "Downloading google/rpc/status.proto from googleapis@$(GOOGLEAPIS_COMMIT)..."
-	mkdir -p $(PROTO_DST_DIR)/rpc
-	wget -qO $(PROTO_DST_DIR)/rpc/status.proto https://raw.githubusercontent.com/googleapis/googleapis/$(GOOGLEAPIS_COMMIT)/google/rpc/status.proto
+	@mkdir -p $(PROTO_DST_DIR)/rpc
+	@# Authenticate with GITHUB_TOKEN when set to avoid anonymous per-IP 429
+	@# rate limits on raw.githubusercontent.com. The bearer header is passed
+	@# through a temporary WGETRC file, never on the command line, so it
+	@# cannot leak into an echoed recipe or CI log. The whole recipe is
+	@# @-suppressed for the same reason. If the authenticated fetch fails
+	@# (e.g. token scoping), it falls back to an anonymous fetch, so behavior
+	@# is never worse than without a token; both paths keep the retries.
+	@wget_cmd="wget --tries=3 --waitretry=10 --retry-on-http-error=429,500,502,503 -qO $(PROTO_DST_DIR)/rpc/status.proto https://raw.githubusercontent.com/googleapis/googleapis/$(GOOGLEAPIS_COMMIT)/google/rpc/status.proto"; \
+	if [ -n "$$GITHUB_TOKEN" ]; then \
+		wgetrc=$$(mktemp "$${TMPDIR:-/tmp}/kfp-proto-wgetrc.XXXXXX"); \
+		printf 'header = Authorization: Bearer %s\n' "$$GITHUB_TOKEN" > "$$wgetrc"; \
+		WGETRC=$$wgetrc $$wget_cmd || $$wget_cmd; \
+		status=$$?; \
+		rm -f "$$wgetrc"; \
+	else \
+		$$wget_cmd; \
+		status=$$?; \
+	fi; \
+	exit $$status
 
 fetch-protobuf: clean-protobuf-tmp
-	@git clone --depth 1 --branch $(PROTOBUF_TAG) https://github.com/protocolbuffers/protobuf.git $(TMP_PROTOBUF_DIR)
+	@for attempt in 1 2 3; do \
+		rm -rf $(TMP_PROTOBUF_DIR); \
+		git clone --depth 1 --branch $(PROTOBUF_TAG) https://github.com/protocolbuffers/protobuf.git $(TMP_PROTOBUF_DIR) && break; \
+		echo "git clone of protobuf failed (attempt $$attempt); retrying in 10s..."; \
+		sleep 10; \
+	done
+	@test -d $(TMP_PROTOBUF_DIR)/src/google/protobuf
 	@mkdir -p $(PROTO_DST_DIR)/protobuf
 	@cp $(TMP_PROTOBUF_DIR)/src/google/protobuf/*.proto $(PROTO_DST_DIR)/protobuf/
 

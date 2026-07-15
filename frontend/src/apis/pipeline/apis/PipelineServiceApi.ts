@@ -19,7 +19,7 @@ import type {
   ApiListPipelinesResponse,
   ApiPipeline,
   ApiPipelineVersion,
-  GooglerpcStatus,
+  GoogleRpcStatus,
 } from '../models/index';
 import {
   ApiGetTemplateResponseFromJSON,
@@ -32,8 +32,8 @@ import {
   ApiPipelineToJSON,
   ApiPipelineVersionFromJSON,
   ApiPipelineVersionToJSON,
-  GooglerpcStatusFromJSON,
-  GooglerpcStatusToJSON,
+  GoogleRpcStatusFromJSON,
+  GoogleRpcStatusToJSON,
 } from '../models/index';
 
 export interface CreatePipelineRequest {

@@ -13,14 +13,14 @@
  */
 
 import * as runtime from '../runtime';
-import type { ApiJob, ApiListJobsResponse, GooglerpcStatus } from '../models/index';
+import type { ApiJob, ApiListJobsResponse, GoogleRpcStatus } from '../models/index';
 import {
   ApiJobFromJSON,
   ApiJobToJSON,
   ApiListJobsResponseFromJSON,
   ApiListJobsResponseToJSON,
-  GooglerpcStatusFromJSON,
-  GooglerpcStatusToJSON,
+  GoogleRpcStatusFromJSON,
+  GoogleRpcStatusToJSON,
 } from '../models/index';
 
 export interface CreateJobRequest {

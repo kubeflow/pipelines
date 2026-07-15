@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/kfp-sdk-client-tests.yml'
+      - '.github/actions/setup-python-pip-cache/**'
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
@@ -18,7 +19,7 @@ on:
       - '!**/OWNERS'
 
 concurrency:
-  group: sdk-client-tests-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -33,7 +34,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: [ "v1.31.14", "v1.35.0" ]
+        k8s_version: [ "v1.33.12", "v1.36.1" ]
     name: KFP SDK Client Tests - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -42,10 +43,11 @@ jobs:
       # This must occur after "Free up space" step
       # otherwise python version will be overridden
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: ./.github/actions/setup-python-pip-cache
         with:
           python-version: '3.11'
-          cache: 'pip'
+          cache-scope: kfp-sdk-client-tests
+          cache-dependency-hash: ${{ hashFiles('sdk/python/requirements*.txt') }}
 
       - name: Create KFP cluster
         id: create-kfp-cluster

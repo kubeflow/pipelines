@@ -21,7 +21,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -83,7 +83,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -161,7 +161,7 @@
           "description": "Input. A namespace this pipeline belongs to.\nCauses error if user is not authorized to access the specified namespace.\nIf not specified in CreatePipeline, default namespace is used."
         },
         "error": {
-          "$ref": "#/definitions/googlerpcStatus",
+          "$ref": "#/definitions/googleRpcStatus",
           "description": "In case any error happens retrieving a pipeline field, only pipeline ID,\nand the error message is returned. Client has the flexibility of choosing\nhow to handle the error. This is especially useful during listing call."
         },
         "tags": {
@@ -214,7 +214,7 @@
           "description": "Output. The pipeline spec for the pipeline version."
         },
         "error": {
-          "$ref": "#/definitions/googlerpcStatus",
+          "$ref": "#/definitions/googleRpcStatus",
           "description": "In case any error happens retrieving a pipeline version field, only\npipeline ID, pipeline version ID, and the error message are returned. \nClient has the flexibility of choosing how to handle the error. \nThis is especially useful during List() calls."
         },
         "tags": {
@@ -235,7 +235,7 @@
         }
       }
     },
-    "googlerpcStatus": {
+    "googleRpcStatus": {
       "type": "object",
       "properties": {
         "code": {

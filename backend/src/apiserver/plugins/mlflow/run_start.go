@@ -97,7 +97,6 @@ const (
 	EntryExperimentID            = "experiment_id"
 	EntryRootRunID               = "root_run_id"
 	EntryRunURL                  = "run_url"
-	EntryEndpoint                = "endpoint"
 )
 
 type Experiment struct {
@@ -196,6 +195,11 @@ func BuildKFPTags(run *apiserverPlugins.PendingRun, kfpBaseURL, kfpRunURLPathTem
 	if run.PipelineVersionID != "" {
 		tags = append(tags, commonmlflow.Tag{Key: TagKFPPipelineVersionID, Value: run.PipelineVersionID})
 	}
+	// Idempotency key for CreateRun retries: the stable KFP run ID lets the
+	// client find and reuse a parent run created by a timed-out attempt instead
+	// of creating a duplicate. Appended last so it does not shift the other tag
+	// positions.
+	tags = append(tags, commonmlflow.Tag{Key: commonmlflow.IdempotencyTagKey, Value: run.RunID})
 	return tags
 }
 
@@ -256,12 +260,12 @@ func BuildRunURL(requestCtx *commonmlflow.RequestContext, experimentID, runID st
 	return trackingUIBase + uiPathPrefix + "/#" + trackingMlflowRunPath
 }
 
-func SuccessfulPluginOutput(experimentID, experimentName, runID, runURL, endpoint string) *apiv2beta1.PluginOutput {
-	return buildPluginOutput(experimentID, experimentName, runID, runURL, endpoint, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, "")
+func SuccessfulPluginOutput(experimentID, experimentName, runID, runURL string) *apiv2beta1.PluginOutput {
+	return buildPluginOutput(experimentID, experimentName, runID, runURL, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, "")
 }
 
-func FailedPluginOutput(experimentID, experimentName, runID, runURL, endpoint, stateMessage string) *apiv2beta1.PluginOutput {
-	return buildPluginOutput(experimentID, experimentName, runID, runURL, endpoint, apiv2beta1.PluginState_PLUGIN_FAILED, stateMessage)
+func FailedPluginOutput(experimentID, experimentName, runID, runURL, stateMessage string) *apiv2beta1.PluginOutput {
+	return buildPluginOutput(experimentID, experimentName, runID, runURL, apiv2beta1.PluginState_PLUGIN_FAILED, stateMessage)
 }
 
 // upsertPluginOutput merges a single plugin's output into an existing
@@ -476,7 +480,7 @@ func syncNestedRuns(ctx context.Context, requestCtx *commonmlflow.RequestContext
 	return syncErrors
 }
 
-func buildPluginOutput(experimentID, experimentName, runID, runURL, endpoint string, state apiv2beta1.PluginState, stateMessage string) *apiv2beta1.PluginOutput {
+func buildPluginOutput(experimentID, experimentName, runID, runURL string, state apiv2beta1.PluginState, stateMessage string) *apiv2beta1.PluginOutput {
 	entries := map[string]*apiv2beta1.MetadataValue{}
 	if experimentName != "" {
 		entries[EntryExperimentName] = &apiv2beta1.MetadataValue{Value: structpb.NewStringValue(experimentName)}
@@ -492,9 +496,6 @@ func buildPluginOutput(experimentID, experimentName, runID, runURL, endpoint str
 			Value:      structpb.NewStringValue(runURL),
 			RenderType: apiv2beta1.MetadataValue_URL.Enum(),
 		}
-	}
-	if endpoint != "" {
-		entries[EntryEndpoint] = &apiv2beta1.MetadataValue{Value: structpb.NewStringValue(endpoint)}
 	}
 	return &apiv2beta1.PluginOutput{
 		Entries:      entries,

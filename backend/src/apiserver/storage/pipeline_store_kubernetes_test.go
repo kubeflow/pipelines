@@ -443,7 +443,8 @@ func TestGetK8sPipelineVersionByName(t *testing.T) {
 
 	store := NewPipelineStoreKubernetes(getClient())
 
-	pipelineVersion, err := store.GetPipelineVersionByName("test-pipeline-version-3")
+	// Legacy-style CR (bare metadata.name) — should be found via bare-name fallback
+	pipelineVersion, err := store.GetPipelineVersionByName(DefaultFakePipelineIdTwo, "test-pipeline-version-3")
 	require.Nil(t, err, "Failed to get Pipeline: %v", err)
 	require.Equalf(t, pipelineVersion.Name, "test-pipeline-version-3", pipelineVersion.Name)
 }
@@ -559,6 +560,7 @@ func TestCreateK8sPipelineVersion_InvalidName_Standalone(t *testing.T) {
 	require.NotNil(t, err, "Expected error for invalid pipeline version name")
 	assert.Contains(t, err.Error(), "Invalid pipeline version name")
 	assert.Contains(t, err.Error(), "display_name")
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 }
 
 // getBasicPipelineSpec returns a basic PipelineSpec for testing purposes
@@ -590,6 +592,51 @@ root:
     tasks: {}
 schemaVersion: "2.1.0"
 sdkVersion: kfp-2.13.0`
+}
+
+func TestGetPipelineVersionByName_CompositeNameLookup(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	store := NewPipelineStoreKubernetes(getClientWithTwoPipelines())
+
+	_, err := store.CreatePipelineVersion(&model.PipelineVersion{
+		Name:         "v1.0",
+		PipelineId:   DefaultFakePipelineIdThree,
+		PipelineSpec: model.LargeText(getBasicPipelineSpecYAML()),
+	})
+	require.NoError(t, err)
+
+	_, err = store.CreatePipelineVersion(&model.PipelineVersion{
+		Name:         "v1.0",
+		PipelineId:   DefaultFakePipelineIdFour,
+		PipelineSpec: model.LargeText(getBasicPipelineSpecYAML()),
+	})
+	require.NoError(t, err)
+
+	// Look up each by pipeline ID + bare version name
+	versionA, err := store.GetPipelineVersionByName(DefaultFakePipelineIdThree, "v1.0")
+	require.NoError(t, err)
+	assert.Equal(t, "v1.0", versionA.Name)
+	assert.Equal(t, DefaultFakePipelineIdThree, versionA.PipelineId)
+
+	versionB, err := store.GetPipelineVersionByName(DefaultFakePipelineIdFour, "v1.0")
+	require.NoError(t, err)
+	assert.Equal(t, "v1.0", versionB.Name)
+	assert.Equal(t, DefaultFakePipelineIdFour, versionB.PipelineId)
+}
+
+func TestGetPipelineVersionByName_NotFound(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	store := NewPipelineStoreKubernetes(getClient())
+
+	_, err := store.GetPipelineVersionByName(DefaultFakePipelineIdTwo, "nonexistent")
+	require.NotNil(t, err)
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.NotFound)
 }
 
 func getClient() (client.Client, client.Client) {
@@ -653,12 +700,16 @@ func getClient() (client.Client, client.Client) {
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					UID: DefaultFakePipelineIdTwo,
+					APIVersion: v2beta1.GroupVersion.String(),
+					Kind:       "Pipeline",
+					UID:        DefaultFakePipelineIdTwo,
+					Name:       "test-pipeline-3",
 				},
 			},
 		},
 		Spec: v2beta1.PipelineVersionSpec{
 			Description:  "Test Pipeline Version 1 Description",
+			PipelineName: "test-pipeline-3",
 			PipelineSpec: getBasicPipelineSpec(),
 		},
 	}

@@ -56,7 +56,7 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
   });
 
   if (getRecurringRunSuccess && v2RecurringRun && v2RecurringRun.pipeline_spec) {
-    pipelineManifest = JsYaml.safeDump(v2RecurringRun.pipeline_spec);
+    pipelineManifest = JsYaml.dump(v2RecurringRun.pipeline_spec);
   }
 
   const pipelineId = v2RecurringRun?.pipeline_version_reference?.pipeline_id;

@@ -2105,3 +2105,81 @@ func TestUpdatePipelineFields_DisplayNameAndTags(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, tags, loadedTags)
 }
+
+func TestGetPipelineVersionByName_SameNameDifferentPipelines(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(
+		db,
+		util.NewFakeTimeForEpoch(),
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+
+	pipelineA, err := pipelineStore.CreatePipeline(createPipeline("pipeline-a", "", ""))
+	assert.Nil(t, err)
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
+	pipelineB, err := pipelineStore.CreatePipeline(createPipeline("pipeline-b", "", ""))
+	assert.Nil(t, err)
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
+	_, err = pipelineStore.CreatePipelineVersion(
+		createPipelineVersion(pipelineA.UUID, "v1.0", "", "", "", ""))
+	assert.Nil(t, err)
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdFour, nil)
+	_, err = pipelineStore.CreatePipelineVersion(
+		createPipelineVersion(pipelineB.UUID, "v1.0", "", "", "", ""))
+	assert.Nil(t, err)
+
+	versionA, err := pipelineStore.GetPipelineVersionByName(pipelineA.UUID, "v1.0")
+	assert.Nil(t, err)
+	assert.Equal(t, "v1.0", versionA.Name)
+	assert.Equal(t, pipelineA.UUID, versionA.PipelineId)
+
+	versionB, err := pipelineStore.GetPipelineVersionByName(pipelineB.UUID, "v1.0")
+	assert.Nil(t, err)
+	assert.Equal(t, "v1.0", versionB.Name)
+	assert.Equal(t, pipelineB.UUID, versionB.PipelineId)
+}
+
+func TestGetPipelineVersionByName_SQL_NotFound(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(
+		db,
+		util.NewFakeTimeForEpoch(),
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+
+	_, err := pipelineStore.CreatePipeline(createPipeline("pipeline-a", "", ""))
+	assert.Nil(t, err)
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
+	_, err = pipelineStore.CreatePipelineVersion(
+		createPipelineVersion(DefaultFakePipelineId, "v1.0", "", "", "", ""))
+	assert.Nil(t, err)
+
+	_, err = pipelineStore.GetPipelineVersionByName(DefaultFakePipelineId, "nonexistent")
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+}
+
+func TestGetPipelineVersionByName_WrongPipeline(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(
+		db,
+		util.NewFakeTimeForEpoch(),
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+
+	_, err := pipelineStore.CreatePipeline(createPipeline("pipeline-a", "", ""))
+	assert.Nil(t, err)
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
+	_, err = pipelineStore.CreatePipelineVersion(
+		createPipelineVersion(DefaultFakePipelineId, "v1.0", "", "", "", ""))
+	assert.Nil(t, err)
+
+	_, err = pipelineStore.GetPipelineVersionByName("nonexistent-pipeline-id", "v1.0")
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+}

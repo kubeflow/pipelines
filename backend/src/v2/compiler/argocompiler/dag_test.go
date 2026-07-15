@@ -17,7 +17,7 @@ package argocompiler
 import (
 	"testing"
 
-	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/stretchr/testify/assert"
@@ -150,4 +150,39 @@ func TestDagDriverTask_TaskNameIncludedInArguments(t *testing.T) {
 	assert.Equal(t, "component-spec-json", paramMap[paramComponent])
 	assert.Equal(t, "parent-dag-123", paramMap[paramParentDagID])
 	assert.Equal(t, `{"taskInfo": {"name": "for-loop-task"}}`, paramMap[paramTask])
+}
+
+func TestDAGDriverTemplate_IncludesPipelineJobCreateTimeArg(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+
+	c := &workflowCompiler{
+		templates: make(map[string]*wfapi.Template),
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+		spec: &pipelinespec.PipelineSpec{
+			PipelineInfo: &pipelinespec.PipelineInfo{
+				Name: "test-pipeline",
+			},
+		},
+		job: &pipelinespec.PipelineJob{
+			DisplayName: "test-pipeline-run",
+		},
+	}
+
+	name := c.addDAGDriverTemplate()
+	var tmpl *wfapi.Template
+	for index := range c.wf.Spec.Templates {
+		if c.wf.Spec.Templates[index].Name == name {
+			tmpl = &c.wf.Spec.Templates[index]
+			break
+		}
+	}
+	require.NotNil(t, tmpl, "system-dag-driver template should exist")
+	require.NotNil(t, tmpl.Container, "template should have a container")
+	assert.Contains(t, tmpl.Container.Args, "--pipeline_job_create_time_utc")
+	assert.Contains(t, tmpl.Container.Args, runCreationTimeUTC())
+	assert.NotContains(t, tmpl.Container.Args, "--pipeline_job_schedule_time_epoch_seconds")
 }

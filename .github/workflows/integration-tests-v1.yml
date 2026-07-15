@@ -21,7 +21,7 @@ on:
       - '!**/OWNERS'
 
 concurrency:
-  group: legacy-integration-v1-tests-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -33,7 +33,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: [ "v1.31.14", "v1.35.0" ]
+        k8s_version: [ "v1.33.12", "v1.36.1" ]
     name: Initialization & Integration tests v1 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -85,6 +85,9 @@ jobs:
         run: go test -v ./... -args -runIntegrationTests=true -namespace=kubeflow -repoName=${{ github.repository }} -branchName=${{ github.ref_name }}
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
+          # Authenticates the raw.githubusercontent.com HEAD in
+          # GetRepoBranchURLRAW to avoid anonymous per-IP 429 rate limits.
+          GITHUB_TOKEN: ${{ github.token }}
         continue-on-error: true
 
       - name: Collect failed logs

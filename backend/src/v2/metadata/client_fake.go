@@ -20,6 +20,7 @@ package metadata
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 
@@ -118,18 +119,30 @@ type RecordArtifactFailureFakeClient struct {
 	*FakeClient
 	RecordArtifactCalls int
 	FailUntilCall       int
+	FailOutputName      string
+	OutputNameCalls     map[string]int
 }
 
-func NewRecordArtifactFailureFakeClient(failUntilCall int) *RecordArtifactFailureFakeClient {
+func NewRecordArtifactFailureFakeClientForOutput(outputName string, failUntilCall int) *RecordArtifactFailureFakeClient {
 	return &RecordArtifactFailureFakeClient{
-		FakeClient:    NewFakeClient(),
-		FailUntilCall: failUntilCall,
+		FakeClient:      NewFakeClient(),
+		FailUntilCall:   failUntilCall,
+		FailOutputName:  outputName,
+		OutputNameCalls: make(map[string]int),
 	}
 }
 
 func (c *RecordArtifactFailureFakeClient) RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State, bucketConfig *objectstore.Config) (*OutputArtifact, error) {
 	c.RecordArtifactCalls++
-	if c.RecordArtifactCalls <= c.FailUntilCall {
+	if c.OutputNameCalls == nil {
+		return nil, fmt.Errorf("OutputNameCalls should be initialized; consider using `NewRecordArtifactFailureFakeClientForOutput`")
+	}
+	c.OutputNameCalls[outputName]++
+	if c.FailOutputName != "" {
+		if outputName == c.FailOutputName && c.OutputNameCalls[outputName] <= c.FailUntilCall {
+			return nil, errors.New("simulated error")
+		}
+	} else if c.RecordArtifactCalls <= c.FailUntilCall {
 		return nil, errors.New("simulated error")
 	}
 	return nil, nil

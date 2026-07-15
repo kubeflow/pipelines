@@ -43,7 +43,7 @@ from kfp_server_api.models.api_run_storage_state import ApiRunStorageState
 from kfp_server_api.models.api_status import ApiStatus
 from kfp_server_api.models.api_trigger import ApiTrigger
 from kfp_server_api.models.api_url import ApiUrl
-from kfp_server_api.models.googlerpc_status import GooglerpcStatus
+from kfp_server_api.models.google_rpc_status import GoogleRpcStatus
 from kfp_server_api.models.job_mode import JobMode
 from kfp_server_api.models.pipeline_spec_runtime_config import PipelineSpecRuntimeConfig
 from kfp_server_api.models.protobuf_any import ProtobufAny

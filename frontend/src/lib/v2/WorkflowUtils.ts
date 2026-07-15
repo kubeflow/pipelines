@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import jsyaml from 'js-yaml';
+import { load } from 'js-yaml';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
 import {
   ComponentSpec,
@@ -30,14 +30,15 @@ export const PIPELINE_SPEC_TEMPLATE_KEY = 'pipeline_spec';
 export const PLATFORM_SPEC_TEMPLATE_KEY = 'platform_spec';
 
 function getPipelineDefFromYaml(template: string) {
-  // If pipeline_spec exists in the return value of safeload,
+  // If pipeline_spec exists in the parsed YAML,
   // which means the original yaml contains platform_spec,
   // then the PipelineSpec(IR) is stored in 'pipeline_spec' field.
-  return jsyaml.safeLoad(template)[PIPELINE_SPEC_TEMPLATE_KEY] ?? jsyaml.safeLoad(template);
+  const parsedTemplate = load(template) as Record<string, unknown>;
+  return parsedTemplate[PIPELINE_SPEC_TEMPLATE_KEY] ?? parsedTemplate;
 }
 
 function getPlatformDefFromYaml(template: string) {
-  return jsyaml.safeLoad(template)[PLATFORM_SPEC_TEMPLATE_KEY];
+  return (load(template) as Record<string, unknown>)[PLATFORM_SPEC_TEMPLATE_KEY];
 }
 
 export function isV2Pipeline(workflow: Workflow): boolean {
@@ -54,7 +55,7 @@ export function isArgoWorkflowTemplate(template: Workflow): boolean {
 export function isTemplateV2(templateString: string): boolean {
   try {
     const template = getPipelineDefFromYaml(templateString);
-    if (isArgoWorkflowTemplate(template)) {
+    if (isArgoWorkflowTemplate(template as Workflow)) {
       return false;
     } else if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
       WorkflowUtils.convertYamlToV2PipelineSpec(templateString);
@@ -97,8 +98,8 @@ export function isPipelineSpec(templateString: string) {
   }
   try {
     const template = getPipelineDefFromYaml(templateString);
-    if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
-      StaticGraphParser.createGraph(template!);
+    if (WorkflowUtils.isArgoWorkflowTemplate(template as Workflow)) {
+      StaticGraphParser.createGraph(template as Workflow);
       return false;
     } else if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
       const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(templateString);

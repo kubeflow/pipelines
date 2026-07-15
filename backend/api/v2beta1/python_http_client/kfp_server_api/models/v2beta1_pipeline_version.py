@@ -42,7 +42,7 @@ class V2beta1PipelineVersion(object):
         'package_url': 'V2beta1Url',
         'code_source_url': 'str',
         'pipeline_spec': 'object',
-        'error': 'GooglerpcStatus',
+        'error': 'GoogleRpcStatus',
         'tags': 'dict(str, str)'
     }
 
@@ -313,7 +313,7 @@ class V2beta1PipelineVersion(object):
 
 
         :return: The error of this V2beta1PipelineVersion.  # noqa: E501
-        :rtype: GooglerpcStatus
+        :rtype: GoogleRpcStatus
         """
         return self._error
 
@@ -323,7 +323,7 @@ class V2beta1PipelineVersion(object):
 
 
         :param error: The error of this V2beta1PipelineVersion.  # noqa: E501
-        :type error: GooglerpcStatus
+        :type error: GoogleRpcStatus
         """
 
         self._error = error

@@ -722,6 +722,26 @@ func TestFilterK8sPipelines_EQ_NEQ(t *testing.T) {
 	if found {
 		t.Fatalf("expected AND filter not to match when one predicate fails")
 	}
+
+	// EQ case-insensitive: "MY-PIPELINE" should match "my-pipeline"
+	eqCaseInsensitive := &Filter{eq: map[string][]interface{}{"pipelines.Name": {"MY-PIPELINE"}}}
+	found, err = eqCaseInsensitive.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for EQ case-insensitive: %v", err)
+	}
+	if !found {
+		t.Fatalf("expected EQ filter to match case-insensitively")
+	}
+
+	// NEQ case-insensitive: "MY-PIPELINE" should be considered equal, so NEQ should not match
+	neqCaseInsensitive := &Filter{neq: map[string][]interface{}{"pipelines.Name": {"MY-PIPELINE"}}}
+	found, err = neqCaseInsensitive.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for NEQ case-insensitive: %v", err)
+	}
+	if found {
+		t.Fatalf("expected NEQ filter not to match when value matches case-insensitively")
+	}
 }
 
 func TestFilterK8sPipelines_IN(t *testing.T) {
@@ -768,6 +788,16 @@ func TestFilterK8sPipelines_IN(t *testing.T) {
 	if !found {
 		t.Fatalf("expected IN multi to match when present in all lists")
 	}
+
+	// IN case-insensitive: "MY-PIPELINE" should match "my-pipeline"
+	inCaseInsensitive := &Filter{in: map[string][]interface{}{"pipelines.Name": {[]string{"a", "MY-PIPELINE"}}}}
+	found, err = inCaseInsensitive.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for IN case-insensitive: %v", err)
+	}
+	if !found {
+		t.Fatalf("expected IN filter to match case-insensitively")
+	}
 }
 
 func TestFilterK8sPipelines_SUBSTRING(t *testing.T) {
@@ -793,6 +823,16 @@ func TestFilterK8sPipelines_SUBSTRING(t *testing.T) {
 	}
 	if found {
 		t.Fatalf("expected substring filter not to match when a substring missing")
+	}
+
+	// IS_SUBSTRING case-insensitive: "Pipeline" should match "my-pipeline"
+	subCaseInsensitive := &Filter{substring: map[string][]interface{}{"pipelines.Name": {"Pipeline"}}}
+	found, err = subCaseInsensitive.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for substring case-insensitive: %v", err)
+	}
+	if !found {
+		t.Fatalf("expected IS_SUBSTRING filter to match case-insensitively")
 	}
 }
 

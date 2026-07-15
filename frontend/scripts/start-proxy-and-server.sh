@@ -37,6 +37,8 @@ kubectl port-forward -n $NAMESPACE svc/ml-pipeline 3002:8888 &
 kubectl port-forward -n $NAMESPACE svc/seaweedfs 9000:9000 &
 export MINIO_HOST=localhost
 export MINIO_NAMESPACE=
+export FRONTEND_SERVER_NAMESPACE="$NAMESPACE"
+export MINIO_ENDPOINT_REWRITE="seaweedfs.${NAMESPACE}:9000=localhost:9000,seaweedfs.${NAMESPACE}:80=localhost:9000,seaweedfs.${NAMESPACE}.svc:9000=localhost:9000,seaweedfs.${NAMESPACE}.svc:80=localhost:9000,seaweedfs.${NAMESPACE}.svc.cluster.local:9000=localhost:9000,seaweedfs.${NAMESPACE}.svc.cluster.local:80=localhost:9000"
 if [ "$1" == "--inspect" ]; then
   ML_PIPELINE_SERVICE_PORT=3002 npm run mock:server:inspect 3001
 else

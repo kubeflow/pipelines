@@ -47,7 +47,7 @@ export default function RunDetailsRouter(
   });
 
   if (getV2RunSuccess && v2Run && v2Run.pipeline_spec) {
-    pipelineManifest = JsYaml.safeDump(v2Run.pipeline_spec);
+    pipelineManifest = JsYaml.dump(v2Run.pipeline_spec);
   }
 
   const pipelineId = v2Run?.pipeline_version_reference?.pipeline_id;

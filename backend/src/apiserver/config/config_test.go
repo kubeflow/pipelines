@@ -57,14 +57,16 @@ func TestLoadSamplesConfigBackwardsCompatibility(t *testing.T) {
 	err = LoadSamples(rm, path)
 	require.NoError(t, err)
 
-	_, err = rm.GetPipelineByNameAndNamespace(pc[0].Name, "")
+	p1, err := rm.GetPipelineByNameAndNamespace(pc[0].Name, "")
 	require.NoError(t, err)
-	_, err = rm.GetPipelineByNameAndNamespace(pc[1].Name, "")
+	require.NotNil(t, p1)
+	p2, err := rm.GetPipelineByNameAndNamespace(pc[1].Name, "")
 	require.NoError(t, err)
+	require.NotNil(t, p2)
 
-	_, err = rm.GetPipelineVersionByName(pc[0].Name)
+	_, err = rm.GetPipelineVersionByName(p1.UUID, pc[0].Name)
 	require.NoError(t, err)
-	_, err = rm.GetPipelineVersionByName(pc[1].Name)
+	_, err = rm.GetPipelineVersionByName(p2.UUID, pc[1].Name)
 	require.NoError(t, err)
 
 	// Update pipeline version for Pipeline 1
@@ -148,7 +150,8 @@ func TestLoadSamples(t *testing.T) {
 	var pipeline1 *model.Pipeline
 	pipeline1, err = rm.GetPipelineByNameAndNamespace(pc.Pipelines[0].Name, "")
 	require.NoError(t, err)
-	version1, err := rm.GetPipelineVersionByName(pc.Pipelines[0].VersionName)
+	require.NotNil(t, pipeline1)
+	version1, err := rm.GetPipelineVersionByName(pipeline1.UUID, pc.Pipelines[0].VersionName)
 	require.NoError(t, err)
 	// Verify that the pipeline display name is set to the pipeline name if not provided
 	assert.Equal(t, pipeline1.DisplayName, pc.Pipelines[0].Name)
@@ -156,7 +159,8 @@ func TestLoadSamples(t *testing.T) {
 	var pipeline2 *model.Pipeline
 	pipeline2, err = rm.GetPipelineByNameAndNamespace(pc.Pipelines[1].Name, "")
 	require.NoError(t, err)
-	version2, err := rm.GetPipelineVersionByName(pc.Pipelines[1].VersionName)
+	require.NotNil(t, pipeline2)
+	version2, err := rm.GetPipelineVersionByName(pipeline2.UUID, pc.Pipelines[1].VersionName)
 	// Verify that the pipeline display name is set to the pipeline name if not provided
 	assert.Equal(t, pipeline2.DisplayName, pc.Pipelines[1].Name)
 	assert.Equal(t, version2.DisplayName, pc.Pipelines[1].VersionName)
@@ -165,36 +169,40 @@ func TestLoadSamples(t *testing.T) {
 	// Test display name for Pipeline 3 (pipeline display name only)
 	pipeline3, err := rm.GetPipelineByNameAndNamespace(pc.Pipelines[2].Name, "")
 	require.NoError(t, err)
+	require.NotNil(t, pipeline3)
 	assert.Equal(t, pc.Pipelines[2].DisplayName, pipeline3.DisplayName)
-	version3, err := rm.GetPipelineVersionByName(pc.Pipelines[2].VersionName)
+	version3, err := rm.GetPipelineVersionByName(pipeline3.UUID, pc.Pipelines[2].VersionName)
 	require.NoError(t, err)
 	assert.Equal(t, pc.Pipelines[2].VersionName, version3.DisplayName) // Should use version name when no version display name is provided
 
 	// Test display name for Pipeline 4 (version display name only)
 	pipeline4, err := rm.GetPipelineByNameAndNamespace(pc.Pipelines[3].Name, "")
 	require.NoError(t, err)
+	require.NotNil(t, pipeline4)
 	assert.Equal(t, pc.Pipelines[3].Name, pipeline4.DisplayName) // Should use pipeline name
-	version4, err := rm.GetPipelineVersionByName(pc.Pipelines[3].VersionName)
+	version4, err := rm.GetPipelineVersionByName(pipeline4.UUID, pc.Pipelines[3].VersionName)
 	require.NoError(t, err)
 	assert.Equal(t, pc.Pipelines[3].VersionDisplayName, version4.DisplayName)
 
 	// Test display name for Pipeline 5 (both display names)
 	pipeline5, err := rm.GetPipelineByNameAndNamespace(pc.Pipelines[4].Name, "")
 	require.NoError(t, err)
+	require.NotNil(t, pipeline5)
 	assert.Equal(t, pc.Pipelines[4].DisplayName, pipeline5.DisplayName)
-	version5, err := rm.GetPipelineVersionByName(pc.Pipelines[4].VersionName)
+	version5, err := rm.GetPipelineVersionByName(pipeline5.UUID, pc.Pipelines[4].VersionName)
 	require.NoError(t, err)
 	assert.Equal(t, pc.Pipelines[4].VersionDisplayName, version5.DisplayName)
 
 	// Test display name for Pipeline 6 (only pipeline name)
 	pipeline6, err := rm.GetPipelineByNameAndNamespace(pc.Pipelines[5].Name, "")
 	require.NoError(t, err)
-	assert.Equal(t, pc.Pipelines[5].Name, pipeline6.DisplayName)       // Should use pipeline name
-	version6, err := rm.GetPipelineVersionByName(pc.Pipelines[5].Name) // Version name should default to pipeline name
+	require.NotNil(t, pipeline6)
+	assert.Equal(t, pc.Pipelines[5].Name, pipeline6.DisplayName)                       // Should use pipeline name
+	version6, err := rm.GetPipelineVersionByName(pipeline6.UUID, pc.Pipelines[5].Name) // Version name should default to pipeline name
 	require.NoError(t, err)
 	assert.Equal(t, pc.Pipelines[5].Name, version6.DisplayName) // Version display name should default to pipeline name
 
-	_, err = rm.GetPipelineVersionByName(pc.Pipelines[0].VersionName)
+	_, err = rm.GetPipelineVersionByName(pipeline1.UUID, pc.Pipelines[0].VersionName)
 	require.NoError(t, err)
 
 	// Update pipeline version for Pipeline 1
@@ -219,7 +227,7 @@ func TestLoadSamples(t *testing.T) {
 	require.NoError(t, err)
 
 	// Expect another Pipeline version added for Pipeline 2
-	_, err = rm.GetPipelineVersionByName(pc.Pipelines[1].VersionName)
+	_, err = rm.GetPipelineVersionByName(pipeline2.UUID, pc.Pipelines[1].VersionName)
 	require.NoError(t, err)
 	_, totalSize, _, err = rm.ListPipelineVersions(pipeline2.UUID, opts, nil)
 	require.NoError(t, err)
@@ -278,10 +286,11 @@ func TestLoadSamplesMultiplePipelineVersionsInConfig(t *testing.T) {
 	var pipeline *model.Pipeline
 	pipeline, err = rm.GetPipelineByNameAndNamespace(pc.Pipelines[0].Name, "")
 	require.NoError(t, err)
+	require.NotNil(t, pipeline)
 
-	_, err = rm.GetPipelineVersionByName(pc.Pipelines[0].VersionName)
+	_, err = rm.GetPipelineVersionByName(pipeline.UUID, pc.Pipelines[0].VersionName)
 	require.NoError(t, err)
-	_, err = rm.GetPipelineVersionByName(pc.Pipelines[1].VersionName)
+	_, err = rm.GetPipelineVersionByName(pipeline.UUID, pc.Pipelines[1].VersionName)
 	require.NoError(t, err)
 
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
@@ -290,6 +299,50 @@ func TestLoadSamplesMultiplePipelineVersionsInConfig(t *testing.T) {
 	_, totalSize, _, err := rm.ListPipelineVersions(pipeline.UUID, opts, nil)
 	require.NoError(t, err)
 	require.Equal(t, totalSize, 2)
+}
+
+func TestLoadSamples_SameVersionNameDifferentPipelines(t *testing.T) {
+	viper.Set("POD_NAMESPACE", "")
+	rm := fakeResourceManager()
+	pc := config{
+		LoadSamplesOnRestart: true,
+		Pipelines: []configPipelines{
+			{
+				Name:        "Pipeline A",
+				Description: "test description",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "v1.0",
+			},
+			{
+				Name:        "Pipeline B",
+				Description: "test description",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "v1.0",
+			},
+		},
+	}
+
+	path, err := writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	pipelineA, err := rm.GetPipelineByNameAndNamespace("Pipeline A", "")
+	require.NoError(t, err)
+	require.NotNil(t, pipelineA)
+
+	pipelineB, err := rm.GetPipelineByNameAndNamespace("Pipeline B", "")
+	require.NoError(t, err)
+	require.NotNil(t, pipelineB)
+
+	versionA, err := rm.GetPipelineVersionByName(pipelineA.UUID, "v1.0")
+	require.NoError(t, err)
+	assert.Equal(t, pipelineA.UUID, versionA.PipelineId)
+
+	versionB, err := rm.GetPipelineVersionByName(pipelineB.UUID, "v1.0")
+	require.NoError(t, err)
+	assert.Equal(t, pipelineB.UUID, versionB.PipelineId)
+
+	assert.NotEqual(t, versionA.UUID, versionB.UUID)
 }
 
 func TestParseManagedPipelinesTags(t *testing.T) {
@@ -383,9 +436,10 @@ func TestLoadSamples_TagsApplied(t *testing.T) {
 
 	pipeline, err := rm.GetPipelineByNameAndNamespace("Tagged Pipeline", "")
 	require.NoError(t, err)
+	require.NotNil(t, pipeline)
 	assert.Equal(t, wantTags, pipeline.Tags)
 
-	version, err := rm.GetPipelineVersionByName("Tagged Pipeline - Ver 1")
+	version, err := rm.GetPipelineVersionByName(pipeline.UUID, "Tagged Pipeline - Ver 1")
 	require.NoError(t, err)
 	assert.Empty(t, version.Tags)
 }
@@ -413,9 +467,10 @@ func TestLoadSamples_NoTagsWhenEnvUnset(t *testing.T) {
 
 	pipeline, err := rm.GetPipelineByNameAndNamespace("Untagged Pipeline", "")
 	require.NoError(t, err)
+	require.NotNil(t, pipeline)
 	assert.Empty(t, pipeline.Tags)
 
-	version, err := rm.GetPipelineVersionByName("Untagged Pipeline - Ver 1")
+	version, err := rm.GetPipelineVersionByName(pipeline.UUID, "Untagged Pipeline - Ver 1")
 	require.NoError(t, err)
 	assert.Empty(t, version.Tags)
 }
@@ -474,6 +529,134 @@ func TestLoadSamples_MalformedTagsIgnoredWhenLoadingSkipped(t *testing.T) {
 	require.NoError(t, LoadSamples(rm, path))
 }
 
+func TestLoadSamples_MultiUserMode_PipelinesVisibleWithoutNamespace(t *testing.T) {
+	viper.Set("MULTIUSER", "true")
+	viper.Set("POD_NAMESPACE", "kubeflow")
+	defer func() {
+		viper.Set("MULTIUSER", "false")
+		viper.Set("POD_NAMESPACE", "")
+	}()
+
+	rm := fakeResourceManager()
+	pc := config{
+		LoadSamplesOnRestart: true,
+		Pipelines: []configPipelines{
+			{
+				Name:        "Sample Pipeline",
+				Description: "multi-user sample",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "Sample Pipeline - Ver 1",
+			},
+		},
+	}
+
+	path, err := writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	// A client querying without a namespace (empty namespace) must still
+	// find the sample pipelines. This matches the artifact proxy test
+	// path: GET /apis/v2beta1/pipelines?page_size=1 with no namespace.
+	pipeline, err := rm.GetPipelineByNameAndNamespace("Sample Pipeline", "")
+	require.NoError(t, err, "sample pipeline must be findable with empty namespace")
+	require.NotNil(t, pipeline)
+
+	// Also verify via ListPipelines with an empty-namespace filter context,
+	// which is how the v2beta1 API handler builds the query.
+	filterContext := &model.FilterContext{
+		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""},
+	}
+	opts, err := list.NewOptions(&model.Pipeline{}, 10, "", nil)
+	require.NoError(t, err)
+	pipelines, totalSize, _, err := rm.ListPipelines(filterContext, opts, nil)
+	require.NoError(t, err)
+	assert.Equal(t, 1, totalSize, "should find exactly 1 sample pipeline with empty namespace filter")
+	assert.Len(t, pipelines, 1)
+}
+
+func TestLoadSamples_MultiUserMode_RestartIdempotency(t *testing.T) {
+	viper.Set("MULTIUSER", "true")
+	viper.Set("POD_NAMESPACE", "kubeflow")
+	defer func() {
+		viper.Set("MULTIUSER", "false")
+		viper.Set("POD_NAMESPACE", "")
+	}()
+
+	rm := fakeResourceManager()
+	pc := config{
+		LoadSamplesOnRestart: true,
+		Pipelines: []configPipelines{
+			{
+				Name:        "Sample Pipeline",
+				Description: "multi-user sample",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "v1",
+			},
+		},
+	}
+
+	path, err := writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	pipeline, err := rm.GetPipelineByNameAndNamespace("Sample Pipeline", "")
+	require.NoError(t, err)
+
+	// Second load (simulates API server restart). The lookup uses
+	// namespace="kubeflow" which won't find the empty-namespace pipeline,
+	// triggering the AlreadyExists fallback.
+	path, err = writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
+	require.NoError(t, err)
+	_, totalSize, _, err := rm.ListPipelineVersions(pipeline.UUID, opts, nil)
+	require.NoError(t, err)
+	assert.Equal(t, 1, totalSize, "restart must not duplicate pipeline version")
+}
+
+func TestLoadSamples_MultiUserMode_RestartNewVersion(t *testing.T) {
+	viper.Set("MULTIUSER", "true")
+	viper.Set("POD_NAMESPACE", "kubeflow")
+	defer func() {
+		viper.Set("MULTIUSER", "false")
+		viper.Set("POD_NAMESPACE", "")
+	}()
+
+	rm := fakeResourceManager()
+	pc := config{
+		LoadSamplesOnRestart: true,
+		Pipelines: []configPipelines{
+			{
+				Name:        "Sample Pipeline",
+				Description: "multi-user sample",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "v1",
+			},
+		},
+	}
+
+	path, err := writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	pipeline, err := rm.GetPipelineByNameAndNamespace("Sample Pipeline", "")
+	require.NoError(t, err)
+
+	// Second load with a new version name (simulates config update + restart).
+	pc.Pipelines[0].VersionName = "v2"
+	path, err = writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
+	require.NoError(t, err)
+	_, totalSize, _, err := rm.ListPipelineVersions(pipeline.UUID, opts, nil)
+	require.NoError(t, err)
+	assert.Equal(t, 2, totalSize, "new version should be created under existing pipeline")
+}
+
 func TestLoadSamples_ExistingPipelineNotRetagged(t *testing.T) {
 	viper.Set("POD_NAMESPACE", "")
 	rm := fakeResourceManager()
@@ -506,6 +689,83 @@ func TestLoadSamples_ExistingPipelineNotRetagged(t *testing.T) {
 	pipeline, err := rm.GetPipelineByNameAndNamespace("Existing Pipeline", "")
 	require.NoError(t, err)
 	assert.Empty(t, pipeline.Tags)
+}
+
+func TestLoadSamples_PreExistingPipelineNamespaceSwitch(t *testing.T) {
+	rm := fakeResourceManager()
+
+	// Step 1: Load with empty namespace — pipeline stored with Namespace = ""
+	viper.Set("POD_NAMESPACE", "")
+	pc := config{
+		LoadSamplesOnRestart: true,
+		Pipelines: []configPipelines{
+			{
+				Name:        "My Pipeline",
+				Description: "test description",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "v1",
+			},
+		},
+	}
+	path, err := writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	pipeline, err := rm.GetPipelineByNameAndNamespace("My Pipeline", "")
+	require.NoError(t, err)
+	require.NotNil(t, pipeline)
+
+	// Step 2: Switch to non-empty namespace and add a new version
+	viper.Set("POD_NAMESPACE", "test-namespace")
+	pc.Pipelines[0].VersionName = "v2"
+	path, err = writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	// Step 3: Assert: the new version was created under the existing pipeline
+	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
+	require.NoError(t, err)
+	_, totalSize, _, err := rm.ListPipelineVersions(pipeline.UUID, opts, nil)
+	require.NoError(t, err)
+	require.Equal(t, 2, totalSize)
+}
+
+func TestLoadSamples_IdempotencyAcrossNamespaceSwitch(t *testing.T) {
+	rm := fakeResourceManager()
+
+	// Step 1: Load with empty namespace
+	viper.Set("POD_NAMESPACE", "")
+	pc := config{
+		LoadSamplesOnRestart: true,
+		Pipelines: []configPipelines{
+			{
+				Name:        "My Pipeline",
+				Description: "test description",
+				File:        "testdata/sample_pipeline.yaml",
+				VersionName: "v1",
+			},
+		},
+	}
+	path, err := writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	pipeline, err := rm.GetPipelineByNameAndNamespace("My Pipeline", "")
+	require.NoError(t, err)
+	require.NotNil(t, pipeline)
+
+	// Step 2: Switch namespace but keep same version name
+	viper.Set("POD_NAMESPACE", "test-namespace")
+	path, err = writeSampleConfig(t, pc, "sample.json")
+	require.NoError(t, err)
+	require.NoError(t, LoadSamples(rm, path))
+
+	// Step 3: Assert: no duplicate version was created
+	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
+	require.NoError(t, err)
+	_, totalSize, _, err := rm.ListPipelineVersions(pipeline.UUID, opts, nil)
+	require.NoError(t, err)
+	require.Equal(t, 1, totalSize)
 }
 
 func writeSampleConfig(t *testing.T, config config, path string) (string, error) {
