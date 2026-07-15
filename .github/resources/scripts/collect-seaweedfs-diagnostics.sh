@@ -259,6 +259,34 @@ fi
                     echo "(no table-full event logged)"
                 fi' 2>/dev/null || echo "(unavailable)"
 
+            echo "softirq backlog (per CPU: processed / dropped / time_squeeze; nonzero dropped == packets lost before conntrack/socket):"
+            # veth traffic is delivered through the per-CPU softirq backlog
+            # queue; when ksoftirqd is starved on a CPU-saturated runner the
+            # queue overflows and packets are dropped silently — upstream of
+            # every counter this script already checks (conntrack, accept
+            # queue). /proc/net/softnet_stat column 2 is that drop counter
+            # (hex, cumulative — runners are ephemeral VMs so it is scoped to
+            # the job); column 3 counts budget exhaustion (time_squeeze).
+            # Current limits are recorded so the failure states what the
+            # backlog/budget were at the time.
+            docker exec "$node" sh -c '
+                if [ ! -r /proc/net/softnet_stat ]; then
+                    echo "(/proc/net/softnet_stat unavailable)"
+                    exit 0
+                fi
+                # Fields are hex; POSIX $((0x...)) conversion avoids relying
+                # on gawk-only strtonum (node images ship mawk).
+                i=0
+                while read -r c1 c2 c3 _; do
+                    printf "cpu%d processed=%d dropped=%d time_squeeze=%d\n" \
+                        "$i" "$((0x$c1))" "$((0x$c2))" "$((0x$c3))"
+                    i=$((i + 1))
+                done < /proc/net/softnet_stat
+                printf "netdev_max_backlog=%s netdev_budget=%s netdev_budget_usecs=%s\n" \
+                    "$(cat /proc/sys/net/core/netdev_max_backlog 2>/dev/null || echo "?")" \
+                    "$(cat /proc/sys/net/core/netdev_budget 2>/dev/null || echo "?")" \
+                    "$(cat /proc/sys/net/core/netdev_budget_usecs 2>/dev/null || echo "?")"' 2>/dev/null || echo "(unavailable)"
+
             # Per-VIP service program end to end (KUBE-SERVICES -> KUBE-SVC ->
             # KUBE-SEP DNAT): a live DNAT to the pod means the rule is not the
             # problem; an empty chain means no ready backend.
