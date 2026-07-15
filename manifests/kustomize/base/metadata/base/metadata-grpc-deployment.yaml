@@ -44,12 +44,12 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: pipeline-install-config
-              key: dbHost
+              key: mysqlHost
         - name: WAIT_PORT
           valueFrom:
             configMapKeyRef:
               name: pipeline-install-config
-              key: dbPort
+              key: mysqlPort
         command: ["/bin/sh", "-ec"]
         args:
           - |
@@ -106,12 +106,12 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: pipeline-install-config
-              key: dbHost
+              key: mysqlHost
         - name: MYSQL_PORT
           valueFrom:
             configMapKeyRef:
               name: pipeline-install-config
-              key: dbPort
+              key: mysqlPort
         command: ["/bin/metadata_store_server"]
         args: ["--grpc_port=8080",
                "--mysql_config_database=$(MYSQL_DATABASE)",

@@ -10,8 +10,14 @@ on:
       - 'sdk/python/**'
       - 'test/presubmit-yapf-sdk.sh'
       - '.github/workflows/sdk-yapf.yml'
+      - '.github/actions/setup-python-pip-cache/**'
       - '!**/*.md'
       - '!**/OWNERS'
+
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   yapf-sdk:
@@ -22,10 +28,11 @@ jobs:
       uses: actions/checkout@v6
 
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: ./.github/actions/setup-python-pip-cache
       with:
         python-version: '3.9'
-        cache: 'pip'
+        cache-scope: sdk-yapf
+        cache-dependency-hash: ${{ hashFiles('sdk/python/requirements-dev.txt') }}
 
     - name: Install dependencies
       run: pip install yapf

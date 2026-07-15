@@ -46,6 +46,7 @@ patches:
     target:
       kind: Deployment
       name: ml-pipeline
+  - path: ../../base/ci-stability-tuning.yaml
   - path: cache-env.yaml
     target:
       kind: Deployment

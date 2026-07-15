@@ -18,7 +18,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -134,6 +134,19 @@ func TestFakeWorkflowClient_Update(t *testing.T) {
 	_, err := client.Update(ctx, workflow, v1.UpdateOptions{})
 	if err != nil {
 		t.Fatalf("Update() unexpected error: %v", err)
+	}
+	workflowWithUpdatedLabels := util.NewWorkflow(workflow.DeepCopy())
+	workflowWithUpdatedLabels.SetLabels("updated-label", "true")
+	_, err = client.Update(ctx, workflowWithUpdatedLabels, v1.UpdateOptions{})
+	if err != nil {
+		t.Fatalf("Update() unexpected error: %v", err)
+	}
+	updated, err := client.Get(ctx, "update-me", v1.GetOptions{})
+	if err != nil {
+		t.Fatalf("Get() unexpected error after Update(): %v", err)
+	}
+	if updated.ExecutionObjectMeta().Labels["updated-label"] != "true" {
+		t.Errorf("Update() did not persist workflow changes, got labels: %v", updated.ExecutionObjectMeta().Labels)
 	}
 }
 

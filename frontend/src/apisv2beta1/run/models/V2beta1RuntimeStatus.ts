@@ -13,13 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
-import type { GooglerpcStatus } from './GooglerpcStatus';
+import type { GoogleRpcStatus } from './GoogleRpcStatus';
 import {
-  GooglerpcStatusFromJSON,
-  GooglerpcStatusFromJSONTyped,
-  GooglerpcStatusToJSON,
-  GooglerpcStatusToJSONTyped,
-} from './GooglerpcStatus';
+  GoogleRpcStatusFromJSON,
+  GoogleRpcStatusFromJSONTyped,
+  GoogleRpcStatusToJSON,
+  GoogleRpcStatusToJSONTyped,
+} from './GoogleRpcStatus';
 import type { V2beta1RuntimeState } from './V2beta1RuntimeState';
 import {
   V2beta1RuntimeStateFromJSON,
@@ -48,10 +48,10 @@ export interface V2beta1RuntimeStatus {
   state?: V2beta1RuntimeState;
   /**
    *
-   * @type {GooglerpcStatus}
+   * @type {GoogleRpcStatus}
    * @memberof V2beta1RuntimeStatus
    */
-  error?: GooglerpcStatus;
+  error?: GoogleRpcStatus;
 }
 
 /**
@@ -75,7 +75,7 @@ export function V2beta1RuntimeStatusFromJSONTyped(
   return {
     update_time: json['update_time'] == null ? undefined : new Date(json['update_time']),
     state: json['state'] == null ? undefined : V2beta1RuntimeStateFromJSON(json['state']),
-    error: json['error'] == null ? undefined : GooglerpcStatusFromJSON(json['error']),
+    error: json['error'] == null ? undefined : GoogleRpcStatusFromJSON(json['error']),
   };
 }
 
@@ -95,6 +95,6 @@ export function V2beta1RuntimeStatusToJSONTyped(
     update_time:
       value['update_time'] == null ? value['update_time'] : value['update_time'].toISOString(),
     state: V2beta1RuntimeStateToJSON(value['state']),
-    error: GooglerpcStatusToJSON(value['error']),
+    error: GoogleRpcStatusToJSON(value['error']),
   };
 }

@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tinyproxy
+  namespace: tinyproxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tinyproxy
+  template:
+    metadata:
+      labels:
+        app: tinyproxy
+    spec:
+      containers:
+        - name: tinyproxy
+          image: registry.domain.local/tinyproxy:test
+          ports:
+            - containerPort: 3128
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          startupProbe:
+            tcpSocket:
+              port: 3128
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket:
+              port: 3128
+            periodSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: 3128
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3

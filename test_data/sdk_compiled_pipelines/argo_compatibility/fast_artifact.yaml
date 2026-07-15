@@ -1,0 +1,35 @@
+# PIPELINE DEFINITION
+# Name: argo-compatibility-artifact
+components:
+  comp-write-artifact:
+    executorLabel: exec-write-artifact
+    outputDefinitions:
+      artifacts:
+        output:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-write-artifact:
+      container:
+        args:
+        - 'mkdir -p "$(dirname "$0")"; printf foo > "$0"; printf "input:  foo\n"'
+        - '{{$.outputs.artifacts[''output''].path}}'
+        command:
+        - sh
+        - -c
+        image: alpine:3.23
+pipelineInfo:
+  name: argo-compatibility-artifact
+root:
+  dag:
+    tasks:
+      write-artifact:
+        cachingOptions: {}
+        componentRef:
+          name: comp-write-artifact
+        taskInfo:
+          name: write-artifact
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2

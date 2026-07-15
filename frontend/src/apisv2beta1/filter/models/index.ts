@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-export * from './GooglerpcStatus';
+export * from './GoogleRpcStatus';
 export * from './PredicateIntValues';
 export * from './PredicateLongValues';
 export * from './PredicateStringValues';

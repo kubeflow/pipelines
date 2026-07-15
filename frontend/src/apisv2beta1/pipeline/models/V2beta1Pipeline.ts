@@ -13,13 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
-import type { GooglerpcStatus } from './GooglerpcStatus';
+import type { GoogleRpcStatus } from './GoogleRpcStatus';
 import {
-  GooglerpcStatusFromJSON,
-  GooglerpcStatusFromJSONTyped,
-  GooglerpcStatusToJSON,
-  GooglerpcStatusToJSONTyped,
-} from './GooglerpcStatus';
+  GoogleRpcStatusFromJSON,
+  GoogleRpcStatusFromJSONTyped,
+  GoogleRpcStatusToJSON,
+  GoogleRpcStatusToJSONTyped,
+} from './GoogleRpcStatus';
 
 /**
  *
@@ -67,10 +67,10 @@ export interface V2beta1Pipeline {
   namespace?: string;
   /**
    *
-   * @type {GooglerpcStatus}
+   * @type {GoogleRpcStatus}
    * @memberof V2beta1Pipeline
    */
-  error?: GooglerpcStatus;
+  error?: GoogleRpcStatus;
   /**
    * Optional. User-defined tags as key-value pairs associated with the pipeline.
    * Tags can be used to label and categorize pipelines.
@@ -112,7 +112,7 @@ export function V2beta1PipelineFromJSONTyped(
     description: json['description'] == null ? undefined : json['description'],
     created_at: json['created_at'] == null ? undefined : new Date(json['created_at']),
     namespace: json['namespace'] == null ? undefined : json['namespace'],
-    error: json['error'] == null ? undefined : GooglerpcStatusFromJSON(json['error']),
+    error: json['error'] == null ? undefined : GoogleRpcStatusFromJSON(json['error']),
     tags: json['tags'] == null ? undefined : json['tags'],
   };
 }
@@ -137,7 +137,7 @@ export function V2beta1PipelineToJSONTyped(
     created_at:
       value['created_at'] == null ? value['created_at'] : value['created_at'].toISOString(),
     namespace: value['namespace'],
-    error: GooglerpcStatusToJSON(value['error']),
+    error: GoogleRpcStatusToJSON(value['error']),
     tags: value['tags'],
   };
 }

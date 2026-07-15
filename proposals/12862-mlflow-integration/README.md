@@ -296,10 +296,10 @@ When a run is created and MLflow is enabled for the namespace:
    `experiment_id` takes precedence if both are set. If neither is provided or `plugins_input.mlflow` is not set at all,
    default to the `"Default"` experiment.
 1. Resolve MLflow credentials for outbound API calls. The API server uses its own SA token when `authType: "kubernetes"`.
-   For `"bearer"` and `"basic-auth"`, the API server reads the credential Secret from `credentialSecretRef`. In
-   multi-user mode, this `credentialSecretRef` must come from the namespace's `kfp-launcher` ConfigMap (see
-   [MLflow Configuration](#mlflow-configuration)). When secret-based auth is enabled, the Argo compiler mounts the
-   credential Secret on the driver, launcher, and user container templates via `env` entries with
+   For `"bearer"` and `"basic-auth"`, the API server reads the fixed `kfp-mlflow-credentials` Secret using the keys from
+   `credentialSecretRef`. In multi-user mode, this `credentialSecretRef` must come from the namespace's `kfp-launcher`
+   ConfigMap (see [MLflow Configuration](#mlflow-configuration)). When secret-based auth is enabled, the Argo compiler
+   mounts the credential Secret on the driver, launcher, and user container templates via `env` entries with
    `valueFrom.secretKeyRef`, mapping Secret keys to the standard MLflow env vars (`MLFLOW_TRACKING_TOKEN`, or
    `MLFLOW_TRACKING_USERNAME` / `MLFLOW_TRACKING_PASSWORD`). This ensures the driver and launcher can authenticate their
    own MLflow REST calls without reading the Secret at runtime, and no secret values appear in the Argo Workflow spec
@@ -573,13 +573,14 @@ unmarshal `KFP_MLFLOW_CONFIG` into the following Go type:
 
 ```go
 type MLflowRuntimeConfig struct {
-	Endpoint            string `json:"endpoint"`
-	Workspace           string `json:"workspace,omitempty"`           // Only set when workspacesEnabled is true
-	ParentRunID         string `json:"parentRunId"`
-	ExperimentID        string `json:"experimentId"`
-	AuthType            string `json:"authType"`                      // "kubernetes", "bearer", or "basic-auth"
-	Timeout             string `json:"timeout,omitempty"`             // e.g. "30s"; defaults to "30s"
-	InsecureSkipVerify  bool   `json:"insecureSkipVerify,omitempty"`  // Skip TLS certificate verification
+    Endpoint            string `json:"endpoint"`
+    Workspace           string `json:"workspace,omitempty"`           // Only set when workspacesEnabled is true
+    ParentRunID         string `json:"parentRunId"`
+    ExperimentID        string `json:"experimentId"`
+    AuthType            string `json:"authType"`                      // "kubernetes", "bearer", or "basic-auth"
+    CredentialSecretRef *CredentialSecretRef `json:"credentialSecretRef,omitempty"` // Secret key names for user-container credential injection
+    Timeout             string `json:"timeout,omitempty"`             // e.g. "30s"; defaults to "30s"
+    InsecureSkipVerify  bool   `json:"insecureSkipVerify,omitempty"`  // Skip TLS certificate verification
 }
 ```
 
@@ -621,6 +622,7 @@ Credential env vars (`MLFLOW_TRACKING_TOKEN`, `MLFLOW_TRACKING_USERNAME`, `MLFLO
 pod startup. The driver, launcher, and user container all receive the same credential env vars, enabling each to
 authenticate its own MLflow REST calls. When `workspace` is present in `KFP_MLFLOW_CONFIG`, the driver and launcher
 include the `X-MLflow-Workspace` header on outbound requests; when it is absent, the header is omitted.
+`credentialSecretRef` inside `KFP_MLFLOW_CONFIG` carries only Secret key names, never the secret values themselves.
 
 `KFP_MLFLOW_CONFIG` is an internal implementation detail and should not be exposed to user code. The launcher currently
 executes the user command via `exec.Command` without setting `command.Env`, so the subprocess inherits the full process
@@ -666,10 +668,12 @@ Configuration is provided at two levels:
   using `"bearer"` or `"basic-auth"` must provide `credentialSecretRef` in this ConfigMap;
   `credentialSecretRef` is never inherited from the API server's global config. If they do not provide it, MLflow
   integration is disabled for runs in that namespace. If the namespace overrides the `endpoint`, it must also provide
-  its own credentials -- the API server's global credentials are never used with a namespace-provided endpoint. A
-  namespace may override only credentials while inheriting the global endpoint, for example to use a namespace-scoped
-  Secret instead of the API server's service account token. If neither the API server nor the namespace ConfigMap
-  provides MLflow configuration, MLflow integration is disabled for that namespace.
+  its own credentials -- the API server's global credentials are never used with a namespace-provided endpoint.
+  `workspacesEnabled` may only be overridden alongside an endpoint override so that workspace-routing changes stay tied
+  to the namespace-owned MLflow endpoint configuration. A namespace may override only credentials while inheriting the
+  global endpoint, for example to use a namespace-scoped Secret instead of the API server's service account token. If
+  neither the API server nor the namespace ConfigMap provides MLflow configuration, MLflow integration is disabled for
+  that namespace.
 
 The Go types for the configuration use a generic `PluginConfig` wrapper with plugin-specific settings in a
 `json.RawMessage` field. This structure aligns with [KEP #12700](https://github.com/kubeflow/pipelines/pull/12700)'s
@@ -693,7 +697,6 @@ The MLflow module parses `Settings` into:
 
 ```go
 type CredentialSecretRef struct {
-	Name        string `json:"name"`                  // Required. K8s Secret name in the run's namespace.
 	TokenKey    string `json:"tokenKey,omitempty"`     // Key for MLFLOW_TRACKING_TOKEN (when authType is "bearer")
 	UsernameKey string `json:"usernameKey,omitempty"`  // Key for MLFLOW_TRACKING_USERNAME (when authType is "basic-auth")
 	PasswordKey string `json:"passwordKey,omitempty"`  // Key for MLFLOW_TRACKING_PASSWORD (when authType is "basic-auth")
@@ -706,6 +709,10 @@ type MLflowPluginSettings struct {
 	ExperimentDescription *string              `json:"experimentDescription,omitempty"` // nil = "Created by Kubeflow Pipelines"; "" = none
 }
 ```
+
+For secret-based auth, `credentialSecretRef` configures only the Secret keys. The Secret name is fixed to
+`kfp-mlflow-credentials` in the run namespace so the API server RBAC can remain scoped to a single Secret
+(`resourceNames: ["kfp-mlflow-credentials"]`).
 
 Standalone API server config example (Kubernetes-native mode):
 
@@ -739,12 +746,24 @@ data:
         "workspacesEnabled": false,
         "authType": "basic-auth",
         "credentialSecretRef": {
-          "name": "kfp-mlflow-credentials",
           "usernameKey": "username",
           "passwordKey": "password"
         }
       }
     }
+```
+
+The matching Secret must be named `kfp-mlflow-credentials`:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kfp-mlflow-credentials
+  namespace: kubeflow-user-example-com
+stringData:
+  username: "<mlflow username>"
+  password: "<mlflow password>"
 ```
 
 The ConfigMap key convention `plugins.<plugin name>` and the API server config nesting `plugins.<plugin name>` are

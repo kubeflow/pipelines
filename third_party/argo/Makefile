@@ -29,13 +29,14 @@ update_manifests:
 update_backend:
 	@echo "Updating Argo Workflows version references in backend..."
 	@VERSION=$$(cat $(ARGO_DIR)/VERSION); \
+	MAJOR=$$(echo "$$VERSION" | sed -E 's/^v([0-9]+)\..*/\1/'); \
 	echo "Using Argo Workflows version: $$VERSION"; \
-	echo "Updating go depedency..."; \
-	sed -i.bak -E "s|github.com/argoproj/argo-workflows/v3 v[0-9]+\.[0-9]+\.[0-9]+|github.com/argoproj/argo-workflows/v3 $$VERSION|g" $(REPO_ROOT)/go.mod; \
+	echo "Updating go dependency..."; \
+	sed -i.bak -E "s|github.com/argoproj/argo-workflows/v[0-9]+ v[0-9]+\.[0-9]+\.[0-9]+|github.com/argoproj/argo-workflows/v$$MAJOR $$VERSION|g" $(REPO_ROOT)/go.mod; \
 	go mod tidy; \
 	echo "Updating code refs in backend..."; \
 	sed -i.bak -E "s|ARGO_VERSION=v[0-9]+\.[0-9]+\.[0-9]+|ARGO_VERSION=$$VERSION|g" $(BACKEND_CODE_DIR)/Dockerfile && \
-	sed -i.bak -E "s|argo-workflows/v3@v[0-9]+\.[0-9]+\.[0-9]+|argo-workflows/v3@$$VERSION|g" $(BACKEND_CODE_DIR)/src/common/types.go && \
+	sed -i.bak -E "s|argo-workflows/v[0-9]+@v[0-9]+\.[0-9]+\.[0-9]+|argo-workflows/v$$MAJOR@$$VERSION|g" $(BACKEND_CODE_DIR)/src/common/types.go && \
 	echo "Cleaning up temp backups..."; \
 	rm -f $(REPO_ROOT)/go.mod.bak $(BACKEND_CODE_DIR)/Dockerfile.bak $(BACKEND_CODE_DIR)/src/common/types.go.bak; \
 	echo "Successfully updated backend code refs to use $$VERSION"
@@ -61,4 +62,3 @@ update_docs:
 	echo "Cleaning up temp backups..."; \
 	rm -f $(DOCS_DIR)/UPGRADE.md.bak; \
 	echo "Successfully updated docs to use $$VERSION"
-

@@ -25,6 +25,7 @@ You will need the following installed in your environment:
 * [Kind] 
 * [Kustomize] 
 * [Node] version specified in the [.nvmrc]
+* npm version specified in [package.json]
 
 > [!Note]
 > MAC users have reported positive experiences using [Docker + Colima] when using Kind environments. Consider
@@ -69,6 +70,7 @@ Now navigate to the KFP frontend folder, install and build your NPM dependencies
 
 ```bash
 cd ${WORKING_DIRECTORY}/frontend
+npm install --global "$(node -p 'require("./package.json").packageManager')"
 npm ci
 npm run build
 ```
@@ -104,6 +106,17 @@ VITE v7.x ready in ...
 Follow this link, it should also take you to the same UI. The difference here is that whenever you change client side (React) code locally, you will automatically get the new changes in your browser without having to restart your server. 
 
 The local dev bootstrap runs under React Strict Mode. Vitest UI tests are configured to do the same through Testing Library's global `reactStrictMode` setting so direct `render()` calls match dev behavior. Production builds remain outside Strict Mode.
+
+### Mock backend shortcut
+
+For fixture-backed client work that does not need a Kubernetes cluster, run:
+
+```bash
+npm run mock:api
+npm run start
+```
+
+The mock backend serves the primary v2 Pipelines, Experiments, Runs, and Recurring Runs list pages with deterministic fixture data. Use `npm run start:proxy-and-server` against a real KFP deployment when validating MLMD, pod logs, runtime artifacts, auth, or backend behavior beyond those fixtures.
 
 ## Visual Regression Testing
 
@@ -149,6 +162,7 @@ For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 [Kustomize]: https://kustomize.io
 [Node]: https://www.npmjs.com/package/node
 [.nvmrc]: .nvmrc
+[package.json]: package.json
 [CONTRIBUTING.md]: CONTRIBUTING.md
 [scripts/ui-smoke-test/README.md]: scripts/ui-smoke-test/README.md
 [http://127.0.0.1:3000]: http://127.0.0.1:3000

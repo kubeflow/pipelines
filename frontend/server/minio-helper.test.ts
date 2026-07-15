@@ -119,6 +119,59 @@ describe('minio-helper', () => {
       });
       expect(MockedMinioClient).toBeCalledTimes(1);
     });
+
+    it('rewrites configured in-cluster endpoints to local proxy endpoints.', async () => {
+      const client = await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: 'seaweedfs.kubeflow.svc',
+          endpointRewrite:
+            'seaweedfs.kubeflow:9000=localhost:9000,seaweedfs.kubeflow.svc:9000=localhost:9000',
+          port: 9000,
+          secretKey: 'secretkey',
+          useSSL: false,
+        },
+        's3',
+      );
+
+      expect(client).toBeInstanceOf(MinioClient);
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'localhost',
+        port: 9000,
+        secretKey: 'secretkey',
+        useSSL: false,
+      });
+    });
+
+    it('skips invalid endpoint rewrite rules.', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const client = await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: 'seaweedfs.kubeflow.svc',
+          endpointRewrite:
+            'seaweedfs.kubeflow.svc:9000=::::,seaweedfs.kubeflow.svc:9000=localhost:9000',
+          port: 9000,
+          secretKey: 'secretkey',
+          useSSL: false,
+        },
+        's3',
+      );
+
+      expect(client).toBeInstanceOf(MinioClient);
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Ignoring invalid MinIO endpoint rewrite endpoint "::::"'),
+      );
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'localhost',
+        port: 9000,
+        secretKey: 'secretkey',
+        useSSL: false,
+      });
+    });
   });
 
   describe('isTarball', () => {

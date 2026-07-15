@@ -9,6 +9,7 @@ on:
     types:
       - labeled
       - synchronize
+      - reopened
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.number }}
@@ -47,26 +48,47 @@ jobs:
         if: steps.membership-check.outputs.is_member == 'true' || contains(github.event.pull_request.labels.*.name, 'ok-to-test')
         uses: actions/github-script@v8
         with:
-          retries: 3
+          retries: 3 # github-script level: retries the entire script on transient API errors
           script: |
-            const request = {
+            // Poll for runs that may not exist yet due to race with workflow creation
+            const maxAttempts = 7;
+            const intervalMs = 10_000;
+            const headSha = context.payload.pull_request.head.sha;
+
+            const listRequest = {
               owner: context.repo.owner,
               repo: context.repo.repo,
               event: "pull_request",
               status: "action_required",
-              head_sha: context.payload.pull_request.head.sha,
+              head_sha: headSha,
+            };
+
+            let runs = [];
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              core.info(`[Attempt ${attempt}/${maxAttempts}] Querying action_required runs for ${headSha}`);
+              runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, listRequest);
+
+              if (runs.length > 0) {
+                core.info(`Found ${runs.length} workflow run(s) to approve.`);
+                break;
+              }
+
+              if (attempt < maxAttempts) {
+                core.info(`No runs found yet. Waiting ${intervalMs / 1000}s before retry...`);
+                await new Promise(r => setTimeout(r, intervalMs));
+              }
             }
 
-            core.info(`Getting workflow runs that need approval for commit ${request.head_sha}`)
-            const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, request)
-
-            core.info(`Found ${runs.length} workflow runs that need approval`)
-            for (const run of runs) {
-              core.info(`Approving workflow run ${run.id}`)
-              const request = {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                run_id: run.id,
+            if (runs.length === 0) {
+              core.warning(`No action_required workflow runs found for ${headSha} after ${maxAttempts} attempts.`);
+            } else {
+              for (const run of runs) {
+                core.info(`Approving workflow run ${run.id} (${run.name})`);
+                await github.rest.actions.approveWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: run.id,
+                });
               }
-              await github.rest.actions.approveWorkflowRun(request)
+              core.info(`Approved ${runs.length} workflow run(s).`);
             }

@@ -24,7 +24,7 @@ import {
 } from './DynamicFlow';
 import { convertFlowElements, getTaskKeyFromNodeKey, NodeTypeNames } from './StaticFlow';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
-import jsyaml from 'js-yaml';
+import { load } from 'js-yaml';
 
 describe('DynamicFlow', () => {
   describe('updateFlowElementsState', () => {
@@ -70,7 +70,7 @@ describe('DynamicFlow', () => {
         .setPath(new Event.Path().setStepsList([new Event.Path.Step().setKey('model')]));
 
       // Converts to static graph first, its type is Elements<any>.
-      const yamlObject = jsyaml.safeLoad(v2YamlTemplateString);
+      const yamlObject = load(v2YamlTemplateString);
       const pipelineSpec = PipelineSpec.fromJSON(yamlObject);
       const graph = convertFlowElements(pipelineSpec);
 
@@ -121,7 +121,7 @@ describe('DynamicFlow', () => {
         .set(TASK_NAME_KEY, new Value().setStringValue('preprocess'))
         .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2));
 
-      const yamlObject = jsyaml.safeLoad(v2YamlTemplateString);
+      const yamlObject = load(v2YamlTemplateString);
       const pipelineSpec = PipelineSpec.fromJSON(yamlObject);
       const graph = convertFlowElements(pipelineSpec);
       const preprocessNode = graph.find((element) => element.id === 'task.preprocess') as Node;

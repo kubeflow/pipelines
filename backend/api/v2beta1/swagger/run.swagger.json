@@ -34,7 +34,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -100,7 +100,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -141,7 +141,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -179,7 +179,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -219,7 +219,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -259,7 +259,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -299,7 +299,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -339,7 +339,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/googleRpcStatus"
             }
           }
         },
@@ -389,7 +389,7 @@
       },
       "description": "A dependent task that requires this one to succeed.\nRepresented by either task_id or pod_name."
     },
-    "googlerpcStatus": {
+    "googleRpcStatus": {
       "type": "object",
       "properties": {
         "code": {
@@ -521,7 +521,7 @@
           "description": "Execution id of the corresponding entry in ML metadata store."
         },
         "error": {
-          "$ref": "#/definitions/googlerpcStatus",
+          "$ref": "#/definitions/googleRpcStatus",
           "description": "The error that occurred during task execution.\nOnly populated when the task is in FAILED or CANCELED state."
         },
         "inputs": {
@@ -699,7 +699,7 @@
           "description": "Output. Runtime state of a run."
         },
         "error": {
-          "$ref": "#/definitions/googlerpcStatus",
+          "$ref": "#/definitions/googleRpcStatus",
           "description": "In case any error happens retrieving a run field, only run ID\nand the error message is returned. Client has the flexibility of choosing\nhow to handle the error. This is especially useful during listing call."
         },
         "run_details": {
@@ -812,7 +812,7 @@
           "description": "The state of a runtime instance."
         },
         "error": {
-          "$ref": "#/definitions/googlerpcStatus",
+          "$ref": "#/definitions/googleRpcStatus",
           "description": "The error that occurred during the state. May be set when the state is\nany of the non-final states (PENDING/RUNNING/CANCELING) or FAILED state.\nIf the state is FAILED, the error here is final and not going to be\nretried. If the state is a non-final state, the error indicates that a\nsystem-error being retried."
         }
       },

@@ -24,16 +24,16 @@ import { RuntimeNodeDetailsV2 } from 'src/components/tabs/RuntimeNodeDetailsV2';
 import { Execution, Value } from 'src/third_party/mlmd';
 import TestUtils from 'src/TestUtils';
 import v2PvcYamlString from 'src/data/test/create_mount_delete_dynamic_pvc.yaml?raw';
-import jsyaml from 'js-yaml';
+import { dump, loadAll } from 'js-yaml';
 
 const V2_PVC_YAML_STRING = v2PvcYamlString;
 // The templateStr used in RuntimeNodeDetailsV2 is not directly from yaml file.
 // Instead, it is from BE (already been processed).
 const V2_PVC_TEMPLATE_STRING_OBJ = {
-  pipeline_spec: jsyaml.safeLoadAll(V2_PVC_YAML_STRING)[0],
-  platform_spec: jsyaml.safeLoadAll(V2_PVC_YAML_STRING)[1],
+  pipeline_spec: loadAll(V2_PVC_YAML_STRING)[0],
+  platform_spec: loadAll(V2_PVC_YAML_STRING)[1],
 };
-const V2_PVC_TEMPLATE_STRING = jsyaml.safeDump(V2_PVC_TEMPLATE_STRING_OBJ);
+const V2_PVC_TEMPLATE_STRING = dump(V2_PVC_TEMPLATE_STRING_OBJ);
 
 testBestPractices();
 

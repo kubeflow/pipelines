@@ -87,11 +87,11 @@ function NewRunSwitcher(props: PageProps) {
   // template string from cloned run / recurring run created by pipeline_spec
   let pipelineManifest: string | undefined;
   if (getV2RunSuccess && v2Run && v2Run.pipeline_spec) {
-    pipelineManifest = JsYaml.safeDump(v2Run.pipeline_spec);
+    pipelineManifest = JsYaml.dump(v2Run.pipeline_spec);
   }
 
   if (getRecurringRunSuccess && recurringRun && recurringRun.pipeline_spec) {
-    pipelineManifest = JsYaml.safeDump(recurringRun.pipeline_spec);
+    pipelineManifest = JsYaml.dump(recurringRun.pipeline_spec);
   }
 
   const {
@@ -133,7 +133,7 @@ function NewRunSwitcher(props: PageProps) {
     gcTime: 0,
   });
   const pipelineSpecInVersion = pipelineVersion?.pipeline_spec;
-  const templateStrFromSpec = pipelineSpecInVersion ? JsYaml.safeDump(pipelineSpecInVersion) : '';
+  const templateStrFromSpec = pipelineSpecInVersion ? JsYaml.dump(pipelineSpecInVersion) : '';
 
   const {
     isFetching: v1TemplateStrIsFetching,

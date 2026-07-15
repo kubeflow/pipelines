@@ -21,6 +21,10 @@ COPY ./go.sum ./
 COPY ./kubernetes_platform/go.mod ./kubernetes_platform/go.mod
 COPY ./api/go.mod ./api/go.mod
 
+# Fall back to fetching modules directly from source on any module proxy
+# error (the default comma separator only falls back on 404/410), so a
+# transient proxy.golang.org failure cannot fail the build.
+ENV GOPROXY=https://proxy.golang.org|direct
 RUN GO111MODULE=on go mod download
 
 COPY . .
@@ -37,7 +41,7 @@ ARG TARGETARCH
 RUN echo "Building for architecture: ${TARGETARCH}"
 
 # Downloading Argo CLI so that the samples are validated
-ENV ARGO_VERSION=v3.7.3
+ENV ARGO_VERSION=v4.0.5
 RUN curl -sL -H "Accept: application/octet-stream" \
         https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-$TARGETARCH.gz \
     -o argo-linux-$TARGETARCH.gz && \

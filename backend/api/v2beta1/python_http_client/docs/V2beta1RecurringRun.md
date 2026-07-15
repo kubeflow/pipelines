@@ -17,7 +17,7 @@ Name | Type | Description | Notes
 **created_at** | **datetime** | Output. The time this recurring run was created. | [optional] 
 **updated_at** | **datetime** | Output. The last time this recurring run was updated. | [optional] 
 **status** | [**V2beta1RecurringRunStatus**](V2beta1RecurringRunStatus.md) |  | [optional] 
-**error** | [**GooglerpcStatus**](GooglerpcStatus.md) |  | [optional] 
+**error** | [**GoogleRpcStatus**](GoogleRpcStatus.md) |  | [optional] 
 **no_catchup** | **bool** | Optional input field. Whether the recurring run should catch up if behind schedule. If true, the recurring run will only schedule the latest interval if behind schedule. If false, the recurring run will catch up on each past interval. | [optional] 
 **namespace** | **str** | TODO (gkclat): consider removing this field if it can be obtained from the parent experiment. Output only. Namespace this recurring run belongs to. Derived from the parent experiment. | [optional] [readonly] 
 **experiment_id** | **str** | ID of the parent experiment this recurring run belongs to. | [optional] 

@@ -1,0 +1,25 @@
+# Presubmit gate for tooling under .github/resources/scripts: the
+# unit tests are stdlib-only and their file names are not matched by default
+# `unittest discover` patterns, so run them explicitly.
+name: CI Scripts Tests
+
+on:
+  pull_request:
+    paths:
+      - '.github/resources/scripts/*.py'
+      - '.github/resources/scripts/collect-seaweedfs-diagnostics.sh'
+      - '.github/workflows/ci-scripts-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  python-script-tests:
+    name: Run .github scripts unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run CI script unit tests
+        working-directory: .github/resources/scripts
+        run: python3 -m unittest -v collect_seaweedfs_diagnostics_test ci_health_report_test
