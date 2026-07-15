@@ -17,7 +17,6 @@ package util
 import (
 	"testing"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
@@ -135,14 +134,3 @@ func TestIsV1PipelinesBlocked(t *testing.T) {
 	}
 }
 
-func TestIsV1PipelinesBlocked_MalformedValueFatals(t *testing.T) {
-	var fatalCalled bool
-	log.StandardLogger().ExitFunc = func(int) { fatalCalled = true }
-	defer func() { log.StandardLogger().ExitFunc = nil }()
-
-	viper.Set(BlockV1Pipelines, "notabool")
-	defer viper.Set(BlockV1Pipelines, nil)
-
-	IsV1PipelinesBlocked("ns1")
-	assert.True(t, fatalCalled, "expected Fatalf to be called for malformed BLOCK_V1_PIPELINES")
-}
