@@ -95,13 +95,23 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
             output,
         )
         self.assertIn(
-            'Non-Service connection targets ignored: 10.244.0.99:9090', output
+            'Targets not in the current Service inventory (backend lookup '
+            'skipped; node program probed in section 5): 10.244.0.99:9090',
+            output,
         )
         # Host-level capture: rendered once, regardless of docker/node state.
         self.assertIn(
             'runner-kernel softirq backlog (shared by every Kind node)', output
         )
-        self.assertNotIn('service program for 10.244.0.99:9090', output)
+        # Unowned targets keep their node-level probe (a deleted/re-IP'd
+        # Service's stale VIP is exactly that evidence) but never get a
+        # backend-object lookup: absent from section (4)'s correlated list,
+        # present in section (5)'s.
+        section_four_correlated = output.split('----- (4)')[1].splitlines()[1]
+        section_five_correlated = output.split('----- (5)')[1].splitlines()[1]
+        self.assertNotIn('10.244.0.99:9090', section_four_correlated)
+        self.assertIn('10.244.0.99:9090', section_five_correlated)
+        self.assertNotIn('Service:  (failed VIP 10.244.0.99:9090)', output)
         self.assertEqual(
             output.count(
                 'Service: opendatahub/mlflow (failed VIP 10.96.2.2:8443)'

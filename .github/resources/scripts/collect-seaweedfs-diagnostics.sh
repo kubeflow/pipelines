@@ -287,14 +287,14 @@ fi
         SERVICE_INVENTORY_AVAILABLE=false
     fi
     FAILED_SERVICE_VIPS=""
-    IGNORED_CONNECTION_TARGETS=""
+    UNOWNED_CONNECTION_TARGETS=""
     if [[ "$SERVICE_INVENTORY_AVAILABLE" == "true" ]]; then
         for vip in $LOG_VIPS; do
             if printf '%s\n' "$SERVICE_INVENTORY" \
                 | awk -F '\t' -v ip="${vip%%:*}" '$3 == ip {found=1} END {exit !found}'; then
                 FAILED_SERVICE_VIPS+="${vip}"$'\n'
             else
-                IGNORED_CONNECTION_TARGETS+="${vip}"$'\n'
+                UNOWNED_CONNECTION_TARGETS+="${vip}"$'\n'
             fi
         done
     else
@@ -318,8 +318,12 @@ fi
     if [[ "$SERVICE_INVENTORY_AVAILABLE" != "true" ]]; then
         echo "Service inventory unavailable; ClusterIP ownership cannot be confirmed."
     fi
-    if [[ -n "$IGNORED_CONNECTION_TARGETS" ]]; then
-        echo "Non-Service connection targets ignored: $(printf '%s ' $IGNORED_CONNECTION_TARGETS)"
+    if [[ -n "$UNOWNED_CONNECTION_TARGETS" ]]; then
+        # A Service deleted, recreated, or re-IP'd after the failure leaves its
+        # old VIP absent from the current inventory — exactly the stale-Service
+        # scenario the node probe exists to catch. Skip only the backend-object
+        # lookups for these; section (5) still probes their node programs.
+        echo "Targets not in the current Service inventory (backend lookup skipped; node program probed in section 5): $(printf '%s ' $UNOWNED_CONNECTION_TARGETS)"
     fi
     if [[ -z "$TARGET_VIPS" ]]; then
         echo "No failed ClusterIPs to correlate."
@@ -364,9 +368,17 @@ fi
         echo "(/proc/net/softnet_stat unavailable)"
     fi
 
+    # Node-level targets include logged addresses missing from the current
+    # Service inventory: a stale/deleted Service's old VIP must still get its
+    # iptables/ipvs snapshot even though there is no backend object to query.
+    NODE_TARGET_VIPS=$(
+        { printf '%s\n' "$TARGET_VIPS"; printf '%s' "$UNOWNED_CONNECTION_TARGETS"; } \
+            | grep -E '^[0-9.]+:[0-9]+$' | sort -u
+    )
+
     echo
     echo "----- (5) node netfilter state for failed ClusterIPs -----"
-    echo "ClusterIPs correlated: $(printf '%s ' ${TARGET_VIPS:-<none>})"
+    echo "ClusterIPs correlated: $(printf '%s ' ${NODE_TARGET_VIPS:-<none>})"
     # Kind runs each node as a Docker container named after the Kubernetes node,
     # so 'docker exec <node>' reaches the node's network namespace where
     # kube-proxy programs the ClusterIPs and the kernel tracks connections. A
@@ -424,10 +436,10 @@ fi
             # Per-VIP service program end to end (KUBE-SERVICES -> KUBE-SVC ->
             # KUBE-SEP DNAT): a live DNAT to the pod means the rule is not the
             # problem; an empty chain means no ready backend.
-            if [[ -z "$TARGET_VIPS" ]]; then
+            if [[ -z "$NODE_TARGET_VIPS" ]]; then
                 echo "service program: no failed ClusterIPs to correlate."
             else
-                for vip in $TARGET_VIPS; do
+                for vip in $NODE_TARGET_VIPS; do
                     echo "service program for $vip (iptables, then ipvs):"
                     probe_service_rules "$node" "${vip%%:*}" "${vip##*:}"
                 done
