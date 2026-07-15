@@ -1,6 +1,6 @@
-# Presubmit gate for tooling under .github/resources/scripts: the
-# unit tests are stdlib-only and their file names are not matched by default
-# `unittest discover` patterns, so run them explicitly.
+# Presubmit gate for the Python tooling under .github/resources/scripts: the
+# unit tests are stdlib-only and use the `*_test.py` suffix, so select that
+# pattern explicitly because it is not unittest discover's default.
 name: CI Scripts Tests
 
 on:
@@ -21,9 +21,6 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
-      - name: Run CI script unit tests
+      - name: Run Python script unit tests
         working-directory: .github/resources/scripts
-        run: python3 -m unittest -v collect_seaweedfs_diagnostics_test ci_health_report_test
-      - name: Run observability output tests
-        working-directory: .github/resources/scripts
-        run: python3 -m unittest -v observability_output_test
+        run: python3 -m unittest discover -v -p '*_test.py'

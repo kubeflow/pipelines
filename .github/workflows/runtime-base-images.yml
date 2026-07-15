@@ -11,21 +11,27 @@ on:
       - '.github/workflows/image-builds.yml'
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/helper-functions.sh'
+      - '.github/resources/scripts/prune_runtime_base_image_caches.py'
   pull_request:
     paths:
       - '.github/workflows/runtime-base-images.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/helper-functions.sh'
+      - '.github/resources/scripts/prune_runtime_base_image_caches.py'
 
 concurrency:
   group: runtime-base-images-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   produce-runtime-base-images:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      cache-key: ${{ steps.configure-runtime-base-images.outputs.cache-key }}
     env:
       ARTIFACTS_PATH: "runtime-base-images-cache"
       RUNTIME_BASE_IMAGE_ARCHIVE: "runtime-base-images.tar"
@@ -47,7 +53,7 @@ jobs:
 
       - name: Restore runtime base images from cache
         id: cache-runtime-base-images
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with:
           path: ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
           key: ${{ steps.configure-runtime-base-images.outputs.cache-key }}
@@ -62,6 +68,16 @@ jobs:
             .github/resources/runtime-base-images.txt \
             "${ARTIFACTS_PATH}/${RUNTIME_BASE_IMAGE_ARCHIVE}"
 
+      - name: Save runtime base images to cache
+        if: >-
+          github.event_name != 'pull_request' &&
+          github.ref == 'refs/heads/master' &&
+          steps.cache-runtime-base-images.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
+          key: ${{ steps.configure-runtime-base-images.outputs.cache-key }}
+
       - name: Upload runtime base image producer artifact
         uses: actions/upload-artifact@v7
         with:
@@ -69,3 +85,58 @@ jobs:
           path: ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
           if-no-files-found: error
           retention-days: 3
+
+  prune-runtime-base-image-caches:
+    needs: produce-runtime-base-images
+    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Prune superseded runtime base image caches
+        shell: bash
+        env:
+          CURRENT_CACHE_KEY: ${{ needs.produce-runtime-base-images.outputs.cache-key }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          cache_pages=$(mktemp)
+          cache_ids=$(mktemp)
+          current_cache_found=false
+
+          for attempt in $(seq 1 6); do
+            gh api --method GET --paginate --slurp \
+              "repos/${GITHUB_REPOSITORY}/actions/caches" \
+              -f key='runtime-base-images-' \
+              -f per_page=100 > "${cache_pages}"
+
+            if python3 .github/resources/scripts/prune_runtime_base_image_caches.py \
+                --current-key "${CURRENT_CACHE_KEY}" \
+                --current-ref 'refs/heads/master' \
+                < "${cache_pages}" > "${cache_ids}"; then
+              current_cache_found=true
+              break
+            fi
+
+            if [[ "${attempt}" -lt 6 ]]; then
+              echo "Current cache is not visible yet; retrying in 5 seconds..."
+              sleep 5
+            fi
+          done
+
+          if [[ "${current_cache_found}" != true ]]; then
+            echo "::error::Current master cache was not found; refusing to delete caches"
+            exit 1
+          fi
+
+          while IFS= read -r cache_id; do
+            [[ -z "${cache_id}" ]] && continue
+            gh api --method DELETE \
+              "repos/${GITHUB_REPOSITORY}/actions/caches/${cache_id}"
+          done < "${cache_ids}"
