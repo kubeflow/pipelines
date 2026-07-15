@@ -386,7 +386,6 @@ echo "$PATH" | grep "${{go_path}}/bin" >/dev/null || (echo "\\$GOPATH/bin: ${{go
 echo "All tools installed"
 cd "$REPO_ROOT"
 git-cliff -c cliff.toml --tag "$TAG_NAME" --prepend CHANGELOG.md "$PREVIOUS_RELEASE..HEAD"
-"$REPO_ROOT/manifests/gcp_marketplace/hack/release.sh" "$TAG_NAME"
 "$REPO_ROOT/manifests/kustomize/hack/release.sh" "$TAG_NAME"
 export API_VERSION=v1beta1
 "$REPO_ROOT/backend/api/hack/generator.sh"

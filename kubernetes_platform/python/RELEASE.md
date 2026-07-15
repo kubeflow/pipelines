@@ -14,11 +14,11 @@ Some steps require elevated permissions to push branches, publish the package, a
 
     ```
     KFP_KUBERNETES_VERSION=0.0.1 # replace with correct version
-    kfpr create-kfp-kubernetes-docs-branch \
+    kfpr run create-kfp-kubernetes-docs-branch \
       --release-type patch \
       --version "$KFP_KUBERNETES_VERSION" \
       --fork-remote upstream \
-      --mark-done
+      --done
     ```
 
 1.  Follow the output from Step 2, which explains how to push the branch to upstream.

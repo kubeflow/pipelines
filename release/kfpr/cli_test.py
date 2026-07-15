@@ -75,6 +75,13 @@ class PackageImportTest(unittest.TestCase):
     self.assertIn('kfpr run create-kfp-kubernetes-docs-branch', workflow_text)
     self.assertIn("pip install --upgrade 'typer>=0.16,<1.0'", workflow_text)
 
+  def test_kubernetes_release_guide_uses_nested_step_command(self):
+    guide = Path(__file__).parents[2] / 'kubernetes_platform/python/RELEASE.md'
+    guide_text = guide.read_text()
+    self.assertIn('kfpr run create-kfp-kubernetes-docs-branch', guide_text)
+    self.assertIn('--done', guide_text)
+    self.assertNotIn('--mark-done', guide_text)
+
 
 class CliTest(unittest.TestCase):
 

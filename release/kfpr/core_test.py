@@ -182,6 +182,7 @@ class GithubCommandTest(unittest.TestCase):
     self.assertIn('PREVIOUS_RELEASE=3.1.1', script)
     self.assertIn('git-cliff -c cliff.toml --tag "$TAG_NAME" --prepend CHANGELOG.md "$PREVIOUS_RELEASE..HEAD"', script)
     self.assertNotIn('--unreleased', script)
+    self.assertNotIn('manifests/gcp_marketplace/hack/release.sh', script)
 
   def test_release_version_bump_command_quotes_previous_release(self):
     command = core.release_version_bump_command(Path('/repo'), 'release-3.2', '3.1.1; echo unsafe')
@@ -468,7 +469,7 @@ class InlineCommandTest(unittest.TestCase):
     self.assertNotIn('-lc', command)
     script = command[-1]
     self.assertIn('git-cliff -c cliff.toml --tag "$TAG_NAME" --prepend CHANGELOG.md "$PREVIOUS_RELEASE..HEAD"', script)
-    self.assertIn('"$REPO_ROOT/manifests/gcp_marketplace/hack/release.sh" "$TAG_NAME"', script)
+    self.assertNotIn('manifests/gcp_marketplace/hack/release.sh', script)
     self.assertIn('"$REPO_ROOT/backend/api/build_kfp_server_api_python_package.sh"', script)
     self.assertIn('REQUIRED_NODE_VERSION=', script)
     self.assertIn('which node >/dev/null', script)

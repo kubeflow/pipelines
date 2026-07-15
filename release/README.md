@@ -38,6 +38,10 @@ the saved status and asks before resuming; pass `--force` to resume without that
 For major and minor releases, pass `--release-source-branch BRANCH` to skip the source
 branch prompt.
 
+Documentation is not updated for patch releases. Read the Docs continues to serve the persistent
+`release-<major>.<minor>` and `kfp-kubernetes-<major>.<minor>` branches until the next minor
+release updates them.
+
 For `--fork-remote`, you can pass either a full remote URL or just your GitHub username. `kfpr`
 expands `droctothorpe` to `https://github.com/droctothorpe/pipelines.git`.
 
