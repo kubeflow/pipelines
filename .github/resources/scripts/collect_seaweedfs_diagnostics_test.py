@@ -97,6 +97,10 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
         self.assertIn(
             'Non-Service connection targets ignored: 10.244.0.99:9090', output
         )
+        # Host-level capture: rendered once, regardless of docker/node state.
+        self.assertIn(
+            'runner-kernel softirq backlog (shared by every Kind node)', output
+        )
         self.assertNotIn('service program for 10.244.0.99:9090', output)
         self.assertEqual(
             output.count(
