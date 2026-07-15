@@ -181,8 +181,8 @@ func TestShouldEnforceV1Block(t *testing.T) {
 			viper.Set(commonutil.BlockV1Pipelines, tt.blockV1)
 			viper.Set(v1AllowedNamespaces, tt.allowedNamespaces)
 			defer func() {
-				viper.Set(commonutil.BlockV1Pipelines, "")
-				viper.Set(v1AllowedNamespaces, "")
+				viper.Set(commonutil.BlockV1Pipelines, nil)
+				viper.Set(v1AllowedNamespaces, nil)
 			}()
 
 			swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
@@ -203,7 +203,7 @@ func TestShouldEnforceV1Block(t *testing.T) {
 
 	t.Run("Nil ScheduledWorkflow - not blocked", func(t *testing.T) {
 		viper.Set(commonutil.BlockV1Pipelines, "true")
-		defer viper.Set(commonutil.BlockV1Pipelines, "")
+		defer viper.Set(commonutil.BlockV1Pipelines, nil)
 
 		assert.False(t, shouldEnforceV1Block(nil))
 	})
@@ -257,8 +257,8 @@ func TestSubmitNewWorkflowIfNotAlreadySubmitted_BlockV1AllowsV2(t *testing.T) {
 			viper.Set(commonutil.BlockV1Pipelines, "true")
 			viper.Set(v1AllowedNamespaces, "")
 			defer func() {
-				viper.Set(commonutil.BlockV1Pipelines, "")
-				viper.Set(v1AllowedNamespaces, "")
+				viper.Set(commonutil.BlockV1Pipelines, nil)
+				viper.Set(v1AllowedNamespaces, nil)
 			}()
 
 			executionClient := &fakeExecutionClient{}

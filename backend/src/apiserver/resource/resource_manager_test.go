@@ -2114,8 +2114,8 @@ func TestCreateRun_BlockV1Pipelines(t *testing.T) {
 			viper.Set(util.BlockV1Pipelines, test.blockV1)
 			viper.Set(v1AllowedNamespaces, test.allowedNamespaces)
 			defer func() {
-				viper.Set(util.BlockV1Pipelines, false)
-				viper.Set(v1AllowedNamespaces, "")
+				viper.Set(util.BlockV1Pipelines, nil)
+				viper.Set(v1AllowedNamespaces, nil)
 			}()
 
 			store, manager, exp := initWithExperiment(t)
@@ -3299,8 +3299,8 @@ func TestCreateJob_BlocksV1Pipelines(t *testing.T) {
 			viper.Set(util.BlockV1Pipelines, test.blockV1)
 			viper.Set(v1AllowedNamespaces, test.allowedNamespaces)
 			defer func() {
-				viper.Set(util.BlockV1Pipelines, false)
-				viper.Set(v1AllowedNamespaces, "")
+				viper.Set(util.BlockV1Pipelines, nil)
+				viper.Set(v1AllowedNamespaces, nil)
 			}()
 
 			store, manager, exp := initWithExperiment(t)
