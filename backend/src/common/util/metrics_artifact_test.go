@@ -40,7 +40,7 @@ func TestDecodeRunMetrics_StreamsCompatibleMetrics(t *testing.T) {
 	assert.Equal(t, 1.25, metrics[1].GetNumberValue())
 }
 
-func TestDecodeRunMetrics_EnforcesMetricCount(t *testing.T) {
+func TestDecodeRunMetrics_CapsMetricCount(t *testing.T) {
 	var input strings.Builder
 	input.WriteString(`{"metrics":[`)
 	for index := 0; index <= maxMetricsCountLimit; index++ {
@@ -53,8 +53,10 @@ func TestDecodeRunMetrics_EnforcesMetricCount(t *testing.T) {
 
 	metrics, err := decodeRunMetrics(strings.NewReader(input.String()))
 
-	assert.Nil(t, metrics)
-	assert.ErrorContains(t, err, "metrics file contains more than 50 metrics")
+	require.NoError(t, err)
+	require.Len(t, metrics, maxMetricsCountLimit)
+	assert.Equal(t, "metric-0", metrics[0].GetName())
+	assert.Equal(t, "metric-49", metrics[maxMetricsCountLimit-1].GetName())
 }
 
 func TestDecodeRunMetrics_EnforcesMetricNameLength(t *testing.T) {
