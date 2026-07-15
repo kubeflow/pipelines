@@ -97,10 +97,6 @@ func decodeMetricsArray(decoder *json.Decoder) ([]*api.RunMetric, error) {
 
 	metrics := make([]*api.RunMetric, 0, maxMetricsCountLimit)
 	for decoder.More() {
-		if len(metrics) >= maxMetricsCountLimit {
-			return nil, fmt.Errorf("metrics file contains more than %d metrics", maxMetricsCountLimit)
-		}
-
 		var rawMetric json.RawMessage
 		if err := decoder.Decode(&rawMetric); err != nil {
 			return nil, fmt.Errorf("failed to decode metric: %w", err)
@@ -116,7 +112,9 @@ func decodeMetricsArray(decoder *json.Decoder) ([]*api.RunMetric, error) {
 		if len(metric.GetName()) > maxMetricNameLength {
 			return nil, fmt.Errorf("metric name cannot exceed %d characters", maxMetricNameLength)
 		}
-		metrics = append(metrics, metric)
+		if len(metrics) < maxMetricsCountLimit {
+			metrics = append(metrics, metric)
+		}
 	}
 	if _, err := decoder.Token(); err != nil {
 		return nil, fmt.Errorf("failed to finish metrics array: %w", err)
