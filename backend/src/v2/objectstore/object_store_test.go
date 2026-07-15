@@ -636,6 +636,52 @@ func Test_createS3BucketSession(t *testing.T) {
 	}
 }
 
+func TestGetS3BucketCredentialReportsMissingRoleWithoutConfiguredKeyNames(t *testing.T) {
+	tests := []struct {
+		name            string
+		secretData      map[string][]byte
+		expectedMissing string
+	}{
+		{
+			name: "access key missing",
+			secretData: map[string][]byte{
+				"custom-secret-key-field": []byte("secret-key-value"),
+			},
+			expectedMissing: "access key",
+		},
+		{
+			name: "secret key missing",
+			secretData: map[string][]byte{
+				"custom-access-key-field": []byte("access-key-value"),
+			},
+			expectedMissing: "secret key",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			clientSet := fake.NewSimpleClientset(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "s3-provider-secret", Namespace: "testnamespace"},
+				Data:       test.secretData,
+			})
+
+			_, err := getS3BucketCredential(
+				context.Background(),
+				clientSet,
+				"testnamespace",
+				"s3-provider-secret",
+				"custom-secret-key-field",
+				"custom-access-key-field",
+			)
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "has no value for: "+test.expectedMissing)
+			assert.NotContains(t, err.Error(), "custom-access-key-field")
+			assert.NotContains(t, err.Error(), "custom-secret-key-field")
+		})
+	}
+}
+
 func TestOpenBucketUsesExplicitS3ClientForEnvCredentials(t *testing.T) {
 	t.Setenv("AWS_REGION", "us-east-1")
 

@@ -95,15 +95,13 @@ func TestKubernetesConfigLogMessageDoesNotIncludeConfigContent(t *testing.T) {
 }
 
 func TestParseExecConfigJsonErrorDoesNotIncludeConfigContent(t *testing.T) {
-	kubernetesConfig := `{"secretAsEnv":[{"secretName":"mlflow-secret","keyToEnv":[{"secretKey":"password","envVar":"PASSWORD"}]}`
+	kubernetesConfig := `"mlflow-secret"`
 
 	_, err := parseExecConfigJson(&kubernetesConfig)
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to unmarshal Kubernetes config")
-	assert.NotContains(t, err.Error(), "secretAsEnv")
+	assert.Equal(t, "failed to unmarshal Kubernetes config", err.Error())
 	assert.NotContains(t, err.Error(), "mlflow-secret")
-	assert.NotContains(t, err.Error(), "password")
 }
 
 func TestGetPipelineJobTimePlaceholderUsage(t *testing.T) {

@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"time"
@@ -495,7 +496,8 @@ func parseExecConfigJson(k8sExecConfigJson *string) (*kubernetesplatform.Kuberne
 		glog.Info(kubernetesConfigLogMessage(*k8sExecConfigJson))
 		k8sExecCfg = &kubernetesplatform.KubernetesExecutorConfig{}
 		if err := util.UnmarshalString(*k8sExecConfigJson, k8sExecCfg); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal Kubernetes config: %w", err)
+			// protojson errors can quote raw input tokens, including secret refs.
+			return nil, errors.New("failed to unmarshal Kubernetes config")
 		}
 	}
 	return k8sExecCfg, nil
