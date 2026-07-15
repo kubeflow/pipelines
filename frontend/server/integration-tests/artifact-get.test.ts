@@ -624,6 +624,49 @@ describe('/artifacts', () => {
       });
     });
 
+    it.each([
+      ['parent directory segments', '..%2F..%2Fadmin'],
+      ['backslash directory segments', '..%5C..%5Cadmin'],
+    ])('rejects http artifact keys with %s', async (_description, key) => {
+      mockedFetch.mockClear();
+      const configs = loadConfigs(argv, {
+        HTTP_BASE_URL: 'internal.example/artifacts/',
+      });
+      app = new UIServer(configs);
+
+      const request = requests(app.app);
+      await request
+        .get(`/artifacts/get?source=http&bucket=ml-pipeline&key=${key}`)
+        .expect(400, 'Invalid HTTP artifact path');
+      expect(mockedFetch).not.toHaveBeenCalled();
+    });
+
+    it('keeps double-encoded path navigation inside the artifact root', async () => {
+      const artifactContent = 'encoded path data';
+      const safeUrl =
+        'http://internal.example/artifacts/ml-pipeline/%252e%252e%252f%252e%252e%252fadmin';
+      mockedFetch.mockImplementationOnce((url: string) =>
+        url === safeUrl
+          ? Promise.resolve({ body: toWebStream(artifactContent) })
+          : Promise.reject(`unexpected fetch to ${url}`),
+      );
+      app = new UIServer(
+        loadConfigs(argv, {
+          HTTP_BASE_URL: 'internal.example/artifacts/',
+        }),
+      );
+
+      await requests(app.app)
+        .get(
+          '/artifacts/get?source=http&bucket=ml-pipeline&key=%252e%252e%252f%252e%252e%252fadmin',
+        )
+        .expect(200, artifactContent);
+      expect(mockedFetch).toHaveBeenCalledWith(safeUrl, {
+        headers: {},
+        redirect: 'manual',
+      });
+    });
+
     it('responds with partial http artifact if peek=5 flag is set', async () => {
       const artifactContent = 'hello world';
       const mockedFetch: Mock = fetch as any;
@@ -715,6 +758,8 @@ describe('/artifacts', () => {
       });
       const configs = loadConfigs(argv, {
         ALLOWED_ARTIFACT_DOMAIN_REGEX: '^allowed\\.host$',
+        HTTP_AUTHORIZATION_DEFAULT_VALUE: 'same-origin-token',
+        HTTP_AUTHORIZATION_KEY: 'Authorization',
         HTTP_BASE_URL: 'allowed.host/',
       });
       app = new UIServer(configs);
@@ -724,6 +769,50 @@ describe('/artifacts', () => {
         .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%2Fworld.txt')
         .expect(200, artifactContent);
       expect(mockedFetch).toHaveBeenCalledWith(redirectedUrl, {
+        headers: { Authorization: 'same-origin-token' },
+        redirect: 'manual',
+      });
+    });
+
+    it('strips configured authorization when an http redirect changes origin', async () => {
+      mockedFetch.mockClear();
+      const firstUrl = 'https://allowed.host/ml-pipeline/hello/world.txt';
+      const redirectedUrl = 'https://cdn.host/signed/hello/world.txt';
+      const artifactContent = 'redirected body';
+      mockedFetch.mockImplementation((url: string) => {
+        if (url === firstUrl) {
+          return Promise.resolve({
+            status: 302,
+            headers: new Map([['location', redirectedUrl]]),
+            body: toWebStream(''),
+          });
+        }
+        if (url === redirectedUrl) {
+          return Promise.resolve({
+            status: 200,
+            headers: new Map(),
+            body: toWebStream(artifactContent),
+          });
+        }
+        return Promise.reject(`unexpected fetch to ${url}`);
+      });
+      const configs = loadConfigs(argv, {
+        ALLOWED_ARTIFACT_DOMAIN_REGEX: '^(allowed|cdn)\\.host$',
+        HTTP_AUTHORIZATION_DEFAULT_VALUE: 'cross-origin-secret',
+        HTTP_AUTHORIZATION_KEY: 'Authorization',
+        HTTP_BASE_URL: 'allowed.host/',
+      });
+      app = new UIServer(configs);
+
+      const request = requests(app.app);
+      await request
+        .get('/artifacts/get?source=https&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .expect(200, artifactContent);
+      expect(mockedFetch).toHaveBeenNthCalledWith(1, firstUrl, {
+        headers: { Authorization: 'cross-origin-secret' },
+        redirect: 'manual',
+      });
+      expect(mockedFetch).toHaveBeenNthCalledWith(2, redirectedUrl, {
         headers: {},
         redirect: 'manual',
       });
@@ -1075,6 +1164,84 @@ describe('/artifacts', () => {
       await request
         .get('/artifacts/get?source=volume&bucket=artifact&key=..%2Fsecret')
         .expect(404, 'Failed to open volume.');
+    });
+
+    it('rejects volume artifacts that are symlinks outside the mounted volume', async () => {
+      const volumePath = mkTempDir();
+      const outsidePath = path.join(mkTempDir(), 'secret');
+      fs.writeFileSync(outsidePath, 'outside secret');
+      fs.symlinkSync(outsidePath, path.join(volumePath, 'leak'));
+      vi.spyOn(serverInfo, 'getHostPod').mockResolvedValue([
+        {
+          spec: {
+            containers: [
+              {
+                volumeMounts: [{ name: 'artifact', mountPath: volumePath }],
+                name: 'ml-pipeline-ui',
+              },
+            ],
+            volumes: [{ name: 'artifact', persistentVolumeClaim: { claimName: 'artifact_pvc' } }],
+          },
+        } as any,
+        undefined,
+      ]);
+
+      app = new UIServer(loadConfigs(argv, {}));
+      await requests(app.app)
+        .get('/artifacts/get?source=volume&bucket=artifact&key=leak')
+        .expect(404, 'Failed to open volume.');
+    });
+
+    it('rejects volume artifacts below a symlinked directory outside the mount', async () => {
+      const volumePath = mkTempDir();
+      const outsideDirectory = mkTempDir();
+      fs.writeFileSync(path.join(outsideDirectory, 'secret'), 'outside secret');
+      fs.symlinkSync(outsideDirectory, path.join(volumePath, 'escape'));
+      vi.spyOn(serverInfo, 'getHostPod').mockResolvedValue([
+        {
+          spec: {
+            containers: [
+              {
+                volumeMounts: [{ name: 'artifact', mountPath: volumePath }],
+                name: 'ml-pipeline-ui',
+              },
+            ],
+            volumes: [{ name: 'artifact', persistentVolumeClaim: { claimName: 'artifact_pvc' } }],
+          },
+        } as any,
+        undefined,
+      ]);
+
+      app = new UIServer(loadConfigs(argv, {}));
+      await requests(app.app)
+        .get('/artifacts/get?source=volume&bucket=artifact&key=escape%2Fsecret')
+        .expect(404, 'Failed to open volume.');
+    });
+
+    it('allows volume artifact symlinks whose targets remain inside the mount', async () => {
+      const volumePath = mkTempDir();
+      const targetPath = path.join(volumePath, 'content');
+      fs.writeFileSync(targetPath, 'inside content');
+      fs.symlinkSync(targetPath, path.join(volumePath, 'link'));
+      vi.spyOn(serverInfo, 'getHostPod').mockResolvedValue([
+        {
+          spec: {
+            containers: [
+              {
+                volumeMounts: [{ name: 'artifact', mountPath: volumePath }],
+                name: 'ml-pipeline-ui',
+              },
+            ],
+            volumes: [{ name: 'artifact', persistentVolumeClaim: { claimName: 'artifact_pvc' } }],
+          },
+        } as any,
+        undefined,
+      ]);
+
+      app = new UIServer(loadConfigs(argv, {}));
+      await requests(app.app)
+        .get('/artifacts/get?source=volume&bucket=artifact&key=link')
+        .expect(200, 'inside content');
     });
 
     it('responds error with a not exist volume', async () => {

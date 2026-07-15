@@ -11,7 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { readFileSync } from 'fs';
+import { constants as fsConstants, promises as fsPromises, readFileSync } from 'fs';
+import type { FileHandle } from 'fs/promises';
 import { Transform, TransformOptions } from 'stream';
 import { posix as path } from 'path';
 
@@ -85,7 +86,7 @@ export function parseJSONString<T>(str: string) {
  *  - containerNames optional, will match to find container or container[0] in pod will be used
  *  - volumeMountName container volume mount name
  *  - filePathInVolume file path in volume
- * @return [final file path, error message if check failed]
+ * @return [final file path, error message if check failed, normalized volume mount root]
  */
 export function findFileOnPodVolume(
   pod: any,
@@ -94,7 +95,7 @@ export function findFileOnPodVolume(
     volumeMountName: string;
     filePathInVolume: string;
   },
-): [string, string | undefined] {
+): [string, string | undefined, string?] {
   const { containerNames, volumeMountName, filePathInVolume } = options;
 
   const volumes = pod?.spec?.volumes;
@@ -160,7 +161,7 @@ export function findFileOnPodVolume(
   if (err) {
     return ['', `${prefixErrorMessage} ${err}`];
   }
-  return [filePath, undefined];
+  return [filePath, undefined, path.normalize(volumeMount.mountPath)];
 }
 
 export function resolveFilePathOnVolume(volume: {
@@ -204,6 +205,72 @@ export function resolveFilePathOnVolume(volume: {
     '',
     `File ${filePathInVolume} not mounted, expecting the file to be inside volume mount subpath ${volumeMountSubPath}`,
   ];
+}
+
+export interface OpenFileWithinRootError {
+  message: string;
+  pathEscaped: boolean;
+}
+
+export async function openFileWithinRoot(
+  filePath: string,
+  rootPath: string,
+): Promise<[FileHandle | undefined, OpenFileWithinRootError | undefined]> {
+  let fileHandle: FileHandle | undefined;
+  try {
+    const [realFilePath, realRootPath] = await Promise.all([
+      fsPromises.realpath(filePath),
+      fsPromises.realpath(rootPath),
+    ]);
+    if (!isPathWithinRoot(realFilePath, realRootPath)) {
+      return [
+        undefined,
+        {
+          message: `File ${filePath} resolves outside volume mount ${rootPath}`,
+          pathEscaped: true,
+        },
+      ];
+    }
+
+    fileHandle = await fsPromises.open(realFilePath, fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW);
+    const [openedFileStat, currentRealFilePath] = await Promise.all([
+      fileHandle.stat(),
+      fsPromises.realpath(realFilePath),
+    ]);
+    if (!isPathWithinRoot(currentRealFilePath, realRootPath)) {
+      await fileHandle.close();
+      return [
+        undefined,
+        {
+          message: `File ${filePath} changed to resolve outside volume mount ${rootPath}`,
+          pathEscaped: true,
+        },
+      ];
+    }
+    const currentFileStat = await fsPromises.stat(currentRealFilePath);
+    if (openedFileStat.dev !== currentFileStat.dev || openedFileStat.ino !== currentFileStat.ino) {
+      throw new Error(`File ${filePath} changed while it was being opened`);
+    }
+    return [fileHandle, undefined];
+  } catch (error) {
+    await fileHandle?.close().catch(() => undefined);
+    return [
+      undefined,
+      {
+        message: `Failed to open file ${filePath} inside volume mount ${rootPath}: ${error}`,
+        pathEscaped: false,
+      },
+    ];
+  }
+}
+
+function isPathWithinRoot(filePath: string, rootPath: string): boolean {
+  const relativeFilePath = path.relative(rootPath, filePath);
+  return (
+    relativeFilePath !== '..' &&
+    !relativeFilePath.startsWith('../') &&
+    !path.isAbsolute(relativeFilePath)
+  );
 }
 
 function normalizeRelativeVolumePath(

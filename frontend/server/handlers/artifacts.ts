@@ -18,6 +18,7 @@ import {
   findFileOnPodVolume,
   parseJSONString,
   isAllowedResourceName,
+  openFileWithinRoot,
 } from '../utils.js';
 import {
   createMinioClient,
@@ -36,7 +37,6 @@ import { URL } from 'url';
 import { getGCSClient, listGCSObjectNames, downloadGCSObjectStream } from '../gcs-helper.js';
 import type { GCSClient } from '../gcs-helper.js';
 
-import * as fs from 'fs';
 import { isAllowedDomain } from './domain-checker.js';
 import { getK8sSecret } from '../k8s-helper.js';
 import { CredentialBody } from 'google-auth-library';
@@ -343,7 +343,13 @@ export function getArtifactsHandler({
       case 'https': {
         const httpUrl = getHttpUrl(source, http.baseUrl || '', bucket, key);
         if (!httpUrl) {
-          res.status(400).send('HTTP artifact base URL is not configured');
+          res
+            .status(400)
+            .send(
+              http.baseUrl.trim()
+                ? 'Invalid HTTP artifact path'
+                : 'HTTP artifact base URL is not configured',
+            );
           return;
         }
         await getHttpArtifactsHandler(allowedDomain, httpUrl, http.auth, peek)(req, res);
@@ -490,7 +496,14 @@ function getHttpUrl(source: 'http' | 'https', baseUrl: string, bucket: string, k
   }
   try {
     const artifactUrl = new URL(`${source}://${configuredBaseUrl}`);
-    artifactUrl.pathname = [artifactUrl.pathname.replace(/\/+$/, ''), bucket, key]
+    if (
+      key.includes('\\') ||
+      key.split('/').some((segment) => segment === '.' || segment === '..')
+    ) {
+      return undefined;
+    }
+    const escapedKey = key.replace(/%/g, '%25');
+    artifactUrl.pathname = [artifactUrl.pathname.replace(/\/+$/, ''), bucket, escapedKey]
       .filter(Boolean)
       .join('/');
     artifactUrl.search = '';
@@ -527,6 +540,8 @@ function getHttpArtifactsHandler(
     // header.
     const maxRedirects = 5;
     let currentUrl = url;
+    const credentialOrigin = new URL(url).origin;
+    let requestHeaders = headers;
     let response: Awaited<ReturnType<typeof fetch>>;
     for (let hop = 0; ; hop++) {
       const allowedUrl = parseAllowedHttpArtifactUrl(currentUrl, allowedDomain);
@@ -534,7 +549,10 @@ function getHttpArtifactsHandler(
         res.status(500).send(`Domain not allowed.`);
         return;
       }
-      response = await fetch(allowedUrl, { headers, redirect: 'manual' });
+      if (new URL(allowedUrl).origin !== credentialOrigin) {
+        requestHeaders = {};
+      }
+      response = await fetch(allowedUrl, { headers: requestHeaders, redirect: 'manual' });
       const status = response.status ?? 200;
       if (status < 300 || status >= 400) {
         break;
@@ -557,7 +575,7 @@ function getHttpArtifactsHandler(
       // defensively so a bad value turns into a controlled 500 rather than an
       // unhandled exception escaping the handler.
       try {
-        currentUrl = new URL(location, currentUrl).toString();
+        currentUrl = new URL(location, allowedUrl).toString();
       } catch {
         res.status(500).send('Invalid redirect location while retrieving artifact');
         return;
@@ -889,7 +907,7 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
 
       // ml-pipeline-ui server container name also be called 'ml-pipeline-ui-artifact' in KFP multi user mode.
       // https://github.com/kubeflow/manifests/blob/master/pipeline/installs/multi-user/pipelines-profile-controller/sync.py#L212
-      const [filePath, parseError] = findFileOnPodVolume(pod, {
+      const [filePath, parseError, volumeMountPath] = findFileOnPodVolume(pod, {
         containerNames: ['ml-pipeline-ui', 'ml-pipeline-ui-artifact'],
         volumeMountName: bucket,
         filePathInVolume: key,
@@ -900,16 +918,36 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
         return;
       }
 
-      // TODO: support directory and support filePath include wildcards '*'
-      const stat = await fs.promises.stat(filePath);
-      if (stat.isDirectory()) {
-        res
-          .status(400)
-          .send(`Failed to open volume file ${filePath} is directory, does not support now`);
+      if (!volumeMountPath) {
+        res.status(404).send(`Failed to open volume.`);
+        return;
+      }
+      const [fileHandle, containmentError] = await openFileWithinRoot(filePath, volumeMountPath);
+      if (containmentError || !fileHandle) {
+        console.log(`Failed to open volume: ${containmentError?.message || 'unknown error'}`);
+        res.status(containmentError?.pathEscaped ? 404 : 500).send(`Failed to open volume.`);
         return;
       }
 
-      fs.createReadStream(filePath).pipe(new PreviewStream({ peek })).pipe(res);
+      try {
+        // TODO: support directory and support filePath include wildcards '*'
+        const stat = await fileHandle.stat();
+        if (stat.isDirectory()) {
+          await fileHandle.close();
+          res
+            .status(400)
+            .send(`Failed to open volume file ${filePath} is directory, does not support now`);
+          return;
+        }
+
+        fileHandle
+          .createReadStream({ autoClose: true })
+          .pipe(new PreviewStream({ peek }))
+          .pipe(res);
+      } catch (error) {
+        await fileHandle.close().catch(() => undefined);
+        throw error;
+      }
     } catch (err) {
       console.log(`Failed to open volume: ${err}`);
       res.status(500).send(`Failed to open volume.`);
