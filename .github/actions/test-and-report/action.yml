@@ -143,16 +143,16 @@ runs:
     # Without a warm module and build cache every test lane downloads Go
     # modules and compiles the Ginkgo suites from scratch (~3 minutes before
     # the first spec runs). The weekly key suffix plus restore-keys keeps
-    # compile artifacts fresh as sources drift between go.sum changes.
+    # compile artifacts fresh as sources drift between dependency changes.
     - name: Restore Go build and module caches
       uses: actions/cache@v5
       with:
         path: |
           ${{ steps.go-cache-meta.outputs.gomodcache }}
           ${{ steps.go-cache-meta.outputs.gocache }}
-        key: go-test-lanes-${{ runner.os }}-${{ hashFiles('go.sum') }}-${{ steps.go-cache-meta.outputs.week }}
+        key: go-test-lanes-${{ runner.os }}-${{ hashFiles('go.mod', 'go.sum') }}-${{ steps.go-cache-meta.outputs.week }}
         restore-keys: |
-          go-test-lanes-${{ runner.os }}-${{ hashFiles('go.sum') }}-
+          go-test-lanes-${{ runner.os }}-${{ hashFiles('go.mod', 'go.sum') }}-
           go-test-lanes-${{ runner.os }}-
 
     - name: Configure API Access
