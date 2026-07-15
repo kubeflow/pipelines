@@ -368,11 +368,19 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 	// Check runtime workflow manifest is not empty
 	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "wait-awhile")
 
+	// A terminate request moves the run from "Terminating" to "Failed" (the v1
+	// status a canceled run maps to) as the workflow stops. Depending on timing
+	// before this Get either is a valid post-terminate status, so assert
+	// membership and copy the actual status into the expected run below rather
+	// than racing on the transient "Terminating".
+	assert.Contains(t, []string{"Terminating", "Failed"}, runDetail.Run.Status,
+		"terminated run should be Terminating or Failed")
+
 	expectedRun := &run_model.APIRun{
 		ID:             runDetail.Run.ID,
 		Name:           "long running",
 		Description:    "this pipeline will run long enough for us to manually terminate it before it finishes",
-		Status:         "Terminating",
+		Status:         runDetail.Run.Status,
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec: &run_model.APIPipelineSpec{
 			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,

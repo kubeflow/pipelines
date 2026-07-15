@@ -23,6 +23,7 @@ on:
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
+      - '.github/actions/test-and-report/**'
       - '.github/resources/**'
       - 'api/**'
       - 'go.mod'
@@ -30,6 +31,9 @@ on:
       - 'backend/**'
       - 'proxy/**'
       - 'manifests/kustomize/**'
+      # The artifact-proxy E2E script is exercised only by this workflow, so
+      # changes to it must trigger these lanes.
+      - 'test/artifact-proxy/**'
       - 'test_data/sdk_compiled_pipelines/**'
       - '!**/*.md'
       - '!**/OWNERS'
@@ -365,6 +369,10 @@ jobs:
           NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
+          # TODO(#13724): Restore higher concurrency after increasing shared Kind capacity.
+          if [ "${{ matrix.mlflow_auth_type }}" == "kubernetes" ]; then
+            NUMBER_OF_NODES=2
+          fi
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
             TEST_LABEL=${{ inputs.test_label }}
