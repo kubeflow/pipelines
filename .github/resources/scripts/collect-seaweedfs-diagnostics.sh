@@ -21,17 +21,18 @@
 #                                        ClusterIP path times out (kube-proxy /
 #                                        CNI). Ruled in by 1 and 2 being clean
 #                                        plus kube-proxy pod state, and probed
-#                                        directly in section (4).
+#                                        directly in sections (4) and (5).
 #
-# The same 'dial tcp <clusterip>: i/o timeout' signature shows up on other
-# in-cluster ClusterIPs in these lanes (for example the MLflow service VIP on
-# :8443), so the dataplane failure is not SeaweedFS-specific. Section (4)
-# therefore probes the node netfilter state for *every* ClusterIP that recorded
-# a dial timeout, not just SeaweedFS's. Pass the already-collected pod-log file
-# via --dial-timeout-log; the script extracts each timed-out VIP from it and
-# always includes the SeaweedFS ClusterIP.
+# The same connection failures show up on other in-cluster ClusterIPs in these
+# lanes (for example the MLflow service VIP on :8443), so the dataplane failure
+# is not SeaweedFS-specific. Sections (4) and (5) therefore inspect *every*
+# ClusterIP that recorded a timeout, refusal, or reset, not just SeaweedFS's.
+# Pass the already-collected pod-log file via --connection-failure-log (the old
+# --dial-timeout-log name remains an alias); the script extracts each failed VIP
+# from it and always includes the SeaweedFS ClusterIP.
 #
-# Section (4) inspects every Kind node (a ClusterIP dial is DNAT'd and
+# Section (4) snapshots the matched Service, EndpointSlices, and backing-pod
+# state. Section (5) then inspects every Kind node (a ClusterIP dial is DNAT'd and
 # conntrack-tracked on the *client* pod's node, which need not be the service's
 # node). One dataplane candidate is conntrack-table saturation: the
 # nested-parallel lanes open a burst of simultaneous connections, and once a
@@ -40,14 +41,14 @@
 # passing, so the pod is never restarted. Per node it dumps the node-global
 # conntrack state once -- the durable drop/insert_failed counters (conntrack -S,
 # falling back to /proc/net/stat/nf_conntrack) and any 'nf_conntrack: table
-# full' dmesg line -- then the iptables/ipvs program for each timed-out
+# full' dmesg line -- then the iptables/ipvs program for each failed
 # ClusterIP, followed end to end (KUBE-SERVICES -> KUBE-SVC -> KUBE-SEP DNAT) so
 # a live endpoint DNAT rules out a missing/stale service program.
 #
 # When the conntrack table and the service program are both clean (as first
 # observed live: table ~0.6% full, no table-full event, KUBE-SEP DNAT present),
 # the remaining candidate is accept-queue saturation on the backing pod itself.
-# Section (5) reads the SeaweedFS pod's listen sockets and cumulative
+# Section (6) reads the SeaweedFS pod's listen sockets and cumulative
 # ListenOverflows / ListenDrops from inside its netns to confirm or rule that
 # out. Each probe distinguishes a failed/forbidden query from a genuinely empty
 # result so a blank line never falsely rules out the signal.
@@ -59,16 +60,19 @@ set -u
 NAMESPACE="kubeflow"
 SELECTOR="app=seaweedfs"
 OUTPUT_FILE=""
-DIAL_TIMEOUT_LOG=""
+CONNECTION_FAILURE_LOG=""
+SERVICE_INVENTORY=""
+SERVICE_INVENTORY_AVAILABLE=false
 
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
         --namespace) NAMESPACE="${2:?--namespace requires a value}"; shift ;;
         --selector) SELECTOR="${2:?--selector requires a value}"; shift ;;
         --output) OUTPUT_FILE="${2:?--output requires a value}"; shift ;;
-        # A log (typically the already-collected pod logs) to scan for
-        # 'dial tcp <ip>:<port>: i/o timeout'; section (4) probes each such VIP.
-        --dial-timeout-log) DIAL_TIMEOUT_LOG="${2:?--dial-timeout-log requires a value}"; shift ;;
+        # A log (typically the already-collected pod logs) to scan for network
+        # failures. Keep --dial-timeout-log as a compatibility alias.
+        --connection-failure-log|--dial-timeout-log)
+            CONNECTION_FAILURE_LOG="${2:?$1 requires a value}"; shift ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
     shift
@@ -133,12 +137,85 @@ probe_service_rules() {
         fi' _ "$2" "$3" 2>/dev/null || echo "(unavailable)"
 }
 
-# ClusterIP VIPs (ip:port) that recorded a dial timeout in the supplied log.
+# Snapshot the Kubernetes objects behind one failed ClusterIP. Unlike the
+# node-level service program below, this exposes a temporarily missing endpoint,
+# restarting backend, or last termination reason. The snapshot is post-failure,
+# so recovered state is evidence but not proof that the endpoint was ready when
+# the connection failed.
+# Usage: probe_service_backends <ip> <port>
+probe_service_backends() {
+    local ip="$1"
+    local port="$2"
+    if [[ "$SERVICE_INVENTORY_AVAILABLE" != "true" ]]; then
+        echo "Service lookup unavailable for $ip:$port."
+        return
+    fi
+
+    local services
+    services=$(printf '%s\n' "$SERVICE_INVENTORY" \
+        | awk -F '\t' -v ip="$ip" '$3 == ip {print $1 "\t" $2}' || true)
+
+    if [[ -z "$services" ]]; then
+        echo "No Kubernetes Service currently owns $ip:$port."
+        return
+    fi
+
+    while IFS=$'\t' read -r service_namespace service_name; do
+        [[ -n "$service_namespace" && -n "$service_name" ]] || continue
+        echo "Service: $service_namespace/$service_name (failed VIP $ip:$port)"
+        kubectl get service "$service_name" -n "$service_namespace" -o wide 2>/dev/null \
+            || echo "(service snapshot unavailable)"
+
+        echo "EndpointSlices:"
+        kubectl get endpointslice -n "$service_namespace" \
+            -l "kubernetes.io/service-name=$service_name" -o wide 2>/dev/null \
+            || echo "(EndpointSlice snapshot unavailable)"
+
+        local targets
+        if ! targets=$(kubectl get endpointslice -n "$service_namespace" \
+            -l "kubernetes.io/service-name=$service_name" \
+            -o jsonpath='{range .items[*].endpoints[*]}{.addresses[0]}{"|"}{.conditions.ready}{"|"}{.conditions.serving}{"|"}{.conditions.terminating}{"|"}{.targetRef.kind}{"|"}{.targetRef.namespace}{"|"}{.targetRef.name}{"\n"}{end}' \
+            2>/dev/null); then
+            echo "(EndpointSlice backend lookup unavailable)"
+            continue
+        fi
+        if [[ -z "$targets" ]]; then
+            echo "(no EndpointSlice backends found)"
+            continue
+        fi
+
+        echo "Backing endpoints (address, ready, serving, terminating, target):"
+        printf '%s\n' "$targets"
+        while IFS='|' read -r address ready serving terminating target_kind target_namespace target_name; do
+            [[ "$target_kind" == "Pod" && -n "$target_name" ]] || continue
+            target_namespace="${target_namespace:-$service_namespace}"
+            echo "Backing pod: $target_namespace/$target_name ($address; ready=$ready serving=$serving terminating=$terminating)"
+            kubectl get pod "$target_name" -n "$target_namespace" -o wide 2>/dev/null \
+                || echo "(backing pod snapshot unavailable)"
+            kubectl get pod "$target_name" -n "$target_namespace" \
+                -o jsonpath='{range .status.containerStatuses[*]}container={.name} ready={.ready} restarts={.restartCount} state={.state} lastState={.lastState}{"\n"}{end}' \
+                2>/dev/null || echo "(backing pod status unavailable)"
+            echo "Backing pod events:"
+            local pod_description
+            if pod_description=$(kubectl describe pod "$target_name" -n "$target_namespace" 2>/dev/null); then
+                printf '%s\n' "$pod_description" | sed -n '/Events:/,$p'
+            else
+                echo "(backing pod events unavailable)"
+            fi
+        done <<< "$targets"
+    done <<< "$services"
+}
+
+# ClusterIP VIPs (ip:port) that recorded a timeout, refusal, or reset in the
+# supplied log. For established TCP resets, select the destination after '->'
+# rather than the client address.
 # Read before the diagnostics block so appended output cannot perturb the scan.
 LOG_VIPS=""
-if [[ -n "$DIAL_TIMEOUT_LOG" && -r "$DIAL_TIMEOUT_LOG" ]]; then
-    LOG_VIPS=$(grep -oE 'dial tcp [0-9.]+:[0-9]+: i/o timeout' "$DIAL_TIMEOUT_LOG" 2>/dev/null \
-        | grep -oE '[0-9.]+:[0-9]+' | sort -u || true)
+if [[ -n "$CONNECTION_FAILURE_LOG" && -r "$CONNECTION_FAILURE_LOG" ]]; then
+    LOG_VIPS=$(sed -nE \
+        -e 's/.*dial tcp ([0-9.]+:[0-9]+): (i\/o timeout|connect: connection refused|connect: connection reset by peer).*/\1/p' \
+        -e 's/.*(read|write) tcp [0-9.]+:[0-9]+->([0-9.]+:[0-9]+): .*connection reset by peer.*/\2/p' \
+        "$CONNECTION_FAILURE_LOG" 2>/dev/null | sort -u || true)
 fi
 
 {
@@ -193,17 +270,61 @@ fi
     CLUSTER_IP=$(kubectl get svc seaweedfs -n "$NAMESPACE" -o jsonpath='{.spec.clusterIP}' 2>/dev/null || true)
     echo "SeaweedFS ClusterIP: ${CLUSTER_IP:-<unresolved>}"
 
-    # Section (4) targets the SeaweedFS VIP plus every other ClusterIP that a
-    # dial timeout was logged against (e.g. the MLflow service VIP), so the
-    # dataplane evidence covers whichever service the workflow pods could not
-    # reach, not only SeaweedFS.
+    # Snapshot Services once so all later sections use one consistent mapping,
+    # and so historical startup-probe failures to Pod IPs in describe output do
+    # not get mislabeled and probed as ClusterIP failures.
+    if SERVICE_INVENTORY=$(kubectl get service -A \
+        -o jsonpath='{range .items[*]}{.metadata.namespace}{"\t"}{.metadata.name}{"\t"}{.spec.clusterIP}{"\n"}{end}' \
+        2>/dev/null); then
+        SERVICE_INVENTORY_AVAILABLE=true
+    else
+        SERVICE_INVENTORY_AVAILABLE=false
+    fi
+    FAILED_SERVICE_VIPS=""
+    IGNORED_CONNECTION_TARGETS=""
+    if [[ "$SERVICE_INVENTORY_AVAILABLE" == "true" ]]; then
+        for vip in $LOG_VIPS; do
+            if printf '%s\n' "$SERVICE_INVENTORY" \
+                | awk -F '\t' -v ip="${vip%%:*}" '$3 == ip {found=1} END {exit !found}'; then
+                FAILED_SERVICE_VIPS+="${vip}"$'\n'
+            else
+                IGNORED_CONNECTION_TARGETS+="${vip}"$'\n'
+            fi
+        done
+    else
+        # Preserve node-level evidence when the API is unavailable; do not
+        # misclassify lookup failure as proof that these Services do not exist.
+        FAILED_SERVICE_VIPS="$LOG_VIPS"
+    fi
+
+    # Sections (4) and (5) target the SeaweedFS VIP plus every other ClusterIP
+    # that logged a timeout, refusal, or reset (e.g. the MLflow service VIP), so
+    # the dataplane evidence covers whichever service the workflow pods could
+    # not reach, not only SeaweedFS.
     TARGET_VIPS=$(
-        { [[ -n "$CLUSTER_IP" ]] && echo "${CLUSTER_IP}:9000"; printf '%s\n' "$LOG_VIPS"; } \
+        { [[ -n "$CLUSTER_IP" ]] && echo "${CLUSTER_IP}:9000"; printf '%s' "$FAILED_SERVICE_VIPS"; } \
             | grep -E '^[0-9.]+:[0-9]+$' | sort -u
     )
 
     echo
-    echo "----- (4) node netfilter state for timed-out ClusterIPs -----"
+    echo "----- (4) service and backend state for failed ClusterIPs -----"
+    echo "ClusterIPs correlated: $(printf '%s ' ${TARGET_VIPS:-<none>})"
+    if [[ "$SERVICE_INVENTORY_AVAILABLE" != "true" ]]; then
+        echo "Service inventory unavailable; ClusterIP ownership cannot be confirmed."
+    fi
+    if [[ -n "$IGNORED_CONNECTION_TARGETS" ]]; then
+        echo "Non-Service connection targets ignored: $(printf '%s ' $IGNORED_CONNECTION_TARGETS)"
+    fi
+    if [[ -z "$TARGET_VIPS" ]]; then
+        echo "No failed ClusterIPs to correlate."
+    else
+        for vip in $TARGET_VIPS; do
+            probe_service_backends "${vip%%:*}" "${vip##*:}"
+        done
+    fi
+
+    echo
+    echo "----- (5) node netfilter state for failed ClusterIPs -----"
     echo "ClusterIPs correlated: $(printf '%s ' ${TARGET_VIPS:-<none>})"
     # Kind runs each node as a Docker container named after the Kubernetes node,
     # so 'docker exec <node>' reaches the node's network namespace where
@@ -263,7 +384,7 @@ fi
             # KUBE-SEP DNAT): a live DNAT to the pod means the rule is not the
             # problem; an empty chain means no ready backend.
             if [[ -z "$TARGET_VIPS" ]]; then
-                echo "service program: no timed-out ClusterIPs to correlate."
+                echo "service program: no failed ClusterIPs to correlate."
             else
                 for vip in $TARGET_VIPS; do
                     echo "service program for $vip (iptables, then ipvs):"
@@ -274,7 +395,7 @@ fi
     fi
 
     echo
-    echo "----- (5) SeaweedFS pod socket / listen-queue state -----"
+    echo "----- (6) SeaweedFS pod socket / listen-queue state -----"
     # Once the node conntrack table and the service program are clean, the
     # leading remaining cause of the ClusterIP dial timeouts is accept-queue
     # saturation: under the parallel burst the S3 server's listen backlog

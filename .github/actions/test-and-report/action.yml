@@ -391,15 +391,14 @@ runs:
         if [ "${{ inputs.proxy }}" = "true" ]; then
           ./.github/resources/scripts/collect-logs.sh --ns tinyproxy --output /tmp/tmp_pod_log.txt
         fi
-        # Dataplane diagnostics: E2E lanes intermittently fail with dial-timeout
+        # Dataplane diagnostics: E2E lanes intermittently fail with connection
         # errors to in-cluster ClusterIPs (SeaweedFS :9000, the MLflow service
         # VIP, ...). This captures SeaweedFS restart/contention evidence plus,
         # per Kind node, the conntrack table state and the iptables/ipvs program
-        # for every ClusterIP the just-collected pod logs recorded a dial
-        # timeout against -- distinguishing conntrack exhaustion from a
-        # missing/stale service program. --dial-timeout-log points at the pod
-        # logs gathered above so the probe self-targets whichever VIP failed.
-        ./.github/resources/scripts/collect-seaweedfs-diagnostics.sh --namespace "$NAMESPACE" --dial-timeout-log /tmp/tmp_pod_log.txt --output /tmp/tmp_pod_log.txt
+        # for every ClusterIP the just-collected pod logs recorded a timeout,
+        # refusal, or reset against -- distinguishing backend lifecycle from
+        # conntrack exhaustion or a missing/stale service program.
+        ./.github/resources/scripts/collect-seaweedfs-diagnostics.sh --namespace "$NAMESPACE" --connection-failure-log /tmp/tmp_pod_log.txt --output /tmp/tmp_pod_log.txt
       continue-on-error: true
 
     - name: Summarize failure signatures
