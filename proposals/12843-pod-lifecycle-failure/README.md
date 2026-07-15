@@ -250,13 +250,16 @@ Frontend component tests, in `frontend/src/components/tabs/RuntimeNodeDetailsV2.
 
 The existing KFP end-to-end test suite in `.github/workflows/e2e-test.yml` runs full pipeline runs against a live cluster and verifies final task states. The following scenarios will be added to cover the lifecycle failure path in CI:
 
-| Scenario | Pod status | Expected API behavior | Expected UI behavior |
-|---|---|---|---|
-| Pipeline with invalid container image | `ImagePullBackOff` | `task_details[].error.message` contains `"Pod lifecycle failure: Back-off pulling image..."` | Task node turns red; side panel shows lifecycle failure banner |
-| Pipeline with valid container image (regression) | `Running` → `Succeeded` | `task_details[].error` is absent | Task node stays green; no lifecycle failure banner at any point |
-| Pipeline with OOM task | `OOMKilled` | `task_details[].error.message` contains `"Pod lifecycle failure: OOMKilled"` | Task node turns red; side panel shows lifecycle failure banner |
-| Pipeline with retry: first attempt fails, retry succeeds | `ImagePullBackOff` → `Succeeded` | After retry, `task_details[].error` is absent | Banner clears and node turns green after recovery |
-| Pipeline where pod is never created (resource quota exceeded) | Pod not created | `task_details[].error.message` contains the quota rejection reason | Task node turns red; side panel shows lifecycle failure banner |
+#### The following test cases are expected to pass:
+
+| Scenario | Persistence Agent captures message | API: `task_details[].error` set | Frontend: node turns red | Frontend: banner shown |
+|---|---|---|---|---|
+| Bad image (`ImagePullBackOff`) | ✓ | ✓ | ✓ | ✓ |
+| Runtime OOM (`OOMKilled`) | ✓ | ✓ | ✓ | ✓ |
+| Pod never created (resource quota exceeded) | ✓ | ✓ | ✓ | ✓ |
+| Healthy pipeline — no failure (regression check) | ✓ (no message stored) | ✓ (no error field) | ✓ (stays green) | ✓ (no banner) |
+| Retry: first attempt fails, retry succeeds | ✓ | ✓ (error cleared after recovery) | ✓ (turns green after recovery) | ✓ (banner clears after recovery) |
+| Transient startup (`PodInitializing`, `ContainerCreating`) | ✓ (filtered, not stored) | ✓ (no error field) | ✓ (stays green during startup) | ✓ (no banner during startup) |
 
 ### Manual Verification (E2E)
 
