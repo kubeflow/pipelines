@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-13
+- Last updated: 2026-07-14
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -547,7 +547,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - The `protobuf` composite action prepares `protoc` and related dependencies when compiling Python protobufs.
 - The `create-cluster` action caches Kind node images by Kubernetes version to reduce Docker Hub pulls.
 - Python workflows use `actions/cache@v5` for pip cache to reduce repeated dependency installs.
-- Workflows using `setup-python` with `cache: 'pip'` must set `cache-dependency-path` to the requirement files the job actually installs; without it the cache key hashes every requirements file in the monorepo, so any dependency bump anywhere invalidates every workflow's pip cache.
+- Workflows that cache pip downloads must use `.github/actions/setup-python-pip-cache` with a unique `cache-scope` for each dependency set and a `cache-dependency-hash` covering the requirement files the job installs. Do not use `setup-python`'s built-in `cache: 'pip'`: its generic restore prefix can propagate one workflow's global pip cache into another workflow's cache entry.
 
 ### Code style and formatting
 

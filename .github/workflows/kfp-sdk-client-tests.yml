@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/kfp-sdk-client-tests.yml'
+      - '.github/actions/setup-python-pip-cache/**'
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
@@ -42,11 +43,11 @@ jobs:
       # This must occur after "Free up space" step
       # otherwise python version will be overridden
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: ./.github/actions/setup-python-pip-cache
         with:
           python-version: '3.11'
-          cache: 'pip'
-          cache-dependency-path: sdk/python/requirements*.txt
+          cache-scope: kfp-sdk-client-tests
+          cache-dependency-hash: ${{ hashFiles('sdk/python/requirements*.txt') }}
 
       - name: Create KFP cluster
         id: create-kfp-cluster
