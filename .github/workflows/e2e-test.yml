@@ -333,27 +333,6 @@ jobs:
           s3_access_key: ${{ env.AWS_ACCESS_KEY_ID }}
           s3_secret_key: ${{ env.AWS_SECRET_ACCESS_KEY }}
 
-      - name: Scale MLflow request workers
-        if: ${{ steps.deploy-mlflow.outcome == 'success' }}
-        shell: bash
-        run: |
-          kubectl patch mlflow mlflow -n opendatahub \
-            --type merge \
-            --patch '{"spec":{"workers":2}}'
-
-          reconcile_deadline=$((SECONDS + 180))
-          until kubectl get deployment/mlflow -n opendatahub \
-            -o jsonpath='{.spec.template.spec.containers[?(@.name=="mlflow")].args}' \
-            | grep -q -- '--workers=2'; do
-            if ((SECONDS >= reconcile_deadline)); then
-              echo "Timed out waiting for the MLflow operator to configure two workers"
-              kubectl get deployment/mlflow -n opendatahub -o yaml
-              exit 1
-            fi
-            sleep 5
-          done
-          kubectl rollout status deployment/mlflow -n opendatahub --timeout=180s
-
       - name: Deploy MLflow directly
         id: deploy_direct_mlflow
         shell: bash
@@ -386,6 +365,10 @@ jobs:
           NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
+          # TODO(#13724): Restore higher concurrency after increasing shared Kind capacity.
+          if [ "${{ matrix.mlflow_auth_type }}" == "kubernetes" ]; then
+            NUMBER_OF_NODES=2
+          fi
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
             TEST_LABEL=${{ inputs.test_label }}
