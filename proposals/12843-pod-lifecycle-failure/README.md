@@ -248,12 +248,15 @@ Frontend component tests, in `frontend/src/components/tabs/RuntimeNodeDetailsV2.
 
 ### CI Validation
 
-The existing KFP end-to-end test suite in `.github/workflows/e2e-test.yml` runs full pipeline runs against a live cluster and verifies final task states. Once this change lands, one or more of the following will be added to cover the lifecycle failure path in CI:
+The existing KFP end-to-end test suite in `.github/workflows/e2e-test.yml` runs full pipeline runs against a live cluster and verifies final task states. The following scenarios will be added to cover the lifecycle failure path in CI:
 
-- A dedicated test pipeline with a deliberately bad container image that verifies the failing task's `error.message` contains the expected pod lifecycle failure string via the v2beta1 `GetRun` API.
-- A frontend integration test (in `test/frontend-integration-test/`) that submits the bad-image pipeline, waits for the task node to turn red, and asserts the banner text in the side panel.
-
-These CI additions will be part of the implementation PR rather than this KEP.
+| Scenario | Pod status | Expected API behavior | Expected UI behavior |
+|---|---|---|---|
+| Pipeline with invalid container image | `ImagePullBackOff` | `task_details[].error.message` contains `"Pod lifecycle failure: Back-off pulling image..."` | Task node turns red; side panel shows lifecycle failure banner |
+| Pipeline with valid container image (regression) | `Running` → `Succeeded` | `task_details[].error` is absent | Task node stays green; no lifecycle failure banner at any point |
+| Pipeline with OOM task | `OOMKilled` | `task_details[].error.message` contains `"Pod lifecycle failure: OOMKilled"` | Task node turns red; side panel shows lifecycle failure banner |
+| Pipeline with retry: first attempt fails, retry succeeds | `ImagePullBackOff` → `Succeeded` | After retry, `task_details[].error` is absent | Banner clears and node turns green after recovery |
+| Pipeline where pod is never created (resource quota exceeded) | Pod not created | `task_details[].error.message` contains the quota rejection reason | Task node turns red; side panel shows lifecycle failure banner |
 
 ### Manual Verification (E2E)
 
