@@ -216,6 +216,9 @@ func (c *PipelineUploadClientKubernetes) Upload(parameters *params.UploadPipelin
 		Description:  apimodel.LargeText(description),
 		PipelineSpec: apimodel.LargeText(piplineSpec),
 	}
+	if parameters.CodeSourceURL != nil {
+		pipelineVersionModel.CodeSourceUrl = *parameters.CodeSourceURL
+	}
 
 	pipelineVersion, err := k8sapi.FromPipelineVersionModel(*createdPipelineModel, pipelineVersionModel)
 	if err != nil {
@@ -311,6 +314,9 @@ func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, 
 		Description:  apimodel.LargeText(description),
 		PipelineId:   modelPipeline.UUID,
 		Tags:         tags,
+	}
+	if parameters.CodeSourceURL != nil {
+		modelPipelineVersion.CodeSourceUrl = *parameters.CodeSourceURL
 	}
 
 	pipelineVersion, err := k8sapi.FromPipelineVersionModel(*modelPipeline, modelPipelineVersion)
