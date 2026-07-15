@@ -18,6 +18,16 @@ set -u
 INTERVAL_SECONDS=5
 PID_FILE="/tmp/runner-telemetry.pid"
 
+# Job summaries are not retrievable through the logs API; mirror rendered
+# output to stdout so the job log carries the numbers too.
+publish() {
+    if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+        tee -a "$GITHUB_STEP_SUMMARY"
+    else
+        cat
+    fi
+}
+
 cpu_totals() {
     # Prints "<busy> <total>" jiffies from the aggregate cpu line.
     awk '/^cpu / {
@@ -56,16 +66,15 @@ render() {
         kill "$(cat "$PID_FILE")" 2>/dev/null || true
         rm -f "$PID_FILE"
     fi
-    local out="${GITHUB_STEP_SUMMARY:-/dev/stdout}"
     if [[ ! -r "$csv" ]] || [[ $(wc -l < "$csv") -lt 3 ]]; then
-        echo "_Runner telemetry: no samples collected._" >> "$out"
+        echo "_Runner telemetry: no samples collected._" | publish
         return 0
     fi
     if ! command -v python3 >/dev/null 2>&1; then
-        echo "_Runner telemetry: python3 unavailable; raw samples in ${csv}._" >> "$out"
+        echo "_Runner telemetry: python3 unavailable; raw samples in ${csv}._" | publish
         return 0
     fi
-    python3 - "$csv" >> "$out" <<'PY'
+    python3 - "$csv" <<'PY' | publish
 import sys
 
 rows = []
