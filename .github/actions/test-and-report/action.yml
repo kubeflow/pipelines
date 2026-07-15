@@ -467,7 +467,6 @@ runs:
       if: (!cancelled())
       with:
         python-version: ${{ inputs.report_python_version }}
-        cache: 'pip'
 
     - name: Install Junit2Html plugin
       id: install-junit2html

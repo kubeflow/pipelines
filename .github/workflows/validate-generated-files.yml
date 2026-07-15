@@ -6,6 +6,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/validate-generated-files.yml'
+      - '.github/actions/setup-python-pip-cache/**'
       - 'backend/api/**/*.proto'
       - 'backend/api/**/go_http_client/**'
       - 'backend/api/**/go_client/**'
@@ -40,10 +41,11 @@ jobs:
         uses: ./.github/actions/setup-go
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: ./.github/actions/setup-python-pip-cache
         with:
           python-version: 3.9
-          cache: 'pip'
+          cache-scope: validate-generated-files
+          cache-dependency-hash: ${{ hashFiles('sdk/python/requirements*.txt', 'kubernetes_platform/python/requirements*.txt') }}
 
       - name: Install protobuf dependencies & kfp-pipeline-spec
         id: install-protobuf-deps
