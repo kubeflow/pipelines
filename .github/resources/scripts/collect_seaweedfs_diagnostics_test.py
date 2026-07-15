@@ -139,6 +139,22 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
 
         self.assertIn('10.96.2.2:8443', result.stdout)
 
+    def test_missing_seaweedfs_pod_still_probes_other_service_vips(self):
+        # The generic inventory and sections 4-5 must not depend on the
+        # SeaweedFS pod: an MLflow VIP failure deserves its Service/backend
+        # snapshot even when SeaweedFS is absent.
+        result = self._run_with_fake_cluster(
+            'dial tcp 10.96.2.2:8443: connect: connection refused\n',
+            {'NO_SEAWEEDFS_POD': 'true'},
+        )
+        output = result.stdout
+        self.assertIn('skipping pod-scoped sections', output)
+        self.assertIn(
+            'Service: opendatahub/mlflow (failed VIP 10.96.2.2:8443)', output
+        )
+        self.assertIn('ClusterIPs correlated: 10.96.1.1:9000 10.96.2.2:8443', output)
+        self.assertIn('No SeaweedFS pod; skipping socket state.', output)
+
     def test_reports_service_inventory_api_failure_as_unavailable(self):
         result = self._run_with_fake_cluster(
             'dial tcp 10.96.2.2:8443: connect: connection refused\n',
@@ -198,7 +214,9 @@ _FAKE_KUBECTL = r'''#!/usr/bin/env bash
 args="$*"
 
 case "$args" in
-  *"get pod -n kubeflow -l app=seaweedfs"*) echo "seaweedfs-0" ;;
+  *"get pod -n kubeflow -l app=seaweedfs"*)
+    [[ "${NO_SEAWEEDFS_POD:-false}" == "true" ]] || echo "seaweedfs-0"
+    ;;
   *"get pod seaweedfs-0 -n kubeflow -o wide"*)
     echo "seaweedfs-0  1/1  Running  0  10m  10.244.0.20"
     ;;

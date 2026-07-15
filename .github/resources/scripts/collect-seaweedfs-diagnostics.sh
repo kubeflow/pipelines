@@ -226,32 +226,38 @@ fi
     # new pod is the one whose state matters.
     POD=$(kubectl get pod -n "$NAMESPACE" -l "$SELECTOR" --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1].metadata.name}' 2>/dev/null || true)
     if [[ -z "$POD" ]]; then
-        echo "No SeaweedFS pod (selector '$SELECTOR') found in namespace '$NAMESPACE'; skipping."
-        echo "=============================================================="
-        exit 0
-    fi
-    echo "SeaweedFS pod: $POD"
-
-    echo
-    echo "----- (1) restarts / last terminated state -----"
-    # A non-zero restart count or an OOMKilled/Error last state means the dial
-    # timeouts are the pod being down, and the CPU request is not the lever.
-    kubectl get pod "$POD" -n "$NAMESPACE" -o wide 2>/dev/null || true
-    kubectl get pod "$POD" -n "$NAMESPACE" -o jsonpath='restartCount={.status.containerStatuses[0].restartCount}{"\n"}lastState={.status.containerStatuses[0].lastState}{"\n"}qosClass={.status.qosClass}{"\n"}' 2>/dev/null || true
-
-    NODE=$(kubectl get pod "$POD" -n "$NAMESPACE" -o jsonpath='{.spec.nodeName}' 2>/dev/null || true)
-
-    echo
-    echo "----- (2) node contention on $NODE -----"
-    # 'Allocated resources' shows summed CPU requests vs allocatable. If CPU
-    # requests approach allocatable, SeaweedFS competes for shares under load
-    # and a larger request helps; if the node is idle, contention is not the
-    # cause and a request bump will not help.
-    if [[ -n "$NODE" ]]; then
-        kubectl describe node "$NODE" 2>/dev/null \
-            | sed -n '/Conditions:/,/Addresses:/p;/Allocated resources:/,/Events:/p' || true
+        # Pod-independent probes (Service inventory, sections 4-5) must still
+        # run: other Services' logged connection failures (e.g. the MLflow
+        # VIP) deserve their snapshots even when SeaweedFS itself is absent.
+        echo "No SeaweedFS pod (selector '$SELECTOR') found in namespace '$NAMESPACE'; skipping pod-scoped sections (1, 2, 6)."
     else
-        echo "Could not resolve SeaweedFS node."
+        echo "SeaweedFS pod: $POD"
+    fi
+
+    NODE=""
+    if [[ -n "$POD" ]]; then
+        echo
+        echo "----- (1) restarts / last terminated state -----"
+        # A non-zero restart count or an OOMKilled/Error last state means the
+        # dial timeouts are the pod being down, and the CPU request is not the
+        # lever.
+        kubectl get pod "$POD" -n "$NAMESPACE" -o wide 2>/dev/null || true
+        kubectl get pod "$POD" -n "$NAMESPACE" -o jsonpath='restartCount={.status.containerStatuses[0].restartCount}{"\n"}lastState={.status.containerStatuses[0].lastState}{"\n"}qosClass={.status.qosClass}{"\n"}' 2>/dev/null || true
+
+        NODE=$(kubectl get pod "$POD" -n "$NAMESPACE" -o jsonpath='{.spec.nodeName}' 2>/dev/null || true)
+
+        echo
+        echo "----- (2) node contention on $NODE -----"
+        # 'Allocated resources' shows summed CPU requests vs allocatable. If
+        # CPU requests approach allocatable, SeaweedFS competes for shares
+        # under load and a larger request helps; if the node is idle,
+        # contention is not the cause and a request bump will not help.
+        if [[ -n "$NODE" ]]; then
+            kubectl describe node "$NODE" 2>/dev/null \
+                | sed -n '/Conditions:/,/Addresses:/p;/Allocated resources:/,/Events:/p' || true
+        else
+            echo "Could not resolve SeaweedFS node."
+        fi
     fi
 
     echo
@@ -396,6 +402,9 @@ fi
 
     echo
     echo "----- (6) SeaweedFS pod socket / listen-queue state -----"
+    if [[ -z "$POD" ]]; then
+        echo "No SeaweedFS pod; skipping socket state."
+    else
     # Once the node conntrack table and the service program are clean, the
     # leading remaining cause of the ClusterIP dial timeouts is accept-queue
     # saturation: under the parallel burst the S3 server's listen backlog
@@ -411,10 +420,13 @@ fi
     kubectl exec "$POD" -n "$NAMESPACE" -c seaweedfs -- sh -c 'ss -lnt 2>/dev/null || netstat -lnt 2>/dev/null || echo "(ss/netstat not present in container)"' 2>/dev/null || echo "(kubectl exec unavailable)"
     echo "TcpExt counters (nonzero ListenOverflows / ListenDrops == accept-queue saturation):"
     kubectl exec "$POD" -n "$NAMESPACE" -c seaweedfs -- sh -c 'grep "^TcpExt" /proc/net/netstat 2>/dev/null || echo "(/proc/net/netstat unavailable)"' 2>/dev/null || echo "(kubectl exec unavailable)"
+    fi
 
-    echo
-    echo "----- full describe (events, resource config) -----"
-    kubectl describe pod "$POD" -n "$NAMESPACE" 2>/dev/null || true
+    if [[ -n "$POD" ]]; then
+        echo
+        echo "----- full describe (events, resource config) -----"
+        kubectl describe pod "$POD" -n "$NAMESPACE" 2>/dev/null || true
+    fi
 
     echo "=============================================================="
 } | emit
