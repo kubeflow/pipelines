@@ -1,0 +1,24 @@
+# Presubmit gate for the Python tooling under .github/resources/scripts: the
+# unit tests are stdlib-only and the file name (ci_health_report_test.py) is
+# not matched by default `unittest discover` patterns, so run them explicitly.
+name: CI Scripts Tests
+
+on:
+  pull_request:
+    paths:
+      - '.github/resources/scripts/*.py'
+      - '.github/workflows/ci-scripts-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  python-script-tests:
+    name: Run .github scripts unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run ci_health_report unit tests
+        working-directory: .github/resources/scripts
+        run: python3 -m unittest -v ci_health_report_test
