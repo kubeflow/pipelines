@@ -1,0 +1,71 @@
+name: Runtime Base Images
+
+on:
+  schedule:
+    - cron: '17 0 * * *'
+  workflow_dispatch: {}
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/runtime-base-images.yml'
+      - '.github/workflows/image-builds.yml'
+      - '.github/resources/runtime-base-images.txt'
+      - '.github/resources/scripts/helper-functions.sh'
+  pull_request:
+    paths:
+      - '.github/workflows/runtime-base-images.yml'
+      - '.github/workflows/image-builds.yml'
+      - '.github/resources/runtime-base-images.txt'
+      - '.github/resources/scripts/helper-functions.sh'
+
+concurrency:
+  group: runtime-base-images-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  produce-runtime-base-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ARTIFACTS_PATH: "runtime-base-images-cache"
+      RUNTIME_BASE_IMAGE_ARCHIVE: "runtime-base-images.tar"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Configure runtime base images
+        id: configure-runtime-base-images
+        shell: bash
+        run: |
+          set -euo pipefail
+          image_list_hash=$(sha256sum .github/resources/runtime-base-images.txt | cut -d ' ' -f 1)
+          {
+            echo "artifact-name=runtime-base-images-${image_list_hash}"
+            echo "cache-key=runtime-base-images-${image_list_hash}-$(date -u +%F)"
+          } >> "$GITHUB_OUTPUT"
+          mkdir -p "${ARTIFACTS_PATH}"
+
+      - name: Restore runtime base images from cache
+        id: cache-runtime-base-images
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
+          key: ${{ steps.configure-runtime-base-images.outputs.cache-key }}
+
+      - name: Pull and save runtime base images
+        if: steps.cache-runtime-base-images.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          source .github/resources/scripts/helper-functions.sh
+          pull_and_save_runtime_base_images \
+            .github/resources/runtime-base-images.txt \
+            "${ARTIFACTS_PATH}/${RUNTIME_BASE_IMAGE_ARCHIVE}"
+
+      - name: Upload runtime base image producer artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}
+          path: ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
+          if-no-files-found: error
+          retention-days: 3
