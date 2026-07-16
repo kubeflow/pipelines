@@ -293,6 +293,7 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
         self.assertIn('10.96.1.1:9000', result.stdout)
         self.assertIn('10.244.0.20:8333', result.stdout)
         self.assertNotIn('regex-decoy', result.stdout)
+        self.assertNotIn('next-service-backend', result.stdout)
 
     def _run_with_fake_cluster(
         self,
@@ -496,6 +497,8 @@ decoy-context-6
 decoy-context-7
 TCP  10.96.1.1:9000 rr
   -> 10.244.0.20:8333           Masq    1      0          0
+UDP  10.96.1.1:9000 rr
+  -> next-service-backend:9000  Masq    1      0          0
 EOF
 '''
 

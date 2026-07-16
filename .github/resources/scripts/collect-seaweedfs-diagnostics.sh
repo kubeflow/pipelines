@@ -119,8 +119,15 @@ probe_service_rules() {
                 protocol_upper=$(printf "%s" "$protocol" | tr "[:lower:]" "[:upper:]")
                 entry=$(printf "%s\n" "$ipvs" \
                     | awk -v protocol="$protocol_upper" -v target="$ip:$port" "
-                        \$1 == protocol && \$2 == target {print; lines=6; next}
-                        lines > 0 {print; lines--}
+                        \$1 ~ /^(TCP|UDP)$/ {
+                            if (capturing) exit
+                            if (\$1 == protocol && \$2 == target) {
+                                capturing=1
+                                print
+                            }
+                            next
+                        }
+                        capturing {print}
                     ")
                 if [ -n "$entry" ]; then
                     printf "%s\n" "$entry"
