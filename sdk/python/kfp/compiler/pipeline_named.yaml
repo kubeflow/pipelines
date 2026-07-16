@@ -1,0 +1,140 @@
+# PIPELINE DEFINITION
+# Name: repro-parallelfor-named-fixed
+components:
+  comp-collect:
+    executorLabel: exec-collect
+    inputDefinitions:
+      parameters:
+        items:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-echo:
+    executorLabel: exec-echo
+    inputDefinitions:
+      parameters:
+        item:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-for-loop-2:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--echo-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: echo
+      tasks:
+        echo:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-echo
+          inputs:
+            parameters:
+              item:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+          taskInfo:
+            name: echo
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        pipelinechannel--echo-Output:
+          parameterType: LIST
+deploymentSpec:
+  executors:
+    exec-collect:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - collect
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef collect(items: list) -> str:\n    return str(items)\n\n"
+        image: python:3.11
+    exec-echo:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - echo
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef echo(item: str) -> str:\n    return item\n\n"
+        image: python:3.11
+pipelineInfo:
+  name: repro-parallelfor-named-fixed
+root:
+  dag:
+    tasks:
+      collect:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-collect
+        dependentTasks:
+        - for-loop-2
+        inputs:
+          parameters:
+            items:
+              taskOutputParameter:
+                outputParameterKey: pipelinechannel--echo-Output
+                producerTask: for-loop-2
+        taskInfo:
+          name: collect
+      for-loop-2:
+        componentRef:
+          name: comp-for-loop-2
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-1
+          items:
+            raw: '["1", "2", "3"]'
+        taskInfo:
+          name: for-loop-2
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.3

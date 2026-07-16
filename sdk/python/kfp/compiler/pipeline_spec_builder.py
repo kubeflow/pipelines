@@ -1387,10 +1387,7 @@ def build_spec_by_group(
         ]
         subgroup_output_channels = outputs.get(subgroup.name, {})
 
-        display_name = getattr(subgroup, 'display_name', None) if hasattr(
-            subgroup, 'loop_argument') else None
-        subgroup_component_name = utils.sanitize_component_name(display_name or
-                                                                subgroup.name)
+        subgroup_component_name = utils.sanitize_component_name(subgroup.name)
 
         tasks_in_current_dag = [
             utils.sanitize_task_name(subgroup.name) for subgroup in subgroups
