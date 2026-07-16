@@ -7,7 +7,8 @@ on:
   pull_request:
     paths:
       - '.github/resources/scripts/*.py'
-      - '.github/resources/scripts/collect-seaweedfs-diagnostics.sh'
+      # The observability shell scripts are covered by Python-driven tests.
+      - '.github/resources/scripts/*.sh'
       - '.github/workflows/ci-scripts-tests.yml'
 
 permissions:
@@ -23,3 +24,6 @@ jobs:
       - name: Run CI script unit tests
         working-directory: .github/resources/scripts
         run: python3 -m unittest -v collect_seaweedfs_diagnostics_test ci_health_report_test
+      - name: Run observability output tests
+        working-directory: .github/resources/scripts
+        run: python3 -m unittest -v observability_output_test
