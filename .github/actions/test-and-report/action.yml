@@ -398,7 +398,19 @@ runs:
           fi
         fi
 
+        # Cumulative kernel counters only become attributable when sampled on
+        # both sides of the Ginkgo window. These baselines are best-effort and
+        # intentionally taken after all test setup/port-forward readiness.
+        "$WORKSPACE_ROOT/.github/resources/scripts/conntrack-window.sh" capture /tmp/kfp-conntrack-window.tsv || true
+        "$WORKSPACE_ROOT/.github/resources/scripts/runner-telemetry.sh" contention-baseline /tmp/kfp-runner-contention.tsv || true
+
         go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter=${{ inputs.test_label }} --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -pipelineStoreKubernetes=$pipelineStoreKubernetes -disableTlsCheck=$DISABLE_TLS_CHECK -apiScheme=$API_SCHEME -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME -apiUrl="$API_URL" -authToken="$AUTH_TOKEN" -serviceAccountName="$SERVICE_ACCOUNT_NAME" -mlflowEnabled=${{ inputs.mlflow_enabled }} $BASE_IMAGE_FLAG
+      continue-on-error: true
+
+    - name: Report test-window conntrack deltas
+      shell: bash
+      if: ${{ always() }}
+      run: ./.github/resources/scripts/conntrack-window.sh report /tmp/kfp-conntrack-window.tsv
       continue-on-error: true
 
     - name: Render runner telemetry
@@ -410,7 +422,7 @@ runs:
       # telemetry for exactly the runs that need diagnosing.
       shell: bash
       if: ${{ always() }}
-      run: ./.github/resources/scripts/runner-telemetry.sh render /tmp/runner-telemetry.csv
+      run: ./.github/resources/scripts/runner-telemetry.sh render /tmp/runner-telemetry.csv /tmp/kfp-runner-contention.tsv
       continue-on-error: true
 
     - name: Collect Pod logs in case of Test Failures
