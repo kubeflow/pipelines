@@ -199,7 +199,7 @@ if [ "${MULTI_USER}" == "true" ]; then
 
   echo "Installing Profile Controller Resources..."
   kubectl apply -k "https://github.com/kubeflow/manifests/applications/dashboard/upstream/profile-controller/overlays/kubeflow?ref=${KUBEFLOW_MANIFESTS_SHA}"
-  wait_for_pods_ready kubeflow "app.kubernetes.io/name=profile-controller" 180s "profile-controller pod"
+  echo "Profile controller applied; its readiness will be joined after the KFP rollout."
 fi
 
 # Manifests will be deployed according to the flag provided

@@ -243,17 +243,26 @@ jobs:
         # Complementary filters guarantee that every ApiServerTests spec runs
         # exactly once, while explicit cache labels divide the expensive run
         # matrix evenly between matching deployments.
+        # TODO: Add pgx + cache_enabled=false entry once a
+        # multiuser/postgresql/cache-disabled kustomize overlay is created.
         include:
           - k8s_version: "v1.36.1"
             cache_enabled: "true"
             multi_user: "true"
+            db_type: "mysql"
+            test_label: "ApiServerTests && (PipelineUpload || PipelineCacheEnabled)"
+          - k8s_version: "v1.36.1"
+            cache_enabled: "true"
+            multi_user: "true"
+            db_type: "pgx"
             test_label: "ApiServerTests && (PipelineUpload || PipelineCacheEnabled)"
           - k8s_version: "v1.36.1"
             cache_enabled: "false"
             multi_user: "true"
+            db_type: "mysql"
             test_label: "ApiServerTests && !(PipelineUpload || PipelineCacheEnabled)"
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
-    name: KFP API Server Multi User Tests - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }}
+    name: KFP API Server Multi User Tests - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} dbType=${{ matrix.db_type }}
 
     steps:
       - name: Checkout code
@@ -273,6 +282,7 @@ jobs:
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: ${{ matrix.multi_user }}
+          db_type: ${{ matrix.db_type }}
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
@@ -316,4 +326,4 @@ jobs:
           python_version: ${{ env.PYTHON_VERSION }}
           user_namespace: ${{ env.USER_NAMESPACE }}
           multi_user: ${{ matrix.multi_user }}
-          report_name: "MultiUser_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"
+          report_name: "MultiUser_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}_dbType=${{ matrix.db_type }}"

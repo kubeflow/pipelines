@@ -16,6 +16,8 @@ on:
       - "go.sum"
       - "backend/**"
       - "manifests/kustomize/**"
+      - "manifests/kustomize/env/platform-agnostic-postgresql/**"
+      - "manifests/kustomize/third-party/postgresql/**"
       - "test/**"
       - "!**/*.md"
       - "!**/OWNERS"
@@ -41,6 +43,7 @@ jobs:
         pipeline_store: [ "database", "kubernetes" ]
         k8s_version: [ "v1.36.1" ]
         pod_to_pod_tls_enabled: [ "true", "false" ]
+        db_type: [ "mysql", "pgx" ]
         # The PVC cache scenario accounts for about three minutes of the
         # otherwise serial suite. Give it a separate cluster/job so it can run
         # alongside the remaining tests without sharing cleanup state.
@@ -49,9 +52,13 @@ jobs:
           # Pod to Pod TLS manifests are not yet implemented for Kubernetes Native API mode
           - pipeline_store: "kubernetes"
             pod_to_pod_tls_enabled: "true"
+          - db_type: "pgx"
+            pipeline_store: "kubernetes"
+          - db_type: "pgx"
+            pod_to_pod_tls_enabled: "true"
       fail-fast: false
 
-    name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }} testGroup=${{ matrix.test_group }}
+    name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }} dbType=${{ matrix.db_type }} testGroup=${{ matrix.test_group }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -81,6 +88,7 @@ jobs:
           image_registry: kind-registry:5000
           pipeline_store: ${{ matrix.pipeline_store }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+          db_type: ${{ matrix.db_type }}
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
@@ -90,6 +98,10 @@ jobs:
           kubectl wait --for=jsonpath='{.data.ca\.crt}' --timeout=300s secret/kfp-api-tls-cert -n kubeflow
           kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
           echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
+
+      - name: Port-forward Postgres
+        if: ${{ matrix.db_type == 'pgx' && steps.deploy.outcome == 'success' }}
+        run: kubectl -n kubeflow port-forward svc/postgres-service 5432:5432 &
 
       - name: Forward MLMD port
         id: forward-mlmd-port
@@ -181,5 +193,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: kfp-api-integration-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}-${{ matrix.pipeline_store }}-tls-${{ matrix.pod_to_pod_tls_enabled }}-${{ matrix.test_group }}
+          name: kfp-api-integration-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}-${{ matrix.pipeline_store }}-tls-${{ matrix.pod_to_pod_tls_enabled }}-db-${{ matrix.db_type }}-${{ matrix.test_group }}
           path: /tmp/tmp*/*

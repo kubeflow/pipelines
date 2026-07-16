@@ -117,12 +117,28 @@ func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 	return gormDB, dbDialect
 }
 
+// parseDBExtraParams parses the JSON-encoded --db_extra_params flag value into
+// a key-value map. An empty input yields an empty map; malformed JSON returns
+// an error so startup can fail fast instead of silently ignoring the operator's
+// configuration (for example, intended TLS options).
+func parseDBExtraParams(dbExtraParams string) (map[string]string, error) {
+	extraParams := map[string]string{}
+	if dbExtraParams == "" {
+		return extraParams, nil
+	}
+	if err := json.Unmarshal([]byte(dbExtraParams), &extraParams); err != nil {
+		return nil, fmt.Errorf("failed to parse db_extra_params %q as JSON: %w", dbExtraParams, err)
+	}
+	return extraParams, nil
+}
+
 func initDBDriver(params WhSvrDBParameters, initConnectionTimeout time.Duration) string {
 	switch params.dbDriver {
 	case "mysql":
-		var mysqlExtraParams = map[string]string{}
-		data := []byte(params.dbExtraParams)
-		json.Unmarshal(data, &mysqlExtraParams)
+		mysqlExtraParams, err := parseDBExtraParams(params.dbExtraParams)
+		if err != nil {
+			glog.Fatalf("Failed to parse MySQL extra params: %v", err)
+		}
 		mysqlConfig := client.CreateMySQLConfig(
 			params.dbUser,
 			params.dbPwd,
@@ -134,7 +150,6 @@ func initDBDriver(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 		)
 
 		var db *sql.DB
-		var err error
 		var operation = func() error {
 			db, err = sql.Open(params.dbDriver, mysqlConfig.FormatDSN())
 			if err != nil {
@@ -162,6 +177,7 @@ func initDBDriver(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 		b = backoff.NewExponentialBackOff()
 		b.MaxElapsedTime = initConnectionTimeout
 		err = backoff.Retry(operation, b)
+		util.TerminateIfError(err)
 
 		operation = func() error {
 			_, err = db.Exec(fmt.Sprintf("USE %s", drvDialect.QuoteIdentifier(dbName)))
@@ -187,8 +203,10 @@ func initDBDriver(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 		if err != nil {
 			glog.Fatalf("Invalid port for PostgreSQL: %v", err)
 		}
-		var pgxExtraParams = map[string]string{}
-		json.Unmarshal([]byte(params.dbExtraParams), &pgxExtraParams)
+		pgxExtraParams, err := parseDBExtraParams(params.dbExtraParams)
+		if err != nil {
+			glog.Fatalf("Failed to parse PostgreSQL extra params: %v", err)
+		}
 		// Connect without target DB first
 		cfgNoDB, _, err := client.CreatePostgreSQLConfig(params.dbUser, params.dbPwd, params.dbHost, "postgres", uint16(port), pgxExtraParams)
 		if err != nil {

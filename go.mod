@@ -6,9 +6,7 @@ toolchain go1.26.4
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/VividCortex/mysqlerr v1.0.0
 	github.com/argoproj/argo-workflows/v4 v4.0.7
-	github.com/aws/aws-sdk-go v1.55.5 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/eapache/go-resiliency v1.7.0
 	github.com/fsnotify/fsnotify v1.10.1

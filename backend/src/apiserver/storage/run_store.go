@@ -416,8 +416,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		// Check how many columns are in the result set
 		columns, err := rows.Columns()
 		if err != nil {
-			glog.Errorf("Failed to get columns from rows: %v", err)
-			return runs, nil
+			return nil, util.NewInternalServerError(err, "failed to get columns from rows")
 		}
 
 		// Prepare scan destinations: 32 base columns + 3 aggregated + 1 optional metric sort
