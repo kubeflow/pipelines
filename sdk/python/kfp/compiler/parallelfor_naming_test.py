@@ -1,5 +1,6 @@
 from kfp import compiler, dsl
 
+
 @dsl.component
 def echo(item: str) -> str:
     return item
