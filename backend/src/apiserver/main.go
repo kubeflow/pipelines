@@ -92,15 +92,15 @@ type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.Serv
 // allows tests to supply lightweight stubs without constructing real
 // server instances.
 type HTTPRouterDeps struct {
-	UploadPipelineV1             http.HandlerFunc
-	UploadPipelineVersionV1      http.HandlerFunc
-	UploadPipeline               http.HandlerFunc
-	UploadPipelineVersion        http.HandlerFunc
-	ReadRunLogV1                 http.HandlerFunc
-	ReadArtifactV1               http.HandlerFunc
-	ReadArtifact                 http.HandlerFunc
-	SetIntermediateInputs        http.HandlerFunc
-	GetIntermediateInputsStatus  http.HandlerFunc
+	UploadPipelineV1            http.HandlerFunc
+	UploadPipelineVersionV1     http.HandlerFunc
+	UploadPipeline              http.HandlerFunc
+	UploadPipelineVersion       http.HandlerFunc
+	ReadRunLogV1                http.HandlerFunc
+	ReadArtifactV1              http.HandlerFunc
+	ReadArtifact                http.HandlerFunc
+	SetIntermediateInputs       http.HandlerFunc
+	GetIntermediateInputsStatus http.HandlerFunc
 }
 
 func initCerts() (*tls.Config, error) {

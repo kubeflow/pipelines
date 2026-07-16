@@ -590,7 +590,7 @@ const (
 
 // humanInputSentinelImage is the special container image value that the Python
 // SDK emits when a human_input() task is compiled. The backend Argo compiler
-// recognises this image and translates the task into an Argo suspend template
+// recognizes this image and translates the task into an Argo suspend template
 // with supplied output parameters instead of the usual driver+launcher pattern.
 // This value must stay in sync with kfp.dsl.human_input.HUMAN_INPUT_SENTINEL_IMAGE.
 const humanInputSentinelImage = "kfp://human-input"
@@ -600,8 +600,8 @@ const humanInputSentinelImage = "kfp://human-input"
 // These values are in sync with the values in SDK to form a contract between BE and SDK.
 // TODO(lingqinggan): clarify these in documentation for KFP V2.
 var dummyImages = map[string]bool{
-	"argostub/createpvc":     true,
-	"argostub/deletepvc":     true,
+	"argostub/createpvc":    true,
+	"argostub/deletepvc":    true,
 	humanInputSentinelImage: true,
 }
 

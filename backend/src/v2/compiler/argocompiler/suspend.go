@@ -77,7 +77,7 @@ func (c *workflowCompiler) humanInputTask(
 //   - inputs.parameters: one entry per output parameter with display metadata
 //     (description, enum, default) for the UI.
 //   - outputs.parameters: one entry per output parameter with
-//     valueFrom.supplied set, signalling to Argo that a human must provide
+//     valueFrom.supplied set, signaling to Argo that a human must provide
 //     the value before the workflow can resume.
 func (c *workflowCompiler) addHumanInputTemplate(componentName string, paramsMeta map[string]humanInputParamMeta) (string, error) {
 	tmplName := "system-human-input-" + componentName

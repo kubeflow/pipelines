@@ -250,7 +250,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 		return nil, err
 	}
 
-	taskSpecJson, err := stablyMarshalJSON(effectiveTask)
+	taskSpecJSON, err := stablyMarshalJSON(effectiveTask)
 	if err != nil {
 		return nil, err
 	}
@@ -258,7 +258,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 	isIteratorTask := inputs.iterationIndex == "" &&
 		(task.GetParameterIterator() != nil || task.GetArtifactIterator() != nil)
 	if isIteratorTask {
-		return c.iteratorTask(name, task, taskSpecJson, inputs.parentDagID)
+		return c.iteratorTask(name, task, taskSpecJSON, inputs.parentDagID)
 	}
 	switch impl := componentSpec.GetImplementation().(type) {
 	case *pipelinespec.ComponentSpec_Dag:
@@ -271,7 +271,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 		driver, driverOutputs, err := c.dagDriverTask(driverTaskName, dagDriverInputs{
 			parentDagID:    inputs.parentDagID,
 			component:      componentSpecPlaceholder,
-			task:           taskSpecJson,
+			task:           taskSpecJSON,
 			iterationIndex: inputs.iterationIndex,
 			taskName:       effectiveTaskName,
 		})
@@ -328,7 +328,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 			kubernetesConfigPlaceholder, _ := c.useKubernetesImpl(componentName)
 			driver, driverOutputs := c.containerDriverTask(driverTaskName, containerDriverInputs{
 				component:        componentSpecPlaceholder,
-				task:             taskSpecJson,
+				task:             taskSpecJSON,
 				container:        containerPlaceholder,
 				parentDagID:      inputs.parentDagID,
 				iterationIndex:   inputs.iterationIndex,
@@ -368,7 +368,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				// it's impossible to add a when condition based on driver outputs.
 				return nil, fmt.Errorf("triggerPolicy.condition on importer task is not supported")
 			}
-			importer, err := c.importerTask(name, task, taskSpecJson, inputs.parentDagID, e.Importer.GetDownloadToWorkspace())
+			importer, err := c.importerTask(name, task, taskSpecJSON, inputs.parentDagID, e.Importer.GetDownloadToWorkspace())
 			if err != nil {
 				return nil, err
 			}
