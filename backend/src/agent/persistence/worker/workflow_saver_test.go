@@ -269,3 +269,120 @@ func TestWorkflow_Save_SkippedDDueToMissingRunID(t *testing.T) {
 	assert.Equal(t, false, util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT))
 	assert.Equal(t, nil, err)
 }
+
+// terminalWorkflowWithMetrics returns a succeeded workflow whose single node
+// produced an mlpipeline-metrics artifact, and stubs that artifact content on
+// the given pipeline client fake.
+func terminalWorkflowWithMetrics(t *testing.T, pipelineFake *client.PipelineClientFake) *util.Workflow {
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			Name:      "MY_NAME",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "MY_UUID"},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Phase: workflowapi.WorkflowSucceeded,
+			Nodes: map[string]workflowapi.NodeStatus{
+				"node-1": {
+					ID:           "node-1",
+					TemplateName: "template-1",
+					Phase:        workflowapi.NodeSucceeded,
+					Outputs: &workflowapi.Outputs{
+						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
+					},
+				},
+			},
+		},
+	})
+	metricsJSON := `{"metrics": [{"name": "accuracy", "numberValue": 0.77}]}`
+	artifactData, err := util.ArchiveTgz(map[string]string{"file": metricsJSON})
+	assert.Nil(t, err)
+	pipelineFake.StubArtifact(
+		&artifactclient.ReadArtifactRequest{
+			RunID:        "MY_UUID",
+			NodeID:       "node-1",
+			ArtifactName: "mlpipeline-metrics",
+		},
+		&artifactclient.ReadArtifactResponse{
+			Data: []byte(artifactData),
+		})
+	return workflow
+}
+
+func TestWorkflow_Save_TerminalWorkflowReportsMetricsAndWorkflow(t *testing.T) {
+	workflowFake := client.NewWorkflowClientFake()
+	pipelineFake := client.NewPipelineClientFake()
+	workflow := terminalWorkflowWithMetrics(t, pipelineFake)
+	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
+
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+
+	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, pipelineFake.GetReportedMetricsRequest())
+	assert.NotNil(t, pipelineFake.GetWorkflow("MY_NAMESPACE", "MY_NAME"))
+}
+
+// A transient metric reporting failure on a terminal workflow must be
+// surfaced before the workflow report: a successful report adds the
+// persistedFinalState label, after which the workflow is never re-reported
+// and the metrics would be silently lost.
+func TestWorkflow_Save_TerminalWorkflowTransientMetricsFailureBlocksReport(t *testing.T) {
+	workflowFake := client.NewWorkflowClientFake()
+	pipelineFake := client.NewPipelineClientFake()
+	workflow := terminalWorkflowWithMetrics(t, pipelineFake)
+	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
+	pipelineFake.StubReportRunMetrics(nil, util.NewCustomError(fmt.Errorf("db down"),
+		util.CUSTOM_CODE_TRANSIENT, "transient metrics error"))
+
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+
+	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
+
+	assert.Equal(t, true, util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT))
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "transient metrics failure before workflow report")
+	assert.Nil(t, pipelineFake.GetWorkflow("MY_NAMESPACE", "MY_NAME"))
+}
+
+// When the run row does not exist yet (first report of this workflow), the
+// pre-report metrics attempt returns NotFound; the workflow must still be
+// reported so the run is created, and metrics reporting is retried after.
+func TestWorkflow_Save_TerminalWorkflowMetricsRunNotFoundStillReportsWorkflow(t *testing.T) {
+	workflowFake := client.NewWorkflowClientFake()
+	pipelineFake := client.NewPipelineClientFake()
+	workflow := terminalWorkflowWithMetrics(t, pipelineFake)
+	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
+	pipelineFake.StubReportRunMetrics(nil, util.NewCustomError(fmt.Errorf("run not found"),
+		util.CUSTOM_CODE_NOT_FOUND, "run not found"))
+
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+
+	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
+
+	assert.NotNil(t, pipelineFake.GetWorkflow("MY_NAMESPACE", "MY_NAME"))
+	// The stub keeps failing with NotFound on the post-report retry, so the
+	// error is surfaced, but the workflow itself was persisted.
+	assert.NotNil(t, err)
+	assert.Equal(t, false, util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT))
+}
+
+// A permanent metric failure (for example invalid user-written metrics) must
+// not block persisting the workflow itself; it is surfaced afterwards.
+func TestWorkflow_Save_TerminalWorkflowPermanentMetricsFailureStillReportsWorkflow(t *testing.T) {
+	workflowFake := client.NewWorkflowClientFake()
+	pipelineFake := client.NewPipelineClientFake()
+	workflow := terminalWorkflowWithMetrics(t, pipelineFake)
+	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
+	pipelineFake.StubReportRunMetrics(nil, util.NewCustomError(fmt.Errorf("bad metrics"),
+		util.CUSTOM_CODE_PERMANENT, "permanent metrics error"))
+
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+
+	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
+
+	assert.NotNil(t, pipelineFake.GetWorkflow("MY_NAMESPACE", "MY_NAME"))
+	assert.NotNil(t, err)
+	assert.Equal(t, true, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT))
+}

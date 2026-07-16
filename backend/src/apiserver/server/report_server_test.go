@@ -142,6 +142,40 @@ func TestReportWorkflow(t *testing.T) {
 	assert.NotNil(t, run)
 }
 
+// A terminal workflow report must persist the run and its task details and
+// then mark the workflow CR with the persistedFinalState label, which tells
+// the persistence agent the report is fully persisted and stops re-reporting.
+func TestReportWorkflow_TerminalWorkflowGetsPersistedFinalStateLabel(t *testing.T) {
+	clientManager, resourceManager, run := initWithOneTimeRun(t)
+	defer clientManager.Close()
+	reportServer := NewReportServer(resourceManager)
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Workflow",
+			APIVersion: "argoproj.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "default",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowSucceeded},
+	})
+
+	_, err := reportServer.ReportWorkflow(context.Background(), &apiv2.ReportWorkflowRequest{
+		Workflow: workflow.ToStringForStore(),
+	})
+	assert.Nil(t, err)
+
+	reportedWorkflow, err := clientManager.ExecClientFake.Execution("default").Get(
+		context.Background(), run.K8SName, metav1.GetOptions{})
+	assert.Nil(t, err)
+	assert.Equal(t, "true",
+		reportedWorkflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState])
+}
+
 func TestReportWorkflow_ValidationFailed(t *testing.T) {
 	clientManager, resourceManager, run := initWithOneTimeRun(t)
 	defer clientManager.Close()

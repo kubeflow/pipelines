@@ -87,6 +87,14 @@ func (s *BaseReportServer) reportWorkflow(ctx context.Context, workflow string) 
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to report task details")
 	}
+	// Add the persistedFinalState label only after the task details above have
+	// been persisted. The label makes the persistence agent skip re-reporting
+	// this workflow and lets the API server garbage collect it, so adding it
+	// before the task write completes would silently lose the run's final task
+	// states if the write fails or the request is interrupted.
+	if err := s.resourceManager.FinalizeReportedWorkflow(ctx, newExecSpec); err != nil {
+		return nil, util.Wrap(err, "Failed to finalize the workflow report")
+	}
 	return &emptypb.Empty{}, nil
 }
 

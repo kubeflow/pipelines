@@ -1593,12 +1593,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			workflowGCCounter.Inc()
 		}
 	}
-	// If the run was Running and got terminated (activeDeadlineSeconds set to 0),
-	// ignore its condition and mark it as such
-	state := model.RuntimeState(string(execStatus.Condition())).ToV2()
-	if execSpec.IsTerminating() {
-		state = model.RuntimeState(string(exec.ExecutionPhase(model.RunTerminatingConditionsV1))).ToV2()
-	}
+	state := reportedRunState(execSpec)
 	if execStatus.IsInFinalState() {
 		workflowStillMatchesReport, err := r.workflowStillMatchesReportedVersion(ctx, execSpec)
 		if err != nil {
@@ -1769,61 +1764,87 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 				)
 			}
 		}
-
-		stillMatchesReportedFinalState, err := r.runStillMatchesReportedFinalState(runId, state, execStatus.FinishedAt())
-		if err != nil {
-			return nil, err
-		}
-		if !stillMatchesReportedFinalState {
-			return nil, terminalWorkflowReportDeferredError(
-				runId,
-				execSpec,
-				"run state changed while reporting terminal workflow state",
-			)
-		}
-
-		labelAdded, err := addWorkflowLabelIfWorkflowUnchanged(
-			ctx,
-			r.getWorkflowClient(execSpec.ExecutionNamespace()),
-			execSpec.ExecutionName(),
-			execSpec.Version(),
-			util.LabelKeyWorkflowPersistedFinalState,
-			"true",
-		)
-		if err != nil {
-			message := fmt.Sprintf("Failed to add PersistedFinalState label to workflow %s", execSpec.ExecutionName())
-			// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
-			// report workflows that no longer exist. It's important to return a not found error, so that persistence
-			// agent won't retry again.
-			if util.IsNotFound(err) {
-				return nil, util.NewNotFoundError(err, "%s", message)
-			} else {
-				return nil, util.Wrapf(err, "%s", message)
-			}
-		}
-		if !labelAdded {
-			return nil, terminalWorkflowReportDeferredError(
-				runId,
-				execSpec,
-				"workflow resource version changed before persistedFinalState label could be added",
-			)
-		}
-		if r.options.CollectMetrics {
-			execNamespace := execSpec.ExecutionNamespace()
-			execName := execSpec.ExecutionName()
-
-			if execStatus.Condition() == exec.ExecutionSucceeded {
-				workflowSuccessCounter.WithLabelValues(execNamespace, execName).Inc()
-			} else {
-				glog.Errorf("pipeline '%s' finished with an error", execName)
-
-				// also collects counts regarding retries
-				workflowFailedCounter.WithLabelValues(execNamespace, execName).Inc()
-			}
-		}
 	}
 	execSpec.SetLabels(util.LabelKeyWorkflowRunId, runId)
 	return execSpec, nil
+}
+
+// FinalizeReportedWorkflow marks a reported terminal workflow as fully
+// persisted by adding the persistedFinalState label to the workflow CR.
+// The label is the commit marker of the terminal report: the persistence
+// agent stops re-reporting labeled workflows and the API server garbage
+// collects them. Callers must therefore invoke this only after every part of
+// the terminal report — the run row, plugin sync, task details, and run
+// metrics — has been durably persisted; otherwise a failure after the label
+// is added becomes permanently unrecoverable. Non-terminal workflows are a
+// no-op.
+func (r *ResourceManager) FinalizeReportedWorkflow(ctx context.Context, execSpec util.ExecutionSpec) error {
+	execStatus := execSpec.ExecutionStatus()
+	if !execStatus.IsInFinalState() {
+		return nil
+	}
+	runId := execSpec.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId]
+	stillMatchesReportedFinalState, err := r.runStillMatchesReportedFinalState(runId, reportedRunState(execSpec), execStatus.FinishedAt())
+	if err != nil {
+		return err
+	}
+	if !stillMatchesReportedFinalState {
+		return terminalWorkflowReportDeferredError(
+			runId,
+			execSpec,
+			"run state changed while reporting terminal workflow state",
+		)
+	}
+
+	labelAdded, err := addWorkflowLabelIfWorkflowUnchanged(
+		ctx,
+		r.getWorkflowClient(execSpec.ExecutionNamespace()),
+		execSpec.ExecutionName(),
+		execSpec.Version(),
+		util.LabelKeyWorkflowPersistedFinalState,
+		"true",
+	)
+	if err != nil {
+		message := fmt.Sprintf("Failed to add PersistedFinalState label to workflow %s", execSpec.ExecutionName())
+		// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
+		// report workflows that no longer exist. It's important to return a not found error, so that persistence
+		// agent won't retry again.
+		if util.IsNotFound(err) {
+			return util.NewNotFoundError(err, "%s", message)
+		}
+		return util.Wrapf(err, "%s", message)
+	}
+	if !labelAdded {
+		return terminalWorkflowReportDeferredError(
+			runId,
+			execSpec,
+			"workflow resource version changed before persistedFinalState label could be added",
+		)
+	}
+	if r.options.CollectMetrics {
+		execNamespace := execSpec.ExecutionNamespace()
+		execName := execSpec.ExecutionName()
+
+		if execStatus.Condition() == exec.ExecutionSucceeded {
+			workflowSuccessCounter.WithLabelValues(execNamespace, execName).Inc()
+		} else {
+			glog.Errorf("pipeline '%s' finished with an error", execName)
+
+			// also collects counts regarding retries
+			workflowFailedCounter.WithLabelValues(execNamespace, execName).Inc()
+		}
+	}
+	return nil
+}
+
+// reportedRunState derives the run state recorded for a reported workflow.
+// If the run was Running and got terminated (activeDeadlineSeconds set to 0),
+// its condition is ignored and the run is marked as terminating.
+func reportedRunState(execSpec util.ExecutionSpec) model.RuntimeState {
+	if execSpec.IsTerminating() {
+		return model.RuntimeState(string(exec.ExecutionPhase(model.RunTerminatingConditionsV1))).ToV2()
+	}
+	return model.RuntimeState(string(execSpec.ExecutionStatus().Condition())).ToV2()
 }
 
 func terminalWorkflowReportDeferredError(runID string, execSpec util.ExecutionSpec, reason string) error {

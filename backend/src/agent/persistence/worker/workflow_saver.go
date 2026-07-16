@@ -68,6 +68,32 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 		return nil
 	}
 
+	// For terminal workflows, report run metrics before the workflow report.
+	// A successful terminal report adds the persistedFinalState label, after
+	// which this workflow is skipped above and never re-reported, so any
+	// metric still unreported at that point would be silently lost. Reporting
+	// metrics first keeps transient metric failures retryable.
+	var permanentMetricsError error
+	metricsReported := false
+	if wf.ExecutionStatus().IsInFinalState() {
+		metricsError := s.metricsReporter.ReportMetrics(wf)
+		switch {
+		case metricsError == nil:
+			metricsReported = true
+		case util.HasCustomCode(metricsError, util.CUSTOM_CODE_NOT_FOUND):
+			// The run row may not exist yet (this can be the first report of
+			// this workflow). The workflow report below creates the run, and
+			// metrics reporting is retried afterwards.
+		case util.HasCustomCode(metricsError, util.CUSTOM_CODE_PERMANENT):
+			// Retrying will not help. Still report the workflow below so the
+			// run itself is persisted, then surface the metrics failure.
+			permanentMetricsError = metricsError
+		default:
+			return util.NewCustomError(metricsError, util.CUSTOM_CODE_TRANSIENT,
+				"Syncing Workflow (%v): transient metrics failure before workflow report: %v", name, metricsError)
+		}
+	}
+
 	// Save this Workflow to the database.
 	err = s.pipelineClient.ReportWorkflow(wf)
 	retry := util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT)
@@ -87,5 +113,11 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 	log.WithFields(log.Fields{
 		"Workflow": name,
 	}).Infof("Syncing Workflow (%v): success, processing complete.", name)
+	if permanentMetricsError != nil {
+		return permanentMetricsError
+	}
+	if metricsReported {
+		return nil
+	}
 	return s.metricsReporter.ReportMetrics(wf)
 }
