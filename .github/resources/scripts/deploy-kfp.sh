@@ -224,6 +224,12 @@ then
 fi
 
 if [ "${MULTI_USER}" == "true" ]; then
+  # Profile reconciliation makes a one-shot IAM request before creating the
+  # user namespace artifact secret. Pod readiness alone does not prove that
+  # this Service path is accepting connections, so validate it from the
+  # profile controller's own network namespace before creating the Profile.
+  "${C_DIR}/wait-for-seaweedfs-iam.sh"
+
   echo "Creating KF Profile..."
   kubectl apply -f test_data/kubernetes/seaweedfs/test-profiles.yaml
 
@@ -259,10 +265,7 @@ if [ "${MULTI_USER}" == "true" ]; then
     echo "ERROR: Secret mlpipeline-minio-artifact not found in namespace ${KF_PROFILE} after ${TIMEOUT}s"
     echo "Checking namespace labels:"
     kubectl get namespace "$KF_PROFILE" --show-labels 2>&1 || true
-    echo "Checking profile controller logs:"
-    kubectl -n kubeflow logs deploy/kubeflow-pipelines-profile-controller --tail=50 2>&1 || true
-    echo "Checking metacontroller logs:"
-    kubectl -n kubeflow logs -l app.kubernetes.io/name=metacontroller --tail=50 2>&1 || true
+    "${C_DIR}/wait-for-seaweedfs-iam.sh" --diagnostics-only
     exit 1
   fi
 
