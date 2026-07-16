@@ -12,6 +12,7 @@ on:
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/helper-functions.sh'
       - '.github/resources/scripts/prune_runtime_base_image_caches.py'
+      - '.github/resources/scripts/runtime_base_image_artifacts.py'
   pull_request:
     paths:
       - '.github/workflows/runtime-base-images.yml'
@@ -19,6 +20,7 @@ on:
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/helper-functions.sh'
       - '.github/resources/scripts/prune_runtime_base_image_caches.py'
+      - '.github/resources/scripts/runtime_base_image_artifacts.py'
 
 concurrency:
   group: runtime-base-images-${{ github.event.pull_request.number || github.ref }}
@@ -44,10 +46,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          image_list_hash=$(sha256sum .github/resources/runtime-base-images.txt | cut -d ' ' -f 1)
+          archive_fingerprint=$(python3 \
+            .github/resources/scripts/runtime_base_image_artifacts.py fingerprint \
+            .github/resources/runtime-base-images.txt \
+            .github/resources/scripts/helper-functions.sh \
+            .github/workflows/runtime-base-images.yml)
           {
-            echo "artifact-name=runtime-base-images-${image_list_hash}"
-            echo "cache-key=runtime-base-images-${image_list_hash}-$(date -u +%F)"
+            echo "artifact-name=runtime-base-images-${archive_fingerprint}"
+            echo "cache-key=runtime-base-images-${archive_fingerprint}-$(date -u +%F)"
           } >> "$GITHUB_OUTPUT"
           mkdir -p "${ARTIFACTS_PATH}"
 

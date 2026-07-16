@@ -38,8 +38,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          image_list_hash=$(sha256sum .github/resources/runtime-base-images.txt | cut -d ' ' -f 1)
-          echo "artifact-name=runtime-base-images-${image_list_hash}" >> "$GITHUB_OUTPUT"
+          archive_fingerprint=$(python3 \
+            .github/resources/scripts/runtime_base_image_artifacts.py fingerprint \
+            .github/resources/runtime-base-images.txt \
+            .github/resources/scripts/helper-functions.sh \
+            .github/workflows/runtime-base-images.yml)
+          echo "artifact-name=runtime-base-images-${archive_fingerprint}" >> "$GITHUB_OUTPUT"
 
       - name: Find runtime base image producer
         id: runtime-base-images-producer
@@ -57,14 +61,9 @@ jobs:
                 "repos/${GITHUB_REPOSITORY}/actions/artifacts" \
                 -f name="${ARTIFACT_NAME}" \
                 -f per_page=100); then
-              producer_run_id=$(jq -r --arg source_sha "${SOURCE_SHA}" '
-                [.artifacts[] | select(
-                  .expired == false and (
-                    .workflow_run.head_sha == $source_sha or
-                    .workflow_run.head_branch == "master"
-                  )
-                )] | sort_by(.created_at) | reverse | .[0].workflow_run.id // empty
-              ' <<< "${artifacts}")
+              producer_run_id=$(python3 \
+                .github/resources/scripts/runtime_base_image_artifacts.py \
+                select-producer --source-sha "${SOURCE_SHA}" <<< "${artifacts}")
             else
               echo "::warning::Failed to query runtime base image artifacts"
             fi

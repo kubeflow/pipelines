@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-15
+- Last updated: 2026-07-16
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -518,7 +518,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 
 - Workflows: `.github/workflows/` (build, test, lint, release)
 - `ci-health-report.yml` runs daily (and on dispatch): aggregates master-branch lane failure rates and per-test flake counts from `junit-xml - *` artifacts, publishing to the job summary and a tracking issue labeled `ci-health`.
-- `ci-scripts-tests.yml` runs the stdlib unit tests for the Python CI tooling and ClusterIP diagnostic collector on PRs touching `.github/resources/scripts/*.py`, `collect-seaweedfs-diagnostics.sh`, or the workflow itself (run locally with `cd .github/resources/scripts && python3 -m unittest -v collect_seaweedfs_diagnostics_test ci_health_report_test`).
+- `ci-scripts-tests.yml` runs the stdlib unit tests for CI tooling and diagnostics on PRs touching `.github/resources/scripts/*.py`, `.github/resources/scripts/*.sh`, or the workflow itself (run locally with `cd .github/resources/scripts && python3 -m unittest discover -v -p '*_test.py'`).
 - Composite actions: `.github/actions/` (e.g., `kfp-k8s`, `create-cluster`, `deploy`, `test-and-report`)
 - Typical checks: Go unit tests (backend), Python SDK tests, frontend tests/lint, image builds.
 - Frontend workflow (`frontend.yml`) verifies generated API clients are up to date by running `npm run apis:all` and failing on diff.
@@ -541,7 +541,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - The `deploy` action downloads and loads CI-built images before deploying optional Tinyproxy support, preloads runtime base images used by test pods and init containers, and waits for Tinyproxy readiness/endpoints in proxy lanes.
 - CI Docker-sensitive paths use shell retry wrappers with sleeps for image builds, Buildx bootstrap, and runtime base-image pulls; Kind node image bootstrap also falls back to `gcr.io/k8s-staging-kind/node` when Docker Hub flakes.
 - The `test-and-report` action pins Go via `go.mod` and restores a dedicated `go-test-lanes-*` module/build cache (weekly-rotating key with restore-keys) so Ginkgo test lanes do not cold-compile the suites each run.
-- The `runtime-base-images.yml` workflow is the single registry-pull producer for the runtime base-image archive. Trusted master runs explicitly save the daily `actions/cache` entry and prune every superseded runtime-image cache after verifying the current master key exists; reusable image-build callers wait for the producer's list-hash-keyed artifact and re-upload it into their own run instead of pulling independently.
+- The `runtime-base-images.yml` workflow is the single registry-pull producer for the runtime base-image archive. Trusted master runs explicitly save the daily `actions/cache` entry and prune every superseded runtime-image cache after verifying the current master key exists; reusable image-build callers wait for the producer's generation-fingerprinted artifact and re-upload it into their own run instead of pulling independently.
 - The `test-and-report` action port-forwards MLMD on port `8080` only when `ARGO_COMPATIBILITY_TESTS=true`, allowing the canonical Argo compatibility API job to validate execution/artifact metadata without adding another test lane.
 - Proxy test failures collect both the KFP namespace and `tinyproxy` namespace logs/events to diagnose proxy-service readiness separately from pipeline failures.
 - The `test-and-report` action samples runner-level CPU/memory/load via a self-contained `/proc` sampler (`runner-telemetry.sh`, mermaid charts in the job summary — no external chart services) and, on test failure, writes a failure-signature classification table to the job summary (`failure-signature-summary.sh`), exports full Kind cluster logs as a `kind-logs - <report>` artifact, and uploads raw JUnit XML as a `junit-xml - <report>` artifact for flake-trend analysis.
