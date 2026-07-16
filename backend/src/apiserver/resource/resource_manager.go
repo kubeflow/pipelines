@@ -1746,6 +1746,19 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		if updateError = r.experimentStore.SetLastRunTimestamp(run); updateError != nil {
 			return nil, util.Wrapf(updateError, "Failed to report a workflow for existing run %s during updating the owning experiment.", runId)
 		}
+		if execStatus.IsInFinalState() {
+			// The run row for this terminal workflow was created by this report,
+			// so run metrics reported against the run before this report (the
+			// persistence agent reports metrics first) could not have been
+			// persisted yet. Defer finalization: the run row is committed above,
+			// and the retried report finds it, letting metrics land before the
+			// persistedFinalState label is added.
+			return nil, terminalWorkflowReportDeferredError(
+				runId,
+				execSpec,
+				"run row was created by this terminal report, so run metrics may still be pending",
+			)
+		}
 	}
 	if execStatus.IsInFinalState() {
 		// Notify plugins of terminal state. If terminal handling cannot be

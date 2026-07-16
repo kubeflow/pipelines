@@ -4025,6 +4025,62 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1())
 }
 
+func TestReportWorkflowResource_DefersFinalizationWhenTerminalReportCreatesRun(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	ctx := context.Background()
+	namespace := "MY_NAMESPACE"
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: namespace,
+			UID:       "WORKFLOW_1",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "WORKFLOW_1"},
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID(job.UUID),
+			}},
+			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowSucceeded,
+			FinishedAt: v1.NewTime(time.Unix(123, 0)),
+		},
+	})
+	_, err := store.ExecClient().Execution(namespace).Create(ctx, workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+
+	// The run row does not exist yet, so this terminal report creates it. Run
+	// metrics reported before the workflow report (the persistence agent
+	// reports metrics first) could not have been persisted against the new
+	// run, so the report must defer finalization with a retryable signal.
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+
+	createdRun, err := manager.GetRun("WORKFLOW_1")
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateSucceeded, createdRun.State)
+
+	unlabeledWorkflow, err := store.ExecClientFake.Execution(namespace).Get(ctx, "MY_NAME", v1.GetOptions{})
+	require.NoError(t, err)
+	_, hasFinalStateLabel := unlabeledWorkflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState]
+	assert.False(t, hasFinalStateLabel)
+
+	// The retried report finds the run row and succeeds, and only then is the
+	// workflow finalized with the persistedFinalState label.
+	reportedWorkflow, err := manager.ReportWorkflowResource(ctx, workflow)
+	require.NoError(t, err)
+	require.NoError(t, manager.FinalizeReportedWorkflow(ctx, reportedWorkflow))
+
+	labeledWorkflow, err := store.ExecClientFake.Execution(namespace).Get(ctx, "MY_NAME", v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, "true", labeledWorkflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState])
+}
+
 func TestReportWorkflowResource_WorkflowMissingRunID(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()

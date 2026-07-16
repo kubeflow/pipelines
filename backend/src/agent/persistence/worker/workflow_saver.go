@@ -82,8 +82,11 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 			metricsReported = true
 		case util.HasCustomCode(metricsError, util.CUSTOM_CODE_NOT_FOUND):
 			// The run row may not exist yet (this can be the first report of
-			// this workflow). The workflow report below creates the run, and
-			// metrics reporting is retried afterwards.
+			// this workflow). The workflow report below creates the run row.
+			// The API server defers the persistedFinalState label when a
+			// terminal report creates the run, returning a retryable error, so
+			// the retried Save reports metrics against the now-existing run
+			// before the workflow is finalized.
 		case util.HasCustomCode(metricsError, util.CUSTOM_CODE_PERMANENT):
 			// Retrying will not help. Still report the workflow below so the
 			// run itself is persisted, then surface the metrics failure.
