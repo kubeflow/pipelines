@@ -203,13 +203,14 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),
 		// TODO(chensun): release process and update the images.
-		launcherImage:   GetLauncherImage(),
-		launcherCommand: GetLauncherCommand(),
-		driverImage:     GetDriverImage(),
-		driverCommand:   GetDriverCommand(),
-		job:             job,
-		spec:            spec,
-		executors:       deploy.GetExecutors(),
+		launcherImage:        GetLauncherImage(),
+		launcherCommand:      GetLauncherCommand(),
+		driverImage:          GetDriverImage(),
+		driverCommand:        GetDriverCommand(),
+		job:                  job,
+		spec:                 spec,
+		executors:            deploy.GetExecutors(),
+		humanInputComponents: make(map[string][]string),
 	}
 	if opts != nil {
 		c.cacheDisabled = opts.CacheDisabled
@@ -325,6 +326,12 @@ type workflowCompiler struct {
 	defaultRunAsGroup    *int64
 	defaultRunAsNonRoot  *bool
 	defaultHostUsers     *bool
+	// humanInputComponents maps component names to their human-input output
+	// parameter names. It is populated during the Container() visitor call and
+	// read during task() to rewrite downstream task specs so that their inputs
+	// that come from human-input tasks are resolved via Argo parameter
+	// substitution (runtime_value) rather than MLMD lookup.
+	humanInputComponents map[string][]string
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {
@@ -581,13 +588,21 @@ const (
 	tmplEntrypoint = "entrypoint"
 )
 
+// humanInputSentinelImage is the special container image value that the Python
+// SDK emits when a human_input() task is compiled. The backend Argo compiler
+// recognises this image and translates the task into an Argo suspend template
+// with supplied output parameters instead of the usual driver+launcher pattern.
+// This value must stay in sync with kfp.dsl.human_input.HUMAN_INPUT_SENTINEL_IMAGE.
+const humanInputSentinelImage = "kfp://human-input"
+
 // Here is the collection of all special dummy images that the backend recognizes.
 // User need to avoid these image names for their self-defined components.
 // These values are in sync with the values in SDK to form a contract between BE and SDK.
 // TODO(lingqinggan): clarify these in documentation for KFP V2.
 var dummyImages = map[string]bool{
-	"argostub/createpvc": true,
-	"argostub/deletepvc": true,
+	"argostub/createpvc":     true,
+	"argostub/deletepvc":     true,
+	humanInputSentinelImage: true,
 }
 
 // convertStructToPVCSpec converts a protobuf Struct to a PersistentVolumeClaimSpec using JSON marshaling/unmarshalling.

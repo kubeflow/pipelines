@@ -452,6 +452,39 @@ class ImporterSpec:
 
 
 @dataclasses.dataclass
+class HumanInputParameterSpec:
+    """Specification for a single human-supplied parameter in a human input task.
+
+    Attributes:
+        description: Optional human-readable description shown in the UI.
+        default: Optional default value pre-filled in the UI input field.
+        enum: Optional list of allowed string values. When set, the UI renders
+            a dropdown instead of a free-form text input. The first option in
+            ``enum`` is presented first; ``default`` (if provided) must be one
+            of the listed values.
+    """
+    description: Optional[str] = None
+    default: Optional[str] = None
+    enum: Optional[List[str]] = None
+
+
+@dataclasses.dataclass
+class HumanInputSpec:
+    """Implementation spec for a human input (suspend) task.
+
+    A human input task causes the pipeline to pause at the corresponding node
+    and wait for a human operator to supply values for the declared parameters
+    before the run continues.  The supplied values become the task's output
+    parameters and can be referenced by downstream tasks exactly like any
+    other component output.
+
+    Attributes:
+        parameters: Mapping from output parameter name to its specification.
+    """
+    parameters: Dict[str, HumanInputParameterSpec]
+
+
+@dataclasses.dataclass
 class Implementation:
     """Implementation definition.
 
@@ -459,11 +492,13 @@ class Implementation:
         container: container implementation details.
         graph: graph implementation details.
         importer: importer implementation details.
+        human_input: human input (suspend) implementation details.
     """
     container: Optional[ContainerSpecImplementation] = None
     importer: Optional[ImporterSpec] = None
     # Use type forward reference to skip the type validation in BaseModel.
     graph: Optional['pipeline_spec_pb2.PipelineSpec'] = None
+    human_input: Optional[HumanInputSpec] = None
 
     @classmethod
     def from_pipeline_spec_dict(cls, pipeline_spec_dict: Dict[str, Any],
