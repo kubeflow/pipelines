@@ -1,10 +1,4 @@
-import kfp
-
-kfp.__version__ = "2.14.3"
-kfp.TYPE_CHECK = True
-
 from kfp import compiler, dsl
-
 
 @dsl.component
 def echo(item: str) -> str:
