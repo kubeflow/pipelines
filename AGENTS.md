@@ -210,6 +210,7 @@ Notes:
 
 - API Server tests under `backend/test/v2/api` are integration tests run with Ginkgo; they require a running cluster and are not part of unit tests.
 - Compiler tests live under `backend/test/compiler` and E2E tests under `backend/test/end2end`; both are Ginkgo-based and excluded from unit presubmits.
+- Backend presubmit also runs `test/cache-deployer/deploy-cache-service_test.sh` for cache deployer shell behavior.
 - See `test/README.md` for integration/E2E test infrastructure details (Kind clusters, GitHub Actions setup).
 
 ### Backend Ginkgo test suites

@@ -20,6 +20,9 @@ set -ex
 # Add installed go binaries to PATH.
 export PATH="${PATH}:$(go env GOPATH)/bin"
 
+# Check cache deployer shell helpers that are not covered by Go tests.
+./test/cache-deployer/deploy-cache-service_test.sh
+
 # 1. Check go modules are tidy
 # Reference: https://github.com/golang/go/issues/27005#issuecomment-564892876
 go mod download
