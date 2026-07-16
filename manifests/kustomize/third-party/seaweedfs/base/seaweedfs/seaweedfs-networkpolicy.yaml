@@ -24,6 +24,12 @@ spec:
     - podSelector: {}
     ports:
     - port: 8333
+  - from:
+    - podSelector:
+        matchLabels:
+          app: kubeflow-pipelines-profile-controller
+    ports:
+    - port: 8111
   podSelector:
     matchExpressions:
     - key: app

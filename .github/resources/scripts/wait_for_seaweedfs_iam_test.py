@@ -17,10 +17,15 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+import time
 import unittest
 
 
 SCRIPT = Path(__file__).with_name('wait-for-seaweedfs-iam.sh')
+NETWORK_POLICY = (
+    Path(__file__).parents[3]
+    / 'manifests/kustomize/third-party/seaweedfs/base/seaweedfs/seaweedfs-networkpolicy.yaml'
+)
 
 
 class WaitForSeaweedfsIamTest(unittest.TestCase):
@@ -45,7 +50,39 @@ class WaitForSeaweedfsIamTest(unittest.TestCase):
         self.assertIn('metacontroller-log-state', result.stdout)
         self.assertIn('kubeflow-event-state', result.stdout)
 
-    def _run(self, probe_failures: int, timeout_seconds: int):
+    def test_probe_duration_counts_toward_wall_clock_timeout(self):
+        start = time.monotonic()
+        result = self._run(
+            probe_failures=10,
+            timeout_seconds=2,
+            probe_delay_seconds=2,
+        )
+        duration = time.monotonic() - start
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('was not reachable after 2s', result.stdout)
+        self.assertLess(duration, 3.5)
+
+    def test_network_policy_allows_only_profile_controller_to_iam(self):
+        policy = NETWORK_POLICY.read_text(encoding='utf-8')
+
+        self.assertIn(
+            '  - from:\n'
+            '    - podSelector:\n'
+            '        matchLabels:\n'
+            '          app: kubeflow-pipelines-profile-controller\n'
+            '    ports:\n'
+            '    - port: 8111\n',
+            policy,
+        )
+        self.assertEqual(policy.count('    - port: 8111\n'), 1)
+
+    def _run(
+        self,
+        probe_failures: int,
+        timeout_seconds: int,
+        probe_delay_seconds: int = 0,
+    ):
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_path = Path(temporary_directory)
             bin_directory = temporary_path / 'bin'
@@ -58,6 +95,7 @@ class WaitForSeaweedfsIamTest(unittest.TestCase):
             environment = os.environ.copy()
             environment['PATH'] = f'{bin_directory}:{environment["PATH"]}'
             environment['FAKE_PROBE_FAILURES'] = str(probe_failures)
+            environment['FAKE_PROBE_DELAY_SECONDS'] = str(probe_delay_seconds)
             environment['FAKE_STATE_FILE'] = str(state_file)
             environment['SEAWEEDFS_IAM_WAIT_TIMEOUT_SECONDS'] = str(
                 timeout_seconds
@@ -75,6 +113,7 @@ _FAKE_KUBECTL = r'''#!/usr/bin/env bash
 args="$*"
 
 if [[ "$args" == *"exec deploy/kubeflow-pipelines-profile-controller"* ]]; then
+  sleep "${FAKE_PROBE_DELAY_SECONDS:-0}"
   count=0
   [[ ! -f "$FAKE_STATE_FILE" ]] || count=$(<"$FAKE_STATE_FILE")
   count=$((count + 1))
