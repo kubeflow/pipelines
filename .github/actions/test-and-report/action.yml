@@ -433,9 +433,11 @@ runs:
         echo "=== Current disk usage ==="
         df -h
         NAMESPACE="${{ inputs.default_namespace }}"
-        ./.github/resources/scripts/collect-logs.sh --ns "$NAMESPACE" --output /tmp/tmp_pod_log.txt
+        ./.github/resources/scripts/collect-logs.sh --ns "$NAMESPACE" --output /tmp/tmp_pod_log.txt || \
+          echo "Pod log collection failed; continuing with service diagnostics."
         if [ "${{ inputs.proxy }}" = "true" ]; then
-          ./.github/resources/scripts/collect-logs.sh --ns tinyproxy --output /tmp/tmp_pod_log.txt
+          ./.github/resources/scripts/collect-logs.sh --ns tinyproxy --output /tmp/tmp_pod_log.txt || \
+            echo "Tinyproxy log collection failed; continuing with service diagnostics."
         fi
         # Dataplane diagnostics: E2E lanes intermittently fail with connection
         # errors to in-cluster ClusterIPs (SeaweedFS :9000, the MLflow service
@@ -444,7 +446,8 @@ runs:
         # for every ClusterIP the just-collected pod logs recorded a timeout,
         # refusal, or reset against -- distinguishing backend lifecycle from
         # conntrack exhaustion or a missing/stale service program.
-        ./.github/resources/scripts/collect-seaweedfs-diagnostics.sh --namespace "$NAMESPACE" --connection-failure-log /tmp/tmp_pod_log.txt --output /tmp/tmp_pod_log.txt
+        ./.github/resources/scripts/collect-seaweedfs-diagnostics.sh --namespace "$NAMESPACE" --connection-failure-log /tmp/tmp_pod_log.txt --output /tmp/tmp_pod_log.txt || \
+          echo "Service diagnostics collection was incomplete."
       continue-on-error: true
 
     - name: Summarize failure signatures

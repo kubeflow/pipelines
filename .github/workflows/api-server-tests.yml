@@ -4,6 +4,7 @@ env:
   API_TESTS_DIR: "./backend/test/v2/api"
   TESTS_LABEL: "ApiServerTests"
   NUMBER_OF_PARALLEL_NODES: 5
+  NUMBER_OF_MULTI_USER_PARALLEL_NODES: 2
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
   USER_NAMESPACE: "kubeflow-user-example-com"
@@ -246,18 +247,37 @@ jobs:
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
 
+      - name: Configure Input Variables
+        shell: bash
+        id: configure
+        if: ${{ steps.deploy.outcome == 'success' }}
+        run: |
+          NUMBER_OF_NODES=${{ env.NUMBER_OF_MULTI_USER_PARALLEL_NODES }}
+          TEST_LABEL=${{ env.TESTS_LABEL }}
+          NAMESPACE=${{ env.NAMESPACE }}
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
+            TEST_LABEL=${{ inputs.test_label }}
+            NAMESPACE=${{ inputs.namespace }}
+          fi
+          {
+            echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"
+            echo "TEST_LABEL=$TEST_LABEL"
+            echo "NAMESPACE=$NAMESPACE"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Run Tests
         uses: ./.github/actions/test-and-report
         id: test-run
-        if: ${{ steps.deploy.outcome == 'success' }}
+        if: ${{ steps.configure.outcome == 'success' }}
         env:
           LOCAL_API_SERVER: "true"
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
           test_directory: ${{ env.API_TESTS_DIR }}
-          test_label: ${{ env.TESTS_LABEL }}
-          num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
-          default_namespace: ${{ env.NAMESPACE }}
+          test_label: ${{ steps.configure.outputs.TEST_LABEL }}
+          num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
+          default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
           user_namespace: ${{ env.USER_NAMESPACE }}
           multi_user: ${{ matrix.multi_user }}

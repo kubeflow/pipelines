@@ -133,9 +133,9 @@ jobs:
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
 
-          if [ "$TEST_LABEL" == "E2EFailure" ]; then
-            # This lane creates several intentionally failing workflows at once,
-            # which is enough to saturate the shared single-node Kind dataplane.
+          if [ "$TEST_LABEL" == "E2EFailure" ] || [ "$TEST_LABEL" == "E2ECritical" ]; then
+            # These lanes create enough simultaneous pipeline and artifact
+            # traffic to saturate the shared single-node Kind dataplane.
             NUMBER_OF_NODES=2
           fi
 
