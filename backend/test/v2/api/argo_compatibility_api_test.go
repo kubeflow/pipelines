@@ -340,11 +340,12 @@ func collectArgoCompatibilityDiagnostics(runID string) string {
 		fmt.Fprintf(&report, "Argo client error: %v\n", err)
 	} else {
 		workflows, listErr := argoClient.ArgoprojV1alpha1().Workflows(namespace).List(ctx, metav1.ListOptions{LabelSelector: selector})
-		if listErr != nil {
+		switch {
+		case listErr != nil:
 			fmt.Fprintf(&report, "Workflow lookup error: %v\n", listErr)
-		} else if len(workflows.Items) == 0 {
+		case len(workflows.Items) == 0:
 			fmt.Fprintln(&report, "Workflows: none")
-		} else {
+		default:
 			fmt.Fprintln(&report, "Workflows:")
 			for index := range workflows.Items {
 				workflow := &workflows.Items[index]
@@ -363,11 +364,12 @@ func collectArgoCompatibilityDiagnostics(runID string) string {
 	}
 
 	pods, err := k8Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{LabelSelector: selector})
-	if err != nil {
+	switch {
+	case err != nil:
 		fmt.Fprintf(&report, "Pod lookup error: %v\n", err)
-	} else if len(pods.Items) == 0 {
+	case len(pods.Items) == 0:
 		fmt.Fprintln(&report, "Pods: none")
-	} else {
+	default:
 		fmt.Fprintln(&report, "Pods:")
 		for index := range pods.Items {
 			pod := &pods.Items[index]
@@ -390,7 +392,7 @@ func collectArgoCompatibilityDiagnostics(runID string) string {
 		event := &events.Items[index]
 		_, objectIsRelevant := objectNames[event.InvolvedObject.Name]
 		isRecentWarning := len(objectNames) == 0 && event.Type == corev1.EventTypeWarning &&
-			event.LastTimestamp.Time.After(testContext.TestStartTimeUTC)
+			event.LastTimestamp.After(testContext.TestStartTimeUTC)
 		if !objectIsRelevant && !isRecentWarning {
 			continue
 		}
