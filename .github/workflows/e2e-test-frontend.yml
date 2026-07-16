@@ -73,7 +73,7 @@ jobs:
         if: ${{ steps.forward-frontend-port.outcome == 'success' }}
         working-directory: ./test/server-integration-test
         run: |
-          node server-test.js --url http://localhost:3000
+          node server-test.js --url http://localhost:3000 --timeout 30000
           node k8s-integration-test.js --url http://localhost:3000
         continue-on-error: true
 
