@@ -532,7 +532,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - Argo Workflows version matrix for compatibility (where relevant): `e2e-test.yml` exercises `v3.7.14` and `v4.0.5` across the standard cache/test-label matrix, while `api-server-tests.yml` covers standalone and Kubernetes-native Argo compatibility across the standard matrices (with standalone low-Kubernetes spot lanes per supported Argo version).
 - Focused Argo runtime compatibility API tests run only in the canonical standalone `v4.0.5` / Kubernetes `v1.36.1` job via `ARGO_COMPATIBILITY_TESTS`; this covers recurring-run creation, run retry, task metadata/artifacts, and archived logs without adding another E2E lane.
 - Proxy / cache toggles: dedicated jobs run with HTTP proxy enabled and with execution cache disabled to validate those modes.
-- Kind concurrency caps: automatic critical E2E and multi-user API-server lanes use two Ginkgo nodes, while nested-pipeline E2E runs serially because each spec fans out into child pipelines. These caps avoid saturating the single-node service dataplane; manual workflow dispatches retain their requested concurrency.
+- Kind concurrency caps: automatic critical, essential, and multi-user API-server lanes use two Ginkgo nodes, while nested-pipeline E2E runs serially because each spec fans out into child pipelines. These caps avoid saturating the single-node service dataplane; manual workflow dispatches retain their requested concurrency.
 - Artifacts: failing logs and test outputs are uploaded as workflow artifacts for debugging.
 
 ### CI cluster setup and helpers
@@ -551,15 +551,18 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - The `protobuf` composite action prepares `protoc` and related dependencies when compiling Python protobufs.
 - The `create-cluster` action caches Kind node images by Kubernetes version to reduce Docker Hub pulls.
 - Python workflows use `actions/cache@v5` for pip cache to reduce repeated dependency installs.
-- MLflow E2E matrix variants use one Ginkgo node by default, while multi-user and E2EFailure lanes use two,
-  to limit shared single-node Kind dataplane load; manual `workflow_dispatch` runs may override the parallel
-  node count.
+- MLflow E2E matrix variants use one Ginkgo node by default to limit shared single-node Kind dataplane load;
+  manual `workflow_dispatch` runs may override the parallel node count. Operator-managed Kubernetes-auth
+  MLflow instances use two Uvicorn workers so file-artifact traffic cannot block all API and health requests
+  behind one worker.
 - Argo runtime compatibility API specs run serially in the canonical Argo 4 lane so workflow lifecycle checks
   do not compete with the parallel API test workload.
 - API-server integration lanes use five Ginkgo nodes by default to limit API-server and etcd load; manually
   dispatched standalone jobs may override the parallel node count.
 - Multi-user CI verifies the SeaweedFS IAM Service path from the profile controller before creating the test
-  Profile, preventing a transient first-reconcile failure from leaving the user artifact secret absent.
+  Profile, preventing a transient first-reconcile failure from leaving the user artifact secret absent. The
+  namespace-isolation test polls both newly created Profile credentials for up to five minutes and reports
+  Profile, namespace, event, and controller state if reconciliation does not complete.
 - Workflows that cache pip downloads must use `.github/actions/setup-python-pip-cache` with a unique `cache-scope` for each dependency set and a `cache-dependency-hash` covering the requirement files the job installs. Do not use `setup-python`'s built-in `cache: 'pip'`: its generic restore prefix can propagate one workflow's global pip cache into another workflow's cache entry.
 
 ### Code style and formatting

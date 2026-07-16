@@ -439,6 +439,10 @@ runs:
           ./.github/resources/scripts/collect-logs.sh --ns tinyproxy --output /tmp/tmp_pod_log.txt || \
             echo "Tinyproxy log collection failed; continuing with service diagnostics."
         fi
+        if [ "${{ inputs.mlflow_enabled }}" = "true" ]; then
+          ./.github/resources/scripts/collect-logs.sh --ns opendatahub --output /tmp/tmp_pod_log.txt || \
+            echo "MLflow namespace log collection failed; continuing with service diagnostics."
+        fi
         # Dataplane diagnostics: E2E lanes intermittently fail with connection
         # errors to in-cluster ClusterIPs (SeaweedFS :9000, the MLflow service
         # VIP, ...). This captures SeaweedFS restart/contention evidence plus,

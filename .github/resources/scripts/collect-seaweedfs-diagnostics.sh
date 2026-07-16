@@ -291,10 +291,18 @@ probe_service_backends() {
 # and UDP on port 53.
 # Read before the diagnostics block so appended output cannot perturb the scan.
 LOG_TARGETS=""
+LOG_SERVICE_TARGETS=""
 if [[ -n "$CONNECTION_FAILURE_LOG" && -r "$CONNECTION_FAILURE_LOG" ]]; then
     LOG_TARGETS=$(sed -nE \
         -e 's/.*dial (tcp|udp) ([0-9.]+:[0-9]+): (i\/o timeout|connect: connection refused|connect: connection reset by peer).*/\1|\2/p' \
         -e 's/.*(read|write) (tcp|udp) [0-9.]+:[0-9]+->([0-9.]+:[0-9]+): .*(i\/o timeout|connection refused|connection reset by peer).*/\2|\3/p' \
+        "$CONNECTION_FAILURE_LOG" 2>/dev/null | sort -u || true)
+    # HTTP clients report the Service DNS name rather than its numeric
+    # ClusterIP when they connect successfully but time out awaiting headers.
+    # Preserve namespace/name/port until the one-shot Service inventory below
+    # can resolve it without adding another API call per failure.
+    LOG_SERVICE_TARGETS=$(sed -nE \
+        -e 's#.*https?://([[:alnum:]-]+)[.]([[:alnum:]-]+)[.]svc([.]cluster[.]local)?:([0-9]+)[^ ]*.*(context deadline exceeded|Client[.]Timeout exceeded).*#tcp|\2|\1|\4#p' \
         "$CONNECTION_FAILURE_LOG" 2>/dev/null | sort -u || true)
 fi
 
@@ -368,7 +376,20 @@ fi
     fi
     FAILED_SERVICE_TARGETS=""
     UNOWNED_CONNECTION_TARGETS=""
+    UNRESOLVED_SERVICE_NAMES=""
     if [[ "$SERVICE_INVENTORY_AVAILABLE" == "true" ]]; then
+        for named_target in $LOG_SERVICE_TARGETS; do
+            IFS='|' read -r protocol service_namespace service_name service_port <<< "$named_target"
+            service_ip=$(printf '%s\n' "$SERVICE_INVENTORY" \
+                | awk -F '\t' -v namespace="$service_namespace" -v name="$service_name" \
+                    '$1 == namespace && $2 == name {print $3; exit}')
+            if [[ "$service_ip" =~ ^[0-9.]+$ ]]; then
+                LOG_TARGETS+=$'\n'"${protocol}|${service_ip}:${service_port}"
+            else
+                UNRESOLVED_SERVICE_NAMES+="${service_name}.${service_namespace}.svc:${service_port}"$'\n'
+            fi
+        done
+        LOG_TARGETS=$(printf '%s\n' "$LOG_TARGETS" | grep -E '^(tcp|udp)\|' | sort -u || true)
         for target in $LOG_TARGETS; do
             vip="${target#*|}"
             if printf '%s\n' "$SERVICE_INVENTORY" \
@@ -409,6 +430,9 @@ fi
         # scenario the node probe exists to catch. Skip only the backend-object
         # lookups for these; section (5) still probes their node programs.
         echo "Targets not in the current Service inventory (backend lookup skipped; node program probed in section 5): $(printf '%s\n' "$UNOWNED_CONNECTION_TARGETS" | format_targets)"
+    fi
+    if [[ -n "$UNRESOLVED_SERVICE_NAMES" ]]; then
+        echo "Service DNS timeout targets not present in the current inventory: $(printf '%s\n' "$UNRESOLVED_SERVICE_NAMES" | paste -sd' ' -)"
     fi
     if [[ -z "$BACKEND_VIPS" ]]; then
         echo "No failed ClusterIPs to correlate."

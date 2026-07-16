@@ -133,7 +133,7 @@ jobs:
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
 
-          if [ "$TEST_LABEL" == "E2EFailure" ] || [ "$TEST_LABEL" == "E2ECritical" ]; then
+          if [ "$TEST_LABEL" == "E2EFailure" ] || [ "$TEST_LABEL" == "E2ECritical" ] || [ "$TEST_LABEL" == "E2EEssential" ]; then
             # These lanes create enough simultaneous pipeline and artifact
             # traffic to saturate the shared single-node Kind dataplane.
             NUMBER_OF_NODES=2
@@ -357,6 +357,17 @@ jobs:
           # provide the ODH kubernetes-auth app.
           MLFLOW_IMAGE: ghcr.io/mlflow/mlflow:v3.13.0-full
         run: ./.github/resources/scripts/deploy-direct-mlflow.sh opendatahub "${{ matrix.mlflow_auth_type }}" "${{ matrix.artifact_storage }}" "$MLFLOW_IMAGE"
+
+      - name: Increase Kubernetes-auth MLflow workers
+        shell: bash
+        if: ${{ steps.deploy-mlflow.outcome == 'success' }}
+        run: |
+          # The operator deploy action does not expose spec.workers yet. Its
+          # default of one Uvicorn worker lets file-artifact requests block the
+          # health endpoint and all MLflow API traffic behind a single request.
+          kubectl patch mlflow mlflow -n opendatahub --type=merge \
+            -p '{"spec":{"workers":2}}'
+          kubectl rollout status deployment/mlflow -n opendatahub --timeout=300s
 
       - name: Wait for MLflow stack readiness
         shell: bash

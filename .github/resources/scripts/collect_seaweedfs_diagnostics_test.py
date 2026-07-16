@@ -168,6 +168,25 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
 
         self.assertIn('10.96.2.2:8443', result.stdout)
 
+    def test_resolves_service_dns_deadline_to_cluster_ip(self):
+        result = self._run_with_fake_cluster(
+            'MLflow request failed: Post '
+            '"https://mlflow.opendatahub.svc.cluster.local:8443/mlflow/api/2.0/'
+            'mlflow/runs/create": context deadline exceeded '
+            '(Client.Timeout exceeded while awaiting headers)\n',
+            {},
+        )
+
+        self.assertIn(
+            'ClusterIPs correlated: tcp://10.96.1.1:9000 '
+            'tcp://10.96.2.2:8443',
+            result.stdout,
+        )
+        self.assertIn(
+            'Service: opendatahub/mlflow (failed VIP 10.96.2.2:8443)',
+            result.stdout,
+        )
+
     def test_missing_seaweedfs_pod_still_probes_other_service_vips(self):
         # The generic inventory and sections 4-5 must not depend on the
         # SeaweedFS pod: an MLflow VIP failure deserves its Service/backend
