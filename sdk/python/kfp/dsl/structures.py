@@ -453,7 +453,8 @@ class ImporterSpec:
 
 @dataclasses.dataclass
 class HumanInputParameterSpec:
-    """Specification for a single human-supplied parameter in a human input task.
+    """Specification for a single human-supplied parameter in a human input
+    task.
 
     Attributes:
         description: Optional human-readable description shown in the UI.

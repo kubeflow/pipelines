@@ -36,10 +36,9 @@ Example – static approval gate::
             },
         )
         deploy_op(approved=gate.outputs['decision'])
-
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from kfp.dsl import base_component
 from kfp.dsl import pipeline_task
@@ -58,8 +57,8 @@ HumanInputParameter = structures.HumanInputParameterSpec
 class _HumanInputComponent(base_component.BaseComponent):
     """Internal component class backing a human input task.
 
-    Users should create human input tasks through :func:`human_input` rather
-    than instantiating this class directly.
+    Users should create human input tasks through :func:`human_input`
+    rather than instantiating this class directly.
     """
 
     def __init__(self, component_spec: structures.ComponentSpec) -> None:
