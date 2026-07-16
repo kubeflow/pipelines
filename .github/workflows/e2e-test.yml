@@ -132,6 +132,13 @@ jobs:
           NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
+
+          if [ "$TEST_LABEL" == "E2EFailure" ]; then
+            # This lane creates several intentionally failing workflows at once,
+            # which is enough to saturate the shared single-node Kind dataplane.
+            NUMBER_OF_NODES=2
+          fi
+
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
             TEST_LABEL=${{ inputs.test_label }}
@@ -217,7 +224,9 @@ jobs:
         id: configure
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
-          NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
+          # Limit bursts of TokenReview and pipeline API traffic through the
+          # single-node Kind service dataplane.
+          NUMBER_OF_NODES=2
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
@@ -367,7 +376,7 @@ jobs:
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
           # TODO(#13724): Restore higher concurrency after increasing shared Kind capacity.
-          NUMBER_OF_NODES=2
+          NUMBER_OF_NODES=1
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then

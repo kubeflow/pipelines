@@ -550,8 +550,11 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - The `protobuf` composite action prepares `protoc` and related dependencies when compiling Python protobufs.
 - The `create-cluster` action caches Kind node images by Kubernetes version to reduce Docker Hub pulls.
 - Python workflows use `actions/cache@v5` for pip cache to reduce repeated dependency installs.
-- MLflow E2E matrix variants use two Ginkgo nodes by default to limit shared Kind dataplane load; manual
-  `workflow_dispatch` runs may override the parallel node count.
+- MLflow E2E matrix variants use one Ginkgo node by default, while multi-user and E2EFailure lanes use two,
+  to limit shared single-node Kind dataplane load; manual `workflow_dispatch` runs may override the parallel
+  node count.
+- Argo runtime compatibility API specs run serially in the canonical Argo 4 lane so workflow lifecycle checks
+  do not compete with the parallel API test workload.
 - API-server integration lanes use five Ginkgo nodes by default to limit API-server and etcd load; manually
   dispatched standalone jobs may override the parallel node count.
 - Multi-user CI verifies the SeaweedFS IAM Service path from the profile controller before creating the test

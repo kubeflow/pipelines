@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	argoclient "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned"
 	recurringrunparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_client/recurring_run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_model"
 	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
@@ -53,10 +54,19 @@ const (
 	artifactContainerImage = "alpine:3.23"
 )
 
-var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, constants.APIServerTests, "ArgoCompatibility"), func() {
+var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIVE, constants.APIServerTests, "ArgoCompatibility"), func() {
+	var diagnosticRunID string
+
 	BeforeEach(func() {
+		diagnosticRunID = ""
 		if os.Getenv(argoCompatibilityTestsEnvironmentVariable) != "true" {
 			Skip("Argo compatibility tests run only in the canonical Argo 4 API test job")
+		}
+	})
+
+	AfterEach(func() {
+		if CurrentSpecReport().Failed() && diagnosticRunID != "" {
+			AddReportEntry("Argo compatibility orchestration state", collectArgoCompatibilityDiagnostics(diagnosticRunID))
 		}
 	})
 
@@ -141,6 +151,7 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 			&createdExperiment.ExperimentID,
 			testutil.GetPipelineRunTimeInputs(pipelineFile),
 		)
+		diagnosticRunID = createdRun.RunID
 
 		retryTimeout := time.Duration(180)
 		testutil.WaitForRunToBeInState(
@@ -184,6 +195,7 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 			&createdExperiment.ExperimentID,
 			testutil.GetPipelineRunTimeInputs(pipelineFile),
 		)
+		diagnosticRunID = createdRun.RunID
 
 		var logPodName string
 		Eventually(func() string {
@@ -284,6 +296,117 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 		}, "90s", "3s").Should(ContainSubstring("input:  foo"))
 	})
 })
+
+func collectArgoCompatibilityDiagnostics(runID string) string {
+	var report strings.Builder
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	fmt.Fprintf(&report, "Run ID: %s\n", runID)
+	run, err := runClient.Get(&runparams.RunServiceGetRunParams{RunID: runID})
+	if err != nil {
+		fmt.Fprintf(&report, "Run lookup error: %v\n", err)
+	} else {
+		runState := "<unset>"
+		if run.State != nil {
+			runState = string(*run.State)
+		}
+		fmt.Fprintf(&report, "Run state: %s\n", runState)
+		fmt.Fprintln(&report, "Run state history:")
+		for _, status := range run.StateHistory {
+			if status == nil {
+				continue
+			}
+			state := "<unset>"
+			if status.State != nil {
+				state = string(*status.State)
+			}
+			fmt.Fprintf(&report, "- state=%s updated=%s error=%v\n", state, status.UpdateTime, status.Error)
+		}
+	}
+
+	restConfig, err := commonutil.GetKubernetesConfig()
+	if err != nil {
+		fmt.Fprintf(&report, "Kubernetes config error: %v\n", err)
+		return report.String()
+	}
+
+	namespace := testutil.GetNamespace()
+	selector := fmt.Sprintf("%s=%s", commonutil.LabelKeyWorkflowRunId, runID)
+	objectNames := make(map[string]struct{})
+
+	argoClient, err := argoclient.NewForConfig(restConfig)
+	if err != nil {
+		fmt.Fprintf(&report, "Argo client error: %v\n", err)
+	} else {
+		workflows, listErr := argoClient.ArgoprojV1alpha1().Workflows(namespace).List(ctx, metav1.ListOptions{LabelSelector: selector})
+		if listErr != nil {
+			fmt.Fprintf(&report, "Workflow lookup error: %v\n", listErr)
+		} else if len(workflows.Items) == 0 {
+			fmt.Fprintln(&report, "Workflows: none")
+		} else {
+			fmt.Fprintln(&report, "Workflows:")
+			for index := range workflows.Items {
+				workflow := &workflows.Items[index]
+				objectNames[workflow.Name] = struct{}{}
+				fmt.Fprintf(
+					&report,
+					"- name=%s phase=%s message=%q created=%s nodes=%d\n",
+					workflow.Name,
+					workflow.Status.Phase,
+					workflow.Status.Message,
+					workflow.CreationTimestamp.Time.UTC().Format(time.RFC3339),
+					len(workflow.Status.Nodes),
+				)
+			}
+		}
+	}
+
+	pods, err := k8Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{LabelSelector: selector})
+	if err != nil {
+		fmt.Fprintf(&report, "Pod lookup error: %v\n", err)
+	} else if len(pods.Items) == 0 {
+		fmt.Fprintln(&report, "Pods: none")
+	} else {
+		fmt.Fprintln(&report, "Pods:")
+		for index := range pods.Items {
+			pod := &pods.Items[index]
+			objectNames[pod.Name] = struct{}{}
+			fmt.Fprintf(&report, "- name=%s phase=%s node=%s reason=%q message=%q\n", pod.Name, pod.Status.Phase, pod.Spec.NodeName, pod.Status.Reason, pod.Status.Message)
+			for _, container := range pod.Status.ContainerStatuses {
+				fmt.Fprintf(&report, "  container=%s ready=%t restarts=%d state=%v\n", container.Name, container.Ready, container.RestartCount, container.State)
+			}
+		}
+	}
+
+	events, err := k8Client.CoreV1().Events(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		fmt.Fprintf(&report, "Event lookup error: %v\n", err)
+		return report.String()
+	}
+	fmt.Fprintln(&report, "Relevant events:")
+	eventCount := 0
+	for index := range events.Items {
+		event := &events.Items[index]
+		_, objectIsRelevant := objectNames[event.InvolvedObject.Name]
+		isRecentWarning := len(objectNames) == 0 && event.Type == corev1.EventTypeWarning &&
+			event.LastTimestamp.Time.After(testContext.TestStartTimeUTC)
+		if !objectIsRelevant && !isRecentWarning {
+			continue
+		}
+		fmt.Fprintf(&report, "- type=%s reason=%s object=%s/%s count=%d message=%q\n", event.Type, event.Reason, event.InvolvedObject.Kind, event.InvolvedObject.Name, event.Count, event.Message)
+		eventCount++
+		if eventCount == 50 {
+			fmt.Fprintln(&report, "- additional events omitted")
+			break
+		}
+	}
+	if eventCount == 0 {
+		fmt.Fprintln(&report, "- none")
+	}
+
+	return report.String()
+}
 
 func runtimeStateAppearsAfter(
 	stateHistory []*run_model.V2beta1RuntimeStatus,
