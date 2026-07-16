@@ -92,13 +92,15 @@ type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.Serv
 // allows tests to supply lightweight stubs without constructing real
 // server instances.
 type HTTPRouterDeps struct {
-	UploadPipelineV1        http.HandlerFunc
-	UploadPipelineVersionV1 http.HandlerFunc
-	UploadPipeline          http.HandlerFunc
-	UploadPipelineVersion   http.HandlerFunc
-	ReadRunLogV1            http.HandlerFunc
-	ReadArtifactV1          http.HandlerFunc
-	ReadArtifact            http.HandlerFunc
+	UploadPipelineV1             http.HandlerFunc
+	UploadPipelineVersionV1      http.HandlerFunc
+	UploadPipeline               http.HandlerFunc
+	UploadPipelineVersion        http.HandlerFunc
+	ReadRunLogV1                 http.HandlerFunc
+	ReadArtifactV1               http.HandlerFunc
+	ReadArtifact                 http.HandlerFunc
+	SetIntermediateInputs        http.HandlerFunc
+	GetIntermediateInputsStatus  http.HandlerFunc
 }
 
 func initCerts() (*tls.Config, error) {
@@ -429,15 +431,18 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	sharedPipelineUploadServer := server.NewPipelineUploadServer(resourceManager, &server.PipelineUploadServerOptions{CollectMetrics: *collectMetricsFlag})
 	runLogServer := server.NewRunLogServer(resourceManager)
 	runArtifactServer := server.NewRunArtifactServer(resourceManager)
+	runIntermediateInputsServer := server.NewRunIntermediateInputsServer(resourceManager)
 
 	handlerDeps := HTTPRouterDeps{
-		UploadPipelineV1:        sharedPipelineUploadServer.UploadPipelineV1,
-		UploadPipelineVersionV1: sharedPipelineUploadServer.UploadPipelineVersionV1,
-		UploadPipeline:          sharedPipelineUploadServer.UploadPipeline,
-		UploadPipelineVersion:   sharedPipelineUploadServer.UploadPipelineVersion,
-		ReadRunLogV1:            runLogServer.ReadRunLogV1,
-		ReadArtifactV1:          runArtifactServer.ReadArtifactV1,
-		ReadArtifact:            runArtifactServer.ReadArtifact,
+		UploadPipelineV1:            sharedPipelineUploadServer.UploadPipelineV1,
+		UploadPipelineVersionV1:     sharedPipelineUploadServer.UploadPipelineVersionV1,
+		UploadPipeline:              sharedPipelineUploadServer.UploadPipeline,
+		UploadPipelineVersion:       sharedPipelineUploadServer.UploadPipelineVersion,
+		ReadRunLogV1:                runLogServer.ReadRunLogV1,
+		ReadArtifactV1:              runArtifactServer.ReadArtifactV1,
+		ReadArtifact:                runArtifactServer.ReadArtifact,
+		SetIntermediateInputs:       runIntermediateInputsServer.SetIntermediateInputs,
+		GetIntermediateInputsStatus: runIntermediateInputsServer.GetIntermediateInputsStatus,
 	}
 
 	topMux := buildHTTPRouter(handlerDeps, runtimeMux, pipelineStore)
@@ -517,6 +522,11 @@ func buildHTTPRouter(handlerDeps HTTPRouterDeps, grpcGatewayHandler http.Handler
 	// Artifact reading endpoints (implemented with streaming for memory efficiency)
 	topMux.HandleFunc("/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", handlerDeps.ReadArtifactV1).Methods(http.MethodGet)
 	topMux.HandleFunc("/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", handlerDeps.ReadArtifact).Methods(http.MethodGet)
+
+	// Human-input (intermediate parameters) endpoint: supply values to a paused suspend node.
+	topMux.HandleFunc("/apis/v2beta1/runs/{run_id}/nodes/{node_id}:setIntermediateInputs", handlerDeps.SetIntermediateInputs).Methods(http.MethodPost)
+	// Read the current intermediate-input status of a node (read-only).
+	topMux.HandleFunc("/apis/v2beta1/runs/{run_id}/nodes/{node_id}/intermediateInputs", handlerDeps.GetIntermediateInputsStatus).Methods(http.MethodGet)
 
 	topMux.PathPrefix("/apis/").Handler(clearTagsMiddleware(grpcGatewayHandler))
 
