@@ -21,33 +21,81 @@ env:
 jobs:
   runtime-base-images:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    continue-on-error: true
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
     env:
       ARTIFACT_NAME: "runtime-base-images"
-      ARTIFACTS_PATH: "images_${{ github.run_id }}"
+      ARTIFACTS_PATH: "runtime-base-images-cache"
       RUNTIME_BASE_IMAGE_ARCHIVE: "runtime-base-images.tar"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Create Artifacts Path Directory
-        run: mkdir -p ${{ env.ARTIFACTS_PATH }}
-
-      - name: Pull and save runtime base images
+      - name: Configure runtime base image artifact
+        id: configure-runtime-base-images
         shell: bash
         run: |
           set -euo pipefail
-          source .github/resources/scripts/helper-functions.sh
-          pull_and_save_runtime_base_images \
+          archive_fingerprint=$(python3 \
+            .github/resources/scripts/runtime_base_image_artifacts.py fingerprint \
             .github/resources/runtime-base-images.txt \
-            "${ARTIFACTS_PATH}/${RUNTIME_BASE_IMAGE_ARCHIVE}"
+            .github/resources/scripts/helper-functions.sh \
+            .github/workflows/runtime-base-images.yml)
+          echo "artifact-name=runtime-base-images-${archive_fingerprint}" >> "$GITHUB_OUTPUT"
+
+      - name: Find runtime base image producer
+        id: runtime-base-images-producer
+        shell: bash
+        env:
+          ARTIFACT_NAME: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+
+          for attempt in $(seq 1 80); do
+            producer_run_id=""
+            if artifacts=$(gh api --method GET \
+                "repos/${GITHUB_REPOSITORY}/actions/artifacts" \
+                -f name="${ARTIFACT_NAME}" \
+                -f per_page=100); then
+              producer_run_id=$(python3 \
+                .github/resources/scripts/runtime_base_image_artifacts.py \
+                select-producer --source-sha "${SOURCE_SHA}" <<< "${artifacts}")
+            else
+              echo "::warning::Failed to query runtime base image artifacts"
+            fi
+
+            if [[ -n "${producer_run_id}" ]]; then
+              echo "run-id=${producer_run_id}" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            if [[ "${attempt}" -lt 80 ]]; then
+              echo "Runtime base image artifact not ready; retrying in 15 seconds..."
+              sleep 15
+            fi
+          done
+
+          echo "::error::No runtime base image producer artifact found for ${ARTIFACT_NAME}"
+          exit 1
+
+      - name: Download runtime base images from producer
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}
+          path: ${{ env.ARTIFACTS_PATH }}
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.runtime-base-images-producer.outputs.run-id }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
+          if-no-files-found: error
           retention-days: 1
 
   image-build:
