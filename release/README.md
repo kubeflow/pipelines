@@ -38,9 +38,8 @@ the saved status and asks before resuming; pass `--force` to resume without that
 For major and minor releases, pass `--release-source-branch BRANCH` to skip the source
 branch prompt.
 
-Documentation is not updated for patch releases. Read the Docs continues to serve the persistent
-`release-<major>.<minor>` and `kfp-kubernetes-<major>.<minor>` branches until the next minor
-release updates them.
+Patch releases also update the persistent `release-<major>.<minor>` and
+`kfp-kubernetes-<major>.<minor>` documentation branches.
 
 For `--fork-remote`, you can pass either a full remote URL or just your GitHub username. `kfpr`
 expands `droctothorpe` to `https://github.com/droctothorpe/pipelines.git`.
@@ -132,10 +131,11 @@ run merge-cherry-pick-pr
 run update-version-tags
 run merge-version-pr
 run publish-images
-run create-sdk-release
+run create-sdk-tag
 run publish-sdks
 run create-kfp-kubernetes-docs-branch
 run confirm-rtd
+run create-sdk-release
 run create-backend-release
 run sync-master
 run confirm-website-and-slack

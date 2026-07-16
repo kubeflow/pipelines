@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Kubeflow Pipelines release automation"
 requires-python = ">=3.10"
 dependencies = [
+  "build>=1,<2",
   "typer>=0.16,<1.0",
 ]
 

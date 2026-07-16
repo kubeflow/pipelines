@@ -194,6 +194,16 @@ class GithubCommandTest(unittest.TestCase):
     core.wait_for_pr_merge(runner, 'https://github.com/kubeflow/pipelines/pull/1')
     self.assertEqual(len(runner.commands), 0)
 
+  def test_wait_for_pr_merge_fails_when_pr_is_closed(self):
+    class ClosedPrRunner:
+      dry_run = False
+
+      def capture(self, command, cwd=None):
+        return 'CLOSED UNKNOWN'
+
+    with self.assertRaisesRegex(RuntimeError, 'closed without merging'):
+      core.wait_for_pr_merge(ClosedPrRunner(), 'https://github.com/kubeflow/pipelines/pull/1')
+
   def test_watch_pr_ci_fails_fast_on_failed_gate(self):
     class FailingCiRunner:
 

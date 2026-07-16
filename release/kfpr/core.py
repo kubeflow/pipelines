@@ -595,6 +595,8 @@ def wait_for_pr_merge(runner: CommandRunner, pr_url: str) -> None:
     state = runner.capture(['gh', 'pr', 'view', pr_url, '--json', 'state,mergeStateStatus,url', '--jq', '.state + " " + .mergeStateStatus'])
     if state.startswith('MERGED '):
       return
+    if state.startswith('CLOSED '):
+      raise RuntimeError(f'PR was closed without merging: {pr_url}')
     if 'DIRTY' in state or 'UNKNOWN' in state:
       print(f'PR is not ready: {state}')
     time.sleep(60)

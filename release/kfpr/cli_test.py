@@ -212,8 +212,8 @@ class CliTest(unittest.TestCase):
     self.assertIn('+-- patch --> prepare-patch-branch', result.stdout)
     self.assertIn('+-- major/minor --> prepare-release-branch', result.stdout)
     self.assertIn('+-- include-backend --> publish-images', result.stdout)
-    self.assertIn('+-- include-sdk major/minor --> create-kfp-kubernetes-docs-branch', result.stdout)
-    self.assertIn('confirm-rtd -> create-sdk-release -> publish-sdks', result.stdout)
+    self.assertIn('+-- include-sdk --> create-sdk-tag -> publish-sdks', result.stdout)
+    self.assertIn('create-kfp-kubernetes-docs-branch -> confirm-rtd -> create-sdk-release', result.stdout)
     self.assertNotIn('preflight: Verify tools', result.stdout)
 
   def test_next_runs_and_marks_next_incomplete_step(self):
@@ -234,7 +234,7 @@ class CliTest(unittest.TestCase):
 
       self.assertEqual(result.exit_code, 0, result.stdout)
       self.assertIn('Running step: Verify tools and GitHub auth', result.stdout)
-      self.assertTrue(ReleaseState.load(state_file).is_done('preflight'))
+      self.assertFalse(ReleaseState.load(state_file).is_done('preflight'))
 
   def test_next_previous_release_flag_is_stored(self):
     with TemporaryDirectory() as tmpdir:
@@ -393,7 +393,7 @@ class CliTest(unittest.TestCase):
       self.assertFalse(updated.is_done('create-sdk-release'))
       self.assertIn('next step: confirm-rtd', result.stdout)
 
-  def test_goto_rejects_step_outside_selected_flow(self):
+  def test_goto_allows_patch_docs_step(self):
     with TemporaryDirectory() as tmpdir:
       state_file = Path(tmpdir) / 'state.json'
       state = ReleaseState(state_file)
@@ -409,8 +409,8 @@ class CliTest(unittest.TestCase):
 
       result = CliRunner().invoke(app, ['goto', 'confirm-rtd', '--state-file', str(state_file)])
 
-      self.assertNotEqual(result.exit_code, 0, result.stdout)
-      self.assertIn('step is not in this release flow: confirm-rtd', result.stdout)
+      self.assertEqual(result.exit_code, 0, result.stdout)
+      self.assertIn('next step: confirm-rtd', result.stdout)
 
   def test_doctor_rejects_bad_inputs_without_writing_state(self):
     with TemporaryDirectory() as tmpdir:

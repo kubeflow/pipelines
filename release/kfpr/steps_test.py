@@ -5,6 +5,7 @@ import unittest
 import contextlib
 import io
 import subprocess
+import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
@@ -18,17 +19,20 @@ class StepSelectionTest(unittest.TestCase):
     steps_list = [step.step_id for step in steps.build_steps('patch', include_backend=True, include_sdk=True)]
     self.assertIn('cherry-pick-prs', steps_list)
     self.assertIn('publish-images', steps_list)
+    self.assertIn('create-sdk-tag', steps_list)
     self.assertIn('publish-sdks', steps_list)
     self.assertIn('create-sdk-release', steps_list)
+    self.assertLess(steps_list.index('create-sdk-tag'), steps_list.index('publish-sdks'))
     self.assertLess(steps_list.index('publish-sdks'), steps_list.index('create-sdk-release'))
-    self.assertNotIn('create-kfp-kubernetes-docs-branch', steps_list)
-    self.assertNotIn('confirm-rtd', steps_list)
+    self.assertIn('create-kfp-kubernetes-docs-branch', steps_list)
+    self.assertIn('confirm-rtd', steps_list)
     self.assertNotIn('update-sdk-versions', steps_list)
     self.assertNotIn('merge-sdk-pr', steps_list)
 
   def test_minor_keeps_release_order_and_updates_docs(self):
     steps_list = [step.step_id for step in steps.build_steps('minor', include_backend=True, include_sdk=True)]
     self.assertLess(steps_list.index('publish-sdks'), steps_list.index('create-backend-release'))
+    self.assertLess(steps_list.index('create-sdk-tag'), steps_list.index('publish-sdks'))
     self.assertLess(steps_list.index('publish-sdks'), steps_list.index('create-kfp-kubernetes-docs-branch'))
     self.assertLess(steps_list.index('create-kfp-kubernetes-docs-branch'), steps_list.index('confirm-rtd'))
     self.assertLess(steps_list.index('confirm-rtd'), steps_list.index('create-sdk-release'))
@@ -268,12 +272,11 @@ class CreateSdkReleaseStepTest(unittest.TestCase):
       )
 
       with mock.patch('builtins.input', return_value='u'):
-        steps.step_create_sdk_release(context)
+        steps.step_create_sdk_tag(context)
 
       self.assertIn(['gh', 'api', '--silent', 'repos/kubeflow/pipelines/git/ref/tags/sdk-3.2.0'], context.runner.commands)
       self.assertNotIn(['git', 'push', '--delete', 'origin', 'sdk-3.2.0'], context.runner.commands)
-      self.assertIn(['gh', 'release', 'create', 'sdk-3.2.0'], [command[:4] for command in context.runner.commands])
-      self.assertIn('--verify-tag', context.runner.commands[-1])
+      self.assertNotIn(['gh', 'release', 'create', 'sdk-3.2.0'], [command[:4] for command in context.runner.commands])
 
   def test_create_sdk_release_recreates_existing_tag_when_requested(self):
     with TemporaryDirectory() as tmpdir:
@@ -303,14 +306,13 @@ class CreateSdkReleaseStepTest(unittest.TestCase):
       )
 
       with mock.patch('builtins.input', return_value='r'):
-        steps.step_create_sdk_release(context)
+        steps.step_create_sdk_tag(context)
 
       self.assertIn(['gh', 'api', '--silent', 'repos/kubeflow/pipelines/git/ref/tags/sdk-3.2.0'], context.runner.commands)
       self.assertIn(['git', 'fetch', 'upstream', 'release-3.2'], context.runner.commands)
       self.assertIn(['git', 'tag', '-f', 'sdk-3.2.0', 'upstream/release-3.2'], context.runner.commands)
       self.assertIn(['git', 'push', '--force', 'https://github.com/kubeflow/pipelines.git', 'sdk-3.2.0'], context.runner.commands)
-      self.assertIn(['gh', 'release', 'create', 'sdk-3.2.0'], [command[:4] for command in context.runner.commands])
-      self.assertIn('--verify-tag', context.runner.commands[-1])
+      self.assertNotIn(['gh', 'release', 'create', 'sdk-3.2.0'], [command[:4] for command in context.runner.commands])
 
   def test_create_sdk_release_pushes_missing_tag_before_creating_release(self):
     with TemporaryDirectory() as tmpdir:
@@ -339,12 +341,12 @@ class CreateSdkReleaseStepTest(unittest.TestCase):
           include_sdk=True,
       )
 
-      steps.step_create_sdk_release(context)
+      steps.step_create_sdk_tag(context)
 
       self.assertIn(['git', 'fetch', 'upstream', 'release-3.2'], context.runner.commands)
       self.assertIn(['git', 'tag', '-f', 'sdk-3.2.0', 'upstream/release-3.2'], context.runner.commands)
       self.assertIn(['git', 'push', '--force', 'https://github.com/kubeflow/pipelines.git', 'sdk-3.2.0'], context.runner.commands)
-      self.assertIn('--verify-tag', context.runner.commands[-1])
+      self.assertNotIn(['gh', 'release', 'create', 'sdk-3.2.0'], [command[:4] for command in context.runner.commands])
 
 
 class CreateBackendReleaseStepTest(unittest.TestCase):
@@ -478,7 +480,7 @@ class SyncMasterStepTest(unittest.TestCase):
         steps.step_sync_master(context)
 
       self.assertIn(['git', 'push', '--set-upstream', 'git@github.com:testuser/pipelines.git', 'chore-release-3.2.0-master'], context.runner.commands)
-      self.assertNotIn(['git', 'checkout', '3.2.0', '--', 'CHANGELOG.md'], context.runner.commands)
+      self.assertIn(['git', 'checkout', '3.2.0', '--', 'CHANGELOG.md'], context.runner.commands)
       self.assertIn(['gh', 'pr', 'create'], [command[:3] for command in context.runner.commands])
       watch_ci.assert_called_once_with(context.runner, 'https://github.com/kubeflow/pipelines/pull/123')
       wait_merge.assert_called_once_with(context.runner, 'https://github.com/kubeflow/pipelines/pull/123')
@@ -1225,7 +1227,7 @@ class StepSdkVersionFilesTest(unittest.TestCase):
       self.assertIn('* New SDK feature.', (root / 'sdk/RELEASE.md').read_text())
       commands = [command for command, _, _ in context.runner.commands]
       self.assertLess(
-          commands.index(['python', '-m', 'build', '.']),
+          commands.index([sys.executable, '-m', 'build', '.']),
           next(index for index, command in enumerate(commands) if command[:2] == ['bash', '-c']),
       )
       self.assertIn(['git', 'add', '--all'], commands)
@@ -1698,6 +1700,8 @@ class DryRunOutputTest(unittest.TestCase):
         steps.step_create_kfp_kubernetes_docs_branch(context)
 
       self.assertIn(['git', 'push', 'upstream', ':kfp-kubernetes-3.2'], context.runner.commands)
+      self.assertIn(['git', 'fetch', 'upstream', 'release-3.2'], context.runner.commands)
+      self.assertIn(['git', 'checkout', '-B', 'release-3.2', 'upstream/release-3.2'], context.runner.commands)
       self.assertIn(['git', 'checkout', '-B', 'kfp-kubernetes-3.2'], context.runner.commands)
       self.assertIn(['git', 'push', '--set-upstream', 'upstream', 'kfp-kubernetes-3.2'], context.runner.commands)
 

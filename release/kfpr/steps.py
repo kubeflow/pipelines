@@ -477,19 +477,36 @@ def _update_sdk_version_files(context: ReleaseContext) -> None:
     )
 
   # Build local dists for unpublished package versions before resolving requirements.
-  context.runner.run(['python', '-m', 'build', '.'], cwd=root / 'api/v2alpha1/python')
-  context.runner.run(['python', '-m', 'build', '.'], cwd=root / 'backend/api/v2beta1/python_http_client')
+  context.runner.run([sys.executable, '-m', 'build', '.'], cwd=root / 'api/v2alpha1/python')
+  context.runner.run([sys.executable, '-m', 'build', '.'], cwd=root / 'backend/api/v2beta1/python_http_client')
   context.runner.run(kfp_requirements_command(), cwd=root / 'sdk/python')
-  context.runner.run(['python', '-m', 'build', '.'], cwd=root / 'sdk/python')
+  context.runner.run([sys.executable, '-m', 'build', '.'], cwd=root / 'sdk/python')
   context.runner.run(kubernetes_requirements_command(), cwd=root / 'kubernetes_platform/python')
 
 
-def step_create_sdk_release(context: ReleaseContext) -> None:
-  """Create SDK GitHub release.
+def step_create_sdk_tag(context: ReleaseContext) -> None:
+  """Create the SDK tag without creating a GitHub release.
 
   Args:
     context: Release context with runner and metadata.
   """
+  metadata = context.metadata
+  if context.runner.dry_run:
+    print(f'[dry-run] would create SDK tag: {metadata.sdk_tag}')
+    return
+  upstream_remote = f'https://github.com/{REPO}.git'
+  existing_tag = context.runner.run(['gh', 'api', '--silent', f'repos/{REPO}/git/ref/tags/{metadata.sdk_tag}'], check=False)
+  if existing_tag.returncode == 0:
+    choice = prompt_choice(f'SDK tag {metadata.sdk_tag} already exists. Use it or recreate it?', ['u', 'r'], default='u')
+    if choice == 'u':
+      return
+  context.runner.run(['git', 'fetch', 'upstream', metadata.release_branch], cwd=context.root)
+  context.runner.run(['git', 'tag', '-f', metadata.sdk_tag, f'upstream/{metadata.release_branch}'], cwd=context.root)
+  context.runner.run(['git', 'push', '--force', upstream_remote, metadata.sdk_tag], cwd=context.root)
+
+
+def step_create_sdk_release(context: ReleaseContext) -> None:
+  """Create the SDK GitHub release after packages are published."""
   metadata = context.metadata
   notes = f'''Release of:
 
@@ -511,27 +528,13 @@ For changelog, see https://github.com/kubeflow/pipelines/blob/{metadata.sdk_tag}
 '''
   if context.runner.dry_run:
     print(f'[dry-run] would create SDK GitHub release: {metadata.sdk_tag}')
-  else:
-    verify_existing_tag = False
-    upstream_remote = f'https://github.com/{REPO}.git'
-    existing_release = context.runner.run(['gh', 'release', 'view', metadata.sdk_tag, '--repo', REPO], check=False)
-    if existing_release.returncode == 0:
-      choice = prompt_choice(f'SDK GitHub release {metadata.sdk_tag} already exists. Use it or recreate it?', ['u', 'r'], default='u')
-      if choice == 'u':
-        return
-      context.runner.run(['gh', 'release', 'delete', metadata.sdk_tag, '--repo', REPO, '--yes', '--cleanup-tag'])
-    else:
-      existing_tag = context.runner.run(['gh', 'api', '--silent', f'repos/{REPO}/git/ref/tags/{metadata.sdk_tag}'], check=False)
-      update_tag = existing_tag.returncode != 0
-      if existing_tag.returncode == 0:
-        verify_existing_tag = True
-        choice = prompt_choice(f'SDK tag {metadata.sdk_tag} already exists. Use it or recreate it?', ['u', 'r'], default='u')
-        update_tag = choice == 'r'
-      if update_tag:
-        verify_existing_tag = True
-        context.runner.run(['git', 'fetch', 'upstream', metadata.release_branch], cwd=context.root)
-        context.runner.run(['git', 'tag', '-f', metadata.sdk_tag, f'upstream/{metadata.release_branch}'], cwd=context.root)
-        context.runner.run(['git', 'push', '--force', upstream_remote, metadata.sdk_tag], cwd=context.root)
+    return
+  existing_release = context.runner.run(['gh', 'release', 'view', metadata.sdk_tag, '--repo', REPO], check=False)
+  if existing_release.returncode == 0:
+    choice = prompt_choice(f'SDK GitHub release {metadata.sdk_tag} already exists. Use it or recreate it?', ['u', 'r'], default='u')
+    if choice == 'u':
+      return
+    context.runner.run(['gh', 'release', 'delete', metadata.sdk_tag, '--repo', REPO, '--yes'])
   create_command = [
       'gh',
       'release',
@@ -546,8 +549,7 @@ For changelog, see https://github.com/kubeflow/pipelines/blob/{metadata.sdk_tag}
       '--notes',
       notes,
   ]
-  if not context.runner.dry_run and verify_existing_tag:
-    create_command.append('--verify-tag')
+  create_command.append('--verify-tag')
   context.runner.run(create_command)
 
 
@@ -626,6 +628,8 @@ def step_create_kfp_kubernetes_docs_branch(context: ReleaseContext) -> None:
       if branch_action == 'replace':
         context.runner.run(['git', 'push', 'upstream', f':{branch}'], cwd=root)
   
+  context.runner.run(['git', 'fetch', 'upstream', metadata.release_branch], cwd=root)
+  context.runner.run(['git', 'checkout', '-B', metadata.release_branch, f'upstream/{metadata.release_branch}'], cwd=root)
   context.runner.run(kfp_kubernetes_docs_build_command(root, context.metadata.release_branch), cwd=root)
   context.runner.run(['git', 'checkout', '-B' if branch_exists else '-b', branch], cwd=root)
   
@@ -744,6 +748,7 @@ def step_sync_master(context: ReleaseContext) -> None:
   
   release_image_tag = 'master' if metadata.release_type in ('major', 'minor') else metadata.release_branch
   context.runner.run(release_version_bump_command(root, metadata.release_branch, context.previous_release, release_image_tag), cwd=root)
+  context.runner.run(['git', 'checkout', metadata.tag, '--', 'CHANGELOG.md'], cwd=root)
   context.runner.run(['git', 'add', '-A'], cwd=root)
   _run_reviewed_commit(context, ['git', 'commit', '-s', '-m', f'chore(release): bump version to {metadata.tag} on master branch'], cwd=root)
   context.runner.run(['git', 'push', '--set-upstream', context.fork_remote, branch], cwd=root)
@@ -818,15 +823,15 @@ def build_steps(release_type: str, include_backend: bool, include_sdk: bool) -> 
   if include_backend:
     steps.append(Step('publish-images', 'Run image publication workflow', 'step_publish_images'))
   if include_sdk:
-    steps.append(Step('publish-sdks', 'Run SDK publication workflow', 'step_publish_sdks'))
-    if release_type != 'patch':
-      steps.extend(
-         [
-             Step('create-kfp-kubernetes-docs-branch', 'Create kfp-kubernetes docs branch', 'step_create_kfp_kubernetes_docs_branch'),
-             Step('confirm-rtd', 'Confirm ReadTheDocs updates', 'step_confirm_rtd'),
-         ]
-      )
-    steps.append(Step('create-sdk-release', 'Create SDK GitHub release', 'step_create_sdk_release'))
+    steps.extend(
+       [
+           Step('create-sdk-tag', 'Create SDK tag', 'step_create_sdk_tag'),
+           Step('publish-sdks', 'Run SDK publication workflow', 'step_publish_sdks'),
+           Step('create-kfp-kubernetes-docs-branch', 'Create kfp-kubernetes docs branch', 'step_create_kfp_kubernetes_docs_branch'),
+           Step('confirm-rtd', 'Confirm ReadTheDocs updates', 'step_confirm_rtd'),
+           Step('create-sdk-release', 'Create SDK GitHub release', 'step_create_sdk_release'),
+       ]
+    )
   if include_backend:
     steps.extend(
        [

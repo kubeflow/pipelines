@@ -146,10 +146,9 @@ update-version-tags -> merge-version-pr
   |
   +-- include-backend --> publish-images
   |
-  +-- include-sdk major/minor --> create-kfp-kubernetes-docs-branch -> confirm-rtd -> create-sdk-release -> publish-sdks
+  +-- include-sdk --> create-sdk-tag -> publish-sdks -> create-kfp-kubernetes-docs-branch -> confirm-rtd -> create-sdk-release
   |
-  +-- include-sdk patch --> create-sdk-release -> publish-sdks
-  |
+
 create-backend-release -> sync-master -> confirm-website-and-slack'''
 
 
@@ -260,8 +259,9 @@ def next_command(
   )
   typer.echo(f'Running step: {next_step.description}')
   STEP_HANDLERS[next_step.step_id](context)
-  context.state.mark_done(next_step.step_id)
-  context.state.save()
+  if not dry_run:
+    context.state.mark_done(next_step.step_id)
+    context.state.save()
 
 
 @app.command(context_settings={'help_option_names': HELP_OPTION_NAMES})
