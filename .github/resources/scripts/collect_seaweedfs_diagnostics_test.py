@@ -245,12 +245,26 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
                     output.count('node-wide SNAT / masquerade plumbing:'), 1
                 )
 
+    def test_ipvs_fallback_matches_vip_and_port_literally(self):
+        result = self._run_with_fake_cluster(
+            'dial tcp 10.96.1.1:9000: i/o timeout\n',
+            {'FAKE_KIND_NODES': 'true'},
+            docker_script=_FAKE_DOCKER,
+            iptables_save_script='#!/usr/bin/env bash\nexit 1\n',
+            ipvsadm_script=_FAKE_IPVSADM,
+        )
+
+        self.assertIn('10.96.1.1:9000', result.stdout)
+        self.assertIn('10.244.0.20:8333', result.stdout)
+        self.assertNotIn('regex-decoy', result.stdout)
+
     def _run_with_fake_cluster(
         self,
         failure_text: str,
         extra_environment=None,
         docker_script='#!/usr/bin/env bash\nexit 1\n',
         iptables_save_script=None,
+        ipvsadm_script=None,
     ):
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_path = Path(temporary_directory)
@@ -264,6 +278,8 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
                 self._write_executable(
                     bin_directory / 'iptables-save', iptables_save_script
                 )
+            if ipvsadm_script is not None:
+                self._write_executable(bin_directory / 'ipvsadm', ipvsadm_script)
             environment = os.environ.copy()
             environment['PATH'] = f'{bin_directory}:{environment["PATH"]}'
             environment.update(extra_environment or {})
@@ -407,6 +423,22 @@ cat <<EOF
 [11:660] -A KUBE-SEP-SEAWEED -p tcp -j DNAT --to-destination 10.244.0.20:8333
 [0:0] -A KUBE-MARK-MASQ -j MARK --set-xmark 0x4000/0x4000
 [0:0] -A KUBE-POSTROUTING -m mark --mark 0x4000/0x4000 -j MASQUERADE${random_fully}
+EOF
+'''
+
+_FAKE_IPVSADM = r'''#!/usr/bin/env bash
+cat <<'EOF'
+TCP  10x96x1x1:9000 rr
+  -> regex-decoy:8333           Masq    1      0          0
+decoy-context-1
+decoy-context-2
+decoy-context-3
+decoy-context-4
+decoy-context-5
+decoy-context-6
+decoy-context-7
+TCP  10.96.1.1:9000 rr
+  -> 10.244.0.20:8333           Masq    1      0          0
 EOF
 '''
 

@@ -111,7 +111,7 @@ probe_service_rules() {
         fi
         if [ -z "$rules" ]; then
             if ipvs=$(ipvsadm -Ln --stats 2>/dev/null || ipvsadm -Ln 2>/dev/null); then
-                printf "%s\n" "$ipvs" | grep -A6 "$ip:$port" \
+                printf "%s\n" "$ipvs" | grep -F -A6 -- "$ip:$port" \
                     || echo "(no ipvs entry for $ip:$port)"
             else
                 echo "(iptables-save and ipvsadm both unavailable — cannot confirm rule presence)"
