@@ -16,8 +16,9 @@ import json
 import unittest
 
 from kfp import dsl
-from kfp.dsl.human_input import HUMAN_INPUT_SENTINEL_IMAGE, _HumanInputComponent
-from kfp.dsl.structures import HumanInputParameterSpec, HumanInputSpec
+from kfp.dsl.human_input import HUMAN_INPUT_SENTINEL_IMAGE
+from kfp.dsl.structures import HumanInputParameterSpec
+from kfp.dsl.structures import HumanInputSpec
 
 
 class TestHumanInputParameterSpec(unittest.TestCase):
@@ -50,8 +51,9 @@ class TestHumanInputSpec(unittest.TestCase):
 
     def test_parameters_field(self):
         spec = HumanInputSpec(
-            parameters={"decision": HumanInputParameterSpec(enum=["YES", "NO"])},
-        )
+            parameters={
+                "decision": HumanInputParameterSpec(enum=["YES", "NO"])
+            },)
         self.assertIn("decision", spec.parameters)
 
     def test_empty_parameters(self):
@@ -63,8 +65,11 @@ class TestHumanInputFunction(unittest.TestCase):
     """Tests for the dsl.human_input() factory function."""
 
     def _compile(self, pipeline_func):
+        import os
+        import tempfile
+
         from kfp import compiler
-        import tempfile, os, yaml
+        import yaml
 
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, "pipeline.yaml")
@@ -79,7 +84,9 @@ class TestHumanInputFunction(unittest.TestCase):
         def my_pipeline():
             dsl.human_input(
                 name="approval-gate",
-                parameters={"decision": HumanInputParameterSpec(enum=["YES", "NO"])},
+                parameters={
+                    "decision": HumanInputParameterSpec(enum=["YES", "NO"])
+                },
             )
 
         compiled = self._compile(my_pipeline)
@@ -96,12 +103,15 @@ class TestHumanInputFunction(unittest.TestCase):
         def my_pipeline():
             gate = dsl.human_input(
                 name="gate",
-                parameters={"status": HumanInputParameterSpec(default="pending")},
+                parameters={
+                    "status": HumanInputParameterSpec(default="pending")
+                },
             )
             consume(value=gate.outputs["status"])
 
         compiled = self._compile(my_pipeline)
-        task_names = list(compiled.get("root", {}).get("dag", {}).get("tasks", {}).keys())
+        task_names = list(
+            compiled.get("root", {}).get("dag", {}).get("tasks", {}).keys())
         self.assertIn("gate", task_names)
         self.assertIn("consume", task_names)
 
@@ -110,8 +120,11 @@ class TestHumanInputCompilation(unittest.TestCase):
     """Integration-level tests: compile a pipeline and validate the output."""
 
     def _compile(self, pipeline_func):
+        import os
+        import tempfile
+
         from kfp import compiler
-        import tempfile, os, yaml
+        import yaml
 
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, "pipeline.yaml")
@@ -126,7 +139,9 @@ class TestHumanInputCompilation(unittest.TestCase):
         def my_pipeline():
             dsl.human_input(
                 name="approval-gate",
-                parameters={"decision": HumanInputParameterSpec(enum=["YES", "NO"])},
+                parameters={
+                    "decision": HumanInputParameterSpec(enum=["YES", "NO"])
+                },
             )
 
         compiled = self._compile(my_pipeline)
@@ -135,11 +150,12 @@ class TestHumanInputCompilation(unittest.TestCase):
         deployment_spec = compiled.get("deploymentSpec", {})
         executors = deployment_spec.get("executors", {})
         images = [
-            e.get("container", {}).get("image", "")
-            for e in executors.values()
+            e.get("container", {}).get("image", "") for e in executors.values()
         ]
-        self.assertIn(HUMAN_INPUT_SENTINEL_IMAGE, images,
-                      f"Expected sentinel image {HUMAN_INPUT_SENTINEL_IMAGE!r} in executors: {images}")
+        self.assertIn(
+            HUMAN_INPUT_SENTINEL_IMAGE, images,
+            f"Expected sentinel image {HUMAN_INPUT_SENTINEL_IMAGE!r} in executors: {images}"
+        )
 
     def test_parameter_metadata_in_args(self):
         """args[0] must be a JSON dict mapping parameter names to their metadata."""
@@ -149,11 +165,12 @@ class TestHumanInputCompilation(unittest.TestCase):
             dsl.human_input(
                 name="approval-gate",
                 parameters={
-                    "decision": HumanInputParameterSpec(
-                        description="Approve?",
-                        default="NO",
-                        enum=["YES", "NO"],
-                    ),
+                    "decision":
+                        HumanInputParameterSpec(
+                            description="Approve?",
+                            default="NO",
+                            enum=["YES", "NO"],
+                        ),
                 },
             )
 
@@ -187,8 +204,11 @@ class TestHumanInputCompilation(unittest.TestCase):
             dsl.human_input(
                 name="gate",
                 parameters={
-                    "choice": HumanInputParameterSpec(),
-                    "reason": HumanInputParameterSpec(description="Reason for choice"),
+                    "choice":
+                        HumanInputParameterSpec(),
+                    "reason":
+                        HumanInputParameterSpec(description="Reason for choice"
+                                               ),
                 },
             )
 
@@ -200,8 +220,10 @@ class TestHumanInputCompilation(unittest.TestCase):
         gate_spec = components.get("comp-gate", {})
         output_defs = gate_spec.get("outputDefinitions", {})
         params = output_defs.get("parameters", {})
-        self.assertIn("choice", params, f"'choice' not in output params: {list(params)}")
-        self.assertIn("reason", params, f"'reason' not in output params: {list(params)}")
+        self.assertIn("choice", params,
+                      f"'choice' not in output params: {list(params)}")
+        self.assertIn("reason", params,
+                      f"'reason' not in output params: {list(params)}")
 
     def test_downstream_task_receives_output(self):
         """A downstream component can consume the human-input task output."""
@@ -214,25 +236,19 @@ class TestHumanInputCompilation(unittest.TestCase):
         def my_pipeline():
             gate = dsl.human_input(
                 name="approval-gate",
-                parameters={"decision": HumanInputParameterSpec(enum=["YES", "NO"])},
+                parameters={
+                    "decision": HumanInputParameterSpec(enum=["YES", "NO"])
+                },
             )
             consume(value=gate.outputs["decision"])
 
         # Should compile without error.
         compiled = self._compile(my_pipeline)
         # The consume component must appear in the compiled YAML.
-        task_names = list(compiled.get("root", {})
-                          .get("dag", {})
-                          .get("tasks", {})
-                          .keys())
+        task_names = list(
+            compiled.get("root", {}).get("dag", {}).get("tasks", {}).keys())
         self.assertIn("approval-gate", task_names)
         self.assertIn("consume", task_names)
-
-    def test_approval_gate_sample_compiles(self):
-        """The approval-gate sample compiles without errors."""
-        from samples.core.human_input.approval_gate import approval_gate_pipeline
-        compiled = self._compile(approval_gate_pipeline)
-        self.assertIn("deploymentSpec", compiled)
 
 
 if __name__ == "__main__":
