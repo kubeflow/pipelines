@@ -18,7 +18,7 @@ import json
 import os
 import sys
 import tempfile
-from typing import Callable, Dict, List, NamedTuple, Optional
+from typing import Annotated, Callable, Dict, List, NamedTuple, Optional
 import unittest
 from unittest import mock
 
@@ -884,6 +884,28 @@ class ExecutorTest(parameterized.TestCase):
                 'Outputs', ['output_dataset', 'output_int', 'output_string'])
             return output('Dataset contents', 101, 'Some output string')
 
+        class Outputs(NamedTuple):
+            output_dataset: Dataset
+            output_int: int
+            output_string: str
+
+        RuntimeOutputs = NamedTuple(
+            'Outputs',
+            [
+                ('output_dataset', Dataset),
+                ('output_int', int),
+                ('output_string', str),
+            ],
+        )
+
+        def func_returning_annotated_named_tuple(
+        ) -> Annotated[Outputs, RuntimeOutputs]:
+            return Outputs(
+                'Dataset contents',
+                101,
+                'Some output string',
+            )
+
         # Functions returning plain tuples should work too.
         def func_returning_plain_tuple() -> NamedTuple('Outputs', [
             ('output_dataset', Dataset),
@@ -893,7 +915,8 @@ class ExecutorTest(parameterized.TestCase):
             return ('Dataset contents', 101, 'Some output string')
 
         for test_func in [
-                func_returning_named_tuple, func_returning_plain_tuple
+                func_returning_named_tuple, func_returning_annotated_named_tuple,
+                func_returning_plain_tuple
         ]:
             output_metadata = self.execute_and_load_output_metadata(
                 test_func, executor_input)

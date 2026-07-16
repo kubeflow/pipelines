@@ -21,8 +21,8 @@ import pathlib
 import re
 import tarfile
 import textwrap
-from typing import (Any, Callable, Dict, List, Mapping, Optional, Tuple, Type,
-                    Union)
+from typing import (Annotated, Any, Callable, Dict, List, Mapping, Optional,
+                    Tuple, Type, Union, get_args, get_origin)
 import warnings
 
 import docstring_parser
@@ -318,6 +318,8 @@ def get_name_to_specs(
 
     ### handle return annotations ###
     return_ann = signature.return_annotation
+    if get_origin(return_ann) is Annotated:
+        return_ann = get_args(return_ann)[0]
 
     # validate container component returns
     if containerized:

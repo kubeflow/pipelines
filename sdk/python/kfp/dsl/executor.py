@@ -14,7 +14,7 @@
 import inspect
 import json
 import os
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Annotated, Any, Callable, Dict, List, Optional, Union, get_args, get_origin
 import warnings
 
 from kfp import dsl
@@ -52,7 +52,10 @@ class Executor:
         self.output_artifacts: Dict[str, dsl.Artifact] = {}
         self.assign_input_and_output_artifacts()
 
-        self.return_annotation = inspect.signature(self.func).return_annotation
+        return_annotation = inspect.signature(self.func).return_annotation
+        if get_origin(return_annotation) is Annotated:
+            return_annotation = get_args(return_annotation)[0]
+        self.return_annotation = return_annotation
         self.excutor_output = {}
 
     def assign_input_and_output_artifacts(self) -> None:

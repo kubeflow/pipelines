@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import re
-from typing import List
+from typing import Annotated, List, NamedTuple
 import unittest
 
 from kfp import dsl
@@ -302,6 +302,31 @@ class TestExtractComponentInterfaceListofArtifacts(unittest.TestCase):
                         default=None,
                         is_artifact_list=True)
             })
+
+
+class TestExtractComponentInterfaceNamedTupleReturns(unittest.TestCase):
+
+    def test_annotated_named_tuple_output(self):
+
+        class Outputs(NamedTuple):
+            word: str
+            number: int
+
+        RuntimeOutputs = NamedTuple(
+            'Outputs',
+            [
+                ('word', str),
+                ('number', int),
+            ],
+        )
+
+        def comp() -> Annotated[Outputs, RuntimeOutputs]:
+            ...
+
+        component_spec = component_factory.extract_component_interface(comp)
+
+        self.assertEqual(component_spec.outputs['word'].type, 'String')
+        self.assertEqual(component_spec.outputs['number'].type, 'Integer')
 
 
 class TestBuiltinGenericParameterAnnotations(unittest.TestCase):
