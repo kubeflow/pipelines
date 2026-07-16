@@ -20,7 +20,7 @@ REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator
 # Assume the latest API version by default.
 API_VERSION ?= v2beta1
 
-# Keep in sync with the version used in test/release/Dockerfile.release
+# Keep in sync with the version used in release/Dockerfile.release
 PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
 RELEASE_IMAGE=ghcr.io/kubeflow/kfp-release:master
 CONTAINER_ENGINE ?= docker

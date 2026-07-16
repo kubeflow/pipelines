@@ -92,6 +92,9 @@ local_outputs/
 # Ignore the Kind cluster kubeconfig
 kubeconfig_dev-pipelines-api
 
+# Release automation checkpoint
+release-state.json
+
 # Ignore debug Driver Dockerfile produced from `make -C backend image_driver_debug`
 backend/Dockerfile.driver-debug
 
@@ -113,3 +116,6 @@ bin/
 frontend/scripts/ui-smoke-test/node_modules/
 .npm-cache/
 .npm/
+
+# Don't commit docs written with https://github.com/obra/superpowers.
+docs/superpowers
