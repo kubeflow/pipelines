@@ -1,0 +1,49 @@
+name: Set up Python with isolated pip cache
+description: Set up Python and cache pip downloads without sharing restore keys across workflows
+
+inputs:
+  python-version:
+    description: Python version passed to actions/setup-python
+    required: true
+  cache-scope:
+    description: Stable, unique cache scope for the workflow's dependency set
+    required: true
+  cache-dependency-hash:
+    description: Hash of the files that define the workflow's Python dependencies
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Validate dependency hash
+      if: ${{ inputs.cache-dependency-hash == '' }}
+      shell: bash
+      run: |
+        echo "::error::No files matched the cache dependency patterns"
+        exit 1
+
+    - name: Set up Python
+      id: setup-python
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Resolve pip cache environment
+      id: pip-cache-environment
+      shell: bash
+      run: |
+        platform="${RUNNER_OS}-${RUNNER_ARCH}"
+        if [[ -r /etc/os-release ]]; then
+          source /etc/os-release
+          platform="${platform}-${ID}-${VERSION_ID}"
+        fi
+        echo "directory=$(python -m pip cache dir)" >> "$GITHUB_OUTPUT"
+        echo "platform=${platform}" >> "$GITHUB_OUTPUT"
+
+    - name: Restore pip cache
+      uses: actions/cache@v5
+      with:
+        path: ${{ steps.pip-cache-environment.outputs.directory }}
+        key: setup-python-${{ steps.pip-cache-environment.outputs.platform }}-python-${{ steps.setup-python.outputs.python-version }}-pip-${{ inputs.cache-scope }}-${{ inputs.cache-dependency-hash }}
+        restore-keys: |
+          setup-python-${{ steps.pip-cache-environment.outputs.platform }}-python-${{ steps.setup-python.outputs.python-version }}-pip-${{ inputs.cache-scope }}-

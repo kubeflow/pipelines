@@ -123,8 +123,8 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        id: setup-buildx
+        shell: bash
+        run: bash ./.github/resources/scripts/setup-buildx-with-retry.sh
 
       - name: Build and save Docker image
         uses: docker/build-push-action@v6

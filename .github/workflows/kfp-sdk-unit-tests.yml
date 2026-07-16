@@ -7,8 +7,9 @@ on:
     paths:
       - 'api/**'
       - 'sdk/**'
-      - './test/presubmit-tests-sdk-unit.sh'
+      - 'test/presubmit-tests-sdk-unit.sh'
       - '.github/workflows/kfp-sdk-unit-tests.yml'
+      - '.github/actions/setup-python-pip-cache/**'
       - '!**/*.md'
       - '!**/OWNERS'
 
@@ -28,10 +29,11 @@ jobs:
       uses: actions/checkout@v6
 
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: ./.github/actions/setup-python-pip-cache
       with:
         python-version: ${{ matrix.python-version }}
-        cache: 'pip'
+        cache-scope: kfp-sdk-unit-tests
+        cache-dependency-hash: ${{ hashFiles('sdk/python/requirements*.txt', 'kubernetes_platform/python/requirements*.txt') }}
 
     - name: Install protobuf dependencies & kfp-pipeline-spec
       id: install-protobuf-deps

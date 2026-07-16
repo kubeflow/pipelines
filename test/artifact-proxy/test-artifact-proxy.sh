@@ -12,16 +12,25 @@ kubectl -n "$NAMESPACE" run kfp-proxy-curl --image=curlimages/curl:8.7.1 --resta
 kubectl -n "$NAMESPACE" wait --for=condition=Ready pod/kfp-proxy-curl --timeout=300s
 
 # Test 1: Verify artifact proxy health endpoint
-HEALTH_RESPONSE=$(kubectl -n "$NAMESPACE" exec kfp-proxy-curl -- \
-  curl -fsS -H 'kubeflow-userid: user@example.com' \
-  "http://ml-pipeline-ui-artifact.${NAMESPACE}.svc.cluster.local/apis/v1beta1/healthz")
+HEALTH_RESPONSE=""
+for attempt in $(seq 1 30); do
+  if HEALTH_RESPONSE=$(kubectl -n "$NAMESPACE" exec kfp-proxy-curl -- \
+    curl -fsS -H 'kubeflow-userid: user@example.com' \
+    "http://ml-pipeline-ui-artifact.${NAMESPACE}.svc.cluster.local/apis/v1beta1/healthz") && \
+    jq -e '.apiServerReady == true' >/dev/null <<<"$HEALTH_RESPONSE"; then
+    break
+  fi
 
-if ! echo "$HEALTH_RESPONSE" | grep -q '"apiServerReady":true'; then
-  echo "ERROR: apiServerReady=false"
-  echo "Response: $HEALTH_RESPONSE"
-  kubectl -n "$NAMESPACE" logs deploy/ml-pipeline-ui-artifact -c ml-pipeline-ui-artifact --tail=50 || true
-  exit 1
-fi
+  if [[ "$attempt" -eq 30 ]]; then
+    echo "ERROR: Artifact proxy API server was not ready after 30 attempts"
+    echo "Response: $HEALTH_RESPONSE"
+    kubectl -n "$NAMESPACE" logs deploy/ml-pipeline-ui-artifact -c ml-pipeline-ui-artifact --tail=50 || true
+    exit 1
+  fi
+
+  echo "Waiting for artifact proxy API server to become ready... ($attempt/30)"
+  sleep 5
+done
 
 # Test 2: Verify proxy can list pipelines
 PIPELINES_RESPONSE=$(kubectl -n "$NAMESPACE" exec kfp-proxy-curl -- \

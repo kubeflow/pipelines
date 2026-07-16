@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/kfp-kubernetes-native-migration-tests.yaml"
+      - ".github/actions/setup-python-pip-cache/**"
       - ".github/workflows/image-builds.yml"
       - ".github/actions/deploy/**"
       - ".github/resources/**"
@@ -35,10 +36,11 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: ./.github/actions/setup-python-pip-cache
         with:
           python-version: "3.9"
-          cache: 'pip'
+          cache-scope: kfp-kubernetes-native-migration-tests
+          cache-dependency-hash: ${{ hashFiles('sdk/python/requirements*.txt', 'kubernetes_platform/python/requirements*.txt', 'test/kfp-kubernetes-native-migration-tests/requirements.txt') }}
 
       - name: Create KFP cluster
         id: create-kfp-cluster

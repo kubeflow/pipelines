@@ -264,9 +264,9 @@ func TestCreateExperiment_AlreadyExistsRecoversByName(t *testing.T) {
 }
 
 func TestCreateExperiment_RetriesTransientThenSucceeds(t *testing.T) {
-	restore := createRetryInitialBackoff
-	createRetryInitialBackoff = time.Millisecond
-	defer func() { createRetryInitialBackoff = restore }()
+	restore := idempotentRetryInitialBackoff
+	idempotentRetryInitialBackoff = time.Millisecond
+	defer func() { idempotentRetryInitialBackoff = restore }()
 
 	var calls int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -287,9 +287,9 @@ func TestCreateExperiment_RetriesTransientThenSucceeds(t *testing.T) {
 }
 
 func TestCreateRun_IdempotentRecoversAfterTransientFailure(t *testing.T) {
-	restore := createRetryInitialBackoff
-	createRetryInitialBackoff = time.Millisecond
-	defer func() { createRetryInitialBackoff = restore }()
+	restore := idempotentRetryInitialBackoff
+	idempotentRetryInitialBackoff = time.Millisecond
+	defer func() { idempotentRetryInitialBackoff = restore }()
 
 	// The first create times out server-side (503) but the run was committed;
 	// the client finds it by its idempotency tag and reuses it — no duplicate.
@@ -314,9 +314,9 @@ func TestCreateRun_IdempotentRecoversAfterTransientFailure(t *testing.T) {
 }
 
 func TestCreateRun_DoesNotRecreateWhenSearchCannotConfirm(t *testing.T) {
-	restore := createRetryInitialBackoff
-	createRetryInitialBackoff = time.Millisecond
-	defer func() { createRetryInitialBackoff = restore }()
+	restore := idempotentRetryInitialBackoff
+	idempotentRetryInitialBackoff = time.Millisecond
+	defer func() { idempotentRetryInitialBackoff = restore }()
 
 	// The create fails transiently and the idempotency search also fails, so the
 	// client cannot tell whether the run committed. It must NOT recreate (that
@@ -626,9 +626,9 @@ func TestDoWithRetry_SkipsRetryForRunsCreate(t *testing.T) {
 }
 
 func TestCreateExperiment_RetriesExhaustedOnPersistentFailure(t *testing.T) {
-	restore := createRetryInitialBackoff
-	createRetryInitialBackoff = time.Millisecond
-	defer func() { createRetryInitialBackoff = restore }()
+	restore := idempotentRetryInitialBackoff
+	idempotentRetryInitialBackoff = time.Millisecond
+	defer func() { idempotentRetryInitialBackoff = restore }()
 
 	var callCount int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -642,8 +642,8 @@ func TestCreateExperiment_RetriesExhaustedOnPersistentFailure(t *testing.T) {
 	_, err := c.CreateExperiment(context.Background(), "test-exp", nil)
 	require.Error(t, err)
 	// The transport still does not blindly retry the create; the method-level
-	// idempotent retry attempts it CreateMaxAttempts times before giving up.
-	assert.Equal(t, int32(CreateMaxAttempts), atomic.LoadInt32(&callCount))
+	// idempotent retry attempts it MaxIdempotentAttempts times before giving up.
+	assert.Equal(t, int32(MaxIdempotentAttempts), atomic.LoadInt32(&callCount))
 }
 
 func TestDoWithRetry_SkipsRetryForLogBatch(t *testing.T) {
@@ -871,4 +871,100 @@ func testFormattedTags() []interface{} {
 			"value": "tag-value",
 		},
 	}
+}
+
+func TestGetExperimentByName_RetriesTransientThenSucceeds(t *testing.T) {
+	restore := idempotentRetryInitialBackoff
+	idempotentRetryInitialBackoff = time.Millisecond
+	defer func() { idempotentRetryInitialBackoff = restore }()
+
+	var calls int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if atomic.AddInt32(&calls, 1) == 1 {
+			w.WriteHeader(http.StatusServiceUnavailable) // transient — the pre-create lookup under load
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"experiment":{"experiment_id":"42","name":"exp"}}`))
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server.URL)
+	exp, err := c.GetExperimentByName(context.Background(), "exp")
+	require.NoError(t, err)
+	assert.Equal(t, "42", exp.ID)
+	assert.GreaterOrEqual(t, atomic.LoadInt32(&calls), int32(2), "the read must retry the transient failure")
+}
+
+func TestSearchRuns_RetriesTransientThenSucceeds(t *testing.T) {
+	restore := idempotentRetryInitialBackoff
+	idempotentRetryInitialBackoff = time.Millisecond
+	defer func() { idempotentRetryInitialBackoff = restore }()
+
+	var calls int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if atomic.AddInt32(&calls, 1) == 1 {
+			w.WriteHeader(http.StatusBadGateway) // transient 502 on the POST search
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"runs":[{"info":{"run_id":"r1"}}]}`))
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server.URL)
+	resp, err := c.SearchRuns(context.Background(), []string{"exp-1"}, "", 1, "")
+	require.NoError(t, err)
+	require.Len(t, resp.Runs, 1)
+	assert.GreaterOrEqual(t, atomic.LoadInt32(&calls), int32(2), "the search must retry the transient failure")
+}
+
+func TestGetExperimentByName_DoesNotRetryDefinitiveError(t *testing.T) {
+	var calls int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&calls, 1)
+		w.WriteHeader(http.StatusNotFound) // 4xx — definitive, not retryable
+		_, _ = w.Write([]byte(`{"error_code":"RESOURCE_DOES_NOT_EXIST","message":"nope"}`))
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server.URL)
+	_, err := c.GetExperimentByName(context.Background(), "exp")
+	require.Error(t, err)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&calls), "a definitive 4xx must not be retried")
+}
+
+// TestGetExperimentByName_RetriesClientTimeoutWithFreshRequest exercises the
+// exact path this fix targets: the first request exceeds the per-call HTTP
+// timeout (which the retryRoundTripper treats as permanent and does NOT retry
+// inside a single Do), and callWithIdempotentRetry recovers it by issuing a
+// fresh request. Without the method-level retry this test fails.
+func TestGetExperimentByName_RetriesClientTimeoutWithFreshRequest(t *testing.T) {
+	restore := idempotentRetryInitialBackoff
+	idempotentRetryInitialBackoff = time.Millisecond
+	defer func() { idempotentRetryInitialBackoff = restore }()
+
+	var calls int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if atomic.AddInt32(&calls, 1) == 1 {
+			time.Sleep(300 * time.Millisecond) // first request exceeds the client timeout below
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"experiment":{"experiment_id":"77","name":"exp"}}`))
+	}))
+	defer server.Close()
+
+	// Short per-call timeout so the first (slow) request times out; the round
+	// tripper will not retry that timeout, so recovery must come from the
+	// method-level fresh-request retry.
+	c, err := NewClient(Config{
+		Endpoint:   server.URL,
+		HTTPClient: &http.Client{Timeout: 100 * time.Millisecond},
+	})
+	require.NoError(t, err)
+
+	exp, err := c.GetExperimentByName(context.Background(), "exp")
+	require.NoError(t, err)
+	assert.Equal(t, "77", exp.ID)
+	assert.GreaterOrEqual(t, atomic.LoadInt32(&calls), int32(2), "the per-call timeout must be retried with a fresh request")
 }
