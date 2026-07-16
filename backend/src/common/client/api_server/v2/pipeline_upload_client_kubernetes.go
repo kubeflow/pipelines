@@ -151,7 +151,7 @@ func (c *PipelineUploadClientKubernetes) Upload(parameters *params.UploadPipelin
 			"Namespace cannot be set as an upload parameter")
 	}
 
-	piplineSpec, err := io.ReadAll(parameters.Uploadfile)
+	pipelineSpec, err := io.ReadAll(parameters.Uploadfile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read pipeline spec: %w", err)
 	}
@@ -165,7 +165,7 @@ func (c *PipelineUploadClientKubernetes) Upload(parameters *params.UploadPipelin
 			"Failed to upload pipeline")
 	}
 
-	if _, err := template.NewV2SpecTemplate(piplineSpec, template.TemplateOptions{}); err != nil {
+	if _, err := template.NewV2SpecTemplate(pipelineSpec, template.TemplateOptions{}); err != nil {
 		return nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to upload pipeline. Params: '%v'", parameters),
 			"Failed to upload pipeline")
@@ -214,7 +214,7 @@ func (c *PipelineUploadClientKubernetes) Upload(parameters *params.UploadPipelin
 		Name:         name,
 		DisplayName:  displayName,
 		Description:  apimodel.LargeText(description),
-		PipelineSpec: apimodel.LargeText(piplineSpec),
+		PipelineSpec: apimodel.LargeText(pipelineSpec),
 	}
 	if parameters.CodeSourceURL != nil {
 		pipelineVersionModel.CodeSourceUrl = *parameters.CodeSourceURL
