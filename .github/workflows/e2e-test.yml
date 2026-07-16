@@ -137,16 +137,17 @@ jobs:
             # These lanes create enough simultaneous pipeline and artifact
             # traffic to saturate the shared single-node Kind dataplane.
             NUMBER_OF_NODES=2
+          elif [ "$TEST_LABEL" == "E2EParallelNested" ]; then
+            # Each spec fans out into nested child pipelines, so even a small
+            # Ginkgo node count creates substantial concurrent artifact traffic.
+            NUMBER_OF_NODES=1
           fi
 
+          # Explicit dispatch inputs take precedence over automatic lane caps.
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
             TEST_LABEL=${{ inputs.test_label }}
             NAMESPACE=${{ inputs.namespace }}
-          fi
-
-          if [ "$TEST_LABEL" == "E2EParallelNested" ]; then
-            NUMBER_OF_NODES=3
           fi
 
           {
