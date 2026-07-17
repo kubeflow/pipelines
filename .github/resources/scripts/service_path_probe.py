@@ -95,18 +95,37 @@ def resolve_pair(
     if not isinstance(cluster_ip, str) or not isinstance(service_port, int):
         return []
 
+    for endpoint, endpoint_port in ready_endpoint_candidates(
+        endpoint_slices, port_name
+    ):
+        addresses = endpoint.get('addresses', [])
+        if addresses and isinstance(addresses[0], str):
+            return [
+                (pair, 'vip', cluster_ip, service_port),
+                (pair, 'endpoint', addresses[0], endpoint_port),
+            ]
+    return []
+
+
+def ready_endpoint_candidates(
+    endpoint_slices: dict[str, object], port_name: str
+) -> Iterable[tuple[dict[str, object], int]]:
+    """Yield ready, serving, non-terminating endpoints for a named port."""
     items = endpoint_slices.get('items', [])
     if not isinstance(items, list):
-        return []
+        return
     for endpoint_slice in sorted(
         (item for item in items if isinstance(item, dict)),
         key=lambda item: str(item.get('metadata', {}).get('name', '')),
     ):
-        endpoint_port = None
-        for port in endpoint_slice.get('ports', []):
-            if isinstance(port, dict) and port.get('name') == port_name:
-                endpoint_port = port.get('port')
-                break
+        endpoint_port = next(
+            (
+                port.get('port')
+                for port in endpoint_slice.get('ports', [])
+                if isinstance(port, dict) and port.get('name') == port_name
+            ),
+            None,
+        )
         if not isinstance(endpoint_port, int):
             continue
         for endpoint in endpoint_slice.get('endpoints', []):
@@ -121,13 +140,24 @@ def resolve_pair(
                 or conditions.get('terminating') is True
             ):
                 continue
-            addresses = endpoint.get('addresses', [])
-            if addresses and isinstance(addresses[0], str):
-                return [
-                    (pair, 'vip', cluster_ip, service_port),
-                    (pair, 'endpoint', addresses[0], endpoint_port),
-                ]
-    return []
+            yield endpoint, endpoint_port
+
+
+def resolve_ready_target_pod(
+    endpoint_slices: dict[str, object], port_name: str
+) -> str | None:
+    """Resolve the Pod backing the same ready EndpointSlice port we probe."""
+    for endpoint, _endpoint_port in ready_endpoint_candidates(
+        endpoint_slices, port_name
+    ):
+        target_ref = endpoint.get('targetRef', {})
+        if (
+            isinstance(target_ref, dict)
+            and target_ref.get('kind') == 'Pod'
+            and isinstance(target_ref.get('name'), str)
+        ):
+            return str(target_ref['name'])
+    return None
 
 
 def resolve_from_files(
@@ -142,6 +172,18 @@ def resolve_from_files(
         return
     for target in resolve_pair(pair, service, endpoint_slices, port_name):
         print(*target, sep='\t')
+
+
+def resolve_pod_from_file(endpoint_slices_path: Path, port_name: str) -> None:
+    try:
+        endpoint_slices = json.loads(
+            endpoint_slices_path.read_text(encoding='utf-8')
+        )
+    except (OSError, json.JSONDecodeError):
+        return
+    pod_name = resolve_ready_target_pod(endpoint_slices, port_name)
+    if pod_name:
+        print(pod_name)
 
 
 def parse_proc_table(text: str) -> dict[str, int]:
@@ -418,7 +460,9 @@ def build_report(path: Path) -> str:
         key = (int(probe['cycle']), str(probe['pair']))
         by_cycle_pair[key][str(probe['path'])] = str(probe['result'])
         timestamps[key] = int(probe['timestamp_ms'])
-    classifications = defaultdict(int)
+    classifications: dict[str, dict[str, int]] = defaultdict(
+        lambda: defaultdict(int)
+    )
     failure_windows = []
     for key, paths in sorted(by_cycle_pair.items()):
         vip = paths.get('vip')
@@ -433,21 +477,29 @@ def build_report(path: Path) -> str:
             classification = 'both failed'
         else:
             classification = 'both succeeded'
-        classifications[classification] += 1
+        classifications[key[1]][classification] += 1
         if classification != 'both succeeded':
             failure_windows.append((timestamps[key], key[1], classification))
     lines.extend([
         '',
         '### Paired outcomes',
         '',
-        '| Outcome | Cycles | Interpretation |',
-        '|---|---:|---|',
-        f'| VIP failed / Endpoint succeeded | {classifications["VIP failed / Endpoint succeeded"]} | Service/netfilter path isolated |',
-        f'| both failed | {classifications["both failed"]} | Shared source/host/backend path |',
-        f'| VIP succeeded / Endpoint failed | {classifications["VIP succeeded / Endpoint failed"]} | Direct route, endpoint, or policy path |',
-        f'| both succeeded | {classifications["both succeeded"]} | No failure observed in that cycle |',
-        f'| incomplete | {classifications["incomplete"]} | Probe result unavailable |',
+        '| Pair | Outcome | Cycles | Interpretation |',
+        '|---|---|---:|---|',
     ])
+    interpretations = {
+        'VIP failed / Endpoint succeeded': 'Service/netfilter path isolated',
+        'both failed': 'Shared source/host/backend path',
+        'VIP succeeded / Endpoint failed': 'Direct route, endpoint, or policy path',
+        'both succeeded': 'No failure observed in that cycle',
+        'incomplete': 'Probe result unavailable',
+    }
+    for pair in sorted(classifications):
+        for classification, interpretation in interpretations.items():
+            lines.append(
+                f'| {pair} | {classification} | '
+                f'{classifications[pair][classification]} | {interpretation} |'
+            )
     if failure_windows:
         lines.extend([
             '',
@@ -496,6 +548,9 @@ def parse_args() -> argparse.Namespace:
     resolve_parser.add_argument('--service', type=Path, required=True)
     resolve_parser.add_argument('--endpoint-slices', type=Path, required=True)
     resolve_parser.add_argument('--port-name', required=True)
+    resolve_pod_parser = subparsers.add_parser('resolve-pod')
+    resolve_pod_parser.add_argument('--endpoint-slices', type=Path, required=True)
+    resolve_pod_parser.add_argument('--port-name', required=True)
     return parser.parse_args()
 
 
@@ -512,10 +567,15 @@ def main() -> None:
         )
     elif arguments.command == 'report':
         publish(build_report(arguments.input))
-    else:
+    elif arguments.command == 'resolve':
         resolve_from_files(
             arguments.pair,
             arguments.service,
+            arguments.endpoint_slices,
+            arguments.port_name,
+        )
+    else:
+        resolve_pod_from_file(
             arguments.endpoint_slices,
             arguments.port_name,
         )

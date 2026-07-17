@@ -63,6 +63,10 @@ class ServicePathProbeTest(unittest.TestCase):
                         'serving': True,
                         'terminating': False,
                     },
+                    'targetRef': {
+                        'kind': 'Pod',
+                        'name': 'seaweedfs-abc',
+                    },
                 }],
             ),
             'http-s3-compat',
@@ -93,6 +97,31 @@ class ServicePathProbeTest(unittest.TestCase):
                 ('kubernetes-api', 'endpoint', '172.18.0.2', 6443),
             ],
         )
+
+    def test_resolves_target_pod_from_same_ready_endpoint(self):
+        endpoint_slices = slices(
+            'seaweedfs-a',
+            'http-s3-compat',
+            8333,
+            [
+                {
+                    'addresses': ['10.244.0.21'],
+                    'conditions': {'ready': False},
+                    'targetRef': {'kind': 'Pod', 'name': 'seaweedfs-old'},
+                },
+                {
+                    'addresses': ['10.244.0.20'],
+                    'conditions': {'ready': True, 'serving': True},
+                    'targetRef': {'kind': 'Pod', 'name': 'seaweedfs-ready'},
+                },
+            ],
+        )
+
+        pod_name = service_path_probe.resolve_ready_target_pod(
+            endpoint_slices, 'http-s3-compat'
+        )
+
+        self.assertEqual(pod_name, 'seaweedfs-ready')
 
     def test_skips_unready_serving_false_and_terminating_endpoints(self):
         endpoint_slices = slices(
@@ -172,6 +201,18 @@ class ServicePathProbeTest(unittest.TestCase):
                         'result': result,
                         'latency_ms': 1.0 + cycle,
                     })
+                for path_name in ('vip', 'endpoint'):
+                    events.append({
+                        'type': 'probe',
+                        'cycle': cycle,
+                        'timestamp_ms': 1_700_000_000_000 + cycle * 5000,
+                        'pair': 'kubernetes-api',
+                        'path': path_name,
+                        'host': '10.96.0.1',
+                        'port': 443,
+                        'result': 'ok',
+                        'latency_ms': 0.5,
+                    })
             events.extend([
                 {
                     'type': 'metric',
@@ -204,10 +245,17 @@ class ServicePathProbeTest(unittest.TestCase):
             summary_contents = summary_path.read_text(encoding='utf-8')
 
         self.assertEqual(result.stdout, summary_contents)
-        self.assertIn('| VIP failed / Endpoint succeeded | 1 |', result.stdout)
-        self.assertIn('| both failed | 1 |', result.stdout)
-        self.assertIn('| VIP succeeded / Endpoint failed | 1 |', result.stdout)
-        self.assertIn('| both succeeded | 1 |', result.stdout)
+        self.assertIn(
+            '| seaweedfs-s3 | VIP failed / Endpoint succeeded | 1 |',
+            result.stdout,
+        )
+        self.assertIn('| seaweedfs-s3 | both failed | 1 |', result.stdout)
+        self.assertIn(
+            '| seaweedfs-s3 | VIP succeeded / Endpoint failed | 1 |',
+            result.stdout,
+        )
+        self.assertIn('| seaweedfs-s3 | both succeeded | 1 |', result.stdout)
+        self.assertIn('| kubernetes-api | both succeeded | 4 |', result.stdout)
         self.assertIn('| TcpExt.TCPSynRetrans | 2 | 7 | 7 |', result.stdout)
 
 

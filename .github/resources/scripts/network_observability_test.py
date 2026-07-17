@@ -63,6 +63,10 @@ class NetworkObservabilityTest(unittest.TestCase):
         self.assertIn(
             'kubernetes-api\tendpoint\t172.18.0.2\t6443\n', targets
         )
+        self.assertIn('kube-dns-tcp\tvip\t10.96.0.10\t53\n', targets)
+        self.assertIn(
+            'kube-dns-tcp\tendpoint\t10.244.0.2\t53\n', targets
+        )
         self.assertNotIn('10.244.0.21', targets)
         self.assertTrue(kubectl_calls)
         self.assertTrue(
@@ -91,6 +95,143 @@ class NetworkObservabilityTest(unittest.TestCase):
         self.assertNotIn('not-an-address', result.stdout)
         self.assertIn('tcp-syn|tcp-rst', result.stdout)
 
+    def test_teardown_quiesces_probe_before_final_observation_and_cleanup(self):
+        script = SCRIPT.read_text(encoding='utf-8')
+        stop_body = script[
+            script.index('stop_observability() {'):
+            script.index('report_packet_capture() {')
+        ]
+
+        quiesce = stop_body.index('quiesce_probe ')
+        target_snapshot = stop_body.index('capture_target_network_state ')
+        collect_logs = stop_body.index('collect_probe ')
+        stop_sampler = stop_body.index('stop_process ')
+        stop_capture = stop_body.index('stop_packet_capture ')
+        cleanup = stop_body.index('cleanup_probe ')
+        final_sample = stop_body.index('wait-for-following-sample')
+        self.assertLess(quiesce, collect_logs)
+        self.assertLess(collect_logs, target_snapshot)
+        self.assertLess(target_snapshot, final_sample)
+        self.assertLess(final_sample, stop_sampler)
+        self.assertLess(stop_sampler, stop_capture)
+        self.assertLess(stop_capture, cleanup)
+
+    def test_packet_capture_uses_runner_owner_and_validates_output(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            bin_directory = temporary_path / 'bin'
+            bin_directory.mkdir()
+            for name, contents in {
+                'kubectl': _CAPTURE_KUBECTL,
+                'docker': _CAPTURE_DOCKER,
+                'awk': _CAPTURE_AWK,
+                'sudo': _CAPTURE_SUDO,
+                'nsenter': _CAPTURE_NSENTER,
+                'tcpdump': _CAPTURE_TCPDUMP,
+            }.items():
+                executable = bin_directory / name
+                executable.write_text(contents, encoding='utf-8')
+                executable.chmod(0o755)
+            output_directory = temporary_path / 'output'
+            output_directory.mkdir()
+            targets_path = temporary_path / 'targets.tsv'
+            targets_path.write_text(
+                'seaweedfs-s3\tvip\t10.96.1.1\t9000\n', encoding='utf-8'
+            )
+            tcpdump_log = temporary_path / 'tcpdump.args'
+            environment = os.environ.copy()
+            environment['PATH'] = f'{bin_directory}:{environment["PATH"]}'
+            environment['FAKE_TCPDUMP_LOG'] = str(tcpdump_log)
+
+            subprocess.run(
+                [
+                    'bash',
+                    str(SCRIPT),
+                    'start-capture',
+                    str(output_directory),
+                    str(targets_path),
+                ],
+                check=True,
+                env=environment,
+            )
+            status = (output_directory / 'tcpdump.status').read_text(
+                encoding='utf-8'
+            )
+            arguments = tcpdump_log.read_text(encoding='utf-8')
+            subprocess.run(
+                [
+                    'bash',
+                    str(SCRIPT),
+                    'stop-capture',
+                    str(output_directory),
+                ],
+                check=True,
+                env=environment,
+            )
+            capture_file_exists = (
+                output_directory
+                / 'connection-attempts-kind-control-plane.pcap0'
+            ).is_file()
+
+        self.assertIn('active: node kind-control-plane', status)
+        self.assertIn('-C 5 -W 2', arguments)
+        capture_user = subprocess.run(
+            ['id', '-un'], check=True, capture_output=True, text=True
+        ).stdout.strip()
+        self.assertIn(
+            f'-Z {capture_user}',
+            arguments,
+        )
+        self.assertTrue(capture_file_exists)
+
+    def test_packet_capture_reports_early_exit_as_unavailable(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            bin_directory = temporary_path / 'bin'
+            bin_directory.mkdir()
+            for name, contents in {
+                'kubectl': _CAPTURE_KUBECTL,
+                'docker': _CAPTURE_DOCKER,
+                'awk': _CAPTURE_AWK,
+                'sudo': _CAPTURE_SUDO,
+                'nsenter': _CAPTURE_NSENTER,
+                'tcpdump': _CAPTURE_TCPDUMP,
+            }.items():
+                executable = bin_directory / name
+                executable.write_text(contents, encoding='utf-8')
+                executable.chmod(0o755)
+            output_directory = temporary_path / 'output'
+            output_directory.mkdir()
+            targets_path = temporary_path / 'targets.tsv'
+            targets_path.write_text(
+                'seaweedfs-s3\tvip\t10.96.1.1\t9000\n', encoding='utf-8'
+            )
+            environment = os.environ.copy()
+            environment['PATH'] = f'{bin_directory}:{environment["PATH"]}'
+            environment['FAKE_TCPDUMP_LOG'] = str(
+                temporary_path / 'tcpdump.args'
+            )
+            environment['FAKE_TCPDUMP_EXIT'] = '1'
+
+            subprocess.run(
+                [
+                    'bash',
+                    str(SCRIPT),
+                    'start-capture',
+                    str(output_directory),
+                    str(targets_path),
+                ],
+                check=True,
+                env=environment,
+            )
+            status = (output_directory / 'tcpdump.status').read_text(
+                encoding='utf-8'
+            )
+
+        self.assertIn(
+            'unavailable: capture exited before producing a pcap', status
+        )
+
 
 _FAKE_KUBECTL = r'''#!/usr/bin/env bash
 args="$*"
@@ -102,7 +243,7 @@ case "$args" in
     echo '{"spec":{"clusterIP":"10.96.1.1","ports":[{"name":"http-s3-compat","port":9000}]}}'
     ;;
   *"-n kubeflow get endpointslice"*)
-    echo '{"items":[{"metadata":{"name":"seaweedfs-a"},"ports":[{"name":"http-s3-compat","port":8333}],"endpoints":[{"addresses":["10.244.0.21"],"conditions":{"ready":false}},{"addresses":["10.244.0.20"],"conditions":{"ready":true,"serving":true,"terminating":false}}]}]}'
+    echo '{"items":[{"metadata":{"name":"seaweedfs-a"},"ports":[{"name":"http-s3-compat","port":8333}],"endpoints":[{"addresses":["10.244.0.21"],"conditions":{"ready":false},"targetRef":{"kind":"Pod","name":"seaweedfs-old"}},{"addresses":["10.244.0.20"],"conditions":{"ready":true,"serving":true,"terminating":false},"targetRef":{"kind":"Pod","name":"seaweedfs-ready"}}]}]}'
     ;;
   *"-n default get service kubernetes -o json"*)
     echo '{"spec":{"clusterIP":"10.96.0.1","ports":[{"name":"https","port":443}]}}'
@@ -110,10 +251,59 @@ case "$args" in
   *"-n default get endpointslice"*)
     echo '{"items":[{"metadata":{"name":"kubernetes-a"},"ports":[{"name":"https","port":6443}],"endpoints":[{"addresses":["172.18.0.2"],"conditions":{"ready":true}}]}]}'
     ;;
+  *"-n kube-system get service kube-dns -o json"*)
+    echo '{"spec":{"clusterIP":"10.96.0.10","ports":[{"name":"dns-tcp","port":53}]}}'
+    ;;
+  *"-n kube-system get endpointslice"*)
+    echo '{"items":[{"metadata":{"name":"kube-dns-a"},"ports":[{"name":"dns-tcp","port":53}],"endpoints":[{"addresses":["10.244.0.2"],"conditions":{"ready":true}}]}]}'
+    ;;
   *)
     exit 1
     ;;
 esac
+'''
+
+_CAPTURE_KUBECTL = r'''#!/usr/bin/env bash
+echo "kind-control-plane"
+'''
+
+_CAPTURE_DOCKER = r'''#!/usr/bin/env bash
+echo "1234"
+'''
+
+_CAPTURE_AWK = r'''#!/usr/bin/env bash
+echo "test-start"
+'''
+
+_CAPTURE_SUDO = r'''#!/usr/bin/env bash
+if [[ "${5:-}" == "kfp-network-capture-check" ]]; then
+  exit 0
+fi
+shift
+exec "$@"
+'''
+
+_CAPTURE_NSENTER = r'''#!/usr/bin/env bash
+shift 3
+exec "$@"
+'''
+
+_CAPTURE_TCPDUMP = r'''#!/usr/bin/env bash
+printf '%s\n' "$*" > "$FAKE_TCPDUMP_LOG"
+if [[ "${FAKE_TCPDUMP_EXIT:-0}" == "1" ]]; then
+  exit 1
+fi
+output=""
+while (($#)); do
+  if [[ "$1" == "-w" ]]; then
+    output="$2"
+    break
+  fi
+  shift
+done
+: > "${output}0"
+trap 'exit 0' INT TERM
+while true; do sleep 1; done
 '''
 
 

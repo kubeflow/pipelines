@@ -61,6 +61,9 @@ class NetworkWindowTest(unittest.TestCase):
             environment['PATH'] = f'{bin_directory}:{environment["PATH"]}'
             environment['FAKE_STATE_FILE'] = str(state_file)
             environment['NETWORK_WINDOW_PROC_ROOT'] = str(proc_root)
+            environment['NETWORK_WINDOW_CGROUP_ROOT'] = str(
+                temporary_path / 'cgroup'
+            )
 
             subprocess.run(
                 [
@@ -151,6 +154,119 @@ class NetworkWindowTest(unittest.TestCase):
         self.assertIn('kubernetes-api/vip', result.stdout)
         self.assertIn('conntrack.insert_failed +5', result.stdout)
 
+    def test_target_report_attributes_counters_and_listen_queue(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            baseline_path = temporary_path / 'baseline.txt'
+            end_path = temporary_path / 'end.txt'
+            baseline_path.write_text(
+                _target_output(2, 3, receive_queue=1), encoding='utf-8'
+            )
+            end_path.write_text(
+                _target_output(7, 9, receive_queue=4), encoding='utf-8'
+            )
+
+            report = network_window.build_target_report(
+                baseline_path, end_path, 8333, 'SeaweedFS'
+            )
+
+        self.assertIn('SeaweedFS target network-namespace snapshots', report)
+        self.assertIn('| TcpExt.ListenDrops | 2 | 7 | 5 | ok |', report)
+        self.assertIn('| TcpExt.ListenOverflows | 3 | 9 | 6 | ok |', report)
+        self.assertIn('| listen_queue.listeners | 1 | 1 | gauge | ok |', report)
+        self.assertIn('| listen_queue.rx | 1 | 4 | gauge | ok |', report)
+
+    def test_missing_tcp_table_is_unavailable_not_zero_queue(self):
+        self.assertEqual(network_window.parse_listen_queues('', 8333), {})
+        self.assertEqual(
+            network_window.parse_listen_queues('malformed tcp state', 8333),
+            {},
+        )
+
+    def test_samples_cpu_psi_and_current_cgroup_throttling(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            proc_root = self._write_proc(temporary_path)
+            (proc_root / 'pressure').mkdir()
+            (proc_root / 'pressure' / 'cpu').write_text(
+                'some avg10=1.00 avg60=2.00 avg300=3.00 total=12345\n'
+                'full avg10=0.00 avg60=0.00 avg300=0.00 total=67\n',
+                encoding='utf-8',
+            )
+            (proc_root / 'self').mkdir()
+            (proc_root / 'self' / 'cgroup').write_text(
+                '0::/actions_job/step\n', encoding='utf-8'
+            )
+            cgroup_root = temporary_path / 'cgroup'
+            cpu_stat_directory = cgroup_root / 'actions_job' / 'step'
+            cpu_stat_directory.mkdir(parents=True)
+            (cpu_stat_directory / 'cpu.stat').write_text(
+                'nr_periods 50\nnr_throttled 7\nthrottled_usec 890\n',
+                encoding='utf-8',
+            )
+
+            metrics = network_window.host_metrics(proc_root, cgroup_root)
+
+        self.assertEqual(metrics['psi.cpu.some_stall_us'], 12345)
+        self.assertEqual(metrics['psi.cpu.full_stall_us'], 67)
+        self.assertEqual(metrics['cgroup.cpu.nr_periods'], 50)
+        self.assertEqual(metrics['cgroup.cpu.nr_throttled'], 7)
+        self.assertEqual(metrics['cgroup.cpu.throttled_us'], 890)
+
+    def test_waits_for_counter_sample_after_final_probe(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            probe_path = temporary_path / 'probe.jsonl'
+            network_path = temporary_path / 'network.jsonl'
+            probe_path.write_text(
+                json.dumps({
+                    'type': 'probe',
+                    'timestamp_ms': 1_700_000_000_000,
+                }) + '\n',
+                encoding='utf-8',
+            )
+            network_path.write_text(
+                json.dumps({
+                    'type': 'metric',
+                    'timestamp_ms': 1_700_000_000_001,
+                }) + '\n',
+                encoding='utf-8',
+            )
+
+            success, message = network_window.wait_for_following_sample(
+                network_path, probe_path, 0
+            )
+
+        self.assertTrue(success)
+        self.assertIn('confirmed', message)
+
+    def test_reports_missing_following_counter_sample(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            probe_path = temporary_path / 'probe.jsonl'
+            network_path = temporary_path / 'network.jsonl'
+            probe_path.write_text(
+                json.dumps({
+                    'type': 'probe',
+                    'timestamp_ms': 1_700_000_000_001,
+                }) + '\n',
+                encoding='utf-8',
+            )
+            network_path.write_text(
+                json.dumps({
+                    'type': 'metric',
+                    'timestamp_ms': 1_700_000_000_000,
+                }) + '\n',
+                encoding='utf-8',
+            )
+
+            success, message = network_window.wait_for_following_sample(
+                network_path, probe_path, 0
+            )
+
+        self.assertFalse(success)
+        self.assertIn('unavailable', message)
+
     def test_correlation_uses_sample_after_failure_not_closer_prior_sample(self):
         failure_timestamp = 1_700_000_000_200
         metric_events = [
@@ -176,6 +292,45 @@ class NetworkWindowTest(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertIn('| 4800 ms |', rows[0])
         self.assertIn('conntrack.insert_failed +5', rows[0])
+
+    def test_correlation_keeps_onset_and_late_counter_spike(self):
+        base_timestamp = 1_700_000_000_000
+        metric_events = []
+        value = 0
+        for sample in range(27):
+            if sample == 25:
+                value += 100
+            else:
+                value += 1
+            metric_events.append({
+                **self._metric(sample, 'container-a|net:[1]', value),
+                'timestamp_ms': base_timestamp + sample * 5000,
+            })
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            probe_path = Path(temporary_directory) / 'probe.jsonl'
+            events = []
+            for cycle in range(25):
+                for path in ('vip', 'endpoint'):
+                    events.append({
+                        'type': 'probe',
+                        'timestamp_ms': base_timestamp + cycle * 5000 + 200,
+                        'cycle': cycle,
+                        'pair': 'seaweedfs-s3',
+                        'path': path,
+                        'result': 'timeout',
+                    })
+            probe_path.write_text(
+                ''.join(json.dumps(event) + '\n' for event in events),
+                encoding='utf-8',
+            )
+
+            rows = network_window.correlation_rows(metric_events, probe_path)
+
+        self.assertEqual(len(rows), 20)
+        self.assertIn('endpoint+vip', rows[0])
+        self.assertTrue(
+            any('conntrack.insert_failed +100' in row for row in rows)
+        )
 
     @staticmethod
     def _metric(sample, identity, value):
@@ -226,6 +381,30 @@ Ip: InDiscards OutDiscards
 Ip: 0 0
 Tcp: RetransSegs
 Tcp: 6
+'''
+
+
+def _target_output(listen_drops, listen_overflows, receive_queue):
+    return f'''__POD__
+seaweedfs-abc
+__NETNS__
+net:[42]
+__SOCKSTAT__
+sockets: used 20
+TCP: inuse 8 orphan 0 tw 3 alloc 10 mem 1
+__NETSTAT__
+TcpExt: ListenOverflows ListenDrops TCPBacklogDrop TCPSynRetrans TCPTimeouts
+TcpExt: {listen_overflows} {listen_drops} 0 4 2
+__SNMP__
+Ip: InDiscards OutDiscards
+Ip: 0 0
+Tcp: RetransSegs
+Tcp: 6
+__TCP__
+  sl  local_address rem_address   st tx_queue:rx_queue tr tm->when retrnsmt
+   0: 00000000:208D 00000000:0000 0A 00000000:{receive_queue:08X} 00:00000000 00000000
+__TCP6__
+  sl  local_address rem_address   st tx_queue:rx_queue tr tm->when retrnsmt
 '''
 
 

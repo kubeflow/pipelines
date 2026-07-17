@@ -32,6 +32,20 @@ ARTIFACT_PROXY_ENABLED=false
 MULTI_USER=false
 AWF_VERSION=""
 POD_TO_POD_TLS_ENABLED=false
+IAM_CONNTRACK_WINDOW_ACTIVE=false
+IAM_CONNTRACK_BASELINE="/tmp/kfp-seaweedfs-iam-conntrack-window.tsv"
+
+report_iam_conntrack_window() {
+  if [ "$IAM_CONNTRACK_WINDOW_ACTIVE" != "true" ]; then
+    return
+  fi
+  IAM_CONNTRACK_WINDOW_ACTIVE=false
+  "${C_DIR}/conntrack-window.sh" report "$IAM_CONNTRACK_BASELINE" || true
+}
+
+# Multi-user deployment may exit under `set -e` anywhere between the IAM gate
+# and Profile reconciliation. Preserve that entire conntrack window on failure.
+trap report_iam_conntrack_window EXIT
 
 # Loop over script arguments passed. This uses a single switch-case
 # block with default value in case we want to make alternative deployments
@@ -228,6 +242,8 @@ if [ "${MULTI_USER}" == "true" ]; then
   # user namespace artifact secret. Pod readiness alone does not prove that
   # this Service path is accepting connections, so validate it from the
   # profile controller's own network namespace before creating the Profile.
+  "${C_DIR}/conntrack-window.sh" capture "$IAM_CONNTRACK_BASELINE" || true
+  IAM_CONNTRACK_WINDOW_ACTIVE=true
   "${C_DIR}/wait-for-seaweedfs-iam.sh"
 
   echo "Creating KF Profile..."
@@ -274,6 +290,7 @@ if [ "${MULTI_USER}" == "true" ]; then
     fi
   fi
 
+  report_iam_conntrack_window
   echo "Verifying Pipeline Integration..."
   echo "Secret keys present: $(kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" -o json | jq -r '.data | keys | join(", ")')"
 fi

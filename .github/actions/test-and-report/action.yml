@@ -400,11 +400,14 @@ runs:
 
         # Start low-overhead, time-correlated network diagnostics immediately
         # before Ginkgo. The in-cluster pod dials each Service VIP and direct
-        # Endpoint concurrently from one netns, while the runner sampler tracks
-        # Kind-node conntrack/TCP/socket counters and host softnet drops. A
-        # bounded SYN/RST-only packet ring is attempted inside each Kind-node
-        # netns when tcpdump, nsenter, and sudo are available. Every component
-        # is best-effort and raw data is only retained in failed-job artifacts.
+        # Endpoint concurrently from one netns, including pod-backed CoreDNS as
+        # a control, while the runner sampler tracks Kind-node conntrack/TCP/
+        # socket counters plus host softnet, CPU PSI, and cgroup throttling. A
+        # validated, bounded SYN/RST-
+        # only packet ring runs inside each Kind-node netns when tcpdump,
+        # nsenter, and sudo are available. SeaweedFS target-netns counters are
+        # captured on both sides of the window. Every component is best-effort
+        # and raw data is only retained in failed-job artifacts.
         if [ "${{ inputs.skip_api_config }}" != "true" ]; then
           "$WORKSPACE_ROOT/.github/resources/scripts/network-observability.sh" \
             start "${INPUT_DEFAULT_NAMESPACE}" /tmp/kfp-network-observability || true

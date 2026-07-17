@@ -22,6 +22,7 @@ import unittest
 
 
 SCRIPT = Path(__file__).with_name('wait-for-seaweedfs-iam.sh')
+DEPLOY_SCRIPT = Path(__file__).with_name('deploy-kfp.sh')
 NETWORK_POLICY = (
     Path(__file__).parents[3]
     / 'manifests/kustomize/third-party/seaweedfs/base/seaweedfs/seaweedfs-networkpolicy.yaml'
@@ -39,6 +40,19 @@ class WaitForSeaweedfsIamTest(unittest.TestCase):
             result.stdout,
         )
         self.assertNotIn('SeaweedFS Service', result.stdout)
+
+    def test_deploy_conntrack_window_spans_iam_and_profile_reconciliation(self):
+        deploy_script = DEPLOY_SCRIPT.read_text(encoding='utf-8')
+
+        capture = deploy_script.index(
+            'conntrack-window.sh" capture "$IAM_CONNTRACK_BASELINE"'
+        )
+        iam_wait = deploy_script.index('wait-for-seaweedfs-iam.sh"')
+        profile_creation = deploy_script.index('Creating KF Profile')
+        report = deploy_script.rindex('report_iam_conntrack_window')
+        self.assertLess(capture, iam_wait)
+        self.assertLess(iam_wait, profile_creation)
+        self.assertLess(profile_creation, report)
 
     def test_requires_consecutive_successes_before_reporting_ready(self):
         result, probe_count = self._run(
@@ -205,7 +219,6 @@ case "$args" in
   *"get events"*) echo "kubeflow-event-state" ;;
 esac
 '''
-
 
 if __name__ == '__main__':
     unittest.main()
