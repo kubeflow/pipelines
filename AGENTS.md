@@ -559,10 +559,11 @@ When changing an effect-heavy frontend component, add or run the smallest releva
   do not compete with the parallel API test workload.
 - API-server integration lanes use five Ginkgo nodes by default to limit API-server and etcd load; manually
   dispatched standalone jobs may override the parallel node count.
-- Multi-user CI verifies the SeaweedFS IAM Service path from the profile controller before creating the test
-  Profile, preventing a transient first-reconcile failure from leaving the user artifact secret absent. The
-  namespace-isolation test polls both newly created Profile credentials for up to five minutes and reports
-  Profile, namespace, event, and controller state if reconciliation does not complete.
+- Multi-user CI requires three consecutive successful SeaweedFS IAM Service probes from the profile controller
+  before creating the test Profile. If the user artifact secret reaches its five-minute deadline, deployment
+  collects reconciliation diagnostics and performs a final race-safe lookup before failing. The namespace-isolation
+  test separately polls both newly created Profile credentials for up to five minutes and reports Profile,
+  namespace, event, and controller state if reconciliation does not complete.
 - Workflows that cache pip downloads must use `.github/actions/setup-python-pip-cache` with a unique `cache-scope` for each dependency set and a `cache-dependency-hash` covering the requirement files the job installs. Do not use `setup-python`'s built-in `cache: 'pip'`: its generic restore prefix can propagate one workflow's global pip cache into another workflow's cache entry.
 
 ### Code style and formatting

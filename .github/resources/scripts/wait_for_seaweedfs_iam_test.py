@@ -31,11 +31,38 @@ NETWORK_POLICY = (
 class WaitForSeaweedfsIamTest(unittest.TestCase):
 
     def test_retries_until_profile_controller_can_connect(self):
-        result = self._run(probe_failures=2, timeout_seconds=4)
+        result = self._run(probe_failures=2, timeout_seconds=6)
 
         self.assertEqual(result.returncode, 0)
-        self.assertIn('SeaweedFS IAM is reachable after 2s.', result.stdout)
+        self.assertIn(
+            '3 consecutive successful probes',
+            result.stdout,
+        )
         self.assertNotIn('SeaweedFS Service', result.stdout)
+
+    def test_requires_consecutive_successes_before_reporting_ready(self):
+        result, probe_count = self._run(
+            probe_failures=0,
+            timeout_seconds=4,
+            return_probe_count=True,
+        )
+
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(probe_count, 3)
+        self.assertIn('probe succeeded (1/3)', result.stdout)
+        self.assertIn('probe succeeded (2/3)', result.stdout)
+
+    def test_failed_probe_resets_success_streak(self):
+        result, probe_count = self._run(
+            probe_failures=0,
+            probe_results='success,failure,success,success,success',
+            timeout_seconds=7,
+            return_probe_count=True,
+        )
+
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(probe_count, 5)
+        self.assertEqual(result.stdout.count('probe succeeded (1/3)'), 2)
 
     def test_failure_collects_service_backend_and_controller_state(self):
         result = self._run(probe_failures=10, timeout_seconds=1)
@@ -82,6 +109,8 @@ class WaitForSeaweedfsIamTest(unittest.TestCase):
         probe_failures: int,
         timeout_seconds: int,
         probe_delay_seconds: int = 0,
+        probe_results: str = '',
+        return_probe_count: bool = False,
     ):
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_path = Path(temporary_directory)
@@ -96,17 +125,21 @@ class WaitForSeaweedfsIamTest(unittest.TestCase):
             environment['PATH'] = f'{bin_directory}:{environment["PATH"]}'
             environment['FAKE_PROBE_FAILURES'] = str(probe_failures)
             environment['FAKE_PROBE_DELAY_SECONDS'] = str(probe_delay_seconds)
+            environment['FAKE_PROBE_RESULTS'] = probe_results
             environment['FAKE_STATE_FILE'] = str(state_file)
             environment['SEAWEEDFS_IAM_WAIT_TIMEOUT_SECONDS'] = str(
                 timeout_seconds
             )
             environment['SEAWEEDFS_IAM_WAIT_INTERVAL_SECONDS'] = '1'
-            return subprocess.run(
+            result = subprocess.run(
                 ['bash', str(SCRIPT)],
                 capture_output=True,
                 text=True,
                 env=environment,
             )
+            if return_probe_count:
+                return result, int(state_file.read_text(encoding='utf-8'))
+            return result
 
 
 _FAKE_KUBECTL = r'''#!/usr/bin/env bash
@@ -118,6 +151,11 @@ if [[ "$args" == *"exec deploy/kubeflow-pipelines-profile-controller"* ]]; then
   [[ ! -f "$FAKE_STATE_FILE" ]] || count=$(<"$FAKE_STATE_FILE")
   count=$((count + 1))
   echo "$count" > "$FAKE_STATE_FILE"
+  if [[ -n "${FAKE_PROBE_RESULTS:-}" ]]; then
+    IFS=',' read -ra probe_results <<< "$FAKE_PROBE_RESULTS"
+    [[ "${probe_results[$((count - 1))]:-success}" == "success" ]]
+    exit
+  fi
   (( count > FAKE_PROBE_FAILURES ))
   exit
 fi

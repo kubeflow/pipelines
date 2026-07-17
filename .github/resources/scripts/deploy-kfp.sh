@@ -262,11 +262,16 @@ if [ "${MULTI_USER}" == "true" ]; then
   done
 
   if ! kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" > /dev/null 2>&1; then
-    echo "ERROR: Secret mlpipeline-minio-artifact not found in namespace ${KF_PROFILE} after ${TIMEOUT}s"
+    echo "Secret mlpipeline-minio-artifact was not visible after ${TIMEOUT}s; collecting diagnostics before a final recheck."
     echo "Checking namespace labels:"
     kubectl get namespace "$KF_PROFILE" --show-labels 2>&1 || true
     "${C_DIR}/wait-for-seaweedfs-iam.sh" --diagnostics-only
-    exit 1
+    if kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" > /dev/null 2>&1; then
+      echo "Secret mlpipeline-minio-artifact appeared in namespace ${KF_PROFILE} during final diagnostic recheck."
+    else
+      echo "ERROR: Secret mlpipeline-minio-artifact not found in namespace ${KF_PROFILE} after final diagnostic recheck."
+      exit 1
+    fi
   fi
 
   echo "Verifying Pipeline Integration..."

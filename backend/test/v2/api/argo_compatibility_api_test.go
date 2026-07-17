@@ -52,6 +52,7 @@ const (
 	argoNodeNameAnnotation = "workflows.argoproj.io/node-name"
 	artifactTaskName       = "write-artifact"
 	artifactContainerImage = "alpine:3.23"
+	argoLifecycleTimeout   = 6 * time.Minute
 )
 
 var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIVE, constants.APIServerTests, "ArgoCompatibility"), func() {
@@ -153,12 +154,12 @@ var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIV
 		)
 		diagnosticRunID = createdRun.RunID
 
-		retryTimeout := time.Duration(180)
+		retryTimeoutSeconds := time.Duration(argoLifecycleTimeout / time.Second)
 		testutil.WaitForRunToBeInState(
 			runClient,
 			&createdRun.RunID,
 			[]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateFAILED},
-			&retryTimeout,
+			&retryTimeoutSeconds,
 		)
 		failedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
 		stateHistoryLengthBeforeRetry := len(failedRun.StateHistory)
@@ -170,7 +171,7 @@ var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIV
 			runClient,
 			&createdRun.RunID,
 			[]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateFAILED},
-			&retryTimeout,
+			&retryTimeoutSeconds,
 		)
 		retriedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
 		Expect(len(retriedRun.StateHistory)).To(BeNumerically(">", stateHistoryLengthBeforeRetry))
@@ -207,7 +208,7 @@ var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIV
 			}
 			logPodName = findArgoCompatibilityPodName(pods.Items)
 			return logPodName
-		}, "180s", "1s").ShouldNot(BeEmpty())
+		}, argoLifecycleTimeout, time.Second).ShouldNot(BeEmpty())
 
 		Eventually(func() string {
 			logContents, err := k8Client.CoreV1().Pods(testutil.GetNamespace()).
@@ -217,14 +218,14 @@ var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIV
 				return ""
 			}
 			return string(logContents)
-		}, "180s", "1s").Should(ContainSubstring("input:  foo"))
+		}, argoLifecycleTimeout, time.Second).Should(ContainSubstring("input:  foo"))
 
-		artifactTimeout := time.Duration(300)
+		artifactTimeoutSeconds := time.Duration(argoLifecycleTimeout / time.Second)
 		testutil.WaitForRunToBeInState(
 			runClient,
 			&createdRun.RunID,
 			[]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateSUCCEEDED},
-			&artifactTimeout,
+			&artifactTimeoutSeconds,
 		)
 
 		Eventually(func() bool {

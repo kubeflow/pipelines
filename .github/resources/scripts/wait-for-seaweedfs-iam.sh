@@ -21,6 +21,7 @@ SEAWEEDFS_HOST="seaweedfs.kubeflow"
 SEAWEEDFS_IAM_PORT="8111"
 TIMEOUT_SECONDS="${SEAWEEDFS_IAM_WAIT_TIMEOUT_SECONDS:-120}"
 INTERVAL_SECONDS="${SEAWEEDFS_IAM_WAIT_INTERVAL_SECONDS:-5}"
+REQUIRED_CONSECUTIVE_SUCCESSES="${SEAWEEDFS_IAM_REQUIRED_CONSECUTIVE_SUCCESSES:-3}"
 
 probe_iam_connection() {
   local timeout_milliseconds="$1"
@@ -69,6 +70,10 @@ echo "Waiting for SeaweedFS IAM at ${SEAWEEDFS_HOST}:${SEAWEEDFS_IAM_PORT} from 
 start_milliseconds=$(monotonic_milliseconds)
 deadline_milliseconds=$((start_milliseconds + TIMEOUT_SECONDS * 1000))
 now_milliseconds=$start_milliseconds
+# A single successful handshake did not predict that the immediately following
+# Profile reconciliation could reach the same Service. Require a short stable
+# streak while retaining the existing wall-clock deadline.
+consecutive_successes=0
 while (( now_milliseconds < deadline_milliseconds )); do
   remaining_milliseconds=$((deadline_milliseconds - now_milliseconds))
   probe_timeout_milliseconds=$remaining_milliseconds
@@ -77,10 +82,16 @@ while (( now_milliseconds < deadline_milliseconds )); do
   fi
 
   if probe_iam_connection "$probe_timeout_milliseconds"; then
+    consecutive_successes=$((consecutive_successes + 1))
     now_milliseconds=$(monotonic_milliseconds)
     elapsed=$(((now_milliseconds - start_milliseconds) / 1000))
-    echo "SeaweedFS IAM is reachable after ${elapsed}s."
-    exit 0
+    if (( consecutive_successes >= REQUIRED_CONSECUTIVE_SUCCESSES )); then
+      echo "SeaweedFS IAM is stable after ${elapsed}s (${consecutive_successes} consecutive successful probes)."
+      exit 0
+    fi
+    echo "SeaweedFS IAM probe succeeded (${consecutive_successes}/${REQUIRED_CONSECUTIVE_SUCCESSES}); confirming stability..."
+  else
+    consecutive_successes=0
   fi
 
   now_milliseconds=$(monotonic_milliseconds)
@@ -88,7 +99,9 @@ while (( now_milliseconds < deadline_milliseconds )); do
   if (( now_milliseconds >= deadline_milliseconds )); then
     break
   fi
-  echo "Waiting for SeaweedFS IAM... (${elapsed}s/${TIMEOUT_SECONDS}s)"
+  if (( consecutive_successes == 0 )); then
+    echo "Waiting for SeaweedFS IAM... (${elapsed}s/${TIMEOUT_SECONDS}s)"
+  fi
   remaining_milliseconds=$((deadline_milliseconds - now_milliseconds))
   sleep_milliseconds=$((INTERVAL_SECONDS * 1000))
   if (( sleep_milliseconds > remaining_milliseconds )); then
