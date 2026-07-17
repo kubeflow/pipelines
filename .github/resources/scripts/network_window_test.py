@@ -243,6 +243,66 @@ class NetworkWindowTest(unittest.TestCase):
 
         self.assertEqual(metrics, {})
 
+    def test_kindnet_log_report_windows_nfqueue_errors_and_slow_syncs(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            log_path = temporary_path / 'kindnet.log'
+            start_path = temporary_path / 'start.txt'
+            probe_path = temporary_path / 'probe.jsonl'
+            log_path.write_text(
+                '[pod/kindnet-a/kindnet-cni] 2026-07-17T16:18:59.500Z '
+                '"failed to set verdict with label" err="netlink send: i/o timeout"\n'
+                '2026-07-17T16:19:01.250Z "Could not receive message" '
+                'error="netlink receive: no such file or directory"\n'
+                '2026-07-17T16:19:02.000Z "Syncing nftables rules" '
+                'elapsed="2.5s"\n'
+                'without-a-timestamp "failed to set verdict with label"\n',
+                encoding='utf-8',
+            )
+            start_path.write_text(
+                '2026-07-17T16:19:00Z\n', encoding='utf-8'
+            )
+            probe_path.write_text(
+                json.dumps({
+                    'type': 'probe',
+                    'timestamp_ms': 1784305141000,
+                    'result': 'timeout',
+                }) + '\n',
+                encoding='utf-8',
+            )
+
+            report = network_window.build_kindnet_log_report(
+                log_path, start_path, probe_path
+            )
+
+        self.assertIn('| NFQUEUE verdict-send failure | 1 | 0 | 1 |', report)
+        self.assertIn('| NFQUEUE receive failure | 0 | 1 | 0 |', report)
+        self.assertIn('at least 1 s: 1; maximum: 2500.0 ms', report)
+        self.assertIn('nearest kindnet NFQUEUE error', report)
+
+    def test_kindnet_log_report_distinguishes_empty_from_zero_errors(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            start_path = temporary_path / 'start.txt'
+            start_path.write_text('2026-07-17T16:19:00Z\n', encoding='utf-8')
+            missing_report = network_window.build_kindnet_log_report(
+                temporary_path / 'missing.log', start_path
+            )
+            log_path = temporary_path / 'kindnet.log'
+            log_path.write_text(
+                '2026-07-17T16:19:01Z policy engine is ready\n',
+                encoding='utf-8',
+            )
+            healthy_report = network_window.build_kindnet_log_report(
+                log_path, start_path
+            )
+
+        self.assertIn('logs unavailable or empty', missing_report)
+        self.assertIn(
+            '| NFQUEUE verdict-send failure | 0 | 0 | 0 |', healthy_report
+        )
+        self.assertNotIn('logs unavailable', healthy_report)
+
     def test_kindnet_scheduler_command_aggregates_all_threads(self):
         self.assertIn('/task/*/schedstat', network_window.KINDNET_COMMAND)
         self.assertIn('runtime_ns=$((runtime_ns + thread_runtime))',

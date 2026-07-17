@@ -368,6 +368,7 @@ start_observability() {
   local namespace="$1"
   local output_directory="$2"
   mkdir -p "$output_directory"
+  date -u +%Y-%m-%dT%H:%M:%SZ >"$output_directory/observability-start.txt"
   resolve_targets "$namespace" "$output_directory"
   # Establish the host/node baseline and packet capture before the first probe
   # SYN. Several settled failures began in probe cycle zero, which made the old
@@ -498,6 +499,23 @@ capture_kindnet_state() {
   done <"$nodes_file"
 }
 
+capture_kindnet_logs() {
+  local output_directory="$1"
+  local log_file="$output_directory/kindnet-recent.log"
+  local status_file="$output_directory/kindnet-log.status"
+  if kubectl_bounded -n kube-system logs -l k8s-app=kindnet -c kindnet-cni \
+    --since=2h --tail=-1 --timestamps=true --prefix=true --max-log-requests=20 \
+    >"$log_file" 2>"$output_directory/kindnet-log.stderr"; then
+    if [[ -s "$log_file" ]]; then
+      echo "collected: recent kindnet logs" >"$status_file"
+    else
+      echo "empty: kindnet log query returned no records" >"$status_file"
+    fi
+  else
+    echo "unavailable: could not collect recent kindnet logs" >"$status_file"
+  fi
+}
+
 stop_packet_capture() {
   local output_directory="$1"
   local pid_file process_id expected_start_time node capture_path
@@ -591,6 +609,7 @@ stop_observability() {
   mkdir -p "$output_directory"
   quiesce_probe "$namespace" "$output_directory" || true
   collect_probe "$namespace" "$output_directory"
+  capture_kindnet_logs "$output_directory"
   capture_target_network_state "$namespace" "$output_directory" "final"
   capture_kindnet_state "$output_directory" "final"
   python3 "$SCRIPT_DIR/network_window.py" wait-for-following-sample \
@@ -603,6 +622,10 @@ stop_observability() {
   report_observer_finalization "$output_directory"
   report_packet_capture "$output_directory"
   report_kindnet_state "$output_directory"
+  python3 "$SCRIPT_DIR/network_window.py" kindnet-log-report \
+    --input "$output_directory/kindnet-recent.log" \
+    --window-start "$output_directory/observability-start.txt" \
+    --probe-input "$output_directory/service-path-probe.jsonl" || true
   python3 "$SCRIPT_DIR/service_path_probe.py" report \
     --input "$output_directory/service-path-probe.jsonl" || true
   python3 "$SCRIPT_DIR/network_window.py" report \
@@ -721,8 +744,12 @@ case "${1:-}" in
     capture_kindnet_state "${2:?output directory required}" \
       "${3:?phase required}"
     ;;
+  capture-kindnet-logs)
+    capture_kindnet_logs "${2:?output directory required}"
+    ;;
   *)
-    echo "usage: $0 {start|stop|resolve-targets|capture-kindnet-state} ..."
+    echo "usage: $0 {start|stop|resolve-targets|capture-kindnet-state|"\
+      "capture-kindnet-logs} ..."
     exit 1
     ;;
 esac

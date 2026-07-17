@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+import re
 import signal
 import subprocess
 import sys
@@ -92,6 +93,16 @@ CORRELATION_METRICS = COUNTER_METRICS - {
     'softnet.processed',
 }
 STOP_EVENT = threading.Event()
+KINDNET_TIMESTAMP_PATTERN = re.compile(
+    r'\b(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z)\b'
+)
+KINDNET_ELAPSED_PATTERN = re.compile(
+    r'elapsed="([0-9]+(?:\.[0-9]+)?)(ns|us|µs|ms|s)"'
+)
+KINDNET_LOG_SIGNALS = {
+    'NFQUEUE verdict-send failure': 'failed to set verdict with label',
+    'NFQUEUE receive failure': 'Could not receive message',
+}
 NODE_COMMAND = r'''
 echo __NETNS__
 readlink /proc/self/ns/net 2>/dev/null || true
@@ -871,6 +882,147 @@ def format_timestamp(timestamp_ms: int | None) -> str:
     )[:-3] + 'Z'
 
 
+def parse_rfc3339_timestamp(value: str) -> int | None:
+    try:
+        return int(
+            datetime.fromisoformat(value.replace('Z', '+00:00')).timestamp()
+            * 1000
+        )
+    except (ValueError, TypeError, OverflowError):
+        return None
+
+
+def parse_kindnet_log(
+    text: str,
+) -> tuple[dict[str, list[int | None]], list[tuple[int | None, float]]]:
+    signals: dict[str, list[int | None]] = {
+        label: [] for label in KINDNET_LOG_SIGNALS
+    }
+    nft_syncs: list[tuple[int | None, float]] = []
+    unit_to_milliseconds = {
+        'ns': 0.000001,
+        'us': 0.001,
+        'µs': 0.001,
+        'ms': 1.0,
+        's': 1000.0,
+    }
+    for line in text.splitlines():
+        timestamp_match = KINDNET_TIMESTAMP_PATTERN.search(line)
+        timestamp_ms = (
+            parse_rfc3339_timestamp(timestamp_match.group(1))
+            if timestamp_match
+            else None
+        )
+        for label, phrase in KINDNET_LOG_SIGNALS.items():
+            if phrase in line:
+                signals[label].append(timestamp_ms)
+        if 'Syncing nftables rules' not in line:
+            continue
+        elapsed_match = KINDNET_ELAPSED_PATTERN.search(line)
+        if elapsed_match:
+            nft_syncs.append((
+                timestamp_ms,
+                float(elapsed_match.group(1))
+                * unit_to_milliseconds[elapsed_match.group(2)],
+            ))
+    return signals, nft_syncs
+
+
+def build_kindnet_log_report(
+    path: Path, window_start_path: Path, probe_path: Path | None = None
+) -> str:
+    lines = ['', '### Kind NetworkPolicy log signals', '']
+    if not path.is_file() or not path.stat().st_size:
+        lines.append('_Recent kindnet logs unavailable or empty._')
+        return '\n'.join(lines) + '\n'
+    try:
+        text = path.read_text(encoding='utf-8')
+    except OSError:
+        lines.append('_Recent kindnet logs unavailable or unreadable._')
+        return '\n'.join(lines) + '\n'
+    try:
+        window_start_text = window_start_path.read_text(encoding='utf-8').strip()
+    except OSError:
+        window_start_text = ''
+    window_start_ms = parse_rfc3339_timestamp(window_start_text)
+    signals, nft_syncs = parse_kindnet_log(text)
+    if window_start_ms is None:
+        lines.append('_Observer start timestamp unavailable; signals are not windowed._')
+    else:
+        lines.append(f'_Observer started at {format_timestamp(window_start_ms)}._')
+    lines.extend([
+        '',
+        '| Signal | Before observer | During observer | Timestamp unavailable | '
+        'First seen | Last seen |',
+        '|---|---:|---:|---:|---|---|',
+    ])
+    for label, timestamps in signals.items():
+        known = [timestamp for timestamp in timestamps if timestamp is not None]
+        before = (
+            str(sum(timestamp < window_start_ms for timestamp in known))
+            if window_start_ms is not None
+            else '—'
+        )
+        during = (
+            str(sum(timestamp >= window_start_ms for timestamp in known))
+            if window_start_ms is not None
+            else '—'
+        )
+        lines.append(
+            f'| {label} | {before} | {during} | {len(timestamps) - len(known)} | '
+            f'{format_timestamp(min(known) if known else None)} | '
+            f'{format_timestamp(max(known) if known else None)} |'
+        )
+
+    if nft_syncs:
+        slow_syncs = [duration for _timestamp, duration in nft_syncs if duration >= 1000]
+        maximum_duration = max(duration for _timestamp, duration in nft_syncs)
+        lines.extend([
+            '',
+            f'_nftables sync completions: {len(nft_syncs)}; at least 1 s: '
+            f'{len(slow_syncs)}; maximum: {maximum_duration:.1f} ms._',
+        ])
+    else:
+        lines.extend(['', '_No timed nftables sync completions found._'])
+
+    probe_failures = []
+    if probe_path is not None:
+        probe_failures = [
+            int(event['timestamp_ms'])
+            for event in read_events(probe_path)
+            if event.get('type') == 'probe'
+            and event.get('result') != 'ok'
+            and 'timestamp_ms' in event
+        ]
+    kindnet_errors = sorted(
+        timestamp
+        for timestamps in signals.values()
+        for timestamp in timestamps
+        if timestamp is not None
+    )
+    if probe_failures and kindnet_errors:
+        first_probe_failure = min(probe_failures)
+        nearest_error = min(
+            kindnet_errors,
+            key=lambda timestamp: abs(timestamp - first_probe_failure),
+        )
+        delta_ms = nearest_error - first_probe_failure
+        if delta_ms == 0:
+            relationship = 'at the same timestamp'
+        elif delta_ms < 0:
+            relationship = f'{abs(delta_ms)} ms before'
+        else:
+            relationship = f'{delta_ms} ms after'
+        lines.extend([
+            '',
+            f'_First probe failure: {format_timestamp(first_probe_failure)}; nearest '
+            f'kindnet NFQUEUE error: {format_timestamp(nearest_error)} '
+            f'({relationship})._',
+        ])
+    lines.append('')
+    return '\n'.join(lines)
+
+
 def summarize_metric_points(points: list[dict[str, object]], is_gauge: bool) -> dict[str, object]:
     points = sorted(points, key=lambda point: int(point['sample']))
     values = [int(point['value']) for point in points]
@@ -1181,6 +1333,10 @@ def parse_args() -> argparse.Namespace:
     target_report_parser.add_argument('--end', type=Path, required=True)
     target_report_parser.add_argument('--port', type=int, required=True)
     target_report_parser.add_argument('--label', required=True)
+    kindnet_report_parser = subparsers.add_parser('kindnet-log-report')
+    kindnet_report_parser.add_argument('--input', type=Path, required=True)
+    kindnet_report_parser.add_argument('--window-start', type=Path, required=True)
+    kindnet_report_parser.add_argument('--probe-input', type=Path)
     wait_parser = subparsers.add_parser('wait-for-following-sample')
     wait_parser.add_argument('--input', type=Path, required=True)
     wait_parser.add_argument('--probe-input', type=Path, required=True)
@@ -1203,6 +1359,14 @@ def main() -> None:
                 arguments.end,
                 arguments.port,
                 arguments.label,
+            )
+        )
+    elif arguments.command == 'kindnet-log-report':
+        publish(
+            build_kindnet_log_report(
+                arguments.input,
+                arguments.window_start,
+                arguments.probe_input,
             )
         )
     else:

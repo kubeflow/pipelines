@@ -234,6 +234,47 @@ class NetworkObservabilityTest(unittest.TestCase):
         self.assertIn('head -n 2', script)
         self.assertIn('crictl logs --tail 200', script)
 
+    def test_kindnet_log_capture_keeps_recent_deploy_and_test_errors(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            bin_directory = temporary_path / 'bin'
+            bin_directory.mkdir()
+            kubectl = bin_directory / 'kubectl'
+            kubectl.write_text(_KINDNET_LOG_KUBECTL, encoding='utf-8')
+            kubectl.chmod(0o755)
+            output_directory = temporary_path / 'output'
+            output_directory.mkdir()
+            kubectl_log = temporary_path / 'kubectl.log'
+            environment = os.environ.copy()
+            environment['PATH'] = f'{bin_directory}:{environment["PATH"]}'
+            environment['FAKE_KUBECTL_LOG'] = str(kubectl_log)
+
+            subprocess.run(
+                [
+                    'bash',
+                    str(SCRIPT),
+                    'capture-kindnet-logs',
+                    str(output_directory),
+                ],
+                check=True,
+                env=environment,
+            )
+            recent_log = (output_directory / 'kindnet-recent.log').read_text(
+                encoding='utf-8'
+            )
+            status = (output_directory / 'kindnet-log.status').read_text(
+                encoding='utf-8'
+            )
+            arguments = kubectl_log.read_text(encoding='utf-8')
+
+        self.assertIn('failed to set verdict with label', recent_log)
+        self.assertIn('collected', status)
+        self.assertIn('--request-timeout=10s', arguments)
+        self.assertIn('--since=2h', arguments)
+        self.assertIn('--tail=-1', arguments)
+        self.assertIn('--timestamps=true', arguments)
+        self.assertIn('--prefix=true', arguments)
+
     def test_packet_capture_reports_early_exit_as_unavailable(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_path = Path(temporary_directory)
@@ -393,6 +434,12 @@ EOF
 _KINDNET_TIMEOUT = r'''#!/usr/bin/env bash
 shift
 exec "$@"
+'''
+
+
+_KINDNET_LOG_KUBECTL = r'''#!/usr/bin/env bash
+printf '%s\n' "$*" > "$FAKE_KUBECTL_LOG"
+echo '[pod/kindnet-abc/kindnet-cni] 2026-07-17T16:19:01Z "failed to set verdict with label"'
 '''
 
 
