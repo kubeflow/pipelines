@@ -14,6 +14,7 @@
 import os
 import sys
 import tempfile
+import textwrap
 from typing import Any, Dict, List, Union
 import unittest
 
@@ -90,6 +91,34 @@ class TypeUtilsTest(parameterized.TestCase):
     def test_is_parameter_type_true(self, type_name, expected_result):
         self.assertEqual(expected_result,
                          type_utils.is_parameter_type(type_name))
+
+    def test_is_parameter_type_empty_dict_raises(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Component I/O type cannot be an empty dict'):
+            type_utils.is_parameter_type({})
+
+    def test_get_parameter_type_empty_dict_raises(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Component I/O type cannot be an empty dict'):
+            type_utils.get_parameter_type({})
+
+    def test_load_v1_yaml_empty_output_type_with_output_path_raises(self):
+        component_yaml = textwrap.dedent("""\
+        name: bad-comp
+        outputs:
+        - {name: out, type: {}}
+        implementation:
+          container:
+            image: python:3.11
+            command: [sh, -c]
+            args: [cp, {outputPath: out}, /tmp/x]
+        """)
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Component I/O type cannot be an empty dict'):
+            structures.ComponentSpec.from_yaml_documents(component_yaml)
 
     @parameterized.parameters(
         {
