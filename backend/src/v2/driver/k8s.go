@@ -52,11 +52,6 @@ var dummyImages = map[string]string{
 	"argostub/deletepvc": "delete PVC",
 }
 
-// launcherInitContainerName is the compiler-injected launcher init container
-// (compiler/argocompiler/container.go). The pod spec patch is strategic-merged
-// by container name, so reusing this name would override the launcher.
-const launcherInitContainerName = "kfp-launcher"
-
 // kubernetesPlatformOps() carries out the Kubernetes-specific operations, such as create PVC,
 // delete PVC, etc. In these operations we skip the launcher due to there being no user container.
 // It also prepublishes and publishes the execution, which are usually done in the launcher.
