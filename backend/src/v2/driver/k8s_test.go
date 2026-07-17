@@ -3559,12 +3559,6 @@ func Test_extendPodSpecPatch_HostUsersAdminOverrideProtection(t *testing.T) {
 	assert.False(t, *podSpec.HostUsers)
 }
 
-// Test_extendPodSpecPatch_InitContainers tests that SDK-specified init
-// containers are appended to the pod spec patch with the same hardened
-// security context the compiler applies to user containers. The
-// compiler-injected "kfp-launcher" init container is not part of the patch;
-// the strategic merge patch is keyed on container name, so its name is
-// reserved.
 func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 	allowPrivilegeEscalation := false
 	hardenedSecurityContext := &k8score.SecurityContext{
