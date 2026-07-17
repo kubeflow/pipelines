@@ -786,10 +786,7 @@ func extendPodSpecPatch(
 		}
 	}
 
-	// Append user-specified init containers to the pod (no passthrough).
-	// Seed the name set from containers already in the compiled template to
-	// prevent collisions with the main container, kfp-launcher, or any
-	// other init containers the compiler or OCI hooks may have added.
+	// Seed name set from existing containers to prevent collisions.
 	initContainerNames := make(map[string]bool)
 	for _, c := range podSpec.Containers {
 		initContainerNames[c.Name] = true
@@ -809,9 +806,7 @@ func extendPodSpecPatch(
 			return fmt.Errorf("init container %q must specify an image", initContainer.GetName())
 		}
 
-		// Patch-added init containers bypass the compiler's security context, so
-		// harden them like the compiler hardens user containers: no forced
-		// runAsNonRoot, since user-specified images may run as root.
+		// Apply the same PSS hardening as the compiler gives user containers.
 		allowPrivilegeEscalation := false
 		k8sInitContainer := k8score.Container{
 			Name:    initContainer.GetName(),
@@ -828,8 +823,7 @@ func extendPodSpecPatch(
 				},
 			},
 		}
-		// Administrator identity defaults apply to init containers exactly as
-		// to the main container. hostUsers is pod-level, enforced below.
+		// Apply administrator identity defaults.
 		if opts.DefaultRunAsUser != nil {
 			v := *opts.DefaultRunAsUser
 			k8sInitContainer.SecurityContext.RunAsUser = &v
@@ -842,8 +836,7 @@ func extendPodSpecPatch(
 			v := *opts.DefaultRunAsNonRoot
 			k8sInitContainer.SecurityContext.RunAsNonRoot = &v
 		}
-		// "Always" makes the init container a Kubernetes native sidecar; it is
-		// the only restart policy Kubernetes accepts on init containers.
+		// "Always" converts to a native sidecar (the only valid value).
 		if initContainer.GetRestartPolicy() != "" {
 			if initContainer.GetRestartPolicy() != string(k8score.ContainerRestartPolicyAlways) {
 				return fmt.Errorf("init container %q restart policy must be %q, got %q",
@@ -905,10 +898,7 @@ func extendPodSpecPatch(
 		podSpec.InitContainers = append(podSpec.InitContainers, k8sInitContainer)
 	}
 
-	// Post-processing: enforce administrator hostUsers regardless of any
-	// user override. hostUsers is a pod-level field controlling Linux user
-	// namespace isolation; allowing users to silently flip it to true would
-	// defeat the administrator's security policy.
+	// Enforce administrator hostUsers default regardless of user override.
 	if opts.DefaultHostUsers != nil {
 		if podSpec.HostUsers != nil && *podSpec.HostUsers != *opts.DefaultHostUsers {
 			glog.Warningf("Ignoring user-specified hostUsers=%t: administrator default hostUsers=%t takes precedence",

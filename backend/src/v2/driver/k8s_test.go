@@ -3922,10 +3922,6 @@ func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 	}
 }
 
-// Test_extendPodSpecPatch_InitContainers_AdminSecurityDefaults verifies that
-// user init containers receive the administrator-configured identity defaults
-// (the same defaults applied to the main container) and that the pod-level
-// hostUsers default covers pods with init containers.
 func Test_extendPodSpecPatch_InitContainers_AdminSecurityDefaults(t *testing.T) {
 	runAsUser := int64(1000)
 	runAsGroup := int64(2000)
