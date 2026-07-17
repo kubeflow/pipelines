@@ -133,14 +133,16 @@ jobs:
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
 
-          if [ "$TEST_LABEL" == "E2EFailure" ] || [ "$TEST_LABEL" == "E2ECritical" ] || [ "$TEST_LABEL" == "E2EEssential" ]; then
-            # These lanes create enough simultaneous pipeline and artifact
-            # traffic to saturate the shared single-node Kind dataplane.
+          if [ "$TEST_LABEL" == "E2EFailure" ]; then
             NUMBER_OF_NODES=2
+          elif [ "$TEST_LABEL" == "E2ECritical" ] || [ "$TEST_LABEL" == "E2EEssential" ]; then
+            # Ramp concurrency after removing kindnet's CPU quota while
+            # retaining a controlled step below the historical ten nodes.
+            NUMBER_OF_NODES=5
           elif [ "$TEST_LABEL" == "E2EParallelNested" ]; then
-            # Each spec fans out into nested child pipelines, so even a small
-            # Ginkgo node count creates substantial concurrent artifact traffic.
-            NUMBER_OF_NODES=1
+            # Each spec fans out into nested child pipelines, so retain its
+            # historical lower cap instead of using the global default.
+            NUMBER_OF_NODES=3
           fi
 
           # Explicit dispatch inputs take precedence over automatic lane caps.
@@ -225,9 +227,9 @@ jobs:
         id: configure
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
-          # Limit bursts of TokenReview and pipeline API traffic through the
-          # single-node Kind service dataplane.
-          NUMBER_OF_NODES=2
+          # Ramp TokenReview and pipeline API traffic after removing kindnet's
+          # CPU quota while staying below the historical ten-node default.
+          NUMBER_OF_NODES=5
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
@@ -387,8 +389,9 @@ jobs:
         id: configure
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
-          # TODO(#13724): Restore higher concurrency after increasing shared Kind capacity.
-          NUMBER_OF_NODES=1
+          # Keep a measured step below the historical ten-node setting while
+          # validating the uncapped kindnet dataplane under additional load.
+          NUMBER_OF_NODES=2
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
