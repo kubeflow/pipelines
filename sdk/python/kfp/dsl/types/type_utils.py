@@ -227,6 +227,7 @@ def get_parameter_type(
       The enum value of the mapped IR I/O primitive type.
 
     Raises:
+      ValueError: if param_type is an empty dict.
       AttributeError: if type_name is not a string type.
     """
     # Special handling for PipelineTaskFinalStatus and TaskConfig, treat them as Dict type.

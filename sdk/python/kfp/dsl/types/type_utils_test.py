@@ -104,6 +104,22 @@ class TypeUtilsTest(parameterized.TestCase):
                 r'Component I/O type cannot be an empty dict'):
             type_utils.get_parameter_type({})
 
+    def test_check_v1_struct_parameter_type_compatibility_empty_given_type_raises(
+            self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Component I/O type cannot be an empty dict'):
+            type_utils.check_v1_struct_parameter_type_compatibility(
+                {}, {'JsonObject': {}})
+
+    def test_check_v1_struct_parameter_type_compatibility_empty_expected_type_raises(
+            self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Component I/O type cannot be an empty dict'):
+            type_utils.check_v1_struct_parameter_type_compatibility(
+                {'JsonObject': {}}, {})
+
     def test_load_v1_yaml_empty_output_type_with_output_path_raises(self):
         component_yaml = textwrap.dedent("""\
         name: bad-comp
