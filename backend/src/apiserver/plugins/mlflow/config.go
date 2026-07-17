@@ -547,6 +547,24 @@ func ToMLflowTerminalStatus(stateV2 string) string {
 	}
 }
 
+// maxSequentialRetriedCallsPerOperation is the number of idempotent, individually
+// retried MLflow calls the longest plugin operation performs in sequence.
+// OnBeforeRunCreation looks up the experiment (get-by-name), then creates the
+// experiment, then creates the parent run; all share one context, so the budget
+// must cover each retrying independently rather than being consumed by an
+// earlier call.
+const maxSequentialRetriedCallsPerOperation = 3
+
+// mlflowOperationBudget is the overall context budget for an MLflow plugin
+// operation. It is sized so every sequential idempotent call in the operation
+// gets its full commonmlflow.MaxIdempotentAttempts of per-call timeouts, rather
+// than an earlier call exhausting the budget and cutting a later call's retries
+// short. It is only fully consumed under sustained failure; the common path
+// returns as soon as the calls succeed.
+func mlflowOperationBudget(pluginConfig *commonmlflow.PluginConfig) time.Duration {
+	return resolvedMLflowTimeout(pluginConfig) * time.Duration(commonmlflow.MaxIdempotentAttempts*maxSequentialRetriedCallsPerOperation)
+}
+
 func resolvedMLflowTimeout(pluginConfig *commonmlflow.PluginConfig) time.Duration {
 	defaultTimeout := 30 * time.Second
 	if pluginConfig == nil || pluginConfig.Timeout == "" {

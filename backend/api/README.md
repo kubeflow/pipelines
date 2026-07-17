@@ -89,4 +89,6 @@ API generator image is defined in [Dockerfile](`./Dockerfile`). If you need to u
 1. Update the [Dockerfile](`./Dockerfile`) and build the image by running `docker build -t ghcr.io/kubeflow/kfp-api-generator:$BRANCH .`
 1. Push the new container by running `docker push ghcr.io/kubeflow/kfp-api-generator:$BRANCH`.
 1. Update the `PREBUILT_REMOTE_IMAGE` variable in the [Makefile](./Makefile) to point to your new image.
-1. Similarly, push a new version of the release tools image to `ghcr.io/kubeflow/kfp-release:$BRANCH` and run `make push` in [test/release/Makefile](../../test/release/Makefile).
+1. Similarly, build and push a new release tools image from
+   [`release/Dockerfile.release`](../../release/Dockerfile.release) to
+   `ghcr.io/kubeflow/kfp-release:$BRANCH`.

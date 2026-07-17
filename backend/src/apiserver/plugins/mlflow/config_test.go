@@ -375,8 +375,9 @@ func TestBuildKFPTags(t *testing.T) {
 		PipelineVersionID: "pipeline-version-1",
 	}
 	tags := BuildKFPTags(run, "", "")
-	require.Len(t, tags, 4)
+	require.Len(t, tags, 5)
 	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPRunID, Value: "kfp-run-1"})
+	assert.Contains(t, tags, commonmlflow.Tag{Key: commonmlflow.IdempotencyTagKey, Value: "kfp-run-1"})
 	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPRunURL, Value: ""})
 	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPPipelineID, Value: "pipeline-1"})
 	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPPipelineVersionID, Value: "pipeline-version-1"})
@@ -388,7 +389,7 @@ func TestBuildKFPTags_WithBaseURL(t *testing.T) {
 		Namespace: "ns-1",
 	}
 	tags := BuildKFPTags(run, "https://kfp.example.com", "")
-	require.Len(t, tags, 2)
+	require.Len(t, tags, 3)
 	assert.Contains(t, tags, commonmlflow.Tag{
 		Key:   TagKFPRunURL,
 		Value: "https://kfp.example.com/#/runs/details/run-1",
@@ -402,7 +403,7 @@ func TestBuildKFPTags_WithCustomPathTemplate(t *testing.T) {
 	}
 	tmpl := "/demo/console/pipelines/{namespace}/runs/{run_id}"
 	tags := BuildKFPTags(run, "https://console.example.com", tmpl)
-	require.Len(t, tags, 2)
+	require.Len(t, tags, 3)
 	assert.Contains(t, tags, commonmlflow.Tag{
 		Key:   TagKFPRunURL,
 		Value: "https://console.example.com/demo/console/pipelines/proj-1/runs/run-b",
@@ -442,10 +443,11 @@ func TestCreateRunWithKFPTags(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "mlflow-parent-run-1", mlflowRunID)
 
-	// Verify tags were included in the CreateRun request body.
+	// Verify tags were included in the CreateRun request body. The four KFP
+	// tags plus the idempotency-key tag used for CreateRun retries.
 	rawTags, ok := receivedBody["tags"].([]interface{})
 	require.True(t, ok, "tags should be present in CreateRun body")
-	assert.Len(t, rawTags, 4)
+	assert.Len(t, rawTags, 5)
 }
 
 func TestBuildPluginOutput(t *testing.T) {
