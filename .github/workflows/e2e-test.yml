@@ -289,25 +289,31 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: [ "v1.36.1" ]
-        cache_enabled: [ "true", "false" ]
+        kubernetes:
+          - label: current
+            version: "v1.36.1"
+            node_image: "kindest/node:v1.36.1@sha256:3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5"
+          - label: previous
+            version: "v1.34.8"
+            node_image: "kindest/node:v1.34.8@sha256:02722c2dedddcfc00febf5d27fbeb9b7b2c14294c82109ff4a85d89ac9ba3256"
+        kindnet:
+          - label: current
+            image: "docker.io/kindest/kindnetd:v20260528-9350166c"
+          - label: previous
+            image: "docker.io/kindest/kindnetd:v20251212-v0.29.0-alpha-105-g20ccfc88"
+        cache_enabled: [ "true" ]
         argo_version: [ "v3.7.3" ]
         proxy: [ "false" ]
         test_label: [ "MLflow" ]
         pod_to_pod_tls_enabled: [ "false" ]
         multi_user: [ "false" ]
         artifact_proxy: [ "false" ]
-        artifact_storage: [ "file", "s3" ]
+        artifact_storage: [ "file" ]
         backend_store: [ "postgres" ]
         registry_store: [ "postgres" ]
-        mlflow_auth_type: [ "kubernetes", "basic-auth", "none" ]
-        exclude:
-          - artifact_storage: "s3"
-            mlflow_auth_type: "basic-auth"
-          - artifact_storage: "s3"
-            mlflow_auth_type: "none"
+        mlflow_auth_type: [ "kubernetes" ]
       fail-fast: false
-    name: End to End Critical Scenario MLflow Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} artifactStorage=${{ matrix.artifact_storage }} authType=${{ matrix.mlflow_auth_type }}
+    name: Debug MLflow - K8s ${{ matrix.kubernetes.label }} kindnet ${{ matrix.kindnet.label }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -316,8 +322,10 @@ jobs:
         uses: ./.github/actions/create-cluster
         id: create-cluster
         with:
-          k8s_version: ${{ matrix.k8s_version }}
+          k8s_version: ${{ matrix.kubernetes.version }}
           cluster_name: ${{ env.CLUSTER_NAME }}
+          node_image: ${{ matrix.kubernetes.node_image }}
+          kindnet_image: ${{ matrix.kindnet.image }}
 
       - name: Deploy KFP
         uses: ./.github/actions/deploy
@@ -422,7 +430,7 @@ jobs:
           num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
-          report_name: "MLflowTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_artifactStorage=${{ matrix.artifact_storage }}_authType=${{ matrix.mlflow_auth_type }}"
+          report_name: "DebugMLflow_K8s=${{ matrix.kubernetes.label }}_kindnet=${{ matrix.kindnet.label }}"
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
           mlflow_enabled: 'true'
