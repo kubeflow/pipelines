@@ -19,6 +19,7 @@ ENV GO_SWAGGER_VERSION=v0.32.3
 ENV GRPC_VERSION=v1.80.0
 ENV PROTOC_VERSION=31.1
 ENV GOBIN=/go/bin
+ARG TARGETARCH
 # The googleapis repo doesn't use GitHub releases or version tags,
 # so we pin a specific commit to make the clone reproducible.
 ENV GOOGLEAPIS_COMMIT=68d5196a529174df97c28c70622ffc1c3721815f
@@ -42,7 +43,13 @@ ENV PROTOBUF_GO=v1.36.11
 
 # Install protoc.
 RUN apt-get update -y && apt-get install -y jq sed unzip
-RUN curl -L -o protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip
+RUN case "${TARGETARCH}" in \
+      amd64) PROTOC_ARCH=x86_64 ;; \
+      arm64) PROTOC_ARCH=aarch_64 ;; \
+      *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
+    esac && \
+    curl -L -o protoc.zip \
+    "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip"
 RUN unzip -o protoc.zip -d /tmp/protoc && \
     mv /tmp/protoc/bin/protoc /usr/bin/protoc && \
     chmod +x /usr/bin/protoc
@@ -67,8 +74,11 @@ RUN mkdir -p /protoc-gen-openapiv2 && \
     cp -r /go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@${GRPC_GATEWAY_VERSION}/protoc-gen-openapiv2/options /protoc-gen-openapiv2/options
 
 # Download go-swagger binary.
-RUN curl -LO "https://github.com/go-swagger/go-swagger/releases/download/${GO_SWAGGER_VERSION}/swagger_linux_amd64"
-RUN chmod +x swagger_linux_amd64 && mv swagger_linux_amd64 /usr/bin/swagger
+RUN curl -LO \
+"https://github.com/go-swagger/go-swagger/releases/download/${GO_SWAGGER_VERSION}/swagger_linux_${TARGETARCH}"
+
+RUN chmod +x swagger_linux_${TARGETARCH} && \
+    mv swagger_linux_${TARGETARCH} /usr/bin/swagger
 
 # Need protobuf source code for -I in protoc command.
 # Install protoc-gen-go.
