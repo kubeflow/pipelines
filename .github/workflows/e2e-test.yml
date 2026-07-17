@@ -284,19 +284,19 @@ jobs:
           report_name: "E2EMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"
 
 
-  debug-kindnet-cpu-experiment:
+  debug-kind-version-experiment:
     runs-on: ubuntu-latest
     needs: build
     strategy:
       fail-fast: false
       matrix:
-        kindnet_cpu:
-          - label: limited-100m
-            limit: 100m
-          - label: unlimited
-            limit: none
+        kind:
+          - label: v0.31
+            version: v0.31.0
+          - label: v0.32
+            version: v0.32.0
         repetition: [1, 2, 3, 4]
-    name: Debug kindnet CPU - ${{ matrix.kindnet_cpu.label }} - run ${{ matrix.repetition }}
+    name: Debug Kind ${{ matrix.kind.label }} - run ${{ matrix.repetition }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -305,9 +305,13 @@ jobs:
         uses: ./.github/actions/create-cluster
         id: create-cluster
         with:
-          k8s_version: v1.36.1
+          # Use one v0.31-supported, digest-pinned node image for both cells so
+          # the Kind release (including its managed networking stack) is the axis.
+          k8s_version: v1.35.0
           cluster_name: ${{ env.CLUSTER_NAME }}
-          kindnet_cpu_limit: ${{ matrix.kindnet_cpu.limit }}
+          kind_version: ${{ matrix.kind.version }}
+          node_image: kindest/node:v1.35.0@sha256:452d707d4862f52530247495d180205e029056831160e22870e37e3f6c1ac31f
+          kindnet_cpu_limit: 100m
 
       - name: Deploy KFP
         uses: ./.github/actions/deploy
@@ -325,10 +329,10 @@ jobs:
         id: configure
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
-          # This disposable PR intentionally restores high concurrency to make
-          # kindnet CPU starvation reproducible. Keep every A/B cell identical.
-          NUMBER_OF_NODES=10
-          TEST_LABEL=E2ECritical
+          # The settled #13739 failure reproduced in this fan-out-heavy lane
+          # even after it was serialized. Keep every A/B cell identical.
+          NUMBER_OF_NODES=1
+          TEST_LABEL=E2EParallelNested
           NAMESPACE=${{ env.NAMESPACE }}
 
           {
@@ -356,4 +360,4 @@ jobs:
           num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
-          report_name: "DebugKindnetCPU_limit=${{ matrix.kindnet_cpu.label }}_nodes=10_run=${{ matrix.repetition }}"
+          report_name: "DebugKind_version=${{ matrix.kind.label }}_k8s=v1.35.0_nodes=1_run=${{ matrix.repetition }}"

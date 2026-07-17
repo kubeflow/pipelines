@@ -533,6 +533,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - Focused Argo runtime compatibility API tests run only in the canonical standalone `v4.0.5` / Kubernetes `v1.36.1` job via `ARGO_COMPATIBILITY_TESTS`; this covers recurring-run creation, run retry, task metadata/artifacts, and archived logs without adding another E2E lane.
 - Proxy / cache toggles: dedicated jobs run with HTTP proxy enabled and with execution cache disabled to validate those modes.
 - Kind concurrency caps: automatic critical, essential, and multi-user API-server lanes use two Ginkgo nodes, while nested-pipeline E2E runs serially because each spec fans out into child pipelines. These caps avoid saturating the single-node service dataplane; manual workflow dispatches retain their requested concurrency.
+- Disposable PR #13750 replaces the MLflow matrix with four repetitions each of Kind v0.31 and v0.32, holding a digest-pinned Kubernetes v1.35 node image, the 100m kindnet quota, and the serial `E2EParallelNested` workload constant; it is diagnostic-only and must not merge.
 - Artifacts: failing logs and test outputs are uploaded as workflow artifacts for debugging.
 
 ### CI cluster setup and helpers

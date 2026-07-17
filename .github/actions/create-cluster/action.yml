@@ -9,6 +9,14 @@ inputs:
     description: "Provide kind cluster name if you want to name it other than kfp"
     required: false
     default: 'kfp'
+  kind_version:
+    description: "Kind CLI version"
+    required: false
+    default: 'v0.32.0'
+  node_image:
+    description: "Optional digest-pinned Kind node image for debugging"
+    required: false
+    default: ''
   kindnet_cpu_limit:
     description: "Optional kindnet CPU limit experiment: 100m or none"
     required: false
@@ -21,6 +29,7 @@ runs:
       uses: ./.github/actions/github-disk-cleanup
 
     - name: Restore Kind node image cache
+      if: ${{ inputs.node_image == '' }}
       id: kind-node-cache
       uses: actions/cache@v5
       with:
@@ -28,12 +37,12 @@ runs:
         key: kind-node-${{ runner.os }}-${{ inputs.k8s_version }}
 
     - name: Load Kind node image from cache
-      if: ${{ steps.kind-node-cache.outputs.cache-hit == 'true' }}
+      if: ${{ inputs.node_image == '' && steps.kind-node-cache.outputs.cache-hit == 'true' }}
       shell: bash
       run: docker load -i /tmp/kind-node-${{ inputs.k8s_version }}.tar
 
     - name: Pull and cache Kind node image
-      if: ${{ steps.kind-node-cache.outputs.cache-hit != 'true' }}
+      if: ${{ inputs.node_image == '' && steps.kind-node-cache.outputs.cache-hit != 'true' }}
       shell: bash
       run: |
         # Retry Docker Hub first, then fall back to the upstream Kind mirror on GCR.
@@ -42,6 +51,13 @@ runs:
           gcr.io/k8s-staging-kind/node:${{ inputs.k8s_version }}
         docker save kindest/node:${{ inputs.k8s_version }} -o /tmp/kind-node-${{ inputs.k8s_version }}.tar
 
+    - name: Pull digest-pinned Kind node image
+      if: ${{ inputs.node_image != '' }}
+      shell: bash
+      run: |
+        bash ./.github/resources/scripts/docker-pull-with-retry.sh \
+          "${{ inputs.node_image }}"
+
     - name: Create k8s Kind Cluster
       uses: helm/kind-action@v1.13.0
       id: cluster-create
@@ -49,8 +65,8 @@ runs:
       with:
         cluster_name: ${{ inputs.cluster_name }}
         kubectl_version: ${{ inputs.k8s_version }}
-        version: v0.32.0
-        node_image: kindest/node:${{ inputs.k8s_version }}
+        version: ${{ inputs.kind_version }}
+        node_image: ${{ inputs.node_image || format('kindest/node:{0}', inputs.k8s_version) }}
 
     - name: Retry Create k8s Kind Cluster
       uses: helm/kind-action@v1.13.0
@@ -58,8 +74,8 @@ runs:
       with:
         cluster_name: ${{ inputs.cluster_name }}
         kubectl_version: ${{ inputs.k8s_version }}
-        version: v0.32.0
-        node_image: kindest/node:${{ inputs.k8s_version }}
+        version: ${{ inputs.kind_version }}
+        node_image: ${{ inputs.node_image || format('kindest/node:{0}', inputs.k8s_version) }}
 
     - name: Configure kindnet CPU limit experiment
       if: ${{ inputs.kindnet_cpu_limit != '' }}
@@ -68,18 +84,19 @@ runs:
         case "${{ inputs.kindnet_cpu_limit }}" in
           100m)
             kubectl -n kube-system set resources daemonset/kindnet \
-              --containers=kindnet-cni --limits=cpu=100m
+              --containers=kindnet-cni --requests=cpu=100m --limits=cpu=100m
+            expected_limit=100m
             ;;
           none)
             kubectl -n kube-system patch daemonset/kindnet --type=strategic \
-              -p '{"spec":{"template":{"spec":{"containers":[{"name":"kindnet-cni","resources":{"limits":{"cpu":null}}}]}}}}'
+              -p '{"spec":{"template":{"spec":{"containers":[{"name":"kindnet-cni","resources":{"requests":{"cpu":"100m"},"limits":{"cpu":null}}}]}}}}'
+            expected_limit=""
             ;;
           *)
             echo "Unsupported kindnet_cpu_limit: ${{ inputs.kindnet_cpu_limit }}" >&2
             exit 1
             ;;
         esac
-        kubectl -n kube-system rollout restart daemonset/kindnet
         kubectl -n kube-system rollout status daemonset/kindnet --timeout=180s
         cpu_request=$(kubectl -n kube-system get daemonset kindnet \
           -o jsonpath='{.spec.template.spec.containers[?(@.name=="kindnet-cni")].resources.requests.cpu}')
@@ -87,3 +104,8 @@ runs:
           -o jsonpath='{.spec.template.spec.containers[?(@.name=="kindnet-cni")].resources.limits.cpu}')
         printf 'kindnet_cpu_request=%s\nkindnet_cpu_limit=%s\n' \
           "${cpu_request:-none}" "${cpu_limit:-none}"
+
+        if [ "$cpu_request" != "100m" ] || [ "$cpu_limit" != "$expected_limit" ]; then
+          echo "Unexpected kindnet CPU resources after patch" >&2
+          exit 1
+        fi
