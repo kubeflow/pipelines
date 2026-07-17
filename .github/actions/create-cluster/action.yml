@@ -56,3 +56,24 @@ runs:
         kubectl_version: ${{ inputs.k8s_version }}
         version: v0.32.0
         node_image: kindest/node:${{ inputs.k8s_version }}
+
+    - name: Remove kindnet CPU limit
+      shell: bash
+      run: |
+        # kindnet is on the critical packet-forwarding path. Keep its 100m
+        # scheduling request, but do not quota bursts that drain NFQUEUE.
+        kubectl -n kube-system patch daemonset/kindnet --type=strategic \
+          -p '{"spec":{"template":{"spec":{"containers":[{"name":"kindnet-cni","resources":{"requests":{"cpu":"100m"},"limits":{"cpu":null}}}]}}}}'
+        kubectl -n kube-system rollout status daemonset/kindnet --timeout=180s
+
+        cpu_request=$(kubectl -n kube-system get daemonset kindnet \
+          -o jsonpath='{.spec.template.spec.containers[?(@.name=="kindnet-cni")].resources.requests.cpu}')
+        cpu_limit=$(kubectl -n kube-system get daemonset kindnet \
+          -o jsonpath='{.spec.template.spec.containers[?(@.name=="kindnet-cni")].resources.limits.cpu}')
+        printf 'kindnet_cpu_request=%s\nkindnet_cpu_limit=%s\n' \
+          "${cpu_request:-none}" "${cpu_limit:-none}"
+
+        if [ "$cpu_request" != "100m" ] || [ -n "$cpu_limit" ]; then
+          echo "Unexpected kindnet CPU resources after patch" >&2
+          exit 1
+        fi
