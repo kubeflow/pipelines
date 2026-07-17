@@ -104,6 +104,7 @@ class NetworkObservabilityTest(unittest.TestCase):
 
         quiesce = stop_body.index('quiesce_probe ')
         target_snapshot = stop_body.index('capture_target_network_state ')
+        kindnet_snapshot = stop_body.index('capture_kindnet_state ')
         collect_logs = stop_body.index('collect_probe ')
         stop_sampler = stop_body.index('stop_process ')
         stop_capture = stop_body.index('stop_packet_capture ')
@@ -111,7 +112,8 @@ class NetworkObservabilityTest(unittest.TestCase):
         final_sample = stop_body.index('wait-for-following-sample')
         self.assertLess(quiesce, collect_logs)
         self.assertLess(collect_logs, target_snapshot)
-        self.assertLess(target_snapshot, final_sample)
+        self.assertLess(target_snapshot, kindnet_snapshot)
+        self.assertLess(kindnet_snapshot, final_sample)
         self.assertLess(final_sample, stop_sampler)
         self.assertLess(stop_sampler, stop_capture)
         self.assertLess(stop_capture, cleanup)
@@ -183,6 +185,54 @@ class NetworkObservabilityTest(unittest.TestCase):
             arguments,
         )
         self.assertTrue(capture_file_exists)
+
+    def test_kindnet_snapshot_retains_node_state_when_api_later_fails(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            bin_directory = temporary_path / 'bin'
+            bin_directory.mkdir()
+            for name, contents in {
+                'kubectl': _KINDNET_KUBECTL,
+                'docker': _KINDNET_DOCKER,
+                'timeout': _KINDNET_TIMEOUT,
+            }.items():
+                executable = bin_directory / name
+                executable.write_text(contents, encoding='utf-8')
+                executable.chmod(0o755)
+            output_directory = temporary_path / 'output'
+            output_directory.mkdir()
+            environment = os.environ.copy()
+            environment['PATH'] = f'{bin_directory}:{environment["PATH"]}'
+
+            subprocess.run(
+                [
+                    'bash',
+                    str(SCRIPT),
+                    'capture-kindnet-state',
+                    str(output_directory),
+                    'baseline',
+                ],
+                check=True,
+                env=environment,
+            )
+            state = (
+                output_directory
+                / 'kindnet-kind-control-plane-baseline.txt'
+            ).read_text(encoding='utf-8')
+            nodes = (output_directory / 'kind-nodes.txt').read_text(
+                encoding='utf-8'
+            )
+
+        self.assertEqual(nodes, 'kind-control-plane\n')
+        self.assertIn('container_id=kindnet-container', state)
+        self.assertIn('__NFQUEUE__', state)
+        self.assertIn('101 2538 3 2 65535 7 5 106 1', state)
+        self.assertIn('__NFT__', state)
+        self.assertIn('kindnet-network-policies', state)
+        self.assertLess(state.index('__NFQUEUE__'), state.index('__CONTAINERS__'))
+        script = SCRIPT.read_text(encoding='utf-8')
+        self.assertIn('head -n 2', script)
+        self.assertIn('crictl logs --tail 200', script)
 
     def test_packet_capture_reports_early_exit_as_unavailable(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -304,6 +354,45 @@ done
 : > "${output}0"
 trap 'exit 0' INT TERM
 while true; do sleep 1; done
+'''
+
+
+_KINDNET_KUBECTL = r'''#!/usr/bin/env bash
+case "$*" in
+  *"get nodes -o jsonpath="*)
+    echo "kind-control-plane"
+    ;;
+  *"get pods -l k8s-app=kindnet -o wide"*)
+    echo "NAME READY STATUS RESTARTS NODE"
+    echo "kindnet-abc 1/1 Running 0 kind-control-plane"
+    ;;
+  *"get pods -l k8s-app=kindnet -o json"*)
+    echo '{"items":[]}'
+    ;;
+  *)
+    exit 1
+    ;;
+esac
+'''
+
+
+_KINDNET_DOCKER = r'''#!/usr/bin/env bash
+cat <<'EOF'
+__NFQUEUE__
+101 2538 3 2 65535 7 5 106 1
+__NFT__
+{"nftables":[{"table":{"family":"inet","name":"kindnet-network-policies","handle":9}}]}
+__CONTAINERS__
+container_id=kindnet-container
+__LOG_kindnet-container__
+kindnet log line
+EOF
+'''
+
+
+_KINDNET_TIMEOUT = r'''#!/usr/bin/env bash
+shift
+exec "$@"
 '''
 
 

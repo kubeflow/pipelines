@@ -45,6 +45,17 @@ COUNTER_METRICS = {
     'conntrack.search_restart',
     'Ip.InDiscards',
     'Ip.OutDiscards',
+    'kindnet.cgroup.cpu.nr_periods',
+    'kindnet.cgroup.cpu.nr_throttled',
+    'kindnet.cgroup.cpu.throttled_us',
+    'kindnet.sched.runtime_ns',
+    'kindnet.sched.timeslices',
+    'kindnet.sched.wait_ns',
+    'kindnet.nft.counter.bytes',
+    'kindnet.nft.counter.packets',
+    'nfqueue.id_sequence',
+    'nfqueue.queue_dropped',
+    'nfqueue.user_dropped',
     'psi.cpu.full_stall_us',
     'psi.cpu.some_stall_us',
     'Tcp.RetransSegs',
@@ -65,10 +76,19 @@ GAUGE_METRICS = {
     'listen_queue.listeners',
     'listen_queue.rx',
     'listen_queue.tx',
+    'kindnet.cgroup.cpu.period_us',
+    'kindnet.cgroup.cpu.quota_us',
+    'nfqueue.queue_total',
     *service_path_probe.SELECTED_GAUGES,
 }
 CORRELATION_METRICS = COUNTER_METRICS - {
     'conntrack.insert',
+    'kindnet.cgroup.cpu.nr_periods',
+    'kindnet.nft.counter.bytes',
+    'kindnet.nft.counter.packets',
+    'kindnet.sched.runtime_ns',
+    'kindnet.sched.timeslices',
+    'nfqueue.id_sequence',
     'softnet.processed',
 }
 STOP_EVENT = threading.Event()
@@ -87,6 +107,120 @@ echo __NETSTAT__
 cat /proc/net/netstat 2>/dev/null || true
 echo __SNMP__
 cat /proc/net/snmp 2>/dev/null || true
+'''
+
+KINDNET_COMMAND = r'''
+echo __NFQUEUE__
+if test -r /proc/net/netfilter/nfnetlink_queue; then
+  if test -s /proc/net/netfilter/nfnetlink_queue; then
+    cat /proc/net/netfilter/nfnetlink_queue 2>/dev/null || echo status=unavailable
+  else
+    echo status=empty
+  fi
+else
+  echo status=unavailable
+fi
+
+kindnet_id=""
+kindnet_pid=""
+kindnet_start_time=""
+kindnet_cgroup_path=""
+kindnet_cpu_stat=""
+if command -v crictl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1 \
+  && command -v timeout >/dev/null 2>&1; then
+  kindnet_id=$(timeout 1 crictl ps --state Running --name kindnet-cni -q \
+    2>/dev/null | head -n 1 || true)
+  if test -n "$kindnet_id"; then
+    kindnet_pid=$(timeout 1 crictl inspect "$kindnet_id" 2>/dev/null \
+      | jq -r '.info.pid // empty' 2>/dev/null || true)
+  fi
+fi
+if test -n "$kindnet_pid" && test -r "/proc/$kindnet_pid/stat"; then
+  kindnet_start_time=$(awk '{print $22}' "/proc/$kindnet_pid/stat" \
+    2>/dev/null || true)
+  while IFS=: read -r hierarchy controllers cgroup_path; do
+    if test "$hierarchy" = "0"; then
+      candidate="/sys/fs/cgroup${cgroup_path}/cpu.stat"
+      if test -r "$candidate"; then
+        kindnet_cgroup_path="$cgroup_path"
+        kindnet_cpu_stat="$candidate"
+        break
+      fi
+    else
+      case ",$controllers," in
+        *,cpu,*)
+          for cgroup_root in /sys/fs/cgroup/cpu,cpuacct /sys/fs/cgroup/cpu; do
+            candidate="${cgroup_root}${cgroup_path}/cpu.stat"
+            if test -r "$candidate"; then
+              kindnet_cgroup_path="$cgroup_path"
+              kindnet_cpu_stat="$candidate"
+              break 2
+            fi
+          done
+          ;;
+      esac
+    fi
+  done < "/proc/$kindnet_pid/cgroup"
+fi
+
+echo __KINDNET_IDENTITY__
+if test -n "$kindnet_id" && test -n "$kindnet_pid" \
+  && test -n "$kindnet_start_time"; then
+  printf 'container_id=%s pid=%s start_time=%s cgroup=%s\n' \
+    "$kindnet_id" "$kindnet_pid" "$kindnet_start_time" \
+    "${kindnet_cgroup_path:-unavailable}"
+else
+  echo status=unavailable
+fi
+echo __KINDNET_CPU_STAT__
+if test -n "$kindnet_cpu_stat"; then
+  cat "$kindnet_cpu_stat" 2>/dev/null || echo status=unavailable
+  cpu_max=${kindnet_cpu_stat%/cpu.stat}/cpu.max
+  if test -r "$cpu_max"; then
+    read -r quota period < "$cpu_max" || true
+    printf 'quota_us %s\nperiod_us %s\n' "$quota" "$period"
+  else
+    cgroup_directory=${kindnet_cpu_stat%/cpu.stat}
+    quota=$(cat "$cgroup_directory/cpu.cfs_quota_us" 2>/dev/null || true)
+    period=$(cat "$cgroup_directory/cpu.cfs_period_us" 2>/dev/null || true)
+    printf 'quota_us %s\nperiod_us %s\n' "$quota" "$period"
+  fi
+else
+  echo status=unavailable
+fi
+echo __KINDNET_SCHEDSTAT__
+if test -n "$kindnet_pid" && test -d "/proc/$kindnet_pid/task"; then
+  runtime_ns=0
+  wait_ns=0
+  timeslices=0
+  threads=0
+  for thread_stat in "/proc/$kindnet_pid"/task/*/schedstat; do
+    test -r "$thread_stat" || continue
+    read -r thread_runtime thread_wait thread_timeslices _ < "$thread_stat" \
+      || continue
+    case "$thread_runtime:$thread_wait:$thread_timeslices" in
+      *[!0-9:]*) continue ;;
+    esac
+    runtime_ns=$((runtime_ns + thread_runtime))
+    wait_ns=$((wait_ns + thread_wait))
+    timeslices=$((timeslices + thread_timeslices))
+    threads=$((threads + 1))
+  done
+  if test "$threads" -gt 0; then
+    printf '%s %s %s\n' "$runtime_ns" "$wait_ns" "$timeslices"
+  else
+    echo status=unavailable
+  fi
+else
+  echo status=unavailable
+fi
+echo __KINDNET_NFT__
+if command -v nft >/dev/null 2>&1 && command -v timeout >/dev/null 2>&1; then
+  timeout 0.5 nft -a -j list table inet kindnet-network-policies \
+    2>/dev/null || echo status=unavailable
+else
+  echo status=unavailable
+fi
 '''
 
 
@@ -157,7 +291,9 @@ def parse_pressure(text: str) -> dict[str, int]:
     return metrics
 
 
-def parse_cpu_stat(text: str) -> dict[str, int]:
+def parse_cpu_stat(
+    text: str, prefix: str = 'cgroup.cpu'
+) -> dict[str, int]:
     metrics = {}
     for line in text.splitlines():
         fields = line.split()
@@ -165,12 +301,141 @@ def parse_cpu_stat(text: str) -> dict[str, int]:
             continue
         key, value = fields[0], int(fields[1])
         if key in {'nr_periods', 'nr_throttled'}:
-            metrics[f'cgroup.cpu.{key}'] = value
+            metrics[f'{prefix}.{key}'] = value
         elif key == 'throttled_usec':
-            metrics['cgroup.cpu.throttled_us'] = value
+            metrics[f'{prefix}.throttled_us'] = value
         elif key == 'throttled_time':
-            metrics['cgroup.cpu.throttled_us'] = value // 1000
+            metrics[f'{prefix}.throttled_us'] = value // 1000
     return metrics
+
+
+def parse_kindnet_cpu(text: str) -> dict[str, int]:
+    if any(line.startswith('status=') for line in text.splitlines()):
+        return {}
+    metrics = parse_cpu_stat(text, 'kindnet.cgroup.cpu')
+    for line in text.splitlines():
+        fields = line.split()
+        if len(fields) != 2 or not fields[1].isdecimal():
+            continue
+        if fields[0] in {'quota_us', 'period_us'}:
+            metrics[f'kindnet.cgroup.cpu.{fields[0]}'] = int(fields[1])
+    return metrics
+
+
+def parse_kindnet_identity(text: str) -> tuple[str, str | None]:
+    fields = {}
+    for field in text.split():
+        key, separator, value = field.partition('=')
+        if separator:
+            fields[key] = value
+    if fields.get('status'):
+        return 'unavailable', f'kindnet_{fields["status"]}'
+    required = {'container_id', 'pid', 'start_time'}
+    if not required.issubset(fields):
+        return 'unavailable', 'kindnet_identity_unavailable'
+    cgroup = fields.get('cgroup', 'unavailable')
+    identity = '|'.join([fields['container_id'], fields['pid'], fields['start_time'], cgroup])
+    return identity, (
+        'kindnet_cgroup_unavailable' if cgroup == 'unavailable' else None
+    )
+
+
+def parse_schedstat(text: str) -> dict[str, int]:
+    for line in text.splitlines():
+        fields = line.split()
+        if len(fields) >= 3 and all(field.isdecimal() for field in fields[:3]):
+            return {
+                'kindnet.sched.runtime_ns': int(fields[0]),
+                'kindnet.sched.wait_ns': int(fields[1]),
+                'kindnet.sched.timeslices': int(fields[2]),
+            }
+    return {}
+
+
+def parse_nfqueue(
+    text: str, queue_number: int = 101
+) -> tuple[str, dict[str, int], str | None]:
+    status = next(
+        (
+            line.split('=', 1)[1]
+            for line in text.splitlines()
+            if line.startswith('status=')
+        ),
+        None,
+    )
+    if status == 'empty':
+        return 'unavailable', {}, 'nfqueue_no_active_queues'
+    if status:
+        return 'unavailable', {}, f'nfqueue_{status}'
+    saw_well_formed_row = False
+    for line in text.splitlines():
+        fields = line.split()
+        if len(fields) < 9 or not all(field.isdecimal() for field in fields[:9]):
+            continue
+        saw_well_formed_row = True
+        if int(fields[0]) != queue_number:
+            continue
+        identity = f'queue={fields[0]}|peer={fields[1]}'
+        return identity, {
+            'nfqueue.queue_total': int(fields[2]),
+            'nfqueue.queue_dropped': int(fields[5]),
+            'nfqueue.user_dropped': int(fields[6]),
+            'nfqueue.id_sequence': int(fields[7]),
+        }, None
+    if saw_well_formed_row:
+        return 'unavailable', {}, f'nfqueue_{queue_number}_not_active'
+    return 'unavailable', {}, 'nfqueue_malformed'
+
+
+def parse_nft_counters(text: str) -> tuple[str, dict[str, int], str | None]:
+    if any(line.startswith('status=') for line in text.splitlines()):
+        return 'unavailable', {}, 'kindnet_nft_unavailable'
+    try:
+        ruleset = json.loads(text)
+    except (json.JSONDecodeError, TypeError):
+        return 'unavailable', {}, 'kindnet_nft_malformed'
+    if not isinstance(ruleset, dict):
+        return 'unavailable', {}, 'kindnet_nft_malformed'
+    table_handle = None
+    rule_handles = []
+    packets = bytes_count = 0
+    counters = 0
+    for item in ruleset.get('nftables', []):
+        if not isinstance(item, dict):
+            continue
+        table = item.get('table')
+        if isinstance(table, dict) and table.get('name') == 'kindnet-network-policies':
+            table_handle = table.get('handle')
+        rule = item.get('rule')
+        if not isinstance(rule, dict) or rule.get('table') != 'kindnet-network-policies':
+            continue
+        rule_has_counter = False
+        for expression in rule.get('expr', []):
+            counter = expression.get('counter') if isinstance(expression, dict) else None
+            if not isinstance(counter, dict):
+                continue
+            counter_packets = counter.get('packets')
+            counter_bytes = counter.get('bytes')
+            if not isinstance(counter_packets, int) or not isinstance(counter_bytes, int):
+                continue
+            packets += counter_packets
+            bytes_count += counter_bytes
+            counters += 1
+            rule_has_counter = True
+        if rule_has_counter:
+            rule_handles.append(str(rule.get('handle', 'unavailable')))
+    if table_handle is None:
+        return 'unavailable', {}, 'kindnet_nft_table_unavailable'
+    if not counters:
+        return f'table={table_handle}|rules=none', {}, 'kindnet_nft_no_counters'
+    return (
+        f'table={table_handle}|rules={",".join(sorted(rule_handles))}',
+        {
+            'kindnet.nft.counter.packets': packets,
+            'kindnet.nft.counter.bytes': bytes_count,
+        },
+        None,
+    )
 
 
 def current_cpu_stat_path(proc_root: Path, cgroup_root: Path) -> Path | None:
@@ -378,6 +643,139 @@ def capture_sample(
                     sample_number,
                     f'node:{node}',
                     identity,
+                    metric,
+                    value,
+                )
+            )
+        kindnet_output = run_command(
+            ['docker', 'exec', node, 'sh', '-c', KINDNET_COMMAND],
+            timeout_seconds=5.0,
+        )
+        sections = split_sections(kindnet_output or '')
+        if kindnet_output is None:
+            sections = {
+                section: 'status=unavailable'
+                for section in (
+                    'nfqueue',
+                    'kindnet_identity',
+                    'kindnet_cpu_stat',
+                    'kindnet_schedstat',
+                    'kindnet_nft',
+                )
+            }
+            events.append({
+                'type': 'status',
+                'timestamp_ms': node_timestamp_ms,
+                'sample': sample_number,
+                'source': f'kindnet:{node}',
+                'identity': identity,
+                'status': 'kindnet_collection_unavailable',
+            })
+
+        kindnet_identity, kindnet_status = parse_kindnet_identity(
+            sections.get('kindnet_identity', '')
+        )
+        kindnet_metrics = parse_kindnet_cpu(
+            sections.get('kindnet_cpu_stat', '')
+        )
+        kindnet_metrics.update(
+            parse_schedstat(sections.get('kindnet_schedstat', ''))
+        )
+        kindnet_source = f'kindnet:{node}'
+        full_kindnet_identity = f'{identity}|{kindnet_identity}'
+        if kindnet_status:
+            events.append({
+                'type': 'status',
+                'timestamp_ms': node_timestamp_ms,
+                'sample': sample_number,
+                'source': kindnet_source,
+                'identity': full_kindnet_identity,
+                'status': kindnet_status,
+            })
+        if kindnet_identity == 'unavailable':
+            kindnet_metrics = {}
+        elif not {
+            'kindnet.cgroup.cpu.nr_throttled',
+            'kindnet.cgroup.cpu.throttled_us',
+        }.issubset(kindnet_metrics) and kindnet_status != 'kindnet_cgroup_unavailable':
+            events.append({
+                'type': 'status',
+                'timestamp_ms': node_timestamp_ms,
+                'sample': sample_number,
+                'source': kindnet_source,
+                'identity': full_kindnet_identity,
+                'status': 'kindnet_cgroup_unavailable',
+            })
+        if kindnet_identity != 'unavailable' and not any(
+            metric.startswith('kindnet.sched.') for metric in kindnet_metrics
+        ):
+            events.append({
+                'type': 'status',
+                'timestamp_ms': node_timestamp_ms,
+                'sample': sample_number,
+                'source': kindnet_source,
+                'identity': full_kindnet_identity,
+                'status': 'kindnet_schedstat_unavailable',
+            })
+        for metric, value in kindnet_metrics.items():
+            events.append(
+                metric_event(
+                    node_timestamp_ms,
+                    sample_number,
+                    kindnet_source,
+                    full_kindnet_identity,
+                    metric,
+                    value,
+                )
+            )
+
+        queue_identity, queue_metrics, queue_status = parse_nfqueue(
+            sections.get('nfqueue', '')
+        )
+        queue_source = f'nfqueue:{node}:101'
+        full_queue_identity = f'{identity}|{queue_identity}'
+        if queue_status:
+            events.append({
+                'type': 'status',
+                'timestamp_ms': node_timestamp_ms,
+                'sample': sample_number,
+                'source': queue_source,
+                'identity': full_queue_identity,
+                'status': queue_status,
+            })
+        for metric, value in queue_metrics.items():
+            events.append(
+                metric_event(
+                    node_timestamp_ms,
+                    sample_number,
+                    queue_source,
+                    full_queue_identity,
+                    metric,
+                    value,
+                )
+            )
+
+        nft_identity, nft_metrics, nft_status = parse_nft_counters(
+            sections.get('kindnet_nft', '')
+        )
+        nft_source = f'kindnet-nft:{node}'
+        full_nft_identity = f'{identity}|{nft_identity}'
+        if nft_status:
+            events.append({
+                'type': 'status',
+                'timestamp_ms': node_timestamp_ms,
+                'sample': sample_number,
+                'source': nft_source,
+                'identity': full_nft_identity,
+                'status': nft_status,
+            })
+        for metric, value in nft_metrics.items():
+            events.append(
+                metric_event(
+                    node_timestamp_ms,
+                    sample_number,
+                    nft_source,
+                    full_nft_identity,
                     metric,
                     value,
                 )

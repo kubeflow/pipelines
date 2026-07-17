@@ -19,6 +19,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 import network_window
 
@@ -84,6 +85,9 @@ class NetworkWindowTest(unittest.TestCase):
 
         self.assertIn('| conntrack.insert_failed | 3 | 11 | 9 |', report)
         self.assertIn('| conntrack.drop | 3 | 13 | 10 |', report)
+        self.assertIn('| kindnet.cgroup.cpu.nr_throttled | 3 | 10 | 9 |', report)
+        self.assertIn('| nfqueue.queue_dropped | 3 | 8 | 7 |', report)
+        self.assertIn('| kindnet.nft.counter.packets | 3 | 11 | 9 |', report)
         self.assertIn('Largest counter increases between samples', report)
 
     def test_report_segments_replaced_node_and_never_emits_negative_delta(self):
@@ -213,6 +217,142 @@ class NetworkWindowTest(unittest.TestCase):
         self.assertEqual(metrics['cgroup.cpu.nr_throttled'], 7)
         self.assertEqual(metrics['cgroup.cpu.throttled_us'], 890)
 
+    def test_parses_kindnet_cgroup_v2_v1_and_scheduler_counters(self):
+        v2_metrics = network_window.parse_kindnet_cpu(
+            'nr_periods 50\nnr_throttled 7\nthrottled_usec 890\n'
+            'quota_us 10000\nperiod_us 100000\n'
+        )
+        v1_metrics = network_window.parse_kindnet_cpu(
+            'nr_periods 5\nnr_throttled 2\nthrottled_time 91000\n'
+        )
+        scheduler = network_window.parse_schedstat('123 456 7\n')
+
+        self.assertEqual(v2_metrics['kindnet.cgroup.cpu.nr_throttled'], 7)
+        self.assertEqual(v2_metrics['kindnet.cgroup.cpu.throttled_us'], 890)
+        self.assertEqual(v2_metrics['kindnet.cgroup.cpu.quota_us'], 10000)
+        self.assertEqual(v2_metrics['kindnet.cgroup.cpu.period_us'], 100000)
+        self.assertEqual(v1_metrics['kindnet.cgroup.cpu.throttled_us'], 91)
+        self.assertEqual(scheduler['kindnet.sched.runtime_ns'], 123)
+        self.assertEqual(scheduler['kindnet.sched.wait_ns'], 456)
+        self.assertEqual(scheduler['kindnet.sched.timeslices'], 7)
+
+    def test_kindnet_cpu_unavailable_does_not_publish_quota_as_health(self):
+        metrics = network_window.parse_kindnet_cpu(
+            'status=unavailable\nquota_us 10000\nperiod_us 100000\n'
+        )
+
+        self.assertEqual(metrics, {})
+
+    def test_kindnet_scheduler_command_aggregates_all_threads(self):
+        self.assertIn('/task/*/schedstat', network_window.KINDNET_COMMAND)
+        self.assertIn('runtime_ns=$((runtime_ns + thread_runtime))',
+                      network_window.KINDNET_COMMAND)
+
+    def test_kindnet_identity_segments_restart_and_reports_missing_cgroup(self):
+        first, first_status = network_window.parse_kindnet_identity(
+            'container_id=abc pid=12 start_time=100 cgroup=/kindnet-a\n'
+        )
+        second, second_status = network_window.parse_kindnet_identity(
+            'container_id=def pid=13 start_time=200 cgroup=/kindnet-b\n'
+        )
+        partial, partial_status = network_window.parse_kindnet_identity(
+            'container_id=abc pid=12 start_time=100 cgroup=unavailable\n'
+        )
+
+        self.assertNotEqual(first, second)
+        self.assertIsNone(first_status)
+        self.assertIsNone(second_status)
+        self.assertNotEqual(partial, 'unavailable')
+        self.assertEqual(partial_status, 'kindnet_cgroup_unavailable')
+
+    def test_parses_nfqueue_101_depth_and_drop_counters(self):
+        identity, metrics, status = network_window.parse_nfqueue(
+            '    0   2000     0 2 65535     0     0       10  1\n'
+            '  101   2538     3 2 65535     7     5      106  1\n'
+        )
+
+        self.assertEqual(identity, 'queue=101|peer=2538')
+        self.assertIsNone(status)
+        self.assertEqual(metrics['nfqueue.queue_total'], 3)
+        self.assertEqual(metrics['nfqueue.queue_dropped'], 7)
+        self.assertEqual(metrics['nfqueue.user_dropped'], 5)
+        self.assertEqual(metrics['nfqueue.id_sequence'], 106)
+
+    def test_nfqueue_unavailable_states_are_not_synthetic_zeroes(self):
+        for text, expected_status in (
+            ('status=empty\n', 'nfqueue_no_active_queues'),
+            ('status=unavailable\n', 'nfqueue_unavailable'),
+            ('malformed row\n', 'nfqueue_malformed'),
+            ('0 1 2 3 4 5 6 7 8\n', 'nfqueue_101_not_active'),
+        ):
+            identity, metrics, status = network_window.parse_nfqueue(text)
+            self.assertEqual(identity, 'unavailable')
+            self.assertEqual(metrics, {})
+            self.assertEqual(status, expected_status)
+
+    def test_aggregates_bounded_kindnet_nft_counters_and_tracks_handles(self):
+        identity, metrics, status = network_window.parse_nft_counters(
+            json.dumps({
+                'nftables': [
+                    {'table': {
+                        'family': 'inet',
+                        'name': 'kindnet-network-policies',
+                        'handle': 9,
+                    }},
+                    {'rule': {
+                        'family': 'inet',
+                        'table': 'kindnet-network-policies',
+                        'chain': 'forward',
+                        'handle': 11,
+                        'expr': [{'counter': {'packets': 7, 'bytes': 700}}],
+                    }},
+                    {'rule': {
+                        'family': 'inet',
+                        'table': 'unrelated',
+                        'chain': 'forward',
+                        'handle': 99,
+                        'expr': [{'counter': {'packets': 999, 'bytes': 9999}}],
+                    }},
+                ],
+            })
+        )
+
+        self.assertEqual(identity, 'table=9|rules=11')
+        self.assertIsNone(status)
+        self.assertEqual(metrics['kindnet.nft.counter.packets'], 7)
+        self.assertEqual(metrics['kindnet.nft.counter.bytes'], 700)
+        self.assertEqual(len(metrics), 2)
+
+    def test_optional_kindnet_sources_do_not_hide_core_node_metrics(self):
+        node_output = _node_output(7, 9)
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            proc_root = self._write_proc(temporary_path)
+            with mock.patch.object(
+                network_window,
+                'run_command',
+                side_effect=['container-a', node_output, None],
+            ):
+                events = network_window.capture_sample(
+                    ['kind-control-plane'],
+                    proc_root,
+                    temporary_path / 'cgroup',
+                    0,
+                )
+
+        node_metrics = {
+            event.get('metric'): event.get('value')
+            for event in events
+            if event.get('source') == 'node:kind-control-plane'
+        }
+        statuses = {event.get('status') for event in events}
+        self.assertEqual(node_metrics['conntrack.insert_failed'], 7)
+        self.assertEqual(node_metrics['conntrack.drop'], 9)
+        self.assertIn('kindnet_collection_unavailable', statuses)
+        self.assertIn('nfqueue_unavailable', statuses)
+        self.assertIn('kindnet_unavailable', statuses)
+        self.assertIn('kindnet_nft_unavailable', statuses)
+
     def test_waits_for_counter_sample_after_final_probe(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_path = Path(temporary_directory)
@@ -332,6 +472,52 @@ class NetworkWindowTest(unittest.TestCase):
             any('conntrack.insert_failed +100' in row for row in rows)
         )
 
+    def test_correlation_includes_kindnet_throttle_and_nfqueue_drops(self):
+        base_timestamp = 1_700_000_000_000
+        metric_events = []
+        for metric, before, after, source in (
+            (
+                'kindnet.cgroup.cpu.nr_throttled',
+                2,
+                7,
+                'kindnet:kind-control-plane',
+            ),
+            (
+                'nfqueue.queue_dropped',
+                1,
+                4,
+                'nfqueue:kind-control-plane:101',
+            ),
+        ):
+            for sample, value in enumerate((before, after)):
+                metric_events.append({
+                    'type': 'metric',
+                    'timestamp_ms': base_timestamp + sample * 5000,
+                    'sample': sample,
+                    'source': source,
+                    'identity': 'stable',
+                    'metric': metric,
+                    'value': value,
+                })
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            probe_path = Path(temporary_directory) / 'probe.jsonl'
+            probe_path.write_text(
+                json.dumps({
+                    'type': 'probe',
+                    'timestamp_ms': base_timestamp + 200,
+                    'pair': 'seaweedfs-s3',
+                    'path': 'endpoint',
+                    'result': 'timeout',
+                }) + '\n',
+                encoding='utf-8',
+            )
+
+            rows = network_window.correlation_rows(metric_events, probe_path)
+
+        self.assertEqual(len(rows), 1)
+        self.assertIn('kindnet.cgroup.cpu.nr_throttled +5', rows[0])
+        self.assertIn('nfqueue.queue_dropped +3', rows[0])
+
     @staticmethod
     def _metric(sample, identity, value):
         return {
@@ -419,14 +605,28 @@ case "$1" in
     echo "container-a"
     ;;
   exec)
-    count=$(<"$FAKE_STATE_FILE")
-    count=$((count + 1))
-    echo "$count" > "$FAKE_STATE_FILE"
+    if [[ "$5" == *"__NETNS__"* ]]; then
+      count=$(<"$FAKE_STATE_FILE")
+      count=$((count + 1))
+      echo "$count" > "$FAKE_STATE_FILE"
+    else
+      count=$(<"$FAKE_STATE_FILE")
+    fi
     case "$count" in
-      1) insert_failed=1; drop=2 ;;
-      2) insert_failed=10; drop=12 ;;
-      *) insert_failed=12; drop=15 ;;
+      1)
+        insert_failed=1; drop=2; kindnet_throttled=1; kindnet_throttled_us=100
+        nfqueue_depth=0; nfqueue_drop=1; nfqueue_user_drop=0; nft_packets=3
+        ;;
+      2)
+        insert_failed=10; drop=12; kindnet_throttled=10; kindnet_throttled_us=1000
+        nfqueue_depth=3; nfqueue_drop=8; nfqueue_user_drop=5; nft_packets=12
+        ;;
+      *)
+        insert_failed=12; drop=15; kindnet_throttled=11; kindnet_throttled_us=1100
+        nfqueue_depth=0; nfqueue_drop=9; nfqueue_user_drop=5; nft_packets=14
+        ;;
     esac
+    if [[ "$5" == *"__NETNS__"* ]]; then
     cat <<EOF
 __NETNS__
 net:[1]
@@ -446,6 +646,24 @@ Ip: 0 0
 Tcp: RetransSegs
 Tcp: 0
 EOF
+    else
+    cat <<EOF
+__NFQUEUE__
+101 2538 $nfqueue_depth 2 65535 $nfqueue_drop $nfqueue_user_drop $((count * 100)) 1
+__KINDNET_IDENTITY__
+container_id=kindnet-a pid=42 start_time=100 cgroup=/kindnet-a
+__KINDNET_CPU_STAT__
+nr_periods $((count * 10))
+nr_throttled $kindnet_throttled
+throttled_usec $kindnet_throttled_us
+quota_us 10000
+period_us 100000
+__KINDNET_SCHEDSTAT__
+$((count * 1000)) $((count * 100)) $((count * 10))
+__KINDNET_NFT__
+{"nftables":[{"table":{"family":"inet","name":"kindnet-network-policies","handle":9}},{"rule":{"family":"inet","table":"kindnet-network-policies","chain":"forward","handle":11,"expr":[{"counter":{"packets":$nft_packets,"bytes":$((nft_packets * 100))}}]}}]}
+EOF
+    fi
     ;;
 esac
 '''

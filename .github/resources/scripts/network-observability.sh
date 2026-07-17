@@ -374,6 +374,7 @@ start_observability() {
   # probe-first ordering unable to attribute their onset.
   start_sampler "$output_directory"
   start_packet_capture "$output_directory" "$output_directory/targets.tsv"
+  capture_kindnet_state "$output_directory" "baseline"
   capture_target_network_state "$namespace" "$output_directory" "baseline"
   start_probe "$namespace" "$output_directory"
 }
@@ -437,6 +438,64 @@ capture_target_network_state() {
     echo "unavailable: could not read SeaweedFS target network namespace" \
       >>"$output_file"
   }
+}
+
+capture_kindnet_state() {
+  local output_directory="$1"
+  local phase="$2"
+  local nodes_file="$output_directory/kind-nodes.txt"
+  if [[ "$phase" == "baseline" || ! -s "$nodes_file" ]]; then
+    kubectl_bounded get nodes -o \
+      'jsonpath={range .items[*]}{.metadata.name}{"\n"}{end}' \
+      >"$nodes_file" 2>"$output_directory/kind-nodes.stderr" || true
+  fi
+  kubectl_bounded -n kube-system get pods -l k8s-app=kindnet -o wide \
+    >"$output_directory/kindnet-pods-${phase}.txt" \
+    2>"$output_directory/kindnet-pods-${phase}.stderr" || true
+  kubectl_bounded -n kube-system get pods -l k8s-app=kindnet -o json \
+    >"$output_directory/kindnet-pods-${phase}.json" \
+    2>>"$output_directory/kindnet-pods-${phase}.stderr" || true
+
+  local node state_file
+  while IFS= read -r node; do
+    [[ -n "$node" ]] || continue
+    state_file="$output_directory/kindnet-${node}-${phase}.txt"
+    timeout 15s docker exec "$node" sh -c '
+      echo __NFQUEUE__
+      if test -r /proc/net/netfilter/nfnetlink_queue; then
+        cat /proc/net/netfilter/nfnetlink_queue 2>/dev/null || true
+      else
+        echo status=unavailable
+      fi
+      echo __NFT__
+      if command -v nft >/dev/null 2>&1; then
+        timeout 3 nft -a -j list table inet kindnet-network-policies \
+          2>/dev/null || echo status=unavailable
+      else
+        echo status=unavailable
+      fi
+      echo __CONTAINERS__
+      if command -v crictl >/dev/null 2>&1; then
+        container_ids=$(timeout 2 crictl ps -a --name kindnet-cni -q \
+          2>/dev/null | head -n 2 || true)
+        if test -n "$container_ids"; then
+          for container_id in $container_ids; do
+            echo "container_id=$container_id"
+            timeout 2 crictl inspect "$container_id" 2>/dev/null || true
+            echo "__LOG_${container_id}__"
+            timeout 2 crictl logs --tail 200 "$container_id" 2>&1 || true
+          done
+        else
+          echo status=empty
+        fi
+      else
+        echo status=unavailable
+      fi
+    ' >"$state_file" 2>"$output_directory/kindnet-${node}-${phase}.stderr" || {
+      echo "unavailable: could not capture Kind node $node kindnet state" \
+        >>"$state_file"
+    }
+  done <"$nodes_file"
 }
 
 stop_packet_capture() {
@@ -533,6 +592,7 @@ stop_observability() {
   quiesce_probe "$namespace" "$output_directory" || true
   collect_probe "$namespace" "$output_directory"
   capture_target_network_state "$namespace" "$output_directory" "final"
+  capture_kindnet_state "$output_directory" "final"
   python3 "$SCRIPT_DIR/network_window.py" wait-for-following-sample \
     --input "$output_directory/network-window.jsonl" \
     --probe-input "$output_directory/service-path-probe.jsonl" \
@@ -542,6 +602,7 @@ stop_observability() {
   cleanup_probe "$namespace"
   report_observer_finalization "$output_directory"
   report_packet_capture "$output_directory"
+  report_kindnet_state "$output_directory"
   python3 "$SCRIPT_DIR/service_path_probe.py" report \
     --input "$output_directory/service-path-probe.jsonl" || true
   python3 "$SCRIPT_DIR/network_window.py" report \
@@ -551,6 +612,36 @@ stop_observability() {
     --baseline "$output_directory/seaweedfs-target-baseline.txt" \
     --end "$output_directory/seaweedfs-target-final.txt" \
     --port 8333 --label SeaweedFS || true
+}
+
+report_kindnet_state() {
+  local output_directory="$1"
+  local report_file="$output_directory/kindnet-report.md"
+  {
+    echo
+    echo "## Kind CNI and NetworkPolicy runtime state"
+    echo
+    echo "The time series reports kindnetd cgroup and NFQUEUE queue 101 counters."
+    echo "Raw baseline/final container, log, NFQUEUE, and nftables snapshots are retained with the failed-job artifacts."
+    local phase pod_file
+    for phase in baseline final; do
+      pod_file="$output_directory/kindnet-pods-${phase}.txt"
+      if [[ -s "$pod_file" ]]; then
+        echo
+        echo "### ${phase^} kindnet pods"
+        echo
+        echo '```text'
+        cat "$pod_file"
+        echo '```'
+      else
+        echo "- ${phase}: pod state unavailable"
+      fi
+    done
+    echo
+  } | tee "$report_file"
+  if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+    cat "$report_file" >>"$GITHUB_STEP_SUMMARY"
+  fi
 }
 
 report_observer_finalization() {
@@ -626,8 +717,12 @@ case "${1:-}" in
   stop-capture)
     stop_packet_capture "${2:?output directory required}"
     ;;
+  capture-kindnet-state)
+    capture_kindnet_state "${2:?output directory required}" \
+      "${3:?phase required}"
+    ;;
   *)
-    echo "usage: $0 {start|stop|resolve-targets} <namespace> <output-directory>"
+    echo "usage: $0 {start|stop|resolve-targets|capture-kindnet-state} ..."
     exit 1
     ;;
 esac
