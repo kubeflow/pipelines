@@ -79,6 +79,7 @@ GAUGE_METRICS = {
     'listen_queue.tx',
     'kindnet.cgroup.cpu.period_us',
     'kindnet.cgroup.cpu.quota_us',
+    'kindnet.cgroup.cpu.unlimited',
     'nfqueue.queue_total',
     *service_path_probe.SELECTED_GAUGES,
 }
@@ -122,9 +123,10 @@ cat /proc/net/snmp 2>/dev/null || true
 
 KINDNET_COMMAND = r'''
 echo __NFQUEUE__
-if test -r /proc/net/netfilter/nfnetlink_queue; then
-  if test -s /proc/net/netfilter/nfnetlink_queue; then
-    cat /proc/net/netfilter/nfnetlink_queue 2>/dev/null || echo status=unavailable
+nfqueue_path="${NETWORK_WINDOW_NFQUEUE_PATH:-/proc/net/netfilter/nfnetlink_queue}"
+if nfqueue_contents=$(cat "$nfqueue_path" 2>/dev/null); then
+  if test -n "$nfqueue_contents"; then
+    printf '%s\n' "$nfqueue_contents"
   else
     echo status=empty
   fi
@@ -326,10 +328,16 @@ def parse_kindnet_cpu(text: str) -> dict[str, int]:
     metrics = parse_cpu_stat(text, 'kindnet.cgroup.cpu')
     for line in text.splitlines():
         fields = line.split()
-        if len(fields) != 2 or not fields[1].isdecimal():
+        if len(fields) != 2:
             continue
-        if fields[0] in {'quota_us', 'period_us'}:
-            metrics[f'kindnet.cgroup.cpu.{fields[0]}'] = int(fields[1])
+        key, value = fields
+        if key == 'quota_us' and value in {'max', '-1'}:
+            metrics['kindnet.cgroup.cpu.unlimited'] = 1
+        elif key == 'quota_us' and value.isdecimal():
+            metrics['kindnet.cgroup.cpu.quota_us'] = int(value)
+            metrics['kindnet.cgroup.cpu.unlimited'] = 0
+        elif key == 'period_us' and value.isdecimal():
+            metrics['kindnet.cgroup.cpu.period_us'] = int(value)
     return metrics
 
 
