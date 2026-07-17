@@ -18,6 +18,7 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+import threading
 import unittest
 from unittest import mock
 
@@ -231,10 +232,25 @@ class NetworkWindowTest(unittest.TestCase):
         self.assertEqual(v2_metrics['kindnet.cgroup.cpu.throttled_us'], 890)
         self.assertEqual(v2_metrics['kindnet.cgroup.cpu.quota_us'], 10000)
         self.assertEqual(v2_metrics['kindnet.cgroup.cpu.period_us'], 100000)
+        self.assertEqual(v2_metrics['kindnet.cgroup.cpu.unlimited'], 0)
         self.assertEqual(v1_metrics['kindnet.cgroup.cpu.throttled_us'], 91)
         self.assertEqual(scheduler['kindnet.sched.runtime_ns'], 123)
         self.assertEqual(scheduler['kindnet.sched.wait_ns'], 456)
         self.assertEqual(scheduler['kindnet.sched.timeslices'], 7)
+
+    def test_parses_unlimited_kindnet_cgroup_quota(self):
+        for quota in ('max', '-1'):
+            with self.subTest(quota=quota):
+                metrics = network_window.parse_kindnet_cpu(
+                    f'nr_periods 50\nnr_throttled 0\nquota_us {quota}\n'
+                    'period_us 100000\n'
+                )
+
+                self.assertEqual(metrics['kindnet.cgroup.cpu.unlimited'], 1)
+                self.assertNotIn('kindnet.cgroup.cpu.quota_us', metrics)
+                self.assertEqual(
+                    metrics['kindnet.cgroup.cpu.period_us'], 100000
+                )
 
     def test_kindnet_cpu_unavailable_does_not_publish_quota_as_health(self):
         metrics = network_window.parse_kindnet_cpu(
@@ -277,6 +293,52 @@ class NetworkWindowTest(unittest.TestCase):
         self.assertEqual(metrics['nfqueue.queue_dropped'], 7)
         self.assertEqual(metrics['nfqueue.user_dropped'], 5)
         self.assertEqual(metrics['nfqueue.id_sequence'], 106)
+
+    def test_kindnet_command_reads_zero_size_nfqueue_stream(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            fifo_path = Path(temporary_directory) / 'nfnetlink_queue'
+            os.mkfifo(fifo_path)
+
+            def write_queue_row():
+                with fifo_path.open('w', encoding='utf-8') as fifo:
+                    fifo.write('101 2538 3 2 65535 7 5 106 1\n')
+
+            writer = threading.Thread(target=write_queue_row, daemon=True)
+            writer.start()
+            contents = self._run_kindnet_command(fifo_path)
+            writer.join(timeout=5)
+
+        self.assertFalse(writer.is_alive())
+        identity, metrics, status = network_window.parse_nfqueue(contents)
+        self.assertEqual(identity, 'queue=101|peer=2538')
+        self.assertIsNone(status)
+        self.assertEqual(metrics['nfqueue.queue_total'], 3)
+        self.assertEqual(metrics['nfqueue.queue_dropped'], 7)
+        self.assertEqual(metrics['nfqueue.user_dropped'], 5)
+        self.assertEqual(metrics['nfqueue.id_sequence'], 106)
+
+    def test_kindnet_command_marks_empty_nfqueue_stream(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            queue_path = Path(temporary_directory) / 'nfnetlink_queue'
+            queue_path.touch()
+            contents = self._run_kindnet_command(queue_path)
+
+        self.assertEqual(contents, 'status=empty')
+        identity, metrics, status = network_window.parse_nfqueue(contents)
+        self.assertEqual(identity, 'unavailable')
+        self.assertEqual(metrics, {})
+        self.assertEqual(status, 'nfqueue_no_active_queues')
+
+    def test_kindnet_command_marks_missing_nfqueue_stream_unavailable(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            queue_path = Path(temporary_directory) / 'missing'
+            contents = self._run_kindnet_command(queue_path)
+
+        self.assertEqual(contents, 'status=unavailable')
+        identity, metrics, status = network_window.parse_nfqueue(contents)
+        self.assertEqual(identity, 'unavailable')
+        self.assertEqual(metrics, {})
+        self.assertEqual(status, 'nfqueue_unavailable')
 
     def test_nfqueue_unavailable_states_are_not_synthetic_zeroes(self):
         for text, expected_status in (
@@ -534,6 +596,20 @@ class NetworkWindowTest(unittest.TestCase):
     def _write_executable(path, contents):
         path.write_text(contents, encoding='utf-8')
         path.chmod(0o755)
+
+    @staticmethod
+    def _run_kindnet_command(queue_path):
+        environment = os.environ.copy()
+        environment['NETWORK_WINDOW_NFQUEUE_PATH'] = str(queue_path)
+        result = subprocess.run(
+            ['sh', '-c', network_window.KINDNET_COMMAND],
+            check=True,
+            capture_output=True,
+            env=environment,
+            text=True,
+            timeout=10,
+        )
+        return network_window.split_sections(result.stdout)['nfqueue']
 
     @staticmethod
     def _write_proc(temporary_path):
