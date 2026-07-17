@@ -76,6 +76,17 @@ class WaitForSeaweedfsIamTest(unittest.TestCase):
         self.assertIn('profile-controller-log-state', result.stdout)
         self.assertIn('metacontroller-log-state', result.stdout)
         self.assertIn('kubeflow-event-state', result.stdout)
+        self.assertIn('"endpoint": {"result": "success"}', result.stdout)
+        self.assertIn('"service-vip": {"result": "timeout"}', result.stdout)
+
+    def test_reports_service_vip_and_endpoint_targets(self):
+        result = self._run(probe_failures=0, timeout_seconds=4)
+
+        self.assertEqual(result.returncode, 0)
+        self.assertIn(
+            'Service VIP 10.96.1.1:8111; Endpoint 10.244.0.20:8111',
+            result.stdout,
+        )
 
     def test_probe_duration_counts_toward_wall_clock_timeout(self):
         start = time.monotonic()
@@ -145,6 +156,16 @@ class WaitForSeaweedfsIamTest(unittest.TestCase):
 _FAKE_KUBECTL = r'''#!/usr/bin/env bash
 args="$*"
 
+if [[ "$args" == *"get service seaweedfs -o json"* ]]; then
+  echo '{"spec":{"clusterIP":"10.96.1.1","ports":[{"name":"http-iam","port":8111}]}}'
+  exit
+fi
+
+if [[ "$args" == *"get endpointslice"* && "$args" == *"-o json"* ]]; then
+  echo '{"items":[{"metadata":{"name":"seaweedfs-a"},"ports":[{"name":"http-iam","port":8111}],"endpoints":[{"addresses":["10.244.0.20"],"conditions":{"ready":true,"serving":true,"terminating":false}}]}]}'
+  exit
+fi
+
 if [[ "$args" == *"exec deploy/kubeflow-pipelines-profile-controller"* ]]; then
   sleep "${FAKE_PROBE_DELAY_SECONDS:-0}"
   count=0
@@ -153,11 +174,20 @@ if [[ "$args" == *"exec deploy/kubeflow-pipelines-profile-controller"* ]]; then
   echo "$count" > "$FAKE_STATE_FILE"
   if [[ -n "${FAKE_PROBE_RESULTS:-}" ]]; then
     IFS=',' read -ra probe_results <<< "$FAKE_PROBE_RESULTS"
-    [[ "${probe_results[$((count - 1))]:-success}" == "success" ]]
-    exit
+    if [[ "${probe_results[$((count - 1))]:-success}" == "success" ]]; then
+      echo '{"endpoint": {"result": "success"}, "service-dns": {"result": "success"}, "service-vip": {"result": "success"}}'
+      exit 0
+    fi
+    echo '{"endpoint": {"result": "success"}, "service-dns": {"result": "timeout"}, "service-vip": {"result": "timeout"}}'
+    exit 1
   fi
-  (( count > FAKE_PROBE_FAILURES ))
-  exit
+  if (( count > FAKE_PROBE_FAILURES )); then
+    echo '{"endpoint": {"result": "success"}, "service-dns": {"result": "success"}, "service-vip": {"result": "success"}}'
+    exit 0
+  else
+    echo '{"endpoint": {"result": "success"}, "service-dns": {"result": "timeout"}, "service-vip": {"result": "timeout"}}'
+    exit 1
+  fi
 fi
 
 case "$args" in

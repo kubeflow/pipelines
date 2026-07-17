@@ -89,6 +89,12 @@ jobs:
         run: kubectl -n kubeflow port-forward svc/metadata-grpc-service 8080:8080 &
         continue-on-error: true
 
+      - name: Start network observability
+        id: network-observability
+        if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
+        run: ./.github/resources/scripts/network-observability.sh start kubeflow /tmp/tmp-network-observability
+        continue-on-error: true
+
       - name: API integration tests v2
         id: tests
         if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
@@ -107,6 +113,16 @@ jobs:
           # Authenticates the raw.githubusercontent.com HEAD in
           # GetRepoBranchURLRAW to avoid anonymous per-IP 429 rate limits.
           GITHUB_TOKEN: ${{ github.token }}
+        continue-on-error: true
+
+      - name: Report network observability
+        if: ${{ always() && steps.forward-mlmd-port.outcome == 'success' }}
+        shell: bash
+        run: |
+          ./.github/resources/scripts/network-observability.sh stop kubeflow /tmp/tmp-network-observability || true
+          if [ "${{ steps.tests.outcome }}" = "success" ]; then
+            rm -rf /tmp/tmp-network-observability
+          fi
         continue-on-error: true
 
       - name: Explain suite time budget overrun

@@ -398,6 +398,18 @@ runs:
           fi
         fi
 
+        # Start low-overhead, time-correlated network diagnostics immediately
+        # before Ginkgo. The in-cluster pod dials each Service VIP and direct
+        # Endpoint concurrently from one netns, while the runner sampler tracks
+        # Kind-node conntrack/TCP/socket counters and host softnet drops. A
+        # bounded SYN/RST-only packet ring is attempted inside each Kind-node
+        # netns when tcpdump, nsenter, and sudo are available. Every component
+        # is best-effort and raw data is only retained in failed-job artifacts.
+        if [ "${{ inputs.skip_api_config }}" != "true" ]; then
+          "$WORKSPACE_ROOT/.github/resources/scripts/network-observability.sh" \
+            start "${INPUT_DEFAULT_NAMESPACE}" /tmp/kfp-network-observability || true
+        fi
+
         # Cumulative kernel counters only become attributable when sampled on
         # both sides of the Ginkgo window. These baselines are best-effort and
         # intentionally taken after all test setup/port-forward readiness.
@@ -405,6 +417,12 @@ runs:
         "$WORKSPACE_ROOT/.github/resources/scripts/runner-telemetry.sh" contention-baseline /tmp/kfp-runner-contention.tsv || true
 
         go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter=${{ inputs.test_label }} --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -pipelineStoreKubernetes=$pipelineStoreKubernetes -disableTlsCheck=$DISABLE_TLS_CHECK -apiScheme=$API_SCHEME -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME -apiUrl="$API_URL" -authToken="$AUTH_TOKEN" -serviceAccountName="$SERVICE_ACCOUNT_NAME" -mlflowEnabled=${{ inputs.mlflow_enabled }} $BASE_IMAGE_FLAG
+      continue-on-error: true
+
+    - name: Report test-window network observability
+      shell: bash
+      if: ${{ always() && inputs.skip_api_config != 'true' }}
+      run: ./.github/resources/scripts/network-observability.sh stop "${{ inputs.default_namespace }}" /tmp/kfp-network-observability
       continue-on-error: true
 
     - name: Report test-window conntrack deltas
@@ -483,6 +501,13 @@ runs:
               exported=true
             fi
           done
+        fi
+        if [ -d /tmp/kfp-network-observability ]; then
+          mkdir -p /tmp/kind-logs/network-observability
+          cp -R /tmp/kfp-network-observability/. /tmp/kind-logs/network-observability/ || true
+          # Preserve the time series even if Kind's own export failed: these
+          # runner-side files can still localize the connection loss.
+          exported=true
         fi
         echo "exported=$exported" >> "$GITHUB_OUTPUT"
         SUFFIX="${{ inputs.report_name }}"

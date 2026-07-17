@@ -22,17 +22,94 @@ SEAWEEDFS_IAM_PORT="8111"
 TIMEOUT_SECONDS="${SEAWEEDFS_IAM_WAIT_TIMEOUT_SECONDS:-120}"
 INTERVAL_SECONDS="${SEAWEEDFS_IAM_WAIT_INTERVAL_SECONDS:-5}"
 REQUIRED_CONSECUTIVE_SUCCESSES="${SEAWEEDFS_IAM_REQUIRED_CONSECUTIVE_SUCCESSES:-3}"
+KUBECTL_REQUEST_TIMEOUT="${SEAWEEDFS_IAM_KUBECTL_REQUEST_TIMEOUT:-10s}"
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+SEAWEEDFS_SERVICE_IP="-"
+SEAWEEDFS_ENDPOINT_HOST="-"
+SEAWEEDFS_ENDPOINT_PORT="-"
+
+kubectl_bounded() {
+  kubectl --request-timeout="$KUBECTL_REQUEST_TIMEOUT" "$@"
+}
+
+resolve_iam_paths() {
+  local target_directory
+  target_directory=$(mktemp -d)
+  if kubectl_bounded -n "$NAMESPACE" get service seaweedfs -o json \
+    >"$target_directory/service.json" 2>/dev/null \
+    && kubectl_bounded -n "$NAMESPACE" get endpointslice \
+      -l kubernetes.io/service-name=seaweedfs -o json \
+      >"$target_directory/endpointslices.json" 2>/dev/null; then
+    python3 "$SCRIPT_DIR/service_path_probe.py" resolve \
+      --pair seaweedfs-iam \
+      --service "$target_directory/service.json" \
+      --endpoint-slices "$target_directory/endpointslices.json" \
+      --port-name http-iam >"$target_directory/targets.tsv" 2>/dev/null || true
+    SEAWEEDFS_SERVICE_IP=$(
+      awk -F '\t' '$2 == "vip" {print $3; exit}' "$target_directory/targets.tsv"
+    )
+    SEAWEEDFS_ENDPOINT_HOST=$(
+      awk -F '\t' '$2 == "endpoint" {print $3; exit}' "$target_directory/targets.tsv"
+    )
+    SEAWEEDFS_ENDPOINT_PORT=$(
+      awk -F '\t' '$2 == "endpoint" {print $4; exit}' "$target_directory/targets.tsv"
+    )
+  fi
+  SEAWEEDFS_SERVICE_IP="${SEAWEEDFS_SERVICE_IP:--}"
+  SEAWEEDFS_ENDPOINT_HOST="${SEAWEEDFS_ENDPOINT_HOST:--}"
+  SEAWEEDFS_ENDPOINT_PORT="${SEAWEEDFS_ENDPOINT_PORT:--}"
+  rm -rf "$target_directory"
+}
 
 probe_iam_connection() {
   local timeout_milliseconds="$1"
-  kubectl -n "$NAMESPACE" exec "deploy/$PROFILE_CONTROLLER" \
+  local output status
+  output=$(kubectl_bounded -n "$NAMESPACE" exec "deploy/$PROFILE_CONTROLLER" \
     -c profile-controller -- python -c \
-    'import socket, sys
-connection = socket.create_connection(
-    (sys.argv[1], int(sys.argv[2])), timeout=int(sys.argv[3]) / 1000)
-connection.close()' \
-    "$SEAWEEDFS_HOST" "$SEAWEEDFS_IAM_PORT" "$timeout_milliseconds" \
-    >/dev/null 2>&1
+    'from concurrent.futures import ThreadPoolExecutor
+import json
+import socket
+import sys
+import time
+
+timeout = int(sys.argv[6]) / 1000
+targets = (
+    ("service-dns", sys.argv[1], int(sys.argv[2])),
+    ("service-vip", sys.argv[3], int(sys.argv[2])),
+    ("endpoint", sys.argv[4], int(sys.argv[5]) if sys.argv[5] != "-" else 0),
+)
+
+def probe(target):
+    label, host, port = target
+    if host == "-" or not port:
+        return label, {"result": "unavailable"}
+    started = time.monotonic_ns()
+    try:
+        connection = socket.create_connection((host, port), timeout=timeout)
+        connection.close()
+        result = "success"
+        error = None
+    except socket.timeout:
+        result = "timeout"
+        error = "TimeoutError"
+    except OSError as exception:
+        result = "error"
+        error = type(exception).__name__
+    return label, {
+        "result": result,
+        "error": error,
+        "latency_ms": round((time.monotonic_ns() - started) / 1_000_000, 3),
+    }
+
+with ThreadPoolExecutor(max_workers=3) as executor:
+    results = dict(executor.map(probe, targets))
+print(json.dumps(results, sort_keys=True))
+sys.exit(0 if results["service-dns"]["result"] == "success" else 1)' \
+    "$SEAWEEDFS_HOST" "$SEAWEEDFS_IAM_PORT" \
+    "$SEAWEEDFS_SERVICE_IP" "$SEAWEEDFS_ENDPOINT_HOST" \
+    "$SEAWEEDFS_ENDPOINT_PORT" "$timeout_milliseconds" 2>/dev/null) && status=0 || status=$?
+  echo "SeaweedFS IAM path probe: ${output:-unavailable}"
+  return "$status"
 }
 
 monotonic_milliseconds() {
@@ -41,23 +118,23 @@ monotonic_milliseconds() {
 
 collect_failure_diagnostics() {
   echo "----- SeaweedFS Service -----"
-  kubectl -n "$NAMESPACE" get service seaweedfs -o wide 2>&1 || true
+  kubectl_bounded -n "$NAMESPACE" get service seaweedfs -o wide 2>&1 || true
   echo "----- SeaweedFS EndpointSlices -----"
-  kubectl -n "$NAMESPACE" get endpointslice \
+  kubectl_bounded -n "$NAMESPACE" get endpointslice \
     -l kubernetes.io/service-name=seaweedfs -o wide 2>&1 || true
   echo "----- SeaweedFS pod state -----"
-  kubectl -n "$NAMESPACE" get pods -l app=seaweedfs -o wide 2>&1 || true
-  kubectl -n "$NAMESPACE" describe pods -l app=seaweedfs 2>&1 || true
+  kubectl_bounded -n "$NAMESPACE" get pods -l app=seaweedfs -o wide 2>&1 || true
+  kubectl_bounded -n "$NAMESPACE" describe pods -l app=seaweedfs 2>&1 || true
   echo "----- profile controller state -----"
-  kubectl -n "$NAMESPACE" get pods -l app=kubeflow-pipelines-profile-controller \
+  kubectl_bounded -n "$NAMESPACE" get pods -l app=kubeflow-pipelines-profile-controller \
     -o wide 2>&1 || true
-  kubectl -n "$NAMESPACE" logs "deploy/$PROFILE_CONTROLLER" \
+  kubectl_bounded -n "$NAMESPACE" logs "deploy/$PROFILE_CONTROLLER" \
     -c profile-controller --tail=100 2>&1 || true
   echo "----- metacontroller logs -----"
-  kubectl -n "$NAMESPACE" logs statefulset/metacontroller \
+  kubectl_bounded -n "$NAMESPACE" logs statefulset/metacontroller \
     --all-containers=true --tail=100 2>&1 || true
   echo "----- recent kubeflow events -----"
-  kubectl -n "$NAMESPACE" get events --sort-by=.metadata.creationTimestamp \
+  kubectl_bounded -n "$NAMESPACE" get events --sort-by=.metadata.creationTimestamp \
     2>&1 | tail -50 || true
 }
 
@@ -67,6 +144,8 @@ if [[ "${1:-}" == "--diagnostics-only" ]]; then
 fi
 
 echo "Waiting for SeaweedFS IAM at ${SEAWEEDFS_HOST}:${SEAWEEDFS_IAM_PORT} from the profile controller..."
+resolve_iam_paths
+echo "SeaweedFS IAM direct targets: Service VIP ${SEAWEEDFS_SERVICE_IP}:${SEAWEEDFS_IAM_PORT}; Endpoint ${SEAWEEDFS_ENDPOINT_HOST}:${SEAWEEDFS_ENDPOINT_PORT}"
 start_milliseconds=$(monotonic_milliseconds)
 deadline_milliseconds=$((start_milliseconds + TIMEOUT_SECONDS * 1000))
 now_milliseconds=$start_milliseconds

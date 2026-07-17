@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-16
+- Last updated: 2026-07-17
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -547,6 +547,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - Proxy test failures collect both the KFP namespace and `tinyproxy` namespace logs/events to diagnose proxy-service readiness separately from pipeline failures.
 - The `test-and-report` action samples runner-level CPU/memory/load via a self-contained `/proc` sampler (`runner-telemetry.sh`, mermaid charts in the job summary — no external chart services) and, on test failure, writes a failure-signature classification table to the job summary (`failure-signature-summary.sh`), exports full Kind cluster logs as a `kind-logs - <report>` artifact, and uploads raw JUnit XML as a `junit-xml - <report>` artifact for flake-trend analysis.
 - Immediately around the Ginkgo test window, `test-and-report` snapshots per-Kind-node conntrack counters plus host CPU PSI and runner-cgroup CPU throttling counters, then reports attributable deltas for both passing and failing lanes.
+- During Ginkgo, `network-observability.sh` concurrently dials the SeaweedFS S3 and Kubernetes API Service VIPs and their ready direct Endpoints every five seconds from one stable pod, while sampling runner softnet/TCP counters and per-Kind-node conntrack/TCP/socket counters. It also attempts a bounded SYN/RST capture inside each Kind-node network namespace. Compact reports are written for every lane; raw JSONL and packet captures are retained in failed-job Kind-log artifacts. The legacy V2 integration workflow uses the same collector around its Go tests.
 - The CI proxy runs Tinyproxy as a lightweight forward proxy in the `tinyproxy` namespace on port `3128`.
 - The `protobuf` composite action prepares `protoc` and related dependencies when compiling Python protobufs.
 - The `create-cluster` action caches Kind node images by Kubernetes version to reduce Docker Hub pulls.
@@ -564,6 +565,9 @@ When changing an effect-heavy frontend component, add or run the smallest releva
   collects reconciliation diagnostics and performs a final race-safe lookup before failing. The namespace-isolation
   test separately polls both newly created Profile credentials for up to five minutes and reports Profile,
   namespace, event, and controller state if reconciliation does not complete.
+- Each SeaweedFS IAM readiness attempt also logs concurrent DNS, Service-VIP, and direct-Endpoint TCP outcomes;
+  only the production-equivalent Service DNS path controls readiness, while the other paths distinguish DNS,
+  Service dataplane, and backend failures without changing the gate's behavior.
 - Workflows that cache pip downloads must use `.github/actions/setup-python-pip-cache` with a unique `cache-scope` for each dependency set and a `cache-dependency-hash` covering the requirement files the job installs. Do not use `setup-python`'s built-in `cache: 'pip'`: its generic restore prefix can propagate one workflow's global pip cache into another workflow's cache entry.
 
 ### Code style and formatting
