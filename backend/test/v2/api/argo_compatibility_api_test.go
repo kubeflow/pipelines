@@ -154,12 +154,12 @@ var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIV
 		)
 		diagnosticRunID = createdRun.RunID
 
-		retryTimeoutSeconds := time.Duration(argoLifecycleTimeout / time.Second)
+		retryTimeout := time.Duration(argoLifecycleTimeout / time.Second)
 		testutil.WaitForRunToBeInState(
 			runClient,
 			&createdRun.RunID,
 			[]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateFAILED},
-			&retryTimeoutSeconds,
+			&retryTimeout,
 		)
 		failedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
 		stateHistoryLengthBeforeRetry := len(failedRun.StateHistory)
@@ -171,7 +171,7 @@ var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIV
 			runClient,
 			&createdRun.RunID,
 			[]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateFAILED},
-			&retryTimeoutSeconds,
+			&retryTimeout,
 		)
 		retriedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
 		Expect(len(retriedRun.StateHistory)).To(BeNumerically(">", stateHistoryLengthBeforeRetry))
@@ -220,12 +220,12 @@ var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIV
 			return string(logContents)
 		}, argoLifecycleTimeout, time.Second).Should(ContainSubstring("input:  foo"))
 
-		artifactTimeoutSeconds := time.Duration(argoLifecycleTimeout / time.Second)
+		artifactTimeout := time.Duration(argoLifecycleTimeout / time.Second)
 		testutil.WaitForRunToBeInState(
 			runClient,
 			&createdRun.RunID,
 			[]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateSUCCEEDED},
-			&artifactTimeoutSeconds,
+			&artifactTimeout,
 		)
 
 		Eventually(func() bool {
