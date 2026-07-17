@@ -3611,6 +3611,9 @@ func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 				},
 				InitContainers: []k8score.Container{
 					{
+						Name: "kfp-launcher",
+					},
+					{
 						Name:    "fetch-config",
 						Image:   "busybox:1.36",
 						Command: []string{"sh", "-c"},
@@ -3642,6 +3645,9 @@ func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 				},
 				InitContainers: []k8score.Container{
 					{
+						Name: "kfp-launcher",
+					},
+					{
 						Name:            "first-init",
 						Image:           "busybox:1.36",
 						SecurityContext: hardenedSecurityContext,
@@ -3663,6 +3669,11 @@ func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 						Name: "main",
 					},
 				},
+				InitContainers: []k8score.Container{
+					{
+						Name: "kfp-launcher",
+					},
+				},
 			},
 		},
 		{
@@ -3682,6 +3693,9 @@ func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 				},
 				InitContainers: []k8score.Container{
 					{
+						Name: "kfp-launcher",
+					},
+					{
 						Name:            "prepare-data",
 						Image:           "busybox:1.36",
 						SecurityContext: hardenedSecurityContext,
@@ -3696,7 +3710,7 @@ func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 					{Name: "kfp-launcher", Image: "busybox:1.36"},
 				},
 			},
-			expectedErr: `init container name "kfp-launcher" is reserved by Kubeflow Pipelines`,
+			expectedErr: `init container name "kfp-launcher" conflicts with an existing container in the pod`,
 		},
 		{
 			name: "Invalid - empty name",
@@ -3724,7 +3738,7 @@ func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 					{Name: "fetch-config", Image: "busybox:1.36"},
 				},
 			},
-			expectedErr: `duplicate init container name "fetch-config"`,
+			expectedErr: `init container name "fetch-config" conflicts with an existing container in the pod`,
 		},
 		{
 			name: "Invalid - empty environment variable name",
@@ -3790,6 +3804,9 @@ func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 				},
 				InitContainers: []k8score.Container{
 					{
+						Name: "kfp-launcher",
+					},
+					{
 						Name:            "log-forwarder",
 						Image:           "busybox:1.36",
 						RestartPolicy:   &restartPolicyAlways,
@@ -3834,6 +3851,9 @@ func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 				},
 				InitContainers: []k8score.Container{
 					{
+						Name: "kfp-launcher",
+					},
+					{
 						Name:          "log-forwarder",
 						Image:         "busybox:1.36",
 						RestartPolicy: &restartPolicyAlways,
@@ -3870,11 +3890,18 @@ func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := &k8score.PodSpec{Containers: []k8score.Container{
-				{
-					Name: "main",
+			got := &k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
 				},
-			}}
+				InitContainers: []k8score.Container{
+					{
+						Name: "kfp-launcher",
+					},
+				},
+			}
 			err := extendPodSpecPatch(
 				context.Background(),
 				got,

@@ -34,8 +34,9 @@ def add_init_container(
 ) -> PipelineTask:
     """Add an init container to the task's pod.
 
-    Init containers run to completion, in call order, before the task's main
-    container starts; see
+    By default, init containers run to completion, in call order, before the
+    task's main container starts. With ``restart_policy='Always'``, the init
+    container instead remains running as a native sidecar; see
     `Init Containers <https://kubernetes.io/docs/concepts/workloads/pods/init-containers/>`_.
     The backend applies a Pod Security Standards compliant security context to
     each one, including the administrator-configured identity defaults.

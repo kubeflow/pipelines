@@ -792,16 +792,22 @@ func extendPodSpecPatch(
 	}
 
 	// Append user-specified init containers to the pod (no passthrough).
+	// Seed the name set from containers already in the compiled template to
+	// prevent collisions with the main container, kfp-launcher, or any
+	// other init containers the compiler or OCI hooks may have added.
 	initContainerNames := make(map[string]bool)
+	for _, c := range podSpec.Containers {
+		initContainerNames[c.Name] = true
+	}
+	for _, c := range podSpec.InitContainers {
+		initContainerNames[c.Name] = true
+	}
 	for _, initContainer := range kubernetesExecutorConfig.GetInitContainers() {
 		if initContainer.GetName() == "" {
 			return fmt.Errorf("init container name must not be empty")
 		}
-		if initContainer.GetName() == launcherInitContainerName {
-			return fmt.Errorf("init container name %q is reserved by Kubeflow Pipelines", launcherInitContainerName)
-		}
 		if initContainerNames[initContainer.GetName()] {
-			return fmt.Errorf("duplicate init container name %q", initContainer.GetName())
+			return fmt.Errorf("init container name %q conflicts with an existing container in the pod", initContainer.GetName())
 		}
 		initContainerNames[initContainer.GetName()] = true
 		if initContainer.GetImage() == "" {
