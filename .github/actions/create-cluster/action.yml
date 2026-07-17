@@ -41,6 +41,7 @@ runs:
     - name: Create k8s Kind Cluster
       uses: helm/kind-action@v1.13.0
       id: cluster-create
+      continue-on-error: true
       with:
         cluster_name: ${{ inputs.cluster_name }}
         kubectl_version: ${{ inputs.k8s_version }}

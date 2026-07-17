@@ -339,7 +339,7 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
             environment = os.environ.copy()
             environment['PATH'] = f'{bin_directory}:{environment["PATH"]}'
             environment.update(extra_environment or {})
-            return subprocess.run(
+            result = subprocess.run(
                 [
                     'bash',
                     str(SCRIPT),
@@ -351,6 +351,8 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
                 text=True,
                 env=environment,
             )
+            self.assertEqual('', result.stderr, result.stderr)
+            return result
 
     @staticmethod
     def _write_executable(path: Path, contents: str):

@@ -360,7 +360,7 @@ jobs:
 
       - name: Increase Kubernetes-auth MLflow workers
         shell: bash
-        if: ${{ steps.deploy-mlflow.outcome == 'success' }}
+        if: ${{ steps.deploy-mlflow.outcome == 'success' && matrix.artifact_storage == 'file' }}
         run: |
           # The operator deploy action does not expose spec.workers yet. Its
           # default of one Uvicorn worker lets file-artifact requests block the

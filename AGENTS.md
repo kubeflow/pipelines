@@ -540,7 +540,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - Kind-based clusters are provisioned via the `kfp-cluster` composite action, parameterized by `k8s_version`, `pipeline_store`, `proxy`, `cache_enabled`, and optional `argo_version`.
 - The `create-cluster` and `deploy` actions are used by newer suites; `kfp-k8s` installs SDK components from source inside jobs that execute Python-based tests.
 - The `deploy` action downloads and loads CI-built images before deploying optional Tinyproxy support, preloads runtime base images used by test pods and init containers, and waits for Tinyproxy readiness/endpoints in proxy lanes.
-- CI Docker-sensitive paths use shell retry wrappers with sleeps for image builds, Buildx bootstrap, and runtime base-image pulls; Kind node image bootstrap also falls back to `gcr.io/k8s-staging-kind/node` when Docker Hub flakes.
+- CI Docker-sensitive paths use shell retry wrappers with sleeps for image builds, Buildx bootstrap, and runtime base-image pulls; Kind node image bootstrap also falls back to `gcr.io/k8s-staging-kind/node` when Docker Hub flakes, and Kind cluster creation retries once when the action's initial tool download or setup fails.
 - The `test-and-report` action pins Go via `go.mod` and restores a dedicated `go-test-lanes-*` module/build cache (weekly-rotating key with restore-keys) so Ginkgo test lanes do not cold-compile the suites each run.
 - The `runtime-base-images.yml` workflow is the single registry-pull producer for the runtime base-image archive. Trusted master runs explicitly save the daily `actions/cache` entry and prune every superseded runtime-image cache after verifying the current master key exists; reusable image-build callers wait for the producer's generation-fingerprinted artifact and re-upload it into their own run instead of pulling independently.
 - The `test-and-report` action port-forwards MLMD on port `8080` only when `ARGO_COMPATIBILITY_TESTS=true`, allowing the canonical Argo compatibility API job to validate execution/artifact metadata without adding another test lane.
@@ -553,8 +553,8 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - Python workflows use `actions/cache@v5` for pip cache to reduce repeated dependency installs.
 - MLflow E2E matrix variants use one Ginkgo node by default to limit shared single-node Kind dataplane load;
   manual `workflow_dispatch` runs may override the parallel node count. Operator-managed Kubernetes-auth
-  MLflow instances use two Uvicorn workers so file-artifact traffic cannot block all API and health requests
-  behind one worker.
+  MLflow file-artifact variants use two Uvicorn workers so artifact traffic cannot block all API and health
+  requests behind one worker; S3 variants keep the operator default and avoid a redundant second rollout.
 - Argo runtime compatibility API specs run serially in the canonical Argo 4 lane so workflow lifecycle checks
   do not compete with the parallel API test workload.
 - API-server integration lanes use five Ginkgo nodes by default to limit API-server and etcd load; manually

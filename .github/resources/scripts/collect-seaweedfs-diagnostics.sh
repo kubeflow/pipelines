@@ -381,8 +381,9 @@ fi
         for named_target in $LOG_SERVICE_TARGETS; do
             IFS='|' read -r protocol service_namespace service_name service_port <<< "$named_target"
             service_ip=$(printf '%s\n' "$SERVICE_INVENTORY" \
-                | awk -F '\t' -v namespace="$service_namespace" -v name="$service_name" \
-                    '$1 == namespace && $2 == name {print $3; exit}')
+                | awk -F '\t' -v service_namespace="$service_namespace" \
+                    -v service_name="$service_name" \
+                    '$1 == service_namespace && $2 == service_name {print $3; exit}')
             if [[ "$service_ip" =~ ^[0-9.]+$ ]]; then
                 LOG_TARGETS+=$'\n'"${protocol}|${service_ip}:${service_port}"
             else
