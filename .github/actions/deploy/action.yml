@@ -50,6 +50,12 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Wait for branch image artifacts
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: ./.github/resources/scripts/wait-for-image-artifacts.sh
+
     - name: Download Docker Images
       uses: actions/download-artifact@v7
       with:

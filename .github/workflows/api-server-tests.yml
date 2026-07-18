@@ -60,8 +60,10 @@ jobs:
     uses: ./.github/workflows/image-builds.yml
 
   api-test-standalone:
-    needs: build
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
         k8s_version: [ "v1.36.1" ]
@@ -104,9 +106,9 @@ jobs:
           proxy: ${{ matrix.proxy }}
           argo_version: ${{ matrix.argo_version }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
@@ -167,8 +169,10 @@ jobs:
 
 
   api-test-k8s-native:
-    needs: build
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
         k8s_version: [ "v1.36.1", "v1.33.12" ]
@@ -198,9 +202,9 @@ jobs:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report
@@ -219,8 +223,10 @@ jobs:
 
 
   api-test-multi-user:
-    needs: build
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
         # Partition the API surface across the two existing cache variants.
@@ -257,9 +263,9 @@ jobs:
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: ${{ matrix.multi_user }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
 
       - name: Configure Input Variables
         shell: bash

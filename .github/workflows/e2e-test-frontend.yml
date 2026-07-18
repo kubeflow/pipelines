@@ -29,7 +29,9 @@ jobs:
   frontend-integration-test:
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    needs: build
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
         k8s_version: [ "v1.33.12", "v1.36.1" ]
@@ -57,9 +59,9 @@ jobs:
         uses: ./.github/actions/deploy
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         with:
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
 
       - name: Forward Frontend port

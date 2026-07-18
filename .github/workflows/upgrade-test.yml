@@ -126,16 +126,9 @@ jobs:
           pkill -f "port-forward"
         continue-on-error: true
 
-      - name: Wait for branch image artifacts
-        id: wait-for-images
-        if: ${{ steps.create-cluster.outcome == 'success' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: ./.github/resources/scripts/wait-for-image-artifacts.sh
-
       - name: Deploy from Branch
         uses: ./.github/actions/deploy
-        if: ${{ steps.wait-for-images.outcome == 'success' }}
+        if: ${{ steps.create-cluster.outcome == 'success' }}
         id: deploy
         with:
           image_path: images_${{ github.run_id }}

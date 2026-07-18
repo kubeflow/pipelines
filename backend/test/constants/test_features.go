@@ -28,6 +28,9 @@ const (
 	E2eFailed string = "E2EFailure"
 	// E2eCritical - For pipelines that verify the critical functionality of the system
 	E2eCritical string = "E2ECritical"
+	// E2eCriticalShardA and E2eCriticalShardB split the critical pipeline set for CI.
+	E2eCriticalShardA string = "E2ECriticalShardA"
+	E2eCriticalShardB string = "E2ECriticalShardB"
 	// E2eParallelNested - For parallel or nested pipelines for regression testing
 	E2eParallelNested string = "E2EParallelNested"
 	// E2eProxy - For pipeline that runs with a proxy

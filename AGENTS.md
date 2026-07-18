@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-17
+- Last updated: 2026-07-18
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -533,7 +533,8 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - Argo Workflows version matrix for compatibility (where relevant): `e2e-test.yml` exercises `v3.7.14` and `v4.0.5` across the standard cache/test-label matrix, while `api-server-tests.yml` covers standalone and Kubernetes-native Argo compatibility across the standard matrices (with standalone low-Kubernetes spot lanes per supported Argo version).
 - Focused Argo runtime compatibility API tests run only in the canonical standalone `v4.0.5` / Kubernetes `v1.36.1` job via `ARGO_COMPATIBILITY_TESTS`; this covers recurring-run creation, run retry, task metadata/artifacts, and archived logs without adding another E2E lane.
 - Proxy / cache toggles: dedicated jobs run with HTTP proxy enabled and with execution cache disabled to validate those modes.
-- Kind concurrency caps: automatic critical, essential, and multi-user E2E lanes use eight Ginkgo nodes, E2EFailure uses two, and nested-pipeline E2E uses three because each spec fans out into child pipelines. These staged settings exercise the uncapped kindnet dataplane below the historical ten-node burst level; manual workflow dispatches retain their requested concurrency.
+- Kind concurrency caps: automatic critical, essential, and multi-user E2E lanes use the historical ten Ginkgo nodes, E2EFailure uses two, and nested-pipeline E2E uses three because each spec fans out into child pipelines. Manual workflow dispatches retain their requested concurrency.
+- Standard automatic E2E Critical lanes split the 33 pipeline specs into duration-balanced shard A/B jobs on independent Kind runners; low-Kubernetes, TLS, and multi-user artifact-proxy compatibility lanes stay unsharded. Pipeline-level Ginkgo labels define the partition, and new Critical pipelines default to shard B so coverage is preserved.
 - Artifacts: failing logs and test outputs are uploaded as workflow artifacts for debugging.
 
 ### CI cluster setup and helpers
@@ -544,7 +545,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - Runner disk cleanup is conditional: `create-cluster` skips the expensive toolchain/package/container cleanup when at least 60 GiB is already free, but retains the cleanup as a fallback on constrained hosted runners.
 - The `deploy` action downloads and loads CI-built images before deploying optional Tinyproxy support, imports control-plane archives two at a time, preloads runtime base images used by test pods and init containers, and waits for Tinyproxy readiness/endpoints in proxy lanes.
 - Multi-user deploy applies the profile controller before KFP and joins its readiness after the main KFP rollout, overlapping independent startup while preserving the IAM and Profile-creation gates.
-- Upgrade tests start old-release deployment/preparation concurrently with current-branch image builds and wait for the complete shared image-artifact inventory only immediately before upgrading the cluster.
+- Workflows that deploy CI-built KFP images start Kind cluster setup concurrently with current-branch image builds. The shared deploy action waits for the complete image-artifact inventory immediately before downloading and loading the images; upgrade tests overlap old-release deployment and preparation behind the same barrier.
 - CI Docker-sensitive paths use shell retry wrappers with sleeps for image builds, Buildx bootstrap, and runtime base-image pulls; Kind node image bootstrap also falls back to `gcr.io/k8s-staging-kind/node` when Docker Hub flakes, and Kind cluster creation retries once when the action's initial tool download or setup fails.
 - The `test-and-report` action pins Go via `go.mod` and restores a dedicated `go-test-lanes-*` module/build cache (weekly-rotating key with restore-keys) so Ginkgo test lanes do not cold-compile the suites each run.
 - The `runtime-base-images.yml` workflow is the single registry-pull producer for the runtime base-image archive. Trusted master runs explicitly save the daily `actions/cache` entry and prune every superseded runtime-image cache after verifying the current master key exists; reusable image-build callers wait for the producer's generation-fingerprinted artifact and re-upload it into their own run instead of pulling independently.

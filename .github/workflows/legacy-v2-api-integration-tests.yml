@@ -33,7 +33,9 @@ jobs:
     # Real ceiling for a hung suite. Without this the job inherits GitHub's
     # 6-hour default, and the go test -timeout below is the only hang-stop.
     timeout-minutes: 40
-    needs: build
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
         pipeline_store: [ "database", "kubernetes" ]
@@ -74,9 +76,9 @@ jobs:
         uses: ./.github/actions/deploy
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         with:
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
           pipeline_store: ${{ matrix.pipeline_store }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
 

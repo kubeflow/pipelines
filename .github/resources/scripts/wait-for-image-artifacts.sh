@@ -19,8 +19,10 @@ set -euo pipefail
 : "${GITHUB_REPOSITORY:?GITHUB_REPOSITORY must be set}"
 : "${GITHUB_RUN_ID:?GITHUB_RUN_ID must be set}"
 
-WAIT_ATTEMPTS="${WAIT_ATTEMPTS:-120}"
-WAIT_INTERVAL_SECONDS="${WAIT_INTERVAL_SECONDS:-5}"
+# Many matrix jobs can reach this barrier together. Poll slowly enough to keep
+# their shared GITHUB_TOKEN comfortably below the repository API rate limit.
+WAIT_ATTEMPTS="${WAIT_ATTEMPTS:-20}"
+WAIT_INTERVAL_SECONDS="${WAIT_INTERVAL_SECONDS:-30}"
 if ! [[ "$WAIT_ATTEMPTS" =~ ^[1-9][0-9]*$ ]]; then
   echo "WAIT_ATTEMPTS must be a positive integer, got: ${WAIT_ATTEMPTS}" >&2
   exit 2

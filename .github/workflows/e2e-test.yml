@@ -67,14 +67,18 @@ jobs:
 
   end-to-end-scenario-tests:
     runs-on: ubuntu-latest
-    needs: build
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
         k8s_version: ["v1.36.1"]
         cache_enabled: ["true", "false"]
         argo_version: [ "v3.7.14", "v4.0.5" ]
         proxy: [ "false" ]
-        test_label: [ "E2ECritical", "E2EEssential", "E2EParallelNested" ]
+        # Automatic runs split the dominant Critical suite across two Kind
+        # runners. Manual dispatch retains the historical unsharded labels.
+        test_label: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["E2ECritical", "E2EEssential", "E2EParallelNested"]' || '["E2ECriticalShardA", "E2ECriticalShardB", "E2EEssential", "E2EParallelNested"]') }}
         pod_to_pod_tls_enabled: [ "false" ]
         include:
           - k8s_version: "v1.33.12"
@@ -114,9 +118,9 @@ jobs:
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
@@ -139,10 +143,11 @@ jobs:
 
           if [ "$TEST_LABEL" == "E2EFailure" ]; then
             NUMBER_OF_NODES=2
+          elif [ "$TEST_LABEL" == "E2ECriticalShardA" ] || [ "$TEST_LABEL" == "E2ECriticalShardB" ]; then
+            NUMBER_OF_NODES=10
+            TEST_LABEL="E2ECritical && $TEST_LABEL"
           elif [ "$TEST_LABEL" == "E2ECritical" ] || [ "$TEST_LABEL" == "E2EEssential" ]; then
-            # Ramp concurrency after removing kindnet's CPU quota while
-            # retaining a controlled step below the historical ten nodes.
-            NUMBER_OF_NODES=8
+            NUMBER_OF_NODES=10
           elif [ "$TEST_LABEL" == "E2EParallelNested" ]; then
             # Each spec fans out into nested child pipelines, so retain its
             # historical lower cap instead of using the global default.
@@ -188,13 +193,23 @@ jobs:
 
   end-to-end-critical-scenario-multi-user-tests:
     runs-on: ubuntu-latest
-    needs: build
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
         k8s_version: ["v1.36.1"]
         cache_enabled: ["true", "false"]
         multi_user: [ "true" ]
-        test_label: [ "E2ECritical" ]
+        test_label: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["E2ECritical"]' || '["E2ECriticalShardA", "E2ECriticalShardB"]') }}
+        exclude:
+        # Keep the artifact-proxy compatibility lane whole. The include below
+        # then replaces the two sharded cache-enabled combinations with the
+        # historical single cache-enabled job.
+        - cache_enabled: "true"
+          test_label: "E2ECriticalShardA"
+        - cache_enabled: "true"
+          test_label: "E2ECriticalShardB"
         include:
         - multi_user: "true"
           artifact_proxy: "true"
@@ -222,9 +237,9 @@ jobs:
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: "true"
           artifact_proxy: ${{ matrix.artifact_proxy }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
 
       - name: Configure Input Variables
         shell: bash
@@ -235,11 +250,12 @@ jobs:
           DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
           DISPATCH_NAMESPACE: ${{ inputs.namespace }}
         run: |
-          # Ramp TokenReview and pipeline API traffic after removing kindnet's
-          # CPU quota while staying below the historical ten-node default.
-          NUMBER_OF_NODES=8
+          NUMBER_OF_NODES=10
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
+          if [ "$TEST_LABEL" == "E2ECriticalShardA" ] || [ "$TEST_LABEL" == "E2ECriticalShardB" ]; then
+            TEST_LABEL="E2ECritical && $TEST_LABEL"
+          fi
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
             TEST_LABEL=$DISPATCH_TEST_LABEL
@@ -296,7 +312,9 @@ jobs:
 
   end-to-end-critical-mlflow-tests:
     runs-on: ubuntu-latest
-    needs: build
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
         k8s_version: [ "v1.36.1" ]
@@ -339,9 +357,9 @@ jobs:
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           multi_user: ${{ matrix.multi_user }}
           artifact_proxy: ${{ matrix.artifact_proxy }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
 
       - name: Deploy MLflow with Kubernetes auth
         id: deploy-mlflow        
