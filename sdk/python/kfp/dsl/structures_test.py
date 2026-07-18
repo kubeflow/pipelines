@@ -1113,6 +1113,64 @@ implementation:
         self.assertEqual(outputs['output4'].type, 'Dict')
 
 
+class TestV1YamlBooleanIoNames(parameterized.TestCase):
+
+    @parameterized.parameters(['on', 'off', 'yes', 'no'])
+    def test_flow_style_input_name(self, name):
+        comp_text = textwrap.dedent(f"""\
+        name: test
+        inputs:
+        - {{name: {name}, type: String}}
+        implementation:
+          container:
+            image: alpine
+            command: [echo]
+        """)
+        comp = components.load_component_from_text(comp_text)
+        self.assertIn(name, comp.component_spec.inputs)
+
+    @parameterized.parameters(['on', 'off', 'yes', 'no'])
+    def test_block_style_input_name(self, name):
+        comp_text = textwrap.dedent(f"""\
+        name: test
+        inputs:
+        - name: {name}
+          type: String
+        implementation:
+          container:
+            image: alpine
+            command: [echo]
+        """)
+        comp = components.load_component_from_text(comp_text)
+        self.assertIn(name, comp.component_spec.inputs)
+
+    def test_flow_style_output_name(self):
+        comp_text = textwrap.dedent("""\
+        name: test
+        outputs:
+        - {name: off, type: String}
+        implementation:
+          container:
+            image: alpine
+            command: [echo]
+        """)
+        comp = components.load_component_from_text(comp_text)
+        self.assertIn('off', comp.component_spec.outputs)
+
+    def test_boolean_default_still_parsed(self):
+        comp_text = textwrap.dedent("""\
+        name: test
+        inputs:
+        - {name: flag, type: Boolean, default: true}
+        implementation:
+          container:
+            image: alpine
+            command: [echo]
+        """)
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['flag'].default, True)
+
+
 class TestLoadDocumentsFromYAML(unittest.TestCase):
 
     def test_no_documents(self):

@@ -1082,8 +1082,39 @@ def load_documents_from_yaml(component_yaml: str) -> Tuple[dict, dict]:
     return pipeline_spec_dict, platform_spec_dict
 
 
+# PyYAML (YAML 1.1) coerces unquoted scalars like on/off/yes/no to bool.
+_FLOW_STYLE_IO_NAME_PATTERN = re.compile(
+    r'(?P<prefix>\bname:\s*)'
+    r'(?P<val>on|off|yes|no|true|false)'
+    r'(?P<suffix>\s*[,}])',
+    re.IGNORECASE,
+)
+_BLOCK_STYLE_IO_NAME_PATTERN = re.compile(
+    r'(?P<prefix>^\s*(?:-\s*)?name:\s*)'
+    r'(?P<val>on|off|yes|no|true|false)'
+    r'\s*$',
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def _quote_v1_component_yaml_boolean_io_names(text: str) -> str:
+    """Quotes I/O names that PyYAML would parse as booleans."""
+    text = _FLOW_STYLE_IO_NAME_PATTERN.sub(
+        lambda match: (f'{match.group("prefix")}"{match.group("val")}"'
+                       f'{match.group("suffix")}'),
+        text,
+    )
+    return _BLOCK_STYLE_IO_NAME_PATTERN.sub(
+        lambda match: f'{match.group("prefix")}"{match.group("val")}"',
+        text,
+    )
+
+
 def _load_component_spec_from_component_text(
         text) -> v1_structures.ComponentSpec:
+    if isinstance(text, bytes):
+        text = text.decode('utf-8')
+    text = _quote_v1_component_yaml_boolean_io_names(text)
     component_dict = yaml.safe_load(text)
     component_spec = v1_structures.ComponentSpec.from_dict(component_dict)
 
