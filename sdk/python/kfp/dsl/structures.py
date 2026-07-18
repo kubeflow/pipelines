@@ -1083,6 +1083,8 @@ def load_documents_from_yaml(component_yaml: str) -> Tuple[dict, dict]:
 
 
 # PyYAML (YAML 1.1) coerces unquoted scalars like on/off/yes/no to bool.
+_TOP_LEVEL_IO_SECTION_PATTERN = re.compile(r'^(inputs|outputs)\s*:')
+_TOP_LEVEL_KEY_PATTERN = re.compile(r'^[A-Za-z_][\w-]*\s*:')
 _FLOW_STYLE_IO_NAME_PATTERN = re.compile(
     r'(?P<prefix>\bname:\s*)'
     r'(?P<val>on|off|yes|no|true|false)'
@@ -1092,22 +1094,50 @@ _FLOW_STYLE_IO_NAME_PATTERN = re.compile(
 _BLOCK_STYLE_IO_NAME_PATTERN = re.compile(
     r'(?P<prefix>^\s*(?:-\s*)?name:\s*)'
     r'(?P<val>on|off|yes|no|true|false)'
-    r'\s*$',
-    re.IGNORECASE | re.MULTILINE,
+    r'(?P<suffix>\s*(?:#.*)?)\s*$',
+    re.IGNORECASE,
 )
 
 
-def _quote_v1_component_yaml_boolean_io_names(text: str) -> str:
-    """Quotes I/O names that PyYAML would parse as booleans."""
-    text = _FLOW_STYLE_IO_NAME_PATTERN.sub(
+def _quote_io_name_on_line(line: str) -> str:
+    """Quotes boolean-like I/O names on a single inputs/outputs list line."""
+    line = _FLOW_STYLE_IO_NAME_PATTERN.sub(
         lambda match: (f'{match.group("prefix")}"{match.group("val")}"'
                        f'{match.group("suffix")}'),
-        text,
+        line,
     )
     return _BLOCK_STYLE_IO_NAME_PATTERN.sub(
-        lambda match: f'{match.group("prefix")}"{match.group("val")}"',
-        text,
+        lambda match: (f'{match.group("prefix")}"{match.group("val")}"'
+                       f'{match.group("suffix")}'),
+        line,
     )
+
+
+def _quote_v1_component_yaml_boolean_io_names(text: str) -> str:
+    """Quotes I/O names under top-level inputs/outputs that PyYAML parses as bool."""
+    lines = text.splitlines(keepends=True)
+    if not lines:
+        return text
+
+    quoted_lines = []
+    in_io_section = False
+    for line in lines:
+        if _TOP_LEVEL_IO_SECTION_PATTERN.match(line):
+            in_io_section = True
+            quoted_lines.append(line)
+            continue
+
+        stripped = line.lstrip()
+        if (in_io_section and stripped and not stripped.startswith('-')
+                and _TOP_LEVEL_KEY_PATTERN.match(stripped)):
+            in_io_section = False
+
+        if in_io_section and stripped:
+            line = _quote_io_name_on_line(line)
+
+        quoted_lines.append(line)
+
+    return ''.join(quoted_lines)
 
 
 def _load_component_spec_from_component_text(

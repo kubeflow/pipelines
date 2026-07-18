@@ -1170,6 +1170,35 @@ class TestV1YamlBooleanIoNames(parameterized.TestCase):
         comp = components.load_component_from_text(comp_text)
         self.assertEqual(comp.component_spec.inputs['flag'].default, True)
 
+    def test_block_style_input_name_with_inline_comment(self):
+        comp_text = textwrap.dedent("""\
+        name: test
+        inputs:
+        - name: off # feature switch
+          type: String
+        implementation:
+          container:
+            image: alpine
+            command: [echo]
+        """)
+        comp = components.load_component_from_text(comp_text)
+        self.assertIn('off', comp.component_spec.inputs)
+
+    def test_command_string_with_name_off_unchanged(self):
+        comp_text = textwrap.dedent("""\
+        name: test
+        inputs:
+        - {name: flag, type: String}
+        implementation:
+          container:
+            image: alpine
+            command: ['echo name: off, now']
+        """)
+        comp = components.load_component_from_text(comp_text)
+        self.assertIn('flag', comp.component_spec.inputs)
+        container = comp.component_spec.implementation.container
+        self.assertEqual(container.command, ['echo name: off, now'])
+
 
 class TestLoadDocumentsFromYAML(unittest.TestCase):
 
