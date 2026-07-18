@@ -346,6 +346,29 @@ func TestWorkflow_Save_TerminalWorkflowTransientMetricsFailureBlocksReport(t *te
 	assert.Nil(t, pipelineFake.GetWorkflow("MY_NAMESPACE", "MY_NAME"))
 }
 
+// A transient failure while reading the metrics artifact (for example an
+// HTTP 500 from the artifact store) surfaces as *artifactclient.Error rather
+// than a util.CustomError. It must still be treated as transient and block
+// the workflow report; otherwise the report finalizes the workflow and the
+// metrics are silently lost.
+func TestWorkflow_Save_TerminalWorkflowTransientArtifactReadFailureBlocksReport(t *testing.T) {
+	workflowFake := client.NewWorkflowClientFake()
+	pipelineFake := client.NewPipelineClientFake()
+	workflow := terminalWorkflowWithMetrics(t, pipelineFake)
+	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
+	pipelineFake.StubArtifactError(artifactclient.NewError(
+		artifactclient.ErrorCodeTransient, fmt.Errorf("HTTP 500"), "artifact store unavailable"))
+
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+
+	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, true, util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT))
+	assert.Contains(t, err.Error(), "transient metrics failure before workflow report")
+	assert.Nil(t, pipelineFake.GetWorkflow("MY_NAMESPACE", "MY_NAME"))
+}
+
 // When the run row does not exist yet (first report of this workflow), the
 // pre-report metrics attempt returns NotFound; the workflow must still be
 // reported so the run is created, and metrics reporting is retried after.
