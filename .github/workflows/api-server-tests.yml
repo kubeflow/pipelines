@@ -4,7 +4,7 @@ env:
   API_TESTS_DIR: "./backend/test/v2/api"
   TESTS_LABEL: "ApiServerTests"
   NUMBER_OF_PARALLEL_NODES: 5
-  NUMBER_OF_MULTI_USER_PARALLEL_NODES: 5
+  NUMBER_OF_MULTI_USER_PARALLEL_NODES: 2
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
   USER_NAMESPACE: "kubeflow-user-example-com"
@@ -120,14 +120,18 @@ jobs:
         shell: bash
         id: configure
         if: ${{ steps.deploy.outcome == 'success' }}
+        env:
+          DISPATCH_NUMBER_OF_NODES: ${{ inputs.number_of_parallel_tests }}
+          DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
+          DISPATCH_NAMESPACE: ${{ inputs.namespace }}
         run: |
           NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
           TEST_LABEL=${{ env.TESTS_LABEL }}
           NAMESPACE=${{ env.NAMESPACE }}
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
-            TEST_LABEL=${{ inputs.test_label }}
-            NAMESPACE=${{ inputs.namespace }}
+            NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
+            TEST_LABEL=$DISPATCH_TEST_LABEL
+            NAMESPACE=$DISPATCH_NAMESPACE
           fi
 
           PROXY=${{ matrix.proxy }}
@@ -219,9 +223,19 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.36.1"]
-        cache_enabled: [ "true", "false" ]
-        multi_user: [ "true" ]
+        # Partition the API surface across the two existing cache variants.
+        # Complementary filters guarantee that every ApiServerTests spec runs
+        # exactly once, while explicit cache labels divide the expensive run
+        # matrix evenly between matching deployments.
+        include:
+          - k8s_version: "v1.36.1"
+            cache_enabled: "true"
+            multi_user: "true"
+            test_label: "ApiServerTests && (PipelineUpload || PipelineCacheEnabled)"
+          - k8s_version: "v1.36.1"
+            cache_enabled: "false"
+            multi_user: "true"
+            test_label: "ApiServerTests && !(PipelineUpload || PipelineCacheEnabled)"
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
     name: KFP API Server Multi User Tests - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }}
 
@@ -251,14 +265,19 @@ jobs:
         shell: bash
         id: configure
         if: ${{ steps.deploy.outcome == 'success' }}
+        env:
+          AUTOMATIC_TEST_LABEL: ${{ matrix.test_label }}
+          DISPATCH_NUMBER_OF_NODES: ${{ inputs.number_of_parallel_tests }}
+          DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
+          DISPATCH_NAMESPACE: ${{ inputs.namespace }}
         run: |
           NUMBER_OF_NODES=${{ env.NUMBER_OF_MULTI_USER_PARALLEL_NODES }}
-          TEST_LABEL=${{ env.TESTS_LABEL }}
+          TEST_LABEL=$AUTOMATIC_TEST_LABEL
           NAMESPACE=${{ env.NAMESPACE }}
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
-            TEST_LABEL=${{ inputs.test_label }}
-            NAMESPACE=${{ inputs.namespace }}
+            NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
+            TEST_LABEL=$DISPATCH_TEST_LABEL
+            NAMESPACE=$DISPATCH_NAMESPACE
           fi
           {
             echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"

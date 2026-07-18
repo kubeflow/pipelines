@@ -532,7 +532,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - Argo Workflows version matrix for compatibility (where relevant): `e2e-test.yml` exercises `v3.7.14` and `v4.0.5` across the standard cache/test-label matrix, while `api-server-tests.yml` covers standalone and Kubernetes-native Argo compatibility across the standard matrices (with standalone low-Kubernetes spot lanes per supported Argo version).
 - Focused Argo runtime compatibility API tests run only in the canonical standalone `v4.0.5` / Kubernetes `v1.36.1` job via `ARGO_COMPATIBILITY_TESTS`; this covers recurring-run creation, run retry, task metadata/artifacts, and archived logs without adding another E2E lane.
 - Proxy / cache toggles: dedicated jobs run with HTTP proxy enabled and with execution cache disabled to validate those modes.
-- Kind concurrency caps: automatic critical, essential, and multi-user E2E lanes use five Ginkgo nodes, E2EFailure uses two, and nested-pipeline E2E uses three because each spec fans out into child pipelines. These staged settings exercise the uncapped kindnet dataplane below the historical ten-node burst level; manual workflow dispatches retain their requested concurrency.
+- Kind concurrency caps: automatic critical, essential, and multi-user E2E lanes use eight Ginkgo nodes, E2EFailure uses two, and nested-pipeline E2E uses three because each spec fans out into child pipelines. These staged settings exercise the uncapped kindnet dataplane below the historical ten-node burst level; manual workflow dispatches retain their requested concurrency.
 - Artifacts: failing logs and test outputs are uploaded as workflow artifacts for debugging.
 
 ### CI cluster setup and helpers
@@ -559,8 +559,11 @@ When changing an effect-heavy frontend component, add or run the smallest releva
   requests behind one worker; S3 variants keep the operator default and avoid a redundant second rollout.
 - Argo runtime compatibility API specs run serially in the canonical Argo 4 lane so workflow lifecycle checks
   do not compete with the parallel API test workload.
-- Standalone, Kubernetes-native, and multi-user API-server integration lanes use five Ginkgo nodes by default.
-  Manually dispatched standalone and multi-user jobs may override the parallel node count.
+- Standalone and Kubernetes-native API-server integration lanes use five Ginkgo nodes by default; multi-user
+  lanes use two. Automatic multi-user API specs are partitioned across the existing cache-enabled and
+  cache-disabled jobs with complementary filters, and cache-sensitive pipeline-run specs are labeled explicitly
+  so they execute against the matching deployment. Manually dispatched standalone and multi-user jobs may
+  override the parallel node count and label filter.
 - Multi-user CI requires three consecutive successful SeaweedFS IAM Service probes from the profile controller
   before creating the test Profile. If the user artifact secret reaches its five-minute deadline, deployment
   collects reconciliation diagnostics and performs a final race-safe lookup before failing. The namespace-isolation

@@ -128,6 +128,10 @@ jobs:
         shell: bash
         id: configure
         if: ${{ steps.deploy.outcome == 'success' }}
+        env:
+          DISPATCH_NUMBER_OF_NODES: ${{ inputs.number_of_parallel_tests }}
+          DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
+          DISPATCH_NAMESPACE: ${{ inputs.namespace }}
         run: |
           NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
           TEST_LABEL=${{ matrix.test_label }}
@@ -138,7 +142,7 @@ jobs:
           elif [ "$TEST_LABEL" == "E2ECritical" ] || [ "$TEST_LABEL" == "E2EEssential" ]; then
             # Ramp concurrency after removing kindnet's CPU quota while
             # retaining a controlled step below the historical ten nodes.
-            NUMBER_OF_NODES=5
+            NUMBER_OF_NODES=8
           elif [ "$TEST_LABEL" == "E2EParallelNested" ]; then
             # Each spec fans out into nested child pipelines, so retain its
             # historical lower cap instead of using the global default.
@@ -147,9 +151,9 @@ jobs:
 
           # Explicit dispatch inputs take precedence over automatic lane caps.
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
-            TEST_LABEL=${{ inputs.test_label }}
-            NAMESPACE=${{ inputs.namespace }}
+            NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
+            TEST_LABEL=$DISPATCH_TEST_LABEL
+            NAMESPACE=$DISPATCH_NAMESPACE
           fi
 
           {
@@ -226,16 +230,20 @@ jobs:
         shell: bash
         id: configure
         if: ${{ steps.deploy.outcome == 'success' }}
+        env:
+          DISPATCH_NUMBER_OF_NODES: ${{ inputs.number_of_parallel_tests }}
+          DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
+          DISPATCH_NAMESPACE: ${{ inputs.namespace }}
         run: |
           # Ramp TokenReview and pipeline API traffic after removing kindnet's
           # CPU quota while staying below the historical ten-node default.
-          NUMBER_OF_NODES=5
+          NUMBER_OF_NODES=8
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
-            TEST_LABEL=${{ inputs.test_label }}
-            NAMESPACE=${{ inputs.namespace }}
+            NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
+            TEST_LABEL=$DISPATCH_TEST_LABEL
+            NAMESPACE=$DISPATCH_NAMESPACE
           fi
           {
             echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"
@@ -388,6 +396,10 @@ jobs:
         shell: bash
         id: configure
         if: ${{ steps.deploy.outcome == 'success' }}
+        env:
+          DISPATCH_NUMBER_OF_NODES: ${{ inputs.number_of_parallel_tests }}
+          DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
+          DISPATCH_NAMESPACE: ${{ inputs.namespace }}
         run: |
           # Keep a measured step below the historical ten-node setting while
           # validating the uncapped kindnet dataplane under additional load.
@@ -395,9 +407,9 @@ jobs:
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
-            TEST_LABEL=${{ inputs.test_label }}
-            NAMESPACE=${{ inputs.namespace }}
+            NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
+            TEST_LABEL=$DISPATCH_TEST_LABEL
+            NAMESPACE=$DISPATCH_NAMESPACE
           fi
 
           {

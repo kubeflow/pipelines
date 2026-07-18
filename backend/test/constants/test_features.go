@@ -38,12 +38,14 @@ const (
 
 	APIServerTests string = "ApiServerTests"
 
-	Experiment           string = "Experiment"
-	Pipeline             string = "Pipeline"
-	PipelineRun          string = "PipelineRun"
-	PipelineScheduledRun string = "PipelineRecurringRun"
-	PipelineUpload       string = "PipelineUpload"
-	ReportTests          string = "Report"
+	Experiment            string = "Experiment"
+	Pipeline              string = "Pipeline"
+	PipelineCacheDisabled string = "PipelineCacheDisabled"
+	PipelineCacheEnabled  string = "PipelineCacheEnabled"
+	PipelineRun           string = "PipelineRun"
+	PipelineScheduledRun  string = "PipelineRecurringRun"
+	PipelineUpload        string = "PipelineUpload"
+	ReportTests           string = "Report"
 
 	UpgradePreparation  string = "UpgradePreparation"
 	UpgradeVerification string = "UpgradeVerification"
