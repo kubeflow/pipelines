@@ -559,8 +559,8 @@ When changing an effect-heavy frontend component, add or run the smallest releva
   requests behind one worker; S3 variants keep the operator default and avoid a redundant second rollout.
 - Argo runtime compatibility API specs run serially in the canonical Argo 4 lane so workflow lifecycle checks
   do not compete with the parallel API test workload.
-- Standalone, Kubernetes-native, and multi-user API-server integration lanes use five Ginkgo nodes by default;
-  manually dispatched jobs may override the parallel node count.
+- Standalone, Kubernetes-native, and multi-user API-server integration lanes use five Ginkgo nodes by default.
+  Manually dispatched standalone and multi-user jobs may override the parallel node count.
 - Multi-user CI requires three consecutive successful SeaweedFS IAM Service probes from the profile controller
   before creating the test Profile. If the user artifact secret reaches its five-minute deadline, deployment
   collects reconciliation diagnostics and performs a final race-safe lookup before failing. The namespace-isolation
