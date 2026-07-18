@@ -184,7 +184,7 @@ if [ "${MULTI_USER}" == "true" ]; then
 
   echo "Installing Profile Controller Resources..."
   kubectl apply -k https://github.com/kubeflow/manifests/applications/dashboard/upstream/profile-controller/overlays/kubeflow?ref=master
-  wait_for_pods_ready kubeflow "app.kubernetes.io/name=profile-controller" 180s "profile-controller pod"
+  echo "Profile controller applied; its readiness will be joined after the KFP rollout."
 fi
 
 # Manifests will be deployed according to the flag provided
@@ -238,6 +238,11 @@ then
 fi
 
 if [ "${MULTI_USER}" == "true" ]; then
+  # The profile controller is independent of the main KFP rollout until the
+  # Profile is created below. Apply both first, then join their readiness gates
+  # so controller startup is hidden behind the longer KFP rollout.
+  wait_for_pods_ready kubeflow "app.kubernetes.io/name=profile-controller" 180s "profile-controller pod"
+
   # Profile reconciliation makes a one-shot IAM request before creating the
   # user namespace artifact secret. Pod readiness alone does not prove that
   # this Service path is accepting connections, so validate it from the

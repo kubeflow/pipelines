@@ -39,8 +39,10 @@ jobs:
     uses: ./.github/workflows/image-builds.yml
 
   upgrade-test:
-    needs: build
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
         k8s_version: [ "v1.36.1" ]
@@ -124,14 +126,21 @@ jobs:
           pkill -f "port-forward"
         continue-on-error: true
 
+      - name: Wait for branch image artifacts
+        id: wait-for-images
+        if: ${{ steps.create-cluster.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./.github/resources/scripts/wait-for-image-artifacts.sh
+
       - name: Deploy from Branch
         uses: ./.github/actions/deploy
-        if: ${{ steps.create-cluster.outcome == 'success' }}
+        if: ${{ steps.wait-for-images.outcome == 'success' }}
         id: deploy
         with:
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
           forward_port: 'true'
 
       - name: Verify Upgrade
