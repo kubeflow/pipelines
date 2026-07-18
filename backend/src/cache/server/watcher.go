@@ -37,7 +37,13 @@ func WatchPods(ctx context.Context, namespaceToWatch string, clientManager Clien
 		watcher, err := k8sCore.PodClient(namespaceToWatch).Watch(ctx, listOptions)
 
 		if err != nil {
-			log.Printf("%s", "Watcher error:"+err.Error())
+			log.Printf("Watcher error: %s. Retrying in 5 seconds.", err.Error())
+			select {
+			case <-time.After(5 * time.Second):
+			case <-ctx.Done():
+				return
+			}
+			continue
 		}
 
 		for event := range watcher.ResultChan() {
