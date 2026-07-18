@@ -202,22 +202,8 @@ jobs:
         cache_enabled: ["true", "false"]
         multi_user: [ "true" ]
         test_label: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["E2ECritical"]' || '["E2ECriticalShardA", "E2ECriticalShardB"]') }}
-        exclude:
-        # Keep the artifact-proxy compatibility lane whole. The include below
-        # then replaces the two sharded cache-enabled combinations with the
-        # historical single cache-enabled job.
-        - cache_enabled: "true"
-          test_label: "E2ECriticalShardA"
-        - cache_enabled: "true"
-          test_label: "E2ECriticalShardB"
-        include:
-        - multi_user: "true"
-          artifact_proxy: "true"
-          k8s_version: "v1.36.1"
-          cache_enabled: "true"
-          test_label: "E2ECritical"
       fail-fast: false
-    name: End to End Critical Scenario Multi User Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.artifact_proxy }}
+    name: End to End Critical Scenario Multi User ${{ matrix.test_label }} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.cache_enabled }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -236,7 +222,9 @@ jobs:
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: "true"
-          artifact_proxy: ${{ matrix.artifact_proxy }}
+          # The cache-enabled multi-user variant is the artifact-proxy
+          # compatibility lane; both automatic Critical shards exercise it.
+          artifact_proxy: ${{ matrix.cache_enabled }}
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
@@ -277,7 +265,7 @@ jobs:
 
       - name: Test Artifact Proxy
         id: test-artifact-proxy
-        if: ${{ steps.deploy.outcome == 'success' && matrix.artifact_proxy == 'true' }}
+        if: ${{ steps.deploy.outcome == 'success' && matrix.cache_enabled == 'true' }}
         shell: bash
         env:
           USER_NAMESPACE: ${{ env.USER_NAMESPACE }}
@@ -307,7 +295,7 @@ jobs:
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
           user_namespace: ${{ env.USER_NAMESPACE }}
-          report_name: "E2EMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"
+          report_name: "E2EMultiUser${{ matrix.test_label }}Tests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"
 
 
   end-to-end-critical-mlflow-tests:

@@ -89,6 +89,21 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
         self.assertLess(wait_position, download_position)
         self.assertIn('GH_TOKEN: ${{ github.token }}', deploy_action)
 
+    def test_multi_user_artifact_proxy_lane_uses_critical_shards(self):
+        workflow = (ROOT / '.github/workflows/e2e-test.yml').read_text(
+            encoding='utf-8')
+        job = _job_block(
+            workflow, 'end-to-end-critical-scenario-multi-user-tests')
+
+        self.assertIn(
+            "'[\"E2ECriticalShardA\", \"E2ECriticalShardB\"]'", job)
+        self.assertNotIn('        exclude:', job)
+        self.assertNotIn('        include:', job)
+        self.assertIn('artifact_proxy: ${{ matrix.cache_enabled }}', job)
+        self.assertIn("matrix.cache_enabled == 'true'", job)
+        self.assertIn('Multi User ${{ matrix.test_label }} Tests', job)
+        self.assertIn('E2EMultiUser${{ matrix.test_label }}Tests', job)
+
 
 if __name__ == '__main__':
     unittest.main()
