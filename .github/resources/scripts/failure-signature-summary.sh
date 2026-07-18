@@ -30,7 +30,15 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-OUT="${GITHUB_STEP_SUMMARY:-/dev/stdout}"
+# Job summaries are not retrievable through the logs API, so mirror the
+# output to stdout: the job log stays the machine-readable record.
+publish() {
+    if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+        tee -a "$GITHUB_STEP_SUMMARY"
+    else
+        cat
+    fi
+}
 
 # Signature scan corpus: the collected pod logs PLUS the JUnit failure/error
 # bodies. Client-side failures (MLflow timeouts, connection refused from the
@@ -102,7 +110,10 @@ count_signature() {
         echo "| HTTP 429 rate limit | $(count_signature 'status 429|429 Too Many Requests') | upstream rate limiting |"
         echo "| OOMKilled | $(count_signature 'OOMKilled') | pod memory limits |"
         echo "| CrashLoopBackOff | $(count_signature 'CrashLoopBackOff') | pod lifecycle |"
-        echo "| conntrack table full | $(count_signature 'nf_conntrack: table full') | node conntrack exhaustion |"
+        # Match the kernel's message form, not just the phrase: the SeaweedFS
+        # diagnostics script tees its own "kernel 'nf_conntrack: table full'
+        # events:" header into the pod log, which must not count as a hit.
+        echo "| conntrack table full | $(count_signature 'nf_conntrack: table full, dropping packet') | node conntrack exhaustion |"
 
         # Per-VIP breakdown makes multi-service dataplane failures (SeaweedFS
         # :9000 vs MLflow :8443 ...) visible at a glance.
@@ -148,7 +159,7 @@ PY
         fi
     fi
     echo ""
-} >> "$OUT"
+} | publish
 
 [[ -n "$JUNIT_TEXT" ]] && rm -f "$JUNIT_TEXT"
 exit 0

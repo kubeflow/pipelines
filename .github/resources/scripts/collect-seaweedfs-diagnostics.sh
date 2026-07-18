@@ -12,14 +12,14 @@
 #   1. SeaweedFS crashed/restarted   -> pod restart count and last terminated
 #                                        state (OOMKilled, etc.)
 #   2. Node CPU/memory contention    -> node allocated requests vs allocatable
-#                                        and node pressure conditions. The
-#                                        SeaweedFS deployment sets a CPU request
-#                                        (no limit), so scheduling shares only
-#                                        matter when the node is contended.
+#                                        and node pressure conditions. These are
+#                                        scheduling context, not actual CPU-use
+#                                        measurements, so runner telemetry is
+#                                        still needed to assess live contention.
 #   3. Cluster dataplane failure     -> SeaweedFS is Running with no restarts
 #                                        and the node is healthy, yet the
 #                                        ClusterIP path times out (kube-proxy /
-#                                        CNI). Ruled in by 1 and 2 being clean
+#                                        CNI). Narrowed by 1 and 2 being clean
 #                                        plus kube-proxy pod state, and probed
 #                                        directly in sections (4) and (5).
 #
@@ -39,15 +39,17 @@
 # node conntrack table fills, new SYNs are dropped and every dial reports 'i/o
 # timeout' while the backing pod's own liveness probe (kubelet -> pod IP) keeps
 # passing, so the pod is never restarted. Per node it dumps the node-global
-# conntrack state once -- the durable drop/insert_failed counters (conntrack -S,
-# falling back to /proc/net/stat/nf_conntrack) and any 'nf_conntrack: table
-# full' dmesg line -- then the iptables/ipvs program for each failed
-# ClusterIP, followed end to end (KUBE-SERVICES -> KUBE-SVC -> KUBE-SEP DNAT) so
-# a live endpoint DNAT rules out a missing/stale service program.
+# conntrack state once -- the cumulative drop/insert_failed counters (conntrack
+# -S, falling back to /proc/net/stat/nf_conntrack) and any 'nf_conntrack: table
+# full' dmesg line -- then the counter-bearing iptables/ipvs program for each
+# failed ClusterIP. The program is followed end to end (KUBE-SERVICES ->
+# KUBE-SVC -> KUBE-SEP DNAT), including the mark/postrouting rules that show
+# whether matching traffic is eligible for SNAT and whether MASQUERADE uses
+# --random-fully. A live endpoint DNAT rules out a missing/stale service program.
 #
 # When the conntrack table and the service program are both clean (as first
 # observed live: table ~0.6% full, no table-full event, KUBE-SEP DNAT present),
-# the remaining candidate is accept-queue saturation on the backing pod itself.
+# another candidate is accept-queue saturation on the backing pod itself.
 # Section (6) reads the SeaweedFS pod's listen sockets and cumulative
 # ListenOverflows / ListenDrops from inside its netns to confirm or rule that
 # out. Each probe distinguishes a failed/forbidden query from a genuinely empty
@@ -89,26 +91,35 @@ emit() {
 
 # Dump the iptables (or ipvs fallback) program for one ClusterIP:port on one
 # Kind node, following the chain end to end: the KUBE-SERVICES match, the
-# KUBE-SVC chain for the port, and the KUBE-SEP DNAT to the backing pod. A live
-# KUBE-SEP DNAT proves kube-proxy programmed a real endpoint (so a dial timeout
-# is not a missing/stale rule); an empty KUBE-SVC chain means no ready backend.
+# KUBE-SVC chain for the port, and each KUBE-SEP rule for the backing pod. With
+# iptables-save -c, every printed rule carries its cumulative packet/byte
+# counters. A live KUBE-SEP DNAT proves kube-proxy programmed a real endpoint
+# (so a dial timeout is not a missing/stale rule); an empty KUBE-SVC chain means
+# no ready backend. Node-wide KUBE-MARK-MASQ and KUBE-POSTROUTING rules are
+# printed once separately rather than repeated for every failed VIP.
 # Tracks whether a ruleset was actually read so a missing iptables-save /
 # ipvsadm binary reports "cannot confirm", never a false "no rule".
 # Usage: probe_service_rules <node> <ip> <port>
 probe_service_rules() {
     docker exec "$1" sh -c '
         ip=$1; port=$2
-        rules=$(iptables-save 2>/dev/null)
+        if rules=$(iptables-save -c 2>/dev/null) && [ -n "$rules" ]; then
+            counter_note="iptables counters: cumulative [packets:bytes] values"
+        else
+            rules=$(iptables-save 2>/dev/null)
+            counter_note="iptables packet counters unavailable"
+        fi
         if [ -z "$rules" ]; then
-            if ipvs=$(ipvsadm -Ln 2>/dev/null); then
-                printf "%s\n" "$ipvs" | grep -A6 "$ip:$port" \
+            if ipvs=$(ipvsadm -Ln --stats 2>/dev/null || ipvsadm -Ln 2>/dev/null); then
+                printf "%s\n" "$ipvs" | grep -F -A6 -- "$ip:$port" \
                     || echo "(no ipvs entry for $ip:$port)"
             else
                 echo "(iptables-save and ipvsadm both unavailable — cannot confirm rule presence)"
             fi
             exit 0
         fi
-        svc_rules=$(printf "%s\n" "$rules" | grep -F "$ip" | grep -E "KUBE-SERVICES|KUBE-MARK-MASQ")
+        echo "  $counter_note"
+        svc_rules=$(printf "%s\n" "$rules" | grep -F "$ip" | grep -E -- "-A KUBE-SERVICES ")
         if [ -n "$svc_rules" ]; then
             printf "%s\n" "$svc_rules"
         else
@@ -131,10 +142,53 @@ probe_service_rules() {
             echo "    (no KUBE-SEP endpoint jump — VIP has no live backend)"
         else
             for sep in $seps; do
-                printf "%s\n" "$rules" | grep -E -- "-A $sep .*(DNAT|to-destination)" | sed "s/^/    /" \
-                    || echo "    ($sep: no DNAT rule)"
+                sep_rules=$(printf "%s\n" "$rules" | grep -E -- "-A $sep ")
+                if [ -n "$sep_rules" ]; then
+                    printf "%s\n" "$sep_rules" | sed "s/^/    /"
+                else
+                    echo "    ($sep: no endpoint rules)"
+                fi
             done
         fi' _ "$2" "$3" 2>/dev/null || echo "(unavailable)"
+}
+
+# Dump the node-wide SNAT plumbing once. Per-VIP KUBE-SVC/KUBE-SEP counters
+# above show whether a matching flow jumped to KUBE-MARK-MASQ; these global
+# rules only show what happens after that mark is set.
+# Usage: probe_masquerade_rules <node>
+probe_masquerade_rules() {
+    docker exec "$1" sh -c '
+        if rules=$(iptables-save -c 2>/dev/null) && [ -n "$rules" ]; then
+            echo "iptables counters: cumulative [packets:bytes] values"
+        else
+            rules=$(iptables-save 2>/dev/null)
+            echo "iptables packet counters unavailable"
+        fi
+        if [ -z "$rules" ]; then
+            echo "(iptables-save unavailable — cannot inspect masquerade rules)"
+            exit 0
+        fi
+
+        mark_rules=$(printf "%s\n" "$rules" | grep -E -- "-A KUBE-MARK-MASQ ")
+        if [ -n "$mark_rules" ]; then
+            printf "%s\n" "$mark_rules"
+        else
+            echo "(KUBE-MARK-MASQ rule unavailable)"
+        fi
+
+        postrouting_rules=$(printf "%s\n" "$rules" \
+            | grep -E -- "-A KUBE-POSTROUTING .*MASQUERADE")
+        if [ -n "$postrouting_rules" ]; then
+            printf "%s\n" "$postrouting_rules"
+            if printf "%s\n" "$postrouting_rules" | grep -q -- "--random-fully"; then
+                echo "MASQUERADE --random-fully: enabled"
+            else
+                echo "MASQUERADE --random-fully: not present"
+            fi
+        else
+            echo "(KUBE-POSTROUTING MASQUERADE rule unavailable)"
+            echo "MASQUERADE --random-fully: cannot determine"
+        fi' 2>/dev/null || echo "(unavailable)"
 }
 
 # Snapshot the Kubernetes objects behind one failed ClusterIP. Unlike the
@@ -407,11 +461,14 @@ fi
             # Point-in-time gauge; may have drained by the time diagnostics run.
             docker exec "$node" sh -c 'cat /proc/sys/net/netfilter/nf_conntrack_count /proc/sys/net/netfilter/nf_conntrack_max 2>/dev/null | paste -sd/ -' 2>/dev/null || echo "(unavailable)"
 
-            echo "conntrack drop / insert_failed counters (durable; nonzero == table pressure):"
+            echo "conntrack insertion/drop counters (cumulative node-wide; nonzero requires correlation):"
             # Cumulative-since-boot counters survive the burst draining, unlike
-            # the in-use gauge above. 'conntrack -S' is the reliable source;
-            # /proc/net/stat/nf_conntrack is a fallback but was observed absent
-            # on some Kind node kernels, so try the CLI first.
+            # the in-use gauge above, but are not attributed to a VIP or time
+            # window. insert_failed/drop can indicate unresolved tuple clashes
+            # or other insertion failures; table pressure requires supporting
+            # early_drop/table-full evidence. 'conntrack -S' is the reliable
+            # source; /proc/net/stat/nf_conntrack is a fallback but was observed
+            # absent on some Kind node kernels, so try the CLI first.
             docker exec "$node" sh -c '
                 if command -v conntrack >/dev/null 2>&1 && conntrack -S 2>/dev/null; then
                     :
@@ -432,6 +489,10 @@ fi
                 else
                     echo "(no table-full event logged)"
                 fi' 2>/dev/null || echo "(unavailable)"
+
+            echo "node-wide SNAT / masquerade plumbing:"
+            echo "(only flows whose KUBE-SVC/KUBE-SEP rule jumps to KUBE-MARK-MASQ use this path)"
+            probe_masquerade_rules "$node"
 
             # Per-VIP service program end to end (KUBE-SERVICES -> KUBE-SVC ->
             # KUBE-SEP DNAT): a live DNAT to the pod means the rule is not the

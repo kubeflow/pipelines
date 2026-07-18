@@ -138,6 +138,30 @@ describe('/artifacts/get namespaced proxy', () => {
     );
   });
 
+  it('preserves providerInfo when proxying a download request (issue #13717)', async () => {
+    const { receivedUrls } = await setUpNamespacedArtifactService({
+      namespace: 'ns2',
+    });
+    const configs = loadConfigs(argv, {
+      ARTIFACTS_SERVICE_PROXY_NAME: 'artifact-svc',
+      ARTIFACTS_SERVICE_PROXY_PORT: '80',
+      ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
+    });
+    app = new UIServer(configs);
+    await requests(app.app)
+      .get(
+        `/artifacts/s3/mlpipeline/model${buildQuery({
+          namespace: 'ns2',
+          providerInfo: '{"Provider":"s3"}',
+        })}`,
+      )
+      .expect(200, 'artifact service in ns2');
+    expect(receivedUrls).toEqual(
+      // same url, except the namespace query is omitted and providerInfo is kept
+      ['/artifacts/s3/mlpipeline/model?providerInfo=%7B%22Provider%22%3A%22s3%22%7D'],
+    );
+  });
+
   it('does not proxy requests without namespace argument', async () => {
     setupMinioArtifactDeps({ content: 'text-data2' });
     const configs = loadConfigs(argv, { ARTIFACTS_SERVICE_PROXY_ENABLED: 'true' });

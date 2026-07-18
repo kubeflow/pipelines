@@ -169,6 +169,23 @@ describe('Apis', () => {
     );
   });
 
+  it('buildReadFileUrl for download carries providerInfo', () => {
+    expect(
+      Apis.buildReadFileUrl({
+        path: {
+          bucket: 'testbucket',
+          key: 'testkey',
+          source: StorageService.S3,
+        },
+        namespace: 'testnamespace',
+        providerInfo: '{"Provider":"s3"}',
+        isDownload: true,
+      }),
+    ).toEqual(
+      'artifacts/s3/testbucket/testkey?namespace=testnamespace&providerInfo=%7B%22Provider%22%3A%22s3%22%7D',
+    );
+  });
+
   it('buildArtifactLinkText', () => {
     expect(
       Apis.buildArtifactLinkText({
