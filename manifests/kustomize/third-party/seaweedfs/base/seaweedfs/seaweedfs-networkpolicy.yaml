@@ -24,6 +24,14 @@ spec:
     - podSelector: {}
     ports:
     - port: 8333
+  # The same-namespace rule above covers only S3. Keep IAM access scoped to
+  # the profile controller instead of exposing port 8111 to every local pod.
+  - from:
+    - podSelector:
+        matchLabels:
+          app: kubeflow-pipelines-profile-controller
+    ports:
+    - port: 8111
   podSelector:
     matchExpressions:
     - key: app

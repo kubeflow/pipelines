@@ -50,6 +50,12 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Wait for branch image artifacts
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: ./.github/resources/scripts/wait-for-image-artifacts.sh
+
     - name: Download Docker Images
       uses: actions/download-artifact@v7
       with:
@@ -61,12 +67,15 @@ runs:
       run: |
         # These images are deployed directly by the CI manifests and use
         # IfNotPresent in the CI install path, so loading the image archive
-        # into the Kind node is sufficient.
-        APPS=("apiserver" "scheduledworkflow" "persistenceagent" "frontend" "metadata-writer" "viewer-crd-controller" "visualization-server" "cache-deployer" "cache-server" "metadata-envoy")
-        for app in "${APPS[@]}"; do
-          kind --name "${{ inputs.cluster_name }}" load image-archive "${{ inputs.image_path }}/$app/$app.tar"
-          rm ${{ inputs.image_path }}/$app/$app.tar
+        # into the Kind node is sufficient. Import two at a time: this overlaps
+        # decompression without flooding the single Kind node's containerd.
+        source .github/resources/scripts/ci-image-artifacts.sh
+        ARCHIVES=()
+        for app in "${CONTROL_PLANE_IMAGE_ARTIFACTS[@]}"; do
+          ARCHIVES+=("${{ inputs.image_path }}/$app/$app.tar")
         done
+        ./.github/resources/scripts/load-kind-image-archives.sh \
+          "${{ inputs.cluster_name }}" 2 "${ARCHIVES[@]}"
 
     - name: Load Driver and Launcher Images Into Kind
       shell: bash
@@ -74,8 +83,8 @@ runs:
         # Runtime-generated workflow pods inherit these refs from the API server
         # environment. Tagging them away from `latest` makes Kubernetes default
         # them to IfNotPresent, so they can also be loaded directly into Kind.
-        APPS=("driver" "launcher")
-        for app in "${APPS[@]}"; do
+        source .github/resources/scripts/ci-image-artifacts.sh
+        for app in "${RUNTIME_IMAGE_ARTIFACTS[@]}"; do
           docker image load -i "${{ inputs.image_path }}/$app/$app.tar"
           docker tag "${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}" "${{ inputs.image_registry }}/$app:ci"
           kind --name "${{ inputs.cluster_name }}" load docker-image "${{ inputs.image_registry }}/$app:ci"
