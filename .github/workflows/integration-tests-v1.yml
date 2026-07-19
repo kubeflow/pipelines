@@ -65,9 +65,19 @@ jobs:
           image_tag: latest
           image_registry: kind-registry:5000
 
+      - name: Deploy pipeline URL test fixtures
+        id: deploy-pipeline-test-fixtures
+        if: ${{ steps.deploy.outcome == 'success' }}
+        run: |
+          kubectl kustomize --load-restrictor LoadRestrictionsNone \
+            .github/resources/manifests/pipeline-test-fixtures | kubectl apply -f -
+          kubectl rollout status deployment/pipeline-test-fixtures \
+            --namespace kubeflow --timeout 90s
+        continue-on-error: true
+
       - name: Forward MySQL port
         id: forward-mysql-port
-        if: ${{ steps.deploy.outcome == 'success' }}
+        if: ${{ steps.deploy-pipeline-test-fixtures.outcome == 'success' }}
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "mysql" 3306 3306
         continue-on-error: true
 
@@ -86,14 +96,11 @@ jobs:
         working-directory: ./backend/test/integration
         run: go test -v ./... -args -runIntegrationTests=true -namespace=kubeflow -repoName=${{ github.repository }} -branchName=${{ github.ref_name }}
         env:
-          PULL_NUMBER: ${{ github.event.pull_request.number }}
-          # Authenticates the raw.githubusercontent.com HEAD in
-          # GetRepoBranchURLRAW to avoid anonymous per-IP 429 rate limits.
-          GITHUB_TOKEN: ${{ github.token }}
+          KFP_TEST_FIXTURE_BASE_URL: http://pipeline-test-fixtures.kubeflow.svc.cluster.local:8080
         continue-on-error: true
 
       - name: Collect failed logs
-        if: ${{ steps.forward-mysql-port.outcome != 'success' || steps.integration-tests.outcome != 'success' || steps.initialization-tests.outcome != 'success' }}
+        if: ${{ steps.deploy-pipeline-test-fixtures.outcome != 'success' || steps.forward-mysql-port.outcome != 'success' || steps.integration-tests.outcome != 'success' || steps.initialization-tests.outcome != 'success' }}
         run: |
           ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
