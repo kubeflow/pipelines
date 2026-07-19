@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-16
+- Last updated: 2026-07-18
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -529,26 +529,57 @@ When changing an effect-heavy frontend component, add or run the smallest releva
   - Examples: `e2e-test.yml`, `sdk-execution.yml`, `upgrade-test.yml`, `kfp-kubernetes-execution-tests.yml`, `kfp-webhooks.yml`, `api-server-tests.yml`, `compiler-tests.yml`, `legacy-v2-api-integration-tests.yml`, `integration-tests-v1.yml`, and frontend integration in `e2e-test-frontend.yml`.
 - Pipeline store variants (v2 engine): tests run with `database` and `kubernetes` stores, and a dedicated job compiles pipelines to Kubernetes-native manifests.
   - Example: `e2e-test.yml` job "API integration tests v2 - K8s with ${pipeline_store}" and "compile pipelines with Kubernetes".
+- Legacy V2 integration preserves every database/Kubernetes-store and TLS variant while splitting the long PVC cache scenario into a parallel `pvc-cache` job; the `main` group runs the complementary tests on an independent cluster.
 - Argo Workflows version matrix for compatibility (where relevant): `e2e-test.yml` exercises `v3.7.14` and `v4.0.5` across the standard cache/test-label matrix, while `api-server-tests.yml` covers standalone and Kubernetes-native Argo compatibility across the standard matrices (with standalone low-Kubernetes spot lanes per supported Argo version).
 - Focused Argo runtime compatibility API tests run only in the canonical standalone `v4.0.5` / Kubernetes `v1.36.1` job via `ARGO_COMPATIBILITY_TESTS`; this covers recurring-run creation, run retry, task metadata/artifacts, and archived logs without adding another E2E lane.
 - Proxy / cache toggles: dedicated jobs run with HTTP proxy enabled and with execution cache disabled to validate those modes.
+- Kind concurrency caps: automatic critical, essential, and multi-user E2E lanes use the historical ten Ginkgo nodes, E2EFailure uses two, and nested-pipeline E2E uses three because each spec fans out into child pipelines. Manual workflow dispatches retain their requested concurrency.
+- Standard automatic and multi-user E2E Critical lanes split the 33 pipeline specs into duration-balanced shard A/B jobs on independent Kind runners; low-Kubernetes, TLS, and manual-dispatch compatibility lanes stay unsharded. The cache-enabled multi-user shards exercise the artifact-proxy compatibility path. Pipeline-level Ginkgo labels define the partition, and new Critical pipelines default to shard B so coverage is preserved.
 - Artifacts: failing logs and test outputs are uploaded as workflow artifacts for debugging.
 
 ### CI cluster setup and helpers
 
 - Kind-based clusters are provisioned via the `kfp-cluster` composite action, parameterized by `k8s_version`, `pipeline_store`, `proxy`, `cache_enabled`, and optional `argo_version`.
 - The `create-cluster` and `deploy` actions are used by newer suites; `kfp-k8s` installs SDK components from source inside jobs that execute Python-based tests.
-- The `deploy` action downloads and loads CI-built images before deploying optional Tinyproxy support, preloads runtime base images used by test pods and init containers, and waits for Tinyproxy readiness/endpoints in proxy lanes.
-- CI Docker-sensitive paths use shell retry wrappers with sleeps for image builds, Buildx bootstrap, and runtime base-image pulls; Kind node image bootstrap also falls back to `gcr.io/k8s-staging-kind/node` when Docker Hub flakes.
+- Kind's `kindnet` DaemonSet keeps its 100m CPU request but has no CPU limit in CI, allowing the NFQUEUE packet-forwarding path to drain bursts instead of being held to a 100m quota.
+- Runner disk cleanup is conditional: `create-cluster` skips the expensive toolchain/package/container cleanup when at least 60 GiB is already free, but retains the cleanup as a fallback on constrained hosted runners.
+- The `deploy` action downloads and loads CI-built images before deploying optional Tinyproxy support, imports control-plane archives two at a time, preloads runtime base images used by test pods and init containers, and waits for Tinyproxy readiness/endpoints in proxy lanes.
+- Multi-user deploy applies the profile controller before KFP and joins its readiness after the main KFP rollout, overlapping independent startup while preserving the IAM and Profile-creation gates.
+- KFP deployment readiness captures one bounded pod describe/events snapshot when a regular or init container remains in `ContainerCreating` for more than 60 seconds, including when the pod eventually becomes ready.
+- Workflows that deploy CI-built KFP images start Kind cluster setup concurrently with current-branch image builds. The shared deploy action waits for the complete image-artifact inventory immediately before downloading and loading the images; upgrade tests overlap old-release deployment and preparation behind the same barrier.
+- CI Docker-sensitive paths use shell retry wrappers with sleeps for image builds, Buildx bootstrap, and runtime base-image pulls; Kind node image bootstrap also falls back to `gcr.io/k8s-staging-kind/node` when Docker Hub flakes, and Kind cluster creation retries once when the action's initial tool download or setup fails.
 - The `test-and-report` action pins Go via `go.mod` and restores a dedicated `go-test-lanes-*` module/build cache (weekly-rotating key with restore-keys) so Ginkgo test lanes do not cold-compile the suites each run.
 - The `runtime-base-images.yml` workflow is the single registry-pull producer for the runtime base-image archive. Trusted master runs explicitly save the daily `actions/cache` entry and prune every superseded runtime-image cache after verifying the current master key exists; reusable image-build callers wait for the producer's generation-fingerprinted artifact and re-upload it into their own run instead of pulling independently.
 - The `test-and-report` action port-forwards MLMD on port `8080` only when `ARGO_COMPATIBILITY_TESTS=true`, allowing the canonical Argo compatibility API job to validate execution/artifact metadata without adding another test lane.
 - Proxy test failures collect both the KFP namespace and `tinyproxy` namespace logs/events to diagnose proxy-service readiness separately from pipeline failures.
 - The `test-and-report` action samples runner-level CPU/memory/load via a self-contained `/proc` sampler (`runner-telemetry.sh`, mermaid charts in the job summary — no external chart services) and, on test failure, writes a failure-signature classification table to the job summary (`failure-signature-summary.sh`), exports full Kind cluster logs as a `kind-logs - <report>` artifact, and uploads raw JUnit XML as a `junit-xml - <report>` artifact for flake-trend analysis.
+- Immediately around the Ginkgo test window, `test-and-report` snapshots per-Kind-node conntrack counters plus host CPU PSI and runner-cgroup CPU throttling counters, then reports attributable deltas for both passing and failing lanes.
+- During Ginkgo, `network-observability.sh` concurrently dials the SeaweedFS S3, Kubernetes API, and pod-backed CoreDNS TCP Service VIPs and their ready direct Endpoints every five seconds from one stable pod, while sampling runner softnet/TCP/CPU-PSI/cgroup-throttling counters, per-Kind-node conntrack/TCP/socket counters, and Kind's active `kindnetd` cgroup, scheduler, NFQUEUE queue-101, and bounded nftables-policy counters. It establishes the counter baseline and validates a bounded SYN/RST capture inside each Kind-node network namespace before the first probe, and records baseline/end SeaweedFS target-netns plus kindnet container/log/NFQUEUE/nftables state. Compact per-pair reports are written for every lane; raw JSONL and packet captures are retained in failed-job Kind-log artifacts. The legacy V2 integration workflow uses the same collector around its Go tests.
 - The CI proxy runs Tinyproxy as a lightweight forward proxy in the `tinyproxy` namespace on port `3128`.
 - The `protobuf` composite action prepares `protoc` and related dependencies when compiling Python protobufs.
 - The `create-cluster` action caches Kind node images by Kubernetes version to reduce Docker Hub pulls.
 - Python workflows use `actions/cache@v5` for pip cache to reduce repeated dependency installs.
+- MLflow E2E matrix variants use two Ginkgo nodes by default while validating the uncapped kindnet dataplane;
+  manual `workflow_dispatch` runs may override the parallel node count. Operator-managed Kubernetes-auth
+  MLflow file-artifact variants use two Uvicorn workers so artifact traffic cannot block all API and health
+  requests behind one worker; S3 variants keep the operator default and avoid a redundant second rollout.
+- Argo runtime compatibility API specs run serially in the canonical Argo 4 lane so workflow lifecycle checks
+  do not compete with the parallel API test workload.
+- Standalone and Kubernetes-native API-server integration lanes use five Ginkgo nodes by default; multi-user
+  lanes use two. Automatic multi-user API specs are partitioned across the existing cache-enabled and
+  cache-disabled jobs with complementary filters, and cache-sensitive pipeline-run specs are labeled explicitly
+  so they execute against the matching deployment. Manually dispatched standalone and multi-user jobs may
+  override the parallel node count and label filter.
+- Multi-user CI requires three consecutive successful SeaweedFS IAM Service probes from the profile controller
+  before creating the test Profile. If the user artifact secret reaches its five-minute deadline, deployment
+  collects reconciliation diagnostics and performs a final race-safe lookup before failing. The namespace-isolation
+  test separately polls both newly created Profile credentials for up to five minutes and reports Profile,
+  namespace, event, and controller state if reconciliation does not complete.
+- Multi-user deployment captures a Kind-node conntrack delta window from before the SeaweedFS IAM readiness gate
+  through Profile artifact-secret reconciliation because both run before the main test-window network collector.
+- Each SeaweedFS IAM readiness attempt also logs concurrent DNS, Service-VIP, and direct-Endpoint TCP outcomes;
+  only the production-equivalent Service DNS path controls readiness, while the other paths distinguish DNS,
+  Service dataplane, and backend failures without changing the gate's behavior.
 - Workflows that cache pip downloads must use `.github/actions/setup-python-pip-cache` with a unique `cache-scope` for each dependency set and a `cache-dependency-hash` covering the requirement files the job installs. Do not use `setup-python`'s built-in `cache: 'pip'`: its generic restore prefix can propagate one workflow's global pip cache into another workflow's cache entry.
 
 ### Code style and formatting

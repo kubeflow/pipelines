@@ -9,6 +9,7 @@ on:
       - '.github/resources/scripts/*.py'
       # The observability shell scripts are covered by Python-driven tests.
       - '.github/resources/scripts/*.sh'
+      - '.github/resources/scripts/kfp-readiness/**'
       - '.github/workflows/ci-scripts-tests.yml'
 
 permissions:
