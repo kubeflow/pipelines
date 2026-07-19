@@ -64,6 +64,7 @@ jobs:
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
+          forward_port: 'false'
 
       - name: Deploy pipeline URL test fixtures
         id: deploy-pipeline-test-fixtures
@@ -79,9 +80,15 @@ jobs:
             --namespace kubeflow --timeout 90s
         continue-on-error: true
 
+      - name: Forward API port
+        id: forward-api-port
+        if: ${{ steps.deploy-pipeline-test-fixtures.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
+
       - name: Forward MySQL port
         id: forward-mysql-port
-        if: ${{ steps.deploy-pipeline-test-fixtures.outcome == 'success' }}
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "mysql" 3306 3306
         continue-on-error: true
 
@@ -104,7 +111,7 @@ jobs:
         continue-on-error: true
 
       - name: Collect failed logs
-        if: ${{ steps.deploy-pipeline-test-fixtures.outcome != 'success' || steps.forward-mysql-port.outcome != 'success' || steps.integration-tests.outcome != 'success' || steps.initialization-tests.outcome != 'success' }}
+        if: ${{ steps.deploy-pipeline-test-fixtures.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.forward-mysql-port.outcome != 'success' || steps.integration-tests.outcome != 'success' || steps.initialization-tests.outcome != 'success' }}
         run: |
           ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
