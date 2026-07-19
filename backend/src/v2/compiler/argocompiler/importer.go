@@ -68,6 +68,8 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 		"--run_id", runID(),
 		"--parent_task_id", inputValue(paramParentDagTaskID),
 		"--iteration_index", inputValue(paramIterationIndex),
+		"--namespace",
+		fmt.Sprintf("$(%s)", component.EnvNamespace),
 		"--pod_name",
 		fmt.Sprintf("$(%s)", component.EnvPodName),
 		"--pod_uid",

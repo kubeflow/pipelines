@@ -45,6 +45,7 @@ var (
 	legacyTaskSpecJSON       = flag.String("task_spec", "", "Legacy task spec override")
 	legacyComponentSpecJSON  = flag.String("component_spec", "", "Legacy component spec override")
 	importerSpecJSON         = flag.String("importer_spec", "", "The JSON-encoded ImporterSpec.")
+	namespaceFlag            = flag.String("namespace", "", "Kubernetes namespace for runtime operations.")
 	podName                  = flag.String("pod_name", "", "Kubernetes Pod name.")
 	podUID                   = flag.String("pod_uid", "", "Kubernetes Pod UID.")
 	mlPipelineServerAddress  = flag.String("ml_pipeline_server_address", "ml-pipeline.kubeflow", "The name of the ML pipeline API server address.")
@@ -84,7 +85,7 @@ func run() error {
 		// early
 		return component.CopyThisBinary(*copy)
 	}
-	namespace, err := resolveNamespace()
+	namespace, err := resolveNamespace(*namespaceFlag)
 	if err != nil {
 		return err
 	}
@@ -237,7 +238,10 @@ func run() error {
 
 }
 
-func resolveNamespace() (string, error) {
+func resolveNamespace(explicitNamespace string) (string, error) {
+	if explicitNamespace != "" {
+		return explicitNamespace, nil
+	}
 	if namespace := os.Getenv("NAMESPACE"); namespace != "" {
 		return namespace, nil
 	}

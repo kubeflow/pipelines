@@ -17,7 +17,6 @@ package config
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 )
@@ -182,7 +181,7 @@ func (p S3ProviderConfig) HasExplicitOverride(path string) (bool, error) {
 // getOverrideByPrefix returns first matching bucketname and prefix in overrides
 func (p S3ProviderConfig) getOverrideByPrefix(bucketName, prefix string) *S3Override {
 	for _, override := range p.Overrides {
-		if override.BucketName == bucketName && strings.HasPrefix(prefix, override.KeyPrefix) {
+		if override.BucketName == bucketName && prefixMatchesOverride(prefix, override.KeyPrefix) {
 			return &override
 		}
 	}

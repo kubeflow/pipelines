@@ -1289,6 +1289,150 @@ func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) 
 	}
 }
 
+func Test_initPodSpecPatch_RejectsReservedRuntimeEnvVar(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+		Image: "python:3.11",
+		Env: []*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar{{
+			Name:  "NAMESPACE",
+			Value: "user-controlled",
+		}},
+	}
+
+	_, err := initPodSpecPatch(
+		containerSpec,
+		&pipelinespec.ComponentSpec{},
+		&pipelinespec.ExecutorInput{},
+		"27",
+		"",
+		"test",
+		"run",
+		"my-run-name",
+		"1",
+		"false",
+		"false",
+		&TaskConfig{},
+		"",
+		nil,
+		"",
+		false,
+		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reserved for KFP runtime identity")
+}
+
+func Test_extendPodSpecPatch_RejectsReservedSecretEnvVar(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	podSpec, err := initPodSpecPatch(
+		&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.11"},
+		&pipelinespec.ComponentSpec{},
+		&pipelinespec.ExecutorInput{},
+		"27",
+		"",
+		"test",
+		"run",
+		"my-run-name",
+		"1",
+		"false",
+		"false",
+		&TaskConfig{},
+		"",
+		nil,
+		"",
+		false,
+		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+	)
+	require.NoError(t, err)
+
+	err = extendPodSpecPatch(
+		context.Background(),
+		podSpec,
+		common.Options{
+			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+				SecretAsEnv: []*kubernetesplatform.SecretAsEnv{{
+					SecretName: "my-secret",
+					KeyToEnv: []*kubernetesplatform.SecretAsEnv_SecretKeyToEnvMap{{
+						SecretKey: "key",
+						EnvVar:    "KFP_POD_NAME",
+					}},
+				}},
+			},
+		},
+		nil,
+		&TaskConfig{},
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reserved for KFP runtime identity")
+}
+
+func Test_extendPodSpecPatch_RejectsReservedConfigMapAndFieldPathEnvVar(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	podSpec, err := initPodSpecPatch(
+		&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.11"},
+		&pipelinespec.ComponentSpec{},
+		&pipelinespec.ExecutorInput{},
+		"27",
+		"",
+		"test",
+		"run",
+		"my-run-name",
+		"1",
+		"false",
+		"false",
+		&TaskConfig{},
+		"",
+		nil,
+		"",
+		false,
+		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+	)
+	require.NoError(t, err)
+
+	err = extendPodSpecPatch(
+		context.Background(),
+		podSpec,
+		common.Options{
+			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+				ConfigMapAsEnv: []*kubernetesplatform.ConfigMapAsEnv{{
+					ConfigMapName: "my-config",
+					KeyToEnv: []*kubernetesplatform.ConfigMapAsEnv_ConfigMapKeyToEnvMap{{
+						ConfigMapKey: "key",
+						EnvVar:       "KFP_POD_UID",
+					}},
+				}},
+			},
+		},
+		nil,
+		&TaskConfig{},
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reserved for KFP runtime identity")
+
+	err = extendPodSpecPatch(
+		context.Background(),
+		podSpec,
+		common.Options{
+			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+				FieldPathAsEnv: []*kubernetesplatform.FieldPathAsEnv{{
+					Name:      "NAMESPACE",
+					FieldPath: "metadata.annotations['user-namespace']",
+				}},
+			},
+		},
+		nil,
+		&TaskConfig{},
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reserved for KFP runtime identity")
+}
+
 func Test_initPodSpecPatch_TaskConfig_Resources_Passthrough_ApplyAndCapture(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{

@@ -112,6 +112,10 @@ func (b *Config) Hash() string {
 var bucketPattern = regexp.MustCompile(`(^[a-z][a-z0-9]+:///?)([^/?]+)(/[^?]*)?(\?.+)?$`)
 
 func ParseBucketPathToConfig(path string) (*Config, error) {
+	parsedPath, err := url.Parse(path)
+	if err == nil && hasEscapedQueryDelimiter(parsedPath.EscapedPath()) {
+		return nil, fmt.Errorf("parse bucket config failed: encoded query delimiters are not allowed in object paths: %q", path)
+	}
 	ms := bucketPattern.FindStringSubmatch(path)
 	if ms == nil || len(ms) != 5 {
 		return nil, fmt.Errorf("parse bucket config failed: unrecognized pipeline root format: %q", path)
@@ -149,9 +153,12 @@ func SplitObjectURI(uri string) (prefix, base string, err error) {
 	if err != nil {
 		return "", "", fmt.Errorf("invalid URI: %w", err)
 	}
+	if hasEscapedQueryDelimiter(u.EscapedPath()) {
+		return "", "", fmt.Errorf("invalid URI: encoded query delimiters are not allowed in object paths")
+	}
 
 	// Trim trailing slash (if any)
-	cleanPath := strings.TrimSuffix(u.Path, "/")
+	cleanPath := strings.TrimSuffix(u.EscapedPath(), "/")
 
 	// Get base name and dir prefix
 	base = path.Base(cleanPath)
@@ -163,6 +170,13 @@ func SplitObjectURI(uri string) (prefix, base string, err error) {
 		prefix += dir
 	}
 	return prefix, base, nil
+}
+
+func hasEscapedQueryDelimiter(escapedPath string) bool {
+	lowerPath := strings.ToLower(escapedPath)
+	return strings.Contains(lowerPath, "%3f") ||
+		strings.Contains(lowerPath, "%26") ||
+		strings.Contains(lowerPath, "%23")
 }
 
 // ParseProviderFromPath prases the uri and returns the scheme, which is

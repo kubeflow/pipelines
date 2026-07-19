@@ -12,6 +12,7 @@ func setTokenSourceForTest(token string) {
 	tokenSourceOnce = sync.Once{}
 	tokenSourceOnce.Do(func() {})
 	tokenSource = oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
+	tokenSourceInitErr = nil
 }
 
 func TestTokenPerRPCCredentialsRequireTransportSecurity(t *testing.T) {
@@ -33,6 +34,7 @@ func TestTokenPerRPCCredentialsRequireTransportSecurity(t *testing.T) {
 func TestTokenPerRPCCredentialsGetRequestMetadata(t *testing.T) {
 	t.Cleanup(func() {
 		tokenSource = nil
+		tokenSourceInitErr = nil
 		tokenSourceOnce = sync.Once{}
 	})
 
@@ -59,4 +61,19 @@ func TestTokenPerRPCCredentialsGetRequestMetadata(t *testing.T) {
 			t.Fatalf("GetRequestMetadata() = %#v, want empty metadata", metadata)
 		}
 	})
+
+	t.Run("propagates token source errors", func(t *testing.T) {
+		tokenSourceInitErr = assertiveError("boom")
+
+		_, err := newTokenPerRPCCredentials(true).GetRequestMetadata(context.Background())
+		if err == nil || err.Error() != "boom" {
+			t.Fatalf("GetRequestMetadata() error = %v, want boom", err)
+		}
+	})
+}
+
+type assertiveError string
+
+func (e assertiveError) Error() string {
+	return string(e)
 }

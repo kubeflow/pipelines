@@ -21,8 +21,10 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gocloud.dev/blob"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -95,4 +97,62 @@ func TestResolveArtifactBucketConfig_PreservesExplicitProviderQueryString(t *tes
 	require.NoError(t, err)
 	assert.Equal(t, "minio", sessionInfo.Provider)
 	assert.Equal(t, "true", sessionInfo.Params["fromEnv"])
+}
+
+func TestObjectStoreClientGetBucket_RejectsEncodedQueryDelimiterBypass(t *testing.T) {
+	ctx := context.Background()
+	clientSet := fake.NewSimpleClientset(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kfp-launcher",
+			Namespace: "kubeflow",
+		},
+		Data: map[string]string{
+			"defaultPipelineRoot": "s3://bucket/allowed/path",
+		},
+	})
+
+	launcherConfig, err := config.FetchLauncherConfigMap(ctx, clientSet, "kubeflow")
+	require.NoError(t, err)
+
+	objectStoreClient := NewObjectStoreClient(&fakeObjectStoreDependencies{
+		launcherConfig:    launcherConfig,
+		k8sClient:         clientSet,
+		namespace:         "kubeflow",
+		openedBucketCache: map[string]*blob.Bucket{},
+	})
+
+	_, _, err = objectStoreClient.getBucket(
+		ctx,
+		"model",
+		"s3://bucket/other/%3Fendpoint=attacker.example:9000%26disableSSL=true/file",
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "encoded query delimiters")
+}
+
+type fakeObjectStoreDependencies struct {
+	launcherConfig    *config.Config
+	k8sClient         kubernetes.Interface
+	namespace         string
+	openedBucketCache map[string]*blob.Bucket
+}
+
+func (f *fakeObjectStoreDependencies) GetOpenedBucketCache() map[string]*blob.Bucket {
+	return f.openedBucketCache
+}
+
+func (f *fakeObjectStoreDependencies) SetOpenedBucket(key string, bucket *blob.Bucket) {
+	f.openedBucketCache[key] = bucket
+}
+
+func (f *fakeObjectStoreDependencies) GetLauncherConfig() *config.Config {
+	return f.launcherConfig
+}
+
+func (f *fakeObjectStoreDependencies) GetK8sClient() kubernetes.Interface {
+	return f.k8sClient
+}
+
+func (f *fakeObjectStoreDependencies) GetNamespace() string {
+	return f.namespace
 }

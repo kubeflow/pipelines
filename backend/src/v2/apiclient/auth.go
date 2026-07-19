@@ -17,6 +17,7 @@ package apiclient
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"sync"
 
@@ -36,23 +37,23 @@ var (
 	// It automatically watches the token file and reloads when kubelet rotates it.
 	// Uses client-go's NewCachedFileTokenSource which periodically re-reads the file
 	// (every minute by default) to pick up token rotations.
-	tokenSource     oauth2.TokenSource
-	tokenSourceOnce sync.Once
+	tokenSource        oauth2.TokenSource
+	tokenSourceInitErr error
+	tokenSourceOnce    sync.Once
 )
 
 // initTokenSource initializes the token source that watches the token file.
 // This is called once lazily when the first request needs authentication.
-func initTokenSource() {
+func initTokenSource() error {
 	tokenSourceOnce.Do(func() {
 		// Check if token file exists before creating the token source
 		if _, err := os.Stat(KFPTokenPath); err != nil {
 			if os.IsNotExist(err) {
 				glog.Warningf("KFP token file not found at %s, proceeding without authentication", KFPTokenPath)
-				tokenSource = &emptyTokenSource{}
 				return
 			}
-			// Other errors - log but continue
-			glog.Warningf("Error checking KFP token file at %s: %v", KFPTokenPath, err)
+			tokenSourceInitErr = fmt.Errorf("failed to stat KFP token file %s: %w", KFPTokenPath, err)
+			return
 		}
 
 		// Create a cached file token source that automatically reloads when the file changes.
@@ -64,37 +65,32 @@ func initTokenSource() {
 		tokenSource = transport.NewCachedFileTokenSource(KFPTokenPath)
 		glog.V(2).Infof("Initialized KFP token source from %s with automatic reload", KFPTokenPath)
 	})
-}
-
-// emptyTokenSource returns an empty token (for dev/test environments without token files)
-type emptyTokenSource struct{}
-
-func (e *emptyTokenSource) Token() (*oauth2.Token, error) {
-	return &oauth2.Token{}, nil
+	return tokenSourceInitErr
 }
 
 // getToken retrieves the current KFP service account token.
 // The token is automatically reloaded when kubelet rotates it (no manual cache TTL).
 // Returns empty string if the token file doesn't exist (e.g., dev environments).
-func getToken() string {
-	initTokenSource()
+func getToken() (string, error) {
+	if err := initTokenSource(); err != nil {
+		return "", err
+	}
 
 	if tokenSource == nil {
-		return ""
+		return "", nil
 	}
 
 	tok, err := tokenSource.Token()
 	if err != nil {
-		glog.V(4).Infof("Failed to get token from token source: %v", err)
-		return ""
+		return "", fmt.Errorf("failed to get token from token source: %w", err)
 	}
 
 	// oauth2.Token.AccessToken contains the actual token string
 	if tok == nil || tok.AccessToken == "" {
-		return ""
+		return "", nil
 	}
 
-	return tok.AccessToken
+	return tok.AccessToken, nil
 }
 
 type tokenPerRPCCredentials struct {
@@ -111,7 +107,10 @@ func (c *tokenPerRPCCredentials) GetRequestMetadata(
 	ctx context.Context,
 	uri ...string,
 ) (map[string]string, error) {
-	token := getToken()
+	token, err := getToken()
+	if err != nil {
+		return nil, err
+	}
 	if token != "" {
 		return map[string]string{"authorization": "Bearer " + token}, nil
 	}

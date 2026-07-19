@@ -44,6 +44,17 @@ type TaskConfig struct {
 	Resources    k8score.ResourceRequirements `json:"resources"`
 }
 
+func isReservedRuntimeEnvVar(name string) bool {
+	return name == component.EnvPodName || name == component.EnvPodUID || name == component.EnvNamespace
+}
+
+func validateReservedRuntimeEnvVar(name string) error {
+	if isReservedRuntimeEnvVar(name) {
+		return fmt.Errorf("environment variable %q is reserved for KFP runtime identity", name)
+	}
+	return nil
+}
+
 type Execution struct {
 	TaskID         string
 	ExecutorInput  *pipelinespec.ExecutorInput
@@ -168,6 +179,9 @@ func initPodSpecPatch(
 	// Convert environment variables
 	userEnvVar := make([]k8score.EnvVar, 0)
 	for _, envVar := range container.GetEnv() {
+		if err := validateReservedRuntimeEnvVar(envVar.GetName()); err != nil {
+			return nil, err
+		}
 		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar.GetName(), Value: envVar.GetValue()})
 	}
 
@@ -198,6 +212,8 @@ func initPodSpecPatch(
 		"--task_id", fmt.Sprintf("%v", taskID),
 		"--parent_task_id", fmt.Sprintf("%v", parentTaskID),
 		"--executor_input", string(executorInputJSON),
+		"--namespace",
+		fmt.Sprintf("$(%s)", component.EnvNamespace),
 		"--pod_name",
 		fmt.Sprintf("$(%s)", component.EnvPodName),
 		"--pod_uid",
@@ -353,7 +369,7 @@ func initPodSpecPatch(
 			},
 		},
 		{
-			Name: "NAMESPACE",
+			Name: component.EnvNamespace,
 			ValueFrom: &k8score.EnvVarSource{
 				FieldRef: &k8score.ObjectFieldSelector{
 					FieldPath: "metadata.namespace",

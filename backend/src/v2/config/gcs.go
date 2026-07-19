@@ -17,7 +17,6 @@ package config
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 )
@@ -124,7 +123,7 @@ func (p GCSProviderConfig) HasExplicitOverride(path string) (bool, error) {
 // getOverrideByPrefix returns first matching bucketname and prefix in overrides
 func (p GCSProviderConfig) getOverrideByPrefix(bucketName, prefix string) *GCSOverride {
 	for _, override := range p.Overrides {
-		if override.BucketName == bucketName && strings.HasPrefix(prefix, override.KeyPrefix) {
+		if override.BucketName == bucketName && prefixMatchesOverride(prefix, override.KeyPrefix) {
 			return &override
 		}
 	}

@@ -324,6 +324,9 @@ func extendPodSpecPatch(
 					SecretKeyRef: secretKeySelector,
 				},
 			}
+			if err := validateReservedRuntimeEnvVar(secretEnvVar.Name); err != nil {
+				return err
+			}
 
 			var secretName string
 			if secretAsEnv.SecretNameParameter != nil {
@@ -419,6 +422,9 @@ func extendPodSpecPatch(
 					ConfigMapKeyRef: configMapKeySelector,
 				},
 			}
+			if err := validateReservedRuntimeEnvVar(configMapEnvVar.Name); err != nil {
+				return err
+			}
 
 			var configMapName string
 			if configMapAsEnv.ConfigMapNameParameter != nil {
@@ -487,6 +493,9 @@ func extendPodSpecPatch(
 					FieldPath: fieldPathAsEnv.GetFieldPath(),
 				},
 			},
+		}
+		if err := validateReservedRuntimeEnvVar(fieldPathEnvVar.Name); err != nil {
+			return err
 		}
 
 		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_ENV] {

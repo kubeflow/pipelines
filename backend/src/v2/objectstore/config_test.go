@@ -29,3 +29,15 @@ func TestConfigHash_UsesLengthDelimitedEncoding(t *testing.T) {
 
 	require.NotEqual(t, configA.Hash(), configB.Hash())
 }
+
+func TestSplitObjectURI_RejectsEncodedQueryDelimitersInPath(t *testing.T) {
+	_, _, err := SplitObjectURI("s3://bucket/other/%3Fendpoint=attacker.example:9000%26disableSSL=true/file")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "encoded query delimiters")
+}
+
+func TestParseBucketPathToConfig_RejectsEncodedQueryDelimitersInPath(t *testing.T) {
+	_, err := ParseBucketPathToConfig("s3://bucket/other/%3Fendpoint=attacker.example:9000%26disableSSL=true/")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "encoded query delimiters")
+}

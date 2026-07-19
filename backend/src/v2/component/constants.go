@@ -21,6 +21,7 @@ const (
 	// Env var names
 	EnvPodName    = "KFP_POD_NAME"
 	EnvPodUID     = "KFP_POD_UID"
+	EnvNamespace  = "NAMESPACE"
 	EnvRetryIndex = "KFP_RETRY_INDEX"
 
 	// Workspace-related constants
