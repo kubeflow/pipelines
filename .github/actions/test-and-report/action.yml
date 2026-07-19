@@ -579,12 +579,23 @@ runs:
     - name: Upload HTML Report
       id: upload
       uses: actions/upload-artifact@v7
-      if: (!cancelled()) && steps.generate-html-report.outcome == 'success'
+      if: steps.run-tests.outcome != 'success' && (!cancelled()) && steps.generate-html-report.outcome == 'success'
       with:
         name: ${{ steps.name_gen.outputs.REPORT_NAME }}
         path: ${{ inputs.test_directory }}/reports/test-report.html
         retention-days: 7
       continue-on-error: true
+
+    - name: Prepare custom data
+      id: custom-data-prep
+      if: always() && !cancelled()
+      shell: bash
+      run: |
+        CUSTOM_DATA=""
+        if [ -n "${{ steps.upload.outputs.artifact-url }}" ]; then
+          CUSTOM_DATA="{\"HTML Report\": \"${{ steps.upload.outputs.artifact-url }}\"}"
+        fi
+        echo "CUSTOM_DATA=$CUSTOM_DATA" >> "$GITHUB_OUTPUT"
 
     - name: Publish Test Summary With HTML Report
       id: publish
@@ -592,14 +603,14 @@ runs:
       if: always() && !cancelled()
       with:
         xml_files: '${{ inputs.test_directory }}/reports'
-        custom_data: '{\"HTML Report\": \"${{ steps.upload.outputs.artifact-url }}\"}'
+        custom_data: ${{ steps.custom-data-prep.outputs.CUSTOM_DATA }}
       continue-on-error: true
 
     - name: Mark Workflow failure if test reporting failed
       if: always() && !cancelled() && (
         steps.install-junit2html.outcome == 'failure' ||
         steps.generate-html-report.outcome == 'failure' ||
-        steps.upload.outcome != 'success' ||
+        (steps.upload.outcome != 'success' && steps.upload.outcome != 'skipped') ||
         steps.publish.outcome == 'failure'
         )
       shell: bash
