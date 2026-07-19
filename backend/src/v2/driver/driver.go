@@ -16,7 +16,7 @@ package driver
 
 import (
 	"fmt"
-	"path/filepath"
+	"path"
 	"slices"
 	"strings"
 
@@ -800,7 +800,7 @@ func provisionOutputs(
 	// Place the executor output file under localTaskRoot to enable Pythonic artifacts. The SDK's pythonic artifact
 	// runtime derives CONTAINER_TASK_ROOT from the directory of OutputFile to use it in dsl.get_uri.
 	if localTaskRoot, err := component.LocalPathForURI(taskRootRemote); err == nil {
-		outputs.OutputFile = filepath.Join(localTaskRoot, "output_metadata.json")
+		outputs.OutputFile = path.Join(localTaskRoot, "output_metadata.json")
 	} else {
 		// Fallback to legacy path if the pipeline root scheme is not recognized.
 		outputs.OutputFile = component.OutputMetadataFilepath
