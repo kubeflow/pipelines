@@ -660,7 +660,7 @@ func TestGetS3BucketCredentialReportsMissingRoleWithoutConfiguredKeyNames(t *tes
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			clientSet := fake.NewSimpleClientset(&corev1.Secret{
+			clientSet := fake.NewClientset(&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: "s3-provider-secret", Namespace: "testnamespace"},
 				Data:       test.secretData,
 			})
