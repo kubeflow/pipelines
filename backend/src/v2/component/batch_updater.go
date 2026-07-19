@@ -22,6 +22,7 @@ import (
 	"github.com/golang/glog"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
+	"google.golang.org/protobuf/proto"
 )
 
 // BatchUpdater collects API updates during execution and flushes them
@@ -75,7 +76,7 @@ func (b *BatchUpdater) QueueTaskUpdate(task *apiV2beta1.PipelineTask) {
 	if existingTask, exists := b.taskUpdates[task.TaskId]; exists {
 		b.dedupedTaskUpdates++
 		glog.V(2).Infof("Merging task update for task %s", task.TaskId)
-		if existingTask == task {
+		if proto.Equal(existingTask, task) {
 			if task.State != apiV2beta1.PipelineTask_RUNTIME_STATE_UNSPECIFIED {
 				existingTask.State = task.State
 			}
@@ -126,9 +127,24 @@ func (b *BatchUpdater) QueueTaskUpdate(task *apiV2beta1.PipelineTask) {
 		if task.EndTime != nil {
 			existingTask.EndTime = task.EndTime
 		}
+		if task.StatusMetadata != nil {
+			existingTask.StatusMetadata = task.StatusMetadata
+		}
+		if task.CacheFingerprint != "" {
+			existingTask.CacheFingerprint = task.CacheFingerprint
+		}
+		if len(task.Pods) > 0 {
+			existingTask.Pods = task.Pods
+		}
+		if task.Type != apiV2beta1.PipelineTask_TASK_TYPE_UNSPECIFIED {
+			existingTask.Type = task.Type
+		}
+		if task.TypeAttributes != nil {
+			existingTask.TypeAttributes = task.TypeAttributes
+		}
 	} else {
 		// First update for this task
-		b.taskUpdates[task.TaskId] = task
+		b.taskUpdates[task.TaskId] = proto.Clone(task).(*apiV2beta1.PipelineTask)
 	}
 
 	b.queuedTaskUpdates++
@@ -188,6 +204,19 @@ func (b *BatchUpdater) Flush(ctx context.Context, client kfpapi.API) error {
 
 	// Step 1: Create artifacts using bulk API
 	if len(b.artifacts) > 0 {
+		blankArtifactTaskCount := 0
+		for _, artifactTask := range b.artifactTasks {
+			if artifactTask.GetArtifactId() == "" {
+				blankArtifactTaskCount++
+			}
+		}
+		if blankArtifactTaskCount > 0 && blankArtifactTaskCount != len(b.artifacts) {
+			return fmt.Errorf(
+				"queued artifacts (%d) do not match artifact-tasks awaiting created IDs (%d)",
+				len(b.artifacts),
+				blankArtifactTaskCount,
+			)
+		}
 		bulkReq := &apiV2beta1.CreateArtifactsBulkRequest{
 			Artifacts: make([]*apiV2beta1.CreateArtifactRequest, 0, len(b.artifacts)),
 		}
@@ -198,18 +227,25 @@ func (b *BatchUpdater) Flush(ctx context.Context, client kfpapi.API) error {
 		if err != nil {
 			return fmt.Errorf("failed to create artifacts in bulk: %w", err)
 		}
-		createdArtifactIndex := 0
-		for _, artifactTask := range b.artifactTasks {
-			if artifactTask.GetArtifactId() != "" {
-				continue
-			}
-			if createdArtifactIndex >= len(createdArtifacts.GetArtifacts()) {
-				return fmt.Errorf("failed to map created artifacts back to artifact-tasks")
-			}
-			artifactTask.ArtifactId = createdArtifacts.GetArtifacts()[createdArtifactIndex].GetArtifactId()
-			createdArtifactIndex++
+		if blankArtifactTaskCount > 0 && len(createdArtifacts.GetArtifacts()) != len(b.artifacts) {
+			b.clearArtifacts()
+			return fmt.Errorf(
+				"created %d artifacts for %d queued requests",
+				len(createdArtifacts.GetArtifacts()),
+				len(b.artifacts),
+			)
 		}
-		b.actualArtifactCalls = 1 // Bulk call counts as 1
+		if blankArtifactTaskCount > 0 {
+			createdArtifactIndex := 0
+			for _, artifactTask := range b.artifactTasks {
+				if artifactTask.GetArtifactId() != "" {
+					continue
+				}
+				artifactTask.ArtifactId = createdArtifacts.GetArtifacts()[createdArtifactIndex].GetArtifactId()
+				createdArtifactIndex++
+			}
+		}
+		b.actualArtifactCalls++ // Bulk call counts as 1
 		b.clearArtifacts()
 	}
 
@@ -237,7 +273,7 @@ func (b *BatchUpdater) Flush(ctx context.Context, client kfpapi.API) error {
 		if err != nil {
 			return fmt.Errorf("failed to create artifact-tasks in bulk: %w", err)
 		}
-		b.actualArtifactTaskCalls = 1 // Bulk call counts as 1
+		b.actualArtifactTaskCalls++ // Bulk call counts as 1
 		b.clearArtifactTasks()
 	}
 
@@ -257,7 +293,7 @@ func (b *BatchUpdater) Flush(ctx context.Context, client kfpapi.API) error {
 		if err != nil {
 			return fmt.Errorf("failed to update tasks in bulk: %w", err)
 		}
-		b.actualTaskUpdateCalls = 1 // Bulk call counts as 1
+		b.actualTaskUpdateCalls++ // Bulk call counts as 1
 		b.clearTaskUpdates()
 	}
 

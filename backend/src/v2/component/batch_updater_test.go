@@ -233,3 +233,63 @@ func TestBatchUpdater_FlushRetriesOnlyFailedTail(t *testing.T) {
 	require.Empty(t, updater.artifactTasks)
 	require.Empty(t, updater.taskUpdates)
 }
+
+func TestBatchUpdater_QueueTaskUpdateClonesAndMergesStatusMetadata(t *testing.T) {
+	updater := NewBatchUpdater()
+	originalTask := &apiv2beta1.PipelineTask{
+		TaskId: "task-1",
+		RunId:  "run-1",
+		State:  apiv2beta1.PipelineTask_RUNNING,
+	}
+
+	updater.QueueTaskUpdate(originalTask)
+	originalTask.State = apiv2beta1.PipelineTask_FAILED
+	originalTask.StatusMetadata = &apiv2beta1.PipelineTask_StatusMetadata{Message: "mutated-after-queue"}
+
+	updater.QueueTaskUpdate(&apiv2beta1.PipelineTask{
+		TaskId: "task-1",
+		RunId:  "run-1",
+		State:  apiv2beta1.PipelineTask_FAILED,
+		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{
+			Message: "final failure",
+		},
+	})
+
+	queuedTask := updater.taskUpdates["task-1"]
+	require.NotNil(t, queuedTask)
+	require.Equal(t, apiv2beta1.PipelineTask_FAILED, queuedTask.GetState())
+	require.NotNil(t, queuedTask.GetStatusMetadata())
+	require.Equal(t, "final failure", queuedTask.GetStatusMetadata().GetMessage())
+}
+
+func TestBatchUpdater_GetMetricsAccumulatesAcrossFlushes(t *testing.T) {
+	mockAPI := kfpapi.NewMockAPI()
+	updater := NewBatchUpdater()
+	_, err := mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: "run-1",
+		Task: &apiv2beta1.PipelineTask{
+			TaskId: "task-1",
+			RunId:  "run-1",
+			Name:   "task-1",
+			State:  apiv2beta1.PipelineTask_RUNNING,
+		},
+	})
+	require.NoError(t, err)
+
+	updater.QueueTaskUpdate(&apiv2beta1.PipelineTask{
+		TaskId: "task-1",
+		RunId:  "run-1",
+		State:  apiv2beta1.PipelineTask_SUCCEEDED,
+	})
+	require.NoError(t, updater.Flush(context.Background(), mockAPI))
+
+	updater.QueueTaskUpdate(&apiv2beta1.PipelineTask{
+		TaskId: "task-1",
+		RunId:  "run-1",
+		State:  apiv2beta1.PipelineTask_FAILED,
+	})
+	require.NoError(t, updater.Flush(context.Background(), mockAPI))
+
+	metrics := updater.GetMetrics()
+	require.Equal(t, 2, metrics["actual_task_update_calls"])
+}
