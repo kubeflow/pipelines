@@ -15,8 +15,10 @@
 package storage
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -460,28 +462,44 @@ func taskLogicalKey(task *model.Task) (*string, error) {
 	if err != nil {
 		return nil, err
 	}
-	logicalIdentity := struct {
-		RunUUID        string
-		ParentTaskUUID string
-		ScopePath      string
-		Name           string
-		Type           model.TaskType
-		IterationIndex *int64
-	}{
-		RunUUID:        task.RunUUID,
-		ParentTaskUUID: normalizedParentTaskUUID(task.ParentTaskUUID),
-		ScopePath:      task.ScopePath,
-		Name:           task.Name,
-		Type:           task.Type,
-		IterationIndex: iterationIndex,
+	var logicalIdentity bytes.Buffer
+	for _, value := range []string{
+		task.RunUUID,
+		normalizedParentTaskUUID(task.ParentTaskUUID),
+		task.ScopePath,
+		task.Name,
+	} {
+		if err := writeLengthPrefixedString(&logicalIdentity, value); err != nil {
+			return nil, err
+		}
 	}
-	serializedIdentity, err := json.Marshal(logicalIdentity)
-	if err != nil {
+	if err := binary.Write(&logicalIdentity, binary.BigEndian, int32(task.Type)); err != nil {
 		return nil, err
 	}
-	digest := sha256.Sum256(serializedIdentity)
+	if err := writeOptionalInt64(&logicalIdentity, iterationIndex); err != nil {
+		return nil, err
+	}
+	digest := sha256.Sum256(logicalIdentity.Bytes())
 	logicalKey := hex.EncodeToString(digest[:])
 	return &logicalKey, nil
+}
+
+func writeLengthPrefixedString(buffer *bytes.Buffer, value string) error {
+	if err := binary.Write(buffer, binary.BigEndian, uint32(len(value))); err != nil {
+		return err
+	}
+	_, err := buffer.WriteString(value)
+	return err
+}
+
+func writeOptionalInt64(buffer *bytes.Buffer, value *int64) error {
+	if value == nil {
+		return buffer.WriteByte(0)
+	}
+	if err := buffer.WriteByte(1); err != nil {
+		return err
+	}
+	return binary.Write(buffer, binary.BigEndian, *value)
 }
 
 func (s *TaskStore) findTaskByLogicalKey(logicalKey string) (*model.Task, error) {

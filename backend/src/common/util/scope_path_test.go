@@ -176,6 +176,57 @@ func TestScopePathPush_LeafComponentReturnsValidationError(t *testing.T) {
 	require.Contains(t, err.Error(), "not a DAG component")
 }
 
+func TestNewScopePathFromStruct_RejectsEmptySpec(t *testing.T) {
+	_, err := NewScopePathFromStruct(&structpb.Struct{})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "pipeline spec is empty")
+}
+
+func TestScopePath_EmptyPathHelpersAreSafe(t *testing.T) {
+	var scopePath ScopePath
+
+	root := scopePath.GetRoot()
+	require.Nil(t, root)
+
+	entry, ok := scopePath.Pop()
+	require.False(t, ok)
+	require.Empty(t, entry)
+}
+
+func TestScopePath_AllowsChildNamedRoot(t *testing.T) {
+	pipelineSpec := &pipelinespec.PipelineSpec{
+		Root: &pipelinespec.ComponentSpec{
+			Implementation: &pipelinespec.ComponentSpec_Dag{
+				Dag: &pipelinespec.DagSpec{
+					Tasks: map[string]*pipelinespec.PipelineTaskSpec{
+						"root": {
+							TaskInfo:     &pipelinespec.PipelineTaskInfo{Name: "root-display-name"},
+							ComponentRef: &pipelinespec.ComponentRef{Name: "child-root-component"},
+						},
+					},
+				},
+			},
+		},
+		Components: map[string]*pipelinespec.ComponentSpec{
+			"child-root-component": {},
+		},
+	}
+
+	b, err := protojson.Marshal(pipelineSpec)
+	require.NoError(t, err)
+	var pipelineSpecStruct structpb.Struct
+	require.NoError(t, protojson.Unmarshal(b, &pipelineSpecStruct))
+
+	scopePath, err := NewScopePathFromStruct(&pipelineSpecStruct)
+	require.NoError(t, err)
+	require.NoError(t, scopePath.Push("root"))
+	require.NoError(t, scopePath.Push("root"))
+
+	require.Equal(t, []string{"root", "root"}, scopePath.StringPath())
+	require.Equal(t, "root", scopePath.GetLast().taskName)
+	require.Equal(t, "root-display-name", scopePath.GetLast().GetTaskSpec().GetTaskInfo().GetName())
+}
+
 func TestDotNotationConversion(t *testing.T) {
 	// Test conversion from array to dot notation
 	tests := []struct {

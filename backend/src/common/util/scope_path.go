@@ -43,6 +43,13 @@ type ScopePathEntry struct {
 	componentSpec *pipelinespec.ComponentSpec
 }
 
+func (e *ScopePathEntry) GetTaskName() string {
+	if e == nil {
+		return ""
+	}
+	return e.taskName
+}
+
 func (e *ScopePathEntry) GetTaskSpec() *pipelinespec.PipelineTaskSpec {
 	return e.taskSpec
 }
@@ -62,6 +69,9 @@ func newScopePath(
 }
 
 func NewScopePathFromStruct(spec *structpb.Struct) (ScopePath, error) {
+	if spec == nil || len(spec.GetFields()) == 0 {
+		return ScopePath{}, fmt.Errorf("pipeline spec is empty")
+	}
 	pipelineSpec := &pipelinespec.PipelineSpec{}
 	// Convert struct to JSON
 	b, err := spec.MarshalJSON()
@@ -119,7 +129,7 @@ func (s *ScopePath) Push(taskName string) error {
 	if s.list == nil {
 		s.list = &LinkedList[ScopePathEntry]{}
 	}
-	if taskName == "root" {
+	if taskName == "root" && s.list.head == nil {
 		sp := ScopePathEntry{
 			taskName:      taskName,
 			componentSpec: s.pipelineSpec.Root,
@@ -157,6 +167,9 @@ func (s *ScopePath) Push(taskName string) error {
 }
 
 func (s *ScopePath) Pop() (ScopePathEntry, bool) {
+	if s.list == nil {
+		return ScopePathEntry{}, false
+	}
 	entry, ok := s.list.pop()
 	if ok {
 		s.size--
@@ -165,6 +178,9 @@ func (s *ScopePath) Pop() (ScopePathEntry, bool) {
 }
 
 func (s *ScopePath) GetRoot() *ScopePathEntry {
+	if s.list == nil || s.list.head == nil {
+		return nil
+	}
 	return &s.list.head.Value
 }
 
