@@ -28,7 +28,7 @@
 This proposal adds a `model-registry://` URI protocol to `dsl.importer`. It lets pipelines import models from
 Kubeflow Model Registry by logical name and version, instead of requiring the raw storage path. At runtime, the KFP
 backend resolves the logical URI to the model's actual storage location by querying the Model Registry API, then
-downloads the artifact through the standard import flow. This gives pipelines the same model-by-name access that KServe
+records the resolved URI and proceeds with the standard import flow. This gives pipelines the same model-by-name access that KServe
 already provides for online inference.
 
 ## Motivation
@@ -113,8 +113,9 @@ to the backend unchanged. The `model-registry://` prefix is only interpreted at 
 - **Model Registry unavailable at runtime**: The launcher retries with a configurable timeout. On failure, it surfaces
   a clear error with the registry URL and the HTTP status.
 - **Model or version not found**: The error message includes the exact model name and version that were requested.
-- **Resolved URI uses an unsupported storage scheme**: The launcher validates the resolved URI against supported
-  schemes (`gs://`, `s3://`, `minio://`) before attempting to download.
+- **Resolved URI uses an unsupported storage scheme**: The launcher routes the resolved URI through the existing
+  importer scheme handling (`gs://`, `s3://`, `minio://`, and `oci://` for `system.Model`) so the same validation and
+  workspace restrictions apply to direct and Model Registry imports.
 
 ## Design Details
 
@@ -128,14 +129,18 @@ The resolution happens inside the importer pod at runtime, following these steps
 2. **Importer pod starts.** The launcher binary detects the `model-registry://` prefix on the artifact URI.
 
 3. **Launcher calls Model Registry.** It parses the model name and version from the URI, then queries the Model
-   Registry REST API to look up the model version's `storageUri` field. This requires two API calls: one to find the
-   registered model by name, and one to get the version's storage URI.
+   Registry REST API to find the registered model, find the requested model version, and list that version's associated
+   artifacts. It selects the newest `ModelArtifact` using the same ordering as the Kubeflow Hub/KServe resolver and uses
+   that artifact's `uri` field as the storage location.
 
-4. **Launcher downloads from storage.** The resolved URI (e.g., `s3://bucket/models/my-model/v3/`) is used to
-   download the artifact through the standard object store path.
+4. **Launcher records the resolved storage location.** The resolved URI (e.g.,
+   `s3://bucket/models/my-model/v3/`) is stored on the artifact for the standard downstream artifact-consumption flow.
+   When `download_to_workspace=True`, the importer additionally downloads it into the configured workspace.
 
-5. **Artifact is stored in MLMD (ML Metadata).** The artifact is recorded with the resolved storage URI, not the
-   logical `model-registry://` URI. This means downstream tasks and the UI see a normal storage path.
+5. **Artifact is recorded in ML Metadata.** The artifact's primary URI is set to the resolved storage path (for
+   cache matching and downstream consumption). The logical `model-registry://` URI, along with the Model Registry
+   model name, version name, and artifact ID, are persisted as custom properties on the MLMD artifact. This
+   preserves auditability: users can trace which pipeline runs consumed which registered models.
 
 When `reimport=False` (the default), the cache lookup happens against the resolved storage URI. This ensures that if a
 model version's storage location changes, the next pipeline run imports the updated artifact.
@@ -155,15 +160,22 @@ data:
     url: https://model-registry.example.com:8443
     tokenSecretRef:
       secretName: model-registry-auth
-      secretNamespace: model-registry-system
       tokenKey: token
     caConfigMapRef:
       configMapName: model-registry-ca-bundle
-      configMapNamespace: model-registry-system
       key: ca-bundle.crt
     timeout: 30s
     retryAttempts: 3
 ```
+
+The authentication secret and CA ConfigMap must exist in the same namespace as the pipeline run. The importer pod's
+service account (`pipeline-runner`) has a namespace-scoped Role that only permits reading secrets and ConfigMaps
+within its own namespace.
+
+**Multi-user mode:** In multi-user deployments, the profile controller creates a namespace-local `kfp-launcher`
+ConfigMap for each user namespace. The `modelRegistry` key must be propagated to both new and existing per-namespace ConfigMaps,
+either by updating the profile controller's sync logic or by having the launcher fall back to reading from a
+cluster-wide configuration source. The exact propagation mechanism will be finalized during implementation.
 
 The exact schema will be finalized during implementation. If this configuration is absent and a pipeline uses a
 `model-registry://` URI, the importer fails immediately with an error explaining that Model Registry is not configured.
@@ -175,8 +187,11 @@ The exact schema will be finalized during implementation. If this configuration 
   existing `oci://` check in that function.
 - **Config parsing** (`backend/src/v2/config/env.go`): Add a `modelRegistry` key and parser method on `Config`,
   following the same pattern as `getBucketProviders()` which parses structured YAML from the `kfp-launcher` ConfigMap.
-- **Auth**: The importer pod reads the token from the referenced Kubernetes Secret. Only read access to Model Registry
-  is needed.
+- **Auth**: The importer pod reads the token from the referenced Kubernetes Secret in the run namespace. The
+  `pipeline-runner` Role already permits reading secrets within its own namespace; no additional RBAC is needed.
+- **Multi-user propagation** (`manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py`):
+  Update the profile controller to include the `modelRegistry` key when generating per-namespace `kfp-launcher`
+  ConfigMaps.
 
 ## Frontend Considerations
 
@@ -204,6 +219,8 @@ use the resolved storage URI directly.
 - Register a model with a known storage URI
 - Run a pipeline that imports via `model-registry://`, verify the artifact is available to downstream tasks
 - Verify error behavior when the model or version does not exist
+- Verify that the MLMD artifact's custom properties contain the original `model-registry://` URI and registry
+  model/version identifiers
 
 ## Implementation History
 
@@ -212,7 +229,7 @@ use the resolved storage URI directly.
 ## Drawbacks
 
 - Adds a runtime dependency on Model Registry availability for pipelines that use this protocol
-- Resolution requires two sequential HTTP calls to Model Registry, adding a small amount of latency per import
+- Resolution requires three sequential HTTP calls to Model Registry, adding a small amount of latency per import
 - Requires Model Registry to be deployed and configured before the feature works
 
 ## Alternatives
