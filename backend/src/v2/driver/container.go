@@ -143,13 +143,19 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 		fullView := apiV2beta1.GetRunRequest_FULL
 		refreshedRun, getRunErr := clientManager.KFPAPIClient().GetRun(ctx, &apiV2beta1.GetRunRequest{RunId: opts.Run.GetRunId(), View: &fullView})
 		if getRunErr != nil {
-			glog.Errorf("failed to refresh run: %w", getRunErr)
+			glog.Errorf("failed to refresh run: %v", getRunErr)
+			if driverErr == nil {
+				driverErr = fmt.Errorf("failed to refresh run: %w", getRunErr)
+			}
 			return
 		}
 		opts.Run = refreshedRun
-		err := clientManager.KFPAPIClient().UpdateStatuses(ctx, opts.Run, opts.ScopePath.GetPipelineSpecStruct(), taskToCreate)
-		if err != nil {
-			glog.Errorf("Failed to update statuses: %v", err)
+		updateStatusesErr := clientManager.KFPAPIClient().UpdateStatuses(ctx, opts.Run, opts.ScopePath.GetPipelineSpecStruct(), taskToCreate)
+		if updateStatusesErr != nil {
+			glog.Errorf("Failed to update statuses: %v", updateStatusesErr)
+			if driverErr == nil {
+				driverErr = fmt.Errorf("failed to update statuses: %w", updateStatusesErr)
+			}
 			return
 		}
 	}()
@@ -228,9 +234,6 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	var inputParams []*apiV2beta1.PipelineTask_InputOutputs_IOParameter
 	if opts.KubernetesExecutorConfig != nil {
 		inputParams = parentTask.GetInputs().GetParameters()
-		if driverErr != nil {
-			return nil, fmt.Errorf("failed to fetch input parameters from task: %w", driverErr)
-		}
 	}
 
 	// Generate a fingerprint and check if we have a cache hit.

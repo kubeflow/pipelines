@@ -219,10 +219,7 @@ func (k *clientAdapter) UpdateStatuses(ctx context.Context, run *gc.Run, pipelin
 // This function is separated from UpdateStatuses so that it can be used by the mock api client in tests.
 func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipelineSpec *structpb.Struct, currentTask *gc.PipelineTask) error {
 	// Create a map of task IDs to tasks for quick lookup
-	taskMap := make(map[string]*gc.PipelineTask)
-	for _, task := range run.GetTasks() {
-		taskMap[task.GetTaskId()] = task
-	}
+	taskMap := taskMapByID(run)
 
 	// Start with the current task and traverse up
 	for {
@@ -289,7 +286,16 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 			if err := evaluateAndUpdateParentStatus(ctx, run, parentTask, kfpAPIClient); err != nil {
 				return fmt.Errorf("failed to evaluate parent task %s status: %w", parentTask.GetTaskId(), err)
 			}
-			currentTask = parentTask
+			refreshedRun, err := refreshRunSnapshot(ctx, kfpAPIClient, run)
+			if err != nil {
+				return err
+			}
+			run = refreshedRun
+			taskMap = taskMapByID(run)
+			currentTask = taskMap[parentTask.GetTaskId()]
+			if currentTask == nil {
+				return fmt.Errorf("updated parent task %s not found after refresh", parentTask.GetTaskId())
+			}
 			continue
 		}
 
@@ -302,11 +308,40 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 		if err := evaluateAndUpdateParentStatus(ctx, run, parentTask, kfpAPIClient); err != nil {
 			return fmt.Errorf("failed to evaluate parent task %s status: %w", parentTask.GetTaskId(), err)
 		}
+		refreshedRun, err := refreshRunSnapshot(ctx, kfpAPIClient, run)
+		if err != nil {
+			return err
+		}
+		run = refreshedRun
+		taskMap = taskMapByID(run)
 
 		// Move to the parent for next iteration
-		currentTask = parentTask
+		currentTask = taskMap[parentTask.GetTaskId()]
+		if currentTask == nil {
+			return fmt.Errorf("updated parent task %s not found after refresh", parentTask.GetTaskId())
+		}
 	}
 	return nil
+}
+
+func taskMapByID(run *gc.Run) map[string]*gc.PipelineTask {
+	taskMap := make(map[string]*gc.PipelineTask)
+	for _, task := range run.GetTasks() {
+		taskMap[task.GetTaskId()] = task
+	}
+	return taskMap
+}
+
+func refreshRunSnapshot(ctx context.Context, kfpAPIClient API, run *gc.Run) (*gc.Run, error) {
+	fullView := gc.GetRunRequest_FULL
+	refreshedRun, err := kfpAPIClient.GetRun(ctx, &gc.GetRunRequest{
+		RunId: run.GetRunId(),
+		View:  &fullView,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to refresh run while propagating parent task status: %w", err)
+	}
+	return refreshedRun, nil
 }
 
 // evaluateAndUpdateParentStatus evaluates a parent task's status based on its direct children and updates it accordingly

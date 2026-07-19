@@ -17,8 +17,12 @@ type recordingAPI struct {
 }
 
 func (r *recordingAPI) UpdateTask(_ context.Context, req *gc.UpdateTaskRequest) (*gc.PipelineTask, error) {
-	r.updatedTasks = append(r.updatedTasks, req.GetTask())
-	return req.GetTask(), nil
+	updatedTask, err := r.MockAPI.UpdateTask(context.Background(), req)
+	if err != nil {
+		return nil, err
+	}
+	r.updatedTasks = append(r.updatedTasks, updatedTask)
+	return updatedTask, nil
 }
 
 func TestUpdateStatuses_FailsParentBeforeAllChildrenExist(t *testing.T) {
@@ -60,6 +64,11 @@ func TestUpdateStatuses_FailsParentBeforeAllChildrenExist(t *testing.T) {
 	}
 
 	api := &recordingAPI{MockAPI: NewMockAPI()}
+	api.AddRun(run)
+	for _, task := range run.GetTasks() {
+		_, err := api.CreateTask(context.Background(), &gc.CreateTaskRequest{Task: task, RunId: run.GetRunId()})
+		require.NoError(t, err)
+	}
 	require.NoError(t, updateStatuses(context.Background(), run, api, pipelineSpecStruct, failedChild))
 	require.NotEmpty(t, api.updatedTasks)
 	lastUpdate := api.updatedTasks[len(api.updatedTasks)-1]

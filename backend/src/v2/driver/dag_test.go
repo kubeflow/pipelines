@@ -396,15 +396,18 @@ func TestLoopArtifactPassing(t *testing.T) {
 
 	// Verify producer attribution for secondary-pipeline task artifacts
 	// The producer should be the immediate child from secondary-pipeline's perspective (for-loop-2),
-	// NOT the original runtime task (process-dataset) that created the artifact
-	// This demonstrates that producer attribution "resets" at each propagation level
+	// NOT the original runtime task (process-dataset) that created the artifact.
+	// Iteration identity must still be preserved so collected outputs remain ordered.
+	var propagatedArtifactIterations []int64
 	for i, artifactIO := range secondaryPipelineTask.Outputs.Artifacts {
 		require.NotNil(t, artifactIO.Producer, "Secondary pipeline artifact %d should have a producer", i)
 		require.Equal(t, "for-loop-2", artifactIO.Producer.TaskName,
 			"Secondary pipeline artifact %d producer should be 'for-loop-2' (immediate child from secondary-pipeline's perspective)", i)
-		require.Nil(t, artifactIO.Producer.Iteration,
-			"Secondary pipeline artifact %d should not have iteration index preserved from process-dataset", i)
+		require.NotNil(t, artifactIO.Producer.Iteration,
+			"Secondary pipeline artifact %d should preserve the loop iteration for collected outputs", i)
+		propagatedArtifactIterations = append(propagatedArtifactIterations, *artifactIO.Producer.Iteration)
 	}
+	require.ElementsMatch(t, []int64{0, 1, 2}, propagatedArtifactIterations)
 
 	// Move up a parent
 	parentTask = tc.RootTask
@@ -525,21 +528,26 @@ func TestParameterInputIterator(t *testing.T) {
 
 	// Verify producer attribution for secondary-pipeline task parameters
 	// The producer should be the immediate child from secondary-pipeline's perspective (for-loop-1),
-	// NOT the original runtime task (read-single-file) that created the parameter
-	// This demonstrates that producer attribution "resets" at each propagation level
-	var collectOutputs []string
+	// NOT the original runtime task (read-single-file) that created the parameter.
+	// Iteration identity must still be preserved so collected outputs remain ordered.
+	collectOutputsByIteration := map[int64]string{}
+	var propagatedParameterIterations []int64
 	for i, params := range task.Outputs.Parameters {
-		collectOutputs = append(collectOutputs, params.GetValue().GetStringValue())
 		require.Equal(t, apiv2beta1.IOType_ITERATOR_OUTPUT, params.GetType())
 
 		// Verify producer is the immediate child task (for-loop-1)
 		require.NotNil(t, params.Producer, "Secondary pipeline parameter %d should have a producer", i)
 		require.Equal(t, "for-loop-1", params.Producer.TaskName,
 			"Secondary pipeline parameter %d producer should be 'for-loop-1' (immediate child from secondary-pipeline's perspective)", i)
-		require.Nil(t, params.Producer.Iteration,
-			"Secondary pipeline parameter %d shouldn't propagate read-single-file", i)
+		require.NotNil(t, params.Producer.Iteration,
+			"Secondary pipeline parameter %d should preserve the loop iteration for collected outputs", i)
+		propagatedParameterIterations = append(propagatedParameterIterations, *params.Producer.Iteration)
+		collectOutputsByIteration[*params.Producer.Iteration] = params.GetValue().GetStringValue()
 	}
-	require.Equal(t, []string{"file-0", "file-1", "file-2"}, collectOutputs)
+	require.ElementsMatch(t, []int64{0, 1, 2}, propagatedParameterIterations)
+	require.Equal(t, "file-0", collectOutputsByIteration[0])
+	require.Equal(t, "file-1", collectOutputsByIteration[1])
+	require.Equal(t, "file-2", collectOutputsByIteration[2])
 }
 
 func TestNestedDag(t *testing.T) {

@@ -29,6 +29,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"google.golang.org/genproto/googleapis/rpc/status"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -139,8 +140,9 @@ func resolveParameters(opts common.Options) ([]ParameterMetadata, error) {
 
 		// Find default parameters that aren't already in the task
 		for name, paramSpec := range opts.Component.GetInputDefinitions().GetParameters() {
-			// Skip if parameter is already in the task's inputs or doesn't have a default value
-			if existingParams[name] || paramSpec.GetDefaultValue() == nil {
+			// Skip parameters that are already wired by the task or are injected by
+			// this task's own iterator after regular parameter resolution completes.
+			if existingParams[name] || isCurrentParameterIteratorInput(opts, name) {
 				continue
 			}
 
@@ -149,12 +151,14 @@ func resolveParameters(opts common.Options) ([]ParameterMetadata, error) {
 				continue
 			}
 
-			// Only add if it's optional
-			if !paramSpec.IsOptional {
-				continue
+			if paramSpec.GetDefaultValue() == nil {
+				if paramSpec.IsOptional {
+					continue
+				}
+				return nil, fmt.Errorf("neither value nor default value provided for non-optional parameter %q", name)
 			}
 
-			// Add parameter with default value
+			// Add the default value for any missing input that defines one.
 			pm := ParameterMetadata{
 				Key: name,
 				ParameterIO: &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
@@ -174,6 +178,36 @@ func resolveParameters(opts common.Options) ([]ParameterMetadata, error) {
 	}
 
 	return parameters, nil
+}
+
+func isCurrentParameterIteratorInput(opts common.Options, name string) bool {
+	iterator := opts.Task.GetParameterIterator()
+	return iterator != nil && iterator.GetItemInput() == name
+}
+
+func isZeroIterationLoopTask(task *apiv2beta1.PipelineTask) bool {
+	if task == nil || task.GetType() != apiv2beta1.PipelineTask_LOOP || task.GetTypeAttributes() == nil {
+		return false
+	}
+	return task.GetTypeAttributes().GetIterationCount() == 0
+}
+
+func emptyCollectedParameterOutput(key, producerTaskName string) *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
+	return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+		Value:        ToListValue(nil),
+		Type:         apiv2beta1.IOType_COLLECTED_INPUTS,
+		ParameterKey: key,
+		Producer: &apiv2beta1.IOProducer{
+			TaskName: producerTaskName,
+		},
+	}
+}
+
+func canonicalTaskFinalStatusCode(task *apiv2beta1.PipelineTask) int32 {
+	if task != nil && task.GetState() == apiv2beta1.PipelineTask_FAILED {
+		return int32(codes.Unknown)
+	}
+	return int32(codes.OK)
 }
 
 func normalizeResolvedParameterValue(
@@ -362,11 +396,17 @@ func resolveTaskOutputParameter(
 	}
 	outputKey := spec.GetTaskOutputParameter().GetOutputParameterKey()
 	outputs := producerTask.GetOutputs().GetParameters()
+	if len(outputs) == 0 && isZeroIterationLoopTask(producerTask) {
+		return emptyCollectedParameterOutput(outputKey, producerTask.GetName()), nil
+	}
 	outputIO, err := findParameterByProducerKeyInList(outputKey, producerTask.GetName(), outputs)
 	if err != nil {
 		return nil, err
 	}
 	if outputIO == nil {
+		if isZeroIterationLoopTask(producerTask) {
+			return emptyCollectedParameterOutput(outputKey, producerTask.GetName()), nil
+		}
 		return nil, fmt.Errorf("output parameter %s not found", outputKey)
 	}
 	return outputIO, nil
@@ -381,29 +421,36 @@ func resolveParameterComponentInputParameter(
 	if paramName == "" {
 		return nil, paramError(paramSpec, fmt.Errorf("empty component input"))
 	}
+	var matchingParams []*apiv2beta1.PipelineTask_InputOutputs_IOParameter
 	for _, param := range inputParams {
-		generateName := param.ParameterKey
-		if paramName == generateName {
-			if !common.IsLoopArgument(paramName) {
-				// This can occur when a runtime config has a "None" optional value.
-				// In this case we return "nil" and have the callee handle the
-				// ErrResolvedParameterNull case.
-				val := param.GetValue()
-				if val == nil {
-					return nil, ErrResolvedParameterNull
-				}
-				if _, isNull := val.GetKind().(*structpb.Value_NullValue); isNull {
-					return nil, ErrResolvedParameterNull
-				}
-				return param, nil
-			}
-			// If the input is a loop argument, we need to check if the iteration index matches the current iteration.
-			if param.Producer != nil && param.Producer.Iteration != nil && *param.Producer.Iteration == int64(opts.IterationIndex) {
+		if paramName == param.ParameterKey {
+			matchingParams = append(matchingParams, param)
+		}
+	}
+
+	if len(matchingParams) == 0 {
+		return nil, ErrResolvedParameterNull
+	}
+	if len(matchingParams) > 1 {
+		for _, param := range matchingParams {
+			if param.GetProducer() != nil && param.GetProducer().Iteration != nil &&
+				*param.GetProducer().Iteration == int64(opts.IterationIndex) {
 				return param, nil
 			}
 		}
 	}
-	return nil, ErrResolvedParameterNull
+
+	// This can occur when a runtime config has a "None" optional value.
+	// In this case we return "nil" and have the callee handle the
+	// ErrResolvedParameterNull case.
+	val := matchingParams[0].GetValue()
+	if val == nil {
+		return nil, ErrResolvedParameterNull
+	}
+	if _, isNull := val.GetKind().(*structpb.Value_NullValue); isNull {
+		return nil, ErrResolvedParameterNull
+	}
+	return matchingParams[0], nil
 }
 
 // resolveParameterIterator handles parameter Iterator Input resolution
@@ -507,7 +554,7 @@ func resolveTaskFinalStatus(opts common.Options,
 		PipelineJobResourceName: opts.RunName,
 		Error: &status.Status{
 			Message: producer.GetStatusMetadata().GetMessage(),
-			Code:    int32(producer.GetState().Number()),
+			Code:    canonicalTaskFinalStatusCode(producer),
 		},
 	}
 	finalStatusJSON, err := protojson.Marshal(&finalStatus)

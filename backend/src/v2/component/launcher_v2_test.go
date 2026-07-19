@@ -971,6 +971,101 @@ func Test_executeV2_IgnoresMissingOutputArtifactFile(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestUploadOutputArtifacts_SkipsUnsupportedURIsWithoutUploading(t *testing.T) {
+	launcher := &LauncherV2{
+		executorInput: &pipelinespec.ExecutorInput{
+			Outputs: &pipelinespec.ExecutorInput_Outputs{
+				Artifacts: map[string]*pipelinespec.ArtifactList{
+					"model": {
+						Artifacts: []*pipelinespec.RuntimeArtifact{{
+							Name: "trained-model",
+							Uri:  "unsupported://bucket/output/model.pkl",
+							Type: &pipelinespec.ArtifactTypeSchema{
+								Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Model"},
+							},
+						}},
+					},
+				},
+			},
+		},
+		options: LauncherV2Options{
+			Namespace: "default",
+			Run:       &apiv2beta1.Run{RunId: "run-1"},
+			Task:      &apiv2beta1.PipelineTask{TaskId: "task-1"},
+		},
+		batchUpdater: NewBatchUpdater(),
+		objectStore:  NewMockObjectStoreClient(),
+	}
+
+	err := launcher.uploadOutputArtifacts(context.Background(), &pipelinespec.ExecutorOutput{
+		Artifacts: map[string]*pipelinespec.ArtifactList{},
+	})
+	require.NoError(t, err)
+	assert.Empty(t, launcher.objectStore.(*MockObjectStoreClient).UploadCalls)
+	assert.Zero(t, launcher.batchUpdater.GetMetrics()["queued_artifacts"])
+}
+
+func TestUploadOutputArtifacts_PreservesArtifactListOutputs(t *testing.T) {
+	launcher := &LauncherV2{
+		executorInput: &pipelinespec.ExecutorInput{
+			Outputs: &pipelinespec.ExecutorInput_Outputs{
+				Artifacts: map[string]*pipelinespec.ArtifactList{
+					"models": {
+						Artifacts: []*pipelinespec.RuntimeArtifact{
+							{
+								Name: "model-0",
+								Uri:  "s3://bucket/output/model-0",
+								Type: &pipelinespec.ArtifactTypeSchema{
+									Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Model"},
+								},
+							},
+							{
+								Name: "model-1",
+								Uri:  "s3://bucket/output/model-1",
+								Type: &pipelinespec.ArtifactTypeSchema{
+									Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Model"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		options: LauncherV2Options{
+			Namespace: "default",
+			Run:       &apiv2beta1.Run{RunId: "run-1"},
+			Task:      &apiv2beta1.PipelineTask{TaskId: "task-1"},
+		},
+		batchUpdater: NewBatchUpdater(),
+		objectStore:  NewMockObjectStoreClient(),
+	}
+
+	metadataZero, err := structpb.NewStruct(map[string]interface{}{"id": "zero"})
+	require.NoError(t, err)
+	metadataOne, err := structpb.NewStruct(map[string]interface{}{"id": "one"})
+	require.NoError(t, err)
+
+	err = launcher.uploadOutputArtifacts(context.Background(), &pipelinespec.ExecutorOutput{
+		Artifacts: map[string]*pipelinespec.ArtifactList{
+			"models": {
+				Artifacts: []*pipelinespec.RuntimeArtifact{
+					{Uri: "s3://bucket/output/model-0", Metadata: metadataZero},
+					{Uri: "s3://bucket/output/model-1", Metadata: metadataOne},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	mockObjectStore := launcher.objectStore.(*MockObjectStoreClient)
+	require.Len(t, mockObjectStore.UploadCalls, 2)
+	assert.Equal(t, "s3://bucket/output/model-0", mockObjectStore.UploadCalls[0].RemoteURI)
+	assert.Equal(t, "s3://bucket/output/model-1", mockObjectStore.UploadCalls[1].RemoteURI)
+	require.Len(t, launcher.batchUpdater.artifacts, 2)
+	assert.Equal(t, "zero", launcher.batchUpdater.artifacts[0].request.Artifact.Metadata["id"].GetStringValue())
+	assert.Equal(t, "one", launcher.batchUpdater.artifacts[1].request.Artifact.Metadata["id"].GetStringValue())
+}
+
 func Test_get_log_Writer(t *testing.T) {
 	old := osCreateFunc
 	defer func() { osCreateFunc = old }()

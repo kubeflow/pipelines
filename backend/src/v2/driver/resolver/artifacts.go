@@ -16,7 +16,9 @@
 package resolver
 
 import (
+	"errors"
 	"fmt"
+	"sort"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -24,12 +26,18 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 )
 
+var ErrResolvedArtifactNull = errors.New("the resolved input artifact is null")
+
 func resolveArtifacts(opts common.Options) ([]ArtifactMetadata, error) {
 	var artifacts []ArtifactMetadata
 
 	for key, artifactSpec := range opts.Task.GetInputs().GetArtifacts() {
 		producerTask, v, ioType, err := resolveInputArtifact(opts, key, artifactSpec, opts.ParentTask.Inputs.GetArtifacts())
 		if err != nil {
+			componentArtifactDef := opts.Component.GetInputDefinitions().GetArtifacts()[key]
+			if errors.Is(err, ErrResolvedArtifactNull) && componentArtifactDef != nil && componentArtifactDef.GetIsOptional() {
+				continue
+			}
 			return nil, err
 		}
 
@@ -117,17 +125,24 @@ func resolveArtifactComponentInputParameter(
 	for _, artifactIO := range inputArtifactsIO {
 		ioKey := artifactIO.GetArtifactKey()
 		if key == ioKey {
-			if !common.IsLoopArgument(key) {
-				matchingArtifactIO = append(matchingArtifactIO, artifactIO)
-				continue
-			}
-			if artifactIO.Producer != nil && artifactIO.Producer.Iteration != nil && *artifactIO.Producer.Iteration == int64(opts.IterationIndex) {
-				matchingArtifactIO = append(matchingArtifactIO, artifactIO)
-			}
+			matchingArtifactIO = append(matchingArtifactIO, artifactIO)
 		}
 	}
 	if len(matchingArtifactIO) == 0 {
-		return nil, fmt.Errorf("failed to find input artifact %s", key)
+		return nil, ErrResolvedArtifactNull
+	}
+
+	if len(matchingArtifactIO) > 1 {
+		var iterationScopedMatches []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact
+		for _, artifactIO := range matchingArtifactIO {
+			if artifactIO.GetProducer() != nil && artifactIO.GetProducer().Iteration != nil &&
+				*artifactIO.GetProducer().Iteration == int64(opts.IterationIndex) {
+				iterationScopedMatches = append(iterationScopedMatches, artifactIO)
+			}
+		}
+		if len(iterationScopedMatches) > 0 {
+			matchingArtifactIO = iterationScopedMatches
+		}
 	}
 	if len(matchingArtifactIO) == 1 {
 		return matchingArtifactIO[0], nil
@@ -177,14 +192,31 @@ func resolveTaskOutputArtifact(
 	}
 	outputKey := spec.GetTaskOutputArtifact().GetOutputArtifactKey()
 	outputs := producerTask.GetOutputs().GetArtifacts()
+	if len(outputs) == 0 && isZeroIterationLoopTask(producerTask) {
+		return producerTask, emptyCollectedArtifactOutput(outputKey, producerTask.GetName()), nil
+	}
 	outputIO, err := findArtifactByProducerKeyInList(outputKey, producerTask.GetName(), outputs)
 	if err != nil {
 		return nil, nil, err
 	}
 	if outputIO == nil {
+		if isZeroIterationLoopTask(producerTask) {
+			return producerTask, emptyCollectedArtifactOutput(outputKey, producerTask.GetName()), nil
+		}
 		return nil, nil, fmt.Errorf("output artifact %s not found", outputKey)
 	}
 	return producerTask, outputIO, nil
+}
+
+func emptyCollectedArtifactOutput(key, producerTaskName string) *apiv2beta1.PipelineTask_InputOutputs_IOArtifact {
+	return &apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
+		Artifacts:   []*apiv2beta1.Artifact{},
+		Type:        apiv2beta1.IOType_COLLECTED_INPUTS,
+		ArtifactKey: key,
+		Producer: &apiv2beta1.IOProducer{
+			TaskName: producerTaskName,
+		},
+	}
 }
 
 // resolveArtifactIterator handles Artifact Iterator Input resolution
@@ -337,16 +369,37 @@ func findArtifactByProducerKeyInList(
 
 	// This occurs in the parallelFor case, where multiple iterations resulted in the same
 	// producer key.
-	isCollection := len(artifactIOList) > 1
+	isCollection := len(artifactIOList) > 1 ||
+		artifactIOList[0].GetType() == apiv2beta1.IOType_ITERATOR_OUTPUT
 	if isCollection {
-		var artifacts []*apiv2beta1.Artifact
+		hasCompleteIterationMetadata := true
 		for _, artifactIO := range artifactIOList {
-			//  Check correctness by validating the type of all parameters
-			if artifactIO.Type != apiv2beta1.IOType_ITERATOR_OUTPUT {
+			if artifactIO.GetType() != apiv2beta1.IOType_ITERATOR_OUTPUT {
 				return nil, fmt.Errorf("encountered a non iterator output that has the same producer key (%s)", producerKey)
 			}
-			// Support for an iterator over list of artifacts is not supported yet.
-			artifacts = append(artifacts, artifactIO.Artifacts[0])
+			if artifactIO.GetProducer() == nil || artifactIO.GetProducer().Iteration == nil {
+				hasCompleteIterationMetadata = false
+			}
+		}
+		if len(artifactIOList) > 1 && hasCompleteIterationMetadata {
+			sort.Slice(artifactIOList, func(i, j int) bool {
+				return *artifactIOList[i].GetProducer().Iteration <
+					*artifactIOList[j].GetProducer().Iteration
+			})
+		}
+
+		var artifacts []*apiv2beta1.Artifact
+		for index, artifactIO := range artifactIOList {
+			if hasCompleteIterationMetadata && index > 0 &&
+				*artifactIO.GetProducer().Iteration ==
+					*artifactIOList[index-1].GetProducer().Iteration {
+				return nil, fmt.Errorf(
+					"iterator outputs with producer key %s have duplicate iteration index %d",
+					producerKey,
+					*artifactIO.GetProducer().Iteration,
+				)
+			}
+			artifacts = append(artifacts, artifactIO.Artifacts...)
 		}
 		ioType := apiv2beta1.IOType_COLLECTED_INPUTS
 		newArtifactIO := &apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
