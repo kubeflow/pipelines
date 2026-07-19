@@ -266,6 +266,33 @@ func TestCloneCachedOutputsForTaskRestampsProducers(t *testing.T) {
 	assert.Equal(t, "cached-task", outputs.GetArtifacts()[0].GetProducer().GetTaskName())
 }
 
+func TestCloneCachedOutputsForTaskNormalizesOutputTypesToCurrentContext(t *testing.T) {
+	loopOutputs := &apiv2beta1.PipelineTask_InputOutputs{
+		Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+			ParameterKey: "result",
+			Type:         apiv2beta1.IOType_ITERATOR_OUTPUT,
+			Producer:     &apiv2beta1.IOProducer{TaskName: "cached-task", Iteration: proto.Int64(0)},
+		}},
+		Artifacts: []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{{
+			ArtifactKey: "model",
+			Type:        apiv2beta1.IOType_ITERATOR_OUTPUT,
+			Producer:    &apiv2beta1.IOProducer{TaskName: "cached-task", Iteration: proto.Int64(0)},
+		}},
+	}
+
+	nonLoopOutputs, err := cloneCachedOutputsForTask(loopOutputs, "current-task", nil)
+	require.NoError(t, err)
+	assert.Equal(t, apiv2beta1.IOType_OUTPUT, nonLoopOutputs.GetParameters()[0].GetType())
+	assert.Equal(t, apiv2beta1.IOType_OUTPUT, nonLoopOutputs.GetArtifacts()[0].GetType())
+
+	iterationIndex := 2
+	loopOutputsRestamped, err := cloneCachedOutputsForTask(loopOutputs, "current-task", &iterationIndex)
+	require.NoError(t, err)
+	assert.Equal(t, apiv2beta1.IOType_ITERATOR_OUTPUT, loopOutputsRestamped.GetParameters()[0].GetType())
+	assert.Equal(t, apiv2beta1.IOType_ITERATOR_OUTPUT, loopOutputsRestamped.GetArtifacts()[0].GetType())
+	assert.Equal(t, int64(iterationIndex), *loopOutputsRestamped.GetParameters()[0].GetProducer().Iteration)
+}
+
 type fakeCacheLookupAPI struct {
 	findCachedTaskRequest  *apiv2beta1.FindCachedTaskRequest
 	findCachedTaskResponse *apiv2beta1.FindCachedTaskResponse

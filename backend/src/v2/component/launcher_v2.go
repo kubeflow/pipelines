@@ -786,16 +786,16 @@ func (l *LauncherV2) uploadOutputArtifacts(
 		artifactsMap[artifactKey] = []*apiV2beta1.Artifact{}
 		for index, outputArtifact := range artifactList.Artifacts {
 			glog.Infof("outputArtifact in uploadOutputArtifacts call: %s", outputArtifact.Name)
-			// Merge executor output artifact info with executor input
-			if list, ok := executorOutput.Artifacts[artifactKey]; ok && len(list.Artifacts) > index {
-				mergeRuntimeArtifacts(list.Artifacts[index], outputArtifact)
-			}
-			// OCI artifactsMap are accessed via shared storage of a Modelcar
-			if strings.HasPrefix(outputArtifact.Uri, "oci://") {
-				continue
+			// Keep executor-logs launcher-managed so retry-qualified paths cannot
+			// be overwritten by executor-reported placeholder metadata.
+			if artifactKey != "executor-logs" {
+				// Merge executor output artifact info with executor input.
+				if list, ok := executorOutput.Artifacts[artifactKey]; ok && len(list.Artifacts) > index {
+					mergeRuntimeArtifacts(list.Artifacts[index], outputArtifact)
+				}
 			}
 
-			artifactType, err := inferArtifactType(outputArtifact.GetType())
+			artifactType, schemaTitleForMetadata, err := inferArtifactType(outputArtifact.GetType())
 			if err != nil {
 				return fmt.Errorf("failed to infer artifact type for port %s: %w", artifactKey, err)
 			}
@@ -833,6 +833,7 @@ func (l *LauncherV2) uploadOutputArtifacts(
 					CreatedAt:   timestamppb.Now(),
 					Namespace:   l.options.Namespace,
 				}
+				artifact.Metadata = preserveArtifactSchemaTitle(artifact.Metadata, schemaTitleForMetadata)
 
 				// In the Classification metric case, the metric data is stored in metadata and
 				// not object store
@@ -840,7 +841,7 @@ func (l *LauncherV2) uploadOutputArtifacts(
 					apiV2beta1.Artifact_SlicedClassificationMetric != artifactType
 
 				// If the artifact is not a metric, upload it to the object store and store the URI in the artifact
-				if isNotAMetric {
+				if isNotAMetric && !strings.HasPrefix(outputArtifact.Uri, "oci://") {
 					localPath, err := retrieveArtifactPath(outputArtifact)
 					if err != nil {
 						glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.",
@@ -855,6 +856,8 @@ func (l *LauncherV2) uploadOutputArtifacts(
 						}
 						return fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", artifactKey, outputArtifact.Uri, err)
 					}
+					artifact.Uri = util.StringPointer(outputArtifact.Uri)
+				} else if strings.HasPrefix(outputArtifact.Uri, "oci://") {
 					artifact.Uri = util.StringPointer(outputArtifact.Uri)
 				}
 

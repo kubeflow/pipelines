@@ -282,8 +282,13 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 			if err != nil {
 				return execution, err
 			}
+			taskToCreate, driverErr = handleInputTaskParametersCreation(inputs.Parameters, taskToCreate)
+			if driverErr != nil {
+				return execution, driverErr
+			}
 			taskToCreate.State = apiV2beta1.PipelineTask_CACHED
 			taskToCreate.Outputs = cachedOutputs
+			taskToCreate.EndTime = timestamppb.Now()
 			*execution.Cached = true
 			createdTask, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
 				Task:  taskToCreate,
@@ -293,6 +298,23 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 				return execution, fmt.Errorf("failed to update task: %w", createErr)
 			}
 			taskToCreate = createdTask
+			taskToCreate.State = apiV2beta1.PipelineTask_CACHED
+			taskToCreate.Outputs = cachedOutputs
+			taskToCreate.EndTime = timestamppb.Now()
+			taskToCreate.StatusMetadata = nil
+			if _, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
+				TaskId: taskToCreate.GetTaskId(),
+				Task:   taskToCreate,
+				RunId:  taskToCreate.GetRunId(),
+			}); updateErr != nil {
+				return execution, fmt.Errorf("failed to update cached task state: %w", updateErr)
+			}
+			createdTask = taskToCreate
+
+			driverErr = handleInputTaskArtifactsCreation(ctx, opts, inputs.Artifacts, createdTask, clientManager.KFPAPIClient())
+			if driverErr != nil {
+				return execution, driverErr
+			}
 
 			// Artifacts are not embedded in tasks like parameters, we need to create separate ArtifactTasks for each output.
 			var artifactTasks []*apiV2beta1.ArtifactTask
@@ -468,13 +490,19 @@ func cloneCachedOutputsForTask(
 	for _, parameterOutput := range clonedOutputs.GetParameters() {
 		parameterOutput.Producer = &apiV2beta1.IOProducer{TaskName: taskName}
 		if iterationIndex != nil {
+			parameterOutput.Type = apiV2beta1.IOType_ITERATOR_OUTPUT
 			parameterOutput.Producer.Iteration = util.Int64Pointer(int64(*iterationIndex))
+		} else {
+			parameterOutput.Type = apiV2beta1.IOType_OUTPUT
 		}
 	}
 	for _, artifactOutput := range clonedOutputs.GetArtifacts() {
 		artifactOutput.Producer = &apiV2beta1.IOProducer{TaskName: taskName}
 		if iterationIndex != nil {
+			artifactOutput.Type = apiV2beta1.IOType_ITERATOR_OUTPUT
 			artifactOutput.Producer.Iteration = util.Int64Pointer(int64(*iterationIndex))
+		} else {
+			artifactOutput.Type = apiV2beta1.IOType_OUTPUT
 		}
 	}
 	return clonedOutputs, nil

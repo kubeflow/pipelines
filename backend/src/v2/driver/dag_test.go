@@ -788,10 +788,8 @@ func TestWithCaching(t *testing.T) {
 	processDatasetExecution2, processDatasetTask2 := tc.RunContainerDriver("process-dataset", parentTask, nil, true)
 	require.NotNil(t, processDatasetExecution2.Cached)
 	require.True(t, *processDatasetExecution2.Cached)
-	require.Contains(t, []apiv2beta1.PipelineTask_TaskState{
-		apiv2beta1.PipelineTask_CACHED,
-		apiv2beta1.PipelineTask_SUCCEEDED,
-	}, processDatasetTask2.GetState())
+	require.Equal(t, apiv2beta1.PipelineTask_CACHED, processDatasetTask2.GetState())
+	require.NotNil(t, processDatasetTask2.GetEndTime())
 	require.Empty(t, processDatasetExecution2.PodSpecPatch)
 }
 

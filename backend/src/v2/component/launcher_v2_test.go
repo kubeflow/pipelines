@@ -1066,6 +1066,118 @@ func TestUploadOutputArtifacts_PreservesArtifactListOutputs(t *testing.T) {
 	assert.Equal(t, "one", launcher.batchUpdater.artifacts[1].request.Artifact.Metadata["id"].GetStringValue())
 }
 
+func TestUploadOutputArtifacts_RegistersOCIOutputs(t *testing.T) {
+	launcher := &LauncherV2{
+		executorInput: &pipelinespec.ExecutorInput{
+			Outputs: &pipelinespec.ExecutorInput_Outputs{
+				Artifacts: map[string]*pipelinespec.ArtifactList{
+					"model": {
+						Artifacts: []*pipelinespec.RuntimeArtifact{{
+							Name: "trained-model",
+							Uri:  "oci://registry.domain.local/org/repo:v1.0",
+							Type: &pipelinespec.ArtifactTypeSchema{
+								Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Model"},
+							},
+						}},
+					},
+				},
+			},
+		},
+		options: LauncherV2Options{
+			Namespace: "default",
+			Run:       &apiv2beta1.Run{RunId: "run-1"},
+			Task:      &apiv2beta1.PipelineTask{TaskId: "task-1"},
+		},
+		batchUpdater: NewBatchUpdater(),
+		objectStore:  NewMockObjectStoreClient(),
+	}
+
+	err := launcher.uploadOutputArtifacts(context.Background(), &pipelinespec.ExecutorOutput{
+		Artifacts: map[string]*pipelinespec.ArtifactList{},
+	})
+	require.NoError(t, err)
+	assert.Empty(t, launcher.objectStore.(*MockObjectStoreClient).UploadCalls)
+	require.Len(t, launcher.batchUpdater.artifacts, 1)
+	assert.Equal(t, "oci://registry.domain.local/org/repo:v1.0", *launcher.batchUpdater.artifacts[0].request.Artifact.Uri)
+}
+
+func TestUploadOutputArtifacts_PreservesCustomSchemaTitle(t *testing.T) {
+	launcher := &LauncherV2{
+		executorInput: &pipelinespec.ExecutorInput{
+			Outputs: &pipelinespec.ExecutorInput_Outputs{
+				Artifacts: map[string]*pipelinespec.ArtifactList{
+					"vertex-model": {
+						Artifacts: []*pipelinespec.RuntimeArtifact{{
+							Name: "vertex-model",
+							Uri:  "s3://bucket/output/model",
+							Type: &pipelinespec.ArtifactTypeSchema{
+								Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "google.VertexModel"},
+							},
+						}},
+					},
+				},
+			},
+		},
+		options: LauncherV2Options{
+			Namespace: "default",
+			Run:       &apiv2beta1.Run{RunId: "run-1"},
+			Task:      &apiv2beta1.PipelineTask{TaskId: "task-1"},
+		},
+		batchUpdater: NewBatchUpdater(),
+		objectStore:  NewMockObjectStoreClient(),
+	}
+
+	err := launcher.uploadOutputArtifacts(context.Background(), &pipelinespec.ExecutorOutput{
+		Artifacts: map[string]*pipelinespec.ArtifactList{},
+	})
+	require.NoError(t, err)
+	require.Len(t, launcher.batchUpdater.artifacts, 1)
+	artifact := launcher.batchUpdater.artifacts[0].request.Artifact
+	assert.Equal(t, apiv2beta1.Artifact_Artifact, artifact.GetType())
+	require.NotNil(t, artifact.GetMetadata())
+	assert.Equal(t, "google.VertexModel", artifact.GetMetadata()[artifactSchemaTitleMetadataKey].GetStringValue())
+}
+
+func TestUploadOutputArtifacts_DoesNotLetExecutorLogsOverwriteRetryQualifiedURI(t *testing.T) {
+	launcher := &LauncherV2{
+		executorInput: &pipelinespec.ExecutorInput{
+			Outputs: &pipelinespec.ExecutorInput_Outputs{
+				Artifacts: map[string]*pipelinespec.ArtifactList{
+					"executor-logs": {
+						Artifacts: []*pipelinespec.RuntimeArtifact{{
+							Name: "executor-logs",
+							Uri:  "minio://bucket/logs/executor-logs-2",
+							Type: &pipelinespec.ArtifactTypeSchema{
+								Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Artifact"},
+							},
+						}},
+					},
+				},
+			},
+		},
+		options: LauncherV2Options{
+			Namespace: "default",
+			Run:       &apiv2beta1.Run{RunId: "run-1"},
+			Task:      &apiv2beta1.PipelineTask{TaskId: "task-1"},
+		},
+		batchUpdater: NewBatchUpdater(),
+		objectStore:  NewMockObjectStoreClient(),
+	}
+
+	err := launcher.uploadOutputArtifacts(context.Background(), &pipelinespec.ExecutorOutput{
+		Artifacts: map[string]*pipelinespec.ArtifactList{
+			"executor-logs": {
+				Artifacts: []*pipelinespec.RuntimeArtifact{{
+					Uri: "minio://bucket/logs/executor-logs",
+				}},
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, launcher.batchUpdater.artifacts, 1)
+	assert.Equal(t, "minio://bucket/logs/executor-logs-2", *launcher.batchUpdater.artifacts[0].request.Artifact.Uri)
+}
+
 func Test_get_log_Writer(t *testing.T) {
 	old := osCreateFunc
 	defer func() { osCreateFunc = old }()

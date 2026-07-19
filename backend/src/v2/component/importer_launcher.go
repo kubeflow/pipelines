@@ -14,6 +14,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"gocloud.dev/blob"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"k8s.io/client-go/kubernetes"
 
@@ -142,6 +143,9 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 		})
 		if getRunErr != nil {
 			glog.Errorf("failed to refresh run: %v", getRunErr)
+			if executionErr == nil {
+				executionErr = fmt.Errorf("failed to refresh run: %w", getRunErr)
+			}
 			return
 		}
 		l.opts.Run = refreshedRun
@@ -149,6 +153,9 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 		updateStatusErr := l.clientManager.KFPAPIClient().UpdateStatuses(ctx, l.opts.Run, l.opts.PipelineSpec, l.opts.Task)
 		if updateStatusErr != nil {
 			glog.Errorf("failed to update statuses: %v", updateStatusErr)
+			if executionErr == nil {
+				executionErr = fmt.Errorf("failed to update statuses: %w", updateStatusErr)
+			}
 			return
 		}
 	}()
@@ -199,10 +206,11 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 	if l.opts.ImporterSpec.Reimport || preExistingArtifact == nil {
 		glog.Infof("Creating new artifact for importer task %s", l.opts.TaskSpec.GetTaskInfo().GetName())
 		createdArtifact, executionErr := kfpAPI.CreateArtifact(ctx, &apiV2beta1.CreateArtifactRequest{
-			Artifact:    artifactToImport,
-			RunId:       l.opts.Run.RunId,
-			TaskId:      createdTask.TaskId,
-			ProducerKey: artifactOutputKey,
+			Artifact:       artifactToImport,
+			RunId:          l.opts.Run.RunId,
+			TaskId:         createdTask.TaskId,
+			ProducerKey:    artifactOutputKey,
+			IterationIndex: l.opts.IterationIndex,
 		})
 		if executionErr != nil {
 			return executionErr
@@ -218,10 +226,8 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 				TaskId:     createdTask.TaskId,
 				RunId:      l.opts.Run.RunId,
 				Key:        artifactOutputKey,
-				Type:       apiV2beta1.IOType_OUTPUT,
-				Producer: &apiV2beta1.IOProducer{
-					TaskName: l.opts.TaskSpec.GetTaskInfo().GetName(),
-				},
+				Type:       outputIO.GetType(),
+				Producer:   outputIO.GetProducer(),
 			},
 		})
 		if executionErr != nil {
@@ -296,7 +302,7 @@ func (l *ImportLauncher) ImportSpecToArtifact() (artifact *apiV2beta1.Artifact, 
 	}()
 
 	importerSpec := l.opts.ImporterSpec
-	artifactType, err := inferArtifactType(importerSpec.GetTypeSchema())
+	artifactType, schemaTitleForMetadata, err := inferArtifactType(importerSpec.GetTypeSchema())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get schemaType from importer spec: %w", err)
 	}
@@ -364,6 +370,7 @@ func (l *ImportLauncher) ImportSpecToArtifact() (artifact *apiV2beta1.Artifact, 
 	if importerSpec.Metadata != nil {
 		artifact.Metadata = importerSpec.Metadata.GetFields()
 	}
+	artifact.Metadata = preserveArtifactSchemaTitle(artifact.Metadata, schemaTitleForMetadata)
 	if strings.HasPrefix(artifactUri, "oci://") {
 		// OCI artifacts are not supported when workspace is used
 		if l.opts.ImporterSpec.GetDownloadToWorkspace() {
@@ -408,12 +415,29 @@ func (l *ImportLauncher) getArtifactOutputKey() (string, error) {
 	return outputNames[0], nil
 }
 
-func inferArtifactType(typeSchema *pipelinespec.ArtifactTypeSchema) (apiV2beta1.Artifact_ArtifactType, error) {
+const artifactSchemaTitleMetadataKey = "_kfp_schema_title"
+
+func inferArtifactType(typeSchema *pipelinespec.ArtifactTypeSchema) (apiV2beta1.Artifact_ArtifactType, string, error) {
 	schemaType, err := getArtifactSchemaType(typeSchema)
 	if err != nil {
-		return apiV2beta1.Artifact_TYPE_UNSPECIFIED, fmt.Errorf("failed to get schemaType from importer spec: %w", err)
+		return apiV2beta1.Artifact_TYPE_UNSPECIFIED, "", fmt.Errorf("failed to get schemaType from importer spec: %w", err)
 	}
-	return artifactTypeSchemaToArtifactType(schemaType)
+	artifactType, err := artifactTypeSchemaToArtifactType(schemaType)
+	if err != nil {
+		return apiV2beta1.Artifact_Artifact, schemaType, nil
+	}
+	return artifactType, "", nil
+}
+
+func preserveArtifactSchemaTitle(metadata map[string]*structpb.Value, schemaTitle string) map[string]*structpb.Value {
+	if schemaTitle == "" {
+		return metadata
+	}
+	if metadata == nil {
+		metadata = map[string]*structpb.Value{}
+	}
+	metadata[artifactSchemaTitleMetadataKey] = structpb.NewStringValue(schemaTitle)
+	return metadata
 }
 
 func inferArtifactName(uri string) (string, error) {
