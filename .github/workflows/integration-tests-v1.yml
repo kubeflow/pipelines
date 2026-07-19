@@ -71,7 +71,11 @@ jobs:
         run: |
           kubectl kustomize --load-restrictor LoadRestrictionsNone \
             .github/resources/manifests/pipeline-test-fixtures | kubectl apply -f -
+          kubectl set env deployment/ml-pipeline --namespace kubeflow \
+            PIPELINE_URL_VALIDATION_ENABLED=false
           kubectl rollout status deployment/pipeline-test-fixtures \
+            --namespace kubeflow --timeout 90s
+          kubectl rollout status deployment/ml-pipeline \
             --namespace kubeflow --timeout 90s
         continue-on-error: true
 
