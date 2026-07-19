@@ -319,6 +319,12 @@ The following files are generated; edit their sources and regenerate:
 - `kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2.py`
   - Source: `kubernetes_platform/proto/kubernetes_executor_config.proto`
   - Generate: `make -C kubernetes_platform python` (or `make -C kubernetes_platform python-dev`)
+- Backend API clients under `backend/api/{v1beta1,v2beta1}/go_client`,
+  `backend/api/{v1beta1,v2beta1}/go_http_client`, and the generated Swagger files
+  under `backend/api/{v1beta1,v2beta1}/swagger`
+  - Sources: `backend/api/{v1beta1,v2beta1}/*.proto` and `backend/api/Dockerfile`
+  - Generate with the published toolchain: `make -C backend/api API_VERSION=<version> generate`
+  - Generate after changing the toolchain: `make -C backend/api API_VERSION=<version> generate-from-scratch`
 - Frontend OpenAPI clients under `frontend/src/apis`, `frontend/src/apisv2beta1`, `frontend/server/src/generated/apis`, and `frontend/server/src/generated/apisv2beta1`, with shared runtime/model support under `frontend/src/generated/openapi` and `frontend/server/src/generated/openapi`
   - Sources: Swagger specs under `backend/api/**/swagger/*.json`
   - Generate: `cd frontend && npm run apis` / `npm run apis:v2beta1` / `npm run apis:all` (uses pinned Docker image `openapitools/openapi-generator-cli:v7.19.0`)
@@ -521,6 +527,9 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - `ci-scripts-tests.yml` runs the stdlib unit tests for CI tooling and diagnostics on PRs touching `.github/resources/scripts/*.py`, `.github/resources/scripts/*.sh`, or the workflow itself (run locally with `cd .github/resources/scripts && python3 -m unittest discover -v -p '*_test.py'`).
 - Composite actions: `.github/actions/` (e.g., `kfp-k8s`, `create-cluster`, `deploy`, `test-and-report`)
 - Typical checks: Go unit tests (backend), Python SDK tests, frontend tests/lint, image builds.
+- `validate-generated-files.yml` builds the API generator from the pull request's
+  `backend/api/Dockerfile` and reuses that local image for v1beta1 and v2beta1 generation,
+  so generator upgrades and their checked-in outputs can be validated atomically.
 - Frontend workflow (`frontend.yml`) verifies generated API clients are up to date by running `npm run apis:all` and failing on diff.
 
 ### Test matrices and variants (Kubernetes, stores, proxy, cache)
