@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-18
+- Last updated: 2026-07-19
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -553,6 +553,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - Kind's `kindnet` DaemonSet keeps its 100m CPU request but has no CPU limit in CI, allowing the NFQUEUE packet-forwarding path to drain bursts instead of being held to a 100m quota.
 - Runner disk cleanup is conditional: `create-cluster` skips the expensive toolchain/package/container cleanup when at least 60 GiB is already free, but retains the cleanup as a fallback on constrained hosted runners.
 - The `deploy` action downloads and loads CI-built images before deploying optional Tinyproxy support, imports control-plane archives two at a time, preloads runtime base images used by test pods and init containers, and waits for Tinyproxy readiness/endpoints in proxy lanes.
+- The v1 API integration workflow disables pipeline URL validation for its test-only API server and serves URL-import fixtures from the cluster-local `pipeline-test-fixtures` Service, avoiding a runtime dependency on GitHub while preserving URL-import coverage. It establishes the API port-forward only after that configuration rollout replaces the API server pod.
 - Multi-user deploy applies the profile controller before KFP and joins its readiness after the main KFP rollout, overlapping independent startup while preserving the IAM and Profile-creation gates.
 - KFP deployment readiness captures one bounded pod describe/events snapshot when a regular or init container remains in `ContainerCreating` for more than 60 seconds, including when the pod eventually becomes ready.
 - Workflows that deploy CI-built KFP images start Kind cluster setup concurrently with current-branch image builds. The shared deploy action waits for the complete image-artifact inventory immediately before downloading and loading the images; upgrade tests overlap old-release deployment and preparation behind the same barrier.
