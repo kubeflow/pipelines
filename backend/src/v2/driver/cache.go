@@ -87,13 +87,10 @@ func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.Executo
 func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput, cacheClient cacheutils.Client, pvcNames []string) (string, error) {
 	if opts.Task.GetCachingOptions() != nil && opts.Task.GetCachingOptions().GetCacheKey() != "" {
 		hash := sha256.New()
-<<<<<<< HEAD
 		if componentRef := opts.Task.GetComponentRef(); componentRef != nil && componentRef.GetName() != "" {
 			hash.Write([]byte(componentRef.GetName()))
 			hash.Write([]byte{0})
 		}
-=======
->>>>>>> f19fdb2f291ad8f356be70e6712feed65a14563c
 		hash.Write([]byte(opts.Task.GetCachingOptions().GetCacheKey()))
 		return hex.EncodeToString(hash.Sum(nil)), nil
 	}

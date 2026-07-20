@@ -198,12 +198,9 @@ func Test_getFingerPrint(t *testing.T) {
 			name: "custom cache key overrides default fingerprint",
 			opts: Options{
 				Task: &pipelinespec.PipelineTaskSpec{
-<<<<<<< HEAD
 					ComponentRef: &pipelinespec.ComponentRef{
 						Name: "my-component",
 					},
-=======
->>>>>>> f19fdb2f291ad8f356be70e6712feed65a14563c
 					CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
 						EnableCache: true,
 						CacheKey:    "my-custom-cache-key",
@@ -213,7 +210,43 @@ func Test_getFingerPrint(t *testing.T) {
 			executorInput:   &pipelinespec.ExecutorInput{},
 			pvcNames:        nil,
 			mockClient:      &mockCacheClient{},
-<<<<<<< HEAD
+			wantFingerPrint: "ad05e747b67b95e4fc4ce080cdb5850f89744360a85753b90a1a434d46dedd2e",
+			wantErr:         false,
+		},
+		{
+			name: "custom cache key overrides default fingerprint with differing inputs and configs",
+			opts: Options{
+				Task: &pipelinespec.PipelineTaskSpec{
+					ComponentRef: &pipelinespec.ComponentRef{
+						Name: "my-component",
+					},
+					CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
+						EnableCache: true,
+						CacheKey:    "my-custom-cache-key",
+					},
+				},
+				Component: &pipelinespec.ComponentSpec{
+					OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+						Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
+							"output1": {ParameterType: pipelinespec.ParameterType_STRING},
+						},
+					},
+				},
+				Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+					Image:   "different-image:v2",
+					Command: []string{"python", "other.py"},
+					Args:    []string{"--other-flag"},
+				},
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"input1": structpb.NewStringValue("different-value"),
+					},
+				},
+			},
+			pvcNames:        []string{"some-pvc"},
+			mockClient:      &mockCacheClient{},
 			wantFingerPrint: "ad05e747b67b95e4fc4ce080cdb5850f89744360a85753b90a1a434d46dedd2e",
 			wantErr:         false,
 		},
@@ -234,9 +267,6 @@ func Test_getFingerPrint(t *testing.T) {
 			pvcNames:        nil,
 			mockClient:      &mockCacheClient{},
 			wantFingerPrint: "3b3a067cac2d9161742542c6afa8a1291699e27c637dd0d5d66cd8b2bdc5ab76",
-=======
-			wantFingerPrint: "9afdb59f804d9035ff4e4e9f3ee2baf67d11110049565cda5e31796fc48171de",
->>>>>>> f19fdb2f291ad8f356be70e6712feed65a14563c
 			wantErr:         false,
 		},
 	}
@@ -436,12 +466,9 @@ func Test_getFingerPrintsAndID(t *testing.T) {
 				Namespace:    "default",
 				Task: &pipelinespec.PipelineTaskSpec{
 					TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "my-task"},
-<<<<<<< HEAD
 					ComponentRef: &pipelinespec.ComponentRef{
 						Name: "my-component",
 					},
-=======
->>>>>>> f19fdb2f291ad8f356be70e6712feed65a14563c
 					CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
 						EnableCache: true,
 						CacheKey:    "custom-key",
@@ -450,19 +477,11 @@ func Test_getFingerPrintsAndID(t *testing.T) {
 			},
 			mockClient: &mockCacheClient{
 				getExecutionCacheFunc: func(fingerPrint, pipelineName, namespace string) (string, error) {
-<<<<<<< HEAD
 					assert.Equal(t, "7a5348ebd8b216ba326ef72a8cfa070636c903428e429684b03e42dd1e772641", fingerPrint)
 					return "cached-exec-999", nil
 				},
 			},
 			wantFingerPrint: "7a5348ebd8b216ba326ef72a8cfa070636c903428e429684b03e42dd1e772641",
-=======
-					assert.Equal(t, "1481b6fd3ceddb4ae3c27c41a53f483681c3bb937c95fed0fb706b1494707221", fingerPrint)
-					return "cached-exec-999", nil
-				},
-			},
-			wantFingerPrint: "1481b6fd3ceddb4ae3c27c41a53f483681c3bb937c95fed0fb706b1494707221",
->>>>>>> f19fdb2f291ad8f356be70e6712feed65a14563c
 			wantExecutionID: "cached-exec-999",
 			wantErr:         false,
 		},
