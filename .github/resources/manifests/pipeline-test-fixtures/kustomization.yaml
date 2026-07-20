@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kubeflow
+
+resources:
+  - deployment.yaml
+  - service.yaml
+
+configMapGenerator:
+  - name: pipeline-test-fixtures
+    files:
+      - backend-test-v2-resources-sequential.yaml=../../../../backend/test/v2/resources/sequential.yaml
+      - backend-test-v2-resources-arguments-parameters.zip=../../../../backend/test/v2/resources/arguments_parameters.zip
+      - backend-test-resources-arguments-parameters.zip=../../../../backend/test/resources/arguments_parameters.zip
+      - test-data-sequential-v1.yaml=../../../../test_data/sdk_compiled_pipelines/valid/sequential_v1.yaml
+      - test-data-arguments-parameters.zip=../../../../test_data/sdk_compiled_pipelines/valid/arguments_parameters.zip

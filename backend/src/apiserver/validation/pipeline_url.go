@@ -192,9 +192,9 @@ func isBlockedIP(ip net.IP) bool {
 	return false
 }
 
-// SafePipelineHTTPClient creates an HTTP client with timeout, redirect validation,
-// and a custom dialer that enforces IP validation at connection time to prevent
-// DNS rebinding (TOCTOU) attacks.
+// SafePipelineHTTPClient creates an HTTP client with timeout and redirect validation.
+// When URL validation is enabled, its custom dialer also enforces IP validation at
+// connection time to prevent DNS rebinding (TOCTOU) attacks.
 const minimumHTTPTimeout = 1
 
 func SafePipelineHTTPClient() *http.Client {
@@ -206,7 +206,11 @@ func SafePipelineHTTPClient() *http.Client {
 
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.Proxy = nil
-	transport.DialContext = safeDialContext
+	// The validation switch is test-only and must bypass both the URL checks and
+	// the connection-time private IP guard. Production keeps the secure default.
+	if common.GetBoolConfigWithDefault(common.PipelineURLValidationEnabled, true) {
+		transport.DialContext = safeDialContext
+	}
 
 	return &http.Client{
 		Timeout:   timeout,
