@@ -301,7 +301,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 			taskToCreate.State = apiV2beta1.PipelineTask_CACHED
 			taskToCreate.Outputs = cachedOutputs
 			taskToCreate.EndTime = timestamppb.Now()
-			taskToCreate.StatusMetadata = nil
+			taskToCreate.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{}
 			if _, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
 				TaskId: taskToCreate.GetTaskId(),
 				Task:   taskToCreate,
@@ -652,21 +652,22 @@ func convertArtifactToRuntimeArtifact(
 	if artifact.GetName() == "" && artifact.GetUri() == "" {
 		return nil, fmt.Errorf("artifact name or uri cannot be empty")
 	}
+	schemaTitle, metadata := component.RuntimeArtifactSchemaTitleAndMetadata(artifact.GetType(), artifact.GetMetadata())
 	runtimeArtifact := &pipelinespec.RuntimeArtifact{
 		Name:       artifact.GetName(),
 		ArtifactId: artifact.GetArtifactId(),
 		Type: &pipelinespec.ArtifactTypeSchema{
 			Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
-				SchemaTitle: artifact.Type.String(),
+				SchemaTitle: schemaTitle,
 			},
 		},
 	}
 	if artifact.GetUri() != "" {
 		runtimeArtifact.Uri = artifact.GetUri()
 	}
-	if artifact.GetMetadata() != nil {
+	if metadata != nil {
 		runtimeArtifact.Metadata = &structpb.Struct{
-			Fields: artifact.GetMetadata(),
+			Fields: metadata,
 		}
 	}
 	return runtimeArtifact, nil

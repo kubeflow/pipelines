@@ -19,6 +19,7 @@ import (
 
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -277,4 +278,27 @@ func TestConvertArtifactsToArtifactList_MetricsNumberValueInMetadata(t *testing.
 	assert.Equal(t, 2, len(metadata), "Should have both metrics in metadata")
 	assert.NotNil(t, metadata["accuracy"], "Should have accuracy from NumberValue")
 	assert.NotNil(t, metadata["precision"], "Should have precision from metadata")
+}
+
+func TestConvertArtifactToRuntimeArtifact_RestoresCustomSchemaTitle(t *testing.T) {
+	artifact := &apiV2beta1.Artifact{
+		ArtifactId: "artifact-1",
+		Name:       "vertex-model",
+		Type:       apiV2beta1.Artifact_Artifact,
+		Metadata: map[string]*structpb.Value{
+			"_kfp_schema_title": structpb.NewStringValue("google.VertexModel"),
+			"region":            structpb.NewStringValue("us-east1"),
+		},
+	}
+
+	runtimeArtifact, err := convertArtifactToRuntimeArtifact(artifact)
+	require.NoError(t, err)
+	require.NotNil(t, runtimeArtifact)
+	require.NotNil(t, runtimeArtifact.Type)
+	require.NotNil(t, runtimeArtifact.Metadata)
+
+	assert.Equal(t, "google.VertexModel", runtimeArtifact.Type.GetSchemaTitle())
+	assert.Equal(t, "us-east1", runtimeArtifact.Metadata.Fields["region"].GetStringValue())
+	assert.NotContains(t, runtimeArtifact.Metadata.Fields, "_kfp_schema_title")
+	assert.Contains(t, artifact.GetMetadata(), "_kfp_schema_title")
 }

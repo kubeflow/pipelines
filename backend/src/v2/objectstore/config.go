@@ -158,7 +158,7 @@ func SplitObjectURI(uri string) (prefix, base string, err error) {
 	}
 
 	// Trim trailing slash (if any)
-	cleanPath := strings.TrimSuffix(u.EscapedPath(), "/")
+	cleanPath := strings.TrimSuffix(u.Path, "/")
 
 	// Get base name and dir prefix
 	base = path.Base(cleanPath)

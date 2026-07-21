@@ -534,6 +534,9 @@ func (s *TaskStore) FindTaskByLogicalIdentity(task *model.Task) (*model.Task, er
 		return existingTask, err
 	}
 
+	// TODO: Remove this legacy LogicalKey fallback once the planned migration
+	// backfill has populated existing task rows. This bridge is only needed for
+	// pre-backfill tasks that still have NULL LogicalKey values during rollout.
 	rowsSQL, rowsArgs, err := sq.
 		Select(taskColumns...).
 		From(tableName).

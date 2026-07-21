@@ -3,6 +3,7 @@ package component
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net/url"
 	"path"
 	"strings"
@@ -438,6 +439,30 @@ func preserveArtifactSchemaTitle(metadata map[string]*structpb.Value, schemaTitl
 	}
 	metadata[artifactSchemaTitleMetadataKey] = structpb.NewStringValue(schemaTitle)
 	return metadata
+}
+
+// RuntimeArtifactSchemaTitleAndMetadata restores custom schema titles from stored
+// metadata and removes the internal marker before exposing metadata downstream.
+func RuntimeArtifactSchemaTitleAndMetadata(
+	artifactType apiV2beta1.Artifact_ArtifactType,
+	metadata map[string]*structpb.Value,
+) (string, map[string]*structpb.Value) {
+	schemaTitle := artifactType.String()
+	if metadata == nil {
+		return schemaTitle, nil
+	}
+
+	storedSchemaTitle, ok := metadata[artifactSchemaTitleMetadataKey]
+	if !ok || storedSchemaTitle.GetStringValue() == "" {
+		return schemaTitle, metadata
+	}
+
+	restoredMetadata := maps.Clone(metadata)
+	delete(restoredMetadata, artifactSchemaTitleMetadataKey)
+	if len(restoredMetadata) == 0 {
+		restoredMetadata = nil
+	}
+	return storedSchemaTitle.GetStringValue(), restoredMetadata
 }
 
 func inferArtifactName(uri string) (string, error) {

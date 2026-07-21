@@ -36,6 +36,43 @@ func TestSplitObjectURI_RejectsEncodedQueryDelimitersInPath(t *testing.T) {
 	require.Contains(t, err.Error(), "encoded query delimiters")
 }
 
+func TestSplitObjectURI_PreservesDecodedObjectKeys(t *testing.T) {
+	testCases := []struct {
+		name       string
+		uri        string
+		wantPrefix string
+		wantBase   string
+	}{
+		{
+			name:       "space",
+			uri:        "s3://bucket/path/my%20model",
+			wantPrefix: "s3://bucket/path",
+			wantBase:   "my model",
+		},
+		{
+			name:       "percent",
+			uri:        "s3://bucket/path/100%25complete",
+			wantPrefix: "s3://bucket/path",
+			wantBase:   "100%complete",
+		},
+		{
+			name:       "unicode",
+			uri:        "s3://bucket/path/caf%C3%A9",
+			wantPrefix: "s3://bucket/path",
+			wantBase:   "café",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			prefix, base, err := SplitObjectURI(testCase.uri)
+			require.NoError(t, err)
+			require.Equal(t, testCase.wantPrefix, prefix)
+			require.Equal(t, testCase.wantBase, base)
+		})
+	}
+}
+
 func TestParseBucketPathToConfig_RejectsEncodedQueryDelimitersInPath(t *testing.T) {
 	_, err := ParseBucketPathToConfig("s3://bucket/other/%3Fendpoint=attacker.example:9000%26disableSSL=true/")
 	require.Error(t, err)
