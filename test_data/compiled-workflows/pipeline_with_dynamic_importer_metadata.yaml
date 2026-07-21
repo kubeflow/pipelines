@@ -39,6 +39,8 @@ spec:
       - '{{inputs.parameters.parent-dag-task-id}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
+      - --namespace
+      - $(NAMESPACE)
       - --pod_name
       - $(KFP_POD_NAME)
       - --pod_uid

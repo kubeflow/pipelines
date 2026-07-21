@@ -339,8 +339,8 @@ spec:
             value: sum-numbers
           - name: parent-dag-task-id
             value: '{{inputs.parameters.parent-dag-task-id}}'
-        depends: accelerator-limit.Succeeded && accelerator-type.Succeeded && cpu-limit.Succeeded
-          && memory-limit.Succeeded
+        depends: accelerator-limit.Succeeded && accelerator-type.Succeeded && memory-limit.Succeeded
+          && cpu-limit.Succeeded
         name: sum-numbers-driver
         template: system-container-driver
       - arguments:
