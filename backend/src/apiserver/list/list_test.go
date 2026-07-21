@@ -145,6 +145,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 			},
 			want: &token{
 				SortByFieldName:   "CreatedTimestamp",
+				SortBySQLColumn:   "CreatedTimestamp",
 				SortByFieldValue:  int64(1234),
 				SortByFieldPrefix: "",
 				KeyFieldName:      "PrimaryKey",
@@ -159,6 +160,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 			},
 			want: &token{
 				SortByFieldName:   "PrimaryKey",
+				SortBySQLColumn:   "PrimaryKey",
 				SortByFieldValue:  "uuid123",
 				SortByFieldPrefix: "",
 				KeyFieldName:      "PrimaryKey",
@@ -173,6 +175,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 			},
 			want: &token{
 				SortByFieldName:   "FakeName",
+				SortBySQLColumn:   "FakeName",
 				SortByFieldValue:  "Fake",
 				SortByFieldPrefix: "",
 				KeyFieldName:      "PrimaryKey",
@@ -191,6 +194,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 			},
 			want: &token{
 				SortByFieldName:   "FakeName",
+				SortBySQLColumn:   "FakeName",
 				SortByFieldValue:  "Fake",
 				SortByFieldPrefix: "",
 				KeyFieldName:      "PrimaryKey",
@@ -209,6 +213,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 			},
 			want: &token{
 				SortByFieldName:   "m1",
+				SortBySQLColumn:   "m1",
 				SortByFieldValue:  1.0,
 				SortByFieldPrefix: "",
 				KeyFieldName:      "PrimaryKey",
@@ -974,14 +979,19 @@ func TestListSortBehaviorMatrix(t *testing.T) {
 			wantSortByMetric string
 		}{
 			{
-				"C metric",
-				`{"SortByFieldName":"sort_metric_value","SortByMetricName":"accuracy","KeyFieldName":"UUID"}`,
+				"C compat metric (SortByFieldName has metric name, SortBySQLColumn has alias)",
+				`{"SortByFieldName":"accuracy","SortByMetricName":"accuracy","SortBySQLColumn":"sort_metric_value","KeyFieldName":"UUID"}`,
 				model.MetricSortSQLAlias, "accuracy",
 			},
 			{
-				"C metric with slash",
-				`{"SortByFieldName":"sort_metric_value","SortByMetricName":"val/loss","KeyFieldName":"UUID"}`,
+				"C compat metric with slash",
+				`{"SortByFieldName":"val/loss","SortByMetricName":"val/loss","SortBySQLColumn":"sort_metric_value","KeyFieldName":"UUID"}`,
 				model.MetricSortSQLAlias, "val/loss",
+			},
+			{
+				"C pure metric (post-2.19, no SortBySQLColumn)",
+				`{"SortByFieldName":"sort_metric_value","SortByMetricName":"accuracy","KeyFieldName":"UUID"}`,
+				model.MetricSortSQLAlias, "accuracy",
 			},
 			{
 				"B precise migration",
@@ -1113,6 +1123,56 @@ func TestListSortBehaviorMatrix(t *testing.T) {
 				}
 				if got.SortBySQLColumn != "" {
 					t.Errorf("SortBySQLColumn = %q, want empty", got.SortBySQLColumn)
+				}
+			})
+		}
+	})
+
+	t.Run("DimensionC2_RoundTrip_CompatToken", func(t *testing.T) {
+		// Verify that a compatibility-window token (2.18: SortByFieldName has
+		// the metric name, SortBySQLColumn has the SQL alias) round-trips
+		// correctly through unmarshal's归位 logic.
+		run := &model.Run{}
+		tests := []struct {
+			name             string
+			in               *token
+			wantSortByField  string
+			wantSortByMetric string
+		}{
+			{
+				"compat regular field",
+				&token{SortByFieldName: "CreatedAtInSec", SortBySQLColumn: "CreatedAtInSec", KeyFieldName: "UUID"},
+				"CreatedAtInSec", "",
+			},
+			{
+				"compat metric accuracy",
+				&token{SortByFieldName: "accuracy", SortByMetricName: "accuracy", SortBySQLColumn: model.MetricSortSQLAlias, KeyFieldName: "UUID"},
+				model.MetricSortSQLAlias, "accuracy",
+			},
+			{
+				"compat metric val/loss",
+				&token{SortByFieldName: "val/loss", SortByMetricName: "val/loss", SortBySQLColumn: model.MetricSortSQLAlias, KeyFieldName: "UUID"},
+				model.MetricSortSQLAlias, "val/loss",
+			},
+		}
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				encoded, err := tc.in.marshal()
+				if err != nil {
+					t.Fatalf("marshal: %v", err)
+				}
+				got := &token{}
+				if err := got.unmarshal(run, encoded); err != nil {
+					t.Fatalf("unmarshal: %v", err)
+				}
+				if got.SortByFieldName != tc.wantSortByField {
+					t.Errorf("SortByFieldName = %q, want %q", got.SortByFieldName, tc.wantSortByField)
+				}
+				if got.SortByMetricName != tc.wantSortByMetric {
+					t.Errorf("SortByMetricName = %q, want %q", got.SortByMetricName, tc.wantSortByMetric)
+				}
+				if got.SortBySQLColumn != "" {
+					t.Errorf("SortBySQLColumn = %q, want empty after归位", got.SortBySQLColumn)
 				}
 			})
 		}

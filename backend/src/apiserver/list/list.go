@@ -51,12 +51,13 @@ type token struct {
 	// parameter value in CASE WHEN / JOIN queries, never as a SQL identifier.
 	// Empty for non-metric sorts.
 	SortByMetricName string
-	// SortBySQLColumn is a legacy field from a prior token layout (commit
-	// ac3a4c656) where SortByFieldName held the raw metric name and
-	// SortBySQLColumn held the SQL alias. It is no longer written by the current
-	// code; it is only read transiently during unmarshal to recognize and
-	// migrate those legacy tokens, then cleared. See PAGE_TOKEN_SORT_DESIGN.md.
-	SortBySQLColumn string `json:",omitempty"`
+	// SortBySQLColumn holds the SQL-safe column name for backward compatibility
+	// with version B (2.17) servers during rolling upgrades. nextPageToken()
+	// writes it so that B servers can read C tokens correctly. unmarshal()
+	// uses it to restore SortByFieldName when reading a compatibility-window
+	// token, then clears it. Also used to detect and migrate legacy B tokens.
+	// Remove after 2.19. See PAGE_TOKEN_SORT_DESIGN.md.
+	SortBySQLColumn string
 	// SortByFieldValue is the value of the sorted field of the next row to be
 	// returned.
 	SortByFieldValue  interface{}
@@ -189,7 +190,14 @@ func (t *token) unmarshal(listable Listable, pageToken string) error {
 			}
 		}
 	case tokenVersionC:
-		// already current layout; nothing to migrate.
+		// During the 2.18 backward-compatibility window, nextPageToken() writes
+		// the metric name into SortByFieldName (for Pod B compat) and the SQL
+		// alias into SortBySQLColumn. Restore SortByFieldName to the SQL-safe
+		// column name. Remove after 2.19 when nextPageToken() stops writing
+		// SortBySQLColumn.
+		if t.SortBySQLColumn != "" {
+			t.SortByFieldName = t.SortBySQLColumn
+		}
 	}
 	// SortBySQLColumn is consumed; never let it propagate further.
 	t.SortBySQLColumn = ""
@@ -556,9 +564,18 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 		return nil, util.NewInvalidInputError("type %q does not have key field %q", elemName, o.KeyFieldName)
 	}
 
+	// For backward compatibility with version B (2.17) servers during rolling
+	// upgrades, write SortBySQLColumn and, for metric sorts, place the metric
+	// name in SortByFieldName (where B expects it). Remove after 2.19.
+	sortByFieldName := o.SortByFieldName
+	if o.SortByMetricName != "" {
+		sortByFieldName = o.SortByMetricName
+	}
+
 	return &token{
-		SortByFieldName:   o.SortByFieldName,
+		SortByFieldName:   sortByFieldName,
 		SortByMetricName:  o.SortByMetricName,
+		SortBySQLColumn:   o.SortByFieldName,
 		SortByFieldValue:  sortByField,
 		SortByFieldPrefix: listable.GetSortByFieldPrefix(o.SortByFieldName),
 		KeyFieldName:      listable.PrimaryKeyColumnName(),
