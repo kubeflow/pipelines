@@ -20,6 +20,7 @@ import tempfile
 import textwrap
 from typing import Optional
 import unittest
+from unittest import mock
 
 SCRIPT = Path(__file__).with_name('wait-for-image-artifacts.sh')
 ARTIFACTS = (
@@ -71,6 +72,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             fake_gh.chmod(0o755)
 
             environment = os.environ.copy()
+            environment.pop('WAIT_ATTEMPTS', None)
             environment.update({
                 'ARTIFACT_NAMES': ' '.join(ARTIFACTS),
                 'GH_COUNTER': str(counter),
@@ -106,6 +108,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self.assertIn('Waiting for branch image artifacts', result.stdout)
         self.assertEqual(attempts, 2)
 
+    @mock.patch.dict(os.environ, {'WAIT_ATTEMPTS': '1'})
     def test_default_wait_exceeds_previous_ten_minute_budget(self):
         result, attempts = self._run(ready_after=21, attempts=None)
 
