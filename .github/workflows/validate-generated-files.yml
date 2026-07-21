@@ -14,10 +14,13 @@ on:
       - 'backend/api/**/go_client/**'
       - 'backend/api/**/python_http_client/**'
       - 'backend/api/**/swagger/**'
+      - 'api/Makefile'
       - 'api/**/*.proto'
       - 'api/**/*.go'
+      - 'kubernetes_platform/Makefile'
       - 'kubernetes_platform/**/*.proto'
       - 'kubernetes_platform/**/*.go'
+      - 'sdk/Makefile'
       - 'backend/src/crd/kubernetes/**/*.go'
       - 'manifests/kustomize/base/crds/*.yaml'
       - 'sdk/**/*.py'
@@ -33,6 +36,8 @@ concurrency:
 jobs:
   validate-generated-files:
     runs-on: ubuntu-latest
+    env:
+      USE_PREBUILT_IMAGE: false
     strategy:
       fail-fast: false
 
@@ -49,6 +54,10 @@ jobs:
           cache-scope: validate-generated-files
           cache-dependency-hash: ${{ hashFiles('sdk/python/requirements*.txt', 'kubernetes_platform/python/requirements*.txt') }}
 
+      - name: Set up Docker Buildx with caching
+        shell: bash
+        run: bash ./.github/resources/scripts/setup-buildx-with-retry.sh
+
       - name: Install protobuf dependencies & kfp-pipeline-spec
         id: install-protobuf-deps
         uses: ./.github/actions/protobuf
@@ -61,10 +70,6 @@ jobs:
         with:
           generate_golang_proto: "true"
 
-      - name: Set up Docker Buildx with caching
-        shell: bash
-        run: bash ./.github/resources/scripts/setup-buildx-with-retry.sh
-
       - name: Generate K8s Native API CRDs
         working-directory: ./backend/src/crd/kubernetes
         run: make generate manifests
@@ -73,28 +78,24 @@ jobs:
         working-directory: ./backend/api
         env:
           API_VERSION: v2beta1
-          USE_PREBUILT_IMAGE: false
         run: make generate
 
       - name: Generate backend proto code v1beta1
         working-directory: ./backend/api
         env:
           API_VERSION: v1beta1
-          USE_PREBUILT_IMAGE: false
         run: make generate
 
       - name: Generate backend proto code v2beta1
         working-directory: ./backend/api
         env:
           API_VERSION: v2beta1
-          USE_PREBUILT_IMAGE: false
         run: make generate-kfp-server-api-package
 
       - name: Generate backend proto code v1beta1
         working-directory: ./backend/api
         env:
           API_VERSION: v1beta1
-          USE_PREBUILT_IMAGE: false
         run: make generate-kfp-server-api-package
 
       - name: Check for Changes

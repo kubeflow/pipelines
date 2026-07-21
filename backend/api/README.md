@@ -138,8 +138,7 @@ USE_PREBUILT_IMAGE=false make generate-kfp-server-api-package   # Builds from so
 
 ### Docker Requirements
 
-- **Docker**: Required for all API generation operations
-- **Docker Buildx**: Automatically set up for improved caching performance
+- **Docker**: Required for all API generation operations (BuildKit is enabled automatically for layer caching)
 
 ### Manual API Generator Image Publishing
 

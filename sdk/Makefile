@@ -45,7 +45,7 @@ endif
 
 # Build Python package by building api-generator image from source.
 .PHONY: python-from-source
-python-from-source: .api-generator-built
+python-from-source: ensure-api-generator-image
 	docker run --interactive --rm \
 		--user $$(id -u):$$(id -g) \
 		-e HOME=/tmp \
@@ -60,8 +60,7 @@ clean-python:
 	rm -rf python/dist
 	rm -rf python/kfp.egg-info
 
-# Build the API generator image locally to ensure current tool versions
-.api-generator-built: ../backend/api/Dockerfile
-	DOCKER_BUILDKIT=1 docker build .. -t $(IMAGE_TAG) -f ../backend/api/Dockerfile \
-		--cache-from $(IMAGE_TAG):latest
-	touch .api-generator-built
+# Build the API generator image via the canonical target in backend/api
+.PHONY: ensure-api-generator-image
+ensure-api-generator-image:
+	$(MAKE) -C ../backend/api image
