@@ -413,7 +413,9 @@ class TaskSpec:
         enable_caching (optional): whether or not to enable caching for the task.
             Default is True.
         cache_key (optional): Customized cache key for this task.
-            Default is None.
+            The customized cache key is combined with the component's identity to
+            prevent cross-component cache collisions, overriding automatic task
+            fingerprinting. Default is None.
         display_name (optional): the display name of the task. If not specified,
             the task name will be used as the display name.
     """
