@@ -1011,7 +1011,7 @@ func Test_executeV2(t *testing.T) {
 	assert.Greater(t, metrics["queued_task_updates"], 0, "Expected task updates to be queued")
 }
 
-func Test_executeV2_IgnoresMissingOutputArtifactFile(t *testing.T) {
+func Test_executeV2_FailsWhenDeclaredOutputArtifactFileIsMissing(t *testing.T) {
 	componentSpec := &pipelinespec.ComponentSpec{
 		OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
 			Artifacts: map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec{
@@ -1095,7 +1095,8 @@ func Test_executeV2_IgnoresMissingOutputArtifactFile(t *testing.T) {
 	launcher.WithFileSystem(mockFS).WithCommandExecutor(mockCmd).WithObjectStore(mockObjStore)
 
 	_, err = launcher.ExecuteForTesting(context.Background())
-	require.NoError(t, err)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "declared output artifact \"model\" is missing")
 }
 
 func TestUploadOutputArtifacts_SkipsUnsupportedURIsWithoutUploading(t *testing.T) {

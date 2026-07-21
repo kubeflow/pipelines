@@ -815,8 +815,12 @@ func (l *LauncherV2) uploadOutputArtifacts(
 					err = l.objectStore.UploadArtifact(ctx, localPath, outputArtifact.Uri, artifactKey)
 					if err != nil {
 						if errors.Is(err, os.ErrNotExist) {
-							glog.Warningf("Local filepath %q does not exist for output artifact %q", localPath, artifactKey)
-							continue
+							return fmt.Errorf(
+								"declared output artifact %q is missing at %q: %w",
+								artifactKey,
+								localPath,
+								err,
+							)
 						}
 						return fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", artifactKey, outputArtifact.Uri, err)
 					}
