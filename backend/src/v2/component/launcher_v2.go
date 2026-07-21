@@ -32,6 +32,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"gocloud.dev/blob"
@@ -588,47 +589,17 @@ func (l *LauncherV2) ExecuteForTesting(ctx context.Context) (*pipelinespec.Execu
 	return l.executeV2(ctx)
 }
 
-func (l *LauncherV2) outputPropagationOptions() OutputPropagationOptions {
-	return OutputPropagationOptions{
-		Run:          l.options.Run,
-		Task:         l.options.Task,
-		ParentTask:   l.options.ParentTask,
-		ScopePath:    l.options.ScopePath,
-		PipelineSpec: l.pipelineSpec,
-	}
-}
-
-func propagateOutputsUpDAGWithBatchUpdater(
-	ctx context.Context,
-	opts OutputPropagationOptions,
-	clientManager client_manager.ClientManagerInterface,
-	batchUpdater *BatchUpdater,
-) error {
-	launcher := &LauncherV2{
-		options: LauncherV2Options{
-			Run:        opts.Run,
-			Task:       opts.Task,
-			ParentTask: opts.ParentTask,
-			ScopePath:  opts.ScopePath,
-		},
-		clientManager:     clientManager,
-		pipelineSpec:      opts.PipelineSpec,
-		batchUpdater:      batchUpdater,
-		openedBucketCache: make(map[string]*blob.Bucket),
-	}
-	return propagateOutputsUpDAGWithLauncher(ctx, launcher)
-}
-
 func PropagateOutputsUpDAGForTask(
 	ctx context.Context,
 	opts OutputPropagationOptions,
 	clientManager client_manager.ClientManagerInterface,
 ) error {
 	batchUpdater := NewBatchUpdater()
-	if err := propagateOutputsUpDAGWithBatchUpdater(ctx, opts, clientManager, batchUpdater); err != nil {
+	apiClient := clientManager.KFPAPIClient()
+	if err := propagateOutputsUpDAG(ctx, opts, apiClient, batchUpdater); err != nil {
 		return err
 	}
-	return batchUpdater.Flush(ctx, clientManager.KFPAPIClient())
+	return batchUpdater.Flush(ctx, apiClient)
 }
 
 // ObjectStoreDependencies interface implementation for LauncherV2
@@ -967,20 +938,31 @@ func determineIOType(
 // for parent DAGs that declare the current task's outputs in their outputDefinitions.
 // This enables output collection from child tasks (e.g., loop iterations) to parent DAGs.
 func (l *LauncherV2) propagateOutputsUpDAG(ctx context.Context) error {
-	return propagateOutputsUpDAGWithLauncher(ctx, l)
+	return propagateOutputsUpDAG(ctx, OutputPropagationOptions{
+		Run:          l.options.Run,
+		Task:         l.options.Task,
+		ParentTask:   l.options.ParentTask,
+		ScopePath:    l.options.ScopePath,
+		PipelineSpec: l.pipelineSpec,
+	}, l.clientManager.KFPAPIClient(), l.batchUpdater)
 }
 
-func propagateOutputsUpDAGWithLauncher(ctx context.Context, l *LauncherV2) error {
-	// If this task has no parent, nothing to propagate
-	if l.options.ParentTask == nil {
+func propagateOutputsUpDAG(
+	ctx context.Context,
+	opts OutputPropagationOptions,
+	apiClient kfpapi.API,
+	batchUpdater *BatchUpdater,
+) error {
+	// If this task has no parent, nothing to propagate.
+	if opts.ParentTask == nil {
 		return nil
 	}
 
-	currentTask := l.options.Task
+	currentTask := opts.Task
 	if currentTask.GetTaskId() != "" {
-		refreshedTask, err := l.clientManager.KFPAPIClient().GetTask(ctx, &apiV2beta1.GetTaskRequest{
+		refreshedTask, err := apiClient.GetTask(ctx, &apiV2beta1.GetTaskRequest{
 			TaskId: currentTask.GetTaskId(),
-			RunId:  l.options.Run.GetRunId(),
+			RunId:  opts.Run.GetRunId(),
 		})
 		if err != nil {
 			return fmt.Errorf("failed to refresh current task %s before propagation: %w", currentTask.GetTaskId(), err)
@@ -1002,8 +984,8 @@ func propagateOutputsUpDAGWithLauncher(ctx context.Context, l *LauncherV2) error
 	}
 
 	// Start traversing up from the immediate parent
-	parentTask := l.options.ParentTask
-	currentScopePath := l.options.ScopePath
+	parentTask := opts.ParentTask
+	currentScopePath := opts.ScopePath
 	isFirstLevel := true // Track if this is first-level propagation (from producing task to immediate parent)
 
 	// Track propagated outputs (artifacts and parameters) for next level
@@ -1023,9 +1005,9 @@ func propagateOutputsUpDAGWithLauncher(ctx context.Context, l *LauncherV2) error
 
 	for parentTask != nil {
 		if parentTask.GetTaskId() != "" {
-			refreshedParentTask, err := l.clientManager.KFPAPIClient().GetTask(ctx, &apiV2beta1.GetTaskRequest{
+			refreshedParentTask, err := apiClient.GetTask(ctx, &apiV2beta1.GetTaskRequest{
 				TaskId: parentTask.GetTaskId(),
-				RunId:  l.options.Run.GetRunId(),
+				RunId:  opts.Run.GetRunId(),
 			})
 			if err != nil {
 				return fmt.Errorf("failed to refresh parent task %s before propagation: %w", parentTask.GetTaskId(), err)
@@ -1034,7 +1016,7 @@ func propagateOutputsUpDAGWithLauncher(ctx context.Context, l *LauncherV2) error
 		}
 
 		// Get the parent's component spec to check outputDefinitions
-		parentScopePath, err := util.ScopePathFromDotNotation(l.pipelineSpec, parentTask.GetScopePath())
+		parentScopePath, err := util.ScopePathFromDotNotation(opts.PipelineSpec, parentTask.GetScopePath())
 		if err != nil {
 			return fmt.Errorf("failed to get scope path for parent task %s: %w", parentTask.GetTaskId(), err)
 		}
@@ -1095,12 +1077,12 @@ func propagateOutputsUpDAGWithLauncher(ctx context.Context, l *LauncherV2) error
 					artifactTask := &apiV2beta1.ArtifactTask{
 						ArtifactId: artifact.GetArtifactId(),
 						TaskId:     parentTask.GetTaskId(),
-						RunId:      l.options.Run.GetRunId(),
+						RunId:      opts.Run.GetRunId(),
 						Key:        matchingParentKey,
 						Type:       ioType,
 						Producer:   producer,
 					}
-					l.batchUpdater.QueueArtifactTask(artifactTask)
+					batchUpdater.QueueArtifactTask(artifactTask)
 					newPropagatedArtifacts = append(newPropagatedArtifacts, propagatedArtifactInfo{
 						propagatedInfo: propagatedInfo{
 							key:      matchingParentKey,
@@ -1173,7 +1155,7 @@ func propagateOutputsUpDAGWithLauncher(ctx context.Context, l *LauncherV2) error
 
 		// Queue parent task update if we modified it with parameters
 		if len(newPropagatedParameters) > 0 {
-			l.batchUpdater.QueueTaskUpdate(currentParentTask)
+			batchUpdater.QueueTaskUpdate(currentParentTask)
 		}
 
 		// Move up to the next parent
@@ -1181,9 +1163,9 @@ func propagateOutputsUpDAGWithLauncher(ctx context.Context, l *LauncherV2) error
 			break
 		}
 
-		nextParent, err := l.clientManager.KFPAPIClient().GetTask(ctx, &apiV2beta1.GetTaskRequest{
+		nextParent, err := apiClient.GetTask(ctx, &apiV2beta1.GetTaskRequest{
 			TaskId: *parentTask.ParentTaskId,
-			RunId:  l.options.Run.GetRunId(),
+			RunId:  opts.Run.GetRunId(),
 		})
 		if err != nil {
 			return fmt.Errorf("failed to refresh next parent task %s before propagation: %w", *parentTask.ParentTaskId, err)

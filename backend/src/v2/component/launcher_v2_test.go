@@ -181,6 +181,117 @@ func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 	}
 }
 
+func TestPropagateOutputsUpDAGForTask_UsesExplicitDependencies(t *testing.T) {
+	pipelineSpec := &pipelinespec.PipelineSpec{
+		Root: &pipelinespec.ComponentSpec{
+			Implementation: &pipelinespec.ComponentSpec_Dag{
+				Dag: &pipelinespec.DagSpec{
+					Tasks: map[string]*pipelinespec.PipelineTaskSpec{
+						"worker": {
+							TaskInfo:     &pipelinespec.PipelineTaskInfo{Name: "worker"},
+							ComponentRef: &pipelinespec.ComponentRef{Name: "worker-comp"},
+						},
+					},
+					Outputs: &pipelinespec.DagOutputsSpec{
+						Parameters: map[string]*pipelinespec.DagOutputsSpec_DagOutputParameterSpec{
+							"pipeline-output": {
+								Kind: &pipelinespec.DagOutputsSpec_DagOutputParameterSpec_ValueFromParameter{
+									ValueFromParameter: &pipelinespec.DagOutputsSpec_ParameterSelectorSpec{
+										ProducerSubtask:    "worker",
+										OutputParameterKey: "result",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+				Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
+					"pipeline-output": {ParameterType: pipelinespec.ParameterType_STRING},
+				},
+			},
+		},
+		Components: map[string]*pipelinespec.ComponentSpec{
+			"worker-comp": {
+				Implementation: &pipelinespec.ComponentSpec_ExecutorLabel{ExecutorLabel: "worker"},
+				OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+					Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
+						"result": {ParameterType: pipelinespec.ParameterType_STRING},
+					},
+				},
+			},
+		},
+	}
+	pipelineSpecStruct, err := pipelineSpecToStruct(t, pipelineSpec)
+	require.NoError(t, err)
+	scopePath, err := util.ScopePathFromStringPathWithNewTask(pipelineSpecStruct, "root", "worker")
+	require.NoError(t, err)
+
+	run := &apiv2beta1.Run{RunId: "run-id"}
+	rootTask := &apiv2beta1.PipelineTask{
+		TaskId:    "root-task",
+		RunId:     run.GetRunId(),
+		Name:      "root",
+		State:     apiv2beta1.PipelineTask_RUNNING,
+		Type:      apiv2beta1.PipelineTask_DAG,
+		ScopePath: "root",
+	}
+	childTask := &apiv2beta1.PipelineTask{
+		TaskId:    "worker-task",
+		RunId:     run.GetRunId(),
+		Name:      "worker",
+		State:     apiv2beta1.PipelineTask_SUCCEEDED,
+		Type:      apiv2beta1.PipelineTask_RUNTIME,
+		ScopePath: scopePath.DotNotation(),
+		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
+			Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+				ParameterKey: "result",
+				Value:        structpb.NewStringValue("done"),
+				Type:         apiv2beta1.IOType_OUTPUT,
+				Producer:     &apiv2beta1.IOProducer{TaskName: "worker"},
+			}},
+		},
+	}
+
+	mockAPI := kfpapi.NewMockAPI()
+	mockAPI.AddRun(run)
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: run.GetRunId(),
+		Task:  rootTask,
+	})
+	require.NoError(t, err)
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: run.GetRunId(),
+		Task:  childTask,
+	})
+	require.NoError(t, err)
+
+	clientManager := client_manager.NewFakeClientManager(fake.NewClientset(), mockAPI)
+	err = PropagateOutputsUpDAGForTask(context.Background(), OutputPropagationOptions{
+		Run:          run,
+		Task:         childTask,
+		ParentTask:   rootTask,
+		ScopePath:    scopePath,
+		PipelineSpec: pipelineSpecStruct,
+	}, clientManager)
+	require.NoError(t, err)
+
+	updatedRootTask, err := mockAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+		TaskId: rootTask.GetTaskId(),
+		RunId:  run.GetRunId(),
+	})
+	require.NoError(t, err)
+	require.Len(t, updatedRootTask.GetOutputs().GetParameters(), 1)
+
+	outputParam := updatedRootTask.GetOutputs().GetParameters()[0]
+	assert.Equal(t, "pipeline-output", outputParam.GetParameterKey())
+	assert.Equal(t, "done", outputParam.GetValue().GetStringValue())
+	assert.Equal(t, apiv2beta1.IOType_OUTPUT, outputParam.GetType())
+	require.NotNil(t, outputParam.GetProducer())
+	assert.Equal(t, "worker", outputParam.GetProducer().GetTaskName())
+}
+
 // Example_launcherV2WithMocks demonstrates how to test LauncherV2.Execute with all dependencies mocked.
 // This example shows the complete pattern for component-level testing.
 func TestExample_launcherV2WithMocks(t *testing.T) {
