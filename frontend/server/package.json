@@ -13,7 +13,7 @@
     "google-protobuf": "^3.17.3",
     "gunzip-maybe": "^1.4.1",
     "http-proxy-middleware": "^2.0.10",
-    "js-yaml": "^4.2.0",
+    "js-yaml": "^4.3.0",
     "lodash": ">=4.18.1",
     "minio": "~8.0.7",
     "peek-stream": "^1.1.3",
