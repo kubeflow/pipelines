@@ -1817,3 +1817,101 @@ func TestListRunsReturnsPluginsFields(t *testing.T) {
 	require.NotNil(t, runs[0].PluginsOutputString)
 	assert.Equal(t, model.LargeText(`{"mlflow":{"state":"PLUGIN_RUNNING"}}`), *runs[0].PluginsOutputString)
 }
+
+func TestListRuns_FilterByPipelineId(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	_, err := expStore.CreateExperiment(&model.Experiment{Name: "exp_pipeline_filter"})
+	require.NoError(t, err)
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+
+	targetPipelineId := "pipeline-aaa-bbb-ccc"
+	otherPipelineId := "pipeline-xxx-yyy-zzz"
+
+	run1 := &model.Run{
+		UUID:         "pf-run-1",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "pf-run-1",
+		DisplayName:  "run with target pipeline",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			Conditions:              "Running",
+			State:                   model.RuntimeStateRunning,
+			WorkflowRuntimeManifest: "workflow1",
+		},
+		PipelineSpec: model.PipelineSpec{
+			PipelineId: targetPipelineId,
+		},
+	}
+	run2 := &model.Run{
+		UUID:         "pf-run-2",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "pf-run-2",
+		DisplayName:  "run with other pipeline",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          2,
+			Conditions:              "Succeeded",
+			State:                   model.RuntimeStateSucceeded,
+			WorkflowRuntimeManifest: "workflow2",
+		},
+		PipelineSpec: model.PipelineSpec{
+			PipelineId: otherPipelineId,
+		},
+	}
+	run3 := &model.Run{
+		UUID:         "pf-run-3",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "pf-run-3",
+		DisplayName:  "another run with target pipeline",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          3,
+			Conditions:              "Succeeded",
+			State:                   model.RuntimeStateSucceeded,
+			WorkflowRuntimeManifest: "workflow3",
+		},
+		PipelineSpec: model.PipelineSpec{
+			PipelineId: targetPipelineId,
+		},
+	}
+
+	_, err = runStore.CreateRun(run1)
+	require.NoError(t, err)
+	_, err = runStore.CreateRun(run2)
+	require.NoError(t, err)
+	_, err = runStore.CreateRun(run3)
+	require.NoError(t, err)
+
+	// Filter by pipeline_id using the filter predicate mechanism
+	filterProto := &api.Filter{
+		Predicates: []*api.Predicate{
+			{
+				Key: "pipeline_id",
+				Op:  api.Predicate_EQUALS,
+				Value: &api.Predicate_StringValue{
+					StringValue: targetPipelineId,
+				},
+			},
+		},
+	}
+	newFilter, err := filter.New(filterProto)
+	require.NoError(t, err)
+	opts, err := list.NewOptions(&model.Run{}, 10, "", newFilter)
+	require.NoError(t, err)
+
+	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(runs))
+	assert.Equal(t, 2, totalSize)
+	// Verify the returned runs are the ones with the target pipeline ID
+	for _, r := range runs {
+		assert.Equal(t, targetPipelineId, r.PipelineSpec.PipelineId)
+	}
+}
