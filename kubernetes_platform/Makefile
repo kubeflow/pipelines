@@ -54,7 +54,7 @@ endif
 
 # Generate proto packages by building api-generator image from source.
 .PHONY: golang-from-source
-golang-from-source: .api-generator-built proto/*.proto
+golang-from-source: ensure-api-generator-image proto/*.proto
 	docker run --interactive --rm \
 		--user $$(id -u):$$(id -g) \
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
@@ -91,7 +91,7 @@ endif
 
 # Build Python package by building api-generator image from source.
 .PHONY: python-from-source
-python-from-source: .api-generator-built proto/kubernetes_executor_config.proto fetch-protos
+python-from-source: ensure-api-generator-image proto/kubernetes_executor_config.proto fetch-protos
 	docker run --interactive --rm \
 		--user $$(id -u):$$(id -g) \
 		-e HOME=/tmp \
@@ -128,8 +128,7 @@ generate-go-in-container:
 		--go_opt=paths=source_relative \
 		kubernetes_executor_config.proto
 
-# Build the API generator image locally to ensure current tool versions
-.api-generator-built: ../backend/api/Dockerfile
-	DOCKER_BUILDKIT=1 docker build .. -t $(IMAGE_TAG) -f ../backend/api/Dockerfile \
-		--cache-from $(IMAGE_TAG):latest
-	touch .api-generator-built
+# Build the API generator image via the canonical target in backend/api
+.PHONY: ensure-api-generator-image
+ensure-api-generator-image:
+	$(MAKE) -C ../backend/api image
