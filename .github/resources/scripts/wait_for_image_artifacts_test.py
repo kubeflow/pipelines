@@ -18,6 +18,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import textwrap
+from typing import Optional
 import unittest
 
 SCRIPT = Path(__file__).with_name('wait-for-image-artifacts.sh')
@@ -40,10 +41,12 @@ ARTIFACTS = (
 
 class WaitForImageArtifactsTest(unittest.TestCase):
 
-    def _run(self,
-             *,
-             ready_after: int,
-             attempts: int = 2) -> tuple[subprocess.CompletedProcess[str], int]:
+    def _run(
+        self,
+        *,
+        ready_after: int,
+        attempts: Optional[int] = 2,
+    ) -> tuple[subprocess.CompletedProcess[str], int]:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             fake_bin = root / 'bin'
@@ -75,9 +78,10 @@ class WaitForImageArtifactsTest(unittest.TestCase):
                 'GITHUB_RUN_ID': '123',
                 'PATH': f'{fake_bin}{os.pathsep}{environment["PATH"]}',
                 'READY_AFTER': str(ready_after),
-                'WAIT_ATTEMPTS': str(attempts),
                 'WAIT_INTERVAL_SECONDS': '0',
             })
+            if attempts is not None:
+                environment['WAIT_ATTEMPTS'] = str(attempts)
             result = subprocess.run(
                 ['bash', str(SCRIPT)],
                 capture_output=True,
@@ -101,6 +105,14 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('Waiting for branch image artifacts', result.stdout)
         self.assertEqual(attempts, 2)
+
+    def test_default_wait_exceeds_previous_ten_minute_budget(self):
+        result, attempts = self._run(ready_after=21, attempts=None)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Waiting for branch image artifacts (20/40)',
+                      result.stdout)
+        self.assertEqual(attempts, 21)
 
     def test_fails_with_missing_artifact_names(self):
         result, attempts = self._run(ready_after=3, attempts=2)
