@@ -237,6 +237,15 @@ describe('utils', () => {
         'File a/../../../etc/passwd resolves outside of volume mount path /data',
       ]);
     });
+
+    it('allows a file name starting with .. that stays inside the mount path', () => {
+      const path = resolveFilePathOnVolume({
+        volumeMountPath: '/data',
+        filePathInVolume: '..foo/bar',
+        volumeMountSubPath: undefined,
+      });
+      expect(path).toEqual(['/data/..foo/bar', undefined]);
+    });
   });
 
   describe('parseError', () => {

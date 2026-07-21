@@ -185,7 +185,11 @@ export function resolveFilePathOnVolume(volume: {
   // path.join normalizes away `..` segments, so a key like `../../etc/passwd`
   // can land outside the mount. Keep the result contained to the mount root.
   const relativeToMount = path.relative(volumeMountPath, resolvedPath);
-  if (relativeToMount.startsWith('..') || path.isAbsolute(relativeToMount)) {
+  if (
+    relativeToMount === '..' ||
+    relativeToMount.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relativeToMount)
+  ) {
     return [
       '',
       `File ${filePathInVolume} resolves outside of volume mount path ${volumeMountPath}`,
