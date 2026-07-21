@@ -11,7 +11,7 @@ func init() {
 type mlflowHandlerFactory struct{}
 
 func (f *mlflowHandlerFactory) Name() string {
-	return "MLflow"
+	return "mlflow"
 }
 
 func (f *mlflowHandlerFactory) IsEnabled() bool {
