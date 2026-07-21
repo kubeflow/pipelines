@@ -593,7 +593,7 @@ runs:
       run: |
         CUSTOM_DATA=""
         if [ -n "${{ steps.upload.outputs.artifact-url }}" ]; then
-          CUSTOM_DATA="{\"HTML Report\": \"${{ steps.upload.outputs.artifact-url }}\"}"
+          CUSTOM_DATA="{\"\\\"HTML Report\\\"\": \"\\\"${{ steps.upload.outputs.artifact-url }}\\\"\"}"
         fi
         echo "CUSTOM_DATA=$CUSTOM_DATA" >> "$GITHUB_OUTPUT"
 
