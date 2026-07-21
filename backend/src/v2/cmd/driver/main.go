@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"time"
@@ -26,6 +27,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -472,46 +474,63 @@ func resolveDriverSpecs(
 	rawTaskSpec string,
 	rawContainerSpec string,
 ) (*pipelinespec.ComponentSpec, *pipelinespec.PipelineTaskSpec, *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, error) {
+	componentSpec, taskSpec, containerSpec, err := resolveDriverSpecsFromScopePath(scopePath, driverType)
+	if err == nil {
+		return componentSpec, taskSpec, containerSpec, nil
+	}
+	var unavailableErr specSourceUnavailableError
+	if !errors.As(err, &unavailableErr) {
+		return nil, nil, nil, err
+	}
+
+	// Legacy fields remain available for older workflows, but they must resolve
+	// as one self-consistent tuple. Mixing current task metadata with a fallback
+	// raw container can make the driver reason about different executable state
+	// than the container spec it ultimately launches.
+	return resolveDriverSpecsFromLegacy(driverType, rawComponentSpec, rawTaskSpec, rawContainerSpec)
+}
+
+type specSourceUnavailableError struct {
+	message string
+}
+
+func (e specSourceUnavailableError) Error() string {
+	return e.message
+}
+
+func unavailableSpec(message string) error {
+	return specSourceUnavailableError{message: message}
+}
+
+func resolveDriverSpecsFromScopePath(
+	scopePath *util.ScopePath,
+	driverType string,
+) (*pipelinespec.ComponentSpec, *pipelinespec.PipelineTaskSpec, *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, error) {
 	if scopePath == nil || scopePath.GetLast() == nil {
-		return nil, nil, nil, fmt.Errorf("scope path is empty")
+		return nil, nil, nil, unavailableSpec("scope path is empty")
 	}
 
 	componentSpec := scopePath.GetLast().GetComponentSpec()
-	if componentSpec == nil && rawComponentSpec != "" {
-		componentSpec = &pipelinespec.ComponentSpec{}
-		if err := util.UnmarshalString(rawComponentSpec, componentSpec); err != nil {
-			return nil, nil, nil, fmt.Errorf("failed to unmarshal legacy component spec: %w", err)
-		}
-	}
 	if componentSpec == nil {
-		return nil, nil, nil, fmt.Errorf("component spec not found")
+		return nil, nil, nil, unavailableSpec("component spec not found")
 	}
 
 	var taskSpec *pipelinespec.PipelineTaskSpec
 	if driverType != ROOT_DAG {
 		taskSpec = scopePath.GetLast().GetTaskSpec()
-		if taskSpec == nil && rawTaskSpec != "" {
-			taskSpec = &pipelinespec.PipelineTaskSpec{}
-			if err := util.UnmarshalString(rawTaskSpec, taskSpec); err != nil {
-				return nil, nil, nil, fmt.Errorf("failed to unmarshal legacy task spec: %w", err)
-			}
-		}
 		if taskSpec == nil {
-			return nil, nil, nil, fmt.Errorf("task spec not found")
+			return nil, nil, nil, unavailableSpec("task spec not found")
 		}
+	}
+
+	if err := validateDriverComponentKinds(driverType, componentSpec); err != nil {
+		return nil, nil, nil, err
 	}
 
 	var containerSpec *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
 	if driverType == CONTAINER {
 		var err error
 		containerSpec, err = loadContainerSpec(componentSpec, scopePath.GetPipelineSpec())
-		if err != nil && rawContainerSpec != "" {
-			containerSpec = &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{}
-			if unmarshalErr := util.UnmarshalString(rawContainerSpec, containerSpec); unmarshalErr != nil {
-				return nil, nil, nil, fmt.Errorf("failed to resolve container spec: %w", err)
-			}
-			err = nil
-		}
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -520,15 +539,77 @@ func resolveDriverSpecs(
 	return componentSpec, taskSpec, containerSpec, nil
 }
 
+func resolveDriverSpecsFromLegacy(
+	driverType string,
+	rawComponentSpec string,
+	rawTaskSpec string,
+	rawContainerSpec string,
+) (*pipelinespec.ComponentSpec, *pipelinespec.PipelineTaskSpec, *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, error) {
+	if rawComponentSpec == "" {
+		return nil, nil, nil, fmt.Errorf("component spec not found")
+	}
+	componentSpec := &pipelinespec.ComponentSpec{}
+	if err := util.UnmarshalString(rawComponentSpec, componentSpec); err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to unmarshal legacy component spec: %w", err)
+	}
+	if err := validateDriverComponentKinds(driverType, componentSpec); err != nil {
+		return nil, nil, nil, err
+	}
+
+	var taskSpec *pipelinespec.PipelineTaskSpec
+	if driverType != ROOT_DAG {
+		if rawTaskSpec == "" {
+			return nil, nil, nil, fmt.Errorf("task spec not found")
+		}
+		taskSpec = &pipelinespec.PipelineTaskSpec{}
+		if err := util.UnmarshalString(rawTaskSpec, taskSpec); err != nil {
+			return nil, nil, nil, fmt.Errorf("failed to unmarshal legacy task spec: %w", err)
+		}
+	}
+
+	var containerSpec *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
+	if driverType == CONTAINER {
+		if rawContainerSpec == "" {
+			return nil, nil, nil, fmt.Errorf("container spec not found")
+		}
+		containerSpec = &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{}
+		if err := util.UnmarshalString(rawContainerSpec, containerSpec); err != nil {
+			return nil, nil, nil, fmt.Errorf("failed to unmarshal legacy container spec: %w", err)
+		}
+	}
+
+	return componentSpec, taskSpec, containerSpec, nil
+}
+
+func validateDriverComponentKinds(driverType string, componentSpec *pipelinespec.ComponentSpec) error {
+	switch driverType {
+	case ROOT_DAG:
+		if componentSpec.GetDag() == nil {
+			return fmt.Errorf("root driver requires a DAG root component")
+		}
+	case DAG:
+		if componentSpec.GetDag() == nil {
+			return fmt.Errorf("dag driver requires a DAG component")
+		}
+	case CONTAINER:
+		if componentSpec.GetExecutorLabel() == "" {
+			return fmt.Errorf("container driver requires an executor-label component")
+		}
+	default:
+		return fmt.Errorf("unknown driver type %q", driverType)
+	}
+	return nil
+}
+
 func loadContainerSpec(
 	componentSpec *pipelinespec.ComponentSpec,
 	pipelineSpec *pipelinespec.PipelineSpec,
 ) (*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, error) {
 	if componentSpec == nil {
-		return nil, fmt.Errorf("component spec is nil")
+		return nil, unavailableSpec("component spec is nil")
 	}
 	if pipelineSpec == nil {
-		return nil, fmt.Errorf("pipeline spec is nil")
+		return nil, unavailableSpec("pipeline spec is nil")
 	}
 
 	executorLabel := componentSpec.GetExecutorLabel()
@@ -536,19 +617,18 @@ func loadContainerSpec(
 		return nil, fmt.Errorf("component executor label is empty")
 	}
 
-	deploymentConfig := &pipelinespec.PipelineDeploymentConfig{}
-	deploymentSpecJSON, err := protojson.Marshal(pipelineSpec.GetDeploymentSpec())
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal deployment spec: %w", err)
+	if pipelineSpec.GetDeploymentSpec() == nil {
+		return nil, unavailableSpec("pipeline deployment spec is missing")
 	}
-	unmarshaler := protojson.UnmarshalOptions{DiscardUnknown: true}
-	if err := unmarshaler.Unmarshal(deploymentSpecJSON, deploymentConfig); err != nil {
+
+	deploymentConfig, err := compiler.GetDeploymentConfig(pipelineSpec)
+	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal deployment spec: %w", err)
 	}
 
 	executor, ok := deploymentConfig.GetExecutors()[executorLabel]
 	if !ok || executor == nil {
-		return nil, fmt.Errorf("container executor %q not found in deployment spec", executorLabel)
+		return nil, unavailableSpec(fmt.Sprintf("container executor %q not found in deployment spec", executorLabel))
 	}
 	containerSpec := executor.GetContainer()
 	if containerSpec == nil {
