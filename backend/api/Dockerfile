@@ -40,8 +40,8 @@ ENV GOOGLEAPIS_COMMIT=68d5196a529174df97c28c70622ffc1c3721815f
 ENV PROTOC_GEN_GO_GRPC=v1.6.2
 ENV PROTOBUF_GO=v1.36.12-0.20260120151049-f2248ac996af
 
-# Install protoc.
-RUN apt-get update -y && apt-get install -y jq sed unzip
+# Install protoc and Java (needed for KFP server API package generation).
+RUN apt-get update -y && apt-get install -y jq sed unzip default-jdk
 RUN curl -L -o protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip
 RUN unzip -o protoc.zip -d /tmp/protoc && \
     mv /tmp/protoc/bin/protoc /usr/bin/protoc && \
