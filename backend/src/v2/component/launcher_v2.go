@@ -26,6 +26,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/golang/glog"
@@ -363,7 +364,7 @@ func (l *LauncherV2) executeV2(ctx context.Context) (*pipelinespec.ExecutorOutpu
 	}
 
 	// Upload artifacts from local disk to remote store.
-	err = l.uploadOutputArtifacts(ctx, executorOutput)
+	err = l.uploadOutputArtifactsWithRetry(ctx, executorOutput)
 	if err != nil {
 		return nil, err
 	}
@@ -742,14 +743,6 @@ func (l *LauncherV2) uploadOutputArtifacts(
 	ctx context.Context,
 	executorOutput *pipelinespec.ExecutorOutput,
 ) error {
-	// Manage an opened bucket cache to minimize pool
-	var openedBucketCache = map[string]*blob.Bucket{}
-	defer func() {
-		for _, bucket := range openedBucketCache {
-			_ = bucket.Close()
-		}
-	}()
-
 	// After successful execution and uploads, record outputs in KFP API
 	// Create artifactsMap for each output port
 	artifactsMap := map[string][]*apiV2beta1.Artifact{}
@@ -855,6 +848,82 @@ func (l *LauncherV2) uploadOutputArtifacts(
 	return nil
 }
 
+func (l *LauncherV2) uploadOutputArtifactsWithRetry(
+	ctx context.Context,
+	executorOutput *pipelinespec.ExecutorOutput,
+) error {
+	return l.retryArtifactUploadOperation("output artifact upload", func() error {
+		return l.uploadOutputArtifacts(ctx, executorOutput)
+	})
+}
+
+func (l *LauncherV2) retryArtifactUploadOperation(operation string, upload func() error) error {
+	const maxAttempts = 2
+
+	lastErr := upload()
+	if lastErr == nil {
+		return nil
+	}
+	if !isTransientArtifactUploadError(lastErr) {
+		return lastErr
+	}
+
+	for attempt := 2; attempt <= maxAttempts; attempt++ {
+		glog.Warningf("%s failed on attempt %d/%d: %v", operation, attempt-1, maxAttempts, lastErr)
+		glog.Infof("Refreshing object store session before retrying %s.", operation)
+		if err := l.objectStore.RefreshSession(); err != nil {
+			return fmt.Errorf("failed to refresh object store session for %s retry: %w", operation, err)
+		}
+		glog.Infof("Executing %s attempt: %d", operation, attempt)
+		lastErr = upload()
+		if lastErr == nil {
+			return nil
+		}
+		if !isTransientArtifactUploadError(lastErr) {
+			return lastErr
+		}
+	}
+
+	glog.Errorf("All %s attempts failed: %v", operation, lastErr)
+	return lastErr
+}
+
+func isTransientArtifactUploadError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, os.ErrNotExist) ||
+		errors.Is(err, context.Canceled) ||
+		errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
+
+	type temporary interface {
+		Temporary() bool
+	}
+	var temporaryErr temporary
+	if errors.As(err, &temporaryErr) && temporaryErr.Temporary() {
+		return true
+	}
+
+	type timeout interface {
+		Timeout() bool
+	}
+	var timeoutErr timeout
+	if errors.As(err, &timeoutErr) && timeoutErr.Timeout() {
+		return true
+	}
+
+	return errors.Is(err, io.ErrUnexpectedEOF) ||
+		errors.Is(err, syscall.ECONNRESET) ||
+		errors.Is(err, syscall.ECONNREFUSED) ||
+		errors.Is(err, syscall.EPIPE) ||
+		errors.Is(err, syscall.ETIMEDOUT) ||
+		errors.Is(err, syscall.ENETDOWN) ||
+		errors.Is(err, syscall.ENETUNREACH) ||
+		errors.Is(err, syscall.EHOSTUNREACH)
+}
+
 func (l *LauncherV2) uploadExecutorLogsArtifact(ctx context.Context) error {
 	if l.options.PublishLogs != "true" {
 		return nil
@@ -869,7 +938,9 @@ func (l *LauncherV2) uploadExecutorLogsArtifact(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to resolve executor log path: %w", err)
 	}
-	if err := l.objectStore.UploadArtifact(ctx, localPath, outputArtifact.Uri, "executor-logs"); err != nil {
+	if err := l.retryArtifactUploadOperation("executor log upload", func() error {
+		return l.objectStore.UploadArtifact(ctx, localPath, outputArtifact.Uri, "executor-logs")
+	}); err != nil {
 		return err
 	}
 

@@ -292,6 +292,22 @@ func TestPropagateOutputsUpDAGForTask_UsesExplicitDependencies(t *testing.T) {
 	assert.Equal(t, "worker", outputParam.GetProducer().GetTaskName())
 }
 
+type transientArtifactUploadError struct {
+	message string
+}
+
+func (e transientArtifactUploadError) Error() string {
+	return e.message
+}
+
+func (e transientArtifactUploadError) Temporary() bool {
+	return true
+}
+
+func (e transientArtifactUploadError) Timeout() bool {
+	return false
+}
+
 // Example_launcherV2WithMocks demonstrates how to test LauncherV2.Execute with all dependencies mocked.
 // This example shows the complete pattern for component-level testing.
 func TestExample_launcherV2WithMocks(t *testing.T) {
@@ -1116,6 +1132,85 @@ func TestUploadOutputArtifacts_SkipsUnsupportedURIsWithoutUploading(t *testing.T
 	assert.Zero(t, launcher.batchUpdater.GetMetrics()["queued_artifacts"])
 }
 
+func TestUploadOutputArtifactsWithRetry_RetriesTransientUploadFailures(t *testing.T) {
+	mockObjectStore := NewMockObjectStoreClient()
+	mockObjectStore.UploadErrors = []error{
+		transientArtifactUploadError{message: "temporary upload failure"},
+		nil,
+	}
+	launcher := &LauncherV2{
+		executorInput: &pipelinespec.ExecutorInput{
+			Outputs: &pipelinespec.ExecutorInput_Outputs{
+				Artifacts: map[string]*pipelinespec.ArtifactList{
+					"model": {
+						Artifacts: []*pipelinespec.RuntimeArtifact{{
+							Name: "trained-model",
+							Uri:  "s3://bucket/output/model.pkl",
+							Type: &pipelinespec.ArtifactTypeSchema{
+								Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Model"},
+							},
+						}},
+					},
+				},
+			},
+		},
+		options: LauncherV2Options{
+			Namespace: "default",
+			Run:       &apiv2beta1.Run{RunId: "run-1"},
+			Task:      &apiv2beta1.PipelineTask{TaskId: "task-1"},
+		},
+		batchUpdater: NewBatchUpdater(),
+		objectStore:  mockObjectStore,
+	}
+
+	err := launcher.uploadOutputArtifactsWithRetry(context.Background(), &pipelinespec.ExecutorOutput{
+		Artifacts: map[string]*pipelinespec.ArtifactList{},
+	})
+	require.NoError(t, err)
+	require.Len(t, mockObjectStore.UploadCalls, 2)
+	assert.Equal(t, 1, mockObjectStore.RefreshCalls)
+	require.Len(t, launcher.batchUpdater.artifacts, 1)
+	assert.Equal(t, "s3://bucket/output/model.pkl", *launcher.batchUpdater.artifacts[0].request.Artifact.Uri)
+}
+
+func TestUploadOutputArtifactsWithRetry_DoesNotRetryNonTransientFailures(t *testing.T) {
+	mockObjectStore := NewMockObjectStoreClient()
+	mockObjectStore.UploadError = errors.New("permanent upload failure")
+	launcher := &LauncherV2{
+		executorInput: &pipelinespec.ExecutorInput{
+			Outputs: &pipelinespec.ExecutorInput_Outputs{
+				Artifacts: map[string]*pipelinespec.ArtifactList{
+					"model": {
+						Artifacts: []*pipelinespec.RuntimeArtifact{{
+							Name: "trained-model",
+							Uri:  "s3://bucket/output/model.pkl",
+							Type: &pipelinespec.ArtifactTypeSchema{
+								Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Model"},
+							},
+						}},
+					},
+				},
+			},
+		},
+		options: LauncherV2Options{
+			Namespace: "default",
+			Run:       &apiv2beta1.Run{RunId: "run-1"},
+			Task:      &apiv2beta1.PipelineTask{TaskId: "task-1"},
+		},
+		batchUpdater: NewBatchUpdater(),
+		objectStore:  mockObjectStore,
+	}
+
+	err := launcher.uploadOutputArtifactsWithRetry(context.Background(), &pipelinespec.ExecutorOutput{
+		Artifacts: map[string]*pipelinespec.ArtifactList{},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "permanent upload failure")
+	require.Len(t, mockObjectStore.UploadCalls, 1)
+	assert.Equal(t, 0, mockObjectStore.RefreshCalls)
+	assert.Empty(t, launcher.batchUpdater.artifacts)
+}
+
 func TestUploadOutputArtifacts_PreservesArtifactListOutputs(t *testing.T) {
 	launcher := &LauncherV2{
 		executorInput: &pipelinespec.ExecutorInput{
@@ -1287,6 +1382,46 @@ func TestUploadOutputArtifacts_DoesNotLetExecutorLogsOverwriteRetryQualifiedURI(
 	require.NoError(t, err)
 	require.Len(t, launcher.batchUpdater.artifacts, 1)
 	assert.Equal(t, "minio://bucket/logs/executor-logs-2", *launcher.batchUpdater.artifacts[0].request.Artifact.Uri)
+}
+
+func TestUploadExecutorLogsArtifact_RetriesWithSessionRefresh(t *testing.T) {
+	mockObjectStore := NewMockObjectStoreClient()
+	mockObjectStore.UploadErrors = []error{
+		transientArtifactUploadError{message: "temporary log upload failure"},
+		nil,
+	}
+	mockAPI := kfpapi.NewMockAPI()
+	launcher := &LauncherV2{
+		executorInput: &pipelinespec.ExecutorInput{
+			Outputs: &pipelinespec.ExecutorInput_Outputs{
+				Artifacts: map[string]*pipelinespec.ArtifactList{
+					"executor-logs": {
+						Artifacts: []*pipelinespec.RuntimeArtifact{{
+							Name: "executor-logs",
+							Uri:  "minio://bucket/logs/executor-logs-0",
+							Type: &pipelinespec.ArtifactTypeSchema{
+								Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Artifact"},
+							},
+						}},
+					},
+				},
+			},
+		},
+		options: LauncherV2Options{
+			Namespace:   "default",
+			PublishLogs: "true",
+			Run:         &apiv2beta1.Run{RunId: "run-1"},
+			Task:        &apiv2beta1.PipelineTask{TaskId: "task-1"},
+		},
+		clientManager: client_manager.NewFakeClientManager(fake.NewClientset(), mockAPI),
+		batchUpdater:  NewBatchUpdater(),
+		objectStore:   mockObjectStore,
+	}
+
+	err := launcher.uploadExecutorLogsArtifact(context.Background())
+	require.NoError(t, err)
+	require.Len(t, mockObjectStore.UploadCalls, 2)
+	assert.Equal(t, 1, mockObjectStore.RefreshCalls)
 }
 
 func Test_get_log_Writer(t *testing.T) {

@@ -62,6 +62,10 @@ type ObjectStoreClientInterface interface {
 
 	// DownloadArtifact downloads an artifact from remote URI to local path
 	DownloadArtifact(ctx context.Context, remoteURI, localPath, artifactKey string) error
+
+	// RefreshSession clears any cached bucket/session state so the next operation
+	// reopens object store connections with fresh credentials.
+	RefreshSession() error
 }
 
 // ObjectStoreDependencies provides the common dependencies needed by ObjectStoreClient.
@@ -143,6 +147,18 @@ func (c *ObjectStoreClient) DownloadArtifact(ctx context.Context, remoteURI, loc
 	}
 	if err = objectstore.DownloadBlob(ctx, openedBucket, localPath, blobKey); err != nil {
 		return fmt.Errorf("failed to download input artifact %q from remote storage URI %q: %w", artifactKey, remoteURI, err)
+	}
+	return nil
+}
+
+func (c *ObjectStoreClient) RefreshSession() error {
+	for key, bucket := range c.deps.GetOpenedBucketCache() {
+		if bucket != nil {
+			if err := bucket.Close(); err != nil {
+				return fmt.Errorf("failed to close bucket session %q: %w", key, err)
+			}
+		}
+		delete(c.deps.GetOpenedBucketCache(), key)
 	}
 	return nil
 }

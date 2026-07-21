@@ -219,13 +219,16 @@ type MockObjectStoreClient struct {
 	// Track calls
 	UploadCalls   []ArtifactCall
 	DownloadCalls []ArtifactCall
+	RefreshCalls  int
 
 	// In-memory artifact storage (remoteURI -> data)
 	artifacts map[string][]byte
 
 	// Control behavior
 	UploadError   error
+	UploadErrors  []error
 	DownloadError error
+	RefreshError  error
 }
 
 type ArtifactCall struct {
@@ -250,6 +253,13 @@ func (m *MockObjectStoreClient) UploadArtifact(ctx context.Context, localPath, r
 		ArtifactKey: artifactKey,
 	})
 
+	if len(m.UploadErrors) > 0 {
+		err := m.UploadErrors[0]
+		m.UploadErrors = m.UploadErrors[1:]
+		if err != nil {
+			return err
+		}
+	}
 	if m.UploadError != nil {
 		return m.UploadError
 	}
@@ -279,6 +289,13 @@ func (m *MockObjectStoreClient) DownloadArtifact(ctx context.Context, remoteURI,
 	}
 
 	return nil
+}
+
+func (m *MockObjectStoreClient) RefreshSession() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.RefreshCalls++
+	return m.RefreshError
 }
 
 // SetArtifact sets artifact content for testing.
