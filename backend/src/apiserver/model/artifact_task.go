@@ -14,10 +14,16 @@
 
 package model
 
-import apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+import (
+	"fmt"
+
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+)
 
 // IOType represents the I/O relationship type
 type IOType apiv2beta1.IOType
+
+const ArtifactTaskNoIteration int64 = -1
 
 // ArtifactTask represents the relationship between artifacts and tasks
 type ArtifactTask struct {
@@ -25,9 +31,10 @@ type ArtifactTask struct {
 	ArtifactID  string   `gorm:"column:ArtifactID; not null; type:varchar(191); index:idx_link_artifact_id; uniqueIndex:UniqueLink,priority:1;"`
 	TaskID      string   `gorm:"column:TaskID; not null; type:varchar(191); index:idx_link_task_id; uniqueIndex:UniqueLink,priority:2;"`
 	Type        IOType   `gorm:"column:Type; not null; uniqueIndex:UniqueLink,priority:3;"`
+	Iteration   int64    `gorm:"column:Iteration; not null; default:-1; uniqueIndex:UniqueLink,priority:4;"`
 	RunUUID     string   `gorm:"column:RunUUID; not null; type:varchar(191); index:idx_link_run_id;"`
 	Producer    JSONData `gorm:"column:Producer; type:json; default:null;"`
-	ArtifactKey string   `gorm:"column:ArtifactKey; not null; type:varchar(191); default:''; uniqueIndex:UniqueLink,priority:4;"`
+	ArtifactKey string   `gorm:"column:ArtifactKey; not null; type:varchar(191); default:''; uniqueIndex:UniqueLink,priority:5;"`
 
 	// Relationships
 	Artifact Artifact `gorm:"foreignKey:ArtifactID;references:UUID;constraint:fk_artifact_tasks_artifacts,OnDelete:CASCADE,OnUpdate:CASCADE;"`
@@ -86,6 +93,8 @@ func (at ArtifactTask) GetFieldValue(name string) interface{} {
 		return at.TaskID
 	case "Type":
 		return at.Type
+	case "Iteration":
+		return at.Iteration
 	case "RunUUID":
 		return at.RunUUID
 	case "Producer":
@@ -95,4 +104,28 @@ func (at ArtifactTask) GetFieldValue(name string) interface{} {
 	default:
 		return nil
 	}
+}
+
+// SyncIterationFromProducer derives the persisted iteration identity from producer metadata.
+func (at *ArtifactTask) SyncIterationFromProducer() error {
+	if at == nil {
+		return nil
+	}
+	at.Iteration = ArtifactTaskNoIteration
+	if at.Producer == nil {
+		return nil
+	}
+	producer, err := JSONDataToProtoMessage(
+		at.Producer,
+		func() *apiv2beta1.IOProducer {
+			return &apiv2beta1.IOProducer{}
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to decode artifact-task producer: %w", err)
+	}
+	if producer != nil && producer.Iteration != nil {
+		at.Iteration = producer.GetIteration()
+	}
+	return nil
 }

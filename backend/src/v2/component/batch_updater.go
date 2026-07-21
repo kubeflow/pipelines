@@ -161,6 +161,13 @@ func (b *BatchUpdater) QueueArtifactTask(artifactTask *apiV2beta1.ArtifactTask) 
 	b.queuedArtifactTasks++
 }
 
+func artifactTaskIterationIdentity(artifactTask *apiV2beta1.ArtifactTask) int64 {
+	if artifactTask == nil || artifactTask.GetProducer() == nil || artifactTask.GetProducer().Iteration == nil {
+		return -1
+	}
+	return artifactTask.GetProducer().GetIteration()
+}
+
 // QueueArtifact queues an artifact to create
 func (b *BatchUpdater) QueueArtifact(request *apiV2beta1.CreateArtifactRequest) {
 	if request == nil {
@@ -255,10 +262,11 @@ func (b *BatchUpdater) Flush(ctx context.Context, client kfpapi.API) error {
 		seenArtifactTasks := make(map[string]struct{}, len(b.artifactTasks))
 		for _, artifactTask := range b.artifactTasks {
 			dedupeKey := fmt.Sprintf(
-				"%s|%s|%d|%s",
+				"%s|%s|%d|%d|%s",
 				artifactTask.GetArtifactId(),
 				artifactTask.GetTaskId(),
 				artifactTask.GetType(),
+				artifactTaskIterationIdentity(artifactTask),
 				artifactTask.GetKey(),
 			)
 			if _, exists := seenArtifactTasks[dedupeKey]; exists {

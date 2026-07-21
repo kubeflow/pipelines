@@ -34,6 +34,7 @@ var artifactTaskColumns = []string{
 	"artifact_tasks.ArtifactID",
 	"artifact_tasks.TaskID",
 	"artifact_tasks.Type",
+	"artifact_tasks.Iteration",
 	"artifact_tasks.RunUUID",
 	"artifact_tasks.Producer",
 	"artifact_tasks.ArtifactKey",
@@ -77,6 +78,9 @@ func (s *ArtifactTaskStore) CreateArtifactTask(artifactTask *model.ArtifactTask)
 func createArtifactTaskWithExecutor(exec func(string, ...any) (sql.Result, error), uuid util.UUIDGeneratorInterface, artifactTask *model.ArtifactTask) (*model.ArtifactTask, error) {
 	// Set up UUID for artifact-task relationship.
 	newArtifactTask := *artifactTask
+	if err := newArtifactTask.SyncIterationFromProducer(); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to derive artifact-task iteration: %v", err.Error())
+	}
 	id, err := uuid.NewRandom()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create an artifact-task id")
@@ -97,6 +101,7 @@ func createArtifactTaskWithExecutor(exec func(string, ...any) (sql.Result, error
 				"ArtifactID":  newArtifactTask.ArtifactID,
 				"TaskID":      newArtifactTask.TaskID,
 				"Type":        newArtifactTask.Type,
+				"Iteration":   newArtifactTask.Iteration,
 				"RunUUID":     newArtifactTask.RunUUID,
 				"Producer":    producerValue,
 				"ArtifactKey": newArtifactTask.ArtifactKey,
@@ -135,6 +140,9 @@ func (s *ArtifactTaskStore) CreateArtifactTasks(artifactTasks []*model.ArtifactT
 	var newArtifactTasks []*model.ArtifactTask
 	for _, artifactTask := range artifactTasks {
 		newArtifactTask := *artifactTask
+		if err := newArtifactTask.SyncIterationFromProducer(); err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to derive artifact-task iteration: %v", err.Error())
+		}
 		id, err := s.uuid.NewRandom()
 		if err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to create an artifact-task id")
@@ -155,6 +163,7 @@ func (s *ArtifactTaskStore) CreateArtifactTasks(artifactTasks []*model.ArtifactT
 					"ArtifactID":  newArtifactTask.ArtifactID,
 					"TaskID":      newArtifactTask.TaskID,
 					"Type":        newArtifactTask.Type,
+					"Iteration":   newArtifactTask.Iteration,
 					"RunUUID":     newArtifactTask.RunUUID,
 					"Producer":    producerValue,
 					"ArtifactKey": newArtifactTask.ArtifactKey,
@@ -187,6 +196,7 @@ func (s *ArtifactTaskStore) scanRows(rows *sql.Rows) ([]*model.ArtifactTask, err
 		var uuid, artifactID, taskID string
 		var runUUID, key string
 		var ioType int32
+		var iteration int64
 		var producer model.JSONData
 
 		err := rows.Scan(
@@ -194,6 +204,7 @@ func (s *ArtifactTaskStore) scanRows(rows *sql.Rows) ([]*model.ArtifactTask, err
 			&artifactID,
 			&taskID,
 			&ioType,
+			&iteration,
 			&runUUID,
 			&producer,
 			&key,
@@ -207,6 +218,7 @@ func (s *ArtifactTaskStore) scanRows(rows *sql.Rows) ([]*model.ArtifactTask, err
 			ArtifactID:  artifactID,
 			TaskID:      taskID,
 			Type:        model.IOType(ioType),
+			Iteration:   iteration,
 			RunUUID:     runUUID,
 			Producer:    producer,
 			ArtifactKey: key,

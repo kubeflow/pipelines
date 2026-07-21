@@ -123,6 +123,36 @@ func TestBatchUpdater_FlushKeepsDistinctArtifactTasksForDifferentKeys(t *testing
 	require.Len(t, resp.ArtifactTasks, 2)
 }
 
+func TestBatchUpdater_FlushKeepsDistinctArtifactTasksForDifferentProducerIterations(t *testing.T) {
+	mockAPI := kfpapi.NewMockAPI()
+	updater := NewBatchUpdater()
+	iteration0 := int64(0)
+	iteration1 := int64(1)
+
+	updater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+		ArtifactId: "artifact-1",
+		TaskId:     "task-1",
+		RunId:      "run-1",
+		Key:        "model",
+		Type:       apiv2beta1.IOType_ITERATOR_OUTPUT,
+		Producer:   &apiv2beta1.IOProducer{TaskName: "loop-body", Iteration: &iteration0},
+	})
+	updater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+		ArtifactId: "artifact-1",
+		TaskId:     "task-1",
+		RunId:      "run-1",
+		Key:        "model",
+		Type:       apiv2beta1.IOType_ITERATOR_OUTPUT,
+		Producer:   &apiv2beta1.IOProducer{TaskName: "loop-body", Iteration: &iteration1},
+	})
+
+	require.NoError(t, updater.Flush(context.Background(), mockAPI))
+
+	resp, err := mockAPI.ListArtifactTasks(context.Background(), &apiv2beta1.ListArtifactTasksRequest{})
+	require.NoError(t, err)
+	require.Len(t, resp.ArtifactTasks, 2)
+}
+
 func TestBatchUpdater_QueueTaskUpdateDoesNotSelfDuplicateOutputs(t *testing.T) {
 	updater := NewBatchUpdater()
 	task := &apiv2beta1.PipelineTask{

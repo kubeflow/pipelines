@@ -2374,6 +2374,9 @@ func toModelArtifactTask(apiAT *apiv2beta1.ArtifactTask) (*model.ArtifactTask, e
 		}
 		modelAT.Producer = producer
 	}
+	if err := modelAT.SyncIterationFromProducer(); err != nil {
+		return nil, util.Wrap(err, "Failed to derive artifact-task iteration")
+	}
 
 	return modelAT, nil
 }
