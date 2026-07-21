@@ -456,3 +456,172 @@ func TestGetProducerTask_ArtifactOutputKeyMissingReturnsError(t *testing.T) {
 	assert.Contains(t, err.Error(), "pipelinechannel--condition-branches-1-oneof-1")
 	assert.Contains(t, err.Error(), "condition-branches-1")
 }
+
+func TestValidateExecutorInputs(t *testing.T) {
+	tests := []struct {
+		name      string
+		inputs    *pipelinespec.ExecutorInput_Inputs
+		component *pipelinespec.ComponentSpec
+		wantErr   bool
+		errStr    string
+	}{
+		{
+			name: "Valid STRING parameter",
+			inputs: &pipelinespec.ExecutorInput_Inputs{
+				ParameterValues: map[string]*structpb.Value{
+					"param1": structpb.NewStringValue("hello"),
+				},
+			},
+			component: &pipelinespec.ComponentSpec{
+				InputDefinitions: &pipelinespec.ComponentInputsSpec{
+					Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{
+						"param1": {
+							ParameterType: pipelinespec.ParameterType_STRING,
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Invalid STRING parameter type mismatch",
+			inputs: &pipelinespec.ExecutorInput_Inputs{
+				ParameterValues: map[string]*structpb.Value{
+					"param1": structpb.NewNumberValue(123),
+				},
+			},
+			component: &pipelinespec.ComponentSpec{
+				InputDefinitions: &pipelinespec.ComponentInputsSpec{
+					Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{
+						"param1": {
+							ParameterType: pipelinespec.ParameterType_STRING,
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errStr:  "expected STRING, got *structpb.Value_NumberValue",
+		},
+		{
+			name: "Missing required parameter",
+			inputs: &pipelinespec.ExecutorInput_Inputs{
+				ParameterValues: map[string]*structpb.Value{},
+			},
+			component: &pipelinespec.ComponentSpec{
+				InputDefinitions: &pipelinespec.ComponentInputsSpec{
+					Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{
+						"param1": {
+							ParameterType: pipelinespec.ParameterType_STRING,
+							IsOptional:    false,
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errStr:  "missing required parameter: \"param1\"",
+		},
+		{
+			name: "Missing optional parameter",
+			inputs: &pipelinespec.ExecutorInput_Inputs{
+				ParameterValues: map[string]*structpb.Value{},
+			},
+			component: &pipelinespec.ComponentSpec{
+				InputDefinitions: &pipelinespec.ComponentInputsSpec{
+					Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{
+						"param1": {
+							ParameterType: pipelinespec.ParameterType_STRING,
+							IsOptional:    true,
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Missing required parameter but has DefaultValue",
+			inputs: &pipelinespec.ExecutorInput_Inputs{
+				ParameterValues: map[string]*structpb.Value{},
+			},
+			component: &pipelinespec.ComponentSpec{
+				InputDefinitions: &pipelinespec.ComponentInputsSpec{
+					Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{
+						"param1": {
+							ParameterType: pipelinespec.ParameterType_STRING,
+							IsOptional:    false,
+							DefaultValue:  structpb.NewStringValue("default"),
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Optional parameter provided as NullValue",
+			inputs: &pipelinespec.ExecutorInput_Inputs{
+				ParameterValues: map[string]*structpb.Value{
+					"param1": structpb.NewNullValue(),
+				},
+			},
+			component: &pipelinespec.ComponentSpec{
+				InputDefinitions: &pipelinespec.ComponentInputsSpec{
+					Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{
+						"param1": {
+							ParameterType: pipelinespec.ParameterType_STRING,
+							IsOptional:    true,
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "NUMBER_INTEGER with float value",
+			inputs: &pipelinespec.ExecutorInput_Inputs{
+				ParameterValues: map[string]*structpb.Value{
+					"param1": structpb.NewNumberValue(123.45),
+				},
+			},
+			component: &pipelinespec.ComponentSpec{
+				InputDefinitions: &pipelinespec.ComponentInputsSpec{
+					Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{
+						"param1": {
+							ParameterType: pipelinespec.ParameterType_NUMBER_INTEGER,
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errStr:  "expected NUMBER_INTEGER",
+		},
+		{
+			name: "NUMBER_INTEGER with integer value",
+			inputs: &pipelinespec.ExecutorInput_Inputs{
+				ParameterValues: map[string]*structpb.Value{
+					"param1": structpb.NewNumberValue(123.0),
+				},
+			},
+			component: &pipelinespec.ComponentSpec{
+				InputDefinitions: &pipelinespec.ComponentInputsSpec{
+					Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{
+						"param1": {
+							ParameterType: pipelinespec.ParameterType_NUMBER_INTEGER,
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateExecutorInputs(tc.inputs, tc.component)
+			if tc.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.errStr)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}

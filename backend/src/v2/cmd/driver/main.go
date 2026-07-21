@@ -26,6 +26,11 @@ import (
 	"github.com/spf13/viper"
 	"google.golang.org/protobuf/encoding/protojson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	corev1 "k8s.io/api/core/v1"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/record"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -364,6 +369,21 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
+
+	var eventRecorder record.EventRecorder
+	restConfig, restErr := util.GetKubernetesConfig()
+	if restErr == nil && restConfig != nil {
+		k8sClient, err := kubernetes.NewForConfig(restConfig)
+		if err == nil {
+			eventBroadcaster := record.NewBroadcaster()
+			eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: k8sClient.CoreV1().Events(namespace)})
+			eventRecorder = eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "kfp-driver"})
+		} else {
+			glog.Warningf("failed to create kubernetes client for event recorder: %v", err)
+		}
+	} else {
+		glog.Warningf("failed to get kubernetes config for event recorder: %v", restErr)
+	}
 	var tlsCfg *tls.Config
 	if *metadataTLSEnabled {
 		tlsCfg, err = util.GetTLSConfig(*caCertPath)
@@ -430,6 +450,7 @@ func drive() (err error) {
 		MLMDTLSEnabled:             *metadataTLSEnabled,
 		CaCertPath:                 *caCertPath,
 		PluginDispatcher:           pluginDispatcher,
+		EventRecorder:              eventRecorder,
 	}
 	var execution *driver.Execution
 	var driverErr error
