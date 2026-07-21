@@ -61,6 +61,10 @@ jobs:
         with:
           generate_golang_proto: "true"
 
+      - name: Set up Docker Buildx with caching
+        shell: bash
+        run: bash ./.github/resources/scripts/setup-buildx-with-retry.sh
+
       - name: Generate K8s Native API CRDs
         working-directory: ./backend/src/crd/kubernetes
         run: make generate manifests
@@ -69,24 +73,28 @@ jobs:
         working-directory: ./backend/api
         env:
           API_VERSION: v2beta1
-        run: make generate-from-scratch
+          USE_PREBUILT_IMAGE: false
+        run: make generate
 
       - name: Generate backend proto code v1beta1
         working-directory: ./backend/api
         env:
           API_VERSION: v1beta1
-        run: make generate-from-scratch
+          USE_PREBUILT_IMAGE: false
+        run: make generate
 
       - name: Generate backend proto code v2beta1
         working-directory: ./backend/api
         env:
           API_VERSION: v2beta1
+          USE_PREBUILT_IMAGE: false
         run: make generate-kfp-server-api-package
 
       - name: Generate backend proto code v1beta1
         working-directory: ./backend/api
         env:
           API_VERSION: v1beta1
+          USE_PREBUILT_IMAGE: false
         run: make generate-kfp-server-api-package
 
       - name: Check for Changes
