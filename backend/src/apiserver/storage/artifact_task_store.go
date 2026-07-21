@@ -22,6 +22,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -56,6 +57,9 @@ type ArtifactTaskStoreInterface interface {
 	// It returns the current page of artifact-task rows, the total count across all pages,
 	// the next page token, and an error.
 	ListArtifactTasks(filterContexts []*model.FilterContext, ioType *model.IOType, opts *list.Options) ([]*model.ArtifactTask, int, string, error)
+
+	// DeleteOutputArtifactTasksByTaskIDs deletes attempt-local output links for the given tasks.
+	DeleteOutputArtifactTasksByTaskIDs(taskIDs []string) error
 }
 
 type ArtifactTaskStore struct {
@@ -411,4 +415,28 @@ func (s *ArtifactTaskStore) GetArtifactTask(id string) (*model.ArtifactTask, err
 	}
 
 	return artifactTasks[0], nil
+}
+
+func (s *ArtifactTaskStore) DeleteOutputArtifactTasksByTaskIDs(taskIDs []string) error {
+	if len(taskIDs) == 0 {
+		return nil
+	}
+	outputLinkTypes := []model.IOType{
+		model.IOType(apiv2beta1.IOType_OUTPUT),
+		model.IOType(apiv2beta1.IOType_ITERATOR_OUTPUT),
+		model.IOType(apiv2beta1.IOType_ONE_OF_OUTPUT),
+		model.IOType(apiv2beta1.IOType_TASK_FINAL_STATUS_OUTPUT),
+	}
+	sql, args, err := sq.
+		Delete(artifactTaskTableName).
+		Where(sq.Eq{"TaskID": taskIDs}).
+		Where(sq.Eq{"Type": outputLinkTypes}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to delete output artifact-tasks: %v", err.Error())
+	}
+	if _, err := s.db.Exec(sql, args...); err != nil {
+		return util.NewInternalServerError(err, "Failed to delete output artifact-tasks: %v", err.Error())
+	}
+	return nil
 }

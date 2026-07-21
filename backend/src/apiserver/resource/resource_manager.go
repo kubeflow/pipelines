@@ -1132,12 +1132,56 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		}
 		newExecSpec = newCreatedWorkflow
 	}
+	if err := r.resetRetriedTaskState(run); err != nil {
+		return util.NewInternalServerError(err, "Failed to retry run %s due to error resetting task attempt state", runId)
+	}
 	condition := string(newExecSpec.ExecutionStatus().Condition())
 	err = r.runStore.UpdateRun(&model.Run{UUID: runId, RunDetails: model.RunDetails{Conditions: condition, FinishedAtInSec: 0, WorkflowRuntimeManifest: model.LargeText(newExecSpec.ToStringForStore()), State: model.RuntimeState(condition).ToV2()}})
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error updating entry", runId)
 	}
 	return nil
+}
+
+func (r *ResourceManager) resetRetriedTaskState(run *model.Run) error {
+	if run == nil || len(run.Tasks) == 0 {
+		return nil
+	}
+
+	taskIDsToReset := make([]string, 0, len(run.Tasks))
+	for _, task := range run.Tasks {
+		if task == nil || task.UUID == "" || shouldPreserveTaskAcrossRetry(task) {
+			continue
+		}
+		taskIDsToReset = append(taskIDsToReset, task.UUID)
+	}
+	if len(taskIDsToReset) == 0 {
+		return nil
+	}
+
+	// Logical task identity stays stable within a run so duplicate CreateTask
+	// delivery still resolves to the existing row. Before Argo recreates nodes
+	// for a real retry attempt, clear only the previous attempt's transient task
+	// state so those rows can safely represent the new attempt.
+	if err := r.artifactTaskStore.DeleteOutputArtifactTasksByTaskIDs(taskIDsToReset); err != nil {
+		return err
+	}
+
+	// Output parameters and output artifact links are attempt-local. Resetting
+	// them here prevents a retried task from exposing stale failed-attempt
+	// outputs while leaving successful sibling results intact.
+	return r.taskStore.ResetTasksForRetry(taskIDsToReset)
+}
+
+func shouldPreserveTaskAcrossRetry(task *model.Task) bool {
+	switch task.State {
+	case model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		model.TaskStatus(apiv2beta1.PipelineTask_CACHED),
+		model.TaskStatus(apiv2beta1.PipelineTask_SKIPPED):
+		return true
+	default:
+		return false
+	}
 }
 
 // Fetches execution logs and writes to the destination.

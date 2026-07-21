@@ -84,6 +84,10 @@ type TaskStoreInterface interface {
 	// UpdateTask Updates an existing task entry in the database.
 	UpdateTask(new *model.Task) (*model.Task, error)
 
+	// ResetTasksForRetry clears attempt-local state so retried tasks can resume
+	// from a clean RUNNING attempt while preserving task history.
+	ResetTasksForRetry(taskIDs []string) error
+
 	// GetChildTasks Fetches all child tasks for a given task UUID.
 	GetChildTasks(taskID string) ([]*model.Task, error)
 
@@ -1248,6 +1252,98 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 
 	glog.Infof("Successfully updated task %s with row-level locking", new.UUID)
 	return s.GetTask(new.UUID)
+}
+
+func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
+	if len(taskIDs) == 0 {
+		return nil
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to start transaction for retry task reset")
+	}
+	defer func() {
+		if rbErr := tx.Rollback(); rbErr != nil && !errors.Is(rbErr, sql.ErrTxDone) {
+			glog.Warningf("Failed to rollback retry task reset transaction: %v", rbErr)
+		}
+	}()
+
+	sqlStr, args, err := sq.
+		Select(taskColumns...).
+		From(tableName).
+		Where(sq.Eq{"UUID": taskIDs}).
+		OrderBy("CreatedAtInSec ASC", "UUID ASC").
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to read retry tasks: %v", err.Error())
+	}
+	sqlStr = s.db.SelectForUpdate(sqlStr)
+	rows, err := tx.Query(sqlStr, args...)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to load retry tasks for reset: %v", err.Error())
+	}
+	defer rows.Close()
+
+	tasks := make([]*model.Task, 0, len(taskIDs))
+	for rows.Next() {
+		task, err := scanTaskRow(rows)
+		if err != nil {
+			return util.NewInternalServerError(err, "Failed to scan retry task for reset: %v", err.Error())
+		}
+		tasks = append(tasks, task)
+	}
+	if err := rows.Err(); err != nil {
+		return util.NewInternalServerError(err, "Failed while reading retry tasks for reset: %v", err.Error())
+	}
+
+	retryStartedAt := s.time.Now().Unix()
+	emptyJSONArray := "[]"
+	for _, task := range tasks {
+		mergedHistory := task.StateHistory
+		if len(mergedHistory) == 0 || getLastTaskState(mergedHistory) != model.TaskStatus(apiv2beta1.PipelineTask_RUNNING) {
+			taskStatus := &apiv2beta1.PipelineTask_TaskStatus{
+				UpdateTime: &timestamppb.Timestamp{Seconds: retryStartedAt},
+				State:      apiv2beta1.PipelineTask_RUNNING,
+			}
+			newEntry, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskStatus{taskStatus})
+			if err != nil {
+				return util.NewInternalServerError(err, "Failed to build retry state history entry")
+			}
+			if len(newEntry) > 0 {
+				mergedHistory = append(mergedHistory, newEntry[0])
+			}
+		}
+		historyBytes, err := json.Marshal(mergedHistory)
+		if err != nil {
+			return util.NewInternalServerError(err, "Failed to marshal retry task state history")
+		}
+
+		updateSQL, updateArgs, err := sq.
+			Update(tableName).
+			SetMap(sq.Eq{
+				"State":            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+				"StartedInSec":     retryStartedAt,
+				"FinishedInSec":    0,
+				"StatusMetadata":   nil,
+				"Pods":             emptyJSONArray,
+				"OutputParameters": emptyJSONArray,
+				"StateHistory":     string(historyBytes),
+			}).
+			Where(sq.Eq{"UUID": task.UUID}).
+			ToSql()
+		if err != nil {
+			return util.NewInternalServerError(err, "Failed to create query to reset retry task %s: %v", task.UUID, err.Error())
+		}
+		if _, err := tx.Exec(updateSQL, updateArgs...); err != nil {
+			return util.NewInternalServerError(err, "Failed to reset retry task %s: %v", task.UUID, err.Error())
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return util.NewInternalServerError(err, "Failed to commit retry task reset transaction")
+	}
+	return nil
 }
 
 // mergeParameters merges new parameter updates into the stored parameter set.

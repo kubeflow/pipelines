@@ -567,6 +567,51 @@ func TestUpdateTask_MergesParameters(t *testing.T) {
 	assert.True(t, iterations[1], "Should have iteration 1 parameter")
 }
 
+func TestResetTasksForRetry_ClearsAttemptLocalStateAndPreservesHistory(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
+		Name: "old-pod", Uid: "old-uid", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+	outputs, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+		ParameterKey: "result",
+		Value:        structpb.NewStringValue("stale"),
+		Type:         apiv2beta1.IOType_OUTPUT,
+	}})
+	require.NoError(t, err)
+
+	created, err := taskStore.CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          "run-1",
+		Name:             "retry-me",
+		ScopePath:        "root.retry-me",
+		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+		State:            model.TaskStatus(apiv2beta1.PipelineTask_FAILED),
+		Fingerprint:      "fp-retry",
+		Pods:             pods,
+		StatusMetadata:   model.JSONData{"message": "old failure"},
+		OutputParameters: outputs,
+		TypeAttrs:        model.JSONData{},
+		FinishedInSec:    10,
+	})
+	require.NoError(t, err)
+
+	err = taskStore.ResetTasksForRetry([]string{created.UUID})
+	require.NoError(t, err)
+
+	retried, err := taskStore.GetTask(created.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), retried.State)
+	assert.Equal(t, int64(0), retried.FinishedInSec)
+	assert.Nil(t, retried.StatusMetadata)
+	assert.Empty(t, retried.Pods)
+	assert.Empty(t, retried.OutputParameters)
+	require.NotEmpty(t, retried.StateHistory)
+	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), getLastTaskState(retried.StateHistory))
+}
+
 func TestGetChildTasks_ReturnsChildren(t *testing.T) {
 	db, taskStore, _ := initializeTaskStore()
 	defer db.Close()
