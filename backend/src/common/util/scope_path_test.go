@@ -227,6 +227,41 @@ func TestScopePath_AllowsChildNamedRoot(t *testing.T) {
 	require.Equal(t, "root-display-name", scopePath.GetLast().GetTaskSpec().GetTaskInfo().GetName())
 }
 
+func TestScopePathCopyReportsSharedListSizeAccurately(t *testing.T) {
+	pipelineSpec := &pipelinespec.PipelineSpec{
+		Root: &pipelinespec.ComponentSpec{
+			Implementation: &pipelinespec.ComponentSpec_Dag{
+				Dag: &pipelinespec.DagSpec{
+					Tasks: map[string]*pipelinespec.PipelineTaskSpec{
+						"child": {
+							TaskInfo:     &pipelinespec.PipelineTaskInfo{Name: "child"},
+							ComponentRef: &pipelinespec.ComponentRef{Name: "child-component"},
+						},
+					},
+				},
+			},
+		},
+		Components: map[string]*pipelinespec.ComponentSpec{
+			"child-component": {},
+		},
+	}
+
+	b, err := protojson.Marshal(pipelineSpec)
+	require.NoError(t, err)
+	var pipelineSpecStruct structpb.Struct
+	require.NoError(t, protojson.Unmarshal(b, &pipelineSpecStruct))
+
+	scopePath, err := NewScopePathFromStruct(&pipelineSpecStruct)
+	require.NoError(t, err)
+	require.NoError(t, scopePath.Push("root"))
+
+	scopePathCopy := scopePath
+	require.NoError(t, scopePath.Push("child"))
+
+	require.Equal(t, []string{"root", "child"}, scopePathCopy.StringPath())
+	require.Equal(t, 2, scopePathCopy.GetSize())
+}
+
 func TestDotNotationConversion(t *testing.T) {
 	// Test conversion from array to dot notation
 	tests := []struct {

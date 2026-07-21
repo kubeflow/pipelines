@@ -35,7 +35,6 @@ type ScopePath struct {
 	list               *LinkedList[ScopePathEntry]
 	pipelineSpec       *pipelinespec.PipelineSpec
 	pipelineSpecStruct *structpb.Struct
-	size               int
 }
 type ScopePathEntry struct {
 	taskName      string
@@ -135,7 +134,6 @@ func (s *ScopePath) Push(taskName string) error {
 			componentSpec: s.pipelineSpec.Root,
 		}
 		s.list.append(sp)
-		s.size++
 		return nil
 	}
 	if s.list.head == nil {
@@ -162,7 +160,6 @@ func (s *ScopePath) Push(taskName string) error {
 		componentSpec: componentSpec,
 	}
 	s.list.append(sp)
-	s.size++
 	return nil
 }
 
@@ -170,11 +167,7 @@ func (s *ScopePath) Pop() (ScopePathEntry, bool) {
 	if s.list == nil {
 		return ScopePathEntry{}, false
 	}
-	entry, ok := s.list.pop()
-	if ok {
-		s.size--
-	}
-	return entry, ok
+	return s.list.pop()
 }
 
 func (s *ScopePath) GetRoot() *ScopePathEntry {
@@ -193,7 +186,14 @@ func (s *ScopePath) GetLast() *ScopePathEntry {
 }
 
 func (s *ScopePath) GetSize() int {
-	return s.size
+	size := 0
+	if s.list == nil {
+		return size
+	}
+	for node := s.list.head; node != nil; node = node.Next {
+		size++
+	}
+	return size
 }
 
 func (s *ScopePath) GetPipelineSpec() *pipelinespec.PipelineSpec {
