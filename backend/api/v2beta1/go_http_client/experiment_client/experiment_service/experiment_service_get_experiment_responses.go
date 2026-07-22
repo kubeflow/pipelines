@@ -127,7 +127,7 @@ An unexpected error response.
 type ExperimentServiceGetExperimentDefault struct {
 	_statusCode int
 
-	Payload *experiment_model.GooglerpcStatus
+	Payload *experiment_model.GoogleRPCStatus
 }
 
 // IsSuccess returns true when this experiment service get experiment default response has a 2xx status code
@@ -170,13 +170,13 @@ func (o *ExperimentServiceGetExperimentDefault) String() string {
 	return fmt.Sprintf("[GET /apis/v2beta1/experiments/{experiment_id}][%d] ExperimentService_GetExperiment default %s", o._statusCode, payload)
 }
 
-func (o *ExperimentServiceGetExperimentDefault) GetPayload() *experiment_model.GooglerpcStatus {
+func (o *ExperimentServiceGetExperimentDefault) GetPayload() *experiment_model.GoogleRPCStatus {
 	return o.Payload
 }
 
 func (o *ExperimentServiceGetExperimentDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(experiment_model.GooglerpcStatus)
+	o.Payload = new(experiment_model.GoogleRPCStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

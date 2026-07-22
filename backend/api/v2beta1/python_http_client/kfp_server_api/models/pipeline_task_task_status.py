@@ -35,7 +35,7 @@ class PipelineTaskTaskStatus(object):
     openapi_types = {
         'update_time': 'datetime',
         'state': 'PipelineTaskTaskState',
-        'error': 'GooglerpcStatus'
+        'error': 'GoogleRpcStatus'
     }
 
     attribute_map = {
@@ -110,7 +110,7 @@ class PipelineTaskTaskStatus(object):
 
 
         :return: The error of this PipelineTaskTaskStatus.  # noqa: E501
-        :rtype: GooglerpcStatus
+        :rtype: GoogleRpcStatus
         """
         return self._error
 
@@ -120,7 +120,7 @@ class PipelineTaskTaskStatus(object):
 
 
         :param error: The error of this PipelineTaskTaskStatus.  # noqa: E501
-        :type error: GooglerpcStatus
+        :type error: GoogleRpcStatus
         """
 
         self._error = error

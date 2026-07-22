@@ -17,45 +17,7 @@
   ],
   "paths": {},
   "definitions": {
-    "PredicateIntValues": {
-      "type": "object",
-      "properties": {
-        "values": {
-          "type": "array",
-          "items": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "description": "List of integers."
-    },
-    "PredicateLongValues": {
-      "type": "object",
-      "properties": {
-        "values": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "int64"
-          }
-        }
-      },
-      "description": "List of long integers."
-    },
-    "PredicateStringValues": {
-      "type": "object",
-      "properties": {
-        "values": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "description": "List of strings."
-    },
-    "googlerpcStatus": {
+    "googleRpcStatus": {
       "type": "object",
       "properties": {
         "code": {
@@ -88,80 +50,6 @@
       },
       "additionalProperties": {},
       "description": "`Any` contains an arbitrary serialized protocol buffer message along with a\nURL that describes the type of the serialized message.\n\nProtobuf library provides support to pack/unpack Any values in the form\nof utility functions or additional generated methods of the Any type.\n\nExample 1: Pack and unpack a message in C++.\n\n    Foo foo = ...;\n    Any any;\n    any.PackFrom(foo);\n    ...\n    if (any.UnpackTo(\u0026foo)) {\n      ...\n    }\n\nExample 2: Pack and unpack a message in Java.\n\n    Foo foo = ...;\n    Any any = Any.pack(foo);\n    ...\n    if (any.is(Foo.class)) {\n      foo = any.unpack(Foo.class);\n    }\n    // or ...\n    if (any.isSameTypeAs(Foo.getDefaultInstance())) {\n      foo = any.unpack(Foo.getDefaultInstance());\n    }\n\n Example 3: Pack and unpack a message in Python.\n\n    foo = Foo(...)\n    any = Any()\n    any.Pack(foo)\n    ...\n    if any.Is(Foo.DESCRIPTOR):\n      any.Unpack(foo)\n      ...\n\n Example 4: Pack and unpack a message in Go\n\n     foo := \u0026pb.Foo{...}\n     any, err := anypb.New(foo)\n     if err != nil {\n       ...\n     }\n     ...\n     foo := \u0026pb.Foo{}\n     if err := any.UnmarshalTo(foo); err != nil {\n       ...\n     }\n\nThe pack methods provided by protobuf library will by default use\n'type.googleapis.com/full.type.name' as the type URL and the unpack\nmethods only use the fully qualified type name after the last '/'\nin the type URL, for example \"foo.bar.com/x/y.z\" will yield type\nname \"y.z\".\n\nJSON\n====\nThe JSON representation of an `Any` value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field `@type` which contains the type URL. Example:\n\n    package google.profile;\n    message Person {\n      string first_name = 1;\n      string last_name = 2;\n    }\n\n    {\n      \"@type\": \"type.googleapis.com/google.profile.Person\",\n      \"firstName\": \u003cstring\u003e,\n      \"lastName\": \u003cstring\u003e\n    }\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\n`value` which holds the custom JSON in addition to the `@type`\nfield. Example (for message [google.protobuf.Duration][]):\n\n    {\n      \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n      \"value\": \"1.212s\"\n    }"
-    },
-    "v2beta1Filter": {
-      "type": "object",
-      "properties": {
-        "predicates": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/v2beta1Predicate"
-          },
-          "description": "All predicates are AND-ed when this filter is applied."
-        }
-      },
-      "description": "Filter is used to filter resources returned from a ListXXX request.\n\nExample filters:\n1) Filter runs with status = 'Running'\nfilter {\n  predicate {\n    key: \"status\"\n    operation: EQUALS\n    string_value: \"Running\"\n  }\n}\n\n2) Filter runs that succeeded since Dec 1, 2018\nfilter {\n  predicate {\n    key: \"status\"\n    operation: EQUALS\n    string_value: \"Succeeded\"\n  }\n  predicate {\n    key: \"created_at\"\n    operation: GREATER_THAN\n    timestamp_value {\n      seconds: 1543651200\n    }\n  }\n}\n\n3) Filter runs with one of labels 'label_1' or 'label_2'\n\nfilter {\n  predicate {\n    key: \"label\"\n    operation: IN\n    string_values {\n      value: 'label_1'\n      value: 'label_2'\n    }\n  }\n}"
-    },
-    "v2beta1Predicate": {
-      "type": "object",
-      "properties": {
-        "operation": {
-          "$ref": "#/definitions/v2beta1PredicateOperation"
-        },
-        "key": {
-          "type": "string",
-          "description": "Key for the operation (first argument)."
-        },
-        "int_value": {
-          "type": "integer",
-          "format": "int32",
-          "description": "Integer."
-        },
-        "long_value": {
-          "type": "string",
-          "format": "int64",
-          "description": "Long integer."
-        },
-        "string_value": {
-          "type": "string",
-          "description": "String."
-        },
-        "timestamp_value": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Timestamp values will be converted to Unix time (seconds since the epoch)\nprior to being used in a filtering operation."
-        },
-        "int_values": {
-          "$ref": "#/definitions/PredicateIntValues",
-          "description": "Array values below are only meant to be used by the IN operator."
-        },
-        "long_values": {
-          "$ref": "#/definitions/PredicateLongValues",
-          "description": "List of long integers."
-        },
-        "string_values": {
-          "$ref": "#/definitions/PredicateStringValues",
-          "description": "List of strings."
-        }
-      },
-      "description": "Predicate captures individual conditions that must be true for a resource\nbeing filtered."
-    },
-    "v2beta1PredicateOperation": {
-      "type": "string",
-      "enum": [
-        "OPERATION_UNSPECIFIED",
-        "EQUALS",
-        "NOT_EQUALS",
-        "GREATER_THAN",
-        "GREATER_THAN_EQUALS",
-        "LESS_THAN",
-        "LESS_THAN_EQUALS",
-        "IN",
-        "IS_SUBSTRING"
-      ],
-      "default": "OPERATION_UNSPECIFIED",
-      "description": "Operation is the operation to apply.\n\n - OPERATION_UNSPECIFIED: Default operation. This operation is not used.\n - EQUALS: Operation on scalar values. Only applies to one of |int_value|,\n|long_value|, |string_value| or |timestamp_value|.\n - NOT_EQUALS: Negated EQUALS.\n - GREATER_THAN: Greater than operation.\n - GREATER_THAN_EQUALS: Greater than or equals operation.\n - LESS_THAN: Less than operation.\n - LESS_THAN_EQUALS: Less than or equals operation\n - IN: Checks if the value is a member of a given array, which should be one of\n|int_values|, |long_values| or |string_values|.\n - IS_SUBSTRING: Checks if the value contains |string_value| as a substring match. Only\napplies to |string_value|."
     }
   }
 }

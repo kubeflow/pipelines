@@ -2143,6 +2143,102 @@ func (x *ListTasksResponse) GetTotalSize() int32 {
 	return 0
 }
 
+type FindCachedTaskRequest struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Namespace        string                 `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	CacheFingerprint string                 `protobuf:"bytes,2,opt,name=cache_fingerprint,json=cacheFingerprint,proto3" json:"cache_fingerprint,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *FindCachedTaskRequest) Reset() {
+	*x = FindCachedTaskRequest{}
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FindCachedTaskRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FindCachedTaskRequest) ProtoMessage() {}
+
+func (x *FindCachedTaskRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FindCachedTaskRequest.ProtoReflect.Descriptor instead.
+func (*FindCachedTaskRequest) Descriptor() ([]byte, []int) {
+	return file_backend_api_v2beta1_run_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *FindCachedTaskRequest) GetNamespace() string {
+	if x != nil {
+		return x.Namespace
+	}
+	return ""
+}
+
+func (x *FindCachedTaskRequest) GetCacheFingerprint() string {
+	if x != nil {
+		return x.CacheFingerprint
+	}
+	return ""
+}
+
+type FindCachedTaskResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Task          *PipelineTask          `protobuf:"bytes,1,opt,name=task,proto3" json:"task,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FindCachedTaskResponse) Reset() {
+	*x = FindCachedTaskResponse{}
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FindCachedTaskResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FindCachedTaskResponse) ProtoMessage() {}
+
+func (x *FindCachedTaskResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FindCachedTaskResponse.ProtoReflect.Descriptor instead.
+func (*FindCachedTaskResponse) Descriptor() ([]byte, []int) {
+	return file_backend_api_v2beta1_run_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *FindCachedTaskResponse) GetTask() *PipelineTask {
+	if x != nil {
+		return x.Task
+	}
+	return nil
+}
+
 type PipelineTask_TaskPod struct {
 	state         protoimpl.MessageState   `protogen:"open.v1"`
 	Name          string                   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -2154,7 +2250,7 @@ type PipelineTask_TaskPod struct {
 
 func (x *PipelineTask_TaskPod) Reset() {
 	*x = PipelineTask_TaskPod{}
-	mi := &file_backend_api_v2beta1_run_proto_msgTypes[21]
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2166,7 +2262,7 @@ func (x *PipelineTask_TaskPod) String() string {
 func (*PipelineTask_TaskPod) ProtoMessage() {}
 
 func (x *PipelineTask_TaskPod) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_run_proto_msgTypes[21]
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2218,7 +2314,7 @@ type PipelineTask_StatusMetadata struct {
 
 func (x *PipelineTask_StatusMetadata) Reset() {
 	*x = PipelineTask_StatusMetadata{}
-	mi := &file_backend_api_v2beta1_run_proto_msgTypes[22]
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2230,7 +2326,7 @@ func (x *PipelineTask_StatusMetadata) String() string {
 func (*PipelineTask_StatusMetadata) ProtoMessage() {}
 
 func (x *PipelineTask_StatusMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_run_proto_msgTypes[22]
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2272,7 +2368,7 @@ type PipelineTask_TaskStatus struct {
 
 func (x *PipelineTask_TaskStatus) Reset() {
 	*x = PipelineTask_TaskStatus{}
-	mi := &file_backend_api_v2beta1_run_proto_msgTypes[23]
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2284,7 +2380,7 @@ func (x *PipelineTask_TaskStatus) String() string {
 func (*PipelineTask_TaskStatus) ProtoMessage() {}
 
 func (x *PipelineTask_TaskStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_run_proto_msgTypes[23]
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2335,7 +2431,7 @@ type PipelineTask_TypeAttributes struct {
 
 func (x *PipelineTask_TypeAttributes) Reset() {
 	*x = PipelineTask_TypeAttributes{}
-	mi := &file_backend_api_v2beta1_run_proto_msgTypes[24]
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2347,7 +2443,7 @@ func (x *PipelineTask_TypeAttributes) String() string {
 func (*PipelineTask_TypeAttributes) ProtoMessage() {}
 
 func (x *PipelineTask_TypeAttributes) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_run_proto_msgTypes[24]
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2397,7 +2493,7 @@ type PipelineTask_ChildTask struct {
 
 func (x *PipelineTask_ChildTask) Reset() {
 	*x = PipelineTask_ChildTask{}
-	mi := &file_backend_api_v2beta1_run_proto_msgTypes[25]
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2409,7 +2505,7 @@ func (x *PipelineTask_ChildTask) String() string {
 func (*PipelineTask_ChildTask) ProtoMessage() {}
 
 func (x *PipelineTask_ChildTask) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_run_proto_msgTypes[25]
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2453,7 +2549,7 @@ type PipelineTask_InputOutputs struct {
 
 func (x *PipelineTask_InputOutputs) Reset() {
 	*x = PipelineTask_InputOutputs{}
-	mi := &file_backend_api_v2beta1_run_proto_msgTypes[26]
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2465,7 +2561,7 @@ func (x *PipelineTask_InputOutputs) String() string {
 func (*PipelineTask_InputOutputs) ProtoMessage() {}
 
 func (x *PipelineTask_InputOutputs) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_run_proto_msgTypes[26]
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2510,7 +2606,7 @@ type PipelineTask_InputOutputs_IOParameter struct {
 
 func (x *PipelineTask_InputOutputs_IOParameter) Reset() {
 	*x = PipelineTask_InputOutputs_IOParameter{}
-	mi := &file_backend_api_v2beta1_run_proto_msgTypes[28]
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2522,7 +2618,7 @@ func (x *PipelineTask_InputOutputs_IOParameter) String() string {
 func (*PipelineTask_InputOutputs_IOParameter) ProtoMessage() {}
 
 func (x *PipelineTask_InputOutputs_IOParameter) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_run_proto_msgTypes[28]
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2579,7 +2675,7 @@ type PipelineTask_InputOutputs_IOArtifact struct {
 
 func (x *PipelineTask_InputOutputs_IOArtifact) Reset() {
 	*x = PipelineTask_InputOutputs_IOArtifact{}
-	mi := &file_backend_api_v2beta1_run_proto_msgTypes[29]
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2591,7 +2687,7 @@ func (x *PipelineTask_InputOutputs_IOArtifact) String() string {
 func (*PipelineTask_InputOutputs_IOArtifact) ProtoMessage() {}
 
 func (x *PipelineTask_InputOutputs_IOArtifact) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_run_proto_msgTypes[29]
+	mi := &file_backend_api_v2beta1_run_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2856,7 +2952,12 @@ const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"\x05tasks\x18\x01 \x03(\v24.kubeflow.pipelines.backend.api.v2beta1.PipelineTaskR\x05tasks\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1d\n" +
 	"\n" +
-	"total_size\x18\x03 \x01(\x05R\ttotalSize*\x98\x01\n" +
+	"total_size\x18\x03 \x01(\x05R\ttotalSize\"b\n" +
+	"\x15FindCachedTaskRequest\x12\x1c\n" +
+	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12+\n" +
+	"\x11cache_fingerprint\x18\x02 \x01(\tR\x10cacheFingerprint\"b\n" +
+	"\x16FindCachedTaskResponse\x12H\n" +
+	"\x04task\x18\x01 \x01(\v24.kubeflow.pipelines.backend.api.v2beta1.PipelineTaskR\x04task*\x98\x01\n" +
 	"\fRuntimeState\x12\x1d\n" +
 	"\x19RUNTIME_STATE_UNSPECIFIED\x10\x00\x12\v\n" +
 	"\aPENDING\x10\x01\x12\v\n" +
@@ -2868,7 +2969,7 @@ const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"\tCANCELING\x10\x06\x12\f\n" +
 	"\bCANCELED\x10\a\x12\n" +
 	"\n" +
-	"\x06PAUSED\x10\b2\xd4\x12\n" +
+	"\x06PAUSED\x10\b2\xf1\x14\n" +
 	"\n" +
 	"RunService\x12\x93\x01\n" +
 	"\tCreateRun\x128.kubeflow.pipelines.backend.api.v2beta1.CreateRunRequest\x1a+.kubeflow.pipelines.backend.api.v2beta1.Run\"\x1f\x82\xd3\xe4\x93\x02\x19:\x03run\"\x12/apis/v2beta1/runs\x12\x91\x01\n" +
@@ -2897,7 +2998,10 @@ const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"\tListTasks\x128.kubeflow.pipelines.backend.api.v2beta1.ListTasksRequest\x1a9.kubeflow.pipelines.backend.api.v2beta1.ListTasksResponse\"j\x92A>\n" +
 	"\n" +
 	"RunService\x12$Lists tasks with optional filtering.*\n" +
-	"list_tasks\x82\xd3\xe4\x93\x02#\x12!/apis/v2beta1/runs/{run_id}/tasksB\x98\x01\x92AX*\x02\x01\x02R#\n" +
+	"list_tasks\x82\xd3\xe4\x93\x02#\x12!/apis/v2beta1/runs/{run_id}/tasks\x12\x9a\x02\n" +
+	"\x0eFindCachedTask\x12=.kubeflow.pipelines.backend.api.v2beta1.FindCachedTaskRequest\x1a>.kubeflow.pipelines.backend.api.v2beta1.FindCachedTaskResponse\"\x88\x01\x92A\\\n" +
+	"\n" +
+	"RunService\x12<Finds a cached successful task by namespace and fingerprint.*\x10find_cached_task\x82\xd3\xe4\x93\x02#:\x01*\"\x1e/apis/v2beta1/tasks:findCachedB\x98\x01\x92AX*\x02\x01\x02R#\n" +
 	"\adefault\x12\x18\x12\x16\n" +
 	"\x14\x1a\x12.google.rpc.StatusZ\x1f\n" +
 	"\x1d\n" +
@@ -2919,7 +3023,7 @@ func file_backend_api_v2beta1_run_proto_rawDescGZIP() []byte {
 }
 
 var file_backend_api_v2beta1_run_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
-var file_backend_api_v2beta1_run_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
+var file_backend_api_v2beta1_run_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
 var file_backend_api_v2beta1_run_proto_goTypes = []any{
 	(RuntimeState)(0),                             // 0: kubeflow.pipelines.backend.api.v2beta1.RuntimeState
 	(Run_StorageState)(0),                         // 1: kubeflow.pipelines.backend.api.v2beta1.Run.StorageState
@@ -2949,111 +3053,116 @@ var file_backend_api_v2beta1_run_proto_goTypes = []any{
 	(*GetTaskRequest)(nil),                        // 25: kubeflow.pipelines.backend.api.v2beta1.GetTaskRequest
 	(*ListTasksRequest)(nil),                      // 26: kubeflow.pipelines.backend.api.v2beta1.ListTasksRequest
 	(*ListTasksResponse)(nil),                     // 27: kubeflow.pipelines.backend.api.v2beta1.ListTasksResponse
-	(*PipelineTask_TaskPod)(nil),                  // 28: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskPod
-	(*PipelineTask_StatusMetadata)(nil),           // 29: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.StatusMetadata
-	(*PipelineTask_TaskStatus)(nil),               // 30: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskStatus
-	(*PipelineTask_TypeAttributes)(nil),           // 31: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TypeAttributes
-	(*PipelineTask_ChildTask)(nil),                // 32: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.ChildTask
-	(*PipelineTask_InputOutputs)(nil),             // 33: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs
-	nil,                                           // 34: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.StatusMetadata.CustomPropertiesEntry
-	(*PipelineTask_InputOutputs_IOParameter)(nil), // 35: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOParameter
-	(*PipelineTask_InputOutputs_IOArtifact)(nil),  // 36: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOArtifact
-	nil,                           // 37: kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkRequest.TasksEntry
-	nil,                           // 38: kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkResponse.TasksEntry
-	(*structpb.Struct)(nil),       // 39: google.protobuf.Struct
-	(*RuntimeConfig)(nil),         // 40: kubeflow.pipelines.backend.api.v2beta1.RuntimeConfig
-	(*timestamppb.Timestamp)(nil), // 41: google.protobuf.Timestamp
-	(*status.Status)(nil),         // 42: google.rpc.Status
-	(*structpb.Value)(nil),        // 43: google.protobuf.Value
-	(IOType)(0),                   // 44: kubeflow.pipelines.backend.api.v2beta1.IOType
-	(*IOProducer)(nil),            // 45: kubeflow.pipelines.backend.api.v2beta1.IOProducer
-	(*Artifact)(nil),              // 46: kubeflow.pipelines.backend.api.v2beta1.Artifact
-	(*emptypb.Empty)(nil),         // 47: google.protobuf.Empty
+	(*FindCachedTaskRequest)(nil),                 // 28: kubeflow.pipelines.backend.api.v2beta1.FindCachedTaskRequest
+	(*FindCachedTaskResponse)(nil),                // 29: kubeflow.pipelines.backend.api.v2beta1.FindCachedTaskResponse
+	(*PipelineTask_TaskPod)(nil),                  // 30: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskPod
+	(*PipelineTask_StatusMetadata)(nil),           // 31: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.StatusMetadata
+	(*PipelineTask_TaskStatus)(nil),               // 32: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskStatus
+	(*PipelineTask_TypeAttributes)(nil),           // 33: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TypeAttributes
+	(*PipelineTask_ChildTask)(nil),                // 34: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.ChildTask
+	(*PipelineTask_InputOutputs)(nil),             // 35: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs
+	nil,                                           // 36: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.StatusMetadata.CustomPropertiesEntry
+	(*PipelineTask_InputOutputs_IOParameter)(nil), // 37: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOParameter
+	(*PipelineTask_InputOutputs_IOArtifact)(nil),  // 38: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOArtifact
+	nil,                           // 39: kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkRequest.TasksEntry
+	nil,                           // 40: kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkResponse.TasksEntry
+	(*structpb.Struct)(nil),       // 41: google.protobuf.Struct
+	(*RuntimeConfig)(nil),         // 42: kubeflow.pipelines.backend.api.v2beta1.RuntimeConfig
+	(*timestamppb.Timestamp)(nil), // 43: google.protobuf.Timestamp
+	(*status.Status)(nil),         // 44: google.rpc.Status
+	(*structpb.Value)(nil),        // 45: google.protobuf.Value
+	(IOType)(0),                   // 46: kubeflow.pipelines.backend.api.v2beta1.IOType
+	(*IOProducer)(nil),            // 47: kubeflow.pipelines.backend.api.v2beta1.IOProducer
+	(*Artifact)(nil),              // 48: kubeflow.pipelines.backend.api.v2beta1.Artifact
+	(*emptypb.Empty)(nil),         // 49: google.protobuf.Empty
 }
 var file_backend_api_v2beta1_run_proto_depIdxs = []int32{
 	1,  // 0: kubeflow.pipelines.backend.api.v2beta1.Run.storage_state:type_name -> kubeflow.pipelines.backend.api.v2beta1.Run.StorageState
-	39, // 1: kubeflow.pipelines.backend.api.v2beta1.Run.pipeline_spec:type_name -> google.protobuf.Struct
+	41, // 1: kubeflow.pipelines.backend.api.v2beta1.Run.pipeline_spec:type_name -> google.protobuf.Struct
 	8,  // 2: kubeflow.pipelines.backend.api.v2beta1.Run.pipeline_version_reference:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineVersionReference
-	40, // 3: kubeflow.pipelines.backend.api.v2beta1.Run.runtime_config:type_name -> kubeflow.pipelines.backend.api.v2beta1.RuntimeConfig
-	41, // 4: kubeflow.pipelines.backend.api.v2beta1.Run.created_at:type_name -> google.protobuf.Timestamp
-	41, // 5: kubeflow.pipelines.backend.api.v2beta1.Run.scheduled_at:type_name -> google.protobuf.Timestamp
-	41, // 6: kubeflow.pipelines.backend.api.v2beta1.Run.finished_at:type_name -> google.protobuf.Timestamp
+	42, // 3: kubeflow.pipelines.backend.api.v2beta1.Run.runtime_config:type_name -> kubeflow.pipelines.backend.api.v2beta1.RuntimeConfig
+	43, // 4: kubeflow.pipelines.backend.api.v2beta1.Run.created_at:type_name -> google.protobuf.Timestamp
+	43, // 5: kubeflow.pipelines.backend.api.v2beta1.Run.scheduled_at:type_name -> google.protobuf.Timestamp
+	43, // 6: kubeflow.pipelines.backend.api.v2beta1.Run.finished_at:type_name -> google.protobuf.Timestamp
 	0,  // 7: kubeflow.pipelines.backend.api.v2beta1.Run.state:type_name -> kubeflow.pipelines.backend.api.v2beta1.RuntimeState
-	42, // 8: kubeflow.pipelines.backend.api.v2beta1.Run.error:type_name -> google.rpc.Status
+	44, // 8: kubeflow.pipelines.backend.api.v2beta1.Run.error:type_name -> google.rpc.Status
 	10, // 9: kubeflow.pipelines.backend.api.v2beta1.Run.run_details:type_name -> kubeflow.pipelines.backend.api.v2beta1.RunDetails
 	9,  // 10: kubeflow.pipelines.backend.api.v2beta1.Run.state_history:type_name -> kubeflow.pipelines.backend.api.v2beta1.RuntimeStatus
 	8,  // 11: kubeflow.pipelines.backend.api.v2beta1.Run.pipeline_reference:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineVersionReference
 	11, // 12: kubeflow.pipelines.backend.api.v2beta1.Run.tasks:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask
-	41, // 13: kubeflow.pipelines.backend.api.v2beta1.RuntimeStatus.update_time:type_name -> google.protobuf.Timestamp
+	43, // 13: kubeflow.pipelines.backend.api.v2beta1.RuntimeStatus.update_time:type_name -> google.protobuf.Timestamp
 	0,  // 14: kubeflow.pipelines.backend.api.v2beta1.RuntimeStatus.state:type_name -> kubeflow.pipelines.backend.api.v2beta1.RuntimeState
-	42, // 15: kubeflow.pipelines.backend.api.v2beta1.RuntimeStatus.error:type_name -> google.rpc.Status
-	28, // 16: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.pods:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskPod
-	41, // 17: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.create_time:type_name -> google.protobuf.Timestamp
-	41, // 18: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.end_time:type_name -> google.protobuf.Timestamp
+	44, // 15: kubeflow.pipelines.backend.api.v2beta1.RuntimeStatus.error:type_name -> google.rpc.Status
+	30, // 16: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.pods:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskPod
+	43, // 17: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.create_time:type_name -> google.protobuf.Timestamp
+	43, // 18: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.end_time:type_name -> google.protobuf.Timestamp
 	3,  // 19: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.state:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskState
-	29, // 20: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.status_metadata:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.StatusMetadata
-	30, // 21: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.state_history:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskStatus
+	31, // 20: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.status_metadata:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.StatusMetadata
+	32, // 21: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.state_history:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskStatus
 	4,  // 22: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.type:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskType
-	31, // 23: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.type_attributes:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TypeAttributes
-	32, // 24: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.child_tasks:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.ChildTask
-	33, // 25: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.inputs:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs
-	33, // 26: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.outputs:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs
+	33, // 23: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.type_attributes:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TypeAttributes
+	34, // 24: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.child_tasks:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.ChildTask
+	35, // 25: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.inputs:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs
+	35, // 26: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.outputs:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs
 	7,  // 27: kubeflow.pipelines.backend.api.v2beta1.CreateRunRequest.run:type_name -> kubeflow.pipelines.backend.api.v2beta1.Run
 	5,  // 28: kubeflow.pipelines.backend.api.v2beta1.GetRunRequest.view:type_name -> kubeflow.pipelines.backend.api.v2beta1.GetRunRequest.ViewMode
 	6,  // 29: kubeflow.pipelines.backend.api.v2beta1.ListRunsRequest.view:type_name -> kubeflow.pipelines.backend.api.v2beta1.ListRunsRequest.ViewMode
 	7,  // 30: kubeflow.pipelines.backend.api.v2beta1.ListRunsResponse.runs:type_name -> kubeflow.pipelines.backend.api.v2beta1.Run
 	11, // 31: kubeflow.pipelines.backend.api.v2beta1.CreateTaskRequest.task:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask
 	11, // 32: kubeflow.pipelines.backend.api.v2beta1.UpdateTaskRequest.task:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask
-	37, // 33: kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkRequest.tasks:type_name -> kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkRequest.TasksEntry
-	38, // 34: kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkResponse.tasks:type_name -> kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkResponse.TasksEntry
+	39, // 33: kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkRequest.tasks:type_name -> kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkRequest.TasksEntry
+	40, // 34: kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkResponse.tasks:type_name -> kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkResponse.TasksEntry
 	11, // 35: kubeflow.pipelines.backend.api.v2beta1.ListTasksResponse.tasks:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask
-	2,  // 36: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskPod.type:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskPodType
-	34, // 37: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.StatusMetadata.custom_properties:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.StatusMetadata.CustomPropertiesEntry
-	41, // 38: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskStatus.update_time:type_name -> google.protobuf.Timestamp
-	3,  // 39: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskStatus.state:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskState
-	42, // 40: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskStatus.error:type_name -> google.rpc.Status
-	35, // 41: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.parameters:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOParameter
-	36, // 42: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.artifacts:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOArtifact
-	43, // 43: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.StatusMetadata.CustomPropertiesEntry.value:type_name -> google.protobuf.Value
-	43, // 44: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOParameter.value:type_name -> google.protobuf.Value
-	44, // 45: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOParameter.type:type_name -> kubeflow.pipelines.backend.api.v2beta1.IOType
-	45, // 46: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOParameter.producer:type_name -> kubeflow.pipelines.backend.api.v2beta1.IOProducer
-	46, // 47: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOArtifact.artifacts:type_name -> kubeflow.pipelines.backend.api.v2beta1.Artifact
-	44, // 48: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOArtifact.type:type_name -> kubeflow.pipelines.backend.api.v2beta1.IOType
-	45, // 49: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOArtifact.producer:type_name -> kubeflow.pipelines.backend.api.v2beta1.IOProducer
-	11, // 50: kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkRequest.TasksEntry.value:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask
-	11, // 51: kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkResponse.TasksEntry.value:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask
-	12, // 52: kubeflow.pipelines.backend.api.v2beta1.RunService.CreateRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.CreateRunRequest
-	13, // 53: kubeflow.pipelines.backend.api.v2beta1.RunService.GetRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.GetRunRequest
-	14, // 54: kubeflow.pipelines.backend.api.v2beta1.RunService.ListRuns:input_type -> kubeflow.pipelines.backend.api.v2beta1.ListRunsRequest
-	17, // 55: kubeflow.pipelines.backend.api.v2beta1.RunService.ArchiveRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.ArchiveRunRequest
-	18, // 56: kubeflow.pipelines.backend.api.v2beta1.RunService.UnarchiveRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.UnarchiveRunRequest
-	19, // 57: kubeflow.pipelines.backend.api.v2beta1.RunService.DeleteRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.DeleteRunRequest
-	15, // 58: kubeflow.pipelines.backend.api.v2beta1.RunService.TerminateRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.TerminateRunRequest
-	20, // 59: kubeflow.pipelines.backend.api.v2beta1.RunService.RetryRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.RetryRunRequest
-	21, // 60: kubeflow.pipelines.backend.api.v2beta1.RunService.CreateTask:input_type -> kubeflow.pipelines.backend.api.v2beta1.CreateTaskRequest
-	22, // 61: kubeflow.pipelines.backend.api.v2beta1.RunService.UpdateTask:input_type -> kubeflow.pipelines.backend.api.v2beta1.UpdateTaskRequest
-	23, // 62: kubeflow.pipelines.backend.api.v2beta1.RunService.UpdateTasksBulk:input_type -> kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkRequest
-	25, // 63: kubeflow.pipelines.backend.api.v2beta1.RunService.GetTask:input_type -> kubeflow.pipelines.backend.api.v2beta1.GetTaskRequest
-	26, // 64: kubeflow.pipelines.backend.api.v2beta1.RunService.ListTasks:input_type -> kubeflow.pipelines.backend.api.v2beta1.ListTasksRequest
-	7,  // 65: kubeflow.pipelines.backend.api.v2beta1.RunService.CreateRun:output_type -> kubeflow.pipelines.backend.api.v2beta1.Run
-	7,  // 66: kubeflow.pipelines.backend.api.v2beta1.RunService.GetRun:output_type -> kubeflow.pipelines.backend.api.v2beta1.Run
-	16, // 67: kubeflow.pipelines.backend.api.v2beta1.RunService.ListRuns:output_type -> kubeflow.pipelines.backend.api.v2beta1.ListRunsResponse
-	47, // 68: kubeflow.pipelines.backend.api.v2beta1.RunService.ArchiveRun:output_type -> google.protobuf.Empty
-	47, // 69: kubeflow.pipelines.backend.api.v2beta1.RunService.UnarchiveRun:output_type -> google.protobuf.Empty
-	47, // 70: kubeflow.pipelines.backend.api.v2beta1.RunService.DeleteRun:output_type -> google.protobuf.Empty
-	47, // 71: kubeflow.pipelines.backend.api.v2beta1.RunService.TerminateRun:output_type -> google.protobuf.Empty
-	47, // 72: kubeflow.pipelines.backend.api.v2beta1.RunService.RetryRun:output_type -> google.protobuf.Empty
-	11, // 73: kubeflow.pipelines.backend.api.v2beta1.RunService.CreateTask:output_type -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask
-	11, // 74: kubeflow.pipelines.backend.api.v2beta1.RunService.UpdateTask:output_type -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask
-	24, // 75: kubeflow.pipelines.backend.api.v2beta1.RunService.UpdateTasksBulk:output_type -> kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkResponse
-	11, // 76: kubeflow.pipelines.backend.api.v2beta1.RunService.GetTask:output_type -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask
-	27, // 77: kubeflow.pipelines.backend.api.v2beta1.RunService.ListTasks:output_type -> kubeflow.pipelines.backend.api.v2beta1.ListTasksResponse
-	65, // [65:78] is the sub-list for method output_type
-	52, // [52:65] is the sub-list for method input_type
-	52, // [52:52] is the sub-list for extension type_name
-	52, // [52:52] is the sub-list for extension extendee
-	0,  // [0:52] is the sub-list for field type_name
+	11, // 36: kubeflow.pipelines.backend.api.v2beta1.FindCachedTaskResponse.task:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask
+	2,  // 37: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskPod.type:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskPodType
+	36, // 38: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.StatusMetadata.custom_properties:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.StatusMetadata.CustomPropertiesEntry
+	43, // 39: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskStatus.update_time:type_name -> google.protobuf.Timestamp
+	3,  // 40: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskStatus.state:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskState
+	44, // 41: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.TaskStatus.error:type_name -> google.rpc.Status
+	37, // 42: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.parameters:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOParameter
+	38, // 43: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.artifacts:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOArtifact
+	45, // 44: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.StatusMetadata.CustomPropertiesEntry.value:type_name -> google.protobuf.Value
+	45, // 45: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOParameter.value:type_name -> google.protobuf.Value
+	46, // 46: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOParameter.type:type_name -> kubeflow.pipelines.backend.api.v2beta1.IOType
+	47, // 47: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOParameter.producer:type_name -> kubeflow.pipelines.backend.api.v2beta1.IOProducer
+	48, // 48: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOArtifact.artifacts:type_name -> kubeflow.pipelines.backend.api.v2beta1.Artifact
+	46, // 49: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOArtifact.type:type_name -> kubeflow.pipelines.backend.api.v2beta1.IOType
+	47, // 50: kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputs.IOArtifact.producer:type_name -> kubeflow.pipelines.backend.api.v2beta1.IOProducer
+	11, // 51: kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkRequest.TasksEntry.value:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask
+	11, // 52: kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkResponse.TasksEntry.value:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask
+	12, // 53: kubeflow.pipelines.backend.api.v2beta1.RunService.CreateRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.CreateRunRequest
+	13, // 54: kubeflow.pipelines.backend.api.v2beta1.RunService.GetRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.GetRunRequest
+	14, // 55: kubeflow.pipelines.backend.api.v2beta1.RunService.ListRuns:input_type -> kubeflow.pipelines.backend.api.v2beta1.ListRunsRequest
+	17, // 56: kubeflow.pipelines.backend.api.v2beta1.RunService.ArchiveRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.ArchiveRunRequest
+	18, // 57: kubeflow.pipelines.backend.api.v2beta1.RunService.UnarchiveRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.UnarchiveRunRequest
+	19, // 58: kubeflow.pipelines.backend.api.v2beta1.RunService.DeleteRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.DeleteRunRequest
+	15, // 59: kubeflow.pipelines.backend.api.v2beta1.RunService.TerminateRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.TerminateRunRequest
+	20, // 60: kubeflow.pipelines.backend.api.v2beta1.RunService.RetryRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.RetryRunRequest
+	21, // 61: kubeflow.pipelines.backend.api.v2beta1.RunService.CreateTask:input_type -> kubeflow.pipelines.backend.api.v2beta1.CreateTaskRequest
+	22, // 62: kubeflow.pipelines.backend.api.v2beta1.RunService.UpdateTask:input_type -> kubeflow.pipelines.backend.api.v2beta1.UpdateTaskRequest
+	23, // 63: kubeflow.pipelines.backend.api.v2beta1.RunService.UpdateTasksBulk:input_type -> kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkRequest
+	25, // 64: kubeflow.pipelines.backend.api.v2beta1.RunService.GetTask:input_type -> kubeflow.pipelines.backend.api.v2beta1.GetTaskRequest
+	26, // 65: kubeflow.pipelines.backend.api.v2beta1.RunService.ListTasks:input_type -> kubeflow.pipelines.backend.api.v2beta1.ListTasksRequest
+	28, // 66: kubeflow.pipelines.backend.api.v2beta1.RunService.FindCachedTask:input_type -> kubeflow.pipelines.backend.api.v2beta1.FindCachedTaskRequest
+	7,  // 67: kubeflow.pipelines.backend.api.v2beta1.RunService.CreateRun:output_type -> kubeflow.pipelines.backend.api.v2beta1.Run
+	7,  // 68: kubeflow.pipelines.backend.api.v2beta1.RunService.GetRun:output_type -> kubeflow.pipelines.backend.api.v2beta1.Run
+	16, // 69: kubeflow.pipelines.backend.api.v2beta1.RunService.ListRuns:output_type -> kubeflow.pipelines.backend.api.v2beta1.ListRunsResponse
+	49, // 70: kubeflow.pipelines.backend.api.v2beta1.RunService.ArchiveRun:output_type -> google.protobuf.Empty
+	49, // 71: kubeflow.pipelines.backend.api.v2beta1.RunService.UnarchiveRun:output_type -> google.protobuf.Empty
+	49, // 72: kubeflow.pipelines.backend.api.v2beta1.RunService.DeleteRun:output_type -> google.protobuf.Empty
+	49, // 73: kubeflow.pipelines.backend.api.v2beta1.RunService.TerminateRun:output_type -> google.protobuf.Empty
+	49, // 74: kubeflow.pipelines.backend.api.v2beta1.RunService.RetryRun:output_type -> google.protobuf.Empty
+	11, // 75: kubeflow.pipelines.backend.api.v2beta1.RunService.CreateTask:output_type -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask
+	11, // 76: kubeflow.pipelines.backend.api.v2beta1.RunService.UpdateTask:output_type -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask
+	24, // 77: kubeflow.pipelines.backend.api.v2beta1.RunService.UpdateTasksBulk:output_type -> kubeflow.pipelines.backend.api.v2beta1.UpdateTasksBulkResponse
+	11, // 78: kubeflow.pipelines.backend.api.v2beta1.RunService.GetTask:output_type -> kubeflow.pipelines.backend.api.v2beta1.PipelineTask
+	27, // 79: kubeflow.pipelines.backend.api.v2beta1.RunService.ListTasks:output_type -> kubeflow.pipelines.backend.api.v2beta1.ListTasksResponse
+	29, // 80: kubeflow.pipelines.backend.api.v2beta1.RunService.FindCachedTask:output_type -> kubeflow.pipelines.backend.api.v2beta1.FindCachedTaskResponse
+	67, // [67:81] is the sub-list for method output_type
+	53, // [53:67] is the sub-list for method input_type
+	53, // [53:53] is the sub-list for extension type_name
+	53, // [53:53] is the sub-list for extension extendee
+	0,  // [0:53] is the sub-list for field type_name
 }
 
 func init() { file_backend_api_v2beta1_run_proto_init() }
@@ -3074,15 +3183,15 @@ func file_backend_api_v2beta1_run_proto_init() {
 	file_backend_api_v2beta1_run_proto_msgTypes[19].OneofWrappers = []any{
 		(*ListTasksRequest_ParentId)(nil),
 	}
-	file_backend_api_v2beta1_run_proto_msgTypes[24].OneofWrappers = []any{}
-	file_backend_api_v2beta1_run_proto_msgTypes[28].OneofWrappers = []any{}
+	file_backend_api_v2beta1_run_proto_msgTypes[26].OneofWrappers = []any{}
+	file_backend_api_v2beta1_run_proto_msgTypes[30].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_backend_api_v2beta1_run_proto_rawDesc), len(file_backend_api_v2beta1_run_proto_rawDesc)),
 			NumEnums:      7,
-			NumMessages:   32,
+			NumMessages:   34,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

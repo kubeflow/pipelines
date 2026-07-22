@@ -32,7 +32,7 @@ type V2beta1Pipeline struct {
 	// In case any error happens retrieving a pipeline field, only pipeline ID,
 	// and the error message is returned. Client has the flexibility of choosing
 	// how to handle the error. This is especially useful during listing call.
-	Error *GooglerpcStatus `json:"error,omitempty"`
+	Error *GoogleRPCStatus `json:"error,omitempty"`
 
 	// Required if display_name is not provided. Pipeline name provided by user.
 	Name string `json:"name,omitempty"`

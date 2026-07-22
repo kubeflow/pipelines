@@ -32,7 +32,7 @@ type V2beta1RecurringRun struct {
 	// In case any error happens retrieving a recurring run field, only recurring run ID
 	// and the error message is returned. Client has the flexibility of choosing
 	// how to handle the error. This is especially useful during listing call.
-	Error *GooglerpcStatus `json:"error,omitempty"`
+	Error *GoogleRPCStatus `json:"error,omitempty"`
 
 	// ID of the parent experiment this recurring run belongs to.
 	ExperimentID string `json:"experiment_id,omitempty"`

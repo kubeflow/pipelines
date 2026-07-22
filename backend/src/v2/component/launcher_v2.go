@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package component
 
 import (
@@ -21,70 +22,86 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
-	"google.golang.org/protobuf/types/known/timestamppb"
-
 	"github.com/golang/glog"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
-	"google.golang.org/protobuf/proto"
-
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
-	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
+	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
+	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"gocloud.dev/blob"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
 type LauncherV2Options struct {
-	Namespace,
-	PodName,
-	PodUID,
-	MLPipelineServerAddress,
-	MLPipelineServerPort,
-	MLMDServerAddress,
-	MLMDServerPort,
-	PipelineName,
-	RunID string
-	PublishLogs   string
-	CacheDisabled bool
+	Namespace         string
+	PodName           string
+	PodUID            string
+	PipelineName      string
+	PublishLogs       string
+	CachedFingerprint string
+	CacheDisabled     bool
+	IterationIndex    *int64
+	ComponentSpec     *pipelinespec.ComponentSpec
+	ImporterSpec      *pipelinespec.PipelineDeploymentConfig_ImporterSpec
+	PipelineSpec      *structpb.Struct
+	TaskSpec          *pipelinespec.PipelineTaskSpec
+	ScopePath         util.ScopePath
+	Run               *apiV2beta1.Run
+	ParentTask        *apiV2beta1.PipelineTask
+	Task              *apiV2beta1.PipelineTask
 	// Set to true if apiserver is serving over TLS
 	MLPipelineTLSEnabled bool
-	// Set to true if metadata server is serving over TLS
-	MLMDTLSEnabled bool
-	CaCertPath     string
+	MLPipelineServerAddress,
+	MLPipelineServerPort,
+	CaCertPath string
 }
 
 type LauncherV2 struct {
-	executionID   int64
 	executorInput *pipelinespec.ExecutorInput
-	component     *pipelinespec.ComponentSpec
 	command       string
 	args          []string
 	options       LauncherV2Options
 	clientManager client_manager.ClientManagerInterface
+	// Maintaining a cache of opened buckets will minimize
+	// the number of calls to the object store, and api server
+	openedBucketCache map[string]*blob.Bucket
+	launcherConfig    *config.Config
+	pipelineSpec      *structpb.Struct
+
+	// BatchUpdater collects API updates and flushes them in batches
+	// to reduce database round-trips
+	batchUpdater *BatchUpdater
+
+	// Dependency interfaces for testing
+	fileSystem  FileSystem
+	cmdExecutor CommandExecutor
+	objectStore ObjectStoreClientInterface
 }
 
-// Client is the struct to hold the Kubernetes Clientset
-type kubernetesClient struct {
-	Clientset kubernetes.Interface
+type OutputPropagationOptions struct {
+	Run          *apiV2beta1.Run
+	Task         *apiV2beta1.PipelineTask
+	ParentTask   *apiV2beta1.PipelineTask
+	ScopePath    util.ScopePath
+	PipelineSpec *structpb.Struct
 }
 
 // NewLauncherV2 is a factory function that returns an instance of LauncherV2.
 func NewLauncherV2(
-	ctx context.Context,
-	executionID int64,
-	executorInputJSON,
-	componentSpecJSON string,
+	executorInputJSON string,
 	cmdArgs []string,
 	opts *LauncherV2Options,
 	clientManager client_manager.ClientManagerInterface,
@@ -94,18 +111,11 @@ func NewLauncherV2(
 			err = fmt.Errorf("failed to create component launcher v2: %w", err)
 		}
 	}()
-	if executionID == 0 {
-		return nil, fmt.Errorf("must specify execution ID")
-	}
+
 	executorInput := &pipelinespec.ExecutorInput{}
 	err = protojson.Unmarshal([]byte(executorInputJSON), executorInput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal executor input: %w", err)
-	}
-	component := &pipelinespec.ComponentSpec{}
-	err = protojson.Unmarshal([]byte(componentSpecJSON), component)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal component spec: %w\ncomponentSpec: %v", err, prettyPrint(componentSpecJSON))
 	}
 	if len(cmdArgs) == 0 {
 		return nil, fmt.Errorf("command and arguments are empty")
@@ -114,15 +124,42 @@ func NewLauncherV2(
 	if err != nil {
 		return nil, err
 	}
-	return &LauncherV2{
-		executionID:   executionID,
+
+	launcher := &LauncherV2{
 		executorInput: executorInput,
-		component:     component,
 		command:       cmdArgs[0],
 		args:          cmdArgs[1:],
 		options:       *opts,
 		clientManager: clientManager,
-	}, nil
+		batchUpdater:  NewBatchUpdater(),
+		// Initialize with production implementations
+		fileSystem:        &OSFileSystem{},
+		cmdExecutor:       &RealCommandExecutor{},
+		openedBucketCache: make(map[string]*blob.Bucket),
+		pipelineSpec:      opts.PipelineSpec,
+	}
+
+	// Object store is initialized after launcher creation
+	launcher.objectStore = NewObjectStoreClient(launcher)
+	return launcher, nil
+}
+
+// WithFileSystem allows overriding the file system (for testing)
+func (l *LauncherV2) WithFileSystem(fs FileSystem) *LauncherV2 {
+	l.fileSystem = fs
+	return l
+}
+
+// WithCommandExecutor allows overriding the command executor (for testing)
+func (l *LauncherV2) WithCommandExecutor(executor CommandExecutor) *LauncherV2 {
+	l.cmdExecutor = executor
+	return l
+}
+
+// WithObjectStore allows overriding the object store client (for testing)
+func (l *LauncherV2) WithObjectStore(store ObjectStoreClientInterface) *LauncherV2 {
+	l.objectStore = store
+	return l
 }
 
 // stopWaitingArtifacts will create empty files to tell Modelcar sidecar containers to stop. Any errors encountered are
@@ -143,7 +180,7 @@ func stopWaitingArtifacts(artifacts map[string]*pipelinespec.ArtifactList) {
 				continue
 			}
 
-			localPath, err := retrieveArtifactPath(inputArtifact)
+			localPath, err := LocalPathForURI(inputArtifact.Uri)
 			if err != nil {
 				continue
 			}
@@ -163,129 +200,99 @@ func stopWaitingArtifacts(artifacts map[string]*pipelinespec.ArtifactList) {
 	}
 }
 
-// OpenBucketConfig stores the parameters that are passed into the objectstore.OpenBucket function.
-type OpenBucketConfig struct {
-	ctx       context.Context
-	k8sClient kubernetes.Interface
-	namespace string
-	config    *objectstore.Config
-}
-
-// Execute calls executeV2, updates the cache, and publishes the results to MLMD.
-func (l *LauncherV2) Execute(ctx context.Context) (err error) {
+// Execute orchestrates a full launcher task attempt: it records the executor
+// pod on the task, runs executeV2(), finalizes task state, flushes the batched
+// task/artifact mutations, and then propagates statuses up the DAG.
+func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 	defer func() {
-		if err != nil {
-			err = fmt.Errorf("failed to execute component: %w", err)
+		if executionErr != nil {
+			executionErr = fmt.Errorf("failed to execute component: %w", executionErr)
 		}
+	}()
+
+	l.options.Task.Pods = append(l.options.Task.Pods, &apiV2beta1.PipelineTask_TaskPod{
+		Name: l.options.PodName,
+		Uid:  l.options.PodUID,
+		Type: apiV2beta1.PipelineTask_EXECUTOR,
+	})
+
+	defer func() {
+		executionErr = l.finalizeExecution(ctx, executionErr)
 	}()
 
 	defer stopWaitingArtifacts(l.executorInput.GetInputs().GetArtifacts())
 
-	// publish execution regardless the task succeeds or not
-	var execution *metadata.Execution
-	var executorOutput *pipelinespec.ExecutorOutput
-	var outputArtifacts []*metadata.OutputArtifact
-	status := pb.Execution_FAILED
+	// Close any open buckets in the cache
 	defer func() {
-		if execution == nil {
-			glog.Errorf("Skipping publish since execution is nil. Original err is: %v", err)
-			return
-		}
-
-		if perr := l.publish(ctx, execution, executorOutput, outputArtifacts, status); perr != nil {
-			if err != nil {
-				err = fmt.Errorf("failed to publish execution with error %s after execution failed: %s", perr.Error(), err.Error())
-			} else {
-				err = perr
-			}
-		}
-		glog.Infof("publish success.")
-		// At the end of the current task, we check the statuses of all tasks in
-		// the current DAG and update the DAG's status accordingly.
-		dag, err := l.clientManager.MetadataClient().GetDAG(ctx, execution.GetExecution().CustomProperties["parent_dag_id"].GetIntValue())
-		if err != nil {
-			glog.Errorf("DAG Status Update: failed to get DAG: %s", err.Error())
-		}
-		pipeline, _ := l.clientManager.MetadataClient().GetPipelineFromExecution(ctx, execution.GetID())
-		err = l.clientManager.MetadataClient().UpdateDAGExecutionsState(ctx, dag, pipeline)
-		if err != nil {
-			glog.Errorf("failed to update DAG state: %s", err.Error())
+		for _, bucket := range l.openedBucketCache {
+			_ = bucket.Close()
 		}
 	}()
-	executedStartedTime := time.Now().Unix()
-	execution, err = l.prePublish(ctx)
-	if err != nil {
-		return err
-	}
-	fingerPrint := execution.FingerPrint()
-	storeSessionInfo, err := objectstore.GetSessionInfoFromString(execution.GetPipeline().GetStoreSessionInfo())
-	if err != nil {
-		return err
-	}
-	pipelineRoot := execution.GetPipeline().GetPipelineRoot()
-	bucketConfig, err := objectstore.ParseBucketConfig(pipelineRoot, storeSessionInfo)
-	if err != nil {
-		return err
-	}
 
-	openBucketConfig := &OpenBucketConfig{
-		ctx:       ctx,
-		k8sClient: l.clientManager.K8sClient(),
-		namespace: l.options.Namespace,
-		config:    bucketConfig,
+	// Fetch Launcher config and initialize KFP API client if not already set (testing mode)
+	// Production path: fetch real config and create real client
+	launcherConfig, executionErr := config.FetchLauncherConfigMap(ctx, l.clientManager.K8sClient(), l.options.Namespace)
+	if executionErr != nil {
+		return fmt.Errorf("failed to get launcher configmap: %w", executionErr)
 	}
+	l.launcherConfig = launcherConfig
 
-	bucket, err := objectstore.OpenBucket(
-		openBucketConfig.ctx,
-		openBucketConfig.k8sClient,
-		openBucketConfig.namespace,
-		openBucketConfig.config,
-	)
-	if err != nil {
-		return err
+	if executionErr = l.prepareOutputFolders(l.executorInput); executionErr != nil {
+		return fmt.Errorf("failed to prepare output folders: %w", executionErr)
 	}
-	if err = prepareOutputFolders(l.executorInput); err != nil {
-		return err
+	_, executionErr = l.executeV2(ctx)
+	if executionErr != nil {
+		return fmt.Errorf("failed to execute component: %w", executionErr)
 	}
-	executorOutput, outputArtifacts, err = executeV2(
-		ctx,
-		l.executorInput,
-		l.component,
-		l.command,
-		l.args,
-		bucket,
-		bucketConfig,
-		l.clientManager.MetadataClient(),
-		l.options.Namespace,
-		l.clientManager.K8sClient(),
-		l.options.PublishLogs,
-		l.options.CaCertPath,
-		openBucketConfig,
-	)
-	if err != nil {
-		return err
-	}
-	status = pb.Execution_COMPLETE
-	// if fingerPrint is not empty, it means this task enables cache but it does not hit cache, we need to create cache entry for this task
-	if fingerPrint != "" {
-		id := execution.GetID()
-		if id == 0 {
-			return fmt.Errorf("failed to get id from createdExecution")
-		}
-		task := &api.Task{
-			// TODO how to differentiate between shared pipeline and namespaced pipeline
-			PipelineName:    "pipeline/" + l.options.PipelineName,
-			Namespace:       l.options.Namespace,
-			RunId:           l.options.RunID,
-			MlmdExecutionID: strconv.FormatInt(id, 10),
-			CreatedAt:       timestamppb.New(time.Unix(executedStartedTime, 0)),
-			FinishedAt:      timestamppb.New(time.Unix(time.Now().Unix(), 0)),
-			Fingerprint:     fingerPrint,
-		}
-		return l.clientManager.CacheClient().CreateExecutionCache(ctx, task)
-	}
-
+	l.options.Task.State = apiV2beta1.PipelineTask_SUCCEEDED
 	return nil
+}
+
+func (l *LauncherV2) finalizeExecution(ctx context.Context, executionErr error) error {
+	if executionErr != nil {
+		l.options.Task.State = apiV2beta1.PipelineTask_FAILED
+		l.options.Task.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
+			Message: executionErr.Error(),
+		}
+	}
+	l.options.Task.EndTime = timestamppb.New(time.Now())
+	l.batchUpdater.QueueTaskUpdate(l.options.Task)
+
+	if flushErr := l.batchUpdater.Flush(ctx, l.clientManager.KFPAPIClient()); flushErr != nil {
+		l.options.Task.State = apiV2beta1.PipelineTask_FAILED
+		finalizationErr := fmt.Errorf("failed to flush batch updates: %w", flushErr)
+		executionErr = errors.Join(executionErr, finalizationErr)
+		l.options.Task.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
+			Message: finalizationErr.Error(),
+		}
+		_, updateTaskErr := l.clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
+			TaskId: l.options.Task.GetTaskId(),
+			Task:   l.options.Task,
+			RunId:  l.options.Task.GetRunId(),
+		})
+		if updateTaskErr != nil {
+			return errors.Join(executionErr, fmt.Errorf("failed to persist task after batch flush failure: %w", updateTaskErr))
+		}
+	}
+
+	fullView := apiV2beta1.GetRunRequest_FULL
+	refreshedRun, getRunErr := l.clientManager.KFPAPIClient().GetRun(ctx, &apiV2beta1.GetRunRequest{
+		RunId: l.options.Run.GetRunId(),
+		View:  &fullView,
+	})
+	if getRunErr != nil {
+		return errors.Join(executionErr, fmt.Errorf("failed to refresh run before status propagation: %w", getRunErr))
+	}
+	l.options.Run = refreshedRun
+	if updateStatusErr := l.clientManager.KFPAPIClient().UpdateStatuses(
+		ctx,
+		l.options.Run,
+		l.pipelineSpec,
+		l.options.Task,
+	); updateStatusErr != nil {
+		return errors.Join(executionErr, fmt.Errorf("failed to update statuses: %w", updateStatusErr))
+	}
+	return executionErr
 }
 
 func (l *LauncherV2) Info() string {
@@ -302,7 +309,6 @@ func (l *LauncherV2) Info() string {
 func (o *LauncherV2Options) validate() error {
 	empty := func(s string) bool { return len(s) == 0 }
 	err := func(s string) error { return fmt.Errorf("invalid launcher options: must specify %s", s) }
-
 	if empty(o.Namespace) {
 		return err("Namespace")
 	}
@@ -312,150 +318,110 @@ func (o *LauncherV2Options) validate() error {
 	if empty(o.PodUID) {
 		return err("PodUID")
 	}
-	if empty(o.MLMDServerAddress) {
-		return err("MLMDServerAddress")
+	if o.PipelineName == "" {
+		return err("PipelineName")
 	}
-	if empty(o.MLMDServerPort) {
-		return err("MLMDServerPort")
+	if o.PipelineSpec == nil {
+		return err("PipelineSpec")
 	}
 	return nil
 }
 
-// publish pod info to MLMD, before running user command
-func (l *LauncherV2) prePublish(ctx context.Context) (execution *metadata.Execution, err error) {
-	defer func() {
-		if err != nil {
-			err = fmt.Errorf("failed to pre-publish Pod info to ML Metadata: %w", err)
-		}
-	}()
-	execution, err = l.clientManager.MetadataClient().GetExecution(ctx, l.executionID)
+// executeV2 runs the v2-engine launcher flow for a single task attempt.
+//
+// It first resolves command and argument placeholders against the current
+// ExecutorInput, replacing template strings such as parameter, artifact, and
+// task-context references with the concrete runtime values for this task. It
+// then invokes execute() to run the user container logic, reads any output
+// parameters written to the expected local files, uploads declared output
+// artifacts to object storage, updates the task's recorded outputs, flushes the
+// queued API mutations, and finally propagates the resulting outputs up the DAG.
+func (l *LauncherV2) executeV2(ctx context.Context) (*pipelinespec.ExecutorOutput, error) {
+	qualifyExecutorLogsForRetry(ctx, l.executorInput, l.options.PublishLogs, l.options.Namespace, l.clientManager.K8sClient(), l.options.PodName)
+
+	// Fill in placeholders with runtime values.
+	compiledCmd, compiledArgs, err := compileCmdAndArgs(l.executorInput, l.command, l.args)
 	if err != nil {
 		return nil, err
 	}
-	ecfg := &metadata.ExecutionConfig{
-		PodName:   l.options.PodName,
-		PodUID:    l.options.PodUID,
-		Namespace: l.options.Namespace,
-	}
-	return l.clientManager.MetadataClient().PrePublishExecution(ctx, execution, ecfg)
-}
 
-// TODO(Bobgy): consider passing output artifacts info from executor output.
-func (l *LauncherV2) publish(
-	ctx context.Context,
-	execution *metadata.Execution,
-	executorOutput *pipelinespec.ExecutorOutput,
-	outputArtifacts []*metadata.OutputArtifact,
-	status pb.Execution_State,
-) (err error) {
-	if execution == nil {
-		return fmt.Errorf("failed to publish results to ML Metadata: execution is nil")
-	}
-
-	var outputParameters map[string]*structpb.Value
-	if executorOutput != nil {
-		outputParameters = executorOutput.GetParameterValues()
-	}
-
-	// TODO(Bobgy): upload output artifacts.
-	// TODO(Bobgy): when adding artifacts, we will need execution.pipeline to be non-nil, because we need
-	// to publish output artifacts to the context too.
-	// return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts, pb.Execution_COMPLETE)
-	err = l.clientManager.MetadataClient().PublishExecution(ctx, execution, outputParameters, outputArtifacts, status)
+	executorOutput, err := l.execute(ctx, compiledCmd, compiledArgs)
 	if err != nil {
-		return fmt.Errorf("failed to publish results to ML Metadata: %w", err)
+		if uploadErr := l.uploadExecutorLogsArtifact(ctx); uploadErr != nil {
+			return nil, fmt.Errorf("failed to execute component: %w (executor log upload failed: %v)", err, uploadErr)
+		}
+		return nil, err
 	}
 
-	return nil
-}
-
-// executeV2 handles placeholder substitution for inputs, calls execute to
-// execute end user logic, and uploads the resulting output Artifacts.
-func executeV2(
-	ctx context.Context,
-	executorInput *pipelinespec.ExecutorInput,
-	component *pipelinespec.ComponentSpec,
-	cmd string,
-	args []string,
-	bucket *blob.Bucket,
-	bucketConfig *objectstore.Config,
-	metadataClient metadata.ClientInterface,
-	namespace string,
-	k8sClient kubernetes.Interface,
-	publishLogs string,
-	customCAPath string,
-	openBucketConfig *OpenBucketConfig,
-) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
-	qualifyExecutorLogsForRetry(ctx, executorInput, publishLogs, namespace, k8sClient)
-
-	// Add parameter default values to executorInput, if there is not already a user input.
-	// This process is done in the launcher because we let the component resolve default values internally.
-	// Variable executorInputWithDefault is a copy so we don't alter the original data.
-	executorInputWithDefault, err := addDefaultParams(executorInput, component)
+	// collectOutputParameters() stays at the executeV2() layer because it is part
+	// of the KFP v2 output contract, not the lower-level command runner.
+	// execute() is responsible for invoking user code and reading output metadata,
+	// while this step fills in any declared output parameters that were written to
+	// their expected files but not explicitly reported in output_metadata.json.
+	err = l.collectOutputParameters(executorOutput)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	// Fill in placeholders with runtime values.
-	compiledCmd, compiledArgs, err := compileCmdAndArgs(executorInputWithDefault, cmd, args)
+	// Upload artifacts from local disk to remote store.
+	err = l.uploadOutputArtifactsWithRetry(ctx, executorOutput)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	executorOutput, err := execute(
-		ctx,
-		executorInput,
-		compiledCmd,
-		compiledArgs,
-		bucket,
-		bucketConfig,
-		namespace,
-		k8sClient,
-		publishLogs,
-		customCAPath,
-	)
+	// Update task outputs for parameters before propagation
+	if executorOutput != nil && len(executorOutput.GetParameterValues()) > 0 {
+		params := make([]*apiV2beta1.PipelineTask_InputOutputs_IOParameter, 0, len(executorOutput.GetParameterValues()))
+		for key, val := range executorOutput.GetParameterValues() {
+			param := &apiV2beta1.PipelineTask_InputOutputs_IOParameter{
+				ParameterKey: key,
+				Type:         apiV2beta1.IOType_OUTPUT,
+				Value:        val,
+				Producer: &apiV2beta1.IOProducer{
+					TaskName: l.options.TaskSpec.GetTaskInfo().GetName(),
+				}}
+			if l.options.IterationIndex != nil {
+				param.Producer.Iteration = l.options.IterationIndex
+				param.Type = apiV2beta1.IOType_ITERATOR_OUTPUT
+			}
+			params = append(params, param)
+		}
+
+		l.options.Task.Outputs = &apiV2beta1.PipelineTask_InputOutputs{Parameters: params}
+		// Queue task update instead of executing immediately
+		l.batchUpdater.QueueTaskUpdate(l.options.Task)
+	}
+
+	// Flush artifacts and task parameter updates BEFORE propagation
+	// This ensures that when propagateOutputsUpDAG refreshes the task,
+	// the artifacts will exist in the API and can be propagated up the DAG
+	if err = l.batchUpdater.Flush(ctx, l.clientManager.KFPAPIClient()); err != nil {
+		return nil, fmt.Errorf("failed to flush artifacts before propagation: %w", err)
+	}
+
+	// Propagate outputs up the DAG hierarchy for parents that declare these outputs
+	err = l.propagateOutputsUpDAG(ctx)
 	if err != nil {
-		glog.Errorf("Component failed to execute successfully: %v", err)
-
-		outputArtifacts, _ := uploadOutputArtifactsWithRetry(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
-			bucketConfig:   bucketConfig,
-			bucket:         bucket,
-			metadataClient: metadataClient,
-		}, false, openBucketConfig, 2)
-
-		return executorOutput, outputArtifacts, err
-	}
-	// These are not added in execute(), because execute() is shared between v2 compatible and v2 engine launcher.
-	// In v2 compatible mode, we get output parameter info from runtimeInfo. In v2 engine, we get it from component spec.
-	// Because of the difference, we cannot put parameter collection logic in one method.
-	err = collectOutputParameters(executorInput, executorOutput, component)
-	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	outputArtifacts, err := uploadOutputArtifactsWithRetry(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
-		bucketConfig:   bucketConfig,
-		bucket:         bucket,
-		metadataClient: metadataClient,
-	}, true, openBucketConfig, 2)
-
-	if err != nil {
-		return nil, nil, err
+	// Flush propagation updates (artifact-tasks and parent task parameter updates)
+	// so that propagated outputs are visible to subsequent driver calls
+	if err = l.batchUpdater.Flush(ctx, l.clientManager.KFPAPIClient()); err != nil {
+		return nil, fmt.Errorf("failed to flush propagation updates: %w", err)
 	}
 
-	// TODO(Bobgy): only return executor output. Merge info in output artifacts
-	// to executor output.
-	return executorOutput, outputArtifacts, nil
+	return executorOutput, nil
 }
 
 // collectOutputParameters collect output parameters from local disk and add them
 // to executor output.
-func collectOutputParameters(executorInput *pipelinespec.ExecutorInput, executorOutput *pipelinespec.ExecutorOutput, component *pipelinespec.ComponentSpec) error {
+func (l *LauncherV2) collectOutputParameters(executorOutput *pipelinespec.ExecutorOutput) error {
 	if executorOutput.ParameterValues == nil {
 		executorOutput.ParameterValues = make(map[string]*structpb.Value)
 	}
 	outputParameters := executorOutput.GetParameterValues()
-	for name, param := range executorInput.GetOutputs().GetParameters() {
+	for name, param := range l.executorInput.GetOutputs().GetParameters() {
 		_, ok := outputParameters[name]
 		if ok {
 			// If the output parameter was already specified in output metadata file,
@@ -463,18 +429,18 @@ func collectOutputParameters(executorInput *pipelinespec.ExecutorInput, executor
 			// the highest priority.
 			continue
 		}
-		paramSpec, ok := component.GetOutputDefinitions().GetParameters()[name]
+		paramSpec, ok := l.options.ComponentSpec.GetOutputDefinitions().GetParameters()[name]
 		if !ok {
 			return fmt.Errorf("failed to find output parameter name=%q in component spec", name)
 		}
 		msg := func(err error) error {
 			return fmt.Errorf("failed to read output parameter name=%q type=%q path=%q: %w", name, paramSpec.GetParameterType(), param.GetOutputFile(), err)
 		}
-		b, err := os.ReadFile(param.GetOutputFile())
+		b, err := l.fileSystem.ReadFile(param.GetOutputFile())
 		if err != nil {
 			return msg(err)
 		}
-		value, err := metadata.TextToPbValue(string(b), paramSpec.GetParameterType())
+		value, err := textToPbValue(string(b), paramSpec.GetParameterType())
 		if err != nil {
 			return msg(err)
 		}
@@ -536,28 +502,25 @@ func appendRetryIndexSuffix(pathOrURI, retryIndex string) string {
 }
 
 // qualifyExecutorLogsForRetry resolves the current retry attempt and updates the
-// launcher-managed executor-logs artifact before placeholder compilation and
-// execution so downstream paths and serialized executor input stay aligned.
+// executor-logs artifact before placeholder compilation so downstream paths stay aligned.
 func qualifyExecutorLogsForRetry(
 	ctx context.Context,
 	executorInput *pipelinespec.ExecutorInput,
 	publishLogs string,
 	namespace string,
 	k8sClient kubernetes.Interface,
+	podName string,
 ) {
 	if publishLogs != "true" {
 		return
 	}
 
 	retryIndex := os.Getenv(EnvRetryIndex)
-	if retryIndex == "" {
-		podName := os.Getenv(EnvPodName)
-		if podName != "" && k8sClient != nil && namespace != "" {
-			if idx, err := retryIndexFromPodAnnotation(ctx, k8sClient, namespace, podName); err == nil {
-				retryIndex = idx
-			} else {
-				glog.Warningf("Could not determine retry index from pod annotation, defaulting to 0: %v", err)
-			}
+	if retryIndex == "" && podName != "" && k8sClient != nil && namespace != "" {
+		if idx, err := retryIndexFromPodAnnotation(ctx, k8sClient, namespace, podName); err == nil {
+			retryIndex = idx
+		} else {
+			glog.Warningf("Could not determine retry index from pod annotation, defaulting to 0: %v", err)
 		}
 	}
 	if retryIndex == "" {
@@ -581,7 +544,6 @@ func retryIndexFromPodAnnotation(ctx context.Context, k8sClient kubernetes.Inter
 	if !ok {
 		return "", fmt.Errorf("pod %s/%s has no argo node-name annotation", namespace, podName)
 	}
-	// Extract the trailing "(N)" from node names like "…executor(3)".
 	open := strings.LastIndex(nodeName, "(")
 	close := strings.LastIndex(nodeName, ")")
 	if open < 0 || close <= open {
@@ -605,10 +567,10 @@ func getLogWriter(artifacts map[string]*pipelinespec.ArtifactList) (writer io.Wr
 		return os.Stdout
 	}
 
-	logArtifact := logsArtifactList.Artifacts[0]
-	logFilePath, err := retrieveArtifactPath(logArtifact)
+	logURI := logsArtifactList.Artifacts[0].Uri
+	logFilePath, err := LocalPathForURI(logURI)
 	if err != nil {
-		glog.Errorf("Error converting log artifact URI, %s, to file path.", logArtifact.Uri)
+		glog.Errorf("Error converting log artifact URI, %s, to file path.", logURI)
 		return os.Stdout
 	}
 
@@ -621,25 +583,84 @@ func getLogWriter(artifacts map[string]*pipelinespec.ArtifactList) (writer io.Wr
 	return io.MultiWriter(os.Stdout, logFile)
 }
 
+// ExecuteForTesting is a test-only method that executes the launcher with mocked dependencies.
+// It runs the full execution flow including artifact uploads but uses the provided mock dependencies.
+// This method should only be used in tests.
+func (l *LauncherV2) ExecuteForTesting(ctx context.Context) (*pipelinespec.ExecutorOutput, error) {
+	return l.executeV2(ctx)
+}
+
+func PropagateOutputsUpDAGForTask(
+	ctx context.Context,
+	opts OutputPropagationOptions,
+	clientManager client_manager.ClientManagerInterface,
+) error {
+	batchUpdater := NewBatchUpdater()
+	apiClient := clientManager.KFPAPIClient()
+	if err := propagateOutputsUpDAG(ctx, opts, apiClient, batchUpdater); err != nil {
+		return err
+	}
+	return batchUpdater.Flush(ctx, apiClient)
+}
+
+// ObjectStoreDependencies interface implementation for LauncherV2
+
+func (l *LauncherV2) GetOpenedBucketCache() map[string]*blob.Bucket {
+	return l.openedBucketCache
+}
+
+func (l *LauncherV2) SetOpenedBucket(key string, bucket *blob.Bucket) {
+	l.openedBucketCache[key] = bucket
+}
+
+func (l *LauncherV2) GetLauncherConfig() *config.Config {
+	return l.launcherConfig
+}
+
+func (l *LauncherV2) GetK8sClient() kubernetes.Interface {
+	return l.clientManager.K8sClient()
+}
+
+func (l *LauncherV2) GetNamespace() string {
+	return l.options.Namespace
+}
+
 // execute downloads input artifacts, prepares the execution environment,
 // executes the end user code, and returns the outputs.
-func execute(
+func (l *LauncherV2) execute(
 	ctx context.Context,
-	executorInput *pipelinespec.ExecutorInput,
 	cmd string,
 	args []string,
-	bucket *blob.Bucket,
-	bucketConfig *objectstore.Config,
-	namespace string,
-	k8sClient kubernetes.Interface,
-	publishLogs string,
-	customCAPath string,
 ) (*pipelinespec.ExecutorOutput, error) {
+
+	// Used for local debugging.
+	customOutputFile := os.Getenv("KFP_OUTPUT_FILE")
+	if customOutputFile != "" {
+		return l.getExecutorOutputFile(customOutputFile)
+	}
+
+	if err := l.downloadArtifacts(ctx); err != nil {
+		return nil, err
+	}
+
+	if err := l.prepareOutputFolders(l.executorInput); err != nil {
+		return nil, err
+	}
+
+	var writer io.Writer
+	if l.options.PublishLogs == "true" {
+		writer = getLogWriter(l.executorInput.Outputs.GetArtifacts())
+	} else {
+		writer = os.Stdout
+	}
+
+	defer glog.Flush()
+
 	// If a custom CA path is input, append to system CA and save to a temp file for executor access.
-	if customCAPath != "" {
+	if l.options.CaCertPath != "" {
 		var caBundleTmpPath string
 		var err error
-		if caBundleTmpPath, err = compileTempCABundleWithCustomCA(customCAPath); err != nil {
+		if caBundleTmpPath, err = compileTempCABundleWithCustomCA(l.options.CaCertPath); err != nil {
 			return nil, err
 		}
 
@@ -655,37 +676,14 @@ func execute(
 		if err != nil {
 			glog.Errorf("Error setting SSL_CERT_FILE environment variable, %s", err.Error())
 		}
-
 	}
-	if err := downloadArtifacts(ctx, executorInput, bucket, bucketConfig, namespace, k8sClient); err != nil {
+
+	// Execute end user code using the command executor interface.
+	if err := l.cmdExecutor.Run(ctx, cmd, args, os.Stdin, writer, writer); err != nil {
 		return nil, err
 	}
 
-	if err := prepareOutputFolders(executorInput); err != nil {
-		return nil, err
-	}
-
-	var writer io.Writer
-	if publishLogs == "true" {
-		writer = getLogWriter(executorInput.Outputs.GetArtifacts())
-	} else {
-		writer = os.Stdout
-	}
-
-	// Prepare command that will execute end user code.
-	command := exec.Command(cmd, args...)
-	command.Stdin = os.Stdin
-	// Pipe stdout/stderr to the aforementioned multiWriter.
-	command.Stdout = writer
-	command.Stderr = writer
-	defer glog.Flush()
-
-	// Execute end user code.
-	if err := command.Run(); err != nil {
-		return nil, err
-	}
-
-	return getExecutorOutputFile(executorInput.GetOutputs().GetOutputFile())
+	return l.getExecutorOutputFile(l.executorInput.GetOutputs().GetOutputFile())
 }
 
 // Create a temp file that contains the system CA bundle (and custom CA if it has been mounted).
@@ -738,134 +736,729 @@ func compileTempCABundleWithCustomCA(customCAPath string) (string, error) {
 	return tmpCaBundle.Name(), nil
 }
 
-type uploadOutputArtifactsOptions struct {
-	bucketConfig   *objectstore.Config
-	bucket         *blob.Bucket
-	metadataClient metadata.ClientInterface
-}
-
-func uploadOutputArtifacts(
+// uploadOutputArtifacts iterates over all the Artifacts retrieved from the
+// executor output and uploads them to the object store and registers them
+// with the KFP API.
+func (l *LauncherV2) uploadOutputArtifacts(
 	ctx context.Context,
-	executorInput *pipelinespec.ExecutorInput,
 	executorOutput *pipelinespec.ExecutorOutput,
-	opts uploadOutputArtifactsOptions,
-	componentSucceeded bool,
-) ([]*metadata.OutputArtifact, error) {
-	// Register artifacts with MLMD.
-	artifacts := executorInput.GetOutputs().GetArtifacts()
-	if !componentSucceeded {
-		// Only register executor log artifact if component execution failed
-		artifacts = map[string]*pipelinespec.ArtifactList{"executor-logs": artifacts["executor-logs"]}
-	}
-
-	outputArtifacts := make([]*metadata.OutputArtifact, 0, len(artifacts))
-
-	for name, artifactList := range artifacts {
-		if artifactList == nil || len(artifactList.Artifacts) == 0 {
-			continue
-		}
-
-		for _, outputArtifact := range artifactList.Artifacts {
+) error {
+	// After successful execution and uploads, record outputs in KFP API
+	// Create artifactsMap for each output port
+	artifactsMap := map[string][]*apiV2beta1.Artifact{}
+	for artifactKey, artifactList := range l.executorInput.GetOutputs().GetArtifacts() {
+		artifactsMap[artifactKey] = []*apiV2beta1.Artifact{}
+		for index, outputArtifact := range artifactList.Artifacts {
 			glog.Infof("outputArtifact in uploadOutputArtifacts call: %s", outputArtifact.Name)
-
-			// executor-logs is launcher-managed; keep its qualified location stable
-			// even if the user executor echoes an older value in ExecutorOutput.
-			if executorOutput != nil && name != "executor-logs" {
-				if list, ok := executorOutput.Artifacts[name]; ok && len(list.Artifacts) > 0 {
-					mergeRuntimeArtifacts(list.Artifacts[0], outputArtifact)
+			// Keep executor-logs launcher-managed so retry-qualified paths cannot
+			// be overwritten by executor-reported placeholder metadata.
+			if artifactKey != "executor-logs" {
+				// Merge executor output artifact info with executor input.
+				if list, ok := executorOutput.Artifacts[artifactKey]; ok && len(list.Artifacts) > index {
+					mergeRuntimeArtifacts(list.Artifacts[index], outputArtifact)
 				}
 			}
 
-			// Upload artifacts from local path to remote storages.
-			localDir, err := retrieveArtifactPath(outputArtifact)
+			artifactType, schemaTitleForMetadata, err := inferArtifactType(outputArtifact.GetType())
 			if err != nil {
-				glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.", name, outputArtifact.Uri)
-				if name == "executor-logs" {
-					// Avoid registering a broken executor-logs artifact when launcher setup fails
-					// before the log file path can be initialized.
+				return fmt.Errorf("failed to infer artifact type for port %s: %w", artifactKey, err)
+			}
+
+			// Metric artifacts don't have a URI, only a numberValue
+			if artifactType == apiV2beta1.Artifact_Metric {
+				// Each key/value pair in `metadata` equates to a new Artifact
+				for key, value := range outputArtifact.GetMetadata().GetFields() {
+					numVal, ok := value.Kind.(*structpb.Value_NumberValue)
+					if !ok {
+						return fmt.Errorf("metric value %q must be a number, got %T", key, value.Kind)
+					}
+					artifact := &apiV2beta1.Artifact{
+						Name:        key,
+						Description: "",
+						Type:        artifactType,
+						NumberValue: &numVal.NumberValue,
+						CreatedAt:   timestamppb.Now(),
+						// Continue to retain the artifact in metadata for backwards compatibility.
+						Metadata: map[string]*structpb.Value{
+							key: value,
+						},
+						Namespace: l.options.Namespace,
+					}
+					artifactsMap[artifactKey] = append(artifactsMap[artifactKey], artifact)
+				}
+			} else {
+				// In this case we can still encounter metrics of type ClassificationMetric or SlicedClassificationMetric
+				// which do not have a numberValue, but nor do they have a URI, their values are stored only in metadata.
+				artifact := &apiV2beta1.Artifact{
+					Name:        outputArtifact.GetName(),
+					Description: "",
+					Type:        artifactType,
+					Metadata:    outputArtifact.GetMetadata().GetFields(),
+					CreatedAt:   timestamppb.Now(),
+					Namespace:   l.options.Namespace,
+				}
+				artifact.Metadata = preserveArtifactSchemaTitle(artifact.Metadata, schemaTitleForMetadata)
+
+				// In the Classification metric case, the metric data is stored in metadata and
+				// not object store
+				isNotAMetric := apiV2beta1.Artifact_ClassificationMetric != artifactType &&
+					apiV2beta1.Artifact_SlicedClassificationMetric != artifactType
+
+				// If the artifact is not a metric, upload it to the object store and store the URI in the artifact
+				if isNotAMetric && !strings.HasPrefix(outputArtifact.Uri, "oci://") {
+					localPath, err := retrieveArtifactPath(outputArtifact)
+					if err != nil {
+						glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.",
+							artifactKey, outputArtifact.Uri)
+						continue
+					}
+					err = l.objectStore.UploadArtifact(ctx, localPath, outputArtifact.Uri, artifactKey)
+					if err != nil {
+						if errors.Is(err, os.ErrNotExist) {
+							return fmt.Errorf(
+								"declared output artifact %q is missing at %q: %w",
+								artifactKey,
+								localPath,
+								err,
+							)
+						}
+						return fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", artifactKey, outputArtifact.Uri, err)
+					}
+					artifact.Uri = util.StringPointer(outputArtifact.Uri)
+				} else if strings.HasPrefix(outputArtifact.Uri, "oci://") {
+					artifact.Uri = util.StringPointer(outputArtifact.Uri)
+				}
+
+				artifactsMap[artifactKey] = append(artifactsMap[artifactKey], artifact)
+			}
+		}
+	}
+
+	// Queue artifact creation requests (will be flushed in batch)
+	for artifactKey, artifacts := range artifactsMap {
+		for _, artifact := range artifacts {
+			request := &apiV2beta1.CreateArtifactRequest{
+				RunId:       l.options.Run.GetRunId(),
+				TaskId:      l.options.Task.GetTaskId(),
+				ProducerKey: artifactKey,
+				Artifact:    artifact,
+			}
+			if l.options.IterationIndex != nil {
+				request.IterationIndex = l.options.IterationIndex
+			}
+			l.batchUpdater.QueueArtifact(request)
+		}
+	}
+	return nil
+}
+
+func (l *LauncherV2) uploadOutputArtifactsWithRetry(
+	ctx context.Context,
+	executorOutput *pipelinespec.ExecutorOutput,
+) error {
+	return l.retryArtifactUploadOperation("output artifact upload", func() error {
+		return l.uploadOutputArtifacts(ctx, executorOutput)
+	})
+}
+
+func (l *LauncherV2) retryArtifactUploadOperation(operation string, upload func() error) error {
+	const maxAttempts = 2
+
+	lastErr := upload()
+	if lastErr == nil {
+		return nil
+	}
+	if !isTransientArtifactUploadError(lastErr) {
+		return lastErr
+	}
+
+	for attempt := 2; attempt <= maxAttempts; attempt++ {
+		glog.Warningf("%s failed on attempt %d/%d: %v", operation, attempt-1, maxAttempts, lastErr)
+		glog.Infof("Refreshing object store session before retrying %s.", operation)
+		if err := l.objectStore.RefreshSession(); err != nil {
+			return fmt.Errorf("failed to refresh object store session for %s retry: %w", operation, err)
+		}
+		glog.Infof("Executing %s attempt: %d", operation, attempt)
+		lastErr = upload()
+		if lastErr == nil {
+			return nil
+		}
+		if !isTransientArtifactUploadError(lastErr) {
+			return lastErr
+		}
+	}
+
+	glog.Errorf("All %s attempts failed: %v", operation, lastErr)
+	return lastErr
+}
+
+func isTransientArtifactUploadError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, os.ErrNotExist) ||
+		errors.Is(err, context.Canceled) ||
+		errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
+
+	type temporary interface {
+		Temporary() bool
+	}
+	var temporaryErr temporary
+	if errors.As(err, &temporaryErr) && temporaryErr.Temporary() {
+		return true
+	}
+
+	type timeout interface {
+		Timeout() bool
+	}
+	var timeoutErr timeout
+	if errors.As(err, &timeoutErr) && timeoutErr.Timeout() {
+		return true
+	}
+
+	return errors.Is(err, io.ErrUnexpectedEOF) ||
+		errors.Is(err, syscall.ECONNRESET) ||
+		errors.Is(err, syscall.ECONNREFUSED) ||
+		errors.Is(err, syscall.EPIPE) ||
+		errors.Is(err, syscall.ETIMEDOUT) ||
+		errors.Is(err, syscall.ENETDOWN) ||
+		errors.Is(err, syscall.ENETUNREACH) ||
+		errors.Is(err, syscall.EHOSTUNREACH)
+}
+
+func (l *LauncherV2) uploadExecutorLogsArtifact(ctx context.Context) error {
+	if l.options.PublishLogs != "true" {
+		return nil
+	}
+	logsArtifactList, ok := l.executorInput.GetOutputs().GetArtifacts()["executor-logs"]
+	if !ok || logsArtifactList == nil || len(logsArtifactList.Artifacts) != 1 {
+		return nil
+	}
+
+	outputArtifact := logsArtifactList.Artifacts[0]
+	localPath, err := retrieveArtifactPath(outputArtifact)
+	if err != nil {
+		return fmt.Errorf("failed to resolve executor log path: %w", err)
+	}
+	if err := l.retryArtifactUploadOperation("executor log upload", func() error {
+		return l.objectStore.UploadArtifact(ctx, localPath, outputArtifact.Uri, "executor-logs")
+	}); err != nil {
+		return err
+	}
+
+	artifact := &apiV2beta1.Artifact{
+		Name:        outputArtifact.GetName(),
+		Description: "",
+		Type:        apiV2beta1.Artifact_Artifact,
+		Metadata:    outputArtifact.GetMetadata().GetFields(),
+		CreatedAt:   timestamppb.Now(),
+		Namespace:   l.options.Namespace,
+		Uri:         util.StringPointer(outputArtifact.Uri),
+	}
+	request := &apiV2beta1.CreateArtifactRequest{
+		RunId:       l.options.Run.GetRunId(),
+		TaskId:      l.options.Task.GetTaskId(),
+		ProducerKey: "executor-logs",
+		Artifact:    artifact,
+	}
+	if l.options.IterationIndex != nil {
+		request.IterationIndex = l.options.IterationIndex
+	}
+	l.batchUpdater.QueueArtifact(request)
+	return l.batchUpdater.Flush(ctx, l.clientManager.KFPAPIClient())
+}
+
+// determineIOType determines the appropriate IOType for a propagated output based on the parent task type
+// and output definition.
+func determineIOType(
+	isFirstLevel bool,
+	currentIOType apiV2beta1.IOType,
+	parentTask *apiV2beta1.PipelineTask,
+	parentOutputKey string,
+	parentOutputDefs *pipelinespec.ComponentOutputsSpec,
+	isParameter bool,
+) apiV2beta1.IOType {
+	if parentTask.GetType() == apiV2beta1.PipelineTask_LOOP {
+		return apiV2beta1.IOType_ITERATOR_OUTPUT
+	}
+
+	if parentTask.GetType() == apiV2beta1.PipelineTask_CONDITION_BRANCH {
+		if isParameter {
+			if paramDef, exists := parentOutputDefs.GetParameters()[parentOutputKey]; exists {
+				if paramDef.GetParameterType() != pipelinespec.ParameterType_LIST {
+					return apiV2beta1.IOType_ONE_OF_OUTPUT
+				}
+			}
+		} else {
+			if artifactDef, exists := parentOutputDefs.GetArtifacts()[parentOutputKey]; exists {
+				if !artifactDef.GetIsArtifactList() {
+					return apiV2beta1.IOType_ONE_OF_OUTPUT
+				}
+			}
+		}
+	}
+
+	// Once we have propagated past the first parent boundary, keep the current
+	// IO type unless the next parent is a loop or condition branch above.
+	if !isFirstLevel {
+		return currentIOType
+	}
+
+	return apiV2beta1.IOType_OUTPUT
+}
+
+// propagateOutputsUpDAG traverses up the DAG hierarchy and creates artifact-task entries and parameter outputs
+// for parent DAGs that declare the current task's outputs in their outputDefinitions.
+// This enables output collection from child tasks (e.g., loop iterations) to parent DAGs.
+func (l *LauncherV2) propagateOutputsUpDAG(ctx context.Context) error {
+	return propagateOutputsUpDAG(ctx, OutputPropagationOptions{
+		Run:          l.options.Run,
+		Task:         l.options.Task,
+		ParentTask:   l.options.ParentTask,
+		ScopePath:    l.options.ScopePath,
+		PipelineSpec: l.pipelineSpec,
+	}, l.clientManager.KFPAPIClient(), l.batchUpdater)
+}
+
+func propagateOutputsUpDAG(
+	ctx context.Context,
+	opts OutputPropagationOptions,
+	apiClient kfpapi.API,
+	batchUpdater *BatchUpdater,
+) error {
+	// If this task has no parent, nothing to propagate.
+	if opts.ParentTask == nil {
+		return nil
+	}
+
+	currentTask := opts.Task
+	if currentTask.GetTaskId() != "" {
+		refreshedTask, err := apiClient.GetTask(ctx, &apiV2beta1.GetTaskRequest{
+			TaskId: currentTask.GetTaskId(),
+			RunId:  opts.Run.GetRunId(),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to refresh current task %s before propagation: %w", currentTask.GetTaskId(), err)
+		}
+		currentTask = refreshedTask
+	}
+
+	currentTaskOutputs := currentTask.GetOutputs()
+	if currentTaskOutputs == nil {
+		// No outputs to propagate
+		return nil
+	}
+
+	hasArtifacts := len(currentTaskOutputs.GetArtifacts()) > 0
+	hasParameters := len(currentTaskOutputs.GetParameters()) > 0
+	if !hasArtifacts && !hasParameters {
+		// No outputs to propagate
+		return nil
+	}
+
+	// Start traversing up from the immediate parent
+	parentTask := opts.ParentTask
+	currentScopePath := opts.ScopePath
+	isFirstLevel := true // Track if this is first-level propagation (from producing task to immediate parent)
+
+	// Track propagated outputs (artifacts and parameters) for next level
+	type propagatedInfo struct {
+		key      string
+		ioType   apiV2beta1.IOType
+		producer *apiV2beta1.IOProducer
+	}
+	type propagatedArtifactInfo struct {
+		propagatedInfo
+		artifact *apiV2beta1.Artifact
+	}
+	type propagatedParameterInfo struct {
+		propagatedInfo
+		value *structpb.Value
+	}
+
+	for parentTask != nil {
+		if parentTask.GetTaskId() != "" {
+			refreshedParentTask, err := apiClient.GetTask(ctx, &apiV2beta1.GetTaskRequest{
+				TaskId: parentTask.GetTaskId(),
+				RunId:  opts.Run.GetRunId(),
+			})
+			if err != nil {
+				return fmt.Errorf("failed to refresh parent task %s before propagation: %w", parentTask.GetTaskId(), err)
+			}
+			parentTask = refreshedParentTask
+		}
+
+		// Get the parent's component spec to check outputDefinitions
+		parentScopePath, err := util.ScopePathFromDotNotation(opts.PipelineSpec, parentTask.GetScopePath())
+		if err != nil {
+			return fmt.Errorf("failed to get scope path for parent task %s: %w", parentTask.GetTaskId(), err)
+		}
+
+		parentComponentSpec := parentScopePath.GetLast().GetComponentSpec()
+		if parentComponentSpec == nil {
+			return fmt.Errorf("parent task %s has no component spec", parentTask.GetTaskId())
+		}
+
+		parentOutputDefs := parentComponentSpec.GetOutputDefinitions()
+		if parentOutputDefs == nil {
+			// Parent has no output definitions, stop propagating
+			break
+		}
+
+		hasParentArtifactOutputs := len(parentOutputDefs.GetArtifacts()) > 0
+		hasParentParameterOutputs := len(parentOutputDefs.GetParameters()) > 0
+
+		if !hasParentArtifactOutputs && !hasParentParameterOutputs {
+			// Parent has no output definitions, stop propagating
+			break
+		}
+
+		// Get child task name for matching outputs
+		currentScopeEntry := currentScopePath.GetLast()
+		if currentScopeEntry == nil {
+			return fmt.Errorf("scope path is empty while propagating outputs for task %s", currentTask.GetTaskId())
+		}
+		childTaskName := currentScopeEntry.GetTaskName()
+
+		newPropagatedArtifacts := make([]propagatedArtifactInfo, 0)
+		newPropagatedParameters := make([]propagatedParameterInfo, 0)
+
+		// Propagate artifacts
+		for _, artifactIO := range currentTaskOutputs.GetArtifacts() {
+			for _, artifact := range artifactIO.GetArtifacts() {
+				// Find the matching output key in parent's output definitions
+				matchingParentKeys := findMatchingParentOutputKeysForChild(
+					childTaskName,
+					parentComponentSpec,
+					artifactIO.GetArtifactKey(),
+					parentOutputDefs,
+				)
+				if len(matchingParentKeys) == 0 {
+					// This output is not declared in parent's outputDefinitions
 					continue
 				}
-			} else if !strings.HasPrefix(outputArtifact.Uri, "oci://") {
-				blobKey, err := opts.bucketConfig.KeyFromURI(outputArtifact.Uri)
-				if err != nil {
-					return nil, fmt.Errorf("failed to upload output artifact %q: %w", name, err)
+				for _, matchingParentKey := range matchingParentKeys {
+					ioType := determineIOType(
+						isFirstLevel,
+						artifactIO.GetType(),
+						parentTask,
+						matchingParentKey,
+						parentOutputDefs,
+						false, // isParameter = false
+					)
+					producer := propagatedProducer(childTaskName, ioType, artifactIO.GetProducer())
+					artifactTask := &apiV2beta1.ArtifactTask{
+						ArtifactId: artifact.GetArtifactId(),
+						TaskId:     parentTask.GetTaskId(),
+						RunId:      opts.Run.GetRunId(),
+						Key:        matchingParentKey,
+						Type:       ioType,
+						Producer:   producer,
+					}
+					batchUpdater.QueueArtifactTask(artifactTask)
+					newPropagatedArtifacts = append(newPropagatedArtifacts, propagatedArtifactInfo{
+						propagatedInfo: propagatedInfo{
+							key:      matchingParentKey,
+							ioType:   ioType,
+							producer: producer,
+						},
+						artifact: artifact,
+					})
 				}
-				if err := objectstore.UploadBlob(ctx, opts.bucket, localDir, blobKey); err != nil {
-					//  We allow components to not produce output files
-					if errors.Is(err, os.ErrNotExist) {
-						glog.Warningf("Local filepath %q does not exist", localDir)
-						if name == "executor-logs" {
-							// If the executor never started streaming logs to disk, skip recording
-							// the log artifact instead of surfacing a dead link in the UI.
-							continue
-						}
-					} else {
-						return nil, fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)
+			}
+		}
+
+		// Propagate parameters
+		currentParentTask := parentTask
+
+		// Initialize outputs if needed
+		if currentParentTask.Outputs == nil {
+			currentParentTask.Outputs = &apiV2beta1.PipelineTask_InputOutputs{}
+		}
+
+		for _, paramIO := range currentTaskOutputs.GetParameters() {
+			// Find the matching output key in parent's output definitions
+			matchingParentKeys := findMatchingParentOutputKeysForChildParameter(
+				childTaskName,
+				parentComponentSpec,
+				paramIO.GetParameterKey(),
+				parentOutputDefs,
+			)
+			if len(matchingParentKeys) == 0 {
+				// This output is not declared in parent's outputDefinitions
+				continue
+			}
+			for _, matchingParentKey := range matchingParentKeys {
+				ioType := determineIOType(
+					isFirstLevel,
+					paramIO.GetType(),
+					parentTask,
+					matchingParentKey,
+					parentOutputDefs,
+					true, // isParameter = true
+				)
+				paramProducer := propagatedProducer(childTaskName, ioType, paramIO.GetProducer())
+				newParam := &apiV2beta1.PipelineTask_InputOutputs_IOParameter{
+					ParameterKey: matchingParentKey,
+					Value:        paramIO.GetValue(),
+					Type:         ioType,
+					Producer:     paramProducer,
+				}
+
+				alreadyPropagated := false
+				for _, existingParameter := range currentParentTask.Outputs.GetParameters() {
+					if proto.Equal(existingParameter, newParam) {
+						alreadyPropagated = true
+						break
 					}
 				}
+				if !alreadyPropagated {
+					currentParentTask.Outputs.Parameters = append(currentParentTask.Outputs.Parameters, newParam)
+				}
+				newPropagatedParameters = append(newPropagatedParameters, propagatedParameterInfo{
+					propagatedInfo: propagatedInfo{
+						key:      matchingParentKey,
+						ioType:   ioType,
+						producer: paramProducer,
+					},
+					value: paramIO.GetValue(),
+				})
 			}
-
-			// Write out the metadata.
-			metadataErr := func(err error) error {
-				return fmt.Errorf("unable to produce MLMD artifact for output %q: %w", name, err)
-			}
-			// TODO(neuromage): Consider batching these instead of recording one by one.
-			schema, err := getArtifactSchema(outputArtifact.GetType())
-			if err != nil {
-				return nil, fmt.Errorf("failed to determine schema for output %q: %w", name, err)
-			}
-			mlmdArtifact, err := opts.metadataClient.RecordArtifact(ctx, name, schema, outputArtifact, pb.Artifact_LIVE, opts.bucketConfig)
-			if err != nil {
-				return nil, metadataErr(err)
-			}
-			outputArtifacts = append(outputArtifacts, mlmdArtifact)
 		}
+
+		// Queue parent task update if we modified it with parameters
+		if len(newPropagatedParameters) > 0 {
+			batchUpdater.QueueTaskUpdate(currentParentTask)
+		}
+
+		// Move up to the next parent
+		if parentTask.ParentTaskId == nil || *parentTask.ParentTaskId == "" {
+			break
+		}
+
+		nextParent, err := apiClient.GetTask(ctx, &apiV2beta1.GetTaskRequest{
+			TaskId: *parentTask.ParentTaskId,
+			RunId:  opts.Run.GetRunId(),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to refresh next parent task %s before propagation: %w", *parentTask.ParentTaskId, err)
+		}
+
+		// For the next level, we only want to propagate the outputs we just added to this parent
+		// Build a new currentTaskOutputs with only the newly propagated outputs
+		newTaskOutputs := &apiV2beta1.PipelineTask_InputOutputs{
+			Artifacts:  []*apiV2beta1.PipelineTask_InputOutputs_IOArtifact{},
+			Parameters: []*apiV2beta1.PipelineTask_InputOutputs_IOParameter{},
+		}
+
+		// Build artifact outputs for next level
+		for _, info := range newPropagatedArtifacts {
+			newTaskOutputs.Artifacts = append(newTaskOutputs.Artifacts, &apiV2beta1.PipelineTask_InputOutputs_IOArtifact{
+				ArtifactKey: info.key,
+				Artifacts:   []*apiV2beta1.Artifact{info.artifact},
+				Type:        info.ioType,
+				Producer:    info.producer,
+			})
+		}
+
+		// Build parameter outputs for next level
+		for _, info := range newPropagatedParameters {
+			newTaskOutputs.Parameters = append(newTaskOutputs.Parameters, &apiV2beta1.PipelineTask_InputOutputs_IOParameter{
+				ParameterKey: info.key,
+				Value:        info.value,
+				Type:         info.ioType,
+				Producer:     info.producer,
+			})
+		}
+
+		if len(newTaskOutputs.GetArtifacts()) == 0 && len(newTaskOutputs.GetParameters()) == 0 {
+			// No more outputs to propagate
+			break
+		}
+
+		// Move to the next level
+		currentTaskOutputs = newTaskOutputs
+		currentTask = currentParentTask
+		parentTask = nextParent
+		currentScopePath = parentScopePath
+		isFirstLevel = false // After the first iteration, we're doing multi-level propagation
 	}
-	return outputArtifacts, nil
+
+	return nil
 }
 
-func uploadOutputArtifactsWithRetry(
-	ctx context.Context,
-	executorInput *pipelinespec.ExecutorInput,
-	executorOutput *pipelinespec.ExecutorOutput,
-	opts uploadOutputArtifactsOptions,
-	componentSucceeded bool,
-	openBucketConfig *OpenBucketConfig,
-	maxAttempts int,
-) ([]*metadata.OutputArtifact, error) {
-	glog.Infof("Executing uploadOutputArtifacts attempt: 1")
-	outputArtifacts, err := uploadOutputArtifacts(ctx, executorInput, executorOutput, opts, componentSucceeded)
-
-	if err == nil {
-		return outputArtifacts, nil
+// findMatchingParentOutputKeyForChild finds the parent output key that corresponds to the child's output.
+// This is a simplified version that takes the child task name directly as a parameter.
+func propagatedProducer(
+	childTaskName string,
+	ioType apiV2beta1.IOType,
+	upstreamProducer *apiV2beta1.IOProducer,
+) *apiV2beta1.IOProducer {
+	producer := &apiV2beta1.IOProducer{TaskName: childTaskName}
+	if ioType == apiV2beta1.IOType_ITERATOR_OUTPUT && upstreamProducer != nil && upstreamProducer.Iteration != nil {
+		producer.Iteration = util.Int64Pointer(*upstreamProducer.Iteration)
 	}
-	finalErr := err
+	return producer
+}
 
-	for retryCount := 1; retryCount < maxAttempts; retryCount++ {
-		glog.Warningf("Failed to upload output artifacts: %v", err)
-		glog.Info("Refreshing credentials before retrying artifacts upload.")
-		opts.bucket, err = objectstore.OpenBucket(
-			openBucketConfig.ctx,
-			openBucketConfig.k8sClient,
-			openBucketConfig.namespace,
-			openBucketConfig.config,
-		)
-		if err != nil {
-			glog.Infof("Failed to refresh credentials: %v", err)
-			finalErr = err
+func findMatchingParentOutputKeysForChild(
+	childTaskName string,
+	parentComponentSpec *pipelinespec.ComponentSpec,
+	childOutputKey string,
+	parentOutputDefs *pipelinespec.ComponentOutputsSpec,
+) []string {
+	// Get the task spec from the parent's perspective
+	if parentComponentSpec == nil || parentComponentSpec.GetDag() == nil {
+		return nil
+	}
+
+	var matchingParentKeys []string
+	// Look through parent's DAG tasks to find the child task
+	for taskKey, dagTask := range parentComponentSpec.GetDag().GetTasks() {
+		if taskKey != childTaskName {
+			continue
+		}
+		// Found the child task in parent's DAG
+		// Check the task's output selectors
+		if dagTask.GetComponentRef() != nil {
+			// Look at the parent's output definitions to find which one uses this task's output
+			artifactOutputKeys := make([]string, 0, len(parentOutputDefs.GetArtifacts()))
+			for parentOutputKey := range parentOutputDefs.GetArtifacts() {
+				artifactOutputKeys = append(artifactOutputKeys, parentOutputKey)
+			}
+			sort.Strings(artifactOutputKeys)
+			for _, parentOutputKey := range artifactOutputKeys {
+				// Check if this parent output is sourced from the child task
+				// The parent output may be directly from task output or from an artifact selector
+				if artifactSelectorMatches(parentComponentSpec, parentOutputKey, childTaskName, childOutputKey) {
+					matchingParentKeys = append(matchingParentKeys, parentOutputKey)
+				}
+			}
+		}
+	}
+
+	return matchingParentKeys
+}
+
+// findMatchingParentOutputKeysForChildParameter finds the parent output keys that correspond to the child's parameter output.
+func findMatchingParentOutputKeysForChildParameter(
+	childTaskName string,
+	parentComponentSpec *pipelinespec.ComponentSpec,
+	childOutputKey string,
+	parentOutputDefs *pipelinespec.ComponentOutputsSpec,
+) []string {
+	// Get the task spec from the parent's perspective
+	if parentComponentSpec == nil || parentComponentSpec.GetDag() == nil {
+		return nil
+	}
+
+	var matchingParentKeys []string
+	// Look through parent's DAG tasks to find the child task
+	for taskKey, dagTask := range parentComponentSpec.GetDag().GetTasks() {
+		if taskKey != childTaskName {
 			continue
 		}
 
-		glog.Infof("Executing uploadOutputArtifacts attempt: %d", retryCount+1)
-		outputArtifacts, err := uploadOutputArtifacts(ctx, executorInput, executorOutput, opts, componentSucceeded)
-
-		if err == nil {
-			return outputArtifacts, nil
+		// Found the child task in parent's DAG
+		// Check the task's output selectors
+		if dagTask.GetComponentRef() != nil {
+			// Look at the parent's output definitions to find which one uses this task's parameter output
+			parameterOutputKeys := make([]string, 0, len(parentOutputDefs.GetParameters()))
+			for parentOutputKey := range parentOutputDefs.GetParameters() {
+				parameterOutputKeys = append(parameterOutputKeys, parentOutputKey)
+			}
+			sort.Strings(parameterOutputKeys)
+			for _, parentOutputKey := range parameterOutputKeys {
+				// Check if this parent output is sourced from the child task
+				if parameterSelectorMatches(parentComponentSpec, parentOutputKey, childTaskName, childOutputKey) {
+					matchingParentKeys = append(matchingParentKeys, parentOutputKey)
+				}
+			}
 		}
-		finalErr = err
 	}
-	glog.Errorf("All upload artifact attempts failed: %v", finalErr)
-	return nil, finalErr
+
+	return matchingParentKeys
+}
+
+// parameterSelectorMatches checks if a parent output parameter selector matches the child task output
+func parameterSelectorMatches(
+	parentComponentSpec *pipelinespec.ComponentSpec,
+	parentOutputKey string,
+	childTaskName string,
+	childOutputKey string,
+) bool {
+	// Check parameter selectors
+	dag := parentComponentSpec.GetDag()
+	if dag == nil || dag.GetOutputs() == nil {
+		return false
+	}
+
+	parameterSelectors := dag.GetOutputs().GetParameters()
+	if parameterSelectors == nil {
+		return false
+	}
+
+	selector, exists := parameterSelectors[parentOutputKey]
+	if !exists {
+		return false
+	}
+
+	// Check if the selector references the child task
+	// Check value_from_parameter (single parameter selector)
+	if paramSelector := selector.GetValueFromParameter(); paramSelector != nil {
+		if paramSelector.GetProducerSubtask() == childTaskName &&
+			paramSelector.GetOutputParameterKey() == childOutputKey {
+			return true
+		}
+	}
+
+	// Check value_from_oneof (list of parameter selectors for condition branches)
+	if oneofSelector := selector.GetValueFromOneof(); oneofSelector != nil {
+		for _, paramSelector := range oneofSelector.GetParameterSelectors() {
+			if paramSelector.GetProducerSubtask() == childTaskName &&
+				paramSelector.GetOutputParameterKey() == childOutputKey {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// artifactSelectorMatches checks if a parent output artifact selector matches the child task output
+func artifactSelectorMatches(
+	parentComponentSpec *pipelinespec.ComponentSpec,
+	parentOutputKey string,
+	childTaskName string,
+	childOutputKey string,
+) bool {
+	// Check artifact selectors
+	dag := parentComponentSpec.GetDag()
+	if dag == nil || dag.GetOutputs() == nil {
+		return false
+	}
+
+	artifactSelectors := dag.GetOutputs().GetArtifacts()
+	if artifactSelectors == nil {
+		return false
+	}
+
+	selector, exists := artifactSelectors[parentOutputKey]
+	if !exists {
+		return false
+	}
+
+	// Check if the selector references the child task
+	for _, artifactSelector := range selector.GetArtifactSelectors() {
+		if artifactSelector.GetProducerSubtask() == childTaskName &&
+			artifactSelector.GetOutputArtifactKey() == childOutputKey {
+			return true
+		}
+	}
+
+	return false
 }
 
 // waitForModelcar assumes the Modelcar has already been validated by the init container on the launcher
@@ -893,133 +1486,44 @@ func waitForModelcar(artifactURI string, localPath string) error {
 	}
 }
 
-func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.ExecutorInput, defaultBucket *blob.Bucket, defaultBucketConfig *objectstore.Config, namespace string, k8sClient kubernetes.Interface) error {
-	// Read input artifact metadata.
-	nonDefaultBuckets, err := fetchNonDefaultBuckets(ctx, executorInput.GetInputs().GetArtifacts(), defaultBucketConfig, namespace, k8sClient)
-	closeNonDefaultBuckets := func(buckets map[string]*blob.Bucket) {
-		for name, bucket := range nonDefaultBuckets {
-			if closeBucketErr := bucket.Close(); closeBucketErr != nil {
-				glog.Warningf("failed to close bucket %q: %q", name, err.Error())
-			}
-		}
-	}
-	defer closeNonDefaultBuckets(nonDefaultBuckets)
-	if err != nil {
-		return fmt.Errorf("failed to fetch non default buckets: %w", err)
-	}
-
-	for name, artifactList := range executorInput.GetInputs().GetArtifacts() {
-		// TODO(neuromage): Support concat-based placholders for arguments.
-		if len(artifactList.Artifacts) == 0 {
-			continue
-		}
+func (l *LauncherV2) downloadArtifacts(ctx context.Context) error {
+	for artifactKey, artifactList := range l.executorInput.GetInputs().GetArtifacts() {
 		for _, artifact := range artifactList.Artifacts {
-			// Iterating through the artifact list allows for collected artifacts to be properly consumed.
-			inputArtifact := artifact
 			// Skip downloading if the artifact is flagged as already present in the workspace
-			if inputArtifact.GetMetadata() != nil {
-				if v, ok := inputArtifact.GetMetadata().GetFields()["_kfp_workspace"]; ok && v.GetBoolValue() {
+			if artifact.GetMetadata() != nil {
+				if v, ok := artifact.GetMetadata().GetFields()["_kfp_workspace"]; ok && v.GetBoolValue() {
 					continue
 				}
 			}
-			localPath, err := retrieveArtifactPath(inputArtifact)
+			// Iterating through the artifact list allows for collected artifacts to be properly consumed.
+			localPath, err := LocalPathForURI(artifact.Uri)
 			if err != nil {
-				glog.Warningf("Input Artifact %q does not have a recognized storage URI %q. Skipping downloading to local path.", name, inputArtifact.Uri)
-
+				glog.Warningf("Input Artifact %q does not have a recognized storage URI %q. Skipping downloading to local path.", artifactKey, artifact.Uri)
 				continue
 			}
-
 			// OCI artifacts are accessed via shared storage of a Modelcar
-			if strings.HasPrefix(inputArtifact.Uri, "oci://") {
-				err := waitForModelcar(inputArtifact.Uri, localPath)
+			if strings.HasPrefix(artifact.Uri, "oci://") {
+				err := waitForModelcar(artifact.Uri, localPath)
 				if err != nil {
 					return err
 				}
-
 				continue
 			}
 
-			// Copy artifact to local storage.
-			copyErr := func(err error) error {
-				return fmt.Errorf("failed to download input artifact %q from remote storage URI %q: %w", name, inputArtifact.Uri, err)
-			}
-			// TODO: Selectively copy artifacts for which .path was actually specified
-			// on the command line.
-			bucket := defaultBucket
-			bucketConfig := defaultBucketConfig
-			if !strings.HasPrefix(inputArtifact.Uri, defaultBucketConfig.PrefixedBucket()) {
-				nonDefaultBucketConfig, err := objectstore.ParseBucketConfigForArtifactURI(inputArtifact.Uri)
-				if err != nil {
-					return fmt.Errorf("failed to parse bucketConfig for output artifact %q with uri %q: %w", name, inputArtifact.GetUri(), err)
-				}
-				nonDefaultBucket, ok := nonDefaultBuckets[nonDefaultBucketConfig.PrefixedBucket()]
-				if !ok {
-					return fmt.Errorf("failed to get bucket when downloading input artifact %s with bucket key %s: %w", name, nonDefaultBucketConfig.PrefixedBucket(), err)
-				}
-				bucket = nonDefaultBucket
-				bucketConfig = nonDefaultBucketConfig
-			}
-			blobKey, err := bucketConfig.KeyFromURI(inputArtifact.Uri)
+			err = l.objectStore.DownloadArtifact(ctx, artifact.Uri, localPath, artifactKey)
 			if err != nil {
-				return copyErr(err)
-			}
-			if err := objectstore.DownloadBlob(ctx, bucket, localPath, blobKey); err != nil {
-				return copyErr(err)
+				return fmt.Errorf("failed to download input artifact %q from remote storage URI %q: %w", artifactKey, artifact.Uri, err)
 			}
 		}
-
 	}
 	return nil
 }
 
-func fetchNonDefaultBuckets(
-	ctx context.Context,
-	artifacts map[string]*pipelinespec.ArtifactList,
-	defaultBucketConfig *objectstore.Config,
-	namespace string,
-	k8sClient kubernetes.Interface,
-) (buckets map[string]*blob.Bucket, err error) {
-	nonDefaultBuckets := make(map[string]*blob.Bucket)
-	for name, artifactList := range artifacts {
-		if len(artifactList.Artifacts) == 0 {
-			continue
-		}
-		// TODO: Support multiple artifacts someday, probably through the v2 engine.
-		artifact := artifactList.Artifacts[0]
-
-		// OCI artifacts are accessed via shared storage of a Modelcar
-		if strings.HasPrefix(artifact.Uri, "oci://") {
-			continue
-		}
-
-		// The artifact does not belong under the object store path for this run. Cases:
-		// 1. Artifact is cached from a different run, so it may still be in the default bucket, but under a different run id subpath
-		// 2. Artifact is imported from the same bucket, but from a different path (re-use the same session)
-		// 3. Artifact is imported from a different bucket, or obj store (default to using user env in this case)
-		if !strings.HasPrefix(artifact.Uri, defaultBucketConfig.PrefixedBucket()) {
-			nonDefaultBucketConfig, parseErr := objectstore.ParseBucketConfigForArtifactURI(artifact.Uri)
-			if parseErr != nil {
-				return nonDefaultBuckets, fmt.Errorf("failed to parse bucketConfig for output artifact %q with uri %q: %w", name, artifact.GetUri(), parseErr)
-			}
-			// check if it's same bucket but under a different path, re-use the default bucket session in this case.
-			if (nonDefaultBucketConfig.Scheme == defaultBucketConfig.Scheme) && (nonDefaultBucketConfig.BucketName == defaultBucketConfig.BucketName) {
-				nonDefaultBucketConfig.SessionInfo = defaultBucketConfig.SessionInfo
-			}
-			nonDefaultBucket, bucketErr := objectstore.OpenBucket(ctx, k8sClient, namespace, nonDefaultBucketConfig)
-			if bucketErr != nil {
-				return nonDefaultBuckets, fmt.Errorf("failed to open bucket for output artifact %q with uri %q: %w", name, artifact.GetUri(), bucketErr)
-			}
-			nonDefaultBuckets[nonDefaultBucketConfig.PrefixedBucket()] = nonDefaultBucket
-		}
-
-	}
-	return nonDefaultBuckets, nil
-
-}
-
 func compileCmdAndArgs(executorInput *pipelinespec.ExecutorInput, cmd string, args []string) (string, []string, error) {
 	placeholders, err := getPlaceholders(executorInput)
-
+	if err != nil {
+		return "", nil, err
+	}
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to convert ExecutorInput into JSON: %w", err)
@@ -1030,7 +1534,7 @@ func compileCmdAndArgs(executorInput *pipelinespec.ExecutorInput, cmd string, ar
 	compiledCmd := strings.ReplaceAll(cmd, executorInputJSONKey, executorInputJSONString)
 	compiledArgs := make([]string, 0, len(args))
 	for placeholder, replacement := range placeholders {
-		cmd = strings.ReplaceAll(cmd, placeholder, replacement)
+		compiledCmd = strings.ReplaceAll(compiledCmd, placeholder, replacement)
 	}
 	for _, arg := range args {
 		compiledArgTemplate := strings.ReplaceAll(arg, executorInputJSONKey, executorInputJSONString)
@@ -1079,7 +1583,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 			}
 		}
 
-		localPath, err := retrieveArtifactPath(inputArtifact)
+		localPath, err := LocalPathForURI(inputArtifact.Uri)
 		if err != nil {
 			// Input Artifact does not have a recognized storage URI
 			continue
@@ -1098,7 +1602,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 		outputArtifact := artifactList.Artifacts[0]
 		placeholders[fmt.Sprintf(`{{$.outputs.artifacts['%s'].uri}}`, name)] = outputArtifact.Uri
 
-		localPath, err := retrieveArtifactPath(outputArtifact)
+		localPath, err := LocalPathForURI(outputArtifact.Uri)
 		if err != nil {
 			return nil, fmt.Errorf("resolve output artifact %q's local path: %w", name, err)
 		}
@@ -1141,12 +1645,12 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 	return placeholders, nil
 }
 
-func getArtifactSchema(schema *pipelinespec.ArtifactTypeSchema) (string, error) {
+func getArtifactSchemaType(schema *pipelinespec.ArtifactTypeSchema) (string, error) {
 	switch t := schema.Kind.(type) {
 	case *pipelinespec.ArtifactTypeSchema_InstanceSchema:
 		return t.InstanceSchema, nil
 	case *pipelinespec.ArtifactTypeSchema_SchemaTitle:
-		return "title: " + t.SchemaTitle, nil
+		return t.SchemaTitle, nil
 	case *pipelinespec.ArtifactTypeSchema_SchemaUri:
 		return "", fmt.Errorf("SchemaUri is unsupported")
 	default:
@@ -1174,14 +1678,14 @@ func mergeRuntimeArtifacts(src, dst *pipelinespec.RuntimeArtifact) {
 	}
 }
 
-func getExecutorOutputFile(path string) (*pipelinespec.ExecutorOutput, error) {
+func (l *LauncherV2) getExecutorOutputFile(path string) (*pipelinespec.ExecutorOutput, error) {
 	// collect user executor output file
 	executorOutput := &pipelinespec.ExecutorOutput{
 		ParameterValues: map[string]*structpb.Value{},
 		Artifacts:       map[string]*pipelinespec.ArtifactList{},
 	}
 
-	_, err := os.Stat(path)
+	_, err := l.fileSystem.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			glog.Infof("output metadata file does not exist in %s", path)
@@ -1192,7 +1696,7 @@ func getExecutorOutputFile(path string) (*pipelinespec.ExecutorOutput, error) {
 		}
 	}
 
-	b, err := os.ReadFile(path)
+	b, err := l.fileSystem.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read output metadata file %q: %w", path, err)
 	}
@@ -1206,17 +1710,20 @@ func getExecutorOutputFile(path string) (*pipelinespec.ExecutorOutput, error) {
 }
 
 func LocalPathForURI(uri string) (string, error) {
+	// Used for local debugging
+	rootPath := os.Getenv("ARTIFACT_LOCAL_PATH")
+
 	if strings.HasPrefix(uri, "gs://") {
-		return "/gcs/" + strings.TrimPrefix(uri, "gs://"), nil
+		return fmt.Sprintf("%s/gcs/", rootPath) + strings.TrimPrefix(uri, "gs://"), nil
 	}
 	if strings.HasPrefix(uri, "minio://") {
-		return "/minio/" + strings.TrimPrefix(uri, "minio://"), nil
+		return fmt.Sprintf("%s/minio/", rootPath) + strings.TrimPrefix(uri, "minio://"), nil
 	}
 	if strings.HasPrefix(uri, "s3://") {
-		return "/s3/" + strings.TrimPrefix(uri, "s3://"), nil
+		return fmt.Sprintf("%s/s3/", rootPath) + strings.TrimPrefix(uri, "s3://"), nil
 	}
 	if strings.HasPrefix(uri, "oci://") {
-		return "/oci/" + strings.ReplaceAll(strings.TrimPrefix(uri, "oci://"), "/", "_") + "/models", nil
+		return fmt.Sprintf("%s/oci/", rootPath) + strings.ReplaceAll(strings.TrimPrefix(uri, "oci://"), "/", "_") + "/models", nil
 	}
 	return "", fmt.Errorf("failed to generate local path for URI %s: unsupported storage scheme", uri)
 }
@@ -1246,10 +1753,10 @@ func LocalWorkspacePathForURI(uri string) (string, error) {
 	return filepath.Join(WorkspaceMountPath, ".artifacts", strings.TrimPrefix(localPath, "/")), nil
 }
 
-func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
+func (l *LauncherV2) prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
 	for name, parameter := range executorInput.GetOutputs().GetParameters() {
 		dir := filepath.Dir(parameter.OutputFile)
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := l.fileSystem.MkdirAll(dir, 0755); err != nil {
 			return fmt.Errorf("failed to create directory %q for output parameter %q: %w", dir, name, err)
 		}
 	}
@@ -1261,40 +1768,16 @@ func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
 
 		for _, outputArtifact := range artifactList.Artifacts {
 
-			localPath, err := retrieveArtifactPath(outputArtifact)
+			localPath, err := LocalPathForURI(outputArtifact.Uri)
 			if err != nil {
 				return fmt.Errorf("failed to generate local storage path for output artifact %q: %w", name, err)
 			}
 
-			if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
+			if err := l.fileSystem.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
 				return fmt.Errorf("unable to create directory %q for output artifact %q: %w", filepath.Dir(localPath), name, err)
 			}
 		}
 	}
 
 	return nil
-}
-
-// Adds default parameter values if there is no user provided value
-func addDefaultParams(
-	executorInput *pipelinespec.ExecutorInput,
-	component *pipelinespec.ComponentSpec,
-) (*pipelinespec.ExecutorInput, error) {
-	// Make a deep copy so we don't alter the original data
-	executorInputWithDefaultMsg := proto.Clone(executorInput)
-	executorInputWithDefault, ok := executorInputWithDefaultMsg.(*pipelinespec.ExecutorInput)
-	if !ok {
-		return nil, fmt.Errorf("bug: cloned executor input message does not have expected type")
-	}
-
-	if executorInputWithDefault.GetInputs().GetParameterValues() == nil {
-		executorInputWithDefault.Inputs.ParameterValues = make(map[string]*structpb.Value)
-	}
-	for name, value := range component.GetInputDefinitions().GetParameters() {
-		_, hasInput := executorInputWithDefault.GetInputs().GetParameterValues()[name]
-		if value.GetDefaultValue() != nil && !hasInput {
-			executorInputWithDefault.GetInputs().GetParameterValues()[name] = value.GetDefaultValue()
-		}
-	}
-	return executorInputWithDefault, nil
 }

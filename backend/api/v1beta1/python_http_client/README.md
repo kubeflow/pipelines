@@ -165,7 +165,7 @@ Class | Method | HTTP request | Description
  - [ApiStatus](docs/ApiStatus.md)
  - [ApiTrigger](docs/ApiTrigger.md)
  - [ApiUrl](docs/ApiUrl.md)
- - [GooglerpcStatus](docs/GooglerpcStatus.md)
+ - [GoogleRpcStatus](docs/GoogleRpcStatus.md)
  - [JobMode](docs/JobMode.md)
  - [PipelineSpecRuntimeConfig](docs/PipelineSpecRuntimeConfig.md)
  - [ProtobufAny](docs/ProtobufAny.md)

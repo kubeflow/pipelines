@@ -1,0 +1,476 @@
+# PIPELINE DEFINITION
+# Name: pipeline-a
+components:
+  comp-a:
+    executorLabel: exec-a
+    inputDefinitions:
+      parameters:
+        situation:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        output_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-a-2:
+    executorLabel: exec-a-2-2
+    inputDefinitions:
+      parameters:
+        situation:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        output_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-a-2-2:
+    executorLabel: exec-a-2-2
+    inputDefinitions:
+      parameters:
+        situation:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        output_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-b:
+    executorLabel: exec-b
+    inputDefinitions:
+      artifacts:
+        input_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        output_artifact_b:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-b-2:
+    executorLabel: exec-b-2
+    inputDefinitions:
+      artifacts:
+        input_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        output_artifact_b:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-c:
+    executorLabel: exec-c
+    inputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        output_artifact_c:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-pipeline-b:
+    dag:
+      outputs:
+        artifacts:
+          Output:
+            artifactSelectors:
+            - outputArtifactKey: Output
+              producerSubtask: pipeline-c
+      tasks:
+        a:
+          cachingOptions: {}
+          componentRef:
+            name: comp-a-2
+          inputs:
+            parameters:
+              situation:
+                runtimeValue:
+                  constant: raining
+          taskInfo:
+            name: a
+        b:
+          cachingOptions: {}
+          componentRef:
+            name: comp-b
+          inputs:
+            artifacts:
+              input_dataset:
+                componentInputArtifact: input_dataset
+          taskInfo:
+            name: b
+        pipeline-c:
+          cachingOptions: {}
+          componentRef:
+            name: comp-pipeline-c
+          dependentTasks:
+          - a
+          - b
+          inputs:
+            artifacts:
+              input_dataset_a:
+                taskOutputArtifact:
+                  outputArtifactKey: output_dataset
+                  producerTask: a
+              input_dataset_b:
+                taskOutputArtifact:
+                  outputArtifactKey: output_artifact_b
+                  producerTask: b
+          taskInfo:
+            name: pipeline-c
+    inputDefinitions:
+      artifacts:
+        input_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        Output:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-pipeline-c:
+    dag:
+      outputs:
+        artifacts:
+          Output:
+            artifactSelectors:
+            - outputArtifactKey: output_artifact_c
+              producerSubtask: c
+      tasks:
+        a:
+          cachingOptions: {}
+          componentRef:
+            name: comp-a-2-2
+          inputs:
+            parameters:
+              situation:
+                runtimeValue:
+                  constant: hurricane
+          taskInfo:
+            name: a
+        b:
+          cachingOptions: {}
+          componentRef:
+            name: comp-b-2
+          dependentTasks:
+          - a
+          inputs:
+            artifacts:
+              input_dataset:
+                taskOutputArtifact:
+                  outputArtifactKey: output_dataset
+                  producerTask: a
+          taskInfo:
+            name: b
+        c:
+          cachingOptions: {}
+          componentRef:
+            name: comp-c
+          dependentTasks:
+          - b
+          inputs:
+            artifacts:
+              artifact:
+                taskOutputArtifact:
+                  outputArtifactKey: output_artifact_b
+                  producerTask: b
+          taskInfo:
+            name: c
+    inputDefinitions:
+      artifacts:
+        input_dataset_a:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        input_dataset_b:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        Output:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-verify:
+    executorLabel: exec-verify
+    inputDefinitions:
+      artifacts:
+        verify_input:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-a:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - a
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef a(situation: str, output_dataset: Output[Dataset]):\n    with\
+          \ open(output_dataset.path, \"w\") as f:\n        f.write(situation)\n\n"
+        image: python:3.11
+    exec-a-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - a
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef a(situation: str, output_dataset: Output[Dataset]):\n    with\
+          \ open(output_dataset.path, \"w\") as f:\n        f.write(situation)\n\n"
+        image: python:3.11
+    exec-a-2-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - a
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef a(situation: str, output_dataset: Output[Dataset]):\n    with\
+          \ open(output_dataset.path, \"w\") as f:\n        f.write(situation)\n\n"
+        image: python:3.11
+    exec-b:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - b
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef b(input_dataset: Input[Dataset], output_artifact_b: Output[Artifact]):\n\
+          \    with open(input_dataset.path, \"r\") as f:\n        data = f.read()\n\
+          \n    if data == \"hurricane\":\n        analysis = \"very_bad\"\n    elif\
+          \ data == \"sunny\":\n        analysis = \"very_good\"\n    else:\n    \
+          \    analysis = \"not_bad\"\n\n    with open(output_artifact_b.path, \"\
+          w\") as f:\n        f.write(analysis)\n\n"
+        image: python:3.11
+    exec-b-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - b
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef b(input_dataset: Input[Dataset], output_artifact_b: Output[Artifact]):\n\
+          \    with open(input_dataset.path, \"r\") as f:\n        data = f.read()\n\
+          \n    if data == \"hurricane\":\n        analysis = \"very_bad\"\n    elif\
+          \ data == \"sunny\":\n        analysis = \"very_good\"\n    else:\n    \
+          \    analysis = \"not_bad\"\n\n    with open(output_artifact_b.path, \"\
+          w\") as f:\n        f.write(analysis)\n\n"
+        image: python:3.11
+    exec-c:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - c
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef c(artifact: Input[Artifact], output_artifact_c: Output[Artifact]):\n\
+          \    with open(artifact.path, \"r\") as f:\n        data = f.read()\n  \
+          \  assert data == \"very_bad\"\n    with open(output_artifact_c.path, \"\
+          w\") as f:\n        f.write(f'done_analyzing')\n\n"
+        image: python:3.11
+    exec-verify:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - verify
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef verify(verify_input: Input[Artifact]):\n    with open(verify_input.path,\
+          \ \"r\") as f:\n        data = f.read()\n    assert data == \"done_analyzing\"\
+          \n\n"
+        image: python:3.11
+pipelineInfo:
+  name: pipeline-a
+root:
+  dag:
+    tasks:
+      a:
+        cachingOptions: {}
+        componentRef:
+          name: comp-a
+        inputs:
+          parameters:
+            situation:
+              runtimeValue:
+                constant: sunny
+        taskInfo:
+          name: a
+      pipeline-b:
+        cachingOptions: {}
+        componentRef:
+          name: comp-pipeline-b
+        dependentTasks:
+        - a
+        inputs:
+          artifacts:
+            input_dataset:
+              taskOutputArtifact:
+                outputArtifactKey: output_dataset
+                producerTask: a
+        taskInfo:
+          name: pipeline-b
+      verify:
+        cachingOptions: {}
+        componentRef:
+          name: comp-verify
+        dependentTasks:
+        - pipeline-b
+        inputs:
+          artifacts:
+            verify_input:
+              taskOutputArtifact:
+                outputArtifactKey: Output
+                producerTask: pipeline-b
+        taskInfo:
+          name: verify
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.6

@@ -16,6 +16,7 @@ package storage
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -24,6 +25,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -139,6 +141,196 @@ func TestCreateTask_Success(t *testing.T) {
 	assert.Equal(t, "taskA", fetched.Name)
 	assert.Equal(t, model.TaskStatus(1), fetched.State)
 	assert.Equal(t, model.TaskType(0), fetched.Type)
+}
+
+func TestCreateTask_ReusesExistingLogicalIdentity(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
+	firstTask, err := taskStore.CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          "run-1",
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_DRIVER)),
+		Fingerprint:      "fp-1",
+		Name:             "taskA",
+		ScopePath:        "root.pipeline.taskA",
+		State:            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+		TypeAttrs:        model.JSONData{},
+	})
+	require.NoError(t, err)
+
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID2, nil)
+	retriedTask, err := taskStore.CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          "run-1",
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p2", "uid2", apiv2beta1.PipelineTask_DRIVER)),
+		Fingerprint:      "fp-2",
+		Name:             "taskA",
+		ParentTaskUUID:   strPTR(""),
+		ScopePath:        "root.pipeline.taskA",
+		State:            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+		TypeAttrs:        model.JSONData{},
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, firstTask.UUID, retriedTask.UUID)
+	require.NotNil(t, firstTask.LogicalKey)
+	assert.Equal(t, firstTask.LogicalKey, retriedTask.LogicalKey)
+	opts, _ := list.NewOptions(&model.Task{}, 10, "", nil)
+	tasks, total, _, err := taskStore.ListTasks(&model.FilterContext{}, opts)
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(tasks))
+	assert.Equal(t, 1, total)
+}
+
+func TestCreateTask_DifferentParentsCreateDistinctTasks(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	firstParentID := "parent-1"
+	secondParentID := "parent-2"
+	require.NoError(t, insertTaskForTest(db, firstParentID, "parent-one"))
+	require.NoError(t, insertTaskForTest(db, secondParentID, "parent-two"))
+
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
+	firstTask, err := taskStore.CreateTask(logicalTaskForTest(strPTR(firstParentID)))
+	require.NoError(t, err)
+
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID2, nil)
+	secondTask, err := taskStore.CreateTask(logicalTaskForTest(strPTR(secondParentID)))
+	require.NoError(t, err)
+
+	assert.NotEqual(t, firstTask.UUID, secondTask.UUID)
+	assert.NotEqual(t, firstTask.LogicalKey, secondTask.LogicalKey)
+}
+
+func TestCreateTask_ConcurrentRetriesCreateOneTask(t *testing.T) {
+	db, _, _ := initializeTaskStore()
+	defer db.Close()
+	db.SetMaxOpenConns(1)
+
+	firstStore := NewTaskStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil))
+	secondStore := NewTaskStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID2, nil))
+	stores := []*TaskStore{firstStore, secondStore}
+
+	start := make(chan struct{})
+	results := make(chan *model.Task, len(stores))
+	errors := make(chan error, len(stores))
+	var waitGroup sync.WaitGroup
+	for _, store := range stores {
+		waitGroup.Add(1)
+		go func(taskStore *TaskStore) {
+			defer waitGroup.Done()
+			<-start
+			createdTask, err := taskStore.CreateTask(logicalTaskForTest(nil))
+			results <- createdTask
+			errors <- err
+		}(store)
+	}
+	close(start)
+	waitGroup.Wait()
+	close(results)
+	close(errors)
+
+	for err := range errors {
+		require.NoError(t, err)
+	}
+	var taskID string
+	for createdTask := range results {
+		require.NotNil(t, createdTask)
+		if taskID == "" {
+			taskID = createdTask.UUID
+		} else {
+			assert.Equal(t, taskID, createdTask.UUID)
+		}
+	}
+	opts, err := list.NewOptions(&model.Task{}, 10, "", nil)
+	require.NoError(t, err)
+	tasks, total, _, err := firstStore.ListTasks(&model.FilterContext{}, opts)
+	require.NoError(t, err)
+	assert.Len(t, tasks, 1)
+	assert.Equal(t, 1, total)
+}
+
+func logicalTaskForTest(parentTaskUUID *string) *model.Task {
+	return &model.Task{
+		Namespace:        "ns1",
+		RunUUID:          "run-1",
+		Pods:             model.JSONSlice{},
+		Name:             "nested-task",
+		ParentTaskUUID:   parentTaskUUID,
+		ScopePath:        "root.outer.inner.nested-task",
+		State:            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+		TypeAttrs:        model.JSONData{"iterationIndex": float64(0)},
+	}
+}
+
+func insertTaskForTest(db *DB, taskID, name string) error {
+	_, err := db.Exec(
+		`INSERT INTO tasks (
+			UUID, Namespace, RunUUID, pods, CreatedAtInSec, StartedInSec,
+			FinishedInSec, Fingerprint, Name, State, StateHistory,
+			InputParameters, OutputParameters, Type, TypeAttrs, ScopePath
+		) VALUES (?, 'ns1', 'run-1', '[]', 1, 1, 0, '', ?, ?, '[]', '[]', '[]', ?, '{}', ?)`,
+		taskID,
+		name,
+		apiv2beta1.PipelineTask_RUNNING,
+		apiv2beta1.PipelineTask_DAG,
+		"root."+name,
+	)
+	return err
+}
+
+func TestCreateTask_DifferentIterationIndexCreatesDistinctTasks(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
+	firstTask, err := taskStore.CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          "run-1",
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_DRIVER)),
+		Name:             "loop-body",
+		ScopePath:        "root.loop-body",
+		State:            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+		TypeAttrs:        model.JSONData{"iterationIndex": float64(0)},
+	})
+	require.NoError(t, err)
+
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID2, nil)
+	secondTask, err := taskStore.CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          "run-1",
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p2", "uid2", apiv2beta1.PipelineTask_DRIVER)),
+		Name:             "loop-body",
+		ScopePath:        "root.loop-body",
+		State:            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+		TypeAttrs:        model.JSONData{"iterationIndex": float64(1)},
+	})
+	require.NoError(t, err)
+
+	assert.NotEqual(t, firstTask.UUID, secondTask.UUID)
 }
 
 func TestGetTask_NotFound(t *testing.T) {
@@ -373,6 +565,51 @@ func TestUpdateTask_MergesParameters(t *testing.T) {
 	}
 	assert.True(t, iterations[0], "Should have iteration 0 parameter")
 	assert.True(t, iterations[1], "Should have iteration 1 parameter")
+}
+
+func TestResetTasksForRetry_ClearsAttemptLocalStateAndPreservesHistory(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
+		Name: "old-pod", Uid: "old-uid", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+	outputs, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+		ParameterKey: "result",
+		Value:        structpb.NewStringValue("stale"),
+		Type:         apiv2beta1.IOType_OUTPUT,
+	}})
+	require.NoError(t, err)
+
+	created, err := taskStore.CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          "run-1",
+		Name:             "retry-me",
+		ScopePath:        "root.retry-me",
+		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+		State:            model.TaskStatus(apiv2beta1.PipelineTask_FAILED),
+		Fingerprint:      "fp-retry",
+		Pods:             pods,
+		StatusMetadata:   model.JSONData{"message": "old failure"},
+		OutputParameters: outputs,
+		TypeAttrs:        model.JSONData{},
+		FinishedInSec:    10,
+	})
+	require.NoError(t, err)
+
+	err = taskStore.ResetTasksForRetry([]string{created.UUID})
+	require.NoError(t, err)
+
+	retried, err := taskStore.GetTask(created.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), retried.State)
+	assert.Equal(t, int64(0), retried.FinishedInSec)
+	assert.Nil(t, retried.StatusMetadata)
+	assert.Empty(t, retried.Pods)
+	assert.Empty(t, retried.OutputParameters)
+	require.NotEmpty(t, retried.StateHistory)
+	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), getLastTaskState(retried.StateHistory))
 }
 
 func TestGetChildTasks_ReturnsChildren(t *testing.T) {

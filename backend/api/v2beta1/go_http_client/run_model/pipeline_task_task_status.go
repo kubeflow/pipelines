@@ -20,7 +20,7 @@ import (
 type PipelineTaskTaskStatus struct {
 
 	// error
-	Error *GooglerpcStatus `json:"error,omitempty"`
+	Error *GoogleRPCStatus `json:"error,omitempty"`
 
 	// state
 	State *PipelineTaskTaskState `json:"state,omitempty"`
