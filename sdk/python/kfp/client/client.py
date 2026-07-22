@@ -13,9 +13,12 @@
 # limitations under the License.
 """The SDK client for Kubeflow Pipelines API."""
 
+import base64
 import copy
 import dataclasses
 import datetime
+import gzip
+import io
 import json
 import logging
 import os
@@ -24,7 +27,7 @@ import tarfile
 import tempfile
 import time
 from types import ModuleType
-from typing import Any, Dict, List, Optional, TextIO
+from typing import Any, Dict, List, Optional, TextIO, Union
 import warnings
 import zipfile
 
@@ -1359,6 +1362,157 @@ class Client:
             ``V2beta1Run`` object.
         """
         return self._run_api.run_service_get_run(run_id=run_id)
+
+    def get_logs(
+        self,
+        run_id: str,
+        component_name: Optional[str] = None,
+    ) -> Union[str, Dict[str, str]]:
+        """Downloads logs from a pipeline run's components via artifacts.
+
+        This method retrieves logs that are automatically uploaded as artifacts
+        by the KFP launcher, making them available even after pod deletion.
+
+        Args:
+            run_id: ID of the pipeline run.
+            component_name: Optional name of specific component to get logs from.
+                           If None, returns logs from all components.
+
+        Returns:
+            If component_name is specified: string containing the component logs.
+            If component_name is None: dictionary mapping component names to their logs.
+
+        Raises:
+            ValueError: If the run_id doesn't exist or component_name is not found.
+            RuntimeError: If there's an error retrieving artifacts.
+
+        Example:
+          ::
+
+            client = kfp.Client()
+            # Get logs from specific component
+            logs = client.get_logs(
+                run_id='5d08dd3d-58d9-4d02-9ff2-f2cee8dbfda8',
+                component_name='foo2'
+            )
+            print(logs)
+
+            # Get logs from all components
+            all_logs = client.get_logs(
+                run_id='5d08dd3d-58d9-4d02-9ff2-f2cee8dbfda8'
+            )
+            for component, log_text in all_logs.items():
+                print(f"Component {component}: {log_text[:100]}...")
+        """
+        # Get run details
+        run = self.get_run(run_id=run_id)
+        if run is None:
+            raise ValueError(f"Run with ID '{run_id}' not found.")
+
+        # Check if run has task details
+        if not run.run_details or not run.run_details.task_details:
+            raise ValueError(f"No task details found for run '{run_id}'. "
+                             'The run may not have started yet.')
+
+        logs_dict = {}
+
+        # Iterate through all task details to get logs
+        for task_detail in run.run_details.task_details:
+            # Get component/task name
+            task_name = (
+                task_detail.display_name or task_detail.name or
+                task_detail.task_id)
+
+            # Skip if we're looking for a specific component and this isn't it
+            if component_name and task_name != component_name:
+                continue
+
+            # Get node_id from task detail
+            node_id = task_detail.id or task_detail.task_id
+            if not node_id:
+                continue
+
+            # Try to read the main.log artifact
+            try:
+                log_content = self._read_artifact(
+                    run_id=run_id, node_id=node_id, artifact_name='main.log')
+                logs_dict[task_name] = log_content
+            except Exception as e:
+                logs_dict[task_name] = (f'Error retrieving logs: {str(e)}')
+
+        # Handle return value
+        if not logs_dict:
+            if component_name:
+                raise ValueError(
+                    f"Component '{component_name}' not found in run '{run_id}'."
+                )
+            else:
+                raise ValueError(f"No logs found for run '{run_id}'. "
+                                 'The run may not have any completed tasks.')
+
+        if component_name:
+            if component_name in logs_dict:
+                return logs_dict[component_name]
+            else:
+                available_components = ', '.join(logs_dict.keys())
+                raise ValueError(
+                    f"Component '{component_name}' not found in run '{run_id}'. "
+                    f'Available components: {available_components}')
+
+        return logs_dict
+
+    def _read_artifact(
+        self,
+        run_id: str,
+        node_id: str,
+        artifact_name: str,
+    ) -> str:
+        """Reads artifact content from KFP backend.
+
+        Args:
+            run_id: The run ID.
+            node_id: The node/task ID.
+            artifact_name: Name of the artifact (e.g., 'main.log').
+
+        Returns:
+            Artifact content as string.
+
+        Raises:
+            RuntimeError: If artifact cannot be retrieved.
+        """
+        # Use the API client to read the artifact via direct REST call
+        # as run_service_read_artifact is not available in the generated client.
+        try:
+            resource_path = f'/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read'
+            # call_api returns the deserialized JSON response as a dict
+            response = self._run_api.api_client.call_api(
+                resource_path,
+                'GET',
+                auth_settings=['Bearer'],
+                _return_http_data_only=True)
+
+            if not isinstance(response, dict) or 'data' not in response:
+                raise RuntimeError(
+                    f'Unexpected response format from artifact read: {response}'
+                )
+
+            # The response data is base64-encoded and often gzipped
+            base64_data = response['data']
+            decoded_data = base64.b64decode(base64_data)
+
+            # Try to decompress as gzip
+            try:
+                with gzip.GzipFile(fileobj=io.BytesIO(decoded_data)) as f:
+                    content = f.read()
+            except Exception:
+                # If not gzipped, use the decoded data directly
+                content = decoded_data
+
+            return content.decode('utf-8')
+        except Exception as e:
+            raise RuntimeError(
+                f'Failed to read artifact \'{artifact_name}\' from node '
+                f'\'{node_id}\': {str(e)}')
 
     def wait_for_run_completion(
         self,
