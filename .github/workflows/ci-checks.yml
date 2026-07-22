@@ -7,13 +7,26 @@ on:
   pull_request_target:
     types: [opened, synchronize, reopened, labeled, unlabeled]
 
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
   check_ci_status:
+    # GitHub Actions cannot filter pull_request_target events by label name.
+    # Skip unrelated labels before entering concurrency so Dependabot/Prow label
+    # bursts cannot leave cancelled checks on the current head SHA.
+    if: >-
+      (github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
+      (github.event.action == 'labeled' && github.event.label.name == 'ok-to-test') ||
+      (github.event.action == 'unlabeled' && github.event.label.name == 'needs-ok-to-test')
+    concurrency:
+      # Label and reopen events use a unique group because cancelling a run for
+      # the same head SHA would make that commit's check rollup red.
+      group: >-
+        ${{ github.workflow }}-${{ github.event.pull_request.number }}-${{
+          (github.event.action == 'opened' || github.event.action == 'synchronize')
+          && 'head-update' || github.run_id
+        }}
+      # A synchronize event moves the PR to a new head SHA, so cancelling the
+      # prior run cannot make the current commit's check rollup red.
+      cancel-in-progress: ${{ github.event.action == 'synchronize' }}
     runs-on: ubuntu-latest
     permissions:
       actions: read

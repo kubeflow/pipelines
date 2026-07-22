@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-20
+- Last updated: 2026-07-21
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -530,7 +530,8 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 
 - Workflows: `.github/workflows/` (build, test, lint, release)
 - `ci-health-report.yml` runs daily (and on dispatch): aggregates master-branch lane failure rates and per-test flake counts from `junit-xml - *` artifacts, publishing to the job summary and a tracking issue labeled `ci-health`.
-- `ci-scripts-tests.yml` runs the stdlib unit tests for CI tooling and diagnostics on PRs touching `.github/resources/scripts/*.py`, `.github/resources/scripts/*.sh`, or the workflow itself (run locally with `cd .github/resources/scripts && python3 -m unittest discover -v -p '*_test.py'`).
+- `ci-scripts-tests.yml` runs the stdlib unit tests for CI tooling, diagnostics, and meta-workflow concurrency on PRs touching `.github/resources/scripts/*.py`, `.github/resources/scripts/*.sh`, `ci-checks.yml`, `gh-workflow-approve.yml`, or the test workflow itself (run locally with `cd .github/resources/scripts && python3 -m unittest discover -v -p '*_test.py'`).
+- The `CI Check` and `Approve Workflow Runs` meta-workflows filter unrelated label events before entering per-PR job concurrency. Only `synchronize` events cancel an active run, so Dependabot/Prow label bursts do not leave cancelled checks on the current head SHA.
 - Composite actions: `.github/actions/` (e.g., `kfp-k8s`, `create-cluster`, `deploy`, `test-and-report`)
 - Typical checks: Go unit tests (backend), Python SDK tests, frontend tests/lint, image builds.
 - `validate-generated-files.yml` builds the API generator from the pull request's
