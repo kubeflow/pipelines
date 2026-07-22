@@ -376,7 +376,7 @@ class PipelineTask:
         Args:
             enable_caching: Whether to enable caching.
             cache_key: Customized cache key for this task. The customized cache
-                key is combined with the component's identity to prevent
+                key is combined with component reference identity to prevent
                 cross-component cache collisions. When a custom cache key is
                 provided, all automatic inputs, base image, command, arguments,
                 and PVC names are ignored during cache key generation. Default
