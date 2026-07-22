@@ -489,6 +489,7 @@ export class Apis {
     pipelineDescription: string,
     pipelineData: File,
     namespace?: string,
+    codeSourceUrl?: string,
   ): Promise<V2beta1Pipeline> {
     const fd = new FormData();
     fd.append('uploadfile', pipelineData, pipelineData.name);
@@ -498,6 +499,9 @@ export class Apis {
 
     if (namespace) {
       query = `${query}&namespace=${encodeURIComponent(namespace)}`;
+    }
+    if (codeSourceUrl) {
+      query = `${query}&code_source_url=${encodeURIComponent(codeSourceUrl)}`;
     }
 
     return await this._fetchAndParse<V2beta1Pipeline>('/pipelines/upload', v2beta1Prefix, query, {
@@ -513,6 +517,7 @@ export class Apis {
     pipelineId: string,
     versionData: File,
     description?: string,
+    codeSourceUrl?: string,
   ): Promise<V2beta1PipelineVersion> {
     const fd = new FormData();
     fd.append('uploadfile', versionData, versionData.name);
@@ -521,7 +526,8 @@ export class Apis {
       v2beta1Prefix,
       `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}` +
         `&display_name=${encodeURIComponent(versionDisplayName)}` +
-        (description ? `&description=${encodeURIComponent(description)}` : ''),
+        (description ? `&description=${encodeURIComponent(description)}` : '') +
+        (codeSourceUrl ? `&code_source_url=${encodeURIComponent(codeSourceUrl)}` : ''),
       {
         body: fd,
         cache: 'no-cache',
