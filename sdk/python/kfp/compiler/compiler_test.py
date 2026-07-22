@@ -6658,5 +6658,155 @@ class TestPipelineSpecAttributeUniqueError(unittest.TestCase):
         self.assertTrue(my_pipeline.pipeline_spec)
 
 
+class TestNoneLiteralForOptionalParams(unittest.TestCase):
+    """Tests for passing None as an explicit literal argument to optional
+    parameters (Optional[T] / Union[T, None] / T | None).
+    """
+
+    def test_pass_none_to_optional_param_compiles(self):
+        """Pipeline can pass None literal to a component with Optional[T]."""
+
+        @dsl.component
+        def my_comp(x: Optional[int] = None):
+            print(x)
+
+        @dsl.pipeline
+        def my_pipeline():
+            my_comp(x=None)
+
+        # Should compile without raising.
+        spec = my_pipeline.pipeline_spec
+        task_inputs = spec.root.dag.tasks['my-comp'].inputs
+        # The constant should be present as a null_value.
+        runtime_value = task_inputs.parameters['x'].runtime_value.constant
+        self.assertEqual(runtime_value.WhichOneof('kind'), 'null_value')
+
+    def test_pass_none_to_optional_str_param_compiles(self):
+        """Pipeline can pass None literal to a component with Optional[str]."""
+
+        @dsl.component
+        def my_comp(x: Optional[str] = None):
+            return x or 'default'
+
+        @dsl.pipeline
+        def my_pipeline():
+            my_comp(x=None)
+
+        spec = my_pipeline.pipeline_spec
+        task_inputs = spec.root.dag.tasks['my-comp'].inputs
+        runtime_value = task_inputs.parameters['x'].runtime_value.constant
+        self.assertEqual(runtime_value.WhichOneof('kind'), 'null_value')
+
+    def test_pass_none_to_non_optional_param_raises(self):
+        """Passing None to a non-optional parameter should raise ValueError."""
+
+        @dsl.component
+        def my_comp(x: int):
+            print(x)
+
+        with self.assertRaisesRegex(ValueError, 'is not optional'):
+
+            @dsl.pipeline
+            def my_pipeline():
+                my_comp(x=None)
+
+    def test_nested_none_in_dict_compiles(self):
+        """Nested None values inside a dict literal are preserved faithfully
+        via the null_value protobuf encoding."""
+
+        @dsl.component
+        def my_comp(cfg: dict = None):
+            print(cfg)
+
+        @dsl.pipeline
+        def my_pipeline():
+            my_comp(cfg={'key': None, 'other': 42})
+
+        spec = my_pipeline.pipeline_spec
+        task_inputs = spec.root.dag.tasks['my-comp'].inputs
+        runtime_value = task_inputs.parameters['cfg'].runtime_value.constant
+        # The outer value is a struct; its 'key' field should be null.
+        self.assertEqual(runtime_value.WhichOneof('kind'), 'struct_value')
+        key_field = runtime_value.struct_value.fields['key']
+        self.assertEqual(key_field.WhichOneof('kind'), 'null_value')
+
+    def test_nested_none_in_list_compiles(self):
+        """Nested None values inside a list literal are preserved faithfully
+        via the null_value protobuf encoding."""
+
+        @dsl.component
+        def my_comp(items: list = None):
+            print(items)
+
+        @dsl.pipeline
+        def my_pipeline():
+            my_comp(items=[1, None, 'hello'])
+
+        spec = my_pipeline.pipeline_spec
+        task_inputs = spec.root.dag.tasks['my-comp'].inputs
+        runtime_value = task_inputs.parameters['items'].runtime_value.constant
+        self.assertEqual(runtime_value.WhichOneof('kind'), 'list_value')
+        second = runtime_value.list_value.values[1]
+        self.assertEqual(second.WhichOneof('kind'), 'null_value')
+
+    def test_union_with_none_annotation_compiles(self):
+        """Union[T, None] annotation is treated identically to Optional[T]."""
+        import typing
+
+        @dsl.component
+        def my_comp(x: typing.Union[str, None] = None):
+            return x or 'fallback'
+
+        @dsl.pipeline
+        def my_pipeline():
+            my_comp(x=None)
+
+        spec = my_pipeline.pipeline_spec
+        task_inputs = spec.root.dag.tasks['my-comp'].inputs
+        runtime_value = task_inputs.parameters['x'].runtime_value.constant
+        self.assertEqual(runtime_value.WhichOneof('kind'), 'null_value')
+
+    def test_pipeline_level_optional_param_is_marked_optional(self):
+        """Pipeline-level Optional[T] input is marked optional in the pipeline spec."""
+        @dsl.component
+        def my_comp(x: Optional[int] = None):
+            print(x)
+
+        @dsl.pipeline
+        def my_pipeline(x: Optional[int] = None):
+            my_comp(x=x)
+
+        spec = my_pipeline.pipeline_spec
+        # The pipeline root input 'x' should be optional.
+        root_param = spec.root.input_definitions.parameters['x']
+        self.assertTrue(root_param.is_optional)
+
+    def test_is_optional_preserved_on_optional_param(self):
+        """is_optional flag is set on the component's input spec."""
+
+        @dsl.component
+        def my_comp(x: Optional[int] = None):
+            print(x)
+
+        param_spec = my_comp.pipeline_spec.root.input_definitions.parameters[
+            'x']
+        self.assertTrue(param_spec.is_optional)
+
+    def test_pass_none_to_optional_artifact_raises(self):
+        """Passing None to an optional artifact input should raise ValueError."""
+
+        @dsl.component
+        def my_comp(x: Optional[Input[Artifact]] = None):
+            print(x)
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"is an artifact input and cannot be set to None\. Omit the argument to leave it unset\."):
+
+            @dsl.pipeline
+            def my_pipeline():
+                my_comp(x=None)
+
+
 if __name__ == '__main__':
     unittest.main()

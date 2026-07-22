@@ -152,13 +152,28 @@ class PipelineTask:
 
             input_spec = component_spec.inputs[input_name]
 
-            type_utils.verify_type_compatibility(
-                given_value=argument_value,
-                expected_spec=input_spec,
-                error_message_prefix=(
-                    f'Incompatible argument passed to the input '
-                    f'{input_name!r} of component {component_spec.name!r}: '),
-            )
+            # `None` is a valid literal only for optional *parameter* inputs (e.g.
+            # Optional[T], Union[T, None], or T | None).
+            if argument_value is None:
+                if not input_spec.optional:
+                    raise ValueError(
+                        f'Input {input_name!r} of component {component_spec.name!r}'
+                        f' is not optional and cannot be set to None.'
+                    )
+                if not type_utils.is_parameter_type(input_spec.type):
+                    raise ValueError(
+                        f'Input {input_name!r} of component {component_spec.name!r}'
+                        f' is an artifact input and cannot be set to None. Omit the argument to leave it unset.'
+                    )
+            else:
+                type_utils.verify_type_compatibility(
+                    given_value=argument_value,
+                    expected_spec=input_spec,
+                    error_message_prefix=(
+                        f'Incompatible argument passed to the input '
+                        f'{input_name!r} of component {component_spec.name!r}: '
+                    ),
+                )
 
         self.component_spec = component_spec
 

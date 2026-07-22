@@ -985,5 +985,57 @@ def pipeline_spec_from_file(filepath: str) -> str:
     return json_format.ParseDict(dictionary, pipeline_spec_pb2.PipelineSpec())
 
 
+class TestToProtobufValue(unittest.TestCase):
+    """Tests for pipeline_spec_builder.to_protobuf_value.
+
+    Ensures that None and nested-None values inside dicts/lists are encoded as
+    protobuf null_value (Part 1 of issue #12838).
+    """
+
+    def test_none_encodes_as_null_value(self):
+        result = pipeline_spec_builder.to_protobuf_value(None)
+        self.assertEqual(result.WhichOneof('kind'), 'null_value')
+
+    def test_string_encodes_correctly(self):
+        result = pipeline_spec_builder.to_protobuf_value('hello')
+        self.assertEqual(result.string_value, 'hello')
+
+    def test_int_encodes_correctly(self):
+        result = pipeline_spec_builder.to_protobuf_value(42)
+        self.assertEqual(result.number_value, 42.0)
+
+    def test_bool_encodes_correctly(self):
+        result = pipeline_spec_builder.to_protobuf_value(True)
+        self.assertTrue(result.bool_value)
+
+    def test_dict_with_nested_none_encodes_null_field(self):
+        result = pipeline_spec_builder.to_protobuf_value({'key': None, 'val': 1})
+        self.assertEqual(result.WhichOneof('kind'), 'struct_value')
+        self.assertEqual(
+            result.struct_value.fields['key'].WhichOneof('kind'), 'null_value')
+        self.assertEqual(result.struct_value.fields['val'].number_value, 1.0)
+
+    def test_list_with_nested_none_encodes_null_element(self):
+        result = pipeline_spec_builder.to_protobuf_value([1, None, 'hello'])
+        self.assertEqual(result.WhichOneof('kind'), 'list_value')
+        self.assertEqual(result.list_value.values[0].number_value, 1.0)
+        self.assertEqual(
+            result.list_value.values[1].WhichOneof('kind'), 'null_value')
+        self.assertEqual(result.list_value.values[2].string_value, 'hello')
+
+    def test_deeply_nested_none_in_dict_list(self):
+        result = pipeline_spec_builder.to_protobuf_value(
+            {'items': [None, {'inner': None}]})
+        items = result.struct_value.fields['items'].list_value.values
+        self.assertEqual(items[0].WhichOneof('kind'), 'null_value')
+        self.assertEqual(
+            items[1].struct_value.fields['inner'].WhichOneof('kind'),
+            'null_value')
+
+    def test_invalid_type_raises_value_error(self):
+        with self.assertRaises(ValueError):
+            pipeline_spec_builder.to_protobuf_value(object())
+
+
 if __name__ == '__main__':
     unittest.main()
