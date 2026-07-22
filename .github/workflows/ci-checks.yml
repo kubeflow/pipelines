@@ -34,6 +34,9 @@ jobs:
     steps:
       - name: Determine whether CI polling is needed
         id: eligibility
+        env:
+          EVENT_ACTION: ${{ github.event.action }}
+          LABEL_NAME: ${{ github.event.label.name }}
         shell: bash
         run: |
           should_poll=false
@@ -43,10 +46,10 @@ jobs:
             reason="PR is not yet labeled ok-to-test."
           elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'needs-ok-to-test') }}" == "true" ]]; then
             reason="PR still has the needs-ok-to-test label."
-          elif [[ "${{ github.event.action }}" == "labeled" && "${{ github.event.label.name }}" != "ok-to-test" ]]; then
-            reason="Added label '${{ github.event.label.name }}' does not change CI eligibility."
-          elif [[ "${{ github.event.action }}" == "unlabeled" && "${{ github.event.label.name }}" != "needs-ok-to-test" ]]; then
-            reason="Removed label '${{ github.event.label.name }}' does not change CI eligibility."
+          elif [[ "${EVENT_ACTION}" == "labeled" && "${LABEL_NAME}" != "ok-to-test" ]]; then
+            reason="Added label '${LABEL_NAME}' does not change CI eligibility."
+          elif [[ "${EVENT_ACTION}" == "unlabeled" && "${LABEL_NAME}" != "needs-ok-to-test" ]]; then
+            reason="Removed label '${LABEL_NAME}' does not change CI eligibility."
           else
             should_poll=true
             reason="PR is eligible; running CI status polling."
