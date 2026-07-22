@@ -17,10 +17,22 @@ export API_VERSION="v2beta1"
 
 ## Compiling `.proto` files to Go client and swagger definitions
 
-Use `make generate` command to generate clients using a pre-built api-generator image:
+Use `make generate` command to generate clients:
 ```bash
 make generate
 ```
+
+**Default behavior (fast):** Uses pre-built image for faster development.
+
+**When pre-built images may be outdated:** Force building from source:
+```bash
+USE_PREBUILT_IMAGE=false make generate
+```
+
+The source build automatically:
+1. Builds the API generator Docker image from `backend/api/Dockerfile`
+2. Runs the generator inside the container to create client libraries
+3. Caches the built image for subsequent runs (using `.image-built` target)
 
 Go client library will be placed into:
 
@@ -33,7 +45,25 @@ Go client library will be placed into:
 
 ## Compiling Python client
 
-To generate the Python client, run the following bash script (requires `java` and `python3`).
+To generate the Python client, use the `generate-kfp-server-api-package` Make target:
+
+```bash
+make generate-kfp-server-api-package
+```
+
+**Default behavior (fast):** Uses pre-built image for faster development.
+
+**When pre-built images may be outdated:** Force building from source:
+```bash
+USE_PREBUILT_IMAGE=false make generate-kfp-server-api-package
+```
+
+The source build automatically:
+1. Builds the API generator Docker image (with Java) from source if needed
+2. Runs the Python client generation script inside the container
+3. The image already includes Java required for the OpenAPI generator
+
+Alternatively, you can run the script directly if you have Java and Python3 installed locally:
 
 ```bash
 ./build_kfp_server_api_python_package.sh
@@ -77,18 +107,43 @@ API definitions in this folder are used to generate [`v1beta1`](https://www.kube
 
 4. Create a PR with the changes in [kubeflow.org website repository](https://github.com/kubeflow/website). See an example [here](https://github.com/kubeflow/website/pull/3444).
 
-## Updating API generator image (Manual)
+## Local development and Docker image management
 
-This is now automatic on pushes to GitHub branches, but the instructions are kept here in case you need to do it
-manually.
+### Development Workflow Options
 
-API generator image is defined in [Dockerfile](`./Dockerfile`). If you need to update the container, follow these steps:
+The API generation workflow supports two modes:
 
-1. Login to GHCR container registry: `echo "<PAT>" | docker login ghcr.io -u <USERNAME> --password-stdin` 
-   * Replace `<PAT>` with a GitHub Personal Access Token (PAT) with the write:packages and `read:packages` scopes, as well as `delete:packages` if needed. 
-1. Update the [Dockerfile](`./Dockerfile`) and build the image by running `docker build -t ghcr.io/kubeflow/kfp-api-generator:$BRANCH .`
-1. Push the new container by running `docker push ghcr.io/kubeflow/kfp-api-generator:$BRANCH`.
-1. Update the `PREBUILT_REMOTE_IMAGE` variable in the [Makefile](./Makefile) to point to your new image.
-1. Similarly, build and push a new release tools image from
-   [`release/Dockerfile.release`](../../release/Dockerfile.release) to
-   `ghcr.io/kubeflow/kfp-release:$BRANCH`.
+**1. Fast Development (default):** Uses pre-built images
+```bash
+make generate                           # Uses pre-built image (fast)
+make generate-kfp-server-api-package   # Uses pre-built image (fast)
+```
+
+**2. Source Build (accurate):** Builds from current source
+```bash
+USE_PREBUILT_IMAGE=false make generate                           # Builds from source
+USE_PREBUILT_IMAGE=false make generate-kfp-server-api-package   # Builds from source
+```
+
+**CI/Validation:** Always builds from source to ensure accuracy.
+
+### When to Use Each Mode
+
+- **Pre-built images**: Regular development, prototyping, testing
+- **Source build**: When pre-built images may have outdated tool versions, when changing API generation tools, updating dependencies, or before committing API changes
+
+### Legacy Targets
+
+- `make generate-from-scratch`: Legacy target, always builds from source
+
+### Docker Requirements
+
+- **Docker**: Required for all API generation operations (BuildKit is enabled automatically for layer caching)
+
+### Manual API Generator Image Publishing
+
+The `build-tools-images.yml` CI workflow automatically publishes API generator images to GitHub Container Registry. Manual publishing is typically not needed, but if required:
+
+1. Update the [Dockerfile](./Dockerfile) with your changes
+2. The image will be built and published automatically on the next push to a tracked branch
+3. For manual publishing, see the `build-tools-images.yml` workflow for the exact commands
