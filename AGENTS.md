@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-19
+- Last updated: 2026-07-20
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -328,6 +328,12 @@ The following files are generated; edit their sources and regenerate:
 - Frontend OpenAPI clients under `frontend/src/apis`, `frontend/src/apisv2beta1`, `frontend/server/src/generated/apis`, and `frontend/server/src/generated/apisv2beta1`, with shared runtime/model support under `frontend/src/generated/openapi` and `frontend/server/src/generated/openapi`
   - Sources: Swagger specs under `backend/api/**/swagger/*.json`
   - Generate: `cd frontend && npm run apis` / `npm run apis:v2beta1` / `npm run apis:all` (uses pinned Docker image `openapitools/openapi-generator-cli:v7.19.0`)
+- Backend Go HTTP client under `backend/api/v2beta1/go_http_client`
+  - Sources: `backend/api/v2beta1/swagger/*.swagger.json` (compiled from `backend/api/v2beta1/*.proto`; `pipeline.upload.swagger.json` is manually maintained)
+  - Generate: `cd backend/api && make generate`
+- Backend Python HTTP client under `backend/api/v2beta1/python_http_client`
+  - Sources: `backend/api/v2beta1/swagger/kfp_api_single_file.swagger.json`
+  - Generate: `cd backend/api && make generate-kfp-server-api-package`
 - Frontend MLMD proto outputs under `frontend/src/third_party/mlmd/generated`
   - Sources: `third_party/ml-metadata/*.proto`
   - Generate: `cd frontend && npm run build:protos`
