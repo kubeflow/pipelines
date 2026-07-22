@@ -183,7 +183,7 @@ def convert_to_k8s_format(pipeline, pipeline_versions, add_prefix, namespace):
    
     return pipeline_name, k8s_objects
 
-# Write all collected Kubernetes objects to a seperate YAML file for each pipeline and its versions
+# Write all collected Kubernetes objects to a separate YAML file for each pipeline and its versions
 def write_pipeline_yaml(pipeline_name, k8s_objects, output_dir):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
