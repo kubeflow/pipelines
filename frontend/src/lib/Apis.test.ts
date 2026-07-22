@@ -340,6 +340,66 @@ describe('Apis', () => {
     );
   });
 
+  it('uploadPipelineV2 with codeSourceUrl', async () => {
+    const spy = fetchSpy(JSON.stringify({ pipeline_id: 'new-pipeline-id' }));
+    await Apis.uploadPipelineV2(
+      'test pipeline name',
+      'test display name',
+      'test description',
+      new File([], 'test name'),
+      'test-ns',
+      'https://github.com/example/repo',
+    );
+    expect(spy).toHaveBeenCalledWith(
+      'apis/v2beta1/pipelines/upload?name=' +
+        encodeURIComponent('test pipeline name') +
+        '&display_name=' +
+        encodeURIComponent('test display name') +
+        '&description=' +
+        encodeURIComponent('test description') +
+        '&namespace=' +
+        encodeURIComponent('test-ns') +
+        '&code_source_url=' +
+        encodeURIComponent('https://github.com/example/repo'),
+      {
+        body: expect.anything(),
+        cache: 'no-cache',
+        credentials: 'same-origin',
+        method: 'POST',
+      },
+    );
+  });
+
+  it('uploadPipelineVersionV2 with codeSourceUrl', async () => {
+    const spy = fetchSpy(JSON.stringify({ pipeline_version_id: 'new-version-id' }));
+    await Apis.uploadPipelineVersionV2(
+      'test version name',
+      'test display name',
+      'test-pipeline-id',
+      new File([], 'test name'),
+      'test description',
+      'https://github.com/example/repo',
+    );
+    expect(spy).toHaveBeenCalledWith(
+      'apis/v2beta1/pipelines/upload_version?name=' +
+        encodeURIComponent('test version name') +
+        '&pipelineid=' +
+        encodeURIComponent('test-pipeline-id') +
+        '&display_name=' +
+        encodeURIComponent('test display name') +
+        '&description=' +
+        encodeURIComponent('test description') +
+        '&code_source_url=' +
+        encodeURIComponent('https://github.com/example/repo'),
+      {
+        body: expect.anything(),
+        cache: 'no-cache',
+        credentials: 'same-origin',
+        method: 'POST',
+      },
+    );
+  });
+
   it('checks if Tensorboard pod is ready', async () => {
     const spy = fetchSpy('');
     const ready = await Apis.isTensorboardPodReady('apps/tensorboard/proxy/test-token/');
