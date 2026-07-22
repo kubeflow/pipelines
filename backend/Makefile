@@ -26,6 +26,9 @@ IMG_TAG_DRIVER            ?= kfp-driver
 IMG_TAG_LAUNCHER          ?= kfp-launcher
 IMG_TAG_WEBHOOK_PROXY     ?= domain.local/kfp/webhook-proxy:latest
 
+
+MYSQL_WAIT_TIMEOUT ?= 10m
+
 # Whenever build command for any of the binaries change, we should update them both here and in backend/Dockerfiles.
 
 .PHONY: all
@@ -99,7 +102,7 @@ kind-cluster-agnostic:
     	else \
     		kubectl apply -k $(CURDIR)/../manifests/kustomize/env/platform-agnostic; \
      fi
-	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/mysql
+	kubectl -n kubeflow wait --for condition=Available --timeout=$(MYSQL_WAIT_TIMEOUT) deployment/mysql
 	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment
 	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/ml-pipeline
 	# Switch to Kubeflow namespace context
