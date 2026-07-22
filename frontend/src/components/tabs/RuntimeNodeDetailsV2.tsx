@@ -58,6 +58,12 @@ import RuntimeInputOutputTab, {
 import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { PlatformDeploymentConfig } from 'src/generated/pipeline_spec/pipeline_spec';
 import { getComponentSpec } from 'src/lib/v2/NodeUtils';
+import {
+  HUMAN_INPUT_SENTINEL_IMAGE,
+  HumanInputPanel,
+  IntermediateParamStatus,
+} from 'src/components/HumanInputPanel';
+import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 
 export const LOGS_DETAILS = 'logs_details';
 export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
@@ -79,6 +85,65 @@ const NODE_STATE_UNAVAILABLE = (
     </div>
   </div>
 );
+
+/**
+ * Returns true if the element corresponds to a human-input (suspend) task.
+ * Detection is done by checking for the sentinel container image
+ * `kfp://human-input` in the pipeline deployment spec.
+ */
+function isHumanInputNode(
+  element: PipelineFlowElement,
+  layers: string[],
+  pipelineJobString?: string,
+): boolean {
+  if (!pipelineJobString) {
+    return false;
+  }
+  try {
+    const taskKey = getTaskKeyFromNodeKey(element.id);
+    const pipelineSpec = convertYamlToV2PipelineSpec(pipelineJobString);
+    const componentSpec = getComponentSpec(pipelineSpec, layers, taskKey);
+    if (!componentSpec) {
+      return false;
+    }
+    const container = WorkflowUtils.getContainer(componentSpec, pipelineJobString);
+    return container?.image === HUMAN_INPUT_SENTINEL_IMAGE;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Parses the human-input parameter metadata encoded in the first container
+ * argument of the sentinel container.
+ *
+ * The encoding is a JSON object mapping parameter name → metadata:
+ *   `{"decision": {"description": "...", "default": "NO", "enum": ["YES","NO"]}}`
+ */
+function parseHumanInputParamMeta(
+  element: PipelineFlowElement,
+  layers: string[],
+  pipelineJobString: string,
+): Record<string, IntermediateParamStatus> | undefined {
+  try {
+    const taskKey = getTaskKeyFromNodeKey(element.id);
+    const pipelineSpec = convertYamlToV2PipelineSpec(pipelineJobString);
+    const componentSpec = getComponentSpec(pipelineSpec, layers, taskKey);
+    if (!componentSpec) {
+      return undefined;
+    }
+    const container = WorkflowUtils.getContainer(componentSpec, pipelineJobString);
+    const args = container?.args;
+    if (!args || args.length === 0) {
+      return undefined;
+    }
+    // args[0] holds the JSON-encoded parameter metadata.
+    const raw = JSON.parse(args[0]) as Record<string, IntermediateParamStatus>;
+    return raw;
+  } catch {
+    return undefined;
+  }
+}
 
 interface RuntimeNodeDetailsV2Props {
   layers: string[];
@@ -105,6 +170,17 @@ export function RuntimeNodeDetailsV2({
 
   return (() => {
     if (NodeTypeNames.EXECUTION === element.type) {
+      // Human-input (suspend) nodes are rendered with the interactive input
+      // form instead of the normal task I/O + logs view.
+      if (runId && isHumanInputNode(element, layers, pipelineJobString)) {
+        const taskKey = getTaskKeyFromNodeKey(element.id);
+        const paramMeta = pipelineJobString
+          ? parseHumanInputParamMeta(element, layers, pipelineJobString)
+          : undefined;
+        return (
+          <HumanInputPanel runId={runId} nodeDisplayName={taskKey} paramMetaFromSpec={paramMeta} />
+        );
+      }
       return (
         <TaskNodeDetail
           pipelineJobString={pipelineJobString}

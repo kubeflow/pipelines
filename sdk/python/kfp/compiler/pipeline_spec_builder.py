@@ -627,6 +627,39 @@ def build_importer_spec_for_task(
     return importer_spec
 
 
+def build_human_input_container_spec_for_task(
+    task: pipeline_task.PipelineTask,
+) -> pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec:
+    """Builds a sentinel PipelineContainerSpec for a human input task.
+
+    The resulting spec uses a special sentinel image (``kfp://human-input``)
+    that the backend Argo compiler recognises as a suspend template.  The
+    human-input parameter metadata (description, default, enum options) is
+    JSON-encoded and stored in ``args[0]`` so the compiler can reconstruct the
+    full suspend template without requiring a proto schema change.
+
+    Args:
+        task: The human input PipelineTask to build the spec for.
+
+    Returns:
+        A PipelineContainerSpec whose ``image`` field signals to the backend
+        compiler that this task should be compiled into an Argo suspend
+        template, with parameter metadata embedded in ``args``.
+    """
+    from kfp.dsl.human_input import HUMAN_INPUT_SENTINEL_IMAGE
+    params_meta = {}
+    for param_name, param_spec in task.human_input_spec.parameters.items():
+        params_meta[param_name] = {
+            'description': param_spec.description,
+            'default': param_spec.default,
+            'enum': param_spec.enum,
+        }
+    return pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
+        image=HUMAN_INPUT_SENTINEL_IMAGE,
+        args=[json.dumps(params_meta)],
+    )
+
+
 def build_container_spec_for_task(
     task: pipeline_task.PipelineTask
 ) -> pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec:
@@ -1427,6 +1460,11 @@ def build_spec_by_group(
                     task=subgroup)
                 deployment_config.executors[executor_label].importer.CopyFrom(
                     subgroup_importer_spec)
+            elif subgroup.human_input_spec is not None:
+                subgroup_human_input_spec = build_human_input_container_spec_for_task(
+                    task=subgroup)
+                deployment_config.executors[executor_label].container.CopyFrom(
+                    subgroup_human_input_spec)
             elif subgroup.pipeline_spec is not None:
                 if subgroup.platform_config:
                     raise ValueError(

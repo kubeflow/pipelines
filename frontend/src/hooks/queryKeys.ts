@@ -110,6 +110,9 @@ export const queryKeys = {
 
   // --- Misc ---
 
+  intermediateInputsStatus: (runId: string, nodeDisplayName: string) =>
+    ['intermediate_inputs_status', { runId, nodeDisplayName }] as const,
+
   artifactPreview: (
     value: string | undefined,
     namespace: string | undefined,

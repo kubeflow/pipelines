@@ -174,6 +174,7 @@ class PipelineTask:
         self.importer_spec = None
         self.container_spec = None
         self.pipeline_spec = None
+        self.human_input_spec = None
         self._ignore_upstream_failure_tag = False
         # platform_config for this primitive task; empty if task is for a graph component
         self.platform_config = {}
@@ -195,6 +196,8 @@ class PipelineTask:
         elif component_spec.implementation.importer is not None:
             self.importer_spec = component_spec.implementation.importer
             self.importer_spec.artifact_uri = args['uri']
+        elif component_spec.implementation.human_input is not None:
+            self.human_input_spec = component_spec.implementation.human_input
         else:
             self.pipeline_spec = self.component_spec.implementation.graph
 

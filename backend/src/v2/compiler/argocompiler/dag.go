@@ -46,6 +46,12 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 	if err != nil {
 		return err
 	}
+
+	// Pre-pass: register all human-input tasks in humanInputComponents before
+	// the main compilation loop, so that downstream task specs can be rewritten
+	// regardless of task compilation order (which is alphabetical).
+	c.registerHumanInputTasks(dagSpec)
+
 	tasks := dagSpec.GetTasks()
 	// Iterate through tasks in deterministic order to facilitate testing.
 	// Note, order doesn't affect compiler with real effect right now.
@@ -235,7 +241,16 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 	if err != nil {
 		return nil, err
 	}
-	taskSpecJson, err := stablyMarshalJSON(task)
+
+	// Rewrite any task-spec inputs that reference human-input task outputs so
+	// that the downstream KFP driver receives them as Argo-substituted constants
+	// rather than trying to look them up in MLMD.
+	effectiveTask, err := c.rewriteHumanInputTaskSpec(task)
+	if err != nil {
+		return nil, err
+	}
+
+	taskSpecJSON, err := stablyMarshalJSON(effectiveTask)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +258,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 	isIteratorTask := inputs.iterationIndex == "" &&
 		(task.GetParameterIterator() != nil || task.GetArtifactIterator() != nil)
 	if isIteratorTask {
-		return c.iteratorTask(name, task, taskSpecJson, inputs.parentDagID)
+		return c.iteratorTask(name, task, taskSpecJSON, inputs.parentDagID)
 	}
 	switch impl := componentSpec.GetImplementation().(type) {
 	case *pipelinespec.ComponentSpec_Dag:
@@ -256,7 +271,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 		driver, driverOutputs, err := c.dagDriverTask(driverTaskName, dagDriverInputs{
 			parentDagID:    inputs.parentDagID,
 			component:      componentSpecPlaceholder,
-			task:           taskSpecJson,
+			task:           taskSpecJSON,
 			iterationIndex: inputs.iterationIndex,
 			taskName:       effectiveTaskName,
 		})
@@ -286,6 +301,19 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 		}
 		switch e := executor.GetSpec().(type) {
 		case *pipelinespec.PipelineDeploymentConfig_ExecutorSpec_Container:
+			// Human-input tasks compile directly to an Argo suspend template,
+			// bypassing the KFP driver+launcher pattern entirely.
+			if e.Container.GetImage() == humanInputSentinelImage {
+				dagTask, hiErr := c.humanInputTask(name, componentName, e.Container)
+				if hiErr != nil {
+					return nil, hiErr
+				}
+				if inputs.iterationIndex == "" && task.GetTriggerPolicy().GetStrategy().String() != "ALL_UPSTREAM_TASKS_COMPLETED" {
+					dagTask.Depends = depends(task.GetDependentTasks())
+				}
+				return []wfapi.DAGTask{*dagTask}, nil
+			}
+
 			containerPlaceholder, err := c.useComponentImpl(componentName)
 			if err != nil {
 				return nil, err
@@ -300,7 +328,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 			kubernetesConfigPlaceholder, _ := c.useKubernetesImpl(componentName)
 			driver, driverOutputs := c.containerDriverTask(driverTaskName, containerDriverInputs{
 				component:        componentSpecPlaceholder,
-				task:             taskSpecJson,
+				task:             taskSpecJSON,
 				container:        containerPlaceholder,
 				parentDagID:      inputs.parentDagID,
 				iterationIndex:   inputs.iterationIndex,
@@ -340,7 +368,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				// it's impossible to add a when condition based on driver outputs.
 				return nil, fmt.Errorf("triggerPolicy.condition on importer task is not supported")
 			}
-			importer, err := c.importerTask(name, task, taskSpecJson, inputs.parentDagID, e.Importer.GetDownloadToWorkspace())
+			importer, err := c.importerTask(name, task, taskSpecJSON, inputs.parentDagID, e.Importer.GetDownloadToWorkspace())
 			if err != nil {
 				return nil, err
 			}
