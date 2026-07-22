@@ -27,7 +27,7 @@ from google_cloud_pipeline_components._implementation.llm import validate_pipeli
 from google_cloud_pipeline_components.preview.llm.infer import component
 import kfp
 
-PipelineOutput = NamedTuple(
+PipelineOutput = NamedTuple(  # pyrefly: ignore[bad-class-definition]
     'Outputs', model_resource_name=str, endpoint_resource_name=str
 )
 
@@ -240,8 +240,8 @@ def rlhf_pipeline(
   ).set_display_name('Upload and Deploy Tuned Model')
 
   return PipelineOutput(
-      model_resource_name=llm_model_handler.outputs['model_resource_name'],
-      endpoint_resource_name=llm_model_handler.outputs[
+      model_resource_name=llm_model_handler.outputs['model_resource_name'],  # pyrefly: ignore[unexpected-keyword]
+      endpoint_resource_name=llm_model_handler.outputs[  # pyrefly: ignore[unexpected-keyword]
           'endpoint_resource_name'
       ],
   )

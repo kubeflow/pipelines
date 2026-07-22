@@ -231,9 +231,9 @@ def _get_default_pipeline_params(
   if not study_spec_parameters_override:
     study_spec_parameters_override = []
   if not stage_1_tuner_worker_pool_specs_override:
-    stage_1_tuner_worker_pool_specs_override = []
+    stage_1_tuner_worker_pool_specs_override = []  # pyrefly: ignore[bad-assignment]
   if not cv_trainer_worker_pool_specs_override:
-    cv_trainer_worker_pool_specs_override = []
+    cv_trainer_worker_pool_specs_override = []  # pyrefly: ignore[bad-assignment]
   if not quantiles:
     quantiles = []
 
@@ -610,7 +610,7 @@ def get_automl_tabular_pipeline_and_parameters(
       training_fraction=training_fraction,
       validation_fraction=validation_fraction,
       test_fraction=test_fraction,
-      weight_column=weight_column,
+      weight_column=weight_column,  # pyrefly: ignore[bad-argument-type]
       study_spec_parameters_override=study_spec_parameters_override,
       optimization_objective_recall_value=optimization_objective_recall_value,
       optimization_objective_precision_value=optimization_objective_precision_value,
@@ -854,7 +854,7 @@ def get_automl_tabular_feature_selection_pipeline_and_parameters(
       training_fraction=training_fraction,
       validation_fraction=validation_fraction,
       test_fraction=test_fraction,
-      weight_column=weight_column,
+      weight_column=weight_column,  # pyrefly: ignore[bad-argument-type]
       study_spec_parameters_override=study_spec_parameters_override,
       optimization_objective_recall_value=optimization_objective_recall_value,
       optimization_objective_precision_value=optimization_objective_precision_value,
@@ -1102,7 +1102,7 @@ def get_skip_architecture_search_pipeline_and_parameters(
       evaluation_dataflow_starting_num_workers=evaluation_dataflow_starting_num_workers,
       evaluation_dataflow_max_num_workers=evaluation_dataflow_max_num_workers,
       evaluation_dataflow_disk_size_gb=evaluation_dataflow_disk_size_gb,
-      run_distillation=None,
+      run_distillation=None,  # pyrefly: ignore[bad-argument-type]
       distill_batch_predict_machine_type=None,
       distill_batch_predict_starting_replica_count=None,
       distill_batch_predict_max_replica_count=None,
@@ -1467,7 +1467,7 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
     tf_transformations_path = transform_config
 
   if not worker_pool_specs_override:
-    worker_pool_specs_override = []
+    worker_pool_specs_override = []  # pyrefly: ignore[bad-assignment]
 
   parameter_values = {
       'project': project,
@@ -1747,7 +1747,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
     tf_transformations_path = transform_config
 
   if not worker_pool_specs_override:
-    worker_pool_specs_override = []
+    worker_pool_specs_override = []  # pyrefly: ignore[bad-assignment]
 
   parameter_values = {}
   training_and_eval_parameters = {
