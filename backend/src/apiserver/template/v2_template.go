@@ -74,7 +74,6 @@ func NewGenericScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 			MaxConcurrency:    &modelJob.MaxConcurrency,
 			Trigger:           crdTrigger,
 			NoCatchup:         util.BoolPointer(modelJob.NoCatchup),
-			ExperimentId:      modelJob.ExperimentId,
 			PipelineId:        modelJob.PipelineId,
 			PipelineName:      modelJob.PipelineName,
 			PipelineVersionId: modelJob.PipelineVersionId,
