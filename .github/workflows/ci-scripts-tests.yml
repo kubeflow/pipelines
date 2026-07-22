@@ -10,6 +10,7 @@ on:
       # The observability shell scripts are covered by Python-driven tests.
       - '.github/resources/scripts/*.sh'
       - '.github/resources/scripts/kfp-readiness/**'
+      - '.github/actions/junit-summary/**'
       - '.github/workflows/ci-scripts-tests.yml'
 
 permissions:
@@ -25,3 +26,7 @@ jobs:
       - name: Run Python script unit tests
         working-directory: .github/resources/scripts
         run: python3 -m unittest discover -v -p '*_test.py'
+      - name: Run JUnit summary action unit tests
+        working-directory: .github/actions/junit-summary
+        run: python3 -m unittest discover -v -p '*_test.py'
+

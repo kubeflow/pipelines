@@ -16,12 +16,32 @@
 import json
 import os
 from pathlib import Path
+import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
-from junit_to_summary import TestReport, TestSuite, TestCase, generate_markdown_summary
+
+from junit_to_summary import TestCase, TestReport, TestSuite, generate_markdown_summary
 
 
 class JunitToSummaryTest(unittest.TestCase):
+
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.xml_path = Path(self.temp_dir.name) / "sample_junit.xml"
+        self.output_path = Path(self.temp_dir.name) / "summary.md"
+
+        sample_xml = """<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="SampleSuite" tests="1" failures="0" errors="0" skipped="0" time="1.23">
+    <testcase name="test_foo" classname="FooTest" time="1.23" status="passed"/>
+</testsuite>
+"""
+        self.xml_path.write_text(sample_xml, encoding="utf-8")
+        self.script_path = Path(__file__).parent / "junit_to_summary.py"
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
 
     def test_generate_markdown_summary_with_nonempty_artifact_url(self):
         report = TestReport(
@@ -55,6 +75,105 @@ class JunitToSummaryTest(unittest.TestCase):
         self.assertNotIn('\\"', markdown)
         self.assertNotIn('"', markdown.splitlines()[0])
 
+    def test_cli_custom_data_argument_parsing(self):
+        """Test passing nonempty JSON through the CLI argument path."""
+        artifact_url = "https://github.com/kubeflow/pipelines/actions/runs/12345/artifacts/67890"
+        custom_data_json = f'{{"HTML Report": "{artifact_url}"}}'
 
-if __name__ == '__main__':
+        cmd = [
+            sys.executable,
+            str(self.script_path),
+            str(self.xml_path),
+            "--custom-data",
+            custom_data_json,
+            "--output",
+            str(self.output_path),
+            "--no-fail-on-test-failures",
+        ]
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, msg=f"CLI failed: {result.stderr}")
+
+        markdown = self.output_path.read_text(encoding="utf-8")
+        self.assertIn(f"**HTML Report**: {artifact_url}", markdown)
+        self.assertNotIn('\\"', markdown)
+
+    def test_composite_action_input_env_var_to_cli_argument_path(self):
+        """Test composite action input -> env var -> CLI argument array path."""
+        artifact_url = "https://github.com/kubeflow/pipelines/actions/runs/12345/artifacts/67890"
+        custom_data_input = f'{{"HTML Report": "{artifact_url}"}}'
+
+        # Simulate composite action env var step mapping (CUSTOM_DATA_INPUT: ${{ inputs.custom_data }})
+        env = os.environ.copy()
+        env["CUSTOM_DATA_INPUT"] = custom_data_input
+
+        # Simulate bash array construction from composite action action.yml
+        args = []
+        if env.get("CUSTOM_DATA_INPUT"):
+            args.extend(["--custom-data", env["CUSTOM_DATA_INPUT"]])
+
+        cmd = [
+            sys.executable,
+            str(self.script_path),
+            str(self.xml_path),
+            "--output",
+            str(self.output_path),
+            "--no-fail-on-test-failures",
+        ] + args
+
+        result = subprocess.run(cmd, capture_output=True, text=True, env=env)
+        self.assertEqual(result.returncode, 0, msg=f"Execution failed: {result.stderr}")
+
+        markdown = self.output_path.read_text(encoding="utf-8")
+        self.assertIn(f"**HTML Report**: {artifact_url}", markdown)
+        self.assertNotIn('\\"', markdown)
+
+    def test_bash_composite_action_execution(self):
+        """Test bash execution matching action.yml script block if bash is available."""
+        if sys.platform == "win32":
+            self.skipTest("bash shell integration test runs on Linux CI environments")
+
+        bash_executable = shutil.which("bash")
+        if not bash_executable:
+            self.skipTest("bash is not available in environment")
+
+        artifact_url = "https://github.com/kubeflow/pipelines/actions/runs/12345/artifacts/67890"
+        custom_data_input = f'{{"HTML Report": "{artifact_url}"}}'
+
+        bash_script = """
+        CUSTOM_DATA_INPUT="$1"
+        XML_FILE="$2"
+        OUTPUT_FILE="$3"
+        SCRIPT_PATH="$4"
+        PYTHON_EXEC="$5"
+
+        args=()
+        if [[ -n "$CUSTOM_DATA_INPUT" ]]; then
+          args+=(--custom-data "$CUSTOM_DATA_INPUT")
+        fi
+
+        "$PYTHON_EXEC" "$SCRIPT_PATH" "$XML_FILE" --output "$OUTPUT_FILE" --no-fail-on-test-failures "${args[@]}"
+        """
+
+        cmd = [
+            bash_executable,
+            "-c",
+            bash_script,
+            "bash",  # $0
+            custom_data_input,  # $1
+            str(self.xml_path),  # $2
+            str(self.output_path),  # $3
+            str(self.script_path),  # $4
+            sys.executable,  # $5
+        ]
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, msg=f"Bash execution failed: {result.stderr}")
+
+        markdown = self.output_path.read_text(encoding="utf-8")
+        self.assertIn(f"**HTML Report**: {artifact_url}", markdown)
+        self.assertNotIn('\\"', markdown)
+
+
+if __name__ == "__main__":
     unittest.main()
