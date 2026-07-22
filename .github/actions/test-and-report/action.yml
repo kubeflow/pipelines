@@ -604,6 +604,7 @@ runs:
       with:
         xml_files: '${{ inputs.test_directory }}/reports'
         custom_data: ${{ steps.custom-data-prep.outputs.CUSTOM_DATA }}
+        fail_on_test_failures: 'false'
       continue-on-error: true
 
     - name: Mark Workflow failure if test reporting failed

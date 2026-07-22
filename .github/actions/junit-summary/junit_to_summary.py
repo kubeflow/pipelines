@@ -298,11 +298,8 @@ def expand_file_patterns(patterns: List[str]) -> List[Path]:
 
         xml_files.extend(found_files)
 
-    if not xml_files:
-        print(f"Error: No XML files found matching the patterns: {patterns}", file=sys.stderr)
-        sys.exit(1)
-
-    print(f"Found XML files: {[str(f) for f in xml_files]}")
+    if xml_files:
+        print(f"Found XML files: {[str(f) for f in xml_files]}")
     return xml_files
 
 
@@ -387,6 +384,14 @@ def main():
 
     # Expand file patterns and collect XML files
     xml_files = expand_file_patterns(args.xml_files)
+    if not xml_files:
+        msg = f"No XML files found matching the patterns: {args.xml_files}"
+        if args.fail_on_test_failures:
+            print(f"Error: {msg}", file=sys.stderr)
+            sys.exit(1)
+        else:
+            print(f"Warning: {msg}", file=sys.stderr)
+            sys.exit(0)
 
     # Parse custom data
     custom_data = None

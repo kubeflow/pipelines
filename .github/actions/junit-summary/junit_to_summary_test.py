@@ -174,6 +174,37 @@ class JunitToSummaryTest(unittest.TestCase):
         self.assertIn(f"**HTML Report**: {artifact_url}", markdown)
         self.assertNotIn('\\"', markdown)
 
+    def test_missing_xml_files_with_no_fail_on_test_failures(self):
+        """Test missing XML files exits cleanly with 0 when --no-fail-on-test-failures is passed."""
+        empty_dir = Path(self.temp_dir.name) / "empty_dir"
+        empty_dir.mkdir()
+
+        cmd = [
+            sys.executable,
+            str(self.script_path),
+            str(empty_dir),
+            "--no-fail-on-test-failures",
+        ]
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, msg=f"Script failed: {result.stderr}")
+        self.assertIn("Warning: No XML files found", result.stderr)
+
+    def test_missing_xml_files_with_fail_on_test_failures(self):
+        """Test missing XML files exits with failure when fail-on-test-failures is true."""
+        empty_dir = Path(self.temp_dir.name) / "empty_dir"
+        empty_dir.mkdir()
+
+        cmd = [
+            sys.executable,
+            str(self.script_path),
+            str(empty_dir),
+        ]
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Error: No XML files found", result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
