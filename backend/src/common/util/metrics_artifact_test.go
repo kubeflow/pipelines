@@ -66,9 +66,15 @@ func TestDecodeRunMetrics_EnforcesMetricNameLength(t *testing.T) {
 		errorContains string
 	}{
 		{name: "exact limit", metricName: strings.Repeat("a", maxMetricNameLength)},
+		{name: "exact Unicode limit", metricName: strings.Repeat("é", maxMetricNameLength)},
 		{
 			name:          "over limit",
 			metricName:    strings.Repeat("a", maxMetricNameLength+1),
+			errorContains: "metric name cannot exceed 64 characters",
+		},
+		{
+			name:          "over Unicode limit",
+			metricName:    strings.Repeat("é", maxMetricNameLength+1),
 			errorContains: "metric name cannot exceed 64 characters",
 		},
 		{
@@ -94,17 +100,44 @@ func TestDecodeRunMetrics_EnforcesMetricNameLength(t *testing.T) {
 	}
 }
 
+func TestDecodeRunMetrics_AcceptsNullMetrics(t *testing.T) {
+	metrics, err := decodeRunMetrics(strings.NewReader(`{"metrics":null}`))
+
+	require.NoError(t, err)
+	assert.Nil(t, metrics)
+}
+
+func TestDecodeRunMetrics_RejectsDuplicateRunIDFields(t *testing.T) {
+	testCases := []struct {
+		name  string
+		input string
+	}{
+		{
+			name:  "same spelling",
+			input: `{"runId":"first","runId":"second","metrics":[]}`,
+		},
+		{
+			name:  "JSON name and proto name aliases",
+			input: `{"runId":"first","run_id":"second","metrics":[]}`,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			metrics, err := decodeRunMetrics(strings.NewReader(testCase.input))
+
+			assert.Nil(t, metrics)
+			assert.ErrorContains(t, err, "run ID field must not be repeated")
+		})
+	}
+}
+
 func TestDecodeRunMetrics_RejectsUnknownFieldsAndTrailingJSON(t *testing.T) {
 	testCases := []struct {
 		name          string
 		input         string
 		errorContains string
 	}{
-		{
-			name:          "null metrics",
-			input:         `{"metrics":null}`,
-			errorContains: "metrics field must be an array",
-		},
 		{
 			name:          "unknown top-level field",
 			input:         `{"metrics":[],"unknown":true}`,

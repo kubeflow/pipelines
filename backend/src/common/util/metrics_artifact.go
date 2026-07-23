@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"unicode/utf8"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -44,6 +45,7 @@ func decodeRunMetrics(reader io.Reader) ([]*api.RunMetric, error) {
 
 	var metrics []*api.RunMetric
 	metricsSeen := false
+	runIDSeen := false
 	for decoder.More() {
 		fieldToken, err := decoder.Token()
 		if err != nil {
@@ -65,6 +67,10 @@ func decodeRunMetrics(reader io.Reader) ([]*api.RunMetric, error) {
 				return nil, err
 			}
 		case "runId", "run_id":
+			if runIDSeen {
+				return nil, fmt.Errorf("run ID field must not be repeated")
+			}
+			runIDSeen = true
 			var ignoredRunID string
 			if err := decoder.Decode(&ignoredRunID); err != nil {
 				return nil, fmt.Errorf("failed to decode %s: %w", fieldName, err)
@@ -91,6 +97,9 @@ func decodeMetricsArray(decoder *json.Decoder) ([]*api.RunMetric, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read metrics array: %w", err)
 	}
+	if token == nil {
+		return nil, nil
+	}
 	if delimiter, ok := token.(json.Delim); !ok || delimiter != '[' {
 		return nil, fmt.Errorf("metrics field must be an array")
 	}
@@ -109,7 +118,7 @@ func decodeMetricsArray(decoder *json.Decoder) ([]*api.RunMetric, error) {
 		if err := protojson.Unmarshal([]byte(transformedMetric), metric); err != nil {
 			return nil, fmt.Errorf("failed to decode metric: %w", err)
 		}
-		if len(metric.GetName()) > maxMetricNameLength {
+		if utf8.RuneCountInString(metric.GetName()) > maxMetricNameLength {
 			return nil, fmt.Errorf("metric name cannot exceed %d characters", maxMetricNameLength)
 		}
 		if len(metrics) < maxMetricsCountLimit {
