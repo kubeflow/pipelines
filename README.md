@@ -99,3 +99,13 @@ Details about the KFP Architecture can be found at [Architecture.md](docs/sdk/Ar
 ## Acknowledgments
 
 Kubeflow pipelines uses [Argo Workflows](https://github.com/argoproj/argo-workflows) by default under the hood to orchestrate Kubernetes resources. The Argo community has been very supportive and we are very grateful.
+## 🔍 Getting Started (Quick Setup)
+
+To quickly explore Kubeflow Pipelines locally:
+
+1. Install Docker and Kubernetes tools (kubectl, kind or minikube)
+2. Deploy Kubeflow Pipelines using the official manifests
+3. Access the UI via port-forwarding:
+   ```bash
+   kubectl port-forward -n kubeflow svc/ml-pipeline-ui 8080:80
+
