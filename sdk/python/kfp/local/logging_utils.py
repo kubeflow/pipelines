@@ -31,6 +31,8 @@ class Color:
     GREEN = '\033[92m'
     # color for status failure
     RED = '\033[91m'
+    # color for status skipped
+    YELLOW = '\033[93m'
     # color for pipeline name
     MAGENTA = '\033[95m'
     RESET = '\033[0m'
@@ -162,6 +164,8 @@ def format_status(task_status: status.Status) -> str:
         return color_text(task_status.name, Color.GREEN)
     elif task_status == status.Status.FAILURE:
         return color_text(task_status.name, Color.RED)
+    elif task_status == status.Status.SKIPPED:
+        return color_text(task_status.name, Color.YELLOW)
     else:
         raise ValueError(f'Got unknown status: {task_status}')
 
