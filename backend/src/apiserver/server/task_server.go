@@ -19,21 +19,27 @@ import (
 	"strings"
 
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
-type TaskServer struct {
+type TaskServerV1 struct {
 	resourceManager *resource.ResourceManager
 	apiv1beta1.UnimplementedTaskServiceServer
+}
+type TaskServerV2 struct {
+	resourceManager *resource.ResourceManager
+	apiv2beta1.UnimplementedTaskServiceServer
 }
 
 // Creates a task.
 // Supports v1beta1 behavior.
-func (s *TaskServer) CreateTaskV1(ctx context.Context, request *api.CreateTaskRequest) (*api.Task, error) {
+func (s *TaskServerV1) CreateTaskV1(ctx context.Context, request *apiv1beta1.CreateTaskRequest) (*apiv1beta1.Task, error) {
 	err := s.validateCreateTaskRequest(request)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a new task due to validation error")
@@ -52,7 +58,7 @@ func (s *TaskServer) CreateTaskV1(ctx context.Context, request *api.CreateTaskRe
 	return toApiTaskV1(task), nil
 }
 
-func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) error {
+func (s *TaskServerV1) validateCreateTaskRequest(request *apiv1beta1.CreateTaskRequest) error {
 	if request == nil {
 		return util.NewInvalidInputError("CreateTaskRequest is nil")
 	}
@@ -93,8 +99,8 @@ func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) e
 
 // Fetches tasks given query parameters.
 // Supports v1beta1 behavior.
-func (s *TaskServer) ListTasksV1(ctx context.Context, request *api.ListTasksRequest) (
-	*api.ListTasksResponse, error,
+func (s *TaskServerV1) ListTasksV1(ctx context.Context, request *apiv1beta1.ListTasksRequest) (
+	*apiv1beta1.ListTasksResponse, error,
 ) {
 	opts, err := validatedListOptions(&model.Task{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter, "v1beta1")
 	if err != nil {
@@ -110,14 +116,117 @@ func (s *TaskServer) ListTasksV1(ctx context.Context, request *api.ListTasksRequ
 	if err != nil {
 		return nil, util.Wrap(err, "List tasks failed")
 	}
-	return &api.ListTasksResponse{
+	return &apiv1beta1.ListTasksResponse{
 			Tasks:         toApiTasksV1(tasks),
 			TotalSize:     int32(total_size),
 			NextPageToken: nextPageToken,
 		},
 		nil
 }
+func (s *TaskServerV2) GetPipelineTask(ctx context.Context, request *apiv2beta1.GetPipelineTaskRequest) (*apiv2beta1.PipelineTaskDetail, error) {
+	if request == nil {
+		return nil, util.NewInvalidInputError("GetPipelineTaskRequest is nil")
+	}
+	taskID := request.GetTaskId()
+	if taskID == "" {
+		return nil, util.NewInvalidInputError("task_id must be provided")
+	}
+	task, err := s.resourceManager.GetTask(taskID)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to get a task")
+	}
+	if common.IsMultiUserMode() {
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Verb: common.RbacResourceVerbGet,
+		}
+		run, err := s.resourceManager.GetRun(task.RunID)
+		if err != nil {
+			return nil, util.Wrapf(err, "Failed to authorize with the run ID %v", task.RunID)
+		}
+		if s.resourceManager.IsEmptyNamespace(run.Namespace) {
+			experiment, err := s.resourceManager.GetExperiment(run.ExperimentId)
+			if err != nil {
+				return nil, util.NewInvalidInputError("run %v has an empty namespace and the parent experiment %v could not be fetched: %s", task.RunID, run.ExperimentId, err.Error())
+			}
+			resourceAttributes.Namespace = experiment.Namespace
+		} else {
+			resourceAttributes.Namespace = run.Namespace
+		}
+		if resourceAttributes.Name == "" {
+			resourceAttributes.Name = run.K8SName
+		}
+		if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
+			return nil, util.NewInvalidInputError("A run cannot have an empty namespace in multi-user mode")
+		}
+		resourceAttributes.Group = common.RbacPipelinesGroup
+		resourceAttributes.Version = common.RbacPipelinesVersion
+		resourceAttributes.Resource = common.RbacResourceTypeRuns
+		if err := s.resourceManager.IsAuthorized(ctx, resourceAttributes); err != nil {
+			return nil, util.Wrapf(err, "Failed to access task %s for run %s. Check if you have access to namespace %s", taskID, task.RunID, resourceAttributes.Namespace)
+		}
+	}
+	return toApiPipelineTaskDetail(task), nil
+}
+func (s *TaskServerV2) ListPipelineTasks(ctx context.Context, request *apiv2beta1.ListPipelineTasksRequest) (*apiv2beta1.ListPipelineTasksResponse, error) {
+	if request == nil {
+		return nil, util.NewInvalidInputError("ListPipelineTasksRequest is nil")
+	}
+	opts, err := validatedListOptions(&model.Task{}, request.GetPageToken(), int(request.GetPageSize()), request.GetSortBy(), request.GetFilter(),
+		"v2beta1")
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create list options")
+	}
+	runID := request.GetRunId()
+	if runID == "" {
+		return nil, util.NewInvalidInputError("run_id must be provided")
+	}
+	filterContext := &model.FilterContext{
+		ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: runID},
+	}
+	if common.IsMultiUserMode() {
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Verb: common.RbacResourceVerbGet,
+		}
+		run, err := s.resourceManager.GetRun(runID)
+		if err != nil {
+			return nil, util.Wrapf(err, "Failed to authorize with the run ID %v", runID)
+		}
+		if s.resourceManager.IsEmptyNamespace(run.Namespace) {
+			experiment, err := s.resourceManager.GetExperiment(run.ExperimentId)
+			if err != nil {
+				return nil, util.NewInvalidInputError("run %v has an empty namespace and the parent experiment %v could not be fetched: %s", runID, run.ExperimentId, err.Error())
+			}
+			resourceAttributes.Namespace = experiment.Namespace
+		} else {
+			resourceAttributes.Namespace = run.Namespace
+		}
+		if resourceAttributes.Name == "" {
+			resourceAttributes.Name = run.K8SName
+		}
+		if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
+			return nil, util.NewInvalidInputError("A run cannot have an empty namespace in multi-user mode")
+		}
+		resourceAttributes.Group = common.RbacPipelinesGroup
+		resourceAttributes.Version = common.RbacPipelinesVersion
+		resourceAttributes.Resource = common.RbacResourceTypeRuns
+		if err := s.resourceManager.IsAuthorized(ctx, resourceAttributes); err != nil {
+			return nil, util.Wrapf(err, "Failed to access run %s. Check if you have access to namespace %s", runID, resourceAttributes.Namespace)
+		}
+	}
+	tasks, totalSize, nextPageToken, err := s.resourceManager.ListTasks(filterContext, opts)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to list tasks")
+	}
+	return &apiv2beta1.ListPipelineTasksResponse{
+		Tasks:         toApiPipelineTaskDetails(tasks),
+		TotalSize:     int32(totalSize),
+		NextPageToken: nextPageToken,
+	}, nil
+}
+func NewTaskServer(resourceManager *resource.ResourceManager) *TaskServerV2 {
+	return &TaskServerV2{resourceManager: resourceManager}
+}
 
-func NewTaskServer(resourceManager *resource.ResourceManager) *TaskServer {
-	return &TaskServer{resourceManager: resourceManager}
+func NewTaskServerV1(resourceManager *resource.ResourceManager) *TaskServerV1 {
+	return &TaskServerV1{resourceManager: resourceManager}
 }
