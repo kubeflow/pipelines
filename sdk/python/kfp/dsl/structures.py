@@ -858,15 +858,15 @@ class ComponentSpec:
             heading = '# Description: '
             multi_line_description_prefix = '#             '
             index_of_heading = 2
-            if heading in component_yaml:
-                description = component_yaml.splitlines()[index_of_heading]
+            lines = component_yaml.splitlines()
+            if heading in component_yaml and len(lines) > index_of_heading:
+                description = lines[index_of_heading]
 
                 # Multi line
-                comments = component_yaml.splitlines()
                 index = index_of_heading + 1
-                while comments[index][:len(multi_line_description_prefix
-                                          )] == multi_line_description_prefix:
-                    description += '\n' + comments[index][
+                while (index < len(lines)
+                       and lines[index].startswith(multi_line_description_prefix)):
+                    description += '\n' + lines[index][
                         len(multi_line_description_prefix) + 1:]
                     index += 1
 
