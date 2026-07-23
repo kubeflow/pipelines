@@ -856,23 +856,28 @@ class ComponentSpec:
 
         def extract_description(component_yaml: str) -> Optional[str]:
             heading = '# Description: '
-            multi_line_description_prefix = '#             '
-            index_of_heading = 2
-            if heading in component_yaml:
-                description = component_yaml.splitlines()[index_of_heading]
+            multi_line_description_prefix = '#              '
+            lines = component_yaml.splitlines()
+            index_of_heading = None
+            for i, line in enumerate(lines):
+                if line.startswith(heading):
+                    index_of_heading = i
+                    break
 
-                # Multi line
-                comments = component_yaml.splitlines()
-                index = index_of_heading + 1
-                while comments[index][:len(multi_line_description_prefix
-                                          )] == multi_line_description_prefix:
-                    description += '\n' + comments[index][
-                        len(multi_line_description_prefix) + 1:]
-                    index += 1
-
-                return description[len(heading):]
-            else:
+            if index_of_heading is None:
                 return None
+
+            description = lines[index_of_heading]
+            index = index_of_heading + 1
+            while index < len(lines):
+                line = lines[index]
+                if line.startswith(multi_line_description_prefix):
+                    description += '\n' + line[len(multi_line_description_prefix):]
+                    index += 1
+                else:
+                    break
+
+            return description[len(heading):]
 
         pipeline_spec_dict, platform_spec_dict = load_documents_from_yaml(
             component_yaml)
