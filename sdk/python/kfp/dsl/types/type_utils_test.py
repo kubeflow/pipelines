@@ -94,29 +94,25 @@ class TypeUtilsTest(parameterized.TestCase):
 
     def test_is_parameter_type_empty_dict_raises(self):
         with self.assertRaisesRegex(
-                ValueError,
-                r'Component I/O type cannot be an empty dict'):
+                ValueError, r'Component I/O type cannot be an empty dict'):
             type_utils.is_parameter_type({})
 
     def test_get_parameter_type_empty_dict_raises(self):
         with self.assertRaisesRegex(
-                ValueError,
-                r'Component I/O type cannot be an empty dict'):
+                ValueError, r'Component I/O type cannot be an empty dict'):
             type_utils.get_parameter_type({})
 
     def test_check_v1_struct_parameter_type_compatibility_empty_given_type_raises(
             self):
         with self.assertRaisesRegex(
-                ValueError,
-                r'Component I/O type cannot be an empty dict'):
+                ValueError, r'Component I/O type cannot be an empty dict'):
             type_utils.check_v1_struct_parameter_type_compatibility(
                 {}, {'JsonObject': {}})
 
     def test_check_v1_struct_parameter_type_compatibility_empty_expected_type_raises(
             self):
         with self.assertRaisesRegex(
-                ValueError,
-                r'Component I/O type cannot be an empty dict'):
+                ValueError, r'Component I/O type cannot be an empty dict'):
             type_utils.check_v1_struct_parameter_type_compatibility(
                 {'JsonObject': {}}, {})
 
@@ -132,8 +128,7 @@ class TypeUtilsTest(parameterized.TestCase):
             args: [cp, {outputPath: out}, /tmp/x]
         """)
         with self.assertRaisesRegex(
-                ValueError,
-                r'Component I/O type cannot be an empty dict'):
+                ValueError, r'Component I/O type cannot be an empty dict'):
             structures.ComponentSpec.from_yaml_documents(component_yaml)
 
     @parameterized.parameters(
