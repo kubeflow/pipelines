@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline-viewer-crd
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: ml-pipeline-viewer-crd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ml-pipeline-viewer-crd
+  template:
+    metadata:
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+      labels:
+        app: ml-pipeline-viewer-crd
+    spec:
+      serviceAccountName: ml-pipeline-viewer-crd-service-account
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ml-pipeline-viewer-crd
+          image: ghcr.io/kubeflow/kfp-viewer-crd-controller:2.16.0
+          imagePullPolicy: Always
+          env:
+            - name: MAX_NUM_VIEWERS
+              value: "50"
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsGroup: 0
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault

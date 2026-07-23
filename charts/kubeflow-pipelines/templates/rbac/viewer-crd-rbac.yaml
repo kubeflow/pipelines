@@ -1,0 +1,23 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ml-pipeline-viewer-crd-role
+  namespace: {{ .Release.Namespace }}
+rules:
+  - apiGroups: ["kubeflow.org"]
+    resources: ["viewers"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ml-pipeline-viewer-crd-rolebinding
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ml-pipeline-viewer-crd-role
+subjects:
+  - kind: ServiceAccount
+    name: ml-pipeline-viewer-crd-service-account
+    namespace: {{ .Release.Namespace }}

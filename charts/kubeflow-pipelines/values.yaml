@@ -1,0 +1,3 @@
+# Default values for the kubeflow-pipelines chart.
+# NOTE: This chart currently does not expose configurable values via values.yaml.
+# Add values here only when they are actually consumed by templates.

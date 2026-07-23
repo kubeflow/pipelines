@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metadata-envoy-deployment
+  namespace: {{ .Release.Namespace }}
+  labels:
+    component: metadata-envoy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: metadata-envoy
+  template:
+    metadata:
+      labels:
+        component: metadata-envoy
+        sidecar.istio.io/inject: "false"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: container
+          image: ghcr.io/kubeflow/kfp-metadata-envoy:2.16.0
+          args:
+            - /etc/envoy/envoy-config.yaml
+          ports:
+            - containerPort: 9090
+              name: md-envoy
+            - containerPort: 9901
+              name: envoy-admin
+          volumeMounts:
+            - name: envoy-config
+              mountPath: /etc/envoy
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsGroup: 0
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
+      volumes:
+        - name: envoy-config
+          configMap:
+            name: metadata-envoy-configmap
