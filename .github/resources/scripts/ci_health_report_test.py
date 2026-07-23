@@ -274,6 +274,47 @@ class JunitIngestionTest(unittest.TestCase):
         self.assertEqual(errors, 0)
         request.assert_called_once_with("t", "retry", raw=True)
 
+    def test_highest_retry_attempt_wins_for_each_artifact(self):
+        artifacts = [
+            {
+                "name": "junit-xml - lane",
+                "archive_download_url": "primary",
+                "expired": False,
+            },
+            {
+                "name": "junit-xml - lane - retry-2",
+                "archive_download_url": "retry-2",
+                "expired": False,
+            },
+            {
+                "name": "junit-xml - lane - retry-10",
+                "archive_download_url": "retry-10",
+                "expired": False,
+            },
+            {
+                "name": "junit-xml - lane - retry-11",
+                "archive_download_url": "expired-retry",
+                "expired": True,
+            },
+            {
+                "name": "junit-xml - primary-only",
+                "archive_download_url": "primary-only",
+                "expired": False,
+            },
+            {
+                "name": "kind-logs - lane - retry-12",
+                "archive_download_url": "unrelated",
+                "expired": False,
+            },
+        ]
+
+        selected = chr_mod.select_junit_artifacts(artifacts)
+
+        self.assertEqual(
+            [artifact["archive_download_url"] for artifact in selected],
+            ["retry-10", "primary-only"],
+        )
+
     def test_newest_failed_runs_win_the_budget_across_workflows(self):
         seen = []
 

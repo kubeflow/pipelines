@@ -73,7 +73,7 @@ TARGET_WORKFLOWS = [
 ISSUE_TITLE = "CI Health Report (automated)"
 ISSUE_LABEL = "ci-health"
 JUNIT_ARTIFACT_PREFIX = "junit-xml - "
-RETRY_ARTIFACT_SUFFIX = re.compile(r"^(?P<base>.+) - retry-\d+$")
+RETRY_ARTIFACT_SUFFIX = re.compile(r"^(?P<base>.+) - retry-(?P<attempt>\d+)$")
 
 # Job conclusions that are not results at all: master-push workflows cancel
 # in-progress runs, so counting cancellations as either success or failure
@@ -293,24 +293,21 @@ def collect_lane_stats(token, repo, since, max_runs):
 
 
 def select_junit_artifacts(artifacts):
-    """Selects one artifact when an upload retry duplicated a JUnit report."""
-    candidates = [
-        artifact
-        for artifact in artifacts
-        if artifact.get("name", "").startswith(JUNIT_ARTIFACT_PREFIX)
-        and not artifact.get("expired")
-    ]
-    retry_base_names = {
-        match.group("base")
-        for artifact in candidates
-        if (match := RETRY_ARTIFACT_SUFFIX.match(artifact["name"])) is not None
-    }
-    return [
-        artifact
-        for artifact in candidates
-        if RETRY_ARTIFACT_SUFFIX.match(artifact["name"])
-        or artifact["name"] not in retry_base_names
-    ]
+    """Selects the latest artifact for each possibly retried JUnit report."""
+    selected_by_base_name = {}
+    for artifact in artifacts:
+        name = artifact.get("name", "")
+        if not name.startswith(JUNIT_ARTIFACT_PREFIX) or artifact.get("expired"):
+            continue
+
+        retry_match = RETRY_ARTIFACT_SUFFIX.match(name)
+        base_name = retry_match.group("base") if retry_match else name
+        retry_attempt = int(retry_match.group("attempt")) if retry_match else -1
+        selected = selected_by_base_name.get(base_name)
+        if selected is None or retry_attempt > selected[0]:
+            selected_by_base_name[base_name] = (retry_attempt, artifact)
+
+    return [artifact for _, artifact in selected_by_base_name.values()]
 
 
 def collect_failed_tests(token, repo, failed_runs, max_junit_runs):
