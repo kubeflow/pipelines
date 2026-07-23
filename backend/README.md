@@ -71,15 +71,25 @@ The API server supports configuring custom labels and annotations for driver pod
 **Configuration via config.json:**
 ```json
 {
-  "DRIVER_POD_LABELS": {
-    "sidecar.istio.io/inject": "true",
-    "app": "ml-pipeline-driver"
-  },
-  "DRIVER_POD_ANNOTATIONS": {
-    "proxy.istio.io/config": "{\"holdApplicationUntilProxyStarts\":true}"
-  }
+  "DRIVER_POD_LABELS": "{\"sidecar.istio.io/inject\":\"true\",\"app\":\"ml-pipeline-driver\"}",
+  "DRIVER_POD_ANNOTATIONS": "{\"proxy.istio.io/config\":\"{\\\"holdApplicationUntilProxyStarts\\\":true}\"}"
 }
 ```
+
+Write each value as a JSON string here, the same way it is written in the ConfigMap. Writing it
+as a JSON object instead is refused at startup, with an error naming the string form. The
+configuration loader folds the keys of such an object to lower case while reading the file, so
+`example.com/BuildID` would reach the driver pod as `example.com/buildid`, and two keys that
+differ only in case would be merged into one before anything could check them, taking one of
+the values with them. Where both of those keys need lowering, which one survives follows map
+iteration order, so the same file could start the API server on one restart and stop it on the
+next. The string form is parsed directly and keeps the keys exactly as written.
+
+This file supplies the built in default and is baked into the API server image. On a standard
+install it is not the setting an operator changes, because the Deployment always passes both
+keys in from the ConfigMap as environment variables, and an environment variable takes
+precedence over this file even when it is empty. Use the ConfigMap below unless you build your
+own image and also stop the Deployment from passing those variables.
 
 **Configuration via Kubernetes ConfigMap (`pipeline-install-config`):**
 ```yaml
@@ -87,9 +97,38 @@ DRIVER_POD_LABELS: '{"sidecar.istio.io/inject":"true"}'
 DRIVER_POD_ANNOTATIONS: '{"proxy.istio.io/config":"{\"holdApplicationUntilProxyStarts\":true}"}'
 ```
 
-When configured via the ConfigMap, every value must be a JSON string. Write `"true"` rather than the bare boolean `true`, and never `null`. The configuration is validated at API server startup: malformed JSON, any value that is not a JSON string, and label keys, label values, or annotation keys that Kubernetes would reject all cause startup to fail with a descriptive error rather than being silently ignored. Annotation values are free form, so a value such as an inline JSON document is accepted.
+Every entry inside the object must have a string value. Write `"true"` rather than the bare boolean `true`, and never `null`. Three things that look similar behave differently: a value of `"null"` is refused, an entry such as `{"app": null}` is refused, and a configuration file key whose value is a bare `null` is read as if the key were absent, because the configuration loader reports it that way and gives no means to tell the two apart. The configuration is validated at API server startup: malformed JSON, any value that is not a string, and label keys, label values, or annotation keys that Kubernetes would reject all cause startup to fail with a descriptive error rather than being silently ignored. Annotation values are free form, so a value such as an inline JSON document is accepted.
 
-Note: Labels and annotations with the prefix `pipelines.kubeflow.org/` are reserved and will be filtered out to prevent overriding system metadata. Changes to driver pod configuration require an API server restart.
+Startup validation also holds the annotations to the 256 KiB Kubernetes allows across one object's annotations, though the driver pod carries a few more that the compiler adds, so passing that check bounds your own input rather than guaranteeing the pod will be accepted. Keep the values far below it in any case. Each setting arrives as one environment variable holding its whole JSON document, and Linux caps a single environment string at 32 memory pages, which is around 128 KiB on the usual 4 KiB page size and more where pages are larger. A value over that cap stops the API server from starting at all, so it cannot report anything about it.
+
+**Terminating an injected Istio sidecar:**
+
+Where the proxy is injected as an ordinary sidecar container, one more annotation is needed.
+Argo shuts an injected sidecar down by running `/bin/sh -c 'kill 1'` inside it, which the Istio
+proxy does not act on, so the proxy keeps running after the driver has finished and the pod
+stays in `Running`. Argo lets you replace that command per container, and the default KFP
+install already grants the `pods/exec` permission it needs through the `pipeline-runner` Role.
+If the driver runs under a service account with narrower permissions, grant `pods/exec` there
+as well.
+
+```yaml
+DRIVER_POD_LABELS: '{"sidecar.istio.io/inject":"true"}'
+DRIVER_POD_ANNOTATIONS: '{"proxy.istio.io/config":"{\"holdApplicationUntilProxyStarts\":true}","workflows.argoproj.io/kill-cmd-istio-proxy":"[\"pilot-agent\", \"request\", \"POST\", \"quitquitquit\"]"}'
+```
+
+See the Argo Workflows [sidecar injection](https://argo-workflows.readthedocs.io/en/latest/sidecar-injection/) guide for the full description of the problem.
+
+Note: Labels and annotations with the prefix `pipelines.kubeflow.org/` are reserved and will be filtered out to prevent overriding system metadata.
+
+Changes to driver pod configuration require an API server restart, and each API server reads the configuration once as it starts, so what a run gets depends on which one compiles it.
+
+A recurring run that did not pin its pipeline is compiled through the runs API each time it triggers, by whichever API server handles that call. Once the restart has completed, that is the new configuration. During the restart itself it need not be: the default rollout brings a replacement up before retiring the one it replaces, so for a short window both are serving and the scheduler reaches either.
+
+A recurring run that pinned its pipeline is instead recompiled by the reconciliation an API server runs once as it starts, and its ScheduledWorkflow is updated when the resulting spec differs. That reconciliation stops at the first recurring run it cannot process and is not retried, so if one fails, for example because its pipeline version cannot be read, the ones after it keep their previous specification until the next restart. A run triggered while the reconciliation is still in flight also uses the previous specification.
+
+The short version is that a restart is what applies a change, and a run created while the restart is in progress may still be built from the configuration you replaced.
+
+The compiler adds `sidecar.istio.io/inject: "false"` as an annotation to every template that does not already carry that annotation, which includes the driver templates. Setting the injection label above is enough, because Istio prefers the label over the annotation when both are present, and the annotation form is deprecated. Setting `sidecar.istio.io/inject` through `DRIVER_POD_ANNOTATIONS` also works, since the compiler leaves an annotation alone once it is set.
 
 ## API Server Development
 

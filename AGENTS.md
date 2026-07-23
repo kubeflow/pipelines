@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-22
+- Last updated: 2026-07-23
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -727,6 +727,7 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - `TENSORBOARD_PROXY_SIGNING_SECRET=...`: Optional shared frontend-server secret for scoped TensorBoard proxy URLs; defaults to `MINIO_SECRET_KEY` when unset
 - `FRONTEND_SERVER_NAMESPACE=...`: Sets the namespace used by the local frontend Node server for Kubernetes lookups when it is not running inside a cluster pod. `npm run start:proxy-and-server` derives this from `NAMESPACE`.
 - `MINIO_ENDPOINT_REWRITE=from=to[,from=to]`: Rewrites explicit object-store endpoints for local proxy mode, for example from `seaweedfs.kubeflow:9000` to `localhost:9000`.
+- `DRIVER_POD_LABELS=...` and `DRIVER_POD_ANNOTATIONS=...`: API server deployment settings, each a JSON object written as a string, applied to driver pods. Wired in from the `pipeline-install-config` ConfigMap by the API server Deployment and validated at startup. See [API Server Configuration](backend/README.md#driver-pod-labels-and-annotations).
 
 ## Troubleshooting and pitfalls
 
