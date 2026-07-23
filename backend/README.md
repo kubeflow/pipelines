@@ -71,15 +71,19 @@ The API server supports configuring custom labels and annotations for driver pod
 **Configuration via config.json:**
 ```json
 {
-  "DRIVER_POD_LABELS": {
-    "sidecar.istio.io/inject": "true",
-    "app": "ml-pipeline-driver"
-  },
-  "DRIVER_POD_ANNOTATIONS": {
-    "proxy.istio.io/config": "{\"holdApplicationUntilProxyStarts\":true}"
-  }
+  "DRIVER_POD_LABELS": "{\"sidecar.istio.io/inject\":\"true\",\"app\":\"ml-pipeline-driver\"}",
+  "DRIVER_POD_ANNOTATIONS": "{\"proxy.istio.io/config\":\"{\\\"holdApplicationUntilProxyStarts\\\":true}\"}"
 }
 ```
+
+Write each value as a JSON string, not as a JSON object. A JSON object is refused at startup,
+because the configuration loader folds its keys to lower case and merges keys that differ only
+in case.
+
+This file is baked into the image and supplies the built in default. On a standard install the
+Deployment always passes both keys in from the ConfigMap as environment variables, and those
+take precedence over this file even when empty, so use the ConfigMap below unless you build
+your own image.
 
 **Configuration via Kubernetes ConfigMap (`pipeline-install-config`):**
 ```yaml
@@ -87,9 +91,26 @@ DRIVER_POD_LABELS: '{"sidecar.istio.io/inject":"true"}'
 DRIVER_POD_ANNOTATIONS: '{"proxy.istio.io/config":"{\"holdApplicationUntilProxyStarts\":true}"}'
 ```
 
-When configured via the ConfigMap, every value must be a JSON string. Write `"true"` rather than the bare boolean `true`, and never `null`. The configuration is validated at API server startup: malformed JSON, any value that is not a JSON string, and label keys, label values, or annotation keys that Kubernetes would reject all cause startup to fail with a descriptive error rather than being silently ignored. Annotation values are free form, so a value such as an inline JSON document is accepted.
+Every entry must have a string value: write `"true"` rather than the bare boolean `true`, and never `null`. The configuration is validated at API server startup, so malformed JSON, a value that is not a string, and label keys, label values or annotation keys that Kubernetes would reject all fail startup with a descriptive error rather than being silently ignored. Annotation values are free form, so an inline JSON document is accepted. Annotations are also held to the 256 KiB Kubernetes allows per object, and each setting travels as one environment variable, which Linux caps at 32 memory pages (around 128 KiB with 4 KiB pages).
 
-Note: Labels and annotations with the prefix `pipelines.kubeflow.org/` are reserved and will be filtered out to prevent overriding system metadata. Changes to driver pod configuration require an API server restart.
+**Terminating an injected Istio sidecar:**
+
+Argo shuts an injected sidecar down with `/bin/sh -c 'kill 1'`, which the Istio proxy does not
+act on, so the proxy outlives the driver and the pod stays in `Running`. Argo's per container
+kill command handles it, and the default install already grants the `pods/exec` permission it
+needs through the `pipeline-runner` Role. Grant `pods/exec` too if the driver runs under a
+service account with narrower permissions.
+
+```yaml
+DRIVER_POD_LABELS: '{"sidecar.istio.io/inject":"true"}'
+DRIVER_POD_ANNOTATIONS: '{"proxy.istio.io/config":"{\"holdApplicationUntilProxyStarts\":true}","workflows.argoproj.io/kill-cmd-istio-proxy":"[\"pilot-agent\", \"request\", \"POST\", \"quitquitquit\"]"}'
+```
+
+The compiler annotates every template with `sidecar.istio.io/inject: "false"`, which does not disable the label above, since Istio prefers the label and treats the annotation form as deprecated. See the Argo Workflows [sidecar injection](https://argo-workflows.readthedocs.io/en/latest/sidecar-injection/) guide for the full description of the problem.
+
+Note: Labels and annotations with the prefix `pipelines.kubeflow.org/` are reserved and will be filtered out to prevent overriding system metadata.
+
+Changes require an API server restart, and each API server reads the configuration once as it starts. An unpinned recurring run picks the change up when it next triggers, once the restart has finished; during a rolling restart both the old and new API server serve for a short window. A pinned recurring run is recompiled by the reconciliation that runs at startup, which stops at the first recurring run it cannot process and is not retried, so the ones after a failure keep their previous specification until the next restart.
 
 ## API Server Development
 

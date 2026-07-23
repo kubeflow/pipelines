@@ -23,7 +23,9 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/viper"
+	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 const (
@@ -88,20 +90,22 @@ func InitDriverPodConfig() error {
 // construction separate from the cache swap guarantees the update is applied
 // completely or not at all.
 func newDriverPodConfig() (*DriverPodConfig, error) {
-	if err := validateMapConfig(DriverPodLabels); err != nil {
+	rawLabels, err := parseMapConfig(DriverPodLabels)
+	if err != nil {
 		return nil, err
 	}
-	if err := validateMapConfig(DriverPodAnnotations); err != nil {
+	rawAnnotations, err := parseMapConfig(DriverPodAnnotations)
+	if err != nil {
 		return nil, err
 	}
 
-	labels := filterReservedEntries(GetMapConfig(DriverPodLabels))
+	labels := filterReservedEntries(rawLabels)
 	if err := validateLabels(labels); err != nil {
 		return nil, err
 	}
 
-	annotations := filterReservedEntries(GetMapConfig(DriverPodAnnotations))
-	if err := validateAnnotationKeys(annotations); err != nil {
+	annotations := filterReservedEntries(rawAnnotations)
+	if err := validateAnnotations(annotations); err != nil {
 		return nil, err
 	}
 
@@ -126,45 +130,65 @@ func validateLabels(labels map[string]string) error {
 	return nil
 }
 
-// validateAnnotationKeys rejects annotation keys that Kubernetes would not accept.
-// Annotation values are free form, so only the keys are checked.
-func validateAnnotationKeys(annotations map[string]string) error {
-	for k := range annotations {
-		if errs := validation.IsQualifiedName(k); len(errs) > 0 {
-			return fmt.Errorf("%s has an invalid annotation key %q: %s", DriverPodAnnotations, k, strings.Join(errs, "; "))
-		}
-	}
-	return nil
+// validateAnnotations uses the Kubernetes annotation validator, which lowers keys before
+// checking syntax (so Example.com/Name is valid unlike for labels) and enforces the 256 KiB
+// total size limit. Only the configured annotations are measured; compiler-added ones are not.
+func validateAnnotations(annotations map[string]string) error {
+	// The field path already names the setting, so the result is returned unwrapped.
+	return apivalidation.ValidateAnnotations(annotations, field.NewPath(DriverPodAnnotations)).ToAggregate()
 }
 
-// validateMapConfig rejects a ConfigMap value that Viper would not turn into the map the
-// operator meant. On the ConfigMap string path viper.GetStringMapString swallows problems
-// in two different ways, and neither produces an error: a boolean or a number makes it
-// drop the whole map, while a JSON null is quietly coerced to an empty string. Both leave
-// the operator with a configuration that looks accepted but silently does not do what
-// they asked for, so the raw value is probed here and every entry must be a JSON string.
-func validateMapConfig(name string) error {
-	if !viper.IsSet(name) {
-		return nil
-	}
-
-	// A native map (config.json) reports an empty string here, and a blank or whitespace
-	// only value means no configuration. Neither needs probing.
-	raw := strings.TrimSpace(viper.GetString(name))
-	if raw == "" {
-		return nil
-	}
-
-	var probe map[string]interface{}
-	if err := json.Unmarshal([]byte(raw), &probe); err != nil {
-		return fmt.Errorf("%s could not be parsed as a JSON object: %w (raw value: %q)", name, err, raw)
-	}
-	for k, v := range probe {
-		if _, ok := v.(string); !ok {
-			return fmt.Errorf("%s has a value that is not a JSON string for key %q; every value must be quoted, for example \"true\" rather than true or null (raw value: %q)", name, k, raw)
+// parseMapConfig reads and parses the configured value in one step so the validated map is
+// the one cached. A JSON object in the config file is refused because Viper lowercases its
+// keys, silently merging case-differing entries; the string form keeps keys as written.
+func parseMapConfig(name string) (map[string]string, error) {
+	switch value := viper.Get(name).(type) {
+	case nil:
+		return nil, nil
+	case string:
+		parsed, err := jsonToMap(value)
+		if err != nil {
+			return nil, fmt.Errorf("%s %w", name, err)
 		}
+		return parsed, nil
+	case map[string]string:
+		return value, nil
+	case map[string]any:
+		return nil, fmt.Errorf("%s must be a JSON string, not an object; write it as \"{\\\"app\\\":\\\"driver\\\"}\"", name)
+	default:
+		return nil, fmt.Errorf("%s must be a JSON string, but it is a %T", name, value)
 	}
-	return nil
+}
+
+// jsonToMap parses a JSON object whose values are all strings. Unmarshalling straight into a
+// map[string]string would turn a null into an empty string without an error, so the values are
+// checked before conversion.
+func jsonToMap(value string) (map[string]string, error) {
+	raw := strings.TrimSpace(value)
+	if raw == "" {
+		return nil, nil
+	}
+
+	var probe map[string]any
+	if err := json.Unmarshal([]byte(raw), &probe); err != nil {
+		return nil, fmt.Errorf("could not be parsed as a JSON object: %w (raw value: %q)", err, raw)
+	}
+	if probe == nil {
+		return nil, fmt.Errorf("must be a JSON object, not null (raw value: %q)", raw)
+	}
+
+	parsed := make(map[string]string, len(probe))
+	for k, v := range probe {
+		s, ok := v.(string)
+		if !ok {
+			return nil, fmt.Errorf("has a value that is not a string for key %q; quote it, for example \"true\" rather than true or null (raw value: %q)", k, raw)
+		}
+		parsed[k] = s
+	}
+	if len(parsed) == 0 {
+		return nil, nil
+	}
+	return parsed, nil
 }
 
 // GetDriverPodConfig returns a copy of the cached driver pod configuration, or nil when
