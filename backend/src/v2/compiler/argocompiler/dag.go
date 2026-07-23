@@ -642,8 +642,10 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			Command:   c.driverCommand,
 			Args:      args,
 			Resources: driverResources,
+			EnvFrom:   []k8score.EnvFromSource{metadataEnvFrom},
 			Env:       proxy.GetConfig().GetEnvVars(),
 		},
+		RetryStrategy: getDriverRetryStrategy(),
 	}
 	setRuntimeRole(template, util.ExecutionRuntimeRoleDriver)
 	applySecurityContextToTemplate(template)

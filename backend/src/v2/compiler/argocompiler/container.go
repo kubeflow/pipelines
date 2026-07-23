@@ -47,15 +47,22 @@ const (
 	// but are overridden by environment variables set via k8s manifests.
 	// For releases, the manifest will have the correct release version set.
 	// this is to avoid hardcoding releases in code here.
-	DefaultLauncherImage     = "ghcr.io/kubeflow/kfp-launcher:latest"
-	LauncherCommandEnvVar    = "V2_LAUNCHER_COMMAND"
-	DefaultLauncherCommand   = "launcher-v2"
-	DefaultDriverImage       = "ghcr.io/kubeflow/kfp-driver:latest"
-	DefaultDriverCommand     = "driver"
-	DriverCommandEnvVar      = "V2_DRIVER_COMMAND"
-	PipelineRunAsUserEnvVar  = "PIPELINE_RUN_AS_USER"
-	PipelineLogLevelEnvVar   = "PIPELINE_LOG_LEVEL"
-	PublishLogsEnvVar        = "PUBLISH_LOGS"
+	DefaultLauncherImage    = "ghcr.io/kubeflow/kfp-launcher:latest"
+	LauncherCommandEnvVar   = "V2_LAUNCHER_COMMAND"
+	DefaultLauncherCommand  = "launcher-v2"
+	DefaultDriverImage      = "ghcr.io/kubeflow/kfp-driver:latest"
+	DefaultDriverCommand    = "driver"
+	DriverCommandEnvVar     = "V2_DRIVER_COMMAND"
+	PipelineRunAsUserEnvVar = "PIPELINE_RUN_AS_USER"
+	PipelineLogLevelEnvVar  = "PIPELINE_LOG_LEVEL"
+	PublishLogsEnvVar       = "PUBLISH_LOGS"
+	// DriverRetryLimitEnvVar sets the Argo retryStrategy limit applied to
+	// driver templates. Set it on the API server; "0" (the default) disables
+	// driver retries. See getDriverRetryStrategy for why this is opt-in.
+	DriverRetryLimitEnvVar = "PIPELINE_DRIVER_RETRY_LIMIT"
+	// DefaultDriverRetryLimit disables driver retries by default: replaying a
+	// driver that already produced side effects is not yet idempotent.
+	DefaultDriverRetryLimit  = 0
 	gcsScratchLocation       = "/gcs"
 	gcsScratchName           = "gcs-scratch"
 	s3ScratchLocation        = "/s3"
@@ -147,6 +154,53 @@ func GetPipelineRunAsUser() *int64 {
 	}
 
 	return &runAsUser
+}
+
+// getDriverRetryStrategy returns the retryStrategy applied to driver
+// templates. Driver pods fail on transient conditions outside the pipeline's
+// control (e.g. the MLMD or API server briefly unavailable, node preemption),
+// and without a retryStrategy any such failure fails the whole run.
+//
+// This is opt-in (default 0, no retryStrategy) because replaying a driver is
+// not yet idempotent: only the root DAG execution has a deterministic MLMD
+// name, so a replayed container/DAG driver whose PutExecution committed before
+// the failure creates a duplicate execution — and GetExecutionsInDAG then
+// fails the whole DAG on the duplicate task name, so a replay can poison the
+// run instead of recovering it. Plugin OnTaskStart hooks also re-fire, and
+// createpvc/deletepvc replays can create a second UUID-named PVC or fail on
+// the already-deleted one. Cluster operators who accept those risks can enable
+// retries via the PIPELINE_DRIVER_RETRY_LIMIT environment variable on the API
+// server. Default-on requires stable execution identities and read-after-error
+// reconciliation across every driver type.
+func getDriverRetryStrategy() *wfapi.RetryStrategy {
+	limit := int32(DefaultDriverRetryLimit)
+	if value, ok := os.LookupEnv(DriverRetryLimitEnvVar); ok {
+		parsed, err := strconv.ParseInt(value, 10, 32)
+		if err != nil || parsed < 0 {
+			glog.Errorf(
+				"Invalid %s value %q, expected a non-negative integer; using default %d",
+				DriverRetryLimitEnvVar, value, DefaultDriverRetryLimit,
+			)
+		} else {
+			limit = int32(parsed)
+		}
+	}
+	if limit == 0 {
+		return nil
+	}
+	limitValue := intstr.FromInt32(limit)
+	backoffFactor := intstr.FromInt32(2)
+	return &wfapi.RetryStrategy{
+		Limit: &limitValue,
+		// Retry on both Failed (driver exited non-zero, e.g. a metadata RPC
+		// error) and Error (pod-level problems such as node preemption).
+		RetryPolicy: wfapi.RetryPolicyAlways,
+		Backoff: &wfapi.Backoff{
+			Duration:    "5s",
+			Factor:      &backoffFactor,
+			MaxDuration: "1m",
+		},
+	}
 }
 
 func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
@@ -276,8 +330,10 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			Command:   c.driverCommand,
 			Args:      args,
 			Resources: driverResources,
+			EnvFrom:   []k8score.EnvFromSource{metadataEnvFrom},
 			Env:       append(proxy.GetConfig().GetEnvVars(), commonEnvs...),
 		},
+		RetryStrategy: getDriverRetryStrategy(),
 	}
 	setRuntimeRole(template, util.ExecutionRuntimeRoleDriver)
 	applySecurityContextToTemplate(template)
