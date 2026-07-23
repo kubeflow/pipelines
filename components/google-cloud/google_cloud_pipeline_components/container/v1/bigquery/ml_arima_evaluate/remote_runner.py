@@ -80,7 +80,7 @@ def bigquery_ml_arima_evaluate_job(
       'SELECT * FROM ML.ARIMA_EVALUATE(MODEL %s%s)'
       % (
           bigquery_util.back_quoted_if_needed(model_name),
-          show_all_candidate_models_sql,
+          show_all_candidate_models_sql,  # pyrefly: ignore[unbound-name]
       )
   )
 
