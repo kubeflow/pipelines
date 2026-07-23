@@ -605,12 +605,15 @@ class PipelineTask:
 
         return self
 
+    _VALID_RETRY_POLICIES = frozenset(structures._RETRY_POLICY_MAP)
+
     @block_if_final()
     def set_retry(self,
                   num_retries: int,
                   backoff_duration: Optional[str] = None,
                   backoff_factor: Optional[float] = None,
-                  backoff_max_duration: Optional[str] = None) -> 'PipelineTask':
+                  backoff_max_duration: Optional[str] = None,
+                  policy: Optional[str] = None) -> 'PipelineTask':
         """Sets task retry parameters.
 
         Args:
@@ -618,15 +621,26 @@ class PipelineTask:
             backoff_duration: Number of seconds to wait before triggering a retry. Defaults to ``'0s'`` (immediate retry).
             backoff_factor: Exponential backoff factor applied to ``backoff_duration``. For example, if ``backoff_duration="60"`` (60 seconds) and ``backoff_factor=2``, the first retry will happen after 60 seconds, then again after 120, 240, and so on. Defaults to ``2.0``.
             backoff_max_duration: Maximum duration during which the task will be retried. Defaults to ``'3600s'``.
+            policy: Controls which failure types trigger a retry. Only supported
+                when using Argo Workflows as the pipeline execution engine. One of
+                ``'Always'``, ``'OnFailure'`` (default), ``'OnError'``, or
+                ``'OnTransientError'``. Use ``'OnError'`` or ``'Always'`` to retry on
+                node-level failures such as eviction or SIGTERM (exit code 143).
+                Defaults to ``None`` (equivalent to ``'OnFailure'``).
 
         Returns:
             Self return to allow chained setting calls.
         """
+        if policy is not None and policy not in self._VALID_RETRY_POLICIES:
+            raise ValueError(
+                f'Invalid retry policy {policy!r}. '
+                f'Must be one of: {sorted(self._VALID_RETRY_POLICIES)}')
         self._task_spec.retry_policy = structures.RetryPolicy(
             max_retry_count=num_retries,
             backoff_duration=backoff_duration,
             backoff_factor=backoff_factor,
             backoff_max_duration=backoff_max_duration,
+            policy=policy,
         )
         return self
 

@@ -358,6 +358,14 @@ class ContainerSpecImplementation:
             resources=None)  # can only be set on tasks
 
 
+_RETRY_POLICY_MAP = {
+    'Always': 'POLICY_ALWAYS',
+    'OnFailure': 'POLICY_ON_FAILURE',
+    'OnError': 'POLICY_ON_ERROR',
+    'OnTransientError': 'POLICY_ON_TRANSIENT_ERROR',
+}
+
+
 @dataclasses.dataclass
 class RetryPolicy:
     """The retry policy of a container execution.
@@ -367,11 +375,18 @@ class RetryPolicy:
         backoff_duration (int): The the number of seconds to wait before triggering a retry.
         backoff_factor (float): The exponential backoff factor applied to backoff_duration. For example, if backoff_duration="60" (60 seconds) and backoff_factor=2, the first retry will happen after 60 seconds, then after 120, 240, and so on.
         backoff_max_duration (int): The maximum duration during which the task will be retried.
+        policy (str): Controls which failure types trigger a retry. Only
+            supported when using Argo Workflows as the pipeline execution
+            engine. One of ``'Always'``, ``'OnFailure'`` (default),
+            ``'OnError'``, or ``'OnTransientError'``. Use ``'OnError'`` or
+            ``'Always'`` to retry on node-level failures such as eviction or
+            SIGTERM (exit code 143).
     """
     max_retry_count: Optional[int] = None
     backoff_duration: Optional[str] = None
     backoff_factor: Optional[float] = None
     backoff_max_duration: Optional[str] = None
+    policy: Optional[str] = None
 
     def to_proto(self) -> pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy:
         # include defaults so that IR is more reflective of runtime behavior
@@ -383,13 +398,19 @@ class RetryPolicy:
         backoff_duration_seconds = f'{convert_duration_to_seconds(backoff_duration)}s'
         backoff_max_duration_seconds = f'{convert_duration_to_seconds(backoff_max_duration)}s'
 
+        d = {
+            'max_retry_count': max_retry_count,
+            'backoff_duration': backoff_duration_seconds,
+            'backoff_factor': backoff_factor,
+            'backoff_max_duration': backoff_max_duration_seconds,
+        }
+        if self.policy:
+            if self.policy not in _RETRY_POLICY_MAP:
+                raise ValueError(f'Invalid retry policy {self.policy!r}. '
+                                 f'Must be one of: {sorted(_RETRY_POLICY_MAP)}')
+            d['policy'] = _RETRY_POLICY_MAP[self.policy]
         return json_format.ParseDict(
-            {
-                'max_retry_count': max_retry_count,
-                'backoff_duration': backoff_duration_seconds,
-                'backoff_factor': backoff_factor,
-                'backoff_max_duration': backoff_max_duration_seconds,
-            }, pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy())
+            d, pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy())
 
 
 @dataclasses.dataclass

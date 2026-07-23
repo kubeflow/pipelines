@@ -594,6 +594,18 @@ message PipelineTaskSpec {
     // The maximum duration during which the task will be retried according to
     // the backoff strategy. If unspecified, will set to 1 hour.
     google.protobuf.Duration backoff_max_duration = 4;
+
+    // The retry policy controls which failure types trigger a retry attempt.
+    // Maps directly to Argo Workflows retryStrategy.retryPolicy.
+    // Defaults to POLICY_UNSPECIFIED, which behaves like POLICY_ON_FAILURE.
+    enum Policy {
+      POLICY_UNSPECIFIED = 0;
+      POLICY_ALWAYS = 1;
+      POLICY_ON_FAILURE = 2;
+      POLICY_ON_ERROR = 3;
+      POLICY_ON_TRANSIENT_ERROR = 4;
+    }
+    Policy policy = 5;
   }
 
   // User-configured task-level retry.

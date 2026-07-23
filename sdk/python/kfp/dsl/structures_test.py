@@ -25,6 +25,7 @@ from kfp import dsl
 from kfp.dsl import component_factory
 from kfp.dsl import placeholders
 from kfp.dsl import structures
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
     implementation:
@@ -914,6 +915,34 @@ class TestRetryPolicy(unittest.TestCase):
         self.assertEqual(retry_policy_proto.backoff_factor, 1.5)
         self.assertEqual(retry_policy_proto.backoff_max_duration.seconds,
                          1209600)
+
+    def test_to_proto_with_policy(self):
+        _Policy = pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy.Policy
+        retry_policy_struct = structures.RetryPolicy(
+            max_retry_count=2, policy='OnError')
+        retry_policy_proto = retry_policy_struct.to_proto()
+        self.assertEqual(retry_policy_proto.max_retry_count, 2)
+        self.assertEqual(retry_policy_proto.policy, _Policy.POLICY_ON_ERROR)
+
+    def test_to_proto_policy_unspecified_by_default(self):
+        _Policy = pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy.Policy
+        retry_policy_struct = structures.RetryPolicy(max_retry_count=1)
+        retry_policy_proto = retry_policy_struct.to_proto()
+        self.assertEqual(retry_policy_proto.policy, _Policy.POLICY_UNSPECIFIED)
+
+    def test_to_proto_all_policy_values(self):
+        _Policy = pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy.Policy
+        expected = {
+            'Always': _Policy.POLICY_ALWAYS,
+            'OnFailure': _Policy.POLICY_ON_FAILURE,
+            'OnError': _Policy.POLICY_ON_ERROR,
+            'OnTransientError': _Policy.POLICY_ON_TRANSIENT_ERROR,
+        }
+        for policy_str, proto_val in expected.items():
+            with self.subTest(policy=policy_str):
+                proto = structures.RetryPolicy(
+                    max_retry_count=1, policy=policy_str).to_proto()
+                self.assertEqual(proto.policy, proto_val)
 
 
 class TestDeserializeV1ComponentYamlDefaults(unittest.TestCase):
