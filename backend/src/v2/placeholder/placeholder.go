@@ -30,7 +30,7 @@ import (
 
 // InputParameterRe matches the complete {{$.inputs.parameters['name']}}
 // placeholder including the surrounding double braces.
-var InputParameterRe = regexp.MustCompile(`\{\{\$\.inputs\.parameters\['(.+?)']}}`)
+var inputParameterRe = regexp.MustCompile(`\{\{\$\.inputs\.parameters\['(.+?)']}}`)
 
 // PbValueToString converts a structpb.Value to its canonical string
 // representation.  It handles STRING, NUMBER (integer and double), BOOLEAN,
