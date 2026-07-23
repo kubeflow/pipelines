@@ -6,6 +6,8 @@ name: CI Scripts Tests
 on:
   pull_request:
     paths:
+      - '.github/actions/create-cluster/**'
+      - '.github/resources/curl-retry/**'
       - '.github/resources/scripts/*.py'
       # The observability shell scripts are covered by Python-driven tests.
       - '.github/resources/scripts/*.sh'
