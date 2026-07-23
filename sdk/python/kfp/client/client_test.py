@@ -58,6 +58,53 @@ class TestValidatePipelineName(parameterized.TestCase):
             client.validate_pipeline_display_name(name)
 
 
+class TestValidatePipelineArguments(unittest.TestCase):
+
+    def test_none_or_empty_arguments_ok(self):
+        client.validate_pipeline_arguments({'a'}, None)
+        client.validate_pipeline_arguments({'a'}, {})
+
+    def test_known_arguments_ok(self):
+        client.validate_pipeline_arguments({'a', 'b'}, {'a': 1, 'b': 2})
+
+    def test_unknown_argument_raises(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r"Unknown argument\(s\): \['ab'\]. Expected pipeline parameters: \['a'\]"
+        ):
+            client.validate_pipeline_arguments({'a'}, {'ab': 5})
+
+    def test_multiple_unknown_sorted(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r"Unknown argument\(s\): \['x', 'z'\]"):
+            client.validate_pipeline_arguments({'a'}, {'z': 1, 'x': 2, 'a': 0})
+
+    def test_create_run_from_pipeline_func_rejects_unknown_before_compile(self):
+        """Issue #13682: typo args should fail immediately."""
+
+        @component
+        def nop(a: int) -> int:
+            return a
+
+        @pipeline(name='arg-validation-pipeline')
+        def my_pipeline(a: int):
+            nop(a=a)
+
+        mock_client = MagicMock(spec=client.Client)
+        # Bind the real method for validation path.
+        mock_client.create_run_from_pipeline_func = (
+            client.Client.create_run_from_pipeline_func.__get__(
+                mock_client, client.Client))
+        mock_client.create_run_from_pipeline_package = MagicMock()
+
+        with self.assertRaisesRegex(ValueError, r"Unknown argument\(s\): \['ab'\]"):
+            mock_client.create_run_from_pipeline_func(
+                my_pipeline, arguments={'ab': 5})
+
+        mock_client.create_run_from_pipeline_package.assert_not_called()
+
+
 class TestOverrideCachingOptions(parameterized.TestCase):
 
     def test_override_caching_of_multiple_components(self):
