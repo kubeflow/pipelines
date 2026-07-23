@@ -1934,14 +1934,14 @@ func TestTransformJSONForBackwardCompatibility(t *testing.T) {
 	assert.Equal(t, input, result)
 }
 
-func TestReadNodeMetricsJSONOrEmpty(t *testing.T) {
+func TestReadNodeMetricsOrNil(t *testing.T) {
 	// No outputs → empty
 	nodeStatus := &workflowapi.NodeStatus{
 		ID:      "node-1",
 		Outputs: nil,
 	}
 	wf := &workflowapi.Workflow{ObjectMeta: metav1.ObjectMeta{Name: "test-wf"}}
-	result, err := readNodeMetricsJSONOrEmpty("run-1", nodeStatus, nil, wf)
+	result, err := readNodeMetricsOrNil("run-1", nodeStatus, nil, wf)
 	assert.Nil(t, err)
 	assert.Empty(t, result)
 
@@ -1952,7 +1952,7 @@ func TestReadNodeMetricsJSONOrEmpty(t *testing.T) {
 			Artifacts: nil,
 		},
 	}
-	result, err = readNodeMetricsJSONOrEmpty("run-1", nodeStatus, nil, wf)
+	result, err = readNodeMetricsOrNil("run-1", nodeStatus, nil, wf)
 	assert.Nil(t, err)
 	assert.Empty(t, result)
 
@@ -1965,7 +1965,7 @@ func TestReadNodeMetricsJSONOrEmpty(t *testing.T) {
 			},
 		},
 	}
-	result, err = readNodeMetricsJSONOrEmpty("run-1", nodeStatus, nil, wf)
+	result, err = readNodeMetricsOrNil("run-1", nodeStatus, nil, wf)
 	assert.Nil(t, err)
 	assert.Empty(t, result)
 
@@ -1981,7 +1981,7 @@ func TestReadNodeMetricsJSONOrEmpty(t *testing.T) {
 	mockReadArtifactError := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
 		return nil, fmt.Errorf("connection refused")
 	}
-	result, err = readNodeMetricsJSONOrEmpty("run-1", nodeStatus, mockReadArtifactError, wf)
+	result, err = readNodeMetricsOrNil("run-1", nodeStatus, mockReadArtifactError, wf)
 	assert.NotNil(t, err)
 	assert.Empty(t, result)
 
@@ -1989,7 +1989,7 @@ func TestReadNodeMetricsJSONOrEmpty(t *testing.T) {
 	mockReadArtifactNil := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
 		return nil, nil
 	}
-	result, err = readNodeMetricsJSONOrEmpty("run-1", nodeStatus, mockReadArtifactNil, wf)
+	result, err = readNodeMetricsOrNil("run-1", nodeStatus, mockReadArtifactNil, wf)
 	assert.Nil(t, err)
 	assert.Empty(t, result)
 
@@ -1997,7 +1997,7 @@ func TestReadNodeMetricsJSONOrEmpty(t *testing.T) {
 	mockReadArtifactEmpty := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
 		return &artifactclient.ReadArtifactResponse{Data: []byte{}}, nil
 	}
-	result, err = readNodeMetricsJSONOrEmpty("run-1", nodeStatus, mockReadArtifactEmpty, wf)
+	result, err = readNodeMetricsOrNil("run-1", nodeStatus, mockReadArtifactEmpty, wf)
 	assert.Nil(t, err)
 	assert.Empty(t, result)
 
@@ -2005,7 +2005,7 @@ func TestReadNodeMetricsJSONOrEmpty(t *testing.T) {
 	mockReadArtifactBadTgz := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
 		return &artifactclient.ReadArtifactResponse{Data: []byte("not a tgz file")}, nil
 	}
-	result, err = readNodeMetricsJSONOrEmpty("run-1", nodeStatus, mockReadArtifactBadTgz, wf)
+	result, err = readNodeMetricsOrNil("run-1", nodeStatus, mockReadArtifactBadTgz, wf)
 	assert.NotNil(t, err)
 	assert.Empty(t, result)
 
@@ -2016,9 +2016,11 @@ func TestReadNodeMetricsJSONOrEmpty(t *testing.T) {
 	mockReadArtifactSuccess := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
 		return &artifactclient.ReadArtifactResponse{Data: []byte(tgzContent)}, nil
 	}
-	result, err = readNodeMetricsJSONOrEmpty("run-1", nodeStatus, mockReadArtifactSuccess, wf)
-	assert.Nil(t, err)
-	assert.Equal(t, metricsJSON, result)
+	result, err = readNodeMetricsOrNil("run-1", nodeStatus, mockReadArtifactSuccess, wf)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	assert.Equal(t, "accuracy", result[0].GetName())
+	assert.Equal(t, 0.95, result[0].GetNumberValue())
 }
 
 func TestCollectNodeMetricsOrNil(t *testing.T) {
@@ -2262,7 +2264,7 @@ func TestCollectionMetrics_MetricsCountLimit(t *testing.T) {
 	assert.Empty(t, partialFailures)
 }
 
-func TestReadNodeMetricsJSONOrEmpty_MultipleTgzFiles(t *testing.T) {
+func TestReadNodeMetricsOrNil_MultipleTgzFiles(t *testing.T) {
 	// Multiple files in tgz → error
 	tgzContent, err := ArchiveTgz(map[string]string{
 		"file1.json": "content1",
@@ -2283,9 +2285,32 @@ func TestReadNodeMetricsJSONOrEmpty_MultipleTgzFiles(t *testing.T) {
 	mockReadArtifact := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
 		return &artifactclient.ReadArtifactResponse{Data: []byte(tgzContent)}, nil
 	}
-	result, err := readNodeMetricsJSONOrEmpty("run-1", nodeStatus, mockReadArtifact, wf)
+	result, err := readNodeMetricsOrNil("run-1", nodeStatus, mockReadArtifact, wf)
 	assert.NotNil(t, err)
 	assert.Empty(t, result)
+}
+
+func TestReadNodeMetricsOrNil_UsesConfiguredByteLimit(t *testing.T) {
+	t.Setenv(MaxMetricsFileBytesEnvVar, "32")
+	metricsJSON := `{"metrics":[{"name":"accuracy","number_value":0.95}]}`
+	tgzContent, err := ArchiveTgz(map[string]string{"metrics.json": metricsJSON})
+	require.NoError(t, err)
+
+	nodeStatus := &workflowapi.NodeStatus{
+		ID: "node-1",
+		Outputs: &workflowapi.Outputs{
+			Artifacts: []workflowapi.Artifact{{Name: metricsArtifactName}},
+		},
+	}
+	workflow := &workflowapi.Workflow{ObjectMeta: metav1.ObjectMeta{Name: "test-wf"}}
+	readArtifact := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
+		return &artifactclient.ReadArtifactResponse{Data: []byte(tgzContent)}, nil
+	}
+
+	metrics, err := readNodeMetricsOrNil("run-1", nodeStatus, readArtifact, workflow)
+
+	assert.Nil(t, metrics)
+	assert.ErrorContains(t, err, "exceeds maximum size of 32 bytes")
 }
 
 func TestWorkflow_SetExecutionName(t *testing.T) {
