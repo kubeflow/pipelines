@@ -15,7 +15,6 @@ package argocompiler
 
 import (
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 
@@ -596,6 +595,11 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
 	}
+	args = append(args,
+		"--log_level", pipelineLogLevelArg(),
+		"--publish_logs", publishLogsArg(),
+	)
+
 	if c.mlPipelineTLSEnabled {
 		args = append(args, "--ml_pipeline_tls_enabled")
 	}
@@ -608,13 +612,6 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
 		args = append(args, "--ca_cert_path", common.CustomCaCertPath)
 		setCABundle = true
-	}
-
-	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
-	}
-	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
 	}
 
 	template := &wfapi.Template{

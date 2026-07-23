@@ -130,6 +130,25 @@ func GetLauncherCommand() []string {
 	return strings.Split(launcherCommand, " ")
 }
 
+// pipelineLogLevelArg resolves the log level from the environment, defaulting
+// to "1". The driver requires --log_level, so the compiler always emits it
+// rather than conditionally omitting the flag.
+func pipelineLogLevelArg() string {
+	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
+		return value
+	}
+	return "1"
+}
+
+// publishLogsArg resolves whether to publish component logs from the
+// environment, defaulting to "true".
+func publishLogsArg() string {
+	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
+		return value
+	}
+	return "true"
+}
+
 func GetPipelineRunAsUser() *int64 {
 	runAsUserStr := os.Getenv(PipelineRunAsUserEnvVar)
 	if runAsUserStr == "" {
@@ -218,6 +237,11 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
 	}
+	args = append(args,
+		"--log_level", pipelineLogLevelArg(),
+		"--publish_logs", publishLogsArg(),
+	)
+
 	if c.mlPipelineTLSEnabled {
 		args = append(args, "--ml_pipeline_tls_enabled")
 	}
@@ -232,12 +256,6 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		setCABundle = true
 	}
 
-	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
-	}
-	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
-	}
 	if c.defaultRunAsUser != nil {
 		args = append(args, "--default_run_as_user", strconv.FormatInt(*c.defaultRunAsUser, 10))
 	}
