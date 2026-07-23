@@ -13,18 +13,77 @@
 // limitations under the License.
 
 import { Node } from '@xyflow/react';
-import { FlowElementDataBase } from 'src/components/graph/Constants';
+import { ArtifactFlowElementData, FlowElementDataBase } from 'src/components/graph/Constants';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
 import {
   getNodeMlmdInfo,
+  ITERATION_INDEX_KEY,
   PARENT_DAG_ID_KEY,
   TASK_NAME_KEY,
   updateFlowElementsState,
 } from './DynamicFlow';
-import { convertFlowElements, getTaskKeyFromNodeKey, NodeTypeNames } from './StaticFlow';
+import {
+  convertFlowElements,
+  getTaskKeyFromNodeKey,
+  NodeTypeNames,
+  PipelineFlowElement,
+} from './StaticFlow';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 import { load } from 'js-yaml';
+
+function buildExecution(id: number, taskName: string, parentDagId?: number): Execution {
+  const execution = new Execution().setId(id).setLastKnownState(Execution.State.COMPLETE);
+  execution.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue(taskName));
+  if (parentDagId !== undefined) {
+    execution.getCustomPropertiesMap().set(PARENT_DAG_ID_KEY, new Value().setIntValue(parentDagId));
+  }
+  return execution;
+}
+
+function buildIterationExecution(
+  id: number,
+  taskName: string,
+  loopExecutionId: number,
+  iterationIndex: number,
+): Execution {
+  const execution = buildExecution(id, taskName, loopExecutionId);
+  execution
+    .getCustomPropertiesMap()
+    .set(ITERATION_INDEX_KEY, new Value().setIntValue(iterationIndex));
+  return execution;
+}
+
+function buildOutputEvent(executionId: number, artifactId: number, artifactName: string): Event {
+  return new Event()
+    .setExecutionId(executionId)
+    .setArtifactId(artifactId)
+    .setType(Event.Type.OUTPUT)
+    .setPath(new Event.Path().setStepsList([new Event.Path.Step().setKey(artifactName)]));
+}
+
+function buildSubDagOutputNode(
+  subDagTaskName: string,
+  producerSubtask: string,
+  outputArtifactKey: string,
+): Node<ArtifactFlowElementData> {
+  return {
+    id: `artifact.${subDagTaskName}.${outputArtifactKey}`,
+    data: {
+      label: `${subDagTaskName}.${outputArtifactKey}`,
+      producerSubtask,
+      outputArtifactKey,
+    },
+    type: NodeTypeNames.ARTIFACT,
+    position: { x: 1, y: 2 },
+  };
+}
+
+function buildRootGraph(): PipelineFlowElement[] {
+  const yamlObject = load(v2YamlTemplateString);
+  const pipelineSpec = PipelineSpec.fromJSON(yamlObject);
+  return convertFlowElements(pipelineSpec);
+}
 
 describe('DynamicFlow', () => {
   describe('updateFlowElementsState', () => {
@@ -209,6 +268,13 @@ describe('DynamicFlow', () => {
     it('artifact found', () => {
       const elem: Node<FlowElementDataBase> = {
         id: 'artifact.exec.arti',
+        // updateFlowElementsState stamps the resolved artifact id + producer execution id
+        // onto the node; the side panel resolves by those rather than by (task_name,
+        // artifact_name).
+        data: {
+          mlmdId: 2,
+          producerExecutionId: 1,
+        },
         type: NodeTypeNames.ARTIFACT,
         position: { x: 1, y: 2 },
       };
@@ -228,6 +294,277 @@ describe('DynamicFlow', () => {
 
       const nodeMlmdInfo = getNodeMlmdInfo(elem, [execution], [event], [artifact]);
       expect(nodeMlmdInfo).toEqual({ execution, linkedArtifact: { event, artifact } });
+    });
+  });
+
+  describe('sibling sub-DAGs producing same-named artifacts', () => {
+    // Regression test for artifact nodes surfacing the wrong producer: when the same
+    // component runs in two sibling sub-DAGs (differing only by an input parameter), both
+    // executions share a task_name and emit an artifact with the same name. The node must
+    // resolve to the producer in the DAG being viewed, not to whichever OUTPUT event was
+    // processed last.
+    const ROOT_EXECUTION_ID = 2;
+    const SIBLING_DAG_EXECUTION_ID = 999;
+    const OTHER_SIBLING_DAG_EXECUTION_ID = 998;
+    const ARTIFACT_NODE_ID = 'artifact.preprocess.output_dataset_one';
+
+    const rootExecution = buildExecution(ROOT_EXECUTION_ID, '');
+    const currentDagProducer = buildExecution(3, 'preprocess', ROOT_EXECUTION_ID);
+    const siblingDagProducer = buildExecution(30, 'preprocess', SIBLING_DAG_EXECUTION_ID);
+
+    const currentDagArtifact = new Artifact().setId(1).setState(Artifact.State.LIVE);
+    const siblingDagArtifact = new Artifact().setId(100).setState(Artifact.State.DELETED);
+
+    // The sibling event is listed last on purpose: the previous name-keyed map kept the
+    // last write, so before the fix the node resolved to the sibling's artifact.
+    const events = [
+      buildOutputEvent(3, 1, 'output_dataset_one'),
+      buildOutputEvent(30, 100, 'output_dataset_one'),
+    ];
+    const executions = [rootExecution, currentDagProducer, siblingDagProducer];
+    const artifacts = [currentDagArtifact, siblingDagArtifact];
+
+    it('stamps the current DAG artifact id onto the node', () => {
+      const graph = updateFlowElementsState(
+        ['root'],
+        buildRootGraph(),
+        executions,
+        events,
+        artifacts,
+      );
+      const artifactNode = graph.find((element) => element.id === ARTIFACT_NODE_ID);
+      expect(artifactNode?.data.mlmdId).toEqual(currentDagArtifact.getId());
+      expect(artifactNode?.data.producerExecutionId).toEqual(currentDagProducer.getId());
+    });
+
+    it('resolves the side panel to the current DAG producer', () => {
+      const graph = updateFlowElementsState(
+        ['root'],
+        buildRootGraph(),
+        executions,
+        events,
+        artifacts,
+      );
+      const artifactNode = graph.find((element) => element.id === ARTIFACT_NODE_ID)!;
+      const nodeMlmdInfo = getNodeMlmdInfo(artifactNode, executions, events, artifacts);
+      expect(nodeMlmdInfo.execution).toEqual(currentDagProducer);
+      expect(nodeMlmdInfo.linkedArtifact?.artifact).toEqual(currentDagArtifact);
+    });
+
+    it('leaves the node unresolved while the producer in this DAG has no output yet', () => {
+      // The producer in the DAG being viewed is still running, so its artifact does not
+      // exist and the sibling's namesake is the only candidate. Being the only candidate is
+      // not evidence of ownership.
+      const pendingProducer = buildExecution(3, 'preprocess', ROOT_EXECUTION_ID).setLastKnownState(
+        Execution.State.RUNNING,
+      );
+      const pendingExecutions = [rootExecution, pendingProducer, siblingDagProducer];
+      const siblingEvents = [buildOutputEvent(30, 100, 'output_dataset_one')];
+      const siblingArtifacts = [siblingDagArtifact];
+
+      const graph = updateFlowElementsState(
+        ['root'],
+        buildRootGraph(),
+        pendingExecutions,
+        siblingEvents,
+        siblingArtifacts,
+      );
+      const artifactNode = graph.find((element) => element.id === ARTIFACT_NODE_ID)!;
+
+      expect(artifactNode.data.mlmdId).toBeUndefined();
+      expect(artifactNode.data.producerExecutionId).toBeUndefined();
+      expect(
+        getNodeMlmdInfo(artifactNode, pendingExecutions, siblingEvents, siblingArtifacts),
+      ).toEqual({});
+    });
+
+    it('leaves the node unresolved when every candidate belongs to another DAG', () => {
+      const otherSiblingProducer = buildExecution(31, 'preprocess', OTHER_SIBLING_DAG_EXECUTION_ID);
+      const otherSiblingArtifact = new Artifact().setId(101).setState(Artifact.State.LIVE);
+      const foreignExecutions = [rootExecution, siblingDagProducer, otherSiblingProducer];
+      const foreignEvents = [
+        buildOutputEvent(30, 100, 'output_dataset_one'),
+        buildOutputEvent(31, 101, 'output_dataset_one'),
+      ];
+      const foreignArtifacts = [siblingDagArtifact, otherSiblingArtifact];
+
+      const graph = updateFlowElementsState(
+        ['root'],
+        buildRootGraph(),
+        foreignExecutions,
+        foreignEvents,
+        foreignArtifacts,
+      );
+      const artifactNode = graph.find((element) => element.id === ARTIFACT_NODE_ID)!;
+
+      expect(artifactNode.data.mlmdId).toBeUndefined();
+      expect(
+        getNodeMlmdInfo(artifactNode, foreignExecutions, foreignEvents, foreignArtifacts),
+      ).toEqual({});
+    });
+  });
+
+  describe('artifact with multiple OUTPUT events (same-run cache hit)', () => {
+    // A cached execution republishes an existing artifact in the same run, so one artifact
+    // id can have several OUTPUT events. getNodeMlmdInfo must return the producer the node
+    // was stamped with, not merely the first event referencing the artifact id.
+    it('resolves getNodeMlmdInfo by the stamped producer execution', () => {
+      const artifact = new Artifact().setId(7).setState(Artifact.State.LIVE);
+      const originalProducer = buildExecution(3, 'report');
+      const cachedProducer = buildExecution(4, 'report').setLastKnownState(Execution.State.CACHED);
+
+      // Both events point at the same artifact id; the original is listed first.
+      const events = [
+        new Event().setExecutionId(3).setArtifactId(7).setType(Event.Type.OUTPUT),
+        new Event().setExecutionId(4).setArtifactId(7).setType(Event.Type.OUTPUT),
+      ];
+
+      const elem: Node<FlowElementDataBase> = {
+        id: 'artifact.report.out',
+        data: { label: 'out', mlmdId: 7, producerExecutionId: 4 },
+        type: NodeTypeNames.ARTIFACT,
+        position: { x: 1, y: 2 },
+      };
+
+      const nodeMlmdInfo = getNodeMlmdInfo(elem, [originalProducer, cachedProducer], events, [
+        artifact,
+      ]);
+      expect(nodeMlmdInfo.execution).toEqual(cachedProducer);
+      expect(nodeMlmdInfo.linkedArtifact?.event.getExecutionId()).toEqual(4);
+    });
+  });
+
+  describe('sub-DAG output artifacts', () => {
+    // A sub-DAG output artifact is produced by an inner subtask one layer below the node.
+    // Two sibling sub-DAG tasks of the same component share the inner (task, artifact)
+    // name, so each output node must resolve to its own sub-DAG's execution.
+    const rootExecution = buildExecution(1, '');
+    const subDagA = buildExecution(10, 'shap_a', 1);
+    const subDagB = buildExecution(11, 'shap_b', 1);
+    const innerProducerA = buildExecution(20, 'create_report', 10);
+    const innerProducerB = buildExecution(21, 'create_report', 11);
+
+    const artifactA = new Artifact().setId(100).setState(Artifact.State.LIVE);
+    const artifactB = new Artifact().setId(200).setState(Artifact.State.LIVE);
+
+    // innerProducerA is listed first: pre-fix, both sibling nodes fell back to it.
+    const events = [buildOutputEvent(20, 100, 'report'), buildOutputEvent(21, 200, 'report')];
+    const executions = [rootExecution, subDagA, subDagB, innerProducerA, innerProducerB];
+    const artifacts = [artifactA, artifactB];
+
+    it('scopes each output node to its own sub-DAG execution', () => {
+      const graph = updateFlowElementsState(
+        ['root'],
+        [
+          buildSubDagOutputNode('shap_a', 'create_report', 'report'),
+          buildSubDagOutputNode('shap_b', 'create_report', 'report'),
+        ],
+        executions,
+        events,
+        artifacts,
+      );
+
+      const nodeA = graph.find((element) => element.id === 'artifact.shap_a.report')!;
+      const nodeB = graph.find((element) => element.id === 'artifact.shap_b.report')!;
+      expect(nodeA.data.mlmdId).toEqual(artifactA.getId());
+      expect(nodeB.data.mlmdId).toEqual(artifactB.getId());
+      expect(getNodeMlmdInfo(nodeA, executions, events, artifacts).execution).toEqual(
+        innerProducerA,
+      );
+      expect(getNodeMlmdInfo(nodeB, executions, events, artifacts).execution).toEqual(
+        innerProducerB,
+      );
+    });
+
+    it('leaves the output node unresolved when its sub-DAG has not started', () => {
+      // shap_a has no execution yet, so no sub-DAG scopes the lookup of the inner producer.
+      // The sibling's inner artifact must not stand in for it.
+      const startedExecutions = [rootExecution, subDagB, innerProducerB];
+      const startedEvents = [buildOutputEvent(21, 200, 'report')];
+      const startedArtifacts = [artifactB];
+
+      const graph = updateFlowElementsState(
+        ['root'],
+        [buildSubDagOutputNode('shap_a', 'create_report', 'report')],
+        startedExecutions,
+        startedEvents,
+        startedArtifacts,
+      );
+      const artifactNode = graph.find((element) => element.id === 'artifact.shap_a.report')!;
+
+      expect(artifactNode.data.mlmdId).toBeUndefined();
+      expect(artifactNode.data.producerExecutionId).toBeUndefined();
+      expect(
+        getNodeMlmdInfo(artifactNode, startedExecutions, startedEvents, startedArtifacts),
+      ).toEqual({});
+    });
+  });
+
+  describe('ParallelFor output artifacts', () => {
+    // A ParallelFor collects its output from the per-iteration executions, so the producer
+    // sits two layers below the node's task: iteration execution, then the task inside it.
+    const rootExecution = buildExecution(1, '');
+    const loopExecution = buildExecution(10, 'for-loop-2', 1);
+    const firstIteration = buildIterationExecution(20, 'for-loop-2', 10, 0);
+    const secondIteration = buildIterationExecution(21, 'for-loop-2', 10, 1);
+    const firstIterationProducer = buildExecution(30, 'create_report', 20);
+    const secondIterationProducer = buildExecution(31, 'create_report', 21);
+
+    const firstIterationArtifact = new Artifact().setId(300).setState(Artifact.State.LIVE);
+    const secondIterationArtifact = new Artifact().setId(301).setState(Artifact.State.LIVE);
+
+    // The second iteration is listed first, so passing requires reading the iteration index
+    // rather than taking whichever OUTPUT event comes first.
+    const events = [buildOutputEvent(31, 301, 'report'), buildOutputEvent(30, 300, 'report')];
+    const executions = [
+      rootExecution,
+      loopExecution,
+      firstIteration,
+      secondIteration,
+      firstIterationProducer,
+      secondIterationProducer,
+    ];
+    const artifacts = [firstIterationArtifact, secondIterationArtifact];
+
+    it('resolves the loop output node to the lowest iteration producer', () => {
+      const graph = updateFlowElementsState(
+        ['root'],
+        [buildSubDagOutputNode('for-loop-2', 'create_report', 'report')],
+        executions,
+        events,
+        artifacts,
+      );
+      const artifactNode = graph.find((element) => element.id === 'artifact.for-loop-2.report')!;
+
+      expect(artifactNode.data.mlmdId).toEqual(firstIterationArtifact.getId());
+      expect(artifactNode.data.producerExecutionId).toEqual(firstIterationProducer.getId());
+
+      const nodeMlmdInfo = getNodeMlmdInfo(artifactNode, executions, events, artifacts);
+      expect(nodeMlmdInfo.execution).toEqual(firstIterationProducer);
+      expect(nodeMlmdInfo.linkedArtifact?.artifact).toEqual(firstIterationArtifact);
+    });
+
+    it('leaves the loop output node unresolved when no iteration produced it', () => {
+      // The producer ran outside this loop, so no iteration of the loop owns the artifact.
+      const foreignProducer = buildExecution(40, 'create_report', 999);
+      const foreignArtifact = new Artifact().setId(400).setState(Artifact.State.LIVE);
+      const foreignExecutions = [rootExecution, loopExecution, firstIteration, foreignProducer];
+      const foreignEvents = [buildOutputEvent(40, 400, 'report')];
+      const foreignArtifacts = [foreignArtifact];
+
+      const graph = updateFlowElementsState(
+        ['root'],
+        [buildSubDagOutputNode('for-loop-2', 'create_report', 'report')],
+        foreignExecutions,
+        foreignEvents,
+        foreignArtifacts,
+      );
+      const artifactNode = graph.find((element) => element.id === 'artifact.for-loop-2.report')!;
+
+      expect(artifactNode.data.mlmdId).toBeUndefined();
+      expect(
+        getNodeMlmdInfo(artifactNode, foreignExecutions, foreignEvents, foreignArtifacts),
+      ).toEqual({});
     });
   });
 });
