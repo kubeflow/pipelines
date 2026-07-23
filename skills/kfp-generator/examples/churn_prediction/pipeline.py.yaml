@@ -1,0 +1,310 @@
+# PIPELINE DEFINITION
+# Name: customer-churn-prediction-pipeline
+# Description: A production-grade v2 customer churn prediction pipeline.
+# Inputs:
+#    learning_rate: float [Default: 0.3]
+#    max_depth: int [Default: 6.0]
+#    n_estimators: int [Default: 100.0]
+#    num_samples: int [Default: 1000.0]
+components:
+  comp-evaluate-and-validate:
+    executorLabel: exec-evaluate-and-validate
+    inputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+          description: Input model artifact.
+        test_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          description: Input testing dataset.
+    outputDefinitions:
+      artifacts:
+        metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+  comp-load-churn-data:
+    executorLabel: exec-load-churn-data
+    inputDefinitions:
+      parameters:
+        num_samples:
+          description: Number of synthetic customer records to generate.
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        test_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        train_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-train-xgboost-model:
+    executorLabel: exec-train-xgboost-model
+    inputDefinitions:
+      artifacts:
+        train_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          description: Input training dataset.
+      parameters:
+        learning_rate:
+          defaultValue: 0.3
+          description: Boosting learning rate.
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        max_depth:
+          defaultValue: 6.0
+          description: Maximum tree depth.
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        n_estimators:
+          defaultValue: 100.0
+          description: Number of boosting rounds.
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-evaluate-and-validate:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - evaluate_and_validate
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas' 'scikit-learn'\
+          \ 'xgboost'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.16.1' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef evaluate_and_validate(\n    test_dataset: Input[Dataset],\n \
+          \   model: Input[Model],\n    metrics: Output[Metrics]\n):\n    \"\"\"Computes\
+          \ ROC-AUC, Precision, and Recall metrics, exporting them into a native KFP\
+          \ Metrics artifact.\n\n    Args:\n        test_dataset: Input testing dataset.\n\
+          \        model: Input model artifact.\n        metrics: Output KFP metrics\
+          \ artifact to record evaluations.\n    \"\"\"\n    import pickle\n    import\
+          \ pandas as pd\n    from sklearn.metrics import roc_auc_score, precision_score,\
+          \ recall_score\n\n    # Load test dataset\n    test_df = pd.read_csv(test_dataset.path)\n\
+          \    X_test = test_df.drop(columns=['churn'])\n    y_test = test_df['churn']\n\
+          \n    # Load model\n    with open(model.path, 'rb') as f:\n        clf =\
+          \ pickle.load(f)\n\n    # Predictions and probabilities\n    y_pred = clf.predict(X_test)\n\
+          \    y_prob = clf.predict_proba(X_test)[:, 1]\n\n    # Compute metrics\n\
+          \    roc_auc = float(roc_auc_score(y_test, y_prob))\n    precision = float(precision_score(y_test,\
+          \ y_pred))\n    recall = float(recall_score(y_test, y_pred))\n\n    # Log\
+          \ metrics to native KFP Metrics artifact\n    metrics.log_metric('roc_auc',\
+          \ roc_auc)\n    metrics.log_metric('precision', precision)\n    metrics.log_metric('recall',\
+          \ recall)\n\n"
+        image: python:3.9
+    exec-load-churn-data:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - load_churn_data
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas' 'scikit-learn'\
+          \  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef load_churn_data(\n    num_samples: int,\n    train_dataset: Output[Dataset],\n\
+          \    test_dataset: Output[Dataset]\n):\n    \"\"\"Ingests raw tabular customer\
+          \ churn data, scales continuous features dynamically,\n    and performs\
+          \ a stratified train/test split.\n\n    Args:\n        num_samples: Number\
+          \ of synthetic customer records to generate.\n        train_dataset: Output\
+          \ path for scaled training dataset.\n        test_dataset: Output path for\
+          \ scaled testing dataset.\n    \"\"\"\n    import pandas as pd\n    import\
+          \ numpy as np\n    from sklearn.model_selection import train_test_split\n\
+          \    from sklearn.preprocessing import StandardScaler\n\n    # Generate\
+          \ synthetic tabular customer churn data\n    np.random.seed(42)\n    data\
+          \ = {\n        'tenure': np.random.randint(1, 72, size=num_samples),\n \
+          \       'monthly_charges': np.random.uniform(20.0, 120.0, size=num_samples),\n\
+          \        'total_charges': np.random.uniform(20.0, 8000.0, size=num_samples),\n\
+          \        'support_calls': np.random.randint(0, 10, size=num_samples),\n\
+          \        'payment_delay': np.random.randint(0, 30, size=num_samples),\n\
+          \    }\n    df = pd.DataFrame(data)\n\n    # Generate target 'churn' based\
+          \ on features to simulate relationship\n    # Higher support calls, payment\
+          \ delays, and monthly charges increase churn risk\n    churn_prob = (\n\
+          \        0.1 * df['support_calls'] + \n        0.05 * df['payment_delay']\
+          \ + \n        0.005 * df['monthly_charges'] - \n        0.02 * df['tenure']\n\
+          \    )\n    # Map probability to binary labels using sigmoid and threshold\n\
+          \    probs = 1 / (1 + np.exp(-churn_prob))\n    df['churn'] = (probs > 0.5).astype(int)\n\
+          \n    # Continuous features to scale\n    continuous_cols = ['tenure', 'monthly_charges',\
+          \ 'total_charges', 'support_calls', 'payment_delay']\n\n    # Stratified\
+          \ train/test split\n    train_df, test_df = train_test_split(\n        df,\
+          \ test_size=0.2, stratify=df['churn'], random_state=42\n    )\n\n    # Scale\
+          \ continuous features using StandardScaler\n    scaler = StandardScaler()\n\
+          \    train_df[continuous_cols] = scaler.fit_transform(train_df[continuous_cols])\n\
+          \    test_df[continuous_cols] = scaler.transform(test_df[continuous_cols])\n\
+          \n    # Write out to output dataset paths\n    train_df.to_csv(train_dataset.path,\
+          \ index=False)\n    test_df.to_csv(test_dataset.path, index=False)\n\n"
+        image: python:3.9
+    exec-train-xgboost-model:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - train_xgboost_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas' 'scikit-learn'\
+          \ 'xgboost'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.16.1' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef train_xgboost_model(\n    train_dataset: Input[Dataset],\n  \
+          \  model: Output[Model],\n    n_estimators: int = 100,\n    max_depth: int\
+          \ = 6,\n    learning_rate: float = 0.3\n):\n    \"\"\"Fits an XGBoost classifier\
+          \ on the preprocessed training split, tracking tuning parameters.\n\n  \
+          \  Args:\n        train_dataset: Input training dataset.\n        model:\
+          \ Output model artifact path.\n        n_estimators: Number of boosting\
+          \ rounds.\n        max_depth: Maximum tree depth.\n        learning_rate:\
+          \ Boosting learning rate.\n    \"\"\"\n    import pickle\n    import pandas\
+          \ as pd\n    from xgboost import XGBClassifier\n\n    # Load the preprocessed\
+          \ training dataset\n    train_df = pd.read_csv(train_dataset.path)\n\n \
+          \   # Split features and label\n    X_train = train_df.drop(columns=['churn'])\n\
+          \    y_train = train_df['churn']\n\n    # Initialize and fit XGBoost classifier\n\
+          \    clf = XGBClassifier(\n        n_estimators=n_estimators,\n        max_depth=max_depth,\n\
+          \        learning_rate=learning_rate,\n        random_state=42,\n      \
+          \  use_label_encoder=False,\n        eval_metric='logloss'\n    )\n    clf.fit(X_train,\
+          \ y_train)\n\n    # Save the optimized model artifact using a serialized\
+          \ format (pickle)\n    with open(model.path, 'wb') as f:\n        pickle.dump(clf,\
+          \ f)\n\n    # Track tuning parameters in model metadata\n    model.metadata['n_estimators']\
+          \ = n_estimators\n    model.metadata['max_depth'] = max_depth\n    model.metadata['learning_rate']\
+          \ = learning_rate\n    model.metadata['framework'] = 'xgboost'\n\n"
+        image: python:3.9
+pipelineInfo:
+  description: A production-grade v2 customer churn prediction pipeline.
+  name: customer-churn-prediction-pipeline
+root:
+  dag:
+    tasks:
+      evaluate-and-validate:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-evaluate-and-validate
+        dependentTasks:
+        - load-churn-data
+        - train-xgboost-model
+        inputs:
+          artifacts:
+            model:
+              taskOutputArtifact:
+                outputArtifactKey: model
+                producerTask: train-xgboost-model
+            test_dataset:
+              taskOutputArtifact:
+                outputArtifactKey: test_dataset
+                producerTask: load-churn-data
+        taskInfo:
+          name: evaluate-and-validate
+      load-churn-data:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-load-churn-data
+        inputs:
+          parameters:
+            num_samples:
+              componentInputParameter: num_samples
+        taskInfo:
+          name: load-churn-data
+      train-xgboost-model:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-train-xgboost-model
+        dependentTasks:
+        - load-churn-data
+        inputs:
+          artifacts:
+            train_dataset:
+              taskOutputArtifact:
+                outputArtifactKey: train_dataset
+                producerTask: load-churn-data
+          parameters:
+            learning_rate:
+              componentInputParameter: learning_rate
+            max_depth:
+              componentInputParameter: max_depth
+            n_estimators:
+              componentInputParameter: n_estimators
+        taskInfo:
+          name: train-xgboost-model
+  inputDefinitions:
+    parameters:
+      learning_rate:
+        defaultValue: 0.3
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      max_depth:
+        defaultValue: 6.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      n_estimators:
+        defaultValue: 100.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      num_samples:
+        defaultValue: 1000.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.16.1

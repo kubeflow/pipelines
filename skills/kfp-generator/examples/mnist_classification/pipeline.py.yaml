@@ -1,0 +1,343 @@
+# PIPELINE DEFINITION
+# Name: mnist-classification-pipeline
+# Description: A pipeline that downloads MNIST, preprocesses the data, trains a Random Forest model, and evaluates it.
+# Inputs:
+#    n_estimators: int [Default: 50.0]
+#    random_state: int [Default: 42.0]
+#    test_size: float [Default: 0.2]
+components:
+  comp-download-mnist-dataset:
+    executorLabel: exec-download-mnist-dataset
+    outputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-evaluate-mnist-classifier:
+    executorLabel: exec-evaluate-mnist-classifier
+    inputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+        test_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-preprocess-mnist-dataset:
+    executorLabel: exec-preprocess-mnist-dataset
+    inputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        random_state:
+          defaultValue: 42.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        test_size:
+          defaultValue: 0.2
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+    outputDefinitions:
+      artifacts:
+        test_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        train_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-train-mnist-classifier:
+    executorLabel: exec-train-mnist-classifier
+    inputDefinitions:
+      artifacts:
+        train_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        n_estimators:
+          defaultValue: 50.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        random_state:
+          defaultValue: 42.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-download-mnist-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - download_mnist_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'scikit-learn'\
+          \ 'numpy' 'joblib'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.16.1' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef download_mnist_dataset(\n    dataset: dsl.Output[dsl.Dataset],\n\
+          ):\n    \"\"\"Downloads the MNIST dataset from OpenML and persists it as\
+          \ an artifact.\"\"\"\n    import joblib\n    from sklearn.datasets import\
+          \ fetch_openml\n\n    # Fetch MNIST dataset (784 features, 28x28 images)\n\
+          \    # Using as_frame=False to get numpy arrays directly\n    mnist = fetch_openml('mnist_784',\
+          \ version=1, as_frame=False, parser='liac-arff')\n\n    joblib.dump(\n \
+          \       {\n            'data': mnist.data,\n            'target': mnist.target,\n\
+          \        },\n        dataset.path,\n    )\n\n"
+        image: python:3.11
+    exec-evaluate-mnist-classifier:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - evaluate_mnist_classifier
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'scikit-learn'\
+          \ 'numpy' 'joblib'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.16.1' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef evaluate_mnist_classifier(\n    test_dataset: dsl.Input[dsl.Dataset],\n\
+          \    model: dsl.Input[dsl.Model],\n    metrics: dsl.Output[dsl.Metrics],\n\
+          ) -> str:\n    \"\"\"Evaluates the trained model on test data, logging metrics\
+          \ and returning a report string.\"\"\"\n    import joblib\n    from sklearn.metrics\
+          \ import accuracy_score, precision_score, recall_score, classification_report\n\
+          \n    test_data = joblib.load(test_dataset.path)\n    X_test = test_data['X']\n\
+          \    y_test = test_data['y']\n\n    clf = joblib.load(model.path)\n    y_pred\
+          \ = clf.predict(X_test)\n\n    # Compute metrics\n    accuracy = accuracy_score(y_test,\
+          \ y_pred)\n    precision = precision_score(y_test, y_pred, average='macro')\n\
+          \    recall = recall_score(y_test, y_pred, average='macro')\n\n    # Log\
+          \ metrics to KFP Metrics artifact\n    metrics.log_metric('accuracy', float(accuracy))\n\
+          \    metrics.log_metric('precision', float(precision))\n    metrics.log_metric('recall',\
+          \ float(recall))\n\n    # Generate classification report\n    report_str\
+          \ = classification_report(y_test, y_pred)\n\n    evaluation_report = (\n\
+          \        \"MNIST Classification Evaluation Report\\n\"\n        \"======================================\\\
+          n\"\n        f\"Accuracy:  {accuracy:.4f}\\n\"\n        f\"Precision (macro):\
+          \ {precision:.4f}\\n\"\n        f\"Recall (macro):    {recall:.4f}\\n\\\
+          n\"\n        \"Detailed Classification Report:\\n\"\n        f\"{report_str}\"\
+          \n    )\n\n    return evaluation_report\n\n"
+        image: python:3.11
+    exec-preprocess-mnist-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - preprocess_mnist_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'scikit-learn'\
+          \ 'numpy' 'joblib'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.16.1' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef preprocess_mnist_dataset(\n    dataset: dsl.Input[dsl.Dataset],\n\
+          \    train_dataset: dsl.Output[dsl.Dataset],\n    test_dataset: dsl.Output[dsl.Dataset],\n\
+          \    test_size: float = 0.2,\n    random_state: int = 42,\n):\n    \"\"\"\
+          Normalizes the image data to [0, 1], flattens them, and splits into train\
+          \ and test sets.\"\"\"\n    import joblib\n    from sklearn.model_selection\
+          \ import train_test_split\n\n    loaded = joblib.load(dataset.path)\n  \
+          \  data = loaded['data']\n    target = loaded['target']\n\n    # Normalize\
+          \ image pixel values from [0, 255] to [0, 1]\n    normalized_data = data\
+          \ / 255.0\n\n    # Ensure the data is flattened (MNIST is already flat 784,\
+          \ but we reshape to be explicit)\n    num_samples = normalized_data.shape[0]\n\
+          \    flattened_data = normalized_data.reshape((num_samples, -1))\n\n   \
+          \ X_train, X_test, y_train, y_test = train_test_split(\n        flattened_data,\n\
+          \        target,\n        test_size=test_size,\n        random_state=random_state,\n\
+          \        stratify=target,\n    )\n\n    joblib.dump({'X': X_train, 'y':\
+          \ y_train}, train_dataset.path)\n    joblib.dump({'X': X_test, 'y': y_test},\
+          \ test_dataset.path)\n\n"
+        image: python:3.11
+    exec-train-mnist-classifier:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - train_mnist_classifier
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'scikit-learn'\
+          \ 'numpy' 'joblib'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.16.1' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef train_mnist_classifier(\n    train_dataset: dsl.Input[dsl.Dataset],\n\
+          \    model: dsl.Output[dsl.Model],\n    n_estimators: int = 50,\n    random_state:\
+          \ int = 42,\n):\n    \"\"\"Trains a Random Forest classifier on the training\
+          \ MNIST dataset.\"\"\"\n    import joblib\n    from sklearn.ensemble import\
+          \ RandomForestClassifier\n\n    train_data = joblib.load(train_dataset.path)\n\
+          \    X_train = train_data['X']\n    y_train = train_data['y']\n\n    clf\
+          \ = RandomForestClassifier(\n        n_estimators=n_estimators,\n      \
+          \  random_state=random_state,\n        n_jobs=-1,\n    )\n    clf.fit(X_train,\
+          \ y_train)\n\n    joblib.dump(clf, model.path)\n\n"
+        image: python:3.11
+pipelineInfo:
+  description: A pipeline that downloads MNIST, preprocesses the data, trains a Random
+    Forest model, and evaluates it.
+  name: mnist-classification-pipeline
+root:
+  dag:
+    tasks:
+      download-mnist-dataset:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-download-mnist-dataset
+        taskInfo:
+          name: download-mnist-dataset
+      evaluate-mnist-classifier:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-evaluate-mnist-classifier
+        dependentTasks:
+        - preprocess-mnist-dataset
+        - train-mnist-classifier
+        inputs:
+          artifacts:
+            model:
+              taskOutputArtifact:
+                outputArtifactKey: model
+                producerTask: train-mnist-classifier
+            test_dataset:
+              taskOutputArtifact:
+                outputArtifactKey: test_dataset
+                producerTask: preprocess-mnist-dataset
+        taskInfo:
+          name: evaluate-mnist-classifier
+      preprocess-mnist-dataset:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-preprocess-mnist-dataset
+        dependentTasks:
+        - download-mnist-dataset
+        inputs:
+          artifacts:
+            dataset:
+              taskOutputArtifact:
+                outputArtifactKey: dataset
+                producerTask: download-mnist-dataset
+          parameters:
+            random_state:
+              componentInputParameter: random_state
+            test_size:
+              componentInputParameter: test_size
+        taskInfo:
+          name: preprocess-mnist-dataset
+      train-mnist-classifier:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-train-mnist-classifier
+        dependentTasks:
+        - preprocess-mnist-dataset
+        inputs:
+          artifacts:
+            train_dataset:
+              taskOutputArtifact:
+                outputArtifactKey: train_dataset
+                producerTask: preprocess-mnist-dataset
+          parameters:
+            n_estimators:
+              componentInputParameter: n_estimators
+            random_state:
+              componentInputParameter: random_state
+        taskInfo:
+          name: train-mnist-classifier
+  inputDefinitions:
+    parameters:
+      n_estimators:
+        defaultValue: 50.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      random_state:
+        defaultValue: 42.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      test_size:
+        defaultValue: 0.2
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.16.1
