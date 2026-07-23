@@ -1796,14 +1796,14 @@ func (r *ResourceManager) FinalizeReportedWorkflow(ctx context.Context, execSpec
 	if !execStatus.IsInFinalState() {
 		return nil
 	}
-	runId := execSpec.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId]
-	stillMatchesReportedFinalState, err := r.runStillMatchesReportedFinalState(runId, reportedRunState(execSpec), execStatus.FinishedAt())
+	runID := execSpec.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId]
+	stillMatchesReportedFinalState, err := r.runStillMatchesReportedFinalState(runID, reportedRunState(execSpec), execStatus.FinishedAt())
 	if err != nil {
 		return err
 	}
 	if !stillMatchesReportedFinalState {
 		return terminalWorkflowReportDeferredError(
-			runId,
+			runID,
 			execSpec,
 			"run state changed while reporting terminal workflow state",
 		)
@@ -1829,7 +1829,7 @@ func (r *ResourceManager) FinalizeReportedWorkflow(ctx context.Context, execSpec
 	}
 	if !labelAdded {
 		return terminalWorkflowReportDeferredError(
-			runId,
+			runID,
 			execSpec,
 			"workflow resource version changed before persistedFinalState label could be added",
 		)
