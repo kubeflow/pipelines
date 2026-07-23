@@ -20,7 +20,7 @@ spec:
       volumes:
         - name: tls-certs
           secret:
-            secretName: kfp-api-tls-cert
+            secretName: argo-workflows-agent-ca-certificates
         - name: envoy-config-tls-enabled
           configMap:
             name: envoy-config

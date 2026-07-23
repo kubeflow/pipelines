@@ -98,7 +98,8 @@ rules:
   - workfloweventbindings
   - workflowtemplates
   - workflowtaskresults
-
+  - workflowtasksets/status
+  - workflowtasksets
 ---
 
 apiVersion: rbac.authorization.k8s.io/v1

@@ -58,7 +58,7 @@ const (
 
 	// AnnotationKeyRuntimeRole is set on compiled Argo Workflow templates to
 	// identify the logical role of the pod (driver, launcher, etc.).  It is
-	// used by UpsertRuntimeEnvVars to target the right containers.
+	// used by UpsertRuntimeConfig to target the right containers.
 	AnnotationKeyRuntimeRole = "pipelines.kubeflow.org/runtime-role"
 
 	// LabelKeyCacheEnabled is a workflow label key.

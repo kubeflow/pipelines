@@ -15,6 +15,7 @@
 package mlflow
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -27,6 +28,8 @@ import (
 	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // EnvMLflowConfig is the single environment variable injected into Argo
@@ -357,6 +360,94 @@ func ValidateHTTPSBaseURL(rawURL, fieldName string) error {
 		return util.NewInvalidInputError("%s %q must not contain a fragment", fieldName, rawURL)
 	}
 	return nil
+}
+
+// ResolveSecretMLflowCredentials reads the fixed MLflow credentials Secret from
+// namespace and resolves the keys requested by ref for the selected auth type.
+// This is used by the driver executor plugin path because the API server can
+// pass authType/key names in KFP_MLFLOW_CONFIG, but cannot inject SecretKeyRef
+// env vars into the executor plugin container for each run.
+func ResolveSecretMLflowCredentials(ctx context.Context, clientSet kubernetes.Interface, namespace string, ref *commonplugins.CredentialSecretRef, authType string) (MLflowCredentials, error) {
+	if clientSet == nil {
+		return MLflowCredentials{}, util.NewInternalServerError(
+			fmt.Errorf("clientSet is nil"),
+			"Kubernetes clientset must be provided when reading MLflow credentials secret",
+		)
+	}
+	if namespace == "" {
+		return MLflowCredentials{}, util.NewInternalServerError(
+			fmt.Errorf("namespace is empty"),
+			"namespace must be provided when reading MLflow credentials secret",
+		)
+	}
+	if ref == nil {
+		switch authType {
+		case AuthTypeBearer, AuthTypeBasicAuth:
+			return MLflowCredentials{}, util.NewInvalidInputError("credentialSecretRef is required for auth type %q", authType)
+		default:
+			return MLflowCredentials{}, util.NewInvalidInputError("unsupported secret-based MLflow auth type %q", authType)
+		}
+	}
+	secret, err := clientSet.CoreV1().Secrets(namespace).Get(ctx, CredentialSecretName, v1.GetOptions{})
+	if err != nil {
+		return MLflowCredentials{}, util.NewInternalServerError(
+			err,
+			"failed to read MLflow credentials secret %q in namespace %q",
+			CredentialSecretName,
+			namespace,
+		)
+	}
+	switch authType {
+	case AuthTypeBearer:
+		if ref.TokenKey == "" {
+			return MLflowCredentials{}, util.NewInvalidInputError("credentialSecretRef.tokenKey is required for auth type %q", authType)
+		}
+		token, err := readRequiredSecretKey(secret, namespace, ref.TokenKey)
+		if err != nil {
+			return MLflowCredentials{}, err
+		}
+		return MLflowCredentials{AuthType: AuthTypeBearer, BearerToken: token}, nil
+	case AuthTypeBasicAuth:
+		if ref.UsernameKey == "" {
+			return MLflowCredentials{}, util.NewInvalidInputError("credentialSecretRef.usernameKey is required for auth type %q", authType)
+		}
+		if ref.PasswordKey == "" {
+			return MLflowCredentials{}, util.NewInvalidInputError("credentialSecretRef.passwordKey is required for auth type %q", authType)
+		}
+		username, err := readRequiredSecretKey(secret, namespace, ref.UsernameKey)
+		if err != nil {
+			return MLflowCredentials{}, err
+		}
+		password, err := readRequiredSecretKey(secret, namespace, ref.PasswordKey)
+		if err != nil {
+			return MLflowCredentials{}, err
+		}
+		return MLflowCredentials{AuthType: AuthTypeBasicAuth, Username: username, Password: password}, nil
+	default:
+		return MLflowCredentials{}, util.NewInvalidInputError("unsupported secret-based MLflow auth type %q", authType)
+	}
+}
+
+func readRequiredSecretKey(secret *corev1.Secret, namespace, key string) (string, error) {
+	valueBytes, ok := secret.Data[key]
+	if !ok {
+		return "", util.NewInvalidInputError(
+			"secret %q in namespace %q does not contain key %q",
+			CredentialSecretName,
+			namespace,
+			key,
+		)
+	}
+	value := strings.TrimSpace(string(valueBytes))
+	if value == "" {
+		return "", util.NewInvalidInputError(
+			"secret %q in namespace %q has an empty value for key %q",
+			CredentialSecretName,
+			namespace,
+			key,
+		)
+	}
+	return value, nil
 }
 
 // BuildMLflowRequestContext is the shared core that validates the PluginConfig,

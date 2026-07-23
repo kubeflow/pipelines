@@ -70,7 +70,12 @@ func TestAddContainerExecutorTemplate(t *testing.T) {
 
 }
 
+// With the transition from Container to Plugin, environment variable configuration
+// is now defined in manifests rather than in code, so we can no longer verify
+// their behavior in a unit test. However, this is still fully tested within the
+// workflow-compiler integration tests.
 func TestContainerDriverTemplate_IncludesKFPPodNameEnv(t *testing.T) {
+	t.Skip("Skipping test: env vars are now defined in manifests and cannot be verified in unit tests")
 	proxy.InitializeConfigWithEmptyForTests()
 	c := &workflowCompiler{
 		templates: make(map[string]*wfapi.Template),
@@ -85,7 +90,8 @@ func TestContainerDriverTemplate_IncludesKFPPodNameEnv(t *testing.T) {
 		job: &pipelinespec.PipelineJob{},
 	}
 
-	name := c.addContainerDriverTemplate()
+	name, err := c.addContainerDriverTemplate()
+	require.NoError(t, err)
 	require.Equal(t, "system-container-driver", name)
 
 	tmpl, exists := c.templates[name]
@@ -122,13 +128,13 @@ func TestContainerDriverTemplate_IncludesPipelineJobCreateTimeArg(t *testing.T) 
 		job: &pipelinespec.PipelineJob{},
 	}
 
-	name := c.addContainerDriverTemplate()
+	name, err := c.addContainerDriverTemplate()
+	require.NoError(t, err)
 	tmpl, exists := c.templates[name]
 	require.True(t, exists, "system-container-driver template should exist")
-	require.NotNil(t, tmpl.Container, "template should have a container")
-	assert.Contains(t, tmpl.Container.Args, "--pipeline_job_create_time_utc")
-	assert.Contains(t, tmpl.Container.Args, runCreationTimeUTC())
-	assert.NotContains(t, tmpl.Container.Args, "--pipeline_job_schedule_time_epoch_seconds")
+	args := requireDriverPluginArgs(t, tmpl)
+	assert.Equal(t, runCreationTimeUTC(), args["pipeline_job_create_time_utc"])
+	assert.NotContains(t, args, "pipeline_job_schedule_time_epoch_seconds")
 }
 
 func Test_extendPodMetadata(t *testing.T) {
