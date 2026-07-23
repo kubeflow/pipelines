@@ -74,6 +74,11 @@ func (e *Experiment) GetModelName() string {
 	return "experiments"
 }
 
+// IsRegularField reports whether name is a real column on Experiment.
+func (e *Experiment) IsRegularField(name string) bool {
+	return isRegularFieldIn(e.APIToModelFieldMap(), name)
+}
+
 func (e *Experiment) GetField(name string) (string, string, bool) {
 	if field, ok := experimentAPIToModelFieldMap[name]; ok {
 		return field, field, true
