@@ -67,14 +67,18 @@ jobs:
 
   end-to-end-scenario-tests:
     runs-on: ubuntu-latest
-    needs: build
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
         k8s_version: ["v1.36.1"]
         cache_enabled: ["true", "false"]
         argo_version: [ "v3.7.14", "v4.0.5" ]
         proxy: [ "false" ]
-        test_label: [ "E2ECritical", "E2EEssential", "E2EParallelNested" ]
+        # Automatic runs split the dominant Critical suite across two Kind
+        # runners. Manual dispatch retains the historical unsharded labels.
+        test_label: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["E2ECritical", "E2EEssential", "E2EParallelNested"]' || '["E2ECriticalShardA", "E2ECriticalShardB", "E2EEssential", "E2EParallelNested"]') }}
         pod_to_pod_tls_enabled: [ "false" ]
         include:
           - k8s_version: "v1.33.12"
@@ -114,9 +118,9 @@ jobs:
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
@@ -128,18 +132,33 @@ jobs:
         shell: bash
         id: configure
         if: ${{ steps.deploy.outcome == 'success' }}
+        env:
+          DISPATCH_NUMBER_OF_NODES: ${{ inputs.number_of_parallel_tests }}
+          DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
+          DISPATCH_NAMESPACE: ${{ inputs.namespace }}
         run: |
           NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
-            TEST_LABEL=${{ inputs.test_label }}
-            NAMESPACE=${{ inputs.namespace }}
+
+          if [ "$TEST_LABEL" == "E2EFailure" ]; then
+            NUMBER_OF_NODES=2
+          elif [ "$TEST_LABEL" == "E2ECriticalShardA" ] || [ "$TEST_LABEL" == "E2ECriticalShardB" ]; then
+            NUMBER_OF_NODES=10
+            TEST_LABEL="E2ECritical && $TEST_LABEL"
+          elif [ "$TEST_LABEL" == "E2ECritical" ] || [ "$TEST_LABEL" == "E2EEssential" ]; then
+            NUMBER_OF_NODES=10
+          elif [ "$TEST_LABEL" == "E2EParallelNested" ]; then
+            # Each spec fans out into nested child pipelines, so retain its
+            # historical lower cap instead of using the global default.
+            NUMBER_OF_NODES=3
           fi
 
-          if [ "$TEST_LABEL" == "E2EParallelNested" ]; then
-            NUMBER_OF_NODES=3
+          # Explicit dispatch inputs take precedence over automatic lane caps.
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
+            TEST_LABEL=$DISPATCH_TEST_LABEL
+            NAMESPACE=$DISPATCH_NAMESPACE
           fi
 
           {
@@ -152,9 +171,12 @@ jobs:
         id: build-sample-modelcar-image
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
-          docker build -f ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
+          source ./.github/resources/scripts/helper-functions.sh
+          retry 3 20 env DOCKER_BUILDKIT=1 docker build \
+            --file ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile \
+            --tag registry.domain.local/modelcar:test \
+            .
           kind --name kfp load docker-image registry.domain.local/modelcar:test
-        continue-on-error: true
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report
@@ -174,21 +196,17 @@ jobs:
 
   end-to-end-critical-scenario-multi-user-tests:
     runs-on: ubuntu-latest
-    needs: build
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
         k8s_version: ["v1.36.1"]
         cache_enabled: ["true", "false"]
         multi_user: [ "true" ]
-        test_label: [ "E2ECritical" ]
-        include:
-        - multi_user: "true"
-          artifact_proxy: "true"
-          k8s_version: "v1.36.1"
-          cache_enabled: "true"
-          test_label: "E2ECritical"
+        test_label: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["E2ECritical"]' || '["E2ECriticalShardA", "E2ECriticalShardB"]') }}
       fail-fast: false
-    name: End to End Critical Scenario Multi User Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.artifact_proxy }}
+    name: End to End Critical Scenario Multi User ${{ matrix.test_label }} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.cache_enabled }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -207,23 +225,32 @@ jobs:
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: "true"
-          artifact_proxy: ${{ matrix.artifact_proxy }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          # The cache-enabled multi-user variant is the artifact-proxy
+          # compatibility lane; both automatic Critical shards exercise it.
+          artifact_proxy: ${{ matrix.cache_enabled }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
 
       - name: Configure Input Variables
         shell: bash
         id: configure
         if: ${{ steps.deploy.outcome == 'success' }}
+        env:
+          DISPATCH_NUMBER_OF_NODES: ${{ inputs.number_of_parallel_tests }}
+          DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
+          DISPATCH_NAMESPACE: ${{ inputs.namespace }}
         run: |
-          NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
+          NUMBER_OF_NODES=10
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
+          if [ "$TEST_LABEL" == "E2ECriticalShardA" ] || [ "$TEST_LABEL" == "E2ECriticalShardB" ]; then
+            TEST_LABEL="E2ECritical && $TEST_LABEL"
+          fi
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
-            TEST_LABEL=${{ inputs.test_label }}
-            NAMESPACE=${{ inputs.namespace }}
+            NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
+            TEST_LABEL=$DISPATCH_TEST_LABEL
+            NAMESPACE=$DISPATCH_NAMESPACE
           fi
           {
             echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"
@@ -235,13 +262,16 @@ jobs:
         id: build-sample-modelcar-image
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
-          docker build -f ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
+          source ./.github/resources/scripts/helper-functions.sh
+          retry 3 20 env DOCKER_BUILDKIT=1 docker build \
+            --file ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile \
+            --tag registry.domain.local/modelcar:test \
+            .
           kind --name kfp load docker-image registry.domain.local/modelcar:test
-        continue-on-error: true
 
       - name: Test Artifact Proxy
         id: test-artifact-proxy
-        if: ${{ steps.deploy.outcome == 'success' && matrix.artifact_proxy == 'true' }}
+        if: ${{ steps.deploy.outcome == 'success' && matrix.cache_enabled == 'true' }}
         shell: bash
         env:
           USER_NAMESPACE: ${{ env.USER_NAMESPACE }}
@@ -271,12 +301,14 @@ jobs:
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
           user_namespace: ${{ env.USER_NAMESPACE }}
-          report_name: "E2EMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"
+          report_name: "E2EMultiUser${{ matrix.test_label }}Tests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"
 
 
   end-to-end-critical-mlflow-tests:
     runs-on: ubuntu-latest
-    needs: build
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
         k8s_version: [ "v1.36.1" ]
@@ -319,9 +351,9 @@ jobs:
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           multi_user: ${{ matrix.multi_user }}
           artifact_proxy: ${{ matrix.artifact_proxy }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
 
       - name: Deploy MLflow with Kubernetes auth
         id: deploy-mlflow        
@@ -348,6 +380,17 @@ jobs:
           MLFLOW_IMAGE: ghcr.io/mlflow/mlflow:v3.13.0-full
         run: ./.github/resources/scripts/deploy-direct-mlflow.sh opendatahub "${{ matrix.mlflow_auth_type }}" "${{ matrix.artifact_storage }}" "$MLFLOW_IMAGE"
 
+      - name: Increase Kubernetes-auth MLflow workers
+        shell: bash
+        if: ${{ steps.deploy-mlflow.outcome == 'success' && matrix.artifact_storage == 'file' }}
+        run: |
+          # The operator deploy action does not expose spec.workers yet. Its
+          # default of one Uvicorn worker lets file-artifact requests block the
+          # health endpoint and all MLflow API traffic behind a single request.
+          kubectl patch mlflow mlflow -n opendatahub --type=merge \
+            -p '{"spec":{"workers":2}}'
+          kubectl rollout status deployment/mlflow -n opendatahub --timeout=300s
+
       - name: Wait for MLflow stack readiness
         shell: bash
         if: ${{ steps.deploy-mlflow.outcome == 'success' || steps.deploy_direct_mlflow.outcome == 'success' }}
@@ -365,18 +408,20 @@ jobs:
         shell: bash
         id: configure
         if: ${{ steps.deploy.outcome == 'success' }}
+        env:
+          DISPATCH_NUMBER_OF_NODES: ${{ inputs.number_of_parallel_tests }}
+          DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
+          DISPATCH_NAMESPACE: ${{ inputs.namespace }}
         run: |
-          NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
+          # Keep a measured step below the historical ten-node setting while
+          # validating the uncapped kindnet dataplane under additional load.
+          NUMBER_OF_NODES=2
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
-          # TODO(#13724): Restore higher concurrency after increasing shared Kind capacity.
-          if [ "${{ matrix.mlflow_auth_type }}" == "kubernetes" ]; then
-            NUMBER_OF_NODES=2
-          fi
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
-            TEST_LABEL=${{ inputs.test_label }}
-            NAMESPACE=${{ inputs.namespace }}
+            NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
+            TEST_LABEL=$DISPATCH_TEST_LABEL
+            NAMESPACE=$DISPATCH_NAMESPACE
           fi
 
           {
@@ -389,9 +434,12 @@ jobs:
         id: build-sample-modelcar-image
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
-          docker build -f ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
+          source ./.github/resources/scripts/helper-functions.sh
+          retry 3 20 env DOCKER_BUILDKIT=1 docker build \
+            --file ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile \
+            --tag registry.domain.local/modelcar:test \
+            .
           kind --name kfp load docker-image registry.domain.local/modelcar:test
-        continue-on-error: true
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report

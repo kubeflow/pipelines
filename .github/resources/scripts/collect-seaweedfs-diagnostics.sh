@@ -26,7 +26,8 @@
 # The same connection failures show up on other in-cluster ClusterIPs in these
 # lanes (for example the MLflow service VIP on :8443), so the dataplane failure
 # is not SeaweedFS-specific. Sections (4) and (5) therefore inspect *every*
-# ClusterIP that recorded a timeout, refusal, or reset, not just SeaweedFS's.
+# ClusterIP that recorded a TCP or UDP timeout, refusal, or reset, not just
+# SeaweedFS's.
 # Pass the already-collected pod-log file via --connection-failure-log (the old
 # --dial-timeout-log name remains an alias); the script extracts each failed VIP
 # from it and always includes the SeaweedFS ClusterIP.
@@ -89,6 +90,10 @@ emit() {
     fi
 }
 
+format_targets() {
+    sed -E 's/^(tcp|udp)\|/\1:\/\//g' | paste -sd' ' -
+}
+
 # Dump the iptables (or ipvs fallback) program for one ClusterIP:port on one
 # Kind node, following the chain end to end: the KUBE-SERVICES match, the
 # KUBE-SVC chain for the port, and each KUBE-SEP rule for the backing pod. With
@@ -99,10 +104,10 @@ emit() {
 # printed once separately rather than repeated for every failed VIP.
 # Tracks whether a ruleset was actually read so a missing iptables-save /
 # ipvsadm binary reports "cannot confirm", never a false "no rule".
-# Usage: probe_service_rules <node> <ip> <port>
+# Usage: probe_service_rules <node> <protocol> <ip> <port>
 probe_service_rules() {
     docker exec "$1" sh -c '
-        ip=$1; port=$2
+        protocol=$1; ip=$2; port=$3
         if rules=$(iptables-save -c 2>/dev/null) && [ -n "$rules" ]; then
             counter_note="iptables counters: cumulative [packets:bytes] values"
         else
@@ -111,26 +116,45 @@ probe_service_rules() {
         fi
         if [ -z "$rules" ]; then
             if ipvs=$(ipvsadm -Ln --stats 2>/dev/null || ipvsadm -Ln 2>/dev/null); then
-                printf "%s\n" "$ipvs" | grep -F -A6 -- "$ip:$port" \
-                    || echo "(no ipvs entry for $ip:$port)"
+                protocol_upper=$(printf "%s" "$protocol" | tr "[:lower:]" "[:upper:]")
+                entry=$(printf "%s\n" "$ipvs" \
+                    | awk -v protocol="$protocol_upper" -v target="$ip:$port" "
+                        \$1 ~ /^(TCP|UDP)$/ {
+                            if (capturing) exit
+                            if (\$1 == protocol && \$2 == target) {
+                                capturing=1
+                                print
+                            }
+                            next
+                        }
+                        capturing {print}
+                    ")
+                if [ -n "$entry" ]; then
+                    printf "%s\n" "$entry"
+                else
+                    echo "(no $protocol ipvs entry for $ip:$port)"
+                fi
             else
                 echo "(iptables-save and ipvsadm both unavailable — cannot confirm rule presence)"
             fi
             exit 0
         fi
         echo "  $counter_note"
-        svc_rules=$(printf "%s\n" "$rules" | grep -F "$ip" | grep -E -- "-A KUBE-SERVICES ")
+        svc_rules=$(printf "%s\n" "$rules" | grep -F "$ip" \
+            | grep -E -- "-p $protocol( |$)" | grep -E -- "--dport $port( |$)" \
+            | grep -E -- "-A KUBE-SERVICES ")
         if [ -n "$svc_rules" ]; then
             printf "%s\n" "$svc_rules"
         else
-            echo "(no KUBE-SERVICES rule references $ip)"
+            echo "(no $protocol KUBE-SERVICES rule references $ip:$port)"
         fi
         # Resolve the KUBE-SVC chain for this specific port, then its KUBE-SEP
         # endpoint chain(s) and their DNAT target (the pod the VIP forwards to).
-        svc=$(printf "%s\n" "$rules" | grep -F "$ip" | grep -E -- "--dport $port -j KUBE-SVC-" \
+        svc=$(printf "%s\n" "$rules" | grep -F "$ip" | grep -E -- "-p $protocol( |$)" \
+            | grep -E -- "--dport $port -j KUBE-SVC-" \
             | grep -oE "KUBE-SVC-[A-Z0-9]+" | head -1)
         if [ -z "$svc" ]; then
-            echo "  (no KUBE-SVC chain for $ip:$port — port not programmed)"
+            echo "  (no $protocol KUBE-SVC chain for $ip:$port — port not programmed)"
             exit 0
         fi
         echo "  endpoint chain $svc ->"
@@ -149,7 +173,7 @@ probe_service_rules() {
                     echo "    ($sep: no endpoint rules)"
                 fi
             done
-        fi' _ "$2" "$3" 2>/dev/null || echo "(unavailable)"
+        fi' _ "$2" "$3" "$4" 2>/dev/null || echo "(unavailable)"
 }
 
 # Dump the node-wide SNAT plumbing once. Per-VIP KUBE-SVC/KUBE-SEP counters
@@ -260,15 +284,25 @@ probe_service_backends() {
     done <<< "$services"
 }
 
-# ClusterIP VIPs (ip:port) that recorded a timeout, refusal, or reset in the
-# supplied log. For established TCP resets, select the destination after '->'
-# rather than the client address.
+# ClusterIP targets (protocol|ip:port) that recorded a timeout, refusal, or
+# reset in the supplied log. For established connections and UDP DNS queries,
+# select the destination after '->' rather than the client address. Retaining
+# the protocol is essential for Services such as CoreDNS that expose both TCP
+# and UDP on port 53.
 # Read before the diagnostics block so appended output cannot perturb the scan.
-LOG_VIPS=""
+LOG_TARGETS=""
+LOG_SERVICE_TARGETS=""
 if [[ -n "$CONNECTION_FAILURE_LOG" && -r "$CONNECTION_FAILURE_LOG" ]]; then
-    LOG_VIPS=$(sed -nE \
-        -e 's/.*dial tcp ([0-9.]+:[0-9]+): (i\/o timeout|connect: connection refused|connect: connection reset by peer).*/\1/p' \
-        -e 's/.*(read|write) tcp [0-9.]+:[0-9]+->([0-9.]+:[0-9]+): .*connection reset by peer.*/\2/p' \
+    LOG_TARGETS=$(sed -nE \
+        -e 's/.*dial (tcp|udp) ([0-9.]+:[0-9]+): (i\/o timeout|connect: connection refused|connect: connection reset by peer).*/\1|\2/p' \
+        -e 's/.*(read|write) (tcp|udp) [0-9.]+:[0-9]+->([0-9.]+:[0-9]+): .*(i\/o timeout|connection refused|connection reset by peer).*/\2|\3/p' \
+        "$CONNECTION_FAILURE_LOG" 2>/dev/null | sort -u || true)
+    # HTTP clients report the Service DNS name rather than its numeric
+    # ClusterIP when they connect successfully but time out awaiting headers.
+    # Preserve namespace/name/port until the one-shot Service inventory below
+    # can resolve it without adding another API call per failure.
+    LOG_SERVICE_TARGETS=$(sed -nE \
+        -e 's#.*https?://([[:alnum:]-]+)[.]([[:alnum:]-]+)[.]svc([.]cluster[.]local)?:([0-9]+)[^ ]*.*(context deadline exceeded|Client[.]Timeout exceeded).*#tcp|\2|\1|\4#p' \
         "$CONNECTION_FAILURE_LOG" 2>/dev/null | sort -u || true)
 fi
 
@@ -340,35 +374,54 @@ fi
     else
         SERVICE_INVENTORY_AVAILABLE=false
     fi
-    FAILED_SERVICE_VIPS=""
+    FAILED_SERVICE_TARGETS=""
     UNOWNED_CONNECTION_TARGETS=""
+    UNRESOLVED_SERVICE_NAMES=""
     if [[ "$SERVICE_INVENTORY_AVAILABLE" == "true" ]]; then
-        for vip in $LOG_VIPS; do
+        for named_target in $LOG_SERVICE_TARGETS; do
+            IFS='|' read -r protocol service_namespace service_name service_port <<< "$named_target"
+            service_ip=$(printf '%s\n' "$SERVICE_INVENTORY" \
+                | awk -F '\t' -v service_namespace="$service_namespace" \
+                    -v service_name="$service_name" \
+                    '$1 == service_namespace && $2 == service_name {print $3; exit}')
+            if [[ "$service_ip" =~ ^[0-9.]+$ ]]; then
+                LOG_TARGETS+=$'\n'"${protocol}|${service_ip}:${service_port}"
+            else
+                UNRESOLVED_SERVICE_NAMES+="${service_name}.${service_namespace}.svc:${service_port}"$'\n'
+            fi
+        done
+        LOG_TARGETS=$(printf '%s\n' "$LOG_TARGETS" | grep -E '^(tcp|udp)\|' | sort -u || true)
+        for target in $LOG_TARGETS; do
+            vip="${target#*|}"
             if printf '%s\n' "$SERVICE_INVENTORY" \
                 | awk -F '\t' -v ip="${vip%%:*}" '$3 == ip {found=1} END {exit !found}'; then
-                FAILED_SERVICE_VIPS+="${vip}"$'\n'
+                FAILED_SERVICE_TARGETS+="${target}"$'\n'
             else
-                UNOWNED_CONNECTION_TARGETS+="${vip}"$'\n'
+                UNOWNED_CONNECTION_TARGETS+="${target}"$'\n'
             fi
         done
     else
         # Preserve node-level evidence when the API is unavailable; do not
         # misclassify lookup failure as proof that these Services do not exist.
-        FAILED_SERVICE_VIPS="$LOG_VIPS"
+        FAILED_SERVICE_TARGETS="$LOG_TARGETS"
     fi
 
     # Sections (4) and (5) target the SeaweedFS VIP plus every other ClusterIP
     # that logged a timeout, refusal, or reset (e.g. the MLflow service VIP), so
     # the dataplane evidence covers whichever service the workflow pods could
     # not reach, not only SeaweedFS.
-    TARGET_VIPS=$(
-        { [[ -n "$CLUSTER_IP" ]] && echo "${CLUSTER_IP}:9000"; printf '%s' "$FAILED_SERVICE_VIPS"; } \
+    TARGETS=$(
+        { [[ -n "$CLUSTER_IP" ]] && echo "tcp|${CLUSTER_IP}:9000"; printf '%s' "$FAILED_SERVICE_TARGETS"; } \
+            | grep -E '^(tcp|udp)\|[0-9.]+:[0-9]+$' | sort -u
+    )
+    BACKEND_VIPS=$(
+        printf '%s\n' "$TARGETS" | sed -E 's/^(tcp|udp)\|//' \
             | grep -E '^[0-9.]+:[0-9]+$' | sort -u
     )
 
     echo
     echo "----- (4) service and backend state for failed ClusterIPs -----"
-    echo "ClusterIPs correlated: $(printf '%s ' ${TARGET_VIPS:-<none>})"
+    echo "ClusterIPs correlated: $(printf '%s\n' "${TARGETS:-<none>}" | format_targets)"
     if [[ "$SERVICE_INVENTORY_AVAILABLE" != "true" ]]; then
         echo "Service inventory unavailable; ClusterIP ownership cannot be confirmed."
     fi
@@ -377,12 +430,15 @@ fi
         # old VIP absent from the current inventory — exactly the stale-Service
         # scenario the node probe exists to catch. Skip only the backend-object
         # lookups for these; section (5) still probes their node programs.
-        echo "Targets not in the current Service inventory (backend lookup skipped; node program probed in section 5): $(printf '%s ' $UNOWNED_CONNECTION_TARGETS)"
+        echo "Targets not in the current Service inventory (backend lookup skipped; node program probed in section 5): $(printf '%s\n' "$UNOWNED_CONNECTION_TARGETS" | format_targets)"
     fi
-    if [[ -z "$TARGET_VIPS" ]]; then
+    if [[ -n "$UNRESOLVED_SERVICE_NAMES" ]]; then
+        echo "Service DNS timeout targets not present in the current inventory: $(printf '%s\n' "$UNRESOLVED_SERVICE_NAMES" | paste -sd' ' -)"
+    fi
+    if [[ -z "$BACKEND_VIPS" ]]; then
         echo "No failed ClusterIPs to correlate."
     else
-        for vip in $TARGET_VIPS; do
+        for vip in $BACKEND_VIPS; do
             probe_service_backends "${vip%%:*}" "${vip##*:}"
         done
     fi
@@ -425,14 +481,14 @@ fi
     # Node-level targets include logged addresses missing from the current
     # Service inventory: a stale/deleted Service's old VIP must still get its
     # iptables/ipvs snapshot even though there is no backend object to query.
-    NODE_TARGET_VIPS=$(
-        { printf '%s\n' "$TARGET_VIPS"; printf '%s' "$UNOWNED_CONNECTION_TARGETS"; } \
-            | grep -E '^[0-9.]+:[0-9]+$' | sort -u
+    NODE_TARGETS=$(
+        { printf '%s\n' "$TARGETS"; printf '%s' "$UNOWNED_CONNECTION_TARGETS"; } \
+            | grep -E '^(tcp|udp)\|[0-9.]+:[0-9]+$' | sort -u
     )
 
     echo
     echo "----- (5) node netfilter state for failed ClusterIPs -----"
-    echo "ClusterIPs correlated: $(printf '%s ' ${NODE_TARGET_VIPS:-<none>})"
+    echo "ClusterIPs correlated: $(printf '%s\n' "${NODE_TARGETS:-<none>}" | format_targets)"
     # Kind runs each node as a Docker container named after the Kubernetes node,
     # so 'docker exec <node>' reaches the node's network namespace where
     # kube-proxy programs the ClusterIPs and the kernel tracks connections. A
@@ -497,12 +553,14 @@ fi
             # Per-VIP service program end to end (KUBE-SERVICES -> KUBE-SVC ->
             # KUBE-SEP DNAT): a live DNAT to the pod means the rule is not the
             # problem; an empty chain means no ready backend.
-            if [[ -z "$NODE_TARGET_VIPS" ]]; then
+            if [[ -z "$NODE_TARGETS" ]]; then
                 echo "service program: no failed ClusterIPs to correlate."
             else
-                for vip in $NODE_TARGET_VIPS; do
-                    echo "service program for $vip (iptables, then ipvs):"
-                    probe_service_rules "$node" "${vip%%:*}" "${vip##*:}"
+                for target in $NODE_TARGETS; do
+                    protocol="${target%%|*}"
+                    vip="${target#*|}"
+                    echo "service program for $protocol://$vip (iptables, then ipvs):"
+                    probe_service_rules "$node" "$protocol" "${vip%%:*}" "${vip##*:}"
                 done
             fi
         done

@@ -3,6 +3,7 @@
 set -euo pipefail
 
 BUILDER_NAME="${1:-kfp-buildx-${GITHUB_RUN_ID:-local}-${GITHUB_JOB:-job}-${RANDOM}}"
+BUILDKIT_IMAGE="${BUILDKIT_IMAGE:-moby/buildkit:buildx-stable-1}"
 
 C_DIR="${BASH_SOURCE%/*}"
 if [[ ! -d "$C_DIR" ]]; then
@@ -12,10 +13,15 @@ source "${C_DIR}/helper-functions.sh"
 
 setup_builder() {
   docker buildx rm "$BUILDER_NAME" >/dev/null 2>&1 || true
-  docker buildx create --name "$BUILDER_NAME" --driver docker-container --use
+  docker buildx create --name "$BUILDER_NAME" --driver docker-container \
+    --driver-opt "image=$BUILDKIT_IMAGE" --use
   docker buildx inspect "$BUILDER_NAME" --bootstrap >/dev/null
 }
 
+# Pull separately so registry outages get the longer five-attempt backoff used
+# for other runtime images. Once cached, builder bootstrap no longer depends on
+# a fresh registry connection.
+pull_image_with_backoff "$BUILDKIT_IMAGE"
 retry 3 20 setup_builder
 
 if [ -n "${GITHUB_OUTPUT:-}" ]; then

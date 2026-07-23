@@ -133,7 +133,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		var pipelineDir = "valid/critical"
 		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
 		for _, pipelineFile := range pipelineFiles {
-			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), Label(E2eCriticalShardForPipeline(pipelineFile)), FlakeAttempts(2), func() {
 				validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
 			})
 		}

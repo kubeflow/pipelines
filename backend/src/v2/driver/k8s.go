@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -785,10 +786,119 @@ func extendPodSpecPatch(
 		}
 	}
 
-	// Post-processing: enforce administrator hostUsers regardless of any
-	// user override. hostUsers is a pod-level field controlling Linux user
-	// namespace isolation; allowing users to silently flip it to true would
-	// defeat the administrator's security policy.
+	// Seed name set from existing containers to prevent collisions.
+	initContainerNames := make(map[string]bool)
+	for _, c := range podSpec.Containers {
+		initContainerNames[c.Name] = true
+	}
+	for _, c := range podSpec.InitContainers {
+		initContainerNames[c.Name] = true
+	}
+	for _, initContainer := range kubernetesExecutorConfig.GetInitContainers() {
+		if initContainer.GetName() == "" {
+			return fmt.Errorf("init container name must not be empty")
+		}
+		if initContainerNames[initContainer.GetName()] {
+			return fmt.Errorf("init container name %q conflicts with an existing container in the pod", initContainer.GetName())
+		}
+		initContainerNames[initContainer.GetName()] = true
+		if initContainer.GetImage() == "" {
+			return fmt.Errorf("init container %q must specify an image", initContainer.GetName())
+		}
+
+		// Apply the same PSS hardening as the compiler gives user containers.
+		allowPrivilegeEscalation := false
+		k8sInitContainer := k8score.Container{
+			Name:    initContainer.GetName(),
+			Image:   initContainer.GetImage(),
+			Command: initContainer.GetCommand(),
+			Args:    initContainer.GetArgs(),
+			SecurityContext: &k8score.SecurityContext{
+				AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+				Capabilities: &k8score.Capabilities{
+					Drop: []k8score.Capability{"ALL"},
+				},
+				SeccompProfile: &k8score.SeccompProfile{
+					Type: k8score.SeccompProfileTypeRuntimeDefault,
+				},
+			},
+		}
+		// Apply administrator identity defaults.
+		if opts.DefaultRunAsUser != nil {
+			v := *opts.DefaultRunAsUser
+			k8sInitContainer.SecurityContext.RunAsUser = &v
+		}
+		if opts.DefaultRunAsGroup != nil {
+			v := *opts.DefaultRunAsGroup
+			k8sInitContainer.SecurityContext.RunAsGroup = &v
+		}
+		if opts.DefaultRunAsNonRoot != nil {
+			v := *opts.DefaultRunAsNonRoot
+			k8sInitContainer.SecurityContext.RunAsNonRoot = &v
+		}
+		// "Always" converts to a native sidecar (the only valid value).
+		if initContainer.GetRestartPolicy() != "" {
+			if initContainer.GetRestartPolicy() != string(k8score.ContainerRestartPolicyAlways) {
+				return fmt.Errorf("init container %q restart policy must be %q, got %q",
+					initContainer.GetName(), k8score.ContainerRestartPolicyAlways, initContainer.GetRestartPolicy())
+			}
+			restartPolicy := k8score.ContainerRestartPolicyAlways
+			k8sInitContainer.RestartPolicy = &restartPolicy
+		}
+		if resources := initContainer.GetResources(); resources != nil {
+			parseResourceList := func(kind string, quantities map[string]string) (k8score.ResourceList, error) {
+				if len(quantities) == 0 {
+					return nil, nil
+				}
+				resourceList := k8score.ResourceList{}
+				for resourceName, quantityValue := range quantities {
+					quantity, err := k8sres.ParseQuantity(quantityValue)
+					if err != nil {
+						return nil, fmt.Errorf("init container %q has an invalid resource %s %s=%q: %w",
+							initContainer.GetName(), kind, resourceName, quantityValue, err)
+					}
+					resourceList[k8score.ResourceName(resourceName)] = quantity
+				}
+				return resourceList, nil
+			}
+			requests, err := parseResourceList("request", resources.GetRequests())
+			if err != nil {
+				return err
+			}
+			limits, err := parseResourceList("limit", resources.GetLimits())
+			if err != nil {
+				return err
+			}
+			k8sInitContainer.Resources = k8score.ResourceRequirements{
+				Requests: requests,
+				Limits:   limits,
+			}
+		}
+		for _, envVar := range initContainer.GetEnv() {
+			if envVar.GetName() == "" {
+				return fmt.Errorf("init container %q has an environment variable with an empty name", initContainer.GetName())
+			}
+			k8sInitContainer.Env = append(k8sInitContainer.Env, k8score.EnvVar{
+				Name:  envVar.GetName(),
+				Value: envVar.GetValue(),
+			})
+		}
+		for _, volumeMount := range initContainer.GetVolumeMounts() {
+			if volumeMount.GetVolumeName() == "" {
+				return fmt.Errorf("init container %q has a volume mount with an empty volume name", initContainer.GetName())
+			}
+			if !strings.HasPrefix(volumeMount.GetMountPath(), "/") {
+				return fmt.Errorf("init container %q volume mount %q must use an absolute mount path", initContainer.GetName(), volumeMount.GetVolumeName())
+			}
+			k8sInitContainer.VolumeMounts = append(k8sInitContainer.VolumeMounts, k8score.VolumeMount{
+				Name:      volumeMount.GetVolumeName(),
+				MountPath: volumeMount.GetMountPath(),
+			})
+		}
+		podSpec.InitContainers = append(podSpec.InitContainers, k8sInitContainer)
+	}
+
+	// Enforce administrator hostUsers default regardless of user override.
 	if opts.DefaultHostUsers != nil {
 		if podSpec.HostUsers != nil && *podSpec.HostUsers != *opts.DefaultHostUsers {
 			glog.Warningf("Ignoring user-specified hostUsers=%t: administrator default hostUsers=%t takes precedence",

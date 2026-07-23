@@ -1,0 +1,85 @@
+name: "Upload artifact with retry"
+description: "Upload an artifact and retry one failure after a short delay"
+
+inputs:
+  name:
+    description: "Artifact name"
+    required: true
+  path:
+    description: "File, directory, or wildcard pattern to upload"
+    required: true
+  retention-days:
+    description: "Number of days to retain the artifact; zero uses the repository default"
+    required: false
+    default: '0'
+  if-no-files-found:
+    description: "Behavior when no files match: warn, error, or ignore"
+    required: false
+    default: 'warn'
+  retry-delay-seconds:
+    description: "Delay before the retry attempt"
+    required: false
+    default: '20'
+
+outputs:
+  artifact-id:
+    description: "ID from the successful upload attempt"
+    value: ${{ steps.primary.outputs.artifact-id || steps.retry.outputs.artifact-id }}
+  artifact-url:
+    description: "URL from the successful upload attempt"
+    value: ${{ steps.primary.outputs.artifact-url || steps.retry.outputs.artifact-url }}
+  artifact-digest:
+    description: "Digest from the successful upload attempt"
+    value: ${{ steps.primary.outputs.artifact-digest || steps.retry.outputs.artifact-digest }}
+
+runs:
+  using: "composite"
+  steps:
+    # The artifact client retries selected HTTP responses, but it immediately
+    # returns transport errors such as ETIMEDOUT and ECONNRESET. Keep the first
+    # attempt non-fatal so those failures can reach the explicit retry below.
+    - name: Upload artifact
+      id: primary
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ inputs.path }}
+        retention-days: ${{ inputs.retention-days }}
+        if-no-files-found: ${{ inputs.if-no-files-found }}
+      continue-on-error: true
+
+    - name: Wait before retrying artifact upload
+      if: ${{ !cancelled() && steps.primary.outcome == 'failure' }}
+      shell: bash
+      env:
+        RETRY_DELAY_SECONDS: ${{ inputs.retry-delay-seconds }}
+      run: |
+        echo "Artifact upload failed; retrying in ${RETRY_DELAY_SECONDS}s"
+        sleep "$RETRY_DELAY_SECONDS"
+
+    - name: Retry artifact upload
+      id: retry
+      if: ${{ !cancelled() && steps.primary.outcome == 'failure' }}
+      uses: actions/upload-artifact@v7
+      with:
+        # A timed-out CreateArtifact request may still have created its
+        # immutable name server-side. Use a distinct name instead of risking a
+        # conflict or deleting a completed first attempt with overwrite=true.
+        name: ${{ inputs.name }} - retry-${{ github.run_attempt }}
+        path: ${{ inputs.path }}
+        retention-days: ${{ inputs.retention-days }}
+        if-no-files-found: ${{ inputs.if-no-files-found }}
+      continue-on-error: true
+
+    - name: Verify artifact upload
+      if: ${{ always() && !cancelled() }}
+      shell: bash
+      env:
+        PRIMARY_OUTCOME: ${{ steps.primary.outcome }}
+        RETRY_OUTCOME: ${{ steps.retry.outcome }}
+      run: |
+        if [[ "$PRIMARY_OUTCOME" == "success" || "$RETRY_OUTCOME" == "success" ]]; then
+          exit 0
+        fi
+        echo "::warning::Artifact upload failed after two attempts"
+        exit 1

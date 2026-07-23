@@ -39,6 +39,8 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
                     dial tcp 10.96.2.2:8443: connect: connection refused
                     dial tcp 10.96.3.3:443: connect: connection reset by peer
                     read tcp 10.244.0.7:43120->10.96.4.4:8080: read: connection reset by peer
+                    dial tcp 10.96.5.5:53: connect: connection refused
+                    read udp 10.244.0.7:51234->10.96.5.5:53: i/o timeout
                     dial tcp 10.244.0.99:9090: connect: connection refused
                     connection refused without a numeric destination
                 '''),
@@ -69,8 +71,10 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
 
         output = result.stdout
         self.assertIn(
-            'ClusterIPs correlated: 10.96.1.1:9000 10.96.2.2:8443 '
-            '10.96.3.3:443 10.96.4.4:8080',
+            'ClusterIPs correlated: tcp://10.96.1.1:9000 '
+            'tcp://10.96.2.2:8443 tcp://10.96.3.3:443 '
+            'tcp://10.96.4.4:8080 tcp://10.96.5.5:53 '
+            'udp://10.96.5.5:53',
             output,
         )
         self.assertIn(
@@ -95,8 +99,19 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
             output,
         )
         self.assertIn(
+            'Service: kube-system/kube-dns (failed VIP 10.96.5.5:53)', output
+        )
+        self.assertIn('coredns-slice  10.244.0.50', output)
+        self.assertEqual(
+            output.count(
+                'Service: kube-system/kube-dns (failed VIP 10.96.5.5:53)'
+            ),
+            1,
+        )
+        self.assertIn(
             'Targets not in the current Service inventory (backend lookup '
-            'skipped; node program probed in section 5): 10.244.0.99:9090',
+            'skipped; node program probed in section 5): '
+            'tcp://10.244.0.99:9090',
             output,
         )
         # Host-level capture: rendered once, regardless of docker/node state.
@@ -153,6 +168,25 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
 
         self.assertIn('10.96.2.2:8443', result.stdout)
 
+    def test_resolves_service_dns_deadline_to_cluster_ip(self):
+        result = self._run_with_fake_cluster(
+            'MLflow request failed: Post '
+            '"https://mlflow.opendatahub.svc.cluster.local:8443/mlflow/api/2.0/'
+            'mlflow/runs/create": context deadline exceeded '
+            '(Client.Timeout exceeded while awaiting headers)\n',
+            {},
+        )
+
+        self.assertIn(
+            'ClusterIPs correlated: tcp://10.96.1.1:9000 '
+            'tcp://10.96.2.2:8443',
+            result.stdout,
+        )
+        self.assertIn(
+            'Service: opendatahub/mlflow (failed VIP 10.96.2.2:8443)',
+            result.stdout,
+        )
+
     def test_missing_seaweedfs_pod_still_probes_other_service_vips(self):
         # The generic inventory and sections 4-5 must not depend on the
         # SeaweedFS pod: an MLflow VIP failure deserves its Service/backend
@@ -166,8 +200,29 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
         self.assertIn(
             'Service: opendatahub/mlflow (failed VIP 10.96.2.2:8443)', output
         )
-        self.assertIn('ClusterIPs correlated: 10.96.1.1:9000 10.96.2.2:8443', output)
+        self.assertIn(
+            'ClusterIPs correlated: tcp://10.96.1.1:9000 '
+            'tcp://10.96.2.2:8443',
+            output,
+        )
         self.assertIn('No SeaweedFS pod; skipping socket state.', output)
+
+    def test_udp_timeout_selects_udp_service_rule(self):
+        result = self._run_with_fake_cluster(
+            'read udp 10.244.0.7:51234->10.96.5.5:53: i/o timeout\n',
+            {'FAKE_KIND_NODES': 'true'},
+            docker_script=_FAKE_DOCKER,
+            iptables_save_script=_FAKE_IPTABLES_SAVE,
+        )
+
+        self.assertIn(
+            'service program for udp://10.96.5.5:53 (iptables, then ipvs)',
+            result.stdout,
+        )
+        self.assertIn('KUBE-SVC-UDPDNS', result.stdout)
+        self.assertIn('--to-destination 10.244.0.50:53', result.stdout)
+        self.assertNotIn('KUBE-SVC-TCPDNS', result.stdout)
+        self.assertNotIn('--to-destination 10.244.0.51:53', result.stdout)
 
     def test_reports_service_inventory_api_failure_as_unavailable(self):
         result = self._run_with_fake_cluster(
@@ -257,6 +312,7 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
         self.assertIn('10.96.1.1:9000', result.stdout)
         self.assertIn('10.244.0.20:8333', result.stdout)
         self.assertNotIn('regex-decoy', result.stdout)
+        self.assertNotIn('next-service-backend', result.stdout)
 
     def _run_with_fake_cluster(
         self,
@@ -283,7 +339,7 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
             environment = os.environ.copy()
             environment['PATH'] = f'{bin_directory}:{environment["PATH"]}'
             environment.update(extra_environment or {})
-            return subprocess.run(
+            result = subprocess.run(
                 [
                     'bash',
                     str(SCRIPT),
@@ -295,6 +351,8 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
                 text=True,
                 env=environment,
             )
+            self.assertEqual('', result.stderr, result.stderr)
+            return result
 
     @staticmethod
     def _write_executable(path: Path, contents: str):
@@ -330,6 +388,7 @@ case "$args" in
     printf 'opendatahub\tmlflow\t10.96.2.2\n'
     printf 'default\tkubernetes\t10.96.3.3\n'
     printf 'kubeflow\tmetadata-grpc\t10.96.4.4\n'
+    printf 'kube-system\tkube-dns\t10.96.5.5\n'
     ;;
   *"get service mlflow -n opendatahub"*)
     echo "mlflow  ClusterIP  10.96.2.2  8443/TCP"
@@ -342,6 +401,9 @@ case "$args" in
     ;;
   *"get service metadata-grpc -n kubeflow"*)
     echo "metadata-grpc  ClusterIP  10.96.4.4  8080/TCP"
+    ;;
+  *"get service kube-dns -n kube-system"*)
+    echo "kube-dns  ClusterIP  10.96.5.5  53/UDP,53/TCP"
     ;;
   *"get endpointslice -n opendatahub"*"-o wide"*)
     echo "mlflow-slice  10.244.0.30"
@@ -364,6 +426,12 @@ case "$args" in
     ;;
   *"get endpointslice -n default"*"-o wide"*) echo "kubernetes-slice  172.18.0.2" ;;
   *"get endpointslice -n default"*"-o jsonpath="*) echo "" ;;
+  *"get endpointslice -n kube-system"*"service-name=kube-dns"*"-o wide"*)
+    echo "coredns-slice  10.244.0.50"
+    ;;
+  *"get endpointslice -n kube-system"*"service-name=kube-dns"*"-o jsonpath="*)
+    echo '10.244.0.50|true|true|false|Pod|kube-system|coredns-0'
+    ;;
   *"get pod mlflow-0 -n opendatahub -o wide"*)
     echo "mlflow-0  1/1  Running  2  10m  10.244.0.30"
     ;;
@@ -378,6 +446,11 @@ case "$args" in
     echo "container=metadata ready=true restarts=0"
     ;;
   *"describe pod metadata-0 -n kubeflow"*) echo "Events:  <none>" ;;
+  *"get pod coredns-0 -n kube-system -o wide"*) echo "coredns-0  1/1  Running" ;;
+  *"get pod coredns-0 -n kube-system -o jsonpath="*)
+    echo "container=coredns ready=true restarts=0"
+    ;;
+  *"describe pod coredns-0 -n kube-system"*) echo "Events:  <none>" ;;
   *"get nodes -o jsonpath="*)
     [[ "${FAKE_KIND_NODES:-false}" == "true" ]] && echo "kind-control-plane"
     ;;
@@ -423,6 +496,12 @@ cat <<EOF
 [11:660] -A KUBE-SEP-SEAWEED -p tcp -j DNAT --to-destination 10.244.0.20:8333
 [0:0] -A KUBE-MARK-MASQ -j MARK --set-xmark 0x4000/0x4000
 [0:0] -A KUBE-POSTROUTING -m mark --mark 0x4000/0x4000 -j MASQUERADE${random_fully}
+[7:420] -A KUBE-SERVICES -d 10.96.5.5/32 -p tcp -m tcp --dport 53 -j KUBE-SVC-TCPDNS
+[9:540] -A KUBE-SERVICES -d 10.96.5.5/32 -p udp -m udp --dport 53 -j KUBE-SVC-UDPDNS
+[7:420] -A KUBE-SVC-TCPDNS -j KUBE-SEP-TCPDNS
+[9:540] -A KUBE-SVC-UDPDNS -j KUBE-SEP-UDPDNS
+[7:420] -A KUBE-SEP-TCPDNS -p tcp -j DNAT --to-destination 10.244.0.51:53
+[9:540] -A KUBE-SEP-UDPDNS -p udp -j DNAT --to-destination 10.244.0.50:53
 EOF
 '''
 
@@ -439,6 +518,8 @@ decoy-context-6
 decoy-context-7
 TCP  10.96.1.1:9000 rr
   -> 10.244.0.20:8333           Masq    1      0          0
+UDP  10.96.1.1:9000 rr
+  -> next-service-backend:9000  Masq    1      0          0
 EOF
 '''
 
