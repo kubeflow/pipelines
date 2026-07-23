@@ -372,6 +372,16 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		util.TerminateIfError(autoMigrate(db))
 	}
 
+	// Composite index for run garbage collector queries.
+	// Both ArchiveExpiredRuns and DeleteExpiredArchivedRuns filter on
+	// (StorageState, FinishedAtInSec) and ORDER BY FinishedAtInSec ASC.
+	// Without this index, every GC batch scans the full run_details table.
+	if db.Migrator().HasTable("run_details") {
+		if err := db.Exec("CREATE INDEX IF NOT EXISTS idx_run_gc_lifecycle ON run_details (StorageState, FinishedAtInSec)").Error; err != nil {
+			glog.Warningf("Failed to create GC lifecycle index on run_details (may already exist): %v", err)
+		}
+	}
+
 	newdb, err := db.DB()
 	if err != nil {
 		glog.Fatalf("Failed to retrieve *sql.DB from gorm.DB. Error: %v", err)
