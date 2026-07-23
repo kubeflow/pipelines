@@ -129,7 +129,7 @@ class JunitToSummaryTest(unittest.TestCase):
         self.assertNotIn('\\"', markdown)
 
     def test_bash_composite_action_execution(self):
-        """Test bash execution matching action.yml script block if bash is available."""
+        """Test execution of the shared parse_junit_summary.sh script used by action.yml."""
         if sys.platform == "win32":
             self.skipTest("bash shell integration test runs on Linux CI environments")
 
@@ -137,45 +137,31 @@ class JunitToSummaryTest(unittest.TestCase):
         if not bash_executable:
             self.skipTest("bash is not available in environment")
 
+        runner_script = Path(__file__).parent / "parse_junit_summary.sh"
         artifact_url = "https://github.com/kubeflow/pipelines/actions/runs/12345/artifacts/67890"
         custom_data_input = f'{{"HTML Report": "{artifact_url}"}}'
 
-        bash_script = """
-        CUSTOM_DATA_INPUT="$1"
-        XML_FILE="$2"
-        OUTPUT_FILE="$3"
-        SCRIPT_PATH="$4"
-        PYTHON_EXEC="$5"
+        env = os.environ.copy()
+        env.update({
+            "CUSTOM_DATA_INPUT": custom_data_input,
+            "FAIL_ON_TEST_FAILURES": "false",
+            "OUTPUT_PATH": str(self.output_path),
+            "PYTHON_EXEC": sys.executable,
+            "JUNIT_SCRIPT": str(self.script_path),
+            "XML_FILES": str(self.xml_path),
+        })
 
-        args=()
-        if [[ -n "$CUSTOM_DATA_INPUT" ]]; then
-          args+=(--custom-data "$CUSTOM_DATA_INPUT")
-        fi
+        cmd = [bash_executable, str(runner_script)]
 
-        "$PYTHON_EXEC" "$SCRIPT_PATH" "$XML_FILE" --output "$OUTPUT_FILE" --no-fail-on-test-failures "${args[@]}"
-        """
-
-        cmd = [
-            bash_executable,
-            "-c",
-            bash_script,
-            "bash",  # $0
-            custom_data_input,  # $1
-            str(self.xml_path),  # $2
-            str(self.output_path),  # $3
-            str(self.script_path),  # $4
-            sys.executable,  # $5
-        ]
-
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        self.assertEqual(result.returncode, 0, msg=f"Bash execution failed: {result.stderr}")
+        result = subprocess.run(cmd, capture_output=True, text=True, env=env)
+        self.assertEqual(result.returncode, 0, msg=f"parse_junit_summary.sh failed: {result.stderr}")
 
         markdown = self.output_path.read_text(encoding="utf-8")
         self.assertIn(f"**HTML Report**: {artifact_url}", markdown)
         self.assertNotIn('\\"', markdown)
 
-    def test_missing_xml_files_with_no_fail_on_test_failures(self):
-        """Test missing XML files exits cleanly with 0 when --no-fail-on-test-failures is passed."""
+    def test_missing_xml_files_unconditional_error(self):
+        """Test missing XML files returns non-zero exit unconditionally."""
         empty_dir = Path(self.temp_dir.name) / "empty_dir"
         empty_dir.mkdir()
 
@@ -187,22 +173,7 @@ class JunitToSummaryTest(unittest.TestCase):
         ]
 
         result = subprocess.run(cmd, capture_output=True, text=True)
-        self.assertEqual(result.returncode, 0, msg=f"Script failed: {result.stderr}")
-        self.assertIn("Warning: No XML files found", result.stderr)
-
-    def test_missing_xml_files_with_fail_on_test_failures(self):
-        """Test missing XML files exits with failure when fail-on-test-failures is true."""
-        empty_dir = Path(self.temp_dir.name) / "empty_dir"
-        empty_dir.mkdir()
-
-        cmd = [
-            sys.executable,
-            str(self.script_path),
-            str(empty_dir),
-        ]
-
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        self.assertNotEqual(result.returncode, 0)
+        self.assertNotEqual(result.returncode, 0, msg="Missing XML files must be an unconditional error")
         self.assertIn("Error: No XML files found", result.stderr)
 
 

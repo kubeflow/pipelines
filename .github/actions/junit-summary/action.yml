@@ -56,24 +56,7 @@ runs:
       env:
         CUSTOM_DATA_INPUT: ${{ inputs.custom_data }}
         CUSTOM_DATA_FILE_INPUT: ${{ inputs.custom_data_file }}
+        FAIL_ON_TEST_FAILURES: ${{ inputs.fail_on_test_failures }}
+        XML_FILES: ${{ inputs.xml_files }}
       run: |
-        # Build arguments array
-        args=()
-
-        # Add custom data if provided
-        if [[ -n "$CUSTOM_DATA_INPUT" ]]; then
-          args+=(--custom-data "$CUSTOM_DATA_INPUT")
-        fi
-
-        # Add custom data file if provided
-        if [[ -n "$CUSTOM_DATA_FILE_INPUT" ]]; then
-          args+=(--custom-data-file "$CUSTOM_DATA_FILE_INPUT")
-        fi
-
-        # Add fail_on_test_failures flag
-        if [[ "${{ inputs.fail_on_test_failures }}" != "true" ]]; then
-          args+=(--no-fail-on-test-failures)
-        fi
-
-        # Execute the Python script with XML files and arguments
-        python "${{ github.action_path }}/junit_to_summary.py" ${{ inputs.xml_files }} "${args[@]}"
+        "${{ github.action_path }}/parse_junit_summary.sh"
