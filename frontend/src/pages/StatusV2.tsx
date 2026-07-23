@@ -46,7 +46,9 @@ export function statusToIcon(
     case V2beta1RuntimeState.FAILED:
       IconComponent = ErrorIcon;
       iconColor = color.errorText;
-      title = 'Resource failed to execute';
+      title = nodeMessage
+        ? `Failed: ${nodeMessage}`
+        : 'Resource failed to execute';
       break;
     case V2beta1RuntimeState.PENDING:
       IconComponent = PendingIcon;
