@@ -16,6 +16,7 @@
 
 pushd ../..
 pip install -r docs/sdk/requirements.txt
+pip install sdk/python
 popd
 
 # build docs
