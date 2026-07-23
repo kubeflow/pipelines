@@ -1,0 +1,341 @@
+# PIPELINE DEFINITION
+# Name: iris-training-pipeline
+# Description: Download Iris data, preprocess, train a classifier, and evaluate accuracy.
+# Inputs:
+#    random_state: int [Default: 42.0]
+#    test_size: float [Default: 0.2]
+components:
+  comp-download-iris-dataset:
+    executorLabel: exec-download-iris-dataset
+    outputDefinitions:
+      artifacts:
+        dataset_path:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-evaluate-iris-model:
+    executorLabel: exec-evaluate-iris-model
+    inputDefinitions:
+      artifacts:
+        model_path:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        test_features_path:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        test_labels_path:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_DOUBLE
+  comp-preprocess-iris-dataset:
+    executorLabel: exec-preprocess-iris-dataset
+    inputDefinitions:
+      artifacts:
+        input_dataset_path:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        random_state:
+          defaultValue: 42.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        test_size:
+          defaultValue: 0.2
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+    outputDefinitions:
+      artifacts:
+        test_features_path:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        test_labels_path:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        train_features_path:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        train_labels_path:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-train-iris-model:
+    executorLabel: exec-train-iris-model
+    inputDefinitions:
+      artifacts:
+        train_features_path:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        train_labels_path:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        model_path:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-download-iris-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - download_iris_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'scikit-learn'\
+          \ 'numpy' 'joblib'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.16.1' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef download_iris_dataset(\n    dataset_path: dsl.OutputPath(),\n\
+          ) -> int:\n    \"\"\"Download the Iris dataset from scikit-learn and persist\
+          \ it to disk.\"\"\"\n    import joblib\n    from sklearn.datasets import\
+          \ load_iris\n\n    iris = load_iris()\n    joblib.dump(\n        {\n   \
+          \         'features': iris.data,\n            'target': iris.target,\n \
+          \           'feature_names': iris.feature_names,\n            'target_names':\
+          \ iris.target_names,\n        },\n        dataset_path,\n    )\n    return\
+          \ len(iris.target)\n\n"
+        image: python:3.11
+    exec-evaluate-iris-model:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - evaluate_iris_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'scikit-learn'\
+          \ 'numpy' 'joblib'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.16.1' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef evaluate_iris_model(\n    test_features_path: dsl.InputPath(),\n\
+          \    test_labels_path: dsl.InputPath(),\n    model_path: dsl.InputPath(),\n\
+          ) -> float:\n    \"\"\"Evaluate the trained model and return classification\
+          \ accuracy.\"\"\"\n    import joblib\n    from sklearn.metrics import accuracy_score\n\
+          \n    test_features_bundle = joblib.load(test_features_path)\n    test_labels\
+          \ = joblib.load(test_labels_path)\n    model = joblib.load(model_path)\n\
+          \n    predictions = model.predict(test_features_bundle['features'])\n  \
+          \  return float(accuracy_score(test_labels, predictions))\n\n"
+        image: python:3.11
+    exec-preprocess-iris-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - preprocess_iris_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'scikit-learn'\
+          \ 'numpy' 'joblib'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.16.1' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef preprocess_iris_dataset(\n    input_dataset_path: dsl.InputPath(),\n\
+          \    train_features_path: dsl.OutputPath(),\n    test_features_path: dsl.OutputPath(),\n\
+          \    train_labels_path: dsl.OutputPath(),\n    test_labels_path: dsl.OutputPath(),\n\
+          \    test_size: float = 0.2,\n    random_state: int = 42,\n) -> int:\n \
+          \   \"\"\"Standardize features and split the Iris dataset into train and\
+          \ test sets.\"\"\"\n    import joblib\n    from sklearn.model_selection\
+          \ import train_test_split\n    from sklearn.preprocessing import StandardScaler\n\
+          \n    dataset = joblib.load(input_dataset_path)\n    features = dataset['features']\n\
+          \    labels = dataset['target']\n\n    scaler = StandardScaler()\n    scaled_features\
+          \ = scaler.fit_transform(features)\n\n    train_features, test_features,\
+          \ train_labels, test_labels = train_test_split(\n        scaled_features,\n\
+          \        labels,\n        test_size=test_size,\n        random_state=random_state,\n\
+          \        stratify=labels,\n    )\n\n    joblib.dump({'features': train_features,\
+          \ 'scaler': scaler}, train_features_path)\n    joblib.dump({'features':\
+          \ test_features, 'scaler': scaler}, test_features_path)\n    joblib.dump(train_labels,\
+          \ train_labels_path)\n    joblib.dump(test_labels, test_labels_path)\n\n\
+          \    return len(train_labels)\n\n"
+        image: python:3.11
+    exec-train-iris-model:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - train_iris_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'scikit-learn'\
+          \ 'numpy' 'joblib'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.16.1' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef train_iris_model(\n    train_features_path: dsl.InputPath(),\n\
+          \    train_labels_path: dsl.InputPath(),\n    model_path: dsl.OutputPath(),\n\
+          ) -> str:\n    \"\"\"Train a logistic regression classifier on the preprocessed\
+          \ training data.\"\"\"\n    import joblib\n    from sklearn.linear_model\
+          \ import LogisticRegression\n\n    train_features_bundle = joblib.load(train_features_path)\n\
+          \    train_labels = joblib.load(train_labels_path)\n\n    model = LogisticRegression(max_iter=200,\
+          \ random_state=42)\n    model.fit(train_features_bundle['features'], train_labels)\n\
+          \n    joblib.dump(model, model_path)\n    return model.__class__.__name__\n\
+          \n"
+        image: python:3.11
+pipelineInfo:
+  description: Download Iris data, preprocess, train a classifier, and evaluate accuracy.
+  name: iris-training-pipeline
+root:
+  dag:
+    tasks:
+      download-iris-dataset:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-download-iris-dataset
+        taskInfo:
+          name: download-iris-dataset
+      evaluate-iris-model:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-evaluate-iris-model
+        dependentTasks:
+        - preprocess-iris-dataset
+        - train-iris-model
+        inputs:
+          artifacts:
+            model_path:
+              taskOutputArtifact:
+                outputArtifactKey: model_path
+                producerTask: train-iris-model
+            test_features_path:
+              taskOutputArtifact:
+                outputArtifactKey: test_features_path
+                producerTask: preprocess-iris-dataset
+            test_labels_path:
+              taskOutputArtifact:
+                outputArtifactKey: test_labels_path
+                producerTask: preprocess-iris-dataset
+        taskInfo:
+          name: evaluate-iris-model
+      preprocess-iris-dataset:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-preprocess-iris-dataset
+        dependentTasks:
+        - download-iris-dataset
+        inputs:
+          artifacts:
+            input_dataset_path:
+              taskOutputArtifact:
+                outputArtifactKey: dataset_path
+                producerTask: download-iris-dataset
+          parameters:
+            random_state:
+              componentInputParameter: random_state
+            test_size:
+              componentInputParameter: test_size
+        taskInfo:
+          name: preprocess-iris-dataset
+      train-iris-model:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-train-iris-model
+        dependentTasks:
+        - preprocess-iris-dataset
+        inputs:
+          artifacts:
+            train_features_path:
+              taskOutputArtifact:
+                outputArtifactKey: train_features_path
+                producerTask: preprocess-iris-dataset
+            train_labels_path:
+              taskOutputArtifact:
+                outputArtifactKey: train_labels_path
+                producerTask: preprocess-iris-dataset
+        taskInfo:
+          name: train-iris-model
+  inputDefinitions:
+    parameters:
+      random_state:
+        defaultValue: 42.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      test_size:
+        defaultValue: 0.2
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.16.1
