@@ -1,0 +1,288 @@
+# PIPELINE DEFINITION
+# Name: time-series-demand-forecasting-pipeline
+# Description: A production-grade v2 time-series demand forecasting pipeline.
+# Inputs:
+#    alpha: float [Default: 1.0]
+#    num_readings: int [Default: 500.0]
+components:
+  comp-evaluate-forecast:
+    executorLabel: exec-evaluate-forecast
+    inputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+          description: Input trained model.
+        preprocessed_data:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          description: Input preprocessed dataset.
+    outputDefinitions:
+      artifacts:
+        metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+      parameters:
+        report:
+          parameterType: STRING
+  comp-extract-telemetry-metrics:
+    executorLabel: exec-extract-telemetry-metrics
+    inputDefinitions:
+      parameters:
+        num_readings:
+          description: Number of telemetry metrics sequence steps to generate.
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        preprocessed_data:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-train-regressor:
+    executorLabel: exec-train-regressor
+    inputDefinitions:
+      artifacts:
+        preprocessed_data:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          description: Input preprocessed dataset containing features and target.
+      parameters:
+        alpha:
+          defaultValue: 1.0
+          description: Ridge regression regularization strength.
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+    outputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-evaluate-forecast:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - evaluate_forecast
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas' 'scikit-learn'\
+          \  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef evaluate_forecast(\n    preprocessed_data: Input[Dataset],\n\
+          \    model: Input[Model],\n    metrics: Output[Metrics]\n) -> NamedTuple('Outputs',\
+          \ report=str):\n    \"\"\"Computes Mean Absolute Error (MAE) and R-squared\
+          \ (R2) metrics, exports them\n    into a clean KFP Metrics structure, and\
+          \ returns a summary report.\n\n    Args:\n        preprocessed_data: Input\
+          \ preprocessed dataset.\n        model: Input trained model.\n        metrics:\
+          \ Output metrics artifact.\n\n    Returns:\n        Outputs: NamedTuple\
+          \ containing the report text.\n    \"\"\"\n    import pickle\n    import\
+          \ pandas as pd\n    from typing import NamedTuple\n    from sklearn.metrics\
+          \ import mean_absolute_error, r2_score\n\n    # Load dataset\n    df = pd.read_csv(preprocessed_data.path)\n\
+          \    feature_cols = ['lag_1', 'lag_2', 'lag_3']\n    X = df[feature_cols]\n\
+          \    y = df['demand']\n\n    # Load model\n    with open(model.path, 'rb')\
+          \ as f:\n        reg = pickle.load(f)\n\n    # Perform predictions on the\
+          \ testing portion (the last 20% of sequence)\n    split_idx = int(len(df)\
+          \ * 0.8)\n    X_test, y_test = X.iloc[split_idx:], y.iloc[split_idx:]\n\n\
+          \    y_pred = reg.predict(X_test)\n\n    # Compute metrics\n    mae = float(mean_absolute_error(y_test,\
+          \ y_pred))\n    r2 = float(r2_score(y_test, y_pred))\n\n    # Log metrics\
+          \ to native KFP Metrics artifact\n    metrics.log_metric('mae', mae)\n \
+          \   metrics.log_metric('r2_score', r2)\n\n    # Generate string-formatted\
+          \ text summary report\n    report_text = (\n        f\"=== Demand Forecasting\
+          \ Evaluation Report ===\\n\"\n        f\"Model Algorithm: {model.metadata.get('algorithm',\
+          \ 'Unknown')}\\n\"\n        f\"Regularization Alpha: {model.metadata.get('alpha',\
+          \ 'N/A')}\\n\"\n        f\"Total Test Samples Evaluated: {len(y_test)}\\\
+          n\"\n        f\"Mean Absolute Error (MAE): {mae:.4f}\\n\"\n        f\"R-squared\
+          \ (R^2): {r2:.4f}\\n\"\n        f\"============================================\"\
+          \n    )\n\n    outputs = NamedTuple('Outputs', report=str)\n    return outputs(report_text)\n\
+          \n"
+        image: python:3.9
+    exec-extract-telemetry-metrics:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - extract_telemetry_metrics
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas' 'numpy'\
+          \  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef extract_telemetry_metrics(\n    num_readings: int,\n    preprocessed_data:\
+          \ Output[Dataset]\n):\n    \"\"\"Loads a historical sequence of numerical\
+          \ readings, handles missing values\n    using forward-filling imputation\
+          \ logic, and creates rolling lag features.\n\n    Args:\n        num_readings:\
+          \ Number of telemetry metrics sequence steps to generate.\n        preprocessed_data:\
+          \ Output dataset path to write the preprocessed features.\n    \"\"\"\n\
+          \    import pandas as pd\n    import numpy as np\n\n    # Generate synthetic\
+          \ time-series demand/telemetry data\n    np.random.seed(42)\n    time_index\
+          \ = pd.date_range(start='2026-01-01', periods=num_readings, freq='H')\n\n\
+          \    # Generate demand with a daily seasonality and random noise\n    base_demand\
+          \ = 100 + 30 * np.sin(2 * np.pi * time_index.hour / 24.0)\n    noise = np.random.normal(0,\
+          \ 10, size=num_readings)\n    demand = base_demand + noise\n\n    # Inject\
+          \ missing values (NaNs) to demonstrate forward-filling imputation\n    mask\
+          \ = np.random.choice([True, False], size=num_readings, p=[0.05, 0.95])\n\
+          \    demand[mask] = np.nan\n\n    df = pd.DataFrame({'timestamp': time_index,\
+          \ 'demand': demand})\n\n    # Impute missing values using forward-filling\
+          \ (ffill)\n    # For robust imputation, fill any remaining NaNs at the beginning\
+          \ with backward-filling (bfill)\n    df['demand'] = df['demand'].ffill().bfill()\n\
+          \n    # Create rolling lag features (lag_1, lag_2, lag_3)\n    df['lag_1']\
+          \ = df['demand'].shift(1)\n    df['lag_2'] = df['demand'].shift(2)\n   \
+          \ df['lag_3'] = df['demand'].shift(3)\n\n    # Drop rows with NaN values\
+          \ created by lag operations\n    df = df.dropna().reset_index(drop=True)\n\
+          \n    # Save preprocessed telemetry dataset\n    df.to_csv(preprocessed_data.path,\
+          \ index=False)\n\n"
+        image: python:3.9
+    exec-train-regressor:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - train_regressor
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas' 'scikit-learn'\
+          \  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef train_regressor(\n    preprocessed_data: Input[Dataset],\n  \
+          \  model: Output[Model],\n    alpha: float = 1.0\n):\n    \"\"\"Trains a\
+          \ Ridge regression model to forecast future demand steps based on lag features.\n\
+          \n    Args:\n        preprocessed_data: Input preprocessed dataset containing\
+          \ features and target.\n        model: Output model artifact path.\n   \
+          \     alpha: Ridge regression regularization strength.\n    \"\"\"\n   \
+          \ import pickle\n    import pandas as pd\n    from sklearn.linear_model\
+          \ import Ridge\n\n    # Load dataset\n    df = pd.read_csv(preprocessed_data.path)\n\
+          \n    # Features: lag features; Target: current demand\n    feature_cols\
+          \ = ['lag_1', 'lag_2', 'lag_3']\n    X = df[feature_cols]\n    y = df['demand']\n\
+          \n    # Train-test split (80% train, 20% test for internal evaluation /\
+          \ validation)\n    # Since it's a time-series, perform a sequential split\
+          \ instead of random split\n    split_idx = int(len(df) * 0.8)\n    X_train,\
+          \ y_train = X.iloc[:split_idx], y.iloc[:split_idx]\n\n    # Train Ridge\
+          \ regression model\n    reg = Ridge(alpha=alpha)\n    reg.fit(X_train, y_train)\n\
+          \n    # Save the serialized model artifact\n    with open(model.path, 'wb')\
+          \ as f:\n        pickle.dump(reg, f)\n\n    # Record hyperparameters in\
+          \ model metadata\n    model.metadata['alpha'] = alpha\n    model.metadata['algorithm']\
+          \ = 'RidgeRegression'\n    model.metadata['framework'] = 'scikit-learn'\n\
+          \n"
+        image: python:3.9
+pipelineInfo:
+  description: A production-grade v2 time-series demand forecasting pipeline.
+  name: time-series-demand-forecasting-pipeline
+root:
+  dag:
+    tasks:
+      evaluate-forecast:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-evaluate-forecast
+        dependentTasks:
+        - extract-telemetry-metrics
+        - train-regressor
+        inputs:
+          artifacts:
+            model:
+              taskOutputArtifact:
+                outputArtifactKey: model
+                producerTask: train-regressor
+            preprocessed_data:
+              taskOutputArtifact:
+                outputArtifactKey: preprocessed_data
+                producerTask: extract-telemetry-metrics
+        taskInfo:
+          name: evaluate-forecast
+      extract-telemetry-metrics:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-extract-telemetry-metrics
+        inputs:
+          parameters:
+            num_readings:
+              componentInputParameter: num_readings
+        taskInfo:
+          name: extract-telemetry-metrics
+      train-regressor:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-train-regressor
+        dependentTasks:
+        - extract-telemetry-metrics
+        inputs:
+          artifacts:
+            preprocessed_data:
+              taskOutputArtifact:
+                outputArtifactKey: preprocessed_data
+                producerTask: extract-telemetry-metrics
+          parameters:
+            alpha:
+              componentInputParameter: alpha
+        taskInfo:
+          name: train-regressor
+  inputDefinitions:
+    parameters:
+      alpha:
+        defaultValue: 1.0
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      num_readings:
+        defaultValue: 500.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.16.1
