@@ -1033,6 +1033,10 @@ func TestTerminateRun(t *testing.T) {
 					UpdateTimeInSec: 1,
 					State:           model.RuntimeStateRunning,
 				},
+				{
+					UpdateTimeInSec: 4,
+					State:           model.RuntimeStateCancelling,
+				},
 			},
 		},
 		Metrics: []*model.RunMetric{
@@ -1073,6 +1077,30 @@ func TestTerminateRun_RunHasAlreadyFinished(t *testing.T) {
 	err := runStore.TerminateRun("2")
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Row not found")
+}
+
+func TestTerminateRun_AppendsCancellingToStateHistory(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	// Run "1" is seeded as RUNNING with a single StateHistory entry.
+	before, err := runStore.GetRun("1")
+	assert.Nil(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, before.RunDetails.State)
+	assert.Len(t, before.RunDetails.StateHistory, 1)
+
+	err = runStore.TerminateRun("1")
+	assert.Nil(t, err)
+
+	after, err := runStore.GetRun("1")
+	assert.Nil(t, err)
+	// State moves to CANCELLING and the transition is recorded in StateHistory,
+	// consistent with CreateRun/UpdateRun (regression test for the missing
+	// TerminateRun StateHistory append).
+	assert.Equal(t, model.RuntimeStateCancelling, after.RunDetails.State)
+	assert.Len(t, after.RunDetails.StateHistory, 2)
+	assert.Equal(t, model.RuntimeStateRunning, after.RunDetails.StateHistory[0].State)
+	assert.Equal(t, model.RuntimeStateCancelling, after.RunDetails.StateHistory[1].State)
 }
 
 func TestCreateMetric_Success(t *testing.T) {
