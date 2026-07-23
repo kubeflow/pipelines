@@ -77,10 +77,22 @@ func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.Executo
 	return executorOutput, outputArtifacts, nil
 }
 
-// getFingerPrint generates a fingerprint for caching. The PVC names are included in the fingerprint since it's assumed
-// PVCs have side effects (e.g. files written for tasks later on in the run) on the execution. If the PVC names are
-// different, the execution shouldn't be reused for the cache.
+// getFingerPrint generates a fingerprint for caching.
+//
+// If a user-provided cacheKey is set in PipelineTaskSpec, it is used directly. This enables users to override the
+// default cache key and reuse cached results across minor task changes (e.g., image updates or small input modifications),
+// reducing unnecessary re-computation.
+//
+// Otherwise, the fingerprint is derived from inputs, outputs, container spec and PVC names. The PVC names are included
+// in the fingerprint since it's assumed PVCs have side effects (e.g. files written for tasks later on in the run) on the execution.
+// If the PVC names are different, the execution shouldn't be reused for the cache.
 func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput, cacheClient cacheutils.Client, pvcNames []string) (string, error) {
+	// Use user-provided cache_key for cache resolution.
+	// See https://github.com/kubeflow/pipelines/issues/11328 for details.
+	if cacheKey := opts.Task.GetCachingOptions().GetCacheKey(); cacheKey != "" {
+		glog.Infof("using cacheKey {%s} from PipelineTaskSpec", cacheKey)
+		return cacheKey, nil
+	}
 	outputParametersTypeMap := make(map[string]string)
 	for outputParamName, outputParamSpec := range opts.Component.GetOutputDefinitions().GetParameters() {
 		outputParametersTypeMap[outputParamName] = outputParamSpec.GetParameterType().String()
