@@ -29,6 +29,7 @@ import { Apis } from 'src/lib/Apis';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { errorToMessage } from 'src/lib/Utils';
 import { getTaskKeyFromNodeKey, NodeTypeNames, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+import { ExecutionFlowElementData } from 'src/components/graph/Constants';
 import {
   EXECUTION_KEY_CACHED_EXECUTION_ID,
   getArtifactName,
@@ -179,8 +180,13 @@ function TaskNodeDetail({
 
   const [selectedTab, setSelectedTab] = useState(0);
 
+  const lifecycleError = (element?.data as ExecutionFlowElementData | undefined)?.lifecycleError;
+
   return (
     <div className={commonCss.page}>
+      {lifecycleError && (
+        <Banner message='Pod lifecycle failure' additionalInfo={lifecycleError} mode='error' />
+      )}
       <MD2Tabs
         tabs={['Input/Output', 'Task Details', 'Logs']}
         selectedTab={selectedTab}
@@ -192,6 +198,15 @@ function TaskNodeDetail({
           (() => {
             if (execution) {
               return <RuntimeInputOutputTab execution={execution} namespace={namespace} />;
+            }
+            if (lifecycleError) {
+              return (
+                <Banner
+                  message='No execution data available — the pod failed before the task could start.'
+                  additionalInfo={lifecycleError}
+                  mode='error'
+                />
+              );
             }
             return NODE_STATE_UNAVAILABLE;
           })()}
