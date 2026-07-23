@@ -24,6 +24,34 @@ def echo():
     )
 
 
+@dsl.container_component
+def echo_producer(message: str, output_file: dsl.Output[dsl.Dataset]):
+    return dsl.ContainerSpec(
+        image='registry.access.redhat.com/ubi9/python-311:latest',
+        command=[
+            'sh',
+            '-c',
+            'mkdir -p $(dirname "$1") && echo "$0" > "$1"',
+        ],
+        args=[message, output_file.path],
+    )
+
+
+@dsl.container_component
+def echo_consumer(input_file: dsl.Input[dsl.Dataset]):
+    return dsl.ContainerSpec(
+        image='registry.access.redhat.com/ubi9/python-311:latest',
+        command=['cat'],
+        args=[input_file.path],
+    )
+
+
+@dsl.pipeline(name='hello-world-pipeline')
+def hello_world_pipeline(greeting: str = 'hello world'):
+    producer = echo_producer(message=greeting)
+    consumer = echo_consumer(input_file=producer.outputs['output_file'])
+
+
 if __name__ == '__main__':
     compiler.Compiler().compile(
         echo, package_path=__file__.replace('.py', '.yaml'))
