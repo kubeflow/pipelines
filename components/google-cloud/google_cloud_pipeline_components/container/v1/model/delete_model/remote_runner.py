@@ -39,7 +39,7 @@ def delete_model(
   uri_pattern = re.compile(_MODEL_NAME_TEMPLATE)
   match = uri_pattern.match(model_name)
   try:
-    location = match.group('location')
+    location = match.group('location')  # pyrefly: ignore[missing-attribute]
   except AttributeError as err:
     # TODO(ruifang) propagate the error.
     raise ValueError(
