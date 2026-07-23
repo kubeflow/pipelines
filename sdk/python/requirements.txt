@@ -7,7 +7,7 @@ certifi==2025.11.12
     #   requests
 charset-normalizer==3.4.4
     # via requests
-click==8.1.8
+click>=8.1.8
     # via
     #   -r requirements.in
     #   click-option-group
