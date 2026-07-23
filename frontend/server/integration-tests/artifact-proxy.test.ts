@@ -191,6 +191,16 @@ describe('/artifacts/get namespaced proxy', () => {
     expect(res.text).not.toContain('stack');
   });
 
+  it('rejects ambiguous namespace query parameters', async () => {
+    const configs = loadConfigs(argv, { ARTIFACTS_SERVICE_PROXY_ENABLED: 'true' });
+    app = new UIServer(configs);
+    await requests(app.app)
+      .get(
+        `/artifacts/get?source=minio&bucket=ml-pipeline&key=hello.txt&namespace=ns-a&namespace=ns-b`,
+      )
+      .expect(400, 'namespace must be a single string value');
+  });
+
   it('proxies a request with basePath too', async () => {
     const { receivedUrls, response } = await setUpNamespacedArtifactService({});
     const configs = loadConfigs(argv, {

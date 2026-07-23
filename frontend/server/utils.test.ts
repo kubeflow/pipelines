@@ -12,9 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { PassThrough } from 'stream';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import {
   PreviewStream,
   findFileOnPodVolume,
+  openFileWithinRoot,
   parseError,
   resolveFilePathOnVolume,
 } from './utils.js';
@@ -184,6 +188,15 @@ describe('utils', () => {
       expect(path).toEqual(['/data/a/b/c', undefined]);
     });
 
+    it('resolves the volume root without volumeMountSubPath', () => {
+      const path = resolveFilePathOnVolume({
+        filePathInVolume: '',
+        volumeMountPath: '/data',
+        volumeMountSubPath: undefined,
+      });
+      expect(path).toEqual(['/data', undefined]);
+    });
+
     it('with volumeMountSubPath', () => {
       const path = resolveFilePathOnVolume({
         volumeMountPath: '/data',
@@ -212,6 +225,83 @@ describe('utils', () => {
         '',
         'File a/b/c not mounted, expecting the file to be inside volume mount subpath other',
       ]);
+    });
+
+    it('rejects parent directory traversal', () => {
+      const path = resolveFilePathOnVolume({
+        filePathInVolume: '../secret',
+        volumeMountPath: '/data',
+        volumeMountSubPath: undefined,
+      });
+      expect(path).toEqual(['', 'file path ../secret must not contain parent directory segments']);
+    });
+
+    it('rejects absolute paths', () => {
+      const path = resolveFilePathOnVolume({
+        filePathInVolume: '/etc/passwd',
+        volumeMountPath: '/data',
+        volumeMountSubPath: undefined,
+      });
+      expect(path).toEqual(['', 'file path /etc/passwd must be relative']);
+    });
+
+    it('requires subPath to match a full path segment', () => {
+      const path = resolveFilePathOnVolume({
+        volumeMountPath: '/data',
+        filePathInVolume: 'ab/c',
+        volumeMountSubPath: 'a',
+      });
+      expect(path).toEqual([
+        '',
+        'File ab/c not mounted, expecting the file to be inside volume mount subpath a',
+      ]);
+    });
+  });
+
+  describe('openFileWithinRoot', () => {
+    function makeTempDirectory(): string {
+      return fs.mkdtempSync(path.join(os.tmpdir(), 'kfp-volume-test-'));
+    }
+
+    it.each(['final', 'intermediate'])('rejects an outside %s symlink', async (symlinkKind) => {
+      const rootPath = makeTempDirectory();
+      const outsidePath = makeTempDirectory();
+      const outsideFilePath = path.join(outsidePath, 'secret');
+      fs.writeFileSync(outsideFilePath, 'outside secret');
+      const requestedFilePath =
+        symlinkKind === 'final'
+          ? path.join(rootPath, 'leak')
+          : path.join(rootPath, 'escape', 'secret');
+      fs.symlinkSync(
+        symlinkKind === 'final' ? outsideFilePath : outsidePath,
+        symlinkKind === 'final' ? requestedFilePath : path.join(rootPath, 'escape'),
+      );
+
+      try {
+        const [fileHandle, error] = await openFileWithinRoot(requestedFilePath, rootPath);
+        expect(fileHandle).toBeUndefined();
+        expect(error).toMatchObject({ pathEscaped: true });
+      } finally {
+        fs.rmSync(rootPath, { recursive: true, force: true });
+        fs.rmSync(outsidePath, { recursive: true, force: true });
+      }
+    });
+
+    it('opens an in-root symlink through the validated file handle', async () => {
+      const rootPath = makeTempDirectory();
+      const targetPath = path.join(rootPath, 'content');
+      const linkPath = path.join(rootPath, 'link');
+      fs.writeFileSync(targetPath, 'inside content');
+      fs.symlinkSync(targetPath, linkPath);
+
+      try {
+        const [fileHandle, error] = await openFileWithinRoot(linkPath, rootPath);
+        expect(error).toBeUndefined();
+        expect(await fileHandle?.readFile({ encoding: 'utf8' })).toBe('inside content');
+        await fileHandle?.close();
+      } finally {
+        fs.rmSync(rootPath, { recursive: true, force: true });
+      }
     });
   });
 
