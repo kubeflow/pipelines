@@ -71,15 +71,12 @@ The API server supports configuring custom labels and annotations for driver pod
 **Configuration via config.json:**
 ```json
 {
-  "DRIVER_POD_LABELS": {
-    "sidecar.istio.io/inject": "true",
-    "app": "ml-pipeline-driver"
-  },
-  "DRIVER_POD_ANNOTATIONS": {
-    "proxy.istio.io/config": "{\"holdApplicationUntilProxyStarts\":true}"
-  }
+  "DRIVER_POD_LABELS": "{\"sidecar.istio.io/inject\":\"true\",\"app\":\"ml-pipeline-driver\"}",
+  "DRIVER_POD_ANNOTATIONS": "{\"proxy.istio.io/config\":\"{\\\"holdApplicationUntilProxyStarts\\\":true}\"}"
 }
 ```
+
+Write each value as a JSON string, not a JSON object (rejected at startup). The ConfigMap takes precedence over this file.
 
 **Configuration via Kubernetes ConfigMap (`pipeline-install-config`):**
 ```yaml
@@ -87,9 +84,24 @@ DRIVER_POD_LABELS: '{"sidecar.istio.io/inject":"true"}'
 DRIVER_POD_ANNOTATIONS: '{"proxy.istio.io/config":"{\"holdApplicationUntilProxyStarts\":true}"}'
 ```
 
-When configured via the ConfigMap, every value must be a JSON string. Write `"true"` rather than the bare boolean `true`, and never `null`. The configuration is validated at API server startup: malformed JSON, any value that is not a JSON string, and label keys, label values, or annotation keys that Kubernetes would reject all cause startup to fail with a descriptive error rather than being silently ignored. Annotation values are free form, so a value such as an inline JSON document is accepted.
+Every entry must have a string value: write `"true"` rather than the bare boolean `true`, and never `null`. The configuration is validated at API server startup, so malformed JSON, a value that is not a string, and label keys, label values or annotation keys that Kubernetes would reject all fail startup with a descriptive error rather than being silently ignored. Annotation values are free form, so an inline JSON document is accepted. Annotations are also held to the 256 KiB limit Kubernetes allows per object.
 
-Note: Labels and annotations with the prefix `pipelines.kubeflow.org/` are reserved and will be filtered out to prevent overriding system metadata. Changes to driver pod configuration require an API server restart.
+**Terminating an injected Istio sidecar:**
+
+Argo's default sidecar kill command leaves the Istio proxy running, so the pod stays in
+`Running`. Argo's per container kill command handles it and needs `pods/exec`, which the
+default `pipeline-runner` Role already grants.
+
+```yaml
+DRIVER_POD_LABELS: '{"sidecar.istio.io/inject":"true"}'
+DRIVER_POD_ANNOTATIONS: '{"proxy.istio.io/config":"{\"holdApplicationUntilProxyStarts\":true}","workflows.argoproj.io/kill-cmd-istio-proxy":"[\"pilot-agent\", \"request\", \"POST\", \"quitquitquit\"]"}'
+```
+
+The compiler's `sidecar.istio.io/inject: "false"` annotation does not disable the label above, since Istio prefers the label. See the Argo Workflows [sidecar injection](https://argo-workflows.readthedocs.io/en/latest/sidecar-injection/) guide.
+
+Note: Labels and annotations with the prefix `pipelines.kubeflow.org/` are reserved and will be filtered out to prevent overriding system metadata.
+
+Changes require an API server restart.
 
 ## API Server Development
 
