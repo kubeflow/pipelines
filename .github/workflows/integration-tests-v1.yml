@@ -6,10 +6,11 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/api-integration-tests-v1.yml'
+      - '.github/workflows/integration-tests-v1.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
+      - '.github/actions/publish-ci-result/**'
       - '.github/resources/**'
       - 'api/**'
       - 'go.mod'
@@ -96,7 +97,10 @@ jobs:
         id: initialization-tests
         if: ${{ steps.forward-mysql-port.outcome == 'success' }}
         working-directory: ./backend/test/initialization
-        run: go test -v ./... -namespace=kubeflow -args -runIntegrationTests=true
+        run: |
+          go test -json -v ./... -namespace=kubeflow \
+            -args -runIntegrationTests=true \
+            | tee "$RUNNER_TEMP/initialization-go-test.json"
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
         continue-on-error: true
@@ -105,10 +109,22 @@ jobs:
         id: integration-tests
         if: ${{ steps.forward-mysql-port.outcome == 'success' }}
         working-directory: ./backend/test/integration
-        run: go test -v ./... -args -runIntegrationTests=true -namespace=kubeflow -repoName=${{ github.repository }} -branchName=${{ github.ref_name }}
+        run: |
+          go test -json -v ./... -args -runIntegrationTests=true \
+            -namespace=kubeflow -repoName=${{ github.repository }} \
+            -branchName=${{ github.ref_name }} \
+            | tee "$RUNNER_TEMP/integration-go-test.json"
         env:
           KFP_TEST_FIXTURE_BASE_URL: http://pipeline-test-fixtures.kubeflow.svc.cluster.local:8080
         continue-on-error: true
+
+      - name: Publish normalized CI result
+        if: always() && !cancelled()
+        uses: ./.github/actions/publish-ci-result
+        with:
+          test_outcome: ${{ (steps.initialization-tests.outcome == 'success' && steps.integration-tests.outcome == 'success') && 'success' || 'failure' }}
+          report_name: Initialization & Integration tests v1 - K8s ${{ matrix.k8s_version }}
+          go_json: ${{ runner.temp }}/*-go-test.json
 
       - name: Collect failed logs
         if: ${{ steps.deploy-pipeline-test-fixtures.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.forward-mysql-port.outcome != 'success' || steps.integration-tests.outcome != 'success' || steps.initialization-tests.outcome != 'success' }}
