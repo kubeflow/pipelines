@@ -171,9 +171,12 @@ jobs:
         id: build-sample-modelcar-image
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
-          docker build -f ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
+          source ./.github/resources/scripts/helper-functions.sh
+          retry 3 20 env DOCKER_BUILDKIT=1 docker build \
+            --file ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile \
+            --tag registry.domain.local/modelcar:test \
+            .
           kind --name kfp load docker-image registry.domain.local/modelcar:test
-        continue-on-error: true
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report
@@ -259,9 +262,12 @@ jobs:
         id: build-sample-modelcar-image
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
-          docker build -f ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
+          source ./.github/resources/scripts/helper-functions.sh
+          retry 3 20 env DOCKER_BUILDKIT=1 docker build \
+            --file ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile \
+            --tag registry.domain.local/modelcar:test \
+            .
           kind --name kfp load docker-image registry.domain.local/modelcar:test
-        continue-on-error: true
 
       - name: Test Artifact Proxy
         id: test-artifact-proxy
@@ -428,9 +434,12 @@ jobs:
         id: build-sample-modelcar-image
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
-          docker build -f ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
+          source ./.github/resources/scripts/helper-functions.sh
+          retry 3 20 env DOCKER_BUILDKIT=1 docker build \
+            --file ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile \
+            --tag registry.domain.local/modelcar:test \
+            .
           kind --name kfp load docker-image registry.domain.local/modelcar:test
-        continue-on-error: true
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report

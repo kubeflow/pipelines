@@ -1,6 +1,6 @@
-# Presubmit gate for the Python tooling under .github/resources/scripts: the
-# unit tests are stdlib-only and use the `*_test.py` suffix, so select that
-# pattern explicitly because it is not unittest discover's default.
+# Presubmit gate for the Python tooling and CI action wiring under .github:
+# the unit tests are stdlib-only and use the `*_test.py` suffix, so select
+# that pattern explicitly because it is not unittest discover's default.
 name: CI Scripts Tests
 
 on:
@@ -13,6 +13,9 @@ on:
       - '.github/resources/scripts/*.sh'
       - '.github/resources/scripts/kfp-readiness/**'
       - '.github/workflows/ci-checks.yml'
+      - '.github/actions/upload-artifact-with-retry/**'
+      - '.github/actions/test-and-report/**'
+      - '.github/workflows/e2e-test.yml'
       - '.github/workflows/ci-scripts-tests.yml'
       - '.github/workflows/gh-workflow-approve.yml'
 
