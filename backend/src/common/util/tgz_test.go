@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"errors"
+	"fmt"
 	"io"
 	"testing"
 
@@ -52,6 +53,40 @@ func createTestTgz(t *testing.T, entries []testTgzEntry) []byte {
 	require.NoError(t, gzipWriter.Close())
 
 	return buf.Bytes()
+}
+
+func rewriteFirstTarEntryTypeflag(t *testing.T, tgzContent []byte, typeflag byte) []byte {
+	t.Helper()
+
+	gzipReader, err := gzip.NewReader(bytes.NewReader(tgzContent))
+	require.NoError(t, err)
+	tarContent, err := io.ReadAll(gzipReader)
+	require.NoError(t, err)
+	require.NoError(t, gzipReader.Close())
+
+	const (
+		tarBlockSize   = 512
+		checksumOffset = 148
+		checksumLength = 8
+		typeflagOffset = 156
+	)
+	require.GreaterOrEqual(t, len(tarContent), tarBlockSize)
+	tarContent[typeflagOffset] = typeflag
+	for index := checksumOffset; index < checksumOffset+checksumLength; index++ {
+		tarContent[index] = ' '
+	}
+	checksum := 0
+	for _, value := range tarContent[:tarBlockSize] {
+		checksum += int(value)
+	}
+	copy(tarContent[checksumOffset:checksumOffset+checksumLength], fmt.Sprintf("%06o\x00 ", checksum))
+
+	var rewritten bytes.Buffer
+	gzipWriter := gzip.NewWriter(&rewritten)
+	_, err = gzipWriter.Write(tarContent)
+	require.NoError(t, err)
+	require.NoError(t, gzipWriter.Close())
+	return rewritten.Bytes()
 }
 
 func TestArchiveTgzAndReadSingleFileFromTgz_Roundtrip(t *testing.T) {
@@ -118,6 +153,25 @@ func TestReadSingleFileFromTgz_RejectsNonRegularEntry(t *testing.T) {
 	})
 
 	assert.ErrorContains(t, err, `metrics archive entry "metrics" must be a regular file`)
+}
+
+func TestReadSingleFileFromTgz_AcceptsLegacyRegularEntry(t *testing.T) {
+	tgzContent := createTestTgz(t, []testTgzEntry{{
+		name:     "metrics.json",
+		content:  "content",
+		typeflag: tar.TypeReg,
+	}})
+	tgzContent = rewriteFirstTarEntryTypeflag(t, tgzContent, tar.TypeRegA)
+
+	var content []byte
+	err := readSingleFileFromTgz(tgzContent, 7, func(reader io.Reader) error {
+		var readError error
+		content, readError = io.ReadAll(reader)
+		return readError
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, "content", string(content))
 }
 
 func TestReadSingleFileFromTgz_EnforcesConfigurableByteLimit(t *testing.T) {
