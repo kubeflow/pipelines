@@ -53,6 +53,14 @@ def _mapping_block(document: str, key: str, indentation: int) -> str:
     return '\n'.join(lines[start:end]) + '\n'
 
 
+def _before_mapping(document: str, key: str, indentation: int) -> str:
+    lines = document.splitlines()
+    marker = _mapping_marker(key, indentation)
+    end = next(index for index, line in enumerate(lines)
+               if marker.match(line))
+    return '\n'.join(lines[:end]) + '\n'
+
+
 def _folded_scalar(document: str, key: str, indentation: int) -> str:
     lines = document.splitlines()
     marker = re.compile(r'^' + (' ' * indentation) + re.escape(key) +
@@ -138,9 +146,17 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         workflow = self._read_workflow('ci-checks.yml')
         jobs = _mapping_block(workflow, 'jobs', 0)
         job = _mapping_block(jobs, 'check_ci_status', 2)
-        condition = _folded_scalar(job, 'if', 4)
+        pre_concurrency = _before_mapping(job, 'concurrency', 4)
+        condition = _folded_scalar(pre_concurrency, 'if', 4)
         concurrency = _mapping_block(job, 'concurrency', 4)
         concurrency_group = _folded_scalar(concurrency, 'group', 6)
+
+        self.assertEqual(
+            condition,
+            "(github.event.action != 'labeled' && github.event.action != 'unlabeled') || "
+            "(github.event.action == 'labeled' && github.event.label.name == 'ok-to-test') || "
+            "(github.event.action == 'unlabeled' && github.event.label.name == 'needs-ok-to-test')",
+        )
 
         expected_results = {
             ('opened', ''): True,
@@ -170,9 +186,15 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         workflow_header = workflow.split('\njobs:', 1)[0]
         jobs = _mapping_block(workflow, 'jobs', 0)
         job = _mapping_block(jobs, 'ok-to-test', 2)
-        condition = _folded_scalar(job, 'if', 4)
+        pre_concurrency = _before_mapping(job, 'concurrency', 4)
+        condition = _folded_scalar(pre_concurrency, 'if', 4)
         concurrency = _mapping_block(job, 'concurrency', 4)
         concurrency_group = _folded_scalar(concurrency, 'group', 6)
+
+        self.assertEqual(
+            condition,
+            "github.event.action != 'labeled' || github.event.label.name == 'ok-to-test'",
+        )
 
         expected_results = {
             ('opened', ''): True,
