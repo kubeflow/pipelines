@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-21
+- Last updated: 2026-07-22
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -570,6 +570,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - The `test-and-report` action port-forwards MLMD on port `8080` only when `ARGO_COMPATIBILITY_TESTS=true`, allowing the canonical Argo compatibility API job to validate execution/artifact metadata without adding another test lane.
 - Proxy test failures collect both the KFP namespace and `tinyproxy` namespace logs/events to diagnose proxy-service readiness separately from pipeline failures.
 - The `test-and-report` action samples runner-level CPU/memory/load via a self-contained `/proc` sampler (`runner-telemetry.sh`, mermaid charts in the job summary — no external chart services) and, on test failure, writes a failure-signature classification table to the job summary (`failure-signature-summary.sh`), exports full Kind cluster logs as a `kind-logs - <report>` artifact, and uploads raw JUnit XML as a `junit-xml - <report>` artifact for flake-trend analysis.
+- Artifact uploads in `test-and-report` use the `upload-artifact-with-retry` composite action, which retries one failed upload after 20 seconds under a collision-safe fallback name while preserving the successful attempt's artifact outputs.
 - Immediately around the Ginkgo test window, `test-and-report` snapshots per-Kind-node conntrack counters plus host CPU PSI and runner-cgroup CPU throttling counters, then reports attributable deltas for both passing and failing lanes.
 - During Ginkgo, `network-observability.sh` concurrently dials the SeaweedFS S3, Kubernetes API, and pod-backed CoreDNS TCP Service VIPs and their ready direct Endpoints every five seconds from one stable pod, while sampling runner softnet/TCP/CPU-PSI/cgroup-throttling counters, per-Kind-node conntrack/TCP/socket counters, and Kind's active `kindnetd` cgroup, scheduler, NFQUEUE queue-101, and bounded nftables-policy counters. It establishes the counter baseline and validates a bounded SYN/RST capture inside each Kind-node network namespace before the first probe, and records baseline/end SeaweedFS target-netns plus kindnet container/log/NFQUEUE/nftables state. Compact per-pair reports are written for every lane; raw JSONL and packet captures are retained in failed-job Kind-log artifacts. The legacy V2 integration workflow uses the same collector around its Go tests.
 - The CI proxy runs Tinyproxy as a lightweight forward proxy in the `tinyproxy` namespace on port `3128`.
