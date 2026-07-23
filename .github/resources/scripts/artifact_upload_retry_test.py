@@ -57,6 +57,17 @@ class ArtifactUploadRetryTest(unittest.TestCase):
         )
         self.assertNotIn('uses: actions/upload-artifact@v7', action)
 
+        for step_name in (
+            'Upload Kind cluster logs',
+            'Upload JUnit XML on failure',
+            'Upload HTML Report',
+        ):
+            with self.subTest(step=step_name):
+                step = action.split(f'- name: {step_name}', 1)[1].split(
+                    '\n    - name:', 1
+                )[0]
+                self.assertIn('continue-on-error: true', step)
+
     def test_ci_runs_when_either_action_changes(self):
         workflow = CI_SCRIPTS_WORKFLOW.read_text(encoding='utf-8')
 
