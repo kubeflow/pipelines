@@ -14,3 +14,8 @@ spec:
               value: kind-registry:5000/launcher:ci
             - name: LOG_LEVEL
               value: "debug"
+            # The base platform-agnostic-postgresql overlay intentionally leaves
+            # sslmode unset so that CreatePostgreSQLConfig fails fast
+            # (secure-by-default). CI explicitly opts into sslmode=disable.
+            - name: DBCONFIG_POSTGRESQLCONFIG_EXTRAPARAMS
+              value: '{"sslmode":"disable"}'

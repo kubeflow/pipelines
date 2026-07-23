@@ -75,6 +75,10 @@ patches:
     target:
       kind: Deployment
       name: cache-server
+  - path: cache-server-sslmode.yaml
+    target:
+      kind: Deployment
+      name: cache-server
   - path: ../../base/metadata-envoy-pull-policy.yaml
     target:
       kind: Deployment

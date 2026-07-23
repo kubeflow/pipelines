@@ -50,8 +50,16 @@ func CreateMySQLConfig(user, password string, mysqlServiceHost string,
 func CreatePostgreSQLConfig(user, password, postgresHost, dbName string, postgresPort uint16,
 	extraParams map[string]string,
 ) (*pgx.ConnConfig, string, error) {
+	// Require sslmode to be set explicitly rather than defaulting to a value.
+	// Defaulting to "disable" would silently send database traffic without
+	// transport encryption on production-facing deployments; failing fast forces
+	// operators to make a deliberate choice ("disable" for local development,
+	// "verify-full" for production). See backend/README.md.
+	if _, ok := extraParams["sslmode"]; !ok {
+		return nil, "", fmt.Errorf("sslmode must be explicitly set in PostgreSQL extra params; " +
+			"use \"disable\" for local development or \"verify-full\" for production (see backend/README.md)")
+	}
 	q := url.Values{}
-	q.Set("sslmode", "disable")
 	for k, v := range extraParams {
 		q.Set(k, v)
 	}

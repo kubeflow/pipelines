@@ -230,8 +230,12 @@ server locally.
         "DBDRIVERNAME": "pgx",
         "DBCONFIG_POSTGRESQLCONFIG_HOST": "localhost",
         "DBCONFIG_POSTGRESQLCONFIG_DBNAME": "mlpipeline",
-        // Optional: override sslmode or inject other libpq params, e.g. {"sslmode":"require"}
-        // "DBCONFIG_POSTGRESQLCONFIG_EXTRAPARAMS": "",
+        // Required: sslmode must be set explicitly. The API server fails to start
+        // if it is missing, so that production deployments never fall back to an
+        // unencrypted connection by accident. Use "disable" for local development;
+        // for production use "verify-full" together with "sslrootcert", e.g.
+        // {"sslmode":"verify-full","sslrootcert":"/certs/ca.crt"}.
+        "DBCONFIG_POSTGRESQLCONFIG_EXTRAPARAMS": "{\"sslmode\":\"disable\"}",
         "OBJECTSTORECONFIG_HOST": "localhost",
         "OBJECTSTORECONFIG_PORT": "9000",
         "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",

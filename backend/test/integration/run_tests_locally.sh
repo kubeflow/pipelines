@@ -49,7 +49,9 @@ if [ "$1" == "postgres" ]; then
     kubectl -n "$NAMESPACE" port-forward svc/postgres-service 5432:5432 --address="${DB_FORWARD_IP}" & PORT_FORWARD_PID=$!
     # wait for kubectl port forward
     sleep 10
-    command="DBCONFIG_POSTGRESQLCONFIG_HOST=${DB_FORWARD_IP} go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true -isDevMode=true -runPostgreSQLTests=true -localTest=true"
+    # sslmode must be set explicitly; CreatePostgreSQLConfig fails fast otherwise.
+    # Local port-forwarded PostgreSQL is not TLS-enabled, so use sslmode=disable.
+    command="DBCONFIG_POSTGRESQLCONFIG_HOST=${DB_FORWARD_IP} DBCONFIG_POSTGRESQLCONFIG_EXTRAPARAMS='{\"sslmode\":\"disable\"}' go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true -isDevMode=true -runPostgreSQLTests=true -localTest=true"
 else
     echo "Starting MySQL DB port forwarding..."
     kubectl -n "$NAMESPACE" port-forward svc/mysql 3306:3306 --address=localhost & PORT_FORWARD_PID=$!

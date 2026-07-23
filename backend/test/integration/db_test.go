@@ -68,6 +68,9 @@ func (s *DBTestSuite) TestInitDBClient_PostgreSQL() {
 	viper.Set("DBConfig.PostgreSQLConfig.Host", "localhost")
 	viper.Set("DBConfig.PostgreSQLConfig.User", "user")
 	viper.Set("DBConfig.PostgreSQLConfig.Password", "password")
+	// sslmode must be set explicitly (secure-by-default); the local PostgreSQL
+	// used by integration tests does not use TLS, so opt into "disable".
+	viper.Set("DBConfig.PostgreSQLConfig.ExtraParams", map[string]string{"sslmode": "disable"})
 	duration, _ := time.ParseDuration("1m")
 	db, dialect := cm.InitDBClient(duration)
 	assert.NotNil(t, db)

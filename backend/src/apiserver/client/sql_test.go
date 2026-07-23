@@ -89,16 +89,18 @@ func TestCreatePostgreSQLConfig(t *testing.T) {
 		dbName        string
 		port          uint16
 		extraParams   map[string]string
+		wantErr       bool
 		wantTLSNotNil bool
 		wantRedacted  string
 	}{
 		{
-			name:         "all fields populated",
+			name:         "explicit sslmode=disable",
 			user:         "admin",
 			password:     "secret",
 			host:         "postgres-host",
 			dbName:       "mlpipeline",
 			port:         5432,
+			extraParams:  map[string]string{"sslmode": "disable"},
 			wantRedacted: "host=postgres-host port=5432 user=admin password=*** database=mlpipeline sslmode=disable",
 		},
 		{
@@ -108,6 +110,7 @@ func TestCreatePostgreSQLConfig(t *testing.T) {
 			host:         "postgres-host",
 			dbName:       "mlpipeline",
 			port:         5432,
+			extraParams:  map[string]string{"sslmode": "disable"},
 			wantRedacted: "host=postgres-host port=5432 user=admin password=*** database=mlpipeline sslmode=disable",
 		},
 		{
@@ -117,6 +120,7 @@ func TestCreatePostgreSQLConfig(t *testing.T) {
 			host:         "postgres-host",
 			dbName:       "mlpipeline",
 			port:         5432,
+			extraParams:  map[string]string{"sslmode": "disable"},
 			wantRedacted: "host=postgres-host port=5432 user=admin password=*** database=mlpipeline sslmode=disable",
 		},
 		{
@@ -126,6 +130,7 @@ func TestCreatePostgreSQLConfig(t *testing.T) {
 			host:         "postgres-host",
 			dbName:       "mlpipeline",
 			port:         5432,
+			extraParams:  map[string]string{"sslmode": "disable"},
 			wantRedacted: "host=postgres-host port=5432 user=admin password=*** database=mlpipeline sslmode=disable",
 		},
 		{
@@ -135,30 +140,41 @@ func TestCreatePostgreSQLConfig(t *testing.T) {
 			host:         "postgres-host",
 			dbName:       "mlpipeline",
 			port:         5432,
+			extraParams:  map[string]string{"sslmode": "disable"},
 			wantRedacted: "host=postgres-host port=5432 user=admin password=*** database=mlpipeline sslmode=disable",
 		},
 		{
-			name:         "nil extra params defaults to sslmode=disable",
-			user:         "admin",
-			password:     "secret",
-			host:         "postgres-host",
-			dbName:       "mlpipeline",
-			port:         5432,
-			extraParams:  nil,
-			wantRedacted: "host=postgres-host port=5432 user=admin password=*** database=mlpipeline sslmode=disable",
+			name:        "nil extra params fails fast",
+			user:        "admin",
+			password:    "secret",
+			host:        "postgres-host",
+			dbName:      "mlpipeline",
+			port:        5432,
+			extraParams: nil,
+			wantErr:     true,
 		},
 		{
-			name:         "empty extra params defaults to sslmode=disable",
-			user:         "admin",
-			password:     "secret",
-			host:         "postgres-host",
-			dbName:       "mlpipeline",
-			port:         5432,
-			extraParams:  map[string]string{},
-			wantRedacted: "host=postgres-host port=5432 user=admin password=*** database=mlpipeline sslmode=disable",
+			name:        "empty extra params fails fast",
+			user:        "admin",
+			password:    "secret",
+			host:        "postgres-host",
+			dbName:      "mlpipeline",
+			port:        5432,
+			extraParams: map[string]string{},
+			wantErr:     true,
 		},
 		{
-			name:          "sslmode=require overrides default",
+			name:        "extra params without sslmode fails fast",
+			user:        "admin",
+			password:    "secret",
+			host:        "postgres-host",
+			dbName:      "mlpipeline",
+			port:        5432,
+			extraParams: map[string]string{"application_name": "kfp"},
+			wantErr:     true,
+		},
+		{
+			name:          "sslmode=require",
 			user:          "admin",
 			password:      "secret",
 			host:          "postgres-host",
@@ -169,19 +185,36 @@ func TestCreatePostgreSQLConfig(t *testing.T) {
 			wantRedacted:  "host=postgres-host port=5432 user=admin password=*** database=mlpipeline sslmode=require",
 		},
 		{
+			name:          "sslmode=verify-full",
+			user:          "admin",
+			password:      "secret",
+			host:          "postgres-host",
+			dbName:        "mlpipeline",
+			port:          5432,
+			extraParams:   map[string]string{"sslmode": "verify-full"},
+			wantTLSNotNil: true,
+			wantRedacted:  "host=postgres-host port=5432 user=admin password=*** database=mlpipeline sslmode=verify-full",
+		},
+		{
 			name:         "application_name with special characters",
 			user:         "admin",
 			password:     "secret",
 			host:         "postgres-host",
 			dbName:       "mlpipeline",
 			port:         5432,
-			extraParams:  map[string]string{"application_name": "kfp pipeline"},
+			extraParams:  map[string]string{"sslmode": "disable", "application_name": "kfp pipeline"},
 			wantRedacted: "host=postgres-host port=5432 user=admin password=*** database=mlpipeline sslmode=disable",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg, gotRedacted, err := CreatePostgreSQLConfig(tt.user, tt.password, tt.host, tt.dbName, tt.port, tt.extraParams)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("CreatePostgreSQLConfig() expected error for missing sslmode, got nil")
+				}
+				return
+			}
 			if err != nil {
 				t.Fatalf("CreatePostgreSQLConfig() returned unexpected error: %v", err)
 			}

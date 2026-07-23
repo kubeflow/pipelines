@@ -173,6 +173,44 @@ patches:
             - seaweedfs
         policyTypes:
         - Ingress
+  # PostgreSQL sslmode: the base platform-agnostic-postgresql overlay intentionally
+  # leaves sslmode unset so that CreatePostgreSQLConfig fails fast (secure-by-default).
+  # Local development explicitly opts into sslmode=disable here.
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: ml-pipeline
+        namespace: kubeflow
+      spec:
+        template:
+          spec:
+            containers:
+              - name: ml-pipeline-api-server
+                env:
+                  - name: DBCONFIG_POSTGRESQLCONFIG_EXTRAPARAMS
+                    value: '{"sslmode":"disable"}'
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: cache-server
+        namespace: kubeflow
+      spec:
+        template:
+          spec:
+            containers:
+              - name: server
+                args:
+                  - "--db_driver=$(DBCONFIG_DRIVER)"
+                  - "--db_host=$(DBCONFIG_POSTGRESQLCONFIG_HOST)"
+                  - "--db_port=$(DBCONFIG_POSTGRESQLCONFIG_PORT)"
+                  - "--db_name=$(DBCONFIG_DB_NAME)"
+                  - "--db_user=$(DBCONFIG_POSTGRESQLCONFIG_USER)"
+                  - "--db_password=$(DBCONFIG_POSTGRESQLCONFIG_PASSWORD)"
+                  - "--db_extra_params={\"sslmode\":\"disable\"}"
+                  - "--namespace_to_watch=$(NAMESPACE_TO_WATCH)"
+                  - "--listen_port=$(WEBHOOK_PORT)"
 
 images:
   - name: ghcr.io/kubeflow/kfp-api-server
