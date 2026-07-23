@@ -30,3 +30,12 @@ clean-python:
 	rm -rf python/build
 	rm -rf python/dist
 	rm -rf python/kfp.egg-info
+
+.PHONY: install-test-yapf-deps
+install-test-yapf-deps:
+	cd .. && python3 -m pip install --upgrade pip
+	cd .. && python3 -m pip install $$(grep 'yapf==' sdk/python/requirements-dev.txt) pre_commit_hooks
+
+.PHONY: test-yapf
+test-yapf:
+	cd .. && ./test/presubmit-yapf-sdk.sh
