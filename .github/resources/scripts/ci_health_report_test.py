@@ -21,6 +21,9 @@ via .github/workflows/ci-scripts-tests.yml on changes to these scripts.
 """
 
 import io
+import json
+import os
+import tempfile
 import unittest
 import zipfile
 from unittest import mock
@@ -373,6 +376,148 @@ class RenderTest(unittest.TestCase):
             {}, {}, 0, 0, 0, 7, [], junit_scanned=3, junit_total=3
         )
         self.assertIn("Scanned 3 failed run(s)", uncapped)
+
+
+class TrendAggregationTest(unittest.TestCase):
+    def test_wilson_interval_is_bounded_and_tightens_with_sample_size(self):
+        small = chr_mod.wilson_interval(1, 2)
+        large = chr_mod.wilson_interval(50, 100)
+        self.assertTrue(0 <= small[0] < small[1] <= 100)
+        self.assertLess(large[1] - large[0], small[1] - small[0])
+
+    def test_job_phases_derive_queue_setup_test_and_report(self):
+        run = {"created_at": "2026-07-13T00:00:00Z"}
+        job = {
+            "started_at": "2026-07-13T00:02:00Z",
+            "completed_at": "2026-07-13T00:30:00Z",
+            "steps": [{
+                "name": "Run Tests / Run Tests",
+                "started_at": "2026-07-13T00:10:00Z",
+                "completed_at": "2026-07-13T00:25:00Z",
+            }],
+        }
+        self.assertEqual(
+            chr_mod.job_phase_minutes(run, job),
+            {
+                "queue": 2.0, "setup": 8.0, "bootstrap": None,
+                "build": None, "deploy": None, "test": 15.0, "report": 5.0,
+            },
+        )
+
+    def test_daily_snapshot_has_true_test_rate_classes_and_rerun_rescue(self):
+        observations = [
+            {
+                "id": "7:1:1", "date": "2026-07-13", "workflow": "WF",
+                "lane": "lane", "run_id": 7, "attempt": 1, "sha": "a",
+                "conclusion": "failure", "failed": True, "duration": 20.0,
+                "phases": {"queue": 1.0, "setup": 3.0, "test": 12.0, "report": 4.0},
+            },
+            {
+                "id": "7:2:2", "date": "2026-07-13", "workflow": "WF",
+                "lane": "lane", "run_id": 7, "attempt": 2, "sha": "a",
+                "conclusion": "success", "failed": False, "duration": 10.0,
+                "phases": {"queue": 1.0, "setup": 2.0, "test": 6.0, "report": 1.0},
+            },
+        ]
+        results = [{
+            "generated_at": "2026-07-13T00:30:00Z",
+            "workflow": "WF", "report_name": "lane", "result": "test_failure",
+            "dimensions": {"cache_enabled": "true"},
+            "signatures": {"client_timeout": 2},
+            "tests": [
+                {"id": "Suite :: flaky", "executions": 1, "failures": 1, "skipped": 0},
+                {"id": "Suite :: green", "executions": 1, "failures": 0, "skipped": 0},
+            ],
+        }]
+        snapshot = chr_mod.aggregate_daily(observations, results, {7: 2})[0]
+
+        self.assertEqual(snapshot["totals"]["reruns"], 1)
+        self.assertEqual(snapshot["totals"]["rerun_rescues"], 1)
+        self.assertEqual(snapshot["failure_classes"]["test_failure"], 1)
+        self.assertNotIn("unclassified_failure", snapshot["failure_classes"])
+        self.assertEqual(snapshot["signatures"]["client_timeout"], 2)
+        self.assertEqual(snapshot["tests"][0]["executions"], 1)
+        self.assertEqual(snapshot["lanes"][0]["duration"], {"p50": 15.0, "p95": 19.5})
+
+    def test_rerun_rescue_is_attributed_only_to_latest_attempt_day(self):
+        observations = [
+            {
+                "id": "8:1:1", "date": "2026-07-12", "workflow": "WF",
+                "lane": "lane", "run_id": 8, "attempt": 1, "sha": "a",
+                "run_created": "2026-07-12T23:00:00Z",
+                "completed": "2026-07-12T23:20:00Z",
+                "conclusion": "failure", "failed": True, "duration": 20.0,
+                "phases": {},
+            },
+            {
+                "id": "8:2:2", "date": "2026-07-13", "workflow": "WF",
+                "lane": "lane", "run_id": 8, "attempt": 2, "sha": "a",
+                "run_created": "2026-07-12T23:00:00Z",
+                "completed": "2026-07-13T00:10:00Z",
+                "conclusion": "success", "failed": False, "duration": 10.0,
+                "phases": {},
+            },
+        ]
+        snapshots = chr_mod.aggregate_daily(observations, [], {8: 2})
+
+        self.assertEqual(snapshots[0]["totals"]["reruns"], 0)
+        self.assertEqual(snapshots[0]["totals"]["rerun_rescues"], 0)
+        self.assertEqual(snapshots[1]["totals"]["reruns"], 1)
+        self.assertEqual(snapshots[1]["totals"]["rerun_rescues"], 1)
+        self.assertEqual(snapshots[1]["totals"]["time_to_green"]["p50"], 70.0)
+
+    def test_merge_replaces_overlap_and_preserves_older_days(self):
+        history = {
+            "schema_version": 1,
+            "days": [
+                {"date": "2026-07-12", "totals": {"lane_runs": 1}},
+                {"date": "2026-07-13", "totals": {"lane_runs": 2}},
+            ],
+        }
+        merged = chr_mod.merge_history(
+            history, [{"date": "2026-07-13", "totals": {"lane_runs": 3}}],
+            retention_days=10000,
+        )
+        self.assertEqual(
+            [(day["date"], day["totals"]["lane_runs"]) for day in merged["days"]],
+            [("2026-07-12", 1), ("2026-07-13", 3)],
+        )
+
+    def test_ci_result_artifact_highest_retry_wins(self):
+        artifacts = [
+            {"name": "ci-result - lane", "archive_download_url": "base"},
+            {"name": "ci-result - lane - retry-2", "archive_download_url": "retry"},
+            {"name": "junit-xml - lane", "archive_download_url": "junit"},
+        ]
+        selected = chr_mod.select_ci_result_artifacts(artifacts)
+        self.assertEqual([artifact["archive_download_url"] for artifact in selected], ["retry"])
+
+    def test_site_writes_combined_and_individual_daily_history(self):
+        history = {
+            "schema_version": 1,
+            "days": [{"date": "2026-07-13", "totals": {"lane_runs": 3}}],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            source = os.path.join(directory, "source.html")
+            with open(source, "w", encoding="utf-8") as output:
+                output.write("<html></html>")
+            site = os.path.join(directory, "site")
+            chr_mod.write_site(site, history, "report", source)
+            with open(
+                os.path.join(site, "data", "daily", "2026-07-13.json"),
+                encoding="utf-8",
+            ) as daily:
+                snapshot = json.load(daily)
+
+        self.assertEqual(snapshot["totals"]["lane_runs"], 3)
+
+    def test_disabled_pages_summary_does_not_publish_a_dead_link(self):
+        history = {"schema_version": 1, "days": []}
+        report = chr_mod.render_trend_summary(
+            history, [], "https://example.invalid", pages_enabled=False
+        )
+        self.assertIn("enable GitHub Pages", report)
+        self.assertNotIn("https://example.invalid", report)
 
 
 class UpsertIssueTest(unittest.TestCase):

@@ -105,6 +105,10 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Record CI result action start
+      shell: bash
+      run: date -u +%s.%N > /tmp/kfp-ci-action-start
+
     - name: Start runner telemetry sampler
       # Samples host CPU / memory / load from /proc in the background; the
       # "Render runner telemetry" step below turns the samples into mermaid
@@ -254,6 +258,10 @@ runs:
         echo "API_URL=$API_URL" >> "$GITHUB_OUTPUT"
         echo "API_TOKEN=$API_TOKEN" >> "$GITHUB_OUTPUT"
         echo "SERVICE_ACCOUNT_NAME=${SERVICE_ACCOUNT_NAME:-${INPUT_SERVICE_ACCOUNT_NAME:-}}" >> "$GITHUB_OUTPUT"
+
+    - name: Record test start
+      shell: bash
+      run: date -u +%s.%N > /tmp/kfp-ci-test-start
 
     - name: Run Tests
       id: run-tests
@@ -423,6 +431,11 @@ runs:
         go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter="$INPUT_TEST_LABEL" --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -pipelineStoreKubernetes=$pipelineStoreKubernetes -disableTlsCheck=$DISABLE_TLS_CHECK -apiScheme=$API_SCHEME -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME -apiUrl="$API_URL" -authToken="$AUTH_TOKEN" -serviceAccountName="$SERVICE_ACCOUNT_NAME" -mlflowEnabled=${{ inputs.mlflow_enabled }} $BASE_IMAGE_FLAG
       continue-on-error: true
 
+    - name: Record test end
+      shell: bash
+      if: ${{ always() }}
+      run: date -u +%s.%N > /tmp/kfp-ci-test-end
+
     - name: Report test-window network observability
       shell: bash
       if: ${{ always() && inputs.skip_api_config != 'true' }}
@@ -485,7 +498,7 @@ runs:
       # raw log archaeology.
       shell: bash
       if: ${{ steps.run-tests.outcome != 'success' }}
-      run: ./.github/resources/scripts/failure-signature-summary.sh --log-file /tmp/tmp_pod_log.txt --reports-dir "${{ inputs.test_directory }}/reports"
+      run: ./.github/resources/scripts/failure-signature-summary.sh --log-file /tmp/tmp_pod_log.txt --reports-dir "${{ inputs.test_directory }}/reports" --json-output /tmp/kfp-failure-signatures.json
       continue-on-error: true
 
     - name: Export Kind cluster logs
@@ -532,8 +545,8 @@ runs:
       continue-on-error: true
 
     - name: Upload JUnit XML on failure
-      # Raw per-test results from failed runs feed the scheduled CI health
-      # report (per-test flake rates); the HTML report alone is not parseable.
+      # Preserve raw failure evidence for debugging. The compact ci-result
+      # artifact uploaded below provides health reporting's true denominator.
       uses: ./.github/actions/upload-artifact-with-retry
       if: ${{ steps.run-tests.outcome != 'success' }}
       with:
@@ -593,6 +606,31 @@ runs:
       with:
         xml_files: '${{ inputs.test_directory }}/reports'
         custom_data: '{\"HTML Report\": \"${{ steps.upload.outputs.artifact-url }}\"}'
+      continue-on-error: true
+
+    - name: Publish normalized CI result
+      uses: ./.github/actions/publish-ci-result
+      if: always() && !cancelled()
+      with:
+        test_outcome: ${{ steps.run-tests.outcome }}
+        report_name: ${{ inputs.report_name || 'default' }}
+        reports_dir: ${{ inputs.test_directory }}/reports
+        signatures: /tmp/kfp-failure-signatures.json
+        action_start: /tmp/kfp-ci-action-start
+        test_start: /tmp/kfp-ci-test-start
+        test_end: /tmp/kfp-ci-test-end
+        install_outcome: ${{ steps.install-junit2html.outcome }}
+        html_outcome: ${{ steps.generate-html-report.outcome }}
+        upload_outcome: ${{ steps.upload.outcome }}
+        publish_outcome: ${{ steps.publish.outcome }}
+        pipeline_store: ${{ inputs.pipeline_store }}
+        proxy: ${{ inputs.proxy }}
+        cache_enabled: ${{ inputs.cache_enabled }}
+        multi_user: ${{ inputs.multi_user }}
+        deployment_mode: ${{ inputs.deployment_mode }}
+        mlflow_enabled: ${{ inputs.mlflow_enabled }}
+        test_label: ${{ inputs.test_label }}
+        parallel_nodes: ${{ inputs.num_parallel_nodes }}
       continue-on-error: true
 
     - name: Mark Workflow failure if test reporting failed

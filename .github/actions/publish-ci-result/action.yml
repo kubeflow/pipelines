@@ -1,0 +1,153 @@
+name: Publish normalized CI result
+description: Parse test results and upload a compact CI-health ingestion artifact
+
+inputs:
+  test_outcome:
+    required: true
+    description: Outcome of the lane's test step
+  report_name:
+    required: true
+    description: Stable human-readable lane identity
+  reports_dir:
+    required: false
+    default: /tmp/no-junit-reports
+    description: Directory containing JUnit XML
+  go_json:
+    required: false
+    default: ""
+    description: Glob matching go test -json output
+  log_file:
+    required: false
+    default: ""
+    description: Optional failure log to include in signature classification
+  signatures:
+    required: false
+    default: /tmp/no-failure-signatures.json
+    description: Structured failure-signature JSON
+  action_start:
+    required: false
+    default: /tmp/no-action-start
+    description: Epoch timestamp file for reporting-action start
+  test_start:
+    required: false
+    default: /tmp/no-test-start
+    description: Epoch timestamp file for test start
+  test_end:
+    required: false
+    default: /tmp/no-test-end
+    description: Epoch timestamp file for test completion
+  install_outcome:
+    required: false
+    default: ""
+  html_outcome:
+    required: false
+    default: ""
+  upload_outcome:
+    required: false
+    default: ""
+  publish_outcome:
+    required: false
+    default: ""
+  pipeline_store:
+    required: false
+    default: ""
+  proxy:
+    required: false
+    default: ""
+  cache_enabled:
+    required: false
+    default: ""
+  multi_user:
+    required: false
+    default: ""
+  deployment_mode:
+    required: false
+    default: ""
+  mlflow_enabled:
+    required: false
+    default: ""
+  test_label:
+    required: false
+    default: ""
+  parallel_nodes:
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Classify known failure signatures
+      if: inputs.test_outcome != 'success'
+      shell: bash
+      env:
+        GO_JSON: ${{ inputs.go_json }}
+        LOG_FILE: ${{ inputs.log_file }}
+        REPORTS_DIR: ${{ inputs.reports_dir }}
+        SIGNATURES: ${{ inputs.signatures }}
+      run: |
+        if [ -f "$SIGNATURES" ]; then
+          exit 0
+        fi
+        CORPUS=/tmp/kfp-ci-result-failure-corpus.log
+        : > "$CORPUS"
+        if [ -n "$LOG_FILE" ] && [ -r "$LOG_FILE" ]; then
+          cat "$LOG_FILE" >> "$CORPUS"
+        fi
+        if [ -n "$GO_JSON" ]; then
+          while IFS= read -r match; do
+            cat "$match" >> "$CORPUS"
+          done < <(compgen -G "$GO_JSON" || true)
+        fi
+        ./.github/resources/scripts/failure-signature-summary.sh \
+          --log-file "$CORPUS" \
+          --reports-dir "$REPORTS_DIR" \
+          --json-output "$SIGNATURES"
+      continue-on-error: true
+
+    - name: Generate normalized result
+      id: generate
+      shell: bash
+      env:
+        REPORT_NAME: ${{ inputs.report_name }}
+      run: |
+        date -u +%s.%N > /tmp/kfp-ci-report-end
+        python3 ./.github/resources/scripts/ci_result.py \
+          --output /tmp/kfp-ci-result.json \
+          --reports-dir "${{ inputs.reports_dir }}" \
+          --go-json "${{ inputs.go_json }}" \
+          --signatures "${{ inputs.signatures }}" \
+          --action-start "${{ inputs.action_start }}" \
+          --test-start "${{ inputs.test_start }}" \
+          --test-end "${{ inputs.test_end }}" \
+          --report-end /tmp/kfp-ci-report-end \
+          --repository "${{ github.repository }}" \
+          --workflow "${{ github.workflow }}" \
+          --job "${{ github.job }}" \
+          --report-name "$REPORT_NAME" \
+          --run-id "${{ github.run_id }}" \
+          --run-attempt "${{ github.run_attempt }}" \
+          --sha "${{ github.sha }}" \
+          --test-outcome "${{ inputs.test_outcome }}" \
+          --install-outcome "${{ inputs.install_outcome }}" \
+          --html-outcome "${{ inputs.html_outcome }}" \
+          --upload-outcome "${{ inputs.upload_outcome }}" \
+          --publish-outcome "${{ inputs.publish_outcome }}" \
+          --pipeline-store "${{ inputs.pipeline_store }}" \
+          --proxy "${{ inputs.proxy }}" \
+          --cache-enabled "${{ inputs.cache_enabled }}" \
+          --multi-user "${{ inputs.multi_user }}" \
+          --deployment-mode "${{ inputs.deployment_mode }}" \
+          --mlflow-enabled "${{ inputs.mlflow_enabled }}" \
+          --test-label "${{ inputs.test_label }}" \
+          --parallel-nodes "${{ inputs.parallel_nodes }}"
+      continue-on-error: true
+
+    - name: Upload normalized result
+      uses: ./.github/actions/upload-artifact-with-retry
+      if: steps.generate.outcome == 'success'
+      with:
+        name: ci-result - ${{ github.job }} - ${{ inputs.report_name }} - attempt-${{ github.run_attempt }}
+        path: /tmp/kfp-ci-result.json
+        retention-days: 30
+        if-no-files-found: error
+      continue-on-error: true

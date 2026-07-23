@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Kubeflow Pipelines master-branch CI health trends">
+    <title>KFP CI Signal Room</title>
+    <style>
+      :root {
+        --ink: #171815;
+        --paper: #f2f0e7;
+        --panel: #e7e4d8;
+        --line: #282a25;
+        --muted: #6c6d64;
+        --green: #2b8a61;
+        --orange: #df6f2d;
+        --red: #c43d38;
+        --blue: #25779b;
+        --yellow: #d6aa32;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          linear-gradient(90deg, rgba(23,24,21,.035) 1px, transparent 1px) 0 0 / 24px 24px,
+          linear-gradient(rgba(23,24,21,.035) 1px, transparent 1px) 0 0 / 24px 24px,
+          var(--paper);
+        font-family: Charter, "Bitstream Charter", Georgia, serif;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0 0 auto;
+        height: 5px;
+        background: linear-gradient(90deg, var(--green) 0 42%, var(--orange) 42% 72%, var(--ink) 72%);
+        z-index: 5;
+      }
+      .shell { width: min(1500px, calc(100% - 40px)); margin: 0 auto; padding: 44px 0 72px; }
+      header { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; }
+      .eyebrow, label, th, .metric span, .status, .stamp {
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        text-transform: uppercase;
+        letter-spacing: .09em;
+      }
+      .eyebrow { font-size: 12px; color: var(--green); font-weight: 800; }
+      h1 { margin: 7px 0 0; font: 800 clamp(42px, 7vw, 92px)/.88 Rockwell, "Roboto Slab", Georgia, serif; letter-spacing: -.055em; }
+      .stamp { border: 1px solid var(--line); padding: 10px 14px; background: var(--ink); color: var(--paper); font-size: 11px; }
+      .deck { max-width: 750px; margin: 24px 0 32px; font-size: 18px; line-height: 1.5; color: #41423d; }
+      .controls {
+        display: flex; flex-wrap: wrap; gap: 12px; padding: 14px;
+        border: 1px solid var(--line); border-width: 1px 0; background: rgba(242,240,231,.88);
+        position: sticky; top: 0; z-index: 4; backdrop-filter: blur(8px);
+      }
+      label { display: grid; gap: 4px; font-size: 9px; color: var(--muted); }
+      select, input {
+        min-width: 170px; border: 1px solid var(--line); border-radius: 0; padding: 8px 10px;
+        color: var(--ink); background: var(--paper); font: 12px "SFMono-Regular", Consolas, monospace;
+      }
+      input { min-width: 280px; }
+      .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; margin: 30px 0; background: var(--line); border: 1px solid var(--line); }
+      .metric { min-height: 128px; padding: 18px; background: var(--panel); }
+      .metric span { display: block; min-height: 28px; font-size: 10px; color: var(--muted); }
+      .metric strong { display: block; margin-top: 12px; font: 700 34px/1 "SFMono-Regular", Consolas, monospace; }
+      .metric small { display: block; margin-top: 8px; color: var(--muted); }
+      .grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(320px, .75fr); gap: 22px; }
+      .panel { background: rgba(242,240,231,.9); border: 1px solid var(--line); padding: 20px; margin-bottom: 22px; box-shadow: 5px 5px 0 rgba(23,24,21,.12); }
+      .panel h2 { margin: 0; font: 800 23px/1.1 Rockwell, Georgia, serif; letter-spacing: -.02em; }
+      .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+      .panel-head p { margin: 0; color: var(--muted); font-size: 13px; }
+      svg { width: 100%; height: 300px; overflow: visible; }
+      .axis { stroke: #a8a79e; stroke-width: 1; }
+      .gridline { stroke: #d0cdc1; stroke-width: 1; stroke-dasharray: 3 5; }
+      .failure-line { fill: none; stroke: var(--red); stroke-width: 3; vector-effect: non-scaling-stroke; }
+      .duration-line { fill: none; stroke: var(--blue); stroke-width: 3; vector-effect: non-scaling-stroke; }
+      .dot { stroke: var(--paper); stroke-width: 2; }
+      .chart-label { font: 10px "SFMono-Regular", Consolas, monospace; fill: var(--muted); }
+      .legend { display: flex; gap: 18px; margin-top: 10px; font: 11px "SFMono-Regular", Consolas, monospace; }
+      .legend i { display: inline-block; width: 18px; height: 3px; margin-right: 7px; vertical-align: middle; }
+      .classification { display: grid; gap: 15px; }
+      .bar-label { display: flex; justify-content: space-between; margin-bottom: 5px; font: 11px "SFMono-Regular", Consolas, monospace; }
+      .bar { height: 12px; background: #d6d3c8; }
+      .bar > i { display: block; height: 100%; background: var(--orange); transition: width .5s ease; }
+      .table-wrap { overflow-x: auto; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th { padding: 9px 8px; border-bottom: 2px solid var(--line); text-align: left; font-size: 9px; white-space: nowrap; }
+      td { padding: 10px 8px; border-bottom: 1px solid #cbc9bd; vertical-align: top; }
+      td.num, th.num { text-align: right; font-family: "SFMono-Regular", Consolas, monospace; }
+      tbody tr:hover { background: #e3e0d4; }
+      .lane { max-width: 520px; overflow-wrap: anywhere; }
+      .status { display: inline-block; padding: 3px 5px; background: var(--ink); color: var(--paper); font-size: 9px; }
+      .empty { padding: 46px 0; color: var(--muted); text-align: center; }
+      footer { margin-top: 30px; display: flex; justify-content: space-between; gap: 20px; color: var(--muted); font-size: 12px; }
+      footer a { color: inherit; }
+      @media (max-width: 1000px) {
+        .metrics { grid-template-columns: repeat(2, 1fr); }
+        .grid { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 620px) {
+        .shell { width: min(100% - 22px, 1500px); padding-top: 28px; }
+        header { grid-template-columns: 1fr; }
+        .metrics { grid-template-columns: 1fr; }
+        .controls { position: static; }
+        input, select { min-width: 100%; width: 100%; }
+        label { flex: 1 1 100%; }
+        .panel-head { display: block; }
+        .panel-head p { margin-top: 7px; }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .metric, .panel { animation: arrive .45s both; }
+        .panel { animation-delay: .08s; }
+        @keyframes arrive { from { opacity: 0; transform: translateY(8px); } }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <div>
+          <div class="eyebrow">Kubeflow Pipelines · master branch</div>
+          <h1>CI signal room</h1>
+        </div>
+        <div class="stamp" id="generated">Loading durable history…</div>
+      </header>
+      <p class="deck">A long-view instrument panel for distinguishing product regressions from infrastructure noise—and seeing whether CI work actually made the system faster and steadier.</p>
+
+      <section class="controls" aria-label="Dashboard filters">
+        <label>Window
+          <select id="window">
+            <option value="7">7 days</option>
+            <option value="14" selected>14 days</option>
+            <option value="28">28 days</option>
+            <option value="90">90 days</option>
+          </select>
+        </label>
+        <label>Workflow
+          <select id="workflow"><option value="">All workflows</option></select>
+        </label>
+        <label>Lane search
+          <input id="search" type="search" placeholder="auth, cache, Kubernetes version…" autocomplete="off">
+        </label>
+      </section>
+
+      <section class="metrics" aria-label="Current window totals">
+        <div class="metric"><span>Lane attempts</span><strong id="attempts">—</strong><small id="sample">No data</small></div>
+        <div class="metric"><span>Failure rate</span><strong id="failureRate">—</strong><small id="failureDelta">vs prior window</small></div>
+        <div class="metric"><span>p95 wall clock</span><strong id="duration">—</strong><small>daily lane p95 median</small></div>
+        <div class="metric"><span>Infra / unknown</span><strong id="infra">—</strong><small>classified failed lanes</small></div>
+        <div class="metric"><span>Rerun rescues</span><strong id="rescues">—</strong><small id="rescueRate">successful reruns</small></div>
+      </section>
+
+      <div class="grid">
+        <div>
+          <section class="panel">
+            <div class="panel-head"><h2>Rate × wall clock</h2><p>Daily failure rate and p95 duration</p></div>
+            <svg id="trendChart" role="img" aria-label="Daily CI failure rate and p95 lane duration"></svg>
+            <div class="legend"><span><i style="background:var(--red)"></i>Failure rate</span><span><i style="background:var(--blue)"></i>p95 minutes</span></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h2>Critical-path anatomy</h2><p>Median of daily p95 phase minutes</p></div>
+            <div class="classification" id="phases"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h2>Lane board</h2><p>Highest failure count first</p></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Workflow / lane</th><th class="num">Runs</th><th class="num">Failed</th><th class="num">Rate</th><th class="num">p95 min</th></tr></thead>
+              <tbody id="laneRows"></tbody>
+            </table></div>
+          </section>
+        </div>
+        <aside>
+          <section class="panel">
+            <div class="panel-head"><h2>Failure mix</h2><p>Structured results</p></div>
+            <div class="classification" id="classes"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h2>Flakiest tests</h2><p>Failures ÷ executions</p></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Test</th><th class="num">F / N</th><th class="num">Rate</th></tr></thead>
+              <tbody id="testRows"></tbody>
+            </table></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h2>Network signals</h2><p>Observed signature hits</p></div>
+            <div class="classification" id="signatures"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h2>Change markers</h2><p>Master SHAs in window</p></div>
+            <div class="classification" id="commits"></div>
+          </section>
+        </aside>
+      </div>
+      <footer>
+        <span>Append-only daily snapshots · artifacts are transport, not storage</span>
+        <a href="https://github.com/kubeflow/pipelines/issues?q=label%3Aci-health">CI health tracking issue</a>
+      </footer>
+    </main>
+    <script>
+      const state = { history: null };
+      const $ = id => document.getElementById(id);
+      const sum = (items, fn) => items.reduce((total, item) => total + fn(item), 0);
+      const rate = (failures, total) => total ? 100 * failures / total : 0;
+      const fmt = value => new Intl.NumberFormat().format(value);
+      const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      const median = values => {
+        const sorted = values.filter(v => v !== null && v !== undefined).sort((a,b) => a-b);
+        if (!sorted.length) return null;
+        const middle = Math.floor(sorted.length / 2);
+        return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+      };
+      function selection(offset = 0) {
+        const count = Number($('window').value);
+        const workflow = $('workflow').value;
+        const search = $('search').value.trim().toLowerCase();
+        const days = state.history.days;
+        if (!days.length) return {days: [], workflow, search};
+        const latest = new Date(`${days.at(-1).date}T00:00:00Z`);
+        const end = new Date(latest);
+        end.setUTCDate(end.getUTCDate() + 1 - offset * count);
+        const start = new Date(end);
+        start.setUTCDate(start.getUTCDate() - count);
+        return {
+          days: days.filter(day => {
+            const date = new Date(`${day.date}T00:00:00Z`);
+            return date >= start && date < end;
+          }),
+          workflow, search
+        };
+      }
+      function lanesFor({days, workflow, search}) {
+        const map = new Map();
+        days.forEach(day => day.lanes.forEach(lane => {
+          if (workflow && lane.workflow !== workflow) return;
+          if (search && !`${lane.workflow} ${lane.lane}`.toLowerCase().includes(search)) return;
+          const key = `${lane.workflow}\u0000${lane.lane}`;
+          const row = map.get(key) || { workflow: lane.workflow, lane: lane.lane, runs: 0, failures: 0, p95: [] };
+          row.runs += lane.runs; row.failures += lane.failures;
+          if (lane.duration?.p95 != null) row.p95.push(lane.duration.p95);
+          map.set(key, row);
+        }));
+        return [...map.values()];
+      }
+      function windowStats(selected) {
+        const lanes = lanesFor(selected);
+        const total = sum(lanes, lane => lane.runs);
+        const failures = sum(lanes, lane => lane.failures);
+        const result = {
+          total, failures, failureRate: rate(failures, total),
+          p95: median(lanes.flatMap(lane => lane.p95)),
+          infra: sum(selected.days, day => (day.failure_classes.infrastructure_failure || 0) + (day.failure_classes.unclassified_failure || 0)),
+          reruns: sum(selected.days, day => day.totals.reruns || 0),
+          rescues: sum(selected.days, day => day.totals.rerun_rescues || 0),
+          timeToGreen: median(selected.days.map(day => day.totals.time_to_green?.p50)),
+        };
+        return result;
+      }
+      function renderMetrics() {
+        const current = windowStats(selection());
+        const previous = windowStats(selection(1));
+        const delta = current.failureRate - previous.failureRate;
+        $('attempts').textContent = fmt(current.total);
+        $('sample').textContent = `${selection().days.length} calendar days represented`;
+        $('failureRate').textContent = `${current.failureRate.toFixed(1)}%`;
+        $('failureDelta').textContent = `${delta >= 0 ? '+' : ''}${delta.toFixed(1)} pp vs prior window`;
+        $('duration').textContent = current.p95 == null ? '—' : `${current.p95.toFixed(1)}m`;
+        $('infra').textContent = fmt(current.infra);
+        $('rescues').textContent = `${current.rescues}/${current.reruns}`;
+        $('rescueRate').textContent = `${rate(current.rescues, current.reruns).toFixed(0)}% rescued${current.timeToGreen == null ? '' : ` · ${current.timeToGreen.toFixed(0)}m p50 to green`}`;
+      }
+      function renderTrend() {
+        const selected = selection();
+        const svg = $('trendChart');
+        const width = 900, height = 300, pad = {l:44,r:44,t:18,b:35};
+        const points = selected.days.map(day => {
+          const lanes = lanesFor({days:[day], workflow:selected.workflow, search:selected.search});
+          return {date:day.date, failure:rate(sum(lanes,l=>l.failures),sum(lanes,l=>l.runs)), duration:median(lanes.flatMap(l=>l.p95)) || 0};
+        });
+        if (!points.length) { svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" class="chart-label">No observations in this window</text>'; return; }
+        const x = i => pad.l + i * (width-pad.l-pad.r) / Math.max(1, points.length-1);
+        const yRate = v => height-pad.b-v*(height-pad.t-pad.b)/Math.max(10,...points.map(p=>p.failure));
+        const yDuration = v => height-pad.b-v*(height-pad.t-pad.b)/Math.max(10,...points.map(p=>p.duration));
+        const path = (field, y) => points.map((p,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(p[field]).toFixed(1)}`).join(' ');
+        const labels = points.filter((_,i)=>i===0 || i===points.length-1 || i%Math.ceil(points.length/6)===0);
+        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        svg.innerHTML = `
+          ${[0,.25,.5,.75,1].map(f=>`<line class="gridline" x1="${pad.l}" x2="${width-pad.r}" y1="${pad.t+f*(height-pad.t-pad.b)}" y2="${pad.t+f*(height-pad.t-pad.b)}"/>`).join('')}
+          <line class="axis" x1="${pad.l}" x2="${width-pad.r}" y1="${height-pad.b}" y2="${height-pad.b}"/>
+          <path class="failure-line" d="${path('failure',yRate)}"/><path class="duration-line" d="${path('duration',yDuration)}"/>
+          ${points.map((p,i)=>`<circle class="dot" cx="${x(i)}" cy="${yRate(p.failure)}" r="4" fill="var(--red)"><title>${p.date}: ${p.failure.toFixed(1)}% failed</title></circle>`).join('')}
+          ${points.map((p,i)=>`<circle class="dot" cx="${x(i)}" cy="${yDuration(p.duration)}" r="4" fill="var(--blue)"><title>${p.date}: ${p.duration.toFixed(1)}m p95</title></circle>`).join('')}
+          ${labels.map(p=>{const i=points.indexOf(p);return `<text class="chart-label" x="${x(i)}" y="${height-10}" text-anchor="${i===0?'start':i===points.length-1?'end':'middle'}">${p.date.slice(5)}</text>`}).join('')}`;
+      }
+      function renderLanes() {
+        const rows = lanesFor(selection()).sort((a,b)=>b.failures-a.failures || b.runs-a.runs).slice(0,30);
+        $('laneRows').innerHTML = rows.length ? rows.map(row => `<tr><td class="lane"><strong>${esc(row.workflow)}</strong><br>${esc(row.lane)}</td><td class="num">${row.runs}</td><td class="num">${row.failures}</td><td class="num">${rate(row.failures,row.runs).toFixed(1)}%</td><td class="num">${(median(row.p95)||0).toFixed(1)}</td></tr>`).join('') : '<tr><td colspan="5" class="empty">No lanes match these filters.</td></tr>';
+      }
+      function renderBars(target, counts, color = 'var(--orange)') {
+        const rows = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+        const max = Math.max(1,...rows.map(row=>row[1]));
+        $(target).innerHTML = rows.length ? rows.map(([name,count])=>`<div><div class="bar-label"><span>${esc(name.replaceAll('_',' '))}</span><strong>${fmt(count)}</strong></div><div class="bar"><i style="width:${100*count/max}%;background:${color}"></i></div></div>`).join('') : '<div class="empty">Structured signals will appear after instrumented lanes run.</div>';
+      }
+      function renderDetails() {
+        const selected = selection();
+        const classes = {}, signatures = {}, tests = new Map(), phases = {};
+        selected.days.forEach(day => {
+          Object.entries(day.failure_classes || {}).forEach(([key,value])=>{
+            if (key !== 'success') classes[key]=(classes[key]||0)+value;
+          });
+          Object.entries(day.signatures || {}).forEach(([key,value])=>signatures[key]=(signatures[key]||0)+value);
+          (day.tests || []).forEach(test => {
+            const value = tests.get(test.id) || {executions:0, failures:0};
+            value.executions += test.executions; value.failures += test.failures; tests.set(test.id,value);
+          });
+          Object.entries(day.totals.phases || {}).forEach(([name, values]) => {
+            if (values?.p95 != null) (phases[name] ||= []).push(values.p95);
+          });
+        });
+        renderBars('classes', classes);
+        renderBars('signatures', signatures, 'var(--blue)');
+        renderBars('phases', Object.fromEntries(Object.entries(phases).map(([name,values])=>[`${name} · min`, Number((median(values)||0).toFixed(1))])), 'var(--green)');
+        const flaky = [...tests.entries()].filter(([,v])=>v.failures).sort((a,b)=>rate(b[1].failures,b[1].executions)-rate(a[1].failures,a[1].executions) || b[1].failures-a[1].failures).slice(0,15);
+        $('testRows').innerHTML = flaky.length ? flaky.map(([name,v])=>`<tr><td class="lane">${esc(name)}</td><td class="num">${v.failures}/${v.executions}</td><td class="num">${rate(v.failures,v.executions).toFixed(1)}%</td></tr>`).join('') : '<tr><td colspan="3" class="empty">No failed normalized tests in this window.</td></tr>';
+        const commits = selected.days.flatMap(day => (day.commits || []).map(commit => typeof commit === 'string' ? {date:day.date,sha:commit,message:''} : {date:day.date,...commit})).slice(-12).reverse();
+        $('commits').innerHTML = commits.length ? commits.map(item=>`<div><div class="bar-label"><span>${item.date}</span><strong><a href="https://github.com/kubeflow/pipelines/commit/${encodeURIComponent(item.sha)}">${esc(item.sha.slice(0,8))}</a></strong></div>${item.message ? `<small>${esc(item.message)}</small>` : ''}</div>`).join('') : '<div class="empty">No commit markers in this window.</div>';
+      }
+      function render() { renderMetrics(); renderTrend(); renderLanes(); renderDetails(); }
+      fetch('./data/history.json').then(response => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      }).then(history => {
+        state.history = history;
+        $('generated').textContent = `Updated ${history.generated_at?.replace('T',' ').slice(0,16) || 'unknown'} UTC`;
+        const workflows = new Set(history.days.flatMap(day=>day.lanes.map(lane=>lane.workflow)));
+        $('workflow').innerHTML += [...workflows].sort().map(name=>`<option>${esc(name)}</option>`).join('');
+        ['window','workflow'].forEach(id=>$(id).addEventListener('change',render));
+        $('search').addEventListener('input',render);
+        render();
+      }).catch(error => {
+        $('generated').textContent = 'DATA UNAVAILABLE';
+        $('laneRows').innerHTML = `<tr><td colspan="5" class="empty">${esc(error.message)}</td></tr>`;
+      });
+    </script>
+  </body>
+</html>
