@@ -501,6 +501,15 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version due to template creation error")
 	}
+	if tmpl.GetTemplateType() == template.V1 {
+		ns := p.Namespace
+		if ns == "" {
+			ns = common.GetPodNamespace()
+		}
+		if util.IsV1PipelinesBlocked(ns) {
+			return nil, nil, util.NewInvalidInputError("V1 pipeline specs are not allowed. Please migrate to using KFP V2 pipelines.")
+		}
+	}
 	// Validate pipeline's name in:
 	// 1. pipeline spec for v2 pipelines and v2-compatible pipeline must comply with MLMD requirements
 	// 2. display name must be non-empty
@@ -2194,6 +2203,15 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	tmpl, err := template.New(pipelineSpecBytes, templateOptions)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline version due to template creation error")
+	}
+	if tmpl.GetTemplateType() == template.V1 {
+		pipelineNamespace, _ := r.FetchNamespaceFromPipelineId(pipelineId)
+		if pipelineNamespace == "" {
+			pipelineNamespace = common.GetPodNamespace()
+		}
+		if util.IsV1PipelinesBlocked(pipelineNamespace) {
+			return nil, util.NewInvalidInputError("V1 pipeline specs are not allowed. Please migrate to using KFP V2 pipelines.")
+		}
 	}
 	// Validate pipeline's name in:
 	// 1. pipeline spec for v2 pipelines and v2-compatible pipeline must comply with MLMD requirements

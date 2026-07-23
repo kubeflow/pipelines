@@ -115,6 +115,34 @@ func TestIsV1PipelinesBlocked(t *testing.T) {
 			namespace: "",
 			expected:  true,
 		},
+		{
+			name:              "Leading comma does not allow empty namespace",
+			blockV1:           "true",
+			allowedNamespaces: ",ns1",
+			namespace:         "",
+			expected:          true,
+		},
+		{
+			name:              "Trailing comma does not allow empty namespace",
+			blockV1:           "true",
+			allowedNamespaces: "ns1,",
+			namespace:         "",
+			expected:          true,
+		},
+		{
+			name:              "Leading comma, real namespace still allowed",
+			blockV1:           "true",
+			allowedNamespaces: ",ns1",
+			namespace:         "ns1",
+			expected:          false,
+		},
+		{
+			name:              "Whitespace-only entry does not allow empty namespace",
+			blockV1:           "true",
+			allowedNamespaces: " ,ns1",
+			namespace:         "",
+			expected:          true,
+		},
 	}
 
 	for _, tt := range tests {

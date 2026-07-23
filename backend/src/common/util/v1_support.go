@@ -49,8 +49,12 @@ func IsV1PipelinesBlocked(namespace string) bool {
 	}
 
 	targetNamespace := strings.ToLower(strings.TrimSpace(namespace))
-	for _, n := range strings.Split(allowedNamespaces, ",") {
-		if strings.ToLower(strings.TrimSpace(n)) == targetNamespace {
+	for n := range strings.SplitSeq(allowedNamespaces, ",") {
+		trimmed := strings.ToLower(strings.TrimSpace(n))
+		if trimmed == "" {
+			continue
+		}
+		if trimmed == targetNamespace {
 			return false
 		}
 	}
