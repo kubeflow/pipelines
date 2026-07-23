@@ -236,6 +236,74 @@ func TestNextPageToken_InvalidSortByField(t *testing.T) {
 	}
 }
 
+// TestNextPageToken_MetricValueNull covers the regression where a lookahead row
+// without the selected metric produced a nil sort value and made an otherwise
+// valid ListRuns request fail with "cannot sort by field". For metric sorts a
+// missing metric is a legitimate SQL NULL: the token must be generated with
+// SortByFieldIsNull=true rather than returning an error.
+func TestNextPageToken_MetricValueNull(t *testing.T) {
+	// Row has some metrics, but not the one we are sorting by ("accuracy").
+	l := &fakeListable{
+		PrimaryKey: "uuid123", FakeName: "Fake", CreatedTimestamp: 1234,
+		Metrics: []*fakeMetric{{Name: "loss", Value: 0.1}},
+	}
+
+	inOpts := &Options{
+		PageSize: 10,
+		token: &token{
+			SortByFieldName:  model.MetricSortSQLAlias,
+			SortByMetricName: "accuracy",
+			KeyFieldName:     "PrimaryKey",
+			IsDesc:           true,
+		},
+	}
+
+	got, err := inOpts.nextPageToken(l)
+	if err != nil {
+		t.Fatalf("nextPageToken() unexpected error for missing metric: %v", err)
+	}
+	if !got.SortByFieldIsNull {
+		t.Errorf("nextPageToken() SortByFieldIsNull = false, want true for missing metric")
+	}
+	if got.SortByFieldValue != nil {
+		t.Errorf("nextPageToken() SortByFieldValue = %v, want nil for missing metric", got.SortByFieldValue)
+	}
+	if got.KeyFieldValue != "uuid123" {
+		t.Errorf("nextPageToken() KeyFieldValue = %v, want %q", got.KeyFieldValue, "uuid123")
+	}
+}
+
+// TestNextPageToken_MetricValuePresent is the complementary case: when the row
+// does have the selected metric, SortByFieldIsNull must stay false and the value
+// is carried in the token as usual.
+func TestNextPageToken_MetricValuePresent(t *testing.T) {
+	l := &fakeListable{
+		PrimaryKey: "uuid123", FakeName: "Fake", CreatedTimestamp: 1234,
+		Metrics: []*fakeMetric{{Name: "accuracy", Value: 0.95}},
+	}
+
+	inOpts := &Options{
+		PageSize: 10,
+		token: &token{
+			SortByFieldName:  model.MetricSortSQLAlias,
+			SortByMetricName: "accuracy",
+			KeyFieldName:     "PrimaryKey",
+			IsDesc:           true,
+		},
+	}
+
+	got, err := inOpts.nextPageToken(l)
+	if err != nil {
+		t.Fatalf("nextPageToken() unexpected error: %v", err)
+	}
+	if got.SortByFieldIsNull {
+		t.Errorf("nextPageToken() SortByFieldIsNull = true, want false when metric present")
+	}
+	if got.SortByFieldValue != 0.95 {
+		t.Errorf("nextPageToken() SortByFieldValue = %v, want 0.95", got.SortByFieldValue)
+	}
+}
+
 func TestValidatePageSize(t *testing.T) {
 	tests := []struct {
 		in   int
@@ -814,6 +882,75 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 			},
 			wantSQL:  "SELECT * FROM MyTable WHERE (MetricValue < ? OR (MetricValue = ? AND KeyField <= ?)) ORDER BY MetricValue DESC, KeyField DESC LIMIT 124",
 			wantArgs: []interface{}{float64(0.123456789), float64(0.123456789), "uuid-1"},
+		},
+		// Metric sort, non-NULL cursor, ASC (case A): NULL rows sort last, so the
+		// cursor also pulls in the trailing NULL block via "sort_metric_value IS NULL".
+		// The ORDER BY gains a leading "(col IS NULL) ASC" key for deterministic NULL-last.
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:     model.MetricSortSQLAlias,
+					SortByMetricName:    "accuracy",
+					SortByFieldIsString: false,
+					SortByFieldValue:    float64(0.5),
+					KeyFieldName:        "KeyField",
+					KeyFieldValue:       "uuid-1",
+					IsDesc:              false,
+				},
+			},
+			wantSQL:  "SELECT * FROM MyTable WHERE (sort_metric_value > ? OR (sort_metric_value = ? AND KeyField >= ?) OR sort_metric_value IS NULL) ORDER BY (sort_metric_value IS NULL) ASC, sort_metric_value ASC, KeyField ASC LIMIT 124",
+			wantArgs: []interface{}{float64(0.5), float64(0.5), "uuid-1"},
+		},
+		// Metric sort, non-NULL cursor, DESC (case A).
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:     model.MetricSortSQLAlias,
+					SortByMetricName:    "accuracy",
+					SortByFieldIsString: false,
+					SortByFieldValue:    float64(0.5),
+					KeyFieldName:        "KeyField",
+					KeyFieldValue:       "uuid-1",
+					IsDesc:              true,
+				},
+			},
+			wantSQL:  "SELECT * FROM MyTable WHERE (sort_metric_value < ? OR (sort_metric_value = ? AND KeyField <= ?) OR sort_metric_value IS NULL) ORDER BY (sort_metric_value IS NULL) ASC, sort_metric_value DESC, KeyField DESC LIMIT 124",
+			wantArgs: []interface{}{float64(0.5), float64(0.5), "uuid-1"},
+		},
+		// Metric sort, NULL cursor, ASC (case B): all non-NULL rows are already paged
+		// through; advance within the trailing NULL block using the key alone.
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:   model.MetricSortSQLAlias,
+					SortByMetricName:  "accuracy",
+					SortByFieldIsNull: true,
+					KeyFieldName:      "KeyField",
+					KeyFieldValue:     "uuid-9",
+					IsDesc:            false,
+				},
+			},
+			wantSQL:  "SELECT * FROM MyTable WHERE (sort_metric_value IS NULL AND KeyField >= ?) ORDER BY (sort_metric_value IS NULL) ASC, sort_metric_value ASC, KeyField ASC LIMIT 124",
+			wantArgs: []interface{}{"uuid-9"},
+		},
+		// Metric sort, NULL cursor, DESC (case B): key tie-break flips to <=.
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:   model.MetricSortSQLAlias,
+					SortByMetricName:  "accuracy",
+					SortByFieldIsNull: true,
+					KeyFieldName:      "KeyField",
+					KeyFieldValue:     "uuid-9",
+					IsDesc:            true,
+				},
+			},
+			wantSQL:  "SELECT * FROM MyTable WHERE (sort_metric_value IS NULL AND KeyField <= ?) ORDER BY (sort_metric_value IS NULL) ASC, sort_metric_value DESC, KeyField DESC LIMIT 124",
+			wantArgs: []interface{}{"uuid-9"},
 		},
 	}
 
