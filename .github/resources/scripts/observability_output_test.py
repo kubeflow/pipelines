@@ -23,6 +23,7 @@ Run with:  cd .github/resources/scripts && python3 -m unittest -v observability_
 """
 
 import os
+import json
 import subprocess
 import tempfile
 import textwrap
@@ -75,6 +76,30 @@ class ConntrackClassificationTest(unittest.TestCase):
             [222.2] nf_conntrack: table full, dropping packet
         '''))
         self.assertEqual(conntrack_count(output), 2)
+
+    def test_json_output_matches_markdown_counts(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            log_file = Path(temporary_directory) / 'pod.log'
+            json_file = Path(temporary_directory) / 'signatures.json'
+            log_file.write_text(
+                'dial tcp 10.1.2.3:9000: i/o timeout\n'
+                'connection reset by peer\n',
+                encoding='utf-8',
+            )
+            result = subprocess.run(
+                [
+                    'bash', str(SIGNATURE_SCRIPT),
+                    '--log-file', str(log_file),
+                    '--reports-dir', str(Path(temporary_directory) / 'none'),
+                    '--json-output', str(json_file),
+                ],
+                check=True, capture_output=True, text=True,
+            )
+            signatures = json.loads(json_file.read_text(encoding='utf-8'))
+
+        self.assertEqual(signatures['clusterip_dial_timeout'], 1)
+        self.assertEqual(signatures['connection_refused_or_reset'], 1)
+        self.assertIn('| ClusterIP dial `i/o timeout` | 1 |', result.stdout)
 
 
 class OutputMirroringTest(unittest.TestCase):

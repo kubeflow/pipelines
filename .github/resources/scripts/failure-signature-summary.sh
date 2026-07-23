@@ -20,11 +20,13 @@ set -u
 
 LOG_FILE=""
 REPORTS_DIR=""
+JSON_OUTPUT=""
 
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
         --log-file) LOG_FILE="${2:?--log-file requires a value}"; shift ;;
         --reports-dir) REPORTS_DIR="${2:?--reports-dir requires a value}"; shift ;;
+        --json-output) JSON_OUTPUT="${2:?--json-output requires a value}"; shift ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
     shift
@@ -91,6 +93,37 @@ count_signature() {
     cat "${SCAN_SOURCES[@]}" 2>/dev/null | grep -cE "$1" || true
 }
 
+clusterip_dial_timeout=$(count_signature 'dial tcp [0-9.]+:[0-9]+: i/o timeout')
+client_timeout=$(count_signature 'context deadline exceeded|Client\.Timeout exceeded')
+connection_reset=$(count_signature 'connection refused|connection reset by peer')
+http_429=$(count_signature 'status 429|429 Too Many Requests')
+oomkilled=$(count_signature 'OOMKilled')
+crashloopbackoff=$(count_signature 'CrashLoopBackOff')
+conntrack_table_full=$(count_signature 'nf_conntrack: table full, dropping packet')
+
+if [[ -n "$JSON_OUTPUT" ]] && command -v python3 >/dev/null 2>&1; then
+    mkdir -p "$(dirname "$JSON_OUTPUT")"
+    python3 - "$JSON_OUTPUT" \
+        "$clusterip_dial_timeout" "$client_timeout" "$connection_reset" \
+        "$http_429" "$oomkilled" "$crashloopbackoff" "$conntrack_table_full" <<'PY'
+import json
+import sys
+
+keys = (
+    "clusterip_dial_timeout",
+    "client_timeout",
+    "connection_refused_or_reset",
+    "http_429",
+    "oomkilled",
+    "crashloopbackoff",
+    "conntrack_table_full",
+)
+with open(sys.argv[1], "w", encoding="utf-8") as destination:
+    json.dump(dict(zip(keys, map(int, sys.argv[2:]))), destination, sort_keys=True)
+    destination.write("\n")
+PY
+fi
+
 {
     echo ""
     echo "## Failure signature summary"
@@ -104,16 +137,16 @@ count_signature() {
         echo ""
         echo "| Signature | Count | Points at |"
         echo "|---|---:|---|"
-        echo "| ClusterIP dial \`i/o timeout\` | $(count_signature 'dial tcp [0-9.]+:[0-9]+: i/o timeout') | service dataplane / backend accept saturation |"
-        echo "| Client deadline / timeout | $(count_signature 'context deadline exceeded|Client\.Timeout exceeded') | slow server (queueing, saturation) |"
-        echo "| Connection refused / reset | $(count_signature 'connection refused|connection reset by peer') | process down or restarting |"
-        echo "| HTTP 429 rate limit | $(count_signature 'status 429|429 Too Many Requests') | upstream rate limiting |"
-        echo "| OOMKilled | $(count_signature 'OOMKilled') | pod memory limits |"
-        echo "| CrashLoopBackOff | $(count_signature 'CrashLoopBackOff') | pod lifecycle |"
+        echo "| ClusterIP dial \`i/o timeout\` | $clusterip_dial_timeout | service dataplane / backend accept saturation |"
+        echo "| Client deadline / timeout | $client_timeout | slow server (queueing, saturation) |"
+        echo "| Connection refused / reset | $connection_reset | process down or restarting |"
+        echo "| HTTP 429 rate limit | $http_429 | upstream rate limiting |"
+        echo "| OOMKilled | $oomkilled | pod memory limits |"
+        echo "| CrashLoopBackOff | $crashloopbackoff | pod lifecycle |"
         # Match the kernel's message form, not just the phrase: the SeaweedFS
         # diagnostics script tees its own "kernel 'nf_conntrack: table full'
         # events:" header into the pod log, which must not count as a hit.
-        echo "| conntrack table full | $(count_signature 'nf_conntrack: table full, dropping packet') | node conntrack exhaustion |"
+        echo "| conntrack table full | $conntrack_table_full | node conntrack exhaustion |"
 
         # Per-VIP breakdown makes multi-service dataplane failures (SeaweedFS
         # :9000 vs MLflow :8443 ...) visible at a glance.

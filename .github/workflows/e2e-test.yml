@@ -30,6 +30,7 @@ on:
       - '.github/actions/install-fgo-fake/**'
       - '.github/actions/install-dra-driver/**'
       - '.github/actions/test-and-report/**'
+      - '.github/actions/publish-ci-result/**'
       - '.github/resources/**'
       - 'api/**'
       - 'go.mod'

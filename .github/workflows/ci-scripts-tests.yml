@@ -31,6 +31,7 @@ on:
       # Any trigger change must update the expected-workflow inventory.
       - '.github/workflows/**'
       - '.github/scripts/*.py'
+      - '.github/resources/ci-health-dashboard/**'
       # The observability shell scripts are covered by Python-driven tests.
       - '.github/resources/scripts/*.sh'
       - '.github/resources/scripts/kfp-readiness/**'
@@ -41,6 +42,7 @@ on:
       - '.github/actions/test-and-report/**'
       - '.github/workflows/api-server-tests.yml'
       - '.github/workflows/create-manifest.yml'
+      - '.github/actions/publish-ci-result/**'
       - '.github/workflows/e2e-test.yml'
       - '.github/workflows/e2e-test-frontend.yml'
       - '.github/workflows/image-builds.yml'
@@ -54,6 +56,7 @@ on:
       - '.github/workflows/publish-packages.yml'
       - '.github/workflows/pre-commit.yml'
       - '.github/workflows/pr-gate.yml'
+      - '.github/workflows/ci-health-report.yml'
       - '.github/workflows/gh-workflow-approve.yml'
       - '.github/workflows/contributor-report.yml'
       # Inputs read by the v2 deployment contract and profile-controller tests.

@@ -103,6 +103,7 @@ backend/src/crd/kubernetes/bin
 **/allure-*
 **/*.html
 !frontend/index.html
+!.github/resources/ci-health-dashboard/index.html
 reports/
 logs/
 *.out
