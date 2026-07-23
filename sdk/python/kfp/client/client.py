@@ -24,7 +24,7 @@ import tarfile
 import tempfile
 import time
 from types import ModuleType
-from typing import Any, Dict, List, Optional, TextIO
+from typing import Any, Dict, Iterable, List, Optional, TextIO
 import warnings
 import zipfile
 
@@ -1025,7 +1025,7 @@ class Client:
         Returns:
             ``RunPipelineResult`` object containing information about the pipeline run.
         """
-        #TODO: Check arguments against the pipeline function
+        validate_pipeline_arguments(pipeline_func._component_inputs, arguments)
         pipeline_name = pipeline_func.name
         run_name = run_name or pipeline_name + ' ' + datetime.datetime.now(
         ).strftime('%Y-%m-%d %H-%M-%S')
@@ -1712,6 +1712,29 @@ def validate_pipeline_display_name(name: str) -> None:
         raise ValueError(
             f'Invalid pipeline name. Pipeline name cannot be empty or contain only whitespace.'
         )
+
+
+def validate_pipeline_arguments(
+    known_parameters: Iterable[str],
+    arguments: Optional[Dict[str, Any]],
+) -> None:
+    """Validate run arguments against known pipeline parameter names.
+
+    Args:
+        known_parameters: Iterable of accepted pipeline parameter names.
+        arguments: Arguments mapping passed to the run, or None.
+
+    Raises:
+        ValueError: If any argument name is not a known pipeline parameter.
+    """
+    if not arguments:
+        return
+    known = set(known_parameters)
+    unknown = sorted(set(arguments) - known)
+    if unknown:
+        raise ValueError(
+            f'Unknown argument(s): {unknown}. '
+            f'Expected pipeline parameters: {sorted(known)}')
 
 
 def _extract_pipeline_yaml(package_file: str) -> _PipelineDoc:
