@@ -8,9 +8,11 @@ pip-tools==6.0.0
 pre-commit==2.19.0
 pycln==2.1.1
 pylint==2.17.7
-pytest==7.1.2
-pytest-cov==3.0.0
-pytest-xdist==2.5.0
+# pytest 9.0.3 contains the tmpdir handling fix but requires Python 3.10+.
+pytest==8.4.2; python_version < "3.10"
+pytest==9.0.3; python_version >= "3.10"
+pytest-cov==7.1.0
+pytest-xdist==3.8.0
 types-protobuf==3.19.15
 types-PyYAML==6.0.5
 types-requests==2.27.14

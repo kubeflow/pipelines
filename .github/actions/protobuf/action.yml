@@ -32,7 +32,7 @@ runs:
       shell: bash
       run: |
         PROTOC_ZIP=protoc-${{inputs.protoc_version}}-linux-x86_64.zip
-        curl -sSL -O https://github.com/protocolbuffers/protobuf/releases/download/v${{inputs.protoc_version}}/$PROTOC_ZIP
+        curl -sSL --fail --retry 3 --retry-delay 10 --retry-all-errors -O https://github.com/protocolbuffers/protobuf/releases/download/v${{inputs.protoc_version}}/$PROTOC_ZIP
         sudo unzip -o $PROTOC_ZIP -d /usr/local bin/protoc
         sudo unzip -o $PROTOC_ZIP -d /usr/local 'include/*'
         rm $PROTOC_ZIP
@@ -53,6 +53,10 @@ runs:
     - name: Generate API proto files
       working-directory: ./api
       shell: bash
+      env:
+        # Authenticates the googleapis proto fetch in the Makefile to avoid
+        # anonymous per-IP 429 rate limits on raw.githubusercontent.com.
+        GITHUB_TOKEN: ${{ github.token }}
       run: make clean python
     - name: Install kfp-pipeline-spec from source
       shell: bash

@@ -63,12 +63,12 @@ spec:
             valueFrom:
               configMapKeyRef:
                 name: pipeline-install-config
-                key: dbHost
+                key: mysqlHost
           - name: DBCONFIG_PORT
             valueFrom:
               configMapKeyRef:
                 name: pipeline-install-config
-                key: dbPort
+                key: mysqlPort
           - name: DBCONFIG_USER
             valueFrom:
               secretKeyRef:

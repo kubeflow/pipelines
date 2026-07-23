@@ -45,12 +45,12 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   name: pipeline-install-config
-                  key: dbHost
+                  key: mysqlHost
             - name: WAIT_PORT
               valueFrom:
                 configMapKeyRef:
                   name: pipeline-install-config
-                  key: dbPort
+                  key: mysqlPort
           command: ["/bin/sh", "-ec"]
           args:
             - |
@@ -160,12 +160,12 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   name: pipeline-install-config
-                  key: dbHost
+                  key: mysqlHost
             - name: DBCONFIG_PORT
               valueFrom:
                 configMapKeyRef:
                   name: pipeline-install-config
-                  key: dbPort
+                  key: mysqlPort
             # end of relic variables
             - name: DBCONFIG_CONMAXLIFETIME
               valueFrom:
@@ -215,9 +215,9 @@ spec:
                   name: mlpipeline-minio-artifact
                   key: secretkey
             - name: V2_DRIVER_IMAGE
-              value: ghcr.io/kubeflow/kfp-driver:2.16.1
+              value: ghcr.io/kubeflow/kfp-driver:2.17.0
             - name: V2_LAUNCHER_IMAGE
-              value: ghcr.io/kubeflow/kfp-launcher:2.16.1
+              value: ghcr.io/kubeflow/kfp-launcher:2.17.0
             # JSON patch to apply to compiled workflow specifications
             - name: COMPILED_PIPELINE_SPEC_PATCH
               value: "{}"
@@ -256,6 +256,21 @@ spec:
                 configMapKeyRef:
                   name: pipeline-install-config
                   key: V1_ALLOWED_NAMESPACES
+                  optional: true
+            # Driver pod labels and annotations. Viper reads these config keys from the
+            # environment, so the variable names must match the keys defined in
+            # backend/src/apiserver/common/driver_config.go.
+            - name: DRIVER_POD_LABELS
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: DRIVER_POD_LABELS
+                  optional: true
+            - name: DRIVER_POD_ANNOTATIONS
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: DRIVER_POD_ANNOTATIONS
                   optional: true
           image: ghcr.io/kubeflow/kfp-api-server:dummy
           imagePullPolicy: IfNotPresent

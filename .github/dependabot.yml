@@ -1,0 +1,41 @@
+# Dependabot configuration for scheduled version updates.
+#
+# Scope: Go modules (`gomod`) only. This makes Go dependency bumps explicit and
+# deterministic across every Go module in the repo, rather than relying on the
+# implicit/security-only behavior that previously left some advisories (e.g.
+# golang.org/x/net) unactioned.
+#
+# Note: Dependabot security updates are enabled separately (in repo settings),
+# not by this file. This file does not turn them on or off, though they still
+# honor configuration here such as `ignore` rules and directory/ecosystem scope.
+# npm/pip ecosystems are intentionally left out of scope for version updates.
+#
+# Tracks: https://github.com/kubeflow/pipelines/issues/13490
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directories:
+      - "/"
+      - "/api"
+      - "/kubernetes_platform"
+      - "/third_party/ml-metadata"
+      - "/test/tools/project-cleaner"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # Keep the golang.org/x/* modules together; they release in lockstep and
+      # bumping one (e.g. x/net) usually drags the others along via go mod tidy.
+      golang-x:
+        patterns:
+          - "golang.org/x/*"
+      # Batch all remaining minor/patch bumps to limit PR volume. Major version
+      # updates fall through to individual PRs so they get explicit review.
+      go-minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"

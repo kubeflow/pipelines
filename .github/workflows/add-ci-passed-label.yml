@@ -21,6 +21,7 @@ permissions:
   pull-requests: write
   issues: write
 
+
 jobs:
   fetch_data:
     name: Fetch PR eligibility
@@ -34,6 +35,7 @@ jobs:
         id: download_result
         uses: actions/github-script@v8
         with:
+          retries: 3
           script: |
             core.setOutput("artifact_found", "false");
 
@@ -86,6 +88,7 @@ jobs:
         if: steps.download_result.outputs.artifact_found == 'true'
         uses: actions/github-script@v8
         with:
+          retries: 3
           script: |
             core.setOutput("pr_number", "");
             core.setOutput("eligible", "false");

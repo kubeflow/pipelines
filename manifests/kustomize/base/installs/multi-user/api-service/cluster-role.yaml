@@ -69,3 +69,11 @@ rules:
   - kfp-launcher
   verbs:
   - get
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  resourceNames:
+  - kfp-mlflow-credentials
+  verbs:
+  - get

@@ -5,6 +5,20 @@ metadata:
 spec:
   template:
     spec:
+      initContainers:
+      - name: wait-for-database
+        env:
+        - $patch: replace
+        - name: WAIT_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: postgresHost
+        - name: WAIT_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: postgresPort
       containers:
       - name: ml-pipeline-api-server
         env:
@@ -50,6 +64,20 @@ spec:
             configMapKeyRef:
               name: pipeline-install-config
               key: V1_ALLOWED_NAMESPACES
+              optional: true
+        # Driver pod labels and annotations. This patch replaces the container env list,
+        # so these must be repeated here to reach the API server on PostgreSQL installs.
+        - name: DRIVER_POD_LABELS
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: DRIVER_POD_LABELS
+              optional: true
+        - name: DRIVER_POD_ANNOTATIONS
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: DRIVER_POD_ANNOTATIONS
               optional: true
         # PostgreSQL Config
         - name: DBCONFIG_POSTGRESQLCONFIG_USER

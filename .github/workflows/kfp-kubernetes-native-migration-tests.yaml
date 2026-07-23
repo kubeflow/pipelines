@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/kfp-kubernetes-native-migration-tests.yaml"
+      - ".github/actions/setup-python-pip-cache/**"
       - ".github/workflows/image-builds.yml"
       - ".github/actions/deploy/**"
       - ".github/resources/**"
@@ -25,20 +26,23 @@ jobs:
 
   kfp-kubernetes-native-migration-tests:
     runs-on: ubuntu-24.04
-    needs: build
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
-        k8s_version: ["v1.31.14", "v1.35.0"]
+        k8s_version: ["v1.33.12", "v1.36.1"]
     name: KFP Kubernetes Native Migration Tests - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: ./.github/actions/setup-python-pip-cache
         with:
           python-version: "3.9"
-          cache: 'pip'
+          cache-scope: kfp-kubernetes-native-migration-tests
+          cache-dependency-hash: ${{ hashFiles('sdk/python/requirements*.txt', 'kubernetes_platform/python/requirements*.txt', 'test/kfp-kubernetes-native-migration-tests/requirements.txt') }}
 
       - name: Create KFP cluster
         id: create-kfp-cluster
@@ -52,9 +56,9 @@ jobs:
         uses: ./.github/actions/deploy
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         with:
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
           pod_to_pod_tls_enabled: 'false'
 
       - name: Install protobuf dependencies & kfp-pipeline-spec

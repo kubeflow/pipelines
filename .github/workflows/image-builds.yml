@@ -19,14 +19,98 @@ env:
   GITHUB_SHA: ${{ github.sha }}
 
 jobs:
+  runtime-base-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+    env:
+      ARTIFACT_NAME: "runtime-base-images"
+      ARTIFACTS_PATH: "runtime-base-images-cache"
+      RUNTIME_BASE_IMAGE_ARCHIVE: "runtime-base-images.tar"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Configure runtime base image artifact
+        id: configure-runtime-base-images
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive_fingerprint=$(python3 \
+            .github/resources/scripts/runtime_base_image_artifacts.py fingerprint \
+            .github/resources/runtime-base-images.txt \
+            .github/resources/scripts/helper-functions.sh \
+            .github/workflows/runtime-base-images.yml)
+          echo "artifact-name=runtime-base-images-${archive_fingerprint}" >> "$GITHUB_OUTPUT"
+
+      - name: Find runtime base image producer
+        id: runtime-base-images-producer
+        shell: bash
+        env:
+          ARTIFACT_NAME: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+
+          for attempt in $(seq 1 80); do
+            producer_run_id=""
+            if artifacts=$(gh api --method GET \
+                "repos/${GITHUB_REPOSITORY}/actions/artifacts" \
+                -f name="${ARTIFACT_NAME}" \
+                -f per_page=100); then
+              producer_run_id=$(python3 \
+                .github/resources/scripts/runtime_base_image_artifacts.py \
+                select-producer --source-sha "${SOURCE_SHA}" <<< "${artifacts}")
+            else
+              echo "::warning::Failed to query runtime base image artifacts"
+            fi
+
+            if [[ -n "${producer_run_id}" ]]; then
+              echo "run-id=${producer_run_id}" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            if [[ "${attempt}" -lt 80 ]]; then
+              echo "Runtime base image artifact not ready; retrying in 15 seconds..."
+              sleep 15
+            fi
+          done
+
+          echo "::error::No runtime base image producer artifact found for ${ARTIFACT_NAME}"
+          exit 1
+
+      - name: Download runtime base images from producer
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}
+          path: ${{ env.ARTIFACTS_PATH }}
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.runtime-base-images-producer.outputs.run-id }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
+          if-no-files-found: error
+          retention-days: 1
+
   image-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     outputs:
       image_path: ${{ steps.configure.outputs.artifact_path }}
       image_tag: ${{ steps.configure.outputs.image_tag }}
       registry: ${{ steps.configure.outputs.registry }}
     strategy:
-      fail-fast: true
+      # A single failing image build must not cancel the other builds in the
+      # matrix: cancelled jobs skip their rebuild fallback (a cancelled build
+      # step has outcome 'cancelled', not 'failure'), so fail-fast turns one
+      # transient failure into a full workflow failure.
+      fail-fast: false
       matrix:
         include:
           - image: apiserver
@@ -87,13 +171,13 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        id: setup-buildx
+        shell: bash
+        run: bash ./.github/resources/scripts/setup-buildx-with-retry.sh
 
       - name: Build and save Docker image
         uses: docker/build-push-action@v6
-        if: ${{ steps.setup-buildx.outcome == 'success' }}
         id: save-image
+        continue-on-error: true
         env:
           # Disable the job summary report in the GitHub Actions UI
           DOCKER_BUILD_SUMMARY: false
@@ -106,9 +190,13 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
           outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
 
+      - name: Wait before rebuilding
+        if: ${{ steps.save-image.outcome == 'failure' }}
+        run: sleep 10
+
       - name: Rebuild Images in case of failure
         uses: docker/build-push-action@v6
-        if: ${{ steps.save-image.outcome != 'success' && steps.setup-buildx.outcome == 'success' }}
+        if: ${{ steps.save-image.outcome == 'failure' }}
         id: rebuild
         env:
           # Disable the job summary report in the GitHub Actions UI
@@ -117,6 +205,7 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: false
+          no-cache: true
           build-args: |
             NODE_VERSION=${{ steps.frontend_node.outputs.version }}
           tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}

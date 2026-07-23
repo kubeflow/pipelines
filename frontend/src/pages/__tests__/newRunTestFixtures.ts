@@ -51,7 +51,7 @@ export const ORIGINAL_TEST_PIPELINE_VERSION: V2beta1PipelineVersion = {
   display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
   pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
   pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
-  pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
+  pipeline_spec: JsYaml.load(v2XGYamlTemplateString),
 };
 
 export const V1_PIPELINE_VERSION = {

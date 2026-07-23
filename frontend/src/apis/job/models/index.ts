@@ -11,7 +11,7 @@ export * from './ApiResourceKey';
 export * from './ApiResourceReference';
 export * from './ApiResourceType';
 export * from './ApiTrigger';
-export * from './GooglerpcStatus';
+export * from './GoogleRpcStatus';
 export * from './JobMode';
 export * from './PipelineSpecRuntimeConfig';
 export * from './ProtobufAny';

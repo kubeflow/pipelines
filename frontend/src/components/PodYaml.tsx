@@ -23,7 +23,7 @@ import Editor from './Editor';
 
 async function getPodYaml(name: string, namespace: string): Promise<string> {
   const response = await Apis.getPodInfo(name, namespace);
-  return JsYaml.safeDump(reorderPodJson(response), { skipInvalid: true });
+  return JsYaml.dump(reorderPodJson(response), { skipInvalid: true });
 }
 export const PodInfo: React.FC<{ name: string; namespace: string }> = ({ name, namespace }) => {
   return (
@@ -38,7 +38,7 @@ export const PodInfo: React.FC<{ name: string; namespace: string }> = ({ name, n
 
 async function getPodEventsYaml(name: string, namespace: string): Promise<string> {
   const response = await Apis.getPodEvents(name, namespace);
-  return JsYaml.safeDump(response, { skipInvalid: true });
+  return JsYaml.dump(response, { skipInvalid: true });
 }
 export const PodEvents: React.FC<{
   name: string;

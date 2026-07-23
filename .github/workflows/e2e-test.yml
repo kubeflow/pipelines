@@ -23,6 +23,7 @@ on:
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
+      - '.github/actions/test-and-report/**'
       - '.github/resources/**'
       - 'api/**'
       - 'go.mod'
@@ -30,6 +31,9 @@ on:
       - 'backend/**'
       - 'proxy/**'
       - 'manifests/kustomize/**'
+      # The artifact-proxy E2E script is exercised only by this workflow, so
+      # changes to it must trigger these lanes.
+      - 'test/artifact-proxy/**'
       - 'test_data/sdk_compiled_pipelines/**'
       - '!**/*.md'
       - '!**/OWNERS'
@@ -54,7 +58,7 @@ on:
         type: string
 
 concurrency:
-  group: e2e-tests-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -63,28 +67,32 @@ jobs:
 
   end-to-end-scenario-tests:
     runs-on: ubuntu-latest
-    needs: build
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
-        k8s_version: ["v1.35.0"]
+        k8s_version: ["v1.36.1"]
         cache_enabled: ["true", "false"]
-        argo_version: [ "v3.7.3", "v3.5.14", "v4.0.4" ]
+        argo_version: [ "v3.7.14", "v4.0.5" ]
         proxy: [ "false" ]
-        test_label: [ "E2ECritical", "E2EEssential", "E2EParallelNested" ]
+        # Automatic runs split the dominant Critical suite across two Kind
+        # runners. Manual dispatch retains the historical unsharded labels.
+        test_label: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["E2ECritical", "E2EEssential", "E2EParallelNested"]' || '["E2ECriticalShardA", "E2ECriticalShardB", "E2EEssential", "E2EParallelNested"]') }}
         pod_to_pod_tls_enabled: [ "false" ]
         include:
-          - k8s_version: "v1.31.14"
+          - k8s_version: "v1.33.12"
             cache_enabled: "false"
-            argo_version: "v3.5.14"
+            argo_version: "v3.7.14"
             test_label: "E2ECritical"
-          - k8s_version: "v1.35.0"
+          - k8s_version: "v1.36.1"
             cache_enabled: "false"
             proxy: "true"
             test_label: "E2EProxy"
-          - k8s_version: "v1.35.0"
+          - k8s_version: "v1.36.1"
             cache_enabled: "false"
             test_label: "E2EFailure"
-          - k8s_version: "v1.35.0"
+          - k8s_version: "v1.36.1"
             cache_enabled: "true"
             pod_to_pod_tls_enabled: "true"
             test_label: "E2ECritical"
@@ -110,9 +118,9 @@ jobs:
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
@@ -124,18 +132,33 @@ jobs:
         shell: bash
         id: configure
         if: ${{ steps.deploy.outcome == 'success' }}
+        env:
+          DISPATCH_NUMBER_OF_NODES: ${{ inputs.number_of_parallel_tests }}
+          DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
+          DISPATCH_NAMESPACE: ${{ inputs.namespace }}
         run: |
           NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
-            TEST_LABEL=${{ inputs.test_label }}
-            NAMESPACE=${{ inputs.namespace }}
+
+          if [ "$TEST_LABEL" == "E2EFailure" ]; then
+            NUMBER_OF_NODES=2
+          elif [ "$TEST_LABEL" == "E2ECriticalShardA" ] || [ "$TEST_LABEL" == "E2ECriticalShardB" ]; then
+            NUMBER_OF_NODES=10
+            TEST_LABEL="E2ECritical && $TEST_LABEL"
+          elif [ "$TEST_LABEL" == "E2ECritical" ] || [ "$TEST_LABEL" == "E2EEssential" ]; then
+            NUMBER_OF_NODES=10
+          elif [ "$TEST_LABEL" == "E2EParallelNested" ]; then
+            # Each spec fans out into nested child pipelines, so retain its
+            # historical lower cap instead of using the global default.
+            NUMBER_OF_NODES=3
           fi
 
-          if [ "$TEST_LABEL" == "E2EParallelNested" ]; then
-            NUMBER_OF_NODES=3
+          # Explicit dispatch inputs take precedence over automatic lane caps.
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
+            TEST_LABEL=$DISPATCH_TEST_LABEL
+            NAMESPACE=$DISPATCH_NAMESPACE
           fi
 
           {
@@ -170,21 +193,17 @@ jobs:
 
   end-to-end-critical-scenario-multi-user-tests:
     runs-on: ubuntu-latest
-    needs: build
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
-        k8s_version: ["v1.35.0"]
+        k8s_version: ["v1.36.1"]
         cache_enabled: ["true", "false"]
         multi_user: [ "true" ]
-        test_label: [ "E2ECritical" ]
-        include:
-        - multi_user: "true"
-          artifact_proxy: "true"
-          k8s_version: "v1.35.0"
-          cache_enabled: "true"
-          test_label: "E2ECritical"
+        test_label: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["E2ECritical"]' || '["E2ECriticalShardA", "E2ECriticalShardB"]') }}
       fail-fast: false
-    name: End to End Critical Scenario Multi User Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.artifact_proxy }}
+    name: End to End Critical Scenario Multi User ${{ matrix.test_label }} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.cache_enabled }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -203,23 +222,32 @@ jobs:
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: "true"
-          artifact_proxy: ${{ matrix.artifact_proxy }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          # The cache-enabled multi-user variant is the artifact-proxy
+          # compatibility lane; both automatic Critical shards exercise it.
+          artifact_proxy: ${{ matrix.cache_enabled }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
 
       - name: Configure Input Variables
         shell: bash
         id: configure
         if: ${{ steps.deploy.outcome == 'success' }}
+        env:
+          DISPATCH_NUMBER_OF_NODES: ${{ inputs.number_of_parallel_tests }}
+          DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
+          DISPATCH_NAMESPACE: ${{ inputs.namespace }}
         run: |
-          NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
+          NUMBER_OF_NODES=10
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
+          if [ "$TEST_LABEL" == "E2ECriticalShardA" ] || [ "$TEST_LABEL" == "E2ECriticalShardB" ]; then
+            TEST_LABEL="E2ECritical && $TEST_LABEL"
+          fi
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
-            TEST_LABEL=${{ inputs.test_label }}
-            NAMESPACE=${{ inputs.namespace }}
+            NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
+            TEST_LABEL=$DISPATCH_TEST_LABEL
+            NAMESPACE=$DISPATCH_NAMESPACE
           fi
           {
             echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"
@@ -237,12 +265,19 @@ jobs:
 
       - name: Test Artifact Proxy
         id: test-artifact-proxy
-        if: ${{ steps.deploy.outcome == 'success' && matrix.artifact_proxy == 'true' }}
+        if: ${{ steps.deploy.outcome == 'success' && matrix.cache_enabled == 'true' }}
         shell: bash
         env:
           USER_NAMESPACE: ${{ env.USER_NAMESPACE }}
         run: |
           ./test/artifact-proxy/test-artifact-proxy.sh "$USER_NAMESPACE"
+
+      - name: Test namespace isolation (SeaweedFS multi-tenancy)
+        id: test-namespace-isolation
+        if: ${{ steps.deploy.outcome == 'success' }}
+        shell: bash
+        run: |
+          bash test/seaweedfs/namespace_isolation_test.sh
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report
@@ -260,15 +295,17 @@ jobs:
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
           user_namespace: ${{ env.USER_NAMESPACE }}
-          report_name: "E2EMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"
+          report_name: "E2EMultiUser${{ matrix.test_label }}Tests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"
 
 
   end-to-end-critical-mlflow-tests:
     runs-on: ubuntu-latest
-    needs: build
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
-        k8s_version: [ "v1.34.0" ]
+        k8s_version: [ "v1.36.1" ]
         cache_enabled: [ "true", "false" ]
         argo_version: [ "v3.7.3" ]
         proxy: [ "false" ]
@@ -279,8 +316,14 @@ jobs:
         artifact_storage: [ "file", "s3" ]
         backend_store: [ "postgres" ]
         registry_store: [ "postgres" ]
+        mlflow_auth_type: [ "kubernetes", "basic-auth", "none" ]
+        exclude:
+          - artifact_storage: "s3"
+            mlflow_auth_type: "basic-auth"
+          - artifact_storage: "s3"
+            mlflow_auth_type: "none"
       fail-fast: false
-    name: End to End Critical Scenario MLflow Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} artifactStorage=${{ matrix.artifact_storage }}
+    name: End to End Critical Scenario MLflow Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} artifactStorage=${{ matrix.artifact_storage }} authType=${{ matrix.mlflow_auth_type }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -302,14 +345,14 @@ jobs:
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           multi_user: ${{ matrix.multi_user }}
           artifact_proxy: ${{ matrix.artifact_proxy }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
 
-      - name: Deploy MLflow
+      - name: Deploy MLflow with Kubernetes auth
         id: deploy-mlflow        
-        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@8ab07a89d6d2d6bc2ffa0c8601f4a856a4cb1b18
-        if: ${{ steps.create-cluster.outcome == 'success' }}
+        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@b55bcb6aa528ccecf8904745bb0218350b1ff453
+        if: ${{ steps.create-cluster.outcome == 'success' && matrix.mlflow_auth_type == 'kubernetes' }}
         with:
           namespace: 'opendatahub'
           mlflow_image: quay.io/${{ github.repository_owner == 'red-hat-data-services' && 'rhoai' || 'opendatahub' }}/mlflow:odh-stable
@@ -320,9 +363,31 @@ jobs:
           s3_access_key: ${{ env.AWS_ACCESS_KEY_ID }}
           s3_secret_key: ${{ env.AWS_SECRET_ACCESS_KEY }}
 
+      - name: Deploy MLflow directly
+        id: deploy_direct_mlflow
+        shell: bash
+        if: ${{ steps.create-cluster.outcome == 'success' && matrix.mlflow_auth_type != 'kubernetes' }}
+        env:
+          # The direct optional-auth lane uses upstream MLflow. The kubernetes-auth
+          # lane above still uses the ODH operator because upstream MLflow does not
+          # provide the ODH kubernetes-auth app.
+          MLFLOW_IMAGE: ghcr.io/mlflow/mlflow:v3.13.0-full
+        run: ./.github/resources/scripts/deploy-direct-mlflow.sh opendatahub "${{ matrix.mlflow_auth_type }}" "${{ matrix.artifact_storage }}" "$MLFLOW_IMAGE"
+
+      - name: Increase Kubernetes-auth MLflow workers
+        shell: bash
+        if: ${{ steps.deploy-mlflow.outcome == 'success' && matrix.artifact_storage == 'file' }}
+        run: |
+          # The operator deploy action does not expose spec.workers yet. Its
+          # default of one Uvicorn worker lets file-artifact requests block the
+          # health endpoint and all MLflow API traffic behind a single request.
+          kubectl patch mlflow mlflow -n opendatahub --type=merge \
+            -p '{"spec":{"workers":2}}'
+          kubectl rollout status deployment/mlflow -n opendatahub --timeout=300s
+
       - name: Wait for MLflow stack readiness
         shell: bash
-        if: ${{ steps.deploy-mlflow.outcome == 'success' }}
+        if: ${{ steps.deploy-mlflow.outcome == 'success' || steps.deploy_direct_mlflow.outcome == 'success' }}
         run: |
           kubectl wait --for=condition=Ready pods --field-selector=status.phase=Running -n opendatahub --timeout=180s
           echo "All running pods in opendatahub are Ready"
@@ -330,21 +395,27 @@ jobs:
       - name: Configure MLflow Plugin and Forward Ports
         shell: bash
         id: configure-mlflow-plugin
-        if: ${{ steps.deploy.outcome == 'success' && steps.deploy-mlflow.outcome == 'success' }}
-        run: ./.github/resources/scripts/configure-mlflow.sh kubeflow opendatahub backend/src/apiserver/config/config.json
+        if: ${{ steps.deploy.outcome == 'success' && (steps.deploy-mlflow.outcome == 'success' || steps.deploy_direct_mlflow.outcome == 'success') }}
+        run: ./.github/resources/scripts/configure-mlflow.sh kubeflow opendatahub backend/src/apiserver/config/config.json "${{ matrix.mlflow_auth_type }}"
 
       - name: Configure Input Variables
         shell: bash
         id: configure
         if: ${{ steps.deploy.outcome == 'success' }}
+        env:
+          DISPATCH_NUMBER_OF_NODES: ${{ inputs.number_of_parallel_tests }}
+          DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
+          DISPATCH_NAMESPACE: ${{ inputs.namespace }}
         run: |
-          NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
+          # Keep a measured step below the historical ten-node setting while
+          # validating the uncapped kindnet dataplane under additional load.
+          NUMBER_OF_NODES=2
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
-            TEST_LABEL=${{ inputs.test_label }}
-            NAMESPACE=${{ inputs.namespace }}
+            NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
+            TEST_LABEL=$DISPATCH_TEST_LABEL
+            NAMESPACE=$DISPATCH_NAMESPACE
           fi
 
           {
@@ -364,7 +435,7 @@ jobs:
       - name: Run Tests
         uses: ./.github/actions/test-and-report
         id: test-run
-        if: ${{ steps.configure.outcome == 'success' && steps.deploy-mlflow.outcome == 'success' && steps.configure-mlflow-plugin.outcome == 'success'}}
+        if: ${{ steps.configure.outcome == 'success' && (steps.deploy-mlflow.outcome == 'success' || steps.deploy_direct_mlflow.outcome == 'success') && steps.configure-mlflow-plugin.outcome == 'success'}}
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
           test_directory: ${{ env.E2E_TESTS_DIR }}
@@ -372,7 +443,7 @@ jobs:
           num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
-          report_name: "MLflowTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_artifactStorage=${{ matrix.artifact_storage }}"
+          report_name: "MLflowTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_artifactStorage=${{ matrix.artifact_storage }}_authType=${{ matrix.mlflow_auth_type }}"
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
           mlflow_enabled: 'true'

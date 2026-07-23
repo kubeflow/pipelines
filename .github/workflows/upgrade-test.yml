@@ -18,6 +18,7 @@ on:
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
+      - '.github/actions/test-and-report/**'
       - '.github/resources/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
@@ -28,16 +29,23 @@ on:
       - '!**/*.md'
       - '!**/OWNERS'
 
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     uses: ./.github/workflows/image-builds.yml
 
   upgrade-test:
-    needs: build
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
-        k8s_version: [ "v1.35.0" ]
+        k8s_version: [ "v1.36.1" ]
     name: KFP upgrade tests - K8s ${{ matrix.k8s_version }}
 
     steps:
@@ -123,9 +131,9 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' }}
         id: deploy
         with:
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
           forward_port: 'true'
 
       - name: Verify Upgrade

@@ -39,7 +39,7 @@ type V2beta1PipelineVersion struct {
 	// pipeline ID, pipeline version ID, and the error message are returned.
 	// Client has the flexibility of choosing how to handle the error.
 	// This is especially useful during List() calls.
-	Error *GooglerpcStatus `json:"error,omitempty"`
+	Error *GoogleRPCStatus `json:"error,omitempty"`
 
 	// Required input field. Pipeline version name provided by user.
 	Name string `json:"name,omitempty"`

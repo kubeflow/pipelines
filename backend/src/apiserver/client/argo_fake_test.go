@@ -18,7 +18,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

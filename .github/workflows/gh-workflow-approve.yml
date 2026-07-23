@@ -7,16 +7,29 @@ permissions:
 on:
   pull_request_target:
     types:
+      - opened
       - labeled
       - synchronize
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.number }}
-  cancel-in-progress: true
+      - reopened
 
 jobs:
   ok-to-test:
-    if: contains(github.event.pull_request.labels.*.name, 'ok-to-test') || github.event_name == 'pull_request_target'
+    # Run immediately for trusted authors and when an external contributor is
+    # approved. Other labels do not affect workflow-run approval.
+    if: >-
+      github.event.action != 'labeled' ||
+      github.event.label.name == 'ok-to-test'
+    concurrency:
+      # Label and reopen events use a unique group because cancelling a run for
+      # the same head SHA would make that commit's check rollup red.
+      group: >-
+        ${{ github.workflow }}-${{ github.event.pull_request.number }}-${{
+          (github.event.action == 'opened' || github.event.action == 'synchronize')
+          && 'head-update' || github.run_id
+        }}
+      # A synchronize event moves the PR to a new head SHA, so cancelling the
+      # prior run cannot make the current commit's check rollup red.
+      cancel-in-progress: ${{ github.event.action == 'synchronize' }}
     runs-on: ubuntu-latest
     continue-on-error: true
 
@@ -47,26 +60,47 @@ jobs:
         if: steps.membership-check.outputs.is_member == 'true' || contains(github.event.pull_request.labels.*.name, 'ok-to-test')
         uses: actions/github-script@v8
         with:
-          retries: 3
+          retries: 3 # github-script level: retries the entire script on transient API errors
           script: |
-            const request = {
+            // Poll for runs that may not exist yet due to race with workflow creation
+            const maxAttempts = 7;
+            const intervalMs = 10_000;
+            const headSha = context.payload.pull_request.head.sha;
+
+            const listRequest = {
               owner: context.repo.owner,
               repo: context.repo.repo,
               event: "pull_request",
               status: "action_required",
-              head_sha: context.payload.pull_request.head.sha,
+              head_sha: headSha,
+            };
+
+            let runs = [];
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              core.info(`[Attempt ${attempt}/${maxAttempts}] Querying action_required runs for ${headSha}`);
+              runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, listRequest);
+
+              if (runs.length > 0) {
+                core.info(`Found ${runs.length} workflow run(s) to approve.`);
+                break;
+              }
+
+              if (attempt < maxAttempts) {
+                core.info(`No runs found yet. Waiting ${intervalMs / 1000}s before retry...`);
+                await new Promise(r => setTimeout(r, intervalMs));
+              }
             }
 
-            core.info(`Getting workflow runs that need approval for commit ${request.head_sha}`)
-            const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, request)
-
-            core.info(`Found ${runs.length} workflow runs that need approval`)
-            for (const run of runs) {
-              core.info(`Approving workflow run ${run.id}`)
-              const request = {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                run_id: run.id,
+            if (runs.length === 0) {
+              core.warning(`No action_required workflow runs found for ${headSha} after ${maxAttempts} attempts.`);
+            } else {
+              for (const run of runs) {
+                core.info(`Approving workflow run ${run.id} (${run.name})`);
+                await github.rest.actions.approveWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: run.id,
+                });
               }
-              await github.rest.actions.approveWorkflowRun(request)
+              core.info(`Approved ${runs.length} workflow run(s).`);
             }

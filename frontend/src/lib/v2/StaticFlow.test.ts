@@ -16,12 +16,12 @@ import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { testBestPractices } from 'src/TestUtils';
 import { convertFlowElements } from './StaticFlow';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
-import jsyaml from 'js-yaml';
+import { load } from 'js-yaml';
 
 testBestPractices();
 describe('StaticFlow', () => {
   it('converts simple pipeline with element ids to graph', () => {
-    const yamlObject = jsyaml.safeLoad(v2YamlTemplateString);
+    const yamlObject = load(v2YamlTemplateString);
 
     const pipelineSpec = PipelineSpec.fromJSON(yamlObject);
 

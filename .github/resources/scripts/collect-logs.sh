@@ -4,6 +4,11 @@ set -e
 
 NS=""
 OUTPUT_FILE="/tmp/tmp.log/tmp_pod_log.txt"
+KUBECTL_REQUEST_TIMEOUT="${KUBECTL_REQUEST_TIMEOUT:-20s}"
+
+kubectl_with_timeout() {
+    kubectl --request-timeout="$KUBECTL_REQUEST_TIMEOUT" "$@"
+}
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
@@ -14,16 +19,22 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-mkdir -p /tmp/tmp.log
-
 if [[ -z "$NS" ]]; then
-    echo "Both --ns parameters are required."
+    echo "--ns parameter is required."
     exit 1
 fi
 
+if [[ -z "$OUTPUT_FILE" ]]; then
+    echo "--output parameter is required."
+    exit 1
+fi
+
+mkdir -p "$(dirname "$OUTPUT_FILE")"
+touch "$OUTPUT_FILE"
+
 function check_namespace {
-    if ! kubectl get namespace "$1" &>/dev/null; then
-        echo "Namespace '$1' does not exist. Skipping log collection."
+    if ! kubectl_with_timeout get namespace "$1" &>/dev/null; then
+        echo "Namespace '$1' is absent or unavailable. Skipping log collection."
         return 1
     fi
     return 0
@@ -32,27 +43,31 @@ function check_namespace {
 function display_pod_info {
     local NAMESPACE=$1
 
-    kubectl get pods -n "${NAMESPACE}"
+    kubectl_with_timeout get pods -n "${NAMESPACE}" || \
+        echo "Unable to list pod status in namespace '${NAMESPACE}'."
 
     local POD_NAMES
 
-    POD_NAMES=$(kubectl get pods -n "${NAMESPACE}" -o custom-columns=":metadata.name" --no-headers)
+    if ! POD_NAMES=$(kubectl_with_timeout get pods -n "${NAMESPACE}" -o custom-columns=":metadata.name" --no-headers); then
+        echo "Unable to enumerate pods in namespace '${NAMESPACE}'." | tee -a "$OUTPUT_FILE"
+        return
+    fi
 
     if [[ -z "${POD_NAMES}" ]]; then
         echo "No pods found in namespace '${NAMESPACE}'." | tee -a "$OUTPUT_FILE"
         return
     fi
 
-    echo "Pod Information for Namespace: ${NAMESPACE}" > "$OUTPUT_FILE"
+    echo "Pod Information for Namespace: ${NAMESPACE}" | tee -a "$OUTPUT_FILE"
 
     for POD_NAME in ${POD_NAMES}; do
         {
             echo "===== Pod: ${POD_NAME} in ${NAMESPACE} ====="
             echo "----- EVENTS -----"
-            kubectl describe pod "${POD_NAME}" -n "${NAMESPACE}" | grep -A 100 Events || echo "No events found for pod ${POD_NAME}."
+            kubectl_with_timeout describe pod "${POD_NAME}" -n "${NAMESPACE}" | grep -A 100 Events || echo "No events found for pod ${POD_NAME}."
 
             echo "----- LOGS -----"
-            kubectl logs "${POD_NAME}" -n "${NAMESPACE}" || echo "No logs found for pod ${POD_NAME}."
+            kubectl_with_timeout logs "${POD_NAME}" -n "${NAMESPACE}" || echo "No logs found for pod ${POD_NAME}."
 
             echo "==========================="
             echo ""

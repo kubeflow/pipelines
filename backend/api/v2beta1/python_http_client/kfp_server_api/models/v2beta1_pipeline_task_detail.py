@@ -42,7 +42,7 @@ class V2beta1PipelineTaskDetail(object):
         'executor_detail': 'V2beta1PipelineTaskExecutorDetail',
         'state': 'V2beta1RuntimeState',
         'execution_id': 'str',
-        'error': 'GooglerpcStatus',
+        'error': 'GoogleRpcStatus',
         'inputs': 'dict(str, V2beta1ArtifactList)',
         'outputs': 'dict(str, V2beta1ArtifactList)',
         'parent_task_id': 'str',
@@ -336,7 +336,7 @@ class V2beta1PipelineTaskDetail(object):
 
 
         :return: The error of this V2beta1PipelineTaskDetail.  # noqa: E501
-        :rtype: GooglerpcStatus
+        :rtype: GoogleRpcStatus
         """
         return self._error
 
@@ -346,7 +346,7 @@ class V2beta1PipelineTaskDetail(object):
 
 
         :param error: The error of this V2beta1PipelineTaskDetail.  # noqa: E501
-        :type error: GooglerpcStatus
+        :type error: GoogleRpcStatus
         """
 
         self._error = error

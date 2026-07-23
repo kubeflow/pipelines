@@ -3,7 +3,8 @@ name: API Server Tests
 env:
   API_TESTS_DIR: "./backend/test/v2/api"
   TESTS_LABEL: "ApiServerTests"
-  NUMBER_OF_PARALLEL_NODES: 15
+  NUMBER_OF_PARALLEL_NODES: 5
+  NUMBER_OF_MULTI_USER_PARALLEL_NODES: 2
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
   USER_NAMESPACE: "kubeflow-user-example-com"
@@ -51,7 +52,7 @@ on:
       - '!**/OWNERS'
 
 concurrency:
-  group: api-tests-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -59,27 +60,26 @@ jobs:
     uses: ./.github/workflows/image-builds.yml
 
   api-test-standalone:
-    needs: build
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
-        k8s_version: [ "v1.35.0" ]
+        k8s_version: [ "v1.36.1" ]
         cache_enabled: [ "true", "false" ]
         proxy: [ "true", "false" ]
-        argo_version: [ "v3.7.3", "v3.5.14", "v4.0.4" ]
+        argo_version: [ "v3.7.14", "v4.0.5" ]
         pipeline_store: [ "database" ]
         pod_to_pod_tls_enabled: [ "false" ]
         include:
-          - k8s_version: "v1.31.14"
+          - k8s_version: "v1.33.12"
             cache_enabled: "true"
-            argo_version: "v3.7.3"
-          - k8s_version: "v1.31.14"
+            argo_version: "v3.7.14"
+          - k8s_version: "v1.33.12"
             cache_enabled: "true"
-            argo_version: "v3.5.14"
-          - k8s_version: "v1.31.14"
-            cache_enabled: "true"
-            argo_version: "v4.0.4"
-          - k8s_version: "v1.35.0"
+            argo_version: "v4.0.5"
+          - k8s_version: "v1.36.1"
             cache_enabled: "true"
             pod_to_pod_tls_enabled: "true"
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
@@ -106,9 +106,9 @@ jobs:
           proxy: ${{ matrix.proxy }}
           argo_version: ${{ matrix.argo_version }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
@@ -122,14 +122,18 @@ jobs:
         shell: bash
         id: configure
         if: ${{ steps.deploy.outcome == 'success' }}
+        env:
+          DISPATCH_NUMBER_OF_NODES: ${{ inputs.number_of_parallel_tests }}
+          DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
+          DISPATCH_NAMESPACE: ${{ inputs.namespace }}
         run: |
           NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
           TEST_LABEL=${{ env.TESTS_LABEL }}
           NAMESPACE=${{ env.NAMESPACE }}
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
-            TEST_LABEL=${{ inputs.test_label }}
-            NAMESPACE=${{ inputs.namespace }}
+            NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
+            TEST_LABEL=$DISPATCH_TEST_LABEL
+            NAMESPACE=$DISPATCH_NAMESPACE
           fi
 
           PROXY=${{ matrix.proxy }}
@@ -148,6 +152,8 @@ jobs:
         uses: ./.github/actions/test-and-report
         if: ${{ steps.configure.outcome == 'success' }}
         id: test-run
+        env:
+          ARGO_COMPATIBILITY_TESTS: ${{ matrix.argo_version == 'v4.0.5' && matrix.k8s_version == 'v1.36.1' && matrix.cache_enabled == 'true' && matrix.proxy == 'false' && matrix.pod_to_pod_tls_enabled == 'false' }}
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
@@ -163,23 +169,17 @@ jobs:
 
 
   api-test-k8s-native:
-    needs: build
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
-        k8s_version: [ "v1.35.0", "v1.31.14" ]
+        k8s_version: [ "v1.36.1", "v1.33.12" ]
         cache_enabled: [ "true" ]
         uploadPipelinesWithKubernetesClient: [ "true", "false" ]
-        argo_version: [ "v3.7.3", "v3.5.14", "v4.0.4" ]
+        argo_version: [ "v3.7.14", "v4.0.5" ]
         pipeline_store: [ "kubernetes" ]
-        pod_to_pod_tls_enabled: [ "false" ]
-        include:
-          - k8s_version: "v1.35.0"
-            cache_enabled: "true"
-            # Pod to Pod TLS manifests are not yet implemented for Kubernetes Native API mode
-            pipeline_store: "database"
-            pod_to_pod_tls_enabled: "true"
-            uploadPipelinesWithKubernetesClient: "false"
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
     name: KFP API Server tests K8s Native API - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version }} uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}
 
@@ -202,9 +202,9 @@ jobs:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report
@@ -213,6 +213,7 @@ jobs:
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
+          upload_pipelines_with_kubernetes_client: ${{ matrix.uploadPipelinesWithKubernetesClient }}
           test_directory: ${{ env.API_TESTS_DIR }}
           test_label: ${{ env.TESTS_LABEL }}
           num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
@@ -222,13 +223,25 @@ jobs:
 
 
   api-test-multi-user:
-    needs: build
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
-        k8s_version: [ "v1.35.0"]
-        cache_enabled: [ "true", "false" ]
-        multi_user: [ "true" ]
+        # Partition the API surface across the two existing cache variants.
+        # Complementary filters guarantee that every ApiServerTests spec runs
+        # exactly once, while explicit cache labels divide the expensive run
+        # matrix evenly between matching deployments.
+        include:
+          - k8s_version: "v1.36.1"
+            cache_enabled: "true"
+            multi_user: "true"
+            test_label: "ApiServerTests && (PipelineUpload || PipelineCacheEnabled)"
+          - k8s_version: "v1.36.1"
+            cache_enabled: "false"
+            multi_user: "true"
+            test_label: "ApiServerTests && !(PipelineUpload || PipelineCacheEnabled)"
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
     name: KFP API Server Multi User Tests - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }}
 
@@ -250,22 +263,46 @@ jobs:
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: ${{ matrix.multi_user }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
+
+      - name: Configure Input Variables
+        shell: bash
+        id: configure
+        if: ${{ steps.deploy.outcome == 'success' }}
+        env:
+          AUTOMATIC_TEST_LABEL: ${{ matrix.test_label }}
+          DISPATCH_NUMBER_OF_NODES: ${{ inputs.number_of_parallel_tests }}
+          DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
+          DISPATCH_NAMESPACE: ${{ inputs.namespace }}
+        run: |
+          NUMBER_OF_NODES=${{ env.NUMBER_OF_MULTI_USER_PARALLEL_NODES }}
+          TEST_LABEL=$AUTOMATIC_TEST_LABEL
+          NAMESPACE=${{ env.NAMESPACE }}
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
+            TEST_LABEL=$DISPATCH_TEST_LABEL
+            NAMESPACE=$DISPATCH_NAMESPACE
+          fi
+          {
+            echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"
+            echo "TEST_LABEL=$TEST_LABEL"
+            echo "NAMESPACE=$NAMESPACE"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report
         id: test-run
-        if: ${{ steps.deploy.outcome == 'success' }}
+        if: ${{ steps.configure.outcome == 'success' }}
         env:
           LOCAL_API_SERVER: "true"
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
           test_directory: ${{ env.API_TESTS_DIR }}
-          test_label: ${{ env.TESTS_LABEL }}
-          num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
-          default_namespace: ${{ env.NAMESPACE }}
+          test_label: ${{ steps.configure.outputs.TEST_LABEL }}
+          num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
+          default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
           user_namespace: ${{ env.USER_NAMESPACE }}
           multi_user: ${{ matrix.multi_user }}

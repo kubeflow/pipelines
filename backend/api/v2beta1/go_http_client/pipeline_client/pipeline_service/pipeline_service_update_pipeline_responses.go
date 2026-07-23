@@ -131,7 +131,7 @@ An unexpected error response.
 type PipelineServiceUpdatePipelineDefault struct {
 	_statusCode int
 
-	Payload *pipeline_model.GooglerpcStatus
+	Payload *pipeline_model.GoogleRPCStatus
 }
 
 // IsSuccess returns true when this pipeline service update pipeline default response has a 2xx status code
@@ -174,13 +174,13 @@ func (o *PipelineServiceUpdatePipelineDefault) String() string {
 	return fmt.Sprintf("[PATCH /apis/v2beta1/pipelines/{pipeline.pipeline_id}][%d] PipelineService_UpdatePipeline default %s", o._statusCode, payload)
 }
 
-func (o *PipelineServiceUpdatePipelineDefault) GetPayload() *pipeline_model.GooglerpcStatus {
+func (o *PipelineServiceUpdatePipelineDefault) GetPayload() *pipeline_model.GoogleRPCStatus {
 	return o.Payload
 }
 
 func (o *PipelineServiceUpdatePipelineDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.GooglerpcStatus)
+	o.Payload = new(pipeline_model.GoogleRPCStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -211,7 +211,7 @@ type PipelineServiceUpdatePipelineBody struct {
 	// In case any error happens retrieving a pipeline field, only pipeline ID,
 	// and the error message is returned. Client has the flexibility of choosing
 	// how to handle the error. This is especially useful during listing call.
-	Error *pipeline_model.GooglerpcStatus `json:"error,omitempty"`
+	Error *pipeline_model.GoogleRPCStatus `json:"error,omitempty"`
 
 	// Required if display_name is not provided. Pipeline name provided by user.
 	Name string `json:"name,omitempty"`

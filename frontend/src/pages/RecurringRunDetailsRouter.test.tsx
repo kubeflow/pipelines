@@ -49,7 +49,7 @@ const TEST_RECURRING_RUN_ID = 'test-recurring-run-id';
 const TEST_PIPELINE_ID = 'test-pipeline-id';
 const TEST_PIPELINE_VERSION_ID = 'test-pipeline-version-id';
 
-const v2PipelineSpec = JsYaml.safeLoad(v2YamlTemplateString);
+const v2PipelineSpec = JsYaml.load(v2YamlTemplateString);
 
 function generateProps(recurringRunId = TEST_RECURRING_RUN_ID): PageProps {
   return {

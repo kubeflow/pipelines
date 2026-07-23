@@ -125,7 +125,7 @@ An unexpected error response.
 type PipelineServiceDeletePipelineDefault struct {
 	_statusCode int
 
-	Payload *pipeline_model.GooglerpcStatus
+	Payload *pipeline_model.GoogleRPCStatus
 }
 
 // IsSuccess returns true when this pipeline service delete pipeline default response has a 2xx status code
@@ -168,13 +168,13 @@ func (o *PipelineServiceDeletePipelineDefault) String() string {
 	return fmt.Sprintf("[DELETE /apis/v2beta1/pipelines/{pipeline_id}][%d] PipelineService_DeletePipeline default %s", o._statusCode, payload)
 }
 
-func (o *PipelineServiceDeletePipelineDefault) GetPayload() *pipeline_model.GooglerpcStatus {
+func (o *PipelineServiceDeletePipelineDefault) GetPayload() *pipeline_model.GoogleRPCStatus {
 	return o.Payload
 }
 
 func (o *PipelineServiceDeletePipelineDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.GooglerpcStatus)
+	o.Payload = new(pipeline_model.GoogleRPCStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

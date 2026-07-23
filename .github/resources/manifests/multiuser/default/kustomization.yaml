@@ -46,6 +46,7 @@ patches:
     target:
       kind: Deployment
       name: ml-pipeline
+  - path: ../../base/ci-stability-tuning.yaml
   - path: ../../base/grpc-specs.yaml
     target:
       kind: Deployment

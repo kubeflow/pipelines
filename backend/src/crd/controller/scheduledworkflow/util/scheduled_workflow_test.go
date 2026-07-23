@@ -23,7 +23,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/spf13/viper"
@@ -511,7 +511,6 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_PeriodicSchedule(t *testing.T) 
 func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_NoWorkflow(t *testing.T) {
 	// Must run now
 	scheduledEpoch := int64(10 * hour)
-	updatedEpoch := int64(0)
 	creationTimestamp := metav1.NewTime(time.Unix(9*hour, 0).UTC())
 
 	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
@@ -535,7 +534,6 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_NoWorkflow(t *test
 	status4 := createStatus("WORKFLOW4", 4)
 
 	schedule.UpdateStatus(
-		updatedEpoch,
 		false, /* no workflow created during this run */
 		scheduledEpoch,
 		[]swfapi.WorkflowStatus{*status1, *status2, *status3},
@@ -562,8 +560,6 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_NoWorkflow(t *test
 			Conditions: []swfapi.ScheduledWorkflowCondition{{
 				Type:               swfapi.ScheduledWorkflowEnabled,
 				Status:             corev1.ConditionTrue,
-				LastProbeTime:      metav1.NewTime(time.Unix(updatedEpoch, 0).UTC()),
-				LastTransitionTime: metav1.NewTime(time.Unix(updatedEpoch, 0).UTC()),
 				Reason:             string(swfapi.ScheduledWorkflowEnabled),
 				Message:            "The schedule is enabled.",
 			},
@@ -592,7 +588,6 @@ func createStatus(workflowName string, scheduledEpoch int64) *swfapi.WorkflowSta
 func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_WithWorkflow(t *testing.T) {
 	// Must run now
 	scheduledEpoch := int64(10 * hour)
-	updatedEpoch := int64(0)
 	creationTimestamp := metav1.NewTime(time.Unix(9*hour, 0).UTC())
 
 	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
@@ -616,8 +611,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_WithWorkflow(t *te
 	status4 := createStatus("WORKFLOW4", 4)
 
 	schedule.UpdateStatus(
-		updatedEpoch,
-		true, /* no workflow created during this run */
+		true, /* workflow created during this run */
 		scheduledEpoch,
 		[]swfapi.WorkflowStatus{*status1, *status2, *status3},
 		[]swfapi.WorkflowStatus{*status1, *status2, *status3, *status4}, &time.Location{})
@@ -643,8 +637,6 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_WithWorkflow(t *te
 			Conditions: []swfapi.ScheduledWorkflowCondition{{
 				Type:               swfapi.ScheduledWorkflowEnabled,
 				Status:             corev1.ConditionTrue,
-				LastProbeTime:      metav1.NewTime(time.Unix(updatedEpoch, 0).UTC()),
-				LastTransitionTime: metav1.NewTime(time.Unix(updatedEpoch, 0).UTC()),
 				Reason:             string(swfapi.ScheduledWorkflowEnabled),
 				Message:            "The schedule is enabled.",
 			}},

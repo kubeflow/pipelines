@@ -14,6 +14,27 @@ fi
 echo "=== Initial disk usage ==="
 df -h
 
+MIN_FREE_SPACE_GIB="${MIN_FREE_SPACE_GIB:-60}"
+if ! [[ "$MIN_FREE_SPACE_GIB" =~ ^[0-9]+$ ]]; then
+    echo "ERROR: MIN_FREE_SPACE_GIB must be a non-negative integer, got: ${MIN_FREE_SPACE_GIB}" >&2
+    exit 1
+fi
+
+available_kib=$(df -Pk / | awk 'NR == 2 {print $4}')
+required_kib=$((MIN_FREE_SPACE_GIB * 1024 * 1024))
+if [[ "$available_kib" =~ ^[0-9]+$ ]] && (( available_kib >= required_kib )); then
+    available_gib=$((available_kib / 1024 / 1024))
+    echo "Skipping disk cleanup: ${available_gib} GiB available (threshold: ${MIN_FREE_SPACE_GIB} GiB)."
+    exit 0
+fi
+
+if [[ "$available_kib" =~ ^[0-9]+$ ]]; then
+    available_gib=$((available_kib / 1024 / 1024))
+    echo "Only ${available_gib} GiB available; running disk cleanup (threshold: ${MIN_FREE_SPACE_GIB} GiB)."
+else
+    echo "Could not determine available disk space; running disk cleanup conservatively."
+fi
+
 echo "=== Freeing up disk space ==="
 
 # Remove large directories not needed for KFP tests

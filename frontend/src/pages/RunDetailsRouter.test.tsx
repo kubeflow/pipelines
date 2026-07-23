@@ -46,7 +46,7 @@ const TEST_RUN_ID = 'test-run-id';
 const TEST_PIPELINE_ID = 'test-pipeline-id';
 const TEST_PIPELINE_VERSION_ID = 'test-pipeline-version-id';
 
-const v2PipelineSpec = JsYaml.safeLoad(v2YamlTemplateString);
+const v2PipelineSpec = JsYaml.load(v2YamlTemplateString);
 
 function generateProps(runId = TEST_RUN_ID) {
   return {

@@ -45,7 +45,7 @@ inputs:
     default: "10"
   test_label:
     required: true
-    description: "Test Label to filter on, for e.g. Regression, Smoke, APIServerTests etc."
+    description: "Ginkgo label-filter expression, for example Regression, Smoke, or ApiServerTests && PipelineRun"
   upload_pipelines_with_kubernetes_client:
     required: false
     default: 'false'
@@ -105,16 +105,55 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Port-forward SeaweedFS service for archived workflow logs
-      id: port-forward-seaweedfs
-      if: (!cancelled())
+    - name: Start runner telemetry sampler
+      # Samples host CPU / memory / load from /proc in the background; the
+      # "Render runner telemetry" step below turns the samples into mermaid
+      # charts in the job summary. CI has no metrics-server, so this is the
+      # only measurement of whether a lane failure coincided with runner
+      # resource saturation — the discriminator between app-level bottlenecks
+      # (e.g. MLflow worker queueing) and the shared runner CPUs being pegged.
+      # Deliberately hand-rolled: marketplace telemetry actions render charts
+      # by POSTing the collected samples to external services, which this repo
+      # must not depend on. Everything here stays on the runner and in GitHub.
       shell: bash
       run: |
-        NAMESPACE="${{ inputs.default_namespace }}"
-        pkill -f "kubectl port-forward.*seaweedfs" || true
-        kubectl port-forward -n "$NAMESPACE" service/seaweedfs 9000:9000 > /dev/null 2>&1 &
-        sleep 5
+        nohup ./.github/resources/scripts/runner-telemetry.sh sample /tmp/runner-telemetry.csv >/dev/null 2>&1 &
+        echo $! > /tmp/runner-telemetry.pid
       continue-on-error: true
+
+    - name: Set up Go
+      uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+      with:
+        go-version-file: go.mod
+        # Caching is handled by the dedicated test-lane cache below; the
+        # default setup-go cache key is shared with non-test workflows and
+        # would never contain the compiled Ginkgo test suites.
+        cache: false
+
+    - name: Resolve Go cache metadata
+      id: go-cache-meta
+      shell: bash
+      run: |
+        {
+          echo "gomodcache=$(go env GOMODCACHE)"
+          echo "gocache=$(go env GOCACHE)"
+          echo "week=$(date -u +%G-%V)"
+        } >> "$GITHUB_OUTPUT"
+
+    # Without a warm module and build cache every test lane downloads Go
+    # modules and compiles the Ginkgo suites from scratch (~3 minutes before
+    # the first spec runs). The weekly key suffix plus restore-keys keeps
+    # compile artifacts fresh as sources drift between dependency changes.
+    - name: Restore Go build and module caches
+      uses: actions/cache@v5
+      with:
+        path: |
+          ${{ steps.go-cache-meta.outputs.gomodcache }}
+          ${{ steps.go-cache-meta.outputs.gocache }}
+        key: go-test-lanes-${{ runner.os }}-${{ hashFiles('go.mod', 'go.sum') }}-${{ steps.go-cache-meta.outputs.week }}
+        restore-keys: |
+          go-test-lanes-${{ runner.os }}-${{ hashFiles('go.mod', 'go.sum') }}-
+          go-test-lanes-${{ runner.os }}-
 
     - name: Configure API Access
       id: configure-api
@@ -222,6 +261,10 @@ runs:
       working-directory: ${{ inputs.test_directory }}
       env:
         PIPELINE_STORE: ${{ inputs.pipeline_store }}
+        INPUT_API_URL: ${{ inputs.api_url }}
+        INPUT_DEPLOYMENT_NAME: ${{ inputs.deployment_name }}
+        INPUT_DEFAULT_NAMESPACE: ${{ inputs.default_namespace }}
+        INPUT_TEST_LABEL: ${{ inputs.test_label }}
       run: |
         USE_PROXY=${{ inputs.proxy }}
         if [ -z "$USE_PROXY" ]; then
@@ -256,6 +299,9 @@ runs:
         API_URL="${{ steps.configure-api.outputs.API_URL }}"
         AUTH_TOKEN="${{ steps.configure-api.outputs.API_TOKEN }}"
         SERVICE_ACCOUNT_NAME="${{ steps.configure-api.outputs.SERVICE_ACCOUNT_NAME }}"
+        WORKSPACE_ROOT="${GITHUB_WORKSPACE:-$(git rev-parse --show-toplevel)}"
+        export GOPROXY="${GOPROXY:-https://proxy.golang.org|direct}"
+        PORT_FORWARD_PIDS=()
         BASE_IMAGE_FLAG=""
         if [ -n "${{ inputs.base_image }}" ]; then
           BASE_IMAGE_FLAG="-baseImage=${{ inputs.base_image }}"
@@ -268,7 +314,137 @@ runs:
           DISABLE_TLS_CHECK='false'
         fi
 
-        go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter=${{ inputs.test_label }} --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -pipelineStoreKubernetes=$pipelineStoreKubernetes -disableTlsCheck=$DISABLE_TLS_CHECK -apiScheme=$API_SCHEME -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME -apiUrl="$API_URL" -authToken="$AUTH_TOKEN" -serviceAccountName="$SERVICE_ACCOUNT_NAME" -mlflowEnabled=${{ inputs.mlflow_enabled }} $BASE_IMAGE_FLAG
+        (
+          cd "$WORKSPACE_ROOT"
+          go mod download
+        )
+
+        cleanup_port_forwards() {
+          for pid in "${PORT_FORWARD_PIDS[@]}"; do
+            kill "$pid" 2>/dev/null || true
+          done
+        }
+
+        start_port_forward_supervisor() {
+          local name="$1"
+          local namespace="$2"
+          local resource="$3"
+          local local_port="$4"
+          local remote_port="$5"
+          local log_file="/tmp/${name}-port-forward.log"
+
+          (
+            while true; do
+              kubectl port-forward -n "$namespace" "$resource" "${local_port}:${remote_port}" >>"$log_file" 2>&1 || true
+              echo "Port-forward for ${resource} on ${local_port}:${remote_port} exited; restarting in 2s" >>"$log_file"
+              sleep 2
+            done
+          ) &
+          PORT_FORWARD_PIDS+=("$!")
+        }
+
+        wait_for_local_port() {
+          local port="$1"
+
+          for i in $(seq 1 12); do
+            if python3 -c 'import socket, sys; sock = socket.socket(); sock.settimeout(1); result = sock.connect_ex(("127.0.0.1", int(sys.argv[1]))); sock.close(); sys.exit(0 if result == 0 else 1)' "$port"
+            then
+              return 0
+            fi
+            echo "Waiting for localhost:${port} to accept connections... ($i/12)"
+            sleep 5
+          done
+
+          return 1
+        }
+
+        if [ "${{ inputs.skip_api_config }}" != "true" ]; then
+          trap cleanup_port_forwards EXIT
+
+          start_port_forward_supervisor "seaweedfs" "${INPUT_DEFAULT_NAMESPACE}" "service/seaweedfs" "9000" "9000"
+          wait_for_local_port 9000
+
+          if [ -n "${MLFLOW_PORT_FORWARD_NS:-}" ] && [ -n "${MLFLOW_PORT_FORWARD_SVC:-}" ]; then
+            if [ "${ARGO_COMPATIBILITY_TESTS:-}" = "true" ]; then
+              echo "ERROR: MLflow and MLMD both require localhost:8080 in this action"
+              exit 1
+            fi
+            REMOTE_PORT="${MLFLOW_PORT_FORWARD_REMOTE_PORT:-5000}"
+            start_port_forward_supervisor "mlflow" "${MLFLOW_PORT_FORWARD_NS}" "svc/${MLFLOW_PORT_FORWARD_SVC}" "8080" "${REMOTE_PORT}"
+            wait_for_local_port 8080
+          fi
+
+          if [ -z "${INPUT_API_URL}" ]; then
+            API_SERVICE="${INPUT_DEPLOYMENT_NAME:-ml-pipeline}"
+            start_port_forward_supervisor "api-server" "${INPUT_DEFAULT_NAMESPACE}" "service/${API_SERVICE}" "8888" "8888"
+
+            for i in $(seq 1 12); do
+              if curl -sf http://localhost:8888/apis/v1beta1/healthz > /dev/null 2>&1 || \
+                 curl -skf https://localhost:8888/apis/v1beta1/healthz > /dev/null 2>&1; then
+                echo "API server is reachable on localhost:8888"
+                break
+              fi
+              if [ "$i" -eq 12 ]; then
+                echo "ERROR: API server not reachable at localhost:8888"
+                exit 1
+              fi
+              echo "Waiting for API server on localhost:8888... ($i/12)"
+              sleep 5
+            done
+          fi
+
+          if [ "${ARGO_COMPATIBILITY_TESTS:-}" = "true" ]; then
+            start_port_forward_supervisor "mlmd" "${INPUT_DEFAULT_NAMESPACE}" "service/metadata-grpc-service" "8080" "8080"
+            wait_for_local_port 8080
+          fi
+        fi
+
+        # Start low-overhead, time-correlated network diagnostics immediately
+        # before Ginkgo. The in-cluster pod dials each Service VIP and direct
+        # Endpoint concurrently from one netns, including pod-backed CoreDNS as
+        # a control, while the runner sampler tracks Kind-node conntrack/TCP/
+        # socket counters plus host softnet, CPU PSI, and cgroup throttling. A
+        # validated, bounded SYN/RST-
+        # only packet ring runs inside each Kind-node netns when tcpdump,
+        # nsenter, and sudo are available. SeaweedFS target-netns counters are
+        # captured on both sides of the window. Every component is best-effort
+        # and raw data is only retained in failed-job artifacts.
+        if [ "${{ inputs.skip_api_config }}" != "true" ]; then
+          "$WORKSPACE_ROOT/.github/resources/scripts/network-observability.sh" \
+            start "${INPUT_DEFAULT_NAMESPACE}" /tmp/kfp-network-observability || true
+        fi
+
+        # Cumulative kernel counters only become attributable when sampled on
+        # both sides of the Ginkgo window. These baselines are best-effort and
+        # intentionally taken after all test setup/port-forward readiness.
+        "$WORKSPACE_ROOT/.github/resources/scripts/conntrack-window.sh" capture /tmp/kfp-conntrack-window.tsv || true
+        "$WORKSPACE_ROOT/.github/resources/scripts/runner-telemetry.sh" contention-baseline /tmp/kfp-runner-contention.tsv || true
+
+        go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter="$INPUT_TEST_LABEL" --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -pipelineStoreKubernetes=$pipelineStoreKubernetes -disableTlsCheck=$DISABLE_TLS_CHECK -apiScheme=$API_SCHEME -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME -apiUrl="$API_URL" -authToken="$AUTH_TOKEN" -serviceAccountName="$SERVICE_ACCOUNT_NAME" -mlflowEnabled=${{ inputs.mlflow_enabled }} $BASE_IMAGE_FLAG
+      continue-on-error: true
+
+    - name: Report test-window network observability
+      shell: bash
+      if: ${{ always() && inputs.skip_api_config != 'true' }}
+      run: ./.github/resources/scripts/network-observability.sh stop "${{ inputs.default_namespace }}" /tmp/kfp-network-observability
+      continue-on-error: true
+
+    - name: Report test-window conntrack deltas
+      shell: bash
+      if: ${{ always() }}
+      run: ./.github/resources/scripts/conntrack-window.sh report /tmp/kfp-conntrack-window.tsv
+      continue-on-error: true
+
+    - name: Render runner telemetry
+      # Stops the sampler and writes the stats table + mermaid charts to the
+      # job summary. Runs for passing lanes too (a green run's baseline is
+      # what makes a saturated failing run recognizable) and — via always() —
+      # after setup failures, which would otherwise skip this step (implicit
+      # success()), leave the sampler running until teardown, and drop the
+      # telemetry for exactly the runs that need diagnosing.
+      shell: bash
+      if: ${{ always() }}
+      run: ./.github/resources/scripts/runner-telemetry.sh render /tmp/runner-telemetry.csv /tmp/kfp-runner-contention.tsv
       continue-on-error: true
 
     - name: Collect Pod logs in case of Test Failures
@@ -279,7 +455,92 @@ runs:
         echo "=== Current disk usage ==="
         df -h
         NAMESPACE="${{ inputs.default_namespace }}"
-        ./.github/resources/scripts/collect-logs.sh --ns $NAMESPACE --output /tmp/tmp_pod_log.txt
+        ./.github/resources/scripts/collect-logs.sh --ns "$NAMESPACE" --output /tmp/tmp_pod_log.txt || \
+          echo "Pod log collection failed; continuing with service diagnostics."
+        if [ "${{ inputs.proxy }}" = "true" ]; then
+          ./.github/resources/scripts/collect-logs.sh --ns tinyproxy --output /tmp/tmp_pod_log.txt || \
+            echo "Tinyproxy log collection failed; continuing with service diagnostics."
+        fi
+        if [ "${{ inputs.mlflow_enabled }}" = "true" ]; then
+          ./.github/resources/scripts/collect-logs.sh --ns opendatahub --output /tmp/tmp_pod_log.txt || \
+            echo "MLflow namespace log collection failed; continuing with service diagnostics."
+        fi
+        # Dataplane diagnostics: E2E lanes intermittently fail with connection
+        # errors to in-cluster ClusterIPs (SeaweedFS :9000, the MLflow service
+        # VIP, ...). This captures SeaweedFS restart/contention evidence plus,
+        # per Kind node, the conntrack table state and the iptables/ipvs program
+        # for every ClusterIP the just-collected pod logs recorded a timeout,
+        # refusal, or reset against -- distinguishing backend lifecycle from
+        # conntrack exhaustion or a missing/stale service program.
+        ./.github/resources/scripts/collect-seaweedfs-diagnostics.sh --namespace "$NAMESPACE" --connection-failure-log /tmp/tmp_pod_log.txt --output /tmp/tmp_pod_log.txt || \
+          echo "Service diagnostics collection was incomplete."
+      continue-on-error: true
+
+    - name: Summarize failure signatures
+      # Encodes the recurring-flake triage playbook: greps the collected pod
+      # logs and JUnit reports for known failure signatures (ClusterIP dial
+      # timeouts per VIP, client deadline timeouts, 429 rate limits, OOMKills,
+      # conntrack table-full, ...) and writes a compact classification table to
+      # the job summary, so triage starts from a classified signal instead of
+      # raw log archaeology.
+      shell: bash
+      if: ${{ steps.run-tests.outcome != 'success' }}
+      run: ./.github/resources/scripts/failure-signature-summary.sh --log-file /tmp/tmp_pod_log.txt --reports-dir "${{ inputs.test_directory }}/reports"
+      continue-on-error: true
+
+    - name: Export Kind cluster logs
+      id: kind-logs
+      # `kind export logs` captures what the custom collectors cannot: kubelet
+      # and containerd logs, kernel/dmesg, and per-node info from every node.
+      shell: bash
+      if: ${{ steps.run-tests.outcome != 'success' }}
+      run: |
+        rm -rf /tmp/kind-logs && mkdir -p /tmp/kind-logs
+        exported=false
+        if command -v kind >/dev/null 2>&1; then
+          for cluster in $(kind get clusters 2>/dev/null); do
+            # Steps run under bash -e; a failed export must not abort the step
+            # before the artifact-name suffix below is written.
+            if kind export logs --name "$cluster" "/tmp/kind-logs/$cluster"; then
+              exported=true
+            fi
+          done
+        fi
+        if [ -d /tmp/kfp-network-observability ]; then
+          mkdir -p /tmp/kind-logs/network-observability
+          cp -R /tmp/kfp-network-observability/. /tmp/kind-logs/network-observability/ || true
+          # Preserve the time series even if Kind's own export failed: these
+          # runner-side files can still localize the connection loss.
+          exported=true
+        fi
+        echo "exported=$exported" >> "$GITHUB_OUTPUT"
+        SUFFIX="${{ inputs.report_name }}"
+        if [ -z "$SUFFIX" ]; then
+          SUFFIX="${{ github.run_id }}_${{ github.job }}_$(uuidgen)"
+        fi
+        echo "suffix=$SUFFIX" >> "$GITHUB_OUTPUT"
+      continue-on-error: true
+
+    - name: Upload Kind cluster logs
+      uses: actions/upload-artifact@v7
+      if: ${{ steps.run-tests.outcome != 'success' && steps.kind-logs.outputs.exported == 'true' }}
+      with:
+        name: kind-logs - ${{ steps.kind-logs.outputs.suffix }}
+        path: /tmp/kind-logs
+        retention-days: 5
+        if-no-files-found: ignore
+      continue-on-error: true
+
+    - name: Upload JUnit XML on failure
+      # Raw per-test results from failed runs feed the scheduled CI health
+      # report (per-test flake rates); the HTML report alone is not parseable.
+      uses: actions/upload-artifact@v7
+      if: ${{ steps.run-tests.outcome != 'success' }}
+      with:
+        name: junit-xml - ${{ steps.kind-logs.outputs.suffix || github.run_id }}
+        path: ${{ inputs.test_directory }}/reports/*.xml
+        retention-days: 30
+        if-no-files-found: ignore
       continue-on-error: true
 
     - name: Set up Python for reporting
@@ -287,7 +548,6 @@ runs:
       if: (!cancelled())
       with:
         python-version: ${{ inputs.report_python_version }}
-        cache: 'pip'
 
     - name: Install Junit2Html plugin
       id: install-junit2html

@@ -65,7 +65,7 @@ else:
 # Create visualization.
 output_notebook()
 
-p = figure(tools="pan,wheel_zoom,box_zoom,reset,hover,previewsave")
+p = figure(tools="pan,wheel_zoom,box_zoom,reset,hover,save")
 p.line("fpr", "tpr", line_width=2, source=df)
 
 hover = p.select(dict(type=HoverTool))

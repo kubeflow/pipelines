@@ -18,8 +18,8 @@ import (
 	"testing"
 	"time"
 
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	workflowcommon "github.com/argoproj/argo-workflows/v3/workflow/common"
+	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
+	workflowcommon "github.com/argoproj/argo-workflows/v4/workflow/common"
 	"github.com/kubeflow/pipelines/backend/src/common"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"

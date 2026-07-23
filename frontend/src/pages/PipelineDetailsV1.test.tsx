@@ -113,7 +113,7 @@ spec:
       versions: [testPipelineVersion],
       graph: graph,
       reducedGraph: reducedGraph,
-      templateString: JSON.stringify({ template: JsYaml.safeDump(pipelineSpecTemplate) }),
+      templateString: JSON.stringify({ template: JsYaml.dump(pipelineSpecTemplate) }),
       updateBanner: (bannerProps) => {},
       handleVersionSelected: async (versionId) => {},
     };

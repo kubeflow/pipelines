@@ -13,10 +13,10 @@
  */
 
 import * as runtime from '../runtime';
-import type { GooglerpcStatus, V2beta1ListRunsResponse, V2beta1Run } from '../models/index';
+import type { GoogleRpcStatus, V2beta1ListRunsResponse, V2beta1Run } from '../models/index';
 import {
-  GooglerpcStatusFromJSON,
-  GooglerpcStatusToJSON,
+  GoogleRpcStatusFromJSON,
+  GoogleRpcStatusToJSON,
   V2beta1ListRunsResponseFromJSON,
   V2beta1ListRunsResponseToJSON,
   V2beta1RunFromJSON,

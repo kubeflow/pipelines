@@ -18,6 +18,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"sync"
 	"testing"
@@ -295,6 +296,23 @@ func TestSafePipelineHTTPClient_HasCustomTransport(t *testing.T) {
 	assert.True(t, ok, "Transport should be *http.Transport with custom DialContext")
 }
 
+func TestSafePipelineHTTPClient_ValidationDisabledAllowsPrivateAddress(t *testing.T) {
+	viper.Reset()
+	viper.Set("PIPELINE_URL_VALIDATION_ENABLED", "false")
+	resetURLConfig()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	resp, err := SafePipelineHTTPClient().Get(server.URL)
+	if assert.NoError(t, err) {
+		defer resp.Body.Close()
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+	}
+}
+
 func TestSafeDialContext_BlocksPrivateIPs(t *testing.T) {
 	viper.Reset()
 	resetURLConfig()
@@ -331,8 +349,8 @@ func TestSafeDialContext_InvalidAddress(t *testing.T) {
 }
 
 func TestSafePipelineHTTPClient_DisablesProxyFromEnvironment(t *testing.T) {
-	t.Setenv("HTTPS_PROXY", "http://squid.squid.svc.cluster.local:3128")
-	t.Setenv("HTTP_PROXY", "http://squid.squid.svc.cluster.local:3128")
+	t.Setenv("HTTPS_PROXY", "http://tinyproxy.tinyproxy.svc.cluster.local:3128")
+	t.Setenv("HTTP_PROXY", "http://tinyproxy.tinyproxy.svc.cluster.local:3128")
 	viper.Reset()
 	resetURLConfig()
 

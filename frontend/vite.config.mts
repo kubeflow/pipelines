@@ -55,6 +55,9 @@ export default defineConfig(({ mode }) => ({
     port: 3000,
     proxy,
   },
+  optimizeDeps: {
+    exclude: ['@mui/material/colors'],
+  },
   build: {
     target: 'es2015',
     outDir: 'build',

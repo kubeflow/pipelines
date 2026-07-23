@@ -9,3 +9,7 @@ patches:
     target:
       kind: Deployment
       name: ml-pipeline
+  - path: ../proxy/wf-controller-env.yaml
+    target:
+      kind: Deployment
+      name: workflow-controller
