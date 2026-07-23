@@ -156,12 +156,14 @@ func TestReadSingleFileFromTgz_RejectsNonRegularEntry(t *testing.T) {
 }
 
 func TestReadSingleFileFromTgz_AcceptsLegacyRegularEntry(t *testing.T) {
+	const legacyRegularFileTypeflag byte = '\x00'
+
 	tgzContent := createTestTgz(t, []testTgzEntry{{
 		name:     "metrics.json",
 		content:  "content",
 		typeflag: tar.TypeReg,
 	}})
-	tgzContent = rewriteFirstTarEntryTypeflag(t, tgzContent, tar.TypeRegA)
+	tgzContent = rewriteFirstTarEntryTypeflag(t, tgzContent, legacyRegularFileTypeflag)
 
 	var content []byte
 	err := readSingleFileFromTgz(tgzContent, 7, func(reader io.Reader) error {
