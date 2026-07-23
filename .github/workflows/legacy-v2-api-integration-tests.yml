@@ -10,6 +10,7 @@ on:
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
+      - '.github/actions/publish-ci-result/**'
       - '.github/resources/**'
       - 'api/**'
       - 'go.mod'
@@ -117,7 +118,7 @@ jobs:
           if [[ "${{ matrix.test_group }}" == "pvc-cache" ]]; then
             FILTER_ARGS=(-run '^TestCache$/^TestCacheSingleRunWithPVC_SameName_Caches$')
           fi
-          go test -v -timeout 20m "${FILTER_ARGS[@]}" ./... \
+          go test -json -v -timeout 20m "${FILTER_ARGS[@]}" ./... \
             -args -runIntegrationTests=true -namespace=kubeflow \
             -tlsEnabled=${{ matrix.pod_to_pod_tls_enabled }} \
             -caCertPath=${{ env.CA_CERT_PATH }} \
@@ -131,6 +132,15 @@ jobs:
           # GetRepoBranchURLRAW to avoid anonymous per-IP 429 rate limits.
           GITHUB_TOKEN: ${{ github.token }}
         continue-on-error: true
+
+      - name: Publish normalized CI result
+        if: always() && !cancelled()
+        uses: ./.github/actions/publish-ci-result
+        with:
+          test_outcome: ${{ steps.tests.outcome }}
+          report_name: API integration tests v2 - ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }} TLS=${{ matrix.pod_to_pod_tls_enabled }} group=${{ matrix.test_group }}
+          go_json: ${{ runner.temp }}/go-test-output.log
+          pipeline_store: ${{ matrix.pipeline_store }}
 
       - name: Report network observability
         if: ${{ always() && steps.forward-mlmd-port.outcome == 'success' }}

@@ -1,8 +1,7 @@
-# Daily CI health report: aggregates master-branch lane failure rates and
-# per-test flake counts (from junit-xml artifacts uploaded by failed runs) and
-# publishes them to the job summary and a single tracking issue labeled
-# `ci-health`. Complements GitHub's built-in Actions performance metrics,
-# which stop at job granularity, are UI-only, and require write access to view.
+# Daily CI health report: incrementally refreshes durable master-branch lane,
+# timing, failure-class, and per-test trends. It publishes the current summary
+# to a tracking issue, persists machine-readable history on the ci-metrics
+# branch, and deploys an interactive static dashboard through GitHub Pages.
 name: CI Health Report
 
 on:
@@ -10,15 +9,17 @@ on:
     - cron: "17 7 * * *"
   workflow_dispatch:
     inputs:
-      days:
-        description: "Lookback window in days"
+      bootstrap_days:
+        description: "First-run history lookback in days"
         required: false
-        default: "14"
+        default: "90"
 
 permissions:
   actions: read
-  contents: read
+  contents: write
+  id-token: write
   issues: write
+  pages: write
 
 # One report generation at a time: overlapping schedule/dispatch runs could
 # race the issue upsert (duplicate issues, or an older report overwriting a
@@ -34,13 +35,98 @@ jobs:
     # burn API quota reporting on their own (usually empty) master.
     if: github.repository == 'kubeflow/pipelines'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
+    outputs:
+      pages-enabled: ${{ steps.pages.outputs.enabled }}
     steps:
       - uses: actions/checkout@v6
+
+      # Pages requires a one-time repository setting change that GITHUB_TOKEN
+      # cannot perform. Keep health collection green and durable before that
+      # setting is enabled; deployment starts automatically afterward.
+      - name: Check GitHub Pages availability
+        id: pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${GITHUB_REPOSITORY}/pages" >/dev/null 2>&1; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Enable Pages with GitHub Actions as its source to publish the CI dashboard."
+          fi
+
+      - name: Restore durable history
+        run: |
+          mkdir -p "$RUNNER_TEMP/ci-health-history"
+          if git fetch origin ci-metrics:refs/remotes/origin/ci-metrics; then
+            git show refs/remotes/origin/ci-metrics:data/history.json \
+              > "$RUNNER_TEMP/ci-health-history/history.json"
+          else
+            echo "No ci-metrics branch yet; bootstrapping 90 days."
+          fi
 
       - name: Generate report and update tracking issue
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          DAYS: ${{ inputs.days || '14' }}
+          BOOTSTRAP_DAYS: ${{ inputs.bootstrap_days || '90' }}
+          HISTORY_INPUT: ${{ runner.temp }}/ci-health-history/history.json
+          OUTPUT_DIR: ${{ runner.temp }}/ci-health-site
+          PAGES_ENABLED: ${{ steps.pages.outputs.enabled }}
           UPDATE_ISSUE: "true"
         run: python3 ./.github/resources/scripts/ci_health_report.py
+
+      - name: Persist machine-readable history
+        env:
+          METRICS_DIR: ${{ runner.temp }}/ci-metrics-branch
+          SITE_DIR: ${{ runner.temp }}/ci-health-site
+        run: |
+          if git show-ref --verify --quiet refs/remotes/origin/ci-metrics; then
+            git worktree add --detach "$METRICS_DIR" refs/remotes/origin/ci-metrics
+          else
+            git worktree add --detach "$METRICS_DIR" HEAD
+            (
+              cd "$METRICS_DIR"
+              git switch --orphan ci-metrics
+              git rm -rf .
+            )
+          fi
+          mkdir -p "$METRICS_DIR/data/daily"
+          cp "$SITE_DIR/data/history.json" "$METRICS_DIR/data/history.json"
+          cp "$SITE_DIR/data/latest.json" "$METRICS_DIR/data/latest.json"
+          cp -R "$SITE_DIR/data/daily/." "$METRICS_DIR/data/daily/"
+          (
+            cd "$METRICS_DIR"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add data/history.json data/latest.json data/daily
+            if git diff --cached --quiet; then
+              echo "History is already current."
+              exit 0
+            fi
+            git commit -s -m "ci: update health trend data"
+            git push origin HEAD:ci-metrics
+          )
+
+      - name: Configure GitHub Pages
+        if: steps.pages.outputs.enabled == 'true'
+        uses: actions/configure-pages@v5
+
+      - name: Upload dashboard
+        if: steps.pages.outputs.enabled == 'true'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ${{ runner.temp }}/ci-health-site
+
+  deploy:
+    name: Deploy CI health dashboard
+    needs: report
+    if: github.repository == 'kubeflow/pipelines' && needs.report.outputs.pages-enabled == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
