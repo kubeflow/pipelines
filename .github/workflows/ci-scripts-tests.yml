@@ -10,8 +10,9 @@ on:
       # The observability shell scripts are covered by Python-driven tests.
       - '.github/resources/scripts/*.sh'
       - '.github/resources/scripts/kfp-readiness/**'
-      - '.github/actions/junit-summary/**'
+      - '.github/workflows/ci-checks.yml'
       - '.github/workflows/ci-scripts-tests.yml'
+      - '.github/workflows/gh-workflow-approve.yml'
 
 permissions:
   contents: read

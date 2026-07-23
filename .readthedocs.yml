@@ -5,6 +5,8 @@ sphinx:
 python:
   install:
     - requirements: docs/sdk/requirements.txt
+    - method: pip
+      path: sdk/python/
 build:
   os: ubuntu-22.04
   tools:
