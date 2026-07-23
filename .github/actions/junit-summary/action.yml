@@ -59,4 +59,4 @@ runs:
         FAIL_ON_TEST_FAILURES: ${{ inputs.fail_on_test_failures }}
         XML_FILES: ${{ inputs.xml_files }}
       run: |
-        "${{ github.action_path }}/parse_junit_summary.sh"
+        bash "${{ github.action_path }}/parse_junit_summary.sh"
