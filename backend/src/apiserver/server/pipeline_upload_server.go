@@ -42,13 +42,13 @@ import (
 )
 
 const (
-	FormFileKey               = "uploadfile"
-	NameQueryStringKey        = "name"
-	DisplayNameQueryStringKey = "display_name"
-	DescriptionQueryStringKey = "description"
-	NamespaceStringQuery      = "namespace"
-	TagsQueryStringKey           = "tags"
-	CodeSourceURLQueryStringKey  = "code_source_url"
+	FormFileKey                 = "uploadfile"
+	NameQueryStringKey          = "name"
+	DisplayNameQueryStringKey   = "display_name"
+	DescriptionQueryStringKey   = "description"
+	NamespaceStringQuery        = "namespace"
+	TagsQueryStringKey          = "tags"
+	CodeSourceURLQueryStringKey = "code_source_url"
 	// Pipeline Id in the query string specifies a pipeline when creating versions.
 	PipelineKey = "pipelineid"
 )
