@@ -1173,18 +1173,17 @@ def load_history(path):
     return history
 
 
-def merge_history(history, snapshots, retention_days=400):
+def merge_history(history, snapshots):
     by_day = {
         snapshot["date"]: snapshot
         for snapshot in history.get("days", [])
         if snapshot.get("date")
     }
     by_day.update({snapshot["date"]: snapshot for snapshot in snapshots})
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=retention_days)).date().isoformat()
     return {
         "schema_version": HISTORY_SCHEMA_VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-        "days": [by_day[day] for day in sorted(by_day) if day >= cutoff],
+        "days": [by_day[day] for day in sorted(by_day)],
     }
 
 
