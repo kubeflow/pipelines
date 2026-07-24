@@ -66,7 +66,7 @@ class TestRunDockerContainer(DockerMockTestCase):
             stdout=True,
             stderr=True,
             volumes={},
-            auto_remove=True,
+            auto_remove=False,
         )
 
     def test_cwd_volume(self):
@@ -90,8 +90,25 @@ class TestRunDockerContainer(DockerMockTestCase):
                 'bind': '/localdir',
                 'mode': 'ro'
             }},
-            auto_remove=True,
+            auto_remove=False,
         )
+        self.mocked_docker_client.containers.run.return_value.remove.assert_called_once_with(
+            force=True)
+
+    def test_returns_container_exit_status_before_removing_container(self):
+        mock_container = self.mocked_docker_client.containers.run.return_value
+        mock_container.wait.return_value = {'StatusCode': 1}
+
+        return_code = docker_task_handler.run_docker_container(
+            docker.from_env(),
+            image='alpine',
+            command=['false'],
+            volumes={},
+        )
+
+        self.assertEqual(return_code, 1)
+        mock_container.wait.assert_called_once()
+        mock_container.remove.assert_called_once_with(force=True)
 
 
 class TestDockerTaskHandler(DockerMockTestCase):
@@ -239,7 +256,7 @@ class TestDockerTaskHandler(DockerMockTestCase):
                         'mode': 'rw'
                     }
                 },
-                auto_remove=True,
+                auto_remove=False,
             )
 
     def test_run_passes_env_vars(self):
