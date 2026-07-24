@@ -337,10 +337,14 @@ func drive() (err error) {
 	}
 	var taskSpec *pipelinespec.PipelineTaskSpec
 	if *taskSpecJSON != "" {
-		glog.Infof("input TaskSpec:%s\n", prettyPrint(*taskSpecJSON))
+		decompressedTaskSpecJSON, err := util.GzipDecompressBase64(*taskSpecJSON)
+		if err != nil {
+			return fmt.Errorf("failed to decompress task spec, error: %w", err)
+		}
+		glog.Infof("input TaskSpec:%s\n", prettyPrint(decompressedTaskSpecJSON))
 		taskSpec = &pipelinespec.PipelineTaskSpec{}
-		if err := util.UnmarshalString(*taskSpecJSON, taskSpec); err != nil {
-			return fmt.Errorf("failed to unmarshal task spec, error: %w\ntask: %v", err, prettyPrint(*taskSpecJSON))
+		if err := util.UnmarshalString(decompressedTaskSpecJSON, taskSpec); err != nil {
+			return fmt.Errorf("failed to unmarshal task spec, error: %w\ntask: %v", err, prettyPrint(decompressedTaskSpecJSON))
 		}
 	}
 	glog.Infof("input ContainerSpec:%s\n", prettyPrint(*containerSpecJson))
@@ -350,10 +354,14 @@ func drive() (err error) {
 	}
 	var runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig
 	if *runtimeConfigJSON != "" {
-		glog.Infof("input RuntimeConfig:%s\n", prettyPrint(*runtimeConfigJSON))
+		decompressedRuntimeConfigJSON, err := util.GzipDecompressBase64(*runtimeConfigJSON)
+		if err != nil {
+			return fmt.Errorf("failed to decompress runtime config, error: %w", err)
+		}
+		glog.Infof("input RuntimeConfig:%s\n", prettyPrint(decompressedRuntimeConfigJSON))
 		runtimeConfig = &pipelinespec.PipelineJob_RuntimeConfig{}
-		if err := util.UnmarshalString(*runtimeConfigJSON, runtimeConfig); err != nil {
-			return fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, runtimeConfigJSON)
+		if err := util.UnmarshalString(decompressedRuntimeConfigJSON, runtimeConfig); err != nil {
+			return fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, decompressedRuntimeConfigJSON)
 		}
 	}
 	k8sExecCfg, err := parseExecConfigJson(k8sExecConfigJson)
