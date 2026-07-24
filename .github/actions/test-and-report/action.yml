@@ -578,13 +578,8 @@ runs:
 
     - name: Upload HTML Report
       id: upload
-<<<<<<< HEAD
-      uses: actions/upload-artifact@v7
-      if: steps.run-tests.outcome != 'success' && (!cancelled()) && steps.generate-html-report.outcome == 'success'
-=======
       uses: ./.github/actions/upload-artifact-with-retry
-      if: (!cancelled()) && steps.generate-html-report.outcome == 'success'
->>>>>>> 98ffcd54168ae0a2e17ab9d2cec1cbf4ad13dd08
+      if: steps.run-tests.outcome != 'success' && (!cancelled()) && steps.generate-html-report.outcome == 'success'
       with:
         name: ${{ steps.name_gen.outputs.REPORT_NAME }}
         path: ${{ inputs.test_directory }}/reports/test-report.html
