@@ -247,7 +247,10 @@
         const result = {
           total, failures, failureRate: rate(failures, total),
           p95: median(lanes.flatMap(lane => lane.p95)),
-          infra: sum(selected.days, day => (day.failure_classes.infrastructure_failure || 0) + (day.failure_classes.unclassified_failure || 0)),
+          infra: sum(selected.days, day => [
+            'infrastructure_failure', 'runner_lost', 'job_timeout',
+            'missing_result', 'unclassified_failure',
+          ].reduce((total, key) => total + (day.failure_classes[key] || 0), 0)),
           reruns: sum(selected.days, day => day.totals.reruns || 0),
           rescues: sum(selected.days, day => day.totals.rerun_rescues || 0),
           timeToGreen: median(selected.days.map(day => day.totals.time_to_green?.p50)),
