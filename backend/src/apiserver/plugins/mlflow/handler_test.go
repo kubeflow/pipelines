@@ -29,6 +29,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
+	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -45,20 +46,20 @@ func setupSAToken(t *testing.T) func() {
 	return func() {} // cleanup handled by t.Cleanup in setupFakeKubernetesConfig
 }
 
-func testPluginConfig(endpoint string) *ResolvedConfig {
+func testPluginConfig(endpoint string) *ResolvedMLflowConfig {
 	enabled := true
-	return &ResolvedConfig{
-		Config: &commonmlflow.PluginConfig{
+	return &ResolvedMLflowConfig{
+		Config: &commonmlflow.MLflowPluginConfig{
 			Endpoint: endpoint,
 			Timeout:  "10s",
 			Settings: &commonmlflow.MLflowPluginSettings{WorkspacesEnabled: &enabled},
 		}}
 }
 
-func testResolvedConfig(endpoint string) *ResolvedConfig {
+func testResolvedConfig(endpoint string) *ResolvedMLflowConfig {
 	cfg := testPluginConfig(endpoint)
-	cfg.Config.Settings = ApplySettingsDefaults(cfg.Config.Settings)
-	resolvedCfg, err := newResolvedConfig(cfg.Config, commonmlflow.MLflowCredentials{
+	cfg.Config.Settings = ApplyMLflowSettingsDefaults(cfg.Config.Settings)
+	resolvedCfg, err := newResolvedMLflowConfig(cfg.Config, commonmlflow.MLflowCredentials{
 		AuthType:    commonmlflow.AuthTypeKubernetes,
 		BearerToken: "test-sa-token",
 	})
@@ -68,9 +69,9 @@ func testResolvedConfig(endpoint string) *ResolvedConfig {
 	return resolvedCfg
 }
 
-func mustResolvedConfig(t *testing.T, cfg *commonmlflow.PluginConfig, credentials commonmlflow.MLflowCredentials) *ResolvedConfig {
+func mustResolvedConfig(t *testing.T, cfg *commonmlflow.MLflowPluginConfig, credentials commonmlflow.MLflowCredentials) *ResolvedMLflowConfig {
 	t.Helper()
-	resolvedCfg, err := newResolvedConfig(cfg, credentials)
+	resolvedCfg, err := newResolvedMLflowConfig(cfg, credentials)
 	require.NoError(t, err)
 	return resolvedCfg
 }
@@ -115,25 +116,32 @@ func addLegacyEndpointEntry(pluginOutput *apiv2beta1.PluginOutput, endpoint stri
 // ---- OnBeforeRunCreation tests ----
 
 func TestOnBeforeRunCreation_NilConfig_ReturnsNil(t *testing.T) {
-	handler := NewHandler(&MLflowPluginInput{ExperimentName: "Default"}, "ns1")
-	output, err := handler.OnBeforeRunCreation(context.Background(), testPendingRun("r1", "run-1"), nil)
+	handler := NewMLflowRunHandler()
+	pluginInput := &MLflowPluginInput{Disabled: false}
+	output, env, err := handler.OnBeforeRunCreation(context.Background(), testPendingRun("r1", "run-1"), nil, pluginInput)
 	require.NoError(t, err)
 	assert.Nil(t, output)
-	assert.Empty(t, handler.RunStartEnvVars)
+	assert.Empty(t, env)
 }
 
 func TestOnBeforeRunCreation_Disabled_ReturnsNil(t *testing.T) {
-	handler := NewHandler(&MLflowPluginInput{Disabled: true}, "ns1")
-	output, err := handler.OnBeforeRunCreation(context.Background(), testPendingRun("r1", "run-1"), testResolvedConfig("http://localhost"))
+	handler := NewMLflowRunHandler()
+
+	pluginInput := &MLflowPluginInput{Disabled: true}
+	output, env, err := handler.OnBeforeRunCreation(context.Background(), testPendingRun("r1", "run-1"), testPluginConfig("http://localhost"), pluginInput)
 	require.NoError(t, err)
 	assert.Nil(t, output)
+	assert.Empty(t, env)
 }
 
 func TestOnBeforeRunCreation_NilInput_ReturnsNil(t *testing.T) {
-	handler := NewHandler(nil, "ns1")
-	output, err := handler.OnBeforeRunCreation(context.Background(), testPendingRun("r1", "run-1"), testResolvedConfig("http://localhost"))
+	handler := NewMLflowRunHandler()
+	pluginInput := &MLflowPluginInput{Disabled: true}
+
+	output, env, err := handler.OnBeforeRunCreation(context.Background(), testPendingRun("r1", "run-1"), testResolvedConfig("http://localhost"), pluginInput)
 	require.NoError(t, err)
 	assert.Nil(t, output)
+	assert.Empty(t, env)
 }
 
 func TestOnBeforeRunCreation_Success(t *testing.T) {
@@ -161,26 +169,34 @@ func TestOnBeforeRunCreation_Success(t *testing.T) {
 	viper.Set(common.MultiUserMode, false)
 	t.Cleanup(func() { viper.Set(common.MultiUserMode, nil) })
 
-	handler := NewHandler(&MLflowPluginInput{}, "ns1")
+	handler := NewMLflowRunHandler()
 
 	run := testPendingRun("kfp-run-1", "my-run")
 	cfg := testResolvedConfig(server.URL)
 	cfg.Config.Settings.DefaultExperimentName = "Configured-Default"
-	output, err := handler.OnBeforeRunCreation(context.Background(), run, cfg)
+	output, env, err := handler.OnBeforeRunCreation(context.Background(), run, cfg, &MLflowPluginInput{Disabled: false})
 	require.NoError(t, err)
+	require.NotNil(t, output)
+	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, output.State)
+	assert.Contains(t, output.Entries, EntryExperimentID)
+	assert.Equal(t, "exp-42", output.Entries[EntryExperimentID].Value.GetStringValue())
+	assert.Contains(t, output.Entries, apiserverPlugins.EntryRootRunID)
+	assert.Equal(t, "mlflow-run-1", output.Entries[apiserverPlugins.EntryRootRunID].Value.GetStringValue())
+	require.NoError(t, err)
+	require.NotEmpty(t, env)
 	require.NotNil(t, output)
 
 	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, output.State)
 	assert.Contains(t, output.Entries, EntryExperimentID)
 	assert.Equal(t, "exp-42", output.Entries[EntryExperimentID].Value.GetStringValue())
-	assert.Contains(t, output.Entries, EntryRootRunID)
-	assert.Equal(t, "mlflow-run-1", output.Entries[EntryRootRunID].Value.GetStringValue())
+	assert.Contains(t, output.Entries, apiserverPlugins.EntryRootRunID)
+	assert.Equal(t, "mlflow-run-1", output.Entries[apiserverPlugins.EntryRootRunID].Value.GetStringValue())
 
 	// Verify RunStartEnv contains single KFP_MLFLOW_CONFIG JSON env var
-	require.NotEmpty(t, handler.RunStartEnvVars)
+	require.NotEmpty(t, env)
 
 	var rtCfg commonmlflow.MLflowRuntimeConfig
-	require.NoError(t, json.Unmarshal([]byte(getEnvVarValue(t, handler.RunStartEnvVars, commonmlflow.EnvMLflowConfig)), &rtCfg))
+	require.NoError(t, json.Unmarshal([]byte(getEnvVarValue(t, env, commonmlflow.EnvMLflowConfig)), &rtCfg))
 	assert.Contains(t, rtCfg.Endpoint, server.URL)
 	assert.Equal(t, "ns1", rtCfg.Workspace)
 	assert.Equal(t, "mlflow-run-1", rtCfg.ParentRunID)
@@ -214,17 +230,18 @@ func TestOnBeforeRunCreation_BasicAuthInjectsCredentialEnvVars(t *testing.T) {
 	viper.Set(common.MultiUserMode, false)
 	t.Cleanup(func() { viper.Set(common.MultiUserMode, nil) })
 
-	settings := ApplySettingsDefaults(&commonmlflow.MLflowPluginSettings{
+	settings := ApplyMLflowSettingsDefaults(&commonmlflow.MLflowPluginSettings{
 		AuthType: commonmlflow.AuthTypeBasicAuth,
-		CredentialSecretRef: &commonmlflow.CredentialSecretRef{
+		CredentialSecretRef: &commonplugins.CredentialSecretRef{
 			UsernameKey: "username",
 			PasswordKey: "password",
 		},
 	})
-	handler := NewHandler(&MLflowPluginInput{ExperimentName: "Default"}, "ns1")
+	handler := NewMLflowRunHandler()
+	pluginInput := &MLflowPluginInput{Disabled: false}
 	run := testPendingRun("kfp-run-1", "my-run")
 
-	output, err := handler.OnBeforeRunCreation(context.Background(), run, mustResolvedConfig(t, &commonmlflow.PluginConfig{
+	output, env, err := handler.OnBeforeRunCreation(context.Background(), run, mustResolvedConfig(t, &commonmlflow.MLflowPluginConfig{
 		Endpoint: server.URL,
 		Timeout:  "10s",
 		Settings: settings,
@@ -232,22 +249,22 @@ func TestOnBeforeRunCreation_BasicAuthInjectsCredentialEnvVars(t *testing.T) {
 		AuthType: commonmlflow.AuthTypeBasicAuth,
 		Username: "basic-user",
 		Password: "basic-pass",
-	}))
+	}), pluginInput)
 	require.NoError(t, err)
 	require.NotNil(t, output)
-	assert.Equal(t, commonmlflow.EnvMLflowTrackingUsername, handler.RunStartEnvVars[1].Name)
-	require.NotNil(t, handler.RunStartEnvVars[1].ValueFrom)
-	require.NotNil(t, handler.RunStartEnvVars[1].ValueFrom.SecretKeyRef)
-	assert.Equal(t, commonmlflow.CredentialSecretName, handler.RunStartEnvVars[1].ValueFrom.SecretKeyRef.Name)
-	assert.Equal(t, "username", handler.RunStartEnvVars[1].ValueFrom.SecretKeyRef.Key)
-	assert.Equal(t, commonmlflow.EnvMLflowTrackingPassword, handler.RunStartEnvVars[2].Name)
-	require.NotNil(t, handler.RunStartEnvVars[2].ValueFrom)
-	require.NotNil(t, handler.RunStartEnvVars[2].ValueFrom.SecretKeyRef)
-	assert.Equal(t, commonmlflow.CredentialSecretName, handler.RunStartEnvVars[2].ValueFrom.SecretKeyRef.Name)
-	assert.Equal(t, "password", handler.RunStartEnvVars[2].ValueFrom.SecretKeyRef.Key)
+	assert.Equal(t, commonmlflow.EnvMLflowTrackingUsername, env[1].Name)
+	require.NotNil(t, env[1].ValueFrom)
+	require.NotNil(t, env[1].ValueFrom.SecretKeyRef)
+	assert.Equal(t, commonmlflow.CredentialSecretName, env[1].ValueFrom.SecretKeyRef.Name)
+	assert.Equal(t, "username", env[1].ValueFrom.SecretKeyRef.Key)
+	assert.Equal(t, commonmlflow.EnvMLflowTrackingPassword, env[2].Name)
+	require.NotNil(t, env[2].ValueFrom)
+	require.NotNil(t, env[2].ValueFrom.SecretKeyRef)
+	assert.Equal(t, commonmlflow.CredentialSecretName, env[2].ValueFrom.SecretKeyRef.Name)
+	assert.Equal(t, "password", env[2].ValueFrom.SecretKeyRef.Key)
 
 	var rtCfg commonmlflow.MLflowRuntimeConfig
-	require.NoError(t, json.Unmarshal([]byte(getEnvVarValue(t, handler.RunStartEnvVars, commonmlflow.EnvMLflowConfig)), &rtCfg))
+	require.NoError(t, json.Unmarshal([]byte(getEnvVarValue(t, env, commonmlflow.EnvMLflowConfig)), &rtCfg))
 	assert.Equal(t, commonmlflow.AuthTypeBasicAuth, rtCfg.AuthType)
 	require.NotNil(t, rtCfg.CredentialSecretRef)
 	assert.Equal(t, "username", rtCfg.CredentialSecretRef.UsernameKey)
@@ -274,32 +291,33 @@ func TestOnBeforeRunCreation_BearerInjectsTokenCredentialEnvVar(t *testing.T) {
 	}))
 	defer server.Close()
 
-	settings := ApplySettingsDefaults(&commonmlflow.MLflowPluginSettings{
+	settings := ApplyMLflowSettingsDefaults(&commonmlflow.MLflowPluginSettings{
 		AuthType: commonmlflow.AuthTypeBearer,
-		CredentialSecretRef: &commonmlflow.CredentialSecretRef{
+		CredentialSecretRef: &commonplugins.CredentialSecretRef{
 			TokenKey: "token",
 		},
 	})
-	handler := NewHandler(&MLflowPluginInput{ExperimentName: "Default"}, "ns1")
+	handler := NewMLflowRunHandler()
+	pluginInput := &MLflowPluginInput{Disabled: false}
 
-	output, err := handler.OnBeforeRunCreation(context.Background(), testPendingRun("kfp-run-1", "my-run"), mustResolvedConfig(t, &commonmlflow.PluginConfig{
+	output, env, err := handler.OnBeforeRunCreation(context.Background(), testPendingRun("kfp-run-1", "my-run"), mustResolvedConfig(t, &commonmlflow.MLflowPluginConfig{
 		Endpoint: server.URL,
 		Timeout:  "10s",
 		Settings: settings,
 	}, commonmlflow.MLflowCredentials{
 		AuthType:    commonmlflow.AuthTypeBearer,
 		BearerToken: "custom-token",
-	}))
+	}), pluginInput)
 	require.NoError(t, err)
 	require.NotNil(t, output)
-	assert.Equal(t, commonmlflow.EnvMLflowTrackingToken, handler.RunStartEnvVars[1].Name)
-	require.NotNil(t, handler.RunStartEnvVars[1].ValueFrom)
-	require.NotNil(t, handler.RunStartEnvVars[1].ValueFrom.SecretKeyRef)
-	assert.Equal(t, commonmlflow.CredentialSecretName, handler.RunStartEnvVars[1].ValueFrom.SecretKeyRef.Name)
-	assert.Equal(t, "token", handler.RunStartEnvVars[1].ValueFrom.SecretKeyRef.Key)
+	assert.Equal(t, commonmlflow.EnvMLflowTrackingToken, env[1].Name)
+	require.NotNil(t, env[1].ValueFrom)
+	require.NotNil(t, env[1].ValueFrom.SecretKeyRef)
+	assert.Equal(t, commonmlflow.CredentialSecretName, env[1].ValueFrom.SecretKeyRef.Name)
+	assert.Equal(t, "token", env[1].ValueFrom.SecretKeyRef.Key)
 
 	var rtCfg commonmlflow.MLflowRuntimeConfig
-	require.NoError(t, json.Unmarshal([]byte(getEnvVarValue(t, handler.RunStartEnvVars, commonmlflow.EnvMLflowConfig)), &rtCfg))
+	require.NoError(t, json.Unmarshal([]byte(getEnvVarValue(t, env, commonmlflow.EnvMLflowConfig)), &rtCfg))
 	assert.Equal(t, commonmlflow.AuthTypeBearer, rtCfg.AuthType)
 	require.NotNil(t, rtCfg.CredentialSecretRef)
 	assert.Equal(t, "token", rtCfg.CredentialSecretRef.TokenKey)
@@ -329,11 +347,13 @@ func TestOnBeforeRunCreation_MLflowFailure_ReturnsFailedOutput(t *testing.T) {
 	viper.Set(common.MultiUserMode, false)
 	t.Cleanup(func() { viper.Set(common.MultiUserMode, nil) })
 
-	handler := NewHandler(&MLflowPluginInput{ExperimentName: "Default"}, "ns1")
+	handler := NewMLflowRunHandler()
+	pluginInput := &MLflowPluginInput{Disabled: false}
 
 	run := testPendingRun("kfp-run-2", "run-2")
-	output, err := handler.OnBeforeRunCreation(context.Background(), run, testResolvedConfig(server.URL))
+	output, env, err := handler.OnBeforeRunCreation(context.Background(), run, testResolvedConfig(server.URL), pluginInput)
 	require.Error(t, err)
+	assert.Empty(t, env)
 	require.NotNil(t, output)
 	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_FAILED, output.State)
 	assert.NotEmpty(t, output.StateMessage)
@@ -342,14 +362,14 @@ func TestOnBeforeRunCreation_MLflowFailure_ReturnsFailedOutput(t *testing.T) {
 // ---- OnRunEnd / syncOnRunTerminal tests ----
 
 func TestOnRunEnd_NilRun_ReturnsNil(t *testing.T) {
-	handler := NewHandler(nil, "ns1")
+	handler := NewMLflowRunHandler()
 	retryable, err := handler.OnRunEnd(context.Background(), nil, testResolvedConfig("http://localhost"))
 	require.NoError(t, err)
 	assert.False(t, retryable)
 }
 
 func TestOnRunEnd_NoPluginOutput_ReturnsNil(t *testing.T) {
-	handler := NewHandler(nil, "ns1")
+	handler := NewMLflowRunHandler()
 	run := testPersistedRun("r1")
 	retryable, err := handler.OnRunEnd(context.Background(), run, testResolvedConfig("http://localhost"))
 	require.NoError(t, err)
@@ -357,7 +377,7 @@ func TestOnRunEnd_NoPluginOutput_ReturnsNil(t *testing.T) {
 }
 
 func TestOnRunEnd_MissingRootRunID_SetsFailedState(t *testing.T) {
-	handler := NewHandler(nil, "ns1")
+	handler := NewMLflowRunHandler()
 
 	// Build a run with plugin output that has no root_run_id
 	pluginOutput := SuccessfulPluginOutput("42", "Default", "", "")
@@ -375,7 +395,7 @@ func TestOnRunEnd_MissingRootRunID_SetsFailedState(t *testing.T) {
 }
 
 func TestOnRunEnd_NilConfig_SetsFailedState(t *testing.T) {
-	handler := NewHandler(nil, "ns1")
+	handler := NewMLflowRunHandler()
 
 	pluginOutput := SuccessfulPluginOutput("42", "Default", "parent-1", "")
 	run := testPersistedRunWithPluginOutput("r-nil-config", pluginOutput)
@@ -411,7 +431,7 @@ func TestOnRunEnd_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	handler := NewHandler(nil, "ns1")
+	handler := NewMLflowRunHandler()
 
 	pluginOutput := SuccessfulPluginOutput("exp-1", "Default", "mlflow-parent-1", "")
 	run := testPersistedRunWithPluginOutput("r-end-1", pluginOutput)
@@ -432,10 +452,37 @@ func TestOnRunEnd_Success(t *testing.T) {
 	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, result.State)
 }
 
+func TestHandlerOnRunEnd_PermanentConfigFailureDoesNotRequestRetry(t *testing.T) {
+	handler := NewMLflowRunHandler()
+
+	// Create a config with missing settings (permanent configuration error)
+	pluginOutput := SuccessfulPluginOutput("exp-1", "Default", "parent-1", "")
+	run := testPersistedRunWithPluginOutput("r-config-failure", pluginOutput)
+	run.State = "SUCCEEDED"
+
+	cfg := &ResolvedMLflowConfig{
+		Config: &commonmlflow.MLflowPluginConfig{
+			Endpoint: "http://localhost",
+			Timeout:  "10s",
+			Settings: nil, // Missing settings is a permanent config error
+		},
+	}
+
+	retryable, err := handler.OnRunEnd(context.Background(), run, cfg)
+	require.NoError(t, err)
+	assert.False(t, retryable, "permanent config failure must not request a retry")
+
+	// Verify the plugin output was updated with failed state
+	result := run.PluginsOutput[PluginName]
+	require.NotNil(t, result)
+	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_FAILED, result.State)
+	assert.Contains(t, result.StateMessage, "resolved MLflow settings are missing")
+}
+
 // ---- HandleRetry tests ----
 
 func TestHandleRetry_NoPluginOutput_NoOp(t *testing.T) {
-	handler := NewHandler(nil, "ns1")
+	handler := NewMLflowRunHandler()
 	run := testPersistedRun("r-retry-noop")
 
 	handler.HandleRetry(context.Background(), run, testResolvedConfig("http://localhost"))
@@ -444,7 +491,7 @@ func TestHandleRetry_NoPluginOutput_NoOp(t *testing.T) {
 }
 
 func TestHandleRetry_MissingRootRunID_SetsFailedState(t *testing.T) {
-	handler := NewHandler(nil, "ns1")
+	handler := NewMLflowRunHandler()
 
 	pluginOutput := SuccessfulPluginOutput("42", "Default", "", "")
 	run := testPersistedRunWithPluginOutput("r-retry-no-root", pluginOutput)
@@ -458,7 +505,7 @@ func TestHandleRetry_MissingRootRunID_SetsFailedState(t *testing.T) {
 }
 
 func TestHandleRetry_NilConfig_SetsFailedState(t *testing.T) {
-	handler := NewHandler(nil, "ns1")
+	handler := NewMLflowRunHandler()
 
 	pluginOutput := SuccessfulPluginOutput("42", "Default", "parent-1", "")
 	run := testPersistedRunWithPluginOutput("r-retry-nil-config", pluginOutput)
@@ -493,7 +540,7 @@ func TestHandleRetry_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	handler := NewHandler(nil, "ns1")
+	handler := NewMLflowRunHandler()
 
 	pluginOutput := FailedPluginOutput("exp-1", "Default", "parent-1", "", "previous failure")
 	run := testPersistedRunWithPluginOutput("r-retry-ok", pluginOutput)
@@ -519,25 +566,25 @@ func TestPostRunSyncUsesResolvedConfigInsteadOfLegacyPluginOutputEndpoint(t *tes
 		pluginOutput     *apiv2beta1.PluginOutput
 		runState         string
 		wantUpdateStatus string
-		invoke           func(*Handler, *apiserverPlugins.PersistedRun, *ResolvedConfig) error
+		invoke           func(*Handler, *apiserverPlugins.PersistedRun, *ResolvedMLflowConfig) (bool, error)
 	}{
 		{
 			name:             "terminal sync ignores legacy endpoint entry",
 			pluginOutput:     SuccessfulPluginOutput("exp-1", "Default", "parent-1", ""),
 			runState:         "SUCCEEDED",
 			wantUpdateStatus: "FINISHED",
-			invoke: func(handler *Handler, run *apiserverPlugins.PersistedRun, config *ResolvedConfig) error {
+			invoke: func(handler *Handler, run *apiserverPlugins.PersistedRun, config *ResolvedMLflowConfig) (bool, error) {
 				_, err := handler.OnRunEnd(context.Background(), run, config)
-				return err
+				return err == nil, err
 			},
 		},
 		{
 			name:             "retry sync ignores legacy endpoint entry",
 			pluginOutput:     FailedPluginOutput("exp-1", "Default", "parent-1", "", "previous failure"),
 			wantUpdateStatus: "RUNNING",
-			invoke: func(handler *Handler, run *apiserverPlugins.PersistedRun, config *ResolvedConfig) error {
-				handler.HandleRetry(context.Background(), run, config)
-				return nil
+			invoke: func(handler *Handler, run *apiserverPlugins.PersistedRun, config *ResolvedMLflowConfig) (bool, error) {
+				err := handler.HandleRetry(context.Background(), run, config)
+				return err == nil, nil
 			},
 		},
 	}
@@ -581,13 +628,14 @@ func TestPostRunSyncUsesResolvedConfigInsteadOfLegacyPluginOutputEndpoint(t *tes
 			}))
 			defer freshServer.Close()
 
-			handler := NewHandler(nil, "ns1")
+			handler := NewMLflowRunHandler()
 			pluginOutput := addLegacyEndpointEntry(testCase.pluginOutput, staleServer.URL)
 			run := testPersistedRunWithPluginOutput("r-sync-fresh-config", pluginOutput)
 			run.State = testCase.runState
 
-			err := testCase.invoke(handler, run, testPluginConfig(freshServer.URL))
+			success, err := testCase.invoke(handler, run, testPluginConfig(freshServer.URL))
 			require.NoError(t, err)
+			assert.True(t, success)
 
 			mu.Lock()
 			defer mu.Unlock()
@@ -666,7 +714,7 @@ func TestBuildKFPRunURL(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := BuildKFPRunURL(tt.runID, tt.namespace, tt.kfpBaseURL, tt.pathTemplate)
+			got := apiserverPlugins.BuildKFPRunURL(tt.runID, tt.namespace, tt.kfpBaseURL, tt.pathTemplate)
 			assert.Equal(t, tt.wantURL, got)
 		})
 	}
@@ -763,27 +811,27 @@ func TestBuildRunURL(t *testing.T) {
 
 func TestShouldSyncNestedRun(t *testing.T) {
 	t.Run("terminal mode syncs non-terminal statuses", func(t *testing.T) {
-		assert.True(t, shouldSyncNestedRun(RunSyncModeTerminal, "RUNNING"))
-		assert.True(t, shouldSyncNestedRun(RunSyncModeTerminal, "SCHEDULED"))
-		assert.True(t, shouldSyncNestedRun(RunSyncModeTerminal, "PENDING"))
-		assert.True(t, shouldSyncNestedRun(RunSyncModeTerminal, ""))
-		assert.False(t, shouldSyncNestedRun(RunSyncModeTerminal, "FINISHED"))
-		assert.False(t, shouldSyncNestedRun(RunSyncModeTerminal, "FAILED"))
-		assert.False(t, shouldSyncNestedRun(RunSyncModeTerminal, "KILLED"))
+		assert.True(t, shouldSyncNestedRun(apiserverPlugins.RunSyncModeTerminal, "RUNNING"))
+		assert.True(t, shouldSyncNestedRun(apiserverPlugins.RunSyncModeTerminal, "SCHEDULED"))
+		assert.True(t, shouldSyncNestedRun(apiserverPlugins.RunSyncModeTerminal, "PENDING"))
+		assert.True(t, shouldSyncNestedRun(apiserverPlugins.RunSyncModeTerminal, ""))
+		assert.False(t, shouldSyncNestedRun(apiserverPlugins.RunSyncModeTerminal, "FINISHED"))
+		assert.False(t, shouldSyncNestedRun(apiserverPlugins.RunSyncModeTerminal, "FAILED"))
+		assert.False(t, shouldSyncNestedRun(apiserverPlugins.RunSyncModeTerminal, "KILLED"))
 	})
 
 	t.Run("retry mode syncs only failed and killed", func(t *testing.T) {
-		assert.True(t, shouldSyncNestedRun(RunSyncModeRetry, "FAILED"))
-		assert.True(t, shouldSyncNestedRun(RunSyncModeRetry, "KILLED"))
-		assert.False(t, shouldSyncNestedRun(RunSyncModeRetry, "RUNNING"))
-		assert.False(t, shouldSyncNestedRun(RunSyncModeRetry, "FINISHED"))
+		assert.True(t, shouldSyncNestedRun(apiserverPlugins.RunSyncModeRetry, "FAILED"))
+		assert.True(t, shouldSyncNestedRun(apiserverPlugins.RunSyncModeRetry, "KILLED"))
+		assert.False(t, shouldSyncNestedRun(apiserverPlugins.RunSyncModeRetry, "RUNNING"))
+		assert.False(t, shouldSyncNestedRun(apiserverPlugins.RunSyncModeRetry, "FINISHED"))
 	})
 }
 
 // ---- ModelToPersistedRun tests ----
 
 func TestModelToPersistedRun_NilModel(t *testing.T) {
-	_, err := ModelToPersistedRun(nil, "ns1")
+	_, err := apiserverPlugins.ModelToPersistedRun(nil, "ns1")
 	require.Error(t, err)
 }
 
@@ -797,7 +845,7 @@ func TestModelToPersistedRun_BasicFields(t *testing.T) {
 	m.RunDetails.FinishedAtInSec = 1700000000 //nolint:staticcheck // QF1008
 	m.RunDetails.PluginsOutputString = &lt    //nolint:staticcheck // QF1008
 
-	pr, err := ModelToPersistedRun(m, "ns1")
+	pr, err := apiserverPlugins.ModelToPersistedRun(m, "ns1")
 	require.NoError(t, err)
 	require.NotNil(t, pr)
 	assert.Equal(t, "run-123", pr.RunID)
@@ -806,7 +854,7 @@ func TestModelToPersistedRun_BasicFields(t *testing.T) {
 	require.NotNil(t, pr.FinishedAt)
 	assert.Equal(t, int64(1700000000), pr.FinishedAt.Unix())
 	require.NotNil(t, pr.PluginsOutput[PluginName])
-	assert.Equal(t, "parent-1", GetParentRunID(pr.PluginsOutput[PluginName]))
+	assert.Equal(t, "parent-1", apiserverPlugins.GetParentRunID(pr.PluginsOutput[PluginName]))
 }
 
 // ---- SerializePluginsOutput / DeserializePluginsOutput tests ----
@@ -816,18 +864,18 @@ func TestSerializeDeserializePluginsOutput_RoundTrip(t *testing.T) {
 		"mlflow":       SuccessfulPluginOutput("exp-1", "Default", "parent-1", ""),
 		"other_plugin": {State: apiv2beta1.PluginState_PLUGIN_SUCCEEDED},
 	}
-	lt, err := SerializePluginsOutput(original)
+	lt, err := apiserverPlugins.SerializePluginsOutput(original)
 	require.NoError(t, err)
 	require.NotNil(t, lt)
 	assert.Contains(t, string(*lt), "mlflow")
 	assert.Contains(t, string(*lt), "other_plugin")
 
-	result, err := DeserializePluginsOutput(lt)
+	result, err := apiserverPlugins.DeserializePluginsOutput(lt)
 	require.NoError(t, err)
 	assert.Len(t, result, 2)
 	assert.NotNil(t, result["mlflow"])
 	assert.NotNil(t, result["other_plugin"])
-	assert.Equal(t, "parent-1", GetParentRunID(result["mlflow"]))
+	assert.Equal(t, "parent-1", apiserverPlugins.GetParentRunID(result["mlflow"]))
 }
 
 // ---- SyncParentAndNestedRuns pagination test ----
@@ -876,19 +924,22 @@ func TestSyncParentAndNestedRuns_Pagination(t *testing.T) {
 	setupFakeKubernetesConfig(t, "sa-token")
 
 	enabled := true
-	requestCfg := mustResolvedConfig(t, &commonmlflow.PluginConfig{
+	requestCfg := mustResolvedConfig(t, &commonmlflow.MLflowPluginConfig{
 		Endpoint: server.URL,
 		Timeout:  "10s",
-		Settings: ApplySettingsDefaults(&commonmlflow.MLflowPluginSettings{WorkspacesEnabled: &enabled}),
+		TLS: &commonplugins.TLSConfig{
+			InsecureSkipVerify: true,
+		},
+		Settings: ApplyMLflowSettingsDefaults(&commonmlflow.MLflowPluginSettings{WorkspacesEnabled: &enabled}),
 	}, commonmlflow.MLflowCredentials{
 		AuthType:    commonmlflow.AuthTypeKubernetes,
 		BearerToken: "bearer-secret",
 	})
-	mlflowCtx, err := BuildMLflowRunRequestContext(context.Background(), "ns1", requestCfg)
+	mlflowCtx, err := BuildMLflowRunRequestContext("ns1", requestCfg)
 	require.NoError(t, err)
 
 	endTime := int64(1700000000000)
-	syncErrors := SyncParentAndNestedRuns(context.Background(), mlflowCtx, "parent-1", "exp-1", RunSyncModeTerminal, "FINISHED", &endTime)
+	syncErrors := SyncParentAndNestedRuns(context.Background(), mlflowCtx, "parent-1", "exp-1", apiserverPlugins.RunSyncModeTerminal, "FINISHED", &endTime)
 	assert.Empty(t, syncErrors)
 
 	// 2 search calls for parent-1 (pagination) + 1 each for nested-p1 and nested-p2 (no children) = 4 total

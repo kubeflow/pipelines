@@ -45,7 +45,7 @@ inputs:
     default: "10"
   test_label:
     required: true
-    description: "Test Label to filter on, for e.g. Regression, Smoke, APIServerTests etc."
+    description: "Ginkgo label-filter expression, for example Regression, Smoke, or ApiServerTests && PipelineRun"
   upload_pipelines_with_kubernetes_client:
     required: false
     default: 'false'
@@ -264,6 +264,7 @@ runs:
         INPUT_API_URL: ${{ inputs.api_url }}
         INPUT_DEPLOYMENT_NAME: ${{ inputs.deployment_name }}
         INPUT_DEFAULT_NAMESPACE: ${{ inputs.default_namespace }}
+        INPUT_TEST_LABEL: ${{ inputs.test_label }}
       run: |
         USE_PROXY=${{ inputs.proxy }}
         if [ -z "$USE_PROXY" ]; then
@@ -398,7 +399,40 @@ runs:
           fi
         fi
 
-        go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter=${{ inputs.test_label }} --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -pipelineStoreKubernetes=$pipelineStoreKubernetes -disableTlsCheck=$DISABLE_TLS_CHECK -apiScheme=$API_SCHEME -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME -apiUrl="$API_URL" -authToken="$AUTH_TOKEN" -serviceAccountName="$SERVICE_ACCOUNT_NAME" -mlflowEnabled=${{ inputs.mlflow_enabled }} $BASE_IMAGE_FLAG
+        # Start low-overhead, time-correlated network diagnostics immediately
+        # before Ginkgo. The in-cluster pod dials each Service VIP and direct
+        # Endpoint concurrently from one netns, including pod-backed CoreDNS as
+        # a control, while the runner sampler tracks Kind-node conntrack/TCP/
+        # socket counters plus host softnet, CPU PSI, and cgroup throttling. A
+        # validated, bounded SYN/RST-
+        # only packet ring runs inside each Kind-node netns when tcpdump,
+        # nsenter, and sudo are available. SeaweedFS target-netns counters are
+        # captured on both sides of the window. Every component is best-effort
+        # and raw data is only retained in failed-job artifacts.
+        if [ "${{ inputs.skip_api_config }}" != "true" ]; then
+          "$WORKSPACE_ROOT/.github/resources/scripts/network-observability.sh" \
+            start "${INPUT_DEFAULT_NAMESPACE}" /tmp/kfp-network-observability || true
+        fi
+
+        # Cumulative kernel counters only become attributable when sampled on
+        # both sides of the Ginkgo window. These baselines are best-effort and
+        # intentionally taken after all test setup/port-forward readiness.
+        "$WORKSPACE_ROOT/.github/resources/scripts/conntrack-window.sh" capture /tmp/kfp-conntrack-window.tsv || true
+        "$WORKSPACE_ROOT/.github/resources/scripts/runner-telemetry.sh" contention-baseline /tmp/kfp-runner-contention.tsv || true
+
+        go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter="$INPUT_TEST_LABEL" --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -pipelineStoreKubernetes=$pipelineStoreKubernetes -disableTlsCheck=$DISABLE_TLS_CHECK -apiScheme=$API_SCHEME -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME -apiUrl="$API_URL" -authToken="$AUTH_TOKEN" -serviceAccountName="$SERVICE_ACCOUNT_NAME" -mlflowEnabled=${{ inputs.mlflow_enabled }} $BASE_IMAGE_FLAG
+      continue-on-error: true
+
+    - name: Report test-window network observability
+      shell: bash
+      if: ${{ always() && inputs.skip_api_config != 'true' }}
+      run: ./.github/resources/scripts/network-observability.sh stop "${{ inputs.default_namespace }}" /tmp/kfp-network-observability
+      continue-on-error: true
+
+    - name: Report test-window conntrack deltas
+      shell: bash
+      if: ${{ always() }}
+      run: ./.github/resources/scripts/conntrack-window.sh report /tmp/kfp-conntrack-window.tsv
       continue-on-error: true
 
     - name: Render runner telemetry
@@ -410,7 +444,7 @@ runs:
       # telemetry for exactly the runs that need diagnosing.
       shell: bash
       if: ${{ always() }}
-      run: ./.github/resources/scripts/runner-telemetry.sh render /tmp/runner-telemetry.csv
+      run: ./.github/resources/scripts/runner-telemetry.sh render /tmp/runner-telemetry.csv /tmp/kfp-runner-contention.tsv
       continue-on-error: true
 
     - name: Collect Pod logs in case of Test Failures
@@ -421,9 +455,15 @@ runs:
         echo "=== Current disk usage ==="
         df -h
         NAMESPACE="${{ inputs.default_namespace }}"
-        ./.github/resources/scripts/collect-logs.sh --ns "$NAMESPACE" --output /tmp/tmp_pod_log.txt
+        ./.github/resources/scripts/collect-logs.sh --ns "$NAMESPACE" --output /tmp/tmp_pod_log.txt || \
+          echo "Pod log collection failed; continuing with service diagnostics."
         if [ "${{ inputs.proxy }}" = "true" ]; then
-          ./.github/resources/scripts/collect-logs.sh --ns tinyproxy --output /tmp/tmp_pod_log.txt
+          ./.github/resources/scripts/collect-logs.sh --ns tinyproxy --output /tmp/tmp_pod_log.txt || \
+            echo "Tinyproxy log collection failed; continuing with service diagnostics."
+        fi
+        if [ "${{ inputs.mlflow_enabled }}" = "true" ]; then
+          ./.github/resources/scripts/collect-logs.sh --ns opendatahub --output /tmp/tmp_pod_log.txt || \
+            echo "MLflow namespace log collection failed; continuing with service diagnostics."
         fi
         # Dataplane diagnostics: E2E lanes intermittently fail with connection
         # errors to in-cluster ClusterIPs (SeaweedFS :9000, the MLflow service
@@ -432,7 +472,8 @@ runs:
         # for every ClusterIP the just-collected pod logs recorded a timeout,
         # refusal, or reset against -- distinguishing backend lifecycle from
         # conntrack exhaustion or a missing/stale service program.
-        ./.github/resources/scripts/collect-seaweedfs-diagnostics.sh --namespace "$NAMESPACE" --connection-failure-log /tmp/tmp_pod_log.txt --output /tmp/tmp_pod_log.txt
+        ./.github/resources/scripts/collect-seaweedfs-diagnostics.sh --namespace "$NAMESPACE" --connection-failure-log /tmp/tmp_pod_log.txt --output /tmp/tmp_pod_log.txt || \
+          echo "Service diagnostics collection was incomplete."
       continue-on-error: true
 
     - name: Summarize failure signatures
@@ -465,6 +506,13 @@ runs:
             fi
           done
         fi
+        if [ -d /tmp/kfp-network-observability ]; then
+          mkdir -p /tmp/kind-logs/network-observability
+          cp -R /tmp/kfp-network-observability/. /tmp/kind-logs/network-observability/ || true
+          # Preserve the time series even if Kind's own export failed: these
+          # runner-side files can still localize the connection loss.
+          exported=true
+        fi
         echo "exported=$exported" >> "$GITHUB_OUTPUT"
         SUFFIX="${{ inputs.report_name }}"
         if [ -z "$SUFFIX" ]; then
@@ -474,7 +522,7 @@ runs:
       continue-on-error: true
 
     - name: Upload Kind cluster logs
-      uses: actions/upload-artifact@v7
+      uses: ./.github/actions/upload-artifact-with-retry
       if: ${{ steps.run-tests.outcome != 'success' && steps.kind-logs.outputs.exported == 'true' }}
       with:
         name: kind-logs - ${{ steps.kind-logs.outputs.suffix }}
@@ -486,7 +534,7 @@ runs:
     - name: Upload JUnit XML on failure
       # Raw per-test results from failed runs feed the scheduled CI health
       # report (per-test flake rates); the HTML report alone is not parseable.
-      uses: actions/upload-artifact@v7
+      uses: ./.github/actions/upload-artifact-with-retry
       if: ${{ steps.run-tests.outcome != 'success' }}
       with:
         name: junit-xml - ${{ steps.kind-logs.outputs.suffix || github.run_id }}
@@ -530,7 +578,7 @@ runs:
 
     - name: Upload HTML Report
       id: upload
-      uses: actions/upload-artifact@v7
+      uses: ./.github/actions/upload-artifact-with-retry
       if: (!cancelled()) && steps.generate-html-report.outcome == 'success'
       with:
         name: ${{ steps.name_gen.outputs.REPORT_NAME }}

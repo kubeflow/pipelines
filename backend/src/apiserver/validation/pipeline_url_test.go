@@ -18,6 +18,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"sync"
 	"testing"
@@ -293,6 +294,23 @@ func TestSafePipelineHTTPClient_HasCustomTransport(t *testing.T) {
 	assert.NotNil(t, client.Transport, "Client should have a custom transport to prevent DNS rebinding")
 	_, ok := client.Transport.(*http.Transport)
 	assert.True(t, ok, "Transport should be *http.Transport with custom DialContext")
+}
+
+func TestSafePipelineHTTPClient_ValidationDisabledAllowsPrivateAddress(t *testing.T) {
+	viper.Reset()
+	viper.Set("PIPELINE_URL_VALIDATION_ENABLED", "false")
+	resetURLConfig()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	resp, err := SafePipelineHTTPClient().Get(server.URL)
+	if assert.NoError(t, err) {
+		defer resp.Body.Close()
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+	}
 }
 
 func TestSafeDialContext_BlocksPrivateIPs(t *testing.T) {

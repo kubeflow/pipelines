@@ -33,19 +33,25 @@ jobs:
     # Real ceiling for a hung suite. Without this the job inherits GitHub's
     # 6-hour default, and the go test -timeout below is the only hang-stop.
     timeout-minutes: 40
-    needs: build
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
         pipeline_store: [ "database", "kubernetes" ]
         k8s_version: [ "v1.36.1" ]
         pod_to_pod_tls_enabled: [ "true", "false" ]
+        # The PVC cache scenario accounts for about three minutes of the
+        # otherwise serial suite. Give it a separate cluster/job so it can run
+        # alongside the remaining tests without sharing cleanup state.
+        test_group: [ "main", "pvc-cache" ]
         exclude:
           # Pod to Pod TLS manifests are not yet implemented for Kubernetes Native API mode
           - pipeline_store: "kubernetes"
             pod_to_pod_tls_enabled: "true"
       fail-fast: false
 
-    name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
+    name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }} testGroup=${{ matrix.test_group }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -70,9 +76,9 @@ jobs:
         uses: ./.github/actions/deploy
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         with:
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
           pipeline_store: ${{ matrix.pipeline_store }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
 
@@ -89,24 +95,51 @@ jobs:
         run: kubectl -n kubeflow port-forward svc/metadata-grpc-service 8080:8080 &
         continue-on-error: true
 
+      - name: Start network observability
+        id: network-observability
+        if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
+        run: ./.github/resources/scripts/network-observability.sh start kubeflow /tmp/tmp-network-observability
+        continue-on-error: true
+
       - name: API integration tests v2
         id: tests
         if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
         working-directory: ./backend/test/v2/integration
-        # -timeout 20m: the suite's normal runtime is ~9.5 minutes, dominated
-        # by cache tests that execute sequential pipeline runs. Go's default
-        # 10-minute test binary timeout leaves under a minute of headroom, so
-        # ordinary lane slowness kills the whole binary mid-run with a panic.
+        # The PVC cache scenario runs in its own matrix job; the main group
+        # skips only that subtest. The union is the original suite, while each
+        # group keeps the full store/TLS matrix and an independent cluster.
+        # -timeout 20m remains the real ceiling for a stalled group.
         # Output is teed to a file so the step below can turn a budget
         # overrun into an explicit annotation instead of a buried panic.
         shell: bash
-        run: go test -v -timeout 20m ./... -args -runIntegrationTests=true -namespace=kubeflow -tlsEnabled=${{ matrix.pod_to_pod_tls_enabled }} -caCertPath=${{ env.CA_CERT_PATH }} -repoName=${{ github.repository }} -branchName=${{ github.ref_name }} 2>&1 | tee "$RUNNER_TEMP/go-test-output.log"
+        run: |
+          FILTER_ARGS=(-skip '^TestCache$/^TestCacheSingleRunWithPVC_SameName_Caches$')
+          if [[ "${{ matrix.test_group }}" == "pvc-cache" ]]; then
+            FILTER_ARGS=(-run '^TestCache$/^TestCacheSingleRunWithPVC_SameName_Caches$')
+          fi
+          go test -v -timeout 20m "${FILTER_ARGS[@]}" ./... \
+            -args -runIntegrationTests=true -namespace=kubeflow \
+            -tlsEnabled=${{ matrix.pod_to_pod_tls_enabled }} \
+            -caCertPath=${{ env.CA_CERT_PATH }} \
+            -repoName=${{ github.repository }} \
+            -branchName=${{ github.ref_name }} \
+            2>&1 | tee "$RUNNER_TEMP/go-test-output.log"
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
           PIPELINE_STORE: ${{ matrix.pipeline_store }}
           # Authenticates the raw.githubusercontent.com HEAD in
           # GetRepoBranchURLRAW to avoid anonymous per-IP 429 rate limits.
           GITHUB_TOKEN: ${{ github.token }}
+        continue-on-error: true
+
+      - name: Report network observability
+        if: ${{ always() && steps.forward-mlmd-port.outcome == 'success' }}
+        shell: bash
+        run: |
+          ./.github/resources/scripts/network-observability.sh stop kubeflow /tmp/tmp-network-observability || true
+          if [ "${{ steps.tests.outcome }}" = "success" ]; then
+            rm -rf /tmp/tmp-network-observability
+          fi
         continue-on-error: true
 
       - name: Explain suite time budget overrun
@@ -123,19 +156,18 @@ jobs:
             echo "## :alarm_clock: Test suite exceeded its ${BUDGET} time budget"
             echo
             echo "The whole \`go test\` binary was killed by its \`-timeout\`, discarding all results."
-            echo "This is almost always **cumulative lane slowness**, not a hung test: the suite's"
-            echo "normal runtime is ~9.5 minutes, and the interrupted test below usually shows a"
-            echo "near-zero elapsed time, meaning the budget was consumed by everything before it."
+            echo "Each sharded group normally completes well below this budget. The interrupted"
+            echo "test below usually shows a near-zero elapsed time when cumulative lane slowness"
+            echo "consumed the budget before that test started."
             echo
             echo '```'
             grep -A 8 'panic: test timed out after' "$LOG" | head -10
             echo '```'
             echo
             echo "**If this recurs on otherwise healthy PRs:** the suite has outgrown its budget —"
-            echo "raise \`-timeout\` in this workflow or speed up the suite (see the TestCache notes"
-            echo "in the PR that introduced this message) rather than rerunning repeatedly."
+            echo "inspect the group timing and cluster state before raising \`-timeout\` or rerunning."
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "::error title=Legacy V2 suite exceeded its ${BUDGET} test budget::The go test binary was killed by -timeout (${BUDGET}), discarding all results. This is cumulative lane slowness, not a hung test - the interrupted test typically shows ~0s elapsed. Normal suite runtime is ~9.5m. See the job summary for details."
+          echo "::error title=Legacy V2 suite exceeded its ${BUDGET} test budget::The sharded go test group was killed by -timeout (${BUDGET}), discarding its results. See the job summary for timing and cluster-state guidance."
 
       - name: Collect failed logs
         if: ${{ steps.deploy.outcome != 'success' || steps.forward-mlmd-port.outcome != 'success' || steps.tests.outcome != 'success' }}
@@ -147,5 +179,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: kfp-api-integration-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}-${{ matrix.pipeline_store }}-tls-${{ matrix.pod_to_pod_tls_enabled }}
+          name: kfp-api-integration-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}-${{ matrix.pipeline_store }}-tls-${{ matrix.pod_to_pod_tls_enabled }}-${{ matrix.test_group }}
           path: /tmp/tmp*/*

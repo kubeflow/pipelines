@@ -42,12 +42,13 @@ import (
 )
 
 const (
-	FormFileKey               = "uploadfile"
-	NameQueryStringKey        = "name"
-	DisplayNameQueryStringKey = "display_name"
-	DescriptionQueryStringKey = "description"
-	NamespaceStringQuery      = "namespace"
-	TagsQueryStringKey        = "tags"
+	FormFileKey                 = "uploadfile"
+	NameQueryStringKey          = "name"
+	DisplayNameQueryStringKey   = "display_name"
+	DescriptionQueryStringKey   = "description"
+	NamespaceStringQuery        = "namespace"
+	TagsQueryStringKey          = "tags"
+	CodeSourceURLQueryStringKey = "code_source_url"
 	// Pipeline Id in the query string specifies a pipeline when creating versions.
 	PipelineKey = "pipelineid"
 )
@@ -165,10 +166,11 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 	}
 
 	pipelineVersion := &model.PipelineVersion{
-		Name:         pipeline.Name,
-		DisplayName:  pipeline.DisplayName,
-		Description:  pipeline.Description,
-		PipelineSpec: model.LargeText(pipelineFile),
+		Name:          pipeline.Name,
+		DisplayName:   pipeline.DisplayName,
+		Description:   pipeline.Description,
+		PipelineSpec:  model.LargeText(pipelineFile),
+		CodeSourceUrl: r.URL.Query().Get(CodeSourceURLQueryStringKey),
 	}
 
 	if err := validation.ValidateFieldLength("Pipeline", "Name", pipeline.Name); err != nil {
@@ -326,12 +328,13 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 
 	newPipelineVersion, err := s.resourceManager.CreatePipelineVersion(
 		&model.PipelineVersion{
-			Name:         pipelineVersionName,
-			DisplayName:  displayName,
-			Description:  model.LargeText(r.URL.Query().Get(DescriptionQueryStringKey)),
-			PipelineId:   pipelineID,
-			PipelineSpec: model.LargeText(pipelineFile),
-			Tags:         versionTags,
+			Name:          pipelineVersionName,
+			DisplayName:   displayName,
+			Description:   model.LargeText(r.URL.Query().Get(DescriptionQueryStringKey)),
+			PipelineId:    pipelineID,
+			PipelineSpec:  model.LargeText(pipelineFile),
+			CodeSourceUrl: r.URL.Query().Get(CodeSourceURLQueryStringKey),
+			Tags:          versionTags,
 		},
 	)
 	if err != nil {
