@@ -57,7 +57,7 @@ runs:
       run: ./.github/resources/scripts/wait-for-image-artifacts.sh
 
     - name: Download Docker Images
-      uses: actions/download-artifact@v7
+      uses: ./.github/actions/download-artifact-with-retry
       with:
         path: "images_${{ github.run_id }}"
         pattern: "!*.dockerbuild"

@@ -1,0 +1,95 @@
+name: "Download artifact with retry"
+description: "Download workflow artifacts and retry one transient failure"
+
+inputs:
+  name:
+    description: "Name of the artifact to download; empty downloads all matching artifacts"
+    required: false
+    default: ''
+  path:
+    description: "Destination path"
+    required: true
+  pattern:
+    description: "Glob pattern matching artifacts to download"
+    required: false
+    default: ''
+  merge-multiple:
+    description: "Extract multiple artifacts into the same destination directory"
+    required: false
+    default: 'false'
+  github-token:
+    description: "Token for downloads from another workflow run or repository"
+    required: false
+    default: ''
+  repository:
+    description: "Repository containing the artifacts"
+    required: false
+    default: ${{ github.repository }}
+  run-id:
+    description: "Workflow run containing the artifacts"
+    required: false
+    default: ${{ github.run_id }}
+  retry-delay-seconds:
+    description: "Delay before the retry attempt"
+    required: false
+    default: '20'
+
+outputs:
+  download-path:
+    description: "Absolute path where artifacts were downloaded"
+    value: ${{ steps.primary.outputs.download-path || steps.retry.outputs.download-path }}
+
+runs:
+  using: "composite"
+  steps:
+    # The artifact client can return transport failures such as ECONNRESET
+    # without retrying the overall operation. A partial first download is safe
+    # to retry in place because download-artifact overwrites matching files.
+    - name: Download artifact
+      id: primary
+      uses: actions/download-artifact@v7
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ inputs.path }}
+        pattern: ${{ inputs.pattern }}
+        merge-multiple: ${{ inputs.merge-multiple }}
+        github-token: ${{ inputs.github-token }}
+        repository: ${{ inputs.repository }}
+        run-id: ${{ inputs.run-id }}
+      continue-on-error: true
+
+    - name: Wait before retrying artifact download
+      if: ${{ !cancelled() && steps.primary.outcome == 'failure' }}
+      shell: bash
+      env:
+        RETRY_DELAY_SECONDS: ${{ inputs.retry-delay-seconds }}
+      run: |
+        echo "Artifact download failed; retrying in ${RETRY_DELAY_SECONDS}s"
+        sleep "$RETRY_DELAY_SECONDS"
+
+    - name: Retry artifact download
+      id: retry
+      if: ${{ !cancelled() && steps.primary.outcome == 'failure' }}
+      uses: actions/download-artifact@v7
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ inputs.path }}
+        pattern: ${{ inputs.pattern }}
+        merge-multiple: ${{ inputs.merge-multiple }}
+        github-token: ${{ inputs.github-token }}
+        repository: ${{ inputs.repository }}
+        run-id: ${{ inputs.run-id }}
+      continue-on-error: true
+
+    - name: Verify artifact download
+      if: ${{ always() && !cancelled() }}
+      shell: bash
+      env:
+        PRIMARY_OUTCOME: ${{ steps.primary.outcome }}
+        RETRY_OUTCOME: ${{ steps.retry.outcome }}
+      run: |
+        if [[ "$PRIMARY_OUTCOME" == "success" || "$RETRY_OUTCOME" == "success" ]]; then
+          exit 0
+        fi
+        echo "::error::Artifact download failed after two attempts"
+        exit 1
