@@ -322,7 +322,7 @@ const (
 	// be scheduled.  Once job handler determined the task being ready to
 	// be scheduled, the task state will change to PENDING.  The state
 	// transition is depicted below:
-	//   - QUEUED(not ready to run) --> PENDING(ready to run) --> RUNNING
+	//  * QUEUED(not ready to run) --> PENDING(ready to run) --> RUNNING
 	PipelineStateEnum_QUEUED PipelineStateEnum_PipelineTaskState = 11
 	// Indicates that the task is not triggered based on the
 	// [PipelineTaskSpec.TriggerPolicy.condition][] config.
@@ -1712,9 +1712,8 @@ type ArtifactTypeSchema_SchemaTitle struct {
 	// The name of the type. The format of the title must be:
 	// `<namespace>.<title>`.
 	// Examples:
-	//   - `aiplatform.Model`
-	//   - `acme.CustomModel`
-	//
+	//  - `aiplatform.Model`
+	//  - `acme.CustomModel`
 	// When this field is set, the type must be pre-registered in the MLMD
 	// store.
 	SchemaTitle string `protobuf:"bytes,1,opt,name=schema_title,json=schemaTitle,proto3,oneof"`
@@ -2211,16 +2210,12 @@ func (x *ArtifactList) GetArtifacts() []*RuntimeArtifact {
 // artifact.
 // `{{$.inputs.artifacts['<name>'].properties['<property name>']}}`: prints
 // the
-//
-//	property of an input artifact.
-//
+//   property of an input artifact.
 // `{{$.inputs.parameters['<name>']}}`: prints the value of an input
 // parameter.
 // `{{$.outputs.artifacts['<name>'].uri}}: prints the URI of an output artifact.
 // `{{$.outputs.artifacts['<name>'].properties['<property name>']}}`: prints the
-//
-//	property of an output artifact.
-//
+//   property of an output artifact.
 // `{{$.outputs.parameters['<name>'].output_file}}`: prints a file path which
 // points to a file and container can write to it to return the value of the
 // parameter..
@@ -2711,11 +2706,10 @@ func (x *WorkspaceConfig) GetKubernetes() *KubernetesWorkspaceConfig {
 type KubernetesWorkspaceConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Patch of a PersistentVolumeClaim (PVC) spec to override defaults set on the API server for the workspace PVC
-	//
-	//	Example: {
-	//	  "storageClassName": "super-fast-storage",
-	//	  "accessModes": ["ReadWriteMany"]
-	//	}
+	// Example: {
+	//   "storageClassName": "super-fast-storage",
+	//   "accessModes": ["ReadWriteMany"]
+	// }
 	PvcSpecPatch  *structpb.Struct `protobuf:"bytes,1,opt,name=pvc_spec_patch,json=pvcSpecPatch,proto3,oneof" json:"pvc_spec_patch,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -3795,12 +3789,12 @@ type TaskInputsSpec_InputParameterSpec struct {
 	// be treated as a json string and parsed to the [google.protobuf.Value][]
 	// proto message. Then, the CEL expression provided in this field will be
 	// used to get the requested field. For examples,
-	//   - if Value.string_value is a json array of "[1.1, 2.2, 3.3]",
-	//     'parseJson(string_value)[i]' will pass the ith parameter from the list
-	//     to the current task, or
-	//   - if the Value.string_value is a json map of "{"a": 1.1, "b": 2.2,
-	//     "c": 3.3}, 'parseJson(string_value)[key]' will pass the map value from
-	//     the struct map to the current task.
+	//  - if Value.string_value is a json array of "[1.1, 2.2, 3.3]",
+	//  'parseJson(string_value)[i]' will pass the ith parameter from the list
+	//  to the current task, or
+	//  - if the Value.string_value is a json map of "{"a": 1.1, "b": 2.2,
+	//  "c": 3.3}, 'parseJson(string_value)[key]' will pass the map value from
+	//  the struct map to the current task.
 	//
 	// If unset, the value will be passed directly to the current task.
 	ParameterExpressionSelector string `protobuf:"bytes,4,opt,name=parameter_expression_selector,json=parameterExpressionSelector,proto3" json:"parameter_expression_selector,omitempty"`
