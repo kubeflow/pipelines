@@ -1,9 +1,11 @@
 Kubeflow Pipelines (KFP) 
 ====================================
 
-.. mdinclude:: ../../sdk/python/README.md
+.. include:: ../../sdk/python/README.md
+   :parser: myst_parser.sphinx_
 
-.. mdinclude:: ./Architecture.md
+.. include:: ./Architecture.md
+   :parser: myst_parser.sphinx_
 
 .. toctree::
    :caption: Contents
@@ -24,4 +26,4 @@ Kubeflow Pipelines (KFP)
    :caption: Guides
    :hidden:
 
-   Getting Started <guides/getting-started>
+   Guides <guides/index>

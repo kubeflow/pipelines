@@ -4,4 +4,4 @@ sphinx==5.0.2
 sphinx-click==4.3.0
 sphinx-immaterial==0.12.5
 sphinx-rtd-theme==1.0.0
-m2r2==0.3.2
+myst-parser==0.18.1

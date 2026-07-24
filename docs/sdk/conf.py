@@ -56,7 +56,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinx_click',
-    'm2r2',
+    'myst_parser',
     'sphinx_immaterial',
     'autodocsumm',
 ]
@@ -137,9 +137,13 @@ html_theme_options = {
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
-# The suffix(es) of source filenames.
-# You can specify multiple suffix as a list of string:
-source_suffix = '.rst'
+# The suffixes of source filenames and their parsers.
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'myst',
+}
+myst_enable_extensions = ['colon_fence']
+myst_heading_anchors = 6
 
 # The master toctree document.
 master_doc = 'index'
