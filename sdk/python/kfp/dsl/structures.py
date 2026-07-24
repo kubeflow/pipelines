@@ -375,10 +375,10 @@ class RetryPolicy:
 
     def to_proto(self) -> pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy:
         # include defaults so that IR is more reflective of runtime behavior
-        max_retry_count = self.max_retry_count or 0
-        backoff_duration = self.backoff_duration or '0s'
-        backoff_factor = self.backoff_factor or 2.0
-        backoff_max_duration = self.backoff_max_duration or '3600s'
+        max_retry_count = self.max_retry_count if self.max_retry_count is not None else 0
+        backoff_duration = self.backoff_duration if self.backoff_duration is not None else '0s'
+        backoff_factor = self.backoff_factor if self.backoff_factor is not None else 2.0
+        backoff_max_duration = self.backoff_max_duration if self.backoff_max_duration is not None else '3600s'
 
         backoff_duration_seconds = f'{convert_duration_to_seconds(backoff_duration)}s'
         backoff_max_duration_seconds = f'{convert_duration_to_seconds(backoff_max_duration)}s'
