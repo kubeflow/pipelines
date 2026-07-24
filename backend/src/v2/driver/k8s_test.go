@@ -3101,6 +3101,178 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T) {
 	}
 }
 
+func Test_extendPodSpecPatch_PodAffinity(t *testing.T) {
+	tests := []struct {
+		name        string
+		k8sExecCfg  *kubernetesplatform.KubernetesExecutorConfig
+		expected    *k8score.PodSpec
+		inputParams map[string]*structpb.Value
+	}{
+		{
+			"Valid - pod affinity with matchPodExpressions",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				PodAffinity: []*kubernetesplatform.PodAffinityTerm{
+					{
+						MatchPodExpressions: []*kubernetesplatform.SelectorRequirement{
+							{
+								Key:      "security",
+								Operator: "In",
+								Values:   []string{"S1"},
+							},
+						},
+						TopologyKey: "topology.kubernetes.io/zone",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{{Name: "main"}},
+				Affinity: &k8score.Affinity{
+					PodAffinity: &k8score.PodAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: []k8score.PodAffinityTerm{
+							{
+								LabelSelector: &metav1.LabelSelector{
+									MatchExpressions: []metav1.LabelSelectorRequirement{
+										{
+											Key:      "security",
+											Operator: metav1.LabelSelectorOpIn,
+											Values:   []string{"S1"},
+										},
+									},
+								},
+								TopologyKey: "topology.kubernetes.io/zone",
+							},
+						},
+					},
+				},
+			},
+			nil,
+		},
+		{
+			"Valid - pod anti-affinity with weight",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				PodAffinity: []*kubernetesplatform.PodAffinityTerm{
+					{
+						MatchPodLabels: map[string]string{
+							"app": "web",
+						},
+						TopologyKey: "kubernetes.io/hostname",
+						Weight:      int32Ptr(100),
+						Anti:        func(b bool) *bool { return &b }(true),
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{{Name: "main"}},
+				Affinity: &k8score.Affinity{
+					PodAntiAffinity: &k8score.PodAntiAffinity{
+						PreferredDuringSchedulingIgnoredDuringExecution: []k8score.WeightedPodAffinityTerm{
+							{
+								Weight: 100,
+								PodAffinityTerm: k8score.PodAffinityTerm{
+									LabelSelector: &metav1.LabelSelector{
+										MatchLabels: map[string]string{
+											"app": "web",
+										},
+									},
+									TopologyKey: "kubernetes.io/hostname",
+								},
+							},
+						},
+					},
+				},
+			},
+			nil,
+		},
+		{
+			"Valid - pod affinity with podAffinityJson",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				PodAffinity: []*kubernetesplatform.PodAffinityTerm{
+					{
+						PodAffinityJson: structInputParamConstant(map[string]interface{}{
+							"labelSelector": map[string]interface{}{
+								"matchExpressions": []interface{}{
+									map[string]interface{}{
+										"key":      "security",
+										"operator": "In",
+										"values":   []interface{}{"S1"},
+									},
+								},
+							},
+							"topologyKey": "topology.kubernetes.io/zone",
+						}),
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{{Name: "main"}},
+				Affinity: &k8score.Affinity{
+					PodAffinity: &k8score.PodAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: []k8score.PodAffinityTerm{
+							{
+								LabelSelector: &metav1.LabelSelector{
+									MatchExpressions: []metav1.LabelSelectorRequirement{
+										{
+											Key:      "security",
+											Operator: metav1.LabelSelectorOpIn,
+											Values:   []string{"S1"},
+										},
+									},
+								},
+								TopologyKey: "topology.kubernetes.io/zone",
+							},
+						},
+					},
+				},
+			},
+			nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := &k8score.PodSpec{Containers: []k8score.Container{{Name: "main"}}}
+			taskConfig := &TaskConfig{}
+
+			err := extendPodSpecPatch(
+				context.Background(),
+				got,
+				Options{KubernetesExecutorConfig: tt.k8sExecCfg},
+				nil,
+				nil,
+				nil,
+				tt.inputParams,
+				taskConfig,
+			)
+			assert.NoError(t, err)
+
+			if tt.expected.Affinity != nil {
+				assert.NotNil(t, got.Affinity)
+				if tt.expected.Affinity.PodAffinity != nil {
+					assert.NotNil(t, got.Affinity.PodAffinity)
+					if tt.expected.Affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution != nil {
+						assert.Equal(t, tt.expected.Affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution, got.Affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution)
+					}
+					if tt.expected.Affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution != nil {
+						assert.Equal(t, tt.expected.Affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution, got.Affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution)
+					}
+				}
+				if tt.expected.Affinity.PodAntiAffinity != nil {
+					assert.NotNil(t, got.Affinity.PodAntiAffinity)
+					if tt.expected.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution != nil {
+						assert.Equal(t, tt.expected.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution, got.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution)
+					}
+					if tt.expected.Affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution != nil {
+						assert.Equal(t, tt.expected.Affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution, got.Affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution)
+					}
+				}
+			} else {
+				// For empty JSON case, affinity should not be set
+				assert.Nil(t, got.Affinity)
+			}
+		})
+	}
+}
+
 func Test_extendPodSpecPatch_TaskConfig_CapturesAndApplies(t *testing.T) {
 	podSpec := &k8score.PodSpec{Containers: []k8score.Container{{Name: "main"}}}
 	cfg := &kubernetesplatform.KubernetesExecutorConfig{

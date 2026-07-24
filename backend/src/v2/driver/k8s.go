@@ -710,6 +710,149 @@ func extendPodSpecPatch(
 		}
 	}
 
+	// Get pod affinity information
+	if podAffinityTerms := kubernetesExecutorConfig.GetPodAffinity(); len(podAffinityTerms) > 0 {
+		var requiredAffinityTerms []k8score.PodAffinityTerm
+		var preferredAffinityTerms []k8score.WeightedPodAffinityTerm
+		var requiredAntiAffinityTerms []k8score.PodAffinityTerm
+		var preferredAntiAffinityTerms []k8score.WeightedPodAffinityTerm
+
+		for i, podAffinityTerm := range podAffinityTerms {
+			if podAffinityTerm.GetPodAffinityJson() == nil &&
+				len(podAffinityTerm.GetMatchPodExpressions()) == 0 &&
+				len(podAffinityTerm.GetMatchPodLabels()) == 0 &&
+				len(podAffinityTerm.GetMatchNamespaceExpressions()) == 0 &&
+				len(podAffinityTerm.GetMatchNamespaceLabels()) == 0 {
+				glog.Warningf("PodAffinityTerm %d is empty, skipping", i)
+				continue
+			}
+
+			var k8sPodAffinityTerm k8score.PodAffinityTerm
+			if podAffinityTerm.GetPodAffinityJson() != nil {
+				var k8sPodAffinity json.RawMessage
+				err := resolveK8sJsonParameter(ctx, opts, dag, pipeline, mlmd,
+					podAffinityTerm.GetPodAffinityJson(), inputParams, &k8sPodAffinity)
+				if err != nil {
+					if errors.Is(err, ErrResolvedParameterNull) {
+						continue
+					}
+					return fmt.Errorf("failed to resolve pod affinity json: %w", err)
+				}
+
+				if err := json.Unmarshal(k8sPodAffinity, &k8sPodAffinityTerm); err != nil {
+					return fmt.Errorf("failed to unmarshal pod affinity json: %w", err)
+				}
+			} else {
+				k8sPodAffinityTerm.TopologyKey = podAffinityTerm.GetTopologyKey()
+				k8sPodAffinityTerm.Namespaces = podAffinityTerm.GetNamespaces()
+
+				if len(podAffinityTerm.GetMatchPodExpressions()) > 0 || len(podAffinityTerm.GetMatchPodLabels()) > 0 {
+					k8sPodAffinityTerm.LabelSelector = &metav1.LabelSelector{
+						MatchLabels: podAffinityTerm.GetMatchPodLabels(),
+					}
+					for _, expr := range podAffinityTerm.GetMatchPodExpressions() {
+						k8sPodAffinityTerm.LabelSelector.MatchExpressions = append(k8sPodAffinityTerm.LabelSelector.MatchExpressions, metav1.LabelSelectorRequirement{
+							Key:      expr.GetKey(),
+							Operator: metav1.LabelSelectorOperator(expr.GetOperator()),
+							Values:   expr.GetValues(),
+						})
+					}
+				}
+
+				if len(podAffinityTerm.GetMatchNamespaceExpressions()) > 0 || len(podAffinityTerm.GetMatchNamespaceLabels()) > 0 {
+					k8sPodAffinityTerm.NamespaceSelector = &metav1.LabelSelector{
+						MatchLabels: podAffinityTerm.GetMatchNamespaceLabels(),
+					}
+					for _, expr := range podAffinityTerm.GetMatchNamespaceExpressions() {
+						k8sPodAffinityTerm.NamespaceSelector.MatchExpressions = append(k8sPodAffinityTerm.NamespaceSelector.MatchExpressions, metav1.LabelSelectorRequirement{
+							Key:      expr.GetKey(),
+							Operator: metav1.LabelSelectorOperator(expr.GetOperator()),
+							Values:   expr.GetValues(),
+						})
+					}
+				}
+			}
+
+			if podAffinityTerm.GetAnti() {
+				if podAffinityTerm.Weight != nil {
+					preferredAntiAffinityTerms = append(preferredAntiAffinityTerms, k8score.WeightedPodAffinityTerm{
+						Weight:          *podAffinityTerm.Weight,
+						PodAffinityTerm: k8sPodAffinityTerm,
+					})
+				} else {
+					requiredAntiAffinityTerms = append(requiredAntiAffinityTerms, k8sPodAffinityTerm)
+				}
+			} else {
+				if podAffinityTerm.Weight != nil {
+					preferredAffinityTerms = append(preferredAffinityTerms, k8score.WeightedPodAffinityTerm{
+						Weight:          *podAffinityTerm.Weight,
+						PodAffinityTerm: k8sPodAffinityTerm,
+					})
+				} else {
+					requiredAffinityTerms = append(requiredAffinityTerms, k8sPodAffinityTerm)
+				}
+			}
+		}
+
+		if len(requiredAffinityTerms) > 0 || len(preferredAffinityTerms) > 0 || len(requiredAntiAffinityTerms) > 0 || len(preferredAntiAffinityTerms) > 0 {
+			if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_AFFINITY] {
+				if taskConfig.Affinity == nil {
+					taskConfig.Affinity = &k8score.Affinity{}
+				}
+				if len(requiredAffinityTerms) > 0 || len(preferredAffinityTerms) > 0 {
+					if taskConfig.Affinity.PodAffinity == nil {
+						taskConfig.Affinity.PodAffinity = &k8score.PodAffinity{}
+					}
+					if len(requiredAffinityTerms) > 0 {
+						taskConfig.Affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution = append(taskConfig.Affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution, requiredAffinityTerms...)
+					}
+					if len(preferredAffinityTerms) > 0 {
+						taskConfig.Affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution = append(taskConfig.Affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution, preferredAffinityTerms...)
+					}
+				}
+				if len(requiredAntiAffinityTerms) > 0 || len(preferredAntiAffinityTerms) > 0 {
+					if taskConfig.Affinity.PodAntiAffinity == nil {
+						taskConfig.Affinity.PodAntiAffinity = &k8score.PodAntiAffinity{}
+					}
+					if len(requiredAntiAffinityTerms) > 0 {
+						taskConfig.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = append(taskConfig.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution, requiredAntiAffinityTerms...)
+					}
+					if len(preferredAntiAffinityTerms) > 0 {
+						taskConfig.Affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution = append(taskConfig.Affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution, preferredAntiAffinityTerms...)
+					}
+				}
+			}
+
+			if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_AFFINITY] {
+				if podSpec.Affinity == nil {
+					podSpec.Affinity = &k8score.Affinity{}
+				}
+				if len(requiredAffinityTerms) > 0 || len(preferredAffinityTerms) > 0 {
+					if podSpec.Affinity.PodAffinity == nil {
+						podSpec.Affinity.PodAffinity = &k8score.PodAffinity{}
+					}
+					if len(requiredAffinityTerms) > 0 {
+						podSpec.Affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution = append(podSpec.Affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution, requiredAffinityTerms...)
+					}
+					if len(preferredAffinityTerms) > 0 {
+						podSpec.Affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution = append(podSpec.Affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution, preferredAffinityTerms...)
+					}
+				}
+				if len(requiredAntiAffinityTerms) > 0 || len(preferredAntiAffinityTerms) > 0 {
+					if podSpec.Affinity.PodAntiAffinity == nil {
+						podSpec.Affinity.PodAntiAffinity = &k8score.PodAntiAffinity{}
+					}
+					if len(requiredAntiAffinityTerms) > 0 {
+						podSpec.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = append(podSpec.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution, requiredAntiAffinityTerms...)
+					}
+					if len(preferredAntiAffinityTerms) > 0 {
+						podSpec.Affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution = append(podSpec.Affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution, preferredAntiAffinityTerms...)
+					}
+				}
+			}
+		}
+	}
+
 	// Pre-populate admin-configured defaults into the patch so they:
 	// (a) survive strategic merge onto the compiled template, and
 	// (b) cause the user-value checks below to see them as "already set".

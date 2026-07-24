@@ -290,6 +290,8 @@ message PodAffinityTerm {
     optional int32 weight = 7;
     //Flag indicating if it is a podaffinity or podantiaffinity
     optional bool anti = 8;
+    // Provide a JSON struct of pod affinity.
+    ml_pipelines.TaskInputsSpec.InputParameterSpec pod_affinity_json = 9;
 }
 
 message SecurityContext {
