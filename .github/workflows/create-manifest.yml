@@ -31,8 +31,11 @@ jobs:
       packages: write
       id-token: write
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
       - name: Download digests
-        uses: actions/download-artifact@v4
+        uses: ./.github/actions/download-artifact-with-retry
         with:
           path: /tmp/digests
           pattern: digests-${{ env.APP_NAME }}-*

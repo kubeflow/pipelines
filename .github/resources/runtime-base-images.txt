@@ -1,3 +1,8 @@
 docker.io/alpine:3.23
 python:3.11
 registry.access.redhat.com/ubi9/python-311:latest
+docker.io/library/mysql:8.4
+quay.io/argoproj/workflow-controller:v3.7.14
+quay.io/argoproj/argoexec:v3.7.14
+quay.io/argoproj/workflow-controller:v4.0.5
+quay.io/argoproj/argoexec:v4.0.5
