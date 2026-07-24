@@ -522,7 +522,7 @@ runs:
       continue-on-error: true
 
     - name: Upload Kind cluster logs
-      uses: actions/upload-artifact@v7
+      uses: ./.github/actions/upload-artifact-with-retry
       if: ${{ steps.run-tests.outcome != 'success' && steps.kind-logs.outputs.exported == 'true' }}
       with:
         name: kind-logs - ${{ steps.kind-logs.outputs.suffix }}
@@ -534,7 +534,7 @@ runs:
     - name: Upload JUnit XML on failure
       # Raw per-test results from failed runs feed the scheduled CI health
       # report (per-test flake rates); the HTML report alone is not parseable.
-      uses: actions/upload-artifact@v7
+      uses: ./.github/actions/upload-artifact-with-retry
       if: ${{ steps.run-tests.outcome != 'success' }}
       with:
         name: junit-xml - ${{ steps.kind-logs.outputs.suffix || github.run_id }}

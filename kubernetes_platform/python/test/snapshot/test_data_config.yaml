@@ -31,6 +31,8 @@ test_cases:
     name: my_pipeline
   - module: image_pull_secrets
     name: my_pipeline
+  - module: init_container
+    name: my_pipeline
   - module: node_selector
     name: my_pipeline
   - module: nodeaffinity
