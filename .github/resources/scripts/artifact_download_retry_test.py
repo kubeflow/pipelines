@@ -145,6 +145,13 @@ class ArtifactDownloadRetryTest(unittest.TestCase):
             REPOSITORY_ROOT / 'third_party/argo/VERSION'
         ).read_text(encoding='utf-8').strip()
         self.assertIn(current_version, versions)
+        api_server_workflow = API_SERVER_WORKFLOW.read_text(encoding='utf-8')
+        compatibility_version = re.search(
+            r"ARGO_COMPATIBILITY_TESTS:.*matrix\.argo_version == '([^']+)'",
+            api_server_workflow,
+        )
+        self.assertIsNotNone(compatibility_version)
+        self.assertEqual(compatibility_version.group(1), current_version)
         deployment = ARGO_DEPLOYMENT_PATCH.read_text(encoding='utf-8')
         self.assertIn(
             f'quay.io/argoproj/workflow-controller:{current_version}',
