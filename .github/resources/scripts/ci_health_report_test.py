@@ -655,6 +655,45 @@ class TrendAggregationTest(unittest.TestCase):
             [("2020-01-01", 1), ("2026-07-13", 3)],
         )
 
+    def test_load_history_reconstructs_sorted_daily_snapshots(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for date, lane_runs in (
+                ("2026-07-13", 2),
+                ("2026-07-12", 1),
+            ):
+                with open(
+                    os.path.join(directory, f"{date}.json"),
+                    "w",
+                    encoding="utf-8",
+                ) as output:
+                    json.dump({
+                        "date": date,
+                        "totals": {"lane_runs": lane_runs},
+                    }, output)
+
+            history = chr_mod.load_history(directory)
+
+        self.assertEqual(
+            [(day["date"], day["totals"]["lane_runs"]) for day in history["days"]],
+            [("2026-07-12", 1), ("2026-07-13", 2)],
+        )
+
+    def test_load_history_accepts_legacy_combined_file_in_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with open(
+                os.path.join(directory, "history.json"),
+                "w",
+                encoding="utf-8",
+            ) as output:
+                json.dump({
+                    "schema_version": chr_mod.HISTORY_SCHEMA_VERSION,
+                    "days": [{"date": "2026-07-12"}],
+                }, output)
+
+            history = chr_mod.load_history(directory)
+
+        self.assertEqual(history["days"], [{"date": "2026-07-12"}])
+
     def test_ci_result_artifact_highest_retry_wins(self):
         artifacts = [
             {"name": "ci-result - lane", "archive_download_url": "base"},
@@ -823,9 +862,10 @@ class TrendAggregationTest(unittest.TestCase):
         self.assertEqual(totals["infrastructure_failures"], 4)
         self.assertEqual(totals["github_correlated_failures"], 2)
 
-    def test_site_writes_combined_and_individual_daily_history(self):
+    def test_site_writes_lightweight_manifest_and_individual_daily_history(self):
         history = {
             "schema_version": 1,
+            "generated_at": "2026-07-14T00:00:00Z",
             "days": [{"date": "2026-07-13", "totals": {"lane_runs": 3}}],
         }
         with tempfile.TemporaryDirectory() as directory:
@@ -839,10 +879,24 @@ class TrendAggregationTest(unittest.TestCase):
                 encoding="utf-8",
             ) as daily:
                 snapshot = json.load(daily)
+            with open(
+                os.path.join(site, "data", "index.json"),
+                encoding="utf-8",
+            ) as index_file:
+                manifest = json.load(index_file)
+            combined_history_exists = os.path.exists(
+                os.path.join(site, "data", "history.json")
+            )
 
         self.assertEqual(snapshot["totals"]["lane_runs"], 3)
+        self.assertEqual(manifest, {
+            "schema_version": chr_mod.HISTORY_SCHEMA_VERSION,
+            "generated_at": "2026-07-14T00:00:00Z",
+            "days": ["2026-07-13"],
+        })
+        self.assertFalse(combined_history_exists)
 
-    def test_dashboard_offers_presets_and_custom_date_range(self):
+    def test_dashboard_lazily_loads_presets_and_custom_date_ranges(self):
         dashboard = os.path.join(
             os.path.dirname(__file__), "..", "ci-health-dashboard", "index.html"
         )
@@ -854,6 +908,31 @@ class TrendAggregationTest(unittest.TestCase):
         self.assertIn('<input id="startDate" type="date">', content)
         self.assertIn('<input id="endDate" type="date">', content)
         self.assertIn("vs prior equal period", content)
+        self.assertIn("raw.githubusercontent.com/kubeflow/pipelines/ci-metrics/data", content)
+        self.assertIn("`${DATA_ROOT}/index.json?v=${Date.now()}`", content)
+        self.assertIn("`${DATA_ROOT}/daily/${date}.json?v=${version}`", content)
+        self.assertIn("state.pendingDays", content)
+        self.assertNotIn("fetch('./data/history.json')", content)
+
+    def test_health_workflow_restores_and_persists_daily_snapshots(self):
+        workflow = os.path.join(
+            os.path.dirname(__file__), "..", "..", "workflows",
+            "ci-health-report.yml",
+        )
+        with open(workflow, encoding="utf-8") as source:
+            content = source.read()
+
+        self.assertIn("git archive refs/remotes/origin/ci-metrics data/daily", content)
+        self.assertIn(
+            "HISTORY_INPUT: ${{ runner.temp }}/ci-health-history",
+            content,
+        )
+        self.assertIn('cp "$SITE_DIR/data/index.json"', content)
+        self.assertIn("git add -A data", content)
+        self.assertIn(
+            'rm -rf "$RUNNER_TEMP/ci-health-site/data"',
+            content,
+        )
 
     def test_disabled_pages_summary_does_not_publish_a_dead_link(self):
         history = {"schema_version": 1, "days": []}

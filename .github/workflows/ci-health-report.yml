@@ -60,8 +60,15 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/ci-health-history"
           if git fetch origin ci-metrics:refs/remotes/origin/ci-metrics; then
-            git show refs/remotes/origin/ci-metrics:data/history.json \
-              > "$RUNNER_TEMP/ci-health-history/history.json"
+            if git archive refs/remotes/origin/ci-metrics data/daily \
+              | tar -x --strip-components=2 -C "$RUNNER_TEMP/ci-health-history"; then
+              echo "Restored durable daily snapshots."
+            elif git show refs/remotes/origin/ci-metrics:data/history.json \
+              > "$RUNNER_TEMP/ci-health-history/history.json"; then
+              echo "Restored legacy combined history for migration."
+            else
+              echo "No durable snapshots found; bootstrapping 90 days."
+            fi
           else
             echo "No ci-metrics branch yet; bootstrapping 90 days."
           fi
@@ -70,7 +77,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           BOOTSTRAP_DAYS: ${{ inputs.bootstrap_days || '90' }}
-          HISTORY_INPUT: ${{ runner.temp }}/ci-health-history/history.json
+          HISTORY_INPUT: ${{ runner.temp }}/ci-health-history
           OUTPUT_DIR: ${{ runner.temp }}/ci-health-site
           PAGES_ENABLED: ${{ steps.pages.outputs.enabled }}
           UPDATE_ISSUE: "true"
@@ -92,14 +99,15 @@ jobs:
             )
           fi
           mkdir -p "$METRICS_DIR/data/daily"
-          cp "$SITE_DIR/data/history.json" "$METRICS_DIR/data/history.json"
+          rm -f "$METRICS_DIR/data/history.json"
+          cp "$SITE_DIR/data/index.json" "$METRICS_DIR/data/index.json"
           cp "$SITE_DIR/data/latest.json" "$METRICS_DIR/data/latest.json"
           cp -R "$SITE_DIR/data/daily/." "$METRICS_DIR/data/daily/"
           (
             cd "$METRICS_DIR"
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add data/history.json data/latest.json data/daily
+            git add -A data
             if git diff --cached --quiet; then
               echo "History is already current."
               exit 0
@@ -111,6 +119,12 @@ jobs:
       - name: Configure GitHub Pages
         if: steps.pages.outputs.enabled == 'true'
         uses: actions/configure-pages@v5
+
+      # The permanent data lives on ci-metrics and is fetched lazily. Do not
+      # make every Pages deployment re-upload the full historical corpus.
+      - name: Prepare lightweight dashboard artifact
+        if: steps.pages.outputs.enabled == 'true'
+        run: rm -rf "$RUNNER_TEMP/ci-health-site/data"
 
       - name: Upload dashboard
         if: steps.pages.outputs.enabled == 'true'

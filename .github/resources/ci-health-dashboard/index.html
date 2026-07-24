@@ -55,6 +55,7 @@
       .range-dates { display: flex; align-items: end; gap: 8px; }
       .range-separator { padding-bottom: 9px; color: var(--muted); font: 12px "SFMono-Regular", Consolas, monospace; }
       .range-summary { align-self: end; padding: 0 2px 9px; color: var(--muted); font: 11px "SFMono-Regular", Consolas, monospace; }
+      .range-summary[data-loading="true"]::before { content: "↻ "; color: var(--orange); }
       label { display: grid; gap: 4px; font-size: 9px; color: var(--muted); }
       select, input {
         min-width: 170px; border: 1px solid var(--line); border-radius: 0; padding: 8px 10px;
@@ -216,12 +217,21 @@
         </aside>
       </div>
       <footer>
-        <span>Append-only daily snapshots · artifacts are transport, not storage</span>
+        <span>Permanent daily snapshots · selected history loads on demand</span>
         <a href="https://github.com/kubeflow/pipelines/issues?q=label%3Aci-health">CI health tracking issue</a>
       </footer>
     </main>
     <script>
-      const state = { history: null };
+      const DATA_ROOT = location.hostname === 'kubeflow.github.io'
+        ? 'https://raw.githubusercontent.com/kubeflow/pipelines/ci-metrics/data'
+        : './data';
+      const state = {
+        index: null,
+        days: new Map(),
+        pendingDays: new Map(),
+        workflows: new Set(),
+        loadVersion: 0,
+      };
       const $ = id => document.getElementById(id);
       const sum = (items, fn) => items.reduce((total, item) => total + fn(item), 0);
       const rate = (failures, total) => total ? 100 * failures / total : 0;
@@ -241,15 +251,15 @@
         return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
       };
       function rangeBounds(offset = 0) {
-        const days = state.history.days;
-        if (!days.length) return null;
-        const earliest = parseDay(days[0].date);
-        const latest = parseDay(days.at(-1).date);
+        const dates = state.index?.days || [];
+        if (!dates.length) return null;
+        const earliest = parseDay(dates[0]);
+        const latest = parseDay(dates.at(-1));
         const mode = $('window').value;
         let start, end;
         if (mode === 'custom') {
-          start = parseDay($('startDate').value || days[0].date);
-          end = parseDay($('endDate').value || days.at(-1).date);
+          start = parseDay($('startDate').value || dates[0]);
+          end = parseDay($('endDate').value || dates.at(-1));
         } else if (mode === 'all') {
           start = earliest;
           end = latest;
@@ -275,17 +285,72 @@
       function selection(offset = 0) {
         const workflow = $('workflow').value;
         const search = $('search').value.trim().toLowerCase();
-        const days = state.history.days;
-        if (!days.length) return {days: [], workflow, search};
         const bounds = rangeBounds(offset);
-        const endExclusive = moveDays(bounds.end, 1);
+        if (!bounds) return {days: [], workflow, search};
+        const start = formatDay(bounds.start);
+        const end = formatDay(bounds.end);
         return {
-          days: days.filter(day => {
-            const date = parseDay(day.date);
-            return date >= bounds.start && date < endExclusive;
-          }),
+          days: [...state.days.values()]
+            .filter(day => day.date >= start && day.date <= end)
+            .sort((left, right) => left.date.localeCompare(right.date)),
           workflow, search
         };
+      }
+      function datesInRange(bounds) {
+        if (!bounds) return [];
+        const start = formatDay(bounds.start);
+        const end = formatDay(bounds.end);
+        return state.index.days.filter(date => date >= start && date <= end);
+      }
+      function fetchDay(date) {
+        if (state.days.has(date)) return Promise.resolve();
+        if (state.pendingDays.has(date)) return state.pendingDays.get(date);
+        const version = encodeURIComponent(state.index.generated_at || '');
+        const request = fetch(
+          `${DATA_ROOT}/daily/${date}.json?v=${version}`
+        ).then(response => {
+          if (!response.ok) throw new Error(`${date}: HTTP ${response.status}`);
+          return response.json();
+        }).then(day => {
+          state.days.set(date, day);
+          (day.lanes || []).forEach(lane => state.workflows.add(lane.workflow));
+        }).finally(() => state.pendingDays.delete(date));
+        state.pendingDays.set(date, request);
+        return request;
+      }
+      async function loadDays(dates) {
+        const missing = dates.filter(date => !state.days.has(date));
+        for (let offset = 0; offset < missing.length; offset += 16) {
+          await Promise.all(missing.slice(offset, offset + 16).map(fetchDay));
+        }
+      }
+      function refreshWorkflowOptions() {
+        const selected = $('workflow').value;
+        $('workflow').innerHTML = '<option value="">All workflows</option>' +
+          [...state.workflows].sort().map(name=>`<option>${esc(name)}</option>`).join('');
+        if (state.workflows.has(selected)) $('workflow').value = selected;
+      }
+      async function loadAndRender() {
+        const version = ++state.loadVersion;
+        const currentBounds = rangeBounds();
+        const dates = [...new Set([
+          ...datesInRange(currentBounds),
+          ...datesInRange(rangeBounds(1)),
+        ])];
+        $('rangeSummary').dataset.loading = 'true';
+        $('rangeSummary').textContent = `Loading ${dates.length} daily snapshots`;
+        try {
+          await loadDays(dates);
+          if (version !== state.loadVersion) return;
+          refreshWorkflowOptions();
+          render();
+        } catch (error) {
+          if (version !== state.loadVersion) return;
+          $('rangeSummary').textContent = 'DATA UNAVAILABLE';
+          $('laneRows').innerHTML = `<tr><td colspan="6" class="empty">${esc(error.message)}</td></tr>`;
+        } finally {
+          if (version === state.loadVersion) delete $('rangeSummary').dataset.loading;
+        }
       }
       function lanesFor({days, workflow, search}) {
         const map = new Map();
@@ -404,24 +469,24 @@
         $('commits').innerHTML = commits.length ? commits.map(item=>`<div><div class="bar-label"><span>${item.date}</span><strong><a href="https://github.com/kubeflow/pipelines/commit/${encodeURIComponent(item.sha)}">${esc(item.sha.slice(0,8))}</a></strong></div>${item.message ? `<small>${esc(item.message)}</small>` : ''}</div>`).join('') : '<div class="empty">No commit markers in this window.</div>';
       }
       function render() { renderMetrics(); renderTrend(); renderLanes(); renderDetails(); }
-      fetch('./data/history.json').then(response => {
+      fetch(`${DATA_ROOT}/index.json?v=${Date.now()}`, {
+        cache: 'no-store',
+      }).then(response => {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return response.json();
-      }).then(history => {
-        state.history = history;
-        $('generated').textContent = `Updated ${history.generated_at?.replace('T',' ').slice(0,16) || 'unknown'} UTC`;
-        const workflows = new Set(history.days.flatMap(day=>day.lanes.map(lane=>lane.workflow)));
-        $('workflow').innerHTML += [...workflows].sort().map(name=>`<option>${esc(name)}</option>`).join('');
-        if (history.days.length) {
+      }).then(index => {
+        state.index = index;
+        $('generated').textContent = `Updated ${index.generated_at?.replace('T',' ').slice(0,16) || 'unknown'} UTC`;
+        if (index.days.length) {
           ['startDate', 'endDate'].forEach(id => {
-            $(id).min = history.days[0].date;
-            $(id).max = history.days.at(-1).date;
+            $(id).min = index.days[0];
+            $(id).max = index.days.at(-1);
           });
           syncRangeInputs();
         }
         $('window').addEventListener('change', () => {
           if ($('window').value !== 'custom') syncRangeInputs();
-          render();
+          loadAndRender();
         });
         ['startDate', 'endDate'].forEach(id => $(id).addEventListener('change', () => {
           $('window').value = 'custom';
@@ -429,11 +494,11 @@
             if (id === 'startDate') $('endDate').value = $('startDate').value;
             else $('startDate').value = $('endDate').value;
           }
-          render();
+          loadAndRender();
         }));
         $('workflow').addEventListener('change', render);
         $('search').addEventListener('input',render);
-        render();
+        loadAndRender();
       }).catch(error => {
         $('generated').textContent = 'DATA UNAVAILABLE';
         $('laneRows').innerHTML = `<tr><td colspan="6" class="empty">${esc(error.message)}</td></tr>`;
