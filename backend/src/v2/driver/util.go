@@ -130,6 +130,33 @@ func getItems(value *structpb.Value) (items []*structpb.Value, err error) {
 	}
 }
 
+// parseJSONStringParameter deserializes JSON-encoded structured parameters.
+//
+// Literal dictionary items in a ParallelFor are represented as JSON strings so
+// that field selectors can use parseJson. When the whole loop item is passed
+// to a STRUCT or LIST component input, convert that string back to its native
+// protobuf value before validating the input type.
+func parseJSONStringParameter(
+	value *structpb.Value,
+	parameterType pipelinespec.ParameterType,
+) (*structpb.Value, error) {
+	if parameterType != pipelinespec.ParameterType_LIST &&
+		parameterType != pipelinespec.ParameterType_STRUCT {
+		return value, nil
+	}
+
+	stringValue, isString := value.GetKind().(*structpb.Value_StringValue)
+	if !isString {
+		return value, nil
+	}
+
+	parsedValue := &structpb.Value{}
+	if err := parsedValue.UnmarshalJSON([]byte(stringValue.StringValue)); err != nil {
+		return nil, err
+	}
+	return parsedValue, nil
+}
+
 // pbValueToString converts a structpb.Value to its string representation.
 // This handles all parameter types including STRING, NUMBER_INTEGER, NUMBER_DOUBLE, and BOOLEAN,
 // unlike GetStringValue() which returns an empty string for non-string types.

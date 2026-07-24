@@ -432,7 +432,8 @@ root:
         parameterIterator:
           itemInput: pipelinechannel--loop-item-param-3
           items:
-            raw: '[{"A_a": "1", "B_b": "2"}, {"A_a": "10", "B_b": "20"}]'
+            raw: '["{\"A_a\": \"1\", \"B_b\": \"2\"}", "{\"A_a\": \"10\", \"B_b\":
+              \"20\"}"]'
         taskInfo:
           name: for-loop-4
   inputDefinitions:
