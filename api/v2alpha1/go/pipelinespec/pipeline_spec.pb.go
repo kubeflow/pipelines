@@ -4193,7 +4193,11 @@ type PipelineTaskSpec_CachingOptions struct {
 	// Whether or not to enable cache for this task. Defaults to false.
 	EnableCache bool `protobuf:"varint,1,opt,name=enable_cache,json=enableCache,proto3" json:"enable_cache,omitempty"`
 	// Customized cache key for this task. If set, the cache_key will be used
-	// as the key for the task's cache.
+	// as the key for the task's cache. The customized cache key is combined
+	// with component reference identity (e.g. name) to prevent cross-component
+	// cache collisions. When a custom cache key is provided, all automatic
+	// inputs, base image, command, arguments, and PVC names are ignored during
+	// cache key generation.
 	CacheKey      string `protobuf:"bytes,2,opt,name=cache_key,json=cacheKey,proto3" json:"cache_key,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
