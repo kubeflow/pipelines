@@ -71,6 +71,8 @@ _build
 # virtualenv
 .venv/
 venv/
+# Project-local Python virtual environment
+kfp-dev/
 
 # python sdk package
 *.tar.gz

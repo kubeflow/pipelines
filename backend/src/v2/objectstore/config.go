@@ -77,6 +77,12 @@ type S3Params struct {
 	MaxRetries     int
 }
 
+type HuggingFaceParams struct {
+	FromEnv    bool
+	SecretName string
+	TokenKey   string
+}
+
 func (b *Config) bucketURL() string {
 	u := b.Scheme + b.BucketName
 
@@ -134,7 +140,7 @@ func ParseBucketPathToConfig(path string) (*Config, error) {
 	}
 
 	// TODO: Verify/add support for file:///.
-	if ms[1] != "gs://" && ms[1] != "s3://" && ms[1] != "minio://" && ms[1] != "mem://" {
+	if ms[1] != "gs://" && ms[1] != "s3://" && ms[1] != "minio://" && ms[1] != "mem://" && ms[1] != "huggingface://" {
 		return nil, fmt.Errorf("parse bucket config failed: unsupported Cloud bucket: %q", path)
 	}
 
@@ -158,7 +164,7 @@ func ParseBucketConfigForArtifactURI(uri string) (*Config, error) {
 	}
 
 	// TODO: Verify/add support for file:///.
-	if ms[1] != "gs://" && ms[1] != "s3://" && ms[1] != "minio://" && ms[1] != "mem://" {
+	if ms[1] != "gs://" && ms[1] != "s3://" && ms[1] != "minio://" && ms[1] != "mem://" && ms[1] != "huggingface://" {
 		return nil, fmt.Errorf("parse bucket config failed: unsupported Cloud bucket: %q", uri)
 	}
 
@@ -274,4 +280,22 @@ func StructuredGCSParams(p map[string]string) (*GCSParams, error) {
 		sparams.TokenKey = val
 	}
 	return sparams, nil
+}
+
+func StructuredHuggingFaceParams(p map[string]string) (*HuggingFaceParams, error) {
+	hfparams := &HuggingFaceParams{}
+	if val, ok := p["fromEnv"]; ok {
+		boolVal, err := strconv.ParseBool(val)
+		if err != nil {
+			return nil, err
+		}
+		hfparams.FromEnv = boolVal
+	}
+	if val, ok := p["secretName"]; ok {
+		hfparams.SecretName = val
+	}
+	if val, ok := p["tokenKey"]; ok {
+		hfparams.TokenKey = val
+	}
+	return hfparams, nil
 }
