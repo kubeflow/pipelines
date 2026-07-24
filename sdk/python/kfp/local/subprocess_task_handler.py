@@ -191,7 +191,11 @@ def environment(use_venv: bool,
 
                 # Install setuptools and wheel in the venv to ensure build dependencies are available
                 # This is required for Python 3.13+ where setuptools is not included by default
-                python_path = os.path.join(tempdir, 'bin', 'python')
+                python_path = (
+                    os.path.join(tempdir, 'Scripts', 'python.exe')
+                    if os.name == 'nt'
+                    else os.path.join(tempdir, 'bin', 'python')
+                )
                 try:
                     # First upgrade pip itself to ensure we have a compatible version
                     subprocess.run([

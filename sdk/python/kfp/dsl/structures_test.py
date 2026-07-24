@@ -915,6 +915,16 @@ class TestRetryPolicy(unittest.TestCase):
         self.assertEqual(retry_policy_proto.backoff_max_duration.seconds,
                          1209600)
 
+    def test_to_proto_with_zero_backoff_factor(self):
+        retry_policy_struct = structures.RetryPolicy(
+            max_retry_count=3,
+            backoff_duration='30s',
+            backoff_factor=0.0,
+            backoff_max_duration='120s',
+        )
+        retry_policy_proto = retry_policy_struct.to_proto()
+        self.assertEqual(retry_policy_proto.backoff_factor, 0.0)
+
 
 class TestDeserializeV1ComponentYamlDefaults(unittest.TestCase):
 
