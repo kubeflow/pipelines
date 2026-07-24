@@ -101,12 +101,6 @@ jobs:
                 }
               }
 
-              // If we have approved some runs and found no new runs in this check, we can safely exit.
-              if (totalApproved > 0 && !newRunsFound) {
-                core.info(`All found workflow runs (${totalApproved}) have been approved.`);
-                break;
-              }
-
               if (attempt < maxAttempts) {
                 core.info(`Waiting ${intervalMs / 1000}s for any additional runs to register...`);
                 await new Promise(r => setTimeout(r, intervalMs));

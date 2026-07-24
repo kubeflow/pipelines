@@ -294,7 +294,7 @@ def expand_file_patterns(patterns: List[str]) -> List[Path]:
             found_files = [pattern_path]
         else:
             # Try to expand as a glob pattern
-            found_files = list(Path('.').glob(pattern))
+            found_files = [Path(f) for f in glob.glob(pattern, recursive=True)]
 
         xml_files.extend(found_files)
 

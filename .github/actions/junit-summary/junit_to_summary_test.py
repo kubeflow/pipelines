@@ -22,7 +22,7 @@ import sys
 import tempfile
 import unittest
 
-from junit_to_summary import TestCase, TestReport, TestSuite, generate_markdown_summary
+from junit_to_summary import TestCase, TestReport, TestSuite, generate_markdown_summary, expand_file_patterns
 
 
 class JunitToSummaryTest(unittest.TestCase):
@@ -175,6 +175,42 @@ class JunitToSummaryTest(unittest.TestCase):
         result = subprocess.run(cmd, capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0, msg="Missing XML files must be an unconditional error")
         self.assertIn("Error: No XML files found", result.stderr)
+
+    def test_expand_file_patterns_absolute_glob(self):
+        """Test that expand_file_patterns successfully resolves absolute glob patterns."""
+        absolute_glob = str(Path(self.temp_dir.name) / "*.xml")
+        resolved = expand_file_patterns([absolute_glob])
+        self.assertEqual(len(resolved), 1)
+        self.assertEqual(resolved[0].resolve(), self.xml_path.resolve())
+
+    def test_bash_composite_action_with_absolute_glob(self):
+        """Test execution of parse_junit_summary.sh with an absolute glob pattern."""
+        if sys.platform == "win32":
+            self.skipTest("bash shell integration test runs on Linux CI environments")
+
+        bash_executable = shutil.which("bash")
+        if not bash_executable:
+            self.skipTest("bash is not available in environment")
+
+        runner_script = Path(__file__).parent / "parse_junit_summary.sh"
+        absolute_glob = str(Path(self.temp_dir.name) / "*.xml")
+
+        env = os.environ.copy()
+        env.update({
+            "FAIL_ON_TEST_FAILURES": "false",
+            "OUTPUT_PATH": str(self.output_path),
+            "PYTHON_EXEC": sys.executable,
+            "JUNIT_SCRIPT": str(self.script_path),
+            "XML_FILES": absolute_glob,
+        })
+
+        cmd = [bash_executable, str(runner_script)]
+
+        result = subprocess.run(cmd, capture_output=True, text=True, env=env)
+        self.assertEqual(result.returncode, 0, msg=f"parse_junit_summary.sh failed: {result.stderr}")
+
+        markdown = self.output_path.read_text(encoding="utf-8")
+        self.assertIn("## ✅ Overall Status: PASSED", markdown)
 
 
 if __name__ == "__main__":
