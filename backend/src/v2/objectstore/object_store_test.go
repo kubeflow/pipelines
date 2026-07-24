@@ -382,6 +382,74 @@ func TestDownloadBlobDirectory(t *testing.T) {
 	assert.Equal(t, "content2", string(content2))
 }
 
+func TestDownloadBlobDirectorySkipsZeroByteMarkers(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer func() { require.NoError(t, bucket.Close()) }()
+
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/model", "")
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/model/saved_model.pb", "model")
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/model/variables/", "")
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/model/variables/variables.index", "index")
+
+	localDir := t.TempDir()
+
+	err := DownloadBlob(ctx, bucket, localDir, "artifacts/model")
+	require.NoError(t, err)
+
+	info, err := os.Stat(localDir)
+	require.NoError(t, err)
+	assert.True(t, info.IsDir())
+
+	content, err := os.ReadFile(filepath.Join(localDir, "saved_model.pb"))
+	require.NoError(t, err)
+	assert.Equal(t, "model", string(content))
+
+	content, err = os.ReadFile(filepath.Join(localDir, "variables", "variables.index"))
+	require.NoError(t, err)
+	assert.Equal(t, "index", string(content))
+}
+
+func TestDownloadBlobKeepsSingleZeroByteFile(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer func() { require.NoError(t, bucket.Close()) }()
+
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/empty.txt", "")
+
+	localDir := t.TempDir()
+	targetPath := filepath.Join(localDir, "empty.txt")
+
+	err := DownloadBlob(ctx, bucket, targetPath, "artifacts/empty.txt")
+	require.NoError(t, err)
+
+	info, err := os.Stat(targetPath)
+	require.NoError(t, err)
+	assert.False(t, info.IsDir())
+	assert.Zero(t, info.Size())
+}
+
+func TestDownloadBlobEmptyDirectoryMarker(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer func() { require.NoError(t, bucket.Close()) }()
+
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/emptydir", "")
+
+	localDir := t.TempDir()
+
+	err := DownloadBlob(ctx, bucket, localDir, "artifacts/emptydir")
+	require.NoError(t, err)
+
+	info, err := os.Stat(localDir)
+	require.NoError(t, err)
+	assert.True(t, info.IsDir())
+
+	entries, err := os.ReadDir(localDir)
+	require.NoError(t, err)
+	assert.Empty(t, entries)
+}
+
 func TestDownloadBlobSkipsSiblingKeys(t *testing.T) {
 	ctx := context.Background()
 	bucket := memblob.OpenBucket(nil)
