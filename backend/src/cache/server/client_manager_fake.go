@@ -19,10 +19,11 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/cache/client"
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"gorm.io/gorm"
 )
 
 type FakeClientManager struct {
-	db                *storage.DB
+	db                *gorm.DB
 	cacheStore        storage.ExecutionCacheStoreInterface
 	k8sCoreClientFake *client.FakeKuberneteCoreClient
 	time              util.TimeInterface
@@ -33,14 +34,14 @@ func NewFakeClientManager(time util.TimeInterface) (*FakeClientManager, error) {
 		glog.Fatalf("The time parameter must not be null.") // Must never happen
 	}
 	// Initialize GORM
-	db, err := storage.NewFakeDB()
+	db, dialect, err := storage.NewFakeDB()
 	if err != nil {
 		return nil, err
 	}
 
 	return &FakeClientManager{
 		db:                db,
-		cacheStore:        storage.NewExecutionCacheStore(db, time),
+		cacheStore:        storage.NewExecutionCacheStore(db, time, dialect),
 		k8sCoreClientFake: client.NewFakeKuberneteCoresClient(),
 		time:              time,
 	}, nil
@@ -62,12 +63,12 @@ func (f *FakeClientManager) Time() util.TimeInterface {
 	return f.time
 }
 
-func (f *FakeClientManager) DB() *storage.DB {
+func (f *FakeClientManager) DB() *gorm.DB {
 	return f.db
 }
 
 func (f *FakeClientManager) Close() error {
-	sqlDB, err := f.db.DB.DB()
+	sqlDB, err := f.db.DB()
 	if err != nil {
 		return err
 	}

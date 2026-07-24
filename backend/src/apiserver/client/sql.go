@@ -15,10 +15,11 @@
 package client
 
 import (
-	"bytes"
 	"fmt"
+	"net/url"
 
 	"github.com/go-sql-driver/mysql"
+	pgx "github.com/jackc/pgx/v5"
 )
 
 func CreateMySQLConfig(user, password, mysqlServiceHost, mysqlServicePort,
@@ -47,24 +48,33 @@ func CreateMySQLConfig(user, password, mysqlServiceHost, mysqlServicePort,
 }
 
 func CreatePostgreSQLConfig(user, password, postgresHost, dbName string, postgresPort uint16,
-) string {
-	var b bytes.Buffer
-	if dbName != "" {
-		fmt.Fprintf(&b, "database=%s ", dbName)
+	extraParams map[string]string,
+) (*pgx.ConnConfig, string, error) {
+	// Require sslmode to be set explicitly rather than defaulting to a value.
+	// Defaulting to "disable" would silently send database traffic without
+	// transport encryption on production-facing deployments; failing fast forces
+	// operators to make a deliberate choice ("disable" for local development,
+	// "verify-full" for production). See backend/README.md.
+	if _, ok := extraParams["sslmode"]; !ok {
+		return nil, "", fmt.Errorf("sslmode must be explicitly set in PostgreSQL extra params; " +
+			"use \"disable\" for local development or \"verify-full\" for production (see backend/README.md)")
 	}
-	if user != "" {
-		fmt.Fprintf(&b, "user=%s ", user)
+	q := url.Values{}
+	for k, v := range extraParams {
+		q.Set(k, v)
 	}
-	if password != "" {
-		fmt.Fprintf(&b, "password=%s ", password)
+	u := &url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword(user, password),
+		Host:     fmt.Sprintf("%s:%d", postgresHost, postgresPort),
+		Path:     dbName,
+		RawQuery: q.Encode(),
 	}
-	if postgresHost != "" {
-		fmt.Fprintf(&b, "host=%s ", postgresHost)
+	cfg, err := pgx.ParseConfig(u.String())
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to parse PostgreSQL config: %w", err)
 	}
-	if postgresPort != 0 {
-		fmt.Fprintf(&b, "port=%d ", postgresPort)
-	}
-	fmt.Fprint(&b, "sslmode=disable")
-
-	return b.String()
+	redactedDSN := fmt.Sprintf("host=%s port=%d user=%s password=*** database=%s sslmode=%s",
+		postgresHost, postgresPort, user, dbName, q.Get("sslmode"))
+	return cfg, redactedDSN, nil
 }

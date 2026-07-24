@@ -50,8 +50,9 @@ func (s *DBTestSuite) TestInitDBClient_MySQL() {
 	// The default port-forwarding IP address that test uses is different compared to production
 	viper.Set("DBConfig.MySQLConfig.Host", "localhost")
 	duration, _ := time.ParseDuration("1m")
-	db := cm.InitDBClient(duration)
+	db, dialect := cm.InitDBClient(duration)
 	assert.NotNil(t, db)
+	assert.Equal(t, "mysql", dialect.Name())
 }
 
 // Test PostgreSQL initializes correctly
@@ -63,13 +64,17 @@ func (s *DBTestSuite) TestInitDBClient_PostgreSQL() {
 	t := s.T()
 	viper.Set("DBDriverName", "pgx")
 	viper.Set("DBConfig.PostgreSQLConfig.DBName", "mlpipeline")
-	// The default port-forwarding IP address that test uses is different compared to production
-	viper.Set("DBConfig.PostgreSQLConfig.Host", "127.0.0.3")
+	// Using localhost to match MySQL behavior and port-forward default.
+	viper.Set("DBConfig.PostgreSQLConfig.Host", "localhost")
 	viper.Set("DBConfig.PostgreSQLConfig.User", "user")
 	viper.Set("DBConfig.PostgreSQLConfig.Password", "password")
+	// sslmode must be set explicitly (secure-by-default); the local PostgreSQL
+	// used by integration tests does not use TLS, so opt into "disable".
+	viper.Set("DBConfig.PostgreSQLConfig.ExtraParams", map[string]string{"sslmode": "disable"})
 	duration, _ := time.ParseDuration("1m")
-	db := cm.InitDBClient(duration)
+	db, dialect := cm.InitDBClient(duration)
 	assert.NotNil(t, db)
+	assert.Equal(t, "pgx", dialect.Name())
 }
 
 func TestDB(t *testing.T) {

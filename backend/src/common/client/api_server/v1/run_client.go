@@ -284,3 +284,25 @@ func (c *RunClient) Terminate(parameters *params.RunServiceTerminateRunV1Params)
 	}
 	return nil
 }
+
+func (c *RunClient) ReportRunMetrics(parameters *params.RunServiceReportRunMetricsV1Params) (*model.APIReportRunMetricsResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	response, err := c.apiClient.RunService.RunServiceReportRunMetricsV1(parameters, c.authInfoWriter)
+	if err != nil {
+		if defaultError, ok := err.(*params.RunServiceReportRunMetricsV1Default); ok {
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
+		} else {
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to report run metrics. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to report run metrics for run %v", parameters.RunID))
+	}
+
+	return response.Payload, nil
+}

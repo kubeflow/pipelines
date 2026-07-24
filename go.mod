@@ -6,7 +6,6 @@ toolchain go1.26.4
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/VividCortex/mysqlerr v1.0.0
 	github.com/argoproj/argo-workflows/v4 v4.0.7
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/eapache/go-resiliency v1.7.0
@@ -76,6 +75,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.102.2
 	github.com/aws/smithy-go v1.26.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
+	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlite v1.6.0
