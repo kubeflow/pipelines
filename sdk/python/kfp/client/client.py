@@ -128,7 +128,7 @@ class Client:
     """
 
     # in-cluster DNS name of the pipeline service
-    _IN_CLUSTER_DNS_NAME = 'ml-pipeline.{}.svc.cluster.local:8888'
+    _IN_CLUSTER_DNS_NAME = 'ml-pipeline.{}.svc:8888'
     _KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
 
     # Auto populated path in pods
