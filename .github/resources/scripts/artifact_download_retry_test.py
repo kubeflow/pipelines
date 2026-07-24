@@ -14,6 +14,7 @@
 # limitations under the License.
 """Regression tests for artifact-download retries and image preloading."""
 
+import re
 import unittest
 from pathlib import Path
 
@@ -33,6 +34,43 @@ CI_SCRIPTS_WORKFLOW = REPOSITORY_ROOT / '.github/workflows/ci-scripts-tests.yml'
 RUNTIME_BASE_IMAGES = (
     REPOSITORY_ROOT / '.github/resources/runtime-base-images.txt'
 )
+E2E_WORKFLOW = REPOSITORY_ROOT / '.github/workflows/e2e-test.yml'
+API_SERVER_WORKFLOW = (
+    REPOSITORY_ROOT / '.github/workflows/api-server-tests.yml'
+)
+MYSQL_DEPLOYMENT = (
+    REPOSITORY_ROOT
+    / 'manifests/kustomize/third-party/mysql/base/mysql-deployment.yaml'
+)
+ARGO_DEPLOYMENT_PATCH = (
+    REPOSITORY_ROOT
+    / 'manifests/kustomize/third-party/argo/base/'
+    'workflow-controller-deployment-patch.yaml'
+)
+ARGO_CONFIG_PATCH = (
+    REPOSITORY_ROOT
+    / 'manifests/kustomize/third-party/argo/base/'
+    'workflow-controller-configmap-patch.yaml'
+)
+
+
+def runtime_images():
+    return {
+        line.strip()
+        for line in RUNTIME_BASE_IMAGES.read_text(
+            encoding='utf-8'
+        ).splitlines()
+        if line.strip() and not line.startswith('#')
+    }
+
+
+def argo_matrix_versions():
+    versions = set()
+    for workflow in (E2E_WORKFLOW, API_SERVER_WORKFLOW):
+        for line in workflow.read_text(encoding='utf-8').splitlines():
+            if 'argo_version:' in line:
+                versions.update(re.findall(r'"(v\d+\.\d+\.\d+)"', line))
+    return versions
 
 
 class ArtifactDownloadRetryTest(unittest.TestCase):
@@ -78,13 +116,7 @@ class ArtifactDownloadRetryTest(unittest.TestCase):
                 )
 
     def test_runtime_archive_contains_external_deployment_images(self):
-        images = {
-            line.strip()
-            for line in RUNTIME_BASE_IMAGES.read_text(
-                encoding='utf-8'
-            ).splitlines()
-            if line.strip() and not line.startswith('#')
-        }
+        images = runtime_images()
 
         self.assertTrue(
             {
@@ -96,6 +128,47 @@ class ArtifactDownloadRetryTest(unittest.TestCase):
             }.issubset(images)
         )
 
+    def test_argo_preloads_follow_ci_matrix_and_pull_policy(self):
+        versions = argo_matrix_versions()
+        expected_images = {
+            f'quay.io/argoproj/{image}:{version}'
+            for version in versions
+            for image in ('workflow-controller', 'argoexec')
+        }
+        preloaded_images = {
+            image for image in runtime_images()
+            if image.startswith('quay.io/argoproj/')
+        }
+
+        self.assertEqual(preloaded_images, expected_images)
+        current_version = (
+            REPOSITORY_ROOT / 'third_party/argo/VERSION'
+        ).read_text(encoding='utf-8').strip()
+        self.assertIn(current_version, versions)
+        deployment = ARGO_DEPLOYMENT_PATCH.read_text(encoding='utf-8')
+        self.assertIn(
+            f'quay.io/argoproj/workflow-controller:{current_version}',
+            deployment,
+        )
+        self.assertIn(
+            f'quay.io/argoproj/argoexec:{current_version}',
+            deployment,
+        )
+        self.assertIn(
+            'imagePullPolicy: IfNotPresent',
+            ARGO_CONFIG_PATCH.read_text(encoding='utf-8'),
+        )
+
+    def test_mysql_preload_matches_active_deployment(self):
+        deployment = MYSQL_DEPLOYMENT.read_text(encoding='utf-8')
+        match = re.search(r'^\s*image:\s*(mysql:[^\s]+)', deployment, re.MULTILINE)
+        self.assertIsNotNone(match)
+
+        canonical_image = f'docker.io/library/{match.group(1)}'
+        self.assertIn(canonical_image, runtime_images())
+        # A pinned tag with no override uses Kubernetes' IfNotPresent default.
+        self.assertNotIn('imagePullPolicy: Always', deployment)
+
     def test_ci_runs_for_retry_wiring_and_runtime_image_changes(self):
         workflow = CI_SCRIPTS_WORKFLOW.read_text(encoding='utf-8')
 
@@ -103,8 +176,16 @@ class ArtifactDownloadRetryTest(unittest.TestCase):
             "'.github/actions/download-artifact-with-retry/**'",
             "'.github/actions/deploy/**'",
             "'.github/resources/runtime-base-images.txt'",
+            "'.github/workflows/api-server-tests.yml'",
             "'.github/workflows/create-manifest.yml'",
             "'.github/workflows/image-builds.yml'",
+            "'manifests/kustomize/third-party/argo/base/"
+            "workflow-controller-configmap-patch.yaml'",
+            "'manifests/kustomize/third-party/argo/base/"
+            "workflow-controller-deployment-patch.yaml'",
+            "'manifests/kustomize/third-party/mysql/base/"
+            "mysql-deployment.yaml'",
+            "'third_party/argo/VERSION'",
         ):
             with self.subTest(path_filter=path_filter):
                 self.assertIn(path_filter, workflow)
