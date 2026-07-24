@@ -43,8 +43,8 @@
         text-transform: uppercase;
         letter-spacing: .09em;
       }
-      .eyebrow { font-size: 12px; color: var(--green); font-weight: 800; }
-      h1 { margin: 7px 0 0; font: 800 clamp(42px, 7vw, 92px)/.88 Rockwell, "Roboto Slab", Georgia, serif; letter-spacing: -.055em; }
+      .eyebrow { margin-bottom: 16px; font-size: 12px; color: var(--green); font-weight: 800; }
+      h1 { margin: 0; font: 800 clamp(42px, 7vw, 92px)/.88 Rockwell, "Roboto Slab", Georgia, serif; letter-spacing: -.055em; }
       .stamp { border: 1px solid var(--line); padding: 10px 14px; background: var(--ink); color: var(--paper); font-size: 11px; }
       .deck { max-width: 750px; margin: 24px 0 32px; font-size: 18px; line-height: 1.5; color: #41423d; }
       .controls {
@@ -91,6 +91,8 @@
       }
       .help-tip.tip-right::after { right: 0; left: auto; }
       .metric .help-tip::after { top: calc(100% + 9px); bottom: auto; }
+      .table-tip { width: 14px; height: 14px; margin-left: 3px; font-size: 8px; vertical-align: 1px; }
+      .table-tip::after { top: calc(100% + 8px); bottom: auto; text-align: left; }
       .help-tip:hover::after, .help-tip:focus-visible::after {
         opacity: 1; visibility: visible; transform: translateY(0);
       }
@@ -207,7 +209,14 @@
           <section class="panel">
             <div class="panel-head"><h2>Lane board <button class="help-tip" type="button" aria-label="Define lane board" data-help="Aggregated attempts, failures, GitHub correlations, failure rate, and p95 duration for each matching CI lane.">i</button></h2><p>Highest failure count first</p></div>
             <div class="table-wrap"><table>
-              <thead><tr><th>Workflow / lane</th><th class="num">Runs</th><th class="num">Failed</th><th class="num">GitHub</th><th class="num">Rate</th><th class="num">p95 min</th></tr></thead>
+              <thead><tr>
+                <th>Workflow / lane <button class="help-tip table-tip" type="button" aria-label="Define workflow and lane" data-help="The workflow name and matrix lane label for a completed CI job attempt.">i</button></th>
+                <th class="num">Runs <button class="help-tip table-tip" type="button" aria-label="Define runs" data-help="Completed, result-bearing job attempts for this lane in the selected range. Workflow reruns count as separate attempts.">i</button></th>
+                <th class="num">Failed <button class="help-tip table-tip" type="button" aria-label="Define failed lanes" data-help="Lane attempts with a failing result, including test, infrastructure, reporting, timeout, runner-loss, or missing-result failures.">i</button></th>
+                <th class="num">GitHub <button class="help-tip table-tip" type="button" aria-label="Define GitHub-correlated lanes" data-help="Failed lane attempts correlated with a relevant GitHub Status incident window. They remain included in the failure count.">i</button></th>
+                <th class="num">Rate <button class="help-tip table-tip" type="button" aria-label="Define lane failure rate" data-help="Failed attempts divided by completed, result-bearing attempts for this lane.">i</button></th>
+                <th class="num">p95 min <button class="help-tip table-tip tip-right" type="button" aria-label="Define lane p95 minutes" data-help="The median of the stored daily p95 elapsed durations for this lane, in minutes.">i</button></th>
+              </tr></thead>
               <tbody id="laneRows"></tbody>
             </table></div>
           </section>
@@ -220,7 +229,11 @@
           <section class="panel">
             <div class="panel-head"><h2>Flakiest tests <button class="help-tip" type="button" aria-label="Define flakiest tests" data-help="Tests ranked by failed executions divided by total executions, using successful and failed instrumented lanes.">i</button></h2><p>Failures ÷ executions</p></div>
             <div class="table-wrap"><table>
-              <thead><tr><th>Test</th><th class="num">F / N</th><th class="num">Rate</th></tr></thead>
+              <thead><tr>
+                <th>Test <button class="help-tip table-tip" type="button" aria-label="Define normalized test" data-help="The normalized test identifier aggregated across instrumented lane attempts.">i</button></th>
+                <th class="num">F / N <button class="help-tip table-tip" type="button" aria-label="Define failed and total executions" data-help="Failed executions divided by all observed executions of this test in the selected range.">i</button></th>
+                <th class="num">Rate <button class="help-tip table-tip tip-right" type="button" aria-label="Define test failure rate" data-help="Failed test executions divided by total observed executions, expressed as a percentage.">i</button></th>
+              </tr></thead>
               <tbody id="testRows"></tbody>
             </table></div>
           </section>
