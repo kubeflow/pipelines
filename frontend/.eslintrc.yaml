@@ -54,8 +54,6 @@ rules:
     # TypeScript handles undefined symbol checks.
     no-undef: off
     no-unused-vars: off
-    # Preserve the ESLint 8 recommended-rule baseline until flat-config migration.
-    no-constant-binary-expression: off
     no-redeclare: off
     '@typescript-eslint/no-redeclare': error
     '@typescript-eslint/no-unused-vars':
