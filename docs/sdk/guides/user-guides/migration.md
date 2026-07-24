@@ -12,17 +12,18 @@ The key features introduced by KFP V2 are:
 
 ## Version Matrix
 
-The first version of [Kubeflow Platform](https://www.kubeflow.org/docs/started/introduction/#what-is-the-kubeflow-ai-reference-platform) to include the Kubeflow Pipelines V2 backend was [Kubeflow 1.8](https://www.kubeflow.org/docs/kubeflow-platform/releases/kubeflow-1.8/).
+The first version of [Kubeflow Community Distribution](https://www.kubeflow.org/docs/started/introduction/#kubeflow-distribution)
+to include the Kubeflow Pipelines V2 backend was [Kubeflow Community Distribution 1.8](https://www.kubeflow.org/docs/kubeflow-distribution/releases/kubeflow-1.8/).
 
-The following table shows which versions of KFP backend are included in each version of Kubeflow Platform:
+The following table shows which versions of KFP backend are included in each version of Kubeflow Community Distribution:
 
-Release Date | Kubeflow Platform Version | KFP Backend Version | SDK Mode: [`v1`](https://www.kubeflow.org/docs/components/pipelines/legacy-v1/sdk) | SDK Mode: [`v2`](core-functions/compile-a-pipeline.md) | SDK Mode: [`v2-compatible`](https://v1-7-branch.kubeflow.org/docs/components/pipelines/v1/sdk-v2/)
+Release Date | Kubeflow Community Distribution Version | KFP Backend Version | SDK Mode: [`v1`](https://www.kubeflow.org/docs/components/pipelines/legacy-v1/sdk) | SDK Mode: [`v2`](core-functions/compile-a-pipeline.md) | SDK Mode: [`v2-compatible`](https://v1-7-branch.kubeflow.org/docs/components/pipelines/v1/sdk-v2/)
 --- | --- | --- | --- | --- | ---
-2024-07-22 | [Kubeflow 1.9](https://www.kubeflow.org/docs/kubeflow-platform/releases/kubeflow-1.9/) | [2.2.0](https://github.com/kubeflow/pipelines/releases/tag/2.2.0) | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-xmark"></i>
-2023-11-01 | [Kubeflow 1.8](https://www.kubeflow.org/docs/kubeflow-platform/releases/kubeflow-1.8/) | [2.0.3](https://github.com/kubeflow/pipelines/releases/tag/2.0.3) | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-xmark"></i>
-2023-03-29 | [Kubeflow 1.7](https://www.kubeflow.org/docs/kubeflow-platform/releases/kubeflow-1.7/) | [2.0.0-alpha.7](https://github.com/kubeflow/pipelines/releases/tag/2.0.0-alpha.7) | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-xmark"></i> | <i class="fa-solid fa-check"></i>
-2022-10-10 | [Kubeflow 1.6](https://www.kubeflow.org/docs/kubeflow-platform/releases/kubeflow-1.6/) | [2.0.0-alpha.5](https://github.com/kubeflow/pipelines/releases/tag/2.0.0-alpha.5) | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-xmark"></i> | <i class="fa-solid fa-check"></i>
-2022-06-15 | [Kubeflow 1.5](https://www.kubeflow.org/docs/kubeflow-platform/releases/kubeflow-1.5/) | [1.8.2](https://github.com/kubeflow/pipelines/releases/tag/1.8.2)  | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-xmark"></i> | <i class="fa-solid fa-xmark"></i>
+2024-07-22 | [Kubeflow 1.9](https://www.kubeflow.org/docs/kubeflow-distribution/releases/kubeflow-1.9/) | [2.2.0](https://github.com/kubeflow/pipelines/releases/tag/2.2.0) | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-xmark"></i>
+2023-11-01 | [Kubeflow 1.8](https://www.kubeflow.org/docs/kubeflow-distribution/releases/kubeflow-1.8/) | [2.0.3](https://github.com/kubeflow/pipelines/releases/tag/2.0.3) | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-xmark"></i>
+2023-03-29 | [Kubeflow 1.7](https://www.kubeflow.org/docs/kubeflow-distribution/releases/kubeflow-1.7/) | [2.0.0-alpha.7](https://github.com/kubeflow/pipelines/releases/tag/2.0.0-alpha.7) | <i class="fa-solid fa-xmark"></i> | <i class="fa-solid fa-xmark"></i> | <i class="fa-solid fa-check"></i>
+2022-10-10 | [Kubeflow 1.6](https://www.kubeflow.org/docs/kubeflow-distribution/releases/kubeflow-1.6/) | [2.0.0-alpha.5](https://github.com/kubeflow/pipelines/releases/tag/2.0.0-alpha.5) | <i class="fa-solid fa-xmark"></i> | <i class="fa-solid fa-xmark"></i> | <i class="fa-solid fa-check"></i>
+2022-06-15 | [Kubeflow 1.5](https://www.kubeflow.org/docs/kubeflow-distribution/releases/kubeflow-1.5/) | [1.8.2](https://github.com/kubeflow/pipelines/releases/tag/1.8.2) | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-xmark"></i> | <i class="fa-solid fa-xmark"></i>
 
 ## Backward Compatibility
 

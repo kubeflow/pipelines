@@ -6,7 +6,7 @@ In Kubeflow Pipelines (KFP), there are two components that utilize Object store:
 * KFP API Server
 * KFP Launcher (aka KFP executor)
 
-The default object store that is shipped as part of the Kubeflow Platform is SeaweedFS. However, you can configure a different object store provider with your KFP deployment.
+The default object store that is shipped as part of the Kubeflow Community Distribution is SeaweedFS. However, you can configure a different object store provider with your KFP deployment.
 
 The following diagram provides an simplified overview of how object storage is utilized and configured:
 
@@ -21,7 +21,7 @@ The following diagram provides an simplified overview of how object storage is u
 * Admin level access to KFP Kubernetes namespace
 * Object Store credentials for a supported provider (see below)
 
-> **Note**: in this doc "**KFP Namespace**" refers to the namespace where KFP is deployed. If KFP is deployed as part of the Kubeflow Platform deployment, this is the `kubeflow` namespace.
+> **Note**: in this doc "**KFP Namespace**" refers to the namespace where KFP is deployed. If KFP is deployed as part of the Kubeflow Community Distribution deployment, this is the `kubeflow` namespace.
 
 ## KFP API Server
 
@@ -159,7 +159,7 @@ data:
 ```
 
 > **Note**: that when utilizing the **KFP Launcher configmap it needs to be deployed in the same namespace where the Pipelines
-will be created**. In a standalone KFP deployment this is the KFP namespace. In a Kubeflow Platform deployment, this will
+will be created**. In a standalone KFP deployment this is the KFP namespace. In a Kubeflow Community Distribution deployment, this will
 be the user Kubeflow Profile namespace.
 
 #### Configure other Providers

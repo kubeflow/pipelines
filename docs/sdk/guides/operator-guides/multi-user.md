@@ -3,7 +3,7 @@
 Multi-user isolation for Kubeflow Pipelines is part of Kubeflow's overall profile and namespace isolation strategy.
 
 :::{tip}
-Kubeflow Pipelines multi-user isolation is only supported in [Kubeflow Platform](https://www.kubeflow.org/docs/started/installing-kubeflow/#kubeflow-ai-reference-platform) deployments.
+Kubeflow Pipelines multi-user isolation is only supported in [Kubeflow Community Distribution](https://www.kubeflow.org/docs/started/installing-kubeflow/#kubeflow-community-distribution) deployments.
 Refer to [profiles and namespaces](https://www.kubeflow.org/docs/components/central-dash/profiles/) for common operations like [managing profile contributors](https://www.kubeflow.org/docs/components/central-dash/profiles/#manage-profile-contributors).
 :::
 
@@ -37,8 +37,8 @@ Pipeline definitions are not isolated right now, and are shared across all names
 
 How to connect Pipelines SDK to Kubeflow Pipelines will depend on __what kind__ of Kubeflow deployment you have, and __from where you are running your code__.
 
-* [Full Kubeflow (from inside cluster)](../user-guides/core-functions/connect-api.md#kubeflow-platform---inside-the-cluster)
-* [Full Kubeflow (from outside cluster)](../user-guides/core-functions/connect-api.md#kubeflow-platform---outside-the-cluster)
+* [Full Kubeflow (from inside cluster)](../user-guides/core-functions/connect-api.md#kubeflow-community-distribution---inside-the-cluster)
+* [Full Kubeflow (from outside cluster)](../user-guides/core-functions/connect-api.md#kubeflow-community-distribution---outside-the-cluster)
 * [Standalone Kubeflow Pipelines (from inside cluster)](../user-guides/core-functions/connect-api.md#standalone-kfp---inside-the-cluster)
 * [Standalone Kubeflow Pipelines (from outside cluster)](../user-guides/core-functions/connect-api.md#standalone-kfp---outside-the-cluster)
 

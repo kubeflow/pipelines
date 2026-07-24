@@ -6,11 +6,11 @@ The [Kubeflow Pipelines SDK](https://kubeflow-pipelines.readthedocs.io/en/stable
 This guide will show you how to connect the SDK to the Pipelines API in various scenarios.
 
 
-## Kubeflow Platform
+## Kubeflow Community Distribution
 
-When running Kubeflow Pipelines as part of a multi-user [Kubeflow Platform](https://www.kubeflow.org/docs/started/introduction/#what-is-the-kubeflow-ai-reference-platform), how you authenticate the Pipelines SDK will depend on whether you are running your code __inside__ or __outside__ the cluster.
+When running Kubeflow Pipelines as part of a multi-user [Kubeflow Community Distribution](https://www.kubeflow.org/docs/started/introduction/#kubeflow-community-distribution), how you authenticate the Pipelines SDK will depend on whether you are running your code __inside__ or __outside__ the cluster.
 
-### **Kubeflow Platform - Inside the Cluster**
+### **Kubeflow Community Distribution - Inside the Cluster**
 
 <details>
 <summary>Click to expand</summary>
@@ -142,7 +142,7 @@ and give them access to submit pipelines in their own namespace.
 
 </details>
 
-### **Kubeflow Platform - Outside the Cluster**
+### **Kubeflow Community Distribution - Outside the Cluster**
 
 <details>
 <summary>Click to expand</summary>
@@ -151,10 +151,10 @@ and give them access to submit pipelines in their own namespace.
 :::{admonition} Kubeflow Notebooks
 :class: warning
 
-As Kubeflow Notebooks run on Pods _inside the cluster_, they can NOT use the following method to authenticate the Pipelines SDK, see the [inside the cluster](#kubeflow-platform---inside-the-cluster) method.
+As Kubeflow Notebooks run on Pods _inside the cluster_, they can NOT use the following method to authenticate the Pipelines SDK, see the [inside the cluster](#kubeflow-community-distribution---inside-the-cluster) method.
 :::
 
-The precise method to authenticate from _outside the cluster_ will depend on how you [deployed Kubeflow Platform](https://www.kubeflow.org/docs/started/installing-kubeflow/#kubeflow-ai-reference-platform).
+The precise method to authenticate from _outside the cluster_ will depend on how you [deployed Kubeflow Community Distribution](https://www.kubeflow.org/docs/started/installing-kubeflow/#kubeflow-community-distribution).
 Because most distributions use [Dex](https://dexidp.io/) as their identity provider, this example will show you how to authenticate with Dex using a Python script.
 
 You will need to make the Kubeflow Pipelines API accessible on the remote machine.

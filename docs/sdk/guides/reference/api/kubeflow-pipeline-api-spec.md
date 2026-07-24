@@ -4,7 +4,7 @@ This document describes the API specification for the `v2beta1` Kubeflow Pipelin
 
 ## About the REST API
 
-In most deployments of the [Kubeflow Platform](https://www.kubeflow.org/docs/started/installing-kubeflow/#kubeflow-ai-reference-platform), the Kubeflow Pipelines REST API is available under the `/pipeline/` HTTP path.
+In most deployments of the [Kubeflow Community Distribution](https://www.kubeflow.org/docs/started/installing-kubeflow/#kubeflow-community-distribution), the Kubeflow Pipelines REST API is available under the `/pipeline/` HTTP path.
 For example, if you host Kubeflow at `https://kubeflow.example.com`, the API will be available at `https://kubeflow.example.com/pipeline/`.
 
 :::{tip}
@@ -17,7 +17,7 @@ See the [Connect SDK to the API](../../user-guides/core-functions/connect-api.md
 How requests are authenticated and authorized will depend on the distribution you are using.
 Typically, you will need to provide a token or cookie in the request headers.
 
-Please refer to the documentation of your [Kubeflow distribution](https://www.kubeflow.org/docs/started/installing-kubeflow/#kubeflow-ai-reference-platform) for more information.
+Please refer to the documentation of your [Kubeflow distribution](https://www.kubeflow.org/docs/started/installing-kubeflow/#kubeflow-distributions) for more information.
 
 ### Example Usage
 

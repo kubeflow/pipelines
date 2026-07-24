@@ -4,7 +4,7 @@ Kubeflow Pipelines (KFP) is a platform for building and deploying portable and s
 
 With KFP you can author [components][components] and [pipelines][pipelines] using the [KFP Python SDK][pypi], compile pipelines to an [intermediate representation YAML][ir-yaml], and submit the pipeline to run on a KFP-conformant backend such as the [open source KFP backend][installation] or [Google Cloud Vertex AI Pipelines](https://cloud.google.com/vertex-ai/docs/pipelines/introduction).
 
-The open source KFP backend is available as a core component of Kubeflow or as a standalone installation. To use KFP as part of the Kubeflow platform, follow the instructions for [installing Kubeflow][installing Kubeflow]. To use KFP as a standalone application, follow the [standalone installation][installation] instructions. To get started with your first pipeline, follow the [Getting Started][getting-started] instructions.
+The open source KFP backend is available as a core component of Kubeflow or as a standalone installation. To use KFP as part of the Kubeflow Community Distribution, follow the instructions for [installing Kubeflow][installing Kubeflow]. To use KFP as a standalone application, follow the [standalone installation][installation] instructions. To get started with your first pipeline, follow the [Getting Started][getting-started] instructions.
 
 ## Why Kubeflow Pipelines?
 
