@@ -161,6 +161,133 @@ class JobFetchErrorTest(unittest.TestCase):
         )
 
 
+class GitHubStatusCorrelationTest(unittest.TestCase):
+    def incident_payload(self):
+        return {
+            "incidents": [
+                {
+                    "id": "incident-1",
+                    "name": "Disruption with some GitHub services",
+                    "impact": "major",
+                    "shortlink": "https://stspg.io/example",
+                    "created_at": "2026-07-24T16:17:00Z",
+                    "started_at": "2026-07-24T16:17:00Z",
+                    "resolved_at": "2026-07-24T17:36:00Z",
+                    "components": [{"name": "Actions"}],
+                    "incident_updates": [{
+                        "display_at": "2026-07-24T16:19:00Z",
+                        "affected_components": [{"name": "API Requests"}],
+                    }],
+                },
+                {
+                    "id": "copilot-only",
+                    "name": "Copilot unavailable",
+                    "created_at": "2026-07-24T12:00:00Z",
+                    "resolved_at": "2026-07-24T13:00:00Z",
+                    "components": [{"name": "Copilot"}],
+                },
+            ]
+        }
+
+    def test_status_request_never_forwards_github_credentials(self):
+        response = mock.MagicMock()
+        response.read.return_value = b'{"incidents":[]}'
+        response.__enter__.return_value = response
+        with mock.patch.object(
+            chr_mod.urllib.request, "urlopen", return_value=response
+        ) as urlopen:
+            chr_mod.status_request()
+
+        request = urlopen.call_args.args[0]
+        self.assertEqual(request.full_url, chr_mod.GITHUB_STATUS_INCIDENTS_URL)
+        self.assertIsNone(request.get_header("Authorization"))
+
+    def test_filters_components_and_preserves_official_incident_evidence(self):
+        incidents = chr_mod.github_status_incidents(
+            self.incident_payload(),
+            "2026-07-24",
+            now=chr_mod.parse_timestamp("2026-07-24T18:00:00Z"),
+        )
+
+        self.assertEqual(len(incidents), 1)
+        self.assertEqual(incidents[0]["id"], "incident-1")
+        self.assertEqual(incidents[0]["components"], ["API Requests", "Actions"])
+        self.assertEqual(incidents[0]["url"], "https://stspg.io/example")
+
+    def test_strict_and_late_reporting_matches_are_distinct(self):
+        incidents = chr_mod.github_status_incidents(
+            self.incident_payload(), "2026-07-24"
+        )
+        observations = [
+            {
+                "id": "nearby",
+                "failed": True,
+                "started": "2026-07-24T16:00:00Z",
+                "completed": "2026-07-24T16:10:00Z",
+            },
+            {
+                "id": "overlap",
+                "failed": True,
+                "started": "2026-07-24T16:30:00Z",
+                "completed": "2026-07-24T16:40:00Z",
+            },
+            {
+                "id": "success",
+                "failed": False,
+                "started": "2026-07-24T16:30:00Z",
+                "completed": "2026-07-24T16:40:00Z",
+            },
+        ]
+
+        correlated = chr_mod.correlate_github_incidents(
+            observations,
+            incidents,
+            now=chr_mod.parse_timestamp("2026-07-24T18:00:00Z"),
+        )
+
+        self.assertEqual(
+            correlated[0]["github_incidents"],
+            [{"id": "incident-1", "match": "nearby"}],
+        )
+        self.assertEqual(
+            correlated[1]["github_incidents"],
+            [{"id": "incident-1", "match": "overlap"}],
+        )
+        self.assertEqual(correlated[2]["github_incidents"], [])
+
+    def test_github_service_error_signature_requires_target_and_error(self):
+        self.assertTrue(
+            chr_mod.github_failure_signature(
+                "Error: failed to download action from https://github.com: "
+                "504 Gateway Timeout"
+            )
+        )
+        self.assertFalse(
+            chr_mod.github_failure_signature(
+                "dial tcp 10.96.0.5:9000: i/o timeout"
+            )
+        )
+
+    def test_correlated_job_log_adds_signature_evidence(self):
+        observations = [{
+            "id": "one",
+            "job_id": 42,
+            "github_incidents": [{"id": "incident-1", "match": "overlap"}],
+        }]
+        log = (
+            b"actions/download-artifact failed: 403 Forbidden from "
+            b"results-receiver.actions.githubusercontent.com"
+        )
+        with mock.patch.object(chr_mod, "api_request", return_value=log) as request:
+            enriched, errors = chr_mod.add_github_log_evidence(
+                "token", "o/r", observations
+            )
+
+        self.assertEqual(errors, 0)
+        self.assertTrue(enriched[0]["github_incidents"][0]["signature"])
+        self.assertIn("/actions/jobs/42/logs", request.call_args.args[1])
+
+
 class StaleWorkflowTest(unittest.TestCase):
     def test_missing_workflow_404_is_surfaced(self):
         import urllib.error
@@ -439,6 +566,52 @@ class TrendAggregationTest(unittest.TestCase):
         self.assertEqual(snapshot["tests"][0]["executions"], 1)
         self.assertEqual(snapshot["lanes"][0]["duration"], {"p50": 15.0, "p95": 19.5})
 
+    def test_daily_snapshot_persists_github_incident_correlation(self):
+        incident = {
+            "id": "incident-1",
+            "name": "Actions disruption",
+            "url": "https://stspg.io/example",
+            "impact": "major",
+            "started_at": "2026-07-13T00:05:00Z",
+            "resolved_at": "2026-07-13T00:30:00Z",
+            "components": ["Actions"],
+        }
+        observations = [
+            {
+                "id": "7:1:1", "date": "2026-07-13", "workflow": "WF",
+                "lane": "lane", "run_id": 7, "attempt": 1, "sha": "a",
+                "conclusion": "failure", "failed": True, "duration": 20.0,
+                "phases": {},
+                "github_incidents": [{
+                    "id": "incident-1",
+                    "match": "overlap",
+                    "signature": "GitHub returned 504",
+                }],
+            },
+            {
+                "id": "8:1:1", "date": "2026-07-13", "workflow": "WF",
+                "lane": "lane", "run_id": 8, "attempt": 1, "sha": "b",
+                "conclusion": "failure", "failed": True, "duration": 10.0,
+                "phases": {},
+                "github_incidents": [{"id": "incident-1", "match": "nearby"}],
+            },
+        ]
+
+        snapshot = chr_mod.aggregate_daily(
+            observations, [], {}, [incident]
+        )[0]
+
+        self.assertEqual(snapshot["totals"]["failures"], 2)
+        self.assertEqual(snapshot["totals"]["github_correlated_failures"], 2)
+        self.assertEqual(snapshot["totals"]["github_signature_matches"], 1)
+        self.assertEqual(snapshot["totals"]["github_strict_overlaps"], 1)
+        self.assertEqual(snapshot["totals"]["github_nearby_matches"], 1)
+        self.assertEqual(snapshot["lanes"][0]["github_correlated_failures"], 2)
+        self.assertEqual(snapshot["github_incidents"][0]["url"], incident["url"])
+        self.assertEqual(snapshot["github_incidents"][0]["signature_matches"], 1)
+        self.assertEqual(snapshot["github_incidents"][0]["strict_overlaps"], 1)
+        self.assertEqual(snapshot["github_incidents"][0]["nearby_matches"], 1)
+
     def test_rerun_rescue_is_attributed_only_to_latest_attempt_day(self):
         observations = [
             {
@@ -633,6 +806,7 @@ class TrendAggregationTest(unittest.TestCase):
                 "totals": {
                     "lane_runs": 4,
                     "failures": 4,
+                    "github_correlated_failures": 2,
                     "reruns": 0,
                     "rerun_rescues": 0,
                 },
@@ -648,6 +822,7 @@ class TrendAggregationTest(unittest.TestCase):
             history, "2026-07-13", "2026-07-14"
         )
         self.assertEqual(totals["infrastructure_failures"], 4)
+        self.assertEqual(totals["github_correlated_failures"], 2)
 
     def test_site_writes_combined_and_individual_daily_history(self):
         history = {
@@ -675,6 +850,44 @@ class TrendAggregationTest(unittest.TestCase):
         )
         self.assertIn("enable GitHub Pages", report)
         self.assertNotIn("https://example.invalid", report)
+
+    def test_summary_links_correlated_github_incident_without_hiding_failures(self):
+        today = chr_mod.datetime.now(chr_mod.timezone.utc).date().isoformat()
+        history = {
+            "schema_version": 1,
+            "days": [{
+                "date": today,
+                "totals": {
+                    "lane_runs": 2,
+                    "failures": 2,
+                    "github_correlated_failures": 1,
+                    "reruns": 0,
+                    "rerun_rescues": 0,
+                },
+                "failure_classes": {"unclassified_failure": 2},
+                "github_incidents": [{
+                    "id": "incident-1",
+                    "name": "Actions disruption",
+                    "url": "https://stspg.io/example",
+                    "impact": "major",
+                    "started_at": f"{today}T00:00:00Z",
+                    "resolved_at": f"{today}T01:00:00Z",
+                    "components": ["Actions"],
+                    "strict_overlaps": 1,
+                    "nearby_matches": 0,
+                }],
+                "lanes": [],
+                "tests": [],
+            }],
+        }
+
+        report = chr_mod.render_trend_summary(
+            history, [], "https://example.invalid"
+        )
+
+        self.assertIn("| Latest 7 days | 2 | 2 |", report)
+        self.assertIn("[Actions disruption](https://stspg.io/example)", report)
+        self.assertIn("not proof of causation", report)
 
 
 class UpsertIssueTest(unittest.TestCase):
