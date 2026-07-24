@@ -11,6 +11,7 @@ on:
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
+      - '.github/actions/publish-ci-result/**'
       - '.github/resources/**'
       - 'sdk/python/**'
       - 'api/v2alpha1/**'
@@ -107,9 +108,19 @@ jobs:
           apiUrl: "http://localhost:8888"
           namespace: "kubeflow"
           SETUP_ENV: false
+          PYTEST_ADDOPTS: --junitxml=${{ runner.temp }}/sdk-client-junit.xml
         run: |
           ./test/presubmit-tests-sdk-client.sh
         continue-on-error: true
+
+      - name: Publish normalized CI result
+        if: always() && !cancelled()
+        uses: ./.github/actions/publish-ci-result
+        with:
+          test_outcome: ${{ steps.tests.outcome }}
+          report_name: KFP SDK Client Tests - K8s ${{ matrix.k8s_version }}
+          reports_dir: ${{ runner.temp }}
+          test_label: client
 
       - name: Collect failed logs
         if: ${{ steps.deploy.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.tests.outcome != 'success'}}

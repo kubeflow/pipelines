@@ -24,6 +24,7 @@ on:
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
       - '.github/actions/test-and-report/**'
+      - '.github/actions/publish-ci-result/**'
       - '.github/resources/**'
       - 'api/**'
       - 'go.mod'

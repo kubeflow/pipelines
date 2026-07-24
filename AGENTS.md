@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-22
+- Last updated: 2026-07-23
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -529,7 +529,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 ## CI/CD (GitHub Actions)
 
 - Workflows: `.github/workflows/` (build, test, lint, release)
-- `ci-health-report.yml` runs daily (and on dispatch): aggregates master-branch lane failure rates and per-test flake counts from `junit-xml - *` artifacts, publishing to the job summary and a tracking issue labeled `ci-health`.
+- `ci-health-report.yml` runs daily (and on dispatch): incrementally refreshes master-branch lane failure rates, p50/p95 job and phase durations, rerun rescues, structured failure classes/signatures, and true per-test flake rates. It persists append-only daily snapshots on the `ci-metrics` branch, publishes the current comparison to the job summary and `ci-health` tracking issue, and deploys a filterable 7/14/28/90-day GitHub Pages dashboard when Pages is enabled with GitHub Actions as the repository's source.
 - `ci-scripts-tests.yml` runs the stdlib unit tests for CI tooling, diagnostics, and meta-workflow concurrency on PRs touching `.github/resources/scripts/*.py`, `.github/resources/scripts/*.sh`, `ci-checks.yml`, `gh-workflow-approve.yml`, the create-cluster action, the scoped curl retry configuration, or the test workflow itself (run locally with `cd .github/resources/scripts && python3 -m unittest discover -v -p '*_test.py'`).
 - The `CI Check` and `Approve Workflow Runs` meta-workflows filter unrelated label events before entering per-PR job concurrency. Only `synchronize` events cancel an active run, so Dependabot/Prow label bursts do not leave cancelled checks on the current head SHA.
 - Composite actions: `.github/actions/` (e.g., `kfp-k8s`, `create-cluster`, `deploy`, `test-and-report`)
@@ -570,6 +570,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - The `test-and-report` action port-forwards MLMD on port `8080` only when `ARGO_COMPATIBILITY_TESTS=true`, allowing the canonical Argo compatibility API job to validate execution/artifact metadata without adding another test lane.
 - Proxy test failures collect both the KFP namespace and `tinyproxy` namespace logs/events to diagnose proxy-service readiness separately from pipeline failures.
 - The `test-and-report` action samples runner-level CPU/memory/load via a self-contained `/proc` sampler (`runner-telemetry.sh`, mermaid charts in the job summary — no external chart services) and, on test failure, writes a failure-signature classification table to the job summary (`failure-signature-summary.sh`), exports full Kind cluster logs as a `kind-logs - <report>` artifact, and uploads raw JUnit XML as a `junit-xml - <report>` artifact for flake-trend analysis.
+- The `test-and-report` action uploads a compact `ci-result - <lane>` artifact after successful and failed test lanes. It includes every test execution, structured failure-signature counts, matrix dimensions, and setup/test/report timing. These 30-day artifacts are ingestion transport; the scheduled health workflow copies their aggregates into durable history before they expire.
 - Artifact uploads in `test-and-report` use the `upload-artifact-with-retry` composite action, which retries one failed upload after 20 seconds under a collision-safe fallback name while preserving the successful attempt's artifact outputs; the CI health report prefers a retry-suffixed JUnit artifact over its duplicate unsuffixed sibling.
 - E2E jobs retry the sample Modelcar image build three times before loading it into Kind, and fail during fixture setup instead of starting tests without the required image.
 - Immediately around the Ginkgo test window, `test-and-report` snapshots per-Kind-node conntrack counters plus host CPU PSI and runner-cgroup CPU throttling counters, then reports attributable deltas for both passing and failing lanes.

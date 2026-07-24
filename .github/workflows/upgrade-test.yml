@@ -19,6 +19,7 @@ on:
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
       - '.github/actions/test-and-report/**'
+      - '.github/actions/publish-ci-result/**'
       - '.github/resources/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'

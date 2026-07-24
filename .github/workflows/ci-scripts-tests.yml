@@ -9,14 +9,17 @@ on:
       - '.github/actions/create-cluster/**'
       - '.github/resources/curl-retry/**'
       - '.github/resources/scripts/*.py'
+      - '.github/resources/ci-health-dashboard/**'
       # The observability shell scripts are covered by Python-driven tests.
       - '.github/resources/scripts/*.sh'
       - '.github/resources/scripts/kfp-readiness/**'
       - '.github/workflows/ci-checks.yml'
       - '.github/actions/upload-artifact-with-retry/**'
       - '.github/actions/test-and-report/**'
+      - '.github/actions/publish-ci-result/**'
       - '.github/workflows/e2e-test.yml'
       - '.github/workflows/ci-scripts-tests.yml'
+      - '.github/workflows/ci-health-report.yml'
       - '.github/workflows/gh-workflow-approve.yml'
 
 permissions:
