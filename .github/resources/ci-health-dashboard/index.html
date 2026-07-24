@@ -52,12 +52,16 @@
         border: 1px solid var(--line); border-width: 1px 0; background: rgba(242,240,231,.88);
         position: sticky; top: 0; z-index: 4; backdrop-filter: blur(8px);
       }
+      .range-dates { display: flex; align-items: end; gap: 8px; }
+      .range-separator { padding-bottom: 9px; color: var(--muted); font: 12px "SFMono-Regular", Consolas, monospace; }
+      .range-summary { align-self: end; padding: 0 2px 9px; color: var(--muted); font: 11px "SFMono-Regular", Consolas, monospace; }
       label { display: grid; gap: 4px; font-size: 9px; color: var(--muted); }
       select, input {
         min-width: 170px; border: 1px solid var(--line); border-radius: 0; padding: 8px 10px;
         color: var(--ink); background: var(--paper); font: 12px "SFMono-Regular", Consolas, monospace;
       }
-      input { min-width: 280px; }
+      input[type="search"] { min-width: 280px; }
+      input[type="date"] { min-width: 145px; }
       .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; margin: 30px 0; background: var(--line); border: 1px solid var(--line); }
       .metric { min-height: 128px; padding: 18px; background: var(--panel); }
       .metric span { display: block; min-height: 28px; font-size: 10px; color: var(--muted); }
@@ -103,6 +107,10 @@
         .controls { position: static; }
         input, select { min-width: 100%; width: 100%; }
         label { flex: 1 1 100%; }
+        .range-dates { width: 100%; align-items: stretch; }
+        .range-dates label { min-width: 0; }
+        .range-separator { align-self: end; }
+        .range-summary { width: 100%; padding-bottom: 0; }
         .panel-head { display: block; }
         .panel-head p { margin-top: 7px; }
       }
@@ -125,14 +133,26 @@
       <p class="deck">A long-view instrument panel for distinguishing product regressions from infrastructure noise—and seeing whether CI work actually made the system faster and steadier.</p>
 
       <section class="controls" aria-label="Dashboard filters">
-        <label>Window
+        <label>Time range
           <select id="window">
-            <option value="7">7 days</option>
-            <option value="14" selected>14 days</option>
-            <option value="28">28 days</option>
-            <option value="90">90 days</option>
+            <option value="7">Last 7 days</option>
+            <option value="14" selected>Last 14 days</option>
+            <option value="28">Last 28 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="all">All history</option>
+            <option value="custom">Custom range</option>
           </select>
         </label>
+        <div class="range-dates" role="group" aria-label="Date range">
+          <label>From
+            <input id="startDate" type="date">
+          </label>
+          <span class="range-separator" aria-hidden="true">→</span>
+          <label>To
+            <input id="endDate" type="date">
+          </label>
+        </div>
+        <output class="range-summary" id="rangeSummary" aria-live="polite"></output>
         <label>Workflow
           <select id="workflow"><option value="">All workflows</option></select>
         </label>
@@ -207,27 +227,62 @@
       const rate = (failures, total) => total ? 100 * failures / total : 0;
       const fmt = value => new Intl.NumberFormat().format(value);
       const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      const parseDay = value => new Date(`${value}T00:00:00Z`);
+      const formatDay = value => value.toISOString().slice(0, 10);
+      const moveDays = (value, count) => {
+        const moved = new Date(value);
+        moved.setUTCDate(moved.getUTCDate() + count);
+        return moved;
+      };
       const median = values => {
         const sorted = values.filter(v => v !== null && v !== undefined).sort((a,b) => a-b);
         if (!sorted.length) return null;
         const middle = Math.floor(sorted.length / 2);
         return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
       };
+      function rangeBounds(offset = 0) {
+        const days = state.history.days;
+        if (!days.length) return null;
+        const earliest = parseDay(days[0].date);
+        const latest = parseDay(days.at(-1).date);
+        const mode = $('window').value;
+        let start, end;
+        if (mode === 'custom') {
+          start = parseDay($('startDate').value || days[0].date);
+          end = parseDay($('endDate').value || days.at(-1).date);
+        } else if (mode === 'all') {
+          start = earliest;
+          end = latest;
+        } else {
+          const count = Number(mode);
+          end = latest;
+          start = moveDays(end, 1 - count);
+        }
+        if (start > end) [start, end] = [end, start];
+        const count = Math.round((end - start) / 86400000) + 1;
+        return {
+          start: moveDays(start, -offset * count),
+          end: moveDays(end, -offset * count),
+          count,
+        };
+      }
+      function syncRangeInputs() {
+        const bounds = rangeBounds();
+        if (!bounds) return;
+        $('startDate').value = formatDay(bounds.start);
+        $('endDate').value = formatDay(bounds.end);
+      }
       function selection(offset = 0) {
-        const count = Number($('window').value);
         const workflow = $('workflow').value;
         const search = $('search').value.trim().toLowerCase();
         const days = state.history.days;
         if (!days.length) return {days: [], workflow, search};
-        const latest = new Date(`${days.at(-1).date}T00:00:00Z`);
-        const end = new Date(latest);
-        end.setUTCDate(end.getUTCDate() + 1 - offset * count);
-        const start = new Date(end);
-        start.setUTCDate(start.getUTCDate() - count);
+        const bounds = rangeBounds(offset);
+        const endExclusive = moveDays(bounds.end, 1);
         return {
           days: days.filter(day => {
-            const date = new Date(`${day.date}T00:00:00Z`);
-            return date >= start && date < end;
+            const date = parseDay(day.date);
+            return date >= bounds.start && date < endExclusive;
           }),
           workflow, search
         };
@@ -265,13 +320,17 @@
         return result;
       }
       function renderMetrics() {
+        const bounds = rangeBounds();
         const current = windowStats(selection());
         const previous = windowStats(selection(1));
         const delta = current.failureRate - previous.failureRate;
         $('attempts').textContent = fmt(current.total);
-        $('sample').textContent = `${selection().days.length} calendar days represented`;
+        $('rangeSummary').textContent = bounds ? `${formatDay(bounds.start)} → ${formatDay(bounds.end)}` : 'No history';
+        $('sample').textContent = `${selection().days.length} observed days · ${bounds?.count || 0} calendar days selected`;
         $('failureRate').textContent = `${current.failureRate.toFixed(1)}%`;
-        $('failureDelta').textContent = `${delta >= 0 ? '+' : ''}${delta.toFixed(1)} pp vs prior window`;
+        $('failureDelta').textContent = previous.total
+          ? `${delta >= 0 ? '+' : ''}${delta.toFixed(1)} pp vs prior equal period`
+          : 'No prior-period data';
         $('duration').textContent = current.p95 == null ? '—' : `${current.p95.toFixed(1)}m`;
         $('infra').textContent = fmt(current.infra);
         $('githubOverlap').textContent = fmt(current.github);
@@ -353,7 +412,26 @@
         $('generated').textContent = `Updated ${history.generated_at?.replace('T',' ').slice(0,16) || 'unknown'} UTC`;
         const workflows = new Set(history.days.flatMap(day=>day.lanes.map(lane=>lane.workflow)));
         $('workflow').innerHTML += [...workflows].sort().map(name=>`<option>${esc(name)}</option>`).join('');
-        ['window','workflow'].forEach(id=>$(id).addEventListener('change',render));
+        if (history.days.length) {
+          ['startDate', 'endDate'].forEach(id => {
+            $(id).min = history.days[0].date;
+            $(id).max = history.days.at(-1).date;
+          });
+          syncRangeInputs();
+        }
+        $('window').addEventListener('change', () => {
+          if ($('window').value !== 'custom') syncRangeInputs();
+          render();
+        });
+        ['startDate', 'endDate'].forEach(id => $(id).addEventListener('change', () => {
+          $('window').value = 'custom';
+          if ($('startDate').value > $('endDate').value) {
+            if (id === 'startDate') $('endDate').value = $('startDate').value;
+            else $('startDate').value = $('endDate').value;
+          }
+          render();
+        }));
+        $('workflow').addEventListener('change', render);
         $('search').addEventListener('input',render);
         render();
       }).catch(error => {

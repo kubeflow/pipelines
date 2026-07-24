@@ -639,21 +639,20 @@ class TrendAggregationTest(unittest.TestCase):
         self.assertEqual(snapshots[1]["totals"]["rerun_rescues"], 1)
         self.assertEqual(snapshots[1]["totals"]["time_to_green"]["p50"], 70.0)
 
-    def test_merge_replaces_overlap_and_preserves_older_days(self):
+    def test_merge_replaces_overlap_and_never_prunes_older_days(self):
         history = {
             "schema_version": 1,
             "days": [
-                {"date": "2026-07-12", "totals": {"lane_runs": 1}},
+                {"date": "2020-01-01", "totals": {"lane_runs": 1}},
                 {"date": "2026-07-13", "totals": {"lane_runs": 2}},
             ],
         }
         merged = chr_mod.merge_history(
             history, [{"date": "2026-07-13", "totals": {"lane_runs": 3}}],
-            retention_days=10000,
         )
         self.assertEqual(
             [(day["date"], day["totals"]["lane_runs"]) for day in merged["days"]],
-            [("2026-07-12", 1), ("2026-07-13", 3)],
+            [("2020-01-01", 1), ("2026-07-13", 3)],
         )
 
     def test_ci_result_artifact_highest_retry_wins(self):
@@ -842,6 +841,19 @@ class TrendAggregationTest(unittest.TestCase):
                 snapshot = json.load(daily)
 
         self.assertEqual(snapshot["totals"]["lane_runs"], 3)
+
+    def test_dashboard_offers_presets_and_custom_date_range(self):
+        dashboard = os.path.join(
+            os.path.dirname(__file__), "..", "ci-health-dashboard", "index.html"
+        )
+        with open(dashboard, encoding="utf-8") as source:
+            content = source.read()
+
+        for value in ("7", "14", "28", "90", "all", "custom"):
+            self.assertIn(f'<option value="{value}"', content)
+        self.assertIn('<input id="startDate" type="date">', content)
+        self.assertIn('<input id="endDate" type="date">', content)
+        self.assertIn("vs prior equal period", content)
 
     def test_disabled_pages_summary_does_not_publish_a_dead_link(self):
         history = {"schema_version": 1, "days": []}
