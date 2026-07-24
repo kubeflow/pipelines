@@ -100,6 +100,16 @@ data:
   ## Valid values are 'true' and 'false'. Defaults to 'false'.
   ## For more information see: https://github.com/kubeflow/pipelines/issues/11987
   ARTIFACTS_PROXY_ENABLED: "false"
+  ## RUNS_RETENTION_TIME: Auto-archive terminal runs after this duration.
+  ## Uses Go duration format (e.g., "720h" for 30 days). Empty disables.
+  RUNS_RETENTION_TIME: ""
+  ## ARCHIVED_RUNS_RETENTION_TIME: Auto-delete archived runs after this duration.
+  ## Uses Go duration format (e.g., "2160h" for 90 days). Empty disables.
+  ARCHIVED_RUNS_RETENTION_TIME: ""
+  ## RUNS_GC_INTERVAL: Poll interval for the run garbage collector.
+  RUNS_GC_INTERVAL: "6h"
+  ## RUNS_GC_BATCH_SIZE: Maximum rows processed per GC pass.
+  RUNS_GC_BATCH_SIZE: "100"
   ## Default security context for customer workload containers.
   ## Leave empty to disable (default). When set, SDK-specified values
   ## for the corresponding field are ignored.
@@ -125,10 +135,3 @@ data:
   ## USERID_PREFIX is stripped from the header value before it is used as the user id.
   USERID_HEADER: "kubeflow-userid"
   USERID_PREFIX: ""
-  ## Custom labels and annotations for driver pods (JSON format).
-  ## Useful for enabling Istio sidecar injection or other infrastructure integration.
-  ## Every value must be a JSON string, for example "true" rather than true.
-  ## Keys with the prefix "pipelines.kubeflow.org/" are reserved and will be filtered out.
-  ## Example: '{"sidecar.istio.io/inject":"true"}'
-  DRIVER_POD_LABELS: ""
-  DRIVER_POD_ANNOTATIONS: ""
