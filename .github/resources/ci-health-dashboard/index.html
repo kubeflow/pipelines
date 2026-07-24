@@ -146,6 +146,7 @@
         <div class="metric"><span>Failure rate</span><strong id="failureRate">—</strong><small id="failureDelta">vs prior window</small></div>
         <div class="metric"><span>p95 wall clock</span><strong id="duration">—</strong><small>daily lane p95 median</small></div>
         <div class="metric"><span>Infra / unknown</span><strong id="infra">—</strong><small>classified failed lanes</small></div>
+        <div class="metric"><span>GitHub correlation</span><strong id="githubOverlap">—</strong><small id="githubOverlapRate">failed lanes near reported incidents</small></div>
         <div class="metric"><span>Rerun rescues</span><strong id="rescues">—</strong><small id="rescueRate">successful reruns</small></div>
       </section>
 
@@ -163,7 +164,7 @@
           <section class="panel">
             <div class="panel-head"><h2>Lane board</h2><p>Highest failure count first</p></div>
             <div class="table-wrap"><table>
-              <thead><tr><th>Workflow / lane</th><th class="num">Runs</th><th class="num">Failed</th><th class="num">Rate</th><th class="num">p95 min</th></tr></thead>
+              <thead><tr><th>Workflow / lane</th><th class="num">Runs</th><th class="num">Failed</th><th class="num">GitHub</th><th class="num">Rate</th><th class="num">p95 min</th></tr></thead>
               <tbody id="laneRows"></tbody>
             </table></div>
           </section>
@@ -183,6 +184,10 @@
           <section class="panel">
             <div class="panel-head"><h2>Network signals</h2><p>Observed signature hits</p></div>
             <div class="classification" id="signatures"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h2>GitHub service incidents</h2><p>Correlation, not causation</p></div>
+            <div class="classification" id="githubIncidents"></div>
           </section>
           <section class="panel">
             <div class="panel-head"><h2>Change markers</h2><p>Master SHAs in window</p></div>
@@ -233,8 +238,9 @@
           if (workflow && lane.workflow !== workflow) return;
           if (search && !`${lane.workflow} ${lane.lane}`.toLowerCase().includes(search)) return;
           const key = `${lane.workflow}\u0000${lane.lane}`;
-          const row = map.get(key) || { workflow: lane.workflow, lane: lane.lane, runs: 0, failures: 0, p95: [] };
+          const row = map.get(key) || { workflow: lane.workflow, lane: lane.lane, runs: 0, failures: 0, github: 0, p95: [] };
           row.runs += lane.runs; row.failures += lane.failures;
+          row.github += lane.github_correlated_failures || 0;
           if (lane.duration?.p95 != null) row.p95.push(lane.duration.p95);
           map.set(key, row);
         }));
@@ -251,6 +257,7 @@
             'infrastructure_failure', 'runner_lost', 'job_timeout',
             'missing_result', 'unclassified_failure',
           ].reduce((total, key) => total + (day.failure_classes[key] || 0), 0)),
+          github: sum(lanes, lane => lane.github),
           reruns: sum(selected.days, day => day.totals.reruns || 0),
           rescues: sum(selected.days, day => day.totals.rerun_rescues || 0),
           timeToGreen: median(selected.days.map(day => day.totals.time_to_green?.p50)),
@@ -267,6 +274,8 @@
         $('failureDelta').textContent = `${delta >= 0 ? '+' : ''}${delta.toFixed(1)} pp vs prior window`;
         $('duration').textContent = current.p95 == null ? '—' : `${current.p95.toFixed(1)}m`;
         $('infra').textContent = fmt(current.infra);
+        $('githubOverlap').textContent = fmt(current.github);
+        $('githubOverlapRate').textContent = `${rate(current.github, current.total).toFixed(1)}% of attempts · not subtracted`;
         $('rescues').textContent = `${current.rescues}/${current.reruns}`;
         $('rescueRate').textContent = `${rate(current.rescues, current.reruns).toFixed(0)}% rescued${current.timeToGreen == null ? '' : ` · ${current.timeToGreen.toFixed(0)}m p50 to green`}`;
       }
@@ -295,7 +304,7 @@
       }
       function renderLanes() {
         const rows = lanesFor(selection()).sort((a,b)=>b.failures-a.failures || b.runs-a.runs).slice(0,30);
-        $('laneRows').innerHTML = rows.length ? rows.map(row => `<tr><td class="lane"><strong>${esc(row.workflow)}</strong><br>${esc(row.lane)}</td><td class="num">${row.runs}</td><td class="num">${row.failures}</td><td class="num">${rate(row.failures,row.runs).toFixed(1)}%</td><td class="num">${(median(row.p95)||0).toFixed(1)}</td></tr>`).join('') : '<tr><td colspan="5" class="empty">No lanes match these filters.</td></tr>';
+        $('laneRows').innerHTML = rows.length ? rows.map(row => `<tr><td class="lane"><strong>${esc(row.workflow)}</strong><br>${esc(row.lane)}</td><td class="num">${row.runs}</td><td class="num">${row.failures}</td><td class="num">${row.github}</td><td class="num">${rate(row.failures,row.runs).toFixed(1)}%</td><td class="num">${(median(row.p95)||0).toFixed(1)}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">No lanes match these filters.</td></tr>';
       }
       function renderBars(target, counts, color = 'var(--orange)') {
         const rows = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
@@ -304,12 +313,19 @@
       }
       function renderDetails() {
         const selected = selection();
-        const classes = {}, signatures = {}, tests = new Map(), phases = {};
+        const classes = {}, signatures = {}, tests = new Map(), phases = {}, incidents = new Map();
         selected.days.forEach(day => {
           Object.entries(day.failure_classes || {}).forEach(([key,value])=>{
             if (key !== 'success') classes[key]=(classes[key]||0)+value;
           });
           Object.entries(day.signatures || {}).forEach(([key,value])=>signatures[key]=(signatures[key]||0)+value);
+          (day.github_incidents || []).forEach(incident => {
+            const value = incidents.get(incident.id) || {...incident, signature_matches: 0, strict_overlaps: 0, nearby_matches: 0};
+            value.signature_matches += incident.signature_matches || 0;
+            value.strict_overlaps += incident.strict_overlaps || 0;
+            value.nearby_matches += incident.nearby_matches || 0;
+            incidents.set(incident.id, value);
+          });
           (day.tests || []).forEach(test => {
             const value = tests.get(test.id) || {executions:0, failures:0};
             value.executions += test.executions; value.failures += test.failures; tests.set(test.id,value);
@@ -320,6 +336,8 @@
         });
         renderBars('classes', classes);
         renderBars('signatures', signatures, 'var(--blue)');
+        const incidentRows = [...incidents.values()].sort((a,b) => b.strict_overlaps + b.nearby_matches - a.strict_overlaps - a.nearby_matches);
+        $('githubIncidents').innerHTML = incidentRows.length ? incidentRows.map(item => `<div><div class="bar-label"><span><a href="${esc(item.url)}">${esc(item.name)}</a></span><strong>${fmt(item.strict_overlaps + item.nearby_matches)}</strong></div><small>${esc((item.components || []).join(', '))} · ${item.signature_matches} signature-backed · ${item.strict_overlaps} strict · ${item.nearby_matches} within 15m before status report</small></div>`).join('') : '<div class="empty">No failed lanes correlate with reported GitHub incidents.</div>';
         renderBars('phases', Object.fromEntries(Object.entries(phases).map(([name,values])=>[`${name} · min`, Number((median(values)||0).toFixed(1))])), 'var(--green)');
         const flaky = [...tests.entries()].filter(([,v])=>v.failures).sort((a,b)=>rate(b[1].failures,b[1].executions)-rate(a[1].failures,a[1].executions) || b[1].failures-a[1].failures).slice(0,15);
         $('testRows').innerHTML = flaky.length ? flaky.map(([name,v])=>`<tr><td class="lane">${esc(name)}</td><td class="num">${v.failures}/${v.executions}</td><td class="num">${rate(v.failures,v.executions).toFixed(1)}%</td></tr>`).join('') : '<tr><td colspan="3" class="empty">No failed normalized tests in this window.</td></tr>';
@@ -340,7 +358,7 @@
         render();
       }).catch(error => {
         $('generated').textContent = 'DATA UNAVAILABLE';
-        $('laneRows').innerHTML = `<tr><td colspan="5" class="empty">${esc(error.message)}</td></tr>`;
+        $('laneRows').innerHTML = `<tr><td colspan="6" class="empty">${esc(error.message)}</td></tr>`;
       });
     </script>
   </body>
