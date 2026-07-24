@@ -231,15 +231,15 @@ def create_batch_prediction_job(
           get_job_response.output_info.bigquery_output_dataset
       )
       try:
-        project = match.group('project')
-        dataset = match.group('dataset')
+        project = match.group('project')  # pyrefly: ignore[missing-attribute]
+        dataset = match.group('dataset')  # pyrefly: ignore[missing-attribute]
         bigquery_output_table_artifact = BQTable.create(
             'bigquery_output_table',
             project,
             dataset,
             get_job_response.output_info.bigquery_output_table,
         )
-        output_artifacts.append(bigquery_output_table_artifact)
+        output_artifacts.append(bigquery_output_table_artifact)  # pyrefly: ignore[bad-argument-type]
       except AttributeError as err:
         error_util.exit_with_internal_error(
             'Invalid BQ dataset address from batch prediction output: {}.'
@@ -252,7 +252,7 @@ def create_batch_prediction_job(
     # Output the GCS path via system.Artifact
     if get_job_response.output_info.gcs_output_directory:
       output_artifacts.append(
-          dsl.Artifact(
+          dsl.Artifact(  # pyrefly: ignore[bad-argument-type]
               'gcs_output_directory',
               get_job_response.output_info.gcs_output_directory,
           )
