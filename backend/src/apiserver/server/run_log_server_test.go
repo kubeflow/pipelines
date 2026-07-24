@@ -15,6 +15,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -22,7 +23,12 @@ import (
 
 	"github.com/gorilla/mux"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/metadata"
 )
 
 func TestNewRunLogServer(t *testing.T) {
@@ -82,4 +88,32 @@ func TestReadRunLogV1_MissingNodeId(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	assert.Contains(t, recorder.Body.String(), NodeKey)
+}
+
+func TestReadRunLogV1_Unauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	clients, _, run := initWithOneTimeRun(t)
+	defer clients.Close()
+
+	// Deny access for the log read while keeping the seeded run intact, so the
+	// request reaches the authorization check rather than failing earlier.
+	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+	server := NewRunLogServer(manager)
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	req := httptest.NewRequest("GET", "/test", nil).WithContext(ctx)
+	req = mux.SetURLVars(req, map[string]string{
+		RunKey:  run.UUID,
+		NodeKey: "node-1",
+	})
+
+	recorder := httptest.NewRecorder()
+	server.ReadRunLogV1(recorder, req)
+
+	assert.Equal(t, http.StatusForbidden, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), "Failed to authorize")
 }
