@@ -1161,7 +1161,32 @@ def aggregate_daily(observations, normalized_results, rerun_runs, github_inciden
 
 
 def load_history(path):
-    if not path or not os.path.isfile(path):
+    if not path:
+        return {"schema_version": HISTORY_SCHEMA_VERSION, "days": []}
+    if os.path.isdir(path):
+        legacy_path = os.path.join(path, "history.json")
+        if os.path.isfile(legacy_path):
+            return load_history(legacy_path)
+        days = []
+        try:
+            filenames = sorted(
+                filename for filename in os.listdir(path)
+                if filename.endswith(".json")
+            )
+            for filename in filenames:
+                with open(
+                    os.path.join(path, filename), encoding="utf-8"
+                ) as source:
+                    snapshot = json.load(source)
+                if isinstance(snapshot, dict) and snapshot.get("date"):
+                    days.append(snapshot)
+        except (OSError, json.JSONDecodeError):
+            return {"schema_version": HISTORY_SCHEMA_VERSION, "days": []}
+        return {
+            "schema_version": HISTORY_SCHEMA_VERSION,
+            "days": sorted(days, key=lambda snapshot: snapshot["date"]),
+        }
+    if not os.path.isfile(path):
         return {"schema_version": HISTORY_SCHEMA_VERSION, "days": []}
     try:
         with open(path, encoding="utf-8") as source:
@@ -1422,11 +1447,20 @@ def write_site(output_dir, history, report, dashboard_source):
     data_dir = os.path.join(output_dir, "data")
     daily_dir = os.path.join(data_dir, "daily")
     os.makedirs(daily_dir, exist_ok=True)
-    with open(os.path.join(output_dir, "data", "history.json"), "w", encoding="utf-8") as output:
-        json.dump(history, output, separators=(",", ":"), sort_keys=True)
+    manifest = {
+        "schema_version": HISTORY_SCHEMA_VERSION,
+        "generated_at": history.get("generated_at", ""),
+        "days": [
+            snapshot["date"]
+            for snapshot in history.get("days", [])
+            if snapshot.get("date")
+        ],
+    }
+    with open(os.path.join(data_dir, "index.json"), "w", encoding="utf-8") as output:
+        json.dump(manifest, output, separators=(",", ":"), sort_keys=True)
         output.write("\n")
     latest = history["days"][-1] if history.get("days") else {}
-    with open(os.path.join(output_dir, "data", "latest.json"), "w", encoding="utf-8") as output:
+    with open(os.path.join(data_dir, "latest.json"), "w", encoding="utf-8") as output:
         json.dump(latest, output, indent=2, sort_keys=True)
         output.write("\n")
     for snapshot in history.get("days", []):
