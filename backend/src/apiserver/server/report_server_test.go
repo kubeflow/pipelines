@@ -17,11 +17,15 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
@@ -140,6 +144,97 @@ func TestReportWorkflow(t *testing.T) {
 	run, err = resourceManager.GetRun(run.UUID)
 	assert.Nil(t, err)
 	assert.NotNil(t, run)
+}
+
+// A terminal workflow report must persist the run and its task details and
+// then mark the workflow CR with the persistedFinalState label, which tells
+// the persistence agent the report is fully persisted and stops re-reporting.
+func TestReportWorkflow_TerminalWorkflowGetsPersistedFinalStateLabel(t *testing.T) {
+	clientManager, resourceManager, run := initWithOneTimeRun(t)
+	defer clientManager.Close()
+	reportServer := NewReportServer(resourceManager)
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Workflow",
+			APIVersion: "argoproj.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "default",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowSucceeded},
+	})
+
+	_, err := reportServer.ReportWorkflow(context.Background(), &apiv2.ReportWorkflowRequest{
+		Workflow: workflow.ToStringForStore(),
+	})
+	assert.Nil(t, err)
+
+	reportedWorkflow, err := clientManager.ExecClientFake.Execution("default").Get(
+		context.Background(), run.K8SName, metav1.GetOptions{})
+	assert.Nil(t, err)
+	assert.Equal(t, "true",
+		reportedWorkflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState])
+}
+
+// failingTaskStore delegates to a real task store but fails every
+// CreateOrUpdateTasks call, simulating a task write failure during a terminal
+// workflow report.
+type failingTaskStore struct {
+	storage.TaskStoreInterface
+}
+
+func (s *failingTaskStore) CreateOrUpdateTasks(tasks []*model.Task, runID string) ([]*model.Task, error) {
+	return nil, util.NewInternalServerError(errors.New("task store unavailable"), "injected task write failure")
+}
+
+// When persisting task details fails, the terminal report must fail without
+// adding the persistedFinalState label, so the persistence agent retries the
+// report instead of permanently losing the run's final task states.
+func TestReportWorkflow_TaskWriteFailureLeavesWorkflowUnfinalized(t *testing.T) {
+	clientManager, _, run := initWithOneTimeRun(t)
+	defer clientManager.Close()
+	clientManager.SetTaskStore(&failingTaskStore{TaskStoreInterface: clientManager.TaskStore()})
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	reportServer := NewReportServer(resourceManager)
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Workflow",
+			APIVersion: "argoproj.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "default",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowSucceeded,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"node-1": {
+					ID:    "node-1",
+					Name:  "node-1",
+					Phase: v1alpha1.NodeSucceeded,
+				},
+			},
+		},
+	})
+
+	_, err := reportServer.ReportWorkflow(context.Background(), &apiv2.ReportWorkflowRequest{
+		Workflow: workflow.ToStringForStore(),
+	})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to report task details")
+
+	reportedWorkflow, err := clientManager.ExecClientFake.Execution("default").Get(
+		context.Background(), run.K8SName, metav1.GetOptions{})
+	assert.Nil(t, err)
+	_, hasFinalStateLabel := reportedWorkflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState]
+	assert.False(t, hasFinalStateLabel)
 }
 
 func TestReportWorkflow_ValidationFailed(t *testing.T) {

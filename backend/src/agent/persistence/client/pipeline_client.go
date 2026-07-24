@@ -216,6 +216,14 @@ func (p *PipelineClient) ReportRunMetrics(request *api.ReportRunMetricsRequest) 
 				statusCode.Message(),
 				err.Error())
 		}
+		if statusCode.Code() == codes.NotFound {
+			// The run these metrics belong to does not exist in the database
+			// (yet). When metrics are reported ahead of the workflow report,
+			// the workflow report that follows creates the run, so the caller
+			// can retry metrics reporting afterwards.
+			return nil, util.NewCustomError(err, util.CUSTOM_CODE_NOT_FOUND,
+				"Error while reporting metrics (%+v): %+v", request, err)
+		}
 		// This call should always succeed unless the run doesn't exist or server is broken. In
 		// either cases, the job should retry at a later time.
 		return nil, util.NewCustomError(err, util.CUSTOM_CODE_TRANSIENT,
