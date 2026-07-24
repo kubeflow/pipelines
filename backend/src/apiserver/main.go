@@ -640,17 +640,6 @@ func initConfig() error {
 		glog.Fatalf("Invalid plugin limits configuration: %v", err)
 	}
 
-	// Watch for configuration change
-	viper.WatchConfig()
-	viper.OnConfigChange(func(e fsnotify.Event) {
-		if err := viper.ReadInConfig(); err != nil {
-			glog.Errorf("Failed to reload config: %v", err)
-		}
-		if _, err := common.GetPluginLimitsConfig(); err != nil {
-			glog.Fatalf("Invalid plugin limits configuration: %v", err)
-		}
-	})
-
 	proxy.InitializeConfigWithEnv()
 
 	// Initialize driver pod configuration after Viper config is loaded.
@@ -660,6 +649,31 @@ func initConfig() error {
 	if err := common.InitDriverPodConfig(); err != nil {
 		return fmt.Errorf("driver pod config: %w", err)
 	}
+
+	// Watch for configuration change, once everything above has finished reading. Viper is not
+	// safe for concurrent reads and writes, and the callback below reloads the file on the
+	// watcher's own goroutine, so starting it earlier put every read above in a race with that
+	// reload, which the race detector reports. Moving it here costs only a slightly longer gap
+	// in which a change to the file goes unnoticed, and on a normal install the file is baked
+	// into the image and never changes.
+	//
+	// This orders startup only. Configuration is also read while serving, for example when a
+	// run is created, and those reads still overlap with the watcher. Making reloading itself
+	// safe needs either synchronization around every configuration read or no watcher at all,
+	// and belongs with whoever owns this configuration layer rather than here.
+	// The callback is registered first. WatchConfig only returns once its watcher is live, so
+	// registering afterwards leaves a gap in which an event finds no callback and skips it, and
+	// the field is written and read without synchronization. Viper's own example registers
+	// first for the same reason. The callback does not re-read the file either: the watcher
+	// reads it before calling here, so reading again would replace the configuration a second
+	// time for one event and could validate a different version than the one just loaded.
+	viper.OnConfigChange(func(e fsnotify.Event) {
+		if _, err := common.GetPluginLimitsConfig(); err != nil {
+			glog.Fatalf("Invalid plugin limits configuration: %v", err)
+		}
+	})
+	viper.WatchConfig()
+
 	return nil
 }
 
