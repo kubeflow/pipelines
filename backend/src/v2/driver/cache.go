@@ -16,6 +16,8 @@ package driver
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"sort"
 	"strconv"
@@ -80,7 +82,18 @@ func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.Executo
 // getFingerPrint generates a fingerprint for caching. The PVC names are included in the fingerprint since it's assumed
 // PVCs have side effects (e.g. files written for tasks later on in the run) on the execution. If the PVC names are
 // different, the execution shouldn't be reused for the cache.
+// If a custom cache key is set, all automatic inputs, image, command, arguments, and PVC names are ignored.
+// Instead, the custom key is combined with the component name (to avoid cross-component cache collisions) and hashed.
 func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput, cacheClient cacheutils.Client, pvcNames []string) (string, error) {
+	if opts.Task.GetCachingOptions() != nil && opts.Task.GetCachingOptions().GetCacheKey() != "" {
+		hash := sha256.New()
+		if componentRef := opts.Task.GetComponentRef(); componentRef != nil && componentRef.GetName() != "" {
+			hash.Write([]byte(componentRef.GetName()))
+			hash.Write([]byte{0})
+		}
+		hash.Write([]byte(opts.Task.GetCachingOptions().GetCacheKey()))
+		return hex.EncodeToString(hash.Sum(nil)), nil
+	}
 	outputParametersTypeMap := make(map[string]string)
 	for outputParamName, outputParamSpec := range opts.Component.GetOutputDefinitions().GetParameters() {
 		outputParametersTypeMap[outputParamName] = outputParamSpec.GetParameterType().String()
