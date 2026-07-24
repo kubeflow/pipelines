@@ -5136,6 +5136,22 @@ class TestCannotReturnFromWithinControlFlowGroup(unittest.TestCase):
                 with dsl.ExitHandler(print_and_return(text='exit task')):
                     return print_and_return(text=string).output
 
+    def test_pipeline_input_parameter_raises(self):
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                'Pipeline outputs must be produced by a task, not a pipeline input parameter.'
+        ):
+
+            @dsl.component
+            def identity(x: str) -> str:
+                return x
+
+            @dsl.pipeline
+            def my_pipeline(x: str) -> str:
+                identity(x='hello')
+                return x
+
 
 class TestConditionLogic(unittest.TestCase):
 
