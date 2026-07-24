@@ -132,7 +132,7 @@ def parse_object_from_struct_based_on_type(struct: Any, typ: Type[T]) -> T:
         #):
         if type(struct) is typ:
             return struct
-    except:
+    except Exception:
         pass
     if hasattr(typ, 'from_dict'):
         try:  #More informative errors
