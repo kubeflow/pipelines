@@ -19,3 +19,9 @@ Kubeflow Pipelines (KFP)
 
    Usage Docs (kubeflow.org) <https://kubeflow.org/docs/pipelines/>
    Source Code <https://github.com/kubeflow/pipelines/>
+
+.. toctree::
+   :caption: Guides
+   :hidden:
+
+   Getting Started <guides/getting-started>
