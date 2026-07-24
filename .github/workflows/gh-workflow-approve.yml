@@ -75,32 +75,46 @@ jobs:
               head_sha: headSha,
             };
 
-            let runs = [];
+            const approvedRunIds = new Set();
+            let totalApproved = 0;
+
             for (let attempt = 1; attempt <= maxAttempts; attempt++) {
               core.info(`[Attempt ${attempt}/${maxAttempts}] Querying action_required runs for ${headSha}`);
-              runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, listRequest);
+              const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, listRequest);
 
-              if (runs.length > 0) {
-                core.info(`Found ${runs.length} workflow run(s) to approve.`);
+              let newRunsFound = false;
+              for (const run of runs) {
+                if (!approvedRunIds.has(run.id)) {
+                  core.info(`Approving workflow run ${run.id} (${run.name})`);
+                  try {
+                    await github.rest.actions.approveWorkflowRun({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      run_id: run.id,
+                    });
+                    approvedRunIds.add(run.id);
+                    totalApproved++;
+                    newRunsFound = true;
+                  } catch (err) {
+                    core.error(`Failed to approve run ${run.id}: ${err.message}`);
+                  }
+                }
+              }
+
+              // If we have approved some runs and found no new runs in this check, we can safely exit.
+              if (totalApproved > 0 && !newRunsFound) {
+                core.info(`All found workflow runs (${totalApproved}) have been approved.`);
                 break;
               }
 
               if (attempt < maxAttempts) {
-                core.info(`No runs found yet. Waiting ${intervalMs / 1000}s before retry...`);
+                core.info(`Waiting ${intervalMs / 1000}s for any additional runs to register...`);
                 await new Promise(r => setTimeout(r, intervalMs));
               }
             }
 
-            if (runs.length === 0) {
+            if (totalApproved === 0) {
               core.warning(`No action_required workflow runs found for ${headSha} after ${maxAttempts} attempts.`);
             } else {
-              for (const run of runs) {
-                core.info(`Approving workflow run ${run.id} (${run.name})`);
-                await github.rest.actions.approveWorkflowRun({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  run_id: run.id,
-                });
-              }
-              core.info(`Approved ${runs.length} workflow run(s).`);
+              core.info(`Successfully approved ${totalApproved} workflow run(s) in total.`);
             }

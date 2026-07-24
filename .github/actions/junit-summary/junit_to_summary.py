@@ -311,7 +311,7 @@ def set_github_output(key: str, value: str):
     github_output = os.environ.get('GITHUB_OUTPUT')
 
     if github_output:
-        with open(github_output, 'a') as f:
+        with open(github_output, 'a', encoding='utf-8') as f:
             f.write(f"{key}={value}\n")
     else:
         print(f"Would set output: {key}={value}")
@@ -339,7 +339,7 @@ def write_to_step_summary(markdown: str):
         print(markdown)
         return
 
-    with open(github_step_summary, 'a') as f:
+    with open(github_step_summary, 'a', encoding='utf-8') as f:
         f.write(markdown)
         f.write("\n")
 
@@ -398,7 +398,7 @@ def main():
             sys.exit(1)
     elif args.custom_data_file:
         try:
-            with open(args.custom_data_file) as f:
+            with open(args.custom_data_file, encoding='utf-8') as f:
                 custom_data = json.load(f)
         except (FileNotFoundError, json.JSONDecodeError) as e:
             print(f"Error reading custom data file: {e}", file=sys.stderr)
@@ -415,7 +415,7 @@ def main():
 
     # Write output
     if args.output:
-        with open(args.output, 'w') as f:
+        with open(args.output, 'w', encoding='utf-8') as f:
             f.write(markdown)
         print(f"Wrote markdown summary to {args.output}")
     else:
