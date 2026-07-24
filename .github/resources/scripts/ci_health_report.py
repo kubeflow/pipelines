@@ -22,8 +22,12 @@ current markdown summary, and optionally updates the stable `ci-health` issue.
 Accuracy contract:
   - Every attempt of re-run workflows is counted, so a flake that passed on
     re-run still shows its original failure.
-  - Cancelled/skipped jobs are excluded from rates; every other non-success
-    conclusion (failure, timed_out, stale, ...) counts as a failure.
+  - Cancelled/skipped jobs are excluded from rates unless GitHub explicitly
+    identifies the cancellation as a job timeout or runner loss; every other
+    non-success conclusion (failure, timed_out, stale, ...) counts as a failure.
+  - Expected lanes that fail before publishing a normalized result are
+    classified from their check annotations when the run proves result
+    publishing was active.
   - Any truncation (API limits, rate limits, artifact ingestion errors) is
     surfaced in the report instead of silently publishing partial data.
 
@@ -72,6 +76,19 @@ TARGET_WORKFLOWS = [
     "kfp-webhooks.yml",
 ]
 
+# Jobs in each tracked workflow that are expected to upload one normalized
+# result per completed attempt. Prefixes match the rendered Actions job names,
+# excluding shared image-build jobs in the same workflow run.
+RESULT_JOB_PREFIXES = {
+    "e2e-test.yml": ("End to End ",),
+    "api-server-tests.yml": ("KFP API Server ",),
+    "integration-tests-v1.yml": ("Initialization & Integration tests v1 - ",),
+    "legacy-v2-api-integration-tests.yml": ("API integration tests v2 - ",),
+    "kfp-sdk-client-tests.yml": ("KFP SDK Client Tests - ",),
+    "upgrade-test.yml": ("KFP upgrade tests - ",),
+    "kfp-webhooks.yml": ("KFP Webhooks - ",),
+}
+
 ISSUE_TITLE = "CI Health Report (automated)"
 ISSUE_LABEL = "ci-health"
 JUNIT_ARTIFACT_PREFIX = "junit-xml - "
@@ -84,6 +101,13 @@ HISTORY_SCHEMA_VERSION = 1
 # biases rates. Everything not listed here and not "success" is a failure
 # (failure, timed_out, stale, ...).
 NON_RESULT_CONCLUSIONS = {None, "", "skipped", "cancelled", "neutral", "action_required"}
+INFRASTRUCTURE_FAILURE_CLASSES = {
+    "infrastructure_failure",
+    "runner_lost",
+    "job_timeout",
+    "missing_result",
+    "unclassified_failure",
+}
 
 
 class RateLimited(Exception):
@@ -252,6 +276,161 @@ def job_phase_minutes(run, job):
 
 def is_failure_conclusion(conclusion):
     return conclusion not in NON_RESULT_CONCLUSIONS and conclusion != "success"
+
+
+def expects_ci_result(workflow, job):
+    name = job.get("name") or ""
+    return any(name.startswith(prefix) for prefix in RESULT_JOB_PREFIXES[workflow])
+
+
+def classify_missing_result_job(token, job):
+    """Classifies an expected lane whose post-job result artifact is absent."""
+    check_run_url = job.get("check_run_url")
+    if not check_run_url:
+        return "missing_result"
+    try:
+        annotations = api_request(
+            token, f"{check_run_url}/annotations?per_page=100"
+        )
+    except (urllib.error.HTTPError, RateLimited, OSError):
+        return "missing_result"
+    corpus = " ".join(
+        str(annotation.get(field) or "")
+        for annotation in annotations
+        for field in ("title", "message", "raw_details")
+    ).lower()
+    if "hosted runner lost communication" in corpus:
+        return "runner_lost"
+    if "exceeded the maximum execution time" in corpus:
+        return "job_timeout"
+    return "missing_result"
+
+
+def build_observation(run, workflow, attempt, job):
+    created = (
+        job.get("started_at")
+        or run.get("created_at")
+        or datetime.now(timezone.utc).isoformat()
+    )
+    conclusion = job.get("conclusion")
+    commit_message = (run.get("head_commit") or {}).get("message") or ""
+    return {
+        "id": f"{run['id']}:{attempt}:{job.get('id', job.get('name'))}",
+        "date": created[:10],
+        "workflow": run.get("name") or workflow,
+        "lane": job.get("name") or "<unnamed>",
+        "run_id": run["id"],
+        "attempt": attempt,
+        "sha": run.get("head_sha") or "",
+        "commit_message": commit_message.splitlines()[0] if commit_message else "",
+        "run_created": run.get("created_at") or "",
+        "completed": job.get("completed_at") or "",
+        "conclusion": conclusion,
+        "failed": is_failure_conclusion(conclusion),
+        "duration": duration_minutes(job),
+        "phases": job_phase_minutes(run, job),
+    }
+
+
+def missing_result_fallbacks(token, workflow, run, jobs_by_attempt, results):
+    """Returns API-derived failure results when an expected artifact is absent.
+
+    At least one normalized artifact must exist in the run. That rollout guard
+    prevents historical runs from before normalized publishing was introduced
+    from being mislabeled as missing-result failures.
+    """
+    if not results:
+        return [], 0, []
+
+    results_by_attempt = collections.defaultdict(list)
+    for result in results:
+        results_by_attempt[int(result.get("run_attempt") or 1)].append(result)
+
+    fallbacks = []
+    missing_count = 0
+    timeout_observations = []
+    for attempt, jobs in jobs_by_attempt.items():
+        result_jobs = [
+            job for job in jobs
+            if expects_ci_result(workflow, job)
+            and job.get("conclusion") not in {
+                None, "", "skipped", "neutral", "action_required"
+            }
+        ]
+        cancelled_classes = {}
+        expected_jobs = []
+        for job in result_jobs:
+            if job.get("conclusion") != "cancelled":
+                expected_jobs.append(job)
+                continue
+            key = job.get("id", job.get("name"))
+            result_class = classify_missing_result_job(token, job)
+            if result_class in {"runner_lost", "job_timeout"}:
+                cancelled_classes[key] = result_class
+                expected_jobs.append(job)
+        published = results_by_attempt[attempt]
+        missing = max(0, len(expected_jobs) - len(published))
+        if not missing:
+            continue
+
+        failed_jobs = [
+            job for job in expected_jobs
+            if is_failure_conclusion(job.get("conclusion"))
+            or cancelled_classes.get(job.get("id", job.get("name")))
+            in {"runner_lost", "job_timeout"}
+        ]
+        published_failures = sum(
+            (result.get("result") or "unknown") != "success"
+            for result in published
+        )
+        missing_failures = min(
+            missing, max(0, len(failed_jobs) - published_failures)
+        )
+        missing_count += missing
+        if not missing_failures:
+            continue
+
+        classified_jobs = []
+        for job in failed_jobs:
+            key = job.get("id", job.get("name"))
+            result_class = cancelled_classes.get(key)
+            if result_class is None:
+                result_class = classify_missing_result_job(token, job)
+            classified_jobs.append((result_class, job))
+        classified_jobs.sort(
+            key=lambda item: item[0] == "missing_result"
+        )
+
+        for result_class, job in classified_jobs[:missing_failures]:
+            generated_at = (
+                job.get("completed_at")
+                or job.get("started_at")
+                or run.get("created_at")
+                or datetime.now(timezone.utc).isoformat()
+            )
+            fallbacks.append(
+                {
+                    "schema_version": 1,
+                    "generated_at": generated_at,
+                    "workflow": run.get("name") or workflow,
+                    "report_name": job.get("name") or "<unnamed>",
+                    "run_id": run["id"],
+                    "run_attempt": attempt,
+                    "sha": run.get("head_sha") or "",
+                    "result": result_class,
+                    "dimensions": {},
+                    "signatures": {},
+                    "tests": [],
+                }
+            )
+            if (
+                job.get("conclusion") == "cancelled"
+                and result_class in {"runner_lost", "job_timeout"}
+            ):
+                observation = build_observation(run, workflow, attempt, job)
+                observation["failed"] = True
+                timeout_observations.append(observation)
+    return fallbacks, missing_count, timeout_observations
 
 
 def run_attempt_job_urls(repo, run):
@@ -516,6 +695,7 @@ def collect_trend_data(token, repo, since):
     notes = []
     rerun_runs = {}
     artifact_errors = 0
+    missing_results = 0
 
     for workflow in TARGET_WORKFLOWS:
         url = (
@@ -543,6 +723,7 @@ def collect_trend_data(token, repo, since):
             attempts = run.get("run_attempt", 1) or 1
             rerun_runs[run["id"]] = attempts
             run_had_failure = False
+            jobs_by_attempt = collections.defaultdict(list)
             for attempt, jobs_url in enumerate(run_attempt_job_urls(repo, run), start=1):
                 try:
                     jobs, truncated_jobs = paginate(
@@ -554,46 +735,34 @@ def collect_trend_data(token, repo, since):
                 if truncated_jobs:
                     notes.append(f"job listing truncated for run {run['id']}")
                 for job in jobs:
+                    jobs_by_attempt[attempt].append(job)
                     conclusion = job.get("conclusion")
                     if conclusion in NON_RESULT_CONCLUSIONS:
                         continue
-                    created = (
-                        job.get("started_at")
-                        or run.get("created_at")
-                        or datetime.now(timezone.utc).isoformat()
-                    )
                     failed = is_failure_conclusion(conclusion)
                     run_had_failure = run_had_failure or failed
-                    observations.append(
-                        {
-                            "id": f"{run['id']}:{attempt}:{job.get('id', job.get('name'))}",
-                            "date": created[:10],
-                            "workflow": run.get("name") or workflow,
-                            "lane": job.get("name") or "<unnamed>",
-                            "run_id": run["id"],
-                            "attempt": attempt,
-                            "sha": run.get("head_sha") or "",
-                            "commit_message": (
-                                (run.get("head_commit") or {}).get("message") or ""
-                            ).splitlines()[0],
-                            "run_created": run.get("created_at") or "",
-                            "completed": job.get("completed_at") or "",
-                            "conclusion": conclusion,
-                            "failed": failed,
-                            "duration": duration_minutes(job),
-                            "phases": job_phase_minutes(run, job),
-                        }
-                    )
+                    observations.append(build_observation(run, workflow, attempt, job))
             if run_had_failure:
                 failed_runs.append((run.get("created_at") or "", run["id"]))
 
             results, errors = read_ci_result_artifacts(token, repo, run["id"])
+            if not errors:
+                fallbacks, missing, added_observations = missing_result_fallbacks(
+                    token, workflow, run, jobs_by_attempt, results
+                )
+                results.extend(fallbacks)
+                observations.extend(added_observations)
+                missing_results += missing
             normalized_results.extend(results)
             artifact_errors += errors
 
     if artifact_errors:
         notes.append(
             f"{artifact_errors} normalized-result artifact ingestion gap(s)"
+        )
+    if missing_results:
+        notes.append(
+            f"{missing_results} expected normalized result(s) were not published"
         )
     return observations, normalized_results, failed_runs, rerun_runs, notes
 
@@ -821,8 +990,10 @@ def window_totals(history, start, end):
             day.get("failure_classes", {}).get("test_failure", 0) for day in days
         ),
         "infrastructure_failures": sum(
-            day.get("failure_classes", {}).get("infrastructure_failure", 0)
-            + day.get("failure_classes", {}).get("unclassified_failure", 0)
+            sum(
+                day.get("failure_classes", {}).get(result_class, 0)
+                for result_class in INFRASTRUCTURE_FAILURE_CLASSES
+            )
             for day in days
         ),
         "reruns": sum(day["totals"].get("reruns", 0) for day in days),
