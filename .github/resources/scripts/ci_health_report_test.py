@@ -914,6 +914,7 @@ class TrendAggregationTest(unittest.TestCase):
         self.assertIn("state.pendingDays", content)
         self.assertGreaterEqual(content.count('class="help-tip'), 14)
         self.assertIn(".help-tip:focus-visible::after", content)
+        self.assertIn("grid-template-columns: repeat(3, 1fr)", content)
         self.assertIn("button.setAttribute('aria-label', button.dataset.help)", content)
         self.assertIn("ordinary cancellations are excluded", content)
         self.assertIn("Correlation is not causation", content)
