@@ -492,6 +492,163 @@ class TrendAggregationTest(unittest.TestCase):
         selected = chr_mod.select_ci_result_artifacts(artifacts)
         self.assertEqual([artifact["archive_download_url"] for artifact in selected], ["retry"])
 
+    def test_missing_result_runner_loss_is_classified_from_annotation(self):
+        run = make_run(9, conclusion="failure")
+        jobs = {
+            1: [
+                {
+                    **make_job("End to End A Tests", "success"),
+                    "id": 1,
+                    "check_run_url": "checks/1",
+                },
+                {
+                    **make_job("End to End B Tests", "failure"),
+                    "id": 2,
+                    "check_run_url": "checks/2",
+                },
+            ]
+        }
+        results = [{
+            "schema_version": 1,
+            "generated_at": "2026-07-13T00:10:00Z",
+            "workflow": "WF",
+            "report_name": "A",
+            "run_id": 9,
+            "run_attempt": 1,
+            "result": "success",
+        }]
+
+        with mock.patch.object(
+            chr_mod,
+            "api_request",
+            return_value=[{
+                "message": "The hosted runner lost communication with the server."
+            }],
+        ):
+            fallbacks, missing, observations = chr_mod.missing_result_fallbacks(
+                "t", "e2e-test.yml", run, jobs, results
+            )
+
+        self.assertEqual(missing, 1)
+        self.assertEqual([result["result"] for result in fallbacks], ["runner_lost"])
+        self.assertEqual(observations, [])
+
+    def test_cancelled_job_timeout_becomes_failure_observation(self):
+        run = make_run(10, conclusion="cancelled")
+        jobs = {
+            1: [
+                {
+                    **make_job("KFP Webhooks - K8s v1.36.1", "success"),
+                    "id": 1,
+                    "check_run_url": "checks/1",
+                },
+                {
+                    **make_job("KFP Webhooks - K8s v1.33.12", "cancelled"),
+                    "id": 2,
+                    "check_run_url": "checks/2",
+                },
+            ]
+        }
+        results = [{
+            "schema_version": 1,
+            "generated_at": "2026-07-13T00:10:00Z",
+            "workflow": "WF",
+            "report_name": "KFP Webhooks - K8s v1.36.1",
+            "run_id": 10,
+            "run_attempt": 1,
+            "result": "success",
+        }]
+
+        with mock.patch.object(
+            chr_mod,
+            "api_request",
+            return_value=[{
+                "message": "The job has exceeded the maximum execution time of 40m0s"
+            }],
+        ):
+            fallbacks, missing, observations = chr_mod.missing_result_fallbacks(
+                "t", "kfp-webhooks.yml", run, jobs, results
+            )
+
+        self.assertEqual(missing, 1)
+        self.assertEqual([result["result"] for result in fallbacks], ["job_timeout"])
+        self.assertEqual(len(observations), 1)
+        self.assertTrue(observations[0]["failed"])
+
+    def test_concurrency_cancelled_job_remains_a_non_result(self):
+        run = make_run(10, conclusion="cancelled")
+        jobs = {
+            1: [
+                {
+                    **make_job("KFP Webhooks - K8s v1.36.1", "success"),
+                    "id": 1,
+                    "check_run_url": "checks/1",
+                },
+                {
+                    **make_job("KFP Webhooks - K8s v1.33.12", "cancelled"),
+                    "id": 2,
+                    "check_run_url": "checks/2",
+                },
+            ]
+        }
+        results = [{
+            "schema_version": 1,
+            "generated_at": "2026-07-13T00:10:00Z",
+            "workflow": "WF",
+            "report_name": "KFP Webhooks - K8s v1.36.1",
+            "run_id": 10,
+            "run_attempt": 1,
+            "result": "success",
+        }]
+
+        with mock.patch.object(
+            chr_mod,
+            "api_request",
+            return_value=[{"message": "The operation was canceled."}],
+        ):
+            fallbacks, missing, observations = chr_mod.missing_result_fallbacks(
+                "t", "kfp-webhooks.yml", run, jobs, results
+            )
+
+        self.assertEqual((fallbacks, missing, observations), ([], 0, []))
+
+    def test_no_results_is_treated_as_pre_rollout_not_missing(self):
+        run = make_run(11, conclusion="failure")
+        jobs = {
+            1: [{
+                **make_job("KFP Webhooks - K8s v1.36.1", "failure"),
+                "id": 1,
+                "check_run_url": "checks/1",
+            }]
+        }
+        fallbacks, missing, observations = chr_mod.missing_result_fallbacks(
+            "t", "kfp-webhooks.yml", run, jobs, []
+        )
+        self.assertEqual((fallbacks, missing, observations), ([], 0, []))
+
+    def test_window_totals_include_specific_infrastructure_classes(self):
+        history = {
+            "days": [{
+                "date": "2026-07-13",
+                "totals": {
+                    "lane_runs": 4,
+                    "failures": 4,
+                    "reruns": 0,
+                    "rerun_rescues": 0,
+                },
+                "failure_classes": {
+                    "runner_lost": 1,
+                    "job_timeout": 1,
+                    "missing_result": 1,
+                    "infrastructure_failure": 1,
+                },
+            }]
+        }
+        totals = chr_mod.window_totals(
+            history, "2026-07-13", "2026-07-14"
+        )
+        self.assertEqual(totals["infrastructure_failures"], 4)
+
     def test_site_writes_combined_and_individual_daily_history(self):
         history = {
             "schema_version": 1,
