@@ -91,30 +91,32 @@ def make_index_url_options(pip_index_urls: Optional[List[str]],
 
     Returns:
         str:
-            - An empty string if pip_index_urls is empty or None.
+            - An empty string if pip_index_urls and pip_trusted_hosts are empty or None.
             - '--index-url url ' if pip_index_urls contains 1 URL.
             - The above followed by '--extra-index-url url ' for each additional URL in pip_index_urls
             if pip_index_urls contains more than 1 URL.
             - If pip_trusted_hosts is None or an empty List:
                 - No --trusted-host information will be added.
             - If pip_trusted_hosts contains any hosts:
-                - The above followed by '--trusted-host host ' for each host in pip_trusted_hosts.
+                - '--trusted-host host ' for each host in pip_trusted_hosts.
     Note:
-        In case pip_index_urls is not empty, the returned string will contain a space at the end.
+        In case pip_index_urls or pip_trusted_hosts is provided, the returned string will contain a space at the end.
     """
-    if not pip_index_urls:
-        return ''
+    options = []
+    if pip_index_urls:
+        index_url = pip_index_urls[0]
+        extra_index_urls = pip_index_urls[1:]
 
-    index_url = pip_index_urls[0]
-    extra_index_urls = pip_index_urls[1:]
-
-    options = [f'--index-url {index_url}']
-    options.extend(f'--extra-index-url {extra_index_url}'
-                   for extra_index_url in extra_index_urls)
+        options.append(f'--index-url {index_url}')
+        options.extend(f'--extra-index-url {extra_index_url}'
+                       for extra_index_url in extra_index_urls)
 
     if pip_trusted_hosts:
         options.extend(f'--trusted-host {trusted_host}'
                        for trusted_host in pip_trusted_hosts)
+
+    if not options:
+        return ''
 
     return ' '.join(options) + ' '
 
