@@ -167,7 +167,8 @@ describe('/artifacts', () => {
         },
         Provider: 's3',
       };
-      const namespace = 'test';
+      // Provider Secret access is only permitted in the server's own namespace.
+      const namespace = 'kubeflow';
       await request
         .get(
           `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(
@@ -311,7 +312,8 @@ describe('/artifacts', () => {
         },
         Provider: 's3',
       };
-      const namespace = 'test';
+      // Provider Secret access is only permitted in the server's own namespace.
+      const namespace = 'kubeflow';
       await request
         .get(
           `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(
@@ -351,7 +353,8 @@ describe('/artifacts', () => {
         },
         Provider: 's3',
       };
-      const namespace = 'test';
+      // Provider Secret access is only permitted in the server's own namespace.
+      const namespace = 'kubeflow';
       await request
         .get(
           `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(
@@ -397,7 +400,8 @@ describe('/artifacts', () => {
         },
         Provider: 'gs',
       };
-      const namespace = 'test';
+      // Provider Secret access is only permitted in the server's own namespace.
+      const namespace = 'kubeflow';
       await request
         .get(
           `/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(
@@ -430,6 +434,78 @@ describe('/artifacts', () => {
       });
       expect(mockedGetK8sSecret).toBeCalledWith('someSecret', 'somekey', `${namespace}`);
       expect(mockedGetK8sSecret).toBeCalledTimes(1);
+    });
+
+    it('does not read a provider Secret from a customer namespace for source=s3 (security)', async () => {
+      // When the requested namespace is not the server's own namespace, the
+      // secret-backed provider info must be ignored so the UI never reads
+      // Secrets cross-namespace. Credential resolution falls back to the
+      // server's own environment credentials.
+      // See: https://github.com/kubeflow/pipelines/pull/12860
+      const mockedGetK8sSecret: Mock = getK8sSecret as any;
+      const configs = loadConfigs(argv, {
+        AWS_ACCESS_KEY_ID: 'server-key',
+        AWS_SECRET_ACCESS_KEY: 'server-secret',
+      });
+      app = new UIServer(configs);
+      const request = requests(app.app);
+      const providerInfo = {
+        Params: {
+          accessKeyKey: 'accesskey',
+          disableSSL: 'false',
+          endpoint: 'https://tenant-store.example.com',
+          fromEnv: 'false',
+          region: 'auto',
+          secretKeyKey: 'secretkey',
+          secretName: 'tenant-s3-creds',
+        },
+        Provider: 's3',
+      };
+      const namespace = 'my-user-namespace';
+      await request
+        .get(
+          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(
+            providerInfo,
+          )}`,
+        )
+        .expect(200, artifactContent);
+      expect(mockedGetK8sSecret).not.toBeCalled();
+    });
+
+    it('does not read a provider Secret from a customer namespace for source=gcs (security)', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
+      const mockedGetK8sSecret: Mock = getK8sSecret as any;
+      const client = { request: vi.fn() };
+      const stream = new PassThrough();
+      stream.write('hello world');
+      stream.end();
+      mockedGetGCSClient.mockResolvedValueOnce(client);
+      mockedListGCSObjectNames.mockResolvedValueOnce(['hello/world.txt']);
+      mockedDownloadGCSObjectStream.mockResolvedValueOnce(stream);
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+      const request = requests(app.app);
+      const providerInfo = {
+        Params: {
+          fromEnv: 'false',
+          secretName: 'tenant-gcs-creds',
+          tokenKey: 'somekey',
+        },
+        Provider: 'gs',
+      };
+      const namespace = 'my-user-namespace';
+      await request
+        .get(
+          `/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(
+            providerInfo,
+          )}`,
+        )
+        .expect(200, 'hello world\n');
+      expect(mockedGetK8sSecret).not.toBeCalled();
+      // Falls back to default (environment) credentials rather than a Secret.
+      expect(mockedGetGCSClient).toBeCalledWith(undefined);
     });
 
     it('responds with partial s3 artifact if peek=5 flag is set', async () => {
@@ -1374,6 +1450,54 @@ describe('/artifacts', () => {
       await request
         .get('/artifacts/minio/ml-pipeline/hello/world.txt') // url
         .expect(200, tarGzBuffer.toString());
+    });
+
+    it('downloads an s3-compatible artifact using secret-backed providerInfo from the query string', async () => {
+      // The download link (path-based route) must honor providerInfo so that
+      // secret-backed S3-compatible credentials are used instead of falling
+      // through to the AWS instance-profile chain.
+      const mockedMinioClient: Mock = minio.Client as any;
+      const mockedGetK8sSecret: Mock = getK8sSecret as any;
+      mockedGetK8sSecret.mockResolvedValue('someSecret');
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+      const request = requests(app.app);
+      const providerInfo = {
+        Params: {
+          accessKeyKey: 'accesskey',
+          disableSSL: 'true',
+          endpoint: 'seaweedfs.kubeflow.svc.cluster.local:9000',
+          fromEnv: 'false',
+          region: 'us-east-1',
+          secretKeyKey: 'secretkey',
+          secretName: 'mlpipeline-minio-artifact',
+        },
+        Provider: 's3',
+      };
+      // Provider Secret access is only permitted in the server's own namespace.
+      const namespace = 'kubeflow';
+      await request
+        .get(
+          `/artifacts/s3/ml-pipeline/hello/world.txt?namespace=${namespace}&providerInfo=${JSON.stringify(
+            providerInfo,
+          )}`,
+        )
+        .expect(200, artifactContent);
+      expect(mockedMinioClient).toBeCalledWith({
+        accessKey: 'someSecret',
+        endPoint: 'seaweedfs.kubeflow.svc.cluster.local',
+        port: 9000,
+        region: 'us-east-1',
+        secretKey: 'someSecret',
+        useSSL: false,
+      });
+      expect(mockedMinioClient).toBeCalledTimes(1);
+      expect(mockedGetK8sSecret).toBeCalledWith(
+        'mlpipeline-minio-artifact',
+        'accesskey',
+        namespace,
+      );
+      expect(mockedGetK8sSecret).toBeCalledTimes(2);
     });
   });
 });

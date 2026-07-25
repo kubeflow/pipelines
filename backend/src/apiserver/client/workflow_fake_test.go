@@ -135,6 +135,19 @@ func TestFakeWorkflowClient_Update(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Update() unexpected error: %v", err)
 	}
+	workflowWithUpdatedLabels := util.NewWorkflow(workflow.DeepCopy())
+	workflowWithUpdatedLabels.SetLabels("updated-label", "true")
+	_, err = client.Update(ctx, workflowWithUpdatedLabels, v1.UpdateOptions{})
+	if err != nil {
+		t.Fatalf("Update() unexpected error: %v", err)
+	}
+	updated, err := client.Get(ctx, "update-me", v1.GetOptions{})
+	if err != nil {
+		t.Fatalf("Get() unexpected error after Update(): %v", err)
+	}
+	if updated.ExecutionObjectMeta().Labels["updated-label"] != "true" {
+		t.Errorf("Update() did not persist workflow changes, got labels: %v", updated.ExecutionObjectMeta().Labels)
+	}
 }
 
 func TestFakeWorkflowClient_UpdateNotFound(t *testing.T) {

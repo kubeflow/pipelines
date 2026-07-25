@@ -17,7 +17,6 @@ package mlflow
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -25,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -48,38 +48,25 @@ const TagNestedRunParentRunID = "mlflow.parentRunId"
 
 // MLflowRuntimeConfig is the JSON payload marshaled into KFP_MLFLOW_CONFIG.
 type MLflowRuntimeConfig struct {
-	Endpoint            string               `json:"endpoint"`
-	WorkspacesEnabled   bool                 `json:"workspacesEnabled,omitempty"`
-	Workspace           string               `json:"workspace,omitempty"`
-	ParentRunID         string               `json:"parentRunId"`
-	ExperimentID        string               `json:"experimentId"`
-	AuthType            string               `json:"authType"`
-	CredentialSecretRef *CredentialSecretRef `json:"credentialSecretRef,omitempty"`
-	Timeout             string               `json:"timeout,omitempty"`
-	InsecureSkipVerify  bool                 `json:"insecureSkipVerify,omitempty"`
-	InjectUserEnvVars   bool                 `json:"injectUserEnvVars,omitempty"`
-	TLS                 *TLSConfig           `json:"tls,omitempty" mapstructure:"tls"`
+	Endpoint            string                             `json:"endpoint"`
+	WorkspacesEnabled   bool                               `json:"workspacesEnabled,omitempty"`
+	Workspace           string                             `json:"workspace,omitempty"`
+	ParentRunID         string                             `json:"parentRunId"`
+	ExperimentID        string                             `json:"experimentId"`
+	AuthType            string                             `json:"authType"`
+	CredentialSecretRef *commonplugins.CredentialSecretRef `json:"credentialSecretRef,omitempty"`
+	Timeout             string                             `json:"timeout,omitempty"`
+	InsecureSkipVerify  bool                               `json:"insecureSkipVerify,omitempty"`
+	InjectUserEnvVars   bool                               `json:"injectUserEnvVars,omitempty"`
+	TLS                 *commonplugins.TLSConfig           `json:"tls,omitempty" mapstructure:"tls"`
 }
 
-// TLSConfig holds TLS settings for the MLflow endpoint.
-type TLSConfig struct {
-	InsecureSkipVerify bool   `json:"insecureSkipVerify,omitempty" mapstructure:"insecureSkipVerify"`
-	CABundlePath       string `json:"caBundlePath,omitempty" mapstructure:"caBundlePath"`
-}
-
-// PluginConfig represents the global or namespace-level plugin configuration.
-type PluginConfig struct {
-	Endpoint string                `json:"endpoint,omitempty" mapstructure:"endpoint"`
-	Timeout  string                `json:"timeout,omitempty" mapstructure:"timeout"`
-	TLS      *TLSConfig            `json:"tls,omitempty" mapstructure:"tls"`
-	Settings *MLflowPluginSettings `json:"settings,omitempty" mapstructure:"settings"`
-}
-
-// CredentialSecretRef identifies the Secret keys used for MLflow auth.
-type CredentialSecretRef struct {
-	TokenKey    string `json:"tokenKey,omitempty"`
-	UsernameKey string `json:"usernameKey,omitempty"`
-	PasswordKey string `json:"passwordKey,omitempty"`
+// MLflowPluginConfig represents the MLflow plugin configuration.
+type MLflowPluginConfig struct {
+	Endpoint string                   `json:"endpoint,omitempty" mapstructure:"endpoint"`
+	Timeout  string                   `json:"timeout,omitempty" mapstructure:"timeout"`
+	TLS      *commonplugins.TLSConfig `json:"tls,omitempty" mapstructure:"tls"`
+	Settings *MLflowPluginSettings    `json:"settings,omitempty" mapstructure:"settings"`
 }
 
 func buildSecretEnvVar(name, secretKey string) corev1.EnvVar {
@@ -96,7 +83,7 @@ func buildSecretEnvVar(name, secretKey string) corev1.EnvVar {
 
 // BuildCredentialEnvVars converts secret-based MLflow auth configuration into
 // Kubernetes env vars backed by SecretKeyRef entries.
-func BuildCredentialEnvVars(ref *CredentialSecretRef, authType string) ([]corev1.EnvVar, error) {
+func BuildCredentialEnvVars(ref *commonplugins.CredentialSecretRef, authType string) ([]corev1.EnvVar, error) {
 	if ref == nil {
 		switch authType {
 		case AuthTypeBearer, AuthTypeBasicAuth:
@@ -127,22 +114,6 @@ func BuildCredentialEnvVars(ref *CredentialSecretRef, authType string) ([]corev1
 	}
 }
 
-func (r *CredentialSecretRef) UnmarshalJSON(data []byte) error {
-	type credentialSecretRef CredentialSecretRef
-	var raw struct {
-		credentialSecretRef
-		Name string `json:"name,omitempty"`
-	}
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-	if raw.Name != "" {
-		return fmt.Errorf("credentialSecretRef.name is not supported; Secret name is fixed to %q", CredentialSecretName)
-	}
-	*r = CredentialSecretRef(raw.credentialSecretRef)
-	return nil
-}
-
 // MLflowCredentials holds the resolved authentication credentials for an MLflow endpoint.
 type MLflowCredentials struct {
 	AuthType    string
@@ -163,21 +134,21 @@ type RequestContext struct {
 // MLflowPluginSettings contains MLflow-specific settings parsed from
 // PluginConfig.Settings.
 type MLflowPluginSettings struct {
-	WorkspacesEnabled     *bool                `json:"workspacesEnabled,omitempty"`
-	AuthType              string               `json:"authType,omitempty"`
-	CredentialSecretRef   *CredentialSecretRef `json:"credentialSecretRef,omitempty"`
-	ExperimentDescription *string              `json:"experimentDescription,omitempty"`
-	DefaultExperimentName string               `json:"defaultExperimentName,omitempty"`
-	KFPBaseURL            string               `json:"kfpBaseURL,omitempty"`
-	KFPRunURLPathTemplate string               `json:"kfpRunURLPathTemplate,omitempty"`
-	MLflowBaseURL         string               `json:"mlflowBaseURL,omitempty"`
-	MLflowUIPathPrefix    string               `json:"mlflowUIPathPrefix,omitempty"`
-	InjectUserEnvVars     *bool                `json:"injectUserEnvVars,omitempty"`
+	WorkspacesEnabled     *bool                              `json:"workspacesEnabled,omitempty"`
+	AuthType              string                             `json:"authType,omitempty"`
+	CredentialSecretRef   *commonplugins.CredentialSecretRef `json:"credentialSecretRef,omitempty"`
+	ExperimentDescription *string                            `json:"experimentDescription,omitempty"`
+	DefaultExperimentName string                             `json:"defaultExperimentName,omitempty"`
+	KFPBaseURL            string                             `json:"kfpBaseURL,omitempty"`
+	KFPRunURLPathTemplate string                             `json:"kfpRunURLPathTemplate,omitempty"`
+	MLflowBaseURL         string                             `json:"mlflowBaseURL,omitempty"`
+	MLflowUIPathPrefix    string                             `json:"mlflowUIPathPrefix,omitempty"`
+	InjectUserEnvVars     *bool                              `json:"injectUserEnvVars,omitempty"`
 }
 
 // MergePluginConfig merges namespace-level overrides into the global config.
 // The namespace config takes precedence on non-zero fields.
-func MergePluginConfig(globalCfg PluginConfig, namespaceCfg *PluginConfig) PluginConfig {
+func MergePluginConfig(globalCfg MLflowPluginConfig, namespaceCfg *MLflowPluginConfig) MLflowPluginConfig {
 	merged := globalCfg
 	if namespaceCfg == nil {
 		return merged
@@ -239,7 +210,7 @@ func mergeSettings(global, namespace *MLflowPluginSettings) *MLflowPluginSetting
 }
 
 // BuildHTTPClient configures an http.Client with the given timeout and TLS settings.
-func BuildHTTPClient(timeout time.Duration, tlsCfg *TLSConfig) (*http.Client, error) {
+func BuildHTTPClient(timeout time.Duration, tlsCfg *commonplugins.TLSConfig) (*http.Client, error) {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	if tlsCfg != nil {
 		tlsConfig := &tls.Config{
@@ -327,18 +298,82 @@ func ResolveRuntimeMLflowCredentials(authType string) (MLflowCredentials, error)
 	}
 }
 
+// ValidateHTTPSEndpoint validates that a URL is an absolute HTTP(S) URL suitable
+// for API endpoint usage. It allows paths (for static-prefix deployments) but
+// rejects queries, fragments, user info, and non-HTTP(S) schemes.
+func ValidateHTTPSEndpoint(rawURL, fieldName string) error {
+	if rawURL == "" {
+		return util.NewInvalidInputError("%s must not be empty", fieldName)
+	}
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return util.NewInvalidInputError("%s %q is not a valid URL: %v", fieldName, rawURL, err)
+	}
+	if parsedURL.Host == "" {
+		return util.NewInvalidInputError("%s %q must be an absolute URL with a host", fieldName, rawURL)
+	}
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return util.NewInvalidInputError("%s %q must use http or https scheme, got %q", fieldName, rawURL, parsedURL.Scheme)
+	}
+	if parsedURL.User != nil {
+		return util.NewInvalidInputError("%s %q must not contain user information", fieldName, rawURL)
+	}
+	if parsedURL.RawQuery != "" {
+		return util.NewInvalidInputError("%s %q must not contain a query string", fieldName, rawURL)
+	}
+	if parsedURL.Fragment != "" {
+		return util.NewInvalidInputError("%s %q must not contain a fragment", fieldName, rawURL)
+	}
+	return nil
+}
+
+// ValidateHTTPSBaseURL validates that a URL is an absolute HTTP(S) base URL
+// suitable for browser URL construction. It rejects paths, queries, fragments,
+// user info, and non-HTTP(S) schemes to prevent broken concatenation in hash-router URLs.
+func ValidateHTTPSBaseURL(rawURL, fieldName string) error {
+	if rawURL == "" {
+		return util.NewInvalidInputError("%s must not be empty", fieldName)
+	}
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return util.NewInvalidInputError("%s %q is not a valid URL: %v", fieldName, rawURL, err)
+	}
+	if parsedURL.Host == "" {
+		return util.NewInvalidInputError("%s %q must be an absolute URL with a host", fieldName, rawURL)
+	}
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return util.NewInvalidInputError("%s %q must use http or https scheme, got %q", fieldName, rawURL, parsedURL.Scheme)
+	}
+	if parsedURL.User != nil {
+		return util.NewInvalidInputError("%s %q must not contain user information", fieldName, rawURL)
+	}
+	if parsedURL.Path != "" && parsedURL.Path != "/" {
+		return util.NewInvalidInputError("%s %q must not contain a path (got %q)", fieldName, rawURL, parsedURL.Path)
+	}
+	if parsedURL.RawQuery != "" {
+		return util.NewInvalidInputError("%s %q must not contain a query string", fieldName, rawURL)
+	}
+	if parsedURL.Fragment != "" {
+		return util.NewInvalidInputError("%s %q must not contain a fragment", fieldName, rawURL)
+	}
+	return nil
+}
+
 // BuildMLflowRequestContext is the shared core that validates the PluginConfig,
 // resolves credentials, builds the HTTP client and MLflow client, and returns
 // a ready-to-use RequestContext. The workspace and workspacesEnabled values
 // are caller-specific and passed in directly.
 func BuildMLflowRequestContext(
-	pluginCfg PluginConfig,
+	pluginCfg MLflowPluginConfig,
 	authMaterial MLflowCredentials,
 	workspace string,
 	workspacesEnabled bool,
 ) (*RequestContext, error) {
+	if err := ValidateHTTPSEndpoint(pluginCfg.Endpoint, "plugins.mlflow.endpoint"); err != nil {
+		return nil, err
+	}
 	baseURL, err := url.Parse(pluginCfg.Endpoint)
-	if err != nil || baseURL.Scheme == "" || baseURL.Host == "" {
+	if err != nil {
 		return nil, util.NewInvalidInputError("invalid plugins.mlflow endpoint %q", pluginCfg.Endpoint)
 	}
 	timeout, err := time.ParseDuration(pluginCfg.Timeout)
