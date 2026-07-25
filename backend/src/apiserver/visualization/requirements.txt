@@ -185,7 +185,7 @@ matplotlib-inline==0.1.7
     #   ipython
 mdurl==0.1.2
     # via markdown-it-py
-mistune==3.2.1
+mistune==3.3.0
     # via nbconvert
 ml-dtypes==0.5.4
     # via
