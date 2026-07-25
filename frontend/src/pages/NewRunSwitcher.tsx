@@ -213,8 +213,7 @@ function NewRunSwitcher(props: PageProps) {
     recurringRunIsFetching ||
     pipelineIsFetching ||
     pipelineVersionIsFetching ||
-    (!isTemplateV2(templateString) && v1TemplateStrIsFetching) ||
-    experimentIsFetching
+    (!isTemplateV2(templateString) && v1TemplateStrIsFetching)
   ) {
     return (
       <div style={{ textAlign: 'center', paddingTop: 40 }}>
