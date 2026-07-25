@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-23
+- Last updated: 2026-07-25
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -70,7 +70,7 @@
 - **Python executor**:
   - Entrypoint: `sdk/python/kfp/dsl/executor_main.py`.
   - Never involved during the pipeline compilation stage.
-  - During task runtime, `kfp` is installed with `--no-deps` and `_KFP_RUNTIME=true` disables most SDK imports.
+  - During task runtime, `kfp` is installed with `--no-deps`. Dynamic/lazy imports prevent errors due to missing dependencies.
   - API Server mode: the Go launcher (copied via `init` container) executes the executor inside the user container
     defined by the component `base_image` (there is a default).
   - Subprocess/Docker runners: the launcher is skipped; executor runs directly.
@@ -722,7 +722,6 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 
 ### Key environment variables
 
-- `_KFP_RUNTIME=true`: Disables SDK imports during task execution
 - `VITE_NAMESPACE=...`: Sets the target namespace for the frontend in multi-user mode
 - `LOCAL_API_SERVER=true`: Enables local API server testing mode when running integration tests on a Kind cluster
 - `TENSORBOARD_PROXY_SIGNING_SECRET=...`: Optional shared frontend-server secret for scoped TensorBoard proxy URLs; defaults to `MINIO_SECRET_KEY` when unset
@@ -731,7 +730,6 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 
 ## Troubleshooting and pitfalls
 
-- `_KFP_RUNTIME=true` during executor runtime disables much of the SDK; avoid importing SDK-only modules from task code.
 - `kfp` is installed into task containers with `--no-deps`; ensure runtime dependencies are present in `base_image`.
 - SELinux enforcing can break proto generation; toggle with `setenforce` as noted above.
 - Do not assume `pipeline_spec_pb2.py` exists in the repo; it must be generated.
@@ -751,7 +749,6 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
   npm with `npm install --global "$(node -p 'require("./package.json").packageManager')"`,
   regenerate `package-lock.json`, and commit the result.
 - CI image-build jobs fail while pulling `moby/buildkit`, `kindest/node`, `python:3.11`, or `alpine:3.23`: treat these as registry flakes first; current CI retries those pulls/builds automatically, and Kind node bootstrap falls back to `gcr.io/k8s-staging-kind/node`.
-- Runtime component imports SDK-only modules: `_KFP_RUNTIME=true` disables many SDK imports; avoid importing SDK-only modules in task code.
 - Proxy CI jobs fail during `Deploy Tinyproxy` with `OOMKilled`, `CrashLoopBackOff`, endpoint readiness timeouts, or failed proxy tests: inspect the `tinyproxy` namespace pods, events, services, endpoints, and endpoint slices.
 - Archived run-log requests return `NoSuchKey` under a customized Argo artifact `keyFormat`: confirm the persisted Workflow node contains a `main-logs` artifact location; the API uses that stored key before its legacy configured-path fallback.
 - Retry tests intermittently miss an expected artifact from an in-memory bucket: do not make a first-call failure fake depend on Go map iteration order; target the named artifact or operation and assert its own call count.

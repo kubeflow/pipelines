@@ -43,6 +43,28 @@ __all__ = [
     'PIPELINE_JOB_SCHEDULE_TIME_UTC_PLACEHOLDER',
     'WORKSPACE_PATH_PLACEHOLDER',
     'run_notebook',
+    'component',
+    'container_component',
+    'pipeline',
+    'importer',
+    'ContainerSpec',
+    'Condition',
+    'If',
+    'Elif',
+    'Else',
+    'OneOf',
+    'ExitHandler',
+    'ParallelFor',
+    'Collected',
+    'IfPresentPlaceholder',
+    'ConcatPlaceholder',
+    'PipelineTask',
+    'PipelineConfig',
+    'WorkspaceConfig',
+    'KubernetesWorkspaceConfig',
+    'TaskConfigField',
+    'TaskConfigPassthrough',
+    'notebook_component',
 ]
 import os
 
@@ -288,35 +310,43 @@ Example:
 """
 
 # compile-time only dependencies
-if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
-    from kfp.dsl.component_decorator import component
-    from kfp.dsl.component_task_config import TaskConfigField
-    from kfp.dsl.component_task_config import TaskConfigPassthrough
-    from kfp.dsl.container_component_decorator import container_component
-    # TODO: Collected should be moved to pipeline_channel.py, consistent with OneOf
-    from kfp.dsl.for_loop import Collected
-    from kfp.dsl.importer_node import importer
-    from kfp.dsl.notebook_component_decorator import notebook_component
-    from kfp.dsl.pipeline_channel import OneOf
-    from kfp.dsl.pipeline_config import KubernetesWorkspaceConfig
-    from kfp.dsl.pipeline_config import PipelineConfig
-    from kfp.dsl.pipeline_config import WorkspaceConfig
-    from kfp.dsl.pipeline_context import pipeline
-    from kfp.dsl.pipeline_task import PipelineTask
-    from kfp.dsl.placeholders import ConcatPlaceholder
-    from kfp.dsl.placeholders import IfPresentPlaceholder
-    from kfp.dsl.structures import ContainerSpec
-    from kfp.dsl.tasks_group import Condition
-    from kfp.dsl.tasks_group import Elif
-    from kfp.dsl.tasks_group import Else
-    from kfp.dsl.tasks_group import ExitHandler
-    from kfp.dsl.tasks_group import If
-    from kfp.dsl.tasks_group import ParallelFor
-    __all__.extend([
-        'component', 'container_component', 'pipeline', 'importer',
-        'ContainerSpec', 'Condition', 'If', 'Elif', 'Else', 'OneOf',
-        'ExitHandler', 'ParallelFor', 'Collected', 'IfPresentPlaceholder',
-        'ConcatPlaceholder', 'PipelineTask', 'PipelineConfig',
-        'WorkspaceConfig', 'KubernetesWorkspaceConfig', 'TaskConfigField',
-        'TaskConfigPassthrough', 'notebook_component'
-    ])
+_LAZY_IMPORTS = {
+    'component': ('kfp.dsl.component_decorator', 'component'),
+    'container_component': ('kfp.dsl.container_component_decorator', 'container_component'),
+    'pipeline': ('kfp.dsl.pipeline_context', 'pipeline'),
+    'importer': ('kfp.dsl.importer_node', 'importer'),
+    'ContainerSpec': ('kfp.dsl.structures', 'ContainerSpec'),
+    'Condition': ('kfp.dsl.tasks_group', 'Condition'),
+    'If': ('kfp.dsl.tasks_group', 'If'),
+    'Elif': ('kfp.dsl.tasks_group', 'Elif'),
+    'Else': ('kfp.dsl.tasks_group', 'Else'),
+    'OneOf': ('kfp.dsl.pipeline_channel', 'OneOf'),
+    'ExitHandler': ('kfp.dsl.tasks_group', 'ExitHandler'),
+    'ParallelFor': ('kfp.dsl.tasks_group', 'ParallelFor'),
+    'Collected': ('kfp.dsl.for_loop', 'Collected'),
+    'IfPresentPlaceholder': ('kfp.dsl.placeholders', 'IfPresentPlaceholder'),
+    'ConcatPlaceholder': ('kfp.dsl.placeholders', 'ConcatPlaceholder'),
+    'PipelineTask': ('kfp.dsl.pipeline_task', 'PipelineTask'),
+    'PipelineConfig': ('kfp.dsl.pipeline_config', 'PipelineConfig'),
+    'WorkspaceConfig': ('kfp.dsl.pipeline_config', 'WorkspaceConfig'),
+    'KubernetesWorkspaceConfig': ('kfp.dsl.pipeline_config', 'KubernetesWorkspaceConfig'),
+    'TaskConfigField': ('kfp.dsl.component_task_config', 'TaskConfigField'),
+    'TaskConfigPassthrough': ('kfp.dsl.component_task_config', 'TaskConfigPassthrough'),
+    'notebook_component': ('kfp.dsl.notebook_component_decorator', 'notebook_component'),
+}
+
+
+def __getattr__(name: str):
+    if name in _LAZY_IMPORTS:
+        import importlib
+        module_name, attr_name = _LAZY_IMPORTS[name]
+        module = importlib.import_module(module_name)
+        val = getattr(module, attr_name)
+        globals()[name] = val
+        return val
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
+
+def __dir__():
+    return sorted(list(globals().keys()) + list(_LAZY_IMPORTS.keys()))
+

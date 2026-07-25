@@ -34,12 +34,22 @@ if sys.version_info < (3, 9):
 
 TYPE_CHECK = True
 
-import os
+def __getattr__(name: str):
+    if name == 'components':
+        import kfp.components
+        globals()[name] = kfp.components
+        return kfp.components
+    if name == 'dsl':
+        import kfp.dsl
+        globals()[name] = kfp.dsl
+        return kfp.dsl
+    if name == 'Client':
+        from kfp.client.client import Client
+        globals()[name] = Client
+        return Client
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
-# compile-time only dependencies
-if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
-    # make `from kfp import components` and `from kfp import dsl` valid;
-    # related to namespace packaging issue
-    from kfp import components  # noqa: keep unused import
-    from kfp import dsl  # noqa: keep unused import
-    from kfp.client import Client  # noqa: keep unused import
+
+def __dir__():
+    return sorted(list(globals().keys()) + ['components', 'dsl', 'Client'])
+
