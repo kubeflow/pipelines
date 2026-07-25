@@ -615,8 +615,9 @@ When changing an effect-heavy frontend component, add or run the smallest releva
   - Single quotes, trailing commas, 100 char line width
   - Format: `npm run format`
   - Check: `npm run format:check`
-- **ESLint** uses flat configuration in `frontend/eslint.config.cjs`, including the
-  `eslint-plugin-import-x` resolver for JavaScript and TypeScript imports
+- **ESLint 10** uses flat configuration in `frontend/eslint.config.cjs`, including the
+  `eslint-plugin-import-x` resolver for JavaScript and TypeScript imports. React Hooks keeps the
+  legacy `rules-of-hooks` and `exhaustive-deps` policy; React Compiler diagnostics are not enabled.
 - **Auto-format on save**: Configure your IDE with the Prettier extension
 
 Notes:

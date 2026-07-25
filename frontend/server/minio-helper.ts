@@ -151,7 +151,7 @@ export async function createMinioClient(
   try {
     mc = await new MinioClient(applyEndpointRewrite(config) as MinioClientOptions);
   } catch (err) {
-    throw new Error(`Failed to create MinioClient: ${err}`);
+    throw new Error(`Failed to create MinioClient: ${err}`, { cause: err });
   }
   return mc;
 }
@@ -260,6 +260,7 @@ async function parseS3ProviderInfo(
   } catch (e) {
     throw new Error(
       `Encountered error when trying to fetch provider secret ${providerInfo.Params.secretName}.`,
+      { cause: e },
     );
   }
 

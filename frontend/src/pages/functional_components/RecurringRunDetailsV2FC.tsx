@@ -233,13 +233,13 @@ function getRunTriggers(recurringRun: V2beta1RecurringRun): Array<KeyValue<strin
 }
 
 function getRunParameters(recurringRun: V2beta1RecurringRun): Array<KeyValue<string>> {
-  let parameters: Array<KeyValue<string>> = [];
-
-  parameters = Object.entries(recurringRun.runtime_config?.parameters || []).map(([key, value]) => {
-    const displayValue =
-      value == null ? '' : typeof value === 'string' ? value : JSON.stringify(value);
-    return [key || '', displayValue];
-  });
+  const parameters = Object.entries(recurringRun.runtime_config?.parameters || []).map(
+    ([key, value]) => {
+      const displayValue =
+        value == null ? '' : typeof value === 'string' ? value : JSON.stringify(value);
+      return [key || '', displayValue];
+    },
+  );
 
   return parameters;
 }

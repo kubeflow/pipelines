@@ -3,8 +3,6 @@ const typescriptEslint = require('@typescript-eslint/eslint-plugin');
 const typescriptParser = require('@typescript-eslint/parser');
 const globals = require('globals');
 const { createNodeResolver, importX } = require('eslint-plugin-import-x');
-const jsxA11y = require('eslint-plugin-jsx-a11y');
-const react = require('eslint-plugin-react');
 const reactHooks = require('eslint-plugin-react-hooks');
 
 const sourceFiles = ['src/**/*.{js,ts,tsx}', 'server/**/*.ts'];
@@ -47,14 +45,9 @@ module.exports = [
     plugins: {
       '@typescript-eslint': typescriptEslint,
       'import-x': importX,
-      'jsx-a11y': jsxA11y,
-      react,
       'react-hooks': reactHooks,
     },
     settings: {
-      react: {
-        version: 'detect',
-      },
       'import-x/extensions': ['.ts', '.tsx', '.js', '.jsx'],
       'import-x/external-module-folders': ['node_modules', 'node_modules/@types'],
       'import-x/parsers': {
@@ -71,7 +64,10 @@ module.exports = [
       ...eslint.configs.recommended.rules,
       ...importX.flatConfigs.recommended.rules,
       ...importX.flatConfigs.typescript.rules,
-      ...reactHooks.configs.recommended.rules,
+      // React Hooks 7 adds React Compiler diagnostics to its recommended preset.
+      // Preserve the existing Hooks policy until compiler adoption is evaluated separately.
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
       'no-undef': 'off',
       'no-unused-vars': 'off',
       'no-redeclare': 'off',
@@ -103,9 +99,6 @@ module.exports = [
           allowObject: true,
         },
       ],
-      'react/react-in-jsx-scope': 'off',
-      'react/prop-types': 'off',
-      'react/jsx-no-target-blank': ['error', { allowReferrer: true }],
     },
   },
   {

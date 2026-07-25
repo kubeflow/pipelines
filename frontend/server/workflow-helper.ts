@@ -301,7 +301,7 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
   try {
     workflow = await getArgoWorkflow(workflowName, namespace);
   } catch (err) {
-    throw new Error(`Unable to retrieve workflow status: ${err}.`);
+    throw new Error(`Unable to retrieve workflow status: ${err}.`, { cause: err });
   }
 
   // archiveLogs can be set globally for the workflow as a whole and / or for
