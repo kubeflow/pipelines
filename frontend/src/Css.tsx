@@ -280,7 +280,7 @@ export const commonCss = stylesheet({
         backgroundColor: theme.palette.primary.dark,
       },
     },
-    backgroundColor: palette.primary.main,
+    backgroundColor: color.theme,
     color: 'white',
   },
   ellipsis: {
