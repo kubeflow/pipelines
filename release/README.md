@@ -108,6 +108,26 @@ gates complete successfully, it continues waiting for the PR to merge.
 `watch-publish-images` watches the latest image publication workflow for the saved release branch
 without dispatching a new workflow run.
 
+## Release image CVE gate
+
+Every non-dry-run `publish-images` workflow scans each architecture-specific
+image by immutable digest before publishing the versioned or `latest`
+manifests. The gate uses the current Trivy advisory database and fails on CVEs
+of any severity for which a fixed version is available. Findings without a
+published fix and advisories without a CVE identifier do not block the
+release.
+
+If the gate fails:
+
+1. Download the `fixable-cve-scan-<image>-<architecture>` artifacts from the
+   workflow run.
+2. Update the affected dependency, base image, or build toolchain to the fixed
+   version reported by Trivy.
+3. Merge the fix into the release branch and rerun `publish-images` with image
+   overwrite enabled.
+
+Do not run `create-backend-release` while this gate is failing.
+
 `confirm-rtd` prompts for a Read the Docs API token, keeps it only in process memory, and uses it
 to activate release versions, trigger builds, wait for successful builds, and update project
 defaults. If the API call fails, `kfpr` asks whether to fall back to the manual checklist.
