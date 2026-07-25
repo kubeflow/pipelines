@@ -1188,7 +1188,7 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 	}
 	err = r.readRunLogFromPod(ctx, namespace, nodeId, follow, dst)
 	if err != nil && r.logArchive != nil {
-		err = r.readRunLogFromArchive(string(run.WorkflowRuntimeManifest), nodeId, dst)
+		err = r.readRunLogFromArchive(ctx, string(run.WorkflowRuntimeManifest), nodeId, dst)
 		if err != nil {
 			return util.NewBadRequestError(err, "Failed to read logs for run %v", runId)
 		}
@@ -1225,7 +1225,7 @@ func (r *ResourceManager) readRunLogFromPod(ctx context.Context, namespace strin
 }
 
 // Fetches execution logs from a archived pod logs.
-func (r *ResourceManager) readRunLogFromArchive(workflowManifest string, nodeId string, dst io.Writer) error {
+func (r *ResourceManager) readRunLogFromArchive(ctx context.Context, workflowManifest string, nodeId string, dst io.Writer) error {
 	if workflowManifest == "" {
 		return util.NewInternalServerError(util.NewInvalidInputError("Runtime workflow manifest cannot empty"), "Failed to read logs from archive %v due to empty runtime workflow manifest", nodeId)
 	}
@@ -1240,7 +1240,7 @@ func (r *ResourceManager) readRunLogFromArchive(workflowManifest string, nodeId 
 		return util.NewInternalServerError(err, "Failed to read logs from archive %v", nodeId)
 	}
 
-	logReader, err := r.objectStore.GetFileReader(context.TODO(), logPath)
+	logReader, err := r.objectStore.GetFileReader(ctx, logPath)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error fetching the log file", nodeId)
 	}
