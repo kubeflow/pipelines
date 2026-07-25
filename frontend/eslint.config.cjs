@@ -65,9 +65,24 @@ module.exports = [
       ...importX.flatConfigs.recommended.rules,
       ...importX.flatConfigs.typescript.rules,
       // React Hooks 7 adds React Compiler diagnostics to its recommended preset.
-      // Preserve the existing Hooks policy until compiler adoption is evaluated separately.
+      // Enable correctness rules independently of compiler adoption.
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/static-components': 'error',
+      'react-hooks/use-memo': 'error',
+      'react-hooks/incompatible-library': 'warn',
+      'react-hooks/immutability': 'error',
+      'react-hooks/globals': 'error',
+      'react-hooks/refs': 'error',
+      'react-hooks/set-state-in-effect': 'error',
+      'react-hooks/error-boundaries': 'error',
+      'react-hooks/purity': 'error',
+      'react-hooks/set-state-in-render': 'error',
+      'react-hooks/unsupported-syntax': 'warn',
+      // These rules only become actionable when React Compiler is configured.
+      'react-hooks/preserve-manual-memoization': 'off',
+      'react-hooks/config': 'off',
+      'react-hooks/gating': 'off',
       'no-undef': 'off',
       'no-unused-vars': 'off',
       'no-redeclare': 'off',

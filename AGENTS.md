@@ -616,8 +616,9 @@ When changing an effect-heavy frontend component, add or run the smallest releva
   - Format: `npm run format`
   - Check: `npm run format:check`
 - **ESLint 10** uses flat configuration in `frontend/eslint.config.cjs`, including the
-  `eslint-plugin-import-x` resolver for JavaScript and TypeScript imports. React Hooks keeps the
-  legacy `rules-of-hooks` and `exhaustive-deps` policy; React Compiler diagnostics are not enabled.
+  `eslint-plugin-import-x` resolver for JavaScript and TypeScript imports. React Hooks 7 correctness
+  diagnostics are enabled independently of React Compiler; compiler configuration, gating, and
+  manual-memoization enforcement remain deferred until a compiler rollout is planned.
 - **Auto-format on save**: Configure your IDE with the Prettier extension
 
 Notes:

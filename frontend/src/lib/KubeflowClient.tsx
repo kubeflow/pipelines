@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useLayoutEffect, useContext, useRef } from 'react';
+import React, { useContext, useState } from 'react';
 import { logger } from './Utils';
 
 declare global {
@@ -65,11 +65,16 @@ export class NamespaceContextProvider extends React.Component {
 }
 
 function usePrevious<T>(value: T) {
-  const ref = useRef(value);
-  useLayoutEffect(() => {
-    ref.current = value;
+  const [values, setValues] = useState<{ current: T; previous?: T }>({
+    current: value,
   });
-  return ref.current;
+
+  if (value !== values.current) {
+    setValues({ current: value, previous: values.current });
+    return values.current;
+  }
+
+  return values.previous;
 }
 
 export function useNamespaceChangeEvent(): boolean {
