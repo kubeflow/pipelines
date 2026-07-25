@@ -127,6 +127,9 @@ If the gate fails:
    overwrite enabled.
 
 Do not run `create-backend-release` while this gate is failing.
+`kfpr` watches the image workflow with failure propagation enabled, so a failed
+gate stops the release flow and leaves `publish-images` incomplete in the
+checkpoint.
 
 `confirm-rtd` prompts for a Read the Docs API token, keeps it only in process memory, and uses it
 to activate release versions, trigger builds, wait for successful builds, and update project
