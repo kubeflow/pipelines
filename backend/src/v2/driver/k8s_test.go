@@ -3356,6 +3356,56 @@ func Test_extendPodSpecPatch_PvcMounts_Passthrough_AppliedToPod(t *testing.T) {
 	assert.NotEmpty(t, taskCfg.VolumeMounts)
 }
 
+func Test_pvcStorageClassNameFromInputs(t *testing.T) {
+	tests := []struct {
+		name     string
+		inputs   *pipelinespec.ExecutorInput_Inputs
+		wantNil  bool
+		wantName string
+	}{
+		{
+			name: "storage_class_name not provided uses cluster default",
+			inputs: &pipelinespec.ExecutorInput_Inputs{
+				ParameterValues: map[string]*structpb.Value{
+					"size": structpb.NewStringValue("5Gi"),
+				},
+			},
+			wantNil: true,
+		},
+		{
+			name: "explicit storage_class_name is preserved",
+			inputs: &pipelinespec.ExecutorInput_Inputs{
+				ParameterValues: map[string]*structpb.Value{
+					"storage_class_name": structpb.NewStringValue("gp2"),
+				},
+			},
+			wantName: "gp2",
+		},
+		{
+			name: "empty storage_class_name is preserved for static PVCs",
+			inputs: &pipelinespec.ExecutorInput_Inputs{
+				ParameterValues: map[string]*structpb.Value{
+					"storage_class_name": structpb.NewStringValue(""),
+				},
+			},
+			wantName: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := pvcStorageClassNameFromInputs(tt.inputs)
+			if tt.wantNil {
+				assert.Nil(t, got)
+				return
+			}
+			if assert.NotNil(t, got) {
+				assert.Equal(t, tt.wantName, *got)
+			}
+		})
+	}
+}
+
 func Test_buildPVCDataSource(t *testing.T) {
 	tests := []struct {
 		name        string
