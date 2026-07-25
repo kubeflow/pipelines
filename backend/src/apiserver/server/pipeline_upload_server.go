@@ -190,12 +190,12 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 		CodeSourceUrl: r.URL.Query().Get(CodeSourceURLQueryStringKey),
 	}
 
-	if err := validation.ValidateFieldLength("PipelineVersion", "Name", pipelineVersion.Name); err != nil {
+	if err := validation.ValidateFieldLength("Pipeline", "Name", pipeline.Name); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if err := validation.ValidateFieldLength("Pipeline", "Name", pipeline.Name); err != nil {
+	if err := validation.ValidateFieldLength("PipelineVersion", "Name", pipelineVersion.Name); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
