@@ -11,7 +11,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: workflow-controller
-          image: quay.io/argoproj/workflow-controller:v4.0.5
+          image: quay.io/argoproj/workflow-controller:v4.0.8
           args:
             - --configmap
             - workflow-controller-configmap
