@@ -339,7 +339,7 @@ six==1.17.0
     #   google-pasta
     #   python-dateutil
     #   tensorflow
-soupsieve==2.8
+soupsieve==2.8.4
     # via beautifulsoup4
 stack-data==0.6.3
     # via ipython
