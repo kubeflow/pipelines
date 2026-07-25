@@ -124,7 +124,7 @@ h5py==3.14.0
     # via
     #   keras
     #   tensorflow
-httplib2==0.30.2
+httplib2==0.32.0
     # via
     #   google-api-python-client
     #   google-auth-httplib2
