@@ -9,16 +9,19 @@ absl-py==2.3.1
     #   keras
     #   tensorflow
     #   tensorflow-metadata
-appnope==0.1.4
-    # via
-    #   ipykernel
-    #   ipython
+aiohappyeyeballs==2.7.1
+    # via aiohttp
+aiohttp==3.14.2
+    # via gcsfs
+aiosignal==1.4.0
+    # via aiohttp
 asttokens==3.0.1
     # via stack-data
 astunparse==1.6.3
     # via tensorflow
 attrs==25.3.0
     # via
+    #   aiohttp
     #   jsonschema
     #   referencing
 backcall==0.2.0
@@ -26,9 +29,7 @@ backcall==0.2.0
 beautifulsoup4==4.13.5
     # via nbconvert
 bleach[css]==6.4.0
-    # via
-    #   bleach
-    #   nbconvert
+    # via nbconvert
 bokeh==3.8.2
     # via -r requirements.in
 cachetools==5.5.2
@@ -55,30 +56,70 @@ fastjsonschema==2.21.2
     # via nbformat
 flatbuffers==25.12.19
     # via tensorflow
+frozenlist==1.8.0
+    # via
+    #   aiohttp
+    #   aiosignal
+fsspec==2026.6.0
+    # via gcsfs
 gast==0.6.0
     # via tensorflow
-gcsfs==0.2.3
+gcsfs==2026.7.0
     # via -r requirements.in
+google-api-core[grpc]==2.32.0
+    # via
+    #   google-cloud-core
+    #   google-cloud-storage
+    #   google-cloud-storage-control
 google-api-python-client==1.7.12
     # via -r requirements.in
 google-auth==2.40.3
     # via
     #   gcsfs
+    #   google-api-core
     #   google-api-python-client
     #   google-auth-httplib2
     #   google-auth-oauthlib
+    #   google-cloud-core
+    #   google-cloud-storage
+    #   google-cloud-storage-control
 google-auth-httplib2==0.2.0
     # via google-api-python-client
 google-auth-oauthlib==1.2.2
     # via gcsfs
+google-cloud-core==2.6.0
+    # via google-cloud-storage
+google-cloud-storage==3.13.0
+    # via gcsfs
+google-cloud-storage-control==1.12.0
+    # via gcsfs
+google-crc32c==1.8.0
+    # via
+    #   google-cloud-storage
+    #   google-resumable-media
 google-pasta==0.2.0
     # via tensorflow
-googleapis-common-protos==1.70.0
-    # via tensorflow-metadata
+google-resumable-media==2.10.0
+    # via google-cloud-storage
+googleapis-common-protos[grpc]==1.70.0
+    # via
+    #   google-api-core
+    #   grpc-google-iam-v1
+    #   grpcio-status
+    #   tensorflow-metadata
+grpc-google-iam-v1==0.14.4
+    # via google-cloud-storage-control
 grpcio==1.74.0
     # via
+    #   google-api-core
+    #   google-cloud-storage-control
+    #   googleapis-common-protos
+    #   grpc-google-iam-v1
+    #   grpcio-status
     #   tensorflow
     #   tensorflow-serving-api
+grpcio-status==1.74.0
+    # via google-api-core
 h5py==3.14.0
     # via
     #   keras
@@ -88,7 +129,9 @@ httplib2==0.30.2
     #   google-api-python-client
     #   google-auth-httplib2
 idna==3.15
-    # via requests
+    # via
+    #   requests
+    #   yarl
 ipykernel==6.29.5
     # via -r requirements.in
 ipython==8.10.0
@@ -142,12 +185,16 @@ matplotlib-inline==0.1.7
     #   ipython
 mdurl==0.1.2
     # via markdown-it-py
-mistune==3.2.1
+mistune==3.3.0
     # via nbconvert
 ml-dtypes==0.5.4
     # via
     #   keras
     #   tensorflow
+multidict==6.7.1
+    # via
+    #   aiohttp
+    #   yarl
 namex==0.1.0
     # via keras
 narwhals==2.23.0
@@ -207,10 +254,23 @@ platformdirs==4.4.0
     # via jupyter-core
 prompt-toolkit==3.0.52
     # via ipython
+propcache==0.5.2
+    # via
+    #   aiohttp
+    #   yarl
+proto-plus==1.28.1
+    # via
+    #   google-api-core
+    #   google-cloud-storage-control
 protobuf==6.33.6
     # via
     #   -r requirements.in
+    #   google-api-core
+    #   google-cloud-storage-control
     #   googleapis-common-protos
+    #   grpc-google-iam-v1
+    #   grpcio-status
+    #   proto-plus
     #   tensorflow
     #   tensorflow-metadata
     #   tensorflow-serving-api
@@ -254,6 +314,8 @@ referencing==0.36.2
 requests==2.33.0
     # via
     #   gcsfs
+    #   google-api-core
+    #   google-cloud-storage
     #   requests-oauthlib
     #   tensorflow
 requests-oauthlib==2.0.0
@@ -313,6 +375,8 @@ traitlets==5.14.3
     #   nbformat
 typing-extensions==4.15.0
     # via
+    #   aiohttp
+    #   aiosignal
     #   beautifulsoup4
     #   optree
     #   referencing
@@ -337,6 +401,8 @@ wrapt==1.14.2
     # via tensorflow
 xyzservices==2026.3.0
     # via bokeh
+yarl==1.24.5
+    # via aiohttp
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
