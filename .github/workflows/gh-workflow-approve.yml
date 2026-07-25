@@ -107,7 +107,16 @@ jobs:
               }
             }
 
-            if (totalApproved === 0) {
+            // Check if there are any remaining unresolved runs
+            const finalRuns = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, listRequest);
+            const unresolvedRuns = finalRuns.filter(run => !approvedRunIds.has(run.id));
+
+            if (unresolvedRuns.length > 0) {
+              core.setFailed(
+                `Failed to approve ${unresolvedRuns.length} workflow run(s): ` +
+                unresolvedRuns.map(r => `${r.id} (${r.name})`).join(', ')
+              );
+            } else if (totalApproved === 0) {
               core.warning(`No action_required workflow runs found for ${headSha} after ${maxAttempts} attempts.`);
             } else {
               core.info(`Successfully approved ${totalApproved} workflow run(s) in total.`);
