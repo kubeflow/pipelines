@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Generate client code (go & json) from API protocol buffers
-FROM golang:1.26.2@sha256:b54cbf583d390341599d7bcbc062425c081105cc5ef6d170ced98ef9d047c716 AS generator
+FROM golang:1.26.5@sha256:3aff6657219a4d9c14e27fb1d8976c49c29fddb70ba835014f477e1c70636647 AS generator
 ENV GRPC_GATEWAY_VERSION=v2.29.0
 ENV GO_SWAGGER_VERSION=v0.32.3
 ENV GRPC_VERSION=v1.82.0
