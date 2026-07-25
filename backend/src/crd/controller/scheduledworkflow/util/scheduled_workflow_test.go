@@ -558,10 +558,10 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_NoWorkflow(t *test
 		},
 		Status: swfapi.ScheduledWorkflowStatus{
 			Conditions: []swfapi.ScheduledWorkflowCondition{{
-				Type:               swfapi.ScheduledWorkflowEnabled,
-				Status:             corev1.ConditionTrue,
-				Reason:             string(swfapi.ScheduledWorkflowEnabled),
-				Message:            "The schedule is enabled.",
+				Type:    swfapi.ScheduledWorkflowEnabled,
+				Status:  corev1.ConditionTrue,
+				Reason:  string(swfapi.ScheduledWorkflowEnabled),
+				Message: "The schedule is enabled.",
 			},
 			},
 			WorkflowHistory: &swfapi.WorkflowHistory{
@@ -635,10 +635,10 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_WithWorkflow(t *te
 		},
 		Status: swfapi.ScheduledWorkflowStatus{
 			Conditions: []swfapi.ScheduledWorkflowCondition{{
-				Type:               swfapi.ScheduledWorkflowEnabled,
-				Status:             corev1.ConditionTrue,
-				Reason:             string(swfapi.ScheduledWorkflowEnabled),
-				Message:            "The schedule is enabled.",
+				Type:    swfapi.ScheduledWorkflowEnabled,
+				Status:  corev1.ConditionTrue,
+				Reason:  string(swfapi.ScheduledWorkflowEnabled),
+				Message: "The schedule is enabled.",
 			}},
 			WorkflowHistory: &swfapi.WorkflowHistory{
 				Active:    []swfapi.WorkflowStatus{*status3, *status1, *status2},
