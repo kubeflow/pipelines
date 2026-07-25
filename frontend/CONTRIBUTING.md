@@ -184,6 +184,8 @@ There are a few types of tests during pre-submit:
 * formatting, refer to [Code Style Section](#code-style)
 * linting, you can also run locally with `npm run lint`
   (`npm run lint:ui` and `npm run lint:server` are available for narrower checks)
+  ESLint uses the flat configuration in `eslint.config.cjs`; add shared rules there rather
+  than creating nested legacy `.eslintrc` files.
 * TypeScript typecheck (no emit), run locally with `npm run typecheck`
 * React peer compatibility gate, run locally with `npm run check:react-peers`
   (targets React 19 by default)
