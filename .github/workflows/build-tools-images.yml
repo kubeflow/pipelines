@@ -73,3 +73,9 @@ jobs:
           if [ "$SHOULD_PUSH" = "true" ]; then
             retry 3 20 docker push "$IMAGE"
           fi
+
+      - name: Build and test image builder
+        shell: bash
+        run: |
+          source ./.github/resources/scripts/helper-functions.sh
+          retry 3 20 ./test/imagebuilder/imagebuilder_test.sh
