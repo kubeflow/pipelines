@@ -531,8 +531,6 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 
 - Workflows: `.github/workflows/` (build, test, lint, release)
 - `.github/dependabot.yml` schedules weekly Go module updates and repository-wide Docker ecosystem updates. Docker coverage recursively includes Dockerfiles, Containerfiles, and Kubernetes manifest image references, grouping each image's updates across directories.
-- `build-tools-images.yml` builds and smoke-tests `test/imagebuilder`, including
-  the `gcloud`, `gsutil`, and Docker clients required by its runtime script.
 - `ci-health-report.yml` runs daily (and on dispatch): aggregates master-branch lane failure rates and per-test flake counts from `junit-xml - *` artifacts, publishing to the job summary and a tracking issue labeled `ci-health`.
 - `ci-scripts-tests.yml` runs the stdlib unit tests for CI tooling, diagnostics, and meta-workflow concurrency on PRs touching `.github/resources/scripts/*.py`, `.github/resources/scripts/*.sh`, `ci-checks.yml`, `gh-workflow-approve.yml`, the create-cluster action, the scoped curl retry configuration, or the test workflow itself (run locally with `cd .github/resources/scripts && python3 -m unittest discover -v -p '*_test.py'`).
 - The `CI Check` and `Approve Workflow Runs` meta-workflows filter unrelated label events before entering per-PR job concurrency. Only `synchronize` events cancel an active run, so Dependabot/Prow label bursts do not leave cancelled checks on the current head SHA.
