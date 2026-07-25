@@ -920,6 +920,9 @@ class TrendAggregationTest(unittest.TestCase):
         self.assertIn("Correlation is not causation", content)
         self.assertIn("The median of the stored daily p95 elapsed durations", content)
         self.assertIn(".eyebrow { margin-bottom: 16px;", content)
+        self.assertIn("<title>KFP CI Signal</title>", content)
+        self.assertIn("<h1>CI signal</h1>", content)
+        self.assertNotIn("CI Signal Room", content)
         self.assertNotIn("fetch('./data/history.json')", content)
 
     def test_health_workflow_restores_and_persists_daily_snapshots(self):
