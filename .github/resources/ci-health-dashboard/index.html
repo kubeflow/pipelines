@@ -155,7 +155,7 @@
         </div>
         <div class="stamp" id="generated">Loading durable history…</div>
       </header>
-      <p class="deck">A long-view instrument panel for distinguishing product regressions from infrastructure noise—and seeing whether CI work actually made the system faster and steadier.</p>
+      <p class="deck">A long-view instrument panel for distinguishing product regressions from infrastructure noise and seeing whether CI work actually made the system faster and steadier.</p>
 
       <section class="controls" aria-label="Dashboard filters">
         <label>Time range
@@ -187,12 +187,12 @@
       </section>
 
       <section class="metrics" aria-label="Current window totals">
-        <div class="metric"><span>Lane attempts <button class="help-tip" type="button" aria-label="Define lane attempts" data-help="Completed, result-bearing CI job attempts in the selected lanes. Workflow reruns count as separate attempts; ordinary cancellations are excluded.">i</button></span><strong id="attempts">—</strong><small id="sample">No data</small></div>
-        <div class="metric"><span>Failure rate <button class="help-tip" type="button" aria-label="Define failure rate" data-help="Failed lane attempts divided by all completed, result-bearing lane attempts in the selected range.">i</button></span><strong id="failureRate">—</strong><small id="failureDelta">vs prior window</small></div>
-        <div class="metric"><span>p95 wall clock <button class="help-tip" type="button" aria-label="Define p95 wall clock" data-help="The median of the stored daily lane-level 95th-percentile job durations. It highlights long-tail elapsed time rather than the average.">i</button></span><strong id="duration">—</strong><small>daily lane p95 median</small></div>
-        <div class="metric"><span>Infra / unknown <button class="help-tip tip-right" type="button" aria-label="Define infrastructure and unknown failures" data-help="Failed attempts classified as infrastructure failure, runner loss, job timeout, missing result, or not yet classified.">i</button></span><strong id="infra">—</strong><small>classified failed lanes</small></div>
-        <div class="metric"><span>GitHub correlation <button class="help-tip tip-right" type="button" aria-label="Define GitHub correlation" data-help="Failed attempts overlapping—or occurring within 15 minutes before—a relevant GitHub Status incident. Correlation is not causation, and these failures remain in the headline rate.">i</button></span><strong id="githubOverlap">—</strong><small id="githubOverlapRate">failed lanes near reported incidents</small></div>
-        <div class="metric"><span>Rerun rescues <button class="help-tip" type="button" aria-label="Define rerun rescues" data-help="Workflow reruns where an earlier attempt failed and the latest attempt passed, shown over all rerun workflows.">i</button></span><strong id="rescues">—</strong><small id="rescueRate">successful reruns</small></div>
+        <div class="metric"><span>Lane attempts <button class="help-tip" type="button" aria-label="Define lane attempts" data-help="Completed, result-bearing CI job attempts in the selected lanes. Workflow reruns count as separate attempts; ordinary cancellations are excluded.">i</button></span><strong id="attempts">…</strong><small id="sample">No data</small></div>
+        <div class="metric"><span>Failure rate <button class="help-tip" type="button" aria-label="Define failure rate" data-help="Failed lane attempts divided by all completed, result-bearing lane attempts in the selected range.">i</button></span><strong id="failureRate">…</strong><small id="failureDelta">vs prior window</small></div>
+        <div class="metric"><span>p95 wall clock <button class="help-tip" type="button" aria-label="Define p95 wall clock" data-help="The median of the stored daily lane-level 95th-percentile job durations. It highlights long-tail elapsed time rather than the average.">i</button></span><strong id="duration">…</strong><small>daily lane p95 median</small></div>
+        <div class="metric"><span>Infra / unknown <button class="help-tip tip-right" type="button" aria-label="Define infrastructure and unknown failures" data-help="Failed attempts classified as infrastructure failure, runner loss, job timeout, missing result, or not yet classified.">i</button></span><strong id="infra">…</strong><small>classified failed lanes</small></div>
+        <div class="metric"><span>GitHub correlation <button class="help-tip tip-right" type="button" aria-label="Define GitHub correlation" data-help="Failed attempts overlapping, or occurring within 15 minutes before, a relevant GitHub Status incident. Correlation is not causation, and these failures remain in the headline rate.">i</button></span><strong id="githubOverlap">…</strong><small id="githubOverlapRate">failed lanes near reported incidents</small></div>
+        <div class="metric"><span>Rerun rescues <button class="help-tip" type="button" aria-label="Define rerun rescues" data-help="Workflow reruns where an earlier attempt failed and the latest attempt passed, shown over all rerun workflows.">i</button></span><strong id="rescues">…</strong><small id="rescueRate">successful reruns</small></div>
       </section>
 
       <div class="grid">
@@ -434,7 +434,7 @@
         $('failureDelta').textContent = previous.total
           ? `${delta >= 0 ? '+' : ''}${delta.toFixed(1)} pp vs prior equal period`
           : 'No prior-period data';
-        $('duration').textContent = current.p95 == null ? '—' : `${current.p95.toFixed(1)}m`;
+        $('duration').textContent = current.p95 == null ? 'N/A' : `${current.p95.toFixed(1)}m`;
         $('infra').textContent = fmt(current.infra);
         $('githubOverlap').textContent = fmt(current.github);
         $('githubOverlapRate').textContent = `${rate(current.github, current.total).toFixed(1)}% of attempts · not subtracted`;
