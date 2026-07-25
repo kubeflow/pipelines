@@ -608,6 +608,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
             this.state.pipelineDescription,
             this.state.file!,
             namespace,
+            this.state.codeSourceUrl || undefined,
           );
           const listVersionsResponse = await Apis.pipelineServiceApiV2.listPipelineVersions(
             pipelineResponse.pipeline_id!,
@@ -670,6 +671,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
         this.state.pipelineId!,
         this.state.file,
         this.state.pipelineVersionDescription,
+        this.state.codeSourceUrl || undefined,
       );
     } else {
       // this.state.importMethod === ImportMethod.URL
@@ -679,6 +681,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
         name: this.state.pipelineVersionName,
         description: this.state.pipelineVersionDescription,
         package_url: { pipeline_url: this.state.packageUrl },
+        code_source_url: this.state.codeSourceUrl || undefined,
       };
       return Apis.pipelineServiceApiV2.createPipelineVersion(this.state.pipelineId!, newPipeline);
     }

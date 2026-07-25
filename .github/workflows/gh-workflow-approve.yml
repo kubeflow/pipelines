@@ -7,17 +7,29 @@ permissions:
 on:
   pull_request_target:
     types:
+      - opened
       - labeled
       - synchronize
       - reopened
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.number }}
-  cancel-in-progress: true
-
 jobs:
   ok-to-test:
-    if: contains(github.event.pull_request.labels.*.name, 'ok-to-test') || github.event_name == 'pull_request_target'
+    # Run immediately for trusted authors and when an external contributor is
+    # approved. Other labels do not affect workflow-run approval.
+    if: >-
+      github.event.action != 'labeled' ||
+      github.event.label.name == 'ok-to-test'
+    concurrency:
+      # Label and reopen events use a unique group because cancelling a run for
+      # the same head SHA would make that commit's check rollup red.
+      group: >-
+        ${{ github.workflow }}-${{ github.event.pull_request.number }}-${{
+          (github.event.action == 'opened' || github.event.action == 'synchronize')
+          && 'head-update' || github.run_id
+        }}
+      # A synchronize event moves the PR to a new head SHA, so cancelling the
+      # prior run cannot make the current commit's check rollup red.
+      cancel-in-progress: ${{ github.event.action == 'synchronize' }}
     runs-on: ubuntu-latest
     continue-on-error: true
 
