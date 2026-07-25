@@ -117,7 +117,7 @@ spec:
         mountPath: /secret/gcp-credentials
     sidecars:
     - name: dind
-      image: docker:17.10-dind
+      image: docker:29.6-dind
       command:
       - dockerd-entrypoint.sh
       securityContext:
