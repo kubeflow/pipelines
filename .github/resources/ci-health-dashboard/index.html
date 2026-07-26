@@ -246,6 +246,10 @@
             <div class="classification" id="githubIncidents"></div>
           </section>
           <section class="panel">
+            <div class="panel-head"><h2>Infrastructure events <button class="help-tip tip-right" type="button" aria-label="Define infrastructure events" data-help="Shared setup or image-producer failures grouped by root cause. Every affected job remains in the headline failure rate.">i</button></h2><p>One cause, multiple affected lanes</p></div>
+            <div class="classification" id="infrastructureEvents"></div>
+          </section>
+          <section class="panel">
             <div class="panel-head"><h2>Change markers <button class="help-tip tip-right" type="button" aria-label="Define change markers" data-help="Recent master commits represented in the selected CI observations, useful for locating when a trend changed.">i</button></h2><p>Master SHAs in window</p></div>
             <div class="classification" id="commits"></div>
           </section>
@@ -413,7 +417,7 @@
           p95: median(lanes.flatMap(lane => lane.p95)),
           infra: sum(selected.days, day => [
             'infrastructure_failure', 'runner_lost', 'job_timeout',
-            'missing_result', 'unclassified_failure',
+            'missing_result', 'unclassified_failure', 'unknown_failure',
           ].reduce((total, key) => total + (day.failure_classes[key] || 0), 0)),
           github: sum(lanes, lane => lane.github),
           reruns: sum(selected.days, day => day.totals.reruns || 0),
@@ -475,7 +479,7 @@
       }
       function renderDetails() {
         const selected = selection();
-        const classes = {}, signatures = {}, tests = new Map(), phases = {}, incidents = new Map();
+        const classes = {}, signatures = {}, tests = new Map(), phases = {}, incidents = new Map(), infrastructureEvents = new Map();
         selected.days.forEach(day => {
           Object.entries(day.failure_classes || {}).forEach(([key,value])=>{
             if (key !== 'success') classes[key]=(classes[key]||0)+value;
@@ -488,6 +492,7 @@
             value.nearby_matches += incident.nearby_matches || 0;
             incidents.set(incident.id, value);
           });
+          (day.infrastructure_events || []).forEach(event => infrastructureEvents.set(event.id, event));
           (day.tests || []).forEach(test => {
             const value = tests.get(test.id) || {executions:0, failures:0};
             value.executions += test.executions; value.failures += test.failures; tests.set(test.id,value);
@@ -500,6 +505,8 @@
         renderBars('signatures', signatures, 'var(--blue)');
         const incidentRows = [...incidents.values()].sort((a,b) => b.strict_overlaps + b.nearby_matches - a.strict_overlaps - a.nearby_matches);
         $('githubIncidents').innerHTML = incidentRows.length ? incidentRows.map(item => `<div><div class="bar-label"><span><a href="${esc(item.url)}">${esc(item.name)}</a></span><strong>${fmt(item.strict_overlaps + item.nearby_matches)}</strong></div><small>${esc((item.components || []).join(', '))} · ${item.signature_matches} signature-backed · ${item.strict_overlaps} strict · ${item.nearby_matches} within 15m before status report</small></div>`).join('') : '<div class="empty">No failed lanes correlate with reported GitHub incidents.</div>';
+        const infrastructureRows = [...infrastructureEvents.values()].sort((a,b) => b.impacted_failures - a.impacted_failures);
+        $('infrastructureEvents').innerHTML = infrastructureRows.length ? infrastructureRows.map(item => `<div><div class="bar-label"><span><a href="${esc(item.run_url)}">${esc(item.artifact)} image artifact</a></span><strong>${fmt(item.impacted_failures)}</strong></div><small>${esc(item.registry)} · 1 producer + ${fmt((item.affected_lanes || []).length)} downstream · ${esc((item.status_correlation || 'none_reported').replaceAll('_', ' '))}</small></div>`).join('') : '<div class="empty">No shared infrastructure producer failures in this window.</div>';
         renderBars('phases', Object.fromEntries(Object.entries(phases).map(([name,values])=>[`${name} · min`, Number((median(values)||0).toFixed(1))])), 'var(--green)');
         const flaky = [...tests.entries()].filter(([,v])=>v.failures).sort((a,b)=>rate(b[1].failures,b[1].executions)-rate(a[1].failures,a[1].executions) || b[1].failures-a[1].failures).slice(0,15);
         $('testRows').innerHTML = flaky.length ? flaky.map(([name,v])=>`<tr><td class="lane">${esc(name)}</td><td class="num">${v.failures}/${v.executions}</td><td class="num">${rate(v.failures,v.executions).toFixed(1)}%</td></tr>`).join('') : '<tr><td colspan="3" class="empty">No failed normalized tests in this window.</td></tr>';

@@ -118,8 +118,10 @@ jobs:
         uses: ./.github/actions/publish-ci-result
         with:
           test_outcome: ${{ steps.tests.outcome }}
+          setup_outcome: ${{ steps.forward-api-port.outcome }}
           report_name: KFP SDK Client Tests - K8s ${{ matrix.k8s_version }}
           reports_dir: ${{ runner.temp }}
+          log_file: /tmp/kfp-ci-setup-failure.log
           test_label: client
 
       - name: Collect failed logs
