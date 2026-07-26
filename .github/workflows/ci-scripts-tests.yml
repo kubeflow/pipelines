@@ -7,7 +7,10 @@ on:
   pull_request:
     paths:
       - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
+      - '.github/actions/download-artifact-with-retry/**'
       - '.github/resources/curl-retry/**'
+      - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/*.py'
       # The observability shell scripts are covered by Python-driven tests.
       - '.github/resources/scripts/*.sh'
@@ -15,9 +18,16 @@ on:
       - '.github/workflows/ci-checks.yml'
       - '.github/actions/upload-artifact-with-retry/**'
       - '.github/actions/test-and-report/**'
+      - '.github/workflows/api-server-tests.yml'
+      - '.github/workflows/create-manifest.yml'
       - '.github/workflows/e2e-test.yml'
+      - '.github/workflows/image-builds.yml'
       - '.github/workflows/ci-scripts-tests.yml'
       - '.github/workflows/gh-workflow-approve.yml'
+      - 'manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml'
+      - 'manifests/kustomize/third-party/argo/base/workflow-controller-deployment-patch.yaml'
+      - 'manifests/kustomize/third-party/mysql/base/mysql-deployment.yaml'
+      - 'third_party/argo/VERSION'
 
 permissions:
   contents: read
