@@ -83,7 +83,9 @@ class ConntrackClassificationTest(unittest.TestCase):
             json_file = Path(temporary_directory) / 'signatures.json'
             log_file.write_text(
                 'dial tcp 10.1.2.3:9000: i/o timeout\n'
-                'connection reset by peer\n',
+                'connection reset by peer\n'
+                'Get "https://registry-1.docker.io/v2/": Client.Timeout exceeded\n'
+                'Missing branch image artifacts after producer completion grace: apiserver\n',
                 encoding='utf-8',
             )
             result = subprocess.run(
@@ -99,7 +101,11 @@ class ConntrackClassificationTest(unittest.TestCase):
 
         self.assertEqual(signatures['clusterip_dial_timeout'], 1)
         self.assertEqual(signatures['connection_refused_or_reset'], 1)
+        self.assertEqual(signatures['external_registry_timeout'], 1)
+        self.assertEqual(signatures['missing_image_artifact'], 1)
         self.assertIn('| ClusterIP dial `i/o timeout` | 1 |', result.stdout)
+        self.assertIn('| External registry timeout | 1 |', result.stdout)
+        self.assertIn('| Missing image artifact | 1 |', result.stdout)
 
 
 class OutputMirroringTest(unittest.TestCase):
