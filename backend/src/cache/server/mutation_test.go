@@ -270,3 +270,23 @@ func TestMutatePodIfCachedWithTeamplateCleanup(t *testing.T) {
 	require.Equal(t, patchOperation[1].Op, OperationTypeAdd)
 	require.Equal(t, patchOperation[2].Op, OperationTypeAdd)
 }
+
+func TestGenerateCacheKeyFromTemplateMalformedContainer(t *testing.T) {
+	// A user-controlled ARGO_TEMPLATE whose "container" is not a JSON object still
+	// reaches intersectStructureWithSkeleton, which recurses into the "container"
+	// key. Such input must not panic the mutating webhook.
+	malformed := []string{
+		`{"container": "not-an-object"}`,
+		`{"container": 123}`,
+		`{"container": ["a", "b"]}`,
+		`{"container": null}`,
+		`{"container": true}`,
+	}
+	for _, tmpl := range malformed {
+		t.Run(tmpl, func(t *testing.T) {
+			key, err := generateCacheKeyFromTemplate(tmpl)
+			assert.NoError(t, err)
+			assert.NotEmpty(t, key)
+		})
+	}
+}
