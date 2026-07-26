@@ -1,0 +1,10 @@
+sphinx>=7.2.0,<8.0.0
+furo>=2024.8.6
+myst-parser>=3.0.0,<4.0.0
+sphinxcontrib-mermaid>=0.9.0,<1.0.0
+sphinx-copybutton>=0.5.2,<1.0.0
+sphinx-design>=0.6.0,<1.0.0
+sphinx-autobuild>=2024.10.3
+sphinx-click>=6.0.0,<7.0.0
+autodocsumm>=0.2.12
+sdk/python
