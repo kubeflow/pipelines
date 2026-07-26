@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-24
+- Last updated: 2026-07-26
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -548,8 +548,8 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - Pipeline store variants (v2 engine): tests run with `database` and `kubernetes` stores, and a dedicated job compiles pipelines to Kubernetes-native manifests.
   - Example: `e2e-test.yml` job "API integration tests v2 - K8s with ${pipeline_store}" and "compile pipelines with Kubernetes".
 - Legacy V2 integration preserves every database/Kubernetes-store and TLS variant while splitting the long PVC cache scenario into a parallel `pvc-cache` job; the `main` group runs the complementary tests on an independent cluster.
-- Argo Workflows version matrix for compatibility (where relevant): `e2e-test.yml` exercises `v3.7.14` and `v4.0.5` across the standard cache/test-label matrix, while `api-server-tests.yml` covers standalone and Kubernetes-native Argo compatibility across the standard matrices (with standalone low-Kubernetes spot lanes per supported Argo version).
-- Focused Argo runtime compatibility API tests run only in the canonical standalone `v4.0.5` / Kubernetes `v1.36.1` job via `ARGO_COMPATIBILITY_TESTS`; this covers recurring-run creation, run retry, task metadata/artifacts, and archived logs without adding another E2E lane.
+- Argo Workflows version matrix for compatibility (where relevant): `e2e-test.yml` exercises `v3.7.17` and `v4.0.8` across the standard cache/test-label matrix, while `api-server-tests.yml` covers standalone and Kubernetes-native Argo compatibility across the standard matrices (with standalone low-Kubernetes spot lanes per supported Argo version).
+- Focused Argo runtime compatibility API tests run only in the canonical standalone `v4.0.8` / Kubernetes `v1.36.1` job via `ARGO_COMPATIBILITY_TESTS`; this covers recurring-run creation, run retry, task metadata/artifacts, and archived logs without adding another E2E lane.
 - Proxy / cache toggles: dedicated jobs run with HTTP proxy enabled and with execution cache disabled to validate those modes.
 - Kind concurrency caps: automatic critical, essential, and multi-user E2E lanes use the historical ten Ginkgo nodes, E2EFailure uses two, and nested-pipeline E2E uses three because each spec fans out into child pipelines. Manual workflow dispatches retain their requested concurrency.
 - Standard automatic and multi-user E2E Critical lanes split the 33 pipeline specs into duration-balanced shard A/B jobs on independent Kind runners; low-Kubernetes, TLS, and manual-dispatch compatibility lanes stay unsharded. The cache-enabled multi-user shards exercise the artifact-proxy compatibility path. Pipeline-level Ginkgo labels define the partition, and new Critical pipelines default to shard B so coverage is preserved.

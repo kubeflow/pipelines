@@ -1,6 +1,6 @@
 # Upgrading Argo Workflows
 
-Kubeflow Pipelines regularly upgrades the version of Argo Workflows provided.  See below for 
+Kubeflow Pipelines regularly upgrades the version of Argo Workflows provided.  See below for
 documentation on the steps required to perform this upgrade
 
 ## Upgrade Argo Workflows
@@ -10,8 +10,11 @@ Instructions:
 1. Set version of argo you want to upgrade to, for example:
 
     ```bash
-    ARGO_TAG=v4.0.5
+    ARGO_TAG=v4.0.8
     ```
+
+    When updating the retained compatibility release, also update
+    [COMPATIBILITY_VERSION](./COMPATIBILITY_VERSION).
 
 1. Run the `update` target of the [Makefile](./Makefile) in this directory
     ```bash
@@ -19,14 +22,10 @@ Instructions:
     echo "${ARGO_TAG}" > VERSION
     make update
     ```
-1. Update the versions listed in the compatibility matrix in [README.md](../../README.md).
+1. Update the minor versions listed in the compatibility matrix in
+   [README.md](../../README.md) when either supported release line changes.
 
-1. Consider bumping the minimum Argo version used in the GitHub workflows to match the prior version.
-    * Add the previous version of argo to the list of versions found in the `argo_version` array found in [e2e workflow](../../.github/workflows/e2e-test.yml)
-    * Update the `argo_version` arrays in [API server tests workflow](../../.github/workflows/api-server-tests.yml)
-    * Consider removing older (ie n-2) legacy checks if they fail CI. Note: we should still have n-1 legacy checks pass.
-
-1. Verify all instances of the argo version have been updated.  
+1. Verify all instances of the argo version have been updated.
     * A simple search such as `grep -R "vX.Y.Z" .` from repo root usually is good enough
 
 1. Verify backend images still build by running `make image_all` from the `backend` directory
@@ -51,7 +50,8 @@ To upgrade to a new Argo version, including manifests, code dependencies, tests,
 2. Run `make update` to automatically update all references of the Argo Workflows dependency
 3. Test the new configuration with your KFP deployment
 
-** NOTE: this does not include the [GitHub CI workflows](../../.github/), which need to be manually updated as described above **
+The update includes the GitHub CI matrices, runtime image preload list, and
+their documented versions.
 
 ### Update Argo Workflows Manifests
 
@@ -87,9 +87,3 @@ To upgrade just the doc references to a new Argo version:
 1. Update the version in [VERSION](./VERSION)
 2. Run `make update_docs` to automatically update all remote Git references to the new version
 3. Test the new configuration with your KFP deployment
-
-## TODOs
-
-Ideas to improve this process:
-
-* Automate updating/adding new argo versions to the [GitHub Workflows](../../.github)

@@ -51,6 +51,12 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     groups:
+      # The controller injects argoexec into workflow pods, so update the two
+      # runtime images together when Dependabot finds a new release.
+      argo-images:
+        patterns:
+          - "argoproj/workflow-controller"
+          - "argoproj/argoexec"
       # Update the same image in one PR when it is referenced from multiple
       # Dockerfiles or Kubernetes manifests.
       docker-images:
