@@ -915,6 +915,26 @@ class TestRetryPolicy(unittest.TestCase):
         self.assertEqual(retry_policy_proto.backoff_max_duration.seconds,
                          1209600)
 
+    def test_to_proto_backoff_factor_zero(self):
+        """backoff_factor=0.0 must not be silently replaced by the default 2.0."""
+        retry_policy_struct = structures.RetryPolicy(
+            max_retry_count=3,
+            backoff_duration='30s',
+            backoff_factor=0.0,
+            backoff_max_duration='120s',
+        )
+        retry_policy_proto = retry_policy_struct.to_proto()
+        self.assertEqual(retry_policy_proto.backoff_factor, 0.0)
+
+    def test_to_proto_defaults(self):
+        """Omitted fields should use documented defaults."""
+        retry_policy_struct = structures.RetryPolicy()
+        retry_policy_proto = retry_policy_struct.to_proto()
+        self.assertEqual(retry_policy_proto.max_retry_count, 0)
+        self.assertEqual(retry_policy_proto.backoff_duration.seconds, 0)
+        self.assertEqual(retry_policy_proto.backoff_factor, 2.0)
+        self.assertEqual(retry_policy_proto.backoff_max_duration.seconds, 3600)
+
 
 class TestDeserializeV1ComponentYamlDefaults(unittest.TestCase):
 
