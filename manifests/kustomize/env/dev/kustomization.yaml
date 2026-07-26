@@ -11,6 +11,8 @@ resources:
 images:
 - name: ghcr.io/kubeflow/kfp-api-server
   newTag: master
+- name: ghcr.io/kubeflow/kfp-driver
+  newTag: master
 - name: ghcr.io/kubeflow/kfp-frontend
   newTag: master
 - name: ghcr.io/kubeflow/kfp-persistence-agent
@@ -34,6 +36,7 @@ images:
 
 patches:
   - path: api-server-patch.yaml
+  - path: driver-plugin-cm-path.yaml
 # !!! If you want to customize the namespace,
 # please refer sample/cluster-scoped-resources to update the namespace for cluster-scoped-resources
 namespace: kubeflow

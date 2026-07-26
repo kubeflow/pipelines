@@ -813,13 +813,14 @@ func TestResolveBearerSecretCredentials(t *testing.T) {
 		},
 	})
 
-	credentials, err := resolveBearerSecretCredentials(
+	credentials, err := commonmlflow.ResolveSecretMLflowCredentials(
 		context.Background(),
 		clientSet,
 		"ns1",
 		&commonplugins.CredentialSecretRef{
 			TokenKey: "token",
 		},
+		commonmlflow.AuthTypeBearer,
 	)
 	require.NoError(t, err)
 	assert.Equal(t, commonmlflow.AuthTypeBearer, credentials.AuthType)
@@ -837,7 +838,7 @@ func TestResolveBasicAuthSecretCredentials_MissingPasswordKey(t *testing.T) {
 		},
 	})
 
-	_, err := resolveBasicAuthSecretCredentials(
+	_, err := commonmlflow.ResolveSecretMLflowCredentials(
 		context.Background(),
 		clientSet,
 		"ns1",
@@ -845,6 +846,7 @@ func TestResolveBasicAuthSecretCredentials_MissingPasswordKey(t *testing.T) {
 			UsernameKey: "username",
 			PasswordKey: "password",
 		},
+		commonmlflow.AuthTypeBasicAuth,
 	)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), `does not contain key "password"`)
@@ -889,13 +891,8 @@ func TestInjectMLflowRuntimeEnv(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Templates: []workflowapi.Template{
 				{
-					Name: "system-dag-driver",
-					Metadata: workflowapi.Metadata{
-						Annotations: map[string]string{
-							util.AnnotationKeyRuntimeRole: string(util.ExecutionRuntimeRoleDriver),
-						},
-					},
-					Container: &corev1.Container{Args: []string{"--type", "DAG"}},
+					Name:   "system-dag-driver",
+					Plugin: &workflowapi.Plugin{Object: workflowapi.Object{Value: []byte(`{"driver-plugin":{"args":{"type":"DAG"}}}`)}},
 				},
 				{
 					Name: "system-container-impl",
@@ -913,17 +910,25 @@ func TestInjectMLflowRuntimeEnv(t *testing.T) {
 		},
 	})
 
-	env := []corev1.EnvVar{{
+	runtimeEnv := map[string]string{
+		commonmlflow.EnvMLflowConfig: `{"endpoint":"https://mlflow.example.com","parentRunId":"abc"}`,
+	}
+	launcherEnvVars := []corev1.EnvVar{{
 		Name:  commonmlflow.EnvMLflowConfig,
-		Value: `{"endpoint":"https://mlflow.example.com","parentRunId":"abc"}`,
+		Value: runtimeEnv[commonmlflow.EnvMLflowConfig],
 	}}
-	err := InjectMLflowRuntimeEnv(workflow, env)
+	err := InjectMLflowRuntimeEnv(workflow, runtimeEnv, launcherEnvVars)
 	require.NoError(t, err)
 
-	expectedEnv := env[0]
+	expectedEnv := launcherEnvVars[0]
 
-	// Driver container gets the env var.
-	assert.Contains(t, workflow.Spec.Templates[0].Container.Env, expectedEnv)
+	var pluginConfig map[string]map[string]map[string]interface{}
+	require.NoError(t, json.Unmarshal(workflow.Spec.Templates[0].Plugin.Value, &pluginConfig))
+	runtimeArgsJSON, ok := pluginConfig["driver-plugin"]["args"]["runtime_args"].(string)
+	require.True(t, ok)
+	var runtimeArgs map[string]string
+	require.NoError(t, json.Unmarshal([]byte(runtimeArgsJSON), &runtimeArgs))
+	assert.Equal(t, runtimeEnv[commonmlflow.EnvMLflowConfig], runtimeArgs[commonmlflow.EnvMLflowConfig])
 
 	// Launcher main container (template with --copy init container) gets the env var.
 	assert.Contains(t, workflow.Spec.Templates[1].Container.Env, expectedEnv)
@@ -933,13 +938,13 @@ func TestInjectMLflowRuntimeEnv(t *testing.T) {
 }
 
 func TestInjectMLflowRuntimeEnv_NilSpec(t *testing.T) {
-	err := InjectMLflowRuntimeEnv(nil, []corev1.EnvVar{{Name: "key", Value: "val"}})
+	err := InjectMLflowRuntimeEnv(nil, map[string]string{"key": "val"}, []corev1.EnvVar{{Name: "key", Value: "val"}})
 	require.NoError(t, err, "nil spec should be a no-op")
 }
 
 func TestInjectMLflowRuntimeEnv_EmptyEnv(t *testing.T) {
 	workflow := util.NewWorkflow(&workflowapi.Workflow{})
-	err := InjectMLflowRuntimeEnv(workflow, []corev1.EnvVar{})
+	err := InjectMLflowRuntimeEnv(workflow, nil, nil)
 	require.NoError(t, err, "empty env should be a no-op")
 }
 
@@ -1421,116 +1426,4 @@ func TestResolveConfiguredCredentials_BasicAuthMissingRef(t *testing.T) {
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "credentialSecretRef is required")
-}
-
-func TestResolveBearerSecretCredentials_NilRef(t *testing.T) {
-	clientSet := k8sfake.NewClientset()
-	_, err := resolveBearerSecretCredentials(context.Background(), clientSet, "ns1", nil)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "bearer auth requires credentialSecretRef")
-}
-
-func TestResolveBearerSecretCredentials_MissingTokenKey(t *testing.T) {
-	clientSet := k8sfake.NewClientset()
-	_, err := resolveBearerSecretCredentials(context.Background(), clientSet, "ns1", &commonplugins.CredentialSecretRef{
-		TokenKey: "",
-	})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "tokenKey is required")
-}
-
-func TestResolveBasicAuthSecretCredentials_NilRef(t *testing.T) {
-	clientSet := k8sfake.NewClientset()
-	_, err := resolveBasicAuthSecretCredentials(context.Background(), clientSet, "ns1", nil)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "basic auth requires credentialSecretRef")
-}
-
-func TestResolveBasicAuthSecretCredentials_MissingUsernameKey(t *testing.T) {
-	clientSet := k8sfake.NewClientset()
-	_, err := resolveBasicAuthSecretCredentials(context.Background(), clientSet, "ns1", &commonplugins.CredentialSecretRef{
-		UsernameKey: "",
-		PasswordKey: "password",
-	})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "usernameKey is required")
-}
-
-func TestResolveBasicAuthSecretCredentials_Success(t *testing.T) {
-	clientSet := k8sfake.NewClientset(&corev1.Secret{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      commonmlflow.CredentialSecretName,
-			Namespace: "ns1",
-		},
-		Data: map[string][]byte{
-			"username": []byte("test-user"),
-			"password": []byte("test-pass"),
-		},
-	})
-
-	creds, err := resolveBasicAuthSecretCredentials(context.Background(), clientSet, "ns1", &commonplugins.CredentialSecretRef{
-		UsernameKey: "username",
-		PasswordKey: "password",
-	})
-	require.NoError(t, err)
-	assert.Equal(t, commonmlflow.AuthTypeBasicAuth, creds.AuthType)
-	assert.Equal(t, "test-user", creds.Username)
-	assert.Equal(t, "test-pass", creds.Password)
-}
-
-func TestGetMLflowCredentialSecret_NilClientSet(t *testing.T) {
-	_, err := getMLflowCredentialSecret(context.Background(), nil, "ns1")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "clientSet is nil")
-}
-
-func TestGetMLflowCredentialSecret_SecretNotFound(t *testing.T) {
-	clientSet := k8sfake.NewClientset()
-	_, err := getMLflowCredentialSecret(context.Background(), clientSet, "ns1")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to read MLflow credentials secret")
-}
-
-func TestReadRequiredSecretKey_MissingKey(t *testing.T) {
-	secret := &corev1.Secret{
-		Data: map[string][]byte{
-			"other-key": []byte("value"),
-		},
-	}
-	_, err := readRequiredSecretKey(secret, "ns1", "missing-key")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), `does not contain key "missing-key"`)
-}
-
-func TestReadRequiredSecretKey_EmptyValue(t *testing.T) {
-	secret := &corev1.Secret{
-		Data: map[string][]byte{
-			"empty-key": []byte(""),
-		},
-	}
-	_, err := readRequiredSecretKey(secret, "ns1", "empty-key")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "has an empty value")
-}
-
-func TestReadRequiredSecretKey_WhitespaceValue(t *testing.T) {
-	secret := &corev1.Secret{
-		Data: map[string][]byte{
-			"whitespace-key": []byte("   \n\t   "),
-		},
-	}
-	_, err := readRequiredSecretKey(secret, "ns1", "whitespace-key")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "has an empty value")
-}
-
-func TestReadRequiredSecretKey_Success(t *testing.T) {
-	secret := &corev1.Secret{
-		Data: map[string][]byte{
-			"valid-key": []byte("  valid-value  \n"),
-		},
-	}
-	value, err := readRequiredSecretKey(secret, "ns1", "valid-key")
-	require.NoError(t, err)
-	assert.Equal(t, "valid-value", value)
 }

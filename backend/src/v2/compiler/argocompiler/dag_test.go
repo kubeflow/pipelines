@@ -172,7 +172,8 @@ func TestDAGDriverTemplate_IncludesPipelineJobCreateTimeArg(t *testing.T) {
 		},
 	}
 
-	name := c.addDAGDriverTemplate()
+	name, err := c.addDAGDriverTemplate()
+	require.NoError(t, err)
 	var tmpl *wfapi.Template
 	for index := range c.wf.Spec.Templates {
 		if c.wf.Spec.Templates[index].Name == name {
@@ -181,8 +182,7 @@ func TestDAGDriverTemplate_IncludesPipelineJobCreateTimeArg(t *testing.T) {
 		}
 	}
 	require.NotNil(t, tmpl, "system-dag-driver template should exist")
-	require.NotNil(t, tmpl.Container, "template should have a container")
-	assert.Contains(t, tmpl.Container.Args, "--pipeline_job_create_time_utc")
-	assert.Contains(t, tmpl.Container.Args, runCreationTimeUTC())
-	assert.NotContains(t, tmpl.Container.Args, "--pipeline_job_schedule_time_epoch_seconds")
+	args := requireDriverPluginArgs(t, tmpl)
+	assert.Equal(t, runCreationTimeUTC(), args["pipeline_job_create_time_utc"])
+	assert.NotContains(t, args, "pipeline_job_schedule_time_epoch_seconds")
 }

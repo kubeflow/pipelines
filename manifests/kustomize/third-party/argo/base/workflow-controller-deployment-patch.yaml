@@ -21,6 +21,11 @@ spec:
           - name: TRANSIENT_ERROR_PATTERN
             value: >-
               (?i)(imminent node shutdown|node is shutting down|preempt|evict|spot|pod deleted)
+          # https://argo-workflows.readthedocs.io/en/latest/environment-variables/
+          - name: ARGO_EXECUTOR_PLUGINS
+            value: "true"
+          - name: DEFAULT_REQUEUE_TIME
+            value: "6s"
           securityContext:
             readOnlyRootFilesystem: true
             runAsNonRoot: true

@@ -180,6 +180,10 @@ type ExecutionSpec interface {
 	// Set OwnerReferences from a ScheduledWorkflow
 	SetOwnerReferences(schedule *swfapi.ScheduledWorkflow)
 
+	// UpsertRuntimeConfig adds or replaces runtime config for the given
+	// runtime roles using the transport supported by this execution engine.
+	UpsertRuntimeConfig(runtimeConfig map[string]string, roles ...ExecutionRuntimeRole) error
+
 	// UpsertRuntimeEnvVars adds or replaces env vars on containers that
 	// implement the given runtime roles for this execution engine.
 	UpsertRuntimeEnvVars(envVars []corev1.EnvVar, roles ...ExecutionRuntimeRole) error
