@@ -8,6 +8,7 @@ on:
     paths:
       - 'api/**'
       - 'sdk/python/**'
+      - 'sdk/Makefile'
       - 'test/presubmit-yapf-sdk.sh'
       - '.github/workflows/sdk-yapf.yml'
       - '.github/actions/setup-python-pip-cache/**'
@@ -34,8 +35,8 @@ jobs:
         cache-scope: sdk-yapf
         cache-dependency-hash: ${{ hashFiles('sdk/python/requirements-dev.txt') }}
 
-    - name: Install dependencies
-      run: pip install yapf
+    - name: Install YAPF SDK test dependencies
+      run: make -C sdk install-test-yapf-deps
 
     - name: Run YAPF SDK Tests
-      run: ./test/presubmit-yapf-sdk.sh
+      run: make -C sdk test-yapf

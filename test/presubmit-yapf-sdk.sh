@@ -15,8 +15,5 @@
 
 source_root=$(pwd)
 
-python3 -m pip install --upgrade pip
-python3 -m pip install $(grep 'yapf==' sdk/python/requirements-dev.txt)
-python3 -m pip install pre_commit_hooks
-python3 -m pre_commit_hooks.string_fixer $(find sdk/python/kfp/**/*.py -type f)
+find sdk/python/kfp -name '*.py' -type f -print0 | xargs -0 python3 -m pre_commit_hooks.string_fixer
 yapf --recursive --diff "${source_root}/sdk/python/"
