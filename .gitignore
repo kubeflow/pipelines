@@ -110,6 +110,7 @@ logs/
 
 # Project-local tools
 bin/
+tools/protoc/
 
 # UI Smoke Test working directory
 .ui-smoke-test/
