@@ -28,6 +28,8 @@ WAIT_ATTEMPTS="${WAIT_ATTEMPTS:-40}"
 WAIT_INTERVAL_SECONDS="${WAIT_INTERVAL_SECONDS:-30}"
 PUBLICATION_GRACE_ATTEMPTS="${PUBLICATION_GRACE_ATTEMPTS:-3}"
 PRODUCER_STATE_UNAVAILABLE_EXTENSIONS="${PRODUCER_STATE_UNAVAILABLE_EXTENSIONS:-1}"
+CI_SETUP_FAILURE_LOG="${CI_SETUP_FAILURE_LOG:-/tmp/kfp-ci-setup-failure.log}"
+: > "$CI_SETUP_FAILURE_LOG"
 if ! [[ "$WAIT_ATTEMPTS" =~ ^[1-9][0-9]*$ ]]; then
   echo "WAIT_ATTEMPTS must be a positive integer, got: ${WAIT_ATTEMPTS}" >&2
   exit 2
@@ -46,6 +48,15 @@ if ! [[ "$PRODUCER_STATE_UNAVAILABLE_EXTENSIONS" =~ ^[0-9]+$ ]]; then
 fi
 
 source "${BASH_SOURCE%/*}/ci-image-artifacts.sh"
+
+# Record why setup failed so the CI health report can classify this run as a
+# shared infrastructure failure rather than a product test failure.
+fail_setup() {
+  local message="$1"
+  printf '%s\n' "$message" > "$CI_SETUP_FAILURE_LOG"
+  printf '%s\n' "$message" >&2
+  exit 1
+}
 
 active_missing_producers=()
 failed_missing_producers=()
@@ -121,8 +132,7 @@ while true; do
   if (( publication_grace_remaining > 0 )); then
     publication_grace_remaining=$((publication_grace_remaining - 1))
     if (( publication_grace_remaining == 0 )); then
-      echo "Missing branch image artifacts after producer completion grace: ${missing_artifacts[*]}" >&2
-      exit 1
+      fail_setup "Missing branch image artifacts after producer completion grace: ${missing_artifacts[*]}"
     fi
     echo "Waiting for completed producers' artifacts to become visible;" \
       "remaining grace attempts: ${publication_grace_remaining}"
@@ -133,8 +143,7 @@ while true; do
   if (( window_attempt == WAIT_ATTEMPTS )); then
     if classify_missing_producers; then
       if (( ${#failed_missing_producers[@]} > 0 )); then
-        echo "Image producers completed without publishing required artifacts: ${failed_missing_producers[*]}" >&2
-        exit 1
+        fail_setup "Image producers completed without publishing required artifacts: ${failed_missing_producers[*]}"
       fi
       if (( ${#active_missing_producers[@]} > 0 )); then
         echo "Extending image artifact wait; active producers: ${active_missing_producers[*]}"
@@ -146,8 +155,7 @@ while true; do
       fi
     else
       if (( producer_state_unavailable_extensions >= PRODUCER_STATE_UNAVAILABLE_EXTENSIONS )); then
-        echo "Missing branch image artifacts and producer state remains unavailable: ${missing_artifacts[*]}" >&2
-        exit 1
+        fail_setup "Missing branch image artifacts and producer state remains unavailable: ${missing_artifacts[*]}"
       fi
       producer_state_unavailable_extensions=$((producer_state_unavailable_extensions + 1))
       echo "Extending image artifact wait because producer state is unavailable" \

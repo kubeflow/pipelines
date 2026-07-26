@@ -100,12 +100,15 @@ http_429=$(count_signature 'status 429|429 Too Many Requests')
 oomkilled=$(count_signature 'OOMKilled')
 crashloopbackoff=$(count_signature 'CrashLoopBackOff')
 conntrack_table_full=$(count_signature 'nf_conntrack: table full, dropping packet')
+external_registry_timeout=$(count_signature '(registry-1\.docker\.io|docker\.io|quay\.io|gcr\.io|ghcr\.io).*(Client\.Timeout|timed? ?out|timeout|deadline exceeded)')
+missing_image_artifact=$(count_signature 'Missing branch image artifacts|Image producers completed without publishing required artifacts')
 
 if [[ -n "$JSON_OUTPUT" ]] && command -v python3 >/dev/null 2>&1; then
     mkdir -p "$(dirname "$JSON_OUTPUT")"
     python3 - "$JSON_OUTPUT" \
         "$clusterip_dial_timeout" "$client_timeout" "$connection_reset" \
-        "$http_429" "$oomkilled" "$crashloopbackoff" "$conntrack_table_full" <<'PY'
+        "$http_429" "$oomkilled" "$crashloopbackoff" "$conntrack_table_full" \
+        "$external_registry_timeout" "$missing_image_artifact" <<'PY'
 import json
 import sys
 
@@ -117,6 +120,8 @@ keys = (
     "oomkilled",
     "crashloopbackoff",
     "conntrack_table_full",
+    "external_registry_timeout",
+    "missing_image_artifact",
 )
 with open(sys.argv[1], "w", encoding="utf-8") as destination:
     json.dump(dict(zip(keys, map(int, sys.argv[2:]))), destination, sort_keys=True)
@@ -147,6 +152,8 @@ fi
         # diagnostics script tees its own "kernel 'nf_conntrack: table full'
         # events:" header into the pod log, which must not count as a hit.
         echo "| conntrack table full | $conntrack_table_full | node conntrack exhaustion |"
+        echo "| External registry timeout | $external_registry_timeout | registry availability or runner egress |"
+        echo "| Missing image artifact | $missing_image_artifact | failed or delayed shared image producer |"
 
         # Per-VIP breakdown makes multi-service dataplane failures (SeaweedFS
         # :9000 vs MLflow :8443 ...) visible at a glance.

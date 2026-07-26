@@ -69,8 +69,10 @@ jobs:
         uses: ./.github/actions/publish-ci-result
         with:
           test_outcome: ${{ steps.tests.outcome }}
+          setup_outcome: ${{ steps.deploy.outcome }}
           report_name: KFP Webhooks - K8s ${{ matrix.k8s_version }}
           go_json: ${{ runner.temp }}/webhook-go-test.json
+          log_file: /tmp/kfp-ci-setup-failure.log
           pipeline_store: kubernetes
 
       - name: Collect failed logs

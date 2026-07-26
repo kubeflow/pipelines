@@ -23,9 +23,11 @@ via .github/workflows/ci-scripts-tests.yml on changes to these scripts.
 import io
 import json
 import os
+import re
 import tempfile
 import unittest
 import zipfile
+from pathlib import Path
 from unittest import mock
 
 import ci_health_report as chr_mod
@@ -505,6 +507,25 @@ class RenderTest(unittest.TestCase):
         self.assertIn("Scanned 3 failed run(s)", uncapped)
 
 
+class MissingImageArtifactPatternTest(unittest.TestCase):
+    """The barrier's failure text is a contract; parsing it silently degrades."""
+
+    def test_parses_every_artifact_list_the_barrier_emits(self):
+        barrier = (
+            Path(__file__).resolve().parent / 'wait-for-image-artifacts.sh'
+        ).read_text(encoding='utf-8')
+        messages = re.findall(
+            r'fail_setup "(Missing branch image artifacts[^"]*)"', barrier)
+
+        self.assertEqual(len(messages), 2, barrier)
+        for message in messages:
+            rendered = message.replace('${missing_artifacts[*]}', 'apiserver')
+            with self.subTest(message=rendered):
+                match = chr_mod.MISSING_IMAGE_ARTIFACTS.search(rendered)
+                self.assertIsNotNone(match, rendered)
+                self.assertEqual(match.group('artifacts'), 'apiserver')
+
+
 class TrendAggregationTest(unittest.TestCase):
     def test_wilson_interval_is_bounded_and_tightens_with_sample_size(self):
         small = chr_mod.wilson_interval(1, 2)
@@ -611,6 +632,71 @@ class TrendAggregationTest(unittest.TestCase):
         self.assertEqual(snapshot["github_incidents"][0]["signature_matches"], 1)
         self.assertEqual(snapshot["github_incidents"][0]["strict_overlaps"], 1)
         self.assertEqual(snapshot["github_incidents"][0]["nearby_matches"], 1)
+
+    def test_groups_registry_producer_with_missing_artifact_lanes(self):
+        observations = [
+            {
+                "id": "9:1:101", "job_id": 101, "date": "2026-07-13",
+                "workflow": "Legacy", "lane": (
+                    "build / image-build (apiserver, backend/Dockerfile, .)"
+                ),
+                "run_id": 9, "attempt": 1, "sha": "a",
+                "conclusion": "failure", "failed": True, "duration": 5.0,
+                "phases": {},
+            },
+            {
+                "id": "9:1:102", "job_id": 102, "date": "2026-07-13",
+                "workflow": "Legacy", "lane": "database main",
+                "run_id": 9, "attempt": 1, "sha": "a",
+                "conclusion": "failure", "failed": True, "duration": 20.0,
+                "phases": {},
+            },
+        ]
+        logs = {
+            101: (
+                'Get "https://registry-1.docker.io/v2/": '
+                'Client.Timeout exceeded while awaiting headers\n'
+            ),
+            102: 'Missing branch image artifacts after producer completion grace: apiserver\n',
+        }
+
+        def fake_api_request(_token, url, raw=False):
+            self.assertTrue(raw)
+            return logs[int(url.split('/')[-2])].encode()
+
+        with mock.patch.object(chr_mod, 'api_request', side_effect=fake_api_request):
+            enriched, events, errors = chr_mod.group_image_producer_failures(
+                'token', 'kubeflow/pipelines', observations
+            )
+
+        self.assertEqual(errors, 0)
+        self.assertEqual(
+            enriched[0]["api_result_class"], "infrastructure_failure"
+        )
+        self.assertEqual(
+            enriched[0]["api_signatures"], {"external_registry_timeout": 1}
+        )
+        self.assertEqual(events[0]["artifact"], "apiserver")
+        self.assertEqual(events[0]["affected_lanes"], ["database main"])
+        self.assertEqual(events[0]["impacted_failures"], 2)
+        self.assertEqual(events[0]["status_correlation"], "none_reported")
+
+        results = [{
+            "generated_at": "2026-07-13T00:20:00Z",
+            "workflow": "Legacy", "report_name": "database main",
+            "result": "infrastructure_failure",
+            "dimensions": {}, "signatures": {"missing_image_artifact": 1},
+            "tests": [],
+        }]
+        snapshot = chr_mod.aggregate_daily(
+            enriched, results, {}, infrastructure_events=events
+        )[0]
+        self.assertEqual(snapshot["totals"]["failures"], 2)
+        self.assertEqual(snapshot["failure_classes"]["infrastructure_failure"], 2)
+        self.assertNotIn("unclassified_failure", snapshot["failure_classes"])
+        self.assertEqual(snapshot["signatures"]["external_registry_timeout"], 1)
+        self.assertEqual(snapshot["signatures"]["missing_image_artifact"], 1)
+        self.assertEqual(snapshot["infrastructure_events"], events)
 
     def test_rerun_rescue_is_attributed_only_to_latest_attempt_day(self):
         observations = [
@@ -853,13 +939,14 @@ class TrendAggregationTest(unittest.TestCase):
                     "job_timeout": 1,
                     "missing_result": 1,
                     "infrastructure_failure": 1,
+                    "unknown_failure": 1,
                 },
             }]
         }
         totals = chr_mod.window_totals(
             history, "2026-07-13", "2026-07-14"
         )
-        self.assertEqual(totals["infrastructure_failures"], 4)
+        self.assertEqual(totals["infrastructure_failures"], 5)
         self.assertEqual(totals["github_correlated_failures"], 2)
 
     def test_site_writes_lightweight_manifest_and_individual_daily_history(self):

@@ -134,13 +134,15 @@ def elapsed_seconds(start_path, end_path):
     return round(end - start, 3)
 
 
-def classify(test_outcome, reporting_outcomes, tests, signatures):
+def classify(test_outcome, reporting_outcomes, tests, signatures, setup_outcome=""):
+    if setup_outcome not in ("", "success"):
+        return "infrastructure_failure"
     if test_outcome != "success":
         if any(signatures.values()):
             return "infrastructure_failure"
         if any(test["failures"] for test in tests):
             return "test_failure"
-        return "unknown_failure"
+        return "unclassified_failure"
     if any(outcome not in ("", "success", "skipped") for outcome in reporting_outcomes):
         return "reporting_failure"
     return "success"
@@ -158,7 +160,13 @@ def build_result(args):
         args.upload_outcome,
         args.publish_outcome,
     ]
-    result_class = classify(args.test_outcome, reporting_outcomes, tests, signatures)
+    result_class = classify(
+        args.test_outcome,
+        reporting_outcomes,
+        tests,
+        signatures,
+        setup_outcome=args.setup_outcome,
+    )
     now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     dimensions = {
         "pipeline_store": args.pipeline_store,
@@ -181,6 +189,7 @@ def build_result(args):
         "run_attempt": int(args.run_attempt),
         "sha": args.sha,
         "result": result_class,
+        "setup_outcome": args.setup_outcome,
         "test_outcome": args.test_outcome,
         "reporting_outcomes": reporting_outcomes,
         "dimensions": dimensions,
@@ -207,7 +216,7 @@ def parse_args():
     parser.add_argument("--report-end", required=True)
     for name in (
         "repository", "workflow", "job", "report-name", "run-id", "run-attempt",
-        "sha", "test-outcome", "install-outcome", "html-outcome",
+        "sha", "test-outcome", "setup-outcome", "install-outcome", "html-outcome",
         "upload-outcome", "publish-outcome", "pipeline-store", "proxy",
         "cache-enabled", "multi-user", "deployment-mode", "mlflow-enabled",
         "test-label", "parallel-nodes",
