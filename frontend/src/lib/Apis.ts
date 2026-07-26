@@ -180,7 +180,7 @@ export class Apis {
     return path.endsWith('/') ? path.substr(0, path.length - 1) : path;
   }
 
-  // TODO(jlyaoyuli): deprecrate v1 experimentServiceApi function after all integrations.
+  // TODO(jlyaoyuli): deprecate v1 experimentServiceApi function after all integrations.
   public static get experimentServiceApi(): ExperimentServiceApi {
     if (!this._experimentServiceApi) {
       this._experimentServiceApi = new ExperimentServiceApi(
