@@ -23,7 +23,11 @@ Kubeflow Pipelines (KFP)
    Source Code <https://github.com/kubeflow/pipelines/>
 
 .. toctree::
-   :caption: Guides
    :hidden:
 
-   Guides <guides/index>
+   Concepts <guides/concepts/index>
+   User Guides <guides/user-guides/index>
+   Operator Guides <guides/operator-guides/index>
+   Python SDK <source/kfp>
+   Reference <guides/reference/index>
+   Contributor Guide <https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md>
