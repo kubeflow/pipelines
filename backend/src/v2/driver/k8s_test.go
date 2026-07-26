@@ -3970,3 +3970,62 @@ func Test_extendPodSpecPatch_InitContainers_AdminSecurityDefaults(t *testing.T) 
 	assert.NotNil(t, got.HostUsers)
 	assert.False(t, *got.HostUsers)
 }
+
+func Test_resolveStorageClassName(t *testing.T) {
+	strPtr := func(s string) *string { return &s }
+
+	tests := []struct {
+		name     string
+		inputs   *pipelinespec.ExecutorInput_Inputs
+		wantName *string
+	}{
+		{
+			name:     "nil inputs returns nil",
+			inputs:   nil,
+			wantName: nil,
+		},
+		{
+			name: "storage_class_name parameter omitted returns nil for cluster default",
+			inputs: &pipelinespec.ExecutorInput_Inputs{
+				ParameterValues: map[string]*structpb.Value{
+					"size": structpb.NewStringValue("5Gi"),
+				},
+			},
+			wantName: nil,
+		},
+		{
+			name: "storage_class_name parameter null returns nil for cluster default",
+			inputs: &pipelinespec.ExecutorInput_Inputs{
+				ParameterValues: map[string]*structpb.Value{
+					"storage_class_name": structpb.NewNullValue(),
+				},
+			},
+			wantName: nil,
+		},
+		{
+			name: "storage_class_name parameter specified returns pointer to string",
+			inputs: &pipelinespec.ExecutorInput_Inputs{
+				ParameterValues: map[string]*structpb.Value{
+					"storage_class_name": structpb.NewStringValue("fast-sc"),
+				},
+			},
+			wantName: strPtr("fast-sc"),
+		},
+		{
+			name: "storage_class_name parameter empty string returns pointer to empty string for static binding",
+			inputs: &pipelinespec.ExecutorInput_Inputs{
+				ParameterValues: map[string]*structpb.Value{
+					"storage_class_name": structpb.NewStringValue(""),
+				},
+			},
+			wantName: strPtr(""),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := resolveStorageClassName(tt.inputs)
+			assert.Equal(t, tt.wantName, got)
+		})
+	}
+}
