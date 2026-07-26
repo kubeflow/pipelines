@@ -661,7 +661,11 @@ def create_notebook_component_from_func(
     # Resolve default packages for notebooks when not specified
     if packages_to_install is None:
         packages_to_install = [
-            'nbclient>=0.10,<1', 'ipykernel>=6,<7', 'jupyter_client>=7,<9'
+            'nbclient>=0.10,<1',
+            'ipykernel>=6,<7',
+            'jupyter_client>=7,<9',
+            # 2.22.0 uses Python 3.10 union syntax but permits Python 3.9.
+            'fastjsonschema<2.22; python_version < "3.10"',
         ]
 
     # Validate notebook path and determine relpath

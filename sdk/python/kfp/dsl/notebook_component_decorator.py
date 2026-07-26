@@ -36,7 +36,8 @@ def notebook_component(
         base_image: Base container image for the component.
         packages_to_install: Runtime-only packages to install inside the
             component container. When None, defaults to
-            ["nbclient>=0.10,<1", "ipykernel>=6,<7", "jupyter_client>=7,<9"]
+            ["nbclient>=0.10,<1", "ipykernel>=6,<7", "jupyter_client>=7,<9",
+            "fastjsonschema<2.22; python_version < '3.10'"]
             to ensure the notebook can execute with a Python kernel and client.
             When [], installs nothing. When non-empty, installs the exact list.
         output_component_file: Optional path to write the component YAML.
