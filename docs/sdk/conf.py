@@ -90,7 +90,6 @@ html_theme_options = {
     'globaltoc_collapse':
         False,
     'features': [
-        'navigation.expand',
         # "navigation.tabs",
         # "toc.integrate",
         'navigation.sections',

@@ -15,9 +15,8 @@ these guide entries in this exact order:
 1. Concepts
 2. User Guides
 3. Operator Guides
-4. Python SDK
-5. Reference
-6. Contributor Guide
+4. Reference
+5. Contributor Guide
 
 The existing `Overview`, `Getting Started`, and `Interfaces` entries in the
 separate `Guides` group will not be displayed. The global `Guides` dropdown
@@ -26,9 +25,12 @@ will also be removed. This does not alter similarly named entries in
 
 `Concepts`, `User Guides`, `Operator Guides`, and `Reference` are expandable
 top-level groups whose first item is their existing landing page and whose
-children remain their existing pages. `Python SDK` is an expandable top-level
-group for the existing SDK API documentation. `Contributor Guide` is a direct
-external link to the repository's `CONTRIBUTING.md`.
+children remain their existing pages. `Contributor Guide` is a direct external
+link to the repository's `CONTRIBUTING.md`.
+
+The theme's global expansion behavior is disabled so expandable sidebar
+sections, including `Contents`, `User Guides`, and `Operator Guides`, are
+collapsed by default.
 
 ## Implementation boundary
 
