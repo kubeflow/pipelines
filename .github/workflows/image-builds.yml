@@ -83,7 +83,7 @@ jobs:
           exit 1
 
       - name: Download runtime base images from producer
-        uses: actions/download-artifact@v7
+        uses: ./.github/actions/download-artifact-with-retry
         with:
           name: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}
           path: ${{ env.ARTIFACTS_PATH }}
