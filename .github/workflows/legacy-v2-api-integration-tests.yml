@@ -138,8 +138,10 @@ jobs:
         uses: ./.github/actions/publish-ci-result
         with:
           test_outcome: ${{ steps.tests.outcome }}
+          setup_outcome: ${{ steps.deploy.outcome }}
           report_name: API integration tests v2 - ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }} TLS=${{ matrix.pod_to_pod_tls_enabled }} group=${{ matrix.test_group }}
           go_json: ${{ runner.temp }}/go-test-output.log
+          log_file: /tmp/kfp-ci-setup-failure.log
           pipeline_store: ${{ matrix.pipeline_store }}
 
       - name: Report network observability

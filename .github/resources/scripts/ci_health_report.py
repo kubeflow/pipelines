@@ -76,6 +76,21 @@ GITHUB_TRANSIENT_ERROR = re.compile(
     r"service unavailable",
     re.IGNORECASE,
 )
+EXTERNAL_REGISTRY_TARGET = re.compile(
+    r"(?P<registry>registry-1\.docker\.io|docker\.io|quay\.io|"
+    r"gcr\.io|ghcr\.io)",
+    re.IGNORECASE,
+)
+EXTERNAL_REGISTRY_ERROR = re.compile(
+    r"timed? ?out|timeout|deadline exceeded|connection reset",
+    re.IGNORECASE,
+)
+IMAGE_BUILD_ARTIFACT = re.compile(r"image-build \((?P<artifact>[^,]+),")
+# The image barrier reports the still-missing artifacts after either a
+# publication grace period or an unavailable producer-state window.
+MISSING_IMAGE_ARTIFACTS = re.compile(
+    r"Missing branch image artifacts[^:\r\n]*:\s*(?P<artifacts>[^\r\n]+)"
+)
 
 # Heavy master-branch test workflows worth tracking for flake health.
 # Missing entries are surfaced in the report notes rather than silently
@@ -122,6 +137,9 @@ INFRASTRUCTURE_FAILURE_CLASSES = {
     "job_timeout",
     "missing_result",
     "unclassified_failure",
+    # Kept for normalized artifacts written before the class name was aligned
+    # with the dashboard terminology.
+    "unknown_failure",
 }
 
 
@@ -366,6 +384,114 @@ def add_github_log_evidence(token, repo, observations):
         copy["github_incidents"] = matches
         enriched.append(copy)
     return enriched, errors
+
+
+def external_registry_failure(log_text):
+    """Returns compact evidence for a registry network failure, if present."""
+    lines = log_text.splitlines()
+    for index, line in enumerate(lines):
+        context = " ".join(lines[max(0, index - 1):index + 2])
+        target = EXTERNAL_REGISTRY_TARGET.search(context)
+        if target and EXTERNAL_REGISTRY_ERROR.search(context):
+            return {
+                "signature": "external_registry_timeout",
+                "registry": target.group("registry").lower(),
+                "evidence": " ".join(line.split())[:240],
+            }
+    return None
+
+
+def missing_image_artifacts(log_text):
+    """Returns artifact names reported by the shared image barrier."""
+    artifacts = set()
+    for match in MISSING_IMAGE_ARTIFACTS.finditer(log_text):
+        artifacts.update(match.group("artifacts").split())
+    return sorted(artifacts)
+
+
+def group_image_producer_failures(token, repo, observations):
+    """Groups one failed image producer with the lanes blocked by its artifact.
+
+    Only failed image-build logs and failed siblings from the same run are
+    fetched. This keeps API use proportional to rare producer failures while
+    preserving every affected job in the headline lane failure rate.
+    """
+    enriched = [dict(observation) for observation in observations]
+    by_run_attempt = collections.defaultdict(list)
+    for observation in enriched:
+        by_run_attempt[(observation.get("run_id"), observation.get("attempt"))].append(
+            observation
+        )
+
+    log_cache = {}
+    errors = 0
+
+    def read_job_log(observation):
+        nonlocal errors
+        job_id = observation.get("job_id")
+        if not job_id:
+            return ""
+        if job_id not in log_cache:
+            try:
+                raw = api_request(
+                    token,
+                    f"{API_ROOT}/repos/{repo}/actions/jobs/{job_id}/logs",
+                    raw=True,
+                )
+                log_cache[job_id] = raw.decode("utf-8", errors="replace")
+            except (OSError, ValueError, urllib.error.HTTPError, RateLimited):
+                log_cache[job_id] = ""
+                errors += 1
+        return log_cache[job_id]
+
+    events = []
+    for producer in enriched:
+        if not producer.get("failed"):
+            continue
+        producer_match = IMAGE_BUILD_ARTIFACT.search(producer.get("lane") or "")
+        if not producer_match:
+            continue
+        registry_failure = external_registry_failure(read_job_log(producer))
+        if not registry_failure:
+            continue
+
+        artifact = producer_match.group("artifact")
+        producer["api_result_class"] = "infrastructure_failure"
+        producer["api_signatures"] = {registry_failure["signature"]: 1}
+        affected_lanes = []
+        siblings = by_run_attempt[(producer.get("run_id"), producer.get("attempt"))]
+        for sibling in siblings:
+            if sibling is producer or not sibling.get("failed"):
+                continue
+            if artifact in missing_image_artifacts(read_job_log(sibling)):
+                affected_lanes.append(sibling.get("lane") or "<unnamed>")
+
+        events.append(
+            {
+                "id": (
+                    f"{producer.get('run_id')}:{producer.get('attempt')}:"
+                    f"image-artifact:{artifact}"
+                ),
+                "date": producer.get("date") or "",
+                "run_id": producer.get("run_id"),
+                "attempt": producer.get("attempt"),
+                "type": "image_artifact_producer_failure",
+                "signature": registry_failure["signature"],
+                "registry": registry_failure["registry"],
+                "artifact": artifact,
+                "producer_lane": producer.get("lane") or "<unnamed>",
+                "affected_lanes": sorted(set(affected_lanes)),
+                "impacted_failures": 1 + len(set(affected_lanes)),
+                "status_correlation": (
+                    "github_reported"
+                    if producer.get("github_incidents")
+                    else "none_reported"
+                ),
+                "github_incidents": producer.get("github_incidents") or [],
+                "run_url": f"https://github.com/{repo}/actions/runs/{producer.get('run_id')}",
+            }
+        )
+    return enriched, events, errors
 
 
 def elapsed_minutes(start, end):
@@ -945,11 +1071,21 @@ def summarized_distribution(values):
     }
 
 
-def aggregate_daily(observations, normalized_results, rerun_runs, github_incidents=()):
+def aggregate_daily(
+    observations,
+    normalized_results,
+    rerun_runs,
+    github_incidents=(),
+    infrastructure_events=(),
+):
     """Aggregates replaceable daily snapshots from raw API/artifact records."""
     incidents_by_id = {
         incident["id"]: incident for incident in github_incidents
     }
+    infrastructure_events_by_day = collections.defaultdict(list)
+    for event in infrastructure_events:
+        if event.get("date"):
+            infrastructure_events_by_day[event["date"]].append(event)
     observations_by_day = collections.defaultdict(list)
     for observation in observations:
         observations_by_day[observation["date"]].append(observation)
@@ -1018,11 +1154,16 @@ def aggregate_daily(observations, normalized_results, rerun_runs, github_inciden
         github_strict_overlaps = 0
         github_nearby_matches = 0
         github_incident_counts = collections.defaultdict(collections.Counter)
+        api_failure_classes = collections.Counter()
+        api_signatures = collections.Counter()
         for observation in day_observations:
             lane = lanes[(observation["workflow"], observation["lane"])]
             lane["runs"] += 1
             lane["failures"] += int(observation["failed"])
             failed_jobs += int(observation["failed"])
+            if observation.get("failed") and observation.get("api_result_class"):
+                api_failure_classes[observation["api_result_class"]] += 1
+                api_signatures.update(observation.get("api_signatures") or {})
             matches = observation.get("github_incidents") or []
             if observation["failed"] and matches:
                 lane["github_correlated_failures"] += 1
@@ -1045,7 +1186,9 @@ def aggregate_daily(observations, normalized_results, rerun_runs, github_inciden
                     all_phases[phase].append(value)
 
         failure_classes = collections.Counter()
+        failure_classes.update(api_failure_classes)
         signatures = collections.Counter()
+        signatures.update(api_signatures)
         tests = collections.defaultdict(lambda: {"executions": 0, "failures": 0, "skipped": 0})
         result_lanes = collections.defaultdict(
             lambda: {"runs": 0, "classes": collections.Counter(), "dimensions": {}}
@@ -1149,6 +1292,7 @@ def aggregate_daily(observations, normalized_results, rerun_runs, github_inciden
                     )
                     if incident_id in incidents_by_id
                 ],
+                "infrastructure_events": infrastructure_events_by_day.get(day, []),
                 "lanes": lane_rows,
                 "result_lanes": result_lane_rows,
                 "tests": [
@@ -1331,6 +1475,7 @@ def render_trend_summary(history, notes, dashboard_url, pages_enabled=True):
 
     cutoff = (today - timedelta(days=14)).isoformat()
     github_incident_totals = {}
+    infrastructure_events = {}
     lane_totals = collections.defaultdict(lambda: {"runs": 0, "failures": 0, "durations": []})
     test_totals = collections.defaultdict(lambda: {"executions": 0, "failures": 0})
     for day in history.get("days", []):
@@ -1349,6 +1494,8 @@ def render_trend_summary(history, notes, dashboard_url, pages_enabled=True):
             stats["signature_matches"] += incident.get("signature_matches", 0)
             stats["strict_overlaps"] += incident.get("strict_overlaps", 0)
             stats["nearby_matches"] += incident.get("nearby_matches", 0)
+        for event in day.get("infrastructure_events", []):
+            infrastructure_events[event["id"]] = event
         for lane in day.get("lanes", []):
             stats = lane_totals[(lane["workflow"], lane["lane"])]
             stats["runs"] += lane["runs"]
@@ -1393,6 +1540,41 @@ def render_trend_summary(history, notes, dashboard_url, pages_enabled=True):
         lines.append("")
     else:
         lines.append("_No failed lanes correlated with a reported GitHub incident._\n")
+
+    lines.extend(
+        [
+            "## Infrastructure root-cause events (14 days)",
+            "",
+            (
+                "_Affected jobs remain in the headline failure rate. This table "
+                "groups shared producer failures so one cause is not mistaken for "
+                "independent lane flakes._"
+            ),
+            "",
+        ]
+    )
+    if infrastructure_events:
+        lines.extend(
+            [
+                "| Event | Producer | Registry | Downstream lanes | Impacted failures | Status correlation |",
+                "|---|---|---|---:|---:|---|",
+            ]
+        )
+        for event in sorted(
+            infrastructure_events.values(),
+            key=lambda item: (item.get("date", ""), item.get("run_id", 0)),
+            reverse=True,
+        ):
+            lines.append(
+                f"| [{event['artifact']} image artifact]({event['run_url']}) | "
+                f"{event['producer_lane']} | {event['registry']} | "
+                f"{len(event.get('affected_lanes', []))} | "
+                f"{event['impacted_failures']} | "
+                f"{event.get('status_correlation', 'none_reported').replace('_', ' ')} |"
+            )
+        lines.append("")
+    else:
+        lines.append("_No grouped infrastructure producer failures._\n")
 
     failing_lanes = sorted(
         lane_totals.items(),
@@ -1640,8 +1822,20 @@ def main():
             "GitHub Status incident correlation was unavailable; failure counts "
             "and classifications are unaffected"
         )
+    observations, infrastructure_events, infrastructure_log_errors = (
+        group_image_producer_failures(token, repo, observations)
+    )
+    if infrastructure_log_errors:
+        notes.append(
+            f"{infrastructure_log_errors} failed infrastructure job log(s) "
+            "were unavailable; lane failures remain counted"
+        )
     snapshots = aggregate_daily(
-        observations, normalized_results, rerun_runs, github_incidents
+        observations,
+        normalized_results,
+        rerun_runs,
+        github_incidents,
+        infrastructure_events,
     )
     history = merge_history(history, snapshots)
     dashboard_url = os.environ.get(

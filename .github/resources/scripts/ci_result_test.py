@@ -67,6 +67,16 @@ class CiResultTest(unittest.TestCase):
             ci_result.classify("success", ["failure"], [], {}),
             "reporting_failure",
         )
+        self.assertEqual(
+            ci_result.classify(
+                "skipped", ["skipped"], [], {}, setup_outcome="failure"
+            ),
+            "infrastructure_failure",
+        )
+        self.assertEqual(
+            ci_result.classify("failure", ["success"], [], {}),
+            "unclassified_failure",
+        )
         self.assertEqual(ci_result.classify("success", ["success"], [], {}), "success")
 
     def test_go_json_uses_package_qualified_terminal_events(self):
@@ -108,6 +118,7 @@ class CiResultTest(unittest.TestCase):
                 test_end=paths["test_end"], report_end=paths["report_end"],
                 repository="o/r", workflow="wf", job="job", report_name="lane",
                 run_id="7", run_attempt="2", sha="abc", test_outcome="failure",
+                setup_outcome="success",
                 install_outcome="success", html_outcome="success",
                 upload_outcome="success", publish_outcome="success",
                 pipeline_store="database", proxy="false", cache_enabled="true",
@@ -117,6 +128,7 @@ class CiResultTest(unittest.TestCase):
             result = ci_result.build_result(args)
 
         self.assertEqual(result["result"], "infrastructure_failure")
+        self.assertEqual(result["setup_outcome"], "success")
         self.assertEqual(result["durations_seconds"], {"setup": 10.0, "test": 30.0, "report": 5.0})
         self.assertEqual(result["dimensions"]["parallel_nodes"], "2")
         self.assertEqual(result["signatures"]["connection_reset"], 3)

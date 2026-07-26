@@ -5,6 +5,10 @@ inputs:
   test_outcome:
     required: true
     description: Outcome of the lane's test step
+  setup_outcome:
+    required: false
+    default: ""
+    description: Outcome of the final setup or deployment gate before tests
   report_name:
     required: true
     description: Stable human-readable lane identity
@@ -77,7 +81,7 @@ runs:
   using: composite
   steps:
     - name: Classify known failure signatures
-      if: inputs.test_outcome != 'success'
+      if: inputs.test_outcome != 'success' || (inputs.setup_outcome != '' && inputs.setup_outcome != 'success')
       shell: bash
       env:
         GO_JSON: ${{ inputs.go_json }}
@@ -128,6 +132,7 @@ runs:
           --run-attempt "${{ github.run_attempt }}" \
           --sha "${{ github.sha }}" \
           --test-outcome "${{ inputs.test_outcome }}" \
+          --setup-outcome "${{ inputs.setup_outcome }}" \
           --install-outcome "${{ inputs.install_outcome }}" \
           --html-outcome "${{ inputs.html_outcome }}" \
           --upload-outcome "${{ inputs.upload_outcome }}" \

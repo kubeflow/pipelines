@@ -123,8 +123,10 @@ jobs:
         uses: ./.github/actions/publish-ci-result
         with:
           test_outcome: ${{ (steps.initialization-tests.outcome == 'success' && steps.integration-tests.outcome == 'success') && 'success' || 'failure' }}
+          setup_outcome: ${{ steps.forward-mysql-port.outcome }}
           report_name: Initialization & Integration tests v1 - K8s ${{ matrix.k8s_version }}
           go_json: ${{ runner.temp }}/*-go-test.json
+          log_file: /tmp/kfp-ci-setup-failure.log
 
       - name: Collect failed logs
         if: ${{ steps.deploy-pipeline-test-fixtures.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.forward-mysql-port.outcome != 'success' || steps.integration-tests.outcome != 'success' || steps.initialization-tests.outcome != 'success' }}
