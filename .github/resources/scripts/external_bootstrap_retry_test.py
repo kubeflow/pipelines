@@ -32,6 +32,7 @@ CREATE_CLUSTER_ACTION = REPO_ROOT / '.github/actions/create-cluster/action.yml'
 CREATE_MANIFEST_WORKFLOW = REPO_ROOT / '.github/workflows/create-manifest.yml'
 CI_SCRIPTS_WORKFLOW = REPO_ROOT / '.github/workflows/ci-scripts-tests.yml'
 BUILDKIT_IMAGE = 'moby/buildkit:buildx-stable-1'
+BUILDKIT_CONFIG = REPO_ROOT / '.github/resources/buildkitd.toml'
 
 
 class _RetryHandler(http.server.BaseHTTPRequestHandler):
@@ -116,7 +117,8 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
         self.assertEqual(commands[:4], [f'pull {BUILDKIT_IMAGE}'] * 4)
         self.assertIn(
             f'buildx create --name test-builder --driver docker-container '
-            f'--driver-opt image={BUILDKIT_IMAGE} --use', commands)
+            f'--driver-opt image={BUILDKIT_IMAGE} '
+            f'--buildkitd-config {BUILDKIT_CONFIG} --use', commands)
         self.assertEqual(self.sleep_log.read_text().splitlines(),
                          ['20', '40', '60'])
         self.assertEqual(self.github_output.read_text(),
@@ -182,6 +184,22 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
         workflow = CI_SCRIPTS_WORKFLOW.read_text()
 
         self.assertIn("'.github/workflows/create-manifest.yml'", workflow)
+
+    def test_buildkit_and_kind_use_docker_hub_mirror(self):
+        buildkit_config = BUILDKIT_CONFIG.read_text()
+        action = CREATE_CLUSTER_ACTION.read_text()
+
+        self.assertIn('[registry."docker.io"]', buildkit_config)
+        self.assertIn('mirrors = ["mirror.gcr.io"]', buildkit_config)
+        self.assertIn(
+            'bash ./.github/resources/scripts/'
+            'configure-docker-hub-mirror.sh',
+            action,
+        )
+        self.assertLess(
+            action.index('Configure Docker Hub mirror'),
+            action.index('Restore Kind node image cache'),
+        )
 
 
 if __name__ == '__main__':

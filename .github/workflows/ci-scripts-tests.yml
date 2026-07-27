@@ -10,6 +10,7 @@ on:
       - '.github/actions/deploy/**'
       - '.github/actions/download-artifact-with-retry/**'
       - '.github/resources/curl-retry/**'
+      - '.github/resources/buildkitd.toml'
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/*.py'
       # The observability shell scripts are covered by Python-driven tests.
@@ -24,6 +25,8 @@ on:
       - '.github/workflows/create-manifest.yml'
       - '.github/workflows/e2e-test.yml'
       - '.github/workflows/image-builds.yml'
+      - '.github/workflows/build-tools-images.yml'
+      - '.github/workflows/runtime-base-images.yml'
       - '.github/workflows/ci-scripts-tests.yml'
       - '.github/workflows/gh-workflow-approve.yml'
       - 'manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml'
