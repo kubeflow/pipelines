@@ -135,6 +135,27 @@
               "type": "string"
             },
             {
+              "name": "version_name",
+              "in": "query",
+              "required": false,
+              "type": "string",
+              "description": "Optional version name override."
+            },
+            {
+              "name": "version_display_name",
+              "in": "query",
+              "required": false,
+              "type": "string",
+              "description": "Optional version display name override."
+            },
+            {
+              "name": "version_description",
+              "in": "query",
+              "required": false,
+              "type": "string",
+              "description": "Optional version description override."
+            },
+            {
               "name": "namespace",
               "in": "query",
               "required": false,

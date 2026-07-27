@@ -297,7 +297,18 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 	}
 
 	versionNameQueryString := r.URL.Query().Get(NameQueryStringKey)
+	if versionNameQueryString == "" {
+		versionNameQueryString = r.URL.Query().Get(VersionNameQueryStringKey)
+	}
 	versionDisplayNameQueryString := r.URL.Query().Get(DisplayNameQueryStringKey)
+	if versionDisplayNameQueryString == "" {
+		versionDisplayNameQueryString = r.URL.Query().Get(VersionDisplayNameQueryStringKey)
+	}
+	versionDescriptionQueryString := r.URL.Query().Get(DescriptionQueryStringKey)
+	if versionDescriptionQueryString == "" {
+		versionDescriptionQueryString = r.URL.Query().Get(VersionDescriptionQueryStringKey)
+	}
+
 	pipelineVersionName := buildPipelineName(versionNameQueryString, versionDisplayNameQueryString, header.Filename)
 
 	displayName := versionDisplayNameQueryString
@@ -352,7 +363,7 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 		&model.PipelineVersion{
 			Name:          pipelineVersionName,
 			DisplayName:   displayName,
-			Description:   model.LargeText(r.URL.Query().Get(DescriptionQueryStringKey)),
+			Description:   model.LargeText(versionDescriptionQueryString),
 			PipelineId:    pipelineID,
 			PipelineSpec:  model.LargeText(pipelineFile),
 			CodeSourceUrl: r.URL.Query().Get(CodeSourceURLQueryStringKey),
